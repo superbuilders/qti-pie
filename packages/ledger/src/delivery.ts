@@ -84,6 +84,7 @@ import { servableOf } from "#ledger/servable.ts";
 import { sessionAttemptsOf } from "#ledger/session-attempts.ts";
 import { sessionControlsOf } from "#ledger/session-control.ts";
 import { asMicros, clockTop, Moment } from "#ledger/sittings.ts";
+import { storedContentOf } from "#ledger/stored-content.ts";
 import { testLawsOf } from "#ledger/test-laws.ts";
 import { walksOf } from "#ledger/walks.ts";
 
@@ -1225,6 +1226,11 @@ export const deliveryOf = (ledger: LedgerLevel) => {
    */
   const walks = walksOf(ledger);
 
+  /**
+   * The content of a package's documents the grader and admission read, stored at publication.
+   */
+  const content = storedContentOf(ledger);
+
   const deliveryRelations = [
     DeliveredTest,
     ItemDuration,
@@ -1247,6 +1253,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     ...programs.relations,
     ...modules.relations,
     ...walks.relations,
+    ...content.relations,
     ...creditRelationsOf(ledger, assertions),
     ...results.relations,
     ...sessionAttemptsOf(ledger),

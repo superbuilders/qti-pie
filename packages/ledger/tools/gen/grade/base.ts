@@ -416,6 +416,53 @@ export const RUN_INPUTS = [
 ] as const;
 
 /**
+ * A document's content its run reads beside its declarations, as the package's publication stores
+ * it (`#ledger/stored-content.ts`), each argument by its reader in the readers' fragment: its
+ * mappings, area mappings and lookup tables, parsed, each base-typed value they hold by its base
+ * type, and its variables' kinds.
+ */
+export const CONTENT_INPUTS = [
+  ["mappings", "mappingsOf"],
+  ["area_mappings", "areaMappingsOf"],
+  ["map_entries", "mapEntriesOf"],
+  ["area_entries", "areaMapEntriesOf"],
+  ["area_coords", "areaCoordsOf"],
+  ["lookups", "lookupsOf"],
+  ["match_entries", "matchEntriesOf"],
+  ["interpolation_entries", "interpolationEntriesOf"],
+  ["value_texts", "valueTextsOf"],
+  ["value_integers", "valueIntegersOf"],
+  ["value_floats", "valueFloatsOf"],
+  ["value_booleans", "valueBooleansOf"],
+  ["value_pairs", "valuePairsOf"],
+  ["value_directed_pairs", "valueDirectedPairsOf"],
+  ["value_points", "valuePointsOf"],
+  ["kinds", "variableKindsOf"],
+] as const;
+
+/**
+ * The text with each content input after a document's declaration texts, as `line` writes one: a
+ * readers' return's entry or a run's bind.
+ *
+ * @param text The text, which names `declaration_texts` once as `line` writes it.
+ * @param line One input's line, by its argument and its reader.
+ * @returns The text with the content inputs.
+ */
+export const withContentInputs = (
+  text: string,
+  line: (arg: string, reader: string) => string,
+): string => {
+  const after = line("declaration_texts", "declarationTextsOf");
+  must(count(text, after) === 1, `one ${after.trim()}`);
+
+  return replaceAll(
+    text,
+    after,
+    after + CONTENT_INPUTS.map(([arg, reader]) => line(arg, reader)).join(""),
+  );
+};
+
+/**
  * Response processing's own run inputs beside {@link RUN_INPUTS}: the attempt's evaluated
  * applications, which the grader reads so that it demands none twice, and the person's value in
  * force of each rubric group and its feedback, which it reads in place of the group's draws.
@@ -799,7 +846,10 @@ export const overDelivery = (text: string): string => {
 export const baseStage = (fragment: Fragments): string => {
   const body = walked(fragment("base/readers"));
   const sitting = indented(fragment("base/sitting"), "\t");
-  const readersReturn = withWalkReturns(fragment("base/readers-return"));
+  const readersReturn = withContentInputs(
+    withWalkReturns(fragment("base/readers-return")),
+    (arg, reader) => `\t\t${arg}: ${reader}(gradedSitting),\n`,
+  );
   const latestFrom = indexOf(body, "/** Each item session of the sitting with an attempt");
   const latestTo = indexOf(body, "/** The subtree the item's response processing runs");
   const latest = replaceAll(
@@ -845,7 +895,10 @@ ${TYPES.map((t) => outcomeMember("Record", t)).join("\n")}`;
     readersReturn,
     tables,
     sitting,
-    withWalkBinds(fragment("base/post-head")),
+    withContentInputs(
+      withWalkBinds(fragment("base/post-head")),
+      (arg) => `\t\t\t${arg}: args.${arg}.bind(bySession(session)),\n`,
+    ),
     ...graded,
     records,
     fragment("base/post-tail"),

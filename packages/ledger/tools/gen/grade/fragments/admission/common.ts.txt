@@ -47,53 +47,29 @@
   const processed = processedOf.bind(answeredKey);
 
   /**
-   * The item body's element nodes, its `qti-item-body` among them, each kind by its name
-   * (`BodyNodeKind`).
+   * The item body's element nodes, its `qti-item-body` among them, each kind by its name, as the
+   * package's publication stores them (`ItemBodyElement`).
    */
   const body = query(delivery).rule((r) => {
     const { package: pkg, path } = v(answered, "answered");
-    const { start: first, end: last } = v(fields.Node, "itemBody");
-    const { start, end, parent, kind } = v(fields.Node, "bodyNode");
-    const { token } = v(fields.BodyNodeKind, "kind");
+    const { start, end, parent, kind } = v(fields.ItemBodyElement, "bodyNode");
 
     return r
       .match(answered, { package: pkg, path })
-      .match(fields.Node, {
-        end: last,
-        kind: "qti-item-body",
-        package: pkg,
-        parentKind: "qti-assessment-item",
-        path,
-        start: first,
-      })
-      .match(fields.Node, { end, kind, package: pkg, parent, path, start })
-      .match(fields.BodyNodeKind, { kind, token })
-      .where(r.ge(start, first), r.lt(start, last))
-      .find({ end, kind: token, package: pkg, parent, path, start });
+      .match(fields.ItemBodyElement, { end, kind, package: pkg, parent, path, start })
+      .find({ end, kind, package: pkg, parent, path, start });
   });
 
   /**
-   * The attributes of the body's elements admission reads (`AdmittedAttributeName`), as pantry's
-   * Attribute holds their values.
+   * The attributes of the body's elements admission reads, as the package's publication stores
+   * them (`ItemBodyAttribute`).
    */
   const bodyAttributes = query(delivery).rule((r) => {
     const { package: pkg, path } = v(answered, "answered");
-    const { start: first, end: last } = v(fields.Node, "itemBody");
-    const { start, name, value } = v(fields.Attribute, "attribute");
-    const { token } = v(fields.AdmittedAttributeName, "name");
+    const { start, name, value } = v(fields.ItemBodyAttribute, "attribute");
 
     return r
       .match(answered, { package: pkg, path })
-      .match(fields.Node, {
-        end: last,
-        kind: "qti-item-body",
-        package: pkg,
-        parentKind: "qti-assessment-item",
-        path,
-        start: first,
-      })
-      .match(fields.Attribute, { name, package: pkg, path, start, value })
-      .match(fields.AdmittedAttributeName, { name, token })
-      .where(r.ge(start, first), r.lt(start, last))
-      .find({ name: token, package: pkg, path, start, value });
+      .match(fields.ItemBodyAttribute, { name, package: pkg, path, start, value })
+      .find({ name, package: pkg, path, start, value });
   });

@@ -20,14 +20,14 @@
  *   covers.
  *
  * The marks are `attemptMarksOf`'s over the arguments the grading statement's own table builds
- * (`#grade.ts` `attemptArgumentsOf`): the items' declarations, and the attempts' values (held
- * `value`) with the correct responses in force, the declarations' overridden by those the session's
- * template processing set (held `correct`), read by the grader's own readers. So a mark agrees with
- * `qti-match` by construction: a multiple and a single as a bag, an ordered value as a bag of
- * places, compared by the machine's `same`; and a point response a Select Point or a Position
- * Object binds whose declaration holds an area mapping by area, as `qti-map-response-point` counts
- * it (proposal 2026-11-18-grading-in-sql, Decision 6). A record, and a response whose correct
- * response in force is none or NULL, has no marks but by area.
+ * (`#grade.ts` `attemptArgumentsOf`): the items' declarations and area mappings, and the attempts'
+ * values (held `value`) with the correct responses in force, the declarations' overridden by those
+ * the session's template processing set (held `correct`), read by the grader's own readers. So a
+ * mark agrees with `qti-match` by construction: a multiple and a single as a bag, an ordered value
+ * as a bag of places, compared by the machine's `same`; and a point response a Select Point or a
+ * Position Object binds whose declaration holds an area mapping by area, as
+ * `qti-map-response-point` counts it (proposal 2026-11-18-grading-in-sql, Decision 6). A record,
+ * and a response whose correct response in force is none or NULL, has no marks but by area.
  *
  * These are reads, not the Delivery level's derived relations the proposal names (`AttemptMark`): a
  * relation over every attempt would bind the grading statement's argument builders to each attempt
@@ -95,6 +95,9 @@ export const markReadsOf = (delivery: DeliveryLevel) => {
 
     return Fn.row(attemptMarksOf, {
       area_bound: areaBound.bind({ sittings }),
+      area_coords: args.area_coords.bind({ sittings }),
+      area_entries: args.area_entries.bind({ sittings }),
+      area_mappings: args.area_mappings.bind({ sittings }),
       booleans: args.booleans.bind({ sittings }),
       declaration_attributes: args.declaration_attributes.bind({ sittings }),
       declaration_texts: args.declaration_texts.bind({ sittings }),

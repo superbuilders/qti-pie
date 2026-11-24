@@ -49,47 +49,237 @@ const responseRootsOf = (session: GradedSession) =>
 			.find({ package: pkg, path: item, source, document, start, end })
 	})
 
-/** The graded items' declarations' nodes of the kinds the machine reads. */
+/** The graded items' declarations' nodes of the kinds the machine reads, as the package's publication stores them
+ * (DeclarationElement). */
 const declarationNodesOf = (session: GradedSession) =>
 	query(Installed).rule((r) => {
 		const graded = gradableOf(session).bind(bySession(session))
 		const { package: pkg, path: item } = v(graded, "graded")
-		const { start, end, parent, kind } = v(fields.Node, "node")
-		const { token } = v(fields.DeclarationNodeKind, "kind")
+		const { start, end, parent, kind } = v(fields.DeclarationElement, "node")
 		return r
 			.match(graded, { package: pkg, path: item })
-			.match(fields.Node, { package: pkg, path: item, start, end, parent, kind })
-			.match(fields.DeclarationNodeKind, { kind, token })
-			.find({ package: pkg, path: item, start, end, parent, kind: token })
+			.match(fields.DeclarationElement, { package: pkg, path: item, start, end, parent, kind })
+			.find({ package: pkg, path: item, start, end, parent, kind })
 	})
 
-/** Their attributes the machine reads. */
+/** Their attributes the machine reads (DeclarationAttribute). */
 const declarationAttributesOf = (session: GradedSession) =>
 	query(Installed).rule((r) => {
 		const graded = gradableOf(session).bind(bySession(session))
 		const { package: pkg, path: item } = v(graded, "graded")
-		const { start, kind } = v(fields.Node, "node")
-		const { name, value } = v(fields.Attribute, "attribute")
-		const { token } = v(fields.GradedAttributeName, "name")
+		const { start, name, value } = v(fields.DeclarationAttribute, "attribute")
 		return r
 			.match(graded, { package: pkg, path: item })
-			.match(fields.Node, { package: pkg, path: item, start, kind })
-			.match(fields.DeclarationNodeKind, { kind })
-			.match(fields.Attribute, { package: pkg, path: item, start, name, value })
-			.match(fields.GradedAttributeName, { name, token })
-			.find({ package: pkg, path: item, start, name: token, value })
+			.match(fields.DeclarationAttribute, { package: pkg, path: item, start, name, value })
+			.find({ package: pkg, path: item, start, name, value })
 	})
 
-/** Each qti-value's string value. */
+/** Each qti-value's string value (DeclarationValueText). */
 const declarationTextsOf = (session: GradedSession) =>
 	query(Installed).rule((r) => {
 		const graded = gradableOf(session).bind(bySession(session))
 		const { package: pkg, path: item } = v(graded, "graded")
-		const { start, stringValue } = v(fields.Node, "value")
+		const { start, text } = v(fields.DeclarationValueText, "value")
 		return r
 			.match(graded, { package: pkg, path: item })
-			.match(fields.Node, { package: pkg, path: item, start, kind: "qti-value", stringValue })
-			.find({ package: pkg, path: item, start, text: stringValue })
+			.match(fields.DeclarationValueText, { package: pkg, path: item, start, text })
+			.find({ package: pkg, path: item, start, text })
+	})
+
+/** The graded items' mappings, by their responses, their defaults and bounds parsed (DeclaredMapping). */
+const mappingsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { identifier, dflt, lower, upper } = v(fields.DeclaredMapping, "mapping")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.DeclaredMapping, { package: pkg, path: item, identifier, dflt, lower, upper })
+			.find({ package: pkg, path: item, identifier, dflt, lower, upper })
+	})
+
+/** Their area mappings (DeclaredAreaMapping). */
+const areaMappingsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { identifier, dflt, lower, upper } = v(fields.DeclaredAreaMapping, "mapping")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.DeclaredAreaMapping, { package: pkg, path: item, identifier, dflt, lower, upper })
+			.find({ package: pkg, path: item, identifier, dflt, lower, upper })
+	})
+
+/** Their map entries, each by its element's start, its case sensitivity and mapped value parsed (DeclaredMapEntry). */
+const mapEntriesOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, identifier, caseSensitive, value } = v(fields.DeclaredMapEntry, "entry")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.DeclaredMapEntry, { package: pkg, path: item, start, identifier, caseSensitive, value })
+			.find({ package: pkg, path: item, start, identifier, case_sensitive: caseSensitive, value })
+	})
+
+/** Their area map entries, each its area's kind and mapped value (DeclaredAreaEntry). */
+const areaMapEntriesOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, identifier, kind, value } = v(fields.DeclaredAreaEntry, "entry")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.DeclaredAreaEntry, { package: pkg, path: item, start, identifier, kind, value })
+			.find({ package: pkg, path: item, start, identifier, kind, value })
+	})
+
+/** Each area map entry's coordinates, by its place (DeclaredAreaCoord). */
+const areaCoordsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, place, c } = v(fields.DeclaredAreaCoord, "coordinate")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.DeclaredAreaCoord, { package: pkg, path: item, start, place, c })
+			.find({ package: pkg, path: item, start, place, c })
+	})
+
+/** Their lookup tables, by their outcomes, each its kind (DeclaredLookup). */
+const lookupsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, identifier, kind } = v(fields.DeclaredLookup, "table")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.DeclaredLookup, { package: pkg, path: item, start, identifier, kind })
+			.find({ package: pkg, path: item, start, identifier, kind })
+	})
+
+/** Their match table entries, each its source (DeclaredMatchEntry). */
+const matchEntriesOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, identifier, source } = v(fields.DeclaredMatchEntry, "entry")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.DeclaredMatchEntry, { package: pkg, path: item, start, identifier, source })
+			.find({ package: pkg, path: item, start, identifier, source })
+	})
+
+/** Their interpolation table entries, each its source and whether it includes the boundary
+ * (DeclaredInterpolationEntry). */
+const interpolationEntriesOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, identifier, source, boundary } = v(fields.DeclaredInterpolationEntry, "entry")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.DeclaredInterpolationEntry, { package: pkg, path: item, start, identifier, source, boundary })
+			.find({ package: pkg, path: item, start, identifier, source, boundary })
+	})
+
+/** Each map key, table entry's target and table's default of a text base type, typed (DeclaredValueText). */
+const valueTextsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, base, value } = v(fields.DeclaredValueText, "value")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.DeclaredValueText, { package: pkg, path: item, start, base, value })
+			.find({ package: pkg, path: item, start, base, value })
+	})
+
+/** Each of an integer base type (DeclaredValueInteger). */
+const valueIntegersOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, value } = v(fields.DeclaredValueInteger, "value")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.DeclaredValueInteger, { package: pkg, path: item, start, value })
+			.find({ package: pkg, path: item, start, value })
+	})
+
+/** Each of a float or duration base type (DeclaredValueFloat). */
+const valueFloatsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, base, value } = v(fields.DeclaredValueFloat, "value")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.DeclaredValueFloat, { package: pkg, path: item, start, base, value })
+			.find({ package: pkg, path: item, start, base, value })
+	})
+
+/** Each of the boolean base type (DeclaredValueBoolean). */
+const valueBooleansOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, value } = v(fields.DeclaredValueBoolean, "value")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.DeclaredValueBoolean, { package: pkg, path: item, start, value })
+			.find({ package: pkg, path: item, start, value })
+	})
+
+/** Each of the pair base type (DeclaredValuePair). */
+const valuePairsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, least, greatest } = v(fields.DeclaredValuePair, "value")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.DeclaredValuePair, { package: pkg, path: item, start, least, greatest })
+			.find({ package: pkg, path: item, start, least, greatest })
+	})
+
+/** Each of the directed pair base type (DeclaredValueDirectedPair). */
+const valueDirectedPairsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, source, target } = v(fields.DeclaredValueDirectedPair, "value")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.DeclaredValueDirectedPair, { package: pkg, path: item, start, source, target })
+			.find({ package: pkg, path: item, start, source, target })
+	})
+
+/** Each of the point base type (DeclaredValuePoint). */
+const valuePointsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, x, y } = v(fields.DeclaredValuePoint, "value")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.DeclaredValuePoint, { package: pkg, path: item, start, x, y })
+			.find({ package: pkg, path: item, start, x, y })
+	})
+
+/** Each variable the graded items' runs hold and the kind of declaration it is of: its declared variables and its
+ * built-ins, as the ledger stores them (SessionVariableName), each kind by the machine's token (VariableKindToken). */
+const variableKindsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { identifier, declarationKind } = v(fields.SessionVariableName, "variable")
+		const { token: kind } = v(fields.VariableKindToken, "kind")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.SessionVariableName, { package: pkg, path: item, identifier, declarationKind })
+			.match(fields.VariableKindToken, { declarationKind, token: kind })
+			.find({ package: pkg, path: item, identifier, kind })
 	})
 
 /** The session's last attempt processed before this one, by its instant: whose completionStatus this one starts from

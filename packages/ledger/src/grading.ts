@@ -160,9 +160,10 @@ const WalkRefField = str.regex(
 const AnswerMark = str.regex("^(missed|right|wrong)$");
 
 /**
- * The elements of an item's declarations the machine reads (QTI 3.0.1's four variable declarations,
- * their default and correct values, their mappings and lookup tables): what a statement passes of a
- * document's declarations, by kind.
+ * The elements of an item's declarations the machine reads (QTI 3.0.1's four variable declarations
+ * and their default and correct values): what a statement passes of a document's declarations, by
+ * kind. Its mappings and lookup tables cross parsed, as the package's publication stores them
+ * (`#ledger/stored-content.ts`).
  */
 export const declarationParts = [
   "qti-response-declaration",
@@ -172,18 +173,10 @@ export const declarationParts = [
   "qti-default-value",
   "qti-correct-response",
   "qti-value",
-  "qti-mapping",
-  "qti-map-entry",
-  "qti-area-mapping",
-  "qti-area-map-entry",
-  "qti-match-table",
-  "qti-match-table-entry",
-  "qti-interpolation-table",
-  "qti-interpolation-table-entry",
 ] as const;
 
 const DeclarationPart = str.regex(
-  "^(qti-response-declaration|qti-outcome-declaration|qti-template-declaration|qti-context-declaration|qti-default-value|qti-correct-response|qti-value|qti-mapping|qti-map-entry|qti-area-mapping|qti-area-map-entry|qti-match-table|qti-match-table-entry|qti-interpolation-table|qti-interpolation-table-entry)$",
+  "^(qti-response-declaration|qti-outcome-declaration|qti-template-declaration|qti-context-declaration|qti-default-value|qti-correct-response|qti-value)$",
 );
 
 /**
@@ -192,24 +185,11 @@ const DeclarationPart = str.regex(
 export const gradedAttributes = [
   "base-type",
   "cardinality",
-  "case-sensitive",
-  "coords",
-  "default-value",
   "field-identifier",
   "identifier",
-  "include-boundary",
-  "lower-bound",
-  "map-key",
-  "mapped-value",
-  "shape",
-  "source-value",
-  "target-value",
-  "upper-bound",
 ] as const;
 
-const GradedAttribute = str.regex(
-  "^(base-type|cardinality|case-sensitive|coords|default-value|field-identifier|identifier|include-boundary|lower-bound|map-key|mapped-value|shape|source-value|target-value|upper-bound)$",
-);
+const GradedAttribute = str.regex("^(base-type|cardinality|field-identifier|identifier)$");
 
 /**
  * The processing language's element kinds, as ProcessingKind holds them: what a statement passes of
@@ -1508,6 +1488,127 @@ export const DocWalkText = rows({
   substring: pg.boolean,
 });
 
+export const DocMapping = rows({
+  dflt: pg["double precision"],
+  identifier: QtiIdentifier,
+  lower: pg["double precision"],
+  package: anyText,
+  path: anyText,
+  upper: pg["double precision"],
+});
+
+export const DocMapEntry = rows({
+  case_sensitive: pg.boolean,
+  identifier: QtiIdentifier,
+  package: anyText,
+  path: anyText,
+  start: natural,
+  value: pg["double precision"],
+});
+
+export const DocAreaEntry = rows({
+  identifier: QtiIdentifier,
+  kind: AreaKind,
+  package: anyText,
+  path: anyText,
+  start: natural,
+  value: pg["double precision"],
+});
+
+export const DocAreaCoord = rows({
+  c: pg["double precision"],
+  package: anyText,
+  path: anyText,
+  place: pg.integer,
+  start: natural,
+});
+
+export const DocLookup = rows({
+  identifier: QtiIdentifier,
+  kind: LookupKind,
+  package: anyText,
+  path: anyText,
+  start: natural,
+});
+
+export const DocMatchEntry = rows({
+  identifier: QtiIdentifier,
+  package: anyText,
+  path: anyText,
+  source: QtiInteger,
+  start: natural,
+});
+
+export const DocInterpolationEntry = rows({
+  boundary: pg.boolean,
+  identifier: QtiIdentifier,
+  package: anyText,
+  path: anyText,
+  source: pg["double precision"],
+  start: natural,
+});
+
+export const DocValueText = rows({
+  base: BaseType,
+  package: anyText,
+  path: anyText,
+  start: natural,
+  value: someText,
+});
+
+export const DocValueInteger = rows({
+  package: anyText,
+  path: anyText,
+  start: natural,
+  value: QtiInteger,
+});
+
+export const DocValueFloat = rows({
+  base: BaseType,
+  package: anyText,
+  path: anyText,
+  start: natural,
+  value: pg["double precision"],
+});
+
+export const DocValueBoolean = rows({
+  package: anyText,
+  path: anyText,
+  start: natural,
+  value: pg.boolean,
+});
+
+export const DocValuePair = rows({
+  greatest: anyText,
+  least: anyText,
+  package: anyText,
+  path: anyText,
+  start: natural,
+});
+
+export const DocValueDirectedPair = rows({
+  package: anyText,
+  path: anyText,
+  source: anyText,
+  start: natural,
+  target: anyText,
+});
+
+export const DocValuePoint = rows({
+  package: anyText,
+  path: anyText,
+  start: natural,
+  x: QtiInteger,
+  y: QtiInteger,
+});
+
+export const DocVarKind = rows({
+  identifier: QtiIdentifier,
+  kind: VariableKind,
+  package: anyText,
+  path: anyText,
+});
+
 export const DocumentRun = rows({
   child: LearnerId,
   defaulted: pg.boolean,
@@ -1863,6 +1964,11 @@ export const DocHumanFeedback = rows({
   path: anyText,
   rubric: anyText,
   stage: pg.bigint,
+});
+
+export const NodeValue = rows({
+  start: natural,
+  value: row(Single),
 });
 
 export const VarKind = rows({
@@ -14626,20 +14732,6 @@ end `,
   volatility: "immutable",
 });
 
-export const areaOf = fn("areaOf", {
-  args: { coords: anyText, kind: anyText },
-  body: fn.body`
-  select row(case when trim_xml(t => kind) = 'default' then '{}'
-      else array(select x from coords_of(coords => coords) x order by x.place) end,
-    area_kind_of(coords => coords, kind => kind))::${Area}
-`,
-  calls: [trimXml, coordsOf, areaKindOf],
-  language: "sql",
-  nullInput: "called",
-  returns: row(Area),
-  volatility: "immutable",
-});
-
 export const walkFrom = fn("walkFrom", {
   args: {
     areas: DocWalkArea,
@@ -14798,66 +14890,103 @@ export const walkFrom = fn("walkFrom", {
   volatility: "immutable",
 });
 
-export const inputsOf = fn("inputsOf", {
-  args: { attributes: DocumentAttribute, declarations: DeclarationNode, texts: DocumentText },
+export const nodeValues = fn("nodeValues", {
+  args: {
+    package: anyText,
+    path: anyText,
+    value_booleans: DocValueBoolean,
+    value_directed_pairs: DocValueDirectedPair,
+    value_floats: DocValueFloat,
+    value_integers: DocValueInteger,
+    value_pairs: DocValuePair,
+    value_points: DocValuePoint,
+    value_texts: DocValueText,
+  },
   body: fn.body`
-  with a as (
-    select y.start,
-      max(y.value) filter (where y.name = 'identifier') as identifier,
-      max(y.value) filter (where y.name = 'base-type') as base_type,
-      max(y.value) filter (where y.name = 'default-value') as default_value,
-      max(y.value) filter (where y.name = 'lower-bound') as lower_bound,
-      max(y.value) filter (where y.name = 'upper-bound') as upper_bound,
-      max(y.value) filter (where y.name = 'map-key') as map_key,
-      max(y.value) filter (where y.name = 'mapped-value') as mapped_value,
-      max(y.value) filter (where y.name = 'case-sensitive') as case_sensitive,
-      max(y.value) filter (where y.name = 'shape') as shape,
-      max(y.value) filter (where y.name = 'coords') as coords,
-      max(y.value) filter (where y.name = 'source-value') as source_value,
-      max(y.value) filter (where y.name = 'target-value') as target_value,
-      max(y.value) filter (where y.name = 'include-boundary') as include_boundary
-    from unnest(attributes) y group by y.start
-  ),
-  decl as (
-    select d.start, trim_xml(t => a.identifier) as id, trim_xml(t => a.base_type) as base from unnest(declarations) d join a on a.start = d.start
-    where d.kind in ('qti-response-declaration', 'qti-outcome-declaration')
-  ), part as (
-    select decl.*, h.start as hs, h.kind as hk, ha.default_value, ha.lower_bound, ha.upper_bound
-    from decl join unnest(declarations) h on h.parent = decl.start left join a ha on ha.start = h.start
-  ), header as (
-    select part.*, coalesce(part.default_value, '0')::float8 as dflt,
-      coalesce(part.lower_bound, '-Infinity')::float8 as lower, coalesce(part.upper_bound, 'Infinity')::float8 as upper
-    from part where part.hk in ('qti-mapping', 'qti-area-mapping')
-  ), entry as (
-    select part.id, part.base, part.hk, e.start, row_number() over (partition by part.id, part.hk order by e.start)::int as place,
-      ea.map_key, ea.mapped_value, ea.case_sensitive, ea.shape, ea.coords, ea.source_value, ea.target_value, ea.include_boundary
-    from part join unnest(declarations) e on e.parent = part.hs left join a ea on ea.start = e.start
+  select z.start, s_text(base => z.base, t => z.value) from unnest(value_texts) z where (z.package, z.path) = (node_values.package, node_values.path)
+  union all select z.start, s_int(n => z.value) from unnest(value_integers) z where (z.package, z.path) = (node_values.package, node_values.path)
+  union all select z.start, s_float(base => z.base, f => z.value) from unnest(value_floats) z where (z.package, z.path) = (node_values.package, node_values.path)
+  union all select z.start, s_bool(b => z.value) from unnest(value_booleans) z where (z.package, z.path) = (node_values.package, node_values.path)
+  union all select z.start, s_pair(a => z.least, b => z.greatest) from unnest(value_pairs) z where (z.package, z.path) = (node_values.package, node_values.path)
+  union all select z.start, s_dpair(a => z.source, b => z.target) from unnest(value_directed_pairs) z
+    where (z.package, z.path) = (node_values.package, node_values.path)
+  union all select z.start, s_point(x => z.x, y => z.y) from unnest(value_points) z where (z.package, z.path) = (node_values.package, node_values.path)
+`,
+  calls: [sText, sInt, sFloat, sBool, sPair, sDpair, sPoint],
+  language: "sql",
+  nullInput: "called",
+  returns: NodeValue,
+  volatility: "immutable",
+});
+
+export const areaEntriesOf = fn("areaEntriesOf", {
+  args: { area_coords: DocAreaCoord, area_entries: DocAreaEntry, package: anyText, path: anyText },
+  body: fn.body`
+  select row(array(select row(c.c, c.place)::${Coord} from unnest(area_coords) c where (c.package, c.path, c.start) = (e.package, e.path, e.start)
+      order by c.place), e.kind)::${Area},
+    e.identifier, row_number() over (partition by e.identifier order by e.start)::int, e.value
+  from unnest(area_entries) e where (e.package, e.path) = (area_entries_of.package, area_entries_of.path)
+`,
+  calls: [],
+  language: "sql",
+  nullInput: "called",
+  returns: AreaEntry,
+  volatility: "immutable",
+});
+
+export const inputsOf = fn("inputsOf", {
+  args: {
+    area_coords: DocAreaCoord,
+    area_entries: DocAreaEntry,
+    area_mappings: DocMapping,
+    interpolation_entries: DocInterpolationEntry,
+    lookups: DocLookup,
+    map_entries: DocMapEntry,
+    mappings: DocMapping,
+    match_entries: DocMatchEntry,
+    package: anyText,
+    path: anyText,
+    value_booleans: DocValueBoolean,
+    value_directed_pairs: DocValueDirectedPair,
+    value_floats: DocValueFloat,
+    value_integers: DocValueInteger,
+    value_pairs: DocValuePair,
+    value_points: DocValuePoint,
+    value_texts: DocValueText,
+  },
+  body: fn.body`
+  with v as materialized (
+    select x.* from node_values(package => inputs_of.package, path => inputs_of.path, value_booleans => value_booleans,
+      value_directed_pairs => value_directed_pairs, value_floats => value_floats, value_integers => value_integers,
+      value_pairs => value_pairs, value_points => value_points, value_texts => value_texts) x
   )
   select row(
-    (select coalesce(array_agg(row(area_of(kind => entry.shape, coords => entry.coords), entry.id, entry.place, entry.mapped_value::float8)::${AreaEntry}), '{}')
-      from entry where entry.hk = 'qti-area-mapping'),
-    (select coalesce(array_agg(row(header.dflt, header.id, header.lower, header.upper)::${Mapping}), '{}') from header where header.hk = 'qti-area-mapping'),
+    array(select a from area_entries_of(area_coords => area_coords, area_entries => area_entries, package => inputs_of.package, path => inputs_of.path) a
+      order by a.identifier, a.place),
+    array(select row(m.dflt, m.identifier, m.lower, m.upper)::${Mapping} from unnest(area_mappings) m
+      where (m.package, m.path) = (inputs_of.package, inputs_of.path) order by m.identifier),
     -- The registry's rows, and an attempt's evaluated applications and replies, are the flat entry's to add (with_registry).
     '{}'::${TableBinding}[], '{}'::${Application}[], '{}'::${HumanValue}[],
-    (select coalesce(array_agg(row(xs_boolean(t => entry.include_boundary, dflt => true), entry.id, entry.place,
-        (parse(base => 'float', lexical => trim_xml(t => entry.source_value))).f,
-        array_remove(array[xml_single(base => entry.base, txt => entry.target_value)], null))::${InterpEntry}), '{}') from entry where entry.hk = 'qti-interpolation-table'),
-    (select coalesce(array_agg(row(array_remove(array[xml_single(base => part.base, txt => part.default_value)], null), part.id,
-        case part.hk when 'qti-match-table' then 'match' when 'qti-interpolation-table' then 'interpolation' end)::${LookupTable}), '{}')
-      from part where part.hk in ('qti-match-table', 'qti-interpolation-table')),
-    (select coalesce(array_agg(row(xs_boolean(t => entry.case_sensitive, dflt => false), entry.id, xml_single(base => entry.base, txt => translate(entry.map_key, E'\\t\\n\\r', '   ')),
-        entry.place, entry.mapped_value::float8)::${MapEntry}), '{}')
-      from entry where entry.hk = 'qti-mapping' and (xml_single(base => entry.base, txt => translate(entry.map_key, E'\\t\\n\\r', '   '))).base is not null),
-    (select coalesce(array_agg(row(header.dflt, header.id, header.lower, header.upper)::${Mapping}), '{}') from header where header.hk = 'qti-mapping'),
-    (select coalesce(array_agg(row(entry.id, entry.place, trim_xml(t => entry.source_value)::numeric,
-        array_remove(array[xml_single(base => entry.base, txt => entry.target_value)], null))::${MatchEntry}), '{}') from entry where entry.hk = 'qti-match-table'),
+    array(select row(e.boundary, e.identifier, e.place, e.source, array(select v.value from v where v.start = e.start))::${InterpEntry}
+      from (select y.*, row_number() over (partition by y.identifier order by y.start)::int as place from unnest(interpolation_entries) y
+        where (y.package, y.path) = (inputs_of.package, inputs_of.path)) e order by e.identifier, e.place),
+    array(select row(array(select v.value from v where v.start = t.start), t.identifier, t.kind)::${LookupTable} from unnest(lookups) t
+      where (t.package, t.path) = (inputs_of.package, inputs_of.path) order by t.identifier),
+    array(select row(e.case_sensitive, e.identifier, v.value, e.place, e.value)::${MapEntry}
+      from (select y.*, row_number() over (partition by y.identifier order by y.start)::int as place from unnest(map_entries) y
+        where (y.package, y.path) = (inputs_of.package, inputs_of.path)) e join v on v.start = e.start order by e.identifier, e.place),
+    array(select row(m.dflt, m.identifier, m.lower, m.upper)::${Mapping} from unnest(mappings) m
+      where (m.package, m.path) = (inputs_of.package, inputs_of.path) order by m.identifier),
+    array(select row(e.identifier, e.place, e.source, array(select v.value from v where v.start = e.start))::${MatchEntry}
+      from (select y.*, row_number() over (partition by y.identifier order by y.start)::int as place from unnest(match_entries) y
+        where (y.package, y.path) = (inputs_of.package, inputs_of.path)) e order by e.identifier, e.place),
     -- An item's run holds no test field; a test's run adds them (test-document.sql's test_outcome_processing_of).
     '{}'::${MemberBound}[], '{}'::${MemberVar}[], '{}'::${MemberVar}[], '{}'::${MemberVar}[], '{}'::${Member}[],
     '{}'::${RefCategory}[], '{}'::${RefMapping}[], '{}'::${RefSection}[], '{}'::${RefWeight}[],
     '{}'::${Reply}[], '{}'::${TableEntry}[], '{}'::${TableValue}[]
   )::${Inputs}
 `,
-  calls: [trimXml, parse, xmlSingle, xsBoolean, areaOf],
+  calls: [nodeValues, areaEntriesOf],
   language: "sql",
   nullInput: "called",
   returns: row(Inputs),
@@ -14936,17 +15065,13 @@ export const builtinOutcomes = fn("builtinOutcomes", {
   volatility: "immutable",
 });
 
-export const varKinds = fn("varKinds", {
-  args: { attributes: DocumentAttribute, declarations: DeclarationNode },
+export const kindsOf = fn("kindsOf", {
+  args: { kinds: DocVarKind, package: anyText, path: anyText },
   body: fn.body`
-  select trim_xml(t => y.value), case d.kind when 'qti-response-declaration' then 'response' when 'qti-outcome-declaration' then 'outcome'
-      when 'qti-template-declaration' then 'template' when 'qti-context-declaration' then 'context' end
-  from unnest(declarations) d join unnest(attributes) y on y.start = d.start and y.name = 'identifier'
-  where d.kind in ('qti-response-declaration', 'qti-outcome-declaration', 'qti-template-declaration', 'qti-context-declaration')
-  union all select * from (values ('numAttempts'::text, 'response'::text), ('duration', 'response'), ('completionStatus', 'outcome'),
-    ('QTI_CONTEXT', 'context')) b
+  select k.identifier, k.kind from unnest(kinds) k where (k.package, k.path) = (kinds_of.package, kinds_of.path)
+  union all select (qti_context()).identifier, 'context'
 `,
-  calls: [trimXml],
+  calls: [qtiContext],
   language: "sql",
   nullInput: "called",
   returns: VarKind,
@@ -15397,6 +15522,9 @@ end `,
 
 export const responseProcessingOf = fn("responseProcessingOf", {
   args: {
+    area_coords: DocAreaCoord,
+    area_entries: DocAreaEntry,
+    area_mappings: DocMapping,
     booleans: DocBoolean,
     declaration_attributes: DocumentAttribute,
     declaration_texts: DocumentText,
@@ -15416,6 +15544,12 @@ export const responseProcessingOf = fn("responseProcessingOf", {
     human_feedbacks: DocHumanFeedback,
     humans: DocHuman,
     integers: DocInteger,
+    interpolation_entries: DocInterpolationEntry,
+    kinds: DocVarKind,
+    lookups: DocLookup,
+    map_entries: DocMapEntry,
+    mappings: DocMapping,
+    match_entries: DocMatchEntry,
     pairs: DocPair,
     points: DocPoint,
     programs: ProgramNode,
@@ -15426,6 +15560,13 @@ export const responseProcessingOf = fn("responseProcessingOf", {
     table_entries: TableEntry,
     table_values: TableValue,
     texts: DocText,
+    value_booleans: DocValueBoolean,
+    value_directed_pairs: DocValueDirectedPair,
+    value_floats: DocValueFloat,
+    value_integers: DocValueInteger,
+    value_pairs: DocValuePair,
+    value_points: DocValuePoint,
+    value_texts: DocValueText,
     vars: DocGiven,
     walk_areas: DocWalkArea,
     walk_categories: DocWalkCategory,
@@ -15460,7 +15601,11 @@ begin
     dt := array(select x from unnest(declaration_texts) x where x.package = r.package and x.path = r.path);
     st := response_state(
       walk => case when cardinality(pn) > 0 then (walk_from(package => r.package, path => r.path, nodes => pn, areas => walk_areas, categories => walk_categories, coords => walk_coords, customs => walk_customs, equals => walk_equals, filters => walk_filters, floats => walk_floats, idents => walk_idents, integers => walk_integers, literal_booleans => walk_literal_booleans, literal_directed_pairs => walk_literal_directed_pairs, literal_floats => walk_literal_floats, literal_integers => walk_literal_integers, literal_pairs => walk_literal_pairs, literal_points => walk_literal_points, literal_texts => walk_literal_texts, names => walk_names, patterns => walk_patterns, refs => walk_refs, rounds => walk_rounds, texts => walk_texts)).nodes end,
-      inp => with_registry(inp => inputs_of(declarations => dn, attributes => da, texts => dt), table_bindings => table_bindings,
+      inp => with_registry(inp => inputs_of(package => r.package, path => r.path, mappings => mappings,
+        map_entries => map_entries, area_mappings => area_mappings, area_entries => area_entries, area_coords => area_coords, lookups => lookups,
+        match_entries => match_entries, interpolation_entries => interpolation_entries, value_texts => value_texts, value_integers => value_integers,
+        value_floats => value_floats, value_booleans => value_booleans, value_pairs => value_pairs, value_directed_pairs => value_directed_pairs,
+        value_points => value_points), table_bindings => table_bindings,
         table_entries => table_entries, table_values => table_values,
         evaluated => array(select x from evaluated_of(run => r, nodes => pn, evaluations => evaluations) x),
         humans => array(select x from humans_of(run => r, humans => humans, human_feedbacks => human_feedbacks) x),
@@ -15470,14 +15615,14 @@ begin
         field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs, field_points => field_points,
         field_files => field_files),
       seed => r.seed, label => r.label);
-    result := doc_values_joined(a => result, b => response_values_of(run => r, st => st, nodes => pn, kinds => array(select k from var_kinds(declarations => dn, attributes => da) k)));
+    result := doc_values_joined(a => result, b => response_values_of(run => r, st => st, nodes => pn, kinds => array(select k from kinds_of(kinds => kinds, package => r.package, path => r.path) k)));
   end loop;
   return result;
 end `,
   calls: [
     walkFrom,
     inputsOf,
-    varKinds,
+    kindsOf,
     valuesOf,
     docValuesJoined,
     noDocValues,
@@ -15496,6 +15641,9 @@ end `,
 
 export const templateProcessingOf = fn("templateProcessingOf", {
   args: {
+    area_coords: DocAreaCoord,
+    area_entries: DocAreaEntry,
+    area_mappings: DocMapping,
     booleans: DocBoolean,
     declaration_attributes: DocumentAttribute,
     declaration_texts: DocumentText,
@@ -15512,6 +15660,12 @@ export const templateProcessingOf = fn("templateProcessingOf", {
     files: DocFile,
     floats: DocFloat,
     integers: DocInteger,
+    interpolation_entries: DocInterpolationEntry,
+    kinds: DocVarKind,
+    lookups: DocLookup,
+    map_entries: DocMapEntry,
+    mappings: DocMapping,
+    match_entries: DocMatchEntry,
     pairs: DocPair,
     points: DocPoint,
     programs: ProgramNode,
@@ -15522,6 +15676,13 @@ export const templateProcessingOf = fn("templateProcessingOf", {
     table_entries: TableEntry,
     table_values: TableValue,
     texts: DocText,
+    value_booleans: DocValueBoolean,
+    value_directed_pairs: DocValueDirectedPair,
+    value_floats: DocValueFloat,
+    value_integers: DocValueInteger,
+    value_pairs: DocValuePair,
+    value_points: DocValuePoint,
+    value_texts: DocValueText,
     vars: DocGiven,
     walk_areas: DocWalkArea,
     walk_categories: DocWalkCategory,
@@ -15556,7 +15717,11 @@ begin
     dt := array(select x from unnest(declaration_texts) x where x.package = r.package and x.path = r.path);
     st := template_state(
       walk => case when cardinality(pn) > 0 then (walk_from(package => r.package, path => r.path, nodes => pn, areas => walk_areas, categories => walk_categories, coords => walk_coords, customs => walk_customs, equals => walk_equals, filters => walk_filters, floats => walk_floats, idents => walk_idents, integers => walk_integers, literal_booleans => walk_literal_booleans, literal_directed_pairs => walk_literal_directed_pairs, literal_floats => walk_literal_floats, literal_integers => walk_literal_integers, literal_pairs => walk_literal_pairs, literal_points => walk_literal_points, literal_texts => walk_literal_texts, names => walk_names, patterns => walk_patterns, refs => walk_refs, rounds => walk_rounds, texts => walk_texts)).nodes end,
-      inp => with_registry(inp => inputs_of(declarations => dn, attributes => da, texts => dt), table_bindings => table_bindings,
+      inp => with_registry(inp => inputs_of(package => r.package, path => r.path, mappings => mappings,
+        map_entries => map_entries, area_mappings => area_mappings, area_entries => area_entries, area_coords => area_coords, lookups => lookups,
+        match_entries => match_entries, interpolation_entries => interpolation_entries, value_texts => value_texts, value_integers => value_integers,
+        value_floats => value_floats, value_booleans => value_booleans, value_pairs => value_pairs, value_directed_pairs => value_directed_pairs,
+        value_points => value_points), table_bindings => table_bindings,
         table_entries => table_entries, table_values => table_values, evaluated => '{}', humans => '{}',
         replies => array(select x from replies_of(run => r, nodes => pn, reply_floats => reply_floats, reply_texts => reply_texts) x)),
       declarations => dn, attributes => da, texts => dt,
@@ -15564,14 +15729,14 @@ begin
         field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs, field_points => field_points,
         field_files => field_files),
       seed => r.seed, label => r.label);
-    result := doc_values_joined(a => result, b => doc_values_of(run => r, st => st, kinds => array(select k from var_kinds(declarations => dn, attributes => da) k), delta => true));
+    result := doc_values_joined(a => result, b => doc_values_of(run => r, st => st, kinds => array(select k from kinds_of(kinds => kinds, package => r.package, path => r.path) k), delta => true));
   end loop;
   return result;
 end `,
   calls: [
     walkFrom,
     inputsOf,
-    varKinds,
+    kindsOf,
     valuesOf,
     docValuesOf,
     docValuesJoined,
@@ -15705,6 +15870,9 @@ export const memberState = fn("memberState", {
 
 export const testOutcomeProcessingOf = fn("testOutcomeProcessingOf", {
   args: {
+    area_coords: DocAreaCoord,
+    area_entries: DocAreaEntry,
+    area_mappings: DocMapping,
     booleans: DocBoolean,
     declaration_attributes: DocumentAttribute,
     declaration_texts: DocumentText,
@@ -15721,6 +15889,12 @@ export const testOutcomeProcessingOf = fn("testOutcomeProcessingOf", {
     files: DocFile,
     floats: DocFloat,
     integers: DocInteger,
+    interpolation_entries: DocInterpolationEntry,
+    kinds: DocVarKind,
+    lookups: DocLookup,
+    map_entries: DocMapEntry,
+    mappings: DocMapping,
+    match_entries: DocMatchEntry,
     member_bounds: TestMemberBound,
     members: TestMember,
     pairs: DocPair,
@@ -15732,6 +15906,13 @@ export const testOutcomeProcessingOf = fn("testOutcomeProcessingOf", {
     ref_weights: TestRefWeight,
     runs: DocumentRun,
     texts: DocText,
+    value_booleans: DocValueBoolean,
+    value_directed_pairs: DocValueDirectedPair,
+    value_floats: DocValueFloat,
+    value_integers: DocValueInteger,
+    value_pairs: DocValuePair,
+    value_points: DocValuePoint,
+    value_texts: DocValueText,
     vars: DocGiven,
     walk_areas: DocWalkArea,
     walk_categories: DocWalkCategory,
@@ -15757,7 +15938,7 @@ export const testOutcomeProcessingOf = fn("testOutcomeProcessingOf", {
   },
   body: fn.body`
 declare r ${DocumentRun}; m ${TestMember}; pn ${ProgramNode}[]; dn ${DeclarationNode}[]; da ${DocumentAttribute}[]; dt ${DocumentText}[];
-  given ${InValues}; kinds ${VarKind}[]; mvars ${MemberVar}[]; mcorrect ${MemberVar}[]; mdefaults ${MemberVar}[];
+  given ${InValues}; mkinds ${VarKind}[]; tkinds ${VarKind}[]; mvars ${MemberVar}[]; mcorrect ${MemberVar}[]; mdefaults ${MemberVar}[];
   inp ${Inputs}; outcomes ${Var}[]; st ${RunState}; result ${DocValues} := no_doc_values();
 begin
   for r in select x.* from unnest(runs) x order by x.child, x.package, x.path, x.stage loop
@@ -15769,15 +15950,15 @@ begin
       given := values_of(child => r.child, package => m.package, path => m.item, stage => r.stage, vars => vars, declarations => dn, declaration_attributes => da, defaulted => r.defaulted, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points,
         files => files, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs,
         field_points => field_points, field_files => field_files);
-      kinds := array(select k from var_kinds(declarations => dn, attributes => da) k);
+      mkinds := array(select k from kinds_of(kinds => kinds, package => m.package, path => m.item) k);
       -- Every declared response, NULL unless start_of gives it: a member never attempted keeps its responses NULL, "the
       -- default value is never used" (Table 5.115); start_of gives the default in force once numAttempts > 0.
-      mvars := mvars || array(select s from member_state(ref => m.ref, kinds => kinds, vars => array(select x from overridden(
+      mvars := mvars || array(select s from member_state(ref => m.ref, kinds => mkinds, vars => array(select x from overridden(
         declared => array(select row(y.base, y.card, y.identifier, '{}'::${Single}[])::${Var}
           from declared(declarations => dn, attributes => da, texts => dt, kind => 'qti-response-declaration', holder => 'qti-default-value') y),
         given => array(select y from start_of(declarations => dn, attributes => da, texts => dt, given => given) y)) x order by x.identifier)) s);
-      mcorrect := mcorrect || array(select s from member_state(ref => m.ref, kinds => kinds, vars => array(select x from correct_of(declarations => dn, attributes => da, texts => dt, given => given) x order by x.identifier)) s);
-      mdefaults := mdefaults || array(select s from member_state(ref => m.ref, kinds => kinds, vars => array(select x from defaults_of(declarations => dn, attributes => da, texts => dt, given => given) x order by x.identifier)) s);
+      mcorrect := mcorrect || array(select s from member_state(ref => m.ref, kinds => mkinds, vars => array(select x from correct_of(declarations => dn, attributes => da, texts => dt, given => given) x order by x.identifier)) s);
+      mdefaults := mdefaults || array(select s from member_state(ref => m.ref, kinds => mkinds, vars => array(select x from defaults_of(declarations => dn, attributes => da, texts => dt, given => given) x order by x.identifier)) s);
     end loop;
     dn := array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path);
     da := array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path);
@@ -15786,7 +15967,11 @@ begin
       files => files, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs,
       field_points => field_points, field_files => field_files);
     pn := array(select x from unnest(programs) x where x.package = r.package and x.path = r.path);
-    inp := inputs_of(declarations => dn, attributes => da, texts => dt);
+    tkinds := array(select k from kinds_of(kinds => kinds, package => r.package, path => r.path) k);
+    inp := inputs_of(package => r.package, path => r.path, mappings => mappings, map_entries => map_entries, area_mappings => area_mappings,
+      area_entries => area_entries, area_coords => area_coords, lookups => lookups, match_entries => match_entries,
+      interpolation_entries => interpolation_entries, value_texts => value_texts, value_integers => value_integers, value_floats => value_floats,
+      value_booleans => value_booleans, value_pairs => value_pairs, value_directed_pairs => value_directed_pairs, value_points => value_points);
     inp.members := array(select row(x.place, x.ref)::${Member} from unnest(members) x where x.package = r.package and x.path = r.path);
     inp.ref_sections := array(select row(x.ref, x.section)::${RefSection} from unnest(ref_sections) x where x.package = r.package and x.path = r.path);
     inp.ref_categories := array(select row(x.category, x.ref)::${RefCategory} from unnest(ref_categories) x where x.package = r.package and x.path = r.path);
@@ -15805,15 +15990,15 @@ begin
       contexts => array(select y from declared(declarations => dn, attributes => da, texts => dt, kind => 'qti-context-declaration', holder => 'qti-default-value') y order by y.identifier),
       bound => array(select y from vars_in(i => given, h => 'value') y where exists (select 1 from unnest(vars) z
         where (z.child, z.package, z.path, z.stage) = (r.child, r.package, r.path, r.stage) and z.holds = 'value' and z.identifier = y.identifier
-          and (select v.kind from var_kinds(declarations => dn, attributes => da) v where v.identifier = z.identifier) = 'context')),
+          and (select v.kind from unnest(tkinds) v where v.identifier = z.identifier) = 'context')),
       builtins => array(select y from vars_in(i => given, h => 'value') y where exists (select 1 from unnest(vars) z
         where (z.child, z.package, z.path, z.stage) = (r.child, r.package, r.path, r.stage) and z.holds = 'value' and z.identifier = y.identifier
-          and (select v.kind from var_kinds(declarations => dn, attributes => da) v where v.identifier = z.identifier) = 'response'))
+          and (select v.kind from unnest(tkinds) v where v.identifier = z.identifier) = 'response'))
         || qti_context(),
       seed => r.seed, label => r.label);
     end if;
     st.vars := array(select x from unnest(st.vars) x where exists (select 1 from unnest(outcomes) o where o.identifier = x.identifier) order by x.identifier);
-    result := doc_values_joined(a => result, b => doc_values_of(run => r, st => st, kinds => array(select k from var_kinds(declarations => dn, attributes => da) k), delta => false));
+    result := doc_values_joined(a => result, b => doc_values_of(run => r, st => st, kinds => tkinds, delta => false));
   end loop;
   return result;
 end `,
@@ -15825,7 +16010,7 @@ end `,
     inputsOf,
     declared,
     qtiContext,
-    varKinds,
+    kindsOf,
     overridden,
     valuesOf,
     docValuesOf,
@@ -15908,6 +16093,9 @@ export const areaMarks = fn("areaMarks", {
 export const attemptMarksOf = fn("attemptMarksOf", {
   args: {
     area_bound: DocumentResponse,
+    area_coords: DocAreaCoord,
+    area_entries: DocAreaEntry,
+    area_mappings: DocMapping,
     booleans: DocBoolean,
     declaration_attributes: DocumentAttribute,
     declaration_texts: DocumentText,
@@ -15924,7 +16112,9 @@ export const attemptMarksOf = fn("attemptMarksOf", {
   },
   body: fn.body`
   with parts as (
-    select r.child, r.package, r.path, r.stage, t.ds, t.das, t.dts, inputs_of(declarations => t.ds, attributes => t.das, texts => t.dts) as inp,
+    select r.child, r.package, r.path, r.stage, t.ds, t.das, t.dts,
+      array(select a from area_entries_of(area_coords => area_coords, area_entries => area_entries, package => r.package, path => r.path) a
+        order by a.identifier, a.place) as entries,
       values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, declarations => t.ds, declaration_attributes => t.das, defaulted => r.defaulted, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
         field_texts => '{}', field_integers => '{}', field_floats => '{}', field_booleans => '{}', field_pairs => '{}', field_directed_pairs => '{}', field_points => '{}', field_files => '{}') as iv
     from unnest(runs) r cross join lateral (select
@@ -15933,9 +16123,9 @@ export const attemptMarksOf = fn("attemptMarksOf", {
       array(select x from unnest(declaration_texts) x where (x.package, x.path) = (r.package, r.path)) as dts) t
   ), responses as (
     select parts.child, parts.package, parts.path, parts.stage, d.identifier, d.card, coalesce(g.vals, '{}') as given, c.vals as correct,
-      (parts.inp).area_entries as entries,
+      parts.entries,
       exists (select 1 from unnest(area_bound) b where (b.package, b.path, b.identifier) = (parts.package, parts.path, d.identifier))
-        and exists (select 1 from unnest((parts.inp).area_mappings) am where am.identifier = d.identifier) as by_area
+        and exists (select 1 from unnest(area_mappings) am where (am.package, am.path, am.identifier) = (parts.package, parts.path, d.identifier)) as by_area
     from parts
     cross join lateral declared(declarations => parts.ds, attributes => parts.das, texts => parts.dts, kind => 'qti-response-declaration', holder => 'qti-correct-response') d
     left join lateral (select x.vals from vars_in(i => parts.iv, h => 'value') x where x.identifier = d.identifier) g on true
@@ -15967,7 +16157,7 @@ export const attemptMarksOf = fn("attemptMarksOf", {
       from m where (m.value).base in ('identifier', 'string', 'uri'))
   )::${MarkValues}
 `,
-  calls: [varsIn, inputsOf, declared, overridden, valuesOf, bagMarks, areaMarks],
+  calls: [varsIn, areaEntriesOf, declared, overridden, valuesOf, bagMarks, areaMarks],
   language: "sql",
   nullInput: "called",
   returns: row(MarkValues),
@@ -17041,6 +17231,7 @@ export const admissionOf = fn("admissionOf", {
     files: DocFile,
     floats: DocFloat,
     integers: DocInteger,
+    kinds: DocVarKind,
     pairs: DocPair,
     points: DocPoint,
     runs: AdmissionRun,
@@ -17052,9 +17243,8 @@ export const admissionOf = fn("admissionOf", {
     select admission_one(run => r,
       body => array(select b from unnest(body) b where b.package = r.package and b.path = r.path),
       attributes => array(select a from unnest(body_attributes) a where a.package = r.package and a.path = r.path),
-      responses => array(select v from vars_in(i => g.given, h => 'value') v where v.identifier in (select k.identifier from var_kinds(
-        declarations => array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path),
-        attributes => array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path)) k where k.kind = 'response') order by v.identifier),
+      responses => array(select v from vars_in(i => g.given, h => 'value') v where v.identifier in (select k.identifier from kinds_of(
+        kinds => kinds, package => r.package, path => r.path) k where k.kind = 'response') order by v.identifier),
       held => array(select v from start_of(
         declarations => array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path),
         attributes => array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path),
@@ -17074,7 +17264,7 @@ export const admissionOf = fn("admissionOf", {
     array(select r from one, unnest((one.x).words) r)
   )::${Admission}
 `,
-  calls: [varsIn, varKinds, valuesOf, startOf, admissionOne],
+  calls: [varsIn, kindsOf, valuesOf, startOf, admissionOne],
   language: "sql",
   nullInput: "called",
   returns: row(Admission),
@@ -17281,14 +17471,15 @@ export const gradingFunctions = [
   xsBoolean,
   coordsOf,
   areaKindOf,
-  areaOf,
   walkFrom,
+  nodeValues,
+  areaEntriesOf,
   inputsOf,
   declared,
   qtiContext,
   builtinResponses,
   builtinOutcomes,
-  varKinds,
+  kindsOf,
   overridden,
   varTypes,
   valuesOf,

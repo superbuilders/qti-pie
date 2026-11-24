@@ -267,6 +267,7 @@ const readersText = (ga: string, mv: string) => {
     ["declarations", "declarationNodesOf"],
     ["declaration_attributes", "declarationAttributesOf"],
     ["declaration_texts", "declarationTextsOf"],
+    ["kinds", "variableKindsOf"],
   ].map(
     ([arg = "", name = ""]) =>
       `  const ${camel(arg)} = ${queryOf(gaRules(ga, name).map((rule) => onAnswered(rule, "graded")))};\n`,
@@ -306,8 +307,8 @@ const readersText = (ga: string, mv: string) => {
   });
   const out = [
     `  /**
-   * The item's declarations, their attributes the machine reads and each \`qti-value\`'s string
-   * value, as the grading statement reads them.
+   * The item's declarations, their attributes the machine reads, each \`qti-value\`'s string
+   * value and its variables' kinds, as the grading statement reads them.
    */
 ${declarations.join("\n")}`,
     `  /**
@@ -346,6 +347,7 @@ const ARGS = [
   "files",
   "floats",
   "integers",
+  "kinds",
   "pairs",
   "points",
   "runs",

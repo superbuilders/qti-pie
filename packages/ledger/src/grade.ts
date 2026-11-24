@@ -21,7 +21,10 @@
  *   by the machine's token (`ProgramNodeKind`), with the attributes the machine reads
  *   (`GradedAttributeName`) and each base value's text (`Literal`);
  * - The declarations: every node of the item's declarations of a kind the machine reads
- *   (`DeclarationNodeKind`), with their attributes and each `qti-value`'s string value;
+ *   (`DeclarationNodeKind`), with their attributes and each `qti-value`'s string value, and its
+ *   mappings, area mappings and lookup tables, parsed, each value they hold by its base type, and
+ *   its variables' kinds, each read by the item's key as its package's publication stores it
+ *   (`#ledger/stored-content.ts`, the ledger's `SessionVariableName`);
  * - The run: the seed the session draws under (`SessionSeed`, its take's `processingSeed`) and the
  *   label of the attempt's ordinal (`responseLabel`);
  * - The values, each by the session's own sidecar rows: each response's value and `numAttempts`, the
@@ -1439,55 +1442,343 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
   });
 
   /**
-   * The graded items' declarations' nodes of the kinds the machine reads.
+   * The graded items' declarations' nodes of the kinds the machine reads, as the package's
+   * publication stores them (DeclarationElement).
    */
   const declarationNodesOf = query(delivery).rule((r) => {
     const boundGradable = boundGradableIn(r);
     const graded = boundGradable;
     const { package: pkg, path: item } = v(graded, "graded");
-    const { start, end, parent, kind } = v(fields.Node, "node");
-    const { token } = v(fields.DeclarationNodeKind, "kind");
+    const { start, end, parent, kind } = v(fields.DeclarationElement, "node");
 
     return r
       .match(graded, { package: pkg, path: item })
-      .match(fields.Node, { end, kind, package: pkg, parent, path: item, start })
-      .match(fields.DeclarationNodeKind, { kind, token })
-      .find({ end, kind: token, package: pkg, parent, path: item, start });
+      .match(fields.DeclarationElement, { end, kind, package: pkg, parent, path: item, start })
+      .find({ end, kind, package: pkg, parent, path: item, start });
   });
 
   /**
-   * Their attributes the machine reads.
+   * Their attributes the machine reads (DeclarationAttribute).
    */
   const declarationAttributesOf = query(delivery).rule((r) => {
     const boundGradable = boundGradableIn(r);
     const graded = boundGradable;
     const { package: pkg, path: item } = v(graded, "graded");
-    const { start, kind } = v(fields.Node, "node");
-    const { name, value } = v(fields.Attribute, "attribute");
-    const { token } = v(fields.GradedAttributeName, "name");
+    const { start, name, value } = v(fields.DeclarationAttribute, "attribute");
 
     return r
       .match(graded, { package: pkg, path: item })
-      .match(fields.Node, { kind, package: pkg, path: item, start })
-      .match(fields.DeclarationNodeKind, { kind })
-      .match(fields.Attribute, { name, package: pkg, path: item, start, value })
-      .match(fields.GradedAttributeName, { name, token })
-      .find({ name: token, package: pkg, path: item, start, value });
+      .match(fields.DeclarationAttribute, { name, package: pkg, path: item, start, value })
+      .find({ name, package: pkg, path: item, start, value });
   });
 
   /**
-   * Each qti-value's string value.
+   * Each qti-value's string value (DeclarationValueText).
    */
   const declarationTextsOf = query(delivery).rule((r) => {
     const boundGradable = boundGradableIn(r);
     const graded = boundGradable;
     const { package: pkg, path: item } = v(graded, "graded");
-    const { start, stringValue } = v(fields.Node, "value");
+    const { start, text } = v(fields.DeclarationValueText, "value");
 
     return r
       .match(graded, { package: pkg, path: item })
-      .match(fields.Node, { kind: "qti-value", package: pkg, path: item, start, stringValue })
-      .find({ package: pkg, path: item, start, text: stringValue });
+      .match(fields.DeclarationValueText, { package: pkg, path: item, start, text })
+      .find({ package: pkg, path: item, start, text });
+  });
+
+  /**
+   * The graded items' mappings, by their responses, their defaults and bounds parsed
+   * (DeclaredMapping).
+   */
+  const mappingsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { identifier, dflt, lower, upper } = v(fields.DeclaredMapping, "mapping");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredMapping, { dflt, identifier, lower, package: pkg, path: item, upper })
+      .find({ dflt, identifier, lower, package: pkg, path: item, upper });
+  });
+
+  /**
+   * Their area mappings (DeclaredAreaMapping).
+   */
+  const areaMappingsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { identifier, dflt, lower, upper } = v(fields.DeclaredAreaMapping, "mapping");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredAreaMapping, {
+        dflt,
+        identifier,
+        lower,
+        package: pkg,
+        path: item,
+        upper,
+      })
+      .find({ dflt, identifier, lower, package: pkg, path: item, upper });
+  });
+
+  /**
+   * Their map entries, each by its element's start, its case sensitivity and mapped value parsed
+   * (DeclaredMapEntry).
+   */
+  const mapEntriesOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, identifier, caseSensitive, value } = v(fields.DeclaredMapEntry, "entry");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredMapEntry, {
+        caseSensitive,
+        identifier,
+        package: pkg,
+        path: item,
+        start,
+        value,
+      })
+      .find({
+        case_sensitive: caseSensitive,
+        identifier,
+        package: pkg,
+        path: item,
+        start,
+        value,
+      });
+  });
+
+  /**
+   * Their area map entries, each its area's kind and mapped value (DeclaredAreaEntry).
+   */
+  const areaMapEntriesOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, identifier, kind, value } = v(fields.DeclaredAreaEntry, "entry");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredAreaEntry, {
+        identifier,
+        kind,
+        package: pkg,
+        path: item,
+        start,
+        value,
+      })
+      .find({ identifier, kind, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * Each area map entry's coordinates, by its place (DeclaredAreaCoord).
+   */
+  const areaCoordsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, place, c } = v(fields.DeclaredAreaCoord, "coordinate");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredAreaCoord, { c, package: pkg, path: item, place, start })
+      .find({ c, package: pkg, path: item, place, start });
+  });
+
+  /**
+   * Their lookup tables, by their outcomes, each its kind (DeclaredLookup).
+   */
+  const lookupsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, identifier, kind } = v(fields.DeclaredLookup, "table");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredLookup, { identifier, kind, package: pkg, path: item, start })
+      .find({ identifier, kind, package: pkg, path: item, start });
+  });
+
+  /**
+   * Their match table entries, each its source (DeclaredMatchEntry).
+   */
+  const matchEntriesOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, identifier, source } = v(fields.DeclaredMatchEntry, "entry");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredMatchEntry, { identifier, package: pkg, path: item, source, start })
+      .find({ identifier, package: pkg, path: item, source, start });
+  });
+
+  /**
+   * Their interpolation table entries, each its source and whether it includes the boundary
+   * (DeclaredInterpolationEntry).
+   */
+  const interpolationEntriesOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, identifier, source, boundary } = v(fields.DeclaredInterpolationEntry, "entry");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredInterpolationEntry, {
+        boundary,
+        identifier,
+        package: pkg,
+        path: item,
+        source,
+        start,
+      })
+      .find({ boundary, identifier, package: pkg, path: item, source, start });
+  });
+
+  /**
+   * Each map key, table entry's target and table's default of a text base type, typed
+   * (DeclaredValueText).
+   */
+  const valueTextsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, base, value } = v(fields.DeclaredValueText, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValueText, { base, package: pkg, path: item, start, value })
+      .find({ base, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * Each of an integer base type (DeclaredValueInteger).
+   */
+  const valueIntegersOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, value } = v(fields.DeclaredValueInteger, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValueInteger, { package: pkg, path: item, start, value })
+      .find({ package: pkg, path: item, start, value });
+  });
+
+  /**
+   * Each of a float or duration base type (DeclaredValueFloat).
+   */
+  const valueFloatsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, base, value } = v(fields.DeclaredValueFloat, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValueFloat, { base, package: pkg, path: item, start, value })
+      .find({ base, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * Each of the boolean base type (DeclaredValueBoolean).
+   */
+  const valueBooleansOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, value } = v(fields.DeclaredValueBoolean, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValueBoolean, { package: pkg, path: item, start, value })
+      .find({ package: pkg, path: item, start, value });
+  });
+
+  /**
+   * Each of the pair base type (DeclaredValuePair).
+   */
+  const valuePairsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, least, greatest } = v(fields.DeclaredValuePair, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValuePair, { greatest, least, package: pkg, path: item, start })
+      .find({ greatest, least, package: pkg, path: item, start });
+  });
+
+  /**
+   * Each of the directed pair base type (DeclaredValueDirectedPair).
+   */
+  const valueDirectedPairsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, source, target } = v(fields.DeclaredValueDirectedPair, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValueDirectedPair, {
+        package: pkg,
+        path: item,
+        source,
+        start,
+        target,
+      })
+      .find({ package: pkg, path: item, source, start, target });
+  });
+
+  /**
+   * Each of the point base type (DeclaredValuePoint).
+   */
+  const valuePointsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, x, y } = v(fields.DeclaredValuePoint, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValuePoint, { package: pkg, path: item, start, x, y })
+      .find({ package: pkg, path: item, start, x, y });
+  });
+
+  /**
+   * Each variable the graded items' runs hold and the kind of declaration it is of: its declared
+   * variables and its built-ins, as the ledger stores them (SessionVariableName), each kind by the
+   * machine's token (VariableKindToken).
+   */
+  const variableKindsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { identifier, declarationKind } = v(fields.SessionVariableName, "variable");
+    const { token: kind } = v(fields.VariableKindToken, "kind");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.SessionVariableName, {
+        declarationKind,
+        identifier,
+        package: pkg,
+        path: item,
+      })
+      .match(fields.VariableKindToken, { declarationKind, token: kind })
+      .find({ identifier, kind, package: pkg, path: item });
   });
 
   /**
@@ -8224,6 +8515,9 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     });
 
   return {
+    area_coords: areaCoordsOf,
+    area_entries: areaMapEntriesOf,
+    area_mappings: areaMappingsOf,
     booleans: booleansOf,
     declaration_attributes: declarationAttributesOf,
     declaration_texts: declarationTextsOf,
@@ -8244,6 +8538,12 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     human_feedbacks: humanFeedbacksOf,
     humans: humansOf,
     integers: integersOf,
+    interpolation_entries: interpolationEntriesOf,
+    kinds: variableKindsOf,
+    lookups: lookupsOf,
+    map_entries: mapEntriesOf,
+    mappings: mappingsOf,
+    match_entries: matchEntriesOf,
     pairs: pairsOf,
     points: pointsOf,
     programs: programNodesOf,
@@ -8254,6 +8554,13 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     table_entries: tableEntriesOf,
     table_values: tableValuesOf,
     texts: textsOf,
+    value_booleans: valueBooleansOf,
+    value_directed_pairs: valueDirectedPairsOf,
+    value_floats: valueFloatsOf,
+    value_integers: valueIntegersOf,
+    value_pairs: valuePairsOf,
+    value_points: valuePointsOf,
+    value_texts: valueTextsOf,
     vars: varsOf,
     walk_areas: walkAreasOf,
     walk_categories: walkCategoriesOf,
@@ -8377,55 +8684,31 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
   const processed = processedOf.bind(answeredKey);
 
   /**
-   * The item body's element nodes, its `qti-item-body` among them, each kind by its name
-   * (`BodyNodeKind`).
+   * The item body's element nodes, its `qti-item-body` among them, each kind by its name, as the
+   * package's publication stores them (`ItemBodyElement`).
    */
   const body = query(delivery).rule((r) => {
     const { package: pkg, path } = v(answered, "answered");
-    const { start: first, end: last } = v(fields.Node, "itemBody");
-    const { start, end, parent, kind } = v(fields.Node, "bodyNode");
-    const { token } = v(fields.BodyNodeKind, "kind");
+    const { start, end, parent, kind } = v(fields.ItemBodyElement, "bodyNode");
 
     return r
       .match(answered, { package: pkg, path })
-      .match(fields.Node, {
-        end: last,
-        kind: "qti-item-body",
-        package: pkg,
-        parentKind: "qti-assessment-item",
-        path,
-        start: first,
-      })
-      .match(fields.Node, { end, kind, package: pkg, parent, path, start })
-      .match(fields.BodyNodeKind, { kind, token })
-      .where(r.ge(start, first), r.lt(start, last))
-      .find({ end, kind: token, package: pkg, parent, path, start });
+      .match(fields.ItemBodyElement, { end, kind, package: pkg, parent, path, start })
+      .find({ end, kind, package: pkg, parent, path, start });
   });
 
   /**
-   * The attributes of the body's elements admission reads (`AdmittedAttributeName`), as pantry's
-   * Attribute holds their values.
+   * The attributes of the body's elements admission reads, as the package's publication stores
+   * them (`ItemBodyAttribute`).
    */
   const bodyAttributes = query(delivery).rule((r) => {
     const { package: pkg, path } = v(answered, "answered");
-    const { start: first, end: last } = v(fields.Node, "itemBody");
-    const { start, name, value } = v(fields.Attribute, "attribute");
-    const { token } = v(fields.AdmittedAttributeName, "name");
+    const { start, name, value } = v(fields.ItemBodyAttribute, "attribute");
 
     return r
       .match(answered, { package: pkg, path })
-      .match(fields.Node, {
-        end: last,
-        kind: "qti-item-body",
-        package: pkg,
-        parentKind: "qti-assessment-item",
-        path,
-        start: first,
-      })
-      .match(fields.Attribute, { name, package: pkg, path, start, value })
-      .match(fields.AdmittedAttributeName, { name, token })
-      .where(r.ge(start, first), r.lt(start, last))
-      .find({ name: token, package: pkg, path, start, value });
+      .match(fields.ItemBodyAttribute, { name, package: pkg, path, start, value })
+      .find({ name, package: pkg, path, start, value });
   });
 
   /**
@@ -8447,44 +8730,54 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     });
 
   /**
-   * The item's declarations, their attributes the machine reads and each `qti-value`'s string
-   * value, as the grading statement reads them.
+   * The item's declarations, their attributes the machine reads, each `qti-value`'s string
+   * value and its variables' kinds, as the grading statement reads them.
    */
   const declarations = query(delivery).rule((r) => {
     const { package: pkg, path: item } = v(answered, "answered");
-    const { start, end, parent, kind } = v(fields.Node, "node");
-    const { token } = v(fields.DeclarationNodeKind, "kind");
+    const { start, end, parent, kind } = v(fields.DeclarationElement, "node");
 
     return r
       .match(answered, { package: pkg, path: item })
-      .match(fields.Node, { end, kind, package: pkg, parent, path: item, start })
-      .match(fields.DeclarationNodeKind, { kind, token })
-      .find({ end, kind: token, package: pkg, parent, path: item, start });
+      .match(fields.DeclarationElement, { end, kind, package: pkg, parent, path: item, start })
+      .find({ end, kind, package: pkg, parent, path: item, start });
   });
 
   const declarationAttributes = query(delivery).rule((r) => {
     const { package: pkg, path: item } = v(answered, "answered");
-    const { start, kind } = v(fields.Node, "node");
-    const { name, value } = v(fields.Attribute, "attribute");
-    const { token } = v(fields.GradedAttributeName, "name");
+    const { start, name, value } = v(fields.DeclarationAttribute, "attribute");
 
     return r
       .match(answered, { package: pkg, path: item })
-      .match(fields.Node, { kind, package: pkg, path: item, start })
-      .match(fields.DeclarationNodeKind, { kind })
-      .match(fields.Attribute, { name, package: pkg, path: item, start, value })
-      .match(fields.GradedAttributeName, { name, token })
-      .find({ name: token, package: pkg, path: item, start, value });
+      .match(fields.DeclarationAttribute, { name, package: pkg, path: item, start, value })
+      .find({ name, package: pkg, path: item, start, value });
   });
 
   const declarationTexts = query(delivery).rule((r) => {
     const { package: pkg, path: item } = v(answered, "answered");
-    const { start, stringValue } = v(fields.Node, "value");
+    const { start, text } = v(fields.DeclarationValueText, "value");
 
     return r
       .match(answered, { package: pkg, path: item })
-      .match(fields.Node, { kind: "qti-value", package: pkg, path: item, start, stringValue })
-      .find({ package: pkg, path: item, start, text: stringValue });
+      .match(fields.DeclarationValueText, { package: pkg, path: item, start, text })
+      .find({ package: pkg, path: item, start, text });
+  });
+
+  const kinds = query(delivery).rule((r) => {
+    const { package: pkg, path: item } = v(answered, "answered");
+    const { identifier, declarationKind } = v(fields.SessionVariableName, "variable");
+    const { token: kind } = v(fields.VariableKindToken, "kind");
+
+    return r
+      .match(answered, { package: pkg, path: item })
+      .match(fields.SessionVariableName, {
+        declarationKind,
+        identifier,
+        package: pkg,
+        path: item,
+      })
+      .match(fields.VariableKindToken, { declarationKind, token: kind })
+      .find({ identifier, kind, package: pkg, path: item });
   });
 
   /**
@@ -14415,6 +14708,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     files,
     floats,
     integers,
+    kinds,
     latest: latestOf,
     pairs,
     points,
@@ -14752,6 +15046,7 @@ export const answerAdmissionOf = (delivery: DeliveryLevel) => {
         orderedInteger: posted.orderedInteger,
         singleInteger: posted.singleInteger,
       }),
+      kinds: args.kinds.bind(key),
       pairs: args.pairs.bind({
         ...key,
         multiplePair: posted.multiplePair,
@@ -14922,57 +15217,33 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
   const processedIn = (r: Rule<DeliveryLevel>) => processedOf.bind(memberKeyIn(r));
 
   /**
-   * The item body's element nodes, its `qti-item-body` among them, each kind by its name
-   * (`BodyNodeKind`).
+   * The item body's element nodes, its `qti-item-body` among them, each kind by its name, as the
+   * package's publication stores them (`ItemBodyElement`).
    */
   const body = query(delivery).rule((r) => {
     const answered = answeredIn(r);
     const { package: pkg, path } = v(answered, "answered");
-    const { start: first, end: last } = v(fields.Node, "itemBody");
-    const { start, end, parent, kind } = v(fields.Node, "bodyNode");
-    const { token } = v(fields.BodyNodeKind, "kind");
+    const { start, end, parent, kind } = v(fields.ItemBodyElement, "bodyNode");
 
     return r
       .match(answered, { package: pkg, path })
-      .match(fields.Node, {
-        end: last,
-        kind: "qti-item-body",
-        package: pkg,
-        parentKind: "qti-assessment-item",
-        path,
-        start: first,
-      })
-      .match(fields.Node, { end, kind, package: pkg, parent, path, start })
-      .match(fields.BodyNodeKind, { kind, token })
-      .where(r.ge(start, first), r.lt(start, last))
-      .find({ end, kind: token, package: pkg, parent, path, start });
+      .match(fields.ItemBodyElement, { end, kind, package: pkg, parent, path, start })
+      .find({ end, kind, package: pkg, parent, path, start });
   });
 
   /**
-   * The attributes of the body's elements admission reads (`AdmittedAttributeName`), as pantry's
-   * Attribute holds their values.
+   * The attributes of the body's elements admission reads, as the package's publication stores
+   * them (`ItemBodyAttribute`).
    */
   const bodyAttributes = query(delivery).rule((r) => {
     const answered = answeredIn(r);
     const { package: pkg, path } = v(answered, "answered");
-    const { start: first, end: last } = v(fields.Node, "itemBody");
-    const { start, name, value } = v(fields.Attribute, "attribute");
-    const { token } = v(fields.AdmittedAttributeName, "name");
+    const { start, name, value } = v(fields.ItemBodyAttribute, "attribute");
 
     return r
       .match(answered, { package: pkg, path })
-      .match(fields.Node, {
-        end: last,
-        kind: "qti-item-body",
-        package: pkg,
-        parentKind: "qti-assessment-item",
-        path,
-        start: first,
-      })
-      .match(fields.Attribute, { name, package: pkg, path, start, value })
-      .match(fields.AdmittedAttributeName, { name, token })
-      .where(r.ge(start, first), r.lt(start, last))
-      .find({ name: token, package: pkg, path, start, value });
+      .match(fields.ItemBodyAttribute, { name, package: pkg, path, start, value })
+      .find({ name, package: pkg, path, start, value });
   });
 
   /**
@@ -15022,47 +15293,58 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     });
 
   /**
-   * The item's declarations, their attributes the machine reads and each `qti-value`'s string
-   * value, as the grading statement reads them.
+   * The item's declarations, their attributes the machine reads, each `qti-value`'s string
+   * value and its variables' kinds, as the grading statement reads them.
    */
   const declarations = query(delivery).rule((r) => {
     const answered = answeredIn(r);
     const { package: pkg, path: item } = v(answered, "answered");
-    const { start, end, parent, kind } = v(fields.Node, "node");
-    const { token } = v(fields.DeclarationNodeKind, "kind");
+    const { start, end, parent, kind } = v(fields.DeclarationElement, "node");
 
     return r
       .match(answered, { package: pkg, path: item })
-      .match(fields.Node, { end, kind, package: pkg, parent, path: item, start })
-      .match(fields.DeclarationNodeKind, { kind, token })
-      .find({ end, kind: token, package: pkg, parent, path: item, start });
+      .match(fields.DeclarationElement, { end, kind, package: pkg, parent, path: item, start })
+      .find({ end, kind, package: pkg, parent, path: item, start });
   });
 
   const declarationAttributes = query(delivery).rule((r) => {
     const answered = answeredIn(r);
     const { package: pkg, path: item } = v(answered, "answered");
-    const { start, kind } = v(fields.Node, "node");
-    const { name, value } = v(fields.Attribute, "attribute");
-    const { token } = v(fields.GradedAttributeName, "name");
+    const { start, name, value } = v(fields.DeclarationAttribute, "attribute");
 
     return r
       .match(answered, { package: pkg, path: item })
-      .match(fields.Node, { kind, package: pkg, path: item, start })
-      .match(fields.DeclarationNodeKind, { kind })
-      .match(fields.Attribute, { name, package: pkg, path: item, start, value })
-      .match(fields.GradedAttributeName, { name, token })
-      .find({ name: token, package: pkg, path: item, start, value });
+      .match(fields.DeclarationAttribute, { name, package: pkg, path: item, start, value })
+      .find({ name, package: pkg, path: item, start, value });
   });
 
   const declarationTexts = query(delivery).rule((r) => {
     const answered = answeredIn(r);
     const { package: pkg, path: item } = v(answered, "answered");
-    const { start, stringValue } = v(fields.Node, "value");
+    const { start, text } = v(fields.DeclarationValueText, "value");
 
     return r
       .match(answered, { package: pkg, path: item })
-      .match(fields.Node, { kind: "qti-value", package: pkg, path: item, start, stringValue })
-      .find({ package: pkg, path: item, start, text: stringValue });
+      .match(fields.DeclarationValueText, { package: pkg, path: item, start, text })
+      .find({ package: pkg, path: item, start, text });
+  });
+
+  const kinds = query(delivery).rule((r) => {
+    const answered = answeredIn(r);
+    const { package: pkg, path: item } = v(answered, "answered");
+    const { identifier, declarationKind } = v(fields.SessionVariableName, "variable");
+    const { token: kind } = v(fields.VariableKindToken, "kind");
+
+    return r
+      .match(answered, { package: pkg, path: item })
+      .match(fields.SessionVariableName, {
+        declarationKind,
+        identifier,
+        package: pkg,
+        path: item,
+      })
+      .match(fields.VariableKindToken, { declarationKind, token: kind })
+      .find({ identifier, kind, package: pkg, path: item });
   });
 
   /**
@@ -21201,6 +21483,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     files,
     floats,
     integers,
+    kinds,
     latest: latestOf,
     pairs,
     points,
@@ -21536,6 +21819,7 @@ export const memberAnswerAdmissionOf = (delivery: DeliveryLevel) => {
         orderedInteger: posted.orderedInteger,
         singleInteger: posted.singleInteger,
       }),
+      kinds: args.kinds.bind(key),
       pairs: args.pairs.bind({
         ...key,
         multiplePair: posted.multiplePair,
@@ -22326,55 +22610,343 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
   });
 
   /**
-   * The graded items' declarations' nodes of the kinds the machine reads.
+   * The graded items' declarations' nodes of the kinds the machine reads, as the package's
+   * publication stores them (DeclarationElement).
    */
   const declarationNodesOf = query(delivery).rule((r) => {
     const boundGradable = boundGradableIn(r);
     const graded = boundGradable;
     const { package: pkg, path: item } = v(graded, "graded");
-    const { start, end, parent, kind } = v(fields.Node, "node");
-    const { token } = v(fields.DeclarationNodeKind, "kind");
+    const { start, end, parent, kind } = v(fields.DeclarationElement, "node");
 
     return r
       .match(graded, { package: pkg, path: item })
-      .match(fields.Node, { end, kind, package: pkg, parent, path: item, start })
-      .match(fields.DeclarationNodeKind, { kind, token })
-      .find({ end, kind: token, package: pkg, parent, path: item, start });
+      .match(fields.DeclarationElement, { end, kind, package: pkg, parent, path: item, start })
+      .find({ end, kind, package: pkg, parent, path: item, start });
   });
 
   /**
-   * Their attributes the machine reads.
+   * Their attributes the machine reads (DeclarationAttribute).
    */
   const declarationAttributesOf = query(delivery).rule((r) => {
     const boundGradable = boundGradableIn(r);
     const graded = boundGradable;
     const { package: pkg, path: item } = v(graded, "graded");
-    const { start, kind } = v(fields.Node, "node");
-    const { name, value } = v(fields.Attribute, "attribute");
-    const { token } = v(fields.GradedAttributeName, "name");
+    const { start, name, value } = v(fields.DeclarationAttribute, "attribute");
 
     return r
       .match(graded, { package: pkg, path: item })
-      .match(fields.Node, { kind, package: pkg, path: item, start })
-      .match(fields.DeclarationNodeKind, { kind })
-      .match(fields.Attribute, { name, package: pkg, path: item, start, value })
-      .match(fields.GradedAttributeName, { name, token })
-      .find({ name: token, package: pkg, path: item, start, value });
+      .match(fields.DeclarationAttribute, { name, package: pkg, path: item, start, value })
+      .find({ name, package: pkg, path: item, start, value });
   });
 
   /**
-   * Each qti-value's string value.
+   * Each qti-value's string value (DeclarationValueText).
    */
   const declarationTextsOf = query(delivery).rule((r) => {
     const boundGradable = boundGradableIn(r);
     const graded = boundGradable;
     const { package: pkg, path: item } = v(graded, "graded");
-    const { start, stringValue } = v(fields.Node, "value");
+    const { start, text } = v(fields.DeclarationValueText, "value");
 
     return r
       .match(graded, { package: pkg, path: item })
-      .match(fields.Node, { kind: "qti-value", package: pkg, path: item, start, stringValue })
-      .find({ package: pkg, path: item, start, text: stringValue });
+      .match(fields.DeclarationValueText, { package: pkg, path: item, start, text })
+      .find({ package: pkg, path: item, start, text });
+  });
+
+  /**
+   * The graded items' mappings, by their responses, their defaults and bounds parsed
+   * (DeclaredMapping).
+   */
+  const mappingsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { identifier, dflt, lower, upper } = v(fields.DeclaredMapping, "mapping");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredMapping, { dflt, identifier, lower, package: pkg, path: item, upper })
+      .find({ dflt, identifier, lower, package: pkg, path: item, upper });
+  });
+
+  /**
+   * Their area mappings (DeclaredAreaMapping).
+   */
+  const areaMappingsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { identifier, dflt, lower, upper } = v(fields.DeclaredAreaMapping, "mapping");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredAreaMapping, {
+        dflt,
+        identifier,
+        lower,
+        package: pkg,
+        path: item,
+        upper,
+      })
+      .find({ dflt, identifier, lower, package: pkg, path: item, upper });
+  });
+
+  /**
+   * Their map entries, each by its element's start, its case sensitivity and mapped value parsed
+   * (DeclaredMapEntry).
+   */
+  const mapEntriesOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, identifier, caseSensitive, value } = v(fields.DeclaredMapEntry, "entry");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredMapEntry, {
+        caseSensitive,
+        identifier,
+        package: pkg,
+        path: item,
+        start,
+        value,
+      })
+      .find({
+        case_sensitive: caseSensitive,
+        identifier,
+        package: pkg,
+        path: item,
+        start,
+        value,
+      });
+  });
+
+  /**
+   * Their area map entries, each its area's kind and mapped value (DeclaredAreaEntry).
+   */
+  const areaMapEntriesOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, identifier, kind, value } = v(fields.DeclaredAreaEntry, "entry");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredAreaEntry, {
+        identifier,
+        kind,
+        package: pkg,
+        path: item,
+        start,
+        value,
+      })
+      .find({ identifier, kind, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * Each area map entry's coordinates, by its place (DeclaredAreaCoord).
+   */
+  const areaCoordsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, place, c } = v(fields.DeclaredAreaCoord, "coordinate");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredAreaCoord, { c, package: pkg, path: item, place, start })
+      .find({ c, package: pkg, path: item, place, start });
+  });
+
+  /**
+   * Their lookup tables, by their outcomes, each its kind (DeclaredLookup).
+   */
+  const lookupsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, identifier, kind } = v(fields.DeclaredLookup, "table");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredLookup, { identifier, kind, package: pkg, path: item, start })
+      .find({ identifier, kind, package: pkg, path: item, start });
+  });
+
+  /**
+   * Their match table entries, each its source (DeclaredMatchEntry).
+   */
+  const matchEntriesOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, identifier, source } = v(fields.DeclaredMatchEntry, "entry");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredMatchEntry, { identifier, package: pkg, path: item, source, start })
+      .find({ identifier, package: pkg, path: item, source, start });
+  });
+
+  /**
+   * Their interpolation table entries, each its source and whether it includes the boundary
+   * (DeclaredInterpolationEntry).
+   */
+  const interpolationEntriesOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, identifier, source, boundary } = v(fields.DeclaredInterpolationEntry, "entry");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredInterpolationEntry, {
+        boundary,
+        identifier,
+        package: pkg,
+        path: item,
+        source,
+        start,
+      })
+      .find({ boundary, identifier, package: pkg, path: item, source, start });
+  });
+
+  /**
+   * Each map key, table entry's target and table's default of a text base type, typed
+   * (DeclaredValueText).
+   */
+  const valueTextsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, base, value } = v(fields.DeclaredValueText, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValueText, { base, package: pkg, path: item, start, value })
+      .find({ base, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * Each of an integer base type (DeclaredValueInteger).
+   */
+  const valueIntegersOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, value } = v(fields.DeclaredValueInteger, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValueInteger, { package: pkg, path: item, start, value })
+      .find({ package: pkg, path: item, start, value });
+  });
+
+  /**
+   * Each of a float or duration base type (DeclaredValueFloat).
+   */
+  const valueFloatsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, base, value } = v(fields.DeclaredValueFloat, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValueFloat, { base, package: pkg, path: item, start, value })
+      .find({ base, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * Each of the boolean base type (DeclaredValueBoolean).
+   */
+  const valueBooleansOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, value } = v(fields.DeclaredValueBoolean, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValueBoolean, { package: pkg, path: item, start, value })
+      .find({ package: pkg, path: item, start, value });
+  });
+
+  /**
+   * Each of the pair base type (DeclaredValuePair).
+   */
+  const valuePairsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, least, greatest } = v(fields.DeclaredValuePair, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValuePair, { greatest, least, package: pkg, path: item, start })
+      .find({ greatest, least, package: pkg, path: item, start });
+  });
+
+  /**
+   * Each of the directed pair base type (DeclaredValueDirectedPair).
+   */
+  const valueDirectedPairsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, source, target } = v(fields.DeclaredValueDirectedPair, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValueDirectedPair, {
+        package: pkg,
+        path: item,
+        source,
+        start,
+        target,
+      })
+      .find({ package: pkg, path: item, source, start, target });
+  });
+
+  /**
+   * Each of the point base type (DeclaredValuePoint).
+   */
+  const valuePointsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, x, y } = v(fields.DeclaredValuePoint, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValuePoint, { package: pkg, path: item, start, x, y })
+      .find({ package: pkg, path: item, start, x, y });
+  });
+
+  /**
+   * Each variable the graded items' runs hold and the kind of declaration it is of: its declared
+   * variables and its built-ins, as the ledger stores them (SessionVariableName), each kind by the
+   * machine's token (VariableKindToken).
+   */
+  const variableKindsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { identifier, declarationKind } = v(fields.SessionVariableName, "variable");
+    const { token: kind } = v(fields.VariableKindToken, "kind");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.SessionVariableName, {
+        declarationKind,
+        identifier,
+        package: pkg,
+        path: item,
+      })
+      .match(fields.VariableKindToken, { declarationKind, token: kind })
+      .find({ identifier, kind, package: pkg, path: item });
   });
 
   /**
@@ -27205,6 +27777,9 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
   });
 
   return {
+    area_coords: areaCoordsOf,
+    area_entries: areaMapEntriesOf,
+    area_mappings: areaMappingsOf,
     booleans: booleansOf,
     declaration_attributes: declarationAttributesOf,
     declaration_texts: declarationTextsOf,
@@ -27222,11 +27797,24 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     floats: floatsOf,
     gradable: gradableOf,
     integers: integersOf,
+    interpolation_entries: interpolationEntriesOf,
+    kinds: variableKindsOf,
+    lookups: lookupsOf,
+    map_entries: mapEntriesOf,
+    mappings: mappingsOf,
+    match_entries: matchEntriesOf,
     pairs: pairsOf,
     points: pointsOf,
     programs: programNodesOf,
     runs: runsOf,
     texts: textsOf,
+    value_booleans: valueBooleansOf,
+    value_directed_pairs: valueDirectedPairsOf,
+    value_floats: valueFloatsOf,
+    value_integers: valueIntegersOf,
+    value_pairs: valuePairsOf,
+    value_points: valuePointsOf,
+    value_texts: valueTextsOf,
     vars: varsOf,
     walk_areas: walkAreasOf,
     walk_categories: walkCategoriesOf,
@@ -27384,6 +27972,9 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
    */
   const runIn = (r: Rule<DeliveryLevel>) =>
     Fn.row(responseProcessingOf, {
+      area_coords: args.area_coords.bind(bySession(r)),
+      area_entries: args.area_entries.bind(bySession(r)),
+      area_mappings: args.area_mappings.bind(bySession(r)),
       booleans: args.booleans.bind(bySession(r)),
       declaration_attributes: args.declaration_attributes.bind(bySession(r)),
       declaration_texts: args.declaration_texts.bind(bySession(r)),
@@ -27403,6 +27994,12 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
       human_feedbacks: args.human_feedbacks.bind(bySession(r)),
       humans: args.humans.bind(bySession(r)),
       integers: args.integers.bind(bySession(r)),
+      interpolation_entries: args.interpolation_entries.bind(bySession(r)),
+      kinds: args.kinds.bind(bySession(r)),
+      lookups: args.lookups.bind(bySession(r)),
+      map_entries: args.map_entries.bind(bySession(r)),
+      mappings: args.mappings.bind(bySession(r)),
+      match_entries: args.match_entries.bind(bySession(r)),
       pairs: args.pairs.bind(bySession(r)),
       points: args.points.bind(bySession(r)),
       programs: args.programs.bind(bySession(r)),
@@ -27413,6 +28010,13 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
       table_entries: args.table_entries,
       table_values: args.table_values,
       texts: args.texts.bind(bySession(r)),
+      value_booleans: args.value_booleans.bind(bySession(r)),
+      value_directed_pairs: args.value_directed_pairs.bind(bySession(r)),
+      value_floats: args.value_floats.bind(bySession(r)),
+      value_integers: args.value_integers.bind(bySession(r)),
+      value_pairs: args.value_pairs.bind(bySession(r)),
+      value_points: args.value_points.bind(bySession(r)),
+      value_texts: args.value_texts.bind(bySession(r)),
       vars: args.vars.bind(bySession(r)),
       walk_areas: args.walk_areas.bind(bySession(r)),
       walk_categories: args.walk_categories.bind(bySession(r)),
@@ -30321,7 +30925,8 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
 /**
  * The tree of a sitting's test outcome processing (P4-TEST's run, `#ledger/test-run-call.ts`, the
  * flat test entry's `programs` and walk inputs (`#tools/gen/grade/walk.ts`), `declarations`,
- * `declaration_attributes` and `declaration_texts`), each a query over the call's `child` and
+ * `declaration_attributes`, `declaration_texts`, its documents' stored mappings, lookup tables and
+ * the values they hold, and its variables' kinds), each a query over the call's `child` and
  * `stage` alone, every row keyed by its own document: the subtree of the test document's
  * `qti-outcome-processing` (§5.102), crossed as an item's response processing is, by the
  * machine's tokens; and the declarations of the test and of every member item of the stage's item
@@ -30802,59 +31407,351 @@ export const testTreeOf = (delivery: DeliveryLevel) => {
   });
 
   /**
-   * Each document's declarations' nodes of the kinds the machine reads.
+   * Each document's declarations' nodes of the kinds the machine reads. Each is read as its
+   * package's publication stores it (DeclarationElement).
    */
   const declarations = query(delivery).rule((r) => {
     const documents = documentsIn(r);
     const { package: pkg, path } = v(documents, "document");
-    const { start, end, parent, kind } = v(fields.Node, "node");
-    const { token } = v(fields.DeclarationNodeKind, "kind");
+    const { end, kind, parent, start } = v(fields.DeclarationElement, "node");
 
     return r
       .match(documents, { package: pkg, path })
-      .match(fields.Node, { end, kind, package: pkg, parent, path, start })
-      .match(fields.DeclarationNodeKind, { kind, token })
-      .find({ end, kind: token, package: pkg, parent, path, start });
+      .match(fields.DeclarationElement, { end, kind, package: pkg, parent, path, start })
+      .find({ end, kind, package: pkg, parent, path, start });
   });
 
   /**
-   * Their attributes the machine reads.
+   * Their attributes the machine reads (DeclarationAttribute).
    */
   const declarationAttributes = query(delivery).rule((r) => {
     const documents = documentsIn(r);
     const { package: pkg, path } = v(documents, "document");
-    const { start, kind } = v(fields.Node, "node");
-    const { name, value } = v(fields.Attribute, "attribute");
-    const { token } = v(fields.GradedAttributeName, "name");
+    const { name, start, value } = v(fields.DeclarationAttribute, "attribute");
 
     return r
       .match(documents, { package: pkg, path })
-      .match(fields.Node, { kind, package: pkg, path, start })
-      .match(fields.DeclarationNodeKind, { kind })
-      .match(fields.Attribute, { name, package: pkg, path, start, value })
-      .match(fields.GradedAttributeName, { name, token })
-      .find({ name: token, package: pkg, path, start, value });
+      .match(fields.DeclarationAttribute, { name, package: pkg, path, start, value })
+      .find({ name, package: pkg, path, start, value });
   });
 
   /**
-   * Each qti-value's string value.
+   * Each qti-value's string value (DeclarationValueText).
    */
   const declarationTexts = query(delivery).rule((r) => {
     const documents = documentsIn(r);
     const { package: pkg, path } = v(documents, "document");
-    const { start, stringValue } = v(fields.Node, "value");
+    const { start, text } = v(fields.DeclarationValueText, "value");
 
     return r
       .match(documents, { package: pkg, path })
-      .match(fields.Node, { kind: "qti-value", package: pkg, path, start, stringValue })
-      .find({ package: pkg, path, start, text: stringValue });
+      .match(fields.DeclarationValueText, { package: pkg, path, start, text })
+      .find({ package: pkg, path, start, text });
   });
 
+  /**
+   * Each document's mappings, parsed (DeclaredMapping): an item's, of which a test has none.
+   */
+  const mappings = query(delivery).rule((r) => {
+    const documents = documentsIn(r);
+    const { package: pkg, path } = v(documents, "document");
+    const { dflt, identifier, lower, upper } = v(fields.DeclaredMapping, "mapping");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredMapping, { dflt, identifier, lower, package: pkg, path, upper })
+      .find({ dflt, identifier, lower, package: pkg, path, upper });
+  });
+
+  /**
+   * Their area mappings (DeclaredAreaMapping).
+   */
+  const areaMappings = query(delivery).rule((r) => {
+    const documents = documentsIn(r);
+    const { package: pkg, path } = v(documents, "document");
+    const { dflt, identifier, lower, upper } = v(fields.DeclaredAreaMapping, "mapping");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredAreaMapping, { dflt, identifier, lower, package: pkg, path, upper })
+      .find({ dflt, identifier, lower, package: pkg, path, upper });
+  });
+
+  /**
+   * Their map entries (DeclaredMapEntry).
+   */
+  const mapEntries = query(delivery).rule((r) => {
+    const documents = documentsIn(r);
+    const { package: pkg, path } = v(documents, "document");
+    const { caseSensitive, identifier, start, value } = v(fields.DeclaredMapEntry, "entry");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredMapEntry, {
+        caseSensitive,
+        identifier,
+        package: pkg,
+        path,
+        start,
+        value,
+      })
+      .find({ case_sensitive: caseSensitive, identifier, package: pkg, path, start, value });
+  });
+
+  /**
+   * Their area map entries (DeclaredAreaEntry).
+   */
+  const areaEntries = query(delivery).rule((r) => {
+    const documents = documentsIn(r);
+    const { package: pkg, path } = v(documents, "document");
+    const { identifier, kind, start, value } = v(fields.DeclaredAreaEntry, "entry");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredAreaEntry, { identifier, kind, package: pkg, path, start, value })
+      .find({ identifier, kind, package: pkg, path, start, value });
+  });
+
+  /**
+   * Each area map entry's coordinates (DeclaredAreaCoord).
+   */
+  const areaCoords = query(delivery).rule((r) => {
+    const documents = documentsIn(r);
+    const { package: pkg, path } = v(documents, "document");
+    const { c, place, start } = v(fields.DeclaredAreaCoord, "coordinate");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredAreaCoord, { c, package: pkg, path, place, start })
+      .find({ c, package: pkg, path, place, start });
+  });
+
+  /**
+   * Each document's lookup tables, the test's own among them (DeclaredLookup).
+   */
+  const lookups = query(delivery).rule((r) => {
+    const documents = documentsIn(r);
+    const { package: pkg, path } = v(documents, "document");
+    const { identifier, kind, start } = v(fields.DeclaredLookup, "table");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredLookup, { identifier, kind, package: pkg, path, start })
+      .find({ identifier, kind, package: pkg, path, start });
+  });
+
+  /**
+   * Their match table entries (DeclaredMatchEntry).
+   */
+  const matchEntries = query(delivery).rule((r) => {
+    const documents = documentsIn(r);
+    const { package: pkg, path } = v(documents, "document");
+    const { identifier, source, start } = v(fields.DeclaredMatchEntry, "entry");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredMatchEntry, { identifier, package: pkg, path, source, start })
+      .find({ identifier, package: pkg, path, source, start });
+  });
+
+  /**
+   * Their interpolation table entries (DeclaredInterpolationEntry).
+   */
+  const interpolationEntries = query(delivery).rule((r) => {
+    const documents = documentsIn(r);
+    const { package: pkg, path } = v(documents, "document");
+    const { boundary, identifier, source, start } = v(fields.DeclaredInterpolationEntry, "entry");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredInterpolationEntry, {
+        boundary,
+        identifier,
+        package: pkg,
+        path,
+        source,
+        start,
+      })
+      .find({ boundary, identifier, package: pkg, path, source, start });
+  });
+
+  /**
+   * Each base-typed value of their map entries and lookup tables of a text base type
+   * (DeclaredValueText).
+   */
+  const valueTexts = query(delivery).rule((r) => {
+    const documents = documentsIn(r);
+    const { package: pkg, path } = v(documents, "document");
+    const { base, start, value } = v(fields.DeclaredValueText, "value");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredValueText, { base, package: pkg, path, start, value })
+      .find({ base, package: pkg, path, start, value });
+  });
+
+  /**
+   * Each of an integer base type (DeclaredValueInteger).
+   */
+  const valueIntegers = query(delivery).rule((r) => {
+    const documents = documentsIn(r);
+    const { package: pkg, path } = v(documents, "document");
+    const { start, value } = v(fields.DeclaredValueInteger, "value");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredValueInteger, { package: pkg, path, start, value })
+      .find({ package: pkg, path, start, value });
+  });
+
+  /**
+   * Each of a float or duration base type (DeclaredValueFloat).
+   */
+  const valueFloats = query(delivery).rule((r) => {
+    const documents = documentsIn(r);
+    const { package: pkg, path } = v(documents, "document");
+    const { base, start, value } = v(fields.DeclaredValueFloat, "value");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredValueFloat, { base, package: pkg, path, start, value })
+      .find({ base, package: pkg, path, start, value });
+  });
+
+  /**
+   * Each of the boolean base type (DeclaredValueBoolean).
+   */
+  const valueBooleans = query(delivery).rule((r) => {
+    const documents = documentsIn(r);
+    const { package: pkg, path } = v(documents, "document");
+    const { start, value } = v(fields.DeclaredValueBoolean, "value");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredValueBoolean, { package: pkg, path, start, value })
+      .find({ package: pkg, path, start, value });
+  });
+
+  /**
+   * Each of the pair base type (DeclaredValuePair).
+   */
+  const valuePairs = query(delivery).rule((r) => {
+    const documents = documentsIn(r);
+    const { package: pkg, path } = v(documents, "document");
+    const { greatest, least, start } = v(fields.DeclaredValuePair, "value");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredValuePair, { greatest, least, package: pkg, path, start })
+      .find({ greatest, least, package: pkg, path, start });
+  });
+
+  /**
+   * Each of the directed pair base type (DeclaredValueDirectedPair).
+   */
+  const valueDirectedPairs = query(delivery).rule((r) => {
+    const documents = documentsIn(r);
+    const { package: pkg, path } = v(documents, "document");
+    const { source, start, target } = v(fields.DeclaredValueDirectedPair, "value");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredValueDirectedPair, { package: pkg, path, source, start, target })
+      .find({ package: pkg, path, source, start, target });
+  });
+
+  /**
+   * Each of the point base type (DeclaredValuePoint).
+   */
+  const valuePoints = query(delivery).rule((r) => {
+    const documents = documentsIn(r);
+    const { package: pkg, path } = v(documents, "document");
+    const { start, x, y } = v(fields.DeclaredValuePoint, "value");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredValuePoint, { package: pkg, path, start, x, y })
+      .find({ package: pkg, path, start, x, y });
+  });
+
+  /**
+   * Each variable a document's run holds and the kind of declaration it is of, by the machine's
+   * token (VariableKindToken): a member item's, its declared variables and its built-ins as the
+   * ledger stores them (SessionVariableName); and the test's, each variable it declares, by
+   * pantry's name view (DeclarationName), and its built-in \`duration\`, which a test's processing
+   * holds as a response (BuiltInVariable: "The time spent on the test is recorded as if it were a
+   * built-in response variable called 'duration' declared at the test-level").
+   */
+  const kinds = query(delivery)
+    .rule((r) => {
+      const documents = documentsIn(r);
+      const { package: pkg, path } = v(documents, "document");
+      const { declarationKind, identifier } = v(fields.SessionVariableName, "variable");
+      const { token: kind } = v(fields.VariableKindToken, "kind");
+
+      return r
+        .match(documents, { package: pkg, path })
+        .match(fields.SessionVariableName, { declarationKind, identifier, package: pkg, path })
+        .match(fields.VariableKindToken, { declarationKind, token: kind })
+        .find({ identifier, kind, package: pkg, path });
+    })
+    .rule((r) => {
+      const documents = documentsIn(r);
+      const { package: pkg, path } = v(documents, "declaringTest");
+      const { declarationKind, identifier } = v(fields.DeclarationName, "testVariable");
+      const { token: kind } = v(fields.VariableKindToken, "testKind");
+
+      return r
+        .match(documents, { package: pkg, path })
+        .match(fields.Document, { package: pkg, path, rootKind: "qti-assessment-test" })
+        .match(fields.DeclarationName, { declarationKind, identifier, package: pkg, path })
+        .match(fields.VariableKindToken, { declarationKind, token: kind })
+        .find({ identifier, kind, package: pkg, path });
+    })
+    .rule((r) => {
+      const documents = documentsIn(r);
+      const { package: pkg, path } = v(documents, "timedTest");
+      const { declaration } = v(fields.BuiltInVariable, "testBuiltIn");
+      const { token: kind } = v(fields.VariableKindToken, "builtInKind");
+
+      return r
+        .match(documents, { package: pkg, path })
+        .match(fields.Document, { package: pkg, path, rootKind: "qti-assessment-test" })
+        .match(fields.BuiltInVariable, {
+          declaration,
+          root: "qti-assessment-test",
+          variable: "duration",
+        })
+        .match(fields.VariableKindToken, { declarationKind: declaration, token: kind })
+        .find({
+          identifier: Type.literal(DocText.fields.identifier, "duration"),
+          kind,
+          package: pkg,
+          path,
+        });
+    });
+
   return {
+    area_coords: areaCoords,
+    area_entries: areaEntries,
+    area_mappings: areaMappings,
     declaration_attributes: declarationAttributes,
     declaration_texts: declarationTexts,
     declarations,
+    interpolation_entries: interpolationEntries,
+    kinds,
+    lookups,
+    map_entries: mapEntries,
+    mappings,
+    match_entries: matchEntries,
     programs: programNodes,
+    value_booleans: valueBooleans,
+    value_directed_pairs: valueDirectedPairs,
+    value_floats: valueFloats,
+    value_integers: valueIntegers,
+    value_pairs: valuePairs,
+    value_points: valuePoints,
+    value_texts: valueTexts,
     walk_areas: walkAreas,
     walk_categories: walkCategories,
     walk_coords: walkCoords,
@@ -33341,55 +34238,343 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
   });
 
   /**
-   * The taken items' declarations' nodes of the kinds the machine reads.
+   * The taken items' declarations' nodes of the kinds the machine reads, as the package's
+   * publication stores them (DeclarationElement).
    */
   const declarationNodesOf = query(delivery).rule((r) => {
     const boundTaken = boundTakenIn(r);
     const graded = boundTaken;
     const { package: pkg, path: item } = v(graded, "graded");
-    const { start, end, parent, kind } = v(fields.Node, "node");
-    const { token } = v(fields.DeclarationNodeKind, "kind");
+    const { start, end, parent, kind } = v(fields.DeclarationElement, "node");
 
     return r
       .match(graded, { package: pkg, path: item })
-      .match(fields.Node, { end, kind, package: pkg, parent, path: item, start })
-      .match(fields.DeclarationNodeKind, { kind, token })
-      .find({ end, kind: token, package: pkg, parent, path: item, start });
+      .match(fields.DeclarationElement, { end, kind, package: pkg, parent, path: item, start })
+      .find({ end, kind, package: pkg, parent, path: item, start });
   });
 
   /**
-   * Their attributes the machine reads.
+   * Their attributes the machine reads (DeclarationAttribute).
    */
   const declarationAttributesOf = query(delivery).rule((r) => {
     const boundTaken = boundTakenIn(r);
     const graded = boundTaken;
     const { package: pkg, path: item } = v(graded, "graded");
-    const { start, kind } = v(fields.Node, "node");
-    const { name, value } = v(fields.Attribute, "attribute");
-    const { token } = v(fields.GradedAttributeName, "name");
+    const { start, name, value } = v(fields.DeclarationAttribute, "attribute");
 
     return r
       .match(graded, { package: pkg, path: item })
-      .match(fields.Node, { kind, package: pkg, path: item, start })
-      .match(fields.DeclarationNodeKind, { kind })
-      .match(fields.Attribute, { name, package: pkg, path: item, start, value })
-      .match(fields.GradedAttributeName, { name, token })
-      .find({ name: token, package: pkg, path: item, start, value });
+      .match(fields.DeclarationAttribute, { name, package: pkg, path: item, start, value })
+      .find({ name, package: pkg, path: item, start, value });
   });
 
   /**
-   * Each qti-value's string value.
+   * Each qti-value's string value (DeclarationValueText).
    */
   const declarationTextsOf = query(delivery).rule((r) => {
     const boundTaken = boundTakenIn(r);
     const graded = boundTaken;
     const { package: pkg, path: item } = v(graded, "graded");
-    const { start, stringValue } = v(fields.Node, "value");
+    const { start, text } = v(fields.DeclarationValueText, "value");
 
     return r
       .match(graded, { package: pkg, path: item })
-      .match(fields.Node, { kind: "qti-value", package: pkg, path: item, start, stringValue })
-      .find({ package: pkg, path: item, start, text: stringValue });
+      .match(fields.DeclarationValueText, { package: pkg, path: item, start, text })
+      .find({ package: pkg, path: item, start, text });
+  });
+
+  /**
+   * The graded items' mappings, by their responses, their defaults and bounds parsed
+   * (DeclaredMapping).
+   */
+  const mappingsOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { identifier, dflt, lower, upper } = v(fields.DeclaredMapping, "mapping");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredMapping, { dflt, identifier, lower, package: pkg, path: item, upper })
+      .find({ dflt, identifier, lower, package: pkg, path: item, upper });
+  });
+
+  /**
+   * Their area mappings (DeclaredAreaMapping).
+   */
+  const areaMappingsOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { identifier, dflt, lower, upper } = v(fields.DeclaredAreaMapping, "mapping");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredAreaMapping, {
+        dflt,
+        identifier,
+        lower,
+        package: pkg,
+        path: item,
+        upper,
+      })
+      .find({ dflt, identifier, lower, package: pkg, path: item, upper });
+  });
+
+  /**
+   * Their map entries, each by its element's start, its case sensitivity and mapped value parsed
+   * (DeclaredMapEntry).
+   */
+  const mapEntriesOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, identifier, caseSensitive, value } = v(fields.DeclaredMapEntry, "entry");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredMapEntry, {
+        caseSensitive,
+        identifier,
+        package: pkg,
+        path: item,
+        start,
+        value,
+      })
+      .find({
+        case_sensitive: caseSensitive,
+        identifier,
+        package: pkg,
+        path: item,
+        start,
+        value,
+      });
+  });
+
+  /**
+   * Their area map entries, each its area's kind and mapped value (DeclaredAreaEntry).
+   */
+  const areaMapEntriesOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, identifier, kind, value } = v(fields.DeclaredAreaEntry, "entry");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredAreaEntry, {
+        identifier,
+        kind,
+        package: pkg,
+        path: item,
+        start,
+        value,
+      })
+      .find({ identifier, kind, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * Each area map entry's coordinates, by its place (DeclaredAreaCoord).
+   */
+  const areaCoordsOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, place, c } = v(fields.DeclaredAreaCoord, "coordinate");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredAreaCoord, { c, package: pkg, path: item, place, start })
+      .find({ c, package: pkg, path: item, place, start });
+  });
+
+  /**
+   * Their lookup tables, by their outcomes, each its kind (DeclaredLookup).
+   */
+  const lookupsOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, identifier, kind } = v(fields.DeclaredLookup, "table");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredLookup, { identifier, kind, package: pkg, path: item, start })
+      .find({ identifier, kind, package: pkg, path: item, start });
+  });
+
+  /**
+   * Their match table entries, each its source (DeclaredMatchEntry).
+   */
+  const matchEntriesOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, identifier, source } = v(fields.DeclaredMatchEntry, "entry");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredMatchEntry, { identifier, package: pkg, path: item, source, start })
+      .find({ identifier, package: pkg, path: item, source, start });
+  });
+
+  /**
+   * Their interpolation table entries, each its source and whether it includes the boundary
+   * (DeclaredInterpolationEntry).
+   */
+  const interpolationEntriesOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, identifier, source, boundary } = v(fields.DeclaredInterpolationEntry, "entry");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredInterpolationEntry, {
+        boundary,
+        identifier,
+        package: pkg,
+        path: item,
+        source,
+        start,
+      })
+      .find({ boundary, identifier, package: pkg, path: item, source, start });
+  });
+
+  /**
+   * Each map key, table entry's target and table's default of a text base type, typed
+   * (DeclaredValueText).
+   */
+  const valueTextsOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, base, value } = v(fields.DeclaredValueText, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValueText, { base, package: pkg, path: item, start, value })
+      .find({ base, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * Each of an integer base type (DeclaredValueInteger).
+   */
+  const valueIntegersOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, value } = v(fields.DeclaredValueInteger, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValueInteger, { package: pkg, path: item, start, value })
+      .find({ package: pkg, path: item, start, value });
+  });
+
+  /**
+   * Each of a float or duration base type (DeclaredValueFloat).
+   */
+  const valueFloatsOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, base, value } = v(fields.DeclaredValueFloat, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValueFloat, { base, package: pkg, path: item, start, value })
+      .find({ base, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * Each of the boolean base type (DeclaredValueBoolean).
+   */
+  const valueBooleansOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, value } = v(fields.DeclaredValueBoolean, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValueBoolean, { package: pkg, path: item, start, value })
+      .find({ package: pkg, path: item, start, value });
+  });
+
+  /**
+   * Each of the pair base type (DeclaredValuePair).
+   */
+  const valuePairsOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, least, greatest } = v(fields.DeclaredValuePair, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValuePair, { greatest, least, package: pkg, path: item, start })
+      .find({ greatest, least, package: pkg, path: item, start });
+  });
+
+  /**
+   * Each of the directed pair base type (DeclaredValueDirectedPair).
+   */
+  const valueDirectedPairsOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, source, target } = v(fields.DeclaredValueDirectedPair, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValueDirectedPair, {
+        package: pkg,
+        path: item,
+        source,
+        start,
+        target,
+      })
+      .find({ package: pkg, path: item, source, start, target });
+  });
+
+  /**
+   * Each of the point base type (DeclaredValuePoint).
+   */
+  const valuePointsOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { start, x, y } = v(fields.DeclaredValuePoint, "value");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.DeclaredValuePoint, { package: pkg, path: item, start, x, y })
+      .find({ package: pkg, path: item, start, x, y });
+  });
+
+  /**
+   * Each variable the graded items' runs hold and the kind of declaration it is of: its declared
+   * variables and its built-ins, as the ledger stores them (SessionVariableName), each kind by the
+   * machine's token (VariableKindToken).
+   */
+  const variableKindsOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const graded = boundTaken;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { identifier, declarationKind } = v(fields.SessionVariableName, "variable");
+    const { token: kind } = v(fields.VariableKindToken, "kind");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.SessionVariableName, {
+        declarationKind,
+        identifier,
+        package: pkg,
+        path: item,
+      })
+      .match(fields.VariableKindToken, { declarationKind, token: kind })
+      .find({ identifier, kind, package: pkg, path: item });
   });
 
   /**
@@ -38417,6 +39602,9 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
   });
 
   return {
+    area_coords: areaCoordsOf,
+    area_entries: areaMapEntriesOf,
+    area_mappings: areaMappingsOf,
     booleans: booleansOf,
     declaration_attributes: declarationAttributesOf,
     declaration_texts: declarationTextsOf,
@@ -38436,6 +39624,12 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     human_feedbacks: humanFeedbacksOf,
     humans: humansOf,
     integers: integersOf,
+    interpolation_entries: interpolationEntriesOf,
+    kinds: variableKindsOf,
+    lookups: lookupsOf,
+    map_entries: mapEntriesOf,
+    mappings: mappingsOf,
+    match_entries: matchEntriesOf,
     pairs: pairsOf,
     points: pointsOf,
     programs: programNodesOf,
@@ -38447,6 +39641,13 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     table_values: tableValuesOf,
     taken: takenOf,
     texts: textsOf,
+    value_booleans: valueBooleansOf,
+    value_directed_pairs: valueDirectedPairsOf,
+    value_floats: valueFloatsOf,
+    value_integers: valueIntegersOf,
+    value_pairs: valuePairsOf,
+    value_points: valuePointsOf,
+    value_texts: valueTextsOf,
     vars: varsOf,
     walk_areas: walkAreasOf,
     walk_categories: walkCategoriesOf,
@@ -38521,6 +39722,9 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
    */
   const runIn = (r: Rule<DeliveryLevel>) =>
     Fn.row(templateProcessingOf, {
+      area_coords: args.area_coords.bind(bySession(r)),
+      area_entries: args.area_entries.bind(bySession(r)),
+      area_mappings: args.area_mappings.bind(bySession(r)),
       booleans: args.booleans.bind(bySession(r)),
       declaration_attributes: args.declaration_attributes.bind(bySession(r)),
       declaration_texts: args.declaration_texts.bind(bySession(r)),
@@ -38537,6 +39741,12 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       files: args.files.bind(bySession(r)),
       floats: args.floats.bind(bySession(r)),
       integers: args.integers.bind(bySession(r)),
+      interpolation_entries: args.interpolation_entries.bind(bySession(r)),
+      kinds: args.kinds.bind(bySession(r)),
+      lookups: args.lookups.bind(bySession(r)),
+      map_entries: args.map_entries.bind(bySession(r)),
+      mappings: args.mappings.bind(bySession(r)),
+      match_entries: args.match_entries.bind(bySession(r)),
       pairs: args.pairs.bind(bySession(r)),
       points: args.points.bind(bySession(r)),
       programs: args.programs.bind(bySession(r)),
@@ -38547,6 +39757,13 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       table_entries: args.table_entries,
       table_values: args.table_values,
       texts: args.texts.bind(bySession(r)),
+      value_booleans: args.value_booleans.bind(bySession(r)),
+      value_directed_pairs: args.value_directed_pairs.bind(bySession(r)),
+      value_floats: args.value_floats.bind(bySession(r)),
+      value_integers: args.value_integers.bind(bySession(r)),
+      value_pairs: args.value_pairs.bind(bySession(r)),
+      value_points: args.value_points.bind(bySession(r)),
+      value_texts: args.value_texts.bind(bySession(r)),
       vars: args.vars.bind(bySession(r)),
       walk_areas: args.walk_areas.bind(bySession(r)),
       walk_categories: args.walk_categories.bind(bySession(r)),
@@ -44903,6 +46120,9 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
    */
   const startRunIn = (r: Rule<DeliveryLevel>) =>
     Fn.row(responseProcessingOf, {
+      area_coords: args.area_coords.bind(bySession(r)),
+      area_entries: args.area_entries.bind(bySession(r)),
+      area_mappings: args.area_mappings.bind(bySession(r)),
       booleans: startBooleansOf.bind(bySession(r)),
       declaration_attributes: args.declaration_attributes.bind(bySession(r)),
       declaration_texts: args.declaration_texts.bind(bySession(r)),
@@ -44922,6 +46142,12 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       human_feedbacks: noHumanFeedbacks,
       humans: noHumans,
       integers: startIntegersOf.bind(bySession(r)),
+      interpolation_entries: args.interpolation_entries.bind(bySession(r)),
+      kinds: args.kinds.bind(bySession(r)),
+      lookups: args.lookups.bind(bySession(r)),
+      map_entries: args.map_entries.bind(bySession(r)),
+      mappings: args.mappings.bind(bySession(r)),
+      match_entries: args.match_entries.bind(bySession(r)),
       pairs: startPairsOf.bind(bySession(r)),
       points: startPointsOf.bind(bySession(r)),
       programs: noPrograms,
@@ -44932,6 +46158,13 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       table_entries: args.table_entries,
       table_values: args.table_values,
       texts: startTextsOf.bind(bySession(r)),
+      value_booleans: args.value_booleans.bind(bySession(r)),
+      value_directed_pairs: args.value_directed_pairs.bind(bySession(r)),
+      value_floats: args.value_floats.bind(bySession(r)),
+      value_integers: args.value_integers.bind(bySession(r)),
+      value_pairs: args.value_pairs.bind(bySession(r)),
+      value_points: args.value_points.bind(bySession(r)),
+      value_texts: args.value_texts.bind(bySession(r)),
       vars: startVarsOf.bind(bySession(r)),
       walk_areas: noWalkAreas,
       walk_categories: noWalkCategories,

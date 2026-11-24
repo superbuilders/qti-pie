@@ -15,9 +15,10 @@
 -- The document's grader tree crosses as pantry stores it: its nodes, each at its place in the document it is in, its
 -- kind the machine's token; their attributes, each by its name's token, as pantry's Attribute holds the value; and the
 -- text the machine reads, a base value's and a qti-value's. The machine reads them by the same readers the oracle runs
--- (document.sql), so the program, the inputs and the declared values are read once, in the call. A processing
--- program is its root's subtree, the document's own or the template document it names; the declarations are the
--- document's declarations and every node below them.
+-- (document.sql), so the program and the declared values are read once, in the call. A processing program is its
+-- root's subtree, the document's own or the template document it names; the declarations are the document's
+-- declarations, their default and correct values and each value's qti-value, as its package's publication stores them
+-- (packages/ledger/src/stored-content.ts). Its mappings and lookup tables cross parsed, by their own headings below.
 create type p3.program_node as ("end" bigint, kind text collate pg_catalog.pg_c_utf8,
   package text collate pg_catalog.pg_c_utf8, parent bigint, path text collate pg_catalog.pg_c_utf8, start bigint);
 create type p3.declaration_node as ("end" bigint, kind text collate pg_catalog.pg_c_utf8,
@@ -54,6 +55,45 @@ create type p3.doc_walk_pattern as (package text collate pg_catalog.pg_c_utf8, p
 create type p3.doc_walk_ref as (field text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, ref text collate pg_catalog.pg_c_utf8, start bigint);
 create type p3.doc_walk_round as (mode text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint);
 create type p3.doc_walk_text as (case_sensitive boolean, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint, substring boolean);
+-- A document's mappings, area mappings and lookup tables as its package's publication stores them, parsed
+-- (packages/ledger/src/stored-content.ts): each row keyed by the document and its element's start, a mapping's and a
+-- table's by its declaration's identifier. A mapping's or an area mapping's default and bounds, QTI's defaults stated
+-- where unwritten; a map entry's case sensitivity and mapped value; an area map entry's area kind and mapped value, its
+-- coordinates each at its place from 1; a lookup table's kind; a match table entry's integer source, an interpolation
+-- table entry's float source and whether it includes the boundary. A map key, a table entry's target and a table's
+-- default are each a value of its declaration's base type at its element's start, typed by its base type.
+create type p3.doc_mapping as (dflt float8, identifier text collate pg_catalog.pg_c_utf8, lower float8,
+  package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, upper float8);
+create type p3.doc_map_entry as (case_sensitive boolean, identifier text collate pg_catalog.pg_c_utf8,
+  package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint, value float8);
+create type p3.doc_area_entry as (identifier text collate pg_catalog.pg_c_utf8, kind text collate pg_catalog.pg_c_utf8,
+  package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint, value float8);
+create type p3.doc_area_coord as (c float8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8,
+  place integer, start bigint);
+create type p3.doc_lookup as (identifier text collate pg_catalog.pg_c_utf8, kind text collate pg_catalog.pg_c_utf8,
+  package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint);
+create type p3.doc_match_entry as (identifier text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8,
+  path text collate pg_catalog.pg_c_utf8, source numeric(825, 0), start bigint);
+create type p3.doc_interpolation_entry as (boundary boolean, identifier text collate pg_catalog.pg_c_utf8,
+  package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, source float8, start bigint);
+create type p3.doc_value_text as (base text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8,
+  path text collate pg_catalog.pg_c_utf8, start bigint, value text collate pg_catalog.pg_c_utf8);
+create type p3.doc_value_integer as (package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8,
+  start bigint, value numeric(825, 0));
+create type p3.doc_value_float as (base text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8,
+  path text collate pg_catalog.pg_c_utf8, start bigint, value float8);
+create type p3.doc_value_boolean as (package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8,
+  start bigint, value boolean);
+create type p3.doc_value_pair as (greatest text collate pg_catalog.pg_c_utf8, least text collate pg_catalog.pg_c_utf8,
+  package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint);
+create type p3.doc_value_directed_pair as (package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8,
+  source text collate pg_catalog.pg_c_utf8, start bigint, target text collate pg_catalog.pg_c_utf8);
+create type p3.doc_value_point as (package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8,
+  start bigint, x numeric(825, 0), y numeric(825, 0));
+-- Each variable a document's run holds and the kind of declaration it is of, by the document: its declared variables
+-- and its built-ins, as the ledger's SessionVariableName stores them (QTI_CONTEXT the machine's own, kinds_of).
+create type p3.doc_var_kind as (identifier text collate pg_catalog.pg_c_utf8, kind text collate pg_catalog.pg_c_utf8,
+  package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8);
 -- A run: its key, whose document is its own (package, path), the draw stream's key (an item's seed_stream_key of its
 -- processing seed, a test session's sitting_seed) and label, and whether its attempt was submitted at its responses'
 -- defaults (the ledger's DefaultSubmission, QTI 3.0.1 Table 7.19.6: its responses are given none, so each starts at its

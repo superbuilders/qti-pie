@@ -59,12 +59,6 @@ begin
   when 'poly' then return case when cardinality(c) / 2 < 3 then 'nowhere' else 'poly' end;
   end case;
 end $$;
--- An area from QTI's shape and coords: its coordinates as written, none for a default shape, and its kind.
-create function p3.area_of(coords text, kind text) returns p3.area language sql immutable as $$
-  select row(case when trim_xml(t => kind) = 'default' then '{}'
-      else array(select x from coords_of(coords => coords) x order by x.place) end,
-    area_kind_of(coords => coords, kind => kind))::area
-$$;
 
 -- A program's walk from its stored rows (WalkNode and its sidecars, keyed by the nodes' stored starts in the run's
 -- document): its nodes in document order, each numbered by its place (its start's rank among the program's), its end
@@ -202,60 +196,67 @@ $$;
 
 
 
--- A document's mappings, area mappings and lookup tables, typed by the declarations they belong to. A map-key is
--- ValueDType, xs:normalizedString: its TAB, LF and CR read as spaces, as pantry stores it (SV-VALUE-01).
-create function p3.inputs_of(attributes p3.document_attribute[], declarations p3.declaration_node[], texts p3.document_text[])
+-- A document's values of its declarations' base types, each at the start of the element that holds it (a map entry's
+-- key, a table entry's target, a table's default), from their stored rows, typed by their base type at the package's
+-- publication (packages/ledger/src/stored-content.ts, the DeclaredValue relations): one single each.
+create type p3.node_value as (start bigint, value p3.single);
+create function p3.node_values(package text, path text, value_booleans p3.doc_value_boolean[],
+  value_directed_pairs p3.doc_value_directed_pair[], value_floats p3.doc_value_float[], value_integers p3.doc_value_integer[],
+  value_pairs p3.doc_value_pair[], value_points p3.doc_value_point[], value_texts p3.doc_value_text[])
+returns setof p3.node_value language sql immutable as $$
+  select z.start, s_text(base => z.base, t => z.value) from unnest(value_texts) z where (z.package, z.path) = (node_values.package, node_values.path)
+  union all select z.start, s_int(n => z.value) from unnest(value_integers) z where (z.package, z.path) = (node_values.package, node_values.path)
+  union all select z.start, s_float(base => z.base, f => z.value) from unnest(value_floats) z where (z.package, z.path) = (node_values.package, node_values.path)
+  union all select z.start, s_bool(b => z.value) from unnest(value_booleans) z where (z.package, z.path) = (node_values.package, node_values.path)
+  union all select z.start, s_pair(a => z.least, b => z.greatest) from unnest(value_pairs) z where (z.package, z.path) = (node_values.package, node_values.path)
+  union all select z.start, s_dpair(a => z.source, b => z.target) from unnest(value_directed_pairs) z
+    where (z.package, z.path) = (node_values.package, node_values.path)
+  union all select z.start, s_point(x => z.x, y => z.y) from unnest(value_points) z where (z.package, z.path) = (node_values.package, node_values.path)
+$$;
+-- A document's area map entries from their stored rows: each its area, its stored kind and coordinates in order, at its
+-- place among its declaration's entries (its start's rank).
+create function p3.area_entries_of(area_coords p3.doc_area_coord[], area_entries p3.doc_area_entry[], package text, path text)
+returns setof p3.area_entry language sql immutable as $$
+  select row(array(select row(c.c, c.place)::coord from unnest(area_coords) c where (c.package, c.path, c.start) = (e.package, e.path, e.start)
+      order by c.place), e.kind)::area,
+    e.identifier, row_number() over (partition by e.identifier order by e.start)::int, e.value
+  from unnest(area_entries) e where (e.package, e.path) = (area_entries_of.package, area_entries_of.path)
+$$;
+-- A document's mappings, area mappings and lookup tables, the machine's inputs, from their stored rows, keyed by the
+-- document (doc_mapping and its siblings, document-types.sql): every entry at its place among its declaration's (its
+-- start's rank), a map entry with no key and a table entry with no target, and a table with no default, as the value
+-- at its start gives them.
+create function p3.inputs_of(area_coords p3.doc_area_coord[], area_entries p3.doc_area_entry[], area_mappings p3.doc_mapping[],
+  interpolation_entries p3.doc_interpolation_entry[], lookups p3.doc_lookup[], map_entries p3.doc_map_entry[], mappings p3.doc_mapping[],
+  match_entries p3.doc_match_entry[], package text, path text, value_booleans p3.doc_value_boolean[],
+  value_directed_pairs p3.doc_value_directed_pair[], value_floats p3.doc_value_float[], value_integers p3.doc_value_integer[],
+  value_pairs p3.doc_value_pair[], value_points p3.doc_value_point[], value_texts p3.doc_value_text[])
 returns p3.inputs language sql immutable as $$
-  with a as (
-    select y.start,
-      max(y.value) filter (where y.name = 'identifier') as identifier,
-      max(y.value) filter (where y.name = 'base-type') as base_type,
-      max(y.value) filter (where y.name = 'default-value') as default_value,
-      max(y.value) filter (where y.name = 'lower-bound') as lower_bound,
-      max(y.value) filter (where y.name = 'upper-bound') as upper_bound,
-      max(y.value) filter (where y.name = 'map-key') as map_key,
-      max(y.value) filter (where y.name = 'mapped-value') as mapped_value,
-      max(y.value) filter (where y.name = 'case-sensitive') as case_sensitive,
-      max(y.value) filter (where y.name = 'shape') as shape,
-      max(y.value) filter (where y.name = 'coords') as coords,
-      max(y.value) filter (where y.name = 'source-value') as source_value,
-      max(y.value) filter (where y.name = 'target-value') as target_value,
-      max(y.value) filter (where y.name = 'include-boundary') as include_boundary
-    from unnest(attributes) y group by y.start
-  ),
-  decl as (
-    select d.start, trim_xml(t => a.identifier) as id, trim_xml(t => a.base_type) as base from unnest(declarations) d join a on a.start = d.start
-    where d.kind in ('qti-response-declaration', 'qti-outcome-declaration')
-  ), part as (
-    select decl.*, h.start as hs, h.kind as hk, ha.default_value, ha.lower_bound, ha.upper_bound
-    from decl join unnest(declarations) h on h.parent = decl.start left join a ha on ha.start = h.start
-  ), header as (
-    select part.*, coalesce(part.default_value, '0')::float8 as dflt,
-      coalesce(part.lower_bound, '-Infinity')::float8 as lower, coalesce(part.upper_bound, 'Infinity')::float8 as upper
-    from part where part.hk in ('qti-mapping', 'qti-area-mapping')
-  ), entry as (
-    select part.id, part.base, part.hk, e.start, row_number() over (partition by part.id, part.hk order by e.start)::int as place,
-      ea.map_key, ea.mapped_value, ea.case_sensitive, ea.shape, ea.coords, ea.source_value, ea.target_value, ea.include_boundary
-    from part join unnest(declarations) e on e.parent = part.hs left join a ea on ea.start = e.start
+  with v as materialized (
+    select x.* from node_values(package => inputs_of.package, path => inputs_of.path, value_booleans => value_booleans,
+      value_directed_pairs => value_directed_pairs, value_floats => value_floats, value_integers => value_integers,
+      value_pairs => value_pairs, value_points => value_points, value_texts => value_texts) x
   )
   select row(
-    (select coalesce(array_agg(row(area_of(kind => entry.shape, coords => entry.coords), entry.id, entry.place, entry.mapped_value::float8)::area_entry), '{}')
-      from entry where entry.hk = 'qti-area-mapping'),
-    (select coalesce(array_agg(row(header.dflt, header.id, header.lower, header.upper)::mapping), '{}') from header where header.hk = 'qti-area-mapping'),
+    array(select a from area_entries_of(area_coords => area_coords, area_entries => area_entries, package => inputs_of.package, path => inputs_of.path) a
+      order by a.identifier, a.place),
+    array(select row(m.dflt, m.identifier, m.lower, m.upper)::mapping from unnest(area_mappings) m
+      where (m.package, m.path) = (inputs_of.package, inputs_of.path) order by m.identifier),
     -- The registry's rows, and an attempt's evaluated applications and replies, are the flat entry's to add (with_registry).
     '{}'::table_binding[], '{}'::application[], '{}'::human_value[],
-    (select coalesce(array_agg(row(xs_boolean(t => entry.include_boundary, dflt => true), entry.id, entry.place,
-        (parse(base => 'float', lexical => trim_xml(t => entry.source_value))).f,
-        array_remove(array[xml_single(base => entry.base, txt => entry.target_value)], null))::interp_entry), '{}') from entry where entry.hk = 'qti-interpolation-table'),
-    (select coalesce(array_agg(row(array_remove(array[xml_single(base => part.base, txt => part.default_value)], null), part.id,
-        case part.hk when 'qti-match-table' then 'match' when 'qti-interpolation-table' then 'interpolation' end)::lookup_table), '{}')
-      from part where part.hk in ('qti-match-table', 'qti-interpolation-table')),
-    (select coalesce(array_agg(row(xs_boolean(t => entry.case_sensitive, dflt => false), entry.id, xml_single(base => entry.base, txt => translate(entry.map_key, E'\t\n\r', '   ')),
-        entry.place, entry.mapped_value::float8)::map_entry), '{}')
-      from entry where entry.hk = 'qti-mapping' and (xml_single(base => entry.base, txt => translate(entry.map_key, E'\t\n\r', '   '))).base is not null),
-    (select coalesce(array_agg(row(header.dflt, header.id, header.lower, header.upper)::mapping), '{}') from header where header.hk = 'qti-mapping'),
-    (select coalesce(array_agg(row(entry.id, entry.place, trim_xml(t => entry.source_value)::numeric,
-        array_remove(array[xml_single(base => entry.base, txt => entry.target_value)], null))::match_entry), '{}') from entry where entry.hk = 'qti-match-table'),
+    array(select row(e.boundary, e.identifier, e.place, e.source, array(select v.value from v where v.start = e.start))::interp_entry
+      from (select y.*, row_number() over (partition by y.identifier order by y.start)::int as place from unnest(interpolation_entries) y
+        where (y.package, y.path) = (inputs_of.package, inputs_of.path)) e order by e.identifier, e.place),
+    array(select row(array(select v.value from v where v.start = t.start), t.identifier, t.kind)::lookup_table from unnest(lookups) t
+      where (t.package, t.path) = (inputs_of.package, inputs_of.path) order by t.identifier),
+    array(select row(e.case_sensitive, e.identifier, v.value, e.place, e.value)::map_entry
+      from (select y.*, row_number() over (partition by y.identifier order by y.start)::int as place from unnest(map_entries) y
+        where (y.package, y.path) = (inputs_of.package, inputs_of.path)) e join v on v.start = e.start order by e.identifier, e.place),
+    array(select row(m.dflt, m.identifier, m.lower, m.upper)::mapping from unnest(mappings) m
+      where (m.package, m.path) = (inputs_of.package, inputs_of.path) order by m.identifier),
+    array(select row(e.identifier, e.place, e.source, array(select v.value from v where v.start = e.start))::match_entry
+      from (select y.*, row_number() over (partition by y.identifier order by y.start)::int as place from unnest(match_entries) y
+        where (y.package, y.path) = (inputs_of.package, inputs_of.path)) e order by e.identifier, e.place),
     -- An item's run holds no test field; a test's run adds them (test-document.sql's test_outcome_processing_of).
     '{}'::member_bound[], '{}'::member_var[], '{}'::member_var[], '{}'::member_var[], '{}'::member[],
     '{}'::ref_category[], '{}'::ref_mapping[], '{}'::ref_section[], '{}'::ref_weight[],
@@ -304,16 +305,14 @@ $$;
 create function p3.builtin_outcomes() returns setof p3.var language sql immutable as $$
   select 'identifier'::text, 'single'::text, 'completionStatus'::text, '{}'::single[]
 $$;
--- Each variable a document's run holds and the kind of declaration it is of, a built-in under its own kind's.
+-- Each variable a document's run holds and the kind of declaration it is of, a built-in under its own kind's: the
+-- document's stored kinds (doc_var_kind: an item's the ledger's SessionVariableName, its declared variables and its
+-- built-in session variables; a test's its declarations' and its built-ins'), and QTI_CONTEXT, the built-in context
+-- record (qti_context).
 create type p3.var_kind as (identifier text collate pg_catalog.pg_c_utf8, kind text collate pg_catalog.pg_c_utf8);
-create function p3.var_kinds(attributes p3.document_attribute[], declarations p3.declaration_node[]) returns setof p3.var_kind
-language sql immutable as $$
-  select trim_xml(t => y.value), case d.kind when 'qti-response-declaration' then 'response' when 'qti-outcome-declaration' then 'outcome'
-      when 'qti-template-declaration' then 'template' when 'qti-context-declaration' then 'context' end
-  from unnest(declarations) d join unnest(attributes) y on y.start = d.start and y.name = 'identifier'
-  where d.kind in ('qti-response-declaration', 'qti-outcome-declaration', 'qti-template-declaration', 'qti-context-declaration')
-  union all select * from (values ('numAttempts'::text, 'response'::text), ('duration', 'response'), ('completionStatus', 'outcome'),
-    ('QTI_CONTEXT', 'context')) b
+create function p3.kinds_of(kinds p3.doc_var_kind[], package text, path text) returns setof p3.var_kind language sql immutable as $$
+  select k.identifier, k.kind from unnest(kinds) k where (k.package, k.path) = (kinds_of.package, kinds_of.path)
+  union all select (qti_context()).identifier, 'context'
 $$;
 -- Variables with those of them given replaced by the given ones of the same identifier, then every given one no
 -- declared one names.
@@ -634,21 +633,28 @@ begin
 end $$;
 
 -- The flat entry of response processing: every run a call names, each by itself, its program (none where its document
--- has no processing program) and inputs read from its document's tree, and its run from its own values and recorded
+-- has no processing program) walked from its document's stored rows (walk_from), its inputs and its variables' kinds
+-- from its document's stored rows too (inputs_of, kinds_of), and its run from its own values and recorded
 -- evaluations (the applications evaluated, and their replies) and persons' values, by its key, in one call; the
 -- registry's rows the same for every run. A run that demanded a recorded application gives its demands alone, and one
 -- that asks a person its human demands alone (response_values_of).
-create function p3.response_processing_of(booleans p3.doc_boolean[], declaration_attributes p3.document_attribute[],
+create function p3.response_processing_of(area_coords p3.doc_area_coord[], area_entries p3.doc_area_entry[],
+  area_mappings p3.doc_mapping[], booleans p3.doc_boolean[], declaration_attributes p3.document_attribute[],
   declaration_texts p3.document_text[], declarations p3.declaration_node[], directed_pairs p3.doc_directed_pair[],
   evaluations p3.doc_evaluation[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[],
   field_files p3.doc_field_file[], field_floats p3.doc_field_float[],
   field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
   field_texts p3.doc_field_text[], files p3.doc_file[], floats p3.doc_float[],
-  human_feedbacks p3.doc_human_feedback[], humans p3.doc_human[], integers p3.doc_integer[], pairs p3.doc_pair[],
+  human_feedbacks p3.doc_human_feedback[], humans p3.doc_human[], integers p3.doc_integer[],
+  interpolation_entries p3.doc_interpolation_entry[], kinds p3.doc_var_kind[], lookups p3.doc_lookup[], map_entries p3.doc_map_entry[],
+  mappings p3.doc_mapping[], match_entries p3.doc_match_entry[], pairs p3.doc_pair[],
   points p3.doc_point[], programs p3.program_node[],
   reply_floats p3.doc_reply_float[], reply_texts p3.doc_reply_text[], runs p3.document_run[],
   table_bindings p3.table_binding[], table_entries p3.table_entry[], table_values p3.table_value[],
-  texts p3.doc_text[], vars p3.doc_given[], walk_areas p3.doc_walk_area[], walk_categories p3.doc_walk_category[],
+  texts p3.doc_text[], value_booleans p3.doc_value_boolean[], value_directed_pairs p3.doc_value_directed_pair[],
+  value_floats p3.doc_value_float[], value_integers p3.doc_value_integer[], value_pairs p3.doc_value_pair[],
+  value_points p3.doc_value_point[], value_texts p3.doc_value_text[], vars p3.doc_given[], walk_areas p3.doc_walk_area[],
+  walk_categories p3.doc_walk_category[],
   walk_coords p3.doc_walk_coord[], walk_customs p3.doc_walk_custom[], walk_equals p3.doc_walk_equal[],
   walk_filters p3.doc_walk_filter[], walk_floats p3.doc_walk_float[], walk_idents p3.doc_walk_ident[],
   walk_integers p3.doc_walk_integer[], walk_literal_booleans p3.doc_walk_literal_boolean[],
@@ -668,7 +674,11 @@ begin
     dt := array(select x from unnest(declaration_texts) x where x.package = r.package and x.path = r.path);
     st := response_state(
       walk => case when cardinality(pn) > 0 then (walk_from(package => r.package, path => r.path, nodes => pn, areas => walk_areas, categories => walk_categories, coords => walk_coords, customs => walk_customs, equals => walk_equals, filters => walk_filters, floats => walk_floats, idents => walk_idents, integers => walk_integers, literal_booleans => walk_literal_booleans, literal_directed_pairs => walk_literal_directed_pairs, literal_floats => walk_literal_floats, literal_integers => walk_literal_integers, literal_pairs => walk_literal_pairs, literal_points => walk_literal_points, literal_texts => walk_literal_texts, names => walk_names, patterns => walk_patterns, refs => walk_refs, rounds => walk_rounds, texts => walk_texts)).nodes end,
-      inp => with_registry(inp => inputs_of(declarations => dn, attributes => da, texts => dt), table_bindings => table_bindings,
+      inp => with_registry(inp => inputs_of(package => r.package, path => r.path, mappings => mappings,
+        map_entries => map_entries, area_mappings => area_mappings, area_entries => area_entries, area_coords => area_coords, lookups => lookups,
+        match_entries => match_entries, interpolation_entries => interpolation_entries, value_texts => value_texts, value_integers => value_integers,
+        value_floats => value_floats, value_booleans => value_booleans, value_pairs => value_pairs, value_directed_pairs => value_directed_pairs,
+        value_points => value_points), table_bindings => table_bindings,
         table_entries => table_entries, table_values => table_values,
         evaluated => array(select x from evaluated_of(run => r, nodes => pn, evaluations => evaluations) x),
         humans => array(select x from humans_of(run => r, humans => humans, human_feedbacks => human_feedbacks) x),
@@ -678,7 +688,7 @@ begin
         field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs, field_points => field_points,
         field_files => field_files),
       seed => r.seed, label => r.label);
-    result := doc_values_joined(a => result, b => response_values_of(run => r, st => st, nodes => pn, kinds => array(select k from var_kinds(declarations => dn, attributes => da) k)));
+    result := doc_values_joined(a => result, b => response_values_of(run => r, st => st, nodes => pn, kinds => array(select k from kinds_of(kinds => kinds, package => r.package, path => r.path) k)));
   end loop;
   return result;
 end $$;
@@ -686,16 +696,22 @@ end $$;
 -- The flat entry of template processing at the take: as response_processing_of, what each run set given back, its
 -- template values, correct responses and defaults (held `value`, `correct` and `default`) that differ from those it
 -- began with (doc_values_of's `delta`): the session's facts, never the declared values, which are the item's content.
-create function p3.template_processing_of(booleans p3.doc_boolean[], declaration_attributes p3.document_attribute[],
+create function p3.template_processing_of(area_coords p3.doc_area_coord[], area_entries p3.doc_area_entry[],
+  area_mappings p3.doc_mapping[], booleans p3.doc_boolean[], declaration_attributes p3.document_attribute[],
   declaration_texts p3.document_text[], declarations p3.declaration_node[], directed_pairs p3.doc_directed_pair[],
   field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[],
   field_files p3.doc_field_file[], field_floats p3.doc_field_float[],
   field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
   field_texts p3.doc_field_text[], files p3.doc_file[], floats p3.doc_float[],
-  integers p3.doc_integer[], pairs p3.doc_pair[], points p3.doc_point[], programs p3.program_node[],
+  integers p3.doc_integer[], interpolation_entries p3.doc_interpolation_entry[], kinds p3.doc_var_kind[], lookups p3.doc_lookup[],
+  map_entries p3.doc_map_entry[], mappings p3.doc_mapping[], match_entries p3.doc_match_entry[], pairs p3.doc_pair[],
+  points p3.doc_point[], programs p3.program_node[],
   reply_floats p3.doc_reply_float[], reply_texts p3.doc_reply_text[], runs p3.document_run[],
   table_bindings p3.table_binding[], table_entries p3.table_entry[], table_values p3.table_value[],
-  texts p3.doc_text[], vars p3.doc_given[], walk_areas p3.doc_walk_area[], walk_categories p3.doc_walk_category[],
+  texts p3.doc_text[], value_booleans p3.doc_value_boolean[], value_directed_pairs p3.doc_value_directed_pair[],
+  value_floats p3.doc_value_float[], value_integers p3.doc_value_integer[], value_pairs p3.doc_value_pair[],
+  value_points p3.doc_value_point[], value_texts p3.doc_value_text[], vars p3.doc_given[], walk_areas p3.doc_walk_area[],
+  walk_categories p3.doc_walk_category[],
   walk_coords p3.doc_walk_coord[], walk_customs p3.doc_walk_custom[], walk_equals p3.doc_walk_equal[],
   walk_filters p3.doc_walk_filter[], walk_floats p3.doc_walk_float[], walk_idents p3.doc_walk_ident[],
   walk_integers p3.doc_walk_integer[], walk_literal_booleans p3.doc_walk_literal_boolean[],
@@ -715,7 +731,11 @@ begin
     dt := array(select x from unnest(declaration_texts) x where x.package = r.package and x.path = r.path);
     st := template_state(
       walk => case when cardinality(pn) > 0 then (walk_from(package => r.package, path => r.path, nodes => pn, areas => walk_areas, categories => walk_categories, coords => walk_coords, customs => walk_customs, equals => walk_equals, filters => walk_filters, floats => walk_floats, idents => walk_idents, integers => walk_integers, literal_booleans => walk_literal_booleans, literal_directed_pairs => walk_literal_directed_pairs, literal_floats => walk_literal_floats, literal_integers => walk_literal_integers, literal_pairs => walk_literal_pairs, literal_points => walk_literal_points, literal_texts => walk_literal_texts, names => walk_names, patterns => walk_patterns, refs => walk_refs, rounds => walk_rounds, texts => walk_texts)).nodes end,
-      inp => with_registry(inp => inputs_of(declarations => dn, attributes => da, texts => dt), table_bindings => table_bindings,
+      inp => with_registry(inp => inputs_of(package => r.package, path => r.path, mappings => mappings,
+        map_entries => map_entries, area_mappings => area_mappings, area_entries => area_entries, area_coords => area_coords, lookups => lookups,
+        match_entries => match_entries, interpolation_entries => interpolation_entries, value_texts => value_texts, value_integers => value_integers,
+        value_floats => value_floats, value_booleans => value_booleans, value_pairs => value_pairs, value_directed_pairs => value_directed_pairs,
+        value_points => value_points), table_bindings => table_bindings,
         table_entries => table_entries, table_values => table_values, evaluated => '{}', humans => '{}',
         replies => array(select x from replies_of(run => r, nodes => pn, reply_floats => reply_floats, reply_texts => reply_texts) x)),
       declarations => dn, attributes => da, texts => dt,
@@ -723,7 +743,7 @@ begin
         field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs, field_points => field_points,
         field_files => field_files),
       seed => r.seed, label => r.label);
-    result := doc_values_joined(a => result, b => doc_values_of(run => r, st => st, kinds => array(select k from var_kinds(declarations => dn, attributes => da) k), delta => true));
+    result := doc_values_joined(a => result, b => doc_values_of(run => r, st => st, kinds => array(select k from kinds_of(kinds => kinds, package => r.package, path => r.path) k), delta => true));
   end loop;
   return result;
 end $$;

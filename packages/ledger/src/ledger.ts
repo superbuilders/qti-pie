@@ -2527,6 +2527,24 @@ export const ledgerOf = (qti: RegistryLevel) => {
     ["name"],
     admittedAttributes.map((name) => ({ name, token: name })),
   );
+  /**
+   * The attribute each element that holds a value of its declaration's base type writes it in, by
+   * the element's kind: a map entry's `map-key` (information model §5.89.1), a match or
+   * interpolation table entry's `target-value` (§5.84.2, §5.68.2) and a lookup table's
+   * `default-value` (§4.5.13.1). Keyed by the kind, so an element's place names its one value.
+   */
+  const ValueHolder = closed.relation(
+    "ValueHolder",
+    { kind: closedId(NodeKind), name: closedId(AttributeName) },
+    ["kind"],
+    [
+      { kind: "qti-interpolation-table", name: "default-value" },
+      { kind: "qti-interpolation-table-entry", name: "target-value" },
+      { kind: "qti-map-entry", name: "map-key" },
+      { kind: "qti-match-table", name: "default-value" },
+      { kind: "qti-match-table-entry", name: "target-value" },
+    ],
+  );
   const CardinalityToken = closed.relation(
     "CardinalityToken",
     { cardinality: closedId(Cardinality), token: DocVar.fields.card },
@@ -2693,6 +2711,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
       GradedAttributeName,
       BodyNodeKind,
       AdmittedAttributeName,
+      ValueHolder,
       CardinalityToken,
       CompletionStatusToken,
       BaseTypeToken,

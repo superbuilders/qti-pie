@@ -2,7 +2,8 @@
 /**
  * The tree of a sitting's test outcome processing (P4-TEST's run, `#ledger/test-run-call.ts`, the
  * flat test entry's `programs` and walk inputs (`#tools/gen/grade/walk.ts`), `declarations`,
- * `declaration_attributes` and `declaration_texts`), each a query over the call's `child` and
+ * `declaration_attributes`, `declaration_texts`, its documents' stored mappings, lookup tables and
+ * the values they hold, and its variables' kinds), each a query over the call's `child` and
  * `stage` alone, every row keyed by its own document: the subtree of the test document's
  * `qti-outcome-processing` (§5.102), crossed as an item's response processing is, by the
  * machine's tokens; and the declarations of the test and of every member item of the stage's item
@@ -58,55 +59,314 @@ export const testTreeOf = (delivery: DeliveryLevel) => {
   const documents = documentsOf.bind(sitting);
 
   /**
-   * Each document's declarations' nodes of the kinds the machine reads.
+   * Each document's declarations' nodes of the kinds the machine reads. Each is read as its
+   * package's publication stores it (DeclarationElement).
    */
   const declarations = query(delivery).rule((r) => {
     const { package: pkg, path } = v(documents, "document");
-    const { start, end, parent, kind } = v(fields.Node, "node");
-    const { token } = v(fields.DeclarationNodeKind, "kind");
+    const { end, kind, parent, start } = v(fields.DeclarationElement, "node");
 
     return r
       .match(documents, { package: pkg, path })
-      .match(fields.Node, { end, kind, package: pkg, parent, path, start })
-      .match(fields.DeclarationNodeKind, { kind, token })
-      .find({ end, kind: token, package: pkg, parent, path, start });
+      .match(fields.DeclarationElement, { end, kind, package: pkg, parent, path, start })
+      .find({ end, kind, package: pkg, parent, path, start });
   });
 
   /**
-   * Their attributes the machine reads.
+   * Their attributes the machine reads (DeclarationAttribute).
    */
   const declarationAttributes = query(delivery).rule((r) => {
     const { package: pkg, path } = v(documents, "document");
-    const { start, kind } = v(fields.Node, "node");
-    const { name, value } = v(fields.Attribute, "attribute");
-    const { token } = v(fields.GradedAttributeName, "name");
+    const { name, start, value } = v(fields.DeclarationAttribute, "attribute");
 
     return r
       .match(documents, { package: pkg, path })
-      .match(fields.Node, { kind, package: pkg, path, start })
-      .match(fields.DeclarationNodeKind, { kind })
-      .match(fields.Attribute, { name, package: pkg, path, start, value })
-      .match(fields.GradedAttributeName, { name, token })
-      .find({ name: token, package: pkg, path, start, value });
+      .match(fields.DeclarationAttribute, { name, package: pkg, path, start, value })
+      .find({ name, package: pkg, path, start, value });
   });
 
   /**
-   * Each qti-value's string value.
+   * Each qti-value's string value (DeclarationValueText).
    */
   const declarationTexts = query(delivery).rule((r) => {
     const { package: pkg, path } = v(documents, "document");
-    const { start, stringValue } = v(fields.Node, "value");
+    const { start, text } = v(fields.DeclarationValueText, "value");
 
     return r
       .match(documents, { package: pkg, path })
-      .match(fields.Node, { kind: "qti-value", package: pkg, path, start, stringValue })
-      .find({ package: pkg, path, start, text: stringValue });
+      .match(fields.DeclarationValueText, { package: pkg, path, start, text })
+      .find({ package: pkg, path, start, text });
   });
 
+  /**
+   * Each document's mappings, parsed (DeclaredMapping): an item's, of which a test has none.
+   */
+  const mappings = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { dflt, identifier, lower, upper } = v(fields.DeclaredMapping, "mapping");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredMapping, { dflt, identifier, lower, package: pkg, path, upper })
+      .find({ dflt, identifier, lower, package: pkg, path, upper });
+  });
+
+  /**
+   * Their area mappings (DeclaredAreaMapping).
+   */
+  const areaMappings = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { dflt, identifier, lower, upper } = v(fields.DeclaredAreaMapping, "mapping");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredAreaMapping, { dflt, identifier, lower, package: pkg, path, upper })
+      .find({ dflt, identifier, lower, package: pkg, path, upper });
+  });
+
+  /**
+   * Their map entries (DeclaredMapEntry).
+   */
+  const mapEntries = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { caseSensitive, identifier, start, value } = v(fields.DeclaredMapEntry, "entry");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredMapEntry, { caseSensitive, identifier, package: pkg, path, start, value })
+      .find({ case_sensitive: caseSensitive, identifier, package: pkg, path, start, value });
+  });
+
+  /**
+   * Their area map entries (DeclaredAreaEntry).
+   */
+  const areaEntries = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { identifier, kind, start, value } = v(fields.DeclaredAreaEntry, "entry");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredAreaEntry, { identifier, kind, package: pkg, path, start, value })
+      .find({ identifier, kind, package: pkg, path, start, value });
+  });
+
+  /**
+   * Each area map entry's coordinates (DeclaredAreaCoord).
+   */
+  const areaCoords = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { c, place, start } = v(fields.DeclaredAreaCoord, "coordinate");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredAreaCoord, { c, package: pkg, path, place, start })
+      .find({ c, package: pkg, path, place, start });
+  });
+
+  /**
+   * Each document's lookup tables, the test's own among them (DeclaredLookup).
+   */
+  const lookups = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { identifier, kind, start } = v(fields.DeclaredLookup, "table");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredLookup, { identifier, kind, package: pkg, path, start })
+      .find({ identifier, kind, package: pkg, path, start });
+  });
+
+  /**
+   * Their match table entries (DeclaredMatchEntry).
+   */
+  const matchEntries = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { identifier, source, start } = v(fields.DeclaredMatchEntry, "entry");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredMatchEntry, { identifier, package: pkg, path, source, start })
+      .find({ identifier, package: pkg, path, source, start });
+  });
+
+  /**
+   * Their interpolation table entries (DeclaredInterpolationEntry).
+   */
+  const interpolationEntries = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { boundary, identifier, source, start } = v(fields.DeclaredInterpolationEntry, "entry");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredInterpolationEntry, { boundary, identifier, package: pkg, path, source, start })
+      .find({ boundary, identifier, package: pkg, path, source, start });
+  });
+
+  /**
+   * Each base-typed value of their map entries and lookup tables of a text base type (DeclaredValueText).
+   */
+  const valueTexts = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { base, start, value } = v(fields.DeclaredValueText, "value");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredValueText, { base, package: pkg, path, start, value })
+      .find({ base, package: pkg, path, start, value });
+  });
+
+  /**
+   * Each of an integer base type (DeclaredValueInteger).
+   */
+  const valueIntegers = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { start, value } = v(fields.DeclaredValueInteger, "value");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredValueInteger, { package: pkg, path, start, value })
+      .find({ package: pkg, path, start, value });
+  });
+
+  /**
+   * Each of a float or duration base type (DeclaredValueFloat).
+   */
+  const valueFloats = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { base, start, value } = v(fields.DeclaredValueFloat, "value");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredValueFloat, { base, package: pkg, path, start, value })
+      .find({ base, package: pkg, path, start, value });
+  });
+
+  /**
+   * Each of the boolean base type (DeclaredValueBoolean).
+   */
+  const valueBooleans = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { start, value } = v(fields.DeclaredValueBoolean, "value");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredValueBoolean, { package: pkg, path, start, value })
+      .find({ package: pkg, path, start, value });
+  });
+
+  /**
+   * Each of the pair base type (DeclaredValuePair).
+   */
+  const valuePairs = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { greatest, least, start } = v(fields.DeclaredValuePair, "value");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredValuePair, { greatest, least, package: pkg, path, start })
+      .find({ greatest, least, package: pkg, path, start });
+  });
+
+  /**
+   * Each of the directed pair base type (DeclaredValueDirectedPair).
+   */
+  const valueDirectedPairs = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { source, start, target } = v(fields.DeclaredValueDirectedPair, "value");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredValueDirectedPair, { package: pkg, path, source, start, target })
+      .find({ package: pkg, path, source, start, target });
+  });
+
+  /**
+   * Each of the point base type (DeclaredValuePoint).
+   */
+  const valuePoints = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { start, x, y } = v(fields.DeclaredValuePoint, "value");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.DeclaredValuePoint, { package: pkg, path, start, x, y })
+      .find({ package: pkg, path, start, x, y });
+  });
+
+  /**
+   * Each variable a document's run holds and the kind of declaration it is of, by the machine's
+   * token (VariableKindToken): a member item's, its declared variables and its built-ins as the
+   * ledger stores them (SessionVariableName); and the test's, each variable it declares, by
+   * pantry's name view (DeclarationName), and its built-in \`duration\`, which a test's processing
+   * holds as a response (BuiltInVariable: "The time spent on the test is recorded as if it were a
+   * built-in response variable called 'duration' declared at the test-level").
+   */
+  const kinds = query(delivery)
+    .rule((r) => {
+      const { package: pkg, path } = v(documents, "document");
+      const { declarationKind, identifier } = v(fields.SessionVariableName, "variable");
+      const { token: kind } = v(fields.VariableKindToken, "kind");
+
+      return r
+        .match(documents, { package: pkg, path })
+        .match(fields.SessionVariableName, { declarationKind, identifier, package: pkg, path })
+        .match(fields.VariableKindToken, { declarationKind, token: kind })
+        .find({ identifier, kind, package: pkg, path });
+    })
+    .rule((r) => {
+      const { package: pkg, path } = v(documents, "declaringTest");
+      const { declarationKind, identifier } = v(fields.DeclarationName, "testVariable");
+      const { token: kind } = v(fields.VariableKindToken, "testKind");
+
+      return r
+        .match(documents, { package: pkg, path })
+        .match(fields.Document, { package: pkg, path, rootKind: "qti-assessment-test" })
+        .match(fields.DeclarationName, { declarationKind, identifier, package: pkg, path })
+        .match(fields.VariableKindToken, { declarationKind, token: kind })
+        .find({ identifier, kind, package: pkg, path });
+    })
+    .rule((r) => {
+      const { package: pkg, path } = v(documents, "timedTest");
+      const { declaration } = v(fields.BuiltInVariable, "testBuiltIn");
+      const { token: kind } = v(fields.VariableKindToken, "builtInKind");
+
+      return r
+        .match(documents, { package: pkg, path })
+        .match(fields.Document, { package: pkg, path, rootKind: "qti-assessment-test" })
+        .match(fields.BuiltInVariable, {
+          declaration,
+          root: "qti-assessment-test",
+          variable: "duration",
+        })
+        .match(fields.VariableKindToken, { declarationKind: declaration, token: kind })
+        .find({
+          identifier: Type.literal(DocText.fields.identifier, "duration"),
+          kind,
+          package: pkg,
+          path,
+        });
+    });
+
   return {
+    area_coords: areaCoords,
+    area_entries: areaEntries,
+    area_mappings: areaMappings,
     declaration_attributes: declarationAttributes,
     declaration_texts: declarationTexts,
     declarations,
+    interpolation_entries: interpolationEntries,
+    kinds,
+    lookups,
+    map_entries: mapEntries,
+    mappings,
+    match_entries: matchEntries,
+    value_booleans: valueBooleans,
+    value_directed_pairs: valueDirectedPairs,
+    value_floats: valueFloats,
+    value_integers: valueIntegers,
+    value_pairs: valuePairs,
+    value_points: valuePoints,
+    value_texts: valueTexts,
   } as const;
 };
 

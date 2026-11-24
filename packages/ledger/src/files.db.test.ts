@@ -338,6 +338,37 @@ const PROGRAM_IDENTS = DOCUMENT.attributes
 const DECLARATIONS = DOCUMENT.nodes.filter((node) => node.kind.endsWith("-declaration"));
 
 /**
+ * The machine's token of each declaration kind the item writes (the ledger's VariableKindToken).
+ */
+const KIND_TOKENS = new Map([
+  ["qti-outcome-declaration", "outcome"],
+  ["qti-response-declaration", "response"],
+]);
+
+/**
+ * The item's variables' kinds, as the ledger's stored SessionVariableName holds them by
+ * VariableKindToken's token: each declared variable's, and the item's built-in session variables,
+ * numAttempts and duration of the response kind and completionStatus of the outcome kind (QTI 3.0.1
+ * information model §2.2.2.2, §2.2.2.3); the machine's kinds_of adds QTI_CONTEXT.
+ */
+const KINDS = [
+  ...DECLARATIONS.map((node) => ({
+    identifier:
+      DOCUMENT.attributes.find(
+        (attribute) => attribute.start === node.start && attribute.name === "identifier",
+      )?.value ?? assert.fail(`the declaration at ${String(node.start)} writes an identifier`),
+    kind: KIND_TOKENS.get(node.kind) ?? assert.fail(`${node.kind} has a token`),
+    package: PACKAGE,
+    path: PATH,
+  })),
+  ...[
+    ["numAttempts", "response"],
+    ["duration", "response"],
+    ["completionStatus", "outcome"],
+  ].map(([identifier, kind]) => ({ identifier, kind, package: PACKAGE, path: PATH })),
+];
+
+/**
  * A file's `doc_file` row as a run's value, its digest the SHA-256 of its bytes.
  *
  * @param identifier - The variable's identifier.
@@ -593,12 +624,13 @@ const observe = (client: Client, schemaName: string) =>
     const attributes = rowsFrom("document_attribute", 2);
     const program = rowsFrom("program_node", 3);
     const idents = rowsFrom("doc_walk_ident", 4);
+    const kinds = rowsFrom("doc_var_kind", 7);
     const none = "'{}'";
     const walkNone = WALK_EMPTY.map((name) => `${name} => ${none}`).join(", ");
     const run = `array[row('${CHILD}', false, 'label', '${PACKAGE}', '${PATH}', 'seed', 0)::document_run]`;
     const values = (files: string) =>
       `values_of(booleans => ${none}, child => '${CHILD}', declaration_attributes => ${attributes}, declarations => ${declarations}, defaulted => false, directed_pairs => ${none}, field_booleans => ${none}, field_directed_pairs => ${none}, field_files => ${none}, field_floats => ${none}, field_integers => ${none}, field_pairs => ${none}, field_points => ${none}, field_texts => ${none}, files => ${files}, floats => ${none}, integers => ${none}, package => '${PACKAGE}', pairs => ${none}, path => '${PATH}', points => ${none}, stage => 0, texts => ${none}, vars => ${none})`;
-    const result = `response_processing_of(booleans => ${none}, declaration_attributes => ${attributes}, declaration_texts => ${none}, declarations => ${declarations}, directed_pairs => ${none}, evaluations => ${none}, field_booleans => ${none}, field_directed_pairs => ${none}, field_files => ${none}, field_floats => ${none}, field_integers => ${none}, field_pairs => ${none}, field_points => ${none}, field_texts => ${none}, files => ${filesFrom(5)}, floats => ${none}, human_feedbacks => ${none}, humans => ${none}, integers => ${none}, pairs => ${none}, points => ${none}, programs => ${program}, reply_floats => ${none}, reply_texts => ${none}, runs => ${run}, table_bindings => ${none}, table_entries => ${none}, table_values => ${none}, texts => ${none}, vars => ${none}, ${walkNone}, walk_idents => ${idents})`;
+    const result = `response_processing_of(area_coords => ${none}, area_entries => ${none}, area_mappings => ${none}, booleans => ${none}, declaration_attributes => ${attributes}, declaration_texts => ${none}, declarations => ${declarations}, directed_pairs => ${none}, evaluations => ${none}, field_booleans => ${none}, field_directed_pairs => ${none}, field_files => ${none}, field_floats => ${none}, field_integers => ${none}, field_pairs => ${none}, field_points => ${none}, field_texts => ${none}, files => ${filesFrom(5)}, floats => ${none}, human_feedbacks => ${none}, humans => ${none}, integers => ${none}, interpolation_entries => ${none}, kinds => ${kinds}, lookups => ${none}, map_entries => ${none}, mappings => ${none}, match_entries => ${none}, pairs => ${none}, points => ${none}, programs => ${program}, reply_floats => ${none}, reply_texts => ${none}, runs => ${run}, table_bindings => ${none}, table_entries => ${none}, table_values => ${none}, texts => ${none}, value_booleans => ${none}, value_directed_pairs => ${none}, value_floats => ${none}, value_integers => ${none}, value_pairs => ${none}, value_points => ${none}, value_texts => ${none}, vars => ${none}, ${walkNone}, walk_idents => ${idents})`;
     const declarationAttributes = DOCUMENT.attributes.filter((attribute) =>
       DECLARATIONS.some((node) => node.start === attribute.start),
     );
@@ -609,6 +641,7 @@ const observe = (client: Client, schemaName: string) =>
       JSON.stringify(PROGRAM_IDENTS),
       JSON.stringify(RUN_FILES),
       JSON.stringify(MULTIPLE_FILES),
+      JSON.stringify(KINDS),
     ];
     const [row] = yield* rows<{
       readonly all: ReadFile[];

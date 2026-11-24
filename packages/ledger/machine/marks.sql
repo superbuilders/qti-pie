@@ -1,7 +1,7 @@
 -- AttemptMark's machine (P4-MARKS): the marks a review draws on each part of an attempt's responses, against the
 -- correct response in force, as declared functions that read only their arguments (machine-types.sql). Loads after
--- document.sql, whose readers give the declared correct responses (declared), the area mappings (inputs_of) and the
--- attempt's values (values_of, vars_in), so each is read once, as the grader reads it.
+-- document.sql, whose readers give the declared correct responses (declared), the area map entries (area_entries_of)
+-- and the attempt's values (values_of, vars_in), so each is read once, as the grader reads it.
 --
 -- A mark is `right` on a value the response gives that the correct response holds, `wrong` on one it does not hold,
 -- and `missed` on a value of the correct response no given value took (plate's UI suite's M1, the owner's restatement
@@ -141,15 +141,18 @@ $$;
 -- each by itself: its responses' values (held `value`) against the correct responses in force, the declared ones
 -- overridden by those the session's template processing set (held `correct`), as the grader starts from them, each read
 -- by the run's key; and by area, the responses `area_bound` names whose declaration holds an area mapping, read with the
--- declarations by the run's document. The one reshape into the boundary's headings, by base type, each mark keyed by
--- its run.
-create function p3.attempt_marks_of(area_bound p3.document_response[],
+-- document's stored area mappings and area map entries (area_entries_of). The one reshape into the boundary's headings,
+-- by base type, each mark keyed by its run.
+create function p3.attempt_marks_of(area_bound p3.document_response[], area_coords p3.doc_area_coord[],
+  area_entries p3.doc_area_entry[], area_mappings p3.doc_mapping[],
   booleans p3.doc_boolean[], declaration_attributes p3.document_attribute[], declaration_texts p3.document_text[], declarations p3.declaration_node[],
   directed_pairs p3.doc_directed_pair[], files p3.doc_file[], floats p3.doc_float[], integers p3.doc_integer[],
   pairs p3.doc_pair[], points p3.doc_point[], runs p3.document_run[], texts p3.doc_text[], vars p3.doc_given[])
 returns p3.mark_values language sql immutable as $$
   with parts as (
-    select r.child, r.package, r.path, r.stage, t.ds, t.das, t.dts, inputs_of(declarations => t.ds, attributes => t.das, texts => t.dts) as inp,
+    select r.child, r.package, r.path, r.stage, t.ds, t.das, t.dts,
+      array(select a from area_entries_of(area_coords => area_coords, area_entries => area_entries, package => r.package, path => r.path) a
+        order by a.identifier, a.place) as entries,
       values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, declarations => t.ds, declaration_attributes => t.das, defaulted => r.defaulted, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
         field_texts => '{}', field_integers => '{}', field_floats => '{}', field_booleans => '{}', field_pairs => '{}', field_directed_pairs => '{}', field_points => '{}', field_files => '{}') as iv
     from unnest(runs) r cross join lateral (select
@@ -158,9 +161,9 @@ returns p3.mark_values language sql immutable as $$
       array(select x from unnest(declaration_texts) x where (x.package, x.path) = (r.package, r.path)) as dts) t
   ), responses as (
     select parts.child, parts.package, parts.path, parts.stage, d.identifier, d.card, coalesce(g.vals, '{}') as given, c.vals as correct,
-      (parts.inp).area_entries as entries,
+      parts.entries,
       exists (select 1 from unnest(area_bound) b where (b.package, b.path, b.identifier) = (parts.package, parts.path, d.identifier))
-        and exists (select 1 from unnest((parts.inp).area_mappings) am where am.identifier = d.identifier) as by_area
+        and exists (select 1 from unnest(area_mappings) am where (am.package, am.path, am.identifier) = (parts.package, parts.path, d.identifier)) as by_area
     from parts
     cross join lateral declared(declarations => parts.ds, attributes => parts.das, texts => parts.dts, kind => 'qti-response-declaration', holder => 'qti-correct-response') d
     left join lateral (select x.vals from vars_in(i => parts.iv, h => 'value') x where x.identifier = d.identifier) g on true

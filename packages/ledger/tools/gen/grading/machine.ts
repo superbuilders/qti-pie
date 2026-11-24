@@ -176,6 +176,16 @@ const tokens = new Map([
   ["doc_walk_ref.field", "WalkRefField"],
   ["doc_walk_ref.ref", "QtiIdentifier"],
   ["doc_walk_round.mode", "RoundingMode"],
+  ["doc_area_entry.identifier", "QtiIdentifier"],
+  ["doc_area_entry.kind", "AreaKind"],
+  ["doc_interpolation_entry.identifier", "QtiIdentifier"],
+  ["doc_lookup.identifier", "QtiIdentifier"],
+  ["doc_lookup.kind", "LookupKind"],
+  ["doc_map_entry.identifier", "QtiIdentifier"],
+  ["doc_mapping.identifier", "QtiIdentifier"],
+  ["doc_match_entry.identifier", "QtiIdentifier"],
+  ["doc_var_kind.identifier", "QtiIdentifier"],
+  ["doc_var_kind.kind", "VariableKind"],
   ["program_node.kind", "ProcessingKind"],
   ["declaration_node.kind", "DeclarationPart"],
   ["document_attribute.name", "GradedAttribute"],
@@ -225,6 +235,7 @@ const tokens = new Map([
   ["in_member_field_text.value", "someText"],
   ["doc_text.value", "someText"],
   ["doc_field_text.value", "someText"],
+  ["doc_value_text.value", "someText"],
   // A file's name: every file the machine holds is a stored row's, and a stored file is named (FileName).
   ["doc_file.name", "someText"],
   ["doc_field_file.name", "someText"],
@@ -348,14 +359,6 @@ const declarationParts = [
   "qti-default-value",
   "qti-correct-response",
   "qti-value",
-  "qti-mapping",
-  "qti-map-entry",
-  "qti-area-mapping",
-  "qti-area-map-entry",
-  "qti-match-table",
-  "qti-match-table-entry",
-  "qti-interpolation-table",
-  "qti-interpolation-table-entry",
 ];
 
 /**
@@ -407,8 +410,8 @@ const codePointOrder = (a: string, b: string): number => {
 
 /**
  * The attributes of a processing program's and a declaration's elements the machine reads, by name:
- * every name document.sql's readers filter an attribute by (`y.name = '<attr>'`, in program_of,
- * inputs_of, declared and var_kinds), each once, in code point order. The roster a statement passes
+ * every name document.sql's readers filter an attribute by (`y.name = '<attr>'`, in declared and
+ * var_types), each once, in code point order. The roster a statement passes
  * those attributes through is derived from the SQL that reads them, so a name the machine reads can
  * never be filtered out before it arrives (as `class` and `definition`, which bind every custom
  * operator, once were).
@@ -1019,8 +1022,9 @@ const WalkRefField = str.regex("^(any_n\\\\.max|any_n\\\\.min|equal\\\\.t0|equal
 /** A review's mark on a part of a response (AttemptMark, marks.sql): right, wrong, or a correct value missed. */
 const AnswerMark = str.regex("^(missed|right|wrong)$")
 
-/** The elements of an item's declarations the machine reads (QTI 3.0.1's four variable declarations, their default and
- * correct values, their mappings and lookup tables): what a statement passes of a document's declarations, by kind. */
+/** The elements of an item's declarations the machine reads (QTI 3.0.1's four variable declarations and their default
+ * and correct values): what a statement passes of a document's declarations, by kind. Its mappings and lookup tables
+ * cross parsed, as the package's publication stores them (\`#ledger/stored-content.ts\`). */
 export const declarationParts = ${JSON.stringify(declarationParts)} as const
 
 const DeclarationPart = str.regex("^(${declarationParts.join("|")})$")

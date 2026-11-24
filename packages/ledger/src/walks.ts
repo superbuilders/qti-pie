@@ -153,9 +153,9 @@ export const WalkIdentAttribute = str.regex(
 
 /**
  * An IntegerOrVariableRef that reads as an integer (`int_ref_of`'s literal), and an integer base
- * value's text.
+ * value's text, a program's and a declaration's (`#ledger/stored-content.ts`).
  */
-const integerText = Text.pattern("^[+-]?[0-9]+$");
+export const integerText = Text.pattern("^[+-]?[0-9]+$");
 
 /**
  * A FloatOrVariableRef that reads as a float (`float_ref_of`'s literal), inside XML Schema's
@@ -176,22 +176,22 @@ const roundingModes = Text.pattern(PRound.fields.mode.patterns[0].source);
  * The greatest magnitude of QTI's integer as the ledger holds it, {@link integerDigits} digits: a
  * longer integer is none the grader reads, which `program_of`'s cast refused at every grade.
  */
-const integerBound = 10n ** BigInt(integerDigits) - 1n;
+export const integerBound = 10n ** BigInt(integerDigits) - 1n;
 
 /**
  * A guarded match's true and false, as typed terms.
  */
-const yes = Type.literal(pg.boolean, true);
+export const yes = Type.literal(pg.boolean, true);
 
-const no = Type.literal(pg.boolean, false);
+export const no = Type.literal(pg.boolean, false);
 
 /**
  * What a guarded parse gives where its guard does not hold, which the query's own guard keeps from
  * standing: no row holds it.
  */
-const noInteger = Type.literal(QtiInteger, 0n);
+export const noInteger = Type.literal(QtiInteger, 0n);
 
-const noFloat = Type.literal(QtiFloat, 0);
+export const noFloat = Type.literal(QtiFloat, 0);
 
 /**
  * The relations of the walk, over the ledger `ledger`.

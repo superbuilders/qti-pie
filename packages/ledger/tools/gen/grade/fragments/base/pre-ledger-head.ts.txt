@@ -21,7 +21,10 @@
  *   by the machine's token (`ProgramNodeKind`), with the attributes the machine reads
  *   (`GradedAttributeName`) and each base value's text (`Literal`);
  * - The declarations: every node of the item's declarations of a kind the machine reads
- *   (`DeclarationNodeKind`), with their attributes and each `qti-value`'s string value;
+ *   (`DeclarationNodeKind`), with their attributes and each `qti-value`'s string value, and its
+ *   mappings, area mappings and lookup tables, parsed, each value they hold by its base type, and
+ *   its variables' kinds, each read by the item's key as its package's publication stores it
+ *   (`#ledger/stored-content.ts`, the ledger's `SessionVariableName`);
  * - The run: the seed the session draws under (`SessionSeed`, its take's `processingSeed`) and the
  *   label of the attempt's ordinal (`responseLabel`);
  * - The values, each by the session's own sidecar rows: each response's value and `numAttempts`, the

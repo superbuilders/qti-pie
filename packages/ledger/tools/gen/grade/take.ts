@@ -1,6 +1,7 @@
 import type { BaseTypeName } from "#tools/gen/grade/base.ts";
 import {
   CARDINALITIES,
+  CONTENT_INPUTS,
   DOC_HEADS,
   HEAD,
   hoist,
@@ -11,6 +12,7 @@ import {
   STATUS,
   TYPES,
   valueRules,
+  withContentInputs,
   withRunInputs,
 } from "#tools/gen/grade/base.ts";
 import type { Fragments } from "#tools/gen/grade/fragments.ts";
@@ -148,10 +150,13 @@ const takeArguments = (fragment: Fragments): string => {
     fragment("base/run-inputs"),
     ...readers,
     withRunInputs(
-      replaceAll(
-        withWalkReturns(fragment("base/readers-return")),
-        "gradable: gradableOf(gradedSitting)",
-        "taken: takenOf(gradedSitting)",
+      withContentInputs(
+        replaceAll(
+          withWalkReturns(fragment("base/readers-return")),
+          "gradable: gradableOf(gradedSitting)",
+          "taken: takenOf(gradedSitting)",
+        ),
+        (arg, reader) => `\t\t${arg}: ${reader}(gradedSitting),\n`,
       ),
     ),
   ];
@@ -618,6 +623,7 @@ const RUN_ARGUMENTS = [
   "declarations",
   "declaration_attributes",
   "declaration_texts",
+  ...CONTENT_INPUTS.map(([arg]) => arg),
   "runs",
   "vars",
   "texts",

@@ -1049,15 +1049,15 @@ returns p3.admission language sql immutable as $$
 $$;
 
 -- The flat entry: every run a statement admits, each by itself, from its document's body as pantry stores it and its
--- declarations, its values the machine's flat entry takes by its key (the posted responses, and the values in force:
--- the outcomes after the last attempt and the session's template values, each declared default where none is given)
--- and its session's validate-responses.
+-- declarations, as its package's publication stores them, and its variables' kinds (kinds_of), its values the machine's
+-- flat entry takes by its key (the posted responses, and the values in force: the outcomes after the last attempt and
+-- the session's template values, each declared default where none is given) and its session's validate-responses.
 create function p3.admission_of(body p3.body_node[],
   body_attributes p3.body_attribute[], booleans p3.doc_boolean[], declaration_attributes p3.document_attribute[],
   declaration_texts p3.document_text[], declarations p3.declaration_node[], directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[],
   field_files p3.doc_field_file[], field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[],
   field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[], field_texts p3.doc_field_text[],
-  files p3.doc_file[], floats p3.doc_float[], integers p3.doc_integer[],
+  files p3.doc_file[], floats p3.doc_float[], integers p3.doc_integer[], kinds p3.doc_var_kind[],
   pairs p3.doc_pair[], points p3.doc_point[], runs p3.admission_run[], texts p3.doc_text[],
   vars p3.doc_given[])
 returns p3.admission language sql immutable as $$
@@ -1065,9 +1065,8 @@ returns p3.admission language sql immutable as $$
     select admission_one(run => r,
       body => array(select b from unnest(body) b where b.package = r.package and b.path = r.path),
       attributes => array(select a from unnest(body_attributes) a where a.package = r.package and a.path = r.path),
-      responses => array(select v from vars_in(i => g.given, h => 'value') v where v.identifier in (select k.identifier from var_kinds(
-        declarations => array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path),
-        attributes => array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path)) k where k.kind = 'response') order by v.identifier),
+      responses => array(select v from vars_in(i => g.given, h => 'value') v where v.identifier in (select k.identifier from kinds_of(
+        kinds => kinds, package => r.package, path => r.path) k where k.kind = 'response') order by v.identifier),
       held => array(select v from start_of(
         declarations => array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path),
         attributes => array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path),

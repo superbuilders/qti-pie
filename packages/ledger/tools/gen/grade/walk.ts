@@ -468,7 +468,7 @@ const gradeRoots: Roots = {
 export const walked = (readers: string): string => {
   const at = indexOf(
     readers,
-    "/** The graded items' declarations' nodes of the kinds the machine reads. */",
+    "/** The graded items' declarations' nodes of the kinds the machine reads",
   );
 
   return `${readers.slice(0, at)}${walkReaders(gradeRoots)}\n\n${readers.slice(at)}`;
@@ -578,7 +578,7 @@ export const walkedTest = (tree: string): string => {
     "  /**\n   * Each document's declarations' nodes of the kinds the machine reads.",
   );
   const withReaders = `${tree.slice(0, readersAt)}${walkTestReaders()}\n\n${tree.slice(readersAt)}`;
-  const returnLine = "  return {\n    declaration_attributes: declarationAttributes,\n";
+  const returnLine = "  return {\n    area_coords: areaCoords,\n";
   const returnAt = indexOf(withReaders, returnLine) + "  return {\n".length;
 
   return `${withReaders.slice(0, returnAt)}${walkTestReturns()}\n${withReaders.slice(returnAt)}`;

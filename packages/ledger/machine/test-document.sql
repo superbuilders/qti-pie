@@ -2,7 +2,7 @@
 -- fused statement passes a run of a test's outcome processing and reads back, every heading of values alone and no NULL,
 -- P4's document headings (document-types.sql) and six of the test's own content, each keyed by the test's document
 -- first. Loads after test-outcome.sql and document.sql, whose readers it composes: walk_from, inputs_of, declared,
--- var_kinds, values_of, start_of, correct_of, defaults_of and doc_values_of, so the test's program, its lookup tables
+-- kinds_of, values_of, start_of, correct_of, defaults_of and doc_values_of, so the test's program, its lookup tables
 -- and every member's state are read by the same readers an item's response processing is.
 --
 -- A run is a test session, by its key (child, package, path, stage): its sitting and its test's document. The tree
@@ -12,7 +12,7 @@
 -- (the run's child and stage, its item's document), held `value` (an attempted member's every variable after its
 -- latest attempt, its outcomes in force, and its built-ins; an unattempted one's built-ins alone), and the test's own,
 -- by the run's key: each bound context and each built-in duration the test's run holds, each of the kind its declaration
--- is of (var_kinds: a context's `context`, duration a built-in `response`; the overview: "The time spent on the test is
+-- is of (kinds_of: a context's `context`, duration a built-in `response`; the overview: "The time spent on the test is
 -- recorded as if it were a built-in response variable called 'duration' declared at the test-level", info:5423).
 
 -- Each member of a test session, by the test's document: its place in the session's sequence, its item ref's
@@ -44,7 +44,7 @@ $$;
 -- their declared defaults, then start_of's: its outcomes at their declared defaults, completionStatus `unknown`, the
 -- start of the attempt its presentation began, its template variables at theirs, each overridden by what its item
 -- session holds), its correct responses in force (correct_of) or its defaults in force (defaults_of); each with the kind
--- of declaration it is of (var_kinds, a built-in under its own kind's).
+-- of declaration it is of (kinds_of, a built-in under its own kind's).
 create function p3.member_state(kinds p3.var_kind[], ref text, vars p3.var[]) returns setof p3.member_var
 language sql immutable as $$
   select x.base, x.card, x.identifier, (select k.kind from unnest(kinds) k where k.identifier = x.identifier), ref, x.vals
@@ -53,17 +53,22 @@ $$;
 
 -- The flat entry of a test's outcome processing: every test session a call names, each by itself, in one call; each
 -- run's result the test's outcome variables after it, held `value`, of kind `outcome`, keyed by the run.
-create function p3.test_outcome_processing_of(booleans p3.doc_boolean[],
+create function p3.test_outcome_processing_of(area_coords p3.doc_area_coord[], area_entries p3.doc_area_entry[],
+  area_mappings p3.doc_mapping[], booleans p3.doc_boolean[],
   declaration_attributes p3.document_attribute[], declaration_texts p3.document_text[],
   declarations p3.declaration_node[], directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[],
   field_directed_pairs p3.doc_field_directed_pair[],
   field_files p3.doc_field_file[], field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[],
   field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[], field_texts p3.doc_field_text[],
   files p3.doc_file[], floats p3.doc_float[], integers p3.doc_integer[],
+  interpolation_entries p3.doc_interpolation_entry[], kinds p3.doc_var_kind[], lookups p3.doc_lookup[],
+  map_entries p3.doc_map_entry[], mappings p3.doc_mapping[], match_entries p3.doc_match_entry[],
   member_bounds p3.test_member_bound[], members p3.test_member[], pairs p3.doc_pair[], points p3.doc_point[],
   programs p3.program_node[], ref_categories p3.test_ref_category[], ref_mappings p3.test_ref_mapping[],
   ref_sections p3.test_ref_section[], ref_weights p3.test_ref_weight[], runs p3.document_run[], texts p3.doc_text[],
-  vars p3.doc_given[], walk_areas p3.doc_walk_area[], walk_categories p3.doc_walk_category[],
+  value_booleans p3.doc_value_boolean[], value_directed_pairs p3.doc_value_directed_pair[], value_floats p3.doc_value_float[],
+  value_integers p3.doc_value_integer[], value_pairs p3.doc_value_pair[], value_points p3.doc_value_point[],
+  value_texts p3.doc_value_text[], vars p3.doc_given[], walk_areas p3.doc_walk_area[], walk_categories p3.doc_walk_category[],
   walk_coords p3.doc_walk_coord[], walk_customs p3.doc_walk_custom[], walk_equals p3.doc_walk_equal[],
   walk_filters p3.doc_walk_filter[], walk_floats p3.doc_walk_float[], walk_idents p3.doc_walk_ident[],
   walk_integers p3.doc_walk_integer[], walk_literal_booleans p3.doc_walk_literal_boolean[],
@@ -74,7 +79,7 @@ create function p3.test_outcome_processing_of(booleans p3.doc_boolean[],
   walk_rounds p3.doc_walk_round[], walk_texts p3.doc_walk_text[])
 returns p3.doc_values language plpgsql immutable as $$
 declare r document_run; m test_member; pn program_node[]; dn declaration_node[]; da document_attribute[]; dt document_text[];
-  given in_values; kinds var_kind[]; mvars member_var[]; mcorrect member_var[]; mdefaults member_var[];
+  given in_values; mkinds var_kind[]; tkinds var_kind[]; mvars member_var[]; mcorrect member_var[]; mdefaults member_var[];
   inp inputs; outcomes var[]; st run_state; result doc_values := no_doc_values();
 begin
   for r in select x.* from unnest(runs) x order by x.child, x.package, x.path, x.stage loop
@@ -86,15 +91,15 @@ begin
       given := values_of(child => r.child, package => m.package, path => m.item, stage => r.stage, vars => vars, declarations => dn, declaration_attributes => da, defaulted => r.defaulted, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points,
         files => files, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs,
         field_points => field_points, field_files => field_files);
-      kinds := array(select k from var_kinds(declarations => dn, attributes => da) k);
+      mkinds := array(select k from kinds_of(kinds => kinds, package => m.package, path => m.item) k);
       -- Every declared response, NULL unless start_of gives it: a member never attempted keeps its responses NULL, "the
       -- default value is never used" (Table 5.115); start_of gives the default in force once numAttempts > 0.
-      mvars := mvars || array(select s from member_state(ref => m.ref, kinds => kinds, vars => array(select x from overridden(
+      mvars := mvars || array(select s from member_state(ref => m.ref, kinds => mkinds, vars => array(select x from overridden(
         declared => array(select row(y.base, y.card, y.identifier, '{}'::single[])::var
           from declared(declarations => dn, attributes => da, texts => dt, kind => 'qti-response-declaration', holder => 'qti-default-value') y),
         given => array(select y from start_of(declarations => dn, attributes => da, texts => dt, given => given) y)) x order by x.identifier)) s);
-      mcorrect := mcorrect || array(select s from member_state(ref => m.ref, kinds => kinds, vars => array(select x from correct_of(declarations => dn, attributes => da, texts => dt, given => given) x order by x.identifier)) s);
-      mdefaults := mdefaults || array(select s from member_state(ref => m.ref, kinds => kinds, vars => array(select x from defaults_of(declarations => dn, attributes => da, texts => dt, given => given) x order by x.identifier)) s);
+      mcorrect := mcorrect || array(select s from member_state(ref => m.ref, kinds => mkinds, vars => array(select x from correct_of(declarations => dn, attributes => da, texts => dt, given => given) x order by x.identifier)) s);
+      mdefaults := mdefaults || array(select s from member_state(ref => m.ref, kinds => mkinds, vars => array(select x from defaults_of(declarations => dn, attributes => da, texts => dt, given => given) x order by x.identifier)) s);
     end loop;
     dn := array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path);
     da := array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path);
@@ -103,7 +108,11 @@ begin
       files => files, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs,
       field_points => field_points, field_files => field_files);
     pn := array(select x from unnest(programs) x where x.package = r.package and x.path = r.path);
-    inp := inputs_of(declarations => dn, attributes => da, texts => dt);
+    tkinds := array(select k from kinds_of(kinds => kinds, package => r.package, path => r.path) k);
+    inp := inputs_of(package => r.package, path => r.path, mappings => mappings, map_entries => map_entries, area_mappings => area_mappings,
+      area_entries => area_entries, area_coords => area_coords, lookups => lookups, match_entries => match_entries,
+      interpolation_entries => interpolation_entries, value_texts => value_texts, value_integers => value_integers, value_floats => value_floats,
+      value_booleans => value_booleans, value_pairs => value_pairs, value_directed_pairs => value_directed_pairs, value_points => value_points);
     inp.members := array(select row(x.place, x.ref)::member from unnest(members) x where x.package = r.package and x.path = r.path);
     inp.ref_sections := array(select row(x.ref, x.section)::ref_section from unnest(ref_sections) x where x.package = r.package and x.path = r.path);
     inp.ref_categories := array(select row(x.category, x.ref)::ref_category from unnest(ref_categories) x where x.package = r.package and x.path = r.path);
@@ -122,15 +131,15 @@ begin
       contexts => array(select y from declared(declarations => dn, attributes => da, texts => dt, kind => 'qti-context-declaration', holder => 'qti-default-value') y order by y.identifier),
       bound => array(select y from vars_in(i => given, h => 'value') y where exists (select 1 from unnest(vars) z
         where (z.child, z.package, z.path, z.stage) = (r.child, r.package, r.path, r.stage) and z.holds = 'value' and z.identifier = y.identifier
-          and (select v.kind from var_kinds(declarations => dn, attributes => da) v where v.identifier = z.identifier) = 'context')),
+          and (select v.kind from unnest(tkinds) v where v.identifier = z.identifier) = 'context')),
       builtins => array(select y from vars_in(i => given, h => 'value') y where exists (select 1 from unnest(vars) z
         where (z.child, z.package, z.path, z.stage) = (r.child, r.package, r.path, r.stage) and z.holds = 'value' and z.identifier = y.identifier
-          and (select v.kind from var_kinds(declarations => dn, attributes => da) v where v.identifier = z.identifier) = 'response'))
+          and (select v.kind from unnest(tkinds) v where v.identifier = z.identifier) = 'response'))
         || qti_context(),
       seed => r.seed, label => r.label);
     end if;
     st.vars := array(select x from unnest(st.vars) x where exists (select 1 from unnest(outcomes) o where o.identifier = x.identifier) order by x.identifier);
-    result := doc_values_joined(a => result, b => doc_values_of(run => r, st => st, kinds => array(select k from var_kinds(declarations => dn, attributes => da) k), delta => false));
+    result := doc_values_joined(a => result, b => doc_values_of(run => r, st => st, kinds => tkinds, delta => false));
   end loop;
   return result;
 end $$;
