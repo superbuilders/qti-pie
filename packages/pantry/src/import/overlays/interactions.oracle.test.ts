@@ -23,7 +23,7 @@ import {
 } from "#pantry/grammar/install.ts";
 import { isForeignKind, openClasses } from "#pantry/grammar/kinds.ts";
 import { ownViewOf } from "#pantry/import/fold.ts";
-import type { Place } from "#pantry/import/overlays/declarations.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import { rowsOf, fragmentRowsOf } from "#pantry/import/overlays/interactions.ts";
 import type { InteractionRows } from "#pantry/import/overlays/interactions.ts";
 import type { InstanceMember, InstanceRoot } from "#pantry/import/overlays/tests.ts";

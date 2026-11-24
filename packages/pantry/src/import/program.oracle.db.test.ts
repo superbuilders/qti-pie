@@ -28,7 +28,8 @@ import { composed } from "#pantry/grammar/compose.ts";
 import { WrapApply } from "#pantry/import/package.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
 
-import type { NodeMember, NodeRoot, PackageInputs, Place } from "#pantry/import/write.ts";
+import type { NodeMember, NodeRoot, PackageInputs } from "#pantry/import/write.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import { readEntries } from "#pantry/package/read.ts";
 
 import {

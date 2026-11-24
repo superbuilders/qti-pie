@@ -37,8 +37,9 @@ import { Option } from "effect";
 import { CnPart } from "#pantry/grammar/install.ts";
 import { cnDefaultType, cnForms } from "#pantry/grammar/expression.ts";
 import type { CnForm } from "#pantry/grammar/expression.ts";
-import { keyTextOf, nonElements } from "#pantry/import/overlays/mathml-tree.ts";
-import type { MathmlIds } from "#pantry/import/overlays/mathml-tree.ts";
+import { keyTextOf } from "#pantry/import/key-text.ts";
+import { nonElements } from "#pantry/import/overlays/mathml-tree.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import { collapse } from "#pantry/grammar/domains.ts";
 import { lexicalOf } from "#pantry/import/fold.ts";
 import type { DocumentView } from "#pantry/import/fold.ts";
@@ -197,7 +198,7 @@ const writeCn = (
     readonly CnSlot: Map<string, Addition<typeof CnSlot>>;
     readonly MathCn: Map<string, Addition<typeof MathCn>>;
   },
-  ids: MathmlIds,
+  ids: Place,
   start: bigint,
   typed: Typed,
   written: Option.Option<string>,
@@ -206,10 +207,10 @@ const writeCn = (
   const { forms, type, typeLexical } = typed;
   const placed = stretches.slice(0, places.size);
   const node = { package: ids.package, path: ids.path, start };
-  rows.CnCount.set(keyTextOf(ids, start), { ...node, type, typeLexical });
+  rows.CnCount.set(keyTextOf(ids.package, ids.path, start), { ...node, type, typeLexical });
   for (const [at] of placed.entries()) {
     const part = String(at);
-    rows.CnSlot.set(keyTextOf(ids, start, part), {
+    rows.CnSlot.set(keyTextOf(ids.package, ids.path, start, part), {
       ...node,
       form: forms[at] ?? "real",
       part,
@@ -223,10 +224,16 @@ const writeCn = (
   }
 
   const { base, baseLexical } = judgement;
-  rows.MathCn.set(keyTextOf(ids, start), { ...node, base, baseLexical, type, typeLexical });
+  rows.MathCn.set(keyTextOf(ids.package, ids.path, start), {
+    ...node,
+    base,
+    baseLexical,
+    type,
+    typeLexical,
+  });
   for (const [at, { text }] of placed.entries()) {
     const part = String(at);
-    rows.CnPartText.set(keyTextOf(ids, start, part), {
+    rows.CnPartText.set(keyTextOf(ids.package, ids.path, start, part), {
       ...node,
       base,
       form: forms[at] ?? "real",
@@ -244,7 +251,7 @@ const writeCn = (
  * @param ids - Where the document stands in its package, the key every row holds.
  * @returns The rows of every relation the cn module declares.
  */
-export const rowsOf = (view: DocumentView, ids: MathmlIds): MathmlCnRows => {
+export const rowsOf = (view: DocumentView, ids: Place): MathmlCnRows => {
   const flat = view.rows;
   const cns = new Set<bigint>();
   for (const node of flat.nodes) {
@@ -274,7 +281,7 @@ export const rowsOf = (view: DocumentView, ids: MathmlIds): MathmlCnRows => {
   for (const start of cns) {
     for (const name of ["base", "type"] as const) {
       for (const lexical of Option.toArray(lexicalOf(view, start, name))) {
-        attributes.set(keyTextOf(ids, start, name), {
+        attributes.set(keyTextOf(ids.package, ids.path, start, name), {
           lexical,
           name,
           package: ids.package,

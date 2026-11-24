@@ -16,7 +16,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Option } from "effect";
 import { rowsOf } from "#pantry/import/overlays/mathml-align.ts";
-import { keyTextOf } from "#pantry/import/overlays/mathml-tree.ts";
+import { keyTextOf } from "#pantry/import/key-text.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import { closedName } from "#pantry/model/xdm.ts";
 import type {
@@ -127,7 +127,7 @@ const nodeAt = (at: number) => ({ package: ids.package, path: ids.path, start: B
  * @param at - The node's number.
  * @returns The key the builder keys it by.
  */
-const keyAt = (at: number): string => keyTextOf(ids, BigInt(at));
+const keyAt = (at: number): string => keyTextOf(ids.package, ids.path, BigInt(at));
 
 /**
  * What a cell's leaf holds beside the key its cell's nesting supplies: its node's start alone.

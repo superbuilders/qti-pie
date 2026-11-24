@@ -21,6 +21,7 @@
  */
 import { Array as Arr, Effect, Option, Stream } from "effect";
 import type { RowKey, Window } from "@bjornpagen/grizzle/runtime";
+import type { Place } from "#pantry/qti/schema.ts";
 import { readDocument } from "#pantry/model/assemble.ts";
 import type {
   AttributeEntityRow,
@@ -42,15 +43,6 @@ import type {
   XdmVocabulary,
   XmlDeclRow,
 } from "#pantry/model/xdm.ts";
-
-/**
- * A document's key, as `Document` holds it: its package's name and its path in the
- * package, which its scan is filtered by.
- */
-export interface DocumentKey {
-  readonly package: string;
-  readonly path: string;
-}
 
 /**
  * An entity reference as the scan delivers it under its attribute: the entity's name and the offset
@@ -311,7 +303,7 @@ export const addRow = <V extends XdmVocabulary>(scan: Scan<V>, row: ScanRow<V>):
  *   scan holds its document node, whose `Document` row the laws require, so each is a defect.
  */
 export const assembleScan = <V extends XdmVocabulary>(
-  document: DocumentKey,
+  document: Place,
   scan: Scan<V>,
 ): XdmDocument<V> => {
   const only = Option.getOrThrowWith(

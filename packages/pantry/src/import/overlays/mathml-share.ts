@@ -37,6 +37,7 @@ import { idValuesOf, rowsOf as identityRowsOf } from "#pantry/import/overlays/id
 import type { IdentityIds, IdValueRow } from "#pantry/import/overlays/identity.ts";
 import type { InstanceMember, InstanceRoot } from "#pantry/import/overlays/tests.ts";
 import type { DocumentView } from "#pantry/import/fold.ts";
+import { keyTextOf } from "#pantry/import/key-text.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import type { NodeRow } from "#pantry/model/xdm.ts";
 import type { ShareFragment } from "#pantry/qti/identity.ts";
@@ -51,7 +52,7 @@ import { splicingParents } from "#pantry/vocab/terms/tests.ts";
 
 /**
  * A document's share rows, one keyed set per relation, each keyed by its node's
- * `(package, path, start)` as a JSON array ({@link keyOf}).
+ * `(package, path, start)` as a JSON array (`keyTextOf` of `#pantry/import/key-text.ts`).
  */
 export interface MathmlShareRows {
   readonly MathRank: ReadonlyMap<string, Addition<typeof MathRank>>;
@@ -67,15 +68,6 @@ const mathRoot = "m:math";
  * The document node's `start`, 0: the parent a document's top-level elements name.
  */
 const documentStart = 0n;
-
-/**
- * The text of a row's key, or of a node's place in a walk: its values in key order, as a JSON
- * array.
- *
- * @param values - The key's values.
- * @returns The key text.
- */
-const keyOf = (values: readonly (bigint | string)[]): string => JSON.stringify(values.map(String));
 
 /**
  * Collect the elements that hold a row: each share with a target and each target, with their
@@ -279,12 +271,12 @@ export const rowsOf = (view: DocumentView, ids: IdentityIds): MathmlShareRows =>
     targetOf,
   );
   const rankOf = (start: bigint): bigint => ranks.get(start) ?? 0n;
-  const keyTextOf = (start: bigint): string => keyOf([ids.package, ids.path, start]);
+  const nodeKeyOf = (start: bigint): string => keyTextOf(ids.package, ids.path, start);
 
   return {
     MathRank: new Map(
       members.map((node) => [
-        keyTextOf(node.start),
+        nodeKeyOf(node.start),
         { package: ids.package, path: ids.path, rank: rankOf(node.start), start: node.start },
       ]),
     ),
@@ -296,7 +288,7 @@ export const rowsOf = (view: DocumentView, ids: IdentityIds): MathmlShareRows =>
           ? []
           : [
               [
-                keyTextOf(start),
+                nodeKeyOf(start),
                 { id, package: ids.package, path: ids.path, start, targetStart: target },
               ] as const,
             ];
@@ -338,7 +330,7 @@ interface Seat {
  * child's subtree in slot order.
  *
  * @param root - The assembly's root instance.
- * @param sites - Each include's site by its document and place ({@link keyOf}).
+ * @param sites - Each include's site by its document and place, as one key text (`keyTextOf`).
  * @returns The instances, in pre-order.
  */
 const seatsOf = (root: InstanceRoot, sites: ReadonlyMap<string, IncludeSite>): readonly Seat[] => {
@@ -350,7 +342,8 @@ const seatsOf = (root: InstanceRoot, sites: ReadonlyMap<string, IncludeSite>): r
   for (let next = stack.pop(); next !== undefined; next = stack.pop()) {
     const { children, document, site, siteDocument } = next.instance;
     const instance = BigInt(seats.length);
-    const included = next.parent === undefined ? undefined : sites.get(keyOf([siteDocument, site]));
+    const included =
+      next.parent === undefined ? undefined : sites.get(keyTextOf(siteDocument, site));
     const seat: Seat =
       next.parent !== undefined && included !== undefined && splicing.has(included.parentKind)
         ? { document, includer: { node: included.parent, seat: next.parent }, instance }
@@ -428,7 +421,7 @@ interface Rowed {
  * @param start - The element's `start` in the instance's document.
  * @returns The place's text.
  */
-const placeOf = (seat: Seat, start: bigint): string => keyOf([seat.instance, start]);
+const placeOf = (seat: Seat, start: bigint): string => keyTextOf(seat.instance, start);
 
 /**
  * Collect the elements that hold a row in an assembly: each share and each target, with the chain
@@ -583,7 +576,7 @@ export const placedShareRowsOf = (input: {
 
   const idsOf = Map.groupBy(input.ids, ({ path }) => path);
   const sites = new Map(
-    [...input.sites].map((site) => [keyOf([site.path, site.start]), site] as const),
+    [...input.sites].map((site) => [keyTextOf(site.path, site.start), site] as const),
   );
   const held = new Map<string, ReadonlyMap<bigint, NodeRow<Composed>>>();
   const byStartOf = (path: string): ReadonlyMap<bigint, NodeRow<Composed>> => {
@@ -622,10 +615,10 @@ export const placedShareRowsOf = (input: {
     );
     const rankOf = (seat: Seat, start: bigint): bigint => ranks.get(placeOf(seat, start)) ?? 0n;
     const { assembly, assemblyKind } = root;
-    const keyTextOf = (seat: Seat, start: bigint): string =>
-      keyOf([root.package, assembly, seat.instance, start]);
+    const seatKeyOf = (seat: Seat, start: bigint): string =>
+      keyTextOf(root.package, assembly, seat.instance, start);
     for (const { node, seat } of rowed.values()) {
-      ranked.set(keyTextOf(seat, node.start), {
+      ranked.set(seatKeyOf(seat, node.start), {
         assembly,
         instance: seat.instance,
         package: root.package,
@@ -636,7 +629,7 @@ export const placedShareRowsOf = (input: {
     }
 
     for (const { seat, share, target } of resolved) {
-      targets.set(keyTextOf(seat, share.start), {
+      targets.set(seatKeyOf(seat, share.start), {
         assembly,
         assemblyKind,
         id: share.id,

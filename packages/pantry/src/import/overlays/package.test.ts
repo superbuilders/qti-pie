@@ -38,12 +38,12 @@ import {
 } from "#pantry/import/overlays/package.ts";
 import { attributeValueOf, valueReadingOf } from "#pantry/import/names.ts";
 import type {
-  DocumentIds,
   ManifestIds,
   PackageRows,
   ReferenceCensus,
   ReferenceRows,
 } from "#pantry/import/overlays/package.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import type { WhiteSpaceClass } from "#pantry/grammar/domains.ts";
 import type { ReferenceForm } from "#pantry/grammar/references.ts";
 import { hrefPiecesOf, srcsetCandidatesOf } from "#pantry/import/pieces.ts";
@@ -1067,7 +1067,7 @@ const referenceTreeOf = (input: ReferenceCase): XdmDocument<Composed> => ({
  * @param documentIds - Its package and path; its nodes are named by their numbers.
  * @returns Its expected rows.
  */
-const expectedReferences = (input: ReferenceCase, documentIds: DocumentIds) => {
+const expectedReferences = (input: ReferenceCase, documentIds: Place) => {
   const at = { package: documentIds.package, path: documentIds.path };
   const references = new Map<string, object>();
   const paths = new Map<string, object>();
@@ -1332,7 +1332,7 @@ describe("import/overlays/package.ts, hrefs and references", () => {
           },
           (input, c) =>
             Effect.sync(() => {
-              const documentIds: DocumentIds = { ...ids, path: input.path };
+              const documentIds: Place = { ...ids, path: input.path };
               const rows = referenceRowsOf(ownViewOf(referenceTreeOf(input)), documentIds, census);
               const expected = expectedReferences(input, documentIds);
 
@@ -1381,7 +1381,7 @@ describe("import/overlays/package.ts, hrefs and references", () => {
         cases.flatMap(({ base, kind, value }) => textOf(kind, value, base)),
       ),
     };
-    const documentIds: DocumentIds = { ...ids, path: "items/item.xml" };
+    const documentIds: Place = { ...ids, path: "items/item.xml" };
     const rows = referenceRowsOf(ownViewOf(tree), documentIds, census);
 
     const expectedTexts = new Map<string, object>();

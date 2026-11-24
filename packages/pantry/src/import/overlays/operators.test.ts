@@ -26,7 +26,7 @@ import type { DocumentContext } from "#pantry/import/context.ts";
 import { flatDocumentOf, ownContext, ownViewOf, viewOf } from "#pantry/import/fold.ts";
 import { keyTextOf } from "#pantry/import/key-text.ts";
 import { rowsOf } from "#pantry/import/overlays/operators.ts";
-import type { Place } from "#pantry/import/write.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import { tokensOf } from "#pantry/import/pieces.ts";
 import type { OperatorRows, ToleranceRow } from "#pantry/import/overlays/operators.ts";
 import { shredGrammarOf } from "#pantry/model/composed.ts";

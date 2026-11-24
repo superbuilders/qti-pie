@@ -192,7 +192,6 @@ const crossings: ByStep = [
       "import/overlays/data-ssml.ts: #pantry/qti/data-ssml.ts",
       "import/overlays/data-ssml.ts: #pantry/vocab/data-ssml.ts",
       "import/overlays/declarations.ts: #pantry/grammar/attributes.ts",
-      "import/overlays/declarations.ts: #pantry/qti/chardata.ts",
       "import/overlays/expressions.ts: #pantry/grammar/expression.ts",
       "import/overlays/expressions.ts: #pantry/qti/expressions.ts",
       "import/overlays/expressions.ts: #pantry/qti/templates.ts",

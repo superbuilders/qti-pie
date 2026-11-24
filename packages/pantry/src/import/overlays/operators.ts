@@ -21,7 +21,7 @@ import type { DocumentView } from "#pantry/import/fold.ts";
 import { keyTextOf } from "#pantry/import/key-text.ts";
 import { attributeValueOf } from "#pantry/import/names.ts";
 import { tokensOf } from "#pantry/import/pieces.ts";
-import type { Place } from "#pantry/import/write.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import type {
   Rounding,
   RoundingFigures,

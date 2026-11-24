@@ -20,7 +20,8 @@ import { ChoiceBound, interactionKinds } from "#pantry/grammar/install.ts";
 import { attributeOf, foldAt, governorOf } from "#pantry/import/fold.ts";
 import type { AttributeIndex, DocumentView, Folds } from "#pantry/import/fold.ts";
 import { attributeValueOf, namedBy, valueAt } from "#pantry/import/names.ts";
-import type { Place } from "#pantry/import/overlays/declarations.ts";
+import { keyTextOf } from "#pantry/import/key-text.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import type { InstanceMember, InstanceRoot } from "#pantry/import/overlays/tests.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import type { FlatRows, NodeRow } from "#pantry/model/xdm.ts";
@@ -72,8 +73,8 @@ import { itemKind } from "#pantry/vocab/terms/tests.ts";
 
 /**
  * The interaction overlays' rows, one keyed set per relation: each map from the text of a row's key
- * to the row as its writer writes it, its key's values in key order as a JSON array ({@link
- * keyOf}), so the rows of two documents never meet at one key.
+ * to the row as its writer writes it, its key's values in key order as a JSON array (`keyTextOf`
+ * of `#pantry/import/key-text.ts`), so the rows of two documents never meet at one key.
  */
 export interface InteractionRows {
   readonly BindingName: ReadonlyMap<string, Addition<typeof BindingName>>;
@@ -141,15 +142,6 @@ const countValueOf = (form: string): Option.Option<bigint> => {
 };
 
 /**
- * Write the key text of a row: its key's values in key order, each as its text, as a JSON array.
- *
- * @param values - The key's values, in key order.
- * @returns Their JSON array.
- */
-const keyOf = (values: readonly (bigint | boolean | string)[]): string =>
-  JSON.stringify(values.map(String));
-
-/**
  * Write the key text of an element's place, `(package, path, start)`, the key every row over one
  * element starts with and the group a family over an interaction's rows names it by.
  *
@@ -163,7 +155,7 @@ const placeKeyOf = (row: {
   readonly package: string;
   readonly path: string;
   readonly start: bigint;
-}): string => keyOf([row.package, row.path, row.start]);
+}): string => keyTextOf(row.package, row.path, row.start);
 
 /**
  * A node's kind as the tree's rows hold it.
@@ -333,7 +325,7 @@ const interactionAttributesOf = (context: Context) =>
       return read
         ? [
             [
-              keyOf([context.place.package, context.place.path, start, name]),
+              keyTextOf(context.place.package, context.place.path, start, name),
               {
                 kind,
                 lexical,
@@ -379,7 +371,7 @@ const pciModuleFormsOf = (context: Context) => {
   const { package: pkg, path } = context.place;
   for (const node of context.rows.nodes) {
     if (node.kind === pciKind && Option.isSome(attributeOf(context, node.start, "module"))) {
-      forms.set(keyOf([pkg, path, node.start, false]), {
+      forms.set(keyTextOf(pkg, path, node.start, false), {
         element: false,
         package: pkg,
         path,
@@ -391,7 +383,7 @@ const pciModuleFormsOf = (context: Context) => {
       node.kind === modulesKind &&
       heldAt(context.nodes, node.parent, "the document's nodes").kind === pciKind
     ) {
-      forms.set(keyOf([pkg, path, node.parent, true]), {
+      forms.set(keyTextOf(pkg, path, node.parent, true), {
         element: true,
         package: pkg,
         path,
@@ -522,14 +514,14 @@ const bindingsOf = (context: Context) => {
     const place = { package: pkg, path, start };
     for (const attribute of bindingAttributes) {
       for (const identifier of Option.toArray(nameOf(context, node, attribute))) {
-        names.set(keyOf([pkg, path, start, attribute]), { ...place, attribute, identifier });
+        names.set(keyTextOf(pkg, path, start, attribute), { ...place, attribute, identifier });
       }
     }
 
     for (const adaptive of Option.toArray(context.itemMode)) {
       for (const attribute of bindingAttributes) {
         for (const identifier of Option.toArray(nameOf(context, node, attribute))) {
-          bound.set(keyOf([pkg, path, start, attribute]), {
+          bound.set(keyTextOf(pkg, path, start, attribute), {
             ...place,
             adaptive,
             attribute,
@@ -666,7 +658,7 @@ const referencesOf = (
             Option.toArray(namedBy(readValueOf(context, row))).map(
               (identifier) =>
                 [
-                  keyOf([row.package, row.path, row.start, row.name]),
+                  keyTextOf(row.package, row.path, row.start, row.name),
                   {
                     assemblyKind: context.rootKind,
                     attribute: row.name,
@@ -711,7 +703,7 @@ const fragmentNamesOf = (
             ? Option.toArray(namedBy(readValueOf(context, row))).map(
                 (identifier) =>
                   [
-                    keyOf([row.package, row.path, row.start, row.name]),
+                    keyTextOf(row.package, row.path, row.start, row.name),
                     {
                       attribute: row.name,
                       identifier,
@@ -799,7 +791,7 @@ export const rowsOf = (view: DocumentView, ids: Place): InteractionRows => {
     InteractionAttribute: read,
     ItemMode: new Map(
       Option.toArray(context.itemMode).map(
-        (adaptive) => [keyOf([place.package, place.path]), { ...place, adaptive }] as const,
+        (adaptive) => [keyTextOf(place.package, place.path), { ...place, adaptive }] as const,
       ),
     ),
     LeastCount: counts.leasts,
@@ -808,7 +800,7 @@ export const rowsOf = (view: DocumentView, ids: Place): InteractionRows => {
     PrintedVariableRef: new Map(prints.flatMap((held) => [...held])),
     ReferringDocument: new Map(
       referringRoots.every((root) => root !== context.rootKind)
-        ? [[keyOf([place.package, place.path]), place]]
+        ? [[keyTextOf(place.package, place.path), place]]
         : [],
     ),
     TemplateRef: templates,
@@ -881,7 +873,7 @@ const placedOf = (
   names.map(
     (name) =>
       [
-        keyOf([name.package, placement.assembly, placement.start, name.start, name.attribute]),
+        keyTextOf(name.package, placement.assembly, placement.start, name.start, name.attribute),
         {
           ...name,
           assembly: placement.assembly,
@@ -900,8 +892,7 @@ const placedOf = (
  * @param row.path - The document's path.
  * @returns The key text.
  */
-const documentKeyOf = (row: { readonly package: string; readonly path: string }): string =>
-  keyOf([row.package, row.path]);
+const documentKeyOf = (row: Place): string => keyTextOf(row.package, row.path);
 
 /**
  * Write the key text of the document an instance places, `(package, document)`.
@@ -910,7 +901,7 @@ const documentKeyOf = (row: { readonly package: string; readonly path: string })
  * @returns The key text.
  */
 const placedDocumentKeyOf = (placement: Placement): string =>
-  keyOf([placement.package, placement.instance.document]);
+  keyTextOf(placement.package, placement.instance.document);
 
 /**
  * Decide whether an instance is a placement `FragmentScope` holds: an instance of an item's or a
@@ -970,7 +961,7 @@ export const fragmentRowsOf = (input: {
       placements.map(
         (placement) =>
           [
-            keyOf([placement.package, placement.assembly, placement.start]),
+            keyTextOf(placement.package, placement.assembly, placement.start),
             {
               assembly: placement.assembly,
               assemblyKind: placement.assemblyKind,
@@ -1024,9 +1015,7 @@ export const placedBindingRowsOf = (input: {
 }): PlacedBindingRows => {
   const modes = new Map([...input.adaptive].map((row) => [documentKeyOf(row), row.adaptive]));
   const placements = [...input.instances].flatMap((root) => instancesOf(root));
-  const placedOfDocument = <Row extends { readonly package: string; readonly path: string }>(
-    rows: Iterable<Row>,
-  ) =>
+  const placedOfDocument = <Row extends Place>(rows: Iterable<Row>) =>
     joinOn(placements, placedDocumentKeyOf, rows, documentKeyOf).flatMap(([placement, held]) =>
       held.map((row) => ({ placement, row })),
     );
@@ -1040,7 +1029,7 @@ export const placedBindingRowsOf = (input: {
   ).flatMap(([placement, names]) =>
     names.map((name) => ({
       binding: { ...name, assembly: placement.assembly, instance: placement.start },
-      key: keyOf([name.package, placement.assembly, placement.start, name.start, name.attribute]),
+      key: keyTextOf(name.package, placement.assembly, placement.start, name.start, name.attribute),
     })),
   );
 
@@ -1054,7 +1043,7 @@ export const placedBindingRowsOf = (input: {
               ...binding,
               adaptive: heldAt(
                 modes,
-                keyOf([binding.package, binding.assembly]),
+                keyTextOf(binding.package, binding.assembly),
                 "the package's item modes",
               ),
             },
@@ -1065,7 +1054,7 @@ export const placedBindingRowsOf = (input: {
       choices.map(
         ({ placement, row: { identifier, kind, package: pkg, path, start } }) =>
           [
-            keyOf([pkg, placement.assembly, placement.start, start]),
+            keyTextOf(pkg, placement.assembly, placement.start, start),
             {
               assembly: placement.assembly,
               identifier,
@@ -1082,7 +1071,7 @@ export const placedBindingRowsOf = (input: {
       hottexts.map(
         ({ placement, row: { identifier, package: pkg, path, start } }) =>
           [
-            keyOf([pkg, placement.assembly, placement.start, start]),
+            keyTextOf(pkg, placement.assembly, placement.start, start),
             {
               assembly: placement.assembly,
               identifier,

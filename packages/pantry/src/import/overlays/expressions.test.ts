@@ -34,7 +34,7 @@ import { collapse } from "#pantry/grammar/domains.ts";
 import { placedRowsOf, placingPackageOf, rowsOf } from "#pantry/import/overlays/expressions.ts";
 import type { ExpressionRows, Typed } from "#pantry/import/overlays/expressions.ts";
 import { ownViewOf } from "#pantry/import/fold.ts";
-import type { Place } from "#pantry/import/write.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import { closedName } from "#pantry/model/xdm.ts";
 import type {

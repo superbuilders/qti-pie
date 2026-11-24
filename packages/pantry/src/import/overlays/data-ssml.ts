@@ -13,7 +13,7 @@ import type { Addition } from "@bjornpagen/grizzle";
 import { Option } from "effect";
 import type { DocumentView } from "#pantry/import/fold.ts";
 import { keyTextOf } from "#pantry/import/key-text.ts";
-import type { Place } from "#pantry/import/write.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import type { DataSsml, DataSsmlMember, DataSsmlProperty } from "#pantry/qti/data-ssml.ts";
 import { dataSsmlOf } from "#pantry/vocab/data-ssml.ts";
 

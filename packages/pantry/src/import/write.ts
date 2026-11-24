@@ -55,7 +55,7 @@ import { endsOf } from "#pantry/model/folds.ts";
 import type { FlatRows, NodeRow, XdmDocument } from "#pantry/model/xdm.ts";
 import type { Document } from "#pantry/qti/chardata.ts";
 import type { Node } from "#pantry/qti/node.ts";
-import type { Qti } from "#pantry/qti/schema.ts";
+import type { Place, Qti } from "#pantry/qti/schema.ts";
 
 /**
  * A package's name as a row holds it: `Package`'s key, every row's `package`, read off the insert
@@ -111,12 +111,6 @@ export interface DocumentPlace {
    */
   readonly targeted: boolean;
 }
-
-/**
- * A document's place in its package, which every row of it holds beside its own key fields: its
- * package's name and its path. Every builder names a document by it.
- */
-export type Place = Pick<DocumentPlace, "package" | "path">;
 
 /**
  * A document as the importer lists it, one per path: its path, its tree as shred gives it, and its

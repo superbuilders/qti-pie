@@ -7,7 +7,8 @@
  */
 import { Array as Arr, Effect } from "effect";
 import { addRow, assembleScan, emptyScan } from "#pantry/export/pages.ts";
-import type { DocumentKey, Scan, ScanRow } from "#pantry/export/pages.ts";
+import type { Scan, ScanRow } from "#pantry/export/pages.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import { names } from "#pantry/model/names.ts";
 import { unshred } from "#pantry/model/unshred.ts";
@@ -26,7 +27,7 @@ import { unshred } from "#pantry/model/unshred.ts";
  * @returns The document's bytes in its export charset.
  */
 export const scanXml = Effect.fn("export.scanXml")(function* scanXml(
-  document: DocumentKey,
+  document: Place,
   scan: Scan<Composed>,
 ) {
   return yield* Effect.orDie(unshred(assembleScan(document, scan), names));
@@ -40,5 +41,5 @@ export const scanXml = Effect.fn("export.scanXml")(function* scanXml(
  * @param rows - Every row the scan delivered.
  * @returns The document's bytes in its export charset, dying as {@link scanXml} does.
  */
-export const documentXml = (document: DocumentKey, rows: Iterable<ScanRow<Composed>>) =>
+export const documentXml = (document: Place, rows: Iterable<ScanRow<Composed>>) =>
   scanXml(document, Arr.reduce(rows, emptyScan<Composed>(), addRow));

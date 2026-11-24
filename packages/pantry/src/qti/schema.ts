@@ -15,6 +15,8 @@
  * `schema.extend`, as `#pantry/qti/media.ts` does for the package-media level's relations.
  */
 import { schema } from "@bjornpagen/grizzle";
+import type { Addition } from "@bjornpagen/grizzle";
+import type { Document } from "#pantry/qti/chardata.ts";
 import { QtiViews } from "#pantry/qti/names.ts";
 import { queryLaws, queryRelations } from "#pantry/qti/queries.ts";
 
@@ -23,3 +25,10 @@ import { queryLaws, queryRelations } from "#pantry/qti/queries.ts";
  * of `QtiQueries`, each public and typed under `Qti.relations`, and every law over them.
  */
 export const Qti = schema.extend([QtiViews], "QtiQueries", queryRelations, queryLaws);
+
+/**
+ * Where a document stands in its package: `Document`'s key, its package's name and its path there,
+ * which every row of the document holds beside its own key fields, every builder names the
+ * document by, and the export's scan is filtered by.
+ */
+export type Place = Pick<Addition<typeof Document>, "package" | "path">;

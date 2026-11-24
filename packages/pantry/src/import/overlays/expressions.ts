@@ -30,7 +30,8 @@ import type { InstanceMember, InstanceRoot, TestIds } from "#pantry/import/overl
 import { governorOf, lexicalOf } from "#pantry/import/fold.ts";
 import type { AttributeIndex, DocumentView, Folds } from "#pantry/import/fold.ts";
 import type { Composed } from "#pantry/model/composed.ts";
-import type { DocumentPlace, Place } from "#pantry/import/write.ts";
+import type { DocumentPlace } from "#pantry/import/write.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import type { AttributeRow, FlatRows, NodeRow } from "#pantry/model/xdm.ts";
 import type {
   Expression,

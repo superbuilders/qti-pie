@@ -9,7 +9,8 @@ import { Array as Arr, Effect, Formatter, Option, Result, Stream } from "effect"
 import type { Window } from "@bjornpagen/grizzle/runtime";
 import { RowKey } from "@bjornpagen/grizzle/client";
 import { addRow, assembleScan, emptyScan, scannedRows } from "#pantry/export/pages.ts";
-import type { DocumentKey, ScanRow, WindowRows } from "#pantry/export/pages.ts";
+import type { ScanRow, WindowRows } from "#pantry/export/pages.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import { composed } from "#pantry/grammar/compose.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import { flatten } from "#pantry/model/xdm.ts";
@@ -33,7 +34,7 @@ const documents = xdmDocument(grammar);
  * The key every case's document is scanned at: the scan's rows carry none, so any key will do,
  * and the refusal names it.
  */
-const key: DocumentKey = { package: "MANIFEST-1", path: "item.xml" };
+const key: Place = { package: "MANIFEST-1", path: "item.xml" };
 
 /**
  * Key a list of rows by their node's `start`.

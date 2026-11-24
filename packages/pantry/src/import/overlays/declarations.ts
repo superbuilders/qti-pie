@@ -7,31 +7,13 @@
  * `MasteryValue`, `NormalMaximum` and `NormalMinimum` (`#pantry/qti/names.ts`), so this module
  * writes no row of its own.
  */
-import type { Addition } from "@bjornpagen/grizzle";
 import { Array as Arr, Option } from "effect";
 import type { DocumentView } from "#pantry/import/fold.ts";
 import { spelledBaseTypes } from "#pantry/grammar/attributes.ts";
 import type { BaseType } from "#pantry/grammar/install.ts";
 import { Cardinality, DeclarationKind } from "#pantry/grammar/install.ts";
 import { namedBy, valueAt } from "#pantry/import/names.ts";
-import type { Document } from "#pantry/qti/chardata.ts";
-
-/**
- * Where a document stands in its package, as its rows hold it: its package's name and its path
- * there, which every row holds beside its element's `start`.
- */
-export type Place = Pick<Addition<typeof Document>, "package" | "path">;
-
-/**
- * The text of a row's key in its relation's keyed set: its document's package and path and its
- * element's `start`, as a JSON array, so the rows of two documents never meet at one key.
- *
- * @param place - The document's place.
- * @param start - The element's position in it.
- * @returns The key text.
- */
-export const keyTextOf = (place: Place, start: bigint): string =>
-  JSON.stringify([place.package, place.path, String(start)]);
+import type { Place } from "#pantry/qti/schema.ts";
 
 /**
  * A `BaseType` handle.

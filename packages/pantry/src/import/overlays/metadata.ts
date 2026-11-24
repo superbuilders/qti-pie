@@ -14,25 +14,12 @@ import { Option } from "effect";
 import { spelledBaseTypes } from "#pantry/grammar/attributes.ts";
 import { lexicalOf } from "#pantry/import/fold.ts";
 import type { AttributeIndex, DocumentView } from "#pantry/import/fold.ts";
+import { keyTextOf } from "#pantry/import/key-text.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import type { FlatRows, NodeRow } from "#pantry/model/xdm.ts";
 import type { UsageValue, UsageValueBaseType } from "#pantry/qti/metadata.ts";
 import { usageValueKind } from "#pantry/vocab/terms/metadata.ts";
-
-/**
- * Where a document stands in its package, as this builder reads it: the part of the importer's
- * `DocumentPlace` (Q5.15) it needs beside the document's view.
- */
-export interface MetadataIds {
-  /**
-   * The package's name, which every row holds as `package`.
-   */
-  readonly package: string;
-  /**
-   * The document's path in the package, which every row holds as `path`.
-   */
-  readonly path: string;
-}
 
 /**
  * A document's metadata rows, one keyed set per relation: each map from the text of a row's key,
@@ -84,17 +71,6 @@ export const stringValuesOf = (rows: FlatRows<Composed>): ((start: bigint) => st
 };
 
 /**
- * The text of a row's key in its relation's keyed set: its node's `(package, path, start)` as a
- * JSON array, so the rows of two documents never meet at one key.
- *
- * @param ids - The document's place.
- * @param start - The node's `start`.
- * @returns The key text.
- */
-const keyTextOf = (ids: MetadataIds, start: bigint): string =>
-  JSON.stringify([ids.package, ids.path, String(start)]);
-
-/**
  * A document's node as every row of it holds it first: its key, `(package, path, start)`.
  */
 interface NodeKey {
@@ -124,10 +100,10 @@ interface Tree {
  * @param ids - Where the document stands in its package, the key every row holds.
  * @returns The tree's rows and lookups.
  */
-const treeOf = (view: DocumentView, ids: MetadataIds): Tree => {
+const treeOf = (view: DocumentView, ids: Place): Tree => {
   const { rows } = view;
   const keyOf = (node: NodeRow<Composed>): readonly [string, NodeKey] => [
-    keyTextOf(ids, node.start),
+    keyTextOf(ids.package, ids.path, node.start),
     { package: ids.package, path: ids.path, start: node.start },
   ];
 
@@ -199,7 +175,7 @@ const usageValueBaseTypeRowsOf = (
  * @param ids - Where it stands in its package: its package, its path and its type.
  * @returns Every per-document overlay's rows.
  */
-export const rowsOf = (view: DocumentView, ids: MetadataIds): MetadataRows => {
+export const rowsOf = (view: DocumentView, ids: Place): MetadataRows => {
   const tree = treeOf(view, ids);
   const usageValues = usageValueRowsOf(tree);
 

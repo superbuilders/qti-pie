@@ -42,8 +42,9 @@ import { Option } from "effect";
 import { foldAt, governorOf, lexicalOf } from "#pantry/import/fold.ts";
 import type { AttributeIndex, DocumentView, Folds } from "#pantry/import/fold.ts";
 import { attributeValueOf, valueAt } from "#pantry/import/names.ts";
-import { keyTextOf, nonElements } from "#pantry/import/overlays/mathml-tree.ts";
-import type { MathmlIds } from "#pantry/import/overlays/mathml-tree.ts";
+import { keyTextOf } from "#pantry/import/key-text.ts";
+import { nonElements } from "#pantry/import/overlays/mathml-tree.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import type { NodeRow } from "#pantry/model/xdm.ts";
 import type {
@@ -231,7 +232,7 @@ interface Reading {
   /**
    * Where the document stands in its package, the key every row holds.
    */
-  readonly ids: MathmlIds;
+  readonly ids: Place;
   /**
    * The direction each element holds, the document node's `ltr` above them.
    */
@@ -363,7 +364,7 @@ const leavesByCell = (
  * @param ids - Where the document stands in its package, the key every row holds.
  * @returns The rows of every relation the align module declares.
  */
-export const rowsOf = (view: DocumentView, ids: MathmlIds): MathmlAlignRows => {
+export const rowsOf = (view: DocumentView, ids: Place): MathmlAlignRows => {
   const flat = view.rows;
   const reading: Reading = {
     attributes: view.attributes,
@@ -391,7 +392,7 @@ export const rowsOf = (view: DocumentView, ids: MathmlIds): MathmlAlignRows => {
       ),
     );
     if (node.kind === "m:maction") {
-      actions.set(keyTextOf(ids, node.start), actionOf(reading, node));
+      actions.set(keyTextOf(ids.package, ids.path, node.start), actionOf(reading, node));
     }
 
     const built = scopeOf(reading, node);
@@ -406,7 +407,7 @@ export const rowsOf = (view: DocumentView, ids: MathmlIds): MathmlAlignRows => {
       cells.set(node.start, { package: ids.package, path: ids.path, start: node.start });
     } else {
       if (node.kind === "m:maligngroup" && row.state === "open") {
-        groups.set(keyTextOf(ids, node.start), {
+        groups.set(keyTextOf(ids.package, ids.path, node.start), {
           cell: row.cell,
           package: ids.package,
           path: ids.path,
@@ -426,12 +427,15 @@ export const rowsOf = (view: DocumentView, ids: MathmlIds): MathmlAlignRows => {
     MathAction: actions,
     MathAlignGroup: groups,
     MathAlignScope: new Map(
-      [...scopes].map(([start, row]) => [keyTextOf(ids, start), row] as const),
+      [...scopes].map(([start, row]) => [keyTextOf(ids.package, ids.path, start), row] as const),
     ),
     MathCell: new Map(
       [...cells].map(
         ([start, cell]) =>
-          [keyTextOf(ids, start), { ...cell, leaves: nested.get(start) ?? [] }] as const,
+          [
+            keyTextOf(ids.package, ids.path, start),
+            { ...cell, leaves: nested.get(start) ?? [] },
+          ] as const,
       ),
     ),
   };

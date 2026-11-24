@@ -6,13 +6,15 @@
 import { Sha256 } from "@bjornpagen/grizzle";
 
 /**
- * The text of a row's key in a keyed set: its key's values, in key order, as one JSON array, so two
- * keys are one text exactly when their values are equal, whatever text a path holds.
+ * The text of a row's key in a keyed set: its key's values, in key order, each as its text, as one
+ * JSON array, so two keys are one text exactly when their values are equal, whatever text a path
+ * holds. A row of a document leads with its place (`Place` of `#pantry/import/write.ts`), its
+ * package's name and then its path.
  *
  * @param values - The key's values, in the relation's key order.
  * @returns The text.
  */
-export const keyTextOf = (...values: readonly (bigint | string)[]): string =>
+export const keyTextOf = (...values: readonly (bigint | boolean | string)[]): string =>
   JSON.stringify(values.map(String));
 
 /**

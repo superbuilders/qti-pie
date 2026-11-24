@@ -20,7 +20,8 @@ import { inject } from "vitest";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { rowsOf } from "#pantry/import/overlays/metadata.ts";
-import type { MetadataIds, MetadataRows } from "#pantry/import/overlays/metadata.ts";
+import type { MetadataRows } from "#pantry/import/overlays/metadata.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import { resourcePathsOf } from "#pantry/import/overlays/package.ts";
 import { shredGrammarOf } from "#pantry/model/composed.ts";
 import { shred } from "#pantry/model/shred.ts";
@@ -68,7 +69,7 @@ const packageIdentifier = "MANIFEST-metadata";
  * @param path - The document's path in its package.
  * @returns Its place.
  */
-const idsFor = (path: string): MetadataIds => ({ package: packageIdentifier, path });
+const idsFor = (path: string): Place => ({ package: packageIdentifier, path });
 
 /**
  * Collapse a text as XML Schema's `collapse` whitespace class does.

@@ -31,7 +31,8 @@ import { stringValuesOf } from "#pantry/import/overlays/metadata.ts";
 import { tokensOf } from "#pantry/import/pieces.ts";
 import { governorOf, lexicalOf } from "#pantry/import/fold.ts";
 import type { AttributeIndex, DocumentView } from "#pantry/import/fold.ts";
-import type { DocumentPlace, Place } from "#pantry/import/write.ts";
+import type { DocumentPlace } from "#pantry/import/write.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import type { AttributeRow, FlatRows, NodeRow } from "#pantry/model/xdm.ts";
 import type {
@@ -710,8 +711,7 @@ const placementsOf = (root: InstanceRoot): readonly Placement[] => {
  * @param document.path - Its path.
  * @returns The key text.
  */
-const documentKey = (document: { readonly package: string; readonly path: string }): string =>
-  keyTextOf(document.package, document.path);
+const documentKey = (document: Place): string => keyTextOf(document.package, document.path);
 
 /**
  * The key a placement meets its document's rows at ({@link documentKey}): its package and the path

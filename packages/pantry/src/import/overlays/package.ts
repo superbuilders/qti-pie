@@ -36,6 +36,7 @@ import { keyTextOf } from "#pantry/import/key-text.ts";
 import { valueAt, valueReadingOf } from "#pantry/import/names.ts";
 import { hrefPiecesOf, piecesOf, srcsetCandidatesOf } from "#pantry/import/pieces.ts";
 import type { HrefPieces, Space } from "#pantry/import/pieces.ts";
+import type { Place } from "#pantry/qti/schema.ts";
 import { stringValuesOf } from "#pantry/import/overlays/string-values.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import type { NodeRow } from "#pantry/model/xdm.ts";
@@ -723,14 +724,6 @@ export const resourcePathsOf = (manifest: FlatDocument): ReadonlyMap<bigint, str
 };
 
 /**
- * Where a document stands, as its reference rows read it: its package, and its own path in the
- * package. It is the part of the importer's `DocumentPlace` (Q5.15) this builder reads.
- */
-export interface DocumentIds extends ManifestIds {
-  readonly path: string;
-}
-
-/**
  * The reference census: how an attribute of a name on an element of a kind names its files, its
  * form, none for an attribute that names no file.
  */
@@ -879,7 +872,7 @@ const textWhiteSpaces: ReadonlyMap<string, WhiteSpaceClass> = new Map(
  */
 export const referenceRowsOf = (
   view: DocumentView,
-  ids: DocumentIds,
+  ids: Place,
   census: ReferenceCensus,
 ): ReferenceRows => {
   const { rows } = view;
