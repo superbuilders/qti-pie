@@ -37,7 +37,9 @@ import {
   QtiLomVocabulary,
   RelationKind,
   TaxonEntry,
+  TaxonKeyText,
 } from "#pantry/qti/lom.ts";
+import { taxonTextBytes } from "#pantry/qti/limits.ts";
 import { RecordNode } from "#pantry/qti/names.ts";
 import { previewRowsOf } from "#pantry/test/host-judge.ts";
 import { evaluatorOf, insideDomains } from "#pantry/test/row-evaluation.ts";
@@ -230,6 +232,37 @@ describe("LOM vocabulary", () => {
 });
 
 /**
+ * Whether a taxon text of some UTF-8 bytes holds "Key text bound", as the check's rule over the
+ * query holds it.
+ *
+ * @param bytes - The text's bytes, ASCII.
+ * @returns Whether it holds the check.
+ */
+const taxonTextHolds = (bytes: number): boolean =>
+  heldBy(
+    insideDomains(
+      Result.map(
+        evaluate.admit(TaxonKeyText, { package: "p", text: "t".repeat(bytes) }),
+        (admitted) => evaluate(TaxonKeyText, admitted),
+      ),
+      "Key_text_bound",
+    ).checks.Key_text_bound,
+    "Key_text_bound",
+  );
+
+describe("the taxon texts' bound", () => {
+  it("holds a taxon's source, id or entry string of taxonTextBytes, the most its views' keys hold, and refuses one a byte longer", () => {
+    // Oracle: `taxonTextBytes` (`#pantry/qti/limits.ts`), the bound `TaxonText` declares, which a
+    // view casts a taxon text into under grizzle's byte guard: IEEE 1484.12.1-2002 bounds no
+    // taxon's text, so one past it is refused at import, a stated limit of the representation.
+    // Bound: the empty text, the bound and a byte past it.
+    assert.isTrue(taxonTextHolds(0), "the empty text");
+    assert.isTrue(taxonTextHolds(taxonTextBytes), "a text of taxonTextBytes");
+    assert.isFalse(taxonTextHolds(taxonTextBytes + 1), "a text a byte past taxonTextBytes");
+  });
+});
+
+/**
  * RFC 2426's properties a vCard 3.0 "MUST" hold (§3.1.1 FN, §3.1.2 N, §3.6.9 VERSION), read the way
  * RFC 2425 §5.8.2 reads a content line, the oracle the patterns are held to: the lines between the
  * first, `BEGIN:VCARD`, and the last, `END:VCARD`, each a name, optionally after a group and a dot
@@ -334,10 +367,11 @@ const statedViews = new Set<unknown>([
 ]);
 
 /**
- * The relations the level's checks judge: a term of LOM's own vocabulary and a record document's
- * node.
+ * The relations the level's checks judge: a term of LOM's own vocabulary, a record document's node,
+ * and a taxon's texts as written, which "Key text bound" holds to the bound their views' keys hold
+ * them to, a stated limit of the representation.
  */
-const judgedRelations = new Set<unknown>([LomTerm, RecordNode]);
+const judgedRelations = new Set<unknown>([LomTerm, RecordNode, TaxonKeyText]);
 
 describe("the LOM level", () => {
   it("states each law of lomLawsByName and no other, each law named by its group's entry", () => {
@@ -357,14 +391,15 @@ describe("the LOM level", () => {
     }
   }, 300_000);
 
-  it("asks a package for nothing, and judges only a record's terms and vCards", () => {
+  it("asks a package for nothing, and judges only a record's terms, its vCards and its taxon texts' bound", () => {
     // Oracle: IEEE 1484.12.1-2002 §4.2 ("All data elements are optional"), QTI 3.0 Metadata
     // §2.7.2.3, §2.7.7.2 and §2.7.9 ("Usage as defined by [LOM, 02]"; "There may be multiple
     // instances of the classification category"), and QTI 3.0 Conformance §3 ("the applications
     // must be able to ignore or remove the unsupported data"): no identity, grade, subject, credit,
     // source or version is required, counted or held to a chain, so the level states no
-    // containment and no key, and its checks read a term of LOM's own vocabulary or a record's node
-    // alone, never a view of what a package may state. Bound: every statement of the level.
+    // containment and no key, and its checks read a term of LOM's own vocabulary, a record's node
+    // or a taxon's texts as written alone, never a view of what a package may state. Bound: every
+    // statement of the level.
     for (const statement of Object.values(lomLawsByName).flat()) {
       assert.strictEqual(statement.kind, "check");
       assert.isTrue(judgedRelations.has(statement.relation), statement.name);
@@ -528,11 +563,9 @@ const checksOver = (row: StatedRow): readonly string[] => {
           Result.map(
             evaluate.admit(PackageClassification, {
               id: row.id,
-              idDigest: digestOf(row.id),
               package: "p",
               purpose: row.purpose,
               source: gradeScheme,
-              sourceDigest: digestOf(gradeScheme),
             }),
             (admitted) => evaluate(PackageClassification, admitted),
           ),

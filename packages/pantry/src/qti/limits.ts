@@ -165,23 +165,69 @@ export const identifierBytes = 503;
 export const QtiIdentifier = law(entryOf("Key text bound"), str.bytes(identifierBytes, Chars));
 
 /**
- * Cast a QTI identifier a view keys into {@link QtiIdentifier}, under grizzle's byte guard (README,
- * "A byte bound is a guard"). The guard's other arm, the empty text, is unreachable in every
- * committed state: each view that keys one states "Key text bound" over the very texts it casts
+ * The most UTF-8 bytes a LOM taxon text holds where a view keys it: a classification's taxon path's
+ * source, and each of its taxa's id and entry strings (`PackageClassification`, `TaxonEntry`,
+ * `#pantry/qti/lom.ts`).
+ *
+ * @limitKind derived
+ * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
+ * @unit UTF-8 bytes
+ * @scope one taxon source, id or entry string in any key or index grizzle builds over it
+ * @constraint IEEE 1484.12.1 puts no bound on a taxon's texts; a longer one is refused at import
+ *   under "Key text bound": the longest real one is 65 bytes, an entry (sources at most 50, ids at
+ *   most 34), over 363 published packages with a classification (the 23 shadows, the 183 Ram
+ *   lessons and the alphascience lessons) and 080622Z's 2,813 AlphaTest packages, 2026-11-24, 8% of
+ *   the bound
+ * @derivation grizzle's `keyFits` over `TaxonEntry`'s whole heading `(package, source, id, entry)`,
+ *   three taxon texts beside a name of {@link nameMaxBytes}: the most each of the three can hold
+ * @from nameMaxBytes
+ */
+export const taxonTextBytes = 804;
+
+/**
+ * A LOM taxon text as a key holds it, of at most {@link taxonTextBytes} UTF-8 bytes.
+ */
+export const TaxonText = law(entryOf("Key text bound"), str.bytes(taxonTextBytes, Chars));
+
+/**
+ * Cast a text a view keys into a bounded key text's type, under grizzle's byte guard (README, "A
+ * byte bound is a guard"). The guard's other arm, the empty text, is unreachable in every committed
+ * state: each view that keys one states "Key text bound" over the very texts it casts
  * (`DeclaredIdentifierText` of `#pantry/qti/names.ts` for a declaration's identifier,
- * `TestIdentifierText` of `#pantry/qti/overlay-queries/tests.ts` for a test's), which refuses at
- * its import a package that holds one past {@link identifierBytes}, by name. A view that keys an
- * identifier its check does not cover is a defect of that view, never a value of the empty text.
+ * `TestIdentifierText` of `#pantry/qti/overlay-queries/tests.ts` for a test's, `TaxonKeyText` of
+ * `#pantry/qti/lom.ts` for a taxon's texts), which refuses at its import a package that holds one
+ * past its bound, by name. A view that keys a text its check does not cover is a defect of that
+ * view, never a value of the empty text.
+ *
+ * @param text - The text, an attribute's value or a node's string value as the view reads it.
+ * @param type - The key text's type, {@link QtiIdentifier} or {@link TaxonText}: a bounded run of
+ *   XML `Char`s, whose TypeScript type every such bound shares.
+ * @param bytes - That type's byte bound.
+ * @returns It, as a key holds it.
+ */
+const keyedAs = (text: TextTerm, type: typeof QtiIdentifier, bytes: number) =>
+  Logic.when(
+    Num.within(Text.octetLength(text), 0, bytes),
+    () => Type.cast(text, type),
+    Type.literal(type, ""),
+  );
+
+/**
+ * Cast a QTI identifier a view keys into {@link QtiIdentifier} ({@link keyedAs}).
  *
  * @param identifier - The identifier, an attribute's value as the view reads it.
  * @returns It, as a key holds it.
  */
 export const keyedIdentifier = (identifier: TextTerm) =>
-  Logic.when(
-    Num.within(Text.octetLength(identifier), 0, identifierBytes),
-    () => Type.cast(identifier, QtiIdentifier),
-    Type.literal(QtiIdentifier, ""),
-  );
+  keyedAs(identifier, QtiIdentifier, identifierBytes);
+
+/**
+ * Cast a LOM taxon text a view keys into {@link TaxonText} ({@link keyedAs}).
+ *
+ * @param text - The text, a node's string value as the view reads it.
+ * @returns It, as a key holds it.
+ */
+export const keyedTaxonText = (text: TextTerm) => keyedAs(text, TaxonText, taxonTextBytes);
 
 /**
  * The most UTF-8 bytes a URI value holds in the ledger's response keys (`UriValue` of the QTI
