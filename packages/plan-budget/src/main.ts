@@ -2,9 +2,9 @@
 /**
  * The planning budget's command line, run from the package whose composition it measures:
  *
- * - `install --config <grizzle config> [--env NAME=value]… [--extension <name>@<schema>]…
- *   [--grizzle-sets-generic-plans]`: a fresh scratch installation of the config's committed
- *   migrations (#plan-budget/install.ts), each extension made by the superuser first.
+ * - `install --config <grizzle config> [--env NAME=value]… [--extension <name>@<schema>]…`: a fresh
+ *   scratch installation of the config's committed migrations (#plan-budget/install.ts), each
+ *   extension made by the superuser first.
  * - `memory --migrations <folder> [--login <login>]… [--watch-ms <ms>] [--out <records.jsonl>]`: the
  *   first check over every action of the composition (#plan-budget/memory.ts), each action's record
  *   as a JSON line and its verdict line on standard output; exits 1 when any action fails.
@@ -64,7 +64,6 @@ const { positionals, values } = parseArgs({
     config: { type: "string" },
     env: { multiple: true, type: "string" },
     extension: { multiple: true, type: "string" },
-    "grizzle-sets-generic-plans": { type: "boolean" },
     login: { multiple: true, type: "string" },
     migrations: { type: "string" },
     out: { type: "string" },
@@ -181,7 +180,6 @@ const install = (config: string) =>
       ),
       "src/cli/bin.ts",
     ),
-    grizzleSetsGenericPlans: values["grizzle-sets-generic-plans"] === true,
     packageDir: process.cwd(),
     port,
     secrets: path.join(os.homedir(), ".local/var/plan-budget", database),

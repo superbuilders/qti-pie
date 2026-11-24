@@ -2,9 +2,8 @@
  * A composition's scratch installation: a fresh database on the test's cluster, owned by a role of
  * its own, its committed migrations applied by `grizzle migrate` as that owner, and every login
  * given the owner's password, which the measured sessions sign in with. Each login role plans
- * generically (`plan_cache_mode = force_generic_plan`): grizzle stores that as every login's role
- * default from 5037f2beb on, and the installation sets it where an older pin does not, so every
- * measured session plans as grizzle's do.
+ * generically (`plan_cache_mode = force_generic_plan`), which grizzle's migration stores as its
+ * role default, so every measured session plans as grizzle's do.
  *
  * The cluster is the caller's, reached over its socket as a superuser for the installation's own
  * setup, and over verify-full TLS on localhost for the migration, as grizzle connects. It must be a
@@ -66,10 +65,6 @@ export interface Installation {
    * The folder the owner's and logins' passwords are written to, mode 700.
    */
   readonly secrets: string;
-  /**
-   * Whether grizzle's own migration sets every login's plan_cache_mode (5037f2beb on).
-   */
-  readonly grizzleSetsGenericPlans: boolean;
   /**
    * Extensions the composition's migrations type columns by and its owner may not create itself,
    * an untrusted one (metis's lesson embeddings take pgvector in `vector_ext`, which its test
@@ -237,15 +232,6 @@ export const installFresh = (install: Installation) =>
             `ALTER ROLE ${quoted(name)} PASSWORD '${password}'`,
           );
           writeFileSync(path.join(install.secrets, `${name}.password`), password, { mode: 0o600 });
-
-          if (!install.grizzleSetsGenericPlans) {
-            yield* asSuperuser(
-              install,
-              "postgres",
-              "generic plans",
-              `ALTER ROLE ${quoted(name)} SET plan_cache_mode = force_generic_plan`,
-            );
-          }
         }),
       { discard: true },
     );
