@@ -13,29 +13,32 @@
  * its prefix, an entity reference by its attribute's key and its offset, and the XML declaration's
  * rows by the document itself, at most one each.
  *
- * The read takes the document node's row at `start` 0, and every other node row in `start` order,
- * with a stack of the elements whose intervals are open (trees.md §3): each row closes every open
+ * The read takes each list in its key's order, the order a database delivers it in (grizzle orders
+ * every served read by its result key): the document node's row at `start` 0, and every other node
+ * row in `start` order, with a stack of the elements whose intervals are open (trees.md §3): each
+ * row closes every open
  * element whose interval ends at or before its start, and is the next child of the innermost
  * element still open, or of the document node when none is. A node's content is the row of its
  * kind, an element's attributes, open attributes and namespace declarations are its rows of each
  * family, and an attribute's entity references are the rows at its key, in offset order. An
  * element's attributes and namespace declarations are sets (XML Information Set §2.2), so the read
- * lists them in an order of its own, by key, which no row states and the export does not read
- * (`#pantry/model/unshred.ts` writes Canonical XML's): the closed names by handle, then the open
- * names by namespace name and local name, and the declarations by prefix. The read takes nothing
+ * lists them as they arrive, the closed names before the open, an order no row states and the
+ * export does not read (`#pantry/model/unshred.ts` writes Canonical XML's). The read takes nothing
  * else from a node row: its `parent`, its `at` and the document node's interval are the image's to
- * judge.
+ * judge. {@link assemble}, which reads rows a test built in any order, puts the nodes in `start`
+ * order and each attribute's references in offset order first, as a database delivers them.
  *
  * The tree read is then flattened again, and the rows are its image exactly when the two agree,
  * list by list, on every key and on every field `flatten` writes at it.
  *
  * So assembly succeeds on exactly the rows `flatten` writes for some tree, in any row order, and
- * gives back that tree, its attributes and declarations listed by key. Accepted rows are that image
- * by the comparison. And rows `flatten` wrote for a tree read back as that tree: their starts
- * number its nodes in document order, and an element's interval holds exactly its subtree's, so the
- * stack makes each node the child of the element it was written under, in slot order; each
- * attribute's offsets order its references as they were written; and the families are sets, which
- * `flatten` writes as the same rows in any order. So the second flatten writes the rows again.
+ * gives back that tree, its attributes and declarations listed as the rows hold them. Accepted rows
+ * are that image by the comparison. And rows `flatten` wrote for a tree read back as that tree:
+ * their starts number its nodes in document order, and an element's interval holds exactly its
+ * subtree's, so the stack makes each node the child of the element it was written under, in slot
+ * order; each attribute's offsets order its references as they were written; and the families are
+ * sets, which `flatten` writes as the same rows in any order. So the second flatten writes the rows
+ * again.
  *
  * {@link assemble} is that inverse of `flatten`, the specification the tests hold every writer of
  * a document's rows to, and its refusals ({@link AssembleError}) are its verdicts on rows a test
@@ -531,35 +534,14 @@ const outsideImage = (
   ]);
 
 /**
- * The order the read takes node rows in: by start.
+ * The order a database delivers node rows in, their key's: by start. {@link assemble} puts rows a
+ * test built in it.
  */
 const startOrder = Order.mapInput(Order.BigInt, (row: { readonly start: bigint }) => row.start);
 
 /**
- * The order the read lists an element's attributes of closed names in: by handle. It is the
- * read's own, which no row states (the attributes are a set).
- */
-const handleOrder = Order.mapInput(Order.String, (row: { readonly name: string }) => row.name);
-
-/**
- * The order the model lists an element's attributes of open names in, after its closed ones: by
- * namespace name, then local name. The read delivers them as a set (`#pantry/export/scan.ts`),
- * since no index orders by a name of any length, so the order is the host's alone.
- */
-const expandedOrder = Order.combine(
-  Order.mapInput(Order.String, (row: OpenAttributeRow) => row.uri),
-  Order.mapInput(Order.String, (row: OpenAttributeRow) => row.local),
-);
-
-/**
- * The order the model lists an element's namespace declarations in: by prefix. The read delivers
- * them as a set (`#pantry/export/scan.ts`), since no index orders by a prefix of any length, so the
- * order is the host's alone.
- */
-const prefixOrder = Order.mapInput(Order.String, (row: NamespaceRow) => row.prefix);
-
-/**
- * The order of an attribute's entity references: by offset, their key within the attribute.
+ * The order a database delivers an attribute's entity references in, their key's within the
+ * attribute: by offset. {@link assemble} puts rows a test built in it.
  */
 const offsetOrder = Order.mapInput(Order.BigInt, (row: { readonly offset: bigint }) => row.offset);
 
@@ -647,22 +629,20 @@ const openNameOf = {
 };
 
 /**
- * Write an attribute's entity references as the tree holds them, in offset order.
+ * Write an attribute's entity references as the tree holds them.
  *
- * @param references - The attribute's entity reference rows, in any order.
+ * @param references - The attribute's entity reference rows, in offset order.
  * @returns Each reference's entity name and offset, by offset.
  */
 const referencesOf = (
   references: readonly Pick<AttributeEntityRow<XdmVocabulary>, "entity" | "offset">[],
 ): XdmAttribute<XdmVocabulary>["references"] =>
-  references
-    .toSorted(offsetOrder)
-    .map(({ entity, offset }) => ({ name: entity, offset: Number(offset) }));
+  references.map(({ entity, offset }) => ({ name: entity, offset: Number(offset) }));
 
 /**
- * Build what every element holds but its children: its attributes, the closed names by handle and
- * then the open names by expanded name, each with its entity references, its namespace
- * declarations by prefix, and its prefix.
+ * Build what every element holds but its children: its attributes, the closed names and then the
+ * open names, each with its entity references, its namespace declarations, and its prefix, each
+ * family in the order its rows arrive.
  *
  * @param index - The document's rows by owner.
  * @param row - The element's row.
@@ -672,27 +652,23 @@ const contentOf = <V extends XdmVocabulary>(
   index: Index<V>,
   row: NodeRow<V>,
 ): Pick<XdmClosedElement<V>, "attributes" | "namespaces" | "prefix"> => {
-  const closed = (index.attributes.get(row.start) ?? [])
-    .toSorted(handleOrder)
-    .map((attribute): XdmAttribute<V> => {
-      const { lexical, name, prefix } = attribute;
+  const closed = (index.attributes.get(row.start) ?? []).map((attribute): XdmAttribute<V> => {
+    const { lexical, name, prefix } = attribute;
 
-      return {
-        lexical,
-        name: { _tag: "closed", handle: name, prefix },
-        references: referencesOf(index.references.get(attributeKey(attribute)) ?? []),
-      };
-    });
-  const open = (index.openAttributes.get(row.start) ?? [])
-    .toSorted(expandedOrder)
-    .map((attribute): XdmAttribute<V> => ({
-      lexical: attribute.lexical,
-      name: openNameOf[attribute.class](attribute),
-      references: referencesOf(index.openReferences.get(openAttributeKey(attribute)) ?? []),
-    }));
-  const namespaces: XdmNamespace[] = (index.namespaces.get(row.start) ?? [])
-    .toSorted(prefixOrder)
-    .map(({ prefix, uri }) => ({ prefix, uri }));
+    return {
+      lexical,
+      name: { _tag: "closed", handle: name, prefix },
+      references: referencesOf(index.references.get(attributeKey(attribute)) ?? []),
+    };
+  });
+  const open = (index.openAttributes.get(row.start) ?? []).map((attribute): XdmAttribute<V> => ({
+    lexical: attribute.lexical,
+    name: openNameOf[attribute.class](attribute),
+    references: referencesOf(index.openReferences.get(openAttributeKey(attribute)) ?? []),
+  }));
+  const namespaces: XdmNamespace[] = (index.namespaces.get(row.start) ?? []).map(
+    ({ prefix, uri }) => ({ prefix, uri }),
+  );
 
   return { attributes: [...closed, ...open], namespaces, prefix: row.prefix };
 };
@@ -956,7 +932,8 @@ interface Open<V extends XdmVocabulary> {
 /**
  * Read a document's rows into a tree, taking from each row only what the tree holds.
  *
- * @param rows - Every row of one document, no key of a list held twice.
+ * @param rows - Every row of one document, no key of a list held twice, each list in its key's
+ *   order: the nodes by `start`, an attribute's entity references by offset.
  * @returns The tree; or the refusal of a row the read needs and does not find, a node of a kind its
  *   place cannot hold, or a document node with no root element.
  */
@@ -969,7 +946,7 @@ const readOf = <V extends XdmVocabulary>(
       rows.nodes.find(({ start }) => start === 0n),
       () => new RowMissing({ key: "0", rows: "nodes" }),
     );
-    const order = rows.nodes.filter((row) => row !== sentinel).toSorted(startOrder);
+    const order = rows.nodes.filter((row) => row !== sentinel);
     const index = indexOf(rows);
     const parsed: DocumentChildren<V> = {
       epilog: [],
@@ -1015,7 +992,8 @@ const readOf = <V extends XdmVocabulary>(
  * keying and the image it holds the rows to. Rows a database holds for one document are that
  * image by its laws, so the export reads them with this.
  *
- * @param rows - Every row of one document, in any order, as a database holds them.
+ * @param rows - Every row of one document, each list in the order a database delivers it, its
+ *   key's.
  * @returns The document the rows stand for.
  * @throws {AssembleError} When the read needs a row it does not find, meets a node of a kind its
  *   place cannot hold, or finds no root element: the laws exclude each, so it is a defect.
@@ -1026,8 +1004,9 @@ export const readDocument = <V extends XdmVocabulary>(rows: FlatRows<V>): XdmDoc
 /**
  * Assemble a document's rows back into its tree, holding them to `flatten`'s image of it.
  *
- * Each list is keyed, the rows are read into a tree, and that tree is flattened again and held to
- * the rows.
+ * Each list is keyed, the rows, the nodes put in `start` order and each attribute's references in
+ * offset order as a database delivers them, are read into a tree, and that tree is flattened again
+ * and held to the rows.
  *
  * @param rows - Every row of one document, in any order.
  * @returns The document `flatten` writes as these rows; or the refusal of a key held twice, a row
@@ -1039,7 +1018,12 @@ export const assemble = <V extends XdmVocabulary>(
 ): Result.Result<XdmDocument<V>, AssembleError> =>
   Result.gen(function* assembleDocument() {
     const keyed = yield* keyedOf(rows);
-    const document = yield* readOf(rows);
+    const document = yield* readOf({
+      ...rows,
+      attributeEntities: rows.attributeEntities.toSorted(offsetOrder),
+      nodes: rows.nodes.toSorted(startOrder),
+      openAttributeEntities: rows.openAttributeEntities.toSorted(offsetOrder),
+    });
     const left = outsideImage(rows.document, keyed, flatten(document));
     if (Option.isSome(left)) {
       return yield* Result.fail(left.value);

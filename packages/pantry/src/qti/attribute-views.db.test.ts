@@ -363,10 +363,7 @@ const viewsRead = Effect.gen(function* viewsRead() {
     ({ path: at }) => at === "item.xml",
   );
   const startsOf = (kind: string): readonly bigint[] =>
-    nodes
-      .filter((node) => node.kind === kind)
-      .map(({ start }) => start)
-      .toSorted((a, b) => (a < b ? -1 : 1));
+    nodes.filter((node) => node.kind === kind).map(({ start }) => start);
   const byStart = new Map(nodes.map((node) => [node.start, node] as const));
   const tableOf = (start: bigint): bigint => {
     const node = byStart.get(start);
@@ -384,6 +381,8 @@ const viewsRead = Effect.gen(function* viewsRead() {
   const [catalogC, catalogD] = [nth("qti-catalog", 0), nth("qti-catalog", 1)];
 
   assert.deepStrictEqual(
+    // MapKey states no key, so its whole heading, (key, package, path, start), is its key, which
+    // orders its rows by the map key's text first: the entries' document order is the test's own.
     [...(yield* db.workload.mapKeys.once(read))]
       .map(({ key, start }) => [start, key] as const)
       .toSorted(([a], [b]) => (a < b ? -1 : 1)),

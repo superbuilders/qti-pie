@@ -14,7 +14,7 @@
  */
 import { Db } from "@bjornpagen/grizzle/runtime";
 import type { DbLayer, OpenError, CallError } from "@bjornpagen/grizzle/runtime";
-import { Array as Arr, Effect, FileSystem, Order, Path, Schema, Stream } from "effect";
+import { Effect, FileSystem, Path, Schema, Stream } from "effect";
 import type { PlatformError } from "effect";
 import { AuthorLogin } from "#pantry/db/served.ts";
 
@@ -26,7 +26,6 @@ import type { MediaMissing } from "#pantry/package/media.ts";
 import { writeZip } from "#pantry/package/zip.ts";
 import type { ZipEntry } from "#pantry/package/zip.ts";
 import type { AuthorRole } from "#pantry/qti/roles.ts";
-import { codePointOrder } from "@qti-pie/crust/charset.ts";
 
 /**
  * The rows each page of a document's export scan asks for. A page is one flight of the scan's
@@ -107,12 +106,10 @@ export const exportEntries = Effect.fn("export.exportEntries")(function* exportE
     return yield* new PackageNotFound({ package: name });
   }
 
-  // The database delivers the entries as a set; the zip's order is the paths' code point order, the
-  // database's own text order (C.UTF-8), so an export of one package is one zip, byte for byte.
-  const listed = Arr.sort(
-    yield* db.workload.entriesOf.once({ facts: {}, params: { package: name } }),
-    Order.mapInput(codePointOrder, ({ path }: { readonly path: string }) => path),
-  );
+  // The database delivers the entries in their key's order, by path in code point order (grizzle
+  // orders every served read by its result key, a text under C.UTF-8), which is the zip's: an
+  // export of one package is one zip, byte for byte.
+  const listed = [...(yield* db.workload.entriesOf.once({ facts: {}, params: { package: name } }))];
   const entries = yield* Effect.all(
     listed.map((entry): Effect.Effect<ZipEntry, EntriesError> => {
       const { path } = entry;

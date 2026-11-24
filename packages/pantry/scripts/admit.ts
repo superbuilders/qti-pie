@@ -438,10 +438,13 @@ const keyOf = (row: { readonly package: string; readonly path: string }): string
 
 /**
  * Give each document of an admitted package its open marks, from the rows the database holds of
- * it: each open attribute at its element's ordinal among the document's elements, in order.
+ * it: each open attribute at its element's ordinal among the document's elements, in order. The
+ * rows come as `admit-rows.sql` exports them, each file in its key's order, so the nodes are each
+ * document's in `start` order and the attributes are in their elements' order, then by namespace
+ * name and local name, and no row is sorted here.
  *
- * @param nodes The packages' `Node` rows.
- * @param attributes The packages' `OpenAttribute` rows.
+ * @param nodes The packages' `Node` rows, in key order.
+ * @param attributes The packages' `OpenAttribute` rows, in key order.
  * @returns Each document's marks, by `package` and `path` joined with a NUL.
  */
 const marksOf = (
@@ -449,9 +452,7 @@ const marksOf = (
   attributes: readonly (typeof OpenAttributeRow.Type)[],
 ): ReadonlyMap<string, readonly OpenMark[]> => {
   const ordinals = new Map<string, Map<number, number>>();
-  for (const row of nodes
-    .filter(({ kind }) => !nonElementKinds.has(kind))
-    .toSorted((left, right) => left.start - right.start)) {
+  for (const row of nodes.filter(({ kind }) => !nonElementKinds.has(kind))) {
     const held = ordinals.get(keyOf(row)) ?? new Map<number, number>();
     held.set(row.start, held.size);
     ordinals.set(keyOf(row), held);
@@ -465,15 +466,7 @@ const marksOf = (
     }
   }
 
-  return new Map(
-    [...marks].map(([key, held]) => [
-      key,
-      held.toSorted(
-        (left, right) =>
-          left[0] - right[0] || compareText(left[1], right[1]) || compareText(left[2], right[2]),
-      ),
-    ]),
-  );
+  return marks;
 };
 
 /**
