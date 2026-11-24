@@ -471,7 +471,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     87,
     {
       owner:
-        '"Branch target" (`BranchResolution` into `ResolvedBranchRule`) and "Branch forward" (`TargetedBranchRule` into `ForwardBranchRule`), per placement (`src/qti/overlay-queries/tests.ts`); the oracle\'s `branchLawsOf` (`src/test/oracle-laws/tests.ts`)',
+        '"Branch target" (`BranchResolution` into `ResolvedBranchRule`) and "Branch forward" (`ResolvedBranchRule` into `ForwardBranchRule`), per placement (`src/qti/overlay-queries/tests.ts`); the oracle\'s `branchLawsOf` (`src/test/oracle-laws/tests.ts`)',
       status: "G",
     },
   ],

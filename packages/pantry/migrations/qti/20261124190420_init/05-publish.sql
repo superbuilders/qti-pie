@@ -753,7 +753,7 @@ REVOKE ALL ON SCHEMA "qti", "qti_views", "qti_queries", "__qti_queries", "__qti"
 
 REVOKE ALL ON TABLE "qti"."assembled_document", "qti"."attribute", "qti"."attribute_entity", "qti"."binding_name", "qti"."bound_variable", "qti"."candidate_path", "qti"."catalog_scope", "qti"."cell_leaf", "qti"."choice", "qti"."choice_interaction", "qti"."cn_attribute", "qti"."cn_count", "qti"."cn_part_text", "qti"."cn_slot", "qti"."comment", "qti"."context_ref", "qti"."count_bound", "qti"."data_ssml", "qti"."data_ssml_member", "qti"."data_ssml_property", "qti"."doctype", "qti"."document", "qti"."document_id", "qti"."element_type", "qti"."encoding_decl", "qti"."entry", "qti"."expression", "qti"."feedback_ref", "qti"."file", "qti"."file_outside", "qti"."file_path", "qti"."fragment_context_name", "qti"."fragment_context_ref", "qti"."fragment_feedback_name", "qti"."fragment_feedback_ref", "qti"."fragment_printed_name", "qti"."fragment_printed_ref", "qti"."fragment_scope", "qti"."fragment_template_name", "qti"."fragment_template_ref", "qti"."hottext", "qti"."identity_text", "qti"."idref", "qti"."idref_target", "qti"."inclusion", "qti"."instance", "qti"."interaction", "qti"."interaction_attribute", "qti"."item_mode", "qti"."item_ref_document", "qti"."item_ref_href", "qti"."label_use", "qti"."least_count", "qti"."link_reading", "qti"."literal", "qti"."literal_typed", "qti"."math_action", "qti"."math_align_group", "qti"."math_align_scope", "qti"."math_cell", "qti"."math_cn", "qti"."math_rank", "qti"."media", "qti"."most_count", "qti"."named", "qti"."namespace", "qti"."node", "qti"."numbered_reading", "qti"."open_attribute", "qti"."open_attribute_entity", "qti"."open_element_name", "qti"."open_element_type", "qti"."package", "qti"."pci_module_form", "qti"."pi", "qti"."placed_binding", "qti"."placed_choice", "qti"."placed_expression", "qti"."placed_hottext", "qti"."placed_id", "qti"."placed_idref", "qti"."placed_math_rank", "qti"."placed_share_target", "qti"."placed_variable_ref", "qti"."printed_variable_ref", "qti"."processing", "qti"."reference", "qti"."reference_path", "qti"."referring_document", "qti"."resource_document", "qti"."resource_href", "qti"."resource_href_outside", "qti"."resource_href_path", "qti"."sd_decl", "qti"."share_fragment", "qti"."share_target", "qti"."site", "qti"."site_path", "qti"."site_target", "qti"."srcset", "qti"."srcset_candidate", "qti"."ssml_scope", "qti"."stimulus_ref", "qti"."template_ref", "qti"."text_idref", "qti"."text_reference", "qti"."text_reference_path", "qti"."variable_ref", "qti"."xml_decl", "__qti_queries"."assembled_catalog", "__qti"."assembled_document", "__qti"."attribute", "__qti"."attribute_entity", "__qti"."binding_name", "__qti"."bound_variable", "__qti"."candidate_path", "__qti_views"."catalog_id", "__qti"."catalog_scope", "__qti"."cell_leaf", "__qti_views"."cell_table", "__qti"."choice", "__qti"."choice_interaction", "__qti"."cn_attribute", "__qti"."cn_count", "__qti"."cn_part_text", "__qti"."cn_slot", "__qti"."comment", "__qti"."context_ref", "__qti"."count_bound", "__qti"."data_ssml", "__qti"."data_ssml_member", "__qti"."data_ssml_property", "__qti"."doctype", "__qti"."document", "__qti"."document_id", "__qti"."element_type", "__qti"."encoding_decl", "__qti"."entry", "__qti"."expression", "__qti"."feedback_ref", "__qti"."file", "__qti"."file_outside", "__qti"."file_path", "__qti"."fragment_context_name", "__qti"."fragment_context_ref", "__qti"."fragment_feedback_name", "__qti"."fragment_feedback_ref", "__qti"."fragment_printed_name", "__qti"."fragment_printed_ref", "__qti"."fragment_scope", "__qti"."fragment_template_name", "__qti"."fragment_template_ref", "__qti_views"."header_token", "__qti"."hottext", "__qti"."identity_text", "__qti"."idref", "__qti"."idref_target", "__qti"."inclusion", "__qti"."instance", "__qti"."interaction", "__qti"."interaction_attribute", "__qti"."item_mode", "__qti"."item_ref_document", "__qti"."item_ref_href", "__qti"."label_use", "__qti"."least_count", "__qti"."link_reading", "__qti"."literal", "__qti"."literal_typed", "__qti_views"."lookup_value", "__qti_views"."map_key", "__qti"."math_action", "__qti"."math_align_group", "__qti"."math_align_scope", "__qti"."math_cell", "__qti"."math_cn", "__qti"."math_rank", "__qti"."media", "__qti"."most_count", "__qti"."named", "__qti"."namespace", "__qti"."node", "__qti"."numbered_reading", "__qti"."open_attribute", "__qti"."open_attribute_entity", "__qti"."open_element_name", "__qti"."open_element_type", "__qti"."package", "__qti"."pci_module_form", "__qti"."pi", "__qti"."placed_binding", "__qti"."placed_choice", "__qti"."placed_expression", "__qti"."placed_hottext", "__qti"."placed_id", "__qti"."placed_idref", "__qti"."placed_math_rank", "__qti"."placed_share_target", "__qti"."placed_variable_ref", "__qti"."printed_variable_ref", "__qti"."processing", "__qti"."reference", "__qti"."reference_path", "__qti"."referring_document", "__qti"."resource_document", "__qti"."resource_href", "__qti"."resource_href_outside", "__qti"."resource_href_path", "__qti"."sd_decl", "__qti"."share_fragment", "__qti"."share_target", "__qti"."site", "__qti"."site_path", "__qti"."site_target", "__qti"."srcset", "__qti"."srcset_candidate", "__qti"."ssml_scope", "__qti"."stimulus_ref", "__qti_queries"."table_header", "__qti"."template_ref", "__qti"."text_idref", "__qti"."text_reference", "__qti"."text_reference_path", "__qti"."variable_ref", "__qti"."xml_decl" FROM PUBLIC;
 
-REVOKE ALL ON DOMAIN "qti"."__sha256", "qti"."admission_map", "qti"."align_direction", "qti"."align_state", "qti"."attribute_model", "qti"."attribute_name", "qti"."__attribute_name_bits_416_thr6i6sipt", "qti"."attribute_slot", "qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."base_type", "qti"."bound_facet", "qti"."bound_zero", "qti"."built_in", "qti"."cardinality", "qti"."cn_base", "qti"."cn_part", "qti"."cn_part_form", "qti"."cn_type", "qti"."content_model", "qti"."declaration_kind", "qti"."document_type", "qti"."domain_primitive", "qti"."entry_kind", "qti"."flag", "qti"."__flag_bits_16_llpdtzgaon", "qti"."follow_set", "qti"."governor", "qti"."href_scope", "qti"."identity", "qti"."include_set", "qti"."language", "qti"."node_kind", "qti"."__node_kind_bits_648_lh43fw4nuo", "qti"."position", "qti"."__position_bits_312_cnr3fptmz4", "qti"."reference_form", "qti"."reference_resolution", "qti"."reference_spelling", "qti"."resource_type", "qti"."shared_model", "qti"."symbol_set", "qti"."type_name", "qti"."unplaced_cause", "qti"."use", "qti"."value_base", "qti"."__value_base_bits_16_7t6pwwxbsh", "qti"."value_cardinality", "qti"."__value_cardinality_bits_8_mma4mwhphy", "qti"."value_domain", "qti"."white_space", "qti"."xml_standalone", "qti"."__text_aqc6inemva", "qti"."__text_tn2inwix7f", "qti"."__text_c6iptmtj2x", "qti"."__text_phcitidkqs", "qti"."__text_xj3zno7u3h", "qti"."__text_r2monji6i2", "qti"."__text_tfkvgtjblt", "qti"."__text_7j6kgluyjp", "qti"."__text_l7nqeazg5h", "qti"."__text_xey6ryorh5", "qti"."__text_7dfilirtp3", "qti"."__text_sac6h6c6eh", "qti"."__text_nhrekaddjj", "qti"."__text_zij47sgley", "qti"."__text_gke7uypkov", "qti"."__text_gysgx5gkhi", "qti"."__text_dtweupoh47", "qti"."__text_lecej62lgl", "qti"."__text_iyotu5swho", "qti"."__text_kgtzfmq7x6", "qti"."__text_23rzixl3a2", "qti"."__text_3adwbksayk", "qti"."__text_k5kwygzatl", "qti"."__text_b6ykamoeho", "qti"."__text_4s4od7s5or", "qti"."__text_netnsfkgs7", "qti"."__text_3dlgl63rv6", "qti"."__text_aezrarw5qb", "qti"."__text_7nkeqry66t", "qti"."__text_r2kdc4r77d", "qti"."__text_i4qty2ywff", "qti"."__domain_gfw43vigph", "qti"."__param_package_5kbmtohnug", "qti"."__param_path_bcrdrv5any" FROM PUBLIC;
+REVOKE ALL ON DOMAIN "qti"."__sha256", "qti"."admission_map", "qti"."align_direction", "qti"."align_state", "qti"."attribute_model", "qti"."attribute_name", "qti"."__attribute_name_bits_416_thr6i6sipt", "qti"."attribute_slot", "qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."base_type", "qti"."bound_facet", "qti"."bound_zero", "qti"."built_in", "qti"."cardinality", "qti"."cn_base", "qti"."cn_part", "qti"."cn_part_form", "qti"."cn_type", "qti"."content_model", "qti"."declaration_kind", "qti"."document_type", "qti"."domain_primitive", "qti"."entry_kind", "qti"."flag", "qti"."__flag_bits_16_llpdtzgaon", "qti"."follow_set", "qti"."governor", "qti"."href_scope", "qti"."identity", "qti"."include_set", "qti"."language", "qti"."node_kind", "qti"."__node_kind_bits_648_lh43fw4nuo", "qti"."position", "qti"."__position_bits_312_cnr3fptmz4", "qti"."reference_form", "qti"."reference_resolution", "qti"."reference_spelling", "qti"."resource_type", "qti"."shared_model", "qti"."symbol_set", "qti"."type_name", "qti"."unplaced_cause", "qti"."use", "qti"."value_base", "qti"."__value_base_bits_16_7t6pwwxbsh", "qti"."value_cardinality", "qti"."__value_cardinality_bits_8_mma4mwhphy", "qti"."value_domain", "qti"."white_space", "qti"."xml_standalone", "qti"."__text_aqc6inemva", "qti"."__text_tn2inwix7f", "qti"."__text_c6iptmtj2x", "qti"."__text_phcitidkqs", "qti"."__text_xj3zno7u3h", "qti"."__text_r2monji6i2", "qti"."__text_tfkvgtjblt", "qti"."__text_7j6kgluyjp", "qti"."__text_l7nqeazg5h", "qti"."__text_xey6ryorh5", "qti"."__text_7dfilirtp3", "qti"."__text_sac6h6c6eh", "qti"."__text_nhrekaddjj", "qti"."__text_zij47sgley", "qti"."__text_gke7uypkov", "qti"."__text_gysgx5gkhi", "qti"."__text_dtweupoh47", "qti"."__text_lecej62lgl", "qti"."__text_iyotu5swho", "qti"."__text_kgtzfmq7x6", "qti"."__text_23rzixl3a2", "qti"."__text_3adwbksayk", "qti"."__text_k5kwygzatl", "qti"."__text_b6ykamoeho", "qti"."__text_4s4od7s5or", "qti"."__text_netnsfkgs7", "qti"."__text_3dlgl63rv6", "qti"."__text_aezrarw5qb", "qti"."__text_mzulxrnk4x", "qti"."__text_gkottp5s4n", "qti"."__text_7nkeqry66t", "qti"."__text_3yyv7z62gr", "qti"."__text_r2kdc4r77d", "qti"."__text_i4qty2ywff", "qti"."__domain_gfw43vigph", "qti"."__param_package_5kbmtohnug", "qti"."__param_path_bcrdrv5any" FROM PUBLIC;
 
 SELECT "pg_catalog"."pg_advisory_xact_lock"(5448515225636816524::bigint);
 ALTER DEFAULT PRIVILEGES IN SCHEMA "qti" REVOKE ALL ON TABLES FROM PUBLIC;
@@ -1393,6 +1393,8 @@ COMMENT ON FUNCTION "qti"."__row_p7ja3xelgj"("qti"."governor", "qti"."attribute_
 
 COMMENT ON FUNCTION "qti"."__row_pqxt7rruix"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x") IS 'row function f91ef14e76deeeeaa222d301253dc391756ee31d95c3d395e7754c7eaf449b29';
 
+COMMENT ON DOMAIN "qti"."__text_mzulxrnk4x" IS 'text domain of definition 1f711524b1e0978f43c5d6ca74d69f689eeeba4e7680ccd4d8b114ce9cc6b094';
+
 COMMENT ON DOMAIN "qti"."__text_4s4od7s5or" IS 'text domain of definition 25f993867c17f0de2b8d40bfc84d831eb31ae3f956a21b332d68c3cfea60ac42';
 
 COMMENT ON DOMAIN "qti"."__text_iyotu5swho" IS 'text domain of definition 2635b0e5de7f34b015cf3665ec22fc8b656379442aa348f3a7f82f7640b00cd9';
@@ -1425,6 +1427,8 @@ COMMENT ON DOMAIN "qti"."__text_xey6ryorh5" IS 'text domain of definition 470402
 
 COMMENT ON DOMAIN "qti"."__text_lecej62lgl" IS 'text domain of definition 5c14dfcbf02e85cd9c3e4607e5f8aac88e4c4aae96d4daa62cc514568c88c768';
 
+COMMENT ON DOMAIN "qti"."__text_gkottp5s4n" IS 'text domain of definition 8dc996faeb1fbaac2bcc57ca04224c1234fed30d08c7bff6f2e52b5beeb628bc';
+
 COMMENT ON DOMAIN "qti"."__text_tn2inwix7f" IS 'text domain of definition 9589922d993d2438cfa83e25407980d911f652efbb0f65aea8fe21c49cf0033e';
 
 COMMENT ON FUNCTION "qti"."__row_wczkl5jgfh"("qti"."document_type", "qti"."__text_tn2inwix7f") IS 'row function 3cc4a82e139c999ae66c7429c7103cf22bc896f468067e681a46f3987314dfa5';
@@ -1442,6 +1446,8 @@ COMMENT ON DOMAIN "qti"."__param_package_5kbmtohnug" IS 'pattern domain of param
 COMMENT ON DOMAIN "qti"."__text_dtweupoh47" IS 'text domain of definition a991d8b6f2f1ea31587a9ec59860d224194b1cb848eb9090a2a8ce477caa7fb8';
 
 COMMENT ON FUNCTION "qti"."__row_wzgwunci5v"("qti"."node_kind", "qti"."__text_dtweupoh47", "qti"."attribute_name", "qti"."__text_c6iptmtj2x") IS 'row function ace729d5454d17de93a52bfd5a90fc34a03b275eaba0244fc2db76593aa95cfc';
+
+COMMENT ON DOMAIN "qti"."__text_3yyv7z62gr" IS 'text domain of definition b436cedf5c1da16fab5e77b25ada0e432ac03837869f1d0b282a49ff18f4b987';
 
 COMMENT ON DOMAIN "qti"."__text_nhrekaddjj" IS 'text domain of definition bd0ef5fae91ae1e3759436621ca78cdc662aa71cda3d91e37abc2aabdf9b1329';
 
@@ -1651,9 +1657,9 @@ COMMENT ON TYPE "qti"."__row_olds_literal_bktwnqk4m2" IS 'the row type of the de
 
 COMMENT ON TYPE "qti"."__row_olds_literal_typed_kgpvrii4gs" IS 'the row type of the delta of olds of LiteralTyped';
 
-COMMENT ON TYPE "qti"."__row_news_lookup_value_xufg7clhy2" IS 'the row type of the delta of news of LookupValue';
+COMMENT ON TYPE "qti"."__row_news_lookup_value_rhc4h7zqpo" IS 'the row type of the delta of news of LookupValue';
 
-COMMENT ON TYPE "qti"."__row_news_map_key_cr65pyynnv" IS 'the row type of the delta of news of MapKey';
+COMMENT ON TYPE "qti"."__row_news_map_key_jqer6ztcos" IS 'the row type of the delta of news of MapKey';
 
 COMMENT ON TYPE "qti"."__row_news_math_action_44a25dssuk" IS 'the row type of the delta of news of MathAction';
 
@@ -3279,6 +3285,8 @@ COMMENT ON INDEX "qti"."__attribute_ix_package_name_path_start_2urjynczwy" IS 'b
 
 COMMENT ON INDEX "qti"."__attribute_ix_package_path_name_kind_value_digest_nuvl7i75vd" IS 'btree index Attribute(package, path, name, kind, valueDigest), value filtered beside it, not indexed: no byte bound fits the entry';
 
+COMMENT ON INDEX "qti"."__attribute_ix_package_path_value_digest_start_xk5kxxtbgv" IS 'btree index Attribute(package, path, valueDigest, start)';
+
 COMMENT ON INDEX "qti"."__bound_variable_ix_package_attribute_path_ej2y7oq7v2" IS 'btree index BoundVariable(package, attribute, path)';
 
 COMMENT ON INDEX "qti"."__bound_variable_ix_package_path_adaptive_khkcbwhnkh" IS 'btree index BoundVariable(package, path, adaptive)';
@@ -3301,7 +3309,7 @@ COMMENT ON INDEX "qti"."__document_ix_package_assembled_path_6hx6cticyt" IS 'btr
 
 COMMENT ON INDEX "qti"."__document_id_ix_package_path_admitted_owner_jp55imcxjo" IS 'btree index DocumentId(package, path, admitted, owner)';
 
-COMMENT ON INDEX "qti"."__file_outside_ix_package_path_target_digest_s7syn3lct6" IS 'btree index FileOutside(package, path, targetDigest), target filtered beside it, not indexed: no byte bound fits the entry';
+COMMENT ON INDEX "qti"."__file_outside_ix_package_path_target_digest_zyywxjszv4" IS 'btree index FileOutside(package, path, targetDigest)';
 
 COMMENT ON INDEX "qti"."__file_path_ix_package_path_target_km6qcynmsz" IS 'btree index FilePath(package, path, target)';
 
@@ -3649,9 +3657,9 @@ COMMENT ON FUNCTION "qti"."__reader_olds_literal_4v4eedvc6d"() IS 'the reader of
 
 COMMENT ON FUNCTION "qti"."__reader_olds_literal_typed_czdg5lxrkk"() IS 'the reader of the delta of olds of LiteralTyped';
 
-COMMENT ON FUNCTION "qti"."__reader_news_lookup_value_jiamdqb77h"() IS 'the reader of the delta of news of LookupValue';
+COMMENT ON FUNCTION "qti"."__reader_news_lookup_value_bki72xv35i"() IS 'the reader of the delta of news of LookupValue';
 
-COMMENT ON FUNCTION "qti"."__reader_news_map_key_ht72hy4vfi"() IS 'the reader of the delta of news of MapKey';
+COMMENT ON FUNCTION "qti"."__reader_news_map_key_nmmaknhaoo"() IS 'the reader of the delta of news of MapKey';
 
 COMMENT ON FUNCTION "qti"."__reader_news_math_action_wxdku3okqx"() IS 'the reader of the delta of news of MathAction';
 
@@ -3887,6 +3895,8 @@ COMMENT ON FUNCTION "qti"."__judge_interaction_node_check_pci_module_source_sxhe
 
 COMMENT ON FUNCTION "qti"."__judge_item_read_check_e_1_derived_3bv7mipop2"() IS 'the rule judge''s block of rule check E1_derived of ItemRead over its units';
 
+COMMENT ON FUNCTION "qti"."__judge_lang_key_text_check_key_text_bound_sduprytimp"() IS 'the rule judge''s block of rule check Key_text_bound of LangKeyText over its units';
+
 COMMENT ON FUNCTION "qti"."__judge_least_choice_bound_check_choice_bounds_2f2s5bi4n6"() IS 'the rule judge''s block of rule check Choice_bounds of LeastChoiceBound over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_least_count_node_check_e_1_derived_e3h3g2puhg"() IS 'the rule judge''s block of rule check E1_derived of LeastCountNode over its units';
@@ -3938,6 +3948,8 @@ COMMENT ON FUNCTION "qti"."__judge_open_type_under_foreign_check_xsi_type_rxp2ma
 COMMENT ON FUNCTION "qti"."__judge_operand_of_check_e_1_derived_nb3w4o7j2b"() IS 'the rule judge''s block of rule check E1_derived of OperandOf over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_operand_of_check_operand_fit_d6gd7fav4n"() IS 'the rule judge''s block of rule check Operand_fit of OperandOf over its units';
+
+COMMENT ON FUNCTION "qti"."__judge_pattern_key_text_check_key_text_bound_zx3w4czbwu"() IS 'the rule judge''s block of rule check Key_text_bound of PatternKeyText over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_pattern_text_check_pattern_language_iqe6dtd4lp"() IS 'the rule judge''s block of rule check Pattern_language of PatternText over its units';
 
@@ -4012,6 +4024,8 @@ COMMENT ON FUNCTION "qti"."__judge_srcset_form_check_e_1_derived_ryxd5oenjl"() I
 COMMENT ON FUNCTION "qti"."__judge_ssml_scope_node_check_e_1_derived_xxmdva6ob4"() IS 'the rule judge''s block of rule check E1_derived of SsmlScopeNode over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_structure_node_check_e_1_derived_ah2xofzgc2"() IS 'the rule judge''s block of rule check E1_derived of StructureNode over its units';
+
+COMMENT ON FUNCTION "qti"."__judge_table_key_text_check_key_text_bound_rphnxpmtzt"() IS 'the rule judge''s block of rule check Key_text_bound of TableKeyText over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_template_ref_base_type_check_template_glvnjm7a4w"() IS 'the rule judge''s block of rule check Template_variable_type of TemplateRefBaseType over its units';
 
@@ -4309,7 +4323,7 @@ COMMENT ON FUNCTION "qti"."__judge_hottext_node_in_interaction_node_basx24omht"(
 
 COMMENT ON FUNCTION "qti"."__judge_hottext_node_in_document_f4d2jdjlct"() IS 'the rule judge''s block of rule HottextNode(package, path, nearestPath, nearest) where Logic.ne(nearestPath, path) in Document(package, path, contextPath, contextNearest) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_idref_target_in_id_binding_bfejuvrwcd"() IS 'the rule judge''s block of rule IdrefTarget(package, path, id) where Logic.eq(assembled, false) in IdBinding(package, path, id) over its units';
+COMMENT ON FUNCTION "qti"."__judge_idref_target_in_id_binding_mxhwglocjm"() IS 'the rule judge''s block of rule IdrefTarget(package, path, idDigest) where Logic.eq(assembled, false) in IdBinding(package, path, idDigest) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_instance_root_kind_assembly_kind_in_fragment_7ju5cjlocv"() IS 'the rule judge''s block of rule Instance(package, assembly, start, document, assemblyKind) where Logic.not(Logic.in(rootKind, ["qti-assessment-item", "qti-assessment-test"])) and Logic.in(assemblyKind, ["qti-assessment-item", "qti-assessment-test"]) in FragmentScope(package, assembly, instance, document, assemblyKind) over the rows a write removes from FragmentScope';
 
@@ -4605,7 +4619,7 @@ COMMENT ON FUNCTION "qti"."__judge_placed_expression_site_in_placed_expression_x
 
 COMMENT ON FUNCTION "qti"."__judge_placed_filter_in_filtered_section_f5dn7wucxk"() IS 'the rule judge''s block of rule PlacedFilter(package, assembly, path, start) in FilteredSection(package, assembly, path, start) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_placed_id_in_id_value_ome55phaff"() IS 'the rule judge''s block of rule PlacedId(package, path, start, id, owner) in IdValue(package, path, start, id, owner) over its units';
+COMMENT ON FUNCTION "qti"."__judge_placed_id_in_id_value_cwkm52j2jl"() IS 'the rule judge''s block of rule PlacedId(package, path, start, idDigest, owner) in IdValue(package, path, start, idDigest, owner) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_placed_include_path_in_site_target_mm5ngb7w4o"() IS 'the rule judge''s block of rule PlacedIncludePath(package, path, start) in SiteTarget(package, path, start) over its units';
 
@@ -4693,6 +4707,8 @@ COMMENT ON FUNCTION "qti"."__judge_required_parts_in_requirement_met_pfkli5s36z"
 
 COMMENT ON FUNCTION "qti"."__judge_required_ssml_property_in_data_ssml_property_4wrzttmwkr"() IS 'the rule judge''s block of rule RequiredSsmlProperty(package, path, start, member, nameDigest) in DataSsmlProperty(package, path, start, member, nameDigest) over its units';
 
+COMMENT ON FUNCTION "qti"."__judge_resolved_branch_rule_in_forward_branch_rule_bnrl7pyla4"() IS 'the rule judge''s block of rule ResolvedBranchRule(package, assembly, instance, start) in ForwardBranchRule(package, assembly, instance, start) over its units';
+
 COMMENT ON FUNCTION "qti"."__judge_resource_document_in_typed_path_imht7jyi3v"() IS 'the rule judge''s block of rule ResourceDocument(package, path, type) in TypedPath(package, target, type) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_resource_href_in_attribute_5xliax2lru"() IS 'the rule judge''s block of rule ResourceHref(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "cp:resource") and Logic.eq(name, "href") and Logic.eq(path, "imsmanifest.xml") over the rows a write removes from Attribute';
@@ -4717,7 +4733,7 @@ COMMENT ON FUNCTION "qti"."__judge_resource_href_outside_in_resource_href_njkg7t
 
 COMMENT ON FUNCTION "qti"."__judge_resource_href_outside_in_resource_href_rxgozvdgsd"() IS 'the rule judge''s block of rule ResourceHrefOutside(package, path, start) in ResourceHref(package, path, start) where Logic.eq(scope, "external") over the rows a write adds to ResourceHrefOutside';
 
-COMMENT ON FUNCTION "qti"."__judge_resource_href_outside_in_resource_file_iqunqhzsrf"() IS 'the rule judge''s block of rule ResourceHrefOutside(package, path, start, targetDigest, target) in ResourceFileOutside(package, path, resource, targetDigest, target) over its units';
+COMMENT ON FUNCTION "qti"."__judge_resource_href_outside_in_resource_file_wgdhp7fj7t"() IS 'the rule judge''s block of rule ResourceHrefOutside(package, path, start, targetDigest) in ResourceFileOutside(package, path, resource, targetDigest) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_resource_href_path_in_resource_href_lqtit4z4j2"() IS 'the rule judge''s block of rule ResourceHrefPath(package, path, start) in ResourceHref(package, path, start) where Logic.eq(scope, "entry") over the rows a write removes from ResourceHref';
 
@@ -4747,7 +4763,7 @@ COMMENT ON FUNCTION "qti"."__judge_share_fragment_assembled_in_share_target_ngql
 
 COMMENT ON FUNCTION "qti"."__judge_share_source_in_share_fragment_fmvo4kaezi"() IS 'the rule judge''s block of rule ShareSource(package, path, start) in ShareFragment(package, path, start) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_share_target_in_id_binding_4uxmpjdwt7"() IS 'the rule judge''s block of rule ShareTarget(package, path, id, targetStart) in IdBinding(package, path, id, owner) over its units';
+COMMENT ON FUNCTION "qti"."__judge_share_target_in_id_binding_66fspiqbgo"() IS 'the rule judge''s block of rule ShareTarget(package, path, idDigest, targetStart) in IdBinding(package, path, idDigest, owner) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_share_target_in_share_fragment_k632fooma6"() IS 'the rule judge''s block of rule ShareTarget(package, path, start, id) in ShareFragment(package, path, start, id) where Logic.eq(assembled, false) over the rows a write removes from ShareFragment';
 
@@ -4795,9 +4811,9 @@ COMMENT ON FUNCTION "qti"."__judge_srcset_candidate_scope_in_candidate_path_6blf
 
 COMMENT ON FUNCTION "qti"."__judge_ssml_scope_node_in_ssml_scope_mk4lvybzot"() IS 'the rule judge''s block of rule SsmlScopeNode(package, path, parent, fragment) where Logic.ne(kind, "ssml:speak") and Logic.ne(parent, 0n) in SsmlScope(package, path, start, fragment) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_ssml_value_in_ssml_value_fuse53jjeg"() IS 'the rule judge''s block of rule SsmlValue(package, path, fragment, value) where Logic.eq(kind, "ssml:lookup") in SsmlValue(package, path, fragment, value) where Logic.eq(kind, "ssml:lexicon") over its units';
+COMMENT ON FUNCTION "qti"."__judge_ssml_value_in_ssml_value_swhdtslqux"() IS 'the rule judge''s block of rule SsmlValue(package, path, fragment, valueDigest) where Logic.eq(kind, "ssml:lookup") in SsmlValue(package, path, fragment, valueDigest) where Logic.eq(kind, "ssml:lexicon") over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_ssml_value_in_trimmed_mark_yt7rwpsw22"() IS 'the rule judge''s block of rule SsmlValue(package, path, start, value) where Logic.eq(kind, "ssml:speak") in TrimmedMark(package, path, fragment, value) over its units';
+COMMENT ON FUNCTION "qti"."__judge_ssml_value_in_trimmed_mark_cvhak5ppld"() IS 'the rule judge''s block of rule SsmlValue(package, path, start, valueDigest) where Logic.eq(kind, "ssml:speak") in TrimmedMark(package, path, fragment, valueDigest) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_stimulus_ref_in_node_poqx5ecim2"() IS 'the rule judge''s block of rule StimulusRef(package, path, start) in Node(package, path, start) where Logic.eq(kind, "qti-assessment-stimulus-ref") over the rows a write removes from Node';
 
@@ -4806,8 +4822,6 @@ COMMENT ON FUNCTION "qti"."__judge_stimulus_ref_in_node_jsez6mfieg"() IS 'the ru
 COMMENT ON FUNCTION "qti"."__judge_stimulus_ref_in_test_identifier_qu6fc3vcub"() IS 'the rule judge''s block of rule StimulusRef(package, path, start, identifier) in TestIdentifier(package, path, start, value) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_structure_naming_in_named_i7g7ynxwbq"() IS 'the rule judge''s block of rule StructureNaming(package, path, start) in Named(package, path, start) over its units';
-
-COMMENT ON FUNCTION "qti"."__judge_targeted_branch_rule_in_forward_branch_rule_rn4jsry4rd"() IS 'the rule judge''s block of rule TargetedBranchRule(package, assembly, instance, start) in ForwardBranchRule(package, assembly, instance, start) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_template_processing_in_named_declaration_krafx4vntd"() IS 'the rule judge''s block of rule TemplateProcessing(package, path) where Logic.in(value, ["https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/CC2_map_response", "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/CC2_map_response.xml", "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/CC2_match", "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/CC2_match.xml", "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/CC2_match_basic", "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/CC2_match_basic.xml", "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/map_response", "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/map_response.xml", "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/map_response_point", "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/map_response_point.xml", "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct", "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml", "https://www.imsglobal.org/question/qti_v3p0/rptemplates/CC2_map_response", "https://www.imsglobal.org/question/qti_v3p0/rptemplates/CC2_map_response.xml", "https://www.imsglobal.org/question/qti_v3p0/rptemplates/CC2_match", "https://www.imsglobal.org/question/qti_v3p0/rptemplates/CC2_match.xml", "https://www.imsglobal.org/question/qti_v3p0/rptemplates/CC2_match_basic", "https://www.imsglobal.org/question/qti_v3p0/rptemplates/CC2_match_basic.xml", "https://www.imsglobal.org/question/qti_v3p0/rptemplates/map_response", "https://www.imsglobal.org/question/qti_v3p0/rptemplates/map_response.xml", "https://www.imsglobal.org/question/qti_v3p0/rptemplates/map_response_point", "https://www.imsglobal.org/question/qti_v3p0/rptemplates/map_response_point.xml", "https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct", "https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"]) in NamedDeclaration(package, path) where Logic.eq(declarationKind, "qti-outcome-declaration") and Logic.eq(identifier, "SCORE") over its units';
 
@@ -4859,7 +4873,7 @@ COMMENT ON FUNCTION "qti"."__judge_copied_id_key_package_assembly_id_digest_p5fw
 
 COMMENT ON FUNCTION "qti"."__judge_filtered_section_key_package_assembly_path_4z3biulu5b"() IS 'the rule judge''s block of rule key FilteredSection(package, assembly, path, start) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_id_binding_key_package_path_id_6fw6vseb5g"() IS 'the rule judge''s block of rule key IdBinding(package, path, id) over its units';
+COMMENT ON FUNCTION "qti"."__judge_id_binding_key_package_path_id_digest_orvdxy7w22"() IS 'the rule judge''s block of rule key IdBinding(package, path, idDigest) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_known_operand_base_key_package_assembly_yo6y5urhog"() IS 'the rule judge''s block of rule key KnownOperandBase(package, assembly, instance, path, operator) over its units';
 
@@ -4881,9 +4895,9 @@ COMMENT ON FUNCTION "qti"."__judge_single_response_gap_key_package_path_start_si
 
 COMMENT ON FUNCTION "qti"."__judge_test_reading_key_package_assembly_path_start_n33nn3cpov"() IS 'the rule judge''s block of rule key TestReading(package, assembly, path, start, attribute) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_trimmed_mark_key_package_path_fragment_value_t7jxdfhmxy"() IS 'the rule judge''s block of rule key TrimmedMark(package, path, fragment, value) over its units';
+COMMENT ON FUNCTION "qti"."__judge_trimmed_mark_key_package_path_fragment_value_sfhffogz4p"() IS 'the rule judge''s block of rule key TrimmedMark(package, path, fragment, valueDigest) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_assembled_document_l2cvxmekog"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of AssembledDocument and the relations its rules join it to';
+COMMENT ON FUNCTION "qti"."__judge_assembled_document_uz25aj2rmp"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of AssembledDocument and the relations its rules join it to';
 
 COMMENT ON FUNCTION "qti"."__judge_assembled_document_4u6x2mwpnm"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of AssembledDocument and the relations its rules join it to';
 

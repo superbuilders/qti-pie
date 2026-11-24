@@ -439,10 +439,22 @@ const variableDeclarations = query(QtiViews)
   });
 
 /**
- * {@link variableDeclarations} as a relation of the schema: a base type other than `unknown` names a
- * declaration that has one.
+ * The declarations {@link variableDeclarations} types placed references as, each with the base type
+ * it gives them: a base type other than `unknown` names a declaration that has one, which the law
+ * that reads it holds typed. It holds what that law reads, the declaration's place and the base
+ * type; the reference and its cardinality stand in {@link variableDeclarations}, which the views
+ * that read them read.
  */
-const PlacedVariableDeclaration = derived("PlacedVariableDeclaration", variableDeclarations);
+const PlacedVariableDeclaration = derived(
+  "PlacedVariableDeclaration",
+  query(QtiViews).rule((r) => {
+    const { baseType, declPath, declStart, package: pkg } = v(variableDeclarations, "reference");
+
+    return r
+      .match(variableDeclarations, { baseType, declPath, declStart, package: pkg })
+      .find({ baseType, declPath, declStart, package: pkg });
+  }),
+);
 
 /**
  * A placed reference's cardinality beside its declaration's ({@link variableDeclarations}), keyed

@@ -125,9 +125,12 @@ import {
   entryPathBytes,
   foreignNameBytes,
   identifierBytes,
+  langTextBytes,
+  literalTextBytes,
   matchedTextBytes,
   namespaceNameBytes,
   parsedDecimalBytes,
+  patternTextBytes,
   utf8Length,
 } from "#pantry/qti/limits.ts";
 import {
@@ -2999,10 +3002,72 @@ const choiceClasses: ReadonlySet<string> = new Set([
 const bindingNames = ["response-identifier", "string-identifier"] as const;
 
 /**
+ * A braced variable reference: `{identifier}`.
+ */
+const braced = /^\{(?<identifier>[^{}]+)\}$/u;
+
+/**
+ * Read the variable a reference attribute's value names, by the reference's spelling: a bare
+ * reference's collapsed value when it is an NCName, a braced reference's identifier between the
+ * braces. Any other value is a literal and names nothing.
+ */
+const referenced: Readonly<Record<Spelling, (form: string) => Option.Option<string>>> = {
+  bare: (form) => Option.liftPredicate(collapsed(form), (value) => nameForm.test(value)),
+  braced: (form) => Option.fromNullishOr(braced.exec(form)?.groups?.["identifier"]),
+};
+
+/**
+ * The kinds whose `pattern-mask` is a regular expression: a text entry and an extended text
+ * interaction (information model §5.162.5, §5.48.4).
+ */
+const maskKinds: ReadonlySet<string> = new Set([
+  "qti-text-entry-interaction",
+  "qti-extended-text-interaction",
+]);
+
+/**
+ * Read the regular expression an element writes, as it writes it: a text entry's or an extended
+ * text interaction's `pattern-mask`, or a pattern match's `pattern` where it is a literal, no
+ * NCName in braces, which names a variable instead (`StringOrVariableRef`, §5.104.1).
+ *
+ * @param view - The document.
+ * @param node - The element.
+ * @returns The pattern, none where the element writes none.
+ */
+const writtenPatternOf = (view: View, node: FoldedNode<Composed>): Option.Option<string> => {
+  if (maskKinds.has(node.kind)) {
+    return valueOf(view, node.start, "pattern-mask");
+  }
+
+  return node.kind === "qti-pattern-match"
+    ? Option.filter(
+        valueOf(view, node.start, "pattern"),
+        (pattern) => !Option.exists(referenced.braced(pattern), (name) => nameForm.test(name)),
+      )
+    : Option.none();
+};
+
+/**
+ * The kinds of the lookup tables, whose `default-value` a `LookupValue` holds.
+ */
+const lookupTableKindSet: ReadonlySet<string> = new Set([
+  "qti-interpolation-table",
+  "qti-match-table",
+]);
+
+/**
+ * The kinds of the lookup tables' entries, whose `target-value` a `LookupValue` holds.
+ */
+const lookupEntryKindSet: ReadonlySet<string> = new Set([
+  "qti-interpolation-table-entry",
+  "qti-match-table-entry",
+]);
+
+/**
  * The identifiers a check holds within a key text's bound where a view keys them, each an
  * attribute's value, collapsed: each declaration's `identifier` (`DeclaredIdentifierText`,
- * `#pantry/qti/names.ts`) and each test's (`TestIdentifierText`,
- * `#pantry/qti/overlay-queries/tests.ts`), each a QTI identifier.
+ * `#pantry/qti/names.ts`), and each test's and each variable mapping's `target-identifier`
+ * (`TestIdentifierText`, `#pantry/qti/overlay-queries/tests.ts`), each a QTI identifier.
  */
 const checkedIdentifiers: readonly {
   readonly bound: number;
@@ -3025,6 +3090,13 @@ const checkedIdentifiers: readonly {
     manifest: false,
     name: "identifier",
   },
+  {
+    bound: identifierBytes,
+    field: "TestIdentifierText.text",
+    holds: (_laws, kind) => kind === "qti-variable-mapping",
+    manifest: false,
+    name: "target-identifier",
+  },
 ];
 
 /**
@@ -3041,7 +3113,15 @@ const checkedIdentifiers: readonly {
  *   choice's and hottext's identifier (`Choice.identifier`, `Hottext.identifier`,
  *   `identifierBytes`), each interaction's binding that names a variable
  *   (`BindingName.identifier`), and each identifier a check holds where a view keys it
- *   ({@link checkedIdentifiers});
+ *   ({@link checkedIdentifiers}), an item ref's `category` tokens among them
+ *   (`TestIdentifierText.text`);
+ * - Each language tag a view keys, case-folded, at `langTextBytes` (`LangKeyText.text`): every
+ *   `xml:lang` that states one and every `lom:language` of a `general` category;
+ * - Each regular expression a document writes, at `patternTextBytes` (`PatternKeyText.text`): a
+ *   `pattern-mask`, and a pattern match's literal `pattern` ({@link writtenPatternOf});
+ * - Each map key and lookup value, as written, at `literalTextBytes` (`TableKeyText.text`): a
+ *   `qti-map-entry`'s `map-key`, a lookup table entry's `target-value` and a lookup table's
+ *   `default-value`;
  * - As a parse's operand, each ARIA bound of an element that writes both that is an `xs:decimal`
  *   ({@link ariaFields}), at `parsedDecimalBytes`;
  * - A foreign element's namespace name and local name (`OpenElementName.namespace`,
@@ -3135,6 +3215,60 @@ const keyTexts = (
             value: collapsed(lexical),
           })),
         ),
+    ),
+    ...view.members.flatMap((node) =>
+      node.kind === "qti-assessment-item-ref"
+        ? Option.toArray(valueOf(view, node.start, "category")).flatMap((lexical) =>
+            collapsed(lexical)
+              .split(" ")
+              .filter((token) => token !== "")
+              .map((token) => ({
+                bound: identifierBytes,
+                field: "TestIdentifierText.text",
+                node: node.start,
+                value: token,
+              })),
+          )
+        : [],
+    ),
+    ...view.rows.attributes.flatMap(({ lexical, name, start }) =>
+      name === "xml:lang" && collapsed(lexical) !== ""
+        ? [
+            {
+              bound: langTextBytes,
+              field: "LangKeyText.text",
+              node: start,
+              value: collapsed(lexical),
+            },
+          ]
+        : [],
+    ),
+    ...view.members.flatMap((node) =>
+      node.kind === "lom:language" && view.byStart.get(node.parent)?.kind === "lom:general"
+        ? [
+            {
+              bound: langTextBytes,
+              field: "LangKeyText.text",
+              node: node.start,
+              value: contentOf(view, node.start),
+            },
+          ]
+        : [],
+    ),
+    ...view.members.flatMap((node) =>
+      Option.toArray(writtenPatternOf(view, node)).map((pattern) => ({
+        bound: patternTextBytes,
+        field: "PatternKeyText.text",
+        node: node.start,
+        value: pattern,
+      })),
+    ),
+    ...view.rows.attributes.flatMap(({ kind, lexical, name, start }) =>
+      (name === "map-key" && kind === "qti-map-entry") ||
+      (name === "target-value" && lookupEntryKindSet.has(kind)) ||
+      (name === "default-value" && lookupTableKindSet.has(kind))
+        ? [{ bound: literalTextBytes, field: "TableKeyText.text", node: start, value: lexical }]
+        : [],
     ),
     ...view.rows.attributes.flatMap(({ lexical, name, start }) => {
       const ariaField = ariaFields.get(name);
@@ -3432,52 +3566,6 @@ const wholeBreaches = (
   ];
 };
 
-/**
- * A braced variable reference: `{identifier}`.
- */
-const braced = /^\{(?<identifier>[^{}]+)\}$/u;
-
-/**
- * Read the variable a reference attribute's value names, by the reference's spelling: a bare
- * reference's collapsed value when it is an NCName, a braced reference's identifier between the
- * braces. Any other value is a literal and names nothing.
- */
-const referenced: Readonly<Record<Spelling, (form: string) => Option.Option<string>>> = {
-  bare: (form) => Option.liftPredicate(collapsed(form), (value) => nameForm.test(value)),
-  braced: (form) => Option.fromNullishOr(braced.exec(form)?.groups?.["identifier"]),
-};
-
-/**
- * The kinds whose `pattern-mask` is a regular expression: a text entry and an extended text
- * interaction (information model §5.162.5, §5.48.4).
- */
-const maskKinds: ReadonlySet<string> = new Set([
-  "qti-text-entry-interaction",
-  "qti-extended-text-interaction",
-]);
-
-/**
- * Read the regular expression an element writes, as it writes it: a text entry's or an extended
- * text interaction's `pattern-mask`, or a pattern match's `pattern` where it is a literal, no
- * NCName in braces, which names a variable instead (`StringOrVariableRef`, §5.104.1).
- *
- * @param view - The document.
- * @param node - The element.
- * @returns The pattern, none where the element writes none.
- */
-const writtenPatternOf = (view: View, node: FoldedNode<Composed>): Option.Option<string> => {
-  if (maskKinds.has(node.kind)) {
-    return valueOf(view, node.start, "pattern-mask");
-  }
-
-  return node.kind === "qti-pattern-match"
-    ? Option.filter(
-        valueOf(view, node.start, "pattern"),
-        (pattern) => !Option.exists(referenced.braced(pattern), (name) => nameForm.test(name)),
-      )
-    : Option.none();
-};
-
 export { contentLawOf } from "#pantry/test/oracle-view.ts";
 
 /**
@@ -3680,15 +3768,19 @@ const typedFormHolds = (baseType: string, text: string): boolean =>
  * value): a map key, a table entry's target or a table's default, read as written for `string` and
  * for every other base type after XML Schema's `collapse`, the whitespace facet each typed simple
  * type fixes (XML Schema 1.0 Part 2 §4.3.6; reading 7), so `" 3 "` is the integer 3. QTI bounds
- * no such value, and a text past what PostgreSQL's regex engine reads (`matchedTextBytes`) is no
- * form the law can read, which it refuses.
+ * no such value; the database holds each as a `LiteralText` (`MapKey`, `LookupValue`), a text past
+ * `literalTextBytes` the empty text of its byte guard, which "Key text bound" refuses beside this
+ * law ({@link keyTexts}), and the law reads that text as the database holds it.
  *
  * @param baseType - The value's base type, its declaration's.
  * @param text - The attribute's lexical form.
  * @returns Whether it is one.
  */
-const typedAttributeHolds = (baseType: string, text: string): boolean =>
-  !overKeyText(text) && typedFormHolds(baseType, baseType === "string" ? text : collapsed(text));
+const typedAttributeHolds = (baseType: string, text: string): boolean => {
+  const held = utf8Length(text) > literalTextBytes ? "" : text;
+
+  return typedFormHolds(baseType, baseType === "string" ? held : collapsed(held));
+};
 
 /**
  * Decide whether an element's text is a lexical form of a base type, as reading 7 reads a typed

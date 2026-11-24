@@ -38,7 +38,10 @@ import { declarationKinds } from "#pantry/qti/declarations.ts";
 import {
   entryPathBytes,
   identifierBytes,
+  langTextBytes,
+  literalTextBytes,
   matchedTextBytes,
+  patternTextBytes,
   utf8Length,
 } from "#pantry/qti/limits.ts";
 import { Qti } from "#pantry/qti/schema.ts";
@@ -57,7 +60,6 @@ import { statedLaws } from "#pantry/test/law-namer.ts";
 import { ruleOfLaw } from "#pantry/import/refusal.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
-import { manifestPath } from "#pantry/vocab/terms/package.ts";
 import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
@@ -389,13 +391,14 @@ describe("the oracle's key-text list", () => {
  *   `Attribute.idrefText`;
  * - `item identifier`, `item title`: the item's root's attributes' `value`, `ObjectIdentifier`'s and
  *   `objectTitles`';
- * - `xml:lang`: a paragraph's, whose value `LangValue` reads where it stands and no key text holds;
+ * - `xml:lang`: a paragraph's, whose value `LangValue` reads where it stands, a language tag a view
+ *   keys within `langTextBytes` (`LangKeyText`);
  * - `response identifier`: the response's declaration and its interaction's `response-identifier`,
  *   each a QTI identifier a key holds (`DeclaredIdentifierText`, `BindingName.identifier`);
  * - `choice identifier`: a choice's, a QTI identifier a key holds (`Choice.identifier`), and the
  *   correct response's value, a copied string value;
- * - `map key`: a map entry's `map-key`, whose value `MapKey` reads where it stands and no key text
- *   holds;
+ * - `map key`: a map entry's `map-key`, whose value `MapKey` reads where it stands, a lexical form a
+ *   view keys within `literalTextBytes` (`TableKeyText`);
  * - `string value`: a string outcome's default value, a copied string value;
  * - `resource identifier`, `manifest identifier`: the manifest's `xs:ID`s, whose values
  *   `resourceIdentifiers` and `manifestIdentifiers` read as written, of any length;
@@ -526,13 +529,16 @@ const longBytes = [433, entryBytes + 1, 65_536] as const;
  * The bound of the narrowest key text each place's text is held to, where one is: a response
  * declaration's and its interaction's binding's identifier
  * (`DeclaredIdentifierText`, `BindingName.identifier`) and a choice's (`Choice.identifier`), each a
- * QTI identifier's. A place with no bound here writes its text into no key, or into `matchedText`
- * alone: an IDREF token and the manifest's and a resource's `identifier`, each an `xs:ID`, which
- * a key holds by its SHA-256.
+ * QTI identifier's; a paragraph's `xml:lang`, a language tag (`LangKeyText`); and a map entry's
+ * `map-key`, a lexical form (`TableKeyText`). A place with no bound here writes its text into no
+ * key, or into `matchedText` alone: an IDREF token and the manifest's and a resource's
+ * `identifier`, each an `xs:ID`, which a key holds by its SHA-256.
  */
 const siteBounds: Readonly<Partial<Record<Site, number>>> = {
   "choice identifier": identifierBytes,
+  "map key": literalTextBytes,
   "response identifier": identifierBytes,
+  "xml:lang": langTextBytes,
 };
 
 /**
@@ -660,31 +666,96 @@ const pastBound = (relation: string, row: HeldRow): readonly string[] =>
   );
 
 /**
+ * A braced variable reference's form, `{identifier}`, which a pattern match's `pattern` names a
+ * variable by instead of writing a pattern (`StringOrVariableRef`).
+ */
+const bracedName = /^\{[^{}]+\}$/u;
+
+/**
+ * An `Attribute` row's `value` where the row is of the attribute named on one of the kinds.
+ *
+ * @param row - The row, its generated fields filled.
+ * @param name - The attribute's name.
+ * @param kinds - The kinds of its element.
+ * @returns Its value, none for another attribute.
+ */
+const valueOfAttribute = (
+  row: HeldRow,
+  name: string,
+  kinds: readonly string[],
+): readonly string[] =>
+  Predicate.isString(row["value"]) &&
+  row["name"] === name &&
+  kinds.some((kind) => kind === row["kind"])
+    ? [row["value"]]
+    : [];
+
+/**
  * The attribute values a check holds within a key text's bound where a view keys them, by the
- * derived relation the check is over: each declaration's `identifier` (`DeclaredIdentifierText`,
- * names.ts) and each test's (`TestIdentifierText`, overlay-queries/tests.ts), each a QTI
- * identifier. Each reads its attribute's `value` as the database generates it.
+ * derived relation the check is over, each with the texts of an `Attribute` row the check reads:
+ * each declaration's `identifier` (`DeclaredIdentifierText`, names.ts) and each test's, each token
+ * of an item ref's `category` and each variable mapping's `target-identifier`
+ * (`TestIdentifierText`, overlay-queries/tests.ts), each a QTI identifier; each `xml:lang` that
+ * states a language (`LangKeyText`, queries.ts); each `pattern-mask` and literal pattern
+ * (`PatternKeyText`, overlay-queries/interaction.ts); and each map key and lookup value
+ * (`TableKeyText`, mapping.ts). Each reads its attribute's `value` as the database generates it, a
+ * lookup value its `lexical`.
  */
 const checkedValues: readonly {
   readonly bound: number;
   readonly field: string;
-  readonly kinds: readonly string[];
-  readonly manifest: boolean;
-  readonly name: string;
+  readonly texts: (row: HeldRow) => readonly string[];
 }[] = [
   {
     bound: identifierBytes,
     field: "DeclaredIdentifierText.text",
-    kinds: declarationKinds,
-    manifest: false,
-    name: "identifier",
+    texts: (row) => valueOfAttribute(row, "identifier", declarationKinds),
   },
   {
     bound: identifierBytes,
     field: "TestIdentifierText.text",
-    kinds: ["qti-assessment-test"],
-    manifest: false,
-    name: "identifier",
+    texts: (row) => [
+      ...valueOfAttribute(row, "identifier", ["qti-assessment-test"]),
+      ...valueOfAttribute(row, "target-identifier", ["qti-variable-mapping"]),
+      ...valueOfAttribute(row, "category", ["qti-assessment-item-ref"]).flatMap((value) =>
+        value.split(" ").filter((token) => token !== ""),
+      ),
+    ],
+  },
+  {
+    bound: langTextBytes,
+    field: "LangKeyText.text",
+    texts: (row) =>
+      row["name"] === "xml:lang" && Predicate.isString(row["value"]) && row["value"] !== ""
+        ? [row["value"]]
+        : [],
+  },
+  {
+    bound: patternTextBytes,
+    field: "PatternKeyText.text",
+    texts: (row) => [
+      ...valueOfAttribute(row, "pattern-mask", [
+        "qti-text-entry-interaction",
+        "qti-extended-text-interaction",
+      ]),
+      ...valueOfAttribute(row, "pattern", ["qti-pattern-match"]).filter(
+        (value) => !bracedName.test(value),
+      ),
+    ],
+  },
+  {
+    bound: literalTextBytes,
+    field: "TableKeyText.text",
+    texts: (row) => [
+      ...valueOfAttribute(row, "map-key", ["qti-map-entry"]),
+      ...(Predicate.isString(row["lexical"]) &&
+      ((row["name"] === "target-value" &&
+        ["qti-interpolation-table-entry", "qti-match-table-entry"].includes(String(row["kind"]))) ||
+        (row["name"] === "default-value" &&
+          ["qti-interpolation-table", "qti-match-table"].includes(String(row["kind"]))))
+        ? [row["lexical"]]
+        : []),
+    ],
   },
 ];
 
@@ -696,14 +767,8 @@ const checkedValues: readonly {
  * @returns Each check's field, as `Relation.text`.
  */
 const checkedPastBound = (row: HeldRow): readonly string[] =>
-  checkedValues.flatMap(({ bound, field, kinds, manifest, name }) =>
-    Predicate.isString(row["value"]) &&
-    row["name"] === name &&
-    kinds.some((kind) => kind === row["kind"]) &&
-    (!manifest || row["path"] === manifestPath) &&
-    utf8Length(row["value"]) > bound
-      ? [field]
-      : [],
+  checkedValues.flatMap(({ bound, field, texts }) =>
+    texts(row).some((text) => utf8Length(text) > bound) ? [field] : [],
   );
 
 /**

@@ -9,19 +9,7 @@
  * Each law that pairs an overlay row or a node with one of them reads `Node` through a query here,
  * under the law's own name.
  */
-import {
-  check,
-  contained,
-  derived,
-  key,
-  Logic,
-  Num,
-  on,
-  query,
-  select,
-  Text,
-  v,
-} from "@bjornpagen/grizzle";
+import { check, contained, derived, key, on, query, select, Text, v } from "@bjornpagen/grizzle";
 import type { RowScalars } from "@bjornpagen/grizzle";
 import { referencedTables, tableReaders } from "#pantry/grammar/expression.ts";
 import { BaseTypeLexical, MappableBaseType } from "#pantry/grammar/install.ts";
@@ -40,7 +28,13 @@ import {
 import { Document } from "#pantry/qti/chardata.ts";
 import { testKind } from "#pantry/vocab/terms/tests.ts";
 import { placedTableReaders } from "#pantry/qti/overlay-queries/reference.ts";
-import { lookupEntryKinds, lookupTableKinds, LookupValue, MapKey } from "#pantry/qti/mapping.ts";
+import {
+  lookupEntryKinds,
+  lookupTableKinds,
+  LookupValue,
+  MapKey,
+  TableKeyText,
+} from "#pantry/qti/mapping.ts";
 import {
   attributeCodes,
   attributeValues,
@@ -48,15 +42,13 @@ import {
   DeclarationCardinality,
   DeclarationName,
   DeclaredIdentifierText,
-  matched,
   MasteryValue,
   NamedDeclaration,
   NormalMaximum,
   NormalMinimum,
   QtiViews,
-  unmatched,
 } from "#pantry/qti/names.ts";
-import { identifierBytes, matchedTextBytes } from "#pantry/qti/limits.ts";
+import { identifierBytes, literalTextBytes } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
 
@@ -570,8 +562,9 @@ const RootedDeclaration = derived(
  *   forms of their declaration's base type, where it has one: read as written for `string`, and for
  *   every other base type after XML Schema's `collapse`, the whitespace facet each typed simple
  *   type fixes (XML Schema 1.0 Part 2 §4.3.6), so `" 3 "` is the integer 3 (reading 7). QTI bounds
- *   neither text, and PostgreSQL's regex engine reads at most `matchedTextBytes` of one, so a
- *   longer text is no form the law can read, and is refused;
+ *   neither text: each is a `LiteralText` within `literalTextBytes`, as a base value's text is
+ *   ("Key text bound", over `TableKeyText` of `#pantry/qti/mapping.ts`), which PostgreSQL's regex
+ *   engine reads whole;
  * - **Typed value:** each value's text is a lexical form of its base type, its declaration's or, a
  *   record's field's, its own, each value its node's string value, its set its parent and its
  *   declaration its grandparent;
@@ -613,6 +606,7 @@ export const declarationOverlayLawsByName = {
     check("Key_text_bound", DeclaredIdentifierText, (t) =>
       t.le(Text.octetLength(t.text), identifierBytes),
     ),
+    check("Key_text_bound", TableKeyText, (t) => t.le(Text.octetLength(t.text), literalTextBytes)),
   ]),
   "Lookup table cardinality": declared("Lookup table cardinality", [
     check("Lookup_table_cardinality", LookupTableCardinality, (t) => t.eq(t.cardinality, "single")),
@@ -649,51 +643,27 @@ export const declarationOverlayLawsByName = {
   ]),
   "Typed attribute value": declared("Typed attribute value", [
     check("Typed_attribute_value", MapKeyType, (k) =>
-      k.eq(
-        Logic.when(
-          Num.within(Text.octetLength(k.key), 0, matchedTextBytes),
-          () =>
-            Logic.cond(
-              k.or(
-                k.and(
-                  k.eq(k.baseType, "string"),
-                  Text.matches(k.key, BaseTypePattern.at("pattern", k.baseType)),
-                ),
-                k.and(
-                  k.ne(k.baseType, "string"),
-                  Text.matches(Text.collapse(k.key), BaseTypePattern.at("pattern", k.baseType)),
-                ),
-              ),
-              matched,
-              unmatched,
-            ),
-          unmatched,
+      k.or(
+        k.and(
+          k.eq(k.baseType, "string"),
+          Text.matches(k.key, BaseTypePattern.at("pattern", k.baseType)),
         ),
-        true,
+        k.and(
+          k.ne(k.baseType, "string"),
+          Text.matches(Text.collapse(k.key), BaseTypePattern.at("pattern", k.baseType)),
+        ),
       ),
     ),
     check("Typed_attribute_value", LookupValueType, (l) =>
-      l.eq(
-        Logic.when(
-          Num.within(Text.octetLength(l.value), 0, matchedTextBytes),
-          () =>
-            Logic.cond(
-              l.or(
-                l.and(
-                  l.eq(l.baseType, "string"),
-                  Text.matches(l.value, BaseTypePattern.at("pattern", l.baseType)),
-                ),
-                l.and(
-                  l.ne(l.baseType, "string"),
-                  Text.matches(Text.collapse(l.value), BaseTypePattern.at("pattern", l.baseType)),
-                ),
-              ),
-              matched,
-              unmatched,
-            ),
-          unmatched,
+      l.or(
+        l.and(
+          l.eq(l.baseType, "string"),
+          Text.matches(l.value, BaseTypePattern.at("pattern", l.baseType)),
         ),
-        true,
+        l.and(
+          l.ne(l.baseType, "string"),
+          Text.matches(Text.collapse(l.value), BaseTypePattern.at("pattern", l.baseType)),
+        ),
       ),
     ),
   ]),

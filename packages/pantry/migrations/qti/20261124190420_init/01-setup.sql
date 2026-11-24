@@ -1939,6 +1939,8 @@ $$;
 
 REVOKE ALL ON FUNCTION "qti"."__row_pqxt7rruix"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x") FROM PUBLIC;
 
+CREATE DOMAIN "qti"."__text_mzulxrnk4x" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR ("pg_catalog"."octet_length"(VALUE) <= 78 AND VALUE ~ '\A[\u0009\u000A\u000D -\uFFFD\U00010000-\U0010FFFF]*\Z'::"pg_catalog"."text") IS TRUE);
+
 CREATE DOMAIN "qti"."__text_4s4od7s5or" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR (VALUE ~ '\A(?:[\u0009\u000A\u000D ][\u0001-\U0010FFFF]*)?\Z'::"pg_catalog"."text") IS TRUE);
 
 CREATE DOMAIN "qti"."__text_iyotu5swho" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR ("pg_catalog"."octet_length"(VALUE) <= 134217726 AND VALUE ~ '\A[A-Z\_a-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF\u0370-\u037D\u037F-\u1FFF\u200C\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\U00010000-\U000EFFFF][\-\.0-9A-Z\_a-z\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C\u200D\u203F\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\U00010000-\U000EFFFF]*\Z'::"pg_catalog"."text") IS TRUE);
@@ -2011,6 +2013,8 @@ CREATE DOMAIN "qti"."__text_xey6ryorh5" AS "pg_catalog"."text" COLLATE "pg_catal
 
 CREATE DOMAIN "qti"."__text_lecej62lgl" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR ("pg_catalog"."octet_length"(VALUE) <= 268435453 AND VALUE ~ '\A[\u0009\u000A\u000D -\uFFFD\U00010000-\U0010FFFF]*\Z'::"pg_catalog"."text") IS TRUE);
 
+CREATE DOMAIN "qti"."__text_gkottp5s4n" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR ("pg_catalog"."octet_length"(VALUE) <= 268435454 AND VALUE ~ '\A[\u0009\u000A\u000D -\@\[-\uFFFD\U00010000-\U0010FFFF]*\Z'::"pg_catalog"."text") IS TRUE);
+
 CREATE DOMAIN "qti"."__text_tn2inwix7f" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR ("pg_catalog"."octet_length"(VALUE) <= 790 AND VALUE ~ '\A[\u0001-\.0-\U0010FFFF][\u0001-\U0010FFFF]*\Z'::"pg_catalog"."text") IS TRUE);
 
 CREATE FUNCTION "qti"."__row_wczkl5jgfh"("p1" "qti"."document_type", "p2" "qti"."__text_tn2inwix7f") RETURNS boolean
@@ -2052,6 +2056,8 @@ END
 $$;
 
 REVOKE ALL ON FUNCTION "qti"."__row_wzgwunci5v"("qti"."node_kind", "qti"."__text_dtweupoh47", "qti"."attribute_name", "qti"."__text_c6iptmtj2x") FROM PUBLIC;
+
+CREATE DOMAIN "qti"."__text_3yyv7z62gr" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR ("pg_catalog"."octet_length"(VALUE) <= 1607 AND VALUE ~ '\A[\u0009\u000A\u000D -\uFFFD\U00010000-\U0010FFFF]*\Z'::"pg_catalog"."text") IS TRUE);
 
 CREATE DOMAIN "qti"."__text_nhrekaddjj" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR ("pg_catalog"."octet_length"(VALUE) <= 1501 AND VALUE ~ '\A[\u0009\u000A\u000D -\uFFFD\U00010000-\U0010FFFF]*\Z'::"pg_catalog"."text") IS TRUE);
 
@@ -2509,13 +2515,13 @@ CREATE TYPE "qti"."__row_olds_literal_typed_kgpvrii4gs" AS ("base_type" smallint
 
 REVOKE ALL ON TYPE "qti"."__row_olds_literal_typed_kgpvrii4gs" FROM PUBLIC;
 
-CREATE TYPE "qti"."__row_news_lookup_value_xufg7clhy2" AS ("name" smallint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "value" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8");
+CREATE TYPE "qti"."__row_news_lookup_value_rhc4h7zqpo" AS ("name" smallint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "value" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8");
 
-REVOKE ALL ON TYPE "qti"."__row_news_lookup_value_xufg7clhy2" FROM PUBLIC;
+REVOKE ALL ON TYPE "qti"."__row_news_lookup_value_rhc4h7zqpo" FROM PUBLIC;
 
-CREATE TYPE "qti"."__row_news_map_key_cr65pyynnv" AS ("key" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
+CREATE TYPE "qti"."__row_news_map_key_jqer6ztcos" AS ("key" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
 
-REVOKE ALL ON TYPE "qti"."__row_news_map_key_cr65pyynnv" FROM PUBLIC;
+REVOKE ALL ON TYPE "qti"."__row_news_map_key_jqer6ztcos" FROM PUBLIC;
 
 CREATE TYPE "qti"."__row_news_math_action_44a25dssuk" AS ("package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "selection" bigint, "selection_lexical" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "selection_lexical_digest" "pg_catalog"."bytea", "selection_written" boolean, "start" bigint);
 

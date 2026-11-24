@@ -81,7 +81,7 @@ import { idSpaceAttributes, ssmlReads } from "#pantry/vocab/terms/identity.ts";
 import { declarationKinds } from "#pantry/qti/declarations.ts";
 import { ValueBaseOf } from "#pantry/qti/expression-types.ts";
 import { PlacedVariableRef, VariableRef } from "#pantry/qti/expressions.ts";
-import { LookupValue, MapKey } from "#pantry/qti/mapping.ts";
+import { LookupValue, MapKey, TableKeyText } from "#pantry/qti/mapping.ts";
 import { documentStart, Node } from "#pantry/qti/node.ts";
 import { ReferencePath } from "#pantry/qti/package.ts";
 import { publishedTemplates, urisOf } from "#pantry/qti/templates.ts";
@@ -664,12 +664,13 @@ export const RecordNode = derived(
 
 /**
  * The SSML attributes reading 3's laws read (`ssmlReads` of `#pantry/vocab/terms/identity.ts`),
- * each by its element's place, with its element's kind, its `value`, the lexical form collapsed
- * (its domain's class, `collapse` for each), and its fragment, its element's `SsmlScope`'s: the
- * names each fragment's `lexicon`s and `mark`s define, and those its `lookup`s and its `speak`'s
- * trims name. No row copies them (C18). Each kind carries one part in the laws, so a law reads a
- * part by its kind alone. "SSML lexicon reference" and "SSML trim mark" read it, and `TrimmedMark`
- * matches it twice, so it is a view.
+ * each by its element's place, with its element's kind, its `valueDigest`, the SHA-256 of its
+ * lexical form collapsed (its domain's class, `collapse` for each; `Attribute`'s generated digest),
+ * since a name has no bound, and its fragment, its element's `SsmlScope`'s: the names each
+ * fragment's `lexicon`s and `mark`s define, and those its `lookup`s and its `speak`'s trims name,
+ * each by its digest. No row copies them (C18). Each kind carries one part in the laws, so a law
+ * reads a part by its kind alone. "SSML lexicon reference" and "SSML trim mark" read it, and
+ * `TrimmedMark` matches it twice, so it is a view.
  */
 export const SsmlValue = derived(
   "SsmlValue",
@@ -682,7 +683,7 @@ export const SsmlValue = derived(
       .match(Attribute, { kind, name, package: pkg, path, start, value, valueDigest })
       .match(SsmlScope, { fragment, package: pkg, path, start })
       .where(Logic.or(...ssmlReads.map(([read, kinds]) => namedIn(attribute, read, kinds))))
-      .find({ fragment, kind, package: pkg, path, start, value, valueDigest });
+      .find({ fragment, kind, package: pkg, path, start, valueDigest });
   }),
 );
 
@@ -701,25 +702,26 @@ export const SsmlValue = derived(
  * Every ID has a row, whatever its form: its value domain (AL1) or TextDomain refuses a form that
  * is no NCName once collapsed where it is written (spec readings 152 and 156). The document's
  * ID/IDREF table (`IdBinding`), a placed ID's, a `th`'s `TableHeader`'s and a catalog's
- * `CatalogId`'s value each read it (`#pantry/qti/overlay-queries/`), so it is a view. Its `id` is
- * the value as written, of any length, since XML Schema bounds no `xs:ID`: a stored relation that
- * keys one keys it by its SHA-256 (`idDigest`, `tokenDigest`), so no ID is refused for its length.
+ * `CatalogId`'s value each read it (`#pantry/qti/overlay-queries/`), so it is a view. It holds an
+ * ID by its SHA-256, `idDigest`, never as itself, since XML Schema bounds no `xs:ID`: an
+ * attribute's `Attribute.valueDigest`, a text's computed here, the digest every relation that keys
+ * an ID keys it by (`PlacedId.idDigest`, `tokenDigest`), so no ID is refused for its length.
  */
 export const IdValue = derived(
   "IdValue",
   query(QtiBase)
     .rule((r) => {
       const attribute = attributeTerms();
-      const { governor, kind, name, package: pkg, path, start, value } = attribute;
+      const { governor, kind, name, package: pkg, path, start, value, valueDigest } = attribute;
       const { admitted } = v(DocumentId, "id");
 
       return r
-        .match(Attribute, { governor, kind, name, package: pkg, path, start, value })
+        .match(Attribute, { governor, kind, name, package: pkg, path, start, value, valueDigest })
         .match(DocumentId, { admitted, owner: start, package: pkg, path, start })
         .where(idTypedIn(attribute))
         .find({
           admitted,
-          id: value,
+          idDigest: valueDigest,
           owner: start,
           package: pkg,
           path,
@@ -736,7 +738,7 @@ export const IdValue = derived(
         .where(r.ne(owner, start))
         .find({
           admitted,
-          id: Text.collapse(stringValue),
+          idDigest: Crypto.sha256(Text.collapse(stringValue)),
           owner,
           package: pkg,
           path,
@@ -1010,6 +1012,7 @@ export const viewRelations = [
   HeaderToken,
   LookupValue,
   MapKey,
+  TableKeyText,
 ] as const;
 
 /**

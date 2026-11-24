@@ -37,7 +37,6 @@ import {
 import { integerMathOperators } from "#pantry/grammar/expression.ts";
 import type { DeclarationKind } from "#pantry/grammar/install.ts";
 import {
-  anyText,
   BaseTypeLexical,
   Chars,
   documentTypes,
@@ -133,6 +132,7 @@ import {
 import { choiceNounKinds, otherChoiceKinds } from "#pantry/vocab/terms/interactions.ts";
 import { noLanguage, objectKinds, usageValueKind } from "#pantry/vocab/terms/metadata.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
+import { keyedLangText, keyedTemplateUri, langTextBytes } from "#pantry/qti/limits.ts";
 
 /**
  * A resource's type, by the resource's place, where its `type` spells a `ResourceType` handle
@@ -761,7 +761,7 @@ const DescribedLang = derived(
     return r
       .match(LangValue, { package: pkg, path: document, scope: documentStart, value })
       .match(namingGenerals, { document, general, package: pkg, path })
-      .find({ general, package: pkg, path, value });
+      .find({ general, package: pkg, path, value: keyedLangText(value) });
   }),
 );
 
@@ -783,7 +783,7 @@ const DescribedAssembledLang = derived(
       .match(Instance, { assembly, assemblyKind: itemKind, document, package: pkg })
       .match(LangValue, { package: pkg, path: document, scope: documentStart, value })
       .match(namingGenerals, { document: assembly, general, package: pkg, path })
-      .find({ general, package: pkg, path, value });
+      .find({ general, package: pkg, path, value: keyedLangText(value) });
   }),
 );
 
@@ -810,19 +810,48 @@ const ListedLang = derived(
         path,
         stringValue,
       })
-      .find({
-        general,
-        lang: Type.cast(Text.lowerAscii(stringValue), anyText),
-        package: pkg,
-        path,
-      });
+      .find({ general, lang: keyedLangText(Text.lowerAscii(stringValue)), package: pkg, path });
   }),
+);
+
+/**
+ * Each language tag a document states or a record lists, case-folded, by its element's place: every
+ * `xml:lang` that states a language ({@link LangValue}) and every `lom:language` of a `general`
+ * category, the tags {@link DescribedLang}, {@link DescribedAssembledLang} and {@link ListedLang}
+ * key, each a `LangText` under grizzle's byte guard, which "Key text bound" holds within
+ * `langTextBytes`.
+ */
+const LangKeyText = derived(
+  "LangKeyText",
+  query(QtiViews)
+    .rule((r) => {
+      const { package: pkg, path, start, value } = v(LangValue, "form");
+
+      return r
+        .match(LangValue, { package: pkg, path, start, value })
+        .find({ package: pkg, path, start, text: value });
+    })
+    .rule((r) => {
+      const { package: pkg, path, start, stringValue } = v(RecordNode, "language");
+
+      return r
+        .match(RecordNode, {
+          kind: "lom:language",
+          package: pkg,
+          parentKind: "lom:general",
+          path,
+          start,
+          stringValue,
+        })
+        .find({ package: pkg, path, start, text: Text.lowerAscii(stringValue) });
+    }),
 );
 
 /**
  * The identity overlays' rules over a query, each named by its oracle law: R26 (law "Document
  * lang", QTI 3.0 Metadata §2.7.1.3), each language a document or an item's assembly states is one
- * every general category describing it lists ({@link ListedLang}).
+ * every general category describing it lists ({@link ListedLang}); and "Key text bound", each
+ * language tag those views key within `langTextBytes` ({@link LangKeyText}).
  */
 const identityQueryLawsByName = {
   "Document lang": declared("Document lang", [
@@ -834,6 +863,9 @@ const identityQueryLawsByName = {
       on(DescribedAssembledLang, "package", "path", "general", "value"),
       on(ListedLang, "package", "path", "general", "lang"),
     ),
+  ]),
+  "Key text bound": declared("Key text bound", [
+    check("Key_text_bound", LangKeyText, (t) => t.le(Text.octetLength(t.text), langTextBytes)),
   ]),
 } as const;
 
@@ -1255,17 +1287,19 @@ const processingTemplates = attributeValues("template", ["qti-response-processin
  * an externally defined responseProcessing template. The rules obtained from the external template
  * may be used instead of the rules defined within the item itself, though if both are given the
  * internal rules are still preferred" (information model §4.6.1), so a processing that holds a rule
- * runs its own rules, and the template's are judged nowhere. "Template needs" selects the
- * processings whose URI names a published template ({@link urisOf}).
+ * runs its own rules, and the template's are judged nowhere. Its `template` names a published
+ * template ({@link urisOf}), the one URI any reader reads it for, "Template needs" and the QTI
+ * ledger's response programs alike, a `TemplateUri`: a processing that names another holds no row,
+ * which no reader misses.
  */
 const TemplateProcessing = derived(
   "TemplateProcessing",
   query(QtiBase).rule((r) => {
-    const { package: pkg, path, start, value, valueDigest } = v(processingTemplates, "template");
+    const { package: pkg, path, start, value } = v(processingTemplates, "template");
     const { elementChildren } = v(Node, "node");
 
     return r
-      .match(processingTemplates, { package: pkg, path, start, value, valueDigest })
+      .match(processingTemplates, { package: pkg, path, start, value })
       .match(Node, {
         elementChildren,
         kind: "qti-response-processing",
@@ -1274,8 +1308,8 @@ const TemplateProcessing = derived(
         path,
         start,
       })
-      .where(r.eq(elementChildren, 0n))
-      .find({ package: pkg, path, value, valueDigest });
+      .where(r.eq(elementChildren, 0n), r.in(value, urisOf(publishedTemplates)))
+      .find({ package: pkg, path, value: keyedTemplateUri(value) });
   }),
 );
 
@@ -1907,23 +1941,22 @@ const interactionQueryLawsByName = {
 } as const;
 
 /**
- * A required property's name and its SHA-256, the digest `DataSsmlProperty.nameDigest` holds of a
- * written property's name, so the reference compares no name in a key.
+ * A required property's name as the reference holds it: its SHA-256, the digest
+ * `DataSsmlProperty.nameDigest` holds of a written property's name, so the reference compares no
+ * name in a key.
  *
  * @param name - The property's name.
- * @returns Its name and digest, as a rule's head holds them.
+ * @returns Its digest, as a rule's head holds it.
  */
 const requiredProperty = (name: string) => ({
-  name,
   nameDigest: Crypto.sha256(Type.literal(Chars, name)),
 });
 
 /**
  * Each property a `data-ssml` member requires, by the member's element's place, the member's place
- * in the value and the property's name (Data-SSML 1.0 §3.4: `phoneme`'s `ph`, `say-as`'s
- * `interpret-as`, `sub`'s `alias`): one rule per required property, each a member of that name,
- * beside the property's name and its SHA-256, by which "Data SSML" holds each to a property its
- * member writes ({@link requiredProperty}).
+ * in the value and the property's name's SHA-256 (Data-SSML 1.0 §3.4: `phoneme`'s `ph`, `say-as`'s
+ * `interpret-as`, `sub`'s `alias`): one rule per required property, each a member of that name, by
+ * which "Data SSML" holds each to a property its member writes ({@link requiredProperty}).
  */
 const RequiredSsmlProperty = derived(
   "RequiredSsmlProperty",
@@ -2058,6 +2091,7 @@ export const queryRelations = [
   InstanceDocument,
   InterpolatedLookup,
   ItemRefTarget,
+  LangKeyText,
   ListedIdentifier,
   ListedLang,
   ListedTitle,

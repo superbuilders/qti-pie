@@ -38,6 +38,7 @@ import {
   identifierBytes,
   nameMaxBytes,
   QtiIdentifier,
+  TemplateUri,
   uriBytes,
 } from "@qti-pie/pantry/qti/limits.ts";
 import { mediaTypeBytes } from "@qti-pie/pantry/qti/media.ts";
@@ -2756,7 +2757,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
     {
       form: closedId(TemplateUriForm),
       template: closedId(PublishedTemplate),
-      uri: Attribute.fields.value.type,
+      uri: TemplateUri,
     },
     ["template", "form"],
     publishedTemplates.flatMap((template) =>

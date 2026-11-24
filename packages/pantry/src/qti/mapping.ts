@@ -52,6 +52,7 @@
 import { derived, query, v } from "@bjornpagen/grizzle";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { QtiBase } from "#pantry/qti/base.ts";
+import { keyedLiteral } from "#pantry/qti/limits.ts";
 
 /**
  * The lookup tables' kinds, each a child of its outcome declaration.
@@ -74,21 +75,27 @@ export const lookupEntryKinds = ["qti-interpolation-table-entry", "qti-match-tab
  * declaration's, its node's grandparent's, read through `Node` (`MapKeyType`,
  * `#pantry/qti/overlay-queries/declaration.ts`).
  */
+const mapKeys = query(QtiBase).rule((r) => {
+  const { package: pkg, path, start, value } = v(Attribute, "attribute");
+
+  return r
+    .match(Attribute, { kind: "qti-map-entry", name: "map-key", package: pkg, path, start, value })
+    .find({ key: value, package: pkg, path, start });
+});
+
+/**
+ * {@link mapKeys}, each key a `LiteralText` cast under grizzle's byte guard, whose other arm, the
+ * empty text, never stands in a committed state ("Key text bound" refuses a longer one at import
+ * over {@link TableKeyText}).
+ */
 export const MapKey = derived.stored(
   "MapKey",
   query(QtiBase).rule((r) => {
-    const { package: pkg, path, start, value } = v(Attribute, "attribute");
+    const { key, package: pkg, path, start } = v(mapKeys, "key");
 
     return r
-      .match(Attribute, {
-        kind: "qti-map-entry",
-        name: "map-key",
-        package: pkg,
-        path,
-        start,
-        value,
-      })
-      .find({ key: value, package: pkg, path, start });
+      .match(mapKeys, { key, package: pkg, path, start })
+      .find({ key: keyedLiteral(key), package: pkg, path, start });
   }),
 );
 
@@ -102,19 +109,56 @@ export const MapKey = derived.stored(
  * it is read in the table's declaration's, read through `Node` (`LookupValueType`,
  * `#pantry/qti/overlay-queries/declaration.ts`).
  */
+const lookupValues = query(QtiBase).rule((r) => {
+  const { kind, lexical, name, package: pkg, path, start } = v(Attribute, "attribute");
+
+  return r
+    .match(Attribute, { kind, lexical, name, package: pkg, path, start })
+    .where(
+      r.or(
+        r.and(r.eq(name, "target-value"), r.in(kind, lookupEntryKinds)),
+        r.and(r.eq(name, "default-value"), r.in(kind, lookupTableKinds)),
+      ),
+    )
+    .find({ name, package: pkg, path, start, value: lexical });
+});
+
+/**
+ * {@link lookupValues}, each value a `LiteralText` cast under grizzle's byte guard, whose other
+ * arm, the empty text, never stands in a committed state ("Key text bound" refuses a longer one at
+ * import over {@link TableKeyText}).
+ */
 export const LookupValue = derived.stored(
   "LookupValue",
   query(QtiBase).rule((r) => {
-    const { kind, lexical, name, package: pkg, path, start } = v(Attribute, "attribute");
+    const { name, package: pkg, path, start, value } = v(lookupValues, "value");
 
     return r
-      .match(Attribute, { kind, lexical, name, package: pkg, path, start })
-      .where(
-        r.or(
-          r.and(r.eq(name, "target-value"), r.in(kind, lookupEntryKinds)),
-          r.and(r.eq(name, "default-value"), r.in(kind, lookupTableKinds)),
-        ),
-      )
-      .find({ name, package: pkg, path, start, value: lexical });
+      .match(lookupValues, { name, package: pkg, path, start, value })
+      .find({ name, package: pkg, path, start, value: keyedLiteral(value) });
   }),
+);
+
+/**
+ * Each map key and lookup value as written, by its element's place and its attribute's name: the
+ * texts {@link MapKey} and {@link LookupValue} key, each a lexical form of a base type as a base
+ * value's text is, which "Key text bound" holds within `literalTextBytes`.
+ */
+export const TableKeyText = derived(
+  "TableKeyText",
+  query(QtiBase)
+    .rule((r) => {
+      const { key, package: pkg, path, start } = v(mapKeys, "key");
+
+      return r
+        .match(mapKeys, { key, package: pkg, path, start })
+        .find({ name: "map-key", package: pkg, path, start, text: key });
+    })
+    .rule((r) => {
+      const { name, package: pkg, path, start, value } = v(lookupValues, "value");
+
+      return r
+        .match(lookupValues, { name, package: pkg, path, start, value })
+        .find({ name, package: pkg, path, start, text: value });
+    }),
 );

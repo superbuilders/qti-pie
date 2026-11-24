@@ -90,19 +90,20 @@ const IdentityTextNode = derived(
 );
 
 /**
- * The ID/IDREF table of each document, a projection of its IDs' values onto (package, path, id,
- * owner) ({@link IdValue}): the bindings of admitted elements' IDs, which "DocumentId key" holds to
- * one element per (document, id) and "Idref target" resolves an IDREF among (R2). An element the
- * grammar does not admit where it stands keeps its `DocumentId` but binds nothing.
+ * The ID/IDREF table of each document, a projection of its IDs' values onto (package, path,
+ * idDigest, owner) ({@link IdValue}): the bindings of admitted elements' IDs, each by its SHA-256,
+ * which "DocumentId key" holds to one element per (document, id) and "Idref target" resolves an
+ * IDREF among by its digest (R2). An element the grammar does not admit where it stands keeps its
+ * `DocumentId` but binds nothing.
  */
 const IdBinding = derived(
   "IdBinding",
   query(QtiViews).rule((r) => {
-    const { id, owner, package: pkg, path } = v(IdValue, "id");
+    const { idDigest, owner, package: pkg, path } = v(IdValue, "id");
 
     return r
-      .match(IdValue, { admitted: true, id, owner, package: pkg, path })
-      .find({ id, owner, package: pkg, path });
+      .match(IdValue, { admitted: true, idDigest, owner, package: pkg, path })
+      .find({ idDigest, owner, package: pkg, path });
   }),
 );
 
@@ -144,32 +145,38 @@ const anchoredIdRows = query(QtiBase).rule((r) => {
 });
 
 /**
- * {@link anchoredIdRows} as a relation of `Qti`.
+ * {@link anchoredIdRows} as a relation of `Qti`, each ID by its copy and its bound element's
+ * instance and position: the copy's document and the bound element's are each the document of an
+ * instance, so neither is a field. Its key on `(package, assembly, anchor, idDigest)` is cvc-id
+ * clause 2 within a copy.
  */
-const AnchoredId = derived("AnchoredId", anchoredIdRows);
+const AnchoredId = derived(
+  "AnchoredId",
+  query(QtiBase).rule((r) => {
+    const { anchor, assembly, idDigest, instance, owner, package: pkg } = v(anchoredIdRows, "id");
+
+    return r
+      .match(anchoredIdRows, { anchor, assembly, idDigest, instance, owner, package: pkg })
+      .find({ anchor, assembly, idDigest, instance, owner, package: pkg });
+  }),
+);
 
 /**
- * The distinct ID bindings of an assembly, by the assembly and the binding as its copy holds it:
- * the anchor's document and the bound element. Two copies of one section document a test references
- * twice hold its IDs once, since "A test may refer to the same section multiple times within a
- * test" (information model §7.5.3); every other binding is its own, so its key on `(package,
- * assembly, idDigest)` is cvc-id clause 2 across the merged document.
+ * The documents whose copies bind each ID of an assembly, by the assembly, the ID's SHA-256 and
+ * the copy's document. Two copies of one section document a test references twice are one
+ * document's, and hold its IDs once, since "A test may refer to the same section multiple times
+ * within a test" (information model §7.5.3); two copies of one document hold the same bindings, and
+ * {@link AnchoredId}'s key holds a copy to one binding per ID, so its key on `(package, assembly,
+ * idDigest)` is cvc-id clause 2 across the merged document.
  */
 const CopiedId = derived(
   "CopiedId",
   query(QtiBase).rule((r) => {
-    const {
-      anchorDocument,
-      assembly,
-      idDigest,
-      owner,
-      package: pkg,
-      path,
-    } = v(anchoredIdRows, "id");
+    const { anchorDocument, assembly, idDigest, package: pkg } = v(anchoredIdRows, "id");
 
     return r
-      .match(anchoredIdRows, { anchorDocument, assembly, idDigest, owner, package: pkg, path })
-      .find({ anchorDocument, assembly, idDigest, owner, package: pkg, path });
+      .match(anchoredIdRows, { anchorDocument, assembly, idDigest, package: pkg })
+      .find({ anchorDocument, assembly, idDigest, package: pkg });
   }),
 );
 
@@ -258,35 +265,21 @@ const ShareFragmentValue = derived(
 
 /**
  * The marks a trim names, by the trim's `speak`, its own fragment, and the `mark`: each `mark` of
- * the trim's fragment whose name is the trim's value, the one statement that a trim names a `mark`.
- * "SSML trim mark" holds every trim to one, and keys them by the trim's value, so a name a trim
- * names is defined once; a mark name no trim names may repeat.
+ * the trim's fragment whose name is the trim's value, the one statement that a trim names a `mark`,
+ * each name by its SHA-256 ({@link SsmlValue}'s `valueDigest`). "SSML trim mark" holds every trim
+ * to one, and keys them by the trim's value's digest, so a name a trim names is defined once; a
+ * mark name no trim names may repeat.
  */
 const TrimmedMark = derived(
   "TrimmedMark",
   query(QtiViews).rule((r) => {
-    const { package: pkg, path, start: fragment, value, valueDigest } = v(SsmlValue, "trim");
+    const { package: pkg, path, start: fragment, valueDigest } = v(SsmlValue, "trim");
     const { start } = v(SsmlValue, "mark");
 
     return r
-      .match(SsmlValue, {
-        kind: "ssml:speak",
-        package: pkg,
-        path,
-        start: fragment,
-        value,
-        valueDigest,
-      })
-      .match(SsmlValue, {
-        fragment,
-        kind: "ssml:mark",
-        package: pkg,
-        path,
-        start,
-        value,
-        valueDigest,
-      })
-      .find({ fragment, package: pkg, path, start, value, valueDigest });
+      .match(SsmlValue, { kind: "ssml:speak", package: pkg, path, start: fragment, valueDigest })
+      .match(SsmlValue, { fragment, kind: "ssml:mark", package: pkg, path, start, valueDigest })
+      .find({ fragment, package: pkg, path, start, valueDigest });
   }),
 );
 
@@ -344,14 +337,14 @@ const inheritedCatalogScopes = select(CatalogScopeNode, (s) =>
  */
 export const identityOverlayLawsByName = {
   "DocumentId key": declared("DocumentId key", [
-    key(on(IdBinding, "package", "path", "id")),
+    key(on(IdBinding, "package", "path", "idDigest")),
     key(on(AnchoredId, "package", "assembly", "anchor", "idDigest")),
     key(on(CopiedId, "package", "assembly", "idDigest")),
   ]),
   "E1 derived": declared("E1 derived", [
     contained(
-      on(PlacedId, "package", "path", "start", "id", "owner"),
-      on(IdValue, "package", "path", "start", "id", "owner"),
+      on(PlacedId, "package", "path", "start", "idDigest", "owner"),
+      on(IdValue, "package", "path", "start", "idDigest", "owner"),
     ),
     mirrors(
       on(ShareSource, "package", "path", "start"),
@@ -361,8 +354,8 @@ export const identityOverlayLawsByName = {
       f.eq(f.value, Text.concat(Type.literal(anyText, "#"), f.id)),
     ),
     contained(
-      on(ShareTarget, "package", "path", "id", "targetStart"),
-      on(IdBinding, "package", "path", "id", "owner"),
+      on(ShareTarget, "package", "path", "idDigest", "targetStart"),
+      on(IdBinding, "package", "path", "idDigest", "owner"),
     ),
     contained(
       on(
@@ -417,8 +410,8 @@ export const identityOverlayLawsByName = {
   ]),
   "Idref target": declared("Idref target", [
     contained(
-      on(unassembledTargets, "package", "path", "id"),
-      on(IdBinding, "package", "path", "id"),
+      on(unassembledTargets, "package", "path", "idDigest"),
+      on(IdBinding, "package", "path", "idDigest"),
     ),
     contained(
       on(JudgedPlacedIdref, "package", "assembly", "idDigest"),
@@ -427,16 +420,16 @@ export const identityOverlayLawsByName = {
   ]),
   "SSML lexicon reference": declared("SSML lexicon reference", [
     contained(
-      on(lookupRefs, "package", "path", "fragment", "value"),
-      on(lexiconIds, "package", "path", "fragment", "value"),
+      on(lookupRefs, "package", "path", "fragment", "valueDigest"),
+      on(lexiconIds, "package", "path", "fragment", "valueDigest"),
     ),
   ]),
   "SSML trim mark": declared("SSML trim mark", [
     contained(
-      on(speakTrims, "package", "path", "start", "value"),
-      on(TrimmedMark, "package", "path", "fragment", "value"),
+      on(speakTrims, "package", "path", "start", "valueDigest"),
+      on(TrimmedMark, "package", "path", "fragment", "valueDigest"),
     ),
-    key(on(TrimmedMark, "package", "path", "fragment", "value")),
+    key(on(TrimmedMark, "package", "path", "fragment", "valueDigest")),
   ]),
 } as const;
 

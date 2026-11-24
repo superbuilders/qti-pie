@@ -70,7 +70,7 @@
  * admitting one: what arrives by a timed session's deadline and the in-flight grace, by the
  * database's stamp, is admitted, the latest save winning.
  */
-import { ChangeSet, Fn, Logic, Num, pg, query, Range, Type, v } from "@bjornpagen/grizzle";
+import { ChangeSet, Fn, Num, pg, query, Range, Type, v } from "@bjornpagen/grizzle";
 import { memberPositions } from "@qti-pie/pantry/qti/positions.ts";
 import { presenceGraceMicros } from "#ledger/delivery.ts";
 import type { deliveryOf } from "#ledger/delivery.ts";
@@ -125,7 +125,6 @@ export type DeliveryLevel = ReturnType<typeof deliveryOf>;
 export const sittingProgramsOf = (delivery: DeliveryLevel) => {
   const f = delivery.relations;
   const ItemRef = f.Named.fields.identifier;
-  const { remaining: Remaining } = f.TestBudget.fields;
 
   /**
    * Response admission of the member an answer posts to (`#ledger/grade.ts`'s
@@ -232,18 +231,18 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
   const standing = sittingStandingOf(delivery);
 
   /**
-   * Each of the call's timed sittings' latest suspended session's next budget, bound to the call's
+   * Each of the call's timed sittings' latest suspended session, by its `k`, bound to the call's
    * sittings before its maximum, so it reads their budgets alone.
    */
   const lastNext = query(delivery).rule((r) => {
     const sittings = r.relation("sittings", sittingHeading);
     const { child, stage } = v(sittings, "budgetedSitting");
-    const { next, left } = v(f.NextBudget, "lastNextBudget");
+    const { k, left } = v(f.NextBudget, "lastNextBudget");
 
     return r
       .match(sittings, { child, stage })
-      .match(f.NextBudget, { child, left, next, stage })
-      .find({ child, next: r.max(next), stage });
+      .match(f.NextBudget, { child, k, left, stage })
+      .find({ child, k: r.max(k), stage });
   });
 
   /**
@@ -251,12 +250,12 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
    */
   const lastLeft = query(delivery).rule((r) => {
     const lastAt = lastNext.bind({ sittings: r.relation("sittings", sittingHeading) });
-    const { child, stage, next } = v(lastAt, "lastNext");
+    const { child, stage, k } = v(lastAt, "lastNext");
     const { left } = v(f.NextBudget, "lastLeft");
 
     return r
-      .match(lastAt, { child, next, stage })
-      .match(f.NextBudget, { child, left, next, stage })
+      .match(lastAt, { child, k, stage })
+      .match(f.NextBudget, { child, k, left, stage })
       .find({ child, left, stage });
   });
 
@@ -524,11 +523,7 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
           .find({
             child,
             k: r.count(),
-            remaining: Logic.when(
-              Num.within(left, -(10n ** 19n), 10n ** 19n),
-              (y) => Type.cast(Type.cast(y, pg.numeric(20, 0)), Remaining),
-              Type.literal(Remaining, 0n),
-            ),
+            remaining: left,
             stage,
           });
       }),

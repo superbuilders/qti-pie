@@ -146,19 +146,19 @@ const ResourceFilePath = derived(
 );
 
 /**
- * The paths outside the package each resource's files name, as written, by the resource's place,
- * each with its digest, by which "Href listed" finds one first.
+ * The paths outside the package each resource's files name, by the resource's place, each by its
+ * SHA-256 (`FileOutside.targetDigest`), since a URL has no bound, by which "Href listed" finds one.
  */
 const ResourceFileOutside = derived(
   "ResourceFileOutside",
   query(QtiBase).rule((r) => {
-    const { package: pkg, path, start, target, targetDigest } = v(FileOutside, "file");
+    const { package: pkg, path, start, targetDigest } = v(FileOutside, "file");
     const { parent: resource } = v(Node, "node");
 
     return r
-      .match(FileOutside, { package: pkg, path, start, target, targetDigest })
+      .match(FileOutside, { package: pkg, path, start, targetDigest })
       .match(Node, { package: pkg, parent: resource, path, start })
-      .find({ package: pkg, path, resource, target, targetDigest });
+      .find({ package: pkg, path, resource, targetDigest });
   }),
 );
 
@@ -251,8 +251,8 @@ export const packageOverlayLawsByName = {
       on(ResourceFilePath, "package", "path", "resource", "target"),
     ),
     contained(
-      on(ResourceHrefOutside, "package", "path", "start", "targetDigest", "target"),
-      on(ResourceFileOutside, "package", "path", "resource", "targetDigest", "target"),
+      on(ResourceHrefOutside, "package", "path", "start", "targetDigest"),
+      on(ResourceFileOutside, "package", "path", "resource", "targetDigest"),
     ),
     contained(
       on(

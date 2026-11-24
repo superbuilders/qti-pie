@@ -28,8 +28,9 @@ import {
   Type,
 } from "@bjornpagen/grizzle";
 import type { Facts, Term } from "@bjornpagen/grizzle";
-import { anyText, Chars } from "#pantry/grammar/install.ts";
+import { anyText, Chars, isChars } from "#pantry/grammar/install.ts";
 import { entryOf } from "#pantry/vocab/laws.ts";
+import { publishedTemplates, urisOf } from "#pantry/qti/templates.ts";
 
 /**
  * An NCName (Namespaces in XML 1.0, §3): XML 1.0's `NameStartChar` without the colon, then its
@@ -165,43 +166,101 @@ export const identifierBytes = 503;
 export const QtiIdentifier = law(entryOf("Key text bound"), str.bytes(identifierBytes, Chars));
 
 /**
- * The most UTF-8 bytes a LOM taxon text holds where a view keys it: a classification's taxon path's
- * source, and each of its taxa's id and entry strings (`PackageClassification`, `TaxonEntry`,
- * `#pantry/qti/lom.ts`).
+ * The most UTF-8 bytes a LOM text holds where a view keys it (`#pantry/qti/lom.ts`): a
+ * classification's taxon path's source and each of its taxa's id and entry strings
+ * (`PackageClassification`, `TaxonEntry`), a lesson's catalog and entry (`Lesson`, `Head`), a
+ * relation's target's catalog and entry (`PackageRelation`) and an earlier package's name
+ * (`Supersedes`).
  *
  * @limitKind derived
  * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
  * @unit UTF-8 bytes
- * @scope one taxon source, id or entry string in any key or index grizzle builds over it
- * @constraint IEEE 1484.12.1 puts no bound on a taxon's texts; a longer one is refused at import
- *   under "Key text bound": the longest real one is 65 bytes, an entry (sources at most 50, ids at
- *   most 34), over 363 published packages with a classification (the 23 shadows, the 183 Ram
- *   lessons and the alphascience lessons) and 080622Z's 2,813 AlphaTest packages, 2026-11-24, 8% of
- *   the bound
+ * @scope one LOM text in any key or index grizzle builds over it
+ * @constraint IEEE 1484.12.1 puts no bound on a CharacterString; a longer one is refused at import
+ *   under "Key text bound": the longest real one is 73 bytes, a lesson's entry (relation entries at
+ *   most 70, an earlier package's name at most 70, taxon entries at most 65, catalogs at most 50,
+ *   taxon sources at most 50 and ids at most 34), over the 364 published packages (the 23 shadows,
+ *   the 183 Ram lessons and the alphascience lessons), the 118 metis packages and 080622Z's 2,813
+ *   AlphaTest packages, 2026-11-24, 9% of the bound
  * @derivation grizzle's `keyFits` over `TaxonEntry`'s whole heading `(package, source, id, entry)`,
- *   three taxon texts beside a name of {@link nameMaxBytes}: the most each of the three can hold
+ *   three LOM texts beside a name of {@link nameMaxBytes}, the widest key that holds them: the most
+ *   each of the three can hold
  * @from nameMaxBytes
  */
-export const taxonTextBytes = 804;
+export const lomTextBytes = 804;
 
 /**
- * A LOM taxon text as a key holds it, of at most {@link taxonTextBytes} UTF-8 bytes.
+ * A LOM text as a key holds it, of at most {@link lomTextBytes} UTF-8 bytes.
  */
-export const TaxonText = law(entryOf("Key text bound"), str.bytes(taxonTextBytes, Chars));
+export const LomText = law(entryOf("Key text bound"), str.bytes(lomTextBytes, Chars));
+
+/**
+ * The most UTF-8 bytes a language tag holds where a view keys it, case-folded: a language a
+ * document's `xml:lang` states and one a LOM `general` category lists (`DescribedLang`,
+ * `DescribedAssembledLang`, `ListedLang`, `#pantry/qti/queries.ts`).
+ *
+ * @limitKind derived
+ * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
+ * @unit UTF-8 bytes
+ * @scope one language tag in any key or index grizzle builds over it
+ * @constraint RFC 5646 and `xs:language` bound no tag's length, its subtags any in number; a longer
+ *   one is refused at import under "Key text bound": the longest real one is 7 bytes, of 3 distinct
+ *   (`en`, `en-us`, `english`) in 81,204 `xml:lang` values and 336 LOM languages (364 published
+ *   packages, 118 metis packages and 080622Z's 2,813 AlphaTest packages, 2026-11-24), 0.4% of the
+ *   bound
+ * @derivation grizzle's `keyTextBytes` over `DescribedLang`'s and `ListedLang`'s whole headings
+ *   `(general, package, path, value)`: a tag beside a natural, a name of {@link nameMaxBytes} and a
+ *   path of {@link entryPathBytes}
+ * @from nameMaxBytes, entryPathBytes
+ */
+export const langTextBytes = 1607;
+
+/**
+ * A language tag as a key holds it, of at most {@link langTextBytes} UTF-8 bytes.
+ */
+export const LangText = law(entryOf("Key text bound"), str.bytes(langTextBytes, Chars));
+
+/**
+ * The most UTF-8 bytes a regular expression holds where a view keys it: an interaction's
+ * `pattern-mask` and a pattern match's literal `pattern` (`PatternText`,
+ * `#pantry/qti/overlay-queries/interaction.ts`).
+ *
+ * @limitKind derived
+ * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
+ * @unit UTF-8 bytes
+ * @scope one pattern in any key or index grizzle builds over it
+ * @constraint XML Schema's regular expressions (Part 2, Appendix F) have no length bound; a longer
+ *   one is refused at import under "Key text bound": the longest real one is 349 bytes, in 911,715
+ *   patterns (364 published packages, 118 metis packages and 080622Z's 2,813 AlphaTest packages,
+ *   2026-11-24), 22% of the bound
+ * @derivation grizzle's `keyTextBytes` over `PatternText`'s whole heading `(package, path,
+ *   pattern, start)`: a pattern beside a name of {@link nameMaxBytes}, a path of
+ *   {@link entryPathBytes} and a natural
+ * @from nameMaxBytes, entryPathBytes
+ */
+export const patternTextBytes = 1607;
+
+/**
+ * A regular expression as a key holds it, of at most {@link patternTextBytes} UTF-8 bytes.
+ */
+export const PatternKey = law(entryOf("Key text bound"), str.bytes(patternTextBytes, Chars));
 
 /**
  * Cast a text a view keys into a bounded key text's type, under grizzle's byte guard (README, "A
  * byte bound is a guard"). The guard's other arm, the empty text, is unreachable in every committed
  * state: each view that keys one states "Key text bound" over the very texts it casts
  * (`DeclaredIdentifierText` of `#pantry/qti/names.ts` for a declaration's identifier,
- * `TestIdentifierText` of `#pantry/qti/overlay-queries/tests.ts` for a test's, `TaxonKeyText` of
- * `#pantry/qti/lom.ts` for a taxon's texts), which refuses at its import a package that holds one
- * past its bound, by name. A view that keys a text its check does not cover is a defect of that
- * view, never a value of the empty text.
+ * `TestIdentifierText` of `#pantry/qti/overlay-queries/tests.ts` for a test's, `LomKeyText` of
+ * `#pantry/qti/lom.ts` for the LOM texts, `LangKeyText` of `#pantry/qti/queries.ts` for language
+ * tags, `PatternKeyText` of `#pantry/qti/overlay-queries/interaction.ts` for patterns,
+ * `TableKeyText` of `#pantry/qti/mapping.ts` for map keys and lookup values), which
+ * refuses at its import a package that holds one past its bound, by name. A view that keys a text
+ * its check does not cover is a defect of that view, never a value of the empty text.
  *
  * @param text - The text, an attribute's value or a node's string value as the view reads it.
- * @param type - The key text's type, {@link QtiIdentifier} or {@link TaxonText}: a bounded run of
- *   XML `Char`s, whose TypeScript type every such bound shares.
+ * @param type - The key text's type, {@link QtiIdentifier}, {@link LomText}, {@link LangText},
+ *   {@link PatternKey}, {@link LiteralText} or {@link TemplateUri}: a bounded run of XML `Char`s,
+ *   whose TypeScript type every such bound shares.
  * @param bytes - That type's byte bound.
  * @returns It, as a key holds it.
  */
@@ -222,12 +281,28 @@ export const keyedIdentifier = (identifier: TextTerm) =>
   keyedAs(identifier, QtiIdentifier, identifierBytes);
 
 /**
- * Cast a LOM taxon text a view keys into {@link TaxonText} ({@link keyedAs}).
+ * Cast a LOM text a view keys into {@link LomText} ({@link keyedAs}).
  *
  * @param text - The text, a node's string value as the view reads it.
  * @returns It, as a key holds it.
  */
-export const keyedTaxonText = (text: TextTerm) => keyedAs(text, TaxonText, taxonTextBytes);
+export const keyedLomText = (text: TextTerm) => keyedAs(text, LomText, lomTextBytes);
+
+/**
+ * Cast a language tag a view keys into {@link LangText} ({@link keyedAs}).
+ *
+ * @param tag - The tag, case-folded, as the view reads it.
+ * @returns It, as a key holds it.
+ */
+export const keyedLangText = (tag: TextTerm) => keyedAs(tag, LangText, langTextBytes);
+
+/**
+ * Cast a regular expression a view keys into {@link PatternKey} ({@link keyedAs}).
+ *
+ * @param pattern - The pattern, an attribute's value as the view reads it.
+ * @returns It, as a key holds it.
+ */
+export const keyedPattern = (pattern: TextTerm) => keyedAs(pattern, PatternKey, patternTextBytes);
 
 /**
  * The most UTF-8 bytes a URI value holds in the ledger's response keys (`UriValue` of the QTI
@@ -308,6 +383,15 @@ export const literalTextBytes = 1501;
 export const LiteralText = law(entryOf("Key text bound"), str.bytes(literalTextBytes, Chars));
 
 /**
+ * Cast a lexical form a view keys into {@link LiteralText} ({@link keyedAs}): a map key or a lookup
+ * value, as a base value's text is one.
+ *
+ * @param lexical - The lexical form, an attribute's value as the view reads it.
+ * @returns It, as a key holds it.
+ */
+export const keyedLiteral = (lexical: TextTerm) => keyedAs(lexical, LiteralText, literalTextBytes);
+
+/**
  * The most UTF-8 bytes of a text a query reads by a pattern, `Text.matches`: grizzle's
  * `regexTextMaxBytes`, the longest text PostgreSQL's regex engine reads. A longer one is refused,
  * a stated limit of the representation.
@@ -355,6 +439,41 @@ const utf8 = new TextEncoder();
  * @returns Its bytes.
  */
 export const utf8Length = (text: string): number => utf8.encode(text).length;
+
+/**
+ * Whether a text is a {@link LomText}, as a host reads it: a run of XML `Char`s of at most
+ * {@link lomTextBytes} UTF-8 bytes. A LOM view keys no other text, so a text that is none names no
+ * catalog, lesson or package a LOM view holds.
+ *
+ * @param text - The text.
+ * @returns Whether it is one.
+ */
+export const isLomText = (text: string): boolean =>
+  isChars(text) && utf8Length(text) <= lomTextBytes;
+
+/**
+ * The most UTF-8 bytes a published response processing template's URI holds: the longest of the
+ * spellings that name one (`urisOf` of `#pantry/qti/templates.ts`, spec reading 51), the only
+ * `template` values `TemplateProcessing` holds (`#pantry/qti/queries.ts`).
+ */
+const templateUriBytes = Math.max(...urisOf(publishedTemplates).map(utf8Length));
+
+/**
+ * A published response processing template's URI as a key holds it, of at most
+ * {@link templateUriBytes} UTF-8 bytes.
+ */
+export const TemplateUri = law(entryOf("Key text bound"), str.bytes(templateUriBytes, Chars));
+
+/**
+ * Cast a response processing's `template` a view keys into {@link TemplateUri} ({@link keyedAs}).
+ * Its guard's other arm, the empty text, is unreachable as every key text's is, by the view's own
+ * filter rather than a check: the view holds a `template` only where it spells a published
+ * template, each within the bound.
+ *
+ * @param uri - The URI, a `template`'s value as the view reads it.
+ * @returns It, as a key holds it.
+ */
+export const keyedTemplateUri = (uri: TextTerm) => keyedAs(uri, TemplateUri, templateUriBytes);
 
 /**
  * {@link PackageName}'s pattern as a JavaScript host reads it: with the `u` flag, so its `\u{…}`

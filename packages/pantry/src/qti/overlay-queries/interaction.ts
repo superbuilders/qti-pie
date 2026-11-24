@@ -59,7 +59,7 @@ import {
   PlacedBinding,
 } from "#pantry/qti/interactions.ts";
 import { doublesInOrder } from "#pantry/qti/declarations.ts";
-import { parsedDecimalBytes } from "#pantry/qti/limits.ts";
+import { keyedPattern, parsedDecimalBytes, patternTextBytes } from "#pantry/qti/limits.ts";
 import { VariableRef } from "#pantry/qti/expressions.ts";
 import {
   attributeValues,
@@ -774,33 +774,52 @@ const patternMasks = attributeValues("pattern-mask", [
 const matchPatterns = attributeValues("pattern", ["qti-pattern-match"]);
 
 /**
- * Every regular expression a document writes, by its element's place: a text entry's or an
- * extended text interaction's `pattern-mask` ("The regular expression language used is defined in
- * Appendix F of [XSCHEMA, 01]", information model §5.162.5 and §5.48.4), and a pattern match's
- * `pattern` where it is a literal ("The syntax for the regular expression language is as defined in
- * Appendix F of [XSCHEMA, 01]", §5.104.1). A `pattern` is a `StringOrVariableRef`: one that names a
- * variable in braces is a `VariableRef` row, judged by the variable it names (rules P8 and P24),
- * never as a pattern. Each value is its attribute's as written, an `xs:string`'s whiteSpace keeping
- * it.
+ * Every regular expression a document writes, as written, by its element's place: a text entry's
+ * or an extended text interaction's `pattern-mask` ("The regular expression language used is
+ * defined in Appendix F of [XSCHEMA, 01]", information model §5.162.5 and §5.48.4), and a pattern
+ * match's `pattern` where it is a literal ("The syntax for the regular expression language is as
+ * defined in Appendix F of [XSCHEMA, 01]", §5.104.1). A `pattern` is a `StringOrVariableRef`: one
+ * that names a variable in braces is a `VariableRef` row, judged by the variable it names (rules P8
+ * and P24), never as a pattern. Each value is its attribute's as written, an `xs:string`'s
+ * whiteSpace keeping it.
+ */
+const patternTexts = query(QtiBase)
+  .rule((r) => {
+    const { package: pkg, path, start, value } = v(patternMasks, "mask");
+
+    return r
+      .match(patternMasks, { package: pkg, path, start, value })
+      .find({ package: pkg, path, start, text: value });
+  })
+  .rule((r) => {
+    const { package: pkg, path, start, value } = v(matchPatterns, "pattern");
+
+    return r
+      .match(matchPatterns, { package: pkg, path, start, value })
+      .where(r.not(VariableRef, { attribute: "pattern", package: pkg, path, start }))
+      .find({ package: pkg, path, start, text: value });
+  });
+
+/**
+ * {@link patternTexts} as a relation of `Qti`, which "Key text bound" holds within
+ * `patternTextBytes`.
+ */
+const PatternKeyText = derived("PatternKeyText", patternTexts);
+
+/**
+ * Every regular expression a document writes, by its element's place ({@link patternTexts}), each a
+ * `PatternKey` cast under grizzle's byte guard, whose other arm, the empty text, never stands in a
+ * committed state ("Key text bound" refuses a longer one at import over {@link PatternKeyText}).
  */
 export const PatternText = derived(
   "PatternText",
-  query(QtiBase)
-    .rule((r) => {
-      const { package: pkg, path, start, value } = v(patternMasks, "mask");
+  query(QtiBase).rule((r) => {
+    const { package: pkg, path, start, text } = v(patternTexts, "written");
 
-      return r
-        .match(patternMasks, { package: pkg, path, start, value })
-        .find({ package: pkg, path, pattern: value, start });
-    })
-    .rule((r) => {
-      const { package: pkg, path, start, value } = v(matchPatterns, "pattern");
-
-      return r
-        .match(matchPatterns, { package: pkg, path, start, value })
-        .where(r.not(VariableRef, { attribute: "pattern", package: pkg, path, start }))
-        .find({ package: pkg, path, pattern: value, start });
-    }),
+    return r
+      .match(patternTexts, { package: pkg, path, start, text })
+      .find({ package: pkg, path, pattern: keyedPattern(text), start });
+  }),
 );
 
 /**
@@ -1030,6 +1049,9 @@ export const interactionOverlayLawsByName = {
     ),
   ]),
   "Key text bound": declared("Key text bound", [
+    check("Key_text_bound", PatternKeyText, (t) =>
+      t.le(Text.octetLength(t.text), patternTextBytes),
+    ),
     check("Key_text_bound", AriaBounds, (r) =>
       r.and(
         r.or(
@@ -1172,6 +1194,7 @@ export const interactionOverlayRelations = [
   LeastCountNode,
   MostChoiceBound,
   MostCountNode,
+  PatternKeyText,
   PatternText,
   PlacedBindingBaseTypeNode,
   PlacedBindingCardinalityNode,

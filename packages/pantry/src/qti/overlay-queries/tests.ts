@@ -173,19 +173,55 @@ const testRootRows = query(QtiBase).rule((r) => {
 });
 
 /**
- * Each test's `identifier` as written, by its root's place: the text {@link testRootRows} keys as a
+ * Each variable mapping's `source-identifier`, by its place.
+ */
+const mappingSources = attributeValues("source-identifier", [mappingKind]);
+
+/**
+ * Each variable mapping's `target-identifier`, by its place.
+ */
+const mappingTargets = attributeValues("target-identifier", [mappingKind]);
+
+/**
+ * Each item ref's `category`, by its place, with its value.
+ */
+const categoryValues = attributeValues("category", [itemRefKind]);
+
+/**
+ * Each identifier a test document writes that a test view keys, as written, by its element's
+ * place: a test's `identifier`, the text {@link testRootRows} keys, each token of an item ref's
+ * `category`, the text {@link ItemRefCategory} keys, and each variable mapping's
+ * `target-identifier`, the name an item ref's tables and readings key an item variable by
+ * (`ItemRefTable`, `PrefixedMapResponse`, `#pantry/qti/overlay-queries/readings.ts`), each a
  * `QtiIdentifier` under grizzle's byte guard, which "Key text bound" holds within
  * `identifierBytes`.
  */
 const TestIdentifierText = derived(
   "TestIdentifierText",
-  query(QtiBase).rule((r) => {
-    const { package: pkg, path, start, value } = v(testRootIdentifiers, "root");
+  query(QtiBase)
+    .rule((r) => {
+      const { package: pkg, path, start, value } = v(testRootIdentifiers, "root");
 
-    return r
-      .match(testRootIdentifiers, { package: pkg, path, start, value })
-      .find({ package: pkg, path, start, text: value });
-  }),
+      return r
+        .match(testRootIdentifiers, { package: pkg, path, start, value })
+        .find({ package: pkg, path, start, text: value });
+    })
+    .rule((r) => {
+      const { package: pkg, path, start, value } = v(categoryValues, "categories");
+      const { token } = v(r.tokens(value), "category");
+
+      return r
+        .match(categoryValues, { package: pkg, path, start, value })
+        .match(r.tokens(value), { token })
+        .find({ package: pkg, path, start, text: token });
+    })
+    .rule((r) => {
+      const { package: pkg, path, start, value } = v(mappingTargets, "target");
+
+      return r
+        .match(mappingTargets, { package: pkg, path, start, value })
+        .find({ package: pkg, path, start, text: value });
+    }),
 );
 
 /**
@@ -264,16 +300,13 @@ const itemRefSectionRows = query(QtiBase).rule((r) => {
 export const ItemRefSection = derived("ItemRefSection", itemRefSectionRows);
 
 /**
- * Each item ref's `category`, by its place, with its value.
- */
-const categoryValues = attributeValues("category", [itemRefKind]);
-
-/**
  * Each category an item ref is assigned to, by the item ref's place and the category's name: one
  * row per token of its `category`, an `IdentifierListDType`, `xs:list` of identifiers, its value
  * collapsed and split at its spaces (§5.6.6: "Items can optionally be assigned to one or more
  * categories. Categories are used to allow custom sets of item outcomes to be aggregated during
- * outcomes processing"). An item ref that writes none, or an empty one, has no row.
+ * outcomes processing"), each a `QtiIdentifier` cast under grizzle's byte guard ("Key text bound"
+ * refuses a longer one at import over {@link TestIdentifierText}). An item ref that writes none, or
+ * an empty one, has no row.
  */
 export const ItemRefCategory = derived(
   "ItemRefCategory",
@@ -284,7 +317,7 @@ export const ItemRefCategory = derived(
     return r
       .match(categoryValues, { package: pkg, path, start, value })
       .match(r.tokens(value), { token: category })
-      .find({ category, package: pkg, path, start });
+      .find({ category: keyedIdentifier(category), package: pkg, path, start });
   }),
 );
 
@@ -1631,11 +1664,6 @@ const targetedBranchRuleRows = query(QtiBase)
   });
 
 /**
- * {@link targetedBranchRuleRows} as a relation of `Qti`.
- */
-const TargetedBranchRule = derived("TargetedBranchRule", targetedBranchRuleRows);
-
-/**
  * The placed branch rules whose target names an element they may jump to: each targeted one, an
  * included fragment's root among them, judged at its include ({@link branchCandidateRows}).
  */
@@ -2339,16 +2367,6 @@ const weightedBaseTypeRows = query(QtiBase).rule((r) => {
 const WeightedBaseType = derived("WeightedBaseType", weightedBaseTypeRows);
 
 /**
- * Each variable mapping's `source-identifier`, by its place.
- */
-const mappingSources = attributeValues("source-identifier", [mappingKind]);
-
-/**
- * Each variable mapping's `target-identifier`, by its place.
- */
-const mappingTargets = attributeValues("target-identifier", [mappingKind]);
-
-/**
  * Each variable mapping, by its place, with its item ref, `ref`, its `source` and its `target`
  * (§7.48: "Variable mappings allow outcome variables declared with the name source-identifier in
  * the corresponding item to be treated as if they were declared with the name target-identifier
@@ -2794,7 +2812,7 @@ const PointerParse = derived(
 export const testOverlayLawsByName = {
   "Branch forward": declared("Branch forward", [
     contained(
-      on(TargetedBranchRule, "package", "assembly", "instance", "start"),
+      on(ResolvedBranchRule, "package", "assembly", "instance", "start"),
       on(ForwardBranchRule, "package", "assembly", "instance", "start"),
     ),
   ]),
@@ -2930,7 +2948,6 @@ export const testOverlayRelations = [
   SessionControl,
   StructureNaming,
   StructureNode,
-  TargetedBranchRule,
   TestIdentifier,
   TestMember,
   TestPart,

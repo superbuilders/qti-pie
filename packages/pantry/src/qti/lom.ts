@@ -14,15 +14,12 @@
  * a subject, a credit, a source or a version, or holds its versions to a chain: each is a view,
  * zero or more per package, and what a consumer reads of it handles its absence as a case of its
  * own. The two laws below hold only what LOM's data model, which QTI 3.0 Metadata §2.7 adopts
- * ("Usage as defined by [LOM, 02]", normative by its §1.2), makes of a value written. A catalog,
- * entry or earlier package's name a view carries is carried as itself, of any length, since LOM
- * bounds none, beside its SHA-256 (`catalogDigest`, `entryDigest`, `earlierDigest`), the explicit
- * digest a consumer orders and matches by where a key or an ordered read holds it: 32 bytes, which
- * any key holds. A taxon's texts, its path's source and its id and entry strings, are the keys of
- * {@link PackageClassification} and {@link TaxonEntry} themselves, each a `TaxonText` of at most
- * `taxonTextBytes` (`#pantry/qti/limits.ts`), the one stated limit of the representation here:
- * "Key text bound" refuses at import a record that writes a longer one, past what PostgreSQL's
- * B-tree entry leaves it, by name.
+ * ("Usage as defined by [LOM, 02]", normative by its §1.2), makes of a value written. Every text a
+ * view keys, a lesson's or a relation's catalog and entry, an earlier package's name and a taxon's
+ * source, id and entry strings, is a key of its view as itself, a `LomText` of at most
+ * `lomTextBytes` (`#pantry/qti/limits.ts`), the one stated limit of the representation here: LOM
+ * bounds no CharacterString, and "Key text bound" refuses at import a record that writes a longer
+ * one, past what PostgreSQL's B-tree entry leaves it, by name ({@link LomKeyText}).
  *
  * - **LOM vocabulary**: a status's, a contribute role's, a relation kind's and a classification
  *   purpose's `value` whose vocabulary is LOM's own is one of that vocabulary's tokens exactly. Its
@@ -68,15 +65,18 @@
  * of LOM" (§2.7.7.1), which QTI lists among the relation kinds' terms and gives no source of its
  * own, is a term under `LOMv1.0` as every other kind is, and under any other source unread.
  *
- * **How each law is held.** Each is a check over a derived relation of this level, which deferred
- * triggers judge at commit (grizzle's README, "Rules over queries"): LOM vocabulary over
- * {@link LomTerm}, the terms of LOM's own vocabulary in a record document, and LOM vCard over
- * {@link RecordNode} of `QtiViews` (`#pantry/qti/names.ts`), which reads its document's type from
- * its `Document`, and the taxon texts' bound over {@link TaxonKeyText}. A query reads a text by
- * `Text.matches` only within a byte bound its type states, and every text here is a folded
- * `matchedText`. Every check is named by its law with spaces written as underscores, as every
- * check of the schema is, and declares its law's entry, by which a refusal names it (`lawNameOf`
- * of `#pantry/import/refusal.ts`).
+ * **How each law is held.** Each law of what a record writes is a check over a derived relation of
+ * this level, which deferred triggers judge at commit (grizzle's README, "Rules over queries"): LOM
+ * vocabulary over {@link LomTerm}, the terms of LOM's own vocabulary in a record document, LOM
+ * vCard over {@link RecordNode} of `QtiViews` (`#pantry/qti/names.ts`), which reads its document's
+ * type from its `Document`, and the LOM texts' bound over {@link LomKeyText}. Two keys order the
+ * term views for the readers that bind a term's texts ("E1 derived"):
+ * {@link PackageClassification} by `(purpose, source, id, package)` and {@link TaxonEntry} by
+ * `(source, id, package, entry)`, each its view's whole heading, which a set of rows holds always,
+ * so neither refuses anything. A query reads a text by `Text.matches` only within a byte bound its
+ * type states, and every text here is a folded `matchedText`. Every check is named by its law with
+ * spaces written as underscores, as every check of the schema is, and declares its law's entry, by
+ * which a refusal names it (`lawNameOf` of `#pantry/import/refusal.ts`).
  *
  * @see {@link https://www.imsglobal.org/sites/default/files/spec/qti/v3/md-bind/index.html | QTI 3.0 Metadata, §2.7}
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/conf | QTI 3.0 Conformance and Certification, §2.2 and §3}
@@ -86,8 +86,9 @@ import {
   check,
   closed,
   closedId,
-  Crypto,
   derived,
+  key,
+  on,
   query,
   schema,
   Text,
@@ -100,7 +101,7 @@ import { RecordNode } from "#pantry/qti/names.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { manifestIdentifiers, resourceIdentifiers } from "#pantry/qti/overlay-queries/package.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
-import { keyedTaxonText, matchedText, taxonTextBytes } from "#pantry/qti/limits.ts";
+import { keyedLomText, lomTextBytes, matchedText } from "#pantry/qti/limits.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
@@ -413,22 +414,29 @@ const generalIdentifiers = query(QtiLomVocabulary).rule((r) => {
 });
 
 /**
- * Each package's lesson: the general identifier whose entry is its manifest's `identifier`, its
- * catalog and entry as written, each beside its SHA-256.
+ * Each package's lesson identifier: the general identifier whose entry is its manifest's
+ * `identifier`, its catalog and entry as written.
  */
-const lessons = query(QtiLomVocabulary).rule((r) => {
+const lessonIdentifiers = query(QtiLomVocabulary).rule((r) => {
   const { catalog, entry, package: pkg } = v(generalIdentifiers, "identifier");
 
   return r
     .match(generalIdentifiers, { catalog, entry, package: pkg })
     .match(manifestIdentifiers, { package: pkg, value: entry })
-    .find({
-      catalog,
-      catalogDigest: Crypto.sha256(catalog),
-      entry,
-      entryDigest: Crypto.sha256(entry),
-      package: pkg,
-    });
+    .find({ catalog, entry, package: pkg });
+});
+
+/**
+ * Each package's lesson, {@link lessonIdentifiers}' catalog and entry each a `LomText` cast under
+ * grizzle's byte guard, whose other arm, the empty text, never stands in a committed state ("Key
+ * text bound" refuses a longer one at import over {@link LomKeyText}).
+ */
+const lessons = query(QtiLomVocabulary).rule((r) => {
+  const { catalog, entry, package: pkg } = v(lessonIdentifiers, "identifier");
+
+  return r
+    .match(lessonIdentifiers, { catalog, entry, package: pkg })
+    .find({ catalog: keyedLomText(catalog), entry: keyedLomText(entry), package: pkg });
 });
 
 /**
@@ -537,7 +545,7 @@ const supersessions = query(QtiLomVocabulary).rule((r) => {
 
   return r
     .match(versionsOf, { catalog: packageScheme, entry: earlier, package: pkg })
-    .find({ earlier, earlierDigest: Crypto.sha256(earlier), package: pkg });
+    .find({ earlier: keyedLomText(earlier), package: pkg });
 });
 
 /**
@@ -770,12 +778,12 @@ const lessonClaims = query(QtiLomVocabulary).rule((r) => {
 export const Head = derived(
   "Head",
   query(QtiLomVocabulary).rule((r) => {
-    const { catalog, catalogDigest, entry, entryDigest, package: pkg } = v(lessons, "lesson");
+    const { catalog, entry, package: pkg } = v(lessons, "lesson");
 
     return r
-      .match(lessons, { catalog, catalogDigest, entry, entryDigest, package: pkg })
+      .match(lessons, { catalog, entry, package: pkg })
       .where(r.not(lessonClaims, { catalog, earlier: pkg, entry }))
-      .find({ catalog, catalogDigest, entry, entryDigest, package: pkg });
+      .find({ catalog, entry, package: pkg });
   }),
 );
 
@@ -827,10 +835,8 @@ export const PackageRelation = derived(
       .match(relations, { catalog, entry, kind: text, package: pkg, relation })
       .match(RelationKindText, { term: kind, text })
       .find({
-        catalog,
-        catalogDigest: Crypto.sha256(catalog),
-        entry,
-        entryDigest: Crypto.sha256(entry),
+        catalog: keyedLomText(catalog),
+        entry: keyedLomText(entry),
         kind,
         package: pkg,
         relation,
@@ -867,13 +873,40 @@ const taxonEntries = query(QtiLomVocabulary).rule((r) => {
 });
 
 /**
- * Each taxon text a package's record writes, as written, by the package: every taxon path's source
- * and every taxon's id and entry strings, the texts {@link PackageClassification} and
- * {@link TaxonEntry} key, which "Key text bound" holds within `taxonTextBytes`.
+ * Each LOM text a package's record writes that a view keys, as written, by the package: every
+ * lesson identifier's catalog and entry ({@link Lesson}, {@link Head}), every relation's target's
+ * catalog and entry ({@link PackageRelation}, and {@link Supersedes}' earlier package's name, an
+ * `isversionof`'s entry), every taxon path's source and every taxon's id and entry strings
+ * ({@link PackageClassification}, {@link TaxonEntry}), which "Key text bound" holds within
+ * `lomTextBytes`.
  */
-export const TaxonKeyText = derived(
-  "TaxonKeyText",
+export const LomKeyText = derived(
+  "LomKeyText",
   query(QtiLomVocabulary)
+    .rule((r) => {
+      const { catalog, package: pkg } = v(lessonIdentifiers, "identifier");
+
+      return r
+        .match(lessonIdentifiers, { catalog, package: pkg })
+        .find({ package: pkg, text: catalog });
+    })
+    .rule((r) => {
+      const { entry, package: pkg } = v(lessonIdentifiers, "identifier");
+
+      return r
+        .match(lessonIdentifiers, { entry, package: pkg })
+        .find({ package: pkg, text: entry });
+    })
+    .rule((r) => {
+      const { catalog, package: pkg } = v(relations, "relation");
+
+      return r.match(relations, { catalog, package: pkg }).find({ package: pkg, text: catalog });
+    })
+    .rule((r) => {
+      const { entry, package: pkg } = v(relations, "relation");
+
+      return r.match(relations, { entry, package: pkg }).find({ package: pkg, text: entry });
+    })
     .rule((r) => {
       const { id, package: pkg } = v(taxa, "taxon");
 
@@ -894,8 +927,8 @@ export const TaxonKeyText = derived(
 /**
  * Each taxon each package's record classifies it under (decision 1), zero or more: its
  * classification's purpose of {@link ClassificationPurpose}, its taxon path's source and its id,
- * each a `TaxonText` cast under grizzle's byte guard, whose other arm, the empty text, never stands
- * in a committed state ("Key text bound" refuses a longer one at import over {@link TaxonKeyText}).
+ * each a `LomText` cast under grizzle's byte guard, whose other arm, the empty text, never stands
+ * in a committed state ("Key text bound" refuses a longer one at import over {@link LomKeyText}).
  * An item set is a selection over these, never a table.
  */
 export const PackageClassification = derived(
@@ -908,17 +941,17 @@ export const PackageClassification = derived(
       .match(taxa, { id, package: pkg, purpose: text, source })
       .match(ClassificationPurposeText, { term: purpose, text })
       .find({
-        id: keyedTaxonText(id),
+        id: keyedLomText(id),
         package: pkg,
         purpose,
-        source: keyedTaxonText(source),
+        source: keyedLomText(source),
       });
   }),
 );
 
 /**
  * Each name each package's record gives a taxon, by the taxon's source and id: its entry's strings,
- * one per language a producer writes, each text a `TaxonText` as {@link PackageClassification}'s.
+ * one per language a producer writes, each text a `LomText` as {@link PackageClassification}'s.
  */
 export const TaxonEntry = derived(
   "TaxonEntry",
@@ -926,48 +959,11 @@ export const TaxonEntry = derived(
     const { entry, id, package: pkg, source } = v(taxonEntries, "entry");
 
     return r.match(taxonEntries, { entry, id, package: pkg, source }).find({
-      entry: keyedTaxonText(entry),
-      id: keyedTaxonText(id),
+      entry: keyedLomText(entry),
+      id: keyedLomText(id),
       package: pkg,
-      source: keyedTaxonText(source),
+      source: keyedLomText(source),
     });
-  }),
-);
-
-/**
- * Each string of each package's record's general title.
- */
-export const PackageTitle = derived(
-  "PackageTitle",
-  query(QtiLomVocabulary).rule((r) => {
-    const general = v(Node, "general");
-    const title = v(Node, "title");
-    const string = v(Node, "string");
-
-    return r
-      .match(Node, {
-        kind: "lom:general",
-        package: general.package,
-        parentKind: "lom:lom",
-        parentParentKind: "cp:metadata.manifest",
-        path: manifestPath,
-        start: general.start,
-      })
-      .match(Node, {
-        kind: "lom:title",
-        package: general.package,
-        parent: general.start,
-        path: manifestPath,
-        start: title.start,
-      })
-      .match(Node, {
-        kind: "lom:string",
-        package: general.package,
-        parent: title.start,
-        path: manifestPath,
-        stringValue: string.stringValue,
-      })
-      .find({ package: general.package, title: string.stringValue });
   }),
 );
 
@@ -1053,8 +1049,12 @@ export const ResourceDescription = derived(
  * The level's laws by name, the module's header giving each.
  */
 export const lomLawsByName = {
+  "E1 derived": declared("E1 derived", [
+    key(on(PackageClassification, "purpose", "source", "id", "package")),
+    key(on(TaxonEntry, "source", "id", "package", "entry")),
+  ]),
   "Key text bound": declared("Key text bound", [
-    check("Key_text_bound", TaxonKeyText, (t) => t.le(Text.octetLength(t.text), taxonTextBytes)),
+    check("Key_text_bound", LomKeyText, (t) => t.le(Text.octetLength(t.text), lomTextBytes)),
   ]),
   "LOM vCard": declared("LOM vCard", [
     check("LOM_vCard", RecordNode, (n) =>
@@ -1100,8 +1100,7 @@ export const lomRelations = [
   PackageRelation,
   PackageClassification,
   TaxonEntry,
-  TaxonKeyText,
-  PackageTitle,
+  LomKeyText,
   ResourceDescription,
 ] as const;
 

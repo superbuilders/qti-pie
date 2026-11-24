@@ -136,6 +136,19 @@ const charsPattern = "^[\\t\\n\\r\\u{20}-\\u{D7FF}\\u{E000}-\\u{FFFD}\\u{10000}-
  */
 export const Chars = law(entryOf("XML production"), str.regex(charsPattern));
 
+/**
+ * {@link Chars}' pattern as a JavaScript host reads it, under `u`.
+ */
+const charsForm = new RegExp(charsPattern, "u");
+
+/**
+ * Whether a text is a run of XML `Char`s, a text of {@link Chars}, as a host reads it.
+ *
+ * @param text - The text.
+ * @returns Whether every character of it is an XML `Char`.
+ */
+export const isChars = (text: string): boolean => charsForm.test(text);
+
 // Handle lists (C8): membership is `Logic.in`, so these sets are lists, never installed.
 
 /**

@@ -3,6 +3,7 @@ import {
   closed,
   closedId,
   contained,
+  Crypto,
   derived,
   Logic,
   natural,
@@ -796,8 +797,8 @@ export const registryOf = (qti: typeof QtiLom, roster: Roster) => {
    * Each `rubric` operand that names, by its `id`, a `qti-rubric-block` of its document whose
    * `view` is `scorer` and whose `use` is a registered rubric use: the operand's operator and rank,
    * the block's place, its id and its use. The block is the element that carries the ID the operand
-   * names, read through pantry's one statement of an ID's value (`IdValue`, an `xs:ID` within its
-   * bound), its own attribute where it is the ID's owner.
+   * names, read through pantry's one statement of an ID's value (`IdValue`, an `xs:ID` by its
+   * SHA-256), its own attribute where it is the ID's owner.
    */
   const rubricOperands = query(RegistryRoster).rule((r) => {
     const { operand, operator, package: pkg, path, rank } = v(fittedOperands, "fitted");
@@ -809,7 +810,7 @@ export const registryOf = (qti: typeof QtiLom, roster: Roster) => {
     return r
       .match(fittedOperands, { form: "rubric", operand, operator, package: pkg, path, rank })
       .match(Literal, { package: pkg, path, start: operand, text })
-      .match(IdValue, { id: text, owner, package: pkg, path, start: owner })
+      .match(IdValue, { idDigest: Crypto.sha256(text), owner, package: pkg, path, start: owner })
       .match(Node, { kind: "qti-rubric-block", package: pkg, path, start: owner })
       .match(Attribute, { name: "view", package: pkg, path, start: owner, value: rubricView })
       .match(Attribute, { name: "use", package: pkg, path, start: owner, value: useText })

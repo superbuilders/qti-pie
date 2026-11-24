@@ -30,10 +30,11 @@ const catalogReferences = query(QtiBase).rule((r) => {
 });
 
 /**
- * Each token of a document in no assembly, by its document: a {@link catalogReferences} token of a
- * document whose `assembled` is false, which resolves among the document's own catalogs. A document
- * is assembled exactly where an `Instance` places it, both ways stated laws
- * (`#pantry/qti/tests.ts`, `#pantry/qti/queries.ts`): every instance's document has its
+ * Each token of a document in no assembly, by its document and the token's SHA-256, since an
+ * `xs:IDREF` has no bound: a {@link catalogReferences} token of a document whose `assembled` is
+ * false, which resolves among the document's own catalogs by its digest. A document is assembled
+ * exactly where an `Instance` places it, both ways stated laws (`#pantry/qti/tests.ts`,
+ * `#pantry/qti/queries.ts`): every instance's document has its
  * `AssembledDocument` (the family counted by `AssembledDocument.instances`, "Inclusion cycle") and
  * every `AssembledDocument`'s document is assembled ("E1 derived"); every assembled document has
  * its `AssembledDocument` ("Test overlay") and every `AssembledDocument` is a document some
@@ -49,17 +50,17 @@ const UnassembledReference = derived(
     return r
       .match(catalogReferences, { package: pkg, path, token })
       .match(Document, { assembled: false, package: pkg, path })
-      .find({ package: pkg, path, token, tokenDigest: Crypto.sha256(token) });
+      .find({ package: pkg, path, tokenDigest: Crypto.sha256(token) });
   }),
 );
 
 /**
- * Each token of an instance's document under the instance's assembly (spec reading 117): every
- * {@link catalogReferences} token of the document each `Instance` places, which resolves among its
- * assembly's catalogs. A document is assembled exactly where an instance places it (the laws
- * {@link UnassembledReference} cites), so every token of an assembled document is here once for each
- * assembly that places it, and the join is complete by its definition, with no row stored or
- * counted. It resolves among {@link AssembledCatalog}.
+ * Each token of an instance's document under the instance's assembly (spec reading 117), by its
+ * SHA-256: every {@link catalogReferences} token of the document each `Instance` places, which
+ * resolves among its assembly's catalogs. A document is assembled exactly where an instance places
+ * it (the laws {@link UnassembledReference} cites), so every token of an assembled document is here
+ * once for each assembly that places it, and the join is complete by its definition, with no row
+ * stored or counted. It resolves among {@link AssembledCatalog}.
  */
 const PlacedReference = derived(
   "PlacedReference",
@@ -70,7 +71,7 @@ const PlacedReference = derived(
     return r
       .match(Instance, { assembly, document, package: pkg })
       .match(catalogReferences, { package: pkg, path: document, token })
-      .find({ assembly, package: pkg, token, tokenDigest: Crypto.sha256(token) });
+      .find({ assembly, package: pkg, tokenDigest: Crypto.sha256(token) });
   }),
 );
 

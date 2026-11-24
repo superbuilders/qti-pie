@@ -52,6 +52,7 @@ import {
   query,
   select,
   Text,
+  Type,
   v,
 } from "@bjornpagen/grizzle";
 import { BuiltInVariable } from "#pantry/grammar/install.ts";
@@ -78,6 +79,7 @@ import {
   testKind,
 } from "#pantry/vocab/terms/tests.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
+import { keyedIdentifier, QtiIdentifier } from "#pantry/qti/limits.ts";
 
 /**
  * The built-in variables of a root's processing, by name (`BuiltInVariable`, reading 29).
@@ -340,7 +342,7 @@ const itemVariables = query(QtiViews)
         path,
         scopeName,
         start,
-        variable,
+        variable: keyedIdentifier(variable),
       });
   });
 
@@ -504,7 +506,7 @@ const testReadingRows = query(QtiViews)
         scopeInstance,
         scopePath,
         start,
-        variable: "numAttempts",
+        variable: Type.literal(QtiIdentifier, "numAttempts"),
       });
   })
   .rule((r) => {
@@ -544,7 +546,7 @@ const testReadingRows = query(QtiViews)
         scopeInstance,
         scopePath,
         start,
-        variable: "duration",
+        variable: Type.literal(QtiIdentifier, "duration"),
       });
   })
   .rule((r) => {
@@ -584,7 +586,7 @@ const testReadingRows = query(QtiViews)
         scopeInstance,
         scopePath,
         start,
-        variable: "completionStatus",
+        variable: Type.literal(QtiIdentifier, "completionStatus"),
       });
   })
   .rule((r) => {
@@ -624,7 +626,7 @@ const testReadingRows = query(QtiViews)
         scopeInstance,
         scopePath,
         start,
-        variable: "QTI_CONTEXT",
+        variable: Type.literal(QtiIdentifier, "QTI_CONTEXT"),
       });
   })
   .rule((r) => {
@@ -704,7 +706,7 @@ const testReadingRows = query(QtiViews)
         scopeInstance,
         scopePath,
         start,
-        variable: "duration",
+        variable: Type.literal(QtiIdentifier, "duration"),
       });
   })
   .rule((r) => {
@@ -748,9 +750,50 @@ const testReadingRows = query(QtiViews)
 
 /**
  * {@link testReadingRows} as a relation of `Qti`, which "Prefixed reference" keys and "Variable
- * declared" holds every placed reference to.
+ * declared" holds every placed reference to: each reading's scope by its placement and element
+ * alone, since its placement, `scopeInstance`, names the document `scopePath` is, and its variable
+ * a `QtiIdentifier`, as every variable a reading names is: an item's or a test's declared
+ * identifier, a built-in, a variable mapping's target ({@link itemVariables}) or a numbered or
+ * linked reading's own, each held within `identifierBytes` where a document writes it ("Key text
+ * bound").
  */
-const TestReading = derived("TestReading", testReadingRows);
+const TestReading = derived(
+  "TestReading",
+  query(QtiViews).rule((r) => {
+    const {
+      assembly,
+      attribute,
+      package: pkg,
+      path,
+      scope,
+      scopeInstance,
+      start,
+      variable,
+    } = v(testReadingRows, "reading");
+
+    return r
+      .match(testReadingRows, {
+        assembly,
+        attribute,
+        package: pkg,
+        path,
+        scope,
+        scopeInstance,
+        start,
+        variable,
+      })
+      .find({
+        assembly,
+        attribute,
+        package: pkg,
+        path,
+        scope,
+        scopeInstance,
+        start,
+        variable,
+      });
+  }),
+);
 
 /**
  * Each weighted `qti-variable` placed in a test's assembly, by the test and the variable's place:
@@ -1524,7 +1567,7 @@ const ItemRefTable = derived(
         })
         .match(Node, { kind: table, package: pkg, parent: declaration, path: item })
         .where(r.in(table, mappedTables))
-        .find({ package: pkg, path, start, table, variable });
+        .find({ package: pkg, path, start, table, variable: keyedIdentifier(variable) });
     }),
 );
 
@@ -1569,18 +1612,36 @@ const tableReadingsOf = (kind: (typeof mappedReaders)[number]) =>
   });
 
 /**
- * The prefixed map responses' readings through an item's ref ({@link tableReadingsOf}), each of
- * which claims the item variable's `qti-mapping` (reading 166).
+ * The item variables a test's readers of a kind read through an item's ref
+ * ({@link tableReadingsOf}), by the ref's place and the variable: what "Mapped response" holds to
+ * the ref's tables, the readers' own places standing in the query.
+ *
+ * @param kind - The reader's kind.
+ * @returns The view's definition.
  */
-const PrefixedMapResponse = derived("PrefixedMapResponse", tableReadingsOf("qti-map-response"));
+const tableReadersOf = (kind: (typeof mappedReaders)[number]) =>
+  query(QtiViews).rule((r) => {
+    const readings = tableReadingsOf(kind);
+    const { package: pkg, scope, scopePath, variable } = v(readings, "reading");
+
+    return r
+      .match(readings, { package: pkg, scope, scopePath, variable })
+      .find({ package: pkg, scope, scopePath, variable });
+  });
 
 /**
- * The prefixed map response points' readings through an item's ref ({@link tableReadingsOf}), each
- * of which claims the item variable's `qti-area-mapping` (reading 166).
+ * The item variables the prefixed map responses read through an item's ref
+ * ({@link tableReadersOf}), each of which claims the variable's `qti-mapping` (reading 166).
+ */
+const PrefixedMapResponse = derived("PrefixedMapResponse", tableReadersOf("qti-map-response"));
+
+/**
+ * The item variables the prefixed map response points read through an item's ref
+ * ({@link tableReadersOf}), each of which claims the variable's `qti-area-mapping` (reading 166).
  */
 const PrefixedMapResponsePoint = derived(
   "PrefixedMapResponsePoint",
-  tableReadingsOf("qti-map-response-point"),
+  tableReadersOf("qti-map-response-point"),
 );
 
 /**

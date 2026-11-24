@@ -52,6 +52,7 @@ import {
   contract,
   instant,
   key,
+  Logic,
   mutable,
   natural,
   Num,
@@ -60,7 +61,9 @@ import {
   pred,
   relation,
   span,
+  Type,
 } from "@bjornpagen/grizzle";
+import type { Decimal, Facts, Term } from "@bjornpagen/grizzle";
 import { LearnerId } from "#ledger/keys.ts";
 import { named } from "#ledger/laws.ts";
 import type { RegistryLevel } from "#ledger/registry/levels.ts";
@@ -74,6 +77,39 @@ import type { RegistryLevel } from "#ledger/registry/levels.ts";
  * microseconds, and its difference with an instant.
  */
 export const Micros = named("Micros", contract("Micros", pg.numeric(20, 0)));
+
+/**
+ * The reach of every span of microseconds the ledger computes, either way: a budget less the time
+ * a candidate session ran, or the sum of a member's spans of one sitting, each within a sitting's
+ * applied limit, about 4 × 10^18 microseconds, and its difference with an instant.
+ *
+ * @limitKind derived
+ * @owner the test runtime's clock
+ * @unit microseconds
+ * @scope each span {@link asMicros} casts
+ * @derivation the greatest power of ten {@link Micros}' twenty digits hold
+ */
+const microsReach = 10n ** 19n;
+
+/**
+ * A numeric a query computes, a span of microseconds.
+ */
+type NumericTerm = Term<Decimal, unknown, unknown, "numeric", Decimal, Facts, Decimal>;
+
+/**
+ * Cast a span of microseconds a query computes into {@link Micros}, under grizzle's range guard
+ * (README, "A partial operation is guarded"). Every such span lies within {@link microsReach}, so
+ * the guard's other arm, zero, stands in no committed state.
+ *
+ * @param micros - The span, a numeric.
+ * @returns It, as a Micros.
+ */
+export const asMicros = (micros: NumericTerm) =>
+  Logic.when(
+    Num.within(micros, -microsReach, microsReach),
+    (bounded) => Type.cast(Type.cast(bounded, pg.numeric(20, 0)), Micros),
+    Type.literal(Micros, 0n),
+  );
 
 /**
  * The top of the database's clock as a presence window holds it, in microseconds since the Unix

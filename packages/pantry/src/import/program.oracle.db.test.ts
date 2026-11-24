@@ -623,7 +623,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
             ]),
             (dir) => applyEdited(dir),
           ),
-        laws: [keyOn("IdBinding", "package", "path", "id")],
+        laws: [keyOn("IdBinding", "package", "path", "idDigest")],
         name: "a resource sharing its manifest's identifier (document-key over the manifest's IDs, Q5.06)",
       },
       {
@@ -847,7 +847,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
             ]),
             (dir) => applyEdited(dir),
           ),
-        laws: [keyOn("TrimmedMark", "package", "path", "fragment", "value")],
+        laws: [keyOn("TrimmedMark", "package", "path", "fragment", "valueDigest")],
         name: "a startmark naming two marks that collapse to one name (SSML trim mark, reading 3)",
       },
       {

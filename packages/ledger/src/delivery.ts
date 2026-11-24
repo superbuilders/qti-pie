@@ -76,7 +76,7 @@ import { responseProgramsOf } from "#ledger/response-programs.ts";
 import { servableOf } from "#ledger/servable.ts";
 import { sessionAttemptsOf } from "#ledger/session-attempts.ts";
 import { sessionControlsOf } from "#ledger/session-control.ts";
-import { clockTop, Moment } from "#ledger/sittings.ts";
+import { asMicros, clockTop, Moment } from "#ledger/sittings.ts";
 import { testLawsOf } from "#ledger/test-laws.ts";
 import { walksOf } from "#ledger/walks.ts";
 
@@ -675,59 +675,75 @@ export const deliveryOf = (ledger: LedgerLevel) => {
    * ends its predecessor's attempt, so a linear part's spans meet with no gap and their sum is the
    * part's time (research/14 §3.6). Every member has one, read whether or not its item is time
    * dependent (pantry's spec reading 150; §2.2.2.2's "must not be used" stands in a section the
-   * information model marks not normative, info:4599).
+   * information model marks not normative, info:4599). Each rule sums a member's spans in an
+   * interior stage and holds the sum as a {@link Micros} ({@link asMicros}): a sum of spans of one
+   * sitting, each within the sitting's time.
    */
   const ItemDuration = derived(
     "ItemDuration",
     query(ledger)
       .rule((r) => {
-        const { child, stage, at, k, package: pkg, path, end } = v(presentedSpans, "timedSpan");
-        const { at: began } = v(TestVisit, "timedSpanVisit");
-        const { remaining } = v(TestBudget, "timedSpanBudget");
-        const { at: last } = v(lastPresences, "timedSpanPresence");
+        const timed = r.interior((s) => {
+          const { child, stage, at, k, package: pkg, path, end } = v(presentedSpans, "timedSpan");
+          const { at: began } = v(TestVisit, "timedSpanVisit");
+          const { remaining } = v(TestBudget, "timedSpanBudget");
+          const { at: last } = v(lastPresences, "timedSpanPresence");
+
+          return s
+            .match(presentedSpans, { at, child, end, k, package: pkg, path, stage })
+            .match(TestVisit, { at: began, child, k, stage })
+            .match(TestBudget, { child, k, remaining, stage })
+            .match(lastPresences, { at: last, child, k, stage })
+            .find({
+              child,
+              micros: s.sum(
+                Logic.least(
+                  Num.numeric(Num.sub(Type.base(end), Type.base(at))),
+                  Num.sub(
+                    Num.add(Num.numeric(Type.base(began)), Type.base(remaining)),
+                    Num.numeric(Type.base(at)),
+                  ),
+                  Num.numeric(Num.sub(last, Type.base(at))),
+                ),
+              ),
+              package: pkg,
+              path,
+              stage,
+            });
+        });
+        const { child, micros, package: pkg, path, stage } = v(timed, "timedDuration");
 
         return r
-          .match(presentedSpans, { at, child, end, k, package: pkg, path, stage })
-          .match(TestVisit, { at: began, child, k, stage })
-          .match(TestBudget, { child, k, remaining, stage })
-          .match(lastPresences, { at: last, child, k, stage })
-          .find({
-            child,
-            micros: r.sum(
-              Logic.least(
-                Num.numeric(Num.sub(Type.base(end), Type.base(at))),
-                Num.sub(
-                  Num.add(Num.numeric(Type.base(began)), Type.base(remaining)),
-                  Num.numeric(Type.base(at)),
-                ),
-                Num.numeric(Num.sub(last, Type.base(at))),
-              ),
-            ),
-            package: pkg,
-            path,
-            stage,
-          });
+          .match(timed, { child, micros, package: pkg, path, stage })
+          .find({ child, micros: asMicros(micros), package: pkg, path, stage });
       })
       .rule((r) => {
-        const { child, stage, at, k, package: pkg, path, end } = v(presentedSpans, "untimedSpan");
-        const { at: last } = v(lastPresences, "untimedSpanPresence");
+        const untimed = r.interior((s) => {
+          const { child, stage, at, k, package: pkg, path, end } = v(presentedSpans, "untimedSpan");
+          const { at: last } = v(lastPresences, "untimedSpanPresence");
+
+          return s
+            .match(presentedSpans, { at, child, end, k, package: pkg, path, stage })
+            .match(lastPresences, { at: last, child, k, stage })
+            .where(s.not(TestBudget, { child, k, stage }))
+            .find({
+              child,
+              micros: s.sum(
+                Logic.least(
+                  Num.numeric(Num.sub(Type.base(end), Type.base(at))),
+                  Num.numeric(Num.sub(last, Type.base(at))),
+                ),
+              ),
+              package: pkg,
+              path,
+              stage,
+            });
+        });
+        const { child, micros, package: pkg, path, stage } = v(untimed, "untimedDuration");
 
         return r
-          .match(presentedSpans, { at, child, end, k, package: pkg, path, stage })
-          .match(lastPresences, { at: last, child, k, stage })
-          .where(r.not(TestBudget, { child, k, stage }))
-          .find({
-            child,
-            micros: r.sum(
-              Logic.least(
-                Num.numeric(Num.sub(Type.base(end), Type.base(at))),
-                Num.numeric(Num.sub(last, Type.base(at))),
-              ),
-            ),
-            package: pkg,
-            path,
-            stage,
-          });
+          .match(untimed, { child, micros, package: pkg, path, stage })
+          .find({ child, micros: asMicros(micros), package: pkg, path, stage });
       }),
   );
 
@@ -862,10 +878,11 @@ export const deliveryOf = (ledger: LedgerLevel) => {
   );
 
   /**
-   * The budget each suspended candidate session of a timed sitting leaves its next: the time it
-   * began with, less the time it ran, from its start to its last sign of presence
-   * ({@link lastPresences}), two instants of the database's clock. The one statement of a later
-   * budget: a resumption's budget is read from it, and "Budget chain" holds it there.
+   * The budget each suspended candidate session of a timed sitting leaves its next, by the
+   * suspended session's own `k`: the time it began with, less the time it ran, from its start to
+   * its last sign of presence ({@link lastPresences}), two instants of the database's clock, a
+   * {@link Micros}. The one statement of a later budget: a resumption's budget is read from it, the
+   * budget of the candidate session `k` + 1, and "Budget chain" holds it there.
    */
   const nextBudgets = query(ledger).rule((r) => {
     const { child, stage, k, remaining } = v(TestBudget, "nextBudgetBudget");
@@ -879,8 +896,8 @@ export const deliveryOf = (ledger: LedgerLevel) => {
       .match(lastPresences, { at: last, child, k, stage })
       .find({
         child,
-        left: Num.sub(Type.base(remaining), Num.numeric(Num.sub(last, Type.base(began)))),
-        next: Num.add(Type.base(k), 1n),
+        k,
+        left: asMicros(Num.sub(Type.base(remaining), Num.numeric(Num.sub(last, Type.base(began))))),
         stage,
       });
   });
@@ -894,12 +911,12 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     "BudgetChain",
     query(ledger).rule((r) => {
       const { child, stage, k, remaining } = v(TestBudget, "budget");
-      const { next, left } = v(nextBudgets, "before");
+      const { k: before, left } = v(nextBudgets, "before");
 
       return r
         .match(TestBudget, { child, k, remaining, stage })
-        .match(nextBudgets, { child, left, next, stage })
-        .where(r.eq(Type.base(k), next))
+        .match(nextBudgets, { child, k: before, left, stage })
+        .where(r.eq(Type.base(k), Num.add(Type.base(before), 1n)))
         .find({ child, k, left, remaining, stage });
     }),
   );
