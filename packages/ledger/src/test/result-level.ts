@@ -150,6 +150,8 @@ const {
   SnapshotSingleString,
   StartVariable,
   TestBudget,
+  TestOutcomeSingleBoolean,
+  TestOutcomeSingleFloat,
   TestPresented,
   TestSession,
   TestVisit,
@@ -756,6 +758,42 @@ const snapshotBooleansOf = query(ResultLevel).rule((r) => {
 });
 
 /**
+ * The child's test outcome runs' single float values (`TestOutcomeSingleFloat`), each by its
+ * sitting's stage, its run's instant and its variable.
+ */
+const testOutcomeFloatsOf = query(ResultLevel).rule((r) => {
+  const { stage, at, variable, value } = v(TestOutcomeSingleFloat, "float");
+
+  return r
+    .match(TestOutcomeSingleFloat, {
+      at,
+      child: r.param("child", LearnerId),
+      stage,
+      value,
+      variable,
+    })
+    .find({ at, stage, value, variable });
+});
+
+/**
+ * The child's test outcome runs' single boolean values (`TestOutcomeSingleBoolean`), each by its
+ * sitting's stage, its run's instant and its variable.
+ */
+const testOutcomeBooleansOf = query(ResultLevel).rule((r) => {
+  const { stage, at, variable, value } = v(TestOutcomeSingleBoolean, "boolean");
+
+  return r
+    .match(TestOutcomeSingleBoolean, {
+      at,
+      child: r.param("child", LearnerId),
+      stage,
+      value,
+      variable,
+    })
+    .find({ at, stage, value, variable });
+});
+
+/**
  * The child's attempts, each by its item session and its instant.
  */
 const attemptsOf = query(ResultLevel).rule((r) => {
@@ -1003,6 +1041,8 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       takenHeadersOf,
       takenIdentifiersOf,
       takenIntegersOf,
+      testOutcomeBooleansOf,
+      testOutcomeFloatsOf,
       windowFacts,
       windowsOf,
     }),

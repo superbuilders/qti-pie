@@ -245,6 +245,37 @@ const LINEAR_TOGETHER_TEST = "linear-together.xml";
 const HUMAN = "items/human.xml";
 
 /**
+ * The bounded items ({@link boundedXml}), each the document of the item ref of its own identifier
+ * in the outcome bounds test: SCORE's declared bounds and BONUS's maximum where it declares
+ * one.
+ */
+const BOUNDED_A = "items/bounded-a.xml";
+
+const BOUNDED_B = "items/bounded-b.xml";
+
+const BOUNDED_A_REF = "bounded-a";
+
+const BOUNDED_B_REF = "bounded-b";
+
+/**
+ * The bounded items' SCORE bounds, {@link BOUNDED_A_REF}'s BONUS maximum (its item declares one,
+ * {@link BOUNDED_B_REF}'s none), and the weight W {@link BOUNDED_A_REF}'s item ref states.
+ */
+const A_SCORE = { maximum: 2, minimum: 0 } as const;
+
+const B_SCORE = { maximum: 3, minimum: -1 } as const;
+
+const A_BONUS_MAXIMUM = 5;
+
+const A_WEIGHT = 2;
+
+/**
+ * The outcome bounds test ({@link outcomeBoundsTestXml}): its outcome processing reads its
+ * members' declared bounds through qti-outcome-maximum and qti-outcome-minimum.
+ */
+const OUTCOME_BOUNDS_TEST = "outcome-bounds.xml";
+
+/**
  * The item ref the shown test names its human-scored essay by, and that item's own identifier.
  */
 const HUMAN_REF = "human";
@@ -611,6 +642,37 @@ const testXml = (identifier: string, limits: string) => `<?xml version="1.0" enc
 </qti-assessment-test>`;
 
 /**
+ * A bounded item: a text entry whose SCORE declares `normal-minimum` and `normal-maximum`, and
+ * whose BONUS declares `normal-maximum` where `bonusMaximum` gives one; nothing processes its
+ * response.
+ *
+ * @param identifier - The item's identifier.
+ * @param minimum - SCORE's normal-minimum.
+ * @param maximum - SCORE's normal-maximum.
+ * @param bonusMaximum - BONUS's normal-maximum, or none.
+ */
+const boundedXml = (
+  identifier: string,
+  minimum: number,
+  maximum: number,
+  bonusMaximum: Option.Option<number>,
+) => `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="${asi}" identifier="${identifier}" title="${identifier}" adaptive="false" time-dependent="false" xml:lang="en">
+<qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"/><qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" normal-minimum="${String(minimum)}" normal-maximum="${String(maximum)}"/><qti-outcome-declaration identifier="BONUS" cardinality="single" base-type="float"${Option.match(bonusMaximum, { onNone: () => "", onSome: (bonus) => ` normal-maximum="${String(bonus)}"` })}/><qti-item-body><p><qti-text-entry-interaction response-identifier="RESPONSE"/></p></qti-item-body>
+</qti-assessment-item>`;
+
+/**
+ * The outcome bounds test: one individual, nonlinear part of {@link BOUNDED_A_REF}, weighted 2 by
+ * W, and {@link BOUNDED_B_REF}, which states no W; its outcome processing sets, from its members'
+ * declared bounds, MAX_WEIGHTED the sum of SCORE's maxima weighted by W, MIN_WEIGHTED the sum of
+ * SCORE's minima weighted by W, MAX the sum of SCORE's maxima, and BONUS_MAX_NULL whether BONUS's
+ * maxima are NULL.
+ */
+const outcomeBoundsTestXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-test xmlns="${asi}" identifier="outcome-bounds" title="outcome-bounds"><qti-outcome-declaration identifier="MAX_WEIGHTED" cardinality="single" base-type="float"/><qti-outcome-declaration identifier="MIN_WEIGHTED" cardinality="single" base-type="float"/><qti-outcome-declaration identifier="MAX" cardinality="single" base-type="float"/><qti-outcome-declaration identifier="BONUS_MAX_NULL" cardinality="single" base-type="boolean"/><qti-test-part identifier="part" navigation-mode="nonlinear" submission-mode="individual"><qti-assessment-section identifier="section" title="section" visible="true"><qti-assessment-item-ref identifier="${BOUNDED_A_REF}" href="${BOUNDED_A}"><qti-weight identifier="W" value="${String(A_WEIGHT)}"/></qti-assessment-item-ref><qti-assessment-item-ref identifier="${BOUNDED_B_REF}" href="${BOUNDED_B}"/></qti-assessment-section></qti-test-part><qti-outcome-processing><qti-set-outcome-value identifier="MAX_WEIGHTED"><qti-sum><qti-outcome-maximum outcome-identifier="SCORE" weight-identifier="W"/></qti-sum></qti-set-outcome-value><qti-set-outcome-value identifier="MIN_WEIGHTED"><qti-sum><qti-outcome-minimum outcome-identifier="SCORE" weight-identifier="W"/></qti-sum></qti-set-outcome-value><qti-set-outcome-value identifier="MAX"><qti-sum><qti-outcome-maximum outcome-identifier="SCORE"/></qti-sum></qti-set-outcome-value><qti-set-outcome-value identifier="BONUS_MAX_NULL"><qti-is-null><qti-outcome-maximum outcome-identifier="BONUS"/></qti-is-null></qti-set-outcome-value></qti-outcome-processing>
+</qti-assessment-test>`;
+
+/**
  * The tests: untimed; timed, an hour, allowing no late submission (Table 7.40.3: "Default =
  * false"); and timed, allowing it.
  */
@@ -632,7 +694,7 @@ const itemResource = (path: string) =>
   `<resource identifier="${path.replace("items/", "").replace(".xml", "")}" type="imsqti_item_xmlv3p0" href="${path}"><file href="${path}"/></resource>`;
 
 const manifest = `<?xml version="1.0" encoding="UTF-8"?>
-<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="wave" type="imsqti_item_xmlv3p0" href="${WAVE}"><file href="${WAVE}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${[ESSAY_MIN, MEMBER_MIN, DRAFT_MIN, HUMAN].map(itemResource).join("")}${tests.map(([path]) => testResource(path, ["short", "other"])).join("")}${controlTests.map(([path]) => testResource(path, ["essay-min", "member-min", "draft-min", "other"])).join("")}${testResource(SHOWING_TEST, ["short", "other", "member-min", "draft-min"])}${testResource(SHOWN_TEST, ["short", HUMAN_REF])}${testResource(LINEAR_TEST, ["short", "other"])}${testResource(LINEAR_TOGETHER_TEST, ["short", "other"])}</resources></manifest>`;
+<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="wave" type="imsqti_item_xmlv3p0" href="${WAVE}"><file href="${WAVE}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${[ESSAY_MIN, MEMBER_MIN, DRAFT_MIN, HUMAN].map(itemResource).join("")}${tests.map(([path]) => testResource(path, ["short", "other"])).join("")}${controlTests.map(([path]) => testResource(path, ["essay-min", "member-min", "draft-min", "other"])).join("")}${testResource(SHOWING_TEST, ["short", "other", "member-min", "draft-min"])}${testResource(SHOWN_TEST, ["short", HUMAN_REF])}${testResource(LINEAR_TEST, ["short", "other"])}${testResource(LINEAR_TOGETHER_TEST, ["short", "other"])}${[BOUNDED_A, BOUNDED_B].map(itemResource).join("")}${testResource(OUTCOME_BOUNDS_TEST, [BOUNDED_A_REF, BOUNDED_B_REF])}</resources></manifest>`;
 
 /**
  * The response every answered case gives.
@@ -1301,6 +1363,14 @@ const published = Effect.gen(function* publish() {
     yield* fs.writeFileString(`${dir}/${path}`, minimumXml(ref));
   }
   yield* fs.writeFileString(`${dir}/${HUMAN}`, humanXml);
+  yield* fs.writeFileString(
+    `${dir}/${BOUNDED_A}`,
+    boundedXml(BOUNDED_A_REF, A_SCORE.minimum, A_SCORE.maximum, Option.some(A_BONUS_MAXIMUM)),
+  );
+  yield* fs.writeFileString(
+    `${dir}/${BOUNDED_B}`,
+    boundedXml(BOUNDED_B_REF, B_SCORE.minimum, B_SCORE.maximum, Option.none()),
+  );
   for (const [path, xml] of [
     ...tests,
     ...controlTests,
@@ -1308,6 +1378,7 @@ const published = Effect.gen(function* publish() {
     [SHOWN_TEST, shownTestXml],
     [LINEAR_TEST, linearTestXmlOf("linear", "individual")],
     [LINEAR_TOGETHER_TEST, linearTestXmlOf("linear-together", "simultaneous")],
+    [OUTCOME_BOUNDS_TEST, outcomeBoundsTestXml],
   ]) {
     yield* fs.writeFileString(`${dir}/${path}`, xml);
   }
@@ -4985,6 +5056,138 @@ const holdWave = (c: WaveCase, child: string, note: (situation: WaveSituation) =
     assert.deepStrictEqual(scores, [reaches ? c.second : 0], `${c.name}: SCORE`);
   });
 
+/**
+ * An outcome bounds case: a fresh child's sitting of the outcome bounds test, taken, entered and
+ * ended, with no move between: the bounds its outcome processing reads are its members'
+ * declarations, so no response bears on them.
+ */
+type OutcomeBoundsCase = Readonly<{ name: string }>;
+
+const outcomeBoundsCases = [
+  { name: "the outcome bounds test taken, entered and ended" },
+] as const satisfies readonly OutcomeBoundsCase[];
+
+const outcomeBoundsSpace: Gen<OutcomeBoundsCase> = element(outcomeBoundsCases);
+
+/**
+ * What the outcome bounds test's outcome processing leaves its outcomes.
+ */
+interface OutcomeBoundsExpected {
+  readonly booleans: Readonly<Record<string, boolean>>;
+  readonly floats: Readonly<Record<string, number>>;
+}
+
+/**
+ * The table, from QTI 3.0.1's text, read apart from the machine. qti-outcome-maximum and
+ * qti-outcome-minimum are test-level expressions of outcome processing, each "simultaneously looks
+ * up the normalMaximum [normalMinimum] value of an outcome variable in a sub-set of the items
+ * referred to in a test", with no subset filter every member (Tables 6.9.63, 6.9.64, 7.28):
+ *
+ * - Each member's bound of SCORE, multiplied by its item ref's weight W where one names it ("the
+ *   resulting value is obtained by multiplying the variable's value by the associated weight"), and
+ *   by 1.0 where none does ("If no matching definition is found the weight is assumed to be 1.0",
+ *   Table 7.47.2): {@link BOUNDED_A_REF}'s weighs {@link A_WEIGHT}, {@link BOUNDED_B_REF}'s 1.0;
+ * - "If any of the items within the given subset have no declared maximum the result is NULL" (Table
+ *   6.9.64): {@link BOUNDED_B_REF} declares no BONUS maximum, so BONUS's maxima are NULL;
+ * - Each sum the sum of its multiple's values (qti-sum).
+ *
+ * @param _c - The case.
+ */
+const outcomeBoundsExpectedOf = (_c: OutcomeBoundsCase): OutcomeBoundsExpected => ({
+  booleans: { BONUS_MAX_NULL: true },
+  floats: {
+    MAX: A_SCORE.maximum + B_SCORE.maximum,
+    MAX_WEIGHTED: A_SCORE.maximum * A_WEIGHT + B_SCORE.maximum * 1,
+    MIN_WEIGHTED: A_SCORE.minimum * A_WEIGHT + B_SCORE.minimum * 1,
+  },
+});
+
+/**
+ * The situations the outcome bounds space must reach.
+ */
+const outcomeBoundsSituations = [
+  "a member's declared maximum, weighted by its item ref's weight",
+  "a member's declared minimum, weighted by its item ref's weight",
+  "a member whose item ref names no such weight weighs 1.0",
+  "a member declaring no maximum makes the maximum NULL",
+] as const;
+
+type OutcomeBoundsSituation = (typeof outcomeBoundsSituations)[number];
+
+/**
+ * Each variable's row of the latest run among a sitting's test outcome runs' rows.
+ *
+ * @param rows - The rows, each with its run's instant and its variable.
+ * @returns The latest run's row of each variable.
+ */
+const latestOf = <A extends Readonly<{ at: bigint; variable: string }>>(rows: Iterable<A>) => {
+  const kept = new Map<string, A>();
+  for (const row of rows) {
+    const held = kept.get(row.variable);
+    if (held === undefined || held.at < row.at) {
+      kept.set(row.variable, row);
+    }
+  }
+
+  return [...kept.values()];
+};
+
+/**
+ * One outcome bounds case: a fresh child's sitting of the outcome bounds test, taken by the test
+ * runtime's own take (`takeSitting`), entered at {@link BOUNDED_A_REF}, then ended with its finish
+ * (`finishTest`), whose outcome processing runs over its members; the test's outcomes its run left
+ * (`TestOutcomeSingleFloat`, `TestOutcomeSingleBoolean`), the latest run's of each, held to the
+ * table.
+ *
+ * @param c - The case.
+ * @param child - The run's fresh child.
+ * @param note - Records the situation the case reaches.
+ */
+const holdOutcomeBounds = (
+  c: OutcomeBoundsCase,
+  child: string,
+  note: (situation: OutcomeBoundsSituation) => void,
+) =>
+  Effect.gen(function* hold() {
+    const expected = outcomeBoundsExpectedOf(c);
+    for (const situation of outcomeBoundsSituations) {
+      note(situation);
+    }
+
+    const { suite } = yield* SuiteLogin;
+    const db = yield* Db.open(suite.roles.result_runner, {});
+    const sitting = { child, stage: 1n };
+    const taken = yield* db.workload.takeSitting.once({
+      facts: {},
+      params: { ...sitting, package: PACKAGE, path: OUTCOME_BOUNDS_TEST, seed: DECISION },
+    });
+    assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
+
+    const entered = yield* db.workload.enterTest.once({
+      facts: {},
+      params: { ...sitting, item: BOUNDED_A_REF },
+    });
+    assert.strictEqual(entered.kind, "accepted", `${c.name}: the entry`);
+
+    const ended = yield* db.workload.finishTest.once({ facts: {}, params: sitting });
+    assert.strictEqual(ended.kind, "accepted", `${c.name}: the end and its finish`);
+
+    const floats = latestOf(
+      yield* db.workload.testOutcomeFloatsOf.once({ facts: {}, params: { child } }),
+    );
+    const booleans = latestOf(
+      yield* db.workload.testOutcomeBooleansOf.once({ facts: {}, params: { child } }),
+    );
+    assert.deepStrictEqual<OutcomeBoundsExpected>(
+      {
+        booleans: Object.fromEntries(booleans.map(({ variable, value }) => [variable, value])),
+        floats: Object.fromEntries(floats.map(({ variable, value }) => [variable, value])),
+      },
+      expected,
+      `${c.name}: the test's outcomes after its run`,
+    );
+  });
+
 describe.skipIf(Option.isNone(migrations))(
   "an AI-graded essay's result relations, a templated item's take and an adaptive item's attempts, on the runner's database",
   () => {
@@ -5593,6 +5796,47 @@ describe.skipIf(Option.isNone(migrations))(
                 ),
               );
               yield* Effect.log(`the guarded takes held over ${String(exhausted.cases)} cases`);
+            }).pipe(Effect.orDie),
+        );
+
+        it.effect(
+          "reads a test's members' declared bounds through qti-outcome-maximum and qti-outcome-minimum, weighted, and NULL where a member declares no maximum",
+          (ctx) =>
+            Effect.gen(function* holdEveryOutcomeBoundsCase() {
+              yield* Effect.scoped(published);
+
+              const runs = yield* Ref.make(0);
+              const exhausted = yield* searched(
+                ctx,
+                exhaust(
+                  {
+                    box: "the outcome bounds test taken, entered and ended, on a fresh child",
+                    caseHang: Duration.minutes(2),
+                    coverage: requiredInSpace<OutcomeBoundsSituation>(outcomeBoundsSituations),
+                    generator: outcomeBoundsSpace,
+                    literal: (c: OutcomeBoundsCase) => c.name,
+                    oracle: {
+                      kind: "specification",
+                      name: "outcomeBoundsExpectedOf: each member's declared bound times its item ref's weight, 1.0 where it names none (Tables 6.9.63, 6.9.64, 7.28, 7.47.2), NULL where a member declares no maximum (Table 6.9.64)",
+                    },
+                    suite: "ledger/results/outcome-bounds",
+                  },
+                  (row, c) =>
+                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                      Effect.flatMap((k) =>
+                        holdOutcomeBounds(
+                          row,
+                          `user_ledgeroutcomebounds${String(k)}`,
+                          (situation) => {
+                            c.note(situation);
+                          },
+                        ),
+                      ),
+                      Effect.orDie,
+                    ),
+                ),
+              );
+              yield* Effect.log(`the outcome bounds held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
         );
       },

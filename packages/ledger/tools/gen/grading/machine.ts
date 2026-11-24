@@ -367,97 +367,6 @@ const declarationParts = [
   "qti-interpolation-table-entry",
 ];
 
-const processingKinds = [
-  "qti-response-processing",
-  "qti-template-processing",
-  "qti-outcome-processing",
-  "qti-response-condition",
-  "qti-response-if",
-  "qti-response-else-if",
-  "qti-response-else",
-  "qti-template-condition",
-  "qti-template-if",
-  "qti-template-else-if",
-  "qti-template-else",
-  "qti-outcome-condition",
-  "qti-outcome-if",
-  "qti-outcome-else-if",
-  "qti-outcome-else",
-  "qti-set-outcome-value",
-  "qti-lookup-outcome-value",
-  "qti-set-template-value",
-  "qti-set-correct-response",
-  "qti-set-default-value",
-  "qti-template-constraint",
-  "qti-exit-response",
-  "qti-exit-template",
-  "qti-exit-test",
-  "qti-response-processing-fragment",
-  "qti-outcome-processing-fragment",
-  "qti-and",
-  "qti-any-n",
-  "qti-base-value",
-  "qti-container-size",
-  "qti-contains",
-  "qti-correct",
-  "qti-custom-operator",
-  "qti-default",
-  "qti-delete",
-  "qti-divide",
-  "qti-duration-gte",
-  "qti-duration-lt",
-  "qti-equal",
-  "qti-equal-rounded",
-  "qti-field-value",
-  "qti-gcd",
-  "qti-gt",
-  "qti-gte",
-  "qti-index",
-  "qti-inside",
-  "qti-integer-divide",
-  "qti-integer-modulus",
-  "qti-integer-to-float",
-  "qti-is-null",
-  "qti-lcm",
-  "qti-lt",
-  "qti-lte",
-  "qti-map-response",
-  "qti-map-response-point",
-  "qti-match",
-  "qti-math-constant",
-  "qti-math-operator",
-  "qti-max",
-  "qti-member",
-  "qti-min",
-  "qti-multiple",
-  "qti-not",
-  "qti-null",
-  "qti-number-correct",
-  "qti-number-incorrect",
-  "qti-number-presented",
-  "qti-number-responded",
-  "qti-number-selected",
-  "qti-or",
-  "qti-ordered",
-  "qti-pattern-match",
-  "qti-power",
-  "qti-product",
-  "qti-random",
-  "qti-random-float",
-  "qti-random-integer",
-  "qti-repeat",
-  "qti-round",
-  "qti-round-to",
-  "qti-stats-operator",
-  "qti-string-match",
-  "qti-substring",
-  "qti-subtract",
-  "qti-sum",
-  "qti-test-variables",
-  "qti-truncate",
-  "qti-variable",
-];
-
 /**
  * The run key's sitting (document-types.sql): a field or parameter named `child` is the learner as
  * the ledger keys one (keys.ts's LearnerId), and one named `stage` the sitting's stage as the
@@ -531,6 +440,52 @@ const gradedAttributesOf = (documentSql: string): readonly string[] => {
   }
 
   return names;
+};
+
+/**
+ * The roots of QTI 3.0.1's three processings, an item's response and template processing and a
+ * test's outcome processing (Tables 5.115, 5.124, 5.102): a run walks its root's rules and never
+ * dispatches on the root itself.
+ */
+const processingRoots = [
+  "qti-outcome-processing",
+  "qti-response-processing",
+  "qti-template-processing",
+];
+
+/**
+ * The processing language's element kinds, what a statement passes of a program (the ledger's
+ * ProgramNodeKind): the three roots and every kind machine-eval.sql dispatches on, each `qti-` kind
+ * an arm of `evaluated` (an expression) or of `run_rules` (a rule, a condition's branch, a
+ * fragment, an exit) names, each once, in code point order. The roster is derived from the SQL that
+ * evaluates the kinds, so an element the machine evaluates can never be filtered out of the program
+ * before it arrives (as qti-outcome-minimum and qti-outcome-maximum once were, QTI 3.0.1's
+ * test-level expressions of outcome processing), and no element crosses that the machine has no arm
+ * for.
+ *
+ * @param evalSql The text of machine-eval.sql.
+ * @returns The kinds.
+ */
+const processingKindsOf = (evalSql: string): readonly string[] => {
+  const dispatched = ["evaluated", "run_rules"].flatMap((name) => {
+    const at = evalSql.indexOf(`create function p3.${name}(`);
+    if (at === -1) {
+      throw new Error(`machine-eval.sql defines no ${name}`);
+    }
+
+    const body = evalSql.slice(at, evalSql.indexOf("end $$;", at));
+
+    return [...body.matchAll(/\bwhen\s+(?<kinds>(?:'[^']*'\s*,\s*)*'[^']*')\s+then\b/gu)].flatMap(
+      (m) => quoted(m.groups?.["kinds"] ?? "").filter((kind) => kind.startsWith("qti-")),
+    );
+  });
+  if (dispatched.length === 0) {
+    throw new Error(
+      "machine-eval.sql dispatches on no kind as the generator reads it (when '<qti-kind>' then)",
+    );
+  }
+
+  return [...new Set([...processingRoots, ...dispatched])].toSorted(codePointOrder);
 };
 
 /**
@@ -973,6 +928,7 @@ export const machineModules = (): MachineModules => {
   const fnSql = functionFiles.map(read).join("\n");
   const CustomOperatorClass = customOperatorClasses(read("document.sql"));
   const gradedAttributes = gradedAttributesOf(read("document.sql"));
+  const processingKinds = processingKindsOf(read("machine-eval.sql"));
   const { admittedAttributes, admissionWords, admissionCounts, admissionNumbers } =
     admissionRosters(read("admission.sql"));
   const types = rowTypes(typesSql);
