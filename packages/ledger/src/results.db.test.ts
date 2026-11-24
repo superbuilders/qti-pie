@@ -6,7 +6,7 @@
  * (`ApplicationOperands`, `ApplicationMaximum`, `ApplicationDraw`), its Results Reporting status
  * (`ItemSessionStatus`), its values in force and its credit (`OutcomeInForceSingleFloat`,
  * `AttemptCredit`), and the laws that hold a machine's reply and a person's value to the
- * application's maximum (`Reply_within_maximum`, `Human_within_maximum`). An application's own
+ * application's maximum ("Reply within maximum", "Human within maximum"). An application's own
  * suite proves the rest of the result seam on its own installation (edullm's `results.db.test.ts`,
  * whose composition registers no grader, so its essays are never evaluated). It runs only where a
  * database is handed to it (`QTI_PIE_RESULT_MIGRATIONS` and pantry's `QTI_PIE_PG_*`, by its runner,
@@ -169,6 +169,7 @@ import type { AttemptRows, MarkRows, ValueRows } from "#ledger/served-values.ts"
 import { Reading } from "#ledger/sittings.ts";
 import type { ResultSuite } from "#ledger/test/result-level.ts";
 import { inFlightGraceMicros, presenceGraceMicros } from "#ledger/delivery.ts";
+import type { LedgerLawName } from "#ledger/laws.ts";
 import { grader, ResultLevel, rubricUse } from "#ledger/test/result-level.ts";
 
 /**
@@ -1005,7 +1006,7 @@ const creditKindOf = (score: number): "full" | "none" | "partial" => {
  * its read-back of what still waits for a person.
  */
 type StepExpected =
-  | Readonly<{ kind: "refused"; law: "Reply_within_maximum" | "Human_within_maximum" }>
+  | Readonly<{ kind: "refused"; law: "Reply within maximum" | "Human within maximum" }>
   | Readonly<{
       kind: "held";
       outcome: "accepted" | "unchanged";
@@ -1081,7 +1082,7 @@ const expectedOf = (c: Case): Expected => {
   for (const step of stepsOf(c)) {
     if (step.kind === "evaluation") {
       if (step.evaluation.result === "replied" && step.evaluation.score > essayMaximum) {
-        steps.push({ kind: "refused", law: "Reply_within_maximum" });
+        steps.push({ kind: "refused", law: "Reply within maximum" });
 
         return { final: Option.none(), steps };
       }
@@ -1095,7 +1096,7 @@ const expectedOf = (c: Case): Expected => {
       });
     } else if (awaitingOf(heldNow()).length > 0) {
       if (step.score > essayMaximum) {
-        steps.push({ kind: "refused", law: "Human_within_maximum" });
+        steps.push({ kind: "refused", law: "Human within maximum" });
 
         return { final: Option.none(), steps };
       }
@@ -1161,8 +1162,8 @@ const situations = [
   "credit:none",
   "credit:partial",
   "credit:full",
-  "refused:Reply_within_maximum",
-  "refused:Human_within_maximum",
+  "refused:Reply within maximum",
+  "refused:Human within maximum",
   "held at the maximum",
   "an empty essay scored 0 at its submission, never requested",
 ] as const;
@@ -1511,26 +1512,29 @@ const SCORER = "user_ledgerscorer";
 const requestOf = (operator: bigint) => Sha256.ofBytes(new TextEncoder().encode(String(operator)));
 
 /**
- * Every law a refusal names, in whichever list its arm carries it: a refusal by the suite's own
- * levels' laws (`every`, `first`, `some`) names them in `laws`, and one by a level above in
- * `above`, beside its own levels' where it judged them broken (`own` every), each arm narrowed by
- * its kind. Which arm a qti-pie law refuses in under the suite's composition is grizzle's to state,
- * so the table finds its law in any of them.
+ * The laws a refusal names. The suite's login is over the composition's top level, so every law its
+ * writes can break is of its own levels, named in `laws` (`every`, `first` or `some`), a key's or a
+ * check's over a stored relation at COMMIT among them (grizzle 380c1a7d6); a refusal by a level
+ * above it cannot arise, and fails the case.
  *
  * @param refused The refusal.
  * @returns The laws it names.
  */
-const refusedLawsOf = (refused: BrokenLaws) => {
-  if (refused.kind !== "above") {
-    return refused.laws;
-  }
+const refusedLawsOf = (refused: BrokenLaws) =>
+  refused.kind === "above"
+    ? assert.fail(`a refusal by a level above the suite's: ${Formatter.format(refused)}`)
+    : refused.laws;
 
-  if (refused.own === "every") {
-    return [...refused.above, ...refused.laws];
-  }
-
-  return refused.above;
-};
+/**
+ * Whether a refusal names one of the ledger's laws, each by the name its catalog gives it
+ * (`#ledger/laws.ts`).
+ *
+ * @param refused The refusal.
+ * @param names The laws' names.
+ * @returns Whether the refusal names one of them.
+ */
+const refusedBy = (refused: BrokenLaws, ...names: readonly LedgerLawName[]) =>
+  refusedLawsOf(refused).some(({ law }) => names.some((name) => law.entry.name === name));
 
 /**
  * One run of a case: a fresh child's item session of the essay and its attempt with its response,
@@ -1661,7 +1665,7 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
         assert.isTrue(
           Result.isFailure(written) &&
             written.failure.kind === "refused" &&
-            Formatter.format(refusedLawsOf(written.failure.refused)).includes(want.law),
+            refusedBy(written.failure.refused, want.law),
           `${label}: refused by ${want.law}, got ${Formatter.format(written)}`,
         );
 
@@ -2820,7 +2824,7 @@ type ResponseExpected =
   | Readonly<{ kind: "accepted" }>
   | Readonly<{
       kind: "refused";
-      laws: readonly ("SessionSnapshot" | "PresentedMember" | "Response_in_time")[];
+      laws: readonly ("Test snapshot of its session" | "Shown before saved" | "Response in time")[];
     }>;
 
 /**
@@ -2840,15 +2844,15 @@ type ResponseExpected =
  */
 const responseExpectedOf = (c: ResponseCase): ResponseExpected => {
   if (c.when === "unstarted") {
-    return { kind: "refused", laws: ["SessionSnapshot", "PresentedMember"] };
+    return { kind: "refused", laws: ["Test snapshot of its session", "Shown before saved"] };
   }
 
   if (c.when !== "open") {
-    return { kind: "refused", laws: ["SessionSnapshot"] };
+    return { kind: "refused", laws: ["Test snapshot of its session"] };
   }
 
   return c.timing === "arrivedLate"
-    ? { kind: "refused", laws: ["Response_in_time"] }
+    ? { kind: "refused", laws: ["Response in time"] }
     : { kind: "accepted" };
 };
 
@@ -2987,12 +2991,10 @@ const holdResponse = (
     );
     const want = responseExpectedOf(c);
     if (want.kind === "refused") {
-      const named =
-        Result.isFailure(saved) && saved.failure.kind === "refused"
-          ? Formatter.format(refusedLawsOf(saved.failure.refused))
-          : "";
       assert.isTrue(
-        want.laws.some((law) => named.includes(law)),
+        Result.isFailure(saved) &&
+          saved.failure.kind === "refused" &&
+          refusedBy(saved.failure.refused, ...want.laws),
         `${c.name}: refused by one of ${want.laws.join(", ")}, got ${Formatter.format(saved)}`,
       );
       if (c.when === "unstarted") {
@@ -4254,8 +4256,8 @@ const holdSupersede = (
       assert.isTrue(
         Result.isFailure(later) &&
           later.failure.kind === "refused" &&
-          Formatter.format(refusedLawsOf(later.failure.refused)).includes("Response_in_time"),
-        `${c.name}: the later save refused by Response_in_time, got ${Formatter.format(later)}`,
+          refusedBy(later.failure.refused, "Response in time"),
+        `${c.name}: the later save refused by "Response in time", got ${Formatter.format(later)}`,
       );
     }
 
@@ -4342,7 +4344,7 @@ const absenceMillis = 2000;
  */
 const presenceExpectedOf = (c: PresenceCase) =>
   c.ending === "presentPastDeadline"
-    ? ({ kind: "refused", law: "Suspended_in_time" } as const)
+    ? ({ kind: "refused", law: "Suspended in time" } as const)
     : ({ kind: "charged to the last sign" } as const);
 
 /**
@@ -4428,7 +4430,7 @@ const holdPresence = (
         assert.isTrue(
           Result.isFailure(suspended) &&
             suspended.failure.kind === "refused" &&
-            Formatter.format(refusedLawsOf(suspended.failure.refused)).includes(want.law),
+            refusedBy(suspended.failure.refused, want.law),
           `${c.name}: the suspension refused by ${want.law}, got ${Formatter.format(suspended)}`,
         );
         note("a sign past the deadline refused its suspension");
