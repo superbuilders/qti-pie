@@ -1537,6 +1537,20 @@ const refusedBy = (refused: BrokenLaws, ...names: readonly LedgerLawName[]) =>
   refusedLawsOf(refused).some(({ law }) => names.some((name) => law.entry.name === name));
 
 /**
+ * A read's float outcomes in the variable order the tables state them: floatsOf reads a union of
+ * two rules (a snapshot's value, an assertion's), whose key grizzle proves is its whole heading, so
+ * it arrives ordered by value before variable, no order a table states.
+ *
+ * @param floats - Each outcome's variable and value.
+ * @returns Them by variable.
+ */
+const byVariableOf = (floats: readonly (readonly [string, number])[]) =>
+  Arr.sort(
+    floats,
+    Order.mapInput(Order.String, (row: readonly [string, number]) => row[0]),
+  );
+
+/**
  * One run of a case: a fresh child's item session of the essay and its attempt with its response,
  * history's with its imported grading, graded as the write that records it grades it (`grade`);
  * then each of its writes in turn, a draw's evaluation through the ledger's evaluation writes or a
@@ -1610,13 +1624,10 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
       facts: {},
       params: { package: PACKAGE },
     });
-    const operators = Arr.sort(
-      Arr.dedupe(
-        Arr.fromIterable(essayDrawRows)
-          .filter((row) => row.path === ESSAY)
-          .map((row) => row.operator),
-      ),
-      Order.BigInt,
+    const operators = Arr.dedupe(
+      Arr.fromIterable(essayDrawRows)
+        .filter((row) => row.path === ESSAY)
+        .map((row) => row.operator),
     );
     assert.strictEqual(
       Arr.fromIterable(waitingRows).length,
@@ -1721,20 +1732,14 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
       `${c.name}: ApplicationOperands and ApplicationMaximum`,
     );
     assert.deepStrictEqual<unknown>(
-      Arr.sort(
-        Arr.fromIterable(drawRows)
-          .filter((row) => row.path === ESSAY)
-          .map((row) => row.draw),
-        Order.String,
-      ),
+      Arr.fromIterable(drawRows)
+        .filter((row) => row.path === ESSAY)
+        .map((row) => row.draw),
       ["1", "2"],
       `${c.name}: ApplicationDraw, the essay's two literal draws`,
     );
     assert.deepStrictEqual<unknown>(
-      Arr.sort(
-        Arr.fromIterable(floatRows).map((row) => [row.variable, row.value] as const),
-        Order.mapInput(Order.String, (row: readonly [string, number]) => row[0]),
-      ),
+      byVariableOf(Arr.fromIterable(floatRows).map((row) => [row.variable, row.value] as const)),
       want.floats,
       `${c.name}: floats in force`,
     );
@@ -1784,7 +1789,9 @@ type TakeExpected = Readonly<{
  * T, by `qti-set-correct-response`; RESPONSE's default T where T is past 5, by
  * `qti-set-default-value`, and none where it is not, its declared 5 no row; FEEDBACK's default NULL
  * where T is even, a header with no value row, and nothing where it is odd. No identifier row: the
- * one identifier template processing sets, it sets to NULL.
+ * one identifier template processing sets, it sets to NULL. Each list is in the order a read
+ * returns it, its key's: by kind as `SessionValueKind` lists them (template, correct, default),
+ * then by variable.
  *
  * @param t - The T the machine's run draws.
  */
@@ -1794,16 +1801,16 @@ const takeExpectedOf = (t: bigint): TakeExpected => {
 
   return {
     headers: [
+      ["template", "T"],
       ["correct", "RESPONSE"],
       ...(nulls ? [["default", "FEEDBACK"] as const] : []),
       ...(setsDefault ? [["default", "RESPONSE"] as const] : []),
-      ["template", "T"],
     ],
     identifiers: [],
     integers: [
+      ["template", "T", t],
       ["correct", "RESPONSE", t],
       ...(setsDefault ? [["default", "RESPONSE", t] as const] : []),
-      ["template", "T", t],
     ],
   };
 };
@@ -1819,17 +1826,6 @@ const takeSituations = [
 ] as const;
 
 type TakeSituation = (typeof takeSituations)[number];
-
-/**
- * A stored set's rows, ordered by kind and variable as the table states them.
- *
- * @param rows - A read's rows.
- */
-const byVariable = <R extends Readonly<{ kind: string; variable: string }>>(rows: Iterable<R>) =>
-  Arr.sort(
-    Arr.fromIterable(rows),
-    Order.mapInput(Order.String, (row: R) => `${row.kind} ${row.variable}`),
-  );
 
 /**
  * One take: a fresh child's session of the templated item under its seed, begun by its take
@@ -1885,9 +1881,13 @@ const holdTake = (c: TakeCase, child: string, note: (situation: TakeSituation) =
     const identifierRows = yield* db.workload.takenIdentifiersOf.once(atChild);
     assert.deepStrictEqual<unknown>(
       {
-        headers: byVariable(headerRows).map((row) => [row.kind, row.variable]),
-        identifiers: byVariable(identifierRows).map((row) => [row.kind, row.variable, row.value]),
-        integers: byVariable(integerRows).map((row) => [row.kind, row.variable, row.value]),
+        headers: Arr.fromIterable(headerRows).map((row) => [row.kind, row.variable]),
+        identifiers: Arr.fromIterable(identifierRows).map((row) => [
+          row.kind,
+          row.variable,
+          row.value,
+        ]),
+        integers: Arr.fromIterable(integerRows).map((row) => [row.kind, row.variable, row.value]),
       },
       want,
       `${c.name}: the take stores exactly what template processing set, T the run's ${String(t)}`,
@@ -2031,9 +2031,8 @@ const holdOperators = (
     assert.deepStrictEqual<unknown>(
       {
         credit: Arr.fromIterable(creditRows).map((row) => [row.earned, row.maximum, row.kind]),
-        floats: Arr.sort(
+        floats: byVariableOf(
           Arr.fromIterable(floatRows).map((row) => [row.variable, row.value] as const),
-          Order.mapInput(Order.String, (row: readonly [string, number]) => row[0]),
         ),
         status: Arr.fromIterable(statusRows).map((row) => row.status),
       },
@@ -2163,9 +2162,8 @@ const holdPatterns = (
     const floatRows = yield* db.workload.floatsOf.once(atChild);
     assert.deepStrictEqual<unknown>(
       {
-        floats: Arr.sort(
+        floats: byVariableOf(
           Arr.fromIterable(floatRows).map((row) => [row.variable, row.value] as const),
-          Order.mapInput(Order.String, (row: readonly [string, number]) => row[0]),
         ),
         status: Arr.fromIterable(statusRows).map((row) => row.status),
       },
@@ -2249,22 +2247,16 @@ const holdDrawCase = (c: DrawCase, child: string, note: (situation: DrawSituatio
       });
       yield* db.workload.grade.once({ facts: {}, params: key });
 
-      const completions = Arr.sort(
-        Arr.fromIterable(yield* db.workload.completionsOf.once(atChild)),
-        Order.mapInput(Order.BigInt, (row: { readonly at: bigint }) => row.at),
-      );
+      const completions = Arr.fromIterable(yield* db.workload.completionsOf.once(atChild));
       const floats = Arr.fromIterable(yield* db.workload.snapshotFloatsOf.once(atChild));
       const identifiers = Arr.fromIterable(yield* db.workload.snapshotIdentifiersOf.once(atChild));
       const bags = Arr.fromIterable(yield* db.workload.snapshotIdentifierBagsOf.once(atChild));
       const booleans = Arr.fromIterable(yield* db.workload.snapshotBooleansOf.once(atChild));
       assert.deepStrictEqual<unknown>(
         completions.map(({ at, completionStatus }) => ({
-          feedback: Arr.sort(
-            bags
-              .filter((row) => row.at === at && row.variable === "FEEDBACK")
-              .flatMap((row) => Arr.replicate(row.value, Number(row.count))),
-            Order.String,
-          ),
+          feedback: bags
+            .filter((row) => row.at === at && row.variable === "FEEDBACK")
+            .flatMap((row) => Arr.replicate(row.value, Number(row.count))),
           hint: valuesAt(identifiers, at, "HINT"),
           hintNull: valuesAt(booleans, at, "HINT_NULL"),
           maxScore: valuesAt(floats, at, "MAXSCORE"),
@@ -2588,15 +2580,10 @@ const holdReview = (c: ReviewCase, child: string, note: (situation: ReviewSituat
       yield* db.workload.attemptsOf.once({ facts: {}, params: { child } }),
     );
     const essayAt = Option.getOrThrow(Arr.findFirst(recorded, (row) => row.path === ESSAY)).at;
-    const operators = Arr.sort(
-      Arr.dedupe(
-        Arr.fromIterable(
-          yield* db.workload.drawsOf.once({ facts: {}, params: { package: PACKAGE } }),
-        )
-          .filter((row) => row.path === ESSAY)
-          .map((row) => row.operator),
-      ),
-      Order.BigInt,
+    const operators = Arr.dedupe(
+      Arr.fromIterable(yield* db.workload.drawsOf.once({ facts: {}, params: { package: PACKAGE } }))
+        .filter((row) => row.path === ESSAY)
+        .map((row) => row.operator),
     );
     for (const operator of operators) {
       yield* db.workload.recordEvaluations.once({
@@ -2636,96 +2623,85 @@ const holdReview = (c: ReviewCase, child: string, note: (situation: ReviewSituat
         latest.set(session, row.at);
       }
     }
-    const read = Arr.sort(
-      yield* Effect.all(
-        reviewed.attempts.map((row) =>
-          Effect.map(judgedOfRows(row), (judged) => {
-            const [single] = row.single;
-            const [multiple] = row.multiple;
-            const [ordered] = row.ordered;
-            const [record] = row.record;
-            const [marked] = row.marks;
-            assert.isDefined(single, `${c.name}, ${row.path}: its singles' row`);
-            assert.isDefined(multiple, `${c.name}, ${row.path}: its multiples' row`);
-            assert.isDefined(ordered, `${c.name}, ${row.path}: its ordereds' row`);
-            assert.isDefined(record, `${c.name}, ${row.path}: its records' row`);
-            assert.isDefined(marked, `${c.name}, ${row.path}: its marks' row`);
-            assert.strictEqual(
-              row.at,
-              latest.get(`${row.path} ${String(row.n)}`),
-              `${c.name}, ${row.path}: read at its session's latest attempt`,
-            );
+    const read = yield* Effect.all(
+      reviewed.attempts.map((row) =>
+        Effect.map(judgedOfRows(row), (judged) => {
+          const [single] = row.single;
+          const [multiple] = row.multiple;
+          const [ordered] = row.ordered;
+          const [record] = row.record;
+          const [marked] = row.marks;
+          assert.isDefined(single, `${c.name}, ${row.path}: its singles' row`);
+          assert.isDefined(multiple, `${c.name}, ${row.path}: its multiples' row`);
+          assert.isDefined(ordered, `${c.name}, ${row.path}: its ordereds' row`);
+          assert.isDefined(record, `${c.name}, ${row.path}: its records' row`);
+          assert.isDefined(marked, `${c.name}, ${row.path}: its marks' row`);
+          assert.strictEqual(
+            row.at,
+            latest.get(`${row.path} ${String(row.n)}`),
+            `${c.name}, ${row.path}: read at its session's latest attempt`,
+          );
 
-            const singles = [
-              ...single.boolean.map(({ value, variable }) => [variable, "boolean", value] as const),
-              ...single.float.map(({ value, variable }) => [variable, "float", value] as const),
-              ...single.identifier.map(
-                ({ value, variable }) => [variable, "identifier", value] as const,
-              ),
-              ...single.string.map(({ value, variable }) => [variable, "string", value] as const),
-            ];
-            const multiples = multiple.identifier.map(
-              ({ count, value, variable }) => [variable, "identifier", value, count] as const,
-            );
-            assert.deepStrictEqual<unknown>(
-              [
-                valueCountOf(single),
-                valueCountOf(multiple),
-                valueCountOf(ordered),
-                valueCountOf(record),
-                markCountOf(marked),
-                judged.credit.pipe(Option.map((kind) => [kind])),
-              ],
-              [
-                singles.length,
-                multiples.length,
-                0,
-                0,
-                marked.text.length,
-                Option.fromUndefinedOr(row.credit[0]).pipe(Option.map(({ kind }) => [kind])),
-              ],
-              `${c.name}, ${row.path}: no value or mark of a shape the table gives none of, and the credit judgedOfRows reads its row's`,
-            );
+          const singles = [
+            ...single.boolean.map(({ value, variable }) => [variable, "boolean", value] as const),
+            ...single.float.map(({ value, variable }) => [variable, "float", value] as const),
+            ...single.identifier.map(
+              ({ value, variable }) => [variable, "identifier", value] as const,
+            ),
+            ...single.string.map(({ value, variable }) => [variable, "string", value] as const),
+          ];
+          const multiples = multiple.identifier.map(
+            ({ count, value, variable }) => [variable, "identifier", value, count] as const,
+          );
+          assert.deepStrictEqual<unknown>(
+            [
+              valueCountOf(single),
+              valueCountOf(multiple),
+              valueCountOf(ordered),
+              valueCountOf(record),
+              markCountOf(marked),
+              judged.credit.pipe(Option.map((kind) => [kind])),
+            ],
+            [
+              singles.length,
+              multiples.length,
+              0,
+              0,
+              marked.text.length,
+              Option.fromUndefinedOr(row.credit[0]).pipe(Option.map(({ kind }) => [kind])),
+            ],
+            `${c.name}, ${row.path}: no value or mark of a shape the table gives none of, and the credit judgedOfRows reads its row's`,
+          );
 
-            return {
-              credit: row.credit.map(
-                ({ earned, kind, maximum }) => [earned, maximum, kind] as const,
-              ),
-              marks: Arr.sort(
-                marked.text.map((mark) => {
-                  assert.deepStrictEqual<unknown>(
-                    [mark.baseType, mark.place, mark.copies],
-                    ["identifier", 0n, 1n],
-                    `${c.name}, ${row.path}: a multiple's mark at place 0, one copy`,
-                  );
+          return {
+            credit: row.credit.map(({ earned, kind, maximum }) => [earned, maximum, kind] as const),
+            marks: Arr.sort(
+              marked.text.map((mark) => {
+                assert.deepStrictEqual<unknown>(
+                  [mark.baseType, mark.place, mark.copies],
+                  ["identifier", 0n, 1n],
+                  `${c.name}, ${row.path}: a multiple's mark at place 0, one copy`,
+                );
 
-                  return [mark.variable, mark.value, mark.mark] as const;
-                }),
-                Order.mapInput(Order.String, (mark: readonly [string, string, string]) => mark[1]),
+                return [mark.variable, mark.value, mark.mark] as const;
+              }),
+              Order.mapInput(Order.String, (mark: readonly [string, string, string]) => mark[1]),
+            ),
+            multiples,
+            path: row.path,
+            processed: Option.toArray(
+              row.processed.pipe(Option.map(({ completionStatus }) => completionStatus)),
+            ),
+            singles: Arr.sort(
+              singles,
+              Order.mapInput(
+                Order.String,
+                ([variable]: readonly [string, string, unknown]) => variable,
               ),
-              multiples: Arr.sort(
-                multiples,
-                Order.mapInput(
-                  Order.String,
-                  (given: readonly [string, string, string, bigint]) => `${given[0]} ${given[2]}`,
-                ),
-              ),
-              path: row.path,
-              processed: Option.toArray(
-                row.processed.pipe(Option.map(({ completionStatus }) => completionStatus)),
-              ),
-              singles: Arr.sort(
-                singles,
-                Order.mapInput(
-                  Order.String,
-                  ([variable]: readonly [string, string, unknown]) => variable,
-                ),
-              ),
-            } satisfies ReviewRow;
-          }),
-        ),
+            ),
+          } satisfies ReviewRow;
+        }),
       ),
-      Order.mapInput(Order.String, (row: ReviewRow) => row.path),
     );
     assert.strictEqual(
       rows.length,
@@ -3447,20 +3423,19 @@ const holdControls = (
       return assert.fail(`${c.name}: an attempt of ${value}`);
     };
     const submittedOf = (path: string) =>
-      Arr.sort(
-        attempts.filter((row) => row.package === PACKAGE && row.path === path),
-        Order.mapInput(Order.BigInt, (row: (typeof attempts)[number]) => row.at),
-      ).map((row): SubmittedText => {
-        const held = strings.filter(
-          (value) =>
-            value.path === path &&
-            value.n === row.n &&
-            value.at === row.at &&
-            value.variable === "RESPONSE",
-        );
+      attempts
+        .filter((row) => row.package === PACKAGE && row.path === path)
+        .map((row): SubmittedText => {
+          const held = strings.filter(
+            (value) =>
+              value.path === path &&
+              value.n === row.n &&
+              value.at === row.at &&
+              value.variable === "RESPONSE",
+          );
 
-        return held.length === 0 ? "default" : textOf(Option.getOrThrow(Arr.head(held)).value);
-      });
+          return held.length === 0 ? "default" : textOf(Option.getOrThrow(Arr.head(held)).value);
+        });
     assert.deepStrictEqual<unknown>(
       {
         [DRAFT_REF]: submittedOf(controlPathOf[DRAFT_REF]),
@@ -4814,7 +4789,7 @@ const holdShowing = (c: ShowingCase, child: string, note: (situation: ShowingSit
         );
         const want = c.checkpoints[k] ?? [];
         assert.deepStrictEqual<unknown>(
-          byPath(got).map(([path, facts]) => [
+          got.map(([path, facts]) => [
             path,
             {
               attempts: facts.session.attempts,
@@ -5006,9 +4981,7 @@ const presenceReadsOf = (child: string) =>
     const db = yield* Db.open(suite.roles.result_runner, {});
     const windows = Arr.fromIterable(
       yield* db.workload.windowsOf.once({ facts: {}, params: { child } }),
-    )
-      .map((row): Window => [row.from, row.to])
-      .toSorted(([a], [b]) => (a < b ? -1 : 1));
+    ).map((row): Window => [row.from, row.to]);
     const credits = new Map<bigint, bigint>();
     for (const row of yield* db.workload.presentTimesOf.once({ facts: {}, params: { child } })) {
       credits.set(row.at, (credits.get(row.at) ?? 0n) + BigInt(row.micros.toString()));
@@ -5020,7 +4993,7 @@ const presenceReadsOf = (child: string) =>
     ).at;
 
     return {
-      credits: [...credits.entries()].toSorted(([a], [b]) => (a < b ? -1 : 1)),
+      credits: [...credits.entries()],
       last,
       windows,
     } satisfies PresenceReads;
@@ -5458,9 +5431,7 @@ const holdBeacons = (run: BeaconRun, child: string, note: (situation: BeaconSitu
 
     const days = Arr.fromIterable(
       yield* db.workload.presentTimesOf.once({ facts: {}, params: { child } }),
-    )
-      .map((row) => [row.day, BigInt(row.micros.toString())] as const)
-      .toSorted(([a], [b]) => (a < b ? -1 : 1));
+    ).map((row) => [row.day, BigInt(row.micros.toString())] as const);
     assert.deepStrictEqual<unknown>(
       days,
       [...credit.entries()].toSorted(([a], [b]) => (a < b ? -1 : 1)),
@@ -5543,11 +5514,7 @@ const holdGuardedTake = (
       });
     const sessions = Effect.map(
       db.workload.sessionsOf.once({ facts: {}, params: { child } }),
-      (rows) =>
-        Arr.sort(
-          Arr.fromIterable(rows).map(({ path }) => path),
-          Order.String,
-        ),
+      (rows) => Arr.fromIterable(rows).map(({ path }) => path),
     );
 
     const first = yield* take(1n);
@@ -5556,14 +5523,11 @@ const holdGuardedTake = (
     const taken = yield* sessions;
     assert.deepStrictEqual<unknown>(taken, [OTHER, SHORT], `${c.name}: an item session per member`);
 
-    const started = Arr.sort(
-      Arr.fromIterable(
-        yield* db.workload.startsOf.once({ facts: {}, params: { child, package: PACKAGE } }),
-      )
-        .filter(({ variable }) => variable === "completionStatus")
-        .map(({ path }) => path),
-      Order.String,
-    );
+    const started = Arr.fromIterable(
+      yield* db.workload.startsOf.once({ facts: {}, params: { child, package: PACKAGE } }),
+    )
+      .filter(({ variable }) => variable === "completionStatus")
+      .map(({ path }) => path);
     assert.deepStrictEqual<unknown>(
       started,
       taken,
