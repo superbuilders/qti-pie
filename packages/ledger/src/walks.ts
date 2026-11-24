@@ -9,10 +9,9 @@
  * rebuilds it per run.
  *
  * A walk is its document's, not an item's: the readers find the document a run walks, the item's
- * own, the template document it locates (`ResponseProgram`), or its test's, and the subtree by its
- * root. So a located template is stored once, however many items run it. The standard templates'
- * walks are the ledger's closed facts (`#ledger/standard-templates.ts`), which the readers read
- * beside these.
+ * own, the published template it names or the template document it locates (`ResponseProgram`), or
+ * its test's, and the subtree by its root. So a template document's walk is stored once, however
+ * many items run it, a published template's in the reference package that holds it.
  *
  * A stored row holds no NULL, so a parameter its element does not write has no row, and where QTI
  * 3.0.1 documents a default a second rule states it where the attribute is absent. Each parse is

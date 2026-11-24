@@ -851,6 +851,9 @@ against it. A reading that is not an information-model-over-XSD case says which 
     names no built-in template: the item is accepted and its response processing is marked unsupported, so its outcomes
     keep their defaults. This binds plate, which runs response processing. pantry runs none: it records which published
     template a `template` URI names, and it already names the same six under the same two prefixes, so the two agree.
+    The ledger's SQL grader runs each template's rules from its published file, stored as content: the reference
+    package `qti-rptemplates` (`packages/ledger/qti-rptemplates/`), which an installation publishes before any item
+    that names a template, the law "Template held" refusing such an item until it is stored.
     This is not a case of documents in conflict: the information model names the templates, and the guide's examples
     use a second spelling of their address. (The renderer's phase-3 default, delivery spec section 5.1, applied in
     plate; 2026-11-04.)

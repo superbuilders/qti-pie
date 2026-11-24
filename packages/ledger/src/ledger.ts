@@ -59,10 +59,8 @@ import {
   DocVar,
   gradedAttributes,
   gradingFunctions,
-  PEqual,
   ProgramNode,
   processingKinds,
-  Single,
   TableBinding,
   TableEntry,
 } from "#ledger/grading.ts";
@@ -72,16 +70,7 @@ import type { RegistryLevel } from "#ledger/registry/levels.ts";
 import { customOperators } from "#ledger/registry/operators.ts";
 import { QtiFloat, QtiInteger } from "#ledger/scalars.ts";
 import { SittingStanding, sittingTablesOf } from "#ledger/sittings.ts";
-import {
-  templateAttributes,
-  templateElements,
-  templateEquals,
-  templateIdents,
-  templateLiteralFloats,
-  templateLiteralTexts,
-  templateNodes,
-  templateTexts,
-} from "#ledger/standard-templates.ts";
+import { templatePackage } from "#ledger/template-package.ts";
 
 /**
  * QTI's built-in `completionStatus` outcome, which no item declares (QTI 3.0 information model,
@@ -2636,109 +2625,27 @@ export const ledgerOf = (qti: RegistryLevel) => {
   /**
    * The published response processing templates (spec reading 51, pantry's `publishedTemplates`),
    * whose rules the SQL grader runs where an item's processing names one and holds no rule of its
-   * own (§4.6.1, §4.6.2), and those rules as closed facts: each template's
-   * `qti-response-processing` subtree, its elements (**TemplateNode**, each by its handle
-   * **TemplateElement**, since a closed relation is keyed by closed ids), their closed attributes
-   * (**TemplateAttribute**) and its base values' texts (**TemplateText**), at the positions
-   * pantry's import gives the template's document (`#ledger/standard-templates.ts`, generated from
-   * the documents `https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/<name>.xml` serves, which
-   * the package keeps in `qti-rptemplates/`). The templates are part of the standard, never content
-   * a package holds: information model §4.6.1, "If a template identifier is given it may be used to
-   * locate an externally defined responseProcessing template", and a processor that knows a
-   * template "from the template identifier alone" ignores its `template-location` (§4.6.2).
+   * own (§4.6.1, §4.6.2), and each one's document as the reference package stores it
+   * (**PublishedTemplateDocument**: `#ledger/template-package.ts`'s package, `<name>.xml`, whose
+   * root is the template's `qti-response-processing`), published as any package is: information
+   * model §4.6.1, "If a template identifier is given it may be used to locate an externally defined
+   * responseProcessing template", and a processor that knows a template "from the template
+   * identifier alone" ignores its `template-location` (§4.6.2).
    */
   const PublishedTemplate = closed.ordered("PublishedTemplate", publishedTemplates);
-  const TemplateElement = closed.ordered("TemplateElement", templateElements);
-  const TemplateNode = closed.relation(
-    "TemplateNode",
+  const PublishedTemplateDocument = closed.relation(
+    "PublishedTemplateDocument",
     {
-      element: closedId(TemplateElement),
-      end: natural,
-      kind: closedId(NodeKind),
-      parent: natural,
-      start: natural,
+      package: Package.fields.package,
+      path: Document.fields.path,
       template: closedId(PublishedTemplate),
     },
-    ["element"],
-    templateNodes,
-  );
-  const TemplateAttribute = closed.relation(
-    "TemplateAttribute",
-    {
-      element: closedId(TemplateElement),
-      name: Attribute.fields.name,
-      start: natural,
-      template: closedId(PublishedTemplate),
-      value: Attribute.fields.lexical,
-    },
-    ["element", "name"],
-    templateAttributes,
-  );
-  const TemplateText = closed.relation(
-    "TemplateText",
-    {
-      element: closedId(TemplateElement),
-      start: natural,
-      template: closedId(PublishedTemplate),
-      text: Literal.fields.text,
-    },
-    ["element"],
-    templateTexts,
-  );
-  /**
-   * The walk's facts of the templates' parameters (`#ledger/walks.ts`, which holds a package's):
-   * each element that names a variable, by its `identifier` (**TemplateIdent**), each equal's mode
-   * and bounds (**TemplateEqual**), and each base value, of a text base type
-   * (**TemplateLiteralText**) or a float (**TemplateLiteralFloat**), as the walk reads one. The
-   * generator refuses a template that writes any other parameter.
-   */
-  const TemplateIdent = closed.relation(
-    "TemplateIdent",
-    {
-      element: closedId(TemplateElement),
-      identifier: anyText,
-      start: natural,
-      template: closedId(PublishedTemplate),
-    },
-    ["element"],
-    templateIdents,
-  );
-  const TemplateEqual = closed.relation(
-    "TemplateEqual",
-    {
-      element: closedId(TemplateElement),
-      lowerIn: pg.boolean,
-      mode: PEqual.fields.mode,
-      start: natural,
-      template: closedId(PublishedTemplate),
-      upperIn: pg.boolean,
-    },
-    ["element"],
-    templateEquals,
-  );
-  const TemplateLiteralText = closed.relation(
-    "TemplateLiteralText",
-    {
-      base: Single.fields.base,
-      element: closedId(TemplateElement),
-      start: natural,
-      template: closedId(PublishedTemplate),
-      value: Literal.fields.text,
-    },
-    ["element"],
-    templateLiteralTexts,
-  );
-  const TemplateLiteralFloat = closed.relation(
-    "TemplateLiteralFloat",
-    {
-      base: Single.fields.base,
-      element: closedId(TemplateElement),
-      start: natural,
-      template: closedId(PublishedTemplate),
-      value: QtiFloat,
-    },
-    ["element"],
-    templateLiteralFloats,
+    ["template"],
+    publishedTemplates.map((template) => ({
+      package: templatePackage,
+      path: `${template}.xml`,
+      template,
+    })),
   );
   /**
    * Each `template` URI that names a published template, by its form: pantry's `urisOf`, each
@@ -2796,14 +2703,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
       RegistryWordText,
       SessionValueHolds,
       PublishedTemplate,
-      TemplateElement,
-      TemplateNode,
-      TemplateAttribute,
-      TemplateText,
-      TemplateIdent,
-      TemplateEqual,
-      TemplateLiteralText,
-      TemplateLiteralFloat,
+      PublishedTemplateDocument,
       TemplateUriForm,
       PublishedTemplateUri,
       ItemSessionValue,

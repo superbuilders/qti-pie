@@ -1233,6 +1233,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     ...testLaws.laws,
     ...assertions.laws,
     ...servable.laws,
+    ...programs.laws,
     ...results.laws,
     ...sessionControls.laws,
     ...operands.laws,

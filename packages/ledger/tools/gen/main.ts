@@ -8,7 +8,6 @@ import { generator as grade } from "#tools/gen/grade.ts";
 import { generator as grading } from "#tools/gen/grading.ts";
 import { generator as savedRows } from "#tools/gen/saved-rows.ts";
 import { generator as sessionStart } from "#tools/gen/session-start.ts";
-import { generator as templates } from "#tools/gen/templates.ts";
 import { generator as xsd } from "#tools/gen/xsd.ts";
 import { ledgerDirectory, scratchDirectory, toolsFor } from "#tools/gen/tools.ts";
 
@@ -27,7 +26,6 @@ const GENERATORS: readonly Generator[] = [
   grading,
   savedRows,
   sessionStart,
-  templates,
   xsd,
 ];
 

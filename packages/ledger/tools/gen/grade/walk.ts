@@ -1,9 +1,9 @@
 /**
  * The walk's readers (COMPILE-AT-PUBLISH C2, the walk): each input of the machine's walk entry
  * (`walk_from`), its rows read from the stored walk relation of the document a run walks
- * (`#ledger/walks.ts`), re-keyed to the run's document, and, for an item whose processing names a
- * published template, from that template's closed facts. One table, the readers of the grade, the
- * take and a test's outcome processing each written from it.
+ * (`#ledger/walks.ts`: the item's own, the published template it names or the template document it
+ * locates), re-keyed to the run's document. One table, the readers of the grade, the take and a
+ * test's outcome processing each written from it.
  */
 import { indexOf, must } from "#tools/gen/grade/text.ts";
 
@@ -19,8 +19,8 @@ interface Column {
 
 /**
  * One input of the walk entry: its argument, the stored relation that holds its rows and their
- * columns, and the published templates' closed facts of it where a template has any; `token`, for
- * a column the reader maps through a closed token relation (the node kind, the operator's class).
+ * columns; `token`, for a column the reader maps through a closed token relation (the operator's
+ * class).
  */
 interface WalkInput {
   readonly argument: string;
@@ -34,7 +34,6 @@ interface WalkInput {
   readonly relation: string;
   readonly columns: readonly Column[];
   readonly token?: { readonly column: string; readonly relation: string; readonly from: string };
-  readonly template?: string;
 }
 
 /**
@@ -74,7 +73,6 @@ export const WALK_INPUTS: readonly WalkInput[] = [
     heading: "ProgramNode",
     reader: "programNodesOf",
     relation: "WalkNode",
-    template: "TemplateNode",
   },
   {
     argument: "walk_areas",
@@ -131,7 +129,6 @@ export const WALK_INPUTS: readonly WalkInput[] = [
     heading: "DocWalkEqual",
     reader: "walkEqualsOf",
     relation: "WalkEqual",
-    template: "TemplateEqual",
   },
   {
     argument: "walk_filters",
@@ -159,7 +156,6 @@ export const WALK_INPUTS: readonly WalkInput[] = [
     heading: "DocWalkIdent",
     reader: "walkIdentsOf",
     relation: "WalkIdent",
-    template: "TemplateIdent",
   },
   {
     argument: "walk_integers",
@@ -201,7 +197,6 @@ export const WALK_INPUTS: readonly WalkInput[] = [
     heading: "DocWalkLiteralFloat",
     reader: "walkLiteralFloatsOf",
     relation: "WalkLiteralFloat",
-    template: "TemplateLiteralFloat",
   },
   {
     argument: "walk_literal_integers",
@@ -243,7 +238,6 @@ export const WALK_INPUTS: readonly WalkInput[] = [
     heading: "DocWalkLiteralText",
     reader: "walkLiteralTextsOf",
     relation: "WalkLiteralText",
-    template: "TemplateLiteralText",
   },
   {
     argument: "walk_names",
@@ -316,10 +310,6 @@ export interface Roots {
    * Whether the roots name another document than the run's (`source`, `document`).
    */
   readonly located: boolean;
-  /**
-   * The bound query of the runs whose item may name a published template, or none.
-   */
-  readonly templated?: string;
 }
 
 /**
@@ -379,36 +369,6 @@ const storedRule = (input: WalkInput, roots: Roots, indent: string): string => {
 };
 
 /**
- * A walk input's rule over a published template's closed facts, for an item whose processing names
- * one (the delivery level's TemplatedProgram).
- *
- * @param input The input.
- * @param templated The bound query of the runs.
- * @param indent One level of the text's indentation.
- * @returns The rule's text.
- */
-const templateRule = (input: WalkInput, templated: string, indent: string): string => {
-  const { binds, heads } = pairs(input);
-  const isNode = input.relation === "WalkNode";
-
-  return [
-    `${indent.repeat(2)}.rule((r) => {`,
-    `${indent.repeat(3)}const graded = ${templated}`,
-    `${indent.repeat(3)}const { package: pkg, path: item } = v(graded, "graded")`,
-    `${indent.repeat(3)}const { template } = v(fields.TemplatedProgram, "templated")`,
-    `${indent.repeat(3)}const { start, ${binds} } = v(fields.${input.template ?? ""}, "walk")`,
-    ...(isNode ? [`${indent.repeat(3)}const { token } = v(fields.ProgramNodeKind, "token")`] : []),
-    `${indent.repeat(3)}return r`,
-    `${indent.repeat(4)}.match(graded, { package: pkg, path: item })`,
-    `${indent.repeat(4)}.match(fields.TemplatedProgram, { package: pkg, path: item, template })`,
-    `${indent.repeat(4)}.match(fields.${input.template ?? ""}, { template, start, ${binds} })`,
-    ...(isNode ? [`${indent.repeat(4)}.match(fields.ProgramNodeKind, { kind, token })`] : []),
-    `${indent.repeat(4)}.find({ package: pkg, path: item, start, ${isNode ? heads.replace("kind", "kind: token") : heads} })`,
-    `${indent.repeat(2)}})`,
-  ].join("\n");
-};
-
-/**
  * Each braced pattern's variable (`walk_refs`, field `pattern`): a qti-pattern-match's `pattern`
  * that is `{name}`, `name` declared in the run's document, read as the variable it names (QTI 3.0.1
  * §9.3.4: "if a string appears to be a reference to a template or outcome variable but there is no
@@ -454,9 +414,6 @@ export const walkReaders = (roots: Roots): string =>
   WALK_INPUTS.map((input) => {
     const rules = [
       storedRule(input, roots, "\t"),
-      ...(input.template !== undefined && roots.templated !== undefined
-        ? [templateRule(input, roots.templated, "\t")]
-        : []),
       ...(input.argument === "walk_refs"
         ? DECLARED.map((d) => patternRefRule(roots, d, "\t"))
         : []),
@@ -465,7 +422,7 @@ export const walkReaders = (roots: Roots): string =>
 
     const doc =
       input.argument === "programs"
-        ? "/** The program's elements, each of a processing kind, by the machine's token: its document's stored walk\n * (WalkNode), or the published template's its processing names (TemplatedProgram, TemplateNode). */"
+        ? "/** The program's elements, each of a processing kind, by the machine's token: its document's stored walk\n * (WalkNode). */"
         : `/** The walk's ${input.argument} of each run's program (${input.relation}), by the run's document. */`;
 
     return `${doc}\nconst ${input.reader} = (session: GradedSession) =>\n\tquery(Installed)\n${rules.join("\n")}`;
@@ -494,17 +451,16 @@ export const walkBinds = (): string =>
 
 /**
  * The grade's roots: each graded item's response processing subtree, by the document it is in
- * (`responseRootsOf`), and the graded items a published template may run.
+ * (`responseRootsOf`).
  */
 const gradeRoots: Roots = {
   bound: "responseRootsOf(session).bind(bySession(session))",
   located: true,
-  templated: "gradableOf(session).bind(bySession(session))",
 };
 
 /**
  * The readers' fragment with the walk's readers in it, before the declarations' readers, which
- * the take's transform keeps (its own roots, every template rule dropped).
+ * the take's transform keeps (over its own roots).
  *
  * @param readers The readers' fragment.
  * @returns The text.
@@ -543,11 +499,6 @@ export const withWalkBinds = (text: string): string => {
 
   return `${text.slice(0, at)}${walkBinds()}\n${text.slice(at)}`;
 };
-
-/**
- * The count of rules over a published template's facts the readers hold, which a take drops.
- */
-export const templateRuleCount = WALK_INPUTS.filter((input) => input.template !== undefined).length;
 
 /**
  * Every walk reader of a test's outcome processing (`testTreeOf`'s), each over its `roots`, the

@@ -428,6 +428,9 @@ export const ledgerLaws = {
     source:
       "src/sittings.ts TestSuspension: 'a TestSuspension ends one' candidate session, a visit of the sitting",
   },
+  "Template held": {
+    source: `${info}#RootCharacteristic_ResponseProcessing.Attr_template (§4.6.1, ResponseProcessing's template: 'If a template identifier is given it may be used to locate an externally defined responseProcessing template. The rules obtained from the external template may be used instead of the rules defined within the item itself'; §4.6.2, template-location: 'If a delivery system is able to determine the correct behaviour from the template identifier alone the template-location should be ignored'): a template URI that spells a published template (reading 51) names that standard template, whose rules this delivery system must hold to process the response, as its document in the store, the reference package qti-rptemplates (src/response-programs.ts ResponseProgram, src/ledger.ts PublishedTemplateDocument)`,
+  },
   "Test snapshot of its session": {
     source:
       "src/delivery.ts TestSnapshot: a test member's response snapshot is one taken inside a candidate session of its sitting (SessionSnapshot)",

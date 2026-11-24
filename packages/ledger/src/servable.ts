@@ -107,11 +107,11 @@ export const servableOf = (ledger: LedgerLevel) => {
 
   /**
    * The item documents whose response processing names a published template whose rules the grader
-   * runs (`#ledger/response-programs.ts`'s TemplatedProgram, the one statement of it): pantry's
+   * runs (`#ledger/response-programs.ts`'s templated programs, the one statement of them): pantry's
    * `TemplateProcessing`, whose `template` is a spelling of a published template (the ledger's
-   * `PublishedTemplateUri`, its rows pantry's `urisOf`; spec reading 51). The templates' rules are
-   * the ledger's closed facts (`TemplateNode`), so the item is served exactly where the grader
-   * holds the rules it runs, whatever the installation's content holds.
+   * `PublishedTemplateUri`, its rows pantry's `urisOf`; spec reading 51), with the template's
+   * document in the reference package (`PublishedTemplateDocument`), which "Template held" holds to
+   * the store, so the item is served exactly where the grader holds the rules it runs.
    */
   const publishedProcessings = templatedProgramsOf(ledger);
 
@@ -155,13 +155,12 @@ export const servableOf = (ledger: LedgerLevel) => {
    * §4.6.2, Table 4.6.2 (`template-location`): it "can be used to obtain a copy of the response
    * processing template. If a delivery system is able to determine the correct behaviour from the
    * template identifier alone the template-location should be ignored." So a published template is
-   * run from the ledger's closed rules of it, whatever location is written beside it. Otherwise a
-   * location the
-   * package resolves to a template document (pantry's `LocatedTemplate`: a Document of root
-   * `qti-response-processing`) gives the rules the grader runs as the item's own, which pantry
-   * types and judges in the item's own placement (`placedDocuments`: a variable "that has been
-   * declared", §6.9.40; reading 233). A location outside the package, or to no template document,
-   * gives none: it is stored as written and never fetched (reading 35).
+   * run from its document in the reference package, whatever location is written beside it.
+   * Otherwise a location the package resolves to a template document (pantry's `LocatedTemplate`:
+   * a Document of root `qti-response-processing`) gives the rules the grader runs as the item's
+   * own, which pantry types and judges in the item's own placement (`placedDocuments`: a variable
+   * "that has been declared", §6.9.40; reading 233). A location outside the package, or to no
+   * template document, gives none: it is stored as written and never fetched (reading 35).
    */
   const unresolvedProcessings = query(ledger)
     .rule((r) => {

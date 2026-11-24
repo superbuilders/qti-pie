@@ -33,9 +33,9 @@ const gradableOf = (session: GradedSession) =>
 
 /** The subtree the item's response processing runs, by the document it is in (the delivery level's ResponseProgram,
  * read by the item's key): its own processing where it holds a rule (§4.6.1: "if both are given the internal rules are
- * still preferred"), else the template document its `template-location` locates (pantry's LocatedTemplate). An item
- * whose processing names a published template runs that template's rules, the ledger's closed TemplateNode, read by
- * the program's readers' second rule (the delivery level's TemplatedProgram). */
+ * still preferred"), else the published template's document its `template` names (the reference package's, §4.6.2:
+ * "the template-location should be ignored"), else the template document its `template-location` locates (pantry's
+ * LocatedTemplate). */
 const responseRootsOf = (session: GradedSession) =>
 	query(Installed).rule((r) => {
 		const graded = gradableOf(session).bind(bySession(session))
