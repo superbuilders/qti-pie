@@ -288,13 +288,15 @@ const sumsOf = (statistics: pg.Client, database: string) =>
   );
 
 /**
- * The login role's one client backend now, if it has one.
+ * The login role's client backends now but the run's preparation's (`except`): the measurement's
+ * one, if it has connected.
  *
  * @param statistics - The statistics session.
  * @param role - The login's PostgreSQL role.
- * @returns Its backend's state and wait event, or none.
+ * @param except - The preparation's backends, which the measurement never times.
+ * @returns Each backend's state and wait event.
  */
-const backendOf = async (statistics: pg.Client, role: string) => {
+const backendOf = async (statistics: pg.Client, role: string, except: ReadonlySet<number>) => {
   const answered = await statistics.query<{
     readonly pid: number;
     readonly state: string | null;
@@ -304,8 +306,13 @@ const backendOf = async (statistics: pg.Client, role: string) => {
     [role],
   );
 
-  return answered.rows;
+  return answered.rows.filter(({ pid }) => !except.has(pid));
 };
+
+/**
+ * No backend set apart: the preparation's own lookups, which run before the measurement connects.
+ */
+const noBackends: ReadonlySet<number> = new Set();
 
 /**
  * A part of a measurement as it ended: its value, or the record of the stop that ended it.
@@ -340,12 +347,13 @@ const watcherOf =
     subject: ActionsSubject<R, E>,
     limitMs: number,
     during: "prepare" | "warm",
+    except: ReadonlySet<number>,
     stopped: (stop: StopAt) => void,
   ): CallWatcher =>
   (call, effect) =>
     Effect.gen(function* watchedCall() {
       const [present] = yield* Effect.promise(() =>
-        backendOf(subject.statistics, subject.loginRole),
+        backendOf(subject.statistics, subject.loginRole, except),
       );
       const never: Scheduled = { cpuNs: 0, queuedNs: 0 };
       const since = present === undefined ? never : scheduledOf(present.pid);
@@ -361,7 +369,7 @@ const watcherOf =
           if (!finding) {
             finding = true;
             void (async () => {
-              const rows = await backendOf(subject.statistics, subject.loginRole);
+              const rows = await backendOf(subject.statistics, subject.loginRole, except);
 
               finding = false;
               pid = rows[0]?.pid;
@@ -401,6 +409,9 @@ const watcherOf =
  * @param scale - The population's label.
  * @param child - The fresh child, whom nothing before held.
  * @param callBarMs - The bar each call of the preparation and the warming is held to.
+ * @param preparation - The run's preparation connection, long-lived, as a warm server's: setup is
+ *   not what is measured, so a preparation call is a warm one, and one over the call bar there is
+ *   pathological.
  * @returns The action's record.
  */
 export const measureAction = <R, E>(
@@ -409,6 +420,7 @@ export const measureAction = <R, E>(
   scale: string,
   child: string,
   callBarMs: number,
+  preparation: Context.Context<R>,
 ): Effect.Effect<ActionRecord, ActionMeasureFailed | E> =>
   Effect.gen(function* measureActionAt() {
     let stop: StopAt | undefined;
@@ -452,23 +464,25 @@ export const measureAction = <R, E>(
         ),
       );
     const prepared = yield* orStopped(
-      Effect.scoped(
-        Effect.flatMap(Layer.build(subject.layer()), (context) =>
-          Effect.provide(
-            Effect.provideService(
-              action.prepare(child),
-              CallWatch,
-              watcherOf(subject, callBarMs, "prepare", stopped),
-            ),
-            context,
-          ),
+      Effect.provide(
+        Effect.provideService(
+          action.prepare(child),
+          CallWatch,
+          watcherOf(subject, callBarMs, "prepare", noBackends, stopped),
         ),
+        preparation,
       ),
     );
 
     if (prepared.kind === "stopped") {
       return prepared.record;
     }
+
+    const preparing = new Set(
+      (yield* Effect.promise(() =>
+        backendOf(subject.statistics, subject.loginRole, noBackends),
+      )).map(({ pid }) => pid),
+    );
 
     const readied = prepared.value;
 
@@ -484,11 +498,11 @@ export const measureAction = <R, E>(
                   Effect.provideService(
                     warmer,
                     CallWatch,
-                    watcherOf(subject, callBarMs, "warm", stopped),
+                    watcherOf(subject, callBarMs, "warm", preparing, stopped),
                   ),
                   context,
                 ),
-                Effect.promise(() => backendOf(subject.statistics, subject.loginRole)),
+                Effect.promise(() => backendOf(subject.statistics, subject.loginRole, preparing)),
               ),
           }),
         );
@@ -511,7 +525,7 @@ export const measureAction = <R, E>(
           }
 
           sampling = true;
-          void backendOf(subject.statistics, subject.loginRole).then((rows) => {
+          void backendOf(subject.statistics, subject.loginRole, preparing).then((rows) => {
             sampling = false;
 
             for (const { pid, state, wait } of rows) {
@@ -546,7 +560,7 @@ export const measureAction = <R, E>(
 
         const wallMs = performance.now() - started;
         const backends = yield* Effect.promise(() =>
-          backendOf(subject.statistics, subject.loginRole),
+          backendOf(subject.statistics, subject.loginRole, preparing),
         );
         const [backend] = backends;
 
@@ -554,7 +568,7 @@ export const measureAction = <R, E>(
           return yield* Effect.fail(
             new ActionMeasureFailed({
               action: action.name,
-              cause: `the login role ${subject.loginRole} holds ${String(backends.length)} backends, where the action's pool of one holds one`,
+              cause: `the login role ${subject.loginRole} holds ${String(backends.length)} backends besides the preparation's, where the action's pool of one holds one`,
             }),
           );
         }

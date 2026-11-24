@@ -239,85 +239,91 @@ export const measureActions = <R, E>(
   readonly ActionVerdict[],
   ActionMeasureFailed | E | PopulationRefused | StudentCallFailed
 > =>
-  Effect.gen(function* measureActionsOf() {
-    mkdirSync(path.dirname(composition.state), { recursive: true });
+  Effect.scoped(
+    Effect.gen(function* measureActionsOf() {
+      mkdirSync(path.dirname(composition.state), { recursive: true });
 
-    let state = stateOf(composition.state);
+      /**
+       * The run's one long-lived connection the seed and every action's preparation run on, as a
+       * warm server's would: setup is not what is measured, and each timed call has a fresh
+       * connection.
+       */
+      const preparation = yield* Layer.build(composition.subject.layer());
 
-    if (!state.seeded) {
-      yield* Effect.logInfo(
-        `seeding ${String(composition.seedUnits)} units through the composition's programs`,
-      );
+      let state = stateOf(composition.state);
 
-      yield* Effect.scoped(
-        Effect.flatMap(Layer.build(composition.subject.layer()), (context) =>
-          Effect.provide(
-            Effect.forEach(
-              Array.from({ length: composition.seedUnits }, (_, n) => n),
-              (n) => composition.seed(composition.unitOf(`pbseed${String(n)}`), n),
-              { discard: true },
-            ),
-            context,
-          ),
-        ),
-      );
-      state = { copies: 0, seeded: true };
-      writeFileSync(composition.state, JSON.stringify(state));
-    }
-
-    const records: (ActionRecord & { readonly size: number })[] = [];
-
-    for (const scale of composition.scales) {
-      const last = copiesAt(composition, scale);
-
-      if (last > state.copies) {
+      if (!state.seeded) {
         yield* Effect.logInfo(
-          `growing to ${String(scale)}x: copies ${String(state.copies + 1)} to ${String(last)}`,
+          `seeding ${String(composition.seedUnits)} units through the composition's programs`,
         );
 
-        yield* composition.grow(composition.admin, {
-          first: state.copies + 1,
-          last,
-          prefix: copyPrefix,
-        });
-        state = { copies: last, seeded: true };
+        yield* Effect.provide(
+          Effect.forEach(
+            Array.from({ length: composition.seedUnits }, (_, n) => n),
+            (n) => composition.seed(composition.unitOf(`pbseed${String(n)}`), n),
+            { discard: true },
+          ),
+          preparation,
+        );
+        state = { copies: 0, seeded: true };
         writeFileSync(composition.state, JSON.stringify(state));
       }
 
-      for (const [at, action] of composition.actions.entries()) {
-        for (let repeat = 0; repeat < composition.repeats; repeat += 1) {
-          const child = composition.unitOf(
-            `pbf${String(scale)}x${String(at)}r${String(repeat)}t${Date.now().toString(36)}`,
-          );
-          const record = yield* measureAction(
-            composition.subject,
-            action,
-            `${String(scale)}x`,
-            child,
-            composition.callBarMs,
+      const records: (ActionRecord & { readonly size: number })[] = [];
+
+      for (const scale of composition.scales) {
+        const last = copiesAt(composition, scale);
+
+        if (last > state.copies) {
+          yield* Effect.logInfo(
+            `growing to ${String(scale)}x: copies ${String(state.copies + 1)} to ${String(last)}`,
           );
 
-          records.push({ ...record, size: scale });
-          appendFileSync(
-            out,
-            `${JSON.stringify({ composition: composition.composition, ...record, size: scale })}\n`,
-          );
-          yield* Effect.logInfo(
-            `${composition.composition} ${action.name} at ${String(scale)}x: CPU ${record.cpuMs.toFixed(1)} ms (bar ${String(action.barMs)}), wall ${record.wallMs.toFixed(1)} ms, ${String(record.pages)} pages, ${String(record.statements)} statements, waits ${JSON.stringify(record.waits)}`,
-          );
+          yield* composition.grow(composition.admin, {
+            first: state.copies + 1,
+            last,
+            prefix: copyPrefix,
+          });
+          state = { copies: last, seeded: true };
+          writeFileSync(composition.state, JSON.stringify(state));
+        }
+
+        for (const [at, action] of composition.actions.entries()) {
+          for (let repeat = 0; repeat < composition.repeats; repeat += 1) {
+            const child = composition.unitOf(
+              `pbf${String(scale)}x${String(at)}r${String(repeat)}t${Date.now().toString(36)}`,
+            );
+            const record = yield* measureAction(
+              composition.subject,
+              action,
+              `${String(scale)}x`,
+              child,
+              composition.callBarMs,
+              preparation,
+            );
+
+            records.push({ ...record, size: scale });
+            appendFileSync(
+              out,
+              `${JSON.stringify({ composition: composition.composition, ...record, size: scale })}\n`,
+            );
+            yield* Effect.logInfo(
+              `${composition.composition} ${action.name} at ${String(scale)}x: CPU ${record.cpuMs.toFixed(1)} ms (bar ${String(action.barMs)}), wall ${record.wallMs.toFixed(1)} ms, ${String(record.pages)} pages, ${String(record.statements)} statements, waits ${JSON.stringify(record.waits)}`,
+            );
+          }
         }
       }
-    }
 
-    const measured = composition.actions.map((action) => verdictOf(action, records));
-    const pending = composition.pending.map(({ barMs, name, reason }): ActionVerdict => ({
-      action: name,
-      barMs,
-      byScale: [],
-      reasons: [`not built: ${reason}`],
-      slope: 0,
-      verdict: "fail",
-    }));
+      const measured = composition.actions.map((action) => verdictOf(action, records));
+      const pending = composition.pending.map(({ barMs, name, reason }): ActionVerdict => ({
+        action: name,
+        barMs,
+        byScale: [],
+        reasons: [`not built: ${reason}`],
+        slope: 0,
+        verdict: "fail",
+      }));
 
-    return [...measured, ...pending];
-  });
+      return [...measured, ...pending];
+    }),
+  );
