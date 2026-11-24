@@ -1,18 +1,15 @@
 /**
  * What a test reads of the laws the tests' host judge judges (`#pantry/test/host-judge.ts`)
  * beyond the judge itself: each containment a relation is the source of, named as grizzle's
- * `lawsOf` names its statement's law ({@link containmentsOf}), and a check's installed name from
- * its law ({@link checkConstraintOf}).
+ * `lawsOf` names its statement's law ({@link containmentsOf}).
  *
  * It reads grizzle's values, so the law oracle reaches it from none of its modules: the oracle is a
  * second implementation, and reads no value of grizzle's (`src/grammar/purity.test.ts`).
  */
-import { Array as Arr, Option } from "effect";
 import { containmentsIn } from "#pantry/test/host-judge.ts";
-import type { Law } from "@bjornpagen/grizzle";
 import type { Containment } from "#pantry/test/host-judge.ts";
 import type { Qti } from "#pantry/qti/schema.ts";
-import { installedNameOf, schemaLawsOf, statementLawsOf } from "#pantry/test/law-namer.ts";
+import { statementLawsOf } from "#pantry/test/law-namer.ts";
 
 /**
  * Read every containment the schema states from one relation (`containmentsIn` of
@@ -26,36 +23,3 @@ import { installedNameOf, schemaLawsOf, statementLawsOf } from "#pantry/test/law
  */
 export const containmentsOf = (schema: typeof Qti, from: string): readonly Containment[] =>
   statementLawsOf(schema).flatMap(({ laws, statement }) => containmentsIn(statement, from, laws));
-
-/**
- * The name PostgreSQL holds a check under, which a direct SQL writer's refusal by it names
- * (SQLSTATE 23514): grizzle's `constraintNamesOf(schema)` lookup of the check the schema states on
- * a relation under a declared name, a row check's CHECK constraint or a check over a derived
- * relation's triggers, so a test takes the name from the installation's own naming and never
- * spells it. It reads the schema's own (`installedNameOf` of `#pantry/test/law-namer.ts`), whose
- * lookup is bound once per schema and whose first read compiles the schema's law model, so a test
- * calls this in its body, under its own timeout, never where a run without the lease loads the
- * file.
- *
- * @param schema - The schema, `Qti`.
- * @param relation - The relation the check is declared on, by name.
- * @param name - The check's declared name.
- * @returns The installed name.
- * @throws {Error} When the schema states no check of that name on that relation: a defect of the
- *   test that asks, never of a document.
- */
-export const checkConstraintOf = (schema: typeof Qti, relation: string, name: string): string =>
-  Option.getOrThrowWith(
-    Option.flatMap(
-      Arr.findFirst(
-        schemaLawsOf(schema),
-        (law): law is Extract<Law, { readonly kind: "check" }> =>
-          law.kind === "check" && law.relation === relation && law.name === name,
-      ),
-      (law) => installedNameOf(schema, law),
-    ),
-    () =>
-      new Error(
-        `The schema states no check ${name} on ${relation}, so the installation holds no CHECK for it. Name a check the schema declares on that relation.`,
-      ),
-  );

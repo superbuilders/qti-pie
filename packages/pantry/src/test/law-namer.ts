@@ -1,15 +1,14 @@
 /**
  * The laws `Qti` states, as grizzle's `lawsOf` lists them, and what the tests read of them: each
  * law's name, the one `#pantry/import/refusal.ts` `lawNameOf` reads from the catalog entry the law
- * carries, which its declaration declares (`#pantry/qti/law-entries.ts`); each law's id, which a
- * refusal of it carries; and the installed name of each check the schema states
- * (`constraintNamesOf`). Each compiles `Qti`'s law model, which takes seconds, so production never
- * runs it: a refusal is named by its laws' entries alone.
+ * carries, which its declaration declares (`#pantry/qti/law-entries.ts`); and each law's id, which
+ * a refusal of it carries. Each compiles `Qti`'s law model, which takes seconds, so production
+ * never runs it: a refusal is named by its laws' entries alone.
  */
 import { sameLaw } from "@bjornpagen/grizzle";
-import { constraintNamesOf, lawsByStatement, lawsOf } from "@bjornpagen/grizzle/compile";
+import { lawsByStatement, lawsOf } from "@bjornpagen/grizzle/compile";
 import type { AnySchema, Law, StatedLaw, Statement } from "@bjornpagen/grizzle";
-import { Array as Arr, Function as Fn, Match, Option, Schema } from "effect";
+import { Array as Arr, Function as Fn, Match, Option } from "effect";
 import { attributeLawsByName } from "#pantry/qti/attributes.ts";
 import { expressionLawsByName } from "#pantry/qti/expressions.ts";
 import { chardataLawsByName } from "#pantry/qti/chardata.ts";
@@ -190,66 +189,6 @@ const statedIn = Fn.memoize((schema: typeof Qti): readonly (readonly [Law, LawNa
  * @returns The laws, with their names.
  */
 export const statedLaws = (): readonly (readonly [Law, LawName])[] => statedIn(Qti);
-
-/**
- * A check statement as a schema holds it, read for the law it states: its declared name and its
- * relation's name, which are a check law's fields.
- */
-const CheckStatement = Schema.Struct({
-  kind: Schema.Literal("check"),
-  name: Schema.String,
-  relation: Schema.Struct({ name: Schema.String }),
-});
-
-/**
- * Key a check by its relation and its declared name, the fields of its law.
- *
- * @param relation - The relation the check is stated on.
- * @param name - The check's declared name.
- * @returns The key.
- */
-const checkKey = (relation: string, name: string): string => JSON.stringify([relation, name]);
-
-/**
- * Each check a schema states, by its relation and declared name ({@link checkKey}), read from its
- * statements once per schema.
- *
- * @param schema - The schema the import ran against, `Qti`.
- * @returns The checks' keys.
- */
-const statedChecksOf = Fn.memoize(
-  (schema: typeof Qti): ReadonlySet<string> =>
-    new Set(
-      schema.statements.flatMap((statement) =>
-        Option.toArray(
-          Option.map(Schema.decodeUnknownOption(CheckStatement)(statement), ({ name, relation }) =>
-            checkKey(relation.name, name),
-          ),
-        ),
-      ),
-    ),
-);
-
-/**
- * The installed name of a check a schema states: grizzle's name for the one constraint or trigger
- * that discharges it, a row check's CHECK by its declared name and a check over a derived
- * relation's triggers by a digest (grizzle `b34dfbf9`).
- *
- * Grizzle's lookup throws for a law that is no check of the schema, and a refusal may name one: a
- * LOM install's stored level states checks the default `Qti` does not (`#pantry/qti/lom.ts`), so a
- * refusal read against another schema than the one the database installed names a check this one
- * lacks. Such a check has no installed name here, so the refusal
- * still prints, with its text and the name and rule the table gives it. Only a check the schema
- * states is asked for, so a refusal that names none compiles nothing.
- *
- * @param schema - The schema the import ran against, `Qti`.
- * @param law - A check law a refusal names.
- * @returns The check's installed name, none for a check the schema does not state.
- */
-export const installedNameOf = (schema: typeof Qti, law: LawOf<"check">): Option.Option<string> =>
-  statedChecksOf(schema).has(checkKey(law.relation, law.name))
-    ? Option.some(constraintNamesOf(schema)(law))
-    : Option.none();
 
 /**
  * The law `Qti` states that a law's shape spells, as grizzle's `lawsOf` names it, its catalog entry
