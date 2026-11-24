@@ -195,34 +195,34 @@ export interface ActionRecord {
 }
 
 /**
- * The sums now.
+ * The sums now: one row, as an aggregate with no grouping always answers.
  *
  * @param statistics - The statistics session.
  * @param database - The installation's database.
  * @returns The sums.
  */
 const sumsOf = (statistics: pg.Client, database: string) =>
-  Effect.map(
-    Effect.promise(() =>
-      statistics.query<{
-        readonly calls: string;
-        readonly pages: string;
-        readonly plan: number;
-        readonly exec: number;
-      }>(
-        `SELECT coalesce(sum(calls), 0) AS calls,
-                coalesce(sum(shared_blks_hit + shared_blks_read + local_blks_hit + local_blks_read), 0) AS pages,
-                coalesce(sum(total_plan_time), 0)::float8 AS plan, coalesce(sum(total_exec_time), 0)::float8 AS exec
-           FROM pg_stat_statements WHERE toplevel AND dbid = (SELECT oid FROM pg_database WHERE datname = $1)`,
-        [database],
-      ),
+  Effect.promise(() =>
+    statistics.query<{
+      readonly calls: string;
+      readonly pages: string;
+      readonly plan: number;
+      readonly exec: number;
+    }>(
+      `SELECT coalesce(sum(calls), 0) AS calls,
+              coalesce(sum(shared_blks_hit + shared_blks_read + local_blks_hit + local_blks_read), 0) AS pages,
+              coalesce(sum(total_plan_time), 0)::float8 AS plan, coalesce(sum(total_exec_time), 0)::float8 AS exec
+         FROM pg_stat_statements WHERE toplevel AND dbid = (SELECT oid FROM pg_database WHERE datname = $1)`,
+      [database],
     ),
-    ({ rows: [row] }): StatementSums => ({
-      calls: Number(row?.calls ?? 0),
-      execMs: row?.exec ?? 0,
-      pages: Number(row?.pages ?? 0),
-      planMs: row?.plan ?? 0,
-    }),
+  ).pipe(
+    Effect.flatMap(({ rows }) => Effect.orDie(Effect.fromNullishOr(rows[0]))),
+    Effect.map((row): StatementSums => ({
+      calls: Number(row.calls),
+      execMs: row.exec,
+      pages: Number(row.pages),
+      planMs: row.plan,
+    })),
   );
 
 /**

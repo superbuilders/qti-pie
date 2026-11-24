@@ -22,9 +22,10 @@
  *
  * `--only <name,…>` measures those actions alone, as a run that scopes its heavy arm does.
  *
- * Run from this package: `node budget/plan-budget.ts --database <scratch database> --migrations
- * <the generated result composition's folder>`, with pantry's `QTI_PIE_PG_*` settings naming the
- * scratch cluster.
+ * Run from this package: `node budget/plan-budget.ts --scales <scale,…> --repeats <n> --out
+ * <records.jsonl>`, with pantry's `QTI_PIE_PG_*` settings naming the scratch cluster and its
+ * database, `PLAN_BUDGET_SOCKET` the cluster's socket folder, which its superuser reaches, and
+ * `QTI_PIE_RESULT_MIGRATIONS` the generated result composition's folder, each required.
  *
  * @module
  */
@@ -35,7 +36,7 @@ import { parseArgs } from "node:util";
 import { Db, DbLayer, LiveSource, roleNameOf, served } from "@bjornpagen/grizzle/runtime";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { loginConnection } from "@qti-pie/pantry/db/connection.ts";
+import { clusterDatabase, loginConnection } from "@qti-pie/pantry/db/connection.ts";
 import { importRowsOf } from "@qti-pie/pantry/import/program.ts";
 import { readPackage } from "@qti-pie/pantry/import/read.ts";
 import type { StudentAction, StudentCallFailed } from "@qti-pie/plan-budget/actions.ts";
@@ -51,15 +52,13 @@ import {
 } from "@qti-pie/plan-budget/content.ts";
 import { copyUnits } from "@qti-pie/plan-budget/population.ts";
 import { measureActions } from "@qti-pie/plan-budget/run-actions.ts";
-import { Duration, Effect, Layer } from "effect";
+import { Config, Duration, Effect, Layer } from "effect";
 import { Client } from "pg";
 import { responseParamsOf } from "#ledger/served-values.ts";
 import type { ResultSuite } from "#ledger/test/result-level.ts";
 
 const { values } = parseArgs({
   options: {
-    database: { type: "string" },
-    migrations: { type: "string" },
     only: { type: "string" },
     out: { type: "string" },
     populate: { type: "boolean" },
@@ -68,24 +67,16 @@ const { values } = parseArgs({
   },
 });
 
-const database = values.database ?? "pb_ledger";
-
-const secrets = path.join(os.homedir(), ".local/var/plan-budget", database);
-
-const port = Number(process.env["QTI_PIE_PG_PORT"] ?? "5493");
-
-const socket = path.join(process.env["XDG_RUNTIME_DIR"] ?? "", "postgresql-edullm-planbudget");
-
-const migrations = values.migrations ?? process.env["QTI_PIE_RESULT_MIGRATIONS"] ?? "";
+/**
+ * The generated result composition's folder, which `grizzle.result.config.ts` generates into.
+ */
+const migrations = Effect.runSync(Config.String("QTI_PIE_RESULT_MIGRATIONS"));
 
 const suite = served<typeof ResultSuite>(
   JSON.parse(readFileSync(path.join(migrations, "qti/served/result_suite.json"), "utf-8")),
   "result_suite",
 );
 
-/**
- * The decision every seeded sitting is taken under: the seed its members' processing draws from.
- */
 /**
  * The presence beacon's bar: 10 ms of database time, warm, flat from 1x to 100x (edullm-bd,
  * 2026-11-23).
@@ -100,6 +91,9 @@ const suite = served<typeof ResultSuite>(
  */
 const beaconBarMs = 10;
 
+/**
+ * The decision every seeded sitting is taken under: the seed its members' processing draws from.
+ */
 const DECISION = "7d3c2a4e-58b1-4f6a-9c0d-2b8e5f1a6c34";
 
 const layerOf = Effect.gen(function* layerOfSuite() {
@@ -272,132 +266,163 @@ const publish = Effect.scoped(
   }),
 );
 
-const program = Effect.gen(function* planBudget() {
-  const statistics = new Client({
-    database: "postgres",
-    host: socket,
-    port,
-    user: os.userInfo().username,
-  });
-  const admin = new Client({ database, host: socket, port, user: os.userInfo().username });
+/**
+ * The run: the actions measured at each of its scales, each its number of times, their records
+ * appended to its file.
+ */
+interface Run {
+  readonly out: string;
+  readonly repeats: number;
+  readonly scales: readonly number[];
+}
 
-  yield* Effect.promise(() => statistics.connect());
-  yield* Effect.promise(() => admin.connect());
+const program = (run: Run) =>
+  Effect.gen(function* planBudget() {
+    const { database, port, socket } = yield* Config.all({
+      database: clusterDatabase,
+      port: Config.Port("QTI_PIE_PG_PORT"),
+      socket: Config.String("PLAN_BUDGET_SOCKET"),
+    });
+    const secrets = path.join(os.homedir(), ".local/var/plan-budget", database);
+    const statistics = new Client({
+      database: "postgres",
+      host: socket,
+      port,
+      user: os.userInfo().username,
+    });
+    const admin = new Client({ database, host: socket, port, user: os.userInfo().username });
 
-  yield* publish;
-  yield* Effect.logInfo(`${choicePackage} published, or held already`);
+    yield* Effect.promise(() => statistics.connect());
+    yield* Effect.promise(() => admin.connect());
 
-  const layer = yield* layerOf;
-  const actions: readonly StudentAction<Effect.Services<ReturnType<typeof openDb>>>[] = [
-    {
-      barMs: 100,
-      name: "start",
-      prepare: (child) =>
-        Effect.as(taken(stdTest)(child), cold(withDb((db) => enter(db, child, firstItem)))),
-    },
-    {
-      barMs: 100,
-      name: "present",
-      prepare: (child) =>
-        Effect.as(entered(stdTest)(child), cold(withDb((db) => present(db, child, secondItem)))),
-    },
-    {
-      barMs: 100,
-      name: "save",
-      prepare: (child) =>
-        Effect.as(entered(stdTest)(child), cold(withDb((db) => save(db, child, firstItem, "C")))),
-    },
-    {
-      barMs: 100,
-      name: "answer",
-      prepare: (child) =>
-        Effect.as(
-          entered(rateTest)(child),
-          cold(withDb((db) => answer(db, child, firstItem, "C"))),
-        ),
-    },
-    {
-      barMs: 100,
-      name: "suspend",
-      prepare: (child) =>
-        Effect.as(entered(stdTest)(child), cold(withDb((db) => suspend(db, child)))),
-    },
-    {
-      barMs: beaconBarMs,
-      name: "beacon",
-      prepare: (child) =>
-        Effect.as(entered(stdTest)(child), warm(beaconed(child), beaconed(child))),
-    },
-    {
-      barMs: 100,
-      name: "resume",
-      prepare: (child) =>
-        Effect.as(
-          withDb((db) =>
-            Effect.andThen(
-              Effect.andThen(take(db, child, stdTest), enter(db, child, firstItem)),
-              suspend(db, child),
-            ),
-          ),
-          cold(withDb((db) => enter(db, child, firstItem))),
-        ),
-    },
-    {
-      barMs: 100,
-      name: "submit",
-      prepare: (child) =>
-        Effect.as(
-          withDb((db) =>
-            Effect.andThen(
-              Effect.andThen(take(db, child, stdTest), enter(db, child, firstItem)),
-              savedAll(db, child),
-            ),
-          ),
-          cold(withDb((db) => finish(db, child))),
-        ),
-    },
-  ];
-  const verdicts = yield* measureActions(
-    {
-      actions:
-        values.populate === true
-          ? []
-          : actions.filter(
-              ({ name }) => values.only === undefined || values.only.split(",").includes(name),
-            ),
-      admin,
-      composition: "ledger-result",
-      grow: copyUnits("child"),
-      pending: [],
-      repeats: Number(values.repeats ?? "3"),
-      scales: (values.scales ?? "1,10,100").split(",").map(Number),
-      seed: (child) => withDb((db) => fullPath(db, child, Number(/\d+$/u.exec(child)?.[0] ?? "0"))),
-      seedUnits: 20,
-      state: path.join(secrets, "population.json"),
-      subject: {
-        database,
-        layer,
-        loginRole: roleNameOf(suite, { rolePrefix: database }),
-        statistics,
+    yield* publish;
+    yield* Effect.logInfo(`${choicePackage} published, or held already`);
+
+    const layer = yield* layerOf;
+    const actions: readonly StudentAction<Effect.Services<ReturnType<typeof openDb>>>[] = [
+      {
+        barMs: 100,
+        name: "start",
+        prepare: (child) =>
+          Effect.as(taken(stdTest)(child), cold(withDb((db) => enter(db, child, firstItem)))),
       },
-      unitOf: (name) => name,
-      unitsAt1x: 1894,
-    },
-    values.out ?? path.join(secrets, "actions.jsonl"),
-  );
-
-  for (const verdict of verdicts) {
-    yield* Effect.logInfo(
-      `${verdict.verdict === "pass" ? "pass" : "FAIL"} ledger-result.${verdict.action}: ${verdict.reasons.join("; ") || "within the bar at every scale, flat"} ${JSON.stringify(verdict.byScale)}`,
+      {
+        barMs: 100,
+        name: "present",
+        prepare: (child) =>
+          Effect.as(entered(stdTest)(child), cold(withDb((db) => present(db, child, secondItem)))),
+      },
+      {
+        barMs: 100,
+        name: "save",
+        prepare: (child) =>
+          Effect.as(entered(stdTest)(child), cold(withDb((db) => save(db, child, firstItem, "C")))),
+      },
+      {
+        barMs: 100,
+        name: "answer",
+        prepare: (child) =>
+          Effect.as(
+            entered(rateTest)(child),
+            cold(withDb((db) => answer(db, child, firstItem, "C"))),
+          ),
+      },
+      {
+        barMs: 100,
+        name: "suspend",
+        prepare: (child) =>
+          Effect.as(entered(stdTest)(child), cold(withDb((db) => suspend(db, child)))),
+      },
+      {
+        barMs: beaconBarMs,
+        name: "beacon",
+        prepare: (child) =>
+          Effect.as(entered(stdTest)(child), warm(beaconed(child), beaconed(child))),
+      },
+      {
+        barMs: 100,
+        name: "resume",
+        prepare: (child) =>
+          Effect.as(
+            withDb((db) =>
+              Effect.andThen(
+                Effect.andThen(take(db, child, stdTest), enter(db, child, firstItem)),
+                suspend(db, child),
+              ),
+            ),
+            cold(withDb((db) => enter(db, child, firstItem))),
+          ),
+      },
+      {
+        barMs: 100,
+        name: "submit",
+        prepare: (child) =>
+          Effect.as(
+            withDb((db) =>
+              Effect.andThen(
+                Effect.andThen(take(db, child, stdTest), enter(db, child, firstItem)),
+                savedAll(db, child),
+              ),
+            ),
+            cold(withDb((db) => finish(db, child))),
+          ),
+      },
+    ];
+    const verdicts = yield* measureActions(
+      {
+        actions:
+          values.populate === true
+            ? []
+            : actions.filter(
+                ({ name }) => values.only === undefined || values.only.split(",").includes(name),
+              ),
+        admin,
+        composition: "ledger-result",
+        grow: copyUnits("child"),
+        pending: [],
+        repeats: run.repeats,
+        scales: run.scales,
+        seed: (child, ordinal) => withDb((db) => fullPath(db, child, ordinal)),
+        seedUnits: 20,
+        state: path.join(secrets, "population.json"),
+        subject: {
+          database,
+          layer,
+          loginRole: roleNameOf(suite, { rolePrefix: database }),
+          statistics,
+        },
+        unitOf: (name) => name,
+        unitsAt1x: 1894,
+      },
+      run.out,
     );
-  }
 
-  yield* Effect.promise(() => statistics.end());
-  yield* Effect.promise(() => admin.end());
+    for (const verdict of verdicts) {
+      yield* Effect.logInfo(
+        `${verdict.verdict === "pass" ? "pass" : "FAIL"} ledger-result.${verdict.action}: ${verdict.reasons.join("; ") || "within the bar at every scale, flat"} ${JSON.stringify(verdict.byScale)}`,
+      );
+    }
 
-  if (verdicts.some(({ verdict }) => verdict === "fail")) {
-    process.exitCode = 1;
-  }
-});
+    yield* Effect.promise(() => statistics.end());
+    yield* Effect.promise(() => admin.end());
 
-NodeRuntime.runMain(program.pipe(Effect.provide(NodeServices.layer)));
+    if (verdicts.some(({ verdict }) => verdict === "fail")) {
+      process.exitCode = 1;
+    }
+  });
+
+const { out, repeats, scales } = values;
+
+NodeRuntime.runMain(
+  (out === undefined || repeats === undefined || scales === undefined
+    ? Effect.andThen(
+        Effect.logError(
+          "usage: plan-budget.ts --scales <scale,…> --repeats <n> --out <records.jsonl>",
+        ),
+        Effect.sync(() => {
+          process.exitCode = 2;
+        }),
+      )
+    : program({ out, repeats: Number(repeats), scales: scales.split(",").map(Number) })
+  ).pipe(Effect.provide(NodeServices.layer)),
+);

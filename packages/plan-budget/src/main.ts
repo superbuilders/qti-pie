@@ -14,11 +14,11 @@
  *   the first check's records of runs on a cluster no other client used
  *   (#plan-budget/calibrate.ts).
  *
- * Every command reads the scratch cluster from `PLAN_BUDGET_SOCKET` (its socket folder),
- * `PLAN_BUDGET_PORT` and `PLAN_BUDGET_DATABASE`, the superuser from the account, and the CA from
- * `PGSSLROOTCERT`. With `--composition`, `--subject` and `--summaries`, `memory` keeps the run's
- * summary, and with `--backlog` it rewrites the lanes' shared backlog from every kept summary
- * (#plan-budget/report.ts).
+ * `install` and `memory` read the scratch cluster from `PLAN_BUDGET_SOCKET` (its socket folder),
+ * `PLAN_BUDGET_PORT` and `PLAN_BUDGET_DATABASE`, and `install` the CA from `PGSSLROOTCERT`, each
+ * required: a missing one fails naming it. The superuser is the account's. With `--composition`,
+ * `--subject` and `--summaries`, `memory` keeps the run's summary, and with `--backlog` it rewrites
+ * the lanes' shared backlog from every kept summary (#plan-budget/report.ts).
  *
  * @module
  */
@@ -28,7 +28,7 @@ import os from "node:os";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
-import { Effect, Schema } from "effect";
+import { Config, Effect, Schema } from "effect";
 import { Client } from "pg";
 import { loadNow } from "#plan-budget/backend.ts";
 import { calibrationOf } from "#plan-budget/calibrate.ts";
@@ -74,22 +74,28 @@ const { positionals, values } = parseArgs({
   },
 });
 
-const socket =
-  process.env["PLAN_BUDGET_SOCKET"] ??
-  path.join(process.env["XDG_RUNTIME_DIR"] ?? "", "postgresql-edullm-planbudget");
-
-const port = Number(process.env["PLAN_BUDGET_PORT"] ?? "5493");
-
-const database = process.env["PLAN_BUDGET_DATABASE"] ?? "";
-
 const superuser = os.userInfo().username;
 
 /**
- * A client of the scratch database over the cluster's socket, as its superuser.
- *
- * @returns The client, not yet connected.
+ * The scratch cluster: its socket folder, its port, and the installation's database, which is also
+ * its role prefix.
  */
-const fresh = (): Client => new Client({ database, host: socket, port, user: superuser });
+const scratchCluster = Config.all({
+  database: Config.String("PLAN_BUDGET_DATABASE"),
+  port: Config.Port("PLAN_BUDGET_PORT"),
+  socket: Config.String("PLAN_BUDGET_SOCKET"),
+});
+
+/**
+ * Clients of the scratch database over the cluster's socket, as its superuser.
+ *
+ * @param cluster - The scratch cluster.
+ * @returns A maker of clients, each not yet connected.
+ */
+const freshOf =
+  ({ database, port, socket }: Config.Success<typeof scratchCluster>) =>
+  (): Client =>
+    new Client({ database, host: socket, port, user: superuser });
 
 /**
  * The first check over the composition, its summary kept and the backlog rewritten where the run
@@ -100,6 +106,7 @@ const fresh = (): Client => new Client({ database, host: socket, port, user: sup
  */
 const memory = (migrations: string) =>
   Effect.gen(function* memoryCommand() {
+    const fresh = freshOf(yield* scratchCluster);
     const watcher = fresh();
 
     yield* Effect.promise(() => watcher.connect());
@@ -162,29 +169,33 @@ const settingOf = (pair: string): readonly [string, string] => {
  * @returns Completes once every login can sign in.
  */
 const install = (config: string) =>
-  installFresh({
-    ca: process.env["PGSSLROOTCERT"] ?? "",
-    config,
-    database,
-    env: Object.fromEntries((values.env ?? []).map((pair) => settingOf(pair))),
-    extensions: (values.extension ?? []).map((named) => {
-      const [name = "", schema = "public"] = named.split("@");
+  Effect.gen(function* installCommand() {
+    const { database, port, socket } = yield* scratchCluster;
 
-      return { name, schema };
-    }),
-    grizzle: path.join(
-      path.dirname(
-        createRequire(path.join(process.cwd(), "package.json")).resolve(
-          "@bjornpagen/grizzle/package.json",
+    yield* installFresh({
+      ca: yield* Config.String("PGSSLROOTCERT"),
+      config,
+      database,
+      env: Object.fromEntries((values.env ?? []).map((pair) => settingOf(pair))),
+      extensions: (values.extension ?? []).map((named) => {
+        const [name = "", schema = "public"] = named.split("@");
+
+        return { name, schema };
+      }),
+      grizzle: path.join(
+        path.dirname(
+          createRequire(path.join(process.cwd(), "package.json")).resolve(
+            "@bjornpagen/grizzle/package.json",
+          ),
         ),
+        "src/cli/bin.ts",
       ),
-      "src/cli/bin.ts",
-    ),
-    packageDir: process.cwd(),
-    port,
-    secrets: path.join(os.homedir(), ".local/var/plan-budget", database),
-    socket,
-    superuser,
+      packageDir: process.cwd(),
+      port,
+      secrets: path.join(os.homedir(), ".local/var/plan-budget", database),
+      socket,
+      superuser,
+    });
   });
 
 /**
@@ -223,11 +234,8 @@ const verdicts = (files: readonly string[], bars: readonly string[]) =>
     );
     const judged = bars.map((bar) => {
       const [name, ms] = settingOf(bar);
-      const scales = [
-        ...new Set(records.filter(({ action }) => action === name).map(({ size }) => size)),
-      ].toSorted((a, b) => a - b);
 
-      return verdictOf({ barMs: Number(ms), name }, records, scales);
+      return verdictOf({ barMs: Number(ms), name }, records);
     });
 
     for (const verdict of judged) {
@@ -276,13 +284,13 @@ const program = Effect.gen(function* planBudget() {
         `${String(writePlanTable(record, values.out))} rows from ${record} into ${values.out}`,
       );
     }
-  } else if (command === "memory" && values.migrations !== undefined && database !== "") {
+  } else if (command === "memory" && values.migrations !== undefined) {
     yield* memory(values.migrations);
-  } else if (command === "install" && values.config !== undefined && database !== "") {
+  } else if (command === "install" && values.config !== undefined) {
     yield* install(values.config);
   } else {
     yield* Effect.logError(
-      "usage: main.ts install|memory|calibrate, with PLAN_BUDGET_DATABASE set (see the module's header)",
+      "usage: main.ts install|memory|calibrate|table|verdicts (see the module's header)",
     );
 
     process.exitCode = 2;

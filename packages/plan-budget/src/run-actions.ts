@@ -7,7 +7,7 @@
  */
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { Effect, Layer, Schema } from "effect";
+import { Array as Arr, Effect, Layer, Record as Rec, Schema } from "effect";
 import type pg from "pg";
 import { measureAction } from "#plan-budget/actions.ts";
 import type {
@@ -51,7 +51,11 @@ export interface ActionsComposition<R, E> {
    */
   readonly unitOf: (name: string) => string;
   readonly seedUnits: number;
-  readonly seed: (unit: string) => Effect.Effect<void, StudentCallFailed, R>;
+  /**
+   * A seed unit written through the composition's programs: the unit, and its ordinal among the
+   * seed units from 0.
+   */
+  readonly seed: (unit: string, ordinal: number) => Effect.Effect<void, StudentCallFailed, R>;
   readonly unitsAt1x: number;
   readonly scales: readonly number[];
   readonly repeats: number;
@@ -142,33 +146,34 @@ export interface MeasuredAt {
 }
 
 /**
- * An action's verdict over the scales it was measured at: at each, the first fresh connection's
- * CPU, the bar's number (edullm-bd, 2026-11-23), with the least of its repeats beside it, and the
- * least pages and wall time; over them, the pages' log-log slope; a reason for every scale whose
- * first connection is over its bar and for a slope past the descents' bound.
+ * An action's verdict over the scales it was measured at, in order of scale: at each, the first
+ * fresh connection's CPU, the bar's number (edullm-bd, 2026-11-23), with the least of its repeats
+ * beside it, and the least pages and wall time; over them, the pages' log-log slope; a reason for
+ * every scale whose first connection is over its bar and for a slope past the descents' bound.
  *
  * @param action - The action, by its name and bar.
- * @param records - Every record measured, of any action.
- * @param scales - The scales the verdict reads, each one the action was measured at.
+ * @param records - Every record measured, of any action, each scale's in the order it was measured.
  * @returns The verdict.
  */
 export const verdictOf = (
   action: { readonly name: string; readonly barMs: number },
   records: readonly MeasuredAt[],
-  scales: readonly number[],
 ): ActionVerdict => {
-  const byScale = scales.map((scale) => {
-    const runs = records.filter((record) => record.action === action.name && record.size === scale);
-
-    return {
-      cpuMs: runs[0]?.cpuMs ?? Number.NaN,
+  const byScale = Rec.values(
+    Arr.groupBy(
+      records.filter((record) => record.action === action.name),
+      (record) => String(record.size),
+    ),
+  )
+    .map((runs) => ({
+      cpuMs: Arr.headNonEmpty(runs).cpuMs,
       leastCpuMs: Math.min(...runs.map(({ cpuMs }) => cpuMs)),
       pages: Math.min(...runs.map(({ pages }) => pages)),
-      scale,
-      waits: runs.at(-1)?.waits ?? {},
+      scale: Arr.headNonEmpty(runs).size,
+      waits: Arr.lastNonEmpty(runs).waits,
       wallMs: Math.min(...runs.map(({ wallMs }) => wallMs)),
-    };
-  });
+    }))
+    .toSorted((a, b) => a.scale - b.scale);
   const slope =
     byScale.length > 1 ? slopeOf(byScale.map(({ pages, scale }) => ({ pages, size: scale }))) : 0;
   const over = byScale.filter(({ cpuMs }) => cpuMs > action.barMs);
@@ -223,10 +228,8 @@ export const measureActions = <R, E>(
         Effect.flatMap(Layer.build(composition.subject.layer()), (context) =>
           Effect.provide(
             Effect.forEach(
-              Array.from({ length: composition.seedUnits }, (_, n) =>
-                composition.unitOf(`pbseed${String(n)}`),
-              ),
-              composition.seed,
+              Array.from({ length: composition.seedUnits }, (_, n) => n),
+              (n) => composition.seed(composition.unitOf(`pbseed${String(n)}`), n),
               { discard: true },
             ),
             context,
@@ -280,9 +283,7 @@ export const measureActions = <R, E>(
       }
     }
 
-    const measured = composition.actions.map((action) =>
-      verdictOf(action, records, composition.scales),
-    );
+    const measured = composition.actions.map((action) => verdictOf(action, records));
     const pending = composition.pending.map(({ barMs, name, reason }): ActionVerdict => ({
       action: name,
       barMs,

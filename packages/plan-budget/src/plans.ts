@@ -204,11 +204,7 @@ const planOnce = (
       ),
     );
     const after = scheduledOf(pid);
-    const [answer] = answered.rows[0]?.["QUERY PLAN"] ?? [];
-
-    if (answer === undefined) {
-      return yield* Effect.fail({ cause: "an EXPLAIN answered no plan" });
-    }
+    const answer = yield* Effect.orDie(Effect.fromNullishOr(answered.rows[0]?.["QUERY PLAN"][0]));
 
     return {
       allocatedKb: answer.Planning["Memory Allocated"],
@@ -250,11 +246,10 @@ export const measurePlans = (
       Effect.gen(function* measureAt() {
         const fail = (at: string) => (cause: unknown) =>
           new MeasureFailed({ action: served.action, at, cause });
-        const pid =
-          (yield* Effect.tryPromise({
-            catch: fail("pg_backend_pid"),
-            try: () => client.query<{ readonly pid: number }>("SELECT pg_backend_pid() AS pid"),
-          })).rows[0]?.pid ?? 0;
+        const { pid } = yield* Effect.tryPromise({
+          catch: fail("pg_backend_pid"),
+          try: () => client.query<{ readonly pid: number }>("SELECT pg_backend_pid() AS pid"),
+        }).pipe(Effect.flatMap(({ rows }) => Effect.orDie(Effect.fromNullishOr(rows[0]))));
         const started = performance.now();
 
         yield* Effect.tryPromise({ catch: fail("BEGIN"), try: () => client.query("BEGIN") });
