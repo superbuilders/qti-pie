@@ -6,7 +6,9 @@
  * calls that ready a fresh child for it. The measurement readies the child on a connection of its
  * own, which it then closes, and runs the action on a new layer whose pool holds one session, so
  * the action is the first thing its backend does: its catalog caches are cold and its generic plans
- * are made by its own statements, as a child's first action on a fresh connection makes them.
+ * are made by its own statements, as a child's first action on a fresh connection makes them. An
+ * action measured warm is its backend's second: the call that warms it (`warmedBy`) comes first, on
+ * the same session, and only the action after it is timed.
  *
  * What it reads, every number the server's own:
  *
@@ -26,7 +28,7 @@
  * @module
  */
 import { performance } from "node:perf_hooks";
-import { Effect, Layer, Schema } from "effect";
+import { Effect, Layer, Option, Schema } from "effect";
 import type pg from "pg";
 import { cpuMsBetween, loadNow, queuedMsBetween, scheduledOf } from "#plan-budget/backend.ts";
 
@@ -45,18 +47,52 @@ import { cpuMsBetween, loadNow, queuedMsBetween, scheduledOf } from "#plan-budge
 const sampleEveryMs = 1;
 
 /**
- * One student action of a composition: its name, the calls that ready a fresh child for it, and the
- * action's own; its bar where it is tighter than the general one, and whether it is measured warm:
- * on a connection that already made it once, as a call the browser repeats (the presence beacon) is
- * made, where every other action is measured cold, the first thing its connection does.
+ * One student action of a composition: its name, its bar where it is tighter than the general one,
+ * and the calls that ready a fresh child for it, which answer the action's own calls on what they
+ * readied ({@link Readied}).
  */
 export interface StudentAction<R> {
   readonly name: string;
-  readonly prepare: (child: string) => Effect.Effect<void, StudentCallFailed, R>;
-  readonly act: (child: string) => Effect.Effect<void, StudentCallFailed, R>;
   readonly barMs: number;
-  readonly warm: boolean;
+  readonly prepare: (child: string) => Effect.Effect<Readied<R>, StudentCallFailed, R>;
 }
+
+/**
+ * A student action's calls on the child its preparation readied, which may name what only the
+ * preparation learned (a sitting's key, which the database stamps): the action, and the call its
+ * connection makes before it where it is measured warm. That call is the action's own for a call
+ * the browser repeats (the presence beacon); for a write, which the same arguments cannot repeat
+ * (a second answer to a member is refused, a second attempt of a closed session writes nothing),
+ * the same child's write before it (its answer to the member before, its attempt of another item).
+ * None for an action measured cold, the first thing its connection does.
+ */
+export interface Readied<R> {
+  readonly act: Effect.Effect<void, StudentCallFailed, R>;
+  readonly warmedBy: Option.Option<Effect.Effect<void, StudentCallFailed, R>>;
+}
+
+/**
+ * An action measured cold: the first thing its connection does.
+ *
+ * @param act - The action.
+ * @returns Its readied calls.
+ */
+export const cold = <R>(act: Effect.Effect<void, StudentCallFailed, R>): Readied<R> => ({
+  act,
+  warmedBy: Option.none(),
+});
+
+/**
+ * An action measured warm: on a connection that made `warmedBy` first.
+ *
+ * @param warmedBy - The call that warms the connection.
+ * @param act - The action.
+ * @returns Its readied calls.
+ */
+export const warm = <R>(
+  warmedBy: Effect.Effect<void, StudentCallFailed, R>,
+  act: Effect.Effect<void, StudentCallFailed, R>,
+): Readied<R> => ({ act, warmedBy: Option.some(warmedBy) });
 
 /**
  * A call a student action or its preparation made that its login refused, or that failed.
@@ -211,7 +247,9 @@ const backendOf = async (statistics: pg.Client, role: string) => {
 
 /**
  * One student action measured at one population (see the module's header): the child readied on a
- * connection of its own, then the action on a fresh one.
+ * connection of its own, then the action on a fresh one. A call of either that fails, a write not
+ * accepted with its effect among them, fails the measurement, naming the action: a timing of
+ * nothing is never a record.
  *
  * @param subject - What it measures in.
  * @param action - The action.
@@ -224,9 +262,9 @@ export const measureAction = <R, E>(
   action: StudentAction<R>,
   scale: string,
   child: string,
-): Effect.Effect<ActionRecord, ActionMeasureFailed | E | StudentCallFailed> =>
+): Effect.Effect<ActionRecord, ActionMeasureFailed | E> =>
   Effect.gen(function* measureActionAt() {
-    yield* Effect.scoped(
+    const readied = yield* Effect.scoped(
       Effect.flatMap(Layer.build(subject.layer()), (context) =>
         Effect.provide(action.prepare(child), context),
       ),
@@ -235,14 +273,14 @@ export const measureAction = <R, E>(
     return yield* Effect.scoped(
       Effect.gen(function* measuredAt() {
         const context = yield* Layer.build(subject.layer());
-
-        if (action.warm) {
-          yield* Effect.provide(action.act(child), context);
-        }
-
-        const warmed = action.warm
-          ? yield* Effect.promise(() => backendOf(subject.statistics, subject.loginRole))
-          : [];
+        const warmed = yield* Option.match(readied.warmedBy, {
+          onNone: () => Effect.succeed([]),
+          onSome: (warming) =>
+            Effect.andThen(
+              Effect.provide(warming, context),
+              Effect.promise(() => backendOf(subject.statistics, subject.loginRole)),
+            ),
+        });
         const from =
           warmed[0] === undefined ? { cpuNs: 0, queuedNs: 0 } : scheduledOf(warmed[0].pid);
         const before = yield* sumsOf(subject.statistics, subject.database);
@@ -270,7 +308,7 @@ export const measureAction = <R, E>(
         }, sampleEveryMs);
         const started = performance.now();
 
-        yield* Effect.provide(action.act(child), context).pipe(
+        yield* Effect.provide(readied.act, context).pipe(
           Effect.ensuring(
             Effect.sync(() => {
               clearInterval(sampler);
@@ -314,4 +352,10 @@ export const measureAction = <R, E>(
         } satisfies ActionRecord;
       }),
     );
-  });
+  }).pipe(
+    Effect.mapError((failure) =>
+      failure instanceof StudentCallFailed
+        ? new ActionMeasureFailed({ action: action.name, cause: failure.message })
+        : failure,
+    ),
+  );

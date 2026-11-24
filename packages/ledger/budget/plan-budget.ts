@@ -39,7 +39,8 @@ import { loginConnection } from "@qti-pie/pantry/db/connection.ts";
 import { importRowsOf } from "@qti-pie/pantry/import/program.ts";
 import { readPackage } from "@qti-pie/pantry/import/read.ts";
 import type { StudentAction, StudentCallFailed } from "@qti-pie/plan-budget/actions.ts";
-import { accepted, opened } from "@qti-pie/plan-budget/calls.ts";
+import { cold, warm } from "@qti-pie/plan-budget/actions.ts";
+import { accepted, acceptedOrHeld, opened } from "@qti-pie/plan-budget/calls.ts";
 import {
   choiceItems,
   choicePackage,
@@ -233,6 +234,12 @@ const fullPath = (db: SuiteDb, child: string, n: number) =>
 const withDb = <A, R>(f: (db: SuiteDb) => Effect.Effect<A, StudentCallFailed, R>) =>
   opened(openDb(), f);
 
+/**
+ * The child's sitting's beacon, which the browser repeats on one connection: measured warm, its
+ * connection warmed by a beacon before it.
+ */
+const beaconed = (child: string) => withDb((db) => beacon(db, child));
+
 const taken = (test: string) => (child: string) => withDb((db) => take(db, child, test));
 
 const entered = (test: string) => (child: string) =>
@@ -254,7 +261,7 @@ const publish = Effect.scoped(
     const context = yield* Layer.build(layer());
 
     yield* opened(Effect.provide(openDb(), context), (db) =>
-      accepted(
+      acceptedOrHeld(
         "publish",
         db.workload.publish.once({
           facts: { insert: rows.insert },
@@ -283,72 +290,71 @@ const program = Effect.gen(function* planBudget() {
   const layer = yield* layerOf;
   const actions: readonly StudentAction<Effect.Services<ReturnType<typeof openDb>>>[] = [
     {
-      act: (child) => withDb((db) => enter(db, child, firstItem)),
       barMs: 100,
       name: "start",
-      prepare: taken(stdTest),
-      warm: false,
+      prepare: (child) =>
+        Effect.as(taken(stdTest)(child), cold(withDb((db) => enter(db, child, firstItem)))),
     },
     {
-      act: (child) => withDb((db) => present(db, child, secondItem)),
       barMs: 100,
       name: "present",
-      prepare: entered(stdTest),
-      warm: false,
+      prepare: (child) =>
+        Effect.as(entered(stdTest)(child), cold(withDb((db) => present(db, child, secondItem)))),
     },
     {
-      act: (child) => withDb((db) => save(db, child, firstItem, "C")),
       barMs: 100,
       name: "save",
-      prepare: entered(stdTest),
-      warm: false,
+      prepare: (child) =>
+        Effect.as(entered(stdTest)(child), cold(withDb((db) => save(db, child, firstItem, "C")))),
     },
     {
-      act: (child) => withDb((db) => answer(db, child, firstItem, "C")),
       barMs: 100,
       name: "answer",
-      prepare: entered(rateTest),
-      warm: false,
+      prepare: (child) =>
+        Effect.as(
+          entered(rateTest)(child),
+          cold(withDb((db) => answer(db, child, firstItem, "C"))),
+        ),
     },
     {
-      act: (child) => withDb((db) => suspend(db, child)),
       barMs: 100,
       name: "suspend",
-      prepare: entered(stdTest),
-      warm: false,
+      prepare: (child) =>
+        Effect.as(entered(stdTest)(child), cold(withDb((db) => suspend(db, child)))),
     },
     {
-      act: (child) => withDb((db) => beacon(db, child)),
       barMs: beaconBarMs,
       name: "beacon",
-      prepare: entered(stdTest),
-      warm: true,
+      prepare: (child) =>
+        Effect.as(entered(stdTest)(child), warm(beaconed(child), beaconed(child))),
     },
     {
-      act: (child) => withDb((db) => enter(db, child, firstItem)),
       barMs: 100,
       name: "resume",
       prepare: (child) =>
-        withDb((db) =>
-          Effect.andThen(
-            Effect.andThen(take(db, child, stdTest), enter(db, child, firstItem)),
-            suspend(db, child),
+        Effect.as(
+          withDb((db) =>
+            Effect.andThen(
+              Effect.andThen(take(db, child, stdTest), enter(db, child, firstItem)),
+              suspend(db, child),
+            ),
           ),
+          cold(withDb((db) => enter(db, child, firstItem))),
         ),
-      warm: false,
     },
     {
-      act: (child) => withDb((db) => finish(db, child)),
       barMs: 100,
       name: "submit",
       prepare: (child) =>
-        withDb((db) =>
-          Effect.andThen(
-            Effect.andThen(take(db, child, stdTest), enter(db, child, firstItem)),
-            savedAll(db, child),
+        Effect.as(
+          withDb((db) =>
+            Effect.andThen(
+              Effect.andThen(take(db, child, stdTest), enter(db, child, firstItem)),
+              savedAll(db, child),
+            ),
           ),
+          cold(withDb((db) => finish(db, child))),
         ),
-      warm: false,
     },
   ];
   const verdicts = yield* measureActions(
