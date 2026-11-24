@@ -15,8 +15,8 @@
  * ends.
  *
  * It needs a migrated database of pantry's (`packages/pantry/scripts/db.sh create` and `migrate`),
- * named by `QTI_PIE_PG_*` as pantry's command line reads them, so it runs only through the
- * machine's one database lock, once per landing that touches specimen, pantry's laws or plate
+ * named by `QTI_PIE_PG_*` as pantry's command line reads them, so it runs only on a database a
+ * lane hands it, once per landing that touches specimen, pantry's laws or plate
  * (`pnpm run test:specimen-db`), never in the free runs. The free suites draw only among the
  * floor's cases, which the admission run admits ahead (`packages/specimen/src/floor.ts`).
  *
