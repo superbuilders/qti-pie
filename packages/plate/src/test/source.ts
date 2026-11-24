@@ -77,3 +77,80 @@ export const entity = (name: string): SourceEntity => ({ kind: "entity", name })
  * block), for an item whose body a test does not read.
  */
 export const paragraph: SourceElement = el("p", [], [text("Read.")]);
+
+/**
+ * Construct a declaration with its three attributes.
+ *
+ * @param local `qti-response-declaration` or `qti-outcome-declaration`.
+ * @param identifier The declared identifier.
+ * @param baseType The `base-type` value.
+ * @param cardinality The `cardinality` value.
+ * @param children The declaration's children, none by default.
+ * @returns The declaration element.
+ */
+export const declaration = (
+  local: "qti-outcome-declaration" | "qti-response-declaration",
+  identifier: string,
+  baseType: string,
+  cardinality: string,
+  children: readonly SourceChild[] = [],
+): SourceElement =>
+  el(
+    local,
+    [attr("base-type", baseType), attr("cardinality", cardinality), attr("identifier", identifier)],
+    children,
+  );
+
+/**
+ * The declarations' kinds in the order the XSD's `AssessmentItemDType` sets them.
+ */
+const declarationOrder: readonly string[] = [
+  "qti-context-declaration",
+  "qti-response-declaration",
+  "qti-outcome-declaration",
+  "qti-template-declaration",
+];
+
+/**
+ * Give an element's place among the root's leading children: its declaration kind's, and after
+ * every declaration for any other element, such as a `qti-template-processing`.
+ *
+ * @param element The element.
+ * @returns Its place.
+ */
+const placeOf = (element: SourceElement): number => {
+  const place = declarationOrder.indexOf(element.local);
+
+  return place === -1 ? declarationOrder.length : place;
+};
+
+/**
+ * Construct an item document from its parts, its declarations in the order the XSD sets.
+ *
+ * @param parts The root's extra attributes, the declarations, the body's children and what follows
+ *   the body.
+ * @returns The document at `items/test.xml`.
+ */
+export const item = (parts: {
+  readonly after?: readonly SourceElement[];
+  readonly attributes?: readonly SourceAttribute[];
+  readonly body: readonly SourceChild[];
+  readonly declarations: readonly SourceElement[];
+}): SourceDocument =>
+  doc(
+    "items/test.xml",
+    el(
+      "qti-assessment-item",
+      [
+        attr("identifier", "item"),
+        attr("time-dependent", "false"),
+        attr("title", "Item"),
+        ...(parts.attributes ?? []),
+      ],
+      [
+        ...parts.declarations.toSorted((left, right) => placeOf(left) - placeOf(right)),
+        el("qti-item-body", [], parts.body),
+        ...(parts.after ?? []),
+      ],
+    ),
+  );

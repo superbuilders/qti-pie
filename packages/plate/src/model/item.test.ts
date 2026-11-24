@@ -2,12 +2,7 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { readSource } from "#plate/document/read.ts";
 import { xmlNamespace } from "#plate/document/source.ts";
-import type {
-  SourceAttribute,
-  SourceChild,
-  SourceDocument,
-  SourceElement,
-} from "#plate/document/source.ts";
+import type { SourceAttribute, SourceDocument, SourceElement } from "#plate/document/source.ts";
 import type { ChoiceInteraction } from "#plate/interactions/choice.ts";
 import type { ExtendedTextInteraction } from "#plate/interactions/extended-text.ts";
 import type { InlineChoiceInteraction } from "#plate/interactions/inline-choice.ts";
@@ -21,12 +16,17 @@ import type {
   RecordDeclaration,
   TemplateDeclaration,
   TemplateVisibility,
-  UnsupportedFeature,
 } from "#plate/model/item.ts";
 import type { RecordValue, Value } from "#plate/model/values.ts";
 import { float, integer } from "#plate/test/fixtures.ts";
-import { growthFactor, growthLimit, growthRatio } from "#plate/test/growth.ts";
-import { attr, doc, el, paragraph, text } from "#plate/test/source.ts";
+import {
+  bindQuadratically,
+  dedupeQuadratically,
+  templated,
+  textEntries,
+} from "#plate/test/counted.ts";
+import { blockGrowth, blockGrowthLimit, growthFactor } from "#plate/test/growth.ts";
+import { attr, declaration, doc, el, item, paragraph, text } from "#plate/test/source.ts";
 
 /**
  * The path of the item root, which every path in these tests starts with.
@@ -37,29 +37,6 @@ const root = "qti-assessment-item";
  * The path of the item body.
  */
 const body = `${root}/qti-item-body`;
-
-/**
- * Construct a declaration with its three attributes.
- *
- * @param local `qti-response-declaration` or `qti-outcome-declaration`.
- * @param identifier The declared identifier.
- * @param baseType The `base-type` value.
- * @param cardinality The `cardinality` value.
- * @param children The declaration's children, none by default.
- * @returns The declaration element.
- */
-const declaration = (
-  local: "qti-outcome-declaration" | "qti-response-declaration",
-  identifier: string,
-  baseType: string,
-  cardinality: string,
-  children: readonly SourceChild[] = [],
-): SourceElement =>
-  el(
-    local,
-    [attr("base-type", baseType), attr("cardinality", cardinality), attr("identifier", identifier)],
-    children,
-  );
 
 /**
  * Construct a container of `qti-value` children, such as `qti-correct-response`.
@@ -171,60 +148,6 @@ const matchCorrectBlock = (): SourceElement =>
         ],
       ),
     ],
-  );
-
-/**
- * The declarations' kinds in the order the XSD's `AssessmentItemDType` sets them.
- */
-const declarationOrder: readonly string[] = [
-  "qti-context-declaration",
-  "qti-response-declaration",
-  "qti-outcome-declaration",
-  "qti-template-declaration",
-];
-
-/**
- * Give an element's place among the root's leading children: its declaration kind's, and after
- * every declaration for any other element, such as a `qti-template-processing`.
- *
- * @param element The element.
- * @returns Its place.
- */
-const placeOf = (element: SourceElement): number => {
-  const place = declarationOrder.indexOf(element.local);
-
-  return place === -1 ? declarationOrder.length : place;
-};
-
-/**
- * Construct an item document from its parts, its declarations in the order the XSD sets.
- *
- * @param parts The root's extra attributes, the declarations, the body's children and what follows
- *   the body.
- * @returns The document at `items/test.xml`.
- */
-const item = (parts: {
-  readonly after?: readonly SourceElement[];
-  readonly attributes?: readonly SourceAttribute[];
-  readonly body: readonly SourceChild[];
-  readonly declarations: readonly SourceElement[];
-}): SourceDocument =>
-  doc(
-    "items/test.xml",
-    el(
-      root,
-      [
-        attr("identifier", "item"),
-        attr("time-dependent", "false"),
-        attr("title", "Item"),
-        ...(parts.attributes ?? []),
-      ],
-      [
-        ...parts.declarations.toSorted((left, right) => placeOf(left) - placeOf(right)),
-        el("qti-item-body", [], parts.body),
-        ...(parts.after ?? []),
-      ],
-    ),
   );
 
 /**
@@ -413,112 +336,12 @@ const childrenOf = (node: BodyNode | undefined): readonly BodyNode[] => {
 const fewerDeclarations = 1000;
 
 /**
- * Each growth check and its control build 8,000 declarations three times and 1,000 declarations 24
- * times. A quadratic record took about 4 s of that, and a quadratic binding about 20 s, beyond
- * vitest's default of 5 s, and a failing check should report its ratio, not a timeout.
+ * The quadratic binding control counts 320 million blocks of JavaScript under V8's interpreter and
+ * Sparkplug, about 16 s alone, and several times that beside other suites on a busy machine: at
+ * the load averages near 400 on 64 cores the vitest config names, about 100 s, past vitest's 60 s
+ * default. A failing control should report its ratio, not a timeout.
  */
-const growthTimeoutMs = 60_000;
-
-/**
- * An item with `count` template declarations of cardinality `record` and an empty body. The model
- * does not hold a `record` template declaration, so each is one unsupported feature at its own
- * path.
- *
- * @param count How many declarations the item holds.
- * @returns The document at `items/test.xml`.
- */
-const templated = (count: number): SourceDocument =>
-  item({
-    body: [paragraph],
-    declarations: Array.from({ length: count }, (_, index) =>
-      el("qti-template-declaration", [
-        attr("cardinality", "record"),
-        attr("identifier", `T${index}`),
-      ]),
-    ),
-  });
-
-/**
- * The growth check's control, a deliberately quadratic dedupe: the scan `buildItem` made before it
- * kept each feature's paths in a set, which compares each entry with every entry kept so far.
- *
- * @param entries The features, in document order.
- * @returns The features once per feature and path, in document order.
- */
-const dedupeQuadratically = (
-  entries: readonly UnsupportedFeature[],
-): readonly UnsupportedFeature[] => {
-  const kept: UnsupportedFeature[] = [];
-  for (const entry of entries) {
-    if (!kept.some((held) => held.feature === entry.feature && held.path === entry.path)) {
-      kept.push(entry);
-    }
-  }
-
-  return kept;
-};
-
-/**
- * An item with `count` string response declarations and, in one paragraph, `count` Text Entry
- * interactions, each bound to its own declaration.
- *
- * @param count How many declarations and interactions the item holds.
- * @returns The document at `items/test.xml`.
- */
-const textEntries = (count: number): SourceDocument =>
-  item({
-    body: [
-      el(
-        "p",
-        [],
-        Array.from({ length: count }, (_, index) =>
-          el("qti-text-entry-interaction", [attr("response-identifier", `R${index}`)]),
-        ),
-      ),
-    ],
-    declarations: Array.from({ length: count }, (_, index) =>
-      declaration("qti-response-declaration", `R${index}`, "string", "single"),
-    ),
-  });
-
-/**
- * Keep an element's element children, as the quadratic binding reads them.
- *
- * @param element The element.
- * @returns Its element children, in document order.
- */
-const elementsIn = (element: SourceElement): readonly SourceElement[] =>
-  element.children.filter((child): child is SourceElement => child.kind === "element");
-
-/**
- * Read an attribute's value as written, as the quadratic binding reads it.
- *
- * @param element The element.
- * @param name The attribute's local name.
- * @returns The value, or `undefined` when the element does not carry it.
- */
-const valueIn = (element: SourceElement, name: string): string | undefined =>
-  element.attributes.find((attribute) => attribute.local === name)?.value;
-
-/**
- * The growth check's control, a deliberately quadratic binding: the scan `buildItem` made before it
- * kept a map of declarations, which reads every child of the root once per interaction.
- *
- * @param source An item from {@link textEntries}.
- * @returns Each interaction's declaration, the last one with its identifier, in document order.
- */
-const bindQuadratically = (source: SourceDocument): readonly (SourceElement | undefined)[] =>
-  elementsIn(source.root)
-    .filter((part) => part.local === "qti-item-body")
-    .flatMap(elementsIn)
-    .flatMap(elementsIn)
-    .map((interaction) =>
-      elementsIn(source.root).findLast(
-        (part) =>
-          part.local === "qti-response-declaration" &&
-          valueIn(part, "identifier") === valueIn(interaction, "response-identifier"),
-      ),
-    );
+const quadraticBindingTimeoutMs = 300_000;
 
 describe("buildItem", () => {
   it("builds BG007's Choice, the same whether its response processing names a template or writes it inline, with no mark", () => {
@@ -2206,110 +2029,72 @@ describe("buildItem", () => {
     assert.strictEqual(built.title, "Line one Line two ");
   });
 
-  it.effect(
-    "records 8,000 unsupported declarations, 8 times as many in under 32 times the time",
-    () =>
-      Effect.gen(function* recordsInConstantTime() {
-        const fewer = templated(fewerDeclarations);
-        const more = templated(fewerDeclarations * growthFactor);
-        const built = admittedItem(more);
-        assert.strictEqual(built.unsupported.length, fewerDeclarations * growthFactor);
+  it.effect("records 8,000 unsupported declarations, its blocks growing linearly with them", () =>
+    Effect.gen(function* recordsLinearly() {
+      assert.lengthOf(admittedItem(templated(fewerDeclarations)).unsupported, fewerDeclarations);
+      assert.lengthOf(
+        admittedItem(templated(fewerDeclarations * growthFactor)).unsupported,
+        fewerDeclarations * growthFactor,
+      );
 
-        const growth = yield* growthRatio(
-          () => {
-            admittedItem(fewer);
-          },
-          () => {
-            admittedItem(more);
-          },
-        );
-        assert.isBelow(
-          growth,
-          growthLimit,
-          `8 times the declarations took ${growth.toFixed(1)} times as long`,
-        );
-      }),
-    growthTimeoutMs,
+      const growth = yield* blockGrowth("records", fewerDeclarations);
+      assert.isBelow(
+        growth,
+        blockGrowthLimit,
+        `8 times the declarations ran ${growth.toFixed(1)} times the blocks`,
+      );
+    }),
   );
 
   it.effect(
-    "binds 8,000 Text Entries to 8,000 declarations, 8 times as many in under 32 times the time",
+    "binds 8,000 Text Entries to 8,000 declarations, its blocks growing linearly with them",
     () =>
-      Effect.gen(function* bindsInConstantTime() {
-        const fewer = textEntries(fewerDeclarations);
-        const more = textEntries(fewerDeclarations * growthFactor);
-        const built = admittedItem(more);
+      Effect.gen(function* bindsLinearly() {
+        const built = admittedItem(textEntries(fewerDeclarations * growthFactor));
         const entries = childrenOf(built.body[0]);
         assert.strictEqual(entries.length, fewerDeclarations * growthFactor);
         assert.isTrue(entries.every((node) => node.kind === "text-entry"));
         assert.deepStrictEqual(built.unsupported, []);
+        assert.deepStrictEqual(admittedItem(textEntries(fewerDeclarations)).unsupported, []);
 
-        const growth = yield* growthRatio(
-          () => {
-            admittedItem(fewer);
-          },
-          () => {
-            admittedItem(more);
-          },
-        );
+        const growth = yield* blockGrowth("binds", fewerDeclarations);
         assert.isBelow(
           growth,
-          growthLimit,
-          `8 times the interactions took ${growth.toFixed(1)} times as long`,
+          blockGrowthLimit,
+          `8 times the interactions ran ${growth.toFixed(1)} times the blocks`,
         );
       }),
-    growthTimeoutMs,
   );
 
   it.effect(
     "control: a quadratic binding of the same interactions fails the growth check",
     () =>
       Effect.gen(function* quadraticBindingControl() {
-        const fewer = textEntries(fewerDeclarations);
-        const more = textEntries(fewerDeclarations * growthFactor);
-        const bound = bindQuadratically(fewer);
+        const bound = bindQuadratically(textEntries(fewerDeclarations));
         assert.strictEqual(bound.length, fewerDeclarations);
         assert.isTrue(bound.every((found) => found !== undefined));
 
-        const growth = yield* growthRatio(
-          () => {
-            bindQuadratically(fewer);
-          },
-          () => {
-            bindQuadratically(more);
-          },
-        );
+        const growth = yield* blockGrowth("quadraticBinding", fewerDeclarations);
         assert.isAtLeast(
           growth,
-          growthLimit,
-          `8 times the interactions took ${growth.toFixed(1)} times as long`,
+          blockGrowthLimit,
+          `8 times the interactions ran ${growth.toFixed(1)} times the blocks`,
         );
       }),
-    growthTimeoutMs,
+    quadraticBindingTimeoutMs,
   );
 
-  it.effect(
-    "control: a quadratic dedupe of the same features fails the growth check",
-    () =>
-      Effect.gen(function* quadraticControl() {
-        const fewer = admittedItem(templated(fewerDeclarations)).unsupported;
-        const more = admittedItem(templated(fewerDeclarations * growthFactor)).unsupported;
-        assert.deepStrictEqual(dedupeQuadratically([...fewer, ...fewer]), fewer);
+  it.effect("control: a quadratic dedupe of the same features fails the growth check", () =>
+    Effect.gen(function* quadraticDedupeControl() {
+      const features = admittedItem(templated(fewerDeclarations)).unsupported;
+      assert.deepStrictEqual(dedupeQuadratically([...features, ...features]), features);
 
-        const growth = yield* growthRatio(
-          () => {
-            dedupeQuadratically(fewer);
-          },
-          () => {
-            dedupeQuadratically(more);
-          },
-        );
-        assert.isAtLeast(
-          growth,
-          growthLimit,
-          `8 times the features took ${growth.toFixed(1)} times as long`,
-        );
-      }),
-    growthTimeoutMs,
+      const growth = yield* blockGrowth("quadraticDedupe", fewerDeclarations);
+      assert.isAtLeast(
+        growth,
+        blockGrowthLimit,
+        `8 times the features ran ${growth.toFixed(1)} times the blocks`,
+      );
+    }),
   );
 });
