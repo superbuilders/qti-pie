@@ -45,7 +45,7 @@ export interface Copies {
 
 /**
  * How a composition's population grows: the copies made on the installation's superuser session,
- * then analyzed. {@link copyUnits} is the copy every composition whose unit is one text column
+ * then vacuumed. {@link copyUnits} is the copy every composition whose unit is one text column
  * takes; a composition whose unit is not (metis's child, a person under several columns with its
  * user id and assignment numbers, two gapless series each copy continues) states its own.
  */
@@ -104,12 +104,15 @@ const run = (client: pg.Client, step: string, sql: string) =>
   });
 
 /**
- * The copy of every row a unit column holds, then ANALYZE, so the population's statistics are the
- * scale's.
+ * The copy of every row a unit column holds, then VACUUM, which counts every table's size at the
+ * scale. grizzle declares every column's statistics from the schema's structure and never samples
+ * them, so the size is all a load changes; an ANALYZE would count it from a sample, which over a
+ * table's dead pages can count none (grizzle's README, "Declared statistics": "Run VACUUM, never
+ * ANALYZE, after a load").
  *
  * @param unit - The unit's column, which every table of a unit's rows holds.
  * @returns The growth: given the superuser's session and the copies, it completes once they are
- *   made and analyzed.
+ *   made and vacuumed.
  */
 export const copyUnits =
   (unit: string): Grow =>
@@ -123,5 +126,5 @@ export const copyUnits =
       yield* run(client, "settings", `SET plan_budget.last = '${String(copies.last)}'`);
       yield* run(client, "copy", copyStatement);
       yield* run(client, "settings", "RESET session_replication_role");
-      yield* run(client, "analyze", "ANALYZE");
+      yield* run(client, "vacuum", "VACUUM");
     });
