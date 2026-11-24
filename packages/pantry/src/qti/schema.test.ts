@@ -28,7 +28,6 @@ import * as interactions from "#pantry/qti/interactions.ts";
 import { interactionLaws } from "#pantry/qti/interactions.ts";
 import * as mapping from "#pantry/qti/mapping.ts";
 import * as metadata from "#pantry/qti/metadata.ts";
-import { metadataLaws } from "#pantry/qti/metadata.ts";
 import * as node from "#pantry/qti/node.ts";
 import { nodeLaws } from "#pantry/qti/node.ts";
 import * as mathml from "#pantry/qti/mathml.ts";
@@ -56,7 +55,6 @@ const composedLaws: readonly (readonly [string, readonly Statement[]])[] = [
   ["src/qti/identity.ts identityLaws", identityLaws],
   ["src/qti/tests.ts testLaws", testLaws],
   ["src/qti/interactions.ts interactionLaws", interactionLaws],
-  ["src/qti/metadata.ts metadataLaws", metadataLaws],
   ["src/qti/expressions.ts expressionLaws", expressionLaws],
   ["src/qti/html.ts htmlLaws", htmlLaws],
   ["src/qti/operators.ts operatorLaws", operatorLaws],

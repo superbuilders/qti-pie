@@ -27,7 +27,7 @@ import {
 } from "#pantry/grammar/install.ts";
 import { keyTextOf, textDigestOf } from "#pantry/import/key-text.ts";
 import { attributeValueOf } from "#pantry/import/names.ts";
-import { stringValuesOf } from "#pantry/import/overlays/metadata.ts";
+import { stringValuesOf } from "#pantry/import/overlays/string-values.ts";
 import { tokensOf } from "#pantry/import/pieces.ts";
 import { governorOf, lexicalOf } from "#pantry/import/fold.ts";
 import type { AttributeIndex, DocumentView } from "#pantry/import/fold.ts";
@@ -99,6 +99,19 @@ export interface PlacedIdRows {
  * and the parent a document's root element names.
  */
 const documentNode = 0n;
+
+/**
+ * Read each element's string value ({@link stringValuesOf}) by its place: the empty text where it
+ * holds no character child, the concatenation of no characters (XDM 3.1, dm:string-value).
+ *
+ * @param rows - The document's flat rows.
+ * @returns Each node's string value, by its `start`.
+ */
+const stringValueAt = (rows: FlatRows<Composed>): ((start: bigint) => string) => {
+  const values = stringValuesOf(rows);
+
+  return (start) => values.get(start) ?? "";
+};
 
 /**
  * The installed `ValueIdentity`, keyed by domain: the identity type of each value domain that has
@@ -526,7 +539,7 @@ export const rowsOf = (view: DocumentView, ids: IdentityIds): IdentityRows => {
     place,
     rootKind: view.tree.root.kind,
     rows,
-    stringValueOf: stringValuesOf(rows),
+    stringValueOf: stringValueAt(rows),
   };
   const attributed = attributeRowsOf(tree);
   const texts = textRowsOf(tree);
@@ -580,7 +593,7 @@ const textIdValuesOf = (
     return [];
   }
 
-  const stringValueOf = stringValuesOf(rows);
+  const stringValueOf = stringValueAt(rows);
 
   return texts.map((row) => ({ ...row, id: collapse(stringValueOf(row.start)) }));
 };

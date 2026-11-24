@@ -1036,7 +1036,6 @@ CREATE TABLE "qti"."node" (
   "__copy_children_tityo5ij5l" bigint NOT NULL,
   "__package_3taa5kijgy" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN NOT "kind" IN (7::smallint, 1::smallint, 0::smallint, 9::smallint, 8::smallint, 5::smallint, 6::smallint) AND "start" > 0::bigint AND "qti"."__row_e5z245apmv"("parent_kind", "state") THEN "package" END) STORED,
   "__package_p5yblwgnua" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "kind" IN (133::smallint, 127::smallint, 18::smallint, 118::smallint, 17::smallint, 131::smallint, 119::smallint, 125::smallint, 121::smallint, 123::smallint, 122::smallint, 129::smallint, 16::smallint, 120::smallint, 128::smallint, 130::smallint, 117::smallint, 187::smallint, 124::smallint, 126::smallint, 10::smallint, 132::smallint) AND ("pg_catalog"."bit_count"("ancestry" & X'8000'::"qti"."__flag_bits_16_llpdtzgaon") = 0::bigint) = true THEN "package" END) STORED,
-  "__package_pzlq2bwqm3" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "kind" = 638::smallint AND "qti"."__row_sk5tugqwcr"("attrs", "governor") THEN "package" END) STORED,
   "__package_lqgfkydq7q" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "kind" = 183::smallint AND "parent_kind" = 117::smallint THEN "package" END) STORED,
   "__parent_l4ckjnvwat" bigint GENERATED ALWAYS AS (CASE WHEN "start" > 0::bigint THEN "parent" END) STORED,
   "__pred_at_xktcobhsti" bigint GENERATED ALWAYS AS (CASE WHEN "at" > 0::bigint THEN "at"::numeric - (1::bigint)::numeric END) STORED,
@@ -1052,7 +1051,6 @@ CREATE TABLE "qti"."node" (
   CONSTRAINT "__node_key_package_path_start_attributes_governor_pxds7wqnyl" UNIQUE NULLS DISTINCT ("package", "path", "start", "attributes", "governor", "kind", "parent"),
   CONSTRAINT "__node_key_package_path_start_parent_ytuzrwhg3t" UNIQUE NULLS DISTINCT ("package", "path", "start", "parent"),
   CONSTRAINT "track_srclang" CHECK (("kind" <> 294::smallint OR "qti"."__row_u4q6galdn4"("attrs", "governor")) IS TRUE),
-  CONSTRAINT "__node_key_package_path_start_string_value_digest_hx6nn5eqk5" UNIQUE NULLS DISTINCT ("package", "path", "start", "string_value_digest"),
   CONSTRAINT "__node_key_package_path_start_kind_governor_42fsltrsjy" UNIQUE NULLS DISTINCT ("package", "path", "start", "kind", "governor"),
   CONSTRAINT "__node_key_package_path_start_kind_ooglyqab5z" UNIQUE NULLS DISTINCT ("package", "path", "start", "kind"),
   CONSTRAINT "__node_check_node_start_in_node_kuuvkytm3l" CHECK (("at" > 0::bigint OR "was" = 0::smallint) IS TRUE),
@@ -1084,7 +1082,6 @@ CREATE TABLE "qti"."node" (
   CONSTRAINT "__node_key_package_path_parent_pred_at_e2zyuwfurj" UNIQUE NULLS DISTINCT ("package", "path", "__parent_l4ckjnvwat", "__pred_at_xktcobhsti"),
   CONSTRAINT "__node_key_package_path_parent_state_djsbcozcyq" UNIQUE NULLS DISTINCT ("__package_3taa5kijgy", "path", "parent", "state"),
   CONSTRAINT "__node_key_package_path_start_dn7spvnjad" UNIQUE NULLS DISTINCT ("__package_p5yblwgnua", "path", "start"),
-  CONSTRAINT "__node_key_package_path_start_7m4qykmkxg" UNIQUE NULLS DISTINCT ("__package_pzlq2bwqm3", "path", "start"),
   CONSTRAINT "__node_key_package_path_parent_jhawkbuquo" UNIQUE NULLS DISTINCT ("__package_lqgfkydq7q", "path", "parent"),
   CONSTRAINT "__node_check_node_children_count_fold_igxdzwlhcu" CHECK ((("at" > 0::bigint OR "__before_children_0_bs3zgzsr7j" = 0::bigint) AND ("children" > 0::bigint OR "barred_children" = 0::bigint) AND "qti"."__row_6rfxzdle5g"("kind", "parent_kind", "state", "start", "__after_children_0_qbioc6jbat", "__before_children_0_bs3zgzsr7j")) IS TRUE),
   CONSTRAINT "__node_check_node_children_count_fold_qmksp5dp7i" CHECK ((("at" > 0::bigint OR "__before_children_0_qdvwmuycyh" = 0::bigint) AND ("children" > 0::bigint OR "counted_children" = 0::bigint) AND "qti"."__row_zmo46cd6nh"("kind", "parent_kind", "state", "start", "__after_children_0_vmaftea6hj", "__before_children_0_qdvwmuycyh")) IS TRUE),
@@ -1455,37 +1452,6 @@ CREATE TABLE "qti"."resource_href_path" (
   CONSTRAINT "e_1_derived" CHECK (("qti"."__row_xjnskhk2gh"("target")) IS TRUE)
 );
 
-CREATE TABLE "qti"."rounding" (
-  "holds" "qti"."rounding_holds" NOT NULL,
-  "package" "qti"."__text_aqc6inemva" NOT NULL,
-  "path" "qti"."__text_tn2inwix7f" NOT NULL,
-  "start" "qti"."__domain_gfw43vigph" NOT NULL,
-  CONSTRAINT "__rounding_pk_p5ba7td7t4" PRIMARY KEY ("package", "path", "start")
-);
-
-CREATE TABLE "qti"."rounding_figures" (
-  "figures_lexical" "qti"."__text_tfkvgtjblt" NOT NULL,
-  "package" "qti"."__text_aqc6inemva" NOT NULL,
-  "path" "qti"."__text_tn2inwix7f" NOT NULL,
-  "start" "qti"."__domain_gfw43vigph" NOT NULL,
-  "figures" "qti"."__text_tfkvgtjblt" GENERATED ALWAYS AS ("pg_catalog"."btrim"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("figures_lexical", E'\t'::"pg_catalog"."text", ' '::"pg_catalog"."text"), E'\n'::"pg_catalog"."text", ' '::"pg_catalog"."text"), E'\r'::"pg_catalog"."text", ' '::"pg_catalog"."text"), '  '::"pg_catalog"."text", E' \t'::"pg_catalog"."text"), E'\t '::"pg_catalog"."text", E'\t\t'::"pg_catalog"."text"), E'\t'::"pg_catalog"."text", ''::"pg_catalog"."text"))) STORED NOT NULL,
-  "figures_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("pg_catalog"."btrim"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("figures_lexical", E'\t'::"pg_catalog"."text", ' '::"pg_catalog"."text"), E'\n'::"pg_catalog"."text", ' '::"pg_catalog"."text"), E'\r'::"pg_catalog"."text", ' '::"pg_catalog"."text"), '  '::"pg_catalog"."text", E' \t'::"pg_catalog"."text"), E'\t '::"pg_catalog"."text", E'\t\t'::"pg_catalog"."text"), E'\t'::"pg_catalog"."text", ''::"pg_catalog"."text")))) STORED NOT NULL,
-  "figures_lexical_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("figures_lexical")) STORED NOT NULL,
-  CONSTRAINT "__rounding_figures_pk_wwvjzzaivg" PRIMARY KEY ("package", "path", "start"),
-  CONSTRAINT "__rounding_figures_key_package_path_start_figures_lvcs4z6khn" UNIQUE NULLS DISTINCT ("package", "path", "start", "figures_digest")
-);
-
-CREATE TABLE "qti"."rounding_mode_figures" (
-  "figures" "qti"."__text_tfkvgtjblt" NOT NULL,
-  "mode" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" NOT NULL,
-  "package" "qti"."__text_aqc6inemva" NOT NULL,
-  "path" "qti"."__text_tn2inwix7f" NOT NULL,
-  "start" "qti"."__domain_gfw43vigph" NOT NULL,
-  "figures_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("figures")) STORED NOT NULL,
-  CONSTRAINT "__rounding_mode_figures_pk_32ue4ztm6s" PRIMARY KEY ("package", "path", "start"),
-  CONSTRAINT "rounding_figures" CHECK (("qti"."__row_tpgnuuvn6t"("figures", "mode")) IS TRUE)
-);
-
 CREATE TABLE "qti"."sd_decl" (
   "package" "qti"."__text_aqc6inemva" NOT NULL,
   "path" "qti"."__text_tn2inwix7f" NOT NULL,
@@ -1707,70 +1673,6 @@ CREATE TABLE "qti"."text_reference_path" (
   "target" "qti"."__text_tn2inwix7f" NOT NULL,
   CONSTRAINT "__text_reference_path_pk_aurefmdcbf" PRIMARY KEY ("package", "path", "start"),
   CONSTRAINT "e_1_derived" CHECK (("qti"."__row_xjnskhk2gh"("target")) IS TRUE)
-);
-
-CREATE TABLE "qti"."tolerance" (
-  "package" "qti"."__text_aqc6inemva" NOT NULL,
-  "path" "qti"."__text_tn2inwix7f" NOT NULL,
-  "start" "qti"."__domain_gfw43vigph" NOT NULL,
-  "token_text" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" NOT NULL,
-  "tokens" "qti"."__domain_gfw43vigph" NOT NULL,
-  "token_text_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("token_text")) STORED NOT NULL,
-  "__pred_tokens_ip7mlgrtju" bigint GENERATED ALWAYS AS (CASE WHEN "tokens" > 0::bigint THEN "tokens"::numeric - (1::bigint)::numeric END) STORED,
-  CONSTRAINT "__tolerance_pk_awo6y43rfn" PRIMARY KEY ("package", "path", "start"),
-  CONSTRAINT "__tolerance_check_tolerance_tokens_concat_fold_yijvagdcgq" CHECK (("tokens" > 0::bigint OR "token_text" = ''::"pg_catalog"."text") IS TRUE),
-  CONSTRAINT "__tolerance_key_package_path_start_tokens_xlvepfuwuw" UNIQUE NULLS DISTINCT ("package", "path", "start", "tokens"),
-  CONSTRAINT "equal_tolerance" CHECK (("tokens" IN (1::bigint, 2::bigint)) IS TRUE)
-);
-
-CREATE TABLE "qti"."tolerance_token" (
-  "after" "qti"."__text_7dfilirtp3" NOT NULL,
-  "at" "qti"."__domain_gfw43vigph" NOT NULL,
-  "before" "qti"."__text_7dfilirtp3" NOT NULL,
-  "package" "qti"."__text_aqc6inemva" NOT NULL,
-  "path" "qti"."__text_tn2inwix7f" NOT NULL,
-  "pieces_after" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" NOT NULL,
-  "pieces_was" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" NOT NULL,
-  "start" "qti"."__domain_gfw43vigph" NOT NULL,
-  "token" "qti"."__text_tfkvgtjblt" NOT NULL,
-  "piece" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS ("before" || "token" || "after") STORED NOT NULL,
-  "pieces_after_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("pieces_after")) STORED NOT NULL,
-  "pieces_was_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("pieces_was")) STORED NOT NULL,
-  "token_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("token")) STORED NOT NULL,
-  "__copy_tokens_zlo7jvsicr" bigint NOT NULL,
-  "__pred_at_xktcobhsti" bigint GENERATED ALWAYS AS (CASE WHEN "at" > 0::bigint THEN "at"::numeric - (1::bigint)::numeric END) STORED,
-  CONSTRAINT "__tolerance_token_pk_o33pihaiia" PRIMARY KEY ("package", "path", "start", "at"),
-  CONSTRAINT "__tolerance_token_key_package_path_start_at_pieces_drqanhhmxs" UNIQUE NULLS DISTINCT ("package", "path", "start", "at", "pieces_after_digest"),
-  CONSTRAINT "__tolerance_token_check_tolerance_tokens_concat_fold_lik6fcbzk5" CHECK ((("at" > 0::bigint OR "pieces_was" = ''::"pg_catalog"."text") AND ("pg_catalog"."octet_length"("pieces_after") = "pg_catalog"."octet_length"("pieces_was")::bigint + "pg_catalog"."octet_length"("piece")::bigint AND "pieces_after" = CASE WHEN "pg_catalog"."octet_length"("pieces_was")::bigint + "pg_catalog"."octet_length"("piece")::bigint > 1073741819::bigint THEN ''::"pg_catalog"."text" ELSE "pieces_was" || "piece" END)) IS TRUE),
-  CONSTRAINT "equal_tolerance" CHECK (("qti"."__row_gvj4sjfiv5"("token")) IS TRUE),
-  CONSTRAINT "e_1_derived" CHECK ((("at" = 0::bigint OR "before" <> ''::"pg_catalog"."text") AND "qti"."__row_e62lbw2mpq"("token")) IS TRUE),
-  CONSTRAINT "__tolerance_token_key_package_path_start_pred_at_mza72eqsyy" UNIQUE NULLS DISTINCT ("package", "path", "start", "__pred_at_xktcobhsti"),
-  CONSTRAINT "__tolerance_token_check_tolerance_token_ordered_sre6vd24dn" CHECK (("at" < "__copy_tokens_zlo7jvsicr") IS TRUE)
-);
-
-CREATE TABLE "qti"."usage_value" (
-  "base_type_lexical" "qti"."__text_tfkvgtjblt" NOT NULL,
-  "package" "qti"."__text_aqc6inemva" NOT NULL,
-  "path" "qti"."__text_tn2inwix7f" NOT NULL,
-  "start" "qti"."__domain_gfw43vigph" NOT NULL,
-  "text" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" NOT NULL,
-  "base_type_lexical_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("base_type_lexical")) STORED NOT NULL,
-  "text_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("text")) STORED NOT NULL,
-  CONSTRAINT "__usage_value_pk_i2ykr2qbnf" PRIMARY KEY ("package", "path", "start")
-);
-
-CREATE TABLE "qti"."usage_value_base_type" (
-  "base_type" "qti"."base_type" NOT NULL,
-  "base_type_lexical" "qti"."__text_tfkvgtjblt" NOT NULL,
-  "package" "qti"."__text_aqc6inemva" NOT NULL,
-  "path" "qti"."__text_tn2inwix7f" NOT NULL,
-  "start" "qti"."__domain_gfw43vigph" NOT NULL,
-  "text" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" NOT NULL,
-  "base_type_lexical_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("base_type_lexical")) STORED NOT NULL,
-  "text_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("text")) STORED NOT NULL,
-  CONSTRAINT "__usage_value_base_type_pk_v6447uyhax" PRIMARY KEY ("package", "path", "start"),
-  CONSTRAINT "e_1_derived" CHECK (("qti"."__row_xtuinpowgy"("base_type", "base_type_lexical")) IS TRUE),
-  CONSTRAINT "usage_typed_value" CHECK (("base_type" IN (10::smallint, 3::smallint) OR "qti"."__row_dfvu25q4di"("text", "base_type")) IS TRUE)
 );
 
 CREATE TABLE "qti"."variable_ref" (
@@ -2171,18 +2073,6 @@ CREATE TRIGGER "__isolation"
   FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
 
 CREATE TRIGGER "__isolation"
-  BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."rounding"
-  FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
-
-CREATE TRIGGER "__isolation"
-  BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."rounding_figures"
-  FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
-
-CREATE TRIGGER "__isolation"
-  BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."rounding_mode_figures"
-  FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
-
-CREATE TRIGGER "__isolation"
   BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."sd_decl"
   FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
 
@@ -2236,22 +2126,6 @@ CREATE TRIGGER "__isolation"
 
 CREATE TRIGGER "__isolation"
   BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."text_reference_path"
-  FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
-
-CREATE TRIGGER "__isolation"
-  BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."tolerance"
-  FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
-
-CREATE TRIGGER "__isolation"
-  BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."tolerance_token"
-  FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
-
-CREATE TRIGGER "__isolation"
-  BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."usage_value"
-  FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
-
-CREATE TRIGGER "__isolation"
-  BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."usage_value_base_type"
   FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
 
 CREATE TRIGGER "__isolation"
@@ -2572,8 +2446,7 @@ ALTER TABLE "qti"."node"
   ADD CONSTRAINT "__node_fk_package_path_start_pred_children_end_cnmpat5j2m" FOREIGN KEY ("package", "path", "start", "__pred_children_nrfpkqcaen", "end", "barred_children", "counted_children", "element_children", "string_value_digest", "last_state") REFERENCES "qti"."node" ("package", "path", "__parent_l4ckjnvwat", "at", "end", "__after_children_0_qbioc6jbat", "__after_children_0_vmaftea6hj", "elements", "chars_after_digest", "state") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED,
   ADD CONSTRAINT "__node_fk_package_path_start_pred_open_attributes_khsm76hyrz" FOREIGN KEY ("package", "path", "start", "__pred_open_attributes_4pd7mwzpyg") REFERENCES "qti"."open_attribute" ("package", "path", "start", "__index_open_attributes_hgy2tjkow2") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED,
   ADD CONSTRAINT "__node_fk_package_path_parent_copy_children_parent_izis7cll4b" FOREIGN KEY ("package", "path", "__parent_l4ckjnvwat", "__copy_children_tityo5ij5l", "parent_ancestry", "parent_governor", "parent_kind", "parent_nearest", "parent_nearest_kind", "parent_nearest_path", "parent_parent_kind") REFERENCES "qti"."node" ("package", "path", "start", "children", "ancestry", "governor", "kind", "nearest", "nearest_kind", "nearest_path", "parent_kind") MATCH SIMPLE,
-  ADD CONSTRAINT "__node_fk_package_path_parent_pred_at_start_before_6abd6cvvat" FOREIGN KEY ("package", "path", "__parent_l4ckjnvwat", "__pred_at_xktcobhsti", "start", "__before_children_0_bs3zgzsr7j", "__before_children_0_qdvwmuycyh", "elements_was", "chars_was_digest", "was") REFERENCES "qti"."node" ("package", "path", "__parent_l4ckjnvwat", "at", "end", "__after_children_0_qbioc6jbat", "__after_children_0_vmaftea6hj", "elements", "chars_after_digest", "state") MATCH SIMPLE,
-  ADD CONSTRAINT "__node_fk_package_path_start_35fr4eeug5" FOREIGN KEY ("__package_pzlq2bwqm3", "path", "start") REFERENCES "qti"."usage_value" ("package", "path", "start") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
+  ADD CONSTRAINT "__node_fk_package_path_parent_pred_at_start_before_6abd6cvvat" FOREIGN KEY ("package", "path", "__parent_l4ckjnvwat", "__pred_at_xktcobhsti", "start", "__before_children_0_bs3zgzsr7j", "__before_children_0_qdvwmuycyh", "elements_was", "chars_was_digest", "was") REFERENCES "qti"."node" ("package", "path", "__parent_l4ckjnvwat", "at", "end", "__after_children_0_qbioc6jbat", "__after_children_0_vmaftea6hj", "elements", "chars_after_digest", "state") MATCH SIMPLE;
 
 ALTER TABLE "qti"."open_attribute"
   ADD CONSTRAINT "__open_attribute_fk_package_path_start_copy_open_3uvsj6ee55" FOREIGN KEY ("package", "path", "start", "__copy_open_attributes_fpnvcvdmpf", "governor", "kind") REFERENCES "qti"."node" ("package", "path", "start", "open_attributes", "governor", "kind") MATCH SIMPLE ON UPDATE CASCADE,
@@ -2642,8 +2515,6 @@ ALTER TABLE "qti"."referring_document"
 
 ALTER TABLE "qti"."resource_document" ADD CONSTRAINT "__resource_document_fk_package_path_root_kind_ejo23fxacl" FOREIGN KEY ("package", "path", "root_kind", "document_type") REFERENCES "qti"."document" ("package", "path", "root_kind", "document_type") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
 
-ALTER TABLE "qti"."rounding_mode_figures" ADD CONSTRAINT "__rounding_mode_figures_fk_package_path_start_ybcfejqokw" FOREIGN KEY ("package", "path", "start", "figures_digest") REFERENCES "qti"."rounding_figures" ("package", "path", "start", "figures_digest") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
-
 ALTER TABLE "qti"."sd_decl" ADD CONSTRAINT "__sd_decl_fk_package_path_xxx5gjp4e7" FOREIGN KEY ("package", "path") REFERENCES "qti"."xml_decl" ("package", "path") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
 
 ALTER TABLE "qti"."share_fragment"
@@ -2683,18 +2554,6 @@ ALTER TABLE "qti"."text_idref"
   ADD CONSTRAINT "__text_idref_fk_package_path_token_digest_jiqu7y6gxe" FOREIGN KEY ("package", "path", "token_digest") REFERENCES "qti"."idref_target" ("package", "path", "id_digest") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
 
 ALTER TABLE "qti"."text_reference_path" ADD CONSTRAINT "__text_reference_path_fk_package_target_7wuvskqxw6" FOREIGN KEY ("package", "target") REFERENCES "qti"."entry" ("package", "path") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
-
-ALTER TABLE "qti"."tolerance" ADD CONSTRAINT "__tolerance_fk_package_path_start_pred_tokens_token_h3v5wokq5r" FOREIGN KEY ("package", "path", "start", "__pred_tokens_ip7mlgrtju", "token_text_digest") REFERENCES "qti"."tolerance_token" ("package", "path", "start", "at", "pieces_after_digest") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
-
-ALTER TABLE "qti"."tolerance_token"
-  ADD CONSTRAINT "__tolerance_token_fk_package_path_start_copy_tokens_hgndbm6n65" FOREIGN KEY ("package", "path", "start", "__copy_tokens_zlo7jvsicr") REFERENCES "qti"."tolerance" ("package", "path", "start", "tokens") MATCH SIMPLE ON UPDATE CASCADE,
-  ADD CONSTRAINT "__tolerance_token_fk_package_path_start_pred_at_4nmbesdvnj" FOREIGN KEY ("package", "path", "start", "__pred_at_xktcobhsti", "pieces_was_digest") REFERENCES "qti"."tolerance_token" ("package", "path", "start", "at", "pieces_after_digest") MATCH SIMPLE;
-
-ALTER TABLE "qti"."usage_value"
-  ADD CONSTRAINT "__usage_value_fk_package_path_start_hgeaq5bglh" FOREIGN KEY ("package", "path", "start") REFERENCES "qti"."node" ("__package_pzlq2bwqm3", "path", "start") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED,
-  ADD CONSTRAINT "__usage_value_fk_package_path_start_text_digest_jp2cxdgoag" FOREIGN KEY ("package", "path", "start", "text_digest") REFERENCES "qti"."node" ("package", "path", "start", "string_value_digest") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
-
-ALTER TABLE "qti"."usage_value_base_type" ADD CONSTRAINT "__usage_value_base_type_fk_package_path_start_text_yqq5jyywar" FOREIGN KEY ("package", "path", "start", "text_digest") REFERENCES "qti"."node" ("package", "path", "start", "string_value_digest") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
 
 ALTER TABLE "qti"."variable_ref"
   ADD CONSTRAINT "__variable_ref_fk_package_path_root_kind_o6lbp6ercl" FOREIGN KEY ("package", "path", "root_kind") REFERENCES "qti"."document" ("package", "path", "root_kind") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED,

@@ -55,14 +55,10 @@ import type {
   PlacedBindingRows,
   FragmentRows,
 } from "#pantry/import/overlays/interactions.ts";
-import { rowsOf as metadataRowsOf } from "#pantry/import/overlays/metadata.ts";
-import type { MetadataRows } from "#pantry/import/overlays/metadata.ts";
 import { mathmlRowsOf } from "#pantry/import/overlays/mathml.ts";
 import type { MathmlRows } from "#pantry/import/overlays/mathml.ts";
 import { placedShareRowsOf } from "#pantry/import/overlays/mathml-share.ts";
 import type { PlacedShareRows } from "#pantry/import/overlays/mathml-share.ts";
-import { rowsOf as operatorRowsOf } from "#pantry/import/overlays/operators.ts";
-import type { OperatorRows } from "#pantry/import/overlays/operators.ts";
 import {
   noPackageRows,
   rowsOf as packageRowsOf,
@@ -89,8 +85,6 @@ type OverlayRows = AssembledExpressionRows &
   IdentityRows &
   InteractionRows &
   MathmlRows &
-  MetadataRows &
-  OperatorRows &
   PackageRows &
   PlacedBindingRows &
   PlacedIdRows &
@@ -110,8 +104,6 @@ interface DocumentRows {
   readonly identity: IdentityRows;
   readonly interactions: InteractionRows;
   readonly mathml: MathmlRows;
-  readonly metadata: MetadataRows;
-  readonly operators: OperatorRows;
   readonly package: PackageRows;
   readonly references: ReferenceRows;
   readonly tests: TestRows;
@@ -121,9 +113,7 @@ interface DocumentRows {
  * Run every document builder over one document: each finds the elements its overlays describe by
  * their kind, so a document that holds none gives it no row. The manifest overlays are the
  * package manifest's alone (`noPackageRows`): `rowsOf` of `#pantry/import/overlays/package.ts`
- * reads the manifest's tree, and a `cp:*` element of another document is no part of the package,
- * so the metadata overlays read the package's records from the manifest and its record files alone
- * (`rowsOf` of `#pantry/import/overlays/metadata.ts`, by the document's type).
+ * reads the manifest's tree, and a `cp:*` element of another document is no part of the package.
  *
  * @param document - The document, listed, placed and viewed.
  * @param document.ids - Where it stands in its package.
@@ -137,8 +127,6 @@ const documentRowsOf = ({ ids, listed: { path }, view }: PlacedDocument): Docume
   identity: identityRowsOf(view, ids),
   interactions: interactionRowsOf(view, ids),
   mathml: mathmlRowsOf(view, ids),
-  metadata: metadataRowsOf(view, ids),
-  operators: operatorRowsOf(view, ids),
   package: path === manifestPath ? packageRowsOf(view, ids) : noPackageRows,
   references: referenceRowsOf(view, ids, referenceCensus),
   tests: testRowsOf(view, ids),
@@ -338,8 +326,6 @@ export const overlayPartsOf = (
       rows.identity,
       rows.interactions,
       rows.mathml,
-      rows.metadata,
-      rows.operators,
       rows.package,
       rows.references,
       rows.tests,

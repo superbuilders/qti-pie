@@ -1,47 +1,33 @@
 /**
- * The metadata builder's free tests, and the law oracle's reading 62 over generated packages: over
+ * The law oracle's reading 62 over generated packages: over
  * generated packages and the `metaData` fixture, the law oracle (`#pantry/test/oracle.ts`) refuses
  * exactly the records reading 62 refuses, `lom-identifier` and `lom-title`, which the database
  * holds by rules over queries over `Node` (`#pantry/qti/queries.ts`), since a LOM record has no
- * overlay; the builder writes no row of a resource; and a usage value has its typed row exactly
- * where it writes a `baseType` and a `fieldIdentifier`, a record's value (reading 105).
+ * overlay. A usage value's typed row is the view `UsageValueBaseType`'s
+ * (`#pantry/qti/attribute-views.db.test.ts`).
  */
 import { NodeServices } from "@effect/platform-node";
 import { assert, describe, it } from "@effect/vitest";
-import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
-import { required, requiredInSpace } from "@bjornpagen/testing/features";
+import { drawn, explore } from "@bjornpagen/testing/explore";
+import { required } from "@bjornpagen/testing/features";
 import { array, boolean, element } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Duration, Effect, Formatter, Option } from "effect";
+import { Effect, Formatter, Option } from "effect";
 import { inject } from "vitest";
-import { readXml } from "@qti-pie/crust/read.ts";
 import { grammar } from "#pantry/grammar/install.ts";
-import { rowsOf } from "#pantry/import/overlays/metadata.ts";
-import type { MetadataRows } from "#pantry/import/overlays/metadata.ts";
-import type { Place } from "#pantry/qti/schema.ts";
-import { resourcePathsOf } from "#pantry/import/overlays/package.ts";
-import { shredGrammarOf } from "#pantry/model/composed.ts";
-import { shred } from "#pantry/model/shred.ts";
 import { readEntries } from "#pantry/package/read.ts";
 import type { PackageFile } from "#pantry/package/read.ts";
 import { judge, lawsOf } from "#pantry/test/oracle.ts";
 import { caseHang } from "#pantry/test/gen/xdm.ts";
-import { manifestPath } from "#pantry/vocab/terms/package.ts";
-import { flatDocumentOf, ownViewOf } from "#pantry/import/fold.ts";
 import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The fixtures the global setup materializes: `metaData` among them.
  */
 const fixtures = inject("fixtures");
-
-/**
- * The grammar shred reads every document through.
- */
-const shredGrammar = shredGrammarOf(grammar);
 
 /**
  * The law oracle's tables, derived once.
@@ -56,20 +42,6 @@ const namespaces = {
   cp: "http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1",
   lom: "http://ltsc.ieee.org/xsd/LOM",
 } as const;
-
-/**
- * The manifest identifier every generated package is read under.
- */
-const packageIdentifier = "MANIFEST-metadata";
-
-/**
- * Place one document of a package: its path there, the key its rows hold beside each node's
- * `start`.
- *
- * @param path - The document's path in its package.
- * @returns Its place.
- */
-const idsFor = (path: string): Place => ({ package: packageIdentifier, path });
 
 /**
  * Collapse a text as XML Schema's `collapse` whitespace class does.
@@ -622,69 +594,6 @@ describe("the law oracle's reading 62, generated packages", { timeout: searchTim
 });
 
 /**
- * Count a document's metadata rows by relation, the relations it writes no row of left out.
- *
- * @param rows - The document's rows.
- * @returns Each written relation's row count.
- */
-const countsOf = (rows: MetadataRows): Readonly<Record<string, number>> =>
-  Object.fromEntries(
-    Object.entries(rows).flatMap(([relation, { size }]: [string, ReadonlyMap<string, unknown>]) =>
-      size === 0 ? [] : [[relation, size] as const],
-    ),
-  );
-
-/**
- * Shred one document from its text, as the importer reads it.
- *
- * @param xml - The document's text.
- * @returns Its tree; dies when it does not shred, which no case builds.
- */
-const shreddedText = Effect.fn("test.metadata.shreddedText")(function* shreddedDocument(
-  xml: string,
-) {
-  const read = yield* Effect.orDie(readXml(new TextEncoder().encode(xml)));
-
-  return yield* Effect.orDie(shred(read, shredGrammar));
-});
-
-describe("import/overlays/metadata.ts, the manifest's resources", () => {
-  it.effect(
-    "writes no row of a cp:resource, the manifest's or a record file's whose root is a cp:manifest, whose records the manifest's resource hrefs name",
-    () =>
-      // Oracle: the specification as a checker, IMS Content Packaging 1.2: a package's resources are
-      // its one manifest's, so a `cp:resource` of any other document, a record file's included,
-      // names no resource of the package. Sterling's 05cdedfa case, restated: our model holds no
-      // `LomResource` (660a9d64). A record names the document it describes through `namingRecords`
-      // (`#pantry/qti/queries.ts`), over the `ResourceHrefPath` rows that the package overlay writes
-      // from the manifest alone (`#pantry/import/overlays/index.ts`), so the metadata overlay writes
-      // no row of a resource in either document.
-      // Bound: R-O3s, its manifest listing two resources and its record file a `cp:manifest` root
-      // holding one `cp:resource`.
-      Effect.gen(function* manifestResources() {
-        const manifest = yield* shreddedText(
-          [
-            `<manifest xmlns="${namespaces.cp}" identifier="M300"><resources>`,
-            '<resource identifier="R1" type="imsqti_outcomes_xmlv3p0" href="test.xml"/>',
-            '<resource identifier="R2" type="resourcemetadata/xml" href="test.xml"/>',
-            "</resources></manifest>",
-          ].join(""),
-        );
-        const recordFile = yield* shreddedText(
-          `<manifest xmlns="${namespaces.cp}"><resources><resource/></resources></manifest>`,
-        );
-        assert.deepStrictEqual(countsOf(rowsOf(ownViewOf(manifest), idsFor(manifestPath))), {});
-        assert.deepStrictEqual(countsOf(rowsOf(ownViewOf(recordFile), idsFor("metadata.xml"))), {});
-        assert.deepStrictEqual(
-          [...resourcePathsOf(flatDocumentOf(manifest)).values()],
-          ["test.xml", "test.xml"],
-          "the manifest's two resources, by the paths their hrefs name",
-        );
-      }),
-  );
-});
-
-/**
  * The `metaData` package's one entry, which names no document: its item is `choice`.
  */
 const metaDataEntry = "<imsmd:entry>qti_v2_item_01</imsmd:entry>";
@@ -723,7 +632,7 @@ const withManifestText = (
 const withEntry = (files: readonly PackageFile[], entry: string): readonly PackageFile[] =>
   withManifestText(files, metaDataEntry, `<imsmd:entry>${entry}</imsmd:entry>`);
 
-describe("import/overlays/metadata.ts, the metaData fixture", () => {
+describe("the law oracle's reading 62, the metaData fixture", () => {
   it.effect(
     "refuses metaData's record, whose entry names another item, and accepts it naming choice, padded or not",
     () =>
@@ -749,163 +658,5 @@ describe("import/overlays/metadata.ts, the metaData fixture", () => {
           );
         }
       }).pipe(Effect.provide(NodeServices.layer)),
-  );
-});
-
-/**
- * One usage value of the usage-value box: its `baseType` as written, none where it writes none, its
- * `fieldIdentifier` as written, none where it writes none (a value that writes one forms part of a
- * record, spec reading 105), and its content, as XML text and as the string value XML 1.0 reads
- * from it.
- */
-interface UsageCase {
-  readonly baseType: string | undefined;
-  readonly fieldIdentifier: string | undefined;
-  readonly content: { readonly value: string; readonly xml: string };
-}
-
-/**
- * The usage-value box: a `ud:value` that writes no `baseType`, one of three spelled base types, a
- * misspelled one and a padded one, with and without a `fieldIdentifier`, over four contents: none,
- * a number, a padded number, and a text that escapes its ampersand, which the reader expands (XML
- * 1.0 §4.6, the predefined entities).
- */
-const usageCases: Gen<UsageCase> = (source) => ({
-  baseType: source.draw(element([undefined, "float", "integer", "identifier", "Float", " float"])),
-  content: source.draw(
-    element([
-      { value: "", xml: "" },
-      { value: "0.87", xml: "0.87" },
-      // A `ud:value`'s text is of a `whiteSpace="replace"` type, so its value holds each line feed
-      // as a space (XML Schema 1.0 Part 2 §4.3.6; SV-VALUE-01), no space trimmed.
-      { value: " 0.87 ", xml: " 0.87\n" },
-      { value: "a&b", xml: "a&amp;b" },
-    ]),
-  ),
-  fieldIdentifier: source.draw(element([undefined, "SCORE"])),
-});
-
-/**
- * A situation the usage-value box must reach.
- */
-type UsageSituation =
-  | "escaped"
-  | "misspelled"
-  | "outside a record"
-  | "padded"
-  | "spelled"
-  | "unwritten";
-
-/**
- * The base types the usage-value box spells as `BaseType` handles.
- */
-const spelledUsageTypes: ReadonlySet<string> = new Set(["float", "integer", "identifier"]);
-
-/**
- * Name a usage value's `baseType` situation, for the box's coverage.
- *
- * @param baseType - The `baseType` as written, none where it writes none.
- * @returns Its situation.
- */
-const usageSituationOf = (baseType: string | undefined): UsageSituation => {
-  if (baseType === undefined) {
-    return "unwritten";
-  }
-
-  if (spelledUsageTypes.has(baseType)) {
-    return "spelled";
-  }
-
-  return baseType.trim() === baseType ? "misspelled" : "padded";
-};
-
-describe("import/overlays/metadata.ts, usage values", () => {
-  it.effect(
-    "writes a UsageValue row exactly for a ud:value that writes baseType and fieldIdentifier, its text its string value, and its UsageValueBaseType row where the baseType spells a handle",
-    (ctx) =>
-      // Oracle: the specification as a checker, reading 105 and C17: a row where `baseType` and
-      // `fieldIdentifier` are both written, the value forming part of a record, and none elsewhere
-      // (a `baseType` outside a record is no base type, so its value is untyped text), its text
-      // the string value of its content, and its `UsageValueBaseType` row only where its
-      // lexical form spells a `BaseType` handle as written (decision 427: a misspelling has none,
-      // and its value domain refuses it). A `baseType` itself has no row: the database selects its
-      // attribute's `value` (`UsageBaseType` of `#pantry/qti/queries.ts`).
-      // Bound: 6 baseType spellings, none among them, by 2 field identifiers, none among them, by
-      // 4 contents, 48 cases.
-      searched(
-        ctx,
-        exhaust(
-          {
-            box: "a ud:value with no, a spelled, a misspelled or a padded baseType, with and without a fieldIdentifier, by four contents",
-            caseHang: Duration.seconds(10),
-            concurrency: 1,
-            coverage: requiredInSpace<UsageSituation>([
-              "escaped",
-              "misspelled",
-              "outside a record",
-              "padded",
-              "spelled",
-              "unwritten",
-            ]),
-            generator: usageCases,
-            literal: Formatter.format,
-            oracle: { kind: "specification", name: "reading 105 and C17's spelled codes" },
-            suite: "pantry/import/overlays-metadata-usage-values",
-          },
-          (input: UsageCase, c) =>
-            Effect.gen(function* usageValue() {
-              c.note(usageSituationOf(input.baseType));
-              if (input.baseType !== undefined && input.fieldIdentifier === undefined) {
-                c.note("outside a record");
-              }
-
-              if (input.content.xml !== input.content.value) {
-                c.note("escaped");
-              }
-
-              const attribute = [
-                input.baseType === undefined ? "" : ` baseType="${input.baseType}"`,
-                input.fieldIdentifier === undefined
-                  ? ""
-                  : ` fieldIdentifier="${input.fieldIdentifier}"`,
-              ].join("");
-              const xml = [
-                '<usageData xmlns="http://www.imsglobal.org/xsd/imsqti_usagedata_v3p0">',
-                '<ordinaryStatistic name="AIS" context="http://example.org/c">',
-                '<targetObject identifier="item"/>',
-                `<value${attribute}>${input.content.xml}</value>`,
-                "</ordinaryStatistic></usageData>",
-              ].join("");
-              const read = yield* Effect.orDie(readXml(new TextEncoder().encode(xml)));
-              const tree = yield* Effect.orDie(shred(read, shredGrammar));
-              const built = rowsOf(ownViewOf(tree), idsFor("usage.xml"));
-              const rows = [...built.UsageValue.values()];
-              const typed = [...built.UsageValueBaseType.values()];
-              const inRecord = input.baseType !== undefined && input.fieldIdentifier !== undefined;
-
-              assert.deepStrictEqual(
-                rows.map(({ baseTypeLexical, text }) => ({ baseTypeLexical, text })),
-                inRecord ? [{ baseTypeLexical: input.baseType, text: input.content.value }] : [],
-              );
-              assert.deepStrictEqual(
-                typed.map(({ baseType, baseTypeLexical, text }) => ({
-                  baseType,
-                  baseTypeLexical,
-                  text,
-                })),
-                inRecord && spelledUsageTypes.has(input.baseType ?? "")
-                  ? [
-                      {
-                        baseType: input.baseType,
-                        baseTypeLexical: input.baseType,
-                        text: input.content.value,
-                      },
-                    ]
-                  : [],
-              );
-            }),
-        ),
-      ),
-    searchTimeout,
   );
 });

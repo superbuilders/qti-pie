@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased: the operator and usage copies are views
+
+- `RoundingModeFigures` and `ToleranceToken` (`qti/overlay-queries/expression.ts`) and `UsageValueBaseType`
+  (`qti/queries.ts`) are derived relations over `Attribute` and `Node`: no import writes them. `Rounding`,
+  `RoundingHolds`, `RoundingFigures`, `Tolerance` (`qti/operators.ts`) and `UsageValue` (`qti/metadata.ts`) are
+  removed, with the statements of "E1 derived" that held their copies. A rounding operator's `figures` or a tolerance
+  value past `matchedTextBytes` is refused under "Rounding figures" or "Equal tolerance". The three are plain derived
+  relations: a check over a stored one that reads a pattern does not compile at the pin (`docs/grizzle-findings.md`).
+
 ## Unreleased: no --timeout
 
 - The command line has no `--timeout` and reads no `QTI_TIMEOUT`: a command runs until it ends or its operator stops

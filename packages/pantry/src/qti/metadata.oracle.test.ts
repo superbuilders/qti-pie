@@ -3,7 +3,7 @@
  * the calendar, which AL1 alone judges, and over every learning resource type of a small box the
  * law refuses exactly what QTI 3.0 Metadata §2.7.5.1 forbids (spec reading 122).
  *
- * The builder's tests (`#pantry/import/overlays/metadata.oracle.test.ts`) its rows.
+ * `#pantry/qti/attribute-views.db.test.ts` reads a usage value's typed view.
  */
 import { date, lexicalForm } from "@bjornpagen/grizzle";
 import { NodeServices } from "@effect/platform-node";

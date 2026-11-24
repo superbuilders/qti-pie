@@ -36,9 +36,7 @@
 					"__text_idref_pattern_after_5w5jzh7lom",
 					"__text_idref_pattern_before_dzo3vz4krw",
 					"__text_reference_pattern_lead_4r2jjafwo4",
-					"__text_reference_pattern_trail_x7np6pq5qh",
-					"__tolerance_token_pattern_after_fm3h7wm7ge",
-					"__tolerance_token_pattern_before_s6qnhxewk7"
+					"__text_reference_pattern_trail_x7np6pq5qh"
 				]
 			},
 			"__text_7j6kgluyjp": {
@@ -146,9 +144,6 @@
 					"__resource_href_outside_pattern_package_styf2h2tpu",
 					"__resource_href_path_pattern_package_3yaclgxt7n",
 					"__resource_href_pattern_package_35li7cjzy3",
-					"__rounding_figures_pattern_package_pfxrhk7f45",
-					"__rounding_mode_figures_pattern_package_cxf4vc4djr",
-					"__rounding_pattern_package_jxynfixhbg",
 					"__sd_decl_pattern_package_zmpiy63udb",
 					"__share_fragment_pattern_package_vfbawgy6ng",
 					"__share_target_pattern_package_tyklxsfsso",
@@ -163,10 +158,6 @@
 					"__text_idref_pattern_package_fsku5ozo3n",
 					"__text_reference_path_pattern_package_4qll3g72kj",
 					"__text_reference_pattern_package_ki5zhxzrou",
-					"__tolerance_pattern_package_c7dtjqdx6y",
-					"__tolerance_token_pattern_package_ra53rqldng",
-					"__usage_value_base_type_pattern_package_b3obzmrh7f",
-					"__usage_value_pattern_package_twuidurxt2",
 					"__variable_ref_pattern_package_a3vaqilyv2",
 					"__xml_decl_pattern_package_ptws6zjhpe"
 				]
@@ -293,15 +284,9 @@
 					"__placed_id_pattern_id_gakfg4w5fo",
 					"__placed_idref_pattern_id_t4ozxhwabh",
 					"__placed_share_target_pattern_id_4ikrpo47mw",
-					"__rounding_figures_pattern_figures_lexical_azhiz4h3el",
-					"__rounding_figures_pattern_figures_ua3rjub5m2",
-					"__rounding_mode_figures_pattern_figures_rnbtmzcehj",
 					"__share_fragment_pattern_id_x7rwkbqswy",
 					"__share_target_pattern_id_757r7ady7v",
-					"__text_idref_pattern_token_uq3nxr65gi",
-					"__tolerance_token_pattern_token_bmyim6sy6h",
-					"__usage_value_base_type_pattern_base_type_lexical_zjhlgjvqjl",
-					"__usage_value_pattern_base_type_lexical_s6wnhk5bz2"
+					"__text_idref_pattern_token_uq3nxr65gi"
 				]
 			},
 			"__text_tn2inwix7f": {
@@ -429,9 +414,6 @@
 					"__resource_href_path_pattern_path_6nvm7z3efc",
 					"__resource_href_path_pattern_target_fz5tdsnsd6",
 					"__resource_href_pattern_path_ql3gh5dyyq",
-					"__rounding_figures_pattern_path_liflsdpugp",
-					"__rounding_mode_figures_pattern_path_blkui4nhjr",
-					"__rounding_pattern_path_xban223wge",
 					"__sd_decl_pattern_path_csjyzzfotw",
 					"__share_fragment_pattern_path_7rm6h7miek",
 					"__share_target_pattern_path_vpikjviejt",
@@ -451,10 +433,6 @@
 					"__text_reference_path_pattern_path_aqiwlj4qke",
 					"__text_reference_path_pattern_target_berabdzbbf",
 					"__text_reference_pattern_path_aclznecbad",
-					"__tolerance_pattern_path_3g6voaio7n",
-					"__tolerance_token_pattern_path_bv7qqhvhkp",
-					"__usage_value_base_type_pattern_path_7ltkvvkxl3",
-					"__usage_value_pattern_path_4j2ishohdw",
 					"__variable_ref_pattern_path_5zzcgagp2x",
 					"__xml_decl_pattern_path_c3gfsizndh"
 				]
@@ -599,6 +577,9 @@
 				"__rule_attribute_governor_kind_name_in_document_id_rkrfktdd5a": [
 					"__attribute_governor_kind_name_in_document_id_lmu54qqwpj"
 				],
+				"__rule_attribute_in_tolerance_token_bw235bpnvs": [
+					"__attribute_in_tolerance_token_7akysyf2s6"
+				],
 				"__rule_attribute_kind_lexical_name_in_attribute_ou7cr4rtlm": [
 					"__attribute_kind_lexical_name_in_attribute_xmjepaik2d"
 				],
@@ -617,9 +598,6 @@
 				"__rule_attribute_kind_name_in_reference_axetb6ltzd": [
 					"__attribute_kind_name_in_reference_j5lu55wo36"
 				],
-				"__rule_attribute_kind_name_in_rounding_figures_pzkuabdqu3": [
-					"__attribute_kind_name_in_rounding_figures_2j7uphajye"
-				],
 				"__rule_attribute_kind_name_in_srcset_6dursncbia": [
 					"__attribute_kind_name_in_srcset_n4ghjkos6o"
 				],
@@ -629,17 +607,14 @@
 				"__rule_attribute_kind_name_in_stimulus_ref_extuvgzq3c": [
 					"__attribute_kind_name_in_stimulus_ref_vcus2azu2f"
 				],
-				"__rule_attribute_kind_name_in_tolerance_oj2hwcfjoq": [
-					"__attribute_kind_name_in_tolerance_cimslfbdri"
-				],
 				"__rule_attribute_kind_name_path_in_file_r7arrujmu6": [
 					"__attribute_kind_name_path_in_file_3ygu2v2ddg"
 				],
 				"__rule_attribute_kind_name_path_in_resource_href_7j6uzpastf": [
 					"__attribute_kind_name_path_in_resource_href_2b6mrnxnym"
 				],
-				"__rule_attribute_lexical_kind_name_in_tolerance_stjpinmeyx": [
-					"__attribute_lexical_kind_name_in_tolerance_7ytikn6vl4"
+				"__rule_attribute_lexical_kind_name_in_attribute_wbnjumug26": [
+					"__attribute_lexical_kind_name_in_attribute_ijs3l2vthw"
 				],
 				"__rule_attribute_name_in_catalog_scope_cfonhsabmt": [
 					"__attribute_name_in_catalog_scope_gpvf4qf6qp"
@@ -986,17 +961,8 @@
 				"__rule_rooted_declaration_check_declaration_not_h33bzkr23u": [
 					"__rooted_declaration_check_declaration_not_reserved_5hsd3yw3di"
 				],
-				"__rule_rounding_figures_in_attribute_4pibuspwhi": [
-					"__rounding_figures_in_attribute_ghgmd4nrs3"
-				],
-				"__rule_rounding_in_rounding_mode_tiiuj6l642": [
-					"__rounding_in_rounding_mode_mnh6zjgi6n"
-				],
-				"__rule_rounding_mode_figures_in_rounding_mode_o5jktvw7u3": [
-					"__rounding_mode_figures_in_rounding_mode_5bdcnmtzzp"
-				],
-				"__rule_rounding_mode_in_rounding_6l7d5bnyqk": [
-					"__rounding_mode_in_rounding_kvmkajbet7"
+				"__rule_rounding_mode_figures_check_rounding_figures_2m4sofy5yu": [
+					"__rounding_mode_figures_check_rounding_figures_tcdhp3lpuz"
 				],
 				"__rule_scope_duration_read_check_e_1_derived_s77w2ckn3d": [
 					"__scope_duration_read_check_e_1_derived_eh7u3n7vgi"
@@ -1091,11 +1057,8 @@
 				"__rule_test_reading_key_package_assembly_path_start_u6bkmo2sev": [
 					"__test_reading_key_package_assembly_path_start_duaaxujabc"
 				],
-				"__rule_tolerance_form_check_e_1_derived_nud3ahpjl3": [
-					"__tolerance_form_check_e_1_derived_zj5amya32t"
-				],
-				"__rule_tolerance_in_attribute_wamk5ndwgt": [
-					"__tolerance_in_attribute_4wmhvbppkq"
+				"__rule_tolerance_token_check_equal_tolerance_z52z7rgfa5": [
+					"__tolerance_token_check_equal_tolerance_dv367nqqlh"
 				],
 				"__rule_trimmed_mark_key_package_path_fragment_value_sl2ypl3rzg": [
 					"__trimmed_mark_key_package_path_fragment_value_uge2sqiwtl"
@@ -1121,8 +1084,8 @@
 				"__rule_unweighted_read_check_e_1_derived_jg36nhhjyq": [
 					"__unweighted_read_check_e_1_derived_tlemqo7vtc"
 				],
-				"__rule_usage_value_in_usage_base_type_f566zrkj65": [
-					"__usage_value_in_usage_base_type_sffynregqf"
+				"__rule_usage_value_base_type_check_usage_typed_value_6wrwl7gzix": [
+					"__usage_value_base_type_check_usage_typed_value_lixdqcgl2q"
 				],
 				"__rule_variable_mapping_check_variable_mapping_q3yxpjzdug": [
 					"__variable_mapping_check_variable_mapping_target_vhrbjfwfeg"
@@ -3551,9 +3514,6 @@
 					"__node_start_in_node_wmbzislsch",
 					"__node_tree_children_ma7rpnfjsd"
 				],
-				"__node_fk_package_path_start_35fr4eeug5": [
-					"__node_attrs_governor_attrs_governor_kind_in_usage_xgo4quvpxe"
-				],
 				"__node_fk_package_path_start_pred_attributes_attrs_yuiaud4slh": [
 					"__attribute_counted_node_attributes_jnevnray3y",
 					"__node_attributes_or_fold_qjtccpaklg"
@@ -3588,9 +3548,6 @@
 				"__node_key_package_path_parent_state_djsbcozcyq": [
 					"__node_kind_parent_kind_state_start_key_package_path_43pp6l2ikg"
 				],
-				"__node_key_package_path_start_7m4qykmkxg": [
-					"__node_pk_package_path_start_fubxv47gd4"
-				],
 				"__node_key_package_path_start_attributes_governor_pxds7wqnyl": [
 					"__attribute_counted_node_attributes_jnevnray3y",
 					"__node_pk_package_path_start_fubxv47gd4"
@@ -3616,9 +3573,6 @@
 					"__open_attribute_counted_node_open_attributes_c6eaal5tn2"
 				],
 				"__node_key_package_path_start_parent_ytuzrwhg3t": [
-					"__node_pk_package_path_start_fubxv47gd4"
-				],
-				"__node_key_package_path_start_string_value_digest_hx6nn5eqk5": [
 					"__node_pk_package_path_start_fubxv47gd4"
 				],
 				"__node_pk_3sd4cqvxbf": [
@@ -3972,9 +3926,6 @@
 				"__rule_node_kind_in_processing_7cdtxsrpqh": [
 					"__node_kind_in_processing_ro2fdy7uky"
 				],
-				"__rule_node_kind_in_rounding_3rk6nkkllh": [
-					"__node_kind_in_rounding_n7wdh3nu4u"
-				],
 				"__rule_node_kind_in_site_3bkj5hxuvi": [
 					"__node_kind_in_site_ticq3fmre3"
 				],
@@ -4230,18 +4181,6 @@
 				"__rule_resource_href_path_in_resource_file_path_rduzt6tmyd": [
 					"__resource_href_path_in_resource_file_path_hprcxyatos"
 				],
-				"__rule_rounding_in_node_yxmr3w3mud": [
-					"__rounding_in_node_7xp34trqr4"
-				],
-				"__rule_rounding_in_rounding_mode_tiiuj6l642": [
-					"__rounding_in_rounding_mode_mnh6zjgi6n"
-				],
-				"__rule_rounding_mode_figures_in_rounding_mode_o5jktvw7u3": [
-					"__rounding_mode_figures_in_rounding_mode_5bdcnmtzzp"
-				],
-				"__rule_rounding_mode_in_rounding_6l7d5bnyqk": [
-					"__rounding_mode_in_rounding_kvmkajbet7"
-				],
 				"__rule_scope_duration_read_check_e_1_derived_s77w2ckn3d": [
 					"__scope_duration_read_check_e_1_derived_eh7u3n7vgi"
 				],
@@ -4340,6 +4279,9 @@
 				],
 				"__rule_unweighted_read_check_e_1_derived_jg36nhhjyq": [
 					"__unweighted_read_check_e_1_derived_tlemqo7vtc"
+				],
+				"__rule_usage_value_base_type_check_usage_typed_value_6wrwl7gzix": [
+					"__usage_value_base_type_check_usage_typed_value_lixdqcgl2q"
 				],
 				"__rule_variable_mapping_check_variable_mapping_q3yxpjzdug": [
 					"__variable_mapping_check_variable_mapping_target_vhrbjfwfeg"
@@ -5364,75 +5306,6 @@
 					"__resource_href_path_check_e_1_derived_mconbk6jyj"
 				]
 			},
-			"rounding": {
-				"__rounding_pk_p5ba7td7t4": [
-					"__rounding_pk_package_path_start_eqjypjb7io"
-				],
-				"__rule_node_kind_in_rounding_3rk6nkkllh": [
-					"__node_kind_in_rounding_n7wdh3nu4u"
-				],
-				"__rule_rounding_figures_in_rounding_7l4eomcx7w": [
-					"__rounding_figures_in_rounding_icfq6ltf3a"
-				],
-				"__rule_rounding_holds_in_rounding_figures_n35nijqwq7": [
-					"__rounding_holds_in_rounding_figures_c4s54k6vj5"
-				],
-				"__rule_rounding_holds_in_rounding_mode_figures_ntsjely7zd": [
-					"__rounding_holds_in_rounding_mode_figures_lb2kw6s563"
-				],
-				"__rule_rounding_in_node_yxmr3w3mud": [
-					"__rounding_in_node_7xp34trqr4"
-				],
-				"__rule_rounding_in_rounding_mode_tiiuj6l642": [
-					"__rounding_in_rounding_mode_mnh6zjgi6n"
-				],
-				"__rule_rounding_mode_figures_in_rounding_3ejz7vqobl": [
-					"__rounding_mode_figures_in_rounding_akzzhzibrn"
-				],
-				"__rule_rounding_mode_in_rounding_6l7d5bnyqk": [
-					"__rounding_mode_in_rounding_kvmkajbet7"
-				]
-			},
-			"rounding_figures": {
-				"__rounding_figures_key_package_path_start_figures_lvcs4z6khn": [
-					"__rounding_figures_pk_package_path_start_hezuyw5goi"
-				],
-				"__rounding_figures_pk_wwvjzzaivg": [
-					"__rounding_figures_pk_package_path_start_hezuyw5goi"
-				],
-				"__rule_attribute_kind_name_in_rounding_figures_pzkuabdqu3": [
-					"__attribute_kind_name_in_rounding_figures_2j7uphajye"
-				],
-				"__rule_rounding_figures_in_attribute_4pibuspwhi": [
-					"__rounding_figures_in_attribute_ghgmd4nrs3"
-				],
-				"__rule_rounding_figures_in_rounding_7l4eomcx7w": [
-					"__rounding_figures_in_rounding_icfq6ltf3a"
-				],
-				"__rule_rounding_holds_in_rounding_figures_n35nijqwq7": [
-					"__rounding_holds_in_rounding_figures_c4s54k6vj5"
-				]
-			},
-			"rounding_mode_figures": {
-				"__rounding_mode_figures_fk_package_path_start_ybcfejqokw": [
-					"__rounding_mode_figures_in_rounding_figures_orlxm4ux3h"
-				],
-				"__rounding_mode_figures_pk_32ue4ztm6s": [
-					"__rounding_mode_figures_pk_package_path_start_22jitgkuyq"
-				],
-				"__rule_rounding_holds_in_rounding_mode_figures_ntsjely7zd": [
-					"__rounding_holds_in_rounding_mode_figures_lb2kw6s563"
-				],
-				"__rule_rounding_mode_figures_in_rounding_3ejz7vqobl": [
-					"__rounding_mode_figures_in_rounding_akzzhzibrn"
-				],
-				"__rule_rounding_mode_figures_in_rounding_mode_o5jktvw7u3": [
-					"__rounding_mode_figures_in_rounding_mode_5bdcnmtzzp"
-				],
-				"rounding_figures": [
-					"__rounding_mode_figures_check_rounding_figures_tcdhp3lpuz"
-				]
-			},
 			"sd_decl": {
 				"__sd_decl_fk_package_path_xxx5gjp4e7": [
 					"__sd_decl_in_xml_decl_e5woozhfdp"
@@ -5869,111 +5742,6 @@
 				],
 				"e_1_derived": [
 					"__text_reference_path_check_e_1_derived_hwm5ftamdk"
-				]
-			},
-			"tolerance": {
-				"__rule_attribute_kind_name_in_tolerance_oj2hwcfjoq": [
-					"__attribute_kind_name_in_tolerance_cimslfbdri"
-				],
-				"__rule_attribute_lexical_kind_name_in_tolerance_stjpinmeyx": [
-					"__attribute_lexical_kind_name_in_tolerance_7ytikn6vl4"
-				],
-				"__rule_tolerance_form_check_e_1_derived_nud3ahpjl3": [
-					"__tolerance_form_check_e_1_derived_zj5amya32t"
-				],
-				"__rule_tolerance_in_attribute_wamk5ndwgt": [
-					"__tolerance_in_attribute_4wmhvbppkq"
-				],
-				"__tolerance_check_tolerance_tokens_concat_fold_yijvagdcgq": [
-					"__tolerance_tokens_concat_fold_vm3kx2dsqq"
-				],
-				"__tolerance_fk_package_path_start_pred_tokens_token_h3v5wokq5r": [
-					"__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr",
-					"__tolerance_tokens_concat_fold_vm3kx2dsqq"
-				],
-				"__tolerance_key_package_path_start_tokens_xlvepfuwuw": [
-					"__tolerance_pk_package_path_start_vs5xfxm3be",
-					"__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr"
-				],
-				"__tolerance_pk_awo6y43rfn": [
-					"__tolerance_pk_package_path_start_vs5xfxm3be"
-				],
-				"equal_tolerance": [
-					"__tolerance_check_equal_tolerance_yxof3fa7ms"
-				]
-			},
-			"tolerance_token": {
-				"__tolerance_token_check_tolerance_token_ordered_sre6vd24dn": [
-					"__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr"
-				],
-				"__tolerance_token_check_tolerance_tokens_concat_fold_lik6fcbzk5": [
-					"__tolerance_tokens_concat_fold_vm3kx2dsqq"
-				],
-				"__tolerance_token_fk_package_path_start_copy_tokens_hgndbm6n65": [
-					"__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr"
-				],
-				"__tolerance_token_fk_package_path_start_pred_at_4nmbesdvnj": [
-					"__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr",
-					"__tolerance_tokens_concat_fold_vm3kx2dsqq"
-				],
-				"__tolerance_token_key_package_path_start_at_pieces_drqanhhmxs": [
-					"__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr",
-					"__tolerance_token_pk_package_path_start_at_iluebuhjpt",
-					"__tolerance_tokens_concat_fold_vm3kx2dsqq"
-				],
-				"__tolerance_token_key_package_path_start_pred_at_mza72eqsyy": [
-					"__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr",
-					"__tolerance_token_pk_package_path_start_at_iluebuhjpt"
-				],
-				"__tolerance_token_pk_o33pihaiia": [
-					"__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr",
-					"__tolerance_token_pk_package_path_start_at_iluebuhjpt"
-				],
-				"e_1_derived": [
-					"__tolerance_token_check_e_1_derived_ab3hkq55xv"
-				],
-				"equal_tolerance": [
-					"__tolerance_token_check_equal_tolerance_dv367nqqlh"
-				]
-			},
-			"usage_value": {
-				"__rule_usage_value_base_type_in_usage_value_wdwkxtrjuw": [
-					"__usage_value_base_type_in_usage_value_pfiwnmrpot"
-				],
-				"__rule_usage_value_base_type_lexical_in_usage_value_knk7lp6lpc": [
-					"__usage_value_base_type_lexical_in_usage_value_base_sciazvz53k"
-				],
-				"__rule_usage_value_in_usage_base_type_f566zrkj65": [
-					"__usage_value_in_usage_base_type_sffynregqf"
-				],
-				"__usage_value_fk_package_path_start_hgeaq5bglh": [
-					"__usage_value_in_node_sokh7a33pn"
-				],
-				"__usage_value_fk_package_path_start_text_digest_jp2cxdgoag": [
-					"__usage_value_in_node_44n7bncyml"
-				],
-				"__usage_value_pk_i2ykr2qbnf": [
-					"__usage_value_pk_package_path_start_n5sfyqi24j"
-				]
-			},
-			"usage_value_base_type": {
-				"__rule_usage_value_base_type_in_usage_value_wdwkxtrjuw": [
-					"__usage_value_base_type_in_usage_value_pfiwnmrpot"
-				],
-				"__rule_usage_value_base_type_lexical_in_usage_value_knk7lp6lpc": [
-					"__usage_value_base_type_lexical_in_usage_value_base_sciazvz53k"
-				],
-				"__usage_value_base_type_fk_package_path_start_text_yqq5jyywar": [
-					"__usage_value_base_type_in_node_hjpfxjh7ln"
-				],
-				"__usage_value_base_type_pk_v6447uyhax": [
-					"__usage_value_base_type_pk_package_path_start_rtkuaxfpon"
-				],
-				"e_1_derived": [
-					"__usage_value_base_type_check_e_1_derived_gvdndqwhu5"
-				],
-				"usage_typed_value": [
-					"__usage_value_base_type_check_usage_typed_value_lixdqcgl2q"
 				]
 			},
 			"variable_ref": {
@@ -8193,10 +7961,6 @@
 				"BoundVariable",
 				"InteractionAttribute",
 				"ItemMode"
-			],
-			[
-				"Node",
-				"UsageValue"
 			]
 		],
 		"judged": [
@@ -8285,9 +8049,6 @@
 			"ResourceHref",
 			"ResourceHrefOutside",
 			"ResourceHrefPath",
-			"Rounding",
-			"RoundingFigures",
-			"RoundingModeFigures",
 			"ShareFragment",
 			"ShareTarget",
 			"Site",
@@ -8300,9 +8061,6 @@
 			"TemplateRef",
 			"TextReference",
 			"TextReferencePath",
-			"Tolerance",
-			"UsageValue",
-			"UsageValueBaseType",
 			"VariableRef"
 		],
 		"library": [
@@ -8397,11 +8155,11 @@
 		"references": [
 			{
 				"law": "__math_align_group_in_scope_node_vbyn7eudli",
-				"part": 1
+				"part": 0
 			},
 			{
 				"law": "__math_align_group_in_scope_node_vbyn7eudli",
-				"part": 0
+				"part": 1
 			}
 		],
 		"tables": {
@@ -9505,6 +9263,10 @@
 								},
 								{
 									"kind": "law",
+									"law": "__attribute_in_tolerance_token_7akysyf2s6"
+								},
+								{
+									"kind": "law",
 									"law": "__attribute_kind_lexical_name_in_attribute_xmjepaik2d"
 								},
 								{
@@ -9529,10 +9291,6 @@
 								},
 								{
 									"kind": "law",
-									"law": "__attribute_kind_name_in_rounding_figures_2j7uphajye"
-								},
-								{
-									"kind": "law",
 									"law": "__attribute_kind_name_in_srcset_n4ghjkos6o"
 								},
 								{
@@ -9545,10 +9303,6 @@
 								},
 								{
 									"kind": "law",
-									"law": "__attribute_kind_name_in_tolerance_cimslfbdri"
-								},
-								{
-									"kind": "law",
 									"law": "__attribute_kind_name_path_in_file_3ygu2v2ddg"
 								},
 								{
@@ -9557,7 +9311,7 @@
 								},
 								{
 									"kind": "law",
-									"law": "__attribute_lexical_kind_name_in_tolerance_7ytikn6vl4"
+									"law": "__attribute_lexical_kind_name_in_attribute_ijs3l2vthw"
 								},
 								{
 									"kind": "law",
@@ -9889,19 +9643,7 @@
 								},
 								{
 									"kind": "law",
-									"law": "__rounding_figures_in_attribute_ghgmd4nrs3"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_in_rounding_mode_mnh6zjgi6n"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_mode_figures_in_rounding_mode_5bdcnmtzzp"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_mode_in_rounding_kvmkajbet7"
+									"law": "__rounding_mode_figures_check_rounding_figures_tcdhp3lpuz"
 								},
 								{
 									"kind": "law",
@@ -10005,11 +9747,7 @@
 								},
 								{
 									"kind": "law",
-									"law": "__tolerance_form_check_e_1_derived_zj5amya32t"
-								},
-								{
-									"kind": "law",
-									"law": "__tolerance_in_attribute_4wmhvbppkq"
+									"law": "__tolerance_token_check_equal_tolerance_dv367nqqlh"
 								},
 								{
 									"kind": "law",
@@ -10045,7 +9783,7 @@
 								},
 								{
 									"kind": "law",
-									"law": "__usage_value_in_usage_base_type_sffynregqf"
+									"law": "__usage_value_base_type_check_usage_typed_value_lixdqcgl2q"
 								},
 								{
 									"kind": "law",
@@ -20763,46 +20501,6 @@
 								}
 							]
 						},
-						"__node_key_package_path_start_7m4qykmkxg": {
-							"columns": [
-								{
-									"direction": "asc",
-									"holds": {
-										"field": "package",
-										"kind": "term"
-									},
-									"kind": "law",
-									"laws": [
-										"__node_attrs_governor_attrs_governor_kind_in_usage_xgo4quvpxe",
-										"__usage_value_in_node_sokh7a33pn"
-									]
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__node_pk_package_path_start_fubxv47gd4"
-								},
-								{
-									"kind": "law",
-									"law": "__usage_value_in_node_sokh7a33pn"
-								},
-								{
-									"kind": "law",
-									"law": "__node_attrs_governor_attrs_governor_kind_in_usage_xgo4quvpxe"
-								}
-							]
-						},
 						"__node_key_package_path_start_attributes_governor_pxds7wqnyl": {
 							"columns": [
 								{
@@ -21171,44 +20869,6 @@
 								{
 									"kind": "law",
 									"law": "__site_in_node_a7cno33ccs"
-								}
-							]
-						},
-						"__node_key_package_path_start_string_value_digest_hx6nn5eqk5": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "stringValueDigest",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__node_pk_package_path_start_fubxv47gd4"
-								},
-								{
-									"kind": "law",
-									"law": "__usage_value_in_node_44n7bncyml"
-								},
-								{
-									"kind": "law",
-									"law": "__usage_value_base_type_in_node_hjpfxjh7ln"
 								}
 							]
 						},
@@ -21673,10 +21333,6 @@
 								},
 								{
 									"kind": "law",
-									"law": "__node_kind_in_rounding_n7wdh3nu4u"
-								},
-								{
-									"kind": "law",
 									"law": "__node_kind_in_site_ticq3fmre3"
 								},
 								{
@@ -21973,22 +21629,6 @@
 								},
 								{
 									"kind": "law",
-									"law": "__rounding_in_node_7xp34trqr4"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_in_rounding_mode_mnh6zjgi6n"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_mode_figures_in_rounding_mode_5bdcnmtzzp"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_mode_in_rounding_kvmkajbet7"
-								},
-								{
-									"kind": "law",
 									"law": "__scope_duration_read_check_e_1_derived_eh7u3n7vgi"
 								},
 								{
@@ -22066,6 +21706,10 @@
 								{
 									"kind": "law",
 									"law": "__unweighted_read_check_e_1_derived_tlemqo7vtc"
+								},
+								{
+									"kind": "law",
+									"law": "__usage_value_base_type_check_usage_typed_value_lixdqcgl2q"
 								},
 								{
 									"kind": "law",
@@ -25568,203 +25212,6 @@
 					},
 					"relation": "ResourceHrefPath"
 				},
-				"rounding": {
-					"indexes": {
-						"__rounding_pk_p5ba7td7t4": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__rounding_pk_package_path_start_eqjypjb7io"
-								},
-								{
-									"kind": "law",
-									"law": "__node_kind_in_rounding_n7wdh3nu4u"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_figures_in_rounding_icfq6ltf3a"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_holds_in_rounding_figures_c4s54k6vj5"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_holds_in_rounding_mode_figures_lb2kw6s563"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_in_node_7xp34trqr4"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_in_rounding_mode_mnh6zjgi6n"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_mode_figures_in_rounding_akzzhzibrn"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_mode_in_rounding_kvmkajbet7"
-								},
-								{
-									"kind": "access"
-								}
-							]
-						}
-					},
-					"relation": "Rounding"
-				},
-				"rounding_figures": {
-					"indexes": {
-						"__rounding_figures_key_package_path_start_figures_lvcs4z6khn": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "figuresDigest",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__rounding_figures_pk_package_path_start_hezuyw5goi"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_mode_figures_in_rounding_figures_orlxm4ux3h"
-								}
-							]
-						},
-						"__rounding_figures_pk_wwvjzzaivg": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__rounding_figures_pk_package_path_start_hezuyw5goi"
-								},
-								{
-									"kind": "law",
-									"law": "__attribute_kind_name_in_rounding_figures_2j7uphajye"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_figures_in_attribute_ghgmd4nrs3"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_figures_in_rounding_icfq6ltf3a"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_holds_in_rounding_figures_c4s54k6vj5"
-								},
-								{
-									"kind": "access"
-								}
-							]
-						}
-					},
-					"relation": "RoundingFigures"
-				},
-				"rounding_mode_figures": {
-					"indexes": {
-						"__rounding_mode_figures_pk_32ue4ztm6s": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__rounding_mode_figures_pk_package_path_start_22jitgkuyq"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_mode_figures_in_rounding_figures_orlxm4ux3h"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_holds_in_rounding_mode_figures_lb2kw6s563"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_mode_figures_in_rounding_akzzhzibrn"
-								},
-								{
-									"kind": "law",
-									"law": "__rounding_mode_figures_in_rounding_mode_5bdcnmtzzp"
-								},
-								{
-									"kind": "access"
-								}
-							]
-						}
-					},
-					"relation": "RoundingModeFigures"
-				},
 				"sd_decl": {
 					"indexes": {
 						"__sd_decl_pk_do2xlu7vc3": {
@@ -27446,319 +26893,6 @@
 					},
 					"relation": "TextReferencePath"
 				},
-				"tolerance": {
-					"indexes": {
-						"__tolerance_key_package_path_start_tokens_xlvepfuwuw": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "tokens",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__tolerance_pk_package_path_start_vs5xfxm3be"
-								},
-								{
-									"kind": "law",
-									"law": "__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr"
-								}
-							]
-						},
-						"__tolerance_pk_awo6y43rfn": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__tolerance_pk_package_path_start_vs5xfxm3be"
-								},
-								{
-									"kind": "law",
-									"law": "__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr"
-								},
-								{
-									"kind": "law",
-									"law": "__tolerance_tokens_concat_fold_vm3kx2dsqq"
-								},
-								{
-									"kind": "law",
-									"law": "__attribute_kind_name_in_tolerance_cimslfbdri"
-								},
-								{
-									"kind": "law",
-									"law": "__attribute_lexical_kind_name_in_tolerance_7ytikn6vl4"
-								},
-								{
-									"kind": "law",
-									"law": "__tolerance_form_check_e_1_derived_zj5amya32t"
-								},
-								{
-									"kind": "law",
-									"law": "__tolerance_in_attribute_4wmhvbppkq"
-								}
-							]
-						}
-					},
-					"relation": "Tolerance"
-				},
-				"tolerance_token": {
-					"indexes": {
-						"__tolerance_token_key_package_path_start_at_pieces_drqanhhmxs": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "at",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "piecesAfterDigest",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__tolerance_token_pk_package_path_start_at_iluebuhjpt"
-								},
-								{
-									"kind": "law",
-									"law": "__tolerance_tokens_concat_fold_vm3kx2dsqq"
-								},
-								{
-									"kind": "law",
-									"law": "__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr"
-								}
-							]
-						},
-						"__tolerance_token_key_package_path_start_pred_at_mza72eqsyy": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"holds": {
-										"field": "at",
-										"kind": "term"
-									},
-									"kind": "law",
-									"laws": [
-										"__tolerance_tokens_concat_fold_vm3kx2dsqq",
-										"__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr"
-									]
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__tolerance_token_pk_package_path_start_at_iluebuhjpt"
-								},
-								{
-									"kind": "law",
-									"law": "__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr"
-								},
-								{
-									"kind": "law",
-									"law": "__tolerance_tokens_concat_fold_vm3kx2dsqq"
-								}
-							]
-						},
-						"__tolerance_token_pk_o33pihaiia": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "at",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__tolerance_token_pk_package_path_start_at_iluebuhjpt"
-								},
-								{
-									"kind": "law",
-									"law": "__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr"
-								}
-							]
-						}
-					},
-					"relation": "ToleranceToken"
-				},
-				"usage_value": {
-					"indexes": {
-						"__usage_value_pk_i2ykr2qbnf": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__usage_value_pk_package_path_start_n5sfyqi24j"
-								},
-								{
-									"kind": "law",
-									"law": "__usage_value_in_node_44n7bncyml"
-								},
-								{
-									"kind": "law",
-									"law": "__usage_value_base_type_in_usage_value_pfiwnmrpot"
-								},
-								{
-									"kind": "law",
-									"law": "__usage_value_base_type_lexical_in_usage_value_base_sciazvz53k"
-								},
-								{
-									"kind": "law",
-									"law": "__usage_value_in_node_sokh7a33pn"
-								},
-								{
-									"kind": "law",
-									"law": "__usage_value_in_usage_base_type_sffynregqf"
-								},
-								{
-									"kind": "access"
-								}
-							]
-						}
-					},
-					"relation": "UsageValue"
-				},
-				"usage_value_base_type": {
-					"indexes": {
-						"__usage_value_base_type_pk_v6447uyhax": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__usage_value_base_type_pk_package_path_start_rtkuaxfpon"
-								},
-								{
-									"kind": "law",
-									"law": "__usage_value_base_type_in_node_hjpfxjh7ln"
-								},
-								{
-									"kind": "law",
-									"law": "__usage_value_base_type_in_usage_value_pfiwnmrpot"
-								},
-								{
-									"kind": "law",
-									"law": "__usage_value_base_type_lexical_in_usage_value_base_sciazvz53k"
-								},
-								{
-									"kind": "access"
-								}
-							]
-						}
-					},
-					"relation": "UsageValueBaseType"
-				},
 				"variable_ref": {
 					"indexes": {
 						"__variable_ref_ix_package_path_attribute_identifier_fhzai5nn5j": {
@@ -28247,7 +27381,6 @@
 			"55f0ef595479c0301ca498e964870052209f62a5ceb988388a88c52ccda38946": "d625befb178ad492b0db0947dca6e2a06fe9265b86c9d308ff18efbca3340ffb",
 			"5667a0a42d96c8da8211f3ea6532b08517779088ac8a8f1fa20be58e1821768a": "3f76df607210d83cd70883edd48f3becbb7bea5d9472ce408573800be152a18b",
 			"715c3eebe5bd6af57ae647199c8851539a25ebca59ec666ebccfef3112a609b6": "e6e26ba2b395bc4c79a8579a6b3e3ea5894458b6f52c8210d87a3420dba2869a",
-			"728d543b1278b7e7f4cae314087965c4114b8213ce160c66425ed67e0f74c8f8": "7804e28edb82486535d23dc2b795ac4d2ea5f5f293d39c5d6993596c384f570a",
 			"87604f235790b27c7c97d3daeaebf21a589353dc61e60925c482861239b24aff": "9728da00b6bfe42b1889214d47c25a591495821a78feafc851ec65d6f721baf9",
 			"8ebb88c8dc58f17678af9d61c000fba19c98359de4740cb1a04096d6263a4b07": "e0ec65e8be57c642de548bd5d2a176e56bda67cb965b0b4efc5389004d491694",
 			"9ccdaf31c898ef84eb0c18bb9da4694785627621a5e7cf1afdc2aa01f0ee0ead": "25f993867c17f0de2b8d40bfc84d831eb31ae3f956a21b332d68c3cfea60ac42",
@@ -28271,11 +27404,11 @@
 			"fa90810d9401bf0a81bfec203c004cd0f8847433ed32c3733b3f55991eea413d": "3cd53cc0df2c42f1b44a53e1d672bc47fed1067e25cfaf7059cdd1021552f469"
 		}
 	},
-	"fingerprint": "21a61daf0a631d22fd8d3d25c0914c87660dd14dff7d0059c42e82e42decf546",
+	"fingerprint": "af023f9989c1653dacc5b2869913978dad5dd13f68341a8b7bb5f60d68b6c74b",
 	"format": "8:d5ac3e66297bd1a403fa479868321c1e300610ce15d613c6cc8972026558c3d2",
 	"levels": [
 		{
-			"fingerprint": "b4c54afb4c4839baea6dd25abf7fcff6d0622309811332e301ec36665e729a63",
+			"fingerprint": "a0504bf487c58b16937f0e93f80f4a91376996c7ec7a10152d30c5c82f16133f",
 			"laws": [
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"AssembledDocument","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]},"kind":"contained","to":{"relation":"Document","selection":{"conjuncts":[{"kind":"compare","left":{"field":"assembled","kind":"field"},"op":"eq","right":{"kind":"literal","value":true}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]}},"law":"__assembled_document_in_document_h6jcxbzpb7"},
 				{"described":{"entry":{"kind":"declared","name":"Test overlay","source":"plan §1.7 O7 and the W5 amendment's C15, C18, under decision S3: each O7 overlay (AssembledDocument, Named, Site) is its element's row, keyed by its node, and holds its attributes' values, collapsed, each an identifier read where it stands (TestIdentifier, C18); AssembledDocument and Named hold no fact of their node or document, which their laws read through Node and Document (a document's root kind its Document's, at its (package, path)), while a Site holds its node's context (nodeContext: its kind, parent and parent's kind, ancestry, children, governor and nearest interaction), the copy routed with Document's context to the RULEREC follow-up; each exists exactly where its element does (Q5.13)"},"fields":["package","path"],"kind":"primaryKey","relation":"AssembledDocument"},"law":"__assembled_document_pk_package_path_cgour7hrfm"},
@@ -28300,11 +27433,9 @@
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"m:maction"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"selection"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"lexicalDigest","kind":"field"}]},"kind":"contained","to":{"relation":"MathAction","selection":{"conjuncts":[{"kind":"compare","left":{"field":"selectionWritten","kind":"field"},"op":"eq","right":{"kind":"literal","value":true}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"selectionLexicalDigest","kind":"field"}]}},"law":"__attribute_kind_name_in_math_action_epbc576do5"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-portable-custom-interaction"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"module"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"PciModuleForm","selection":{"conjuncts":[{"kind":"compare","left":{"field":"element","kind":"field"},"op":"eq","right":{"kind":"literal","value":false}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__attribute_kind_name_in_pci_module_form_jdlktmiz5c"},
 				{"described":{"entry":{"kind":"declared","name":"Reference overlay","source":"IMS Content Packaging 1.2 (b) and (d), and readings 102 and 103: each document's references (Reference) are an attribute's copy keyed by its node and name, and each the importer resolves in the package has its ReferencePath, in its document's package"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"arg":{"args":[{"field":"kind","kind":"field"},{"field":"name","kind":"field"}],"field":"form","kind":"closedAt","relation":"ReferenceAttribute"},"kind":"in","values":["module","package","uri"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"name","kind":"field"},{"field":"kind","kind":"field"}]},"kind":"contained","to":{"relation":"Reference","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"name","kind":"field"},{"field":"kind","kind":"field"}]}},"law":"__attribute_kind_name_in_reference_j5lu55wo36"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"arg":{"field":"kind","kind":"field"},"kind":"in","values":["qti-equal-rounded","qti-round-to"]},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"figures"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"lexicalDigest","kind":"field"}]},"kind":"contained","to":{"relation":"RoundingFigures","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"figuresLexicalDigest","kind":"field"}]}},"law":"__attribute_kind_name_in_rounding_figures_2j7uphajye"},
 				{"described":{"entry":{"kind":"declared","name":"Reference overlay","source":"IMS Content Packaging 1.2 (b) and (d), and readings 102 and 103: each document's references (Reference) are an attribute's copy keyed by its node and name, and each the importer resolves in the package has its ReferencePath, in its document's package"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"source"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"srcset"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Srcset","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__attribute_kind_name_in_srcset_n4ghjkos6o"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"args":[{"args":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"ssml:lexicon"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"xml:id"}}],"kind":"and"},{"args":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"ssml:lookup"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"ref"}}],"kind":"and"},{"args":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"ssml:mark"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"name"}}],"kind":"and"},{"args":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"ssml:speak"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"endmark"}}],"kind":"and"},{"args":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"ssml:speak"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"startmark"}}],"kind":"and"}],"kind":"or"}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"SsmlScope","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__attribute_kind_name_in_ssml_scope_rzd2hrimbv"},
 				{"described":{"entry":{"kind":"declared","name":"Test overlay","source":"plan §1.7 O7 and the W5 amendment's C15, C18, under decision S3: each O7 overlay (AssembledDocument, Named, Site) is its element's row, keyed by its node, and holds its attributes' values, collapsed, each an identifier read where it stands (TestIdentifier, C18); AssembledDocument and Named hold no fact of their node or document, which their laws read through Node and Document (a document's root kind its Document's, at its (package, path)), while a Site holds its node's context (nodeContext: its kind, parent and parent's kind, ancestry, children, governor and nearest interaction), the copy routed with Document's context to the RULEREC follow-up; each exists exactly where its element does (Q5.13)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-assessment-stimulus-ref"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"identifier"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"StimulusRef","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__attribute_kind_name_in_stimulus_ref_vcus2azu2f"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-equal"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"tolerance"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Tolerance","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__attribute_kind_name_in_tolerance_cimslfbdri"},
 				{"described":{"entry":{"kind":"declared","name":"Label tools","source":"https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_BaseSequence.Attr_label (§5.16.5, and §5.15.5, §5.17.5 to §5.21.5 and §5.79.4: 'If an item uses labels then values for the associated toolName and toolVersion characteristics must also be provided'), of the label of each kind whose type takes it from one of those classes (labels.ts toolLabelKinds), and not of ItemFileInfo's ('A human readable label/short description for the file', §5.80.2) or PrintedVariable's ('such as would be appropriate for a tooltip', §7.30.4), which state none; reading 128: https://www.imsglobal.org/sites/default/files/spec/qti/v3/info/imsqti_asi_v3p0p1_infomodel_v1p0.html (QTI 3.0.1 §4.1.3, the item's label: 'If an item uses labels then values for the associated toolName and toolVersion attributes must also be provided'; ~/.cache/qti-pie/qti301/info301.txt:6420) of an item root's own label, AssessmentItemDType's (labels.ts toolLabelTypes); the sentence binds an item, not a stimulus or a test"},"kind":"key","side":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-assessment-item"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"tool-name"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]}},"law":"__attribute_kind_name_key_package_path_o5qmn2aitd"},
 				{"described":{"entry":{"kind":"declared","name":"Card support","source":"reading R9-a: https://www.imsglobal.org/spec/qti/v3p0/info#Data_Card (§5.26.1, Card's support: 'Use only one card for any particular named support in a catalog'): a catalog holds one card for each support, compared by its value, the form as written: an ext: name's SupportExtStringDType replace class admits no whitespace to change, and a listed support's xs:string is preserve (XML Schema Part 2 §4.3.6, the union member that holds it) (overlay-queries/catalog.ts supports, a key over each card's parent and value, Attribute.parent)"},"kind":"key","side":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-card"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"support"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"parent","kind":"field"},{"field":"valueDigest","kind":"field"}]}},"law":"__attribute_kind_name_key_package_path_parent_value_hqmcjgqia6"},
 				{"described":{"entry":{"kind":"declared","name":"Variable mapping target","source":"https://www.imsglobal.org/spec/qti/v3p0/info#Derived_VariableMapping (§7.48: 'Variable mappings allow outcome variables declared with the name source-identifier in the corresponding item to be treated as if they were declared with the name target-identifier during outcome processing') with §4.5.1 ('All item variables declared in an item share the same namespace'; 'The identifiers of the built-in session variables are reserved') and reading 97: no two mappings of one item ref name one target, no target names a built-in session variable, and no target names another variable its item declares, compared collapsed (overlay-queries/tests.ts VariableMapping, FreeMappingTarget)"},"kind":"key","side":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-variable-mapping"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"target-identifier"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"parent","kind":"field"},{"field":"valueDigest","kind":"field"}]}},"law":"__attribute_kind_name_key_package_path_parent_value_jtb2yu7jwl"},
@@ -28312,7 +27443,7 @@
 				{"described":{"entry":{"kind":"declared","name":"Label tools","source":"https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_BaseSequence.Attr_label (§5.16.5, and §5.15.5, §5.17.5 to §5.21.5 and §5.79.4: 'If an item uses labels then values for the associated toolName and toolVersion characteristics must also be provided'), of the label of each kind whose type takes it from one of those classes (labels.ts toolLabelKinds), and not of ItemFileInfo's ('A human readable label/short description for the file', §5.80.2) or PrintedVariable's ('such as would be appropriate for a tooltip', §7.30.4), which state none; reading 128: https://www.imsglobal.org/sites/default/files/spec/qti/v3/info/imsqti_asi_v3p0p1_infomodel_v1p0.html (QTI 3.0.1 §4.1.3, the item's label: 'If an item uses labels then values for the associated toolName and toolVersion attributes must also be provided'; ~/.cache/qti-pie/qti301/info301.txt:6420) of an item root's own label, AssessmentItemDType's (labels.ts toolLabelTypes); the sentence binds an item, not a stimulus or a test"},"kind":"key","side":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-assessment-item"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"tool-version"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]}},"law":"__attribute_kind_name_key_package_path_vmgjn7j3u4"},
 				{"described":{"entry":{"kind":"declared","name":"Manifest overlay","source":"plan §1.6 and the W5 amendment's C18, under decision S3: each manifest overlay (ResourceHref, File) is its element's row, keyed by its node, and holds its own facts alone: it stands at a node of its kind (a constant pin) exactly where its href is written and holds its resolution, never its form, each header with exactly the arm its scope names (grizzle's alternatives: ResourceHrefPath and FilePath an entry path in the package, ResourceHrefOutside and FileOutside a path outside it, as written), and a file's resource is its node's parent, which its laws read through Node; the manifest's identifier is its attribute's value (overlay-queries/package.ts manifestIdentifiers), one per package by the single root N5 admits (Q5.06)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"cp:file"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"href"}},{"kind":"compare","left":{"field":"path","kind":"field"},"op":"eq","right":{"kind":"literal","value":"imsmanifest.xml"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"File","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__attribute_kind_name_path_in_file_3ygu2v2ddg"},
 				{"described":{"entry":{"kind":"declared","name":"Manifest overlay","source":"plan §1.6 and the W5 amendment's C18, under decision S3: each manifest overlay (ResourceHref, File) is its element's row, keyed by its node, and holds its own facts alone: it stands at a node of its kind (a constant pin) exactly where its href is written and holds its resolution, never its form, each header with exactly the arm its scope names (grizzle's alternatives: ResourceHrefPath and FilePath an entry path in the package, ResourceHrefOutside and FileOutside a path outside it, as written), and a file's resource is its node's parent, which its laws read through Node; the manifest's identifier is its attribute's value (overlay-queries/package.ts manifestIdentifiers), one per package by the single root N5 admits (Q5.06)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"cp:resource"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"href"}},{"kind":"compare","left":{"field":"path","kind":"field"},"op":"eq","right":{"kind":"literal","value":"imsmanifest.xml"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"ResourceHref","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__attribute_kind_name_path_in_resource_href_2b6mrnxnym"},
-				{"described":{"entry":{"kind":"declared","name":"Equal tolerance","source":"reading 121: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_Equal.Attr_tolerance (§5.46.2: 'If the tolerance mode is absolute or relative then the tolerance must be specified. The tolerance consists of two positive numbers, t0 and t1, that define the lower and upper bounds. If only one value is given it is used for both') and #DataModel_ToleranceList (§9.1.5: 'a space separated list of either strings (must not contain a space) or numbers'): a qti-equal whose tolerance-mode is absolute or relative writes tolerance, every tolerance holds one or two values, and each value in xs:double's lexical space is above 0, a string naming a variable read at run time (operators.ts Tolerance, toleranceRequired, Equal_tolerance)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"arg":{"field":"lexical","kind":"field"},"kind":"in","values":["absolute","relative"]},{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-equal"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"tolerance-mode"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Tolerance","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__attribute_lexical_kind_name_in_tolerance_7ytikn6vl4"},
+				{"described":{"entry":{"kind":"declared","name":"Equal tolerance","source":"reading 121: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_Equal.Attr_tolerance (§5.46.2: 'If the tolerance mode is absolute or relative then the tolerance must be specified. The tolerance consists of two positive numbers, t0 and t1, that define the lower and upper bounds. If only one value is given it is used for both') and #DataModel_ToleranceList (§9.1.5: 'a space separated list of either strings (must not contain a space) or numbers'): a qti-equal whose tolerance-mode is absolute or relative writes tolerance, every tolerance holds one or two values, and each value in xs:double's lexical space is above 0, a string naming a variable read at run time (operators.ts toleranceRequired; overlay-queries/expression.ts ToleranceToken, Equal_tolerance)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"arg":{"field":"lexical","kind":"field"},"kind":"in","values":["absolute","relative"]},{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-equal"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"tolerance-mode"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-equal"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"tolerance"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__attribute_lexical_kind_name_in_attribute_ijs3l2vthw"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"xml:lang"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"CatalogScope","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__attribute_name_in_catalog_scope_gpvf4qf6qp"},
 				{"described":{"entry":{"kind":"declared","name":"Data SSML","source":"reading 177, over R7-a: https://www.imsglobal.org/sites/default/files/spec/qti/v3/data-ssml_infobind/imsqtiv3p0_datassml_v1p0_InfoBind.html#JSOND (Data-SSML 1.0 §3.4, Description of the JSON Schema, NORMATIVE): a closed data-ssml holds one JSON object whose members are among break, phoneme, prosody, say-as and sub, each an object of the string properties the schema lists for it (break: strength, time; phoneme: ph, alphabet, type; prosody: rate; say-as: interpret-as; sub: alias), with ph, interpret-as and alias required, strength, alphabet, type and interpret-as enumerated, and time and rate normalized strings; a name written twice is admitted and each value judged (RFC 8259 §4). The importer reads the JSON into rows and the database judges them (data-ssml.ts DataSsml, DataSsmlMember, DataSsmlProperty, Data_SSML; queries.ts RequiredSsmlProperty)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"data-ssml"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"DataSsml","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__attribute_name_in_data_ssml_mwwzgqeh64"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"arg":{"field":"name","kind":"field"},"kind":"in","values":["base","type"]},{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"m:cn"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"name","kind":"field"},{"field":"lexicalDigest","kind":"field"}]},"kind":"contained","to":{"relation":"CnAttribute","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"name","kind":"field"},{"field":"lexicalDigest","kind":"field"}]}},"law":"__attribute_name_kind_in_cn_attribute_kvirsjqhyu"},
@@ -28560,7 +27691,6 @@
 				{"described":{"entry":{"kind":"declared","name":"Namespace family","source":"Namespaces in XML 1.0 §3 and the XML Infoset's [namespace attributes], a set: an element declares each prefix at most once, Namespace's key (package, path, start, prefixDigest), its prefix by its SHA-256 since none is bounded (fin.md §5.2)"},"fields":["package","path","start","at"],"kind":"primaryKey","relation":"Namespace"},"law":"__namespace_pk_package_path_start_at_yohzq5t2g2"},
 				{"described":{"contract":"natural","entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"contract"},"law":"__natural_hcnvygsglu"},
 				{"described":{"end":{"relation":"Node","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"attrs","kind":"field"}]},"entry":{"kind":"declared","name":"AL2 fold","source":"fin.md §16, attrs = the union of its closed attributes' slots, the end value of their counted family (qti/attributes.ts, AL2)"},"family":{"count":"attributes","owner":"Node"},"kind":"fold","monoid":"or","step":{"relation":"Attribute","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"slot","kind":"field"}]}},"law":"__node_attributes_or_fold_qjtccpaklg"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Node","selection":{"conjuncts":[{"kind":"compare","left":{"args":[{"args":[{"args":[{"args":[{"field":"governor","kind":"field"}],"field":"model","kind":"closedAt","relation":"AttributeModelOf"},{"kind":"literal","value":"baseType"}],"field":"slot","kind":"closedAt","relation":"AttributeGrammar"}],"fn":"singleton","kind":"compute"},{"field":"attrs","kind":"field"}],"fn":"subset","kind":"compute"},"op":"eq","right":{"kind":"literal","value":true}},{"kind":"compare","left":{"args":[{"args":[{"args":[{"args":[{"field":"governor","kind":"field"}],"field":"model","kind":"closedAt","relation":"AttributeModelOf"},{"kind":"literal","value":"fieldIdentifier"}],"field":"slot","kind":"closedAt","relation":"AttributeGrammar"}],"fn":"singleton","kind":"compute"},{"field":"attrs","kind":"field"}],"fn":"subset","kind":"compute"},"op":"eq","right":{"kind":"literal","value":true}},{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"ud:value"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"UsageValue","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__node_attrs_governor_attrs_governor_kind_in_usage_xgo4quvpxe"},
 				{"described":{"entry":{"kind":"declared","name":"AL3 required","source":"the XSDs' use=\"required\", and reading 123: https://www.imsglobal.org/spec/qti/v3p0/info#Data_BDO (§5.11: 'Authors must specify the dir attribute on this tag'), where the XSD declares bdo's dir optional (attributes.ts readingUses): AttributeAdmission's use side (Required)"},"kind":"check","name":"AL3_required","relation":"Node"},"law":"__node_check_al_3_required_wo2cssrdhf"},
 				{"described":{"entry":{"kind":"declared","name":"AL5 attribute count","source":"readings 41 and 43 (attributes.ts attributeCounts): https://www.w3.org/TR/speech-synthesis11/#S3.1.6 (SSML 1.1 §3.1.6, meta: 'Either a name or http-equiv attribute is required. It is an error to provide both name and http-equiv attributes'); https://www.w3.org/TR/speech-synthesis11/#S3.2.1 and #S3.2.4 (§3.2.1, voice, and §3.2.4, prosody: 'Although each attribute individually is optional, it is an error if no attributes are specified'), counting what §2.2.1's fragment removal keeps: SSML's own attributes, xml:lang and xml:base"},"kind":"check","name":"AL5_attribute_count","relation":"Node"},"law":"__node_check_al_5_attribute_count_mxr6a4oa4x"},
 				{"described":{"entry":{"kind":"declared","name":"Double bound","source":"XML Schema Part 2's minInclusive and minExclusive on a double's value (XML Schema 1.1 Part 2 §3.3.5.2, doubleLexicalMap: a literal rounds to its IEEE value, a magnitude below 2^-1075 to a zero of its sign, and -0 equals 0): NonNegativeDoubleDType's minInclusive 0.0 (imsqti_asiv3p0_v1p0.xsd:24034-24038, imsqti_asiv3p0p1_v1p0.xsd:24120-24124) and reading 16's minExclusive 0 for normal-maximum; reading 144"},"kind":"check","name":"Double_bound","relation":"Node"},"law":"__node_check_double_bound_k6nf72z7r7"},
@@ -28600,7 +27730,6 @@
 				{"described":{"entry":{"kind":"declared","name":"OpenElementName","source":"fin.md D2, a foreign element keeps its expanded name; reading 6"},"from":{"relation":"Node","selection":{"conjuncts":[{"arg":{"field":"kind","kind":"field"},"kind":"in","values":["foreign-element","no-namespace-element","own-namespace-element"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"OpenElementName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__node_kind_in_open_element_name_v74fwrkaai"},
 				{"described":{"entry":{"kind":"declared","name":"pi arm","source":"the XDM processing instructions as rows (plan §1.4)"},"from":{"relation":"Node","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"pi"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Pi","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__node_kind_in_pi_gxbu2tgvtv"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Node","selection":{"conjuncts":[{"arg":{"field":"kind","kind":"field"},"kind":"in","values":["qti-exit-response","qti-exit-template","qti-exit-test","qti-lookup-outcome-value","qti-outcome-condition","qti-outcome-else","qti-outcome-else-if","qti-outcome-if","qti-outcome-processing","qti-outcome-processing-fragment","qti-response-condition","qti-response-else","qti-response-else-if","qti-response-if","qti-response-processing","qti-response-processing-fragment","qti-set-correct-response","qti-set-default-value","qti-set-outcome-value","qti-set-template-value","qti-template-condition","qti-template-constraint","qti-template-else","qti-template-else-if","qti-template-if","qti-template-processing"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Processing","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__node_kind_in_processing_ro2fdy7uky"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Node","selection":{"conjuncts":[{"arg":{"field":"kind","kind":"field"},"kind":"in","values":["qti-equal-rounded","qti-round-to"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Rounding","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__node_kind_in_rounding_n7wdh3nu4u"},
 				{"described":{"entry":{"kind":"declared","name":"Test overlay","source":"plan §1.7 O7 and the W5 amendment's C15, C18, under decision S3: each O7 overlay (AssembledDocument, Named, Site) is its element's row, keyed by its node, and holds its attributes' values, collapsed, each an identifier read where it stands (TestIdentifier, C18); AssembledDocument and Named hold no fact of their node or document, which their laws read through Node and Document (a document's root kind its Document's, at its (package, path)), while a Site holds its node's context (nodeContext: its kind, parent and parent's kind, ancestry, children, governor and nearest interaction), the copy routed with Document's context to the RULEREC follow-up; each exists exactly where its element does (Q5.13)"},"from":{"relation":"Node","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-assessment-section-ref"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Site","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__node_kind_in_site_ticq3fmre3"},
 				{"described":{"entry":{"kind":"declared","name":"Reference overlay","source":"IMS Content Packaging 1.2 (b) and (d), and readings 102 and 103: each document's references (Reference) are an attribute's copy keyed by its node and name, and each the importer resolves in the package has its ReferencePath, in its document's package"},"from":{"relation":"Node","selection":{"conjuncts":[{"arg":{"field":"kind","kind":"field"},"kind":"in","values":["qti-file-href","qti-file-href.card","qti-resource-icon"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"kind","kind":"field"}]},"kind":"contained","to":{"relation":"TextReference","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"kind","kind":"field"}]}},"law":"__node_kind_in_text_reference_ws27qtjl4b"},
 				{"described":{"entry":{"kind":"declared","name":"XsiType derived","source":"reading 47: https://www.w3.org/TR/xmlschema-1/#cvc-elt (XML Schema 1.0 Part 1 §3.3.4, Element Locally Valid (Element), clause 4.3: the local type definition 'must be validly derived from the {type definition}', §3.4.6 and §3.14.6), over the named type that governs each element of a vocabulary kind (its ElementType row: its xsi:type's, else its declared type; xsi.ts XsiType), which every element of a kind whose declared type is named has, and an element of an anonymous declared type has not (AnonymousType). Clauses 4.1 and 4.2, a value that is no QName in scope or names no type, are the codec's (shred: type-unresolved, type-unknown)"},"from":{"relation":"Node","selection":{"conjuncts":[{"arg":{"arg":{"field":"kind","kind":"field"},"kind":"in","values":["comment","doctype","document","entityRef","pi","text","ws"]},"kind":"not"},{"arg":{"arg":{"field":"kind","kind":"field"},"kind":"in","values":["foreign-element","no-namespace-element","own-namespace-element"]},"kind":"not"},{"arg":{"args":[{"field":"kind","kind":"field"}],"kind":"closedHas","relation":"AnonymousType"},"kind":"not"}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"ElementType","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__node_kind_kind_kind_in_element_type_o5itm55eof"},
@@ -28714,17 +27843,6 @@
 				{"described":{"entry":{"kind":"declared","name":"Manifest overlay","source":"plan §1.6 and the W5 amendment's C18, under decision S3: each manifest overlay (ResourceHref, File) is its element's row, keyed by its node, and holds its own facts alone: it stands at a node of its kind (a constant pin) exactly where its href is written and holds its resolution, never its form, each header with exactly the arm its scope names (grizzle's alternatives: ResourceHrefPath and FilePath an entry path in the package, ResourceHrefOutside and FileOutside a path outside it, as written), and a file's resource is its node's parent, which its laws read through Node; the manifest's identifier is its attribute's value (overlay-queries/package.ts manifestIdentifiers), one per package by the single root N5 admits (Q5.06)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"ResourceHref"},"law":"__resource_href_pk_package_path_start_kyhziuhnsp"},
 				{"described":{"entry":{"kind":"declared","name":"Manifest overlay","source":"plan §1.6 and the W5 amendment's C18, under decision S3: each manifest overlay (ResourceHref, File) is its element's row, keyed by its node, and holds its own facts alone: it stands at a node of its kind (a constant pin) exactly where its href is written and holds its resolution, never its form, each header with exactly the arm its scope names (grizzle's alternatives: ResourceHrefPath and FilePath an entry path in the package, ResourceHrefOutside and FileOutside a path outside it, as written), and a file's resource is its node's parent, which its laws read through Node; the manifest's identifier is its attribute's value (overlay-queries/package.ts manifestIdentifiers), one per package by the single root N5 admits (Q5.06)"},"from":{"relation":"ResourceHref","selection":{"conjuncts":[{"kind":"compare","left":{"field":"scope","kind":"field"},"op":"eq","right":{"kind":"literal","value":"external"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"ResourceHrefOutside","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__resource_href_scope_in_resource_href_outside_ipji5yfboy"},
 				{"described":{"entry":{"kind":"declared","name":"Manifest overlay","source":"plan §1.6 and the W5 amendment's C18, under decision S3: each manifest overlay (ResourceHref, File) is its element's row, keyed by its node, and holds its own facts alone: it stands at a node of its kind (a constant pin) exactly where its href is written and holds its resolution, never its form, each header with exactly the arm its scope names (grizzle's alternatives: ResourceHrefPath and FilePath an entry path in the package, ResourceHrefOutside and FileOutside a path outside it, as written), and a file's resource is its node's parent, which its laws read through Node; the manifest's identifier is its attribute's value (overlay-queries/package.ts manifestIdentifiers), one per package by the single root N5 admits (Q5.06)"},"from":{"relation":"ResourceHref","selection":{"conjuncts":[{"kind":"compare","left":{"field":"scope","kind":"field"},"op":"eq","right":{"kind":"literal","value":"entry"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"ResourceHrefPath","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__resource_href_scope_in_resource_href_path_g4k2hs6r37"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"RoundingFigures","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Attribute","selection":{"conjuncts":[{"arg":{"field":"kind","kind":"field"},"kind":"in","values":["qti-equal-rounded","qti-round-to"]},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"figures"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__rounding_figures_in_attribute_ghgmd4nrs3"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"RoundingFigures","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Rounding","selection":{"conjuncts":[{"arg":{"field":"holds","kind":"field"},"kind":"in","values":["both","figures"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__rounding_figures_in_rounding_icfq6ltf3a"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"RoundingFigures"},"law":"__rounding_figures_pk_package_path_start_hezuyw5goi"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Rounding","selection":{"conjuncts":[{"arg":{"field":"holds","kind":"field"},"kind":"in","values":["both","figures"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"RoundingFigures","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__rounding_holds_in_rounding_figures_c4s54k6vj5"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Rounding","selection":{"conjuncts":[{"kind":"compare","left":{"field":"holds","kind":"field"},"op":"eq","right":{"kind":"literal","value":"both"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"RoundingModeFigures","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__rounding_holds_in_rounding_mode_figures_lb2kw6s563"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Rounding","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Node","selection":{"conjuncts":[{"arg":{"field":"kind","kind":"field"},"kind":"in","values":["qti-equal-rounded","qti-round-to"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__rounding_in_node_7xp34trqr4"},
-				{"described":{"entry":{"kind":"declared","name":"Rounding figures","source":"reading 119: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_EqualRounded.Attr_figures (§5.47.2: 'If roundingMode= 'significantFigures', the value of figures must be a non-zero positive integer. If roundingMode='decimalPlaces', the value of figures must be an integer greater than or equal to zero') and #DataCharacteristic_RoundTo.Attr_figures (§5.119.2, the same of rounding-mode), under the EqualRounded default significantFigures (§5.47.1): a figures whose collapsed form is an integer is at least 1 under significantFigures and at least 0 under decimalPlaces, a variable's name read at run time (operators.ts RoundingModeFigures, Rounding_figures)"},"kind":"check","name":"Rounding_figures","relation":"RoundingModeFigures"},"law":"__rounding_mode_figures_check_rounding_figures_tcdhp3lpuz"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"RoundingModeFigures","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Rounding","selection":{"conjuncts":[{"kind":"compare","left":{"field":"holds","kind":"field"},"op":"eq","right":{"kind":"literal","value":"both"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__rounding_mode_figures_in_rounding_akzzhzibrn"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"RoundingModeFigures","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"figuresDigest","kind":"field"}]},"kind":"contained","to":{"relation":"RoundingFigures","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"figuresDigest","kind":"field"}]}},"law":"__rounding_mode_figures_in_rounding_figures_orlxm4ux3h"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"RoundingModeFigures"},"law":"__rounding_mode_figures_pk_package_path_start_22jitgkuyq"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"Rounding"},"law":"__rounding_pk_package_path_start_eqjypjb7io"},
 				{"described":{"entry":{"kind":"declared","name":"Document","source":"the XDM document node as the Document row (plan §1.4), and its XML declaration as rows of their own, written where the document writes each part: XmlDecl where it writes a declaration, EncodingDecl and SdDecl where the declaration writes an encoding or a standalone, each a declaration's (https://www.w3.org/TR/xml/#NT-XMLDecl, XML 1.0 §2.8: \"XMLDecl ::= '<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>'\") (chardata.ts)"},"from":{"relation":"SdDecl","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]},"kind":"contained","to":{"relation":"XmlDecl","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]}},"law":"__sd_decl_in_xml_decl_e5woozhfdp"},
 				{"described":{"entry":{"kind":"declared","name":"Document","source":"the XDM document node as the Document row (plan §1.4), and its XML declaration as rows of their own, written where the document writes each part: XmlDecl where it writes a declaration, EncodingDecl and SdDecl where the declaration writes an encoding or a standalone, each a declaration's (https://www.w3.org/TR/xml/#NT-XMLDecl, XML 1.0 §2.8: \"XMLDecl ::= '<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>'\") (chardata.ts)"},"fields":["package","path"],"kind":"primaryKey","relation":"SdDecl"},"law":"__sd_decl_pk_package_path_dw2llwnzb2"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"ShareFragment","selection":{"conjuncts":[{"kind":"compare","left":{"field":"assembled","kind":"field"},"op":"eq","right":{"kind":"literal","value":true}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"placements","kind":"field"}]},"kind":"contained","to":{"relation":"AssembledDocument","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"instances","kind":"field"}]}},"law":"__share_fragment_assembled_in_assembled_document_t375hc2tpk"},
@@ -28787,23 +27905,6 @@
 				{"described":{"entry":{"kind":"declared","name":"Reference overlay","source":"IMS Content Packaging 1.2 (b) and (d), and readings 102 and 103: each document's references (Reference) are an attribute's copy keyed by its node and name, and each the importer resolves in the package has its ReferencePath, in its document's package"},"fields":["package","path","start"],"kind":"primaryKey","relation":"TextReferencePath"},"law":"__text_reference_path_pk_package_path_start_3a5nxozoi4"},
 				{"described":{"entry":{"kind":"declared","name":"Reference overlay","source":"IMS Content Packaging 1.2 (b) and (d), and readings 102 and 103: each document's references (Reference) are an attribute's copy keyed by its node and name, and each the importer resolves in the package has its ReferencePath, in its document's package"},"fields":["package","path","start"],"kind":"primaryKey","relation":"TextReference"},"law":"__text_reference_pk_package_path_start_7iaif76sdc"},
 				{"described":{"entry":{"kind":"declared","name":"Reference overlay","source":"IMS Content Packaging 1.2 (b) and (d), and readings 102 and 103: each document's references (Reference) are an attribute's copy keyed by its node and name, and each the importer resolves in the package has its ReferencePath, in its document's package"},"from":{"relation":"TextReference","selection":{"conjuncts":[{"kind":"compare","left":{"field":"scope","kind":"field"},"op":"eq","right":{"kind":"literal","value":"entry"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"kind","kind":"field"}]},"kind":"contained","to":{"relation":"TextReferencePath","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"kind","kind":"field"}]}},"law":"__text_reference_scope_in_text_reference_path_t5z42pwa5f"},
-				{"described":{"entry":{"kind":"declared","name":"Equal tolerance","source":"reading 121: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_Equal.Attr_tolerance (§5.46.2: 'If the tolerance mode is absolute or relative then the tolerance must be specified. The tolerance consists of two positive numbers, t0 and t1, that define the lower and upper bounds. If only one value is given it is used for both') and #DataModel_ToleranceList (§9.1.5: 'a space separated list of either strings (must not contain a space) or numbers'): a qti-equal whose tolerance-mode is absolute or relative writes tolerance, every tolerance holds one or two values, and each value in xs:double's lexical space is above 0, a string naming a variable read at run time (operators.ts Tolerance, toleranceRequired, Equal_tolerance)"},"kind":"check","name":"Equal_tolerance","relation":"Tolerance"},"law":"__tolerance_check_equal_tolerance_yxof3fa7ms"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Tolerance","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-equal"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"tolerance"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__tolerance_in_attribute_4wmhvbppkq"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"Tolerance"},"law":"__tolerance_pk_package_path_start_vs5xfxm3be"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"ToleranceToken"},"law":"__tolerance_token_check_e_1_derived_ab3hkq55xv"},
-				{"described":{"entry":{"kind":"declared","name":"Equal tolerance","source":"reading 121: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_Equal.Attr_tolerance (§5.46.2: 'If the tolerance mode is absolute or relative then the tolerance must be specified. The tolerance consists of two positive numbers, t0 and t1, that define the lower and upper bounds. If only one value is given it is used for both') and #DataModel_ToleranceList (§9.1.5: 'a space separated list of either strings (must not contain a space) or numbers'): a qti-equal whose tolerance-mode is absolute or relative writes tolerance, every tolerance holds one or two values, and each value in xs:double's lexical space is above 0, a string naming a variable read at run time (operators.ts Tolerance, toleranceRequired, Equal_tolerance)"},"kind":"check","name":"Equal_tolerance","relation":"ToleranceToken"},"law":"__tolerance_token_check_equal_tolerance_dv367nqqlh"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"family","member":{"relation":"ToleranceToken","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"at","kind":"field"}]},"order":"ordered","slots":{"count":"tokens","owner":"Tolerance"}},"law":"__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start","at"],"kind":"primaryKey","relation":"ToleranceToken"},"law":"__tolerance_token_pk_package_path_start_at_iluebuhjpt"},
-				{"described":{"end":{"relation":"Tolerance","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"tokenTextDigest","kind":"field"}]},"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"family":{"count":"tokens","owner":"Tolerance"},"kind":"fold","monoid":"concat","step":{"relation":"ToleranceToken","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"piece","kind":"field"},{"field":"piecesWasDigest","kind":"field"},{"field":"piecesAfterDigest","kind":"field"}]}},"law":"__tolerance_tokens_concat_fold_vm3kx2dsqq"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"UsageValueBaseType"},"law":"__usage_value_base_type_check_e_1_derived_gvdndqwhu5"},
-				{"described":{"entry":{"kind":"declared","name":"Usage typed value","source":"reading 105: https://www.imsglobal.org/sites/default/files/spec/qti/v3/ud-bind/index.html (QTI 3.0 Usage Data binding §2.6.5, Value: 'A class that can represent a single value of any baseType'; §2.7.1, BaseTypeEnum) and https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_BaseTypeEnum (§8.14, BaseTypeEnum, each base type's value set): a ud:value that forms part of a record (it writes a fieldIdentifier) and writes baseType holds a lexical form of that base type, read as a qti-value's text is (readings 7, 34, 45 and 71), and any other ud:value, outside a record or writing no baseType, is xs:normalizedString text, accepted untyped (metadata.ts UsageValueBaseType over expression-types.ts BaseTypePattern)"},"kind":"check","name":"Usage_typed_value","relation":"UsageValueBaseType"},"law":"__usage_value_base_type_check_usage_typed_value_lixdqcgl2q"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"UsageValueBaseType","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"textDigest","kind":"field"}]},"kind":"contained","to":{"relation":"Node","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"stringValueDigest","kind":"field"}]}},"law":"__usage_value_base_type_in_node_hjpfxjh7ln"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"UsageValueBaseType","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"baseTypeLexicalDigest","kind":"field"}]},"kind":"contained","to":{"relation":"UsageValue","selection":{"conjuncts":[{"arg":{"field":"baseTypeLexical","kind":"field"},"kind":"in","values":["boolean","directedPair","duration","file","float","identifier","integer","pair","point","string","uri"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"baseTypeLexicalDigest","kind":"field"}]}},"law":"__usage_value_base_type_in_usage_value_pfiwnmrpot"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"UsageValue","selection":{"conjuncts":[{"arg":{"field":"baseTypeLexical","kind":"field"},"kind":"in","values":["boolean","directedPair","duration","file","float","identifier","integer","pair","point","string","uri"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"baseTypeLexicalDigest","kind":"field"}]},"kind":"contained","to":{"relation":"UsageValueBaseType","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"baseTypeLexicalDigest","kind":"field"}]}},"law":"__usage_value_base_type_lexical_in_usage_value_base_sciazvz53k"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"UsageValueBaseType"},"law":"__usage_value_base_type_pk_package_path_start_rtkuaxfpon"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"UsageValue","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"textDigest","kind":"field"}]},"kind":"contained","to":{"relation":"Node","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"stringValueDigest","kind":"field"}]}},"law":"__usage_value_in_node_44n7bncyml"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"UsageValue","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Node","selection":{"conjuncts":[{"kind":"compare","left":{"args":[{"args":[{"args":[{"args":[{"field":"governor","kind":"field"}],"field":"model","kind":"closedAt","relation":"AttributeModelOf"},{"kind":"literal","value":"baseType"}],"field":"slot","kind":"closedAt","relation":"AttributeGrammar"}],"fn":"singleton","kind":"compute"},{"field":"attrs","kind":"field"}],"fn":"subset","kind":"compute"},"op":"eq","right":{"kind":"literal","value":true}},{"kind":"compare","left":{"args":[{"args":[{"args":[{"args":[{"field":"governor","kind":"field"}],"field":"model","kind":"closedAt","relation":"AttributeModelOf"},{"kind":"literal","value":"fieldIdentifier"}],"field":"slot","kind":"closedAt","relation":"AttributeGrammar"}],"fn":"singleton","kind":"compute"},{"field":"attrs","kind":"field"}],"fn":"subset","kind":"compute"},"op":"eq","right":{"kind":"literal","value":true}},{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"ud:value"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__usage_value_in_node_sokh7a33pn"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"UsageValue"},"law":"__usage_value_pk_package_path_start_n5sfyqi24j"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"VariableRef"},"law":"__variable_ref_check_e_1_derived_tvhmpvb3ls"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"VariableRef","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"attribute","kind":"field"}]},"kind":"contained","to":{"relation":"Attribute","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"name","kind":"field"}]}},"law":"__variable_ref_in_attribute_5sezfngupx"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"VariableRef","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"rootKind","kind":"field"}]},"kind":"contained","to":{"relation":"Document","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"rootKind","kind":"field"}]}},"law":"__variable_ref_in_document_j2eqiceyjs"},
@@ -28815,13 +27916,13 @@
 			"schema": "qti"
 		},
 		{
-			"fingerprint": "c61b92872f9fc1b18ccc152fb38d41f32437270f85726f2e16f265dea6475a48",
+			"fingerprint": "69427ff81756f696ad154f4d42783f2300ba752f74c5676c97a3d568dd06c25f",
 			"laws": [],
 			"name": "QtiViews",
 			"schema": "qti_views"
 		},
 		{
-			"fingerprint": "1f26f6149c3cb6ef6dd06a3fdc74919d104b4a34e3aabd30b8c03821b603391d",
+			"fingerprint": "9679aeb465144f598d1e48c384200b871339837507dc4078e2467fe313dddced",
 			"laws": [
 				{"described":{"entry":{"kind":"declared","name":"DocumentId key","source":"XML Schema Part 1, Validation Rule: Validation Root (the ID/IDREF table): no id's [binding] has more than one member, an attribute's binding its element, an ID-typed element text's its parent (§3.15.5; reading 101; identity.ts IdBinding); reading 14; reading 74: a context declaration's identifier, a UniqueIdentifier (https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ContextDeclaration.Attr_identifier, §5.34.1), is one of the document's IDs, though the 3.0.1 XSD types it an IdentifierDType; and IMS Content Packaging 1.2: the manifest's and its resources' identifiers, xs:IDs of imsmanifest.xml (imsqtiv3p0p1_imscpv1p2_v1p0.xsd lines 272 and 346), are one ID space, so a resource of its manifest's identifier is a second member of that binding"},"kind":"key","side":{"relation":"AnchoredId","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"idDigest","kind":"field"}]}},"law":"__anchored_id_key_package_assembly_anchor_id_digest_5ksp7mxkzx"},
 				{"described":{"entry":{"kind":"declared","name":"Test name key","source":"reading 86: https://www.imsglobal.org/spec/qti/v3p0/info#RootCharacteristic_AssessmentSection.Attr_identifier (§4.2.1: 'The identifier of the section or item reference must be unique within the test and must not be the identifier of any testPart'), §5.159.1 and §7.5.3 ('A test may refer to the same section multiple times within a test. Note however that each reference must have a unique identifier'), read over the assembled test (reading 5): the test document and every document its section refs and includes place; a section document placed twice is one document and names nothing twice: no two written test parts, sections, section refs or item refs of one test's assembly share an identifier (overlay-queries/tests.ts AssembledName)"},"kind":"key","side":{"relation":"AnchoredName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__anchored_name_key_package_assembly_anchor_l25sk7zs37"},
@@ -28832,6 +27933,7 @@
 				{"described":{"entry":{"kind":"declared","name":"Arity","source":"https://www.imsglobal.org/spec/qti/v3p0/info#Abstract_ExpressionGroup (§6.9, ExpressionGroup: each operator's attribute is of a container class whose logic attribute's multiplicity is its sub-expression count, §5.83.1 Logic0toMany '[0.. unbounded]', §5.84.1 Logic1toMany and §5.94.1 NumericLogic1toMany '[1.. unbounded]', §5.85.1 LogicPair '[2]' and §5.86.1 LogicSingle '[1]', or of its own class, whose logic attribute states its count, as §5.113.2 Repeat's '[1.. unbounded]' with §5.113's 'The repeat operator takes one or more sub-expressions', over §6.9.49's '0 or more'; a leaf class's children row reads 'There are no children.'; as §6.9.21, https://www.imsglobal.org/spec/qti/v3p0/info#AbstractAttribute_ExpressionGroup_qti-match, 'The match operator takes two sub-expressions') (expression.ts OperatorArity); reading 21; and reading 242, https://www.imsglobal.org/spec/qti/v3p0/info#Data_MathOperator (§5.91, MathOperator: 'The trigonometric functions, sin, cos and tan, take one argument in radians ... Other functions take one numerical argument. Further functions might take more than one numerical argument, e.g. atan2 (two argument arc tan)'; §8.25, MathOperatorNameEnum: 'atan2 - the 2-argument inverse trigonometric tangent obtained from the two arguments', every other token a function of 'the argument'): a math operator named atan2 holds exactly two sub-expressions and one of any other name exactly one (overlay-queries/expression.ts MathOperand, BinaryMathOperator)"},"from":{"relation":"ArityFloor","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"min","kind":"field"}]},"kind":"contained","to":{"relation":"ExpressionOperand","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"operator","kind":"field"},{"field":"rank","kind":"field"}]}},"law":"__arity_floor_in_expression_operand_ozxacvptz6"},
 				{"described":{"entry":{"kind":"declared","name":"Inclusion cycle","source":"reading 85: https://www.w3.org/TR/xinclude-11/#loops (XInclude 1.1 §4.2.7: 'it is a fatal error to process another xi:include element with an include location and xpointer attribute value that have already been processed in the inclusion chain'), the XInclude https://www.imsglobal.org/spec/qti/v3p0/info#Imported_Include (§9.4.1) names: no chain of xi:include hrefs, over the documents the manifest lists, returns to a document already on it"},"from":{"relation":"AssembledDocument","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]},"kind":"contained","to":{"relation":"InstanceDocument","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"document","kind":"field"}]}},"law":"__assembled_document_in_instance_document_ah222uudjc"},
 				{"described":{"entry":{"kind":"declared","name":"Test name key","source":"reading 86: https://www.imsglobal.org/spec/qti/v3p0/info#RootCharacteristic_AssessmentSection.Attr_identifier (§4.2.1: 'The identifier of the section or item reference must be unique within the test and must not be the identifier of any testPart'), §5.159.1 and §7.5.3 ('A test may refer to the same section multiple times within a test. Note however that each reference must have a unique identifier'), read over the assembled test (reading 5): the test document and every document its section refs and includes place; a section document placed twice is one document and names nothing twice: no two written test parts, sections, section refs or item refs of one test's assembly share an identifier (overlay-queries/tests.ts AssembledName)"},"kind":"key","side":{"relation":"AssembledName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__assembled_name_key_package_assembly_identifier_xphaapsts3"},
+				{"described":{"entry":{"kind":"declared","name":"Equal tolerance","source":"reading 121: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_Equal.Attr_tolerance (§5.46.2: 'If the tolerance mode is absolute or relative then the tolerance must be specified. The tolerance consists of two positive numbers, t0 and t1, that define the lower and upper bounds. If only one value is given it is used for both') and #DataModel_ToleranceList (§9.1.5: 'a space separated list of either strings (must not contain a space) or numbers'): a qti-equal whose tolerance-mode is absolute or relative writes tolerance, every tolerance holds one or two values, and each value in xs:double's lexical space is above 0, a string naming a variable read at run time (operators.ts toleranceRequired; overlay-queries/expression.ts ToleranceToken, Equal_tolerance)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-equal"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"tolerance"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"ToleranceToken","selection":{"conjuncts":[{"kind":"compare","left":{"field":"at","kind":"field"},"op":"eq","right":{"kind":"literal","value":"~n:0"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__attribute_in_tolerance_token_7akysyf2s6"},
 				{"described":{"entry":{"kind":"declared","name":"Declaration base type","source":"https://www.imsglobal.org/spec/qti/v3p0/info#RootCharacteristic_OutcomeDeclaration.Attr_base-type (§4.5.3, and §5.34.3, §5.115.3, §5.151.3: 'The value space from which the variable's value can be drawn (or in the case of containers, from which the individual values are drawn) is identified with a base-type', 'Variables with record cardinality have no base-type'): a record declares no base type (no DeclarationBaseType beside its DeclarationCardinality, a rule over their join), and every other variable writes one, each judged from the declaration's DeclarationCardinality where its cardinality spells a code; a base-type written but spelling nothing is its value domain's alone (spec reading 158)"},"kind":"check","name":"Declaration_base_type","relation":"BaseTypeCardinality"},"law":"__base_type_cardinality_check_declaration_base_type_du5hijhbph"},
 				{"described":{"entry":{"kind":"declared","name":"Arity","source":"https://www.imsglobal.org/spec/qti/v3p0/info#Abstract_ExpressionGroup (§6.9, ExpressionGroup: each operator's attribute is of a container class whose logic attribute's multiplicity is its sub-expression count, §5.83.1 Logic0toMany '[0.. unbounded]', §5.84.1 Logic1toMany and §5.94.1 NumericLogic1toMany '[1.. unbounded]', §5.85.1 LogicPair '[2]' and §5.86.1 LogicSingle '[1]', or of its own class, whose logic attribute states its count, as §5.113.2 Repeat's '[1.. unbounded]' with §5.113's 'The repeat operator takes one or more sub-expressions', over §6.9.49's '0 or more'; a leaf class's children row reads 'There are no children.'; as §6.9.21, https://www.imsglobal.org/spec/qti/v3p0/info#AbstractAttribute_ExpressionGroup_qti-match, 'The match operator takes two sub-expressions') (expression.ts OperatorArity); reading 21; and reading 242, https://www.imsglobal.org/spec/qti/v3p0/info#Data_MathOperator (§5.91, MathOperator: 'The trigonometric functions, sin, cos and tan, take one argument in radians ... Other functions take one numerical argument. Further functions might take more than one numerical argument, e.g. atan2 (two argument arc tan)'; §8.25, MathOperatorNameEnum: 'atan2 - the 2-argument inverse trigonometric tangent obtained from the two arguments', every other token a function of 'the argument'): a math operator named atan2 holds exactly two sub-expressions and one of any other name exactly one (overlay-queries/expression.ts MathOperand, BinaryMathOperator)"},"from":{"relation":"BinaryMathOperator","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"ExpressionOperand","selection":{"conjuncts":[{"kind":"compare","left":{"field":"rank","kind":"field"},"op":"eq","right":{"kind":"literal","value":"~n:2"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"operator","kind":"field"}]}},"law":"__binary_math_operator_in_expression_operand_mr5tjuxq3w"},
 				{"described":{"entry":{"kind":"declared","name":"BindingFit","source":"each interaction class's binding sentence, its typed rows every pairing of the base types and cardinalities it names: https://www.imsglobal.org/spec/qti/v3p0/info#Data_ChoiceInteraction (§5.30: 'The ChoiceInteraction must be bound to a response variable with a base-type of identifier and single or multiple cardinality'), and https://www.imsglobal.org/spec/qti/v3p0/info#Data_HotTextInteraction (§5.66) and https://www.imsglobal.org/spec/qti/v3p0/info#Data_HotspotInteraction (§5.68) alike; https://www.imsglobal.org/spec/qti/v3p0/info#Data_InlineChoiceInteraction (§5.74: 'with a base-type of identifier and single cardinality only'); https://www.imsglobal.org/spec/qti/v3p0/info#Data_GraphicOrderInteraction (§5.61: 'with a base-type of identifier and ordered cardinality'); https://www.imsglobal.org/spec/qti/v3p0/info#Data_AssociateInteraction (§5.8) and https://www.imsglobal.org/spec/qti/v3p0/info#Data_GraphicAssociateInteraction (§5.59: 'with base-type pair and either single or multiple cardinality'); https://www.imsglobal.org/spec/qti/v3p0/info#Data_MatchInteraction (§5.89) and https://www.imsglobal.org/spec/qti/v3p0/info#Data_GapMatchInteraction (§5.57: 'with base-type directedPair and either single or multiple cardinality'); https://www.imsglobal.org/spec/qti/v3p0/info#Data_GraphicGapMatchInteraction (§5.60: 'with base-type directedPair and multiple cardinality'); https://www.imsglobal.org/spec/qti/v3p0/info#Data_SelectPointInteraction (§5.128) and https://www.imsglobal.org/spec/qti/v3p0/info#Data_PositionObjectInteraction (§5.107: 'with a base-type of point and single or multiple cardinality'); https://www.imsglobal.org/spec/qti/v3p0/info#Data_SliderInteraction (§5.134: 'with single cardinality with a base-type of either integer or float'); https://www.imsglobal.org/spec/qti/v3p0/info#Data_MediaInteraction (§5.92: the response variable 'must be of base-type integer and single cardinality'); https://www.imsglobal.org/spec/qti/v3p0/info#Data_DrawingInteraction (§5.44) and https://www.imsglobal.org/spec/qti/v3p0/info#Data_UploadInteraction (§5.165: 'with base-type file and single cardinality'); https://www.imsglobal.org/spec/qti/v3p0/info#Data_EndAttemptInteraction (§5.45: 'with base-type boolean and single cardinality'); https://www.imsglobal.org/spec/qti/v3p0/info#Data_TextEntryInteraction (§5.162: 'If the response variable has single cardinality the base-type must be one of string, integer or float') and https://www.imsglobal.org/spec/qti/v3p0/info#Data_ExtendedTextInteraction (§5.48: 'must be bound to a response variable of single, multiple, ordered or record cardinality', and otherwise of 'a base-type of string, integer or float'), whose record is RecordBindingFit's. The order interaction's class description (https://www.imsglobal.org/spec/qti/v3p0/info#Data_OrderInteraction, §5.97) states no binding, so it has no row and binds any type, as the custom interactions do (reading 172) (facets.ts typedFits, expression.ts BindingFit)"},"kind":"check","name":"BindingFit","relation":"BindingBaseTypeNode"},"law":"__binding_base_type_node_check_binding_fit_zjqg2eweij"},
@@ -29037,9 +28139,7 @@
 				{"described":{"entry":{"kind":"declared","name":"Href listed","source":"imscp_infov1p2pd2.txt:770 (IMS Content Packaging 1.2, §6.6.2: 'A file reference declared in a Resource{ Href } shall have an associated declaration in a File object in the same Resource'): a resource href names the file one of its own files names, compared by resolved path in the package (ResourceHrefPath in FilePath) and as written outside it, its launch parameters aside (ResourceHrefOutside in FileOutside, by its digest first, reading 102)"},"from":{"relation":"ResourceHrefOutside","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"targetDigest","kind":"field"},{"field":"target","kind":"field"}]},"kind":"contained","to":{"relation":"ResourceFileOutside","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"resource","kind":"field"},{"field":"targetDigest","kind":"field"},{"field":"target","kind":"field"}]}},"law":"__resource_href_outside_in_resource_file_outside_ikcvifvbbk"},
 				{"described":{"entry":{"kind":"declared","name":"Href listed","source":"imscp_infov1p2pd2.txt:770 (IMS Content Packaging 1.2, §6.6.2: 'A file reference declared in a Resource{ Href } shall have an associated declaration in a File object in the same Resource'): a resource href names the file one of its own files names, compared by resolved path in the package (ResourceHrefPath in FilePath) and as written outside it, its launch parameters aside (ResourceHrefOutside in FileOutside, by its digest first, reading 102)"},"from":{"relation":"ResourceHrefPath","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"target","kind":"field"}]},"kind":"contained","to":{"relation":"ResourceFilePath","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"resource","kind":"field"},{"field":"target","kind":"field"}]}},"law":"__resource_href_path_in_resource_file_path_hprcxyatos"},
 				{"described":{"entry":{"kind":"declared","name":"Declaration not reserved","source":"reading 72: https://www.imsglobal.org/spec/qti/v3p0/info#RootCharacteristic_OutcomeDeclaration.Attr_identifier (§4.5.1, §5.115.1, §5.151.1: 'The identifiers of the built-in session variables are reserved. They are completionStatus, numAttempts and duration'), each spelled exactly, with no alias, the identifier compared collapsed (references.ts BuiltInVariable, its session variables); reading 168: a test's processing holds duration and neither of the other two (§2.2.2, reading 29), so an item's declaration names none of the three and a test's declaration only duration, and a test's own numAttempts and completionStatus shadow no built-in and are accepted (declarations.ts itemSessionVariables and testSessionVariables, by the declaration's parent kind); the context variable QTI_CONTEXT is Reserved type's"},"kind":"check","name":"Declaration_not_reserved","relation":"RootedDeclaration"},"law":"__rooted_declaration_check_declaration_not_reserved_5hsd3yw3di"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Rounding","selection":{"conjuncts":[{"arg":{"field":"holds","kind":"field"},"kind":"in","values":["both","mode"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"RoundingMode","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__rounding_in_rounding_mode_mnh6zjgi6n"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"RoundingModeFigures","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"mode","kind":"field"}]},"kind":"contained","to":{"relation":"RoundingMode","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"mode","kind":"field"}]}},"law":"__rounding_mode_figures_in_rounding_mode_5bdcnmtzzp"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"RoundingMode","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Rounding","selection":{"conjuncts":[{"arg":{"field":"holds","kind":"field"},"kind":"in","values":["both","mode"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__rounding_mode_in_rounding_kvmkajbet7"},
+				{"described":{"entry":{"kind":"declared","name":"Rounding figures","source":"reading 119: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_EqualRounded.Attr_figures (§5.47.2: 'If roundingMode= 'significantFigures', the value of figures must be a non-zero positive integer. If roundingMode='decimalPlaces', the value of figures must be an integer greater than or equal to zero') and #DataCharacteristic_RoundTo.Attr_figures (§5.119.2, the same of rounding-mode), under the EqualRounded default significantFigures (§5.47.1): a figures whose collapsed form is an integer is at least 1 under significantFigures and at least 0 under decimalPlaces, a variable's name read at run time (overlay-queries/expression.ts RoundingModeFigures, Rounding_figures)"},"kind":"check","name":"Rounding_figures","relation":"RoundingModeFigures"},"law":"__rounding_mode_figures_check_rounding_figures_tcdhp3lpuz"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"ScopeDurationRead"},"law":"__scope_duration_read_check_e_1_derived_eh7u3n7vgi"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"ScopeNode"},"law":"__scope_node_check_e_1_derived_xp2myjl54i"},
 				{"described":{"entry":{"kind":"declared","name":"MathML align placement","source":"reading 2: https://www.w3.org/TR/MathML3/chapter3.html#presm.malign.group (MathML 3 §3.5.5.2: an maligngroup in a table cell stands in the cell directly or inside an mrow or mstyle that changes no direction, mphantom, mfenced, the selected sub-expression of an maction, or semantics) and #presm.malign.mtable (§3.5.5.9); a group with no cell above it is ignored, only an maction's selected sub-expression is checked, and a change of direction is a dir other than the one the element inherits, so mrow dir='ltr' in a formula that reads left to right changes none (operator decision 321); m:math inherits none, since 'the dir attribute defaults to \"ltr\" on the math element' (MathML 3 §2.2.1, reading 164)"},"kind":"check","name":"MathML_align_placement","relation":"ScopeNode"},"law":"__scope_node_check_math_ml_align_placement_asmvwes4qr"},
@@ -29083,7 +28183,7 @@
 				{"described":{"entry":{"kind":"declared","name":"Key text bound","source":"src/qti/limits.ts: no index orders by a name, a prefix or a path (the host orders them), and each bound on a text a query reads is PostgreSQL's: a text a query reads by a pattern (matchedText) at most matchedTextBytes UTF-8 bytes, the regex engine's (regexTextMaxBytes); a foreign element's namespace name and local name at most foreignNameBytes each, half of what that engine reads of the expanded name a query matches them as (OpenElementName.expanded), since XML puts no bound on a name (reading 94); and an ARIA bound of a pair that is an xs:decimal at most parsedDecimalBytes, what Text.parseDecimal reads (decimalTextMaxBytes), past which a decimal may name a value numeric does not hold (overlay-queries/interaction.ts Key_text_bound over AriaBounds); a stated limit of the representation, not a law of the specification"},"kind":"check","name":"Key_text_bound","relation":"TestIdentifierText"},"law":"__test_identifier_text_check_key_text_bound_4jkspim35c"},
 				{"described":{"entry":{"kind":"declared","name":"Prefixed reference","source":"readings 48, 86, 88, 106, 107, 110 and 112: https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Variable (§7.47: 'During outcomes processing, values taken from an individual item session can be looked up by prefixing the name of the item variable with the identifier assigned to the item in the qti-assessment-item-ref, separated by a period character'; for an item 'allowed to be replaced (i.e. that have the with-replacement attribute set to \"true\")', 'a number that denotes the instance's place in the sequence of the item's instantiation is inserted between the item variable identifier and the item variable'), §2.8.5 (a part's or a section's duration 'prefixed with the identifier of the part or section followed by the period character') and §4.2.1 ('Identifiers containing the period character are reserved for use in prefixing'), read over the assembled test (reading 5): a reference placed in a test is accepted only when exactly one of its readings, unsplit, split at a period or numbered, names a variable of the test or of a scope of its assembly, each placement of a scope a reading of its own (reading 86), a setter's identifier unsplit alone (reading 112) (overlay-queries/readings.ts TestReading); the importer states the numbered readings and the readings through an item ref that names no item document, which the database proves and cannot enumerate, since no text operation splits a name at a period in a query (a grizzle ask of 2026-11-20), a name whose only readings are two numbered ones the importer's to tell apart, a recorded under-refusal"},"kind":"key","side":{"relation":"TestReading","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"attribute","kind":"field"}]}},"law":"__test_reading_key_package_assembly_path_start_duaaxujabc"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"TextReferenceStringValue"},"law":"__text_reference_string_value_check_e_1_derived_5jdghn7s6g"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"ToleranceForm"},"law":"__tolerance_form_check_e_1_derived_zj5amya32t"},
+				{"described":{"entry":{"kind":"declared","name":"Equal tolerance","source":"reading 121: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_Equal.Attr_tolerance (§5.46.2: 'If the tolerance mode is absolute or relative then the tolerance must be specified. The tolerance consists of two positive numbers, t0 and t1, that define the lower and upper bounds. If only one value is given it is used for both') and #DataModel_ToleranceList (§9.1.5: 'a space separated list of either strings (must not contain a space) or numbers'): a qti-equal whose tolerance-mode is absolute or relative writes tolerance, every tolerance holds one or two values, and each value in xs:double's lexical space is above 0, a string naming a variable read at run time (operators.ts toleranceRequired; overlay-queries/expression.ts ToleranceToken, Equal_tolerance)"},"kind":"check","name":"Equal_tolerance","relation":"ToleranceToken"},"law":"__tolerance_token_check_equal_tolerance_dv367nqqlh"},
 				{"described":{"entry":{"kind":"declared","name":"SSML trim mark","source":"reading 3: https://www.w3.org/TR/speech-synthesis11/#S3.1.1.1 (SSML 1.1 §3.1.1.1: 'Only markers defined once in the document, i.e. that are unique, are permitted as the value of either startmark or endmark'; 'It is an error if the value given for either startmark or endmark is not a valid mark in the document'), the document being the speak, each name an xs:token (§3.3.2) compared by its collapsed value (identity.ts ssmlTrimMark)"},"kind":"key","side":{"relation":"TrimmedMark","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"fragment","kind":"field"},{"field":"value","kind":"field"}]}},"law":"__trimmed_mark_key_package_path_fragment_value_uge2sqiwtl"},
 				{"described":{"entry":{"kind":"declared","name":"Document entry","source":"IMS Content Packaging 1.2: a listed document is an entry of the package, and one document: a resource names the document at its href, read as a document of its type (reading 93), so no path is listed as documents of two types (qti/package.ts, Document's key over package and path)"},"kind":"check","name":"Document_entry","relation":"TypedHref"},"law":"__typed_href_check_document_entry_slt2mgp4jr"},
 				{"described":{"entry":{"kind":"declared","name":"Document entry","source":"IMS Content Packaging 1.2: a listed document is an entry of the package, and one document: a resource names the document at its href, read as a document of its type (reading 93), so no path is listed as documents of two types (qti/package.ts, Document's key over package and path)"},"from":{"relation":"TypedPath","selection":{"conjuncts":[{"arg":{"field":"type","kind":"field"},"kind":"in","values":["imsqti_fragment_xmlv3p0","imsqti_item_xmlv3p0","imsqti_outcomes_xmlv3p0","imsqti_resprocessing_xmlv3p0","imsqti_rptemplate_xmlv3p0","imsqti_section_xmlv3p0","imsqti_stimulus_xmlv3p0","imsqti_test_xmlv3p0","qtiusagedata/xml","resourcemetadata/xml"]}]},"terms":[{"field":"package","kind":"field"},{"field":"target","kind":"field"},{"field":"type","kind":"field"}]},"kind":"contained","to":{"relation":"ResourceDocument","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"type","kind":"field"}]}},"law":"__typed_path_in_resource_document_2fko6c247q"},
@@ -29093,7 +28193,7 @@
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"UntypedUnweighted"},"law":"__untyped_unweighted_check_e_1_derived_ksmovdmsof"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"UntypedWeighted"},"law":"__untyped_weighted_check_e_1_derived_qkm2k5vog4"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"UnweightedRead"},"law":"__unweighted_read_check_e_1_derived_tlemqo7vtc"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"UsageValue","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"baseTypeLexical","kind":"field"}]},"kind":"contained","to":{"relation":"UsageBaseType","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"value","kind":"field"}]}},"law":"__usage_value_in_usage_base_type_sffynregqf"},
+				{"described":{"entry":{"kind":"declared","name":"Usage typed value","source":"reading 105: https://www.imsglobal.org/sites/default/files/spec/qti/v3/ud-bind/index.html (QTI 3.0 Usage Data binding §2.6.5, Value: 'A class that can represent a single value of any baseType'; §2.7.1, BaseTypeEnum) and https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_BaseTypeEnum (§8.14, BaseTypeEnum, each base type's value set): a ud:value that forms part of a record (it writes a fieldIdentifier) and writes baseType holds a lexical form of that base type, read as a qti-value's text is (readings 7, 34, 45 and 71), and any other ud:value, outside a record or writing no baseType, is xs:normalizedString text, accepted untyped (queries.ts UsageValueBaseType over expression-types.ts BaseTypePattern)"},"kind":"check","name":"Usage_typed_value","relation":"UsageValueBaseType"},"law":"__usage_value_base_type_check_usage_typed_value_lixdqcgl2q"},
 				{"described":{"entry":{"kind":"declared","name":"Variable mapping target","source":"https://www.imsglobal.org/spec/qti/v3p0/info#Derived_VariableMapping (§7.48: 'Variable mappings allow outcome variables declared with the name source-identifier in the corresponding item to be treated as if they were declared with the name target-identifier during outcome processing') with §4.5.1 ('All item variables declared in an item share the same namespace'; 'The identifiers of the built-in session variables are reserved') and reading 97: no two mappings of one item ref name one target, no target names a built-in session variable, and no target names another variable its item declares, compared collapsed (overlay-queries/tests.ts VariableMapping, FreeMappingTarget)"},"kind":"check","name":"Variable_mapping_target","relation":"VariableMapping"},"law":"__variable_mapping_check_variable_mapping_target_vhrbjfwfeg"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"VariableRefNode"},"law":"__variable_ref_node_check_e_1_derived_3w6pstygjk"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"VariableRefNode","selection":{"conjuncts":[{"arg":{"field":"kind","kind":"field"},"kind":"in","values":["qti-and","qti-any-n","qti-base-value","qti-container-size","qti-contains","qti-correct","qti-custom-operator","qti-default","qti-delete","qti-divide","qti-duration-gte","qti-duration-lt","qti-equal","qti-equal-rounded","qti-field-value","qti-gcd","qti-gt","qti-gte","qti-index","qti-inside","qti-integer-divide","qti-integer-modulus","qti-integer-to-float","qti-is-null","qti-lcm","qti-lt","qti-lte","qti-map-response","qti-map-response-point","qti-match","qti-math-constant","qti-math-operator","qti-max","qti-member","qti-min","qti-multiple","qti-not","qti-null","qti-number-correct","qti-number-incorrect","qti-number-presented","qti-number-responded","qti-number-selected","qti-or","qti-ordered","qti-outcome-maximum","qti-outcome-minimum","qti-pattern-match","qti-power","qti-product","qti-random","qti-random-float","qti-random-integer","qti-repeat","qti-round","qti-round-to","qti-stats-operator","qti-string-match","qti-substring","qti-subtract","qti-sum","qti-test-variables","qti-truncate","qti-variable"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"language","kind":"field"}]},"kind":"contained","to":{"relation":"Expression","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"language","kind":"field"}]}},"law":"__variable_ref_node_in_expression_zxmlk2sjdx"},
@@ -44145,24 +43245,6 @@
 			},
 			{
 				"handle": "webcontent",
-				"kind": "live"
-			}
-		],
-		"RoundingHolds": [
-			{
-				"handle": "neither",
-				"kind": "live"
-			},
-			{
-				"handle": "mode",
-				"kind": "live"
-			},
-			{
-				"handle": "figures",
-				"kind": "live"
-			},
-			{
-				"handle": "both",
 				"kind": "live"
 			}
 		],

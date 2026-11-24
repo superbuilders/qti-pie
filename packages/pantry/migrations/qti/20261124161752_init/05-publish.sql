@@ -392,18 +392,6 @@ CREATE VIEW "__qti"."resource_href_path" ("package", "path", "start", "target") 
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."target"
 FROM "qti"."resource_href_path" AS "r1";
 
-CREATE VIEW "__qti"."rounding" ("holds", "holds_name", "package", "path", "start") AS
-SELECT "r1"."holds", ("qti"."__rounding_holds_names_6j2zaayymp"())["r1"."holds" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
-FROM "qti"."rounding" AS "r1";
-
-CREATE VIEW "__qti"."rounding_figures" ("figures_lexical", "package", "path", "start", "figures", "figures_digest", "figures_lexical_digest") AS
-SELECT "r1"."figures_lexical", "r1"."package", "r1"."path", "r1"."start", "r1"."figures", "r1"."figures_digest", "r1"."figures_lexical_digest"
-FROM "qti"."rounding_figures" AS "r1";
-
-CREATE VIEW "__qti"."rounding_mode_figures" ("figures", "mode", "package", "path", "start", "figures_digest") AS
-SELECT "r1"."figures", "r1"."mode", "r1"."package", "r1"."path", "r1"."start", "r1"."figures_digest"
-FROM "qti"."rounding_mode_figures" AS "r1";
-
 CREATE VIEW "__qti"."sd_decl" ("package", "path", "standalone", "standalone_name") AS
 SELECT "r1"."package", "r1"."path", "r1"."standalone", ("qti"."__xml_standalone_names_psf7bszcug"())["r1"."standalone" + 1]::"pg_catalog"."text"
 FROM "qti"."sd_decl" AS "r1";
@@ -460,22 +448,6 @@ CREATE VIEW "__qti"."text_reference_path" ("kind", "kind_name", "package", "path
 SELECT "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start", "r1"."target"
 FROM "qti"."text_reference_path" AS "r1";
 
-CREATE VIEW "__qti"."tolerance" ("package", "path", "start", "token_text", "tokens", "token_text_digest") AS
-SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."token_text", "r1"."tokens", "r1"."token_text_digest"
-FROM "qti"."tolerance" AS "r1";
-
-CREATE VIEW "__qti"."tolerance_token" ("after", "at", "before", "package", "path", "pieces_after", "pieces_was", "start", "token", "piece", "pieces_after_digest", "pieces_was_digest", "token_digest") AS
-SELECT "r1"."after", "r1"."at", "r1"."before", "r1"."package", "r1"."path", "r1"."pieces_after", "r1"."pieces_was", "r1"."start", "r1"."token", "r1"."piece", "r1"."pieces_after_digest", "r1"."pieces_was_digest", "r1"."token_digest"
-FROM "qti"."tolerance_token" AS "r1";
-
-CREATE VIEW "__qti"."usage_value" ("base_type_lexical", "package", "path", "start", "text", "base_type_lexical_digest", "text_digest") AS
-SELECT "r1"."base_type_lexical", "r1"."package", "r1"."path", "r1"."start", "r1"."text", "r1"."base_type_lexical_digest", "r1"."text_digest"
-FROM "qti"."usage_value" AS "r1";
-
-CREATE VIEW "__qti"."usage_value_base_type" ("base_type", "base_type_name", "base_type_lexical", "package", "path", "start", "text", "base_type_lexical_digest", "text_digest") AS
-SELECT "r1"."base_type", ("qti"."__base_type_names_ok3nu5nck4"())["r1"."base_type" + 1]::"pg_catalog"."text", "r1"."base_type_lexical", "r1"."package", "r1"."path", "r1"."start", "r1"."text", "r1"."base_type_lexical_digest", "r1"."text_digest"
-FROM "qti"."usage_value_base_type" AS "r1";
-
 CREATE VIEW "__qti"."variable_ref" ("after", "attribute", "attribute_name", "before", "identifier", "language", "language_name", "package", "path", "root_kind", "root_kind_name", "start") AS
 SELECT "r1"."after", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."before", "r1"."identifier", "r1"."language", ("qti"."__language_names_pvmtywwssv"())["r1"."language" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."root_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."root_kind" + 1]::"pg_catalog"."text", "r1"."start"
 FROM "qti"."variable_ref" AS "r1";
@@ -517,7 +489,7 @@ GRANT :"qti_queries__author" TO :"qti_queries__author_app" WITH INHERIT FALSE, S
 SELECT "pg_catalog"."pg_advisory_xact_lock"(5448515225636816524::bigint);
 GRANT USAGE ON SCHEMA "qti", "qti_views", "qti_queries", "__qti_queries", "__qti", "__qti_views" TO :"qti_queries__author";
 
-GRANT SELECT ON TABLE "__qti_queries"."assembled_catalog", "__qti"."assembled_document", "__qti"."attribute", "__qti"."attribute_entity", "__qti"."binding_name", "__qti"."bound_variable", "__qti"."candidate_path", "__qti_views"."catalog_id", "__qti"."catalog_scope", "__qti"."cell_leaf", "__qti_views"."cell_table", "__qti"."choice", "__qti"."choice_interaction", "__qti"."cn_attribute", "__qti"."cn_count", "__qti"."cn_part_text", "__qti"."cn_slot", "__qti"."comment", "__qti"."context_ref", "__qti"."count_bound", "__qti"."data_ssml", "__qti"."data_ssml_member", "__qti"."data_ssml_property", "__qti"."doctype", "__qti"."document", "__qti"."document_id", "__qti"."element_type", "__qti"."encoding_decl", "__qti"."entry", "__qti"."expression", "__qti"."feedback_ref", "__qti"."file", "__qti"."file_outside", "__qti"."file_path", "__qti"."fragment_context_name", "__qti"."fragment_context_ref", "__qti"."fragment_feedback_name", "__qti"."fragment_feedback_ref", "__qti"."fragment_printed_name", "__qti"."fragment_printed_ref", "__qti"."fragment_scope", "__qti"."fragment_template_name", "__qti"."fragment_template_ref", "__qti_views"."header_token", "__qti"."hottext", "__qti"."identity_text", "__qti"."idref", "__qti"."idref_target", "__qti"."inclusion", "__qti"."instance", "__qti"."interaction", "__qti"."interaction_attribute", "__qti"."item_mode", "__qti"."item_ref_document", "__qti"."item_ref_href", "__qti"."label_use", "__qti"."least_count", "__qti"."link_reading", "__qti"."literal", "__qti"."literal_typed", "__qti_views"."lookup_value", "__qti_views"."map_key", "__qti"."math_action", "__qti"."math_align_group", "__qti"."math_align_scope", "__qti"."math_cell", "__qti"."math_cn", "__qti"."math_rank", "__qti"."media", "__qti"."most_count", "__qti"."named", "__qti"."namespace", "__qti"."node", "__qti"."numbered_reading", "__qti"."open_attribute", "__qti"."open_attribute_entity", "__qti"."open_element_name", "__qti"."open_element_type", "__qti"."package", "__qti"."pci_module_form", "__qti"."pi", "__qti"."placed_binding", "__qti"."placed_choice", "__qti"."placed_expression", "__qti"."placed_hottext", "__qti"."placed_id", "__qti"."placed_idref", "__qti"."placed_math_rank", "__qti"."placed_share_target", "__qti"."placed_variable_ref", "__qti"."printed_variable_ref", "__qti"."processing", "__qti"."reference", "__qti"."reference_path", "__qti"."referring_document", "__qti"."resource_document", "__qti"."resource_href", "__qti"."resource_href_outside", "__qti"."resource_href_path", "__qti"."rounding", "__qti"."rounding_figures", "__qti"."rounding_mode_figures", "__qti"."sd_decl", "__qti"."share_fragment", "__qti"."share_target", "__qti"."site", "__qti"."site_path", "__qti"."site_target", "__qti"."srcset", "__qti"."srcset_candidate", "__qti"."ssml_scope", "__qti"."stimulus_ref", "__qti_queries"."table_header", "__qti"."template_ref", "__qti"."text_idref", "__qti"."text_reference", "__qti"."text_reference_path", "__qti"."tolerance", "__qti"."tolerance_token", "__qti"."usage_value", "__qti"."usage_value_base_type", "__qti"."variable_ref", "__qti"."xml_decl" TO :"qti_queries__author";
+GRANT SELECT ON TABLE "__qti_queries"."assembled_catalog", "__qti"."assembled_document", "__qti"."attribute", "__qti"."attribute_entity", "__qti"."binding_name", "__qti"."bound_variable", "__qti"."candidate_path", "__qti_views"."catalog_id", "__qti"."catalog_scope", "__qti"."cell_leaf", "__qti_views"."cell_table", "__qti"."choice", "__qti"."choice_interaction", "__qti"."cn_attribute", "__qti"."cn_count", "__qti"."cn_part_text", "__qti"."cn_slot", "__qti"."comment", "__qti"."context_ref", "__qti"."count_bound", "__qti"."data_ssml", "__qti"."data_ssml_member", "__qti"."data_ssml_property", "__qti"."doctype", "__qti"."document", "__qti"."document_id", "__qti"."element_type", "__qti"."encoding_decl", "__qti"."entry", "__qti"."expression", "__qti"."feedback_ref", "__qti"."file", "__qti"."file_outside", "__qti"."file_path", "__qti"."fragment_context_name", "__qti"."fragment_context_ref", "__qti"."fragment_feedback_name", "__qti"."fragment_feedback_ref", "__qti"."fragment_printed_name", "__qti"."fragment_printed_ref", "__qti"."fragment_scope", "__qti"."fragment_template_name", "__qti"."fragment_template_ref", "__qti_views"."header_token", "__qti"."hottext", "__qti"."identity_text", "__qti"."idref", "__qti"."idref_target", "__qti"."inclusion", "__qti"."instance", "__qti"."interaction", "__qti"."interaction_attribute", "__qti"."item_mode", "__qti"."item_ref_document", "__qti"."item_ref_href", "__qti"."label_use", "__qti"."least_count", "__qti"."link_reading", "__qti"."literal", "__qti"."literal_typed", "__qti_views"."lookup_value", "__qti_views"."map_key", "__qti"."math_action", "__qti"."math_align_group", "__qti"."math_align_scope", "__qti"."math_cell", "__qti"."math_cn", "__qti"."math_rank", "__qti"."media", "__qti"."most_count", "__qti"."named", "__qti"."namespace", "__qti"."node", "__qti"."numbered_reading", "__qti"."open_attribute", "__qti"."open_attribute_entity", "__qti"."open_element_name", "__qti"."open_element_type", "__qti"."package", "__qti"."pci_module_form", "__qti"."pi", "__qti"."placed_binding", "__qti"."placed_choice", "__qti"."placed_expression", "__qti"."placed_hottext", "__qti"."placed_id", "__qti"."placed_idref", "__qti"."placed_math_rank", "__qti"."placed_share_target", "__qti"."placed_variable_ref", "__qti"."printed_variable_ref", "__qti"."processing", "__qti"."reference", "__qti"."reference_path", "__qti"."referring_document", "__qti"."resource_document", "__qti"."resource_href", "__qti"."resource_href_outside", "__qti"."resource_href_path", "__qti"."sd_decl", "__qti"."share_fragment", "__qti"."share_target", "__qti"."site", "__qti"."site_path", "__qti"."site_target", "__qti"."srcset", "__qti"."srcset_candidate", "__qti"."ssml_scope", "__qti"."stimulus_ref", "__qti_queries"."table_header", "__qti"."template_ref", "__qti"."text_idref", "__qti"."text_reference", "__qti"."text_reference_path", "__qti"."variable_ref", "__qti"."xml_decl" TO :"qti_queries__author";
 
 GRANT SELECT, INSERT ON TABLE "qti"."assembled_document" TO :"qti_queries__author";
 
@@ -705,12 +677,6 @@ GRANT SELECT, INSERT ON TABLE "qti"."resource_href_outside" TO :"qti_queries__au
 
 GRANT SELECT, INSERT ON TABLE "qti"."resource_href_path" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT ON TABLE "qti"."rounding" TO :"qti_queries__author";
-
-GRANT SELECT, INSERT ON TABLE "qti"."rounding_figures" TO :"qti_queries__author";
-
-GRANT SELECT, INSERT ON TABLE "qti"."rounding_mode_figures" TO :"qti_queries__author";
-
 GRANT SELECT, INSERT ON TABLE "qti"."sd_decl" TO :"qti_queries__author";
 
 GRANT SELECT, INSERT ON TABLE "qti"."share_fragment" TO :"qti_queries__author";
@@ -739,14 +705,6 @@ GRANT SELECT, INSERT ON TABLE "qti"."text_reference" TO :"qti_queries__author";
 
 GRANT SELECT, INSERT ON TABLE "qti"."text_reference_path" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT ON TABLE "qti"."tolerance" TO :"qti_queries__author";
-
-GRANT SELECT, INSERT ON TABLE "qti"."tolerance_token" TO :"qti_queries__author";
-
-GRANT SELECT, INSERT ON TABLE "qti"."usage_value" TO :"qti_queries__author";
-
-GRANT SELECT, INSERT ON TABLE "qti"."usage_value_base_type" TO :"qti_queries__author";
-
 GRANT SELECT, INSERT ON TABLE "qti"."variable_ref" TO :"qti_queries__author";
 
 GRANT SELECT, INSERT ON TABLE "qti"."xml_decl" TO :"qti_queries__author";
@@ -755,12 +713,12 @@ GRANT EXECUTE ON FUNCTION "qti"."__refuse"("pg_catalog"."text", "pg_catalog"."te
 
 GRANT EXECUTE ON FUNCTION "qti"."__borrow"(bigint[], boolean[]) TO :"qti_queries__author";
 
-GRANT EXECUTE ON FUNCTION "qti"."__constant_uij2fonltq"(), "qti"."__constant_bkqh2friwv"(), "qti"."__constant_n352p2ccrd"(), "qti"."__constant_7nj7hecpq2"(), "qti"."__constant_25evvcytug"(), "qti"."__constant_sx2lr4try3"(), "qti"."__constant_u7eltifwnk"(), "qti"."__constant_eihc4dooua"(), "qti"."__constant_nhyhb5mvr7"(), "qti"."__constant_ibiapjhixk"(), "qti"."__constant_rqwqzvpydz"(), "qti"."__constant_ved73rklss"(), "qti"."__constant_o42tylpu3f"(), "qti"."__constant_34ylax76r2"(), "qti"."__constant_zivpez3hny"(), "qti"."__constant_6tjsmg7qqf"(), "qti"."__constant_hmibfx5gyk"(), "qti"."__constant_j4ofs3gxv5"(), "qti"."__constant_ncvuf24xxr"(), "qti"."__constant_its5nruomz"(), "qti"."__constant_ykvwltiwpp"(), "qti"."__constant_wuvnkockig"(), "qti"."__constant_pqb7w4p5hy"(), "qti"."__constant_ttedx5vn3k"(), "qti"."__constant_ygahn2lxos"(), "qti"."__constant_6elmo3tsbj"(), "qti"."__constant_zdkkfmabrr"(), "qti"."__constant_wzcsm5lgek"(), "qti"."__constant_sxvrbj5e5g"(), "qti"."__constant_npu4wt2fbp"(), "qti"."__constant_is5wq7ypst"(), "qti"."__constant_jdee42qvkw"(), "qti"."__constant_gnajygigus"(), "qti"."__constant_2dcoyzngxn"(), "qti"."__constant_pyzqarxq6e"(), "qti"."__constant_ddolihfto7"(), "qti"."__constant_mqob2q6eth"(), "qti"."__constant_kzeitfadmd"(), "qti"."__constant_7sx4k5dafp"(), "qti"."__constant_4okg7vcxht"(), "qti"."__constant_llc3ctzcti"(), "qti"."__constant_kwiyfmd5vb"(), "qti"."__constant_tfs6lrbcyd"(), "qti"."__constant_hd6fiuddlw"(), "qti"."__constant_cvrzwozguy"(), "qti"."__constant_ciuqwbhuta"(), "qti"."__constant_whaydjeagy"(), "qti"."__constant_524yb4vb32"(), "qti"."__constant_u6qipu43gw"(), "qti"."__constant_j2u4rcjq6x"(), "qti"."__constant_eufobqzn7j"(), "qti"."__constant_vxtk2vgo73"(), "qti"."__constant_qrpsoa4uqr"(), "qti"."__constant_2xctpszff4"(), "qti"."__constant_ehp27av5sv"(), "qti"."__constant_sj4gtqwjvu"(), "qti"."__constant_inwmcukoes"(), "qti"."__constant_mhzhm7i77c"(), "qti"."__constant_omoipacrlm"(), "qti"."__constant_ypvumnh5zz"(), "qti"."__constant_2p24sg5e4t"(), "qti"."__constant_exnqxdg5si"(), "qti"."__constant_wrlwssqvsp"(), "qti"."__constant_k64cxi3yp3"(), "qti"."__constant_b6ph5734n4"(), "qti"."__constant_5vczbwx7y7"(), "qti"."__constant_oz2fkzit2q"(), "qti"."__constant_5lt3ujp3cm"(), "qti"."__constant_samvsv5x3m"(), "qti"."__constant_ibvgt6pxwh"(), "qti"."__constant_6pgyw625sv"(), "qti"."__constant_ab562yacjn"(), "qti"."__constant_wvtqnkiky3"(), "qti"."__constant_26d5zth2zv"(), "qti"."__constant_6ktdfd4rhr"(), "qti"."__constant_xem42aq3by"(), "qti"."__constant_5pcz6dyjzi"(), "qti"."__constant_3zq77hs2za"(), "qti"."__constant_5w6ioztupb"(), "qti"."__constant_be4fhhavq4"(), "qti"."__constant_bmcetcvghy"(), "qti"."__constant_w4rn4enepj"(), "qti"."__constant_6f44bj6f5z"(), "qti"."__constant_nomzdv3mb7"(), "qti"."__constant_yzav37j3jv"(), "qti"."__constant_przq27rlwm"(), "qti"."__constant_qrfq2g4hkz"(), "qti"."__constant_wvf3myfrte"(), "qti"."__constant_firw67ibkt"(), "qti"."__constant_zm6rziqkms"(), "qti"."__constant_rqidljwzm2"(), "qti"."__constant_5r3at22xvz"(), "qti"."__constant_ellk4zorxq"(), "qti"."__constant_aagz375mdd"(), "qti"."__constant_aprps52eby"(), "qti"."__constant_ahddjwrhv5"(), "qti"."__constant_ea7dd7ctff"(), "qti"."__constant_k3fjlwxuwn"(), "qti"."__constant_wxfnisv4kj"(), "qti"."__constant_zei655nkpr"(), "qti"."__constant_fhvqv42slo"(), "qti"."__constant_xvmgsamjvy"(), "qti"."__constant_ugrf235wgp"(), "qti"."__constant_lliww2nzpo"(), "qti"."__constant_avnlqmggvi"(), "qti"."__constant_g3mzemfbr3"(), "qti"."__constant_qhszlaty7i"(), "qti"."__constant_dqbnkda3gg"(), "qti"."__constant_gf6he576t3"(), "qti"."__constant_zgknnwrg6p"(), "qti"."__constant_hl533zhknx"(), "qti"."__constant_fsmfviu65m"(), "qti"."__constant_on7irbswfh"(), "qti"."__constant_ow4c7w37ca"(), "qti"."__constant_wvuca46fcu"(), "qti"."__constant_7whnbuqq7w"(), "qti"."__constant_vs2arr6h6k"(), "qti"."__constant_ho6c7gpjo3"(), "qti"."__constant_ejkw66w2je"(), "qti"."__constant_u77vjsa3nx"(), "qti"."__constant_sl65lnozn2"(), "qti"."__constant_un3x4skblz"(), "qti"."__constant_otpfpakmgn"(), "qti"."__constant_2ladvjuynk"(), "qti"."__constant_p2xwmlesaa"(), "qti"."__constant_fpzoryswx7"(), "qti"."__constant_fccrluys3c"(), "qti"."__constant_7rkjmglcw6"(), "qti"."__constant_j6uos7o7iw"(), "qti"."__constant_7puc5uc6kh"(), "qti"."__constant_wekhard5xm"(), "qti"."__constant_ajahbtka65"(), "qti"."__constant_6iey4mkmde"(), "qti"."__constant_ab5qkascpx"(), "qti"."__constant_wuqtd2dywh"(), "qti"."__constant_5rhv5nncq2"(), "qti"."__constant_fe4yby2lv5"(), "qti"."__constant_wozychch32"(), "qti"."__constant_kk3tbfzgkz"(), "qti"."__constant_w7hnvtob66"(), "qti"."__constant_ucgcmte27p"(), "qti"."__constant_cmomvytsjq"(), "qti"."__constant_i7ai66pv6h"(), "qti"."__constant_y75rhchi3d"(), "qti"."__constant_uya5skuzlx"(), "qti"."__constant_obvdrq3725"(), "qti"."__constant_sn5ucr2eat"(), "qti"."__constant_taww2a5tgr"(), "qti"."__constant_dtz4lgxf7y"(), "qti"."__constant_sjctib2m6a"(), "qti"."__constant_gqyrbuxeym"(), "qti"."__constant_hygd7nfdcf"(), "qti"."__constant_gg2lrkl4ik"(), "qti"."__constant_4hs7fzokws"(), "qti"."__constant_aiwrmlshlf"(), "qti"."__constant_ab3uwhdr2q"(), "qti"."__constant_tzvpybzw74"(), "qti"."__constant_txeneneu7t"(), "qti"."__constant_ioawzxl5py"(), "qti"."__is_xsd_pattern_p2kcfw56ul"("pg_catalog"."text"), "qti"."__text_digest_2x5x4iwe4m"("pg_catalog"."text"), "qti"."__align_direction_names_vluq7iazdg"(), "qti"."__align_state_names_ffk37slxn3"(), "qti"."__attribute_name_names_q6tmzcty4e"(), "qti"."__base_type_names_ok3nu5nck4"(), "qti"."__cn_base_names_2wtzhyubck"(), "qti"."__cn_part_names_6db2fcgfhy"(), "qti"."__cn_part_form_names_te7u7jycdu"(), "qti"."__cn_type_names_wmjelllvhg"(), "qti"."__document_type_names_ot37qp5org"(), "qti"."__entry_kind_names_km5xejbmwu"(), "qti"."__governor_names_d7jfyla3na"(), "qti"."__href_scope_names_y4pbuo4f5q"(), "qti"."__language_names_pvmtywwssv"(), "qti"."__node_kind_names_ulbko553n7"(), "qti"."__position_names_sglcn7ygpg"(), "qti"."__reference_resolution_names_zfbhfhou4v"(), "qti"."__resource_type_names_2tbbvn3ion"(), "qti"."__rounding_holds_names_6j2zaayymp"(), "qti"."__type_name_names_ksmacbo3df"(), "qti"."__value_base_names_pjzlcpdwvv"(), "qti"."__value_cardinality_names_wzwznoycgf"(), "qti"."__xml_standalone_names_psf7bszcug"(), "qti"."__admission_map_live_xrc2h3fveq"(), "qti"."__align_direction_live_2lezvj35h2"(), "qti"."__align_state_live_lhmmdyh7ap"(), "qti"."__attribute_model_live_4rpyw2wqfh"(), "qti"."__attribute_name_live_mghzolknn3"(), "qti"."__attribute_slot_live_3plwjx3sjc"(), "qti"."__base_type_live_y3pmvhj7zb"(), "qti"."__bound_facet_live_kux6fr53gv"(), "qti"."__bound_zero_live_5rlfzns3wq"(), "qti"."__built_in_live_f6bja7a4kg"(), "qti"."__cardinality_live_qwvqhyiu3t"(), "qti"."__cn_base_live_46ek53retw"(), "qti"."__cn_part_live_d7vk6cnszc"(), "qti"."__cn_part_form_live_hivm5ovjjn"(), "qti"."__cn_type_live_mftnyibli4"(), "qti"."__content_model_live_36z72epzkf"(), "qti"."__declaration_kind_live_uyajfwbwph"(), "qti"."__document_type_live_5oxlw6me3c"(), "qti"."__domain_primitive_live_7z4e7dri7p"(), "qti"."__entry_kind_live_iwotf6s2yf"(), "qti"."__flag_live_skpa5hsl6r"(), "qti"."__follow_set_live_ym66qqil5n"(), "qti"."__governor_live_gktrkb66r6"(), "qti"."__href_scope_live_zgj2x26s76"(), "qti"."__identity_live_z64zgxl2uo"(), "qti"."__include_set_live_mtgrllg3lw"(), "qti"."__language_live_y2rauuuzos"(), "qti"."__node_kind_live_b7rifmc6m4"(), "qti"."__position_live_pi53civw33"(), "qti"."__reference_form_live_sckdmazr47"(), "qti"."__reference_resolution_live_6hzgo5pknw"(), "qti"."__reference_spelling_live_ke2xl66eo4"(), "qti"."__resource_type_live_m5qnrkbzgq"(), "qti"."__rounding_holds_live_7xm6dvdabq"(), "qti"."__shared_model_live_37zbpyitfj"(), "qti"."__symbol_set_live_3wo3lzfzqb"(), "qti"."__type_name_live_dizeay3gzc"(), "qti"."__unplaced_cause_live_7eeinprrjn"(), "qti"."__use_live_qqc6fbn3jc"(), "qti"."__value_base_live_pesuextzp2"(), "qti"."__value_cardinality_live_img3c6yzn6"(), "qti"."__value_domain_live_fpcln73bij"(), "qti"."__white_space_live_ywok3yue3q"(), "qti"."__xml_standalone_live_ql62ubmw6y"(), "qti"."__row_ha5uesvxf5"("qti"."governor", "qti"."__text_tfkvgtjblt"), "qti"."__row_j5e7cdd5yv"("pg_catalog"."text", "qti"."cn_type"), "qti"."__row_ifjiso3sae"("qti"."node_kind", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_fzgnnk5id3"("qti"."node_kind", "qti"."type_name"), "qti"."__row_zmo46cd6nh"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."__domain_gfw43vigph", bigint, bigint), "qti"."__row_mf5tbjlvzq"("qti"."__text_c6iptmtj2x"), "qti"."__row_wpa4xaxg6g"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_7xtkdeeinf"("qti"."__text_3dlgl63rv6", "qti"."__text_3dlgl63rv6", "qti"."__text_r2monji6i2"), "qti"."__row_tpgnuuvn6t"("qti"."__text_tfkvgtjblt", "pg_catalog"."text"), "qti"."__row_nvjvmcz2l5"("pg_catalog"."text", "qti"."href_scope"), "qti"."__row_6re7khxabv"("pg_catalog"."text", "qti"."__text_c6iptmtj2x", "qti"."__text_c6iptmtj2x"), "qti"."__row_rbnmyazhde"("qti"."__text_c6iptmtj2x"), "qti"."__row_uaeh72ufm7"("pg_catalog"."text", "qti"."cn_base", "pg_catalog"."text", "qti"."cn_type"), "qti"."__row_6f23azrfdw"("qti"."governor", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_y3yv7uwbvr"("qti"."__text_tfkvgtjblt"), "qti"."__row_xzj6pczrns"("qti"."node_kind", "qti"."node_kind"), "qti"."__row_e6blhtroc2"("qti"."node_kind", "qti"."__domain_gfw43vigph"), "qti"."__row_bzjfc2f4h5"("qti"."__text_k5kwygzatl"), "qti"."__row_6rfxzdle5g"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."__domain_gfw43vigph", bigint, bigint), "qti"."__row_wczkl5jgfh"("qti"."document_type", "qti"."__text_tn2inwix7f"), "qti"."__row_atcormr3u4"("qti"."node_kind", "qti"."node_kind", "qti"."attribute_name", "qti"."__text_r2monji6i2"), "qti"."__row_e5z245apmv"("qti"."node_kind", "qti"."position"), "qti"."__row_76bhwjyl6b"("qti"."governor", "qti"."attribute_name"), "qti"."__row_3k3gj4kfgc"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor"), "qti"."__row_sigxbapf7z"("qti"."node_kind", "qti"."governor", "qti"."__text_c6iptmtj2x", "qti"."__text_gke7uypkov", "qti"."__text_gke7uypkov", "qti"."__flag_bits_16_llpdtzgaon", "qti"."__flag_bits_16_llpdtzgaon", "qti"."__domain_gfw43vigph"), "qti"."__row_h6vjucvz3t"("qti"."__text_kgtzfmq7x6"), "qti"."__row_ha47wb6n3x"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_xkataczrlc"("qti"."__text_nhrekaddjj", "qti"."base_type"), "qti"."__row_cdxyb64h3n"("qti"."base_type"), "qti"."__row_qyxmls2nib"("qti"."governor", "qti"."node_kind", "qti"."type_name"), "qti"."__row_sk5tugqwcr"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor"), "qti"."__row_f3arllrhkz"("qti"."governor", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_ll5avkvuxu"("qti"."node_kind", "qti"."node_kind", "qti"."governor", "qti"."__domain_gfw43vigph", "qti"."__text_tfkvgtjblt", "qti"."__text_tfkvgtjblt", "qti"."__text_c6iptmtj2x"), "qti"."__row_vsmud4oyxc"("qti"."__text_c6iptmtj2x"), "qti"."__row_5g45nfefn7"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor"), "qti"."__row_mwacvs3yet"("qti"."cn_part", "qti"."cn_type", "qti"."cn_part_form"), "qti"."__row_nqba7rulo6"("qti"."value_cardinality"), "qti"."__row_agackuopn5"("qti"."__text_netnsfkgs7", "qti"."href_scope", "qti"."__text_b6ykamoeho", "qti"."__domain_gfw43vigph"), "qti"."__row_v4qtibeah3"("pg_catalog"."text", bigint), "qti"."__row_avobhiw5hj"("pg_catalog"."text", "qti"."cn_part_form", "qti"."cn_base"), "qti"."__row_xemajpyaox"("qti"."node_kind", "qti"."__flag_bits_16_llpdtzgaon"), "qti"."__row_cxffogbiju"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."position"), "qti"."__row_xynmxpup7x"("qti"."cn_type", "qti"."__domain_gfw43vigph"), "qti"."__row_v5mox6r536"("qti"."node_kind", "qti"."__text_xj3zno7u3h", "qti"."attribute_name"), "qti"."__row_tulgtjaryp"("qti"."resource_type", "qti"."node_kind"), "qti"."__row_l37o3qzyb2"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_dbnwees6vb"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_dfvu25q4di"("pg_catalog"."text", "qti"."base_type"), "qti"."__row_qx3rdjvde7"("qti"."__text_c6iptmtj2x", "qti"."node_kind", "qti"."attribute_name"), "qti"."__row_xjnskhk2gh"("qti"."__text_tn2inwix7f"), "qti"."__row_ek5jzsyr3n"("qti"."__text_tfkvgtjblt"), "qti"."__row_e62lbw2mpq"("qti"."__text_tfkvgtjblt"), "qti"."__row_nsihlhzcac"("qti"."__text_c6iptmtj2x"), "qti"."__row_wzgwunci5v"("qti"."node_kind", "qti"."__text_dtweupoh47", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_u4q6galdn4"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor"), "qti"."__row_oi5loc5v4f"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."position"), "qti"."__row_qjfz5sto5w"("qti"."resource_type"), "qti"."__row_xtuinpowgy"("qti"."base_type", "qti"."__text_tfkvgtjblt"), "qti"."__row_p7ja3xelgj"("qti"."governor", "qti"."attribute_name", "qti"."__domain_gfw43vigph", "pg_catalog"."text", "qti"."__text_c6iptmtj2x", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_gvj4sjfiv5"("qti"."__text_tfkvgtjblt"), "qti"."__row_irvtzupi4u"("qti"."governor", "qti"."__text_tfkvgtjblt"), "qti"."__row_dt2v4eplpv"("qti"."node_kind", "qti"."node_kind", boolean, boolean), "qti"."__row_4bpx7xcjar"("qti"."__text_r2monji6i2", "qti"."node_kind", "qti"."value_base", "qti"."value_cardinality", "qti"."reference_resolution"), "qti"."__row_jovam53rzt"("qti"."value_base"), "qti"."__row_x5xfev4ul5"("qti"."position", "qti"."node_kind"), "qti"."__row_i3ibdsoyj4"("qti"."governor", "qti"."attribute_name", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_djwisegva5"("qti"."governor", "qti"."attribute_name"), "qti"."__row_i5mf4eas2d"("qti"."governor", "qti"."__text_xj3zno7u3h"), "qti"."__row_pqxt7rruix"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_cnipjrlkta"(boolean, "qti"."__text_tfkvgtjblt"), "qti"."__row_fqjmjbfjgp"("qti"."__text_r2monji6i2") TO :"qti_queries__author";
+GRANT EXECUTE ON FUNCTION "qti"."__constant_uij2fonltq"(), "qti"."__constant_bkqh2friwv"(), "qti"."__constant_n352p2ccrd"(), "qti"."__constant_7nj7hecpq2"(), "qti"."__constant_25evvcytug"(), "qti"."__constant_sx2lr4try3"(), "qti"."__constant_u7eltifwnk"(), "qti"."__constant_eihc4dooua"(), "qti"."__constant_nhyhb5mvr7"(), "qti"."__constant_ibiapjhixk"(), "qti"."__constant_rqwqzvpydz"(), "qti"."__constant_ved73rklss"(), "qti"."__constant_o42tylpu3f"(), "qti"."__constant_34ylax76r2"(), "qti"."__constant_zivpez3hny"(), "qti"."__constant_6tjsmg7qqf"(), "qti"."__constant_hmibfx5gyk"(), "qti"."__constant_j4ofs3gxv5"(), "qti"."__constant_ncvuf24xxr"(), "qti"."__constant_its5nruomz"(), "qti"."__constant_ykvwltiwpp"(), "qti"."__constant_wuvnkockig"(), "qti"."__constant_pqb7w4p5hy"(), "qti"."__constant_ttedx5vn3k"(), "qti"."__constant_ygahn2lxos"(), "qti"."__constant_6elmo3tsbj"(), "qti"."__constant_zdkkfmabrr"(), "qti"."__constant_wzcsm5lgek"(), "qti"."__constant_sxvrbj5e5g"(), "qti"."__constant_npu4wt2fbp"(), "qti"."__constant_is5wq7ypst"(), "qti"."__constant_jdee42qvkw"(), "qti"."__constant_gnajygigus"(), "qti"."__constant_2dcoyzngxn"(), "qti"."__constant_pyzqarxq6e"(), "qti"."__constant_ddolihfto7"(), "qti"."__constant_mqob2q6eth"(), "qti"."__constant_kzeitfadmd"(), "qti"."__constant_7sx4k5dafp"(), "qti"."__constant_4okg7vcxht"(), "qti"."__constant_llc3ctzcti"(), "qti"."__constant_kwiyfmd5vb"(), "qti"."__constant_tfs6lrbcyd"(), "qti"."__constant_hd6fiuddlw"(), "qti"."__constant_cvrzwozguy"(), "qti"."__constant_ciuqwbhuta"(), "qti"."__constant_whaydjeagy"(), "qti"."__constant_524yb4vb32"(), "qti"."__constant_u6qipu43gw"(), "qti"."__constant_j2u4rcjq6x"(), "qti"."__constant_eufobqzn7j"(), "qti"."__constant_vxtk2vgo73"(), "qti"."__constant_qrpsoa4uqr"(), "qti"."__constant_2xctpszff4"(), "qti"."__constant_ehp27av5sv"(), "qti"."__constant_sj4gtqwjvu"(), "qti"."__constant_inwmcukoes"(), "qti"."__constant_mhzhm7i77c"(), "qti"."__constant_omoipacrlm"(), "qti"."__constant_ypvumnh5zz"(), "qti"."__constant_2p24sg5e4t"(), "qti"."__constant_exnqxdg5si"(), "qti"."__constant_wrlwssqvsp"(), "qti"."__constant_k64cxi3yp3"(), "qti"."__constant_b6ph5734n4"(), "qti"."__constant_5vczbwx7y7"(), "qti"."__constant_oz2fkzit2q"(), "qti"."__constant_5lt3ujp3cm"(), "qti"."__constant_samvsv5x3m"(), "qti"."__constant_ibvgt6pxwh"(), "qti"."__constant_6pgyw625sv"(), "qti"."__constant_ab562yacjn"(), "qti"."__constant_wvtqnkiky3"(), "qti"."__constant_26d5zth2zv"(), "qti"."__constant_6ktdfd4rhr"(), "qti"."__constant_xem42aq3by"(), "qti"."__constant_5pcz6dyjzi"(), "qti"."__constant_3zq77hs2za"(), "qti"."__constant_5w6ioztupb"(), "qti"."__constant_be4fhhavq4"(), "qti"."__constant_bmcetcvghy"(), "qti"."__constant_w4rn4enepj"(), "qti"."__constant_6f44bj6f5z"(), "qti"."__constant_nomzdv3mb7"(), "qti"."__constant_yzav37j3jv"(), "qti"."__constant_przq27rlwm"(), "qti"."__constant_qrfq2g4hkz"(), "qti"."__constant_wvf3myfrte"(), "qti"."__constant_firw67ibkt"(), "qti"."__constant_zm6rziqkms"(), "qti"."__constant_rqidljwzm2"(), "qti"."__constant_5r3at22xvz"(), "qti"."__constant_ellk4zorxq"(), "qti"."__constant_aagz375mdd"(), "qti"."__constant_aprps52eby"(), "qti"."__constant_ahddjwrhv5"(), "qti"."__constant_ea7dd7ctff"(), "qti"."__constant_k3fjlwxuwn"(), "qti"."__constant_wxfnisv4kj"(), "qti"."__constant_zei655nkpr"(), "qti"."__constant_fhvqv42slo"(), "qti"."__constant_xvmgsamjvy"(), "qti"."__constant_ugrf235wgp"(), "qti"."__constant_lliww2nzpo"(), "qti"."__constant_avnlqmggvi"(), "qti"."__constant_g3mzemfbr3"(), "qti"."__constant_qhszlaty7i"(), "qti"."__constant_dqbnkda3gg"(), "qti"."__constant_gf6he576t3"(), "qti"."__constant_zgknnwrg6p"(), "qti"."__constant_hl533zhknx"(), "qti"."__constant_fsmfviu65m"(), "qti"."__constant_on7irbswfh"(), "qti"."__constant_ow4c7w37ca"(), "qti"."__constant_wvuca46fcu"(), "qti"."__constant_7whnbuqq7w"(), "qti"."__constant_vs2arr6h6k"(), "qti"."__constant_ho6c7gpjo3"(), "qti"."__constant_ejkw66w2je"(), "qti"."__constant_u77vjsa3nx"(), "qti"."__constant_sl65lnozn2"(), "qti"."__constant_un3x4skblz"(), "qti"."__constant_otpfpakmgn"(), "qti"."__constant_2ladvjuynk"(), "qti"."__constant_p2xwmlesaa"(), "qti"."__constant_fpzoryswx7"(), "qti"."__constant_fccrluys3c"(), "qti"."__constant_7rkjmglcw6"(), "qti"."__constant_j6uos7o7iw"(), "qti"."__constant_7puc5uc6kh"(), "qti"."__constant_wekhard5xm"(), "qti"."__constant_ajahbtka65"(), "qti"."__constant_6iey4mkmde"(), "qti"."__constant_ab5qkascpx"(), "qti"."__constant_wuqtd2dywh"(), "qti"."__constant_5rhv5nncq2"(), "qti"."__constant_fe4yby2lv5"(), "qti"."__constant_wozychch32"(), "qti"."__constant_kk3tbfzgkz"(), "qti"."__constant_w7hnvtob66"(), "qti"."__constant_ucgcmte27p"(), "qti"."__constant_cmomvytsjq"(), "qti"."__constant_i7ai66pv6h"(), "qti"."__constant_y75rhchi3d"(), "qti"."__constant_uya5skuzlx"(), "qti"."__constant_obvdrq3725"(), "qti"."__constant_sn5ucr2eat"(), "qti"."__constant_taww2a5tgr"(), "qti"."__constant_dtz4lgxf7y"(), "qti"."__constant_sjctib2m6a"(), "qti"."__constant_gqyrbuxeym"(), "qti"."__constant_hygd7nfdcf"(), "qti"."__constant_gg2lrkl4ik"(), "qti"."__constant_4hs7fzokws"(), "qti"."__constant_aiwrmlshlf"(), "qti"."__constant_ab3uwhdr2q"(), "qti"."__constant_tzvpybzw74"(), "qti"."__constant_txeneneu7t"(), "qti"."__constant_ioawzxl5py"(), "qti"."__is_xsd_pattern_p2kcfw56ul"("pg_catalog"."text"), "qti"."__text_digest_2x5x4iwe4m"("pg_catalog"."text"), "qti"."__align_direction_names_vluq7iazdg"(), "qti"."__align_state_names_ffk37slxn3"(), "qti"."__attribute_name_names_q6tmzcty4e"(), "qti"."__base_type_names_ok3nu5nck4"(), "qti"."__cn_base_names_2wtzhyubck"(), "qti"."__cn_part_names_6db2fcgfhy"(), "qti"."__cn_part_form_names_te7u7jycdu"(), "qti"."__cn_type_names_wmjelllvhg"(), "qti"."__document_type_names_ot37qp5org"(), "qti"."__entry_kind_names_km5xejbmwu"(), "qti"."__governor_names_d7jfyla3na"(), "qti"."__href_scope_names_y4pbuo4f5q"(), "qti"."__language_names_pvmtywwssv"(), "qti"."__node_kind_names_ulbko553n7"(), "qti"."__position_names_sglcn7ygpg"(), "qti"."__reference_resolution_names_zfbhfhou4v"(), "qti"."__resource_type_names_2tbbvn3ion"(), "qti"."__type_name_names_ksmacbo3df"(), "qti"."__value_base_names_pjzlcpdwvv"(), "qti"."__value_cardinality_names_wzwznoycgf"(), "qti"."__xml_standalone_names_psf7bszcug"(), "qti"."__admission_map_live_xrc2h3fveq"(), "qti"."__align_direction_live_2lezvj35h2"(), "qti"."__align_state_live_lhmmdyh7ap"(), "qti"."__attribute_model_live_4rpyw2wqfh"(), "qti"."__attribute_name_live_mghzolknn3"(), "qti"."__attribute_slot_live_3plwjx3sjc"(), "qti"."__base_type_live_y3pmvhj7zb"(), "qti"."__bound_facet_live_kux6fr53gv"(), "qti"."__bound_zero_live_5rlfzns3wq"(), "qti"."__built_in_live_f6bja7a4kg"(), "qti"."__cardinality_live_qwvqhyiu3t"(), "qti"."__cn_base_live_46ek53retw"(), "qti"."__cn_part_live_d7vk6cnszc"(), "qti"."__cn_part_form_live_hivm5ovjjn"(), "qti"."__cn_type_live_mftnyibli4"(), "qti"."__content_model_live_36z72epzkf"(), "qti"."__declaration_kind_live_uyajfwbwph"(), "qti"."__document_type_live_5oxlw6me3c"(), "qti"."__domain_primitive_live_7z4e7dri7p"(), "qti"."__entry_kind_live_iwotf6s2yf"(), "qti"."__flag_live_skpa5hsl6r"(), "qti"."__follow_set_live_ym66qqil5n"(), "qti"."__governor_live_gktrkb66r6"(), "qti"."__href_scope_live_zgj2x26s76"(), "qti"."__identity_live_z64zgxl2uo"(), "qti"."__include_set_live_mtgrllg3lw"(), "qti"."__language_live_y2rauuuzos"(), "qti"."__node_kind_live_b7rifmc6m4"(), "qti"."__position_live_pi53civw33"(), "qti"."__reference_form_live_sckdmazr47"(), "qti"."__reference_resolution_live_6hzgo5pknw"(), "qti"."__reference_spelling_live_ke2xl66eo4"(), "qti"."__resource_type_live_m5qnrkbzgq"(), "qti"."__shared_model_live_37zbpyitfj"(), "qti"."__symbol_set_live_3wo3lzfzqb"(), "qti"."__type_name_live_dizeay3gzc"(), "qti"."__unplaced_cause_live_7eeinprrjn"(), "qti"."__use_live_qqc6fbn3jc"(), "qti"."__value_base_live_pesuextzp2"(), "qti"."__value_cardinality_live_img3c6yzn6"(), "qti"."__value_domain_live_fpcln73bij"(), "qti"."__white_space_live_ywok3yue3q"(), "qti"."__xml_standalone_live_ql62ubmw6y"(), "qti"."__row_ha5uesvxf5"("qti"."governor", "qti"."__text_tfkvgtjblt"), "qti"."__row_j5e7cdd5yv"("pg_catalog"."text", "qti"."cn_type"), "qti"."__row_ifjiso3sae"("qti"."node_kind", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_fzgnnk5id3"("qti"."node_kind", "qti"."type_name"), "qti"."__row_zmo46cd6nh"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."__domain_gfw43vigph", bigint, bigint), "qti"."__row_mf5tbjlvzq"("qti"."__text_c6iptmtj2x"), "qti"."__row_wpa4xaxg6g"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_7xtkdeeinf"("qti"."__text_3dlgl63rv6", "qti"."__text_3dlgl63rv6", "qti"."__text_r2monji6i2"), "qti"."__row_nvjvmcz2l5"("pg_catalog"."text", "qti"."href_scope"), "qti"."__row_6re7khxabv"("pg_catalog"."text", "qti"."__text_c6iptmtj2x", "qti"."__text_c6iptmtj2x"), "qti"."__row_rbnmyazhde"("qti"."__text_c6iptmtj2x"), "qti"."__row_uaeh72ufm7"("pg_catalog"."text", "qti"."cn_base", "pg_catalog"."text", "qti"."cn_type"), "qti"."__row_6f23azrfdw"("qti"."governor", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_y3yv7uwbvr"("qti"."__text_tfkvgtjblt"), "qti"."__row_xzj6pczrns"("qti"."node_kind", "qti"."node_kind"), "qti"."__row_e6blhtroc2"("qti"."node_kind", "qti"."__domain_gfw43vigph"), "qti"."__row_bzjfc2f4h5"("qti"."__text_k5kwygzatl"), "qti"."__row_6rfxzdle5g"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."__domain_gfw43vigph", bigint, bigint), "qti"."__row_wczkl5jgfh"("qti"."document_type", "qti"."__text_tn2inwix7f"), "qti"."__row_atcormr3u4"("qti"."node_kind", "qti"."node_kind", "qti"."attribute_name", "qti"."__text_r2monji6i2"), "qti"."__row_e5z245apmv"("qti"."node_kind", "qti"."position"), "qti"."__row_76bhwjyl6b"("qti"."governor", "qti"."attribute_name"), "qti"."__row_3k3gj4kfgc"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor"), "qti"."__row_sigxbapf7z"("qti"."node_kind", "qti"."governor", "qti"."__text_c6iptmtj2x", "qti"."__text_gke7uypkov", "qti"."__text_gke7uypkov", "qti"."__flag_bits_16_llpdtzgaon", "qti"."__flag_bits_16_llpdtzgaon", "qti"."__domain_gfw43vigph"), "qti"."__row_h6vjucvz3t"("qti"."__text_kgtzfmq7x6"), "qti"."__row_ha47wb6n3x"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_xkataczrlc"("qti"."__text_nhrekaddjj", "qti"."base_type"), "qti"."__row_cdxyb64h3n"("qti"."base_type"), "qti"."__row_qyxmls2nib"("qti"."governor", "qti"."node_kind", "qti"."type_name"), "qti"."__row_f3arllrhkz"("qti"."governor", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_ll5avkvuxu"("qti"."node_kind", "qti"."node_kind", "qti"."governor", "qti"."__domain_gfw43vigph", "qti"."__text_tfkvgtjblt", "qti"."__text_tfkvgtjblt", "qti"."__text_c6iptmtj2x"), "qti"."__row_vsmud4oyxc"("qti"."__text_c6iptmtj2x"), "qti"."__row_5g45nfefn7"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor"), "qti"."__row_mwacvs3yet"("qti"."cn_part", "qti"."cn_type", "qti"."cn_part_form"), "qti"."__row_nqba7rulo6"("qti"."value_cardinality"), "qti"."__row_agackuopn5"("qti"."__text_netnsfkgs7", "qti"."href_scope", "qti"."__text_b6ykamoeho", "qti"."__domain_gfw43vigph"), "qti"."__row_v4qtibeah3"("pg_catalog"."text", bigint), "qti"."__row_avobhiw5hj"("pg_catalog"."text", "qti"."cn_part_form", "qti"."cn_base"), "qti"."__row_xemajpyaox"("qti"."node_kind", "qti"."__flag_bits_16_llpdtzgaon"), "qti"."__row_cxffogbiju"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."position"), "qti"."__row_xynmxpup7x"("qti"."cn_type", "qti"."__domain_gfw43vigph"), "qti"."__row_v5mox6r536"("qti"."node_kind", "qti"."__text_xj3zno7u3h", "qti"."attribute_name"), "qti"."__row_tulgtjaryp"("qti"."resource_type", "qti"."node_kind"), "qti"."__row_l37o3qzyb2"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_dbnwees6vb"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_qx3rdjvde7"("qti"."__text_c6iptmtj2x", "qti"."node_kind", "qti"."attribute_name"), "qti"."__row_xjnskhk2gh"("qti"."__text_tn2inwix7f"), "qti"."__row_ek5jzsyr3n"("qti"."__text_tfkvgtjblt"), "qti"."__row_e62lbw2mpq"("qti"."__text_tfkvgtjblt"), "qti"."__row_nsihlhzcac"("qti"."__text_c6iptmtj2x"), "qti"."__row_wzgwunci5v"("qti"."node_kind", "qti"."__text_dtweupoh47", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_u4q6galdn4"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor"), "qti"."__row_oi5loc5v4f"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."position"), "qti"."__row_qjfz5sto5w"("qti"."resource_type"), "qti"."__row_p7ja3xelgj"("qti"."governor", "qti"."attribute_name", "qti"."__domain_gfw43vigph", "pg_catalog"."text", "qti"."__text_c6iptmtj2x", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_irvtzupi4u"("qti"."governor", "qti"."__text_tfkvgtjblt"), "qti"."__row_dt2v4eplpv"("qti"."node_kind", "qti"."node_kind", boolean, boolean), "qti"."__row_4bpx7xcjar"("qti"."__text_r2monji6i2", "qti"."node_kind", "qti"."value_base", "qti"."value_cardinality", "qti"."reference_resolution"), "qti"."__row_jovam53rzt"("qti"."value_base"), "qti"."__row_x5xfev4ul5"("qti"."position", "qti"."node_kind"), "qti"."__row_i3ibdsoyj4"("qti"."governor", "qti"."attribute_name", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_djwisegva5"("qti"."governor", "qti"."attribute_name"), "qti"."__row_i5mf4eas2d"("qti"."governor", "qti"."__text_xj3zno7u3h"), "qti"."__row_pqxt7rruix"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_cnipjrlkta"(boolean, "qti"."__text_tfkvgtjblt"), "qti"."__row_fqjmjbfjgp"("qti"."__text_r2monji6i2") TO :"qti_queries__author";
 
 SELECT "pg_catalog"."pg_advisory_xact_lock"(5448515225636816524::bigint);
 GRANT TEMPORARY ON DATABASE :"DBNAME" TO :"qti_queries__author";
 
-GRANT EXECUTE ON FUNCTION "qti"."__stand_assembled_document_hwwdv6cnpm"(), "qti"."__stand_attribute_ibvutlmrai"(), "qti"."__stand_binding_name_ye63gc6vro"(), "qti"."__stand_bound_variable_7vtgjbh6hv"(), "qti"."__stand_candidate_path_qhg7xli4wt"(), "qti"."__stand_catalog_scope_vudqbkxslz"(), "qti"."__stand_cell_leaf_ptjwgogbl7"(), "qti"."__stand_choice_xzzdvjuvsd"(), "qti"."__stand_choice_interaction_c645kfugmv"(), "qti"."__stand_cn_attribute_63nfyqksr3"(), "qti"."__stand_cn_count_eejhcf4izw"(), "qti"."__stand_comment_3l7okcxyxf"(), "qti"."__stand_context_ref_ujo5dooa7f"(), "qti"."__stand_count_bound_2z6orlcix6"(), "qti"."__stand_data_ssml_k52kzmf2vn"(), "qti"."__stand_data_ssml_member_2xkysqbugo"(), "qti"."__stand_data_ssml_property_6yi5in6iis"(), "qti"."__stand_doctype_gj2wct2uyg"(), "qti"."__stand_document_pondgr3rqo"(), "qti"."__stand_document_id_633p5hpydz"(), "qti"."__stand_element_type_7tgopoucgl"(), "qti"."__stand_entry_pmmpk3imf3"(), "qti"."__stand_expression_u7lcjyvsn7"(), "qti"."__stand_feedback_ref_d7224uniti"(), "qti"."__stand_file_tcw2ukyhyi"(), "qti"."__stand_file_outside_lhyrdnu5ai"(), "qti"."__stand_file_path_7r6oexjmsr"(), "qti"."__stand_fragment_context_ref_h4natgpneo"(), "qti"."__stand_fragment_feedback_ref_gojudisgmf"(), "qti"."__stand_fragment_printed_ref_g5dbleutzc"(), "qti"."__stand_fragment_scope_2oggx422cm"(), "qti"."__stand_fragment_template_ref_mqrpgto2fj"(), "qti"."__stand_hottext_apulsizq3w"(), "qti"."__stand_identity_text_b52n3op6xe"(), "qti"."__stand_idref_aho5h2elqy"(), "qti"."__stand_idref_target_jjhutks3nm"(), "qti"."__stand_inclusion_km3rxqqunr"(), "qti"."__stand_instance_fxskpasuzx"(), "qti"."__stand_interaction_3potcpsocf"(), "qti"."__stand_interaction_attribute_wmzckdz5tm"(), "qti"."__stand_item_ref_document_i66s3vh6ga"(), "qti"."__stand_item_ref_href_jrjueitx27"(), "qti"."__stand_label_use_o4brmrb7aq"(), "qti"."__stand_least_count_ya6wrr6a3v"(), "qti"."__stand_link_reading_uenjcz5dvs"(), "qti"."__stand_literal_tiziliumbt"(), "qti"."__stand_literal_typed_2ilx4mlegz"(), "qti"."__stand_math_action_f5wwzdrvm5"(), "qti"."__stand_math_align_group_6xltg6lxo2"(), "qti"."__stand_math_align_scope_u2bech2ml5"(), "qti"."__stand_math_cell_7pwv53nkxm"(), "qti"."__stand_math_cn_d6ecu3zp5g"(), "qti"."__stand_math_rank_nqeqnb4u7t"(), "qti"."__stand_media_5bf42f2xah"(), "qti"."__stand_most_count_2kgjd3owwn"(), "qti"."__stand_named_rt75iqktd4"(), "qti"."__stand_node_ufvsoeyzmq"(), "qti"."__stand_numbered_reading_em4eroit7v"(), "qti"."__stand_open_attribute_kus4ehgwz4"(), "qti"."__stand_open_element_name_yc423a5h3x"(), "qti"."__stand_open_element_type_ntz3lqtaqc"(), "qti"."__stand_pci_module_form_yzlgznmelb"(), "qti"."__stand_pi_xg74jk6xwy"(), "qti"."__stand_placed_binding_rbegxbfbcg"(), "qti"."__stand_placed_choice_54ymy46b3e"(), "qti"."__stand_placed_expression_eajdtujnrh"(), "qti"."__stand_placed_hottext_donabbhxss"(), "qti"."__stand_placed_id_kbkipg3veh"(), "qti"."__stand_placed_idref_64inmhwtyc"(), "qti"."__stand_placed_math_rank_5572svkpcq"(), "qti"."__stand_placed_share_target_bt6g4coqwv"(), "qti"."__stand_placed_variable_ref_m4ro6tg5kc"(), "qti"."__stand_printed_variable_ref_e7jd2rdh3z"(), "qti"."__stand_processing_fc2mn4yln3"(), "qti"."__stand_reference_5zvivb5s2f"(), "qti"."__stand_reference_path_wo5g5edty7"(), "qti"."__stand_resource_document_j6gjtwm5zs"(), "qti"."__stand_resource_href_m3jxi2ub6r"(), "qti"."__stand_resource_href_outside_h5ayb4ywy5"(), "qti"."__stand_resource_href_path_cetda5wlcb"(), "qti"."__stand_rounding_c2ifmdme7j"(), "qti"."__stand_rounding_figures_lqklyjsczn"(), "qti"."__stand_rounding_mode_figures_xtki3xbmlh"(), "qti"."__stand_share_fragment_vlshgysorq"(), "qti"."__stand_share_target_uodbsrbtr7"(), "qti"."__stand_site_tjfl6cjoct"(), "qti"."__stand_site_path_5texh73t5e"(), "qti"."__stand_site_target_7dcfpspkwp"(), "qti"."__stand_srcset_rftu4ffapo"(), "qti"."__stand_srcset_candidate_rjuo7n5ahk"(), "qti"."__stand_ssml_scope_qlkcnlkody"(), "qti"."__stand_stimulus_ref_3r7jqd3al5"(), "qti"."__stand_template_ref_5rw7gnm6ga"(), "qti"."__stand_text_reference_xbgifadnt4"(), "qti"."__stand_text_reference_path_ijtliptx3w"(), "qti"."__stand_tolerance_j3naktmm3s"(), "qti"."__stand_usage_value_jbqmhc66yy"(), "qti"."__stand_usage_value_base_type_ss7bxv4pjb"(), "qti"."__stand_variable_ref_htgoqewgip"() TO :"qti_queries__author";
+GRANT EXECUTE ON FUNCTION "qti"."__stand_assembled_document_hwwdv6cnpm"(), "qti"."__stand_attribute_ibvutlmrai"(), "qti"."__stand_binding_name_ye63gc6vro"(), "qti"."__stand_bound_variable_7vtgjbh6hv"(), "qti"."__stand_candidate_path_qhg7xli4wt"(), "qti"."__stand_catalog_scope_vudqbkxslz"(), "qti"."__stand_cell_leaf_ptjwgogbl7"(), "qti"."__stand_choice_xzzdvjuvsd"(), "qti"."__stand_choice_interaction_c645kfugmv"(), "qti"."__stand_cn_attribute_63nfyqksr3"(), "qti"."__stand_cn_count_eejhcf4izw"(), "qti"."__stand_comment_3l7okcxyxf"(), "qti"."__stand_context_ref_ujo5dooa7f"(), "qti"."__stand_count_bound_2z6orlcix6"(), "qti"."__stand_data_ssml_k52kzmf2vn"(), "qti"."__stand_data_ssml_member_2xkysqbugo"(), "qti"."__stand_data_ssml_property_6yi5in6iis"(), "qti"."__stand_doctype_gj2wct2uyg"(), "qti"."__stand_document_pondgr3rqo"(), "qti"."__stand_document_id_633p5hpydz"(), "qti"."__stand_element_type_7tgopoucgl"(), "qti"."__stand_entry_pmmpk3imf3"(), "qti"."__stand_expression_u7lcjyvsn7"(), "qti"."__stand_feedback_ref_d7224uniti"(), "qti"."__stand_file_tcw2ukyhyi"(), "qti"."__stand_file_outside_lhyrdnu5ai"(), "qti"."__stand_file_path_7r6oexjmsr"(), "qti"."__stand_fragment_context_ref_h4natgpneo"(), "qti"."__stand_fragment_feedback_ref_gojudisgmf"(), "qti"."__stand_fragment_printed_ref_g5dbleutzc"(), "qti"."__stand_fragment_scope_2oggx422cm"(), "qti"."__stand_fragment_template_ref_mqrpgto2fj"(), "qti"."__stand_hottext_apulsizq3w"(), "qti"."__stand_identity_text_b52n3op6xe"(), "qti"."__stand_idref_aho5h2elqy"(), "qti"."__stand_idref_target_jjhutks3nm"(), "qti"."__stand_inclusion_km3rxqqunr"(), "qti"."__stand_instance_fxskpasuzx"(), "qti"."__stand_interaction_3potcpsocf"(), "qti"."__stand_interaction_attribute_wmzckdz5tm"(), "qti"."__stand_item_ref_document_i66s3vh6ga"(), "qti"."__stand_item_ref_href_jrjueitx27"(), "qti"."__stand_label_use_o4brmrb7aq"(), "qti"."__stand_least_count_ya6wrr6a3v"(), "qti"."__stand_link_reading_uenjcz5dvs"(), "qti"."__stand_literal_tiziliumbt"(), "qti"."__stand_literal_typed_2ilx4mlegz"(), "qti"."__stand_math_action_f5wwzdrvm5"(), "qti"."__stand_math_align_group_6xltg6lxo2"(), "qti"."__stand_math_align_scope_u2bech2ml5"(), "qti"."__stand_math_cell_7pwv53nkxm"(), "qti"."__stand_math_cn_d6ecu3zp5g"(), "qti"."__stand_math_rank_nqeqnb4u7t"(), "qti"."__stand_media_5bf42f2xah"(), "qti"."__stand_most_count_2kgjd3owwn"(), "qti"."__stand_named_rt75iqktd4"(), "qti"."__stand_node_ufvsoeyzmq"(), "qti"."__stand_numbered_reading_em4eroit7v"(), "qti"."__stand_open_attribute_kus4ehgwz4"(), "qti"."__stand_open_element_name_yc423a5h3x"(), "qti"."__stand_open_element_type_ntz3lqtaqc"(), "qti"."__stand_pci_module_form_yzlgznmelb"(), "qti"."__stand_pi_xg74jk6xwy"(), "qti"."__stand_placed_binding_rbegxbfbcg"(), "qti"."__stand_placed_choice_54ymy46b3e"(), "qti"."__stand_placed_expression_eajdtujnrh"(), "qti"."__stand_placed_hottext_donabbhxss"(), "qti"."__stand_placed_id_kbkipg3veh"(), "qti"."__stand_placed_idref_64inmhwtyc"(), "qti"."__stand_placed_math_rank_5572svkpcq"(), "qti"."__stand_placed_share_target_bt6g4coqwv"(), "qti"."__stand_placed_variable_ref_m4ro6tg5kc"(), "qti"."__stand_printed_variable_ref_e7jd2rdh3z"(), "qti"."__stand_processing_fc2mn4yln3"(), "qti"."__stand_reference_5zvivb5s2f"(), "qti"."__stand_reference_path_wo5g5edty7"(), "qti"."__stand_resource_document_j6gjtwm5zs"(), "qti"."__stand_resource_href_m3jxi2ub6r"(), "qti"."__stand_resource_href_outside_h5ayb4ywy5"(), "qti"."__stand_resource_href_path_cetda5wlcb"(), "qti"."__stand_share_fragment_vlshgysorq"(), "qti"."__stand_share_target_uodbsrbtr7"(), "qti"."__stand_site_tjfl6cjoct"(), "qti"."__stand_site_path_5texh73t5e"(), "qti"."__stand_site_target_7dcfpspkwp"(), "qti"."__stand_srcset_rftu4ffapo"(), "qti"."__stand_srcset_candidate_rjuo7n5ahk"(), "qti"."__stand_ssml_scope_qlkcnlkody"(), "qti"."__stand_stimulus_ref_3r7jqd3al5"(), "qti"."__stand_template_ref_5rw7gnm6ga"(), "qti"."__stand_text_reference_xbgifadnt4"(), "qti"."__stand_text_reference_path_ijtliptx3w"(), "qti"."__stand_variable_ref_htgoqewgip"() TO :"qti_queries__author";
 
 SELECT "pg_catalog"."pg_advisory_xact_lock"(5448515225636816524::bigint);
 GRANT USAGE ON SCHEMA "qti" TO :"qti_queries__author_app";
@@ -793,9 +751,9 @@ ALTER ROLE :"qti_queries__author_app" SET plan_cache_mode = 'force_generic_plan'
 SELECT "pg_catalog"."pg_advisory_xact_lock"(5448515225636816524::bigint);
 REVOKE ALL ON SCHEMA "qti", "qti_views", "qti_queries", "__qti_queries", "__qti", "__qti_views" FROM PUBLIC;
 
-REVOKE ALL ON TABLE "qti"."assembled_document", "qti"."attribute", "qti"."attribute_entity", "qti"."binding_name", "qti"."bound_variable", "qti"."candidate_path", "qti"."catalog_scope", "qti"."cell_leaf", "qti"."choice", "qti"."choice_interaction", "qti"."cn_attribute", "qti"."cn_count", "qti"."cn_part_text", "qti"."cn_slot", "qti"."comment", "qti"."context_ref", "qti"."count_bound", "qti"."data_ssml", "qti"."data_ssml_member", "qti"."data_ssml_property", "qti"."doctype", "qti"."document", "qti"."document_id", "qti"."element_type", "qti"."encoding_decl", "qti"."entry", "qti"."expression", "qti"."feedback_ref", "qti"."file", "qti"."file_outside", "qti"."file_path", "qti"."fragment_context_name", "qti"."fragment_context_ref", "qti"."fragment_feedback_name", "qti"."fragment_feedback_ref", "qti"."fragment_printed_name", "qti"."fragment_printed_ref", "qti"."fragment_scope", "qti"."fragment_template_name", "qti"."fragment_template_ref", "qti"."hottext", "qti"."identity_text", "qti"."idref", "qti"."idref_target", "qti"."inclusion", "qti"."instance", "qti"."interaction", "qti"."interaction_attribute", "qti"."item_mode", "qti"."item_ref_document", "qti"."item_ref_href", "qti"."label_use", "qti"."least_count", "qti"."link_reading", "qti"."literal", "qti"."literal_typed", "qti"."math_action", "qti"."math_align_group", "qti"."math_align_scope", "qti"."math_cell", "qti"."math_cn", "qti"."math_rank", "qti"."media", "qti"."most_count", "qti"."named", "qti"."namespace", "qti"."node", "qti"."numbered_reading", "qti"."open_attribute", "qti"."open_attribute_entity", "qti"."open_element_name", "qti"."open_element_type", "qti"."package", "qti"."pci_module_form", "qti"."pi", "qti"."placed_binding", "qti"."placed_choice", "qti"."placed_expression", "qti"."placed_hottext", "qti"."placed_id", "qti"."placed_idref", "qti"."placed_math_rank", "qti"."placed_share_target", "qti"."placed_variable_ref", "qti"."printed_variable_ref", "qti"."processing", "qti"."reference", "qti"."reference_path", "qti"."referring_document", "qti"."resource_document", "qti"."resource_href", "qti"."resource_href_outside", "qti"."resource_href_path", "qti"."rounding", "qti"."rounding_figures", "qti"."rounding_mode_figures", "qti"."sd_decl", "qti"."share_fragment", "qti"."share_target", "qti"."site", "qti"."site_path", "qti"."site_target", "qti"."srcset", "qti"."srcset_candidate", "qti"."ssml_scope", "qti"."stimulus_ref", "qti"."template_ref", "qti"."text_idref", "qti"."text_reference", "qti"."text_reference_path", "qti"."tolerance", "qti"."tolerance_token", "qti"."usage_value", "qti"."usage_value_base_type", "qti"."variable_ref", "qti"."xml_decl", "__qti_queries"."assembled_catalog", "__qti"."assembled_document", "__qti"."attribute", "__qti"."attribute_entity", "__qti"."binding_name", "__qti"."bound_variable", "__qti"."candidate_path", "__qti_views"."catalog_id", "__qti"."catalog_scope", "__qti"."cell_leaf", "__qti_views"."cell_table", "__qti"."choice", "__qti"."choice_interaction", "__qti"."cn_attribute", "__qti"."cn_count", "__qti"."cn_part_text", "__qti"."cn_slot", "__qti"."comment", "__qti"."context_ref", "__qti"."count_bound", "__qti"."data_ssml", "__qti"."data_ssml_member", "__qti"."data_ssml_property", "__qti"."doctype", "__qti"."document", "__qti"."document_id", "__qti"."element_type", "__qti"."encoding_decl", "__qti"."entry", "__qti"."expression", "__qti"."feedback_ref", "__qti"."file", "__qti"."file_outside", "__qti"."file_path", "__qti"."fragment_context_name", "__qti"."fragment_context_ref", "__qti"."fragment_feedback_name", "__qti"."fragment_feedback_ref", "__qti"."fragment_printed_name", "__qti"."fragment_printed_ref", "__qti"."fragment_scope", "__qti"."fragment_template_name", "__qti"."fragment_template_ref", "__qti_views"."header_token", "__qti"."hottext", "__qti"."identity_text", "__qti"."idref", "__qti"."idref_target", "__qti"."inclusion", "__qti"."instance", "__qti"."interaction", "__qti"."interaction_attribute", "__qti"."item_mode", "__qti"."item_ref_document", "__qti"."item_ref_href", "__qti"."label_use", "__qti"."least_count", "__qti"."link_reading", "__qti"."literal", "__qti"."literal_typed", "__qti_views"."lookup_value", "__qti_views"."map_key", "__qti"."math_action", "__qti"."math_align_group", "__qti"."math_align_scope", "__qti"."math_cell", "__qti"."math_cn", "__qti"."math_rank", "__qti"."media", "__qti"."most_count", "__qti"."named", "__qti"."namespace", "__qti"."node", "__qti"."numbered_reading", "__qti"."open_attribute", "__qti"."open_attribute_entity", "__qti"."open_element_name", "__qti"."open_element_type", "__qti"."package", "__qti"."pci_module_form", "__qti"."pi", "__qti"."placed_binding", "__qti"."placed_choice", "__qti"."placed_expression", "__qti"."placed_hottext", "__qti"."placed_id", "__qti"."placed_idref", "__qti"."placed_math_rank", "__qti"."placed_share_target", "__qti"."placed_variable_ref", "__qti"."printed_variable_ref", "__qti"."processing", "__qti"."reference", "__qti"."reference_path", "__qti"."referring_document", "__qti"."resource_document", "__qti"."resource_href", "__qti"."resource_href_outside", "__qti"."resource_href_path", "__qti"."rounding", "__qti"."rounding_figures", "__qti"."rounding_mode_figures", "__qti"."sd_decl", "__qti"."share_fragment", "__qti"."share_target", "__qti"."site", "__qti"."site_path", "__qti"."site_target", "__qti"."srcset", "__qti"."srcset_candidate", "__qti"."ssml_scope", "__qti"."stimulus_ref", "__qti_queries"."table_header", "__qti"."template_ref", "__qti"."text_idref", "__qti"."text_reference", "__qti"."text_reference_path", "__qti"."tolerance", "__qti"."tolerance_token", "__qti"."usage_value", "__qti"."usage_value_base_type", "__qti"."variable_ref", "__qti"."xml_decl" FROM PUBLIC;
+REVOKE ALL ON TABLE "qti"."assembled_document", "qti"."attribute", "qti"."attribute_entity", "qti"."binding_name", "qti"."bound_variable", "qti"."candidate_path", "qti"."catalog_scope", "qti"."cell_leaf", "qti"."choice", "qti"."choice_interaction", "qti"."cn_attribute", "qti"."cn_count", "qti"."cn_part_text", "qti"."cn_slot", "qti"."comment", "qti"."context_ref", "qti"."count_bound", "qti"."data_ssml", "qti"."data_ssml_member", "qti"."data_ssml_property", "qti"."doctype", "qti"."document", "qti"."document_id", "qti"."element_type", "qti"."encoding_decl", "qti"."entry", "qti"."expression", "qti"."feedback_ref", "qti"."file", "qti"."file_outside", "qti"."file_path", "qti"."fragment_context_name", "qti"."fragment_context_ref", "qti"."fragment_feedback_name", "qti"."fragment_feedback_ref", "qti"."fragment_printed_name", "qti"."fragment_printed_ref", "qti"."fragment_scope", "qti"."fragment_template_name", "qti"."fragment_template_ref", "qti"."hottext", "qti"."identity_text", "qti"."idref", "qti"."idref_target", "qti"."inclusion", "qti"."instance", "qti"."interaction", "qti"."interaction_attribute", "qti"."item_mode", "qti"."item_ref_document", "qti"."item_ref_href", "qti"."label_use", "qti"."least_count", "qti"."link_reading", "qti"."literal", "qti"."literal_typed", "qti"."math_action", "qti"."math_align_group", "qti"."math_align_scope", "qti"."math_cell", "qti"."math_cn", "qti"."math_rank", "qti"."media", "qti"."most_count", "qti"."named", "qti"."namespace", "qti"."node", "qti"."numbered_reading", "qti"."open_attribute", "qti"."open_attribute_entity", "qti"."open_element_name", "qti"."open_element_type", "qti"."package", "qti"."pci_module_form", "qti"."pi", "qti"."placed_binding", "qti"."placed_choice", "qti"."placed_expression", "qti"."placed_hottext", "qti"."placed_id", "qti"."placed_idref", "qti"."placed_math_rank", "qti"."placed_share_target", "qti"."placed_variable_ref", "qti"."printed_variable_ref", "qti"."processing", "qti"."reference", "qti"."reference_path", "qti"."referring_document", "qti"."resource_document", "qti"."resource_href", "qti"."resource_href_outside", "qti"."resource_href_path", "qti"."sd_decl", "qti"."share_fragment", "qti"."share_target", "qti"."site", "qti"."site_path", "qti"."site_target", "qti"."srcset", "qti"."srcset_candidate", "qti"."ssml_scope", "qti"."stimulus_ref", "qti"."template_ref", "qti"."text_idref", "qti"."text_reference", "qti"."text_reference_path", "qti"."variable_ref", "qti"."xml_decl", "__qti_queries"."assembled_catalog", "__qti"."assembled_document", "__qti"."attribute", "__qti"."attribute_entity", "__qti"."binding_name", "__qti"."bound_variable", "__qti"."candidate_path", "__qti_views"."catalog_id", "__qti"."catalog_scope", "__qti"."cell_leaf", "__qti_views"."cell_table", "__qti"."choice", "__qti"."choice_interaction", "__qti"."cn_attribute", "__qti"."cn_count", "__qti"."cn_part_text", "__qti"."cn_slot", "__qti"."comment", "__qti"."context_ref", "__qti"."count_bound", "__qti"."data_ssml", "__qti"."data_ssml_member", "__qti"."data_ssml_property", "__qti"."doctype", "__qti"."document", "__qti"."document_id", "__qti"."element_type", "__qti"."encoding_decl", "__qti"."entry", "__qti"."expression", "__qti"."feedback_ref", "__qti"."file", "__qti"."file_outside", "__qti"."file_path", "__qti"."fragment_context_name", "__qti"."fragment_context_ref", "__qti"."fragment_feedback_name", "__qti"."fragment_feedback_ref", "__qti"."fragment_printed_name", "__qti"."fragment_printed_ref", "__qti"."fragment_scope", "__qti"."fragment_template_name", "__qti"."fragment_template_ref", "__qti_views"."header_token", "__qti"."hottext", "__qti"."identity_text", "__qti"."idref", "__qti"."idref_target", "__qti"."inclusion", "__qti"."instance", "__qti"."interaction", "__qti"."interaction_attribute", "__qti"."item_mode", "__qti"."item_ref_document", "__qti"."item_ref_href", "__qti"."label_use", "__qti"."least_count", "__qti"."link_reading", "__qti"."literal", "__qti"."literal_typed", "__qti_views"."lookup_value", "__qti_views"."map_key", "__qti"."math_action", "__qti"."math_align_group", "__qti"."math_align_scope", "__qti"."math_cell", "__qti"."math_cn", "__qti"."math_rank", "__qti"."media", "__qti"."most_count", "__qti"."named", "__qti"."namespace", "__qti"."node", "__qti"."numbered_reading", "__qti"."open_attribute", "__qti"."open_attribute_entity", "__qti"."open_element_name", "__qti"."open_element_type", "__qti"."package", "__qti"."pci_module_form", "__qti"."pi", "__qti"."placed_binding", "__qti"."placed_choice", "__qti"."placed_expression", "__qti"."placed_hottext", "__qti"."placed_id", "__qti"."placed_idref", "__qti"."placed_math_rank", "__qti"."placed_share_target", "__qti"."placed_variable_ref", "__qti"."printed_variable_ref", "__qti"."processing", "__qti"."reference", "__qti"."reference_path", "__qti"."referring_document", "__qti"."resource_document", "__qti"."resource_href", "__qti"."resource_href_outside", "__qti"."resource_href_path", "__qti"."sd_decl", "__qti"."share_fragment", "__qti"."share_target", "__qti"."site", "__qti"."site_path", "__qti"."site_target", "__qti"."srcset", "__qti"."srcset_candidate", "__qti"."ssml_scope", "__qti"."stimulus_ref", "__qti_queries"."table_header", "__qti"."template_ref", "__qti"."text_idref", "__qti"."text_reference", "__qti"."text_reference_path", "__qti"."variable_ref", "__qti"."xml_decl" FROM PUBLIC;
 
-REVOKE ALL ON DOMAIN "qti"."__sha256", "qti"."admission_map", "qti"."align_direction", "qti"."align_state", "qti"."attribute_model", "qti"."attribute_name", "qti"."__attribute_name_bits_416_thr6i6sipt", "qti"."attribute_slot", "qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."base_type", "qti"."bound_facet", "qti"."bound_zero", "qti"."built_in", "qti"."cardinality", "qti"."cn_base", "qti"."cn_part", "qti"."cn_part_form", "qti"."cn_type", "qti"."content_model", "qti"."declaration_kind", "qti"."document_type", "qti"."domain_primitive", "qti"."entry_kind", "qti"."flag", "qti"."__flag_bits_16_llpdtzgaon", "qti"."follow_set", "qti"."governor", "qti"."href_scope", "qti"."identity", "qti"."include_set", "qti"."language", "qti"."node_kind", "qti"."__node_kind_bits_648_lh43fw4nuo", "qti"."position", "qti"."__position_bits_312_cnr3fptmz4", "qti"."reference_form", "qti"."reference_resolution", "qti"."reference_spelling", "qti"."resource_type", "qti"."rounding_holds", "qti"."shared_model", "qti"."symbol_set", "qti"."type_name", "qti"."unplaced_cause", "qti"."use", "qti"."value_base", "qti"."__value_base_bits_16_7t6pwwxbsh", "qti"."value_cardinality", "qti"."__value_cardinality_bits_8_mma4mwhphy", "qti"."value_domain", "qti"."white_space", "qti"."xml_standalone", "qti"."__text_aqc6inemva", "qti"."__text_tn2inwix7f", "qti"."__text_c6iptmtj2x", "qti"."__text_phcitidkqs", "qti"."__text_xj3zno7u3h", "qti"."__text_r2monji6i2", "qti"."__text_tfkvgtjblt", "qti"."__text_7j6kgluyjp", "qti"."__text_l7nqeazg5h", "qti"."__text_xey6ryorh5", "qti"."__text_7dfilirtp3", "qti"."__text_sac6h6c6eh", "qti"."__text_nhrekaddjj", "qti"."__text_zij47sgley", "qti"."__text_gke7uypkov", "qti"."__text_gysgx5gkhi", "qti"."__text_dtweupoh47", "qti"."__text_lecej62lgl", "qti"."__text_iyotu5swho", "qti"."__text_kgtzfmq7x6", "qti"."__text_23rzixl3a2", "qti"."__text_3adwbksayk", "qti"."__text_k5kwygzatl", "qti"."__text_b6ykamoeho", "qti"."__text_4s4od7s5or", "qti"."__text_netnsfkgs7", "qti"."__text_3dlgl63rv6", "qti"."__text_aezrarw5qb", "qti"."__text_7nkeqry66t", "qti"."__text_iqz277k5xr", "qti"."__text_r2kdc4r77d", "qti"."__text_i4qty2ywff", "qti"."__domain_gfw43vigph", "qti"."__param_package_5kbmtohnug", "qti"."__param_path_bcrdrv5any" FROM PUBLIC;
+REVOKE ALL ON DOMAIN "qti"."__sha256", "qti"."admission_map", "qti"."align_direction", "qti"."align_state", "qti"."attribute_model", "qti"."attribute_name", "qti"."__attribute_name_bits_416_thr6i6sipt", "qti"."attribute_slot", "qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."base_type", "qti"."bound_facet", "qti"."bound_zero", "qti"."built_in", "qti"."cardinality", "qti"."cn_base", "qti"."cn_part", "qti"."cn_part_form", "qti"."cn_type", "qti"."content_model", "qti"."declaration_kind", "qti"."document_type", "qti"."domain_primitive", "qti"."entry_kind", "qti"."flag", "qti"."__flag_bits_16_llpdtzgaon", "qti"."follow_set", "qti"."governor", "qti"."href_scope", "qti"."identity", "qti"."include_set", "qti"."language", "qti"."node_kind", "qti"."__node_kind_bits_648_lh43fw4nuo", "qti"."position", "qti"."__position_bits_312_cnr3fptmz4", "qti"."reference_form", "qti"."reference_resolution", "qti"."reference_spelling", "qti"."resource_type", "qti"."shared_model", "qti"."symbol_set", "qti"."type_name", "qti"."unplaced_cause", "qti"."use", "qti"."value_base", "qti"."__value_base_bits_16_7t6pwwxbsh", "qti"."value_cardinality", "qti"."__value_cardinality_bits_8_mma4mwhphy", "qti"."value_domain", "qti"."white_space", "qti"."xml_standalone", "qti"."__text_aqc6inemva", "qti"."__text_tn2inwix7f", "qti"."__text_c6iptmtj2x", "qti"."__text_phcitidkqs", "qti"."__text_xj3zno7u3h", "qti"."__text_r2monji6i2", "qti"."__text_tfkvgtjblt", "qti"."__text_7j6kgluyjp", "qti"."__text_l7nqeazg5h", "qti"."__text_xey6ryorh5", "qti"."__text_7dfilirtp3", "qti"."__text_sac6h6c6eh", "qti"."__text_nhrekaddjj", "qti"."__text_zij47sgley", "qti"."__text_gke7uypkov", "qti"."__text_gysgx5gkhi", "qti"."__text_dtweupoh47", "qti"."__text_lecej62lgl", "qti"."__text_iyotu5swho", "qti"."__text_kgtzfmq7x6", "qti"."__text_23rzixl3a2", "qti"."__text_3adwbksayk", "qti"."__text_k5kwygzatl", "qti"."__text_b6ykamoeho", "qti"."__text_4s4od7s5or", "qti"."__text_netnsfkgs7", "qti"."__text_3dlgl63rv6", "qti"."__text_aezrarw5qb", "qti"."__text_7nkeqry66t", "qti"."__text_r2kdc4r77d", "qti"."__text_i4qty2ywff", "qti"."__domain_gfw43vigph", "qti"."__param_package_5kbmtohnug", "qti"."__param_path_bcrdrv5any" FROM PUBLIC;
 
 SELECT "pg_catalog"."pg_advisory_xact_lock"(5448515225636816524::bigint);
 ALTER DEFAULT PRIVILEGES IN SCHEMA "qti" REVOKE ALL ON TABLES FROM PUBLIC;
@@ -1209,8 +1167,6 @@ COMMENT ON FUNCTION "qti"."__reference_spelling_names_gocqpuf7tl"() IS 'names of
 
 COMMENT ON FUNCTION "qti"."__resource_type_names_2tbbvn3ion"() IS 'names of roster ResourceType (ced5fe1564e0a8e81e6ed722e012aba7f520e83798020b38dcb9f954ec7f0282)';
 
-COMMENT ON FUNCTION "qti"."__rounding_holds_names_6j2zaayymp"() IS 'names of roster RoundingHolds (ff0bebd47f8d5bbbf8db83174e53cbb07cf295b99d674a77d80050bb48bb1b1c)';
-
 COMMENT ON FUNCTION "qti"."__shared_model_names_5s5lwnfjh3"() IS 'names of roster SharedModel (2bb22812fae0ee7cd348c54155c525015f6d12afe5856c6b30af95ddd60f143e)';
 
 COMMENT ON FUNCTION "qti"."__symbol_set_names_7wklvi4qhu"() IS 'names of roster SymbolSet (5f3c364538a7246c98ef8a549dd6452a21b767f5164eb24017b420a40ef01cee)';
@@ -1297,8 +1253,6 @@ COMMENT ON FUNCTION "qti"."__reference_spelling_live_ke2xl66eo4"() IS 'live code
 
 COMMENT ON FUNCTION "qti"."__resource_type_live_m5qnrkbzgq"() IS 'live codes of roster ResourceType (567d64af3e5bd0ad1534623c63ed4513027cb6c852ad3f72501186407adbd2d6)';
 
-COMMENT ON FUNCTION "qti"."__rounding_holds_live_7xm6dvdabq"() IS 'live codes of roster RoundingHolds (b74579d3b64ecff081cab2731adb2464f839e99b2eed45d65b3c1547c74f2de1)';
-
 COMMENT ON FUNCTION "qti"."__shared_model_live_37zbpyitfj"() IS 'live codes of roster SharedModel (47d64fec5c90141889bd1894c36b38a3a7d21e0cf05af630bec3a4665d8f6e48)';
 
 COMMENT ON FUNCTION "qti"."__symbol_set_live_3wo3lzfzqb"() IS 'live codes of roster SymbolSet (cb19412c22874ab5b38ef81f7e57b02fd7f1cc0f424b0af30c98b4bba33fb971)';
@@ -1320,8 +1274,6 @@ COMMENT ON FUNCTION "qti"."__white_space_live_ywok3yue3q"() IS 'live codes of ro
 COMMENT ON FUNCTION "qti"."__xml_standalone_live_ql62ubmw6y"() IS 'live codes of roster XmlStandalone (f80b6953419f9aa8ea93323a6d5e3f06182c57018d537842383ceca681622491)';
 
 COMMENT ON FUNCTION "qti"."__row_v4qtibeah3"("pg_catalog"."text", bigint) IS 'row function 7bf3f959d151720514fdef17815ea1780d4a5f3939621c54989e31f71612e6cc';
-
-COMMENT ON FUNCTION "qti"."__row_dfvu25q4di"("pg_catalog"."text", "qti"."base_type") IS 'row function 963793b00421930fe783fcdf1739348518fed47c4682fe4cdbd97e7cb2ea10bd';
 
 COMMENT ON FUNCTION "qti"."__row_avobhiw5hj"("pg_catalog"."text", "qti"."cn_part_form", "qti"."cn_base") IS 'row function 7e66bed7223dd4ef776fee58bc35c434ee7824a90e9826389c9c66a5fa6daf31';
 
@@ -1368,8 +1320,6 @@ COMMENT ON FUNCTION "qti"."__row_ifjiso3sae"("qti"."node_kind", "qti"."__attribu
 COMMENT ON FUNCTION "qti"."__row_6f23azrfdw"("qti"."governor", "qti"."__attribute_slot_bits_112_aecznthxg5") IS 'row function 2b273c963e2a95953658d9937808f2de9f7b9a37d403b002f284c124fdc85286';
 
 COMMENT ON FUNCTION "qti"."__row_3k3gj4kfgc"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor") IS 'row function 462bcc300a552bed017ac41f54cca50352ff931ac60669431eed5ee4b9eb1a65';
-
-COMMENT ON FUNCTION "qti"."__row_sk5tugqwcr"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor") IS 'row function 54df82dc5f74fcd9ad86ab60898c89ec1a875a8eba5ef97343f9803fcbb8880b';
 
 COMMENT ON FUNCTION "qti"."__row_f3arllrhkz"("qti"."governor", "qti"."__attribute_slot_bits_112_aecznthxg5") IS 'row function 5c301984fce4cc0f557482635641cb23bd3d7bcca3128f88ce51f59668b5a544';
 
@@ -1475,8 +1425,6 @@ COMMENT ON DOMAIN "qti"."__text_xey6ryorh5" IS 'text domain of definition 470402
 
 COMMENT ON DOMAIN "qti"."__text_lecej62lgl" IS 'text domain of definition 5c14dfcbf02e85cd9c3e4607e5f8aac88e4c4aae96d4daa62cc514568c88c768';
 
-COMMENT ON DOMAIN "qti"."__text_iqz277k5xr" IS 'text domain of definition 7804e28edb82486535d23dc2b795ac4d2ea5f5f293d39c5d6993596c384f570a';
-
 COMMENT ON DOMAIN "qti"."__text_tn2inwix7f" IS 'text domain of definition 9589922d993d2438cfa83e25407980d911f652efbb0f65aea8fe21c49cf0033e';
 
 COMMENT ON FUNCTION "qti"."__row_wczkl5jgfh"("qti"."document_type", "qti"."__text_tn2inwix7f") IS 'row function 3cc4a82e139c999ae66c7429c7103cf22bc896f468067e681a46f3987314dfa5';
@@ -1511,8 +1459,6 @@ COMMENT ON DOMAIN "qti"."__text_tfkvgtjblt" IS 'text domain of definition d2ecf2
 
 COMMENT ON FUNCTION "qti"."__row_ha5uesvxf5"("qti"."governor", "qti"."__text_tfkvgtjblt") IS 'row function 0497016ef7907e4c393fc37b0ac984b1c631a4f0b473af0061946bf6bdf6fdf8';
 
-COMMENT ON FUNCTION "qti"."__row_tpgnuuvn6t"("qti"."__text_tfkvgtjblt", "pg_catalog"."text") IS 'row function 1dd71c3ce7edddd4b32dd5fd09111a714d77e919993ecce1b7b106f7bc7c7009';
-
 COMMENT ON FUNCTION "qti"."__row_y3yv7uwbvr"("qti"."__text_tfkvgtjblt") IS 'row function 2b7044f87c0cde7ad60b24741b95a338cedc350fef81c198c26576bfee97f2d3';
 
 COMMENT ON FUNCTION "qti"."__row_ll5avkvuxu"("qti"."node_kind", "qti"."node_kind", "qti"."governor", "qti"."__domain_gfw43vigph", "qti"."__text_tfkvgtjblt", "qti"."__text_tfkvgtjblt", "qti"."__text_c6iptmtj2x") IS 'row function 65138844c0ec7163abc6ab73f9a119a2d4097b468cee240940fd57fbf973bb48';
@@ -1520,10 +1466,6 @@ COMMENT ON FUNCTION "qti"."__row_ll5avkvuxu"("qti"."node_kind", "qti"."node_kind
 COMMENT ON FUNCTION "qti"."__row_ek5jzsyr3n"("qti"."__text_tfkvgtjblt") IS 'row function a85c65d25f607b2155c092fdf3234a40ed219f4593cfbc93dff7c5e0bbc6c27c';
 
 COMMENT ON FUNCTION "qti"."__row_e62lbw2mpq"("qti"."__text_tfkvgtjblt") IS 'row function a92f12fc9005b5b0b156b812b65a044be7348d7adef56d4703098d94dc4d7168';
-
-COMMENT ON FUNCTION "qti"."__row_xtuinpowgy"("qti"."base_type", "qti"."__text_tfkvgtjblt") IS 'row function ca5d38b4e082c720282de72ead472cdc8d80e4885b9e5ca7e3497372851a1161';
-
-COMMENT ON FUNCTION "qti"."__row_gvj4sjfiv5"("qti"."__text_tfkvgtjblt") IS 'row function d158c3f1e1b1f2dc8728ab09b1d5a28572f8f16eb09915ec72d8caf58cd97328';
 
 COMMENT ON FUNCTION "qti"."__row_irvtzupi4u"("qti"."governor", "qti"."__text_tfkvgtjblt") IS 'row function d5c5acd6afba0a7aab297caa1b5dfbcfe51748344040403d477fbf1edfec88ef';
 
@@ -1833,18 +1775,6 @@ COMMENT ON TYPE "qti"."__row_news_resource_href_path_5jlqnvzjw4" IS 'the row typ
 
 COMMENT ON TYPE "qti"."__row_olds_resource_href_path_ryiz4pd2x6" IS 'the row type of the delta of olds of ResourceHrefPath';
 
-COMMENT ON TYPE "qti"."__row_news_rounding_wht6d4p3ec" IS 'the row type of the delta of news of Rounding';
-
-COMMENT ON TYPE "qti"."__row_olds_rounding_rodl2gqnfk" IS 'the row type of the delta of olds of Rounding';
-
-COMMENT ON TYPE "qti"."__row_news_rounding_figures_u3xetapo24" IS 'the row type of the delta of news of RoundingFigures';
-
-COMMENT ON TYPE "qti"."__row_olds_rounding_figures_t3soaj56y7" IS 'the row type of the delta of olds of RoundingFigures';
-
-COMMENT ON TYPE "qti"."__row_news_rounding_mode_figures_4dto2s3h6p" IS 'the row type of the delta of news of RoundingModeFigures';
-
-COMMENT ON TYPE "qti"."__row_olds_rounding_mode_figures_aefqrvzknf" IS 'the row type of the delta of olds of RoundingModeFigures';
-
 COMMENT ON TYPE "qti"."__row_news_share_fragment_gnfhrg2wac" IS 'the row type of the delta of news of ShareFragment';
 
 COMMENT ON TYPE "qti"."__row_olds_share_fragment_nekgaxhqyu" IS 'the row type of the delta of olds of ShareFragment';
@@ -1890,18 +1820,6 @@ COMMENT ON TYPE "qti"."__row_olds_text_reference_7licrm4ltv" IS 'the row type of
 COMMENT ON TYPE "qti"."__row_news_text_reference_path_e35rofuhle" IS 'the row type of the delta of news of TextReferencePath';
 
 COMMENT ON TYPE "qti"."__row_olds_text_reference_path_2rhninp5ig" IS 'the row type of the delta of olds of TextReferencePath';
-
-COMMENT ON TYPE "qti"."__row_news_tolerance_rruu6vv4jd" IS 'the row type of the delta of news of Tolerance';
-
-COMMENT ON TYPE "qti"."__row_olds_tolerance_n4cyvclaoo" IS 'the row type of the delta of olds of Tolerance';
-
-COMMENT ON TYPE "qti"."__row_news_usage_value_rgazx5svef" IS 'the row type of the delta of news of UsageValue';
-
-COMMENT ON TYPE "qti"."__row_olds_usage_value_lx4bqfccvb" IS 'the row type of the delta of olds of UsageValue';
-
-COMMENT ON TYPE "qti"."__row_news_usage_value_base_type_crue77ur5f" IS 'the row type of the delta of news of UsageValueBaseType';
-
-COMMENT ON TYPE "qti"."__row_olds_usage_value_base_type_wqsvslnpou" IS 'the row type of the delta of olds of UsageValueBaseType';
 
 COMMENT ON TYPE "qti"."__row_news_variable_ref_jq6apyyzyz" IS 'the row type of the delta of news of VariableRef';
 
@@ -2183,8 +2101,6 @@ COMMENT ON CONSTRAINT "__node_key_package_path_start_attributes_governor_pxds7wq
 
 COMMENT ON CONSTRAINT "__node_key_package_path_start_parent_ytuzrwhg3t" ON "qti"."node" IS 'key Node(package, path, start, parent)';
 
-COMMENT ON CONSTRAINT "__node_key_package_path_start_string_value_digest_hx6nn5eqk5" ON "qti"."node" IS 'key Node(package, path, start, stringValueDigest)';
-
 COMMENT ON CONSTRAINT "__node_key_package_path_start_kind_governor_42fsltrsjy" ON "qti"."node" IS 'key Node(package, path, start, kind, governor)';
 
 COMMENT ON CONSTRAINT "__node_key_package_path_start_kind_ooglyqab5z" ON "qti"."node" IS 'key Node(package, path, start, kind)';
@@ -2283,14 +2199,6 @@ COMMENT ON CONSTRAINT "__resource_href_outside_pk_wc2au5t3zn" ON "qti"."resource
 
 COMMENT ON CONSTRAINT "__resource_href_path_pk_qwafest54w" ON "qti"."resource_href_path" IS 'primary key of ResourceHrefPath';
 
-COMMENT ON CONSTRAINT "__rounding_pk_p5ba7td7t4" ON "qti"."rounding" IS 'primary key of Rounding';
-
-COMMENT ON CONSTRAINT "__rounding_figures_pk_wwvjzzaivg" ON "qti"."rounding_figures" IS 'primary key of RoundingFigures';
-
-COMMENT ON CONSTRAINT "__rounding_figures_key_package_path_start_figures_lvcs4z6khn" ON "qti"."rounding_figures" IS 'key RoundingFigures(package, path, start, figuresDigest)';
-
-COMMENT ON CONSTRAINT "__rounding_mode_figures_pk_32ue4ztm6s" ON "qti"."rounding_mode_figures" IS 'primary key of RoundingModeFigures';
-
 COMMENT ON CONSTRAINT "__sd_decl_pk_do2xlu7vc3" ON "qti"."sd_decl" IS 'primary key of SdDecl';
 
 COMMENT ON CONSTRAINT "__share_fragment_pk_w7lv43thb6" ON "qti"."share_fragment" IS 'primary key of ShareFragment';
@@ -2344,22 +2252,6 @@ COMMENT ON CONSTRAINT "__text_idref_check_identity_text_tokens_concat_fold_mjsgm
 COMMENT ON CONSTRAINT "__text_reference_pk_47h6xjfe7g" ON "qti"."text_reference" IS 'primary key of TextReference';
 
 COMMENT ON CONSTRAINT "__text_reference_path_pk_aurefmdcbf" ON "qti"."text_reference_path" IS 'primary key of TextReferencePath';
-
-COMMENT ON CONSTRAINT "__tolerance_pk_awo6y43rfn" ON "qti"."tolerance" IS 'primary key of Tolerance';
-
-COMMENT ON CONSTRAINT "__tolerance_check_tolerance_tokens_concat_fold_yijvagdcgq" ON "qti"."tolerance" IS 'check of Tolerance for law concat fold over fin(Tolerance, tokens) of ToleranceToken(package, path, start, piece, piecesWasDigest, piecesAfterDigest) into Tolerance(package, path, start, tokenTextDigest)';
-
-COMMENT ON CONSTRAINT "__tolerance_key_package_path_start_tokens_xlvepfuwuw" ON "qti"."tolerance" IS 'key Tolerance(package, path, start, tokens)';
-
-COMMENT ON CONSTRAINT "__tolerance_token_pk_o33pihaiia" ON "qti"."tolerance_token" IS 'primary key of ToleranceToken';
-
-COMMENT ON CONSTRAINT "__tolerance_token_key_package_path_start_at_pieces_drqanhhmxs" ON "qti"."tolerance_token" IS 'key ToleranceToken(package, path, start, at, piecesAfterDigest)';
-
-COMMENT ON CONSTRAINT "__tolerance_token_check_tolerance_tokens_concat_fold_lik6fcbzk5" ON "qti"."tolerance_token" IS 'check of ToleranceToken for law concat fold over fin(Tolerance, tokens) of ToleranceToken(package, path, start, piece, piecesWasDigest, piecesAfterDigest) into Tolerance(package, path, start, tokenTextDigest)';
-
-COMMENT ON CONSTRAINT "__usage_value_pk_i2ykr2qbnf" ON "qti"."usage_value" IS 'primary key of UsageValue';
-
-COMMENT ON CONSTRAINT "__usage_value_base_type_pk_v6447uyhax" ON "qti"."usage_value_base_type" IS 'primary key of UsageValueBaseType';
 
 COMMENT ON CONSTRAINT "__variable_ref_pk_xysknydg4p" ON "qti"."variable_ref" IS 'primary key of VariableRef';
 
@@ -2613,8 +2505,6 @@ COMMENT ON COLUMN "qti"."node"."__package_3taa5kijgy" IS 'package where Logic.no
 
 COMMENT ON COLUMN "qti"."node"."__package_p5yblwgnua" IS 'package where Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]) and Logic.eq(Bits.disjoint(ancestry, Enters.row("qti-feedback-block")), true)';
 
-COMMENT ON COLUMN "qti"."node"."__package_pzlq2bwqm3" IS 'package where Logic.eq(Bits.subset(Bits.singleton(AttributeGrammar.at("slot", AttributeModelOf.at("model", governor), "baseType")), attrs), true) and Logic.eq(Bits.subset(Bits.singleton(AttributeGrammar.at("slot", AttributeModelOf.at("model", governor), "fieldIdentifier")), attrs), true) and Logic.eq(kind, "ud:value")';
-
 COMMENT ON COLUMN "qti"."node"."__package_lqgfkydq7q" IS 'package where Logic.eq(kind, "qti-interaction-modules") and Logic.eq(parentKind, "qti-portable-custom-interaction")';
 
 COMMENT ON COLUMN "qti"."node"."__parent_l4ckjnvwat" IS 'parent where Logic.gt(start, 0n)';
@@ -2716,12 +2606,6 @@ COMMENT ON COLUMN "qti"."srcset_candidate"."__pred_at_xktcobhsti" IS 'pred(at)';
 COMMENT ON COLUMN "qti"."text_idref"."__copy_tokens_rrsly23qzp" IS 'the owner''s count of the family IdentityText.tokens';
 
 COMMENT ON COLUMN "qti"."text_idref"."__pred_at_xktcobhsti" IS 'pred(at)';
-
-COMMENT ON COLUMN "qti"."tolerance"."__pred_tokens_ip7mlgrtju" IS 'pred(tokens)';
-
-COMMENT ON COLUMN "qti"."tolerance_token"."__copy_tokens_zlo7jvsicr" IS 'the owner''s count of the family Tolerance.tokens';
-
-COMMENT ON COLUMN "qti"."tolerance_token"."__pred_at_xktcobhsti" IS 'pred(at)';
 
 COMMENT ON CONSTRAINT "__attribute_key_package_path_start_index_attributes_6cj6mvsxvm" ON "qti"."attribute" IS 'key Attribute(package, path, start, the index of the family Node.attributes)';
 
@@ -2843,8 +2727,6 @@ COMMENT ON CONSTRAINT "__node_key_package_path_parent_state_djsbcozcyq" ON "qti"
 
 COMMENT ON CONSTRAINT "__node_key_package_path_start_dn7spvnjad" ON "qti"."node" IS 'key Node(package where Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]) and Logic.eq(Bits.disjoint(ancestry, Enters.row("qti-feedback-block")), true), path, start)';
 
-COMMENT ON CONSTRAINT "__node_key_package_path_start_7m4qykmkxg" ON "qti"."node" IS 'key Node(package where Logic.eq(Bits.subset(Bits.singleton(AttributeGrammar.at("slot", AttributeModelOf.at("model", governor), "baseType")), attrs), true) and Logic.eq(Bits.subset(Bits.singleton(AttributeGrammar.at("slot", AttributeModelOf.at("model", governor), "fieldIdentifier")), attrs), true) and Logic.eq(kind, "ud:value"), path, start)';
-
 COMMENT ON CONSTRAINT "__node_key_package_path_parent_jhawkbuquo" ON "qti"."node" IS 'key Node(package where Logic.eq(kind, "qti-interaction-modules") and Logic.eq(parentKind, "qti-portable-custom-interaction"), path, parent)';
 
 COMMENT ON CONSTRAINT "__open_attribute_key_package_path_start_index_open_z6aawsoy6g" ON "qti"."open_attribute" IS 'key OpenAttribute(package, path, start, the index of the family Node.openAttributes)';
@@ -2894,8 +2776,6 @@ COMMENT ON CONSTRAINT "__site_target_key_package_target_predecessor_du2dhelnpq" 
 COMMENT ON CONSTRAINT "__srcset_candidate_key_package_path_start_pred_at_jpgatxsojn" ON "qti"."srcset_candidate" IS 'key SrcsetCandidate(package, path, start, pred(at))';
 
 COMMENT ON CONSTRAINT "__text_idref_key_package_path_start_pred_at_bulfzlj2w4" ON "qti"."text_idref" IS 'key TextIdref(package, path, start, pred(at))';
-
-COMMENT ON CONSTRAINT "__tolerance_token_key_package_path_start_pred_at_mza72eqsyy" ON "qti"."tolerance_token" IS 'key ToleranceToken(package, path, start, pred(at))';
 
 COMMENT ON CONSTRAINT "__attribute_check_attribute_counted_node_attributes_bpdqludy6t" ON "qti"."attribute" IS 'check of Attribute for law counted Attribute(package, path, start) in fin(Node, attributes)';
 
@@ -2976,8 +2856,6 @@ COMMENT ON CONSTRAINT "__site_target_check_document_targeted_by_or_fold_s2xbwdcr
 COMMENT ON CONSTRAINT "__srcset_candidate_check_srcset_candidate_ordered_muwkwohqto" ON "qti"."srcset_candidate" IS 'check of SrcsetCandidate for law ordered SrcsetCandidate(package, path, start, at) in fin(Srcset, tokens)';
 
 COMMENT ON CONSTRAINT "__text_idref_check_text_idref_ordered_identity_text_j6a2rgc35g" ON "qti"."text_idref" IS 'check of TextIdref for law ordered TextIdref(package, path, start, at) in fin(IdentityText, tokens)';
-
-COMMENT ON CONSTRAINT "__tolerance_token_check_tolerance_token_ordered_sre6vd24dn" ON "qti"."tolerance_token" IS 'check of ToleranceToken for law ordered ToleranceToken(package, path, start, at) in fin(Tolerance, tokens)';
 
 COMMENT ON CONSTRAINT "__assembled_document_fk_package_path_pred_instances_opgs5mrscf" ON "qti"."assembled_document" IS 'foreign key AssembledDocument(package, path, pred(instances)) to Instance(package, document, the index of the family AssembledDocument.instances)';
 
@@ -3241,8 +3119,6 @@ COMMENT ON CONSTRAINT "__node_fk_package_path_parent_copy_children_parent_izis7c
 
 COMMENT ON CONSTRAINT "__node_fk_package_path_parent_pred_at_start_before_6abd6cvvat" ON "qti"."node" IS 'foreign key Node(package, path, parent where Logic.gt(start, 0n), pred(at), start, the accumulator before plane 0 of the fold __node_children_count_fold_mue4fqjorm over the family Node.children, the accumulator before plane 0 of the fold __node_children_count_fold_fmibs64zod over the family Node.children, elementsWas, charsWasDigest, was) to Node(package, path, parent where Logic.gt(start, 0n), at, end, the accumulator after plane 0 of the fold __node_children_count_fold_mue4fqjorm over the family Node.children, the accumulator after plane 0 of the fold __node_children_count_fold_fmibs64zod over the family Node.children, elements, charsAfterDigest, state)';
 
-COMMENT ON CONSTRAINT "__node_fk_package_path_start_35fr4eeug5" ON "qti"."node" IS 'foreign key Node(package where Logic.eq(Bits.subset(Bits.singleton(AttributeGrammar.at("slot", AttributeModelOf.at("model", governor), "baseType")), attrs), true) and Logic.eq(Bits.subset(Bits.singleton(AttributeGrammar.at("slot", AttributeModelOf.at("model", governor), "fieldIdentifier")), attrs), true) and Logic.eq(kind, "ud:value"), path, start) to UsageValue(package, path, start)';
-
 COMMENT ON CONSTRAINT "__open_attribute_fk_package_path_start_copy_open_3uvsj6ee55" ON "qti"."open_attribute" IS 'foreign key OpenAttribute(package, path, start, the owner''s count of the family Node.openAttributes, governor, kind) to Node(package, path, start, openAttributes, governor, kind)';
 
 COMMENT ON CONSTRAINT "__open_attribute_fk_package_path_start_predecessor_6wt26reoml" ON "qti"."open_attribute" IS 'foreign key OpenAttribute(package, path, start, the predecessor of the index of the family Node.openAttributes) to OpenAttribute(package, path, start, the index of the family Node.openAttributes)';
@@ -3323,8 +3199,6 @@ COMMENT ON CONSTRAINT "__referring_document_fk_package_path_pred_templates_qu4nt
 
 COMMENT ON CONSTRAINT "__resource_document_fk_package_path_root_kind_ejo23fxacl" ON "qti"."resource_document" IS 'foreign key ResourceDocument(package, path, rootKind, documentType) to Document(package, path, rootKind, documentType)';
 
-COMMENT ON CONSTRAINT "__rounding_mode_figures_fk_package_path_start_ybcfejqokw" ON "qti"."rounding_mode_figures" IS 'foreign key RoundingModeFigures(package, path, start, figuresDigest) to RoundingFigures(package, path, start, figuresDigest)';
-
 COMMENT ON CONSTRAINT "__sd_decl_fk_package_path_xxx5gjp4e7" ON "qti"."sd_decl" IS 'foreign key SdDecl(package, path) to XmlDecl(package, path)';
 
 COMMENT ON CONSTRAINT "__share_fragment_fk_package_path_assembled_vdozoufbmn" ON "qti"."share_fragment" IS 'foreign key ShareFragment(package, path, assembled) to Document(package, path, assembled)';
@@ -3370,18 +3244,6 @@ COMMENT ON CONSTRAINT "__text_idref_fk_package_path_start_pred_at_pieces_mtpacsp
 COMMENT ON CONSTRAINT "__text_idref_fk_package_path_token_digest_jiqu7y6gxe" ON "qti"."text_idref" IS 'foreign key TextIdref(package, path, tokenDigest) to IdrefTarget(package, path, idDigest)';
 
 COMMENT ON CONSTRAINT "__text_reference_path_fk_package_target_7wuvskqxw6" ON "qti"."text_reference_path" IS 'foreign key TextReferencePath(package, target) to Entry(package, path)';
-
-COMMENT ON CONSTRAINT "__tolerance_fk_package_path_start_pred_tokens_token_h3v5wokq5r" ON "qti"."tolerance" IS 'foreign key Tolerance(package, path, start, pred(tokens), tokenTextDigest) to ToleranceToken(package, path, start, at, piecesAfterDigest)';
-
-COMMENT ON CONSTRAINT "__tolerance_token_fk_package_path_start_copy_tokens_hgndbm6n65" ON "qti"."tolerance_token" IS 'foreign key ToleranceToken(package, path, start, the owner''s count of the family Tolerance.tokens) to Tolerance(package, path, start, tokens)';
-
-COMMENT ON CONSTRAINT "__tolerance_token_fk_package_path_start_pred_at_4nmbesdvnj" ON "qti"."tolerance_token" IS 'foreign key ToleranceToken(package, path, start, pred(at), piecesWasDigest) to ToleranceToken(package, path, start, at, piecesAfterDigest)';
-
-COMMENT ON CONSTRAINT "__usage_value_fk_package_path_start_hgeaq5bglh" ON "qti"."usage_value" IS 'foreign key UsageValue(package, path, start) to Node(package where Logic.eq(Bits.subset(Bits.singleton(AttributeGrammar.at("slot", AttributeModelOf.at("model", governor), "baseType")), attrs), true) and Logic.eq(Bits.subset(Bits.singleton(AttributeGrammar.at("slot", AttributeModelOf.at("model", governor), "fieldIdentifier")), attrs), true) and Logic.eq(kind, "ud:value"), path, start)';
-
-COMMENT ON CONSTRAINT "__usage_value_fk_package_path_start_text_digest_jp2cxdgoag" ON "qti"."usage_value" IS 'foreign key UsageValue(package, path, start, textDigest) to Node(package, path, start, stringValueDigest)';
-
-COMMENT ON CONSTRAINT "__usage_value_base_type_fk_package_path_start_text_yqq5jyywar" ON "qti"."usage_value_base_type" IS 'foreign key UsageValueBaseType(package, path, start, textDigest) to Node(package, path, start, stringValueDigest)';
 
 COMMENT ON CONSTRAINT "__variable_ref_fk_package_path_root_kind_o6lbp6ercl" ON "qti"."variable_ref" IS 'foreign key VariableRef(package, path, rootKind) to Document(package, path, rootKind)';
 
@@ -3911,18 +3773,6 @@ COMMENT ON FUNCTION "qti"."__reader_news_resource_href_path_3v6u2nzztp"() IS 'th
 
 COMMENT ON FUNCTION "qti"."__reader_olds_resource_href_path_p75iaa3qwz"() IS 'the reader of the delta of olds of ResourceHrefPath';
 
-COMMENT ON FUNCTION "qti"."__reader_news_rounding_kyigekxom2"() IS 'the reader of the delta of news of Rounding';
-
-COMMENT ON FUNCTION "qti"."__reader_olds_rounding_c3xfz6vjgg"() IS 'the reader of the delta of olds of Rounding';
-
-COMMENT ON FUNCTION "qti"."__reader_news_rounding_figures_6tzdykdolc"() IS 'the reader of the delta of news of RoundingFigures';
-
-COMMENT ON FUNCTION "qti"."__reader_olds_rounding_figures_xmjid2fhmc"() IS 'the reader of the delta of olds of RoundingFigures';
-
-COMMENT ON FUNCTION "qti"."__reader_news_rounding_mode_figures_dhlctgerv6"() IS 'the reader of the delta of news of RoundingModeFigures';
-
-COMMENT ON FUNCTION "qti"."__reader_olds_rounding_mode_figures_exlaqenlsg"() IS 'the reader of the delta of olds of RoundingModeFigures';
-
 COMMENT ON FUNCTION "qti"."__reader_news_share_fragment_kygoq7js5f"() IS 'the reader of the delta of news of ShareFragment';
 
 COMMENT ON FUNCTION "qti"."__reader_olds_share_fragment_jovhlpjdca"() IS 'the reader of the delta of olds of ShareFragment';
@@ -3968,18 +3818,6 @@ COMMENT ON FUNCTION "qti"."__reader_olds_text_reference_qmflznk6pt"() IS 'the re
 COMMENT ON FUNCTION "qti"."__reader_news_text_reference_path_pmvejjwegm"() IS 'the reader of the delta of news of TextReferencePath';
 
 COMMENT ON FUNCTION "qti"."__reader_olds_text_reference_path_xbp6hkt6oi"() IS 'the reader of the delta of olds of TextReferencePath';
-
-COMMENT ON FUNCTION "qti"."__reader_news_tolerance_7i2onti3o6"() IS 'the reader of the delta of news of Tolerance';
-
-COMMENT ON FUNCTION "qti"."__reader_olds_tolerance_yqe5covazd"() IS 'the reader of the delta of olds of Tolerance';
-
-COMMENT ON FUNCTION "qti"."__reader_news_usage_value_gwhiuyasi2"() IS 'the reader of the delta of news of UsageValue';
-
-COMMENT ON FUNCTION "qti"."__reader_olds_usage_value_pfsutilcil"() IS 'the reader of the delta of olds of UsageValue';
-
-COMMENT ON FUNCTION "qti"."__reader_news_usage_value_base_type_yghmxcczvi"() IS 'the reader of the delta of news of UsageValueBaseType';
-
-COMMENT ON FUNCTION "qti"."__reader_olds_usage_value_base_type_repbt65dz5"() IS 'the reader of the delta of olds of UsageValueBaseType';
 
 COMMENT ON FUNCTION "qti"."__reader_news_variable_ref_ovyfyafjwi"() IS 'the reader of the delta of news of VariableRef';
 
@@ -4149,6 +3987,8 @@ COMMENT ON FUNCTION "qti"."__judge_reference_lexical_check_e_1_derived_so5wjosqp
 
 COMMENT ON FUNCTION "qti"."__judge_rooted_declaration_check_declaration_not_2inoiyq7e7"() IS 'the rule judge''s block of rule check Declaration_not_reserved of RootedDeclaration over its units';
 
+COMMENT ON FUNCTION "qti"."__judge_rounding_mode_figures_check_rounding_figures_5kytx3lifj"() IS 'the rule judge''s block of rule check Rounding_figures of RoundingModeFigures over its units';
+
 COMMENT ON FUNCTION "qti"."__judge_scope_duration_read_check_e_1_derived_h4wkmwixwz"() IS 'the rule judge''s block of rule check E1_derived of ScopeDurationRead over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_scope_node_check_e_1_derived_3dad34kfvh"() IS 'the rule judge''s block of rule check E1_derived of ScopeNode over its units';
@@ -4181,7 +4021,7 @@ COMMENT ON FUNCTION "qti"."__judge_test_identifier_text_check_key_text_bound_ggh
 
 COMMENT ON FUNCTION "qti"."__judge_text_reference_string_value_check_e_1_ykri7ikuz3"() IS 'the rule judge''s block of rule check E1_derived of TextReferenceStringValue over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_tolerance_form_check_e_1_derived_pcfjbbbgaw"() IS 'the rule judge''s block of rule check E1_derived of ToleranceForm over its units';
+COMMENT ON FUNCTION "qti"."__judge_tolerance_token_check_equal_tolerance_7velpoennk"() IS 'the rule judge''s block of rule check Equal_tolerance of ToleranceToken over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_typed_href_check_document_entry_ofo6ycelmh"() IS 'the rule judge''s block of rule check Document_entry of TypedHref over its units';
 
@@ -4192,6 +4032,8 @@ COMMENT ON FUNCTION "qti"."__judge_untyped_unweighted_check_e_1_derived_fakbzrmz
 COMMENT ON FUNCTION "qti"."__judge_untyped_weighted_check_e_1_derived_fthuaf7tx5"() IS 'the rule judge''s block of rule check E1_derived of UntypedWeighted over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_unweighted_read_check_e_1_derived_7ydhsfsob3"() IS 'the rule judge''s block of rule check E1_derived of UnweightedRead over its units';
+
+COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_check_usage_typed_ew6dqhsv4b"() IS 'the rule judge''s block of rule check Usage_typed_value of UsageValueBaseType over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_variable_mapping_check_variable_mapping_5hxii7eg44"() IS 'the rule judge''s block of rule check Variable_mapping_target of VariableMapping over its units';
 
@@ -4213,9 +4055,9 @@ COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_label_use_pvrbgrtag3"(
 
 COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_label_use_4c464bmztk"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.in(kind, ["a", "abbr", "acronym", "address", "article", "aside", "audio", "b", "bdi", "bdo", "big", "blockquote", "br", "caption", "cite", "code", "col", "colgroup", "dd", "details", "dfn", "div", "dl", "dt", "em", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "i", "img", "kbd", "label", "li", "nav", "object", "ol", "p", "picture", "pre", "q", "qti-assessment-item", "qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-feedback-block", "qti-feedback-block.template", "qti-feedback-inline", "qti-gap", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-choice", "qti-hotspot-interaction", "qti-hottext", "qti-hottext-interaction", "qti-inline-choice", "qti-inline-choice-interaction", "qti-item-body", "qti-label", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-prompt", "qti-rubric-block", "qti-rubric-block.test", "qti-select-point-interaction", "qti-simple-associable-choice", "qti-simple-choice", "qti-slider-interaction", "qti-stimulus-body", "qti-template-block", "qti-template-block.rubric", "qti-template-inline", "qti-template-inline.rubric", "qti-text-entry-interaction", "qti-upload-interaction", "rb", "rp", "rt", "rtc", "ruby", "samp", "section", "small", "source", "span", "strong", "sub", "summary", "sup", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "track", "tt", "ul", "var", "video"]) and Logic.eq(name, "label") in LabelUse(package, path, start) over the rows a write removes from LabelUse';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_lexical_kind_name_in_tolerance_bldm4hsw4e"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.in(lexical, ["absolute", "relative"]) and Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance-mode") in Tolerance(package, path, start) over the rows a write adds to Attribute';
+COMMENT ON FUNCTION "qti"."__judge_attribute_lexical_kind_name_in_attribute_vrp5tgvtdu"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.in(lexical, ["absolute", "relative"]) and Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance-mode") in Attribute(package, path, start) where Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance") over the rows a write adds to Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_lexical_kind_name_in_tolerance_jdzwic5flb"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.in(lexical, ["absolute", "relative"]) and Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance-mode") in Tolerance(package, path, start) over the rows a write removes from Tolerance';
+COMMENT ON FUNCTION "qti"."__judge_attribute_lexical_kind_name_in_attribute_hgiunwbyds"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.in(lexical, ["absolute", "relative"]) and Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance-mode") in Attribute(package, path, start) where Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance") over the rows a write removes from Attribute';
 
 COMMENT ON FUNCTION "qti"."__judge_attribute_governor_kind_name_in_document_id_zrggbqqifb"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.or(Logic.and(ValueIdentity.has(AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), Logic.eq(ValueIdentity.at("identity", AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), "ID")), Logic.and(Logic.eq(kind, "qti-context-declaration"), Logic.eq(name, "identifier"))) in DocumentId(package, path, start) over the rows a write adds to Attribute';
 
@@ -4237,9 +4079,7 @@ COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_stimulus_ref_xw3wcg5tn
 
 COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_stimulus_ref_gcbbze5ima"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-assessment-stimulus-ref") and Logic.eq(name, "identifier") in StimulusRef(package, path, start) over the rows a write removes from StimulusRef';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_tolerance_2ub2yr6o5n"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance") in Tolerance(package, path, start) over the rows a write adds to Attribute';
-
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_tolerance_xdhohhppto"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance") in Tolerance(package, path, start) over the rows a write removes from Tolerance';
+COMMENT ON FUNCTION "qti"."__judge_attribute_in_tolerance_token_56oa46mawv"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance") in ToleranceToken(package, path, start) where Logic.eq(at, 0n) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_pci_module_form_7xexnu4ber"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-portable-custom-interaction") and Logic.eq(name, "module") in PciModuleForm(package, path, start) where Logic.eq(element, false) over the rows a write adds to Attribute';
 
@@ -4260,10 +4100,6 @@ COMMENT ON FUNCTION "qti"."__judge_attribute_name_in_data_ssml_wfvwlhstvy"() IS 
 COMMENT ON FUNCTION "qti"."__judge_attribute_name_in_catalog_scope_3pxsrlwkrh"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(name, "xml:lang") in CatalogScope(package, path, start) over the rows a write adds to Attribute';
 
 COMMENT ON FUNCTION "qti"."__judge_attribute_name_in_catalog_scope_jovrqlkfz4"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(name, "xml:lang") in CatalogScope(package, path, start) over the rows a write removes from CatalogScope';
-
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_rounding_figures_73fwx6kbb4"() IS 'the rule judge''s block of rule Attribute(package, path, start, lexicalDigest) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) and Logic.eq(name, "figures") in RoundingFigures(package, path, start, figuresLexicalDigest) over the rows a write adds to Attribute';
-
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_rounding_figures_udayk7yfmf"() IS 'the rule judge''s block of rule Attribute(package, path, start, lexicalDigest) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) and Logic.eq(name, "figures") in RoundingFigures(package, path, start, figuresLexicalDigest) over the rows a write removes from RoundingFigures';
 
 COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_math_action_pi5kawylw7"() IS 'the rule judge''s block of rule Attribute(package, path, start, lexicalDigest) where Logic.eq(kind, "m:maction") and Logic.eq(name, "selection") in MathAction(package, path, start, selectionLexicalDigest) where Logic.eq(selectionWritten, true) over the rows a write adds to Attribute';
 
@@ -4645,10 +4481,6 @@ COMMENT ON FUNCTION "qti"."__judge_node_kind_in_expression_oxp552kpkh"() IS 'the
 
 COMMENT ON FUNCTION "qti"."__judge_node_kind_in_expression_sdwby4w55o"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["qti-and", "qti-any-n", "qti-base-value", "qti-container-size", "qti-contains", "qti-correct", "qti-custom-operator", "qti-default", "qti-delete", "qti-divide", "qti-duration-gte", "qti-duration-lt", "qti-equal", "qti-equal-rounded", "qti-field-value", "qti-gcd", "qti-gt", "qti-gte", "qti-index", "qti-inside", "qti-integer-divide", "qti-integer-modulus", "qti-integer-to-float", "qti-is-null", "qti-lcm", "qti-lt", "qti-lte", "qti-map-response", "qti-map-response-point", "qti-match", "qti-math-constant", "qti-math-operator", "qti-max", "qti-member", "qti-min", "qti-multiple", "qti-not", "qti-null", "qti-number-correct", "qti-number-incorrect", "qti-number-presented", "qti-number-responded", "qti-number-selected", "qti-or", "qti-ordered", "qti-outcome-maximum", "qti-outcome-minimum", "qti-pattern-match", "qti-power", "qti-product", "qti-random", "qti-random-float", "qti-random-integer", "qti-repeat", "qti-round", "qti-round-to", "qti-stats-operator", "qti-string-match", "qti-substring", "qti-subtract", "qti-sum", "qti-test-variables", "qti-truncate", "qti-variable"]) in Expression(package, path, start) over the rows a write adds to Node';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_in_rounding_2rz32ccb5d"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) in Rounding(package, path, start) over the rows a write adds to Node';
-
-COMMENT ON FUNCTION "qti"."__judge_node_kind_in_rounding_jtqqxvwby6"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) in Rounding(package, path, start) over the rows a write removes from Rounding';
-
 COMMENT ON FUNCTION "qti"."__judge_node_kind_in_processing_g66n3h275c"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["qti-exit-response", "qti-exit-template", "qti-exit-test", "qti-lookup-outcome-value", "qti-outcome-condition", "qti-outcome-else", "qti-outcome-else-if", "qti-outcome-if", "qti-outcome-processing", "qti-outcome-processing-fragment", "qti-response-condition", "qti-response-else", "qti-response-else-if", "qti-response-if", "qti-response-processing", "qti-response-processing-fragment", "qti-set-correct-response", "qti-set-default-value", "qti-set-outcome-value", "qti-set-template-value", "qti-template-condition", "qti-template-constraint", "qti-template-else", "qti-template-else-if", "qti-template-if", "qti-template-processing"]) in Processing(package, path, start) over the rows a write adds to Node';
 
 COMMENT ON FUNCTION "qti"."__judge_node_kind_in_processing_jsf3pyrqrs"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["qti-exit-response", "qti-exit-template", "qti-exit-test", "qti-lookup-outcome-value", "qti-outcome-condition", "qti-outcome-else", "qti-outcome-else-if", "qti-outcome-if", "qti-outcome-processing", "qti-outcome-processing-fragment", "qti-response-condition", "qti-response-else", "qti-response-else-if", "qti-response-if", "qti-response-processing", "qti-response-processing-fragment", "qti-set-correct-response", "qti-set-default-value", "qti-set-outcome-value", "qti-set-template-value", "qti-template-condition", "qti-template-constraint", "qti-template-else", "qti-template-else-if", "qti-template-if", "qti-template-processing"]) in Processing(package, path, start) over the rows a write removes from Processing';
@@ -4893,36 +4725,6 @@ COMMENT ON FUNCTION "qti"."__judge_resource_href_path_in_resource_href_gue657k2n
 
 COMMENT ON FUNCTION "qti"."__judge_resource_href_path_in_resource_file_path_4fdzdqmxmd"() IS 'the rule judge''s block of rule ResourceHrefPath(package, path, start, target) in ResourceFilePath(package, path, resource, target) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_rounding_in_node_vdkfqeprwq"() IS 'the rule judge''s block of rule Rounding(package, path, start) in Node(package, path, start) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) over the rows a write removes from Node';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_in_node_mpmhhwop5o"() IS 'the rule judge''s block of rule Rounding(package, path, start) in Node(package, path, start) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) over the rows a write adds to Rounding';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_holds_in_rounding_figures_j2lu5p222q"() IS 'the rule judge''s block of rule Rounding(package, path, start) where Logic.in(holds, ["both", "figures"]) in RoundingFigures(package, path, start) over the rows a write adds to Rounding';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_holds_in_rounding_figures_f2j7yg3sat"() IS 'the rule judge''s block of rule Rounding(package, path, start) where Logic.in(holds, ["both", "figures"]) in RoundingFigures(package, path, start) over the rows a write removes from RoundingFigures';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_in_rounding_mode_6geuz5667c"() IS 'the rule judge''s block of rule Rounding(package, path, start) where Logic.in(holds, ["both", "mode"]) in RoundingMode(package, path, start) over its units';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_holds_in_rounding_mode_figures_wpsvhqnozr"() IS 'the rule judge''s block of rule Rounding(package, path, start) where Logic.eq(holds, "both") in RoundingModeFigures(package, path, start) over the rows a write adds to Rounding';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_holds_in_rounding_mode_figures_u3fqnzn2gx"() IS 'the rule judge''s block of rule Rounding(package, path, start) where Logic.eq(holds, "both") in RoundingModeFigures(package, path, start) over the rows a write removes from RoundingModeFigures';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_figures_in_attribute_gfknrqmveq"() IS 'the rule judge''s block of rule RoundingFigures(package, path, start) in Attribute(package, path, start) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) and Logic.eq(name, "figures") over the rows a write removes from Attribute';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_figures_in_attribute_bky2cxagfl"() IS 'the rule judge''s block of rule RoundingFigures(package, path, start) in Attribute(package, path, start) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) and Logic.eq(name, "figures") over the rows a write adds to RoundingFigures';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_figures_in_rounding_b7bus5gte7"() IS 'the rule judge''s block of rule RoundingFigures(package, path, start) in Rounding(package, path, start) where Logic.in(holds, ["both", "figures"]) over the rows a write removes from Rounding';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_figures_in_rounding_ibbjba64hh"() IS 'the rule judge''s block of rule RoundingFigures(package, path, start) in Rounding(package, path, start) where Logic.in(holds, ["both", "figures"]) over the rows a write adds to RoundingFigures';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_mode_in_rounding_esbh5hi542"() IS 'the rule judge''s block of rule RoundingMode(package, path, start) in Rounding(package, path, start) where Logic.in(holds, ["both", "mode"]) over its units';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_mode_figures_in_rounding_zzxbeas5p4"() IS 'the rule judge''s block of rule RoundingModeFigures(package, path, start) in Rounding(package, path, start) where Logic.eq(holds, "both") over the rows a write removes from Rounding';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_mode_figures_in_rounding_2uw6nmafpv"() IS 'the rule judge''s block of rule RoundingModeFigures(package, path, start) in Rounding(package, path, start) where Logic.eq(holds, "both") over the rows a write adds to RoundingModeFigures';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_mode_figures_in_rounding_mode_5zudd4zspn"() IS 'the rule judge''s block of rule RoundingModeFigures(package, path, start, mode) in RoundingMode(package, path, start, mode) over its units';
-
 COMMENT ON FUNCTION "qti"."__judge_scope_node_in_math_align_scope_eydczxjui3"() IS 'the rule judge''s block of rule ScopeNode(package, path, parent, cell, received, inherited) where Logic.ne(kind, "m:mtd") in MathAlignScope(package, path, start, cell, passes, own) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_scope_node_in_math_action_twlrriudbq"() IS 'the rule judge''s block of rule ScopeNode(package, path, parent, chosen) where Logic.ne(kind, "m:mtd") and Logic.eq(parentKind, "m:maction") in MathAction(package, path, start, selection) over its units';
@@ -5033,25 +4835,11 @@ COMMENT ON FUNCTION "qti"."__judge_text_reference_path_in_text_reference_6iyxmki
 
 COMMENT ON FUNCTION "qti"."__judge_text_reference_path_in_text_reference_7k7swwgynq"() IS 'the rule judge''s block of rule TextReferencePath(package, path, start, kind) in TextReference(package, path, start, kind) where Logic.eq(scope, "entry") over the rows a write adds to TextReferencePath';
 
-COMMENT ON FUNCTION "qti"."__judge_tolerance_in_attribute_zbufixqgxp"() IS 'the rule judge''s block of rule Tolerance(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance") over the rows a write removes from Attribute';
-
-COMMENT ON FUNCTION "qti"."__judge_tolerance_in_attribute_duyccra5c5"() IS 'the rule judge''s block of rule Tolerance(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance") over the rows a write adds to Tolerance';
-
 COMMENT ON FUNCTION "qti"."__judge_typed_path_in_resource_document_k5nhgvc4ub"() IS 'the rule judge''s block of rule TypedPath(package, target, type) where Logic.in(type, ["imsqti_fragment_xmlv3p0", "imsqti_item_xmlv3p0", "imsqti_outcomes_xmlv3p0", "imsqti_resprocessing_xmlv3p0", "imsqti_rptemplate_xmlv3p0", "imsqti_section_xmlv3p0", "imsqti_stimulus_xmlv3p0", "imsqti_test_xmlv3p0", "qtiusagedata/xml", "resourcemetadata/xml"]) in ResourceDocument(package, path, type) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_unassembled_reference_in_catalog_id_qlplza6aff"() IS 'the rule judge''s block of rule UnassembledReference(package, path, tokenDigest) in CatalogId(package, path, idDigest) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_untargeted_item_ref_in_unread_type_href_7b4c53lcjo"() IS 'the rule judge''s block of rule UntargetedItemRef(package, target) in UnreadTypeHref(package, target) over its units';
-
-COMMENT ON FUNCTION "qti"."__judge_usage_value_in_usage_base_type_nwm76d7aw5"() IS 'the rule judge''s block of rule UsageValue(package, path, start, baseTypeLexical) in UsageBaseType(package, path, start, value) over its units';
-
-COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_lexical_in_usage_value_rvhbvv7ozx"() IS 'the rule judge''s block of rule UsageValue(package, path, start, baseTypeLexicalDigest) where Logic.in(baseTypeLexical, ["boolean", "directedPair", "duration", "file", "float", "identifier", "integer", "pair", "point", "string", "uri"]) in UsageValueBaseType(package, path, start, baseTypeLexicalDigest) over the rows a write adds to UsageValue';
-
-COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_lexical_in_usage_value_en4myfmbls"() IS 'the rule judge''s block of rule UsageValue(package, path, start, baseTypeLexicalDigest) where Logic.in(baseTypeLexical, ["boolean", "directedPair", "duration", "file", "float", "identifier", "integer", "pair", "point", "string", "uri"]) in UsageValueBaseType(package, path, start, baseTypeLexicalDigest) over the rows a write removes from UsageValueBaseType';
-
-COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_in_usage_value_bspiumxxhx"() IS 'the rule judge''s block of rule UsageValueBaseType(package, path, start, baseTypeLexicalDigest) in UsageValue(package, path, start, baseTypeLexicalDigest) where Logic.in(baseTypeLexical, ["boolean", "directedPair", "duration", "file", "float", "identifier", "integer", "pair", "point", "string", "uri"]) over the rows a write removes from UsageValue';
-
-COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_in_usage_value_gz7b6ecdmn"() IS 'the rule judge''s block of rule UsageValueBaseType(package, path, start, baseTypeLexicalDigest) in UsageValue(package, path, start, baseTypeLexicalDigest) where Logic.in(baseTypeLexical, ["boolean", "directedPair", "duration", "file", "float", "identifier", "integer", "pair", "point", "string", "uri"]) over the rows a write adds to UsageValueBaseType';
 
 COMMENT ON FUNCTION "qti"."__judge_variable_ref_node_in_expression_2jiipu6mjc"() IS 'the rule judge''s block of rule VariableRefNode(package, path, start, language) where Logic.in(kind, ["qti-and", "qti-any-n", "qti-base-value", "qti-container-size", "qti-contains", "qti-correct", "qti-custom-operator", "qti-default", "qti-delete", "qti-divide", "qti-duration-gte", "qti-duration-lt", "qti-equal", "qti-equal-rounded", "qti-field-value", "qti-gcd", "qti-gt", "qti-gte", "qti-index", "qti-inside", "qti-integer-divide", "qti-integer-modulus", "qti-integer-to-float", "qti-is-null", "qti-lcm", "qti-lt", "qti-lte", "qti-map-response", "qti-map-response-point", "qti-match", "qti-math-constant", "qti-math-operator", "qti-max", "qti-member", "qti-min", "qti-multiple", "qti-not", "qti-null", "qti-number-correct", "qti-number-incorrect", "qti-number-presented", "qti-number-responded", "qti-number-selected", "qti-or", "qti-ordered", "qti-outcome-maximum", "qti-outcome-minimum", "qti-pattern-match", "qti-power", "qti-product", "qti-random", "qti-random-float", "qti-random-integer", "qti-repeat", "qti-round", "qti-round-to", "qti-stats-operator", "qti-string-match", "qti-substring", "qti-subtract", "qti-sum", "qti-test-variables", "qti-truncate", "qti-variable"]) in Expression(package, path, start, language) over its units';
 
@@ -5095,7 +4883,7 @@ COMMENT ON FUNCTION "qti"."__judge_test_reading_key_package_assembly_path_start_
 
 COMMENT ON FUNCTION "qti"."__judge_trimmed_mark_key_package_path_fragment_value_t7jxdfhmxy"() IS 'the rule judge''s block of rule key TrimmedMark(package, path, fragment, value) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_assembled_document_n5cmjplr5w"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of AssembledDocument and the relations its rules join it to';
+COMMENT ON FUNCTION "qti"."__judge_assembled_document_l2cvxmekog"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of AssembledDocument and the relations its rules join it to';
 
 COMMENT ON FUNCTION "qti"."__judge_assembled_document_4u6x2mwpnm"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of AssembledDocument and the relations its rules join it to';
 
@@ -5169,12 +4957,6 @@ COMMENT ON FUNCTION "qti"."__judge_resource_href_lwllourm5u"("pg_catalog"."text"
 
 COMMENT ON FUNCTION "qti"."__judge_resource_href_outside_puyn3bghgt"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of ResourceHrefOutside and the relations its rules join it to';
 
-COMMENT ON FUNCTION "qti"."__judge_rounding_figures_ejzeve7kkr"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of RoundingFigures and the relations its rules join it to';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_figures_apuhzaslid"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of RoundingFigures and the relations its rules join it to';
-
-COMMENT ON FUNCTION "qti"."__judge_rounding_mode_figures_zxt2jfduhv"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of RoundingModeFigures and the relations its rules join it to';
-
 COMMENT ON FUNCTION "qti"."__judge_share_target_bm5dyz6buk"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of ShareTarget and the relations its rules join it to';
 
 COMMENT ON FUNCTION "qti"."__judge_site_path_g7o4ekld2u"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of SitePath and the relations its rules join it to';
@@ -5192,14 +4974,6 @@ COMMENT ON FUNCTION "qti"."__judge_text_reference_ayzonoljhk"("pg_catalog"."text
 COMMENT ON FUNCTION "qti"."__judge_text_reference_path_ajucpwxch4"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of TextReferencePath and the relations its rules join it to';
 
 COMMENT ON FUNCTION "qti"."__judge_text_reference_path_irf73jwdgt"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of TextReferencePath and the relations its rules join it to';
-
-COMMENT ON FUNCTION "qti"."__judge_tolerance_qrfzm6r5dn"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Tolerance and the relations its rules join it to';
-
-COMMENT ON FUNCTION "qti"."__judge_usage_value_aopaid42o2"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of UsageValue and the relations its rules join it to';
-
-COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_irq5krczu4"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of UsageValueBaseType and the relations its rules join it to';
-
-COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_wuuyvbajaw"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of UsageValueBaseType and the relations its rules join it to';
 
 COMMENT ON FUNCTION "qti"."__upkeep_assembled_catalog_adoubyawsw"() IS 'the rule judge''s upkeep of stored relation AssembledCatalog';
 
@@ -5393,12 +5167,6 @@ COMMENT ON FUNCTION "qti"."__capture_resource_href_outside_sflje2hh5z"() IS 'rul
 
 COMMENT ON FUNCTION "qti"."__capture_resource_href_path_hikvay3rfe"() IS 'rule capture of ResourceHrefPath';
 
-COMMENT ON FUNCTION "qti"."__capture_rounding_62zjiurefn"() IS 'rule capture of Rounding';
-
-COMMENT ON FUNCTION "qti"."__capture_rounding_figures_x67em2nz6x"() IS 'rule capture of RoundingFigures';
-
-COMMENT ON FUNCTION "qti"."__capture_rounding_mode_figures_np5ekmxxtw"() IS 'rule capture of RoundingModeFigures';
-
 COMMENT ON FUNCTION "qti"."__capture_share_fragment_23yyb62piz"() IS 'rule capture of ShareFragment';
 
 COMMENT ON FUNCTION "qti"."__capture_share_target_xf6egfoz4f"() IS 'rule capture of ShareTarget';
@@ -5422,12 +5190,6 @@ COMMENT ON FUNCTION "qti"."__capture_template_ref_dre62in37w"() IS 'rule capture
 COMMENT ON FUNCTION "qti"."__capture_text_reference_4wyk6zxgqf"() IS 'rule capture of TextReference';
 
 COMMENT ON FUNCTION "qti"."__capture_text_reference_path_znomqpm3dr"() IS 'rule capture of TextReferencePath';
-
-COMMENT ON FUNCTION "qti"."__capture_tolerance_sfo7irkllw"() IS 'rule capture of Tolerance';
-
-COMMENT ON FUNCTION "qti"."__capture_usage_value_d4x3vydjzt"() IS 'rule capture of UsageValue';
-
-COMMENT ON FUNCTION "qti"."__capture_usage_value_base_type_a6p2zwmowi"() IS 'rule capture of UsageValueBaseType';
 
 COMMENT ON FUNCTION "qti"."__capture_variable_ref_lckeobxqnf"() IS 'rule capture of VariableRef';
 
@@ -5601,12 +5363,6 @@ COMMENT ON FUNCTION "qti"."__stand_resource_href_outside_h5ayb4ywy5"() IS 'the s
 
 COMMENT ON FUNCTION "qti"."__stand_resource_href_path_cetda5wlcb"() IS 'the stand-up of the rule judge''s session tables a write of ResourceHrefPath needs';
 
-COMMENT ON FUNCTION "qti"."__stand_rounding_c2ifmdme7j"() IS 'the stand-up of the rule judge''s session tables a write of Rounding needs';
-
-COMMENT ON FUNCTION "qti"."__stand_rounding_figures_lqklyjsczn"() IS 'the stand-up of the rule judge''s session tables a write of RoundingFigures needs';
-
-COMMENT ON FUNCTION "qti"."__stand_rounding_mode_figures_xtki3xbmlh"() IS 'the stand-up of the rule judge''s session tables a write of RoundingModeFigures needs';
-
 COMMENT ON FUNCTION "qti"."__stand_share_fragment_vlshgysorq"() IS 'the stand-up of the rule judge''s session tables a write of ShareFragment needs';
 
 COMMENT ON FUNCTION "qti"."__stand_share_target_uodbsrbtr7"() IS 'the stand-up of the rule judge''s session tables a write of ShareTarget needs';
@@ -5630,12 +5386,6 @@ COMMENT ON FUNCTION "qti"."__stand_template_ref_5rw7gnm6ga"() IS 'the stand-up o
 COMMENT ON FUNCTION "qti"."__stand_text_reference_xbgifadnt4"() IS 'the stand-up of the rule judge''s session tables a write of TextReference needs';
 
 COMMENT ON FUNCTION "qti"."__stand_text_reference_path_ijtliptx3w"() IS 'the stand-up of the rule judge''s session tables a write of TextReferencePath needs';
-
-COMMENT ON FUNCTION "qti"."__stand_tolerance_j3naktmm3s"() IS 'the stand-up of the rule judge''s session tables a write of Tolerance needs';
-
-COMMENT ON FUNCTION "qti"."__stand_usage_value_jbqmhc66yy"() IS 'the stand-up of the rule judge''s session tables a write of UsageValue needs';
-
-COMMENT ON FUNCTION "qti"."__stand_usage_value_base_type_ss7bxv4pjb"() IS 'the stand-up of the rule judge''s session tables a write of UsageValueBaseType needs';
 
 COMMENT ON FUNCTION "qti"."__stand_variable_ref_htgoqewgip"() IS 'the stand-up of the rule judge''s session tables a write of VariableRef needs';
 
@@ -5825,12 +5575,6 @@ COMMENT ON FUNCTION "qti"."__immutable_resource_href_outside_hhcxhput7m"() IS 'i
 
 COMMENT ON FUNCTION "qti"."__immutable_resource_href_path_geg2rregza"() IS 'immutability guard of ResourceHrefPath';
 
-COMMENT ON FUNCTION "qti"."__immutable_rounding_nineaee63d"() IS 'immutability guard of Rounding';
-
-COMMENT ON FUNCTION "qti"."__immutable_rounding_figures_4cuqyjt6ud"() IS 'immutability guard of RoundingFigures';
-
-COMMENT ON FUNCTION "qti"."__immutable_rounding_mode_figures_ret6orbywb"() IS 'immutability guard of RoundingModeFigures';
-
 COMMENT ON FUNCTION "qti"."__immutable_sd_decl_3xgbeclw67"() IS 'immutability guard of SdDecl';
 
 COMMENT ON FUNCTION "qti"."__immutable_share_fragment_lux4lz54b4"() IS 'immutability guard of ShareFragment';
@@ -5858,14 +5602,6 @@ COMMENT ON FUNCTION "qti"."__immutable_text_idref_iatqcpbyrw"() IS 'immutability
 COMMENT ON FUNCTION "qti"."__immutable_text_reference_t575rjvqct"() IS 'immutability guard of TextReference';
 
 COMMENT ON FUNCTION "qti"."__immutable_text_reference_path_rdz63xnbcm"() IS 'immutability guard of TextReferencePath';
-
-COMMENT ON FUNCTION "qti"."__immutable_tolerance_qlqblufht2"() IS 'immutability guard of Tolerance';
-
-COMMENT ON FUNCTION "qti"."__immutable_tolerance_token_3mam4bz3yb"() IS 'immutability guard of ToleranceToken';
-
-COMMENT ON FUNCTION "qti"."__immutable_usage_value_jnk7ednwfy"() IS 'immutability guard of UsageValue';
-
-COMMENT ON FUNCTION "qti"."__immutable_usage_value_base_type_r6zekdtvgx"() IS 'immutability guard of UsageValueBaseType';
 
 COMMENT ON FUNCTION "qti"."__immutable_variable_ref_2akeo54qw2"() IS 'immutability guard of VariableRef';
 

@@ -51,7 +51,8 @@
  *   base type ("A class that can represent a single value of any baseType", the usage data
  *   binding's Value class, §2.6.5), its text read as a `qti-value`'s is, by `BaseTypePattern`; one
  *   outside a record, or that writes no `baseType`, is the XSD's `xs:normalizedString` text, a
- *   `baseType` outside a record being no base type to state ({@link UsageValue}).
+ *   `baseType` outside a record being no base type to state (`UsageValueBaseType`, a view of
+ *   `#pantry/qti/queries.ts`, holds each record's typed value).
  *
  * **`lom-title`'s comparisons.** The binding compares a title in `xs:normalizedString`'s value
  * space, where a tab, a line feed and a carriage return each read as a space (XML Schema 1.0 Part 2
@@ -70,51 +71,23 @@
  * by its domain's class, so the law compares the collapsed values and no padding is refused
  * (reading 1).
  *
- * Each overlay row is keyed by its node's `(package, path, start)` and holds its own facts alone,
- * never its node's (decision S3), and every link to another element of its document is that
- * element's `start`. A LOM record is read from `Node` by its nodes' `parent`, each leaf's text its
- * folded `stringValue`, so no row copies a fact of a record.
+ * A LOM record is read from `Node` by its nodes' `parent`, each leaf's text its folded
+ * `stringValue`, so no row copies a fact of a record.
  *
  * The other metadata the package carries has no overlay, since no law reads it across rows: QTI
  * metadata, curriculum standards metadata and the rest of LOM are judged by their content models
  * (N5, N7) and their value domains (AL1, TextDomain), and a usage statistic's children by N5's
  * content order, with no ordering law of their own, and its `lastUpdated`, a `DateDType`, by its
- * value domain alone, xs:date's lexical space with the month lengths and the leap rule (AL1): only
- * its typed value is copied, into a row of its own.
+ * value domain alone, xs:date's lexical space with the month lengths and the leap rule (AL1).
  *
  * Every check is named by its oracle law (`#pantry/test/oracle.ts` `LawName`) with spaces written
- * as underscores: an overlay's agreement with the tree it restates is "E1 derived" (rule
- * `derived`). Every copied text that takes part in a cross-row equality is of its type's bound in a
- * key (`#pantry/qti/limits.ts`), so a key, a containment's target and a lookup hold it as itself.
- * `lom-identifier`, `lom-title` and `lom-learning-resource-type` compare their texts inside a
- * query, which a rule reads with no key over them.
+ * as underscores. `lom-identifier`, `lom-title`, `lom-learning-resource-type` and "Usage typed
+ * value" read views, so they are rules over a query (`#pantry/qti/queries.ts`).
  *
  * @see {@link https://www.imsglobal.org/sites/default/files/spec/qti/v3/md-bind/index.html | QTI 3.0 Metadata, §2.7.1 The General Category}
  * @see {@link https://www.w3.org/TR/xmlschema-2/#rf-whiteSpace | XML Schema Part 2, whiteSpace}
  */
-import {
-  check,
-  closedId,
-  contained,
-  Crypto,
-  generated,
-  law,
-  on,
-  relation,
-  select,
-  sha256,
-  Text,
-} from "@bjornpagen/grizzle";
 import type { NodeKind, ResourceType } from "#pantry/grammar/install.ts";
-import { BaseType, BaseTypeLexical, anyText, natural } from "#pantry/grammar/install.ts";
-import { baseTypes } from "#pantry/grammar/attributes.ts";
-import { carries } from "#pantry/qti/attributes.ts";
-import { BaseTypePattern, unjudgedBaseTypes } from "#pantry/qti/expression-types.ts";
-import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
-import { Node } from "#pantry/qti/node.ts";
-import { usageValueKind } from "#pantry/vocab/terms/metadata.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
-import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * The resource types whose LOM record names its document (reading 62): an item's and a test's.
@@ -129,73 +102,6 @@ export const objectTypes = [
  * `cp:resource`.
  */
 export const resourceMetadata = "cp:metadata.resource" satisfies (typeof NodeKind.handles)[number];
-
-/**
- * A usage statistic's value that forms part of a record and names its base type, keyed by its
- * `ud:value` node: its `baseType` as written, `baseTypeLexical`, which is its attribute's `value`
- * (`UsageBaseType` of `#pantry/qti/queries.ts`; an `xs:string` enumeration's class is `preserve`),
- * and `text`, its string value, `Node.stringValue` folded by `copiedTextKinds`
- * (`#pantry/qti/node.ts`), held to it by its digest, `textDigest`, which a key holds where the text
- * of any length would not fit (`Node.stringValueDigest`). The `BaseType` code its lexical form
- * spells is a row of its own, {@link UsageValueBaseType}, where it spells one.
- *
- * A value forms part of a record where it writes a `fieldIdentifier` (usage data binding §2.6.5.1).
- * A value outside a record, or one that writes no `baseType`, has no row: the binding has no base
- * type to state for the one and no declaration to type the other, so it is its governing type's
- * `xs:normalizedString` text, which every text is (spec reading 105).
- */
-export const UsageValue = law(
-  entryOf("E1 derived"),
-  relation.generated(
-    "UsageValue",
-    {
-      baseTypeLexical: matchedText,
-      package: PackageName,
-      path: EntryPath,
-      start: natural,
-      text: anyText,
-    },
-    ["package", "path", "start"],
-    (u) => ({
-      baseTypeLexicalDigest: law(
-        entryOf("E1 derived"),
-        generated(sha256, Crypto.sha256(u.baseTypeLexical)),
-      ),
-      textDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(u.text))),
-    }),
-  ),
-);
-
-/**
- * A record's usage value whose `baseType` spells a code (`baseTypes`, as written), keyed by its
- * `ud:value` node: `baseType`, the `BaseType` code its lexical form spells (C17), beside that form,
- * its {@link UsageValue}'s, copied both ways, and `text`, its node's string value, held to it by
- * its digest, `textDigest`, as `UsageValue`'s is. A `baseType` that spells no code
- * has no row, so no base type stands for it, and its value domain refuses it alone (decision 427,
- * as `DeclarationBaseType` holds a declaration's base type only where it has one).
- */
-export const UsageValueBaseType = law(
-  entryOf("E1 derived"),
-  relation.generated(
-    "UsageValueBaseType",
-    {
-      baseType: closedId(BaseType),
-      baseTypeLexical: matchedText,
-      package: PackageName,
-      path: EntryPath,
-      start: natural,
-      text: anyText,
-    },
-    ["package", "path", "start"],
-    (u) => ({
-      baseTypeLexicalDigest: law(
-        entryOf("E1 derived"),
-        generated(sha256, Crypto.sha256(u.baseTypeLexical)),
-      ),
-      textDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(u.text))),
-    }),
-  ),
-);
 
 /**
  * The LOM vocabulary's source: the `source` the loose binding writes for a vocabulary term that
@@ -216,91 +122,3 @@ export const lomVocabularySources = ["", lomVocabulary] as const;
  * LOM-defined values self assessment and exam are forbidden"), as their values collapse.
  */
 export const forbiddenResourceTypes = ["exam", "self assessment"] as const;
-
-/**
- * The relations this module declares, in one list, as `schema.ts` composes them.
- */
-export const metadataRelations = [UsageValue, UsageValueBaseType] as const;
-
-/**
- * The usage statistic's values that form part of a record and name a base type: those that write a
- * `fieldIdentifier` and a `baseType` (spec reading 105).
- */
-const usageRecordValues = select(Node, (n) =>
-  n.and(n.eq(n.kind, usageValueKind), carries(n, "baseType"), carries(n, "fieldIdentifier")),
-);
-
-/**
- * The record usage values whose `baseType` spells a code, as written: each has its
- * {@link UsageValueBaseType}, and only these do.
- */
-const spelledUsageValues = select(UsageValue, (u) => u.in(u.baseTypeLexical, baseTypes));
-
-/**
- * Every statement over the metadata overlays, each `check` named by its oracle law:
- *
- * - **the objects:** an item's root's `identifier` and `title` are no rows here: each is its
- *   attribute's own `value`, selected by a query of `#pantry/qti/queries.ts` (`ObjectIdentifier`,
- *   by its document's place, and `objectTitles`, which `lom-title` reads; C18, spec reading 148).
- *   That attribute's selection is of an item's kind, and the grammar admits an item only as its
- *   document's root: no pinned XSD names it as a particle, and no wildcard admits it, since it is
- *   one of the roots spec reading 6 keeps foreign (`foreignRoots` of `#pantry/vocab/open.ts`, which
- *   `#pantry/grammar/content.ts` filters out of every wildcard's kinds). So a document has at most
- *   one of each. A root that writes neither has neither, and AL3 refuses it. Its `xml:lang` is its
- *   attribute, whose `LangValue` (`#pantry/qti/names.ts`) `lom-title` compares.
- * - **`lom-identifier`, `lom-title` and `lom-learning-resource-type`** read the LOM records, which no
- *   row here holds: each is a rule over a query over `Node` (`metadataQueryLawsByName`,
- *   `#pantry/qti/queries.ts`), as R26 is (`identityQueryLawsByName`).
- * - **Usage typed value:** each usage value that writes a `baseType` and a `fieldIdentifier` has its
- *   {@link UsageValue}, and every such row is one, its `baseType` its attribute's `value`, a rule
- *   over the query `UsageBaseType` (`#pantry/qti/queries.ts`); its `text` is its node's string
- *   value, by their digests; one whose `baseType` spells a code has its {@link UsageValueBaseType},
- *   and every such row is one, its lexical form copied from it and its text from the node, by their
- *   digests; its code is the one its lexical form spells ("E1 derived"); and its text is a lexical
- *   form of that base type ("Usage typed value").
- */
-export const metadataLawsByName = {
-  "E1 derived": declared("E1 derived", [
-    contained(
-      on(usageRecordValues, "package", "path", "start"),
-      on(UsageValue, "package", "path", "start"),
-    ),
-    contained(
-      on(UsageValue, "package", "path", "start"),
-      on(usageRecordValues, "package", "path", "start"),
-    ),
-    contained(
-      on(UsageValue, "package", "path", "start", "textDigest"),
-      on(Node, "package", "path", "start", "stringValueDigest"),
-    ),
-    contained(
-      on(spelledUsageValues, "package", "path", "start", "baseTypeLexicalDigest"),
-      on(UsageValueBaseType, "package", "path", "start", "baseTypeLexicalDigest"),
-    ),
-    contained(
-      on(UsageValueBaseType, "package", "path", "start", "baseTypeLexicalDigest"),
-      on(spelledUsageValues, "package", "path", "start", "baseTypeLexicalDigest"),
-    ),
-    contained(
-      on(UsageValueBaseType, "package", "path", "start", "textDigest"),
-      on(Node, "package", "path", "start", "stringValueDigest"),
-    ),
-    check("E1_derived", UsageValueBaseType, (u) =>
-      u.eq(BaseTypeLexical.at("lexical", u.baseType), u.baseTypeLexical),
-    ),
-  ]),
-  "Usage typed value": declared("Usage typed value", [
-    check("Usage_typed_value", UsageValueBaseType, (u) =>
-      u.or(
-        u.in(u.baseType, unjudgedBaseTypes),
-        Text.matches(u.text, BaseTypePattern.at("pattern", u.baseType)),
-      ),
-    ),
-  ]),
-} as const;
-
-/**
- * {@link metadataLawsByName}'s statements in one list, the module's laws as the schema composes
- * them.
- */
-export const metadataLaws = Object.values(metadataLawsByName).flat();

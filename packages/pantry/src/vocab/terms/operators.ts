@@ -1,7 +1,6 @@
 /**
- * The terms of operators that the schema (`#pantry/qti/operators.ts`) and the importer
- * (`#pantry/import/overlays/operators.ts`) both read. Loading this module builds no relation of the
- * schema.
+ * The terms of operators the schema's views read (`#pantry/qti/overlay-queries/expression.ts`).
+ * Loading this module builds no relation of the schema.
  */
 
 /**

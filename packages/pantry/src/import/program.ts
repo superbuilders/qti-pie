@@ -240,10 +240,6 @@ export const rowCountsOf = (program: ImportProgram): ReadonlyMap<string, number>
     add("CellLeaf", cell.leaves.length);
   }
 
-  for (const tolerance of flat.Tolerance.values()) {
-    add("ToleranceToken", tolerance.tokens.length);
-  }
-
   for (const srcset of flat.Srcset.values()) {
     add("SrcsetCandidate", srcset.tokens.length);
   }

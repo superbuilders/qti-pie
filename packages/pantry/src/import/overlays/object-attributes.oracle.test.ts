@@ -9,8 +9,8 @@
  * queries match a record's entries and strings against those alone (`MatchedIdentifier`,
  * `MatchedTitle`, `#pantry/qti/queries.ts`), so AL3 refuses the root, and `lom-identifier` or
  * `lom-title` the record, each under its own name. A usage value's `baseType` types its text only
- * where it spells a code (spec reading 105, C17), so one that spells none has no `UsageValue` row,
- * and its value domain refuses it alone (lane NIL's audit, B11).
+ * where it spells a code (spec reading 105, C17), so one that spells none has no
+ * `UsageValueBaseType` row, and its value domain refuses it alone (lane NIL's audit, B11).
  *
  * The import once wrote an absent identifier and title as `""` and an object with either absent as
  * no row, so "E1 derived" broke beside AL3, and an empty LOM entry or title string matched an

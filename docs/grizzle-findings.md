@@ -3551,3 +3551,21 @@ ChangeSet-member budget law, with G1's regression test. Its measure is in G2's c
 Not grizzle's: qti-database imported its publisher's 15 MB served file as typed JSON, only to pass it to `served`,
 whose `file` is `unknown`. Typing that literal was 7.3 s of a checker; qti-database `916ff93a4` types the file
 `unknown` through a `types` condition, which cut its typecheck from 83,783,328 instantiations to 61,847,276.
+
+## A check over a stored derived relation that reads a pattern or a closed relation does not compile (grizzle defect; at the pin `dfc9f60ed`, lane PANTRY-OVERLAYS, 2026-11-24)
+
+A `check` over a `derived.stored` relation whose predicate hoists into a row function, a `Text.matches` against a
+`Text.pattern` or a closed relation's pattern (`BaseTypePattern.at("pattern", …)`), refuses `grizzle generate`:
+`MalformedDescription at physical names: physical: no column figures of "qti_queries"."rounding_mode_figures"`. The
+cause is `packages/engine/src/physical/ddl/context.ts:489-526` (`#withRowFunctions`): it records a table's column
+types for the row functions a CHECK hoists into only from a `createTable` or an `alterTable`'s `addColumn`, and a
+stored derived relation's table is a `createStoredTable` (`physical/derived/objects.ts:140`), so the CHECK it is given
+next (README "Derived tables": "a check over it its table's CHECK") finds no column. A key over a stored derived
+relation, and a check that hoists nothing, compile.
+
+Reproduction, with nothing from this repository: a schema with `relation("A", { k: pg.integer, t: str.regex("^.*$",
+"su") }, ["k"])`, a level over it holding `derived.stored("S", query(Base).rule((r) => { const { k, t } = v(A, "a");
+return r.match(A, { k, t }).find({ k, t }) }))` and the statement `check("C", S, (s) => Text.matches(s.t,
+Text.pattern("^[0-9]+$")))`; `grizzle generate` refuses it as above. pantry's views that carry a check
+(`RoundingModeFigures`, `ToleranceToken`, `UsageValueBaseType`) are plain `derived` until it is fixed, their
+`Text.matches` under grizzle's byte guard where the text is unbounded, since a rule over a query reads one only so.

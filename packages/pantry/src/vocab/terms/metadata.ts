@@ -1,6 +1,6 @@
 /**
  * The terms of metadata that the schema (`#pantry/qti/metadata.ts`, `identity.ts`, `queries.ts`)
- * and the importer (`#pantry/import/overlays/metadata.ts`, `identity.ts`) both read: the LOM object
+ * and the importer (`#pantry/import/overlays/identity.ts`) both read: the LOM object
  * and statistic kinds, the document types a record describes, and the empty language. Each is a
  * function of the grammar's rosters alone, so loading this module builds no relation of the
  * schema.

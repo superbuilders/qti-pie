@@ -28,8 +28,6 @@
  * ({@link attributeCodes}). A law of the stored level reads the same attributes through
  * `attributesOf` (`#pantry/qti/attributes.ts`).
  *
- * A whitespace list an owner splits into tokens is read beside its attribute's lexical form
- * ({@link listForms}), and {@link spelledByTokens} is the one statement that the tokens spell it.
  * Its reference views, {@link VariableRefNode} and {@link PlacedVariableRefNode}, are each variable
  * reference beside its element's kind and its attribute's lexical form, and each placed one beside
  * its element's kind and language, which no row copies: the one join every reference law and query
@@ -50,7 +48,6 @@
  * table.
  */
 import {
-  check,
   Crypto,
   derived,
   doubleText,
@@ -63,7 +60,6 @@ import {
   Type,
   v,
 } from "@bjornpagen/grizzle";
-import type { RelationName } from "@bjornpagen/grizzle";
 import {
   AttributeGrammar,
   AttributeModelOf,
@@ -89,7 +85,6 @@ import { LookupValue, MapKey } from "#pantry/qti/mapping.ts";
 import { documentStart, Node } from "#pantry/qti/node.ts";
 import { ReferencePath } from "#pantry/qti/package.ts";
 import { publishedTemplates, urisOf } from "#pantry/qti/templates.ts";
-import type { Tolerance } from "#pantry/qti/operators.ts";
 import { recordDocumentTypes } from "#pantry/vocab/terms/metadata.ts";
 import { cellKinds } from "#pantry/vocab/terms/html.ts";
 import { itemKind } from "#pantry/vocab/terms/tests.ts";
@@ -190,12 +185,13 @@ export const attributeValues = (
 /**
  * A guarded match's true, as a typed term.
  */
-const matched = Type.literal(pg.boolean, true);
+export const matched = Type.literal(pg.boolean, true);
 
 /**
- * A guarded match's false, as a typed term.
+ * A guarded match's false, as a typed term: a text past what PostgreSQL's regex engine reads
+ * (`matchedTextBytes`) is no form a law can read.
  */
-const unmatched = Type.literal(pg.boolean, false);
+export const unmatched = Type.literal(pg.boolean, false);
 
 /**
  * What a guarded parse of a double gives where its guard does not hold, which its query's own guard
@@ -363,65 +359,6 @@ export const attributeCodes = <L extends Lexical>(
       .find({ code, kind, package: pkg, path, start });
   });
 };
-
-/**
- * The owner of an attribute's whitespace list split into tokens (`#pantry/qti/token-list.ts`),
- * keyed by its element with its count of tokens, `tokens`, and the end of their concatenation,
- * `tokenText`: a `qti-equal`'s `tolerance`.
- */
-type ListOwner = typeof Tolerance;
-
-/**
- * Each owner of an attribute's whitespace list ({@link ListOwner}), by its element's place, beside
- * the attribute's lexical form: the owner's count of tokens and their concatenation, and the
- * attribute's `lexical`, read at `Attribute`'s key with its name fixed and never copied into the
- * owner (C18). The owner's existence on the attribute is its module's containment, so the query
- * reads the attribute by place and name alone. {@link spelledByTokens} holds the tokens to the
- * form.
- *
- * @param name - The derived relation's name.
- * @param owner - The list's owner.
- * @param attribute - The attribute it splits.
- * @returns The derived relation, by the owner's place.
- */
-export const listForms = <const Name extends string>(
-  name: RelationName<Name>,
-  owner: ListOwner,
-  attribute: (typeof AttributeName.handles)[number],
-) =>
-  derived(
-    name,
-    query(QtiBase).rule((r) => {
-      const { package: pkg, path, start, tokenText, tokens } = v(owner, "owner");
-      const { lexical } = v(Attribute, "attribute");
-
-      return r
-        .match(owner, { package: pkg, path, start, tokenText, tokens })
-        .match(Attribute, { lexical, name: attribute, package: pkg, path, start })
-        .find({ lexical, package: pkg, path, start, tokenText, tokens });
-    }),
-  );
-
-/**
- * State that a whitespace list's tokens spell its attribute's lexical form (`E1_derived`), over
- * its {@link listForms}: their concatenation is the form, or there are none and the form is XML
- * whitespace alone, which collapses to nothing. With each token's own check (`whitespaceTokens` of
- * `#pantry/qti/token-list.ts`), that makes the tokens exactly the form's whitespace-separated
- * tokens. The form is read as written, never as its `value`: a list's `value` is collapsed, and the
- * tokens hold the whitespace around them.
- *
- * @param forms - The list's forms.
- * @returns The check.
- */
-export const spelledByTokens = <const Name extends string>(
-  forms: ReturnType<typeof listForms<Name>>,
-) =>
-  check("E1_derived", forms, (o) =>
-    o.or(
-      o.eq(o.lexical, o.tokenText),
-      o.and(o.eq(o.tokens, 0n), o.eq(Text.collapse(o.lexical), "")),
-    ),
-  );
 
 /**
  * Each variable reference beside its element's kind and the attribute's lexical form, keyed as the

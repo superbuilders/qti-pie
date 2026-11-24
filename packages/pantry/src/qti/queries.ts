@@ -38,6 +38,7 @@ import { integerMathOperators } from "#pantry/grammar/expression.ts";
 import type { DeclarationKind } from "#pantry/grammar/install.ts";
 import {
   anyText,
+  BaseTypeLexical,
   Chars,
   documentTypes,
   nonElementKinds,
@@ -70,9 +71,11 @@ import {
   PrintedVariableRef,
 } from "#pantry/qti/interactions.ts";
 import {
+  BaseTypePattern,
   heldKinds,
   lookupKindHandle,
   setKindHandles,
+  unjudgedBaseTypes,
   ValueBase,
 } from "#pantry/qti/expression-types.ts";
 import {
@@ -86,7 +89,6 @@ import {
   lomVocabularySources,
   objectTypes,
   resourceMetadata,
-  UsageValue,
 } from "#pantry/qti/metadata.ts";
 import {
   Reference,
@@ -544,12 +546,34 @@ export const ObjectIdentifier = derived(
 );
 
 /**
- * A usage statistic's value's `baseType`, by its `ud:value` node, whether or not the value forms
- * part of a record ({@link attributeValues}): its `value`, the form as written, an `xs:string`
- * enumeration's class being `preserve`. No row copies it; a record value's `UsageValue`
- * (`#pantry/qti/metadata.ts`) holds its own `baseTypeLexical` to it.
+ * A usage statistic's value's `baseType` code, by its `ud:value` node, where its form spells one
+ * ({@link attributeCodes}, `BaseTypeLexical`, C17; an `xs:string` enumeration's class being
+ * `preserve`, its `value` is the form as written).
  */
-const UsageBaseType = derived("UsageBaseType", attributeValues("baseType", [usageValueKind]));
+const usageBaseTypes = attributeCodes("baseType", [usageValueKind], BaseTypeLexical);
+
+/**
+ * Each usage value that forms part of a record and names a base type (spec reading 105), by its
+ * `ud:value` node: one that writes a `fieldIdentifier` and a `baseType` whose form spells a
+ * `BaseType` code, `baseType` that code and `text` its node's string value (`Node.stringValue`). A
+ * value outside a record, or one that writes no `baseType`, is untyped text, and one whose
+ * `baseType` spells no code has no row, its value domain refusing it alone (decision 427). No row
+ * copies any of it (C18). It stores nothing: a check over a stored view that reads a pattern does
+ * not compile at the pin (`docs/grizzle-findings.md`).
+ */
+export const UsageValueBaseType = derived(
+  "UsageValueBaseType",
+  query(QtiBase).rule((r) => {
+    const { code: baseType, package: pkg, path, start } = v(usageBaseTypes, "baseType");
+    const { stringValue } = v(Node, "value");
+
+    return r
+      .match(usageBaseTypes, { code: baseType, package: pkg, path, start })
+      .match(Attribute, { name: "fieldIdentifier", package: pkg, path, start })
+      .match(Node, { package: pkg, path, start, stringValue })
+      .find({ baseType, package: pkg, path, start, text: stringValue });
+  }),
+);
 
 /**
  * An assessment object's `title`, by its root's place: the attribute's `value`, the title as
@@ -878,22 +902,16 @@ const OtherVocabularyType = derived(
  * The metadata overlays' rules over a query, each named by its oracle law (spec readings 62 and
  * 122):
  *
- * - **`E1 derived`:** a record usage value's `baseTypeLexical` is its `baseType`'s value
- *   ({@link UsageBaseType});
  * - **`lom-identifier`:** a record that names a document and lists a general identifier names that
  *   document's identifier ("LomObjectIdentifier");
  * - **`lom-title`:** a record that names a document and has a general title names that document's
  *   title in its language ("LomObjectTitle");
  * - **`lom-learning-resource-type`:** a learning resource type whose value collapses to `exam` or
  *   `self assessment` has a source that names another vocabulary ("LOM learning resource type").
+ * - **"Usage typed value"** (reading 105): a record's usage value's text is a lexical form of its
+ *   base type ({@link UsageValueBaseType}), read as a `qti-value`'s is, by `BaseTypePattern`.
  */
 const metadataQueryLawsByName = {
-  "E1 derived": declared("E1 derived", [
-    contained(
-      on(UsageValue, "package", "path", "start", "baseTypeLexical"),
-      on(UsageBaseType, "package", "path", "start", "value"),
-    ),
-  ]),
   "LOM learning resource type": declared("LOM learning resource type", [
     contained(
       on(ForbiddenResourceType, "package", "path", "type"),
@@ -910,6 +928,14 @@ const metadataQueryLawsByName = {
     contained(
       on(ListedTitle, "package", "path", "record"),
       on(MatchedTitle, "package", "path", "record"),
+    ),
+  ]),
+  "Usage typed value": declared("Usage typed value", [
+    check("Usage_typed_value", UsageValueBaseType, (u) =>
+      u.or(
+        u.in(u.baseType, unjudgedBaseTypes),
+        Text.matches(u.text, BaseTypePattern.at("pattern", u.baseType)),
+      ),
     ),
   ]),
 } as const;
@@ -2057,7 +2083,7 @@ export const queryRelations = [
   UntargetedItemRef,
   UntypedUnweighted,
   UntypedWeighted,
-  UsageBaseType,
+  UsageValueBaseType,
   WeightedVariable,
   ...overlayQueryRelations,
 ] as const;

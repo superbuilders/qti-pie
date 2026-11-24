@@ -1041,12 +1041,6 @@ RETURN '{"associatedcontent/learning-application-resource","controlfile","css2",
 
 REVOKE ALL ON FUNCTION "qti"."__resource_type_names_2tbbvn3ion"() FROM PUBLIC;
 
-CREATE FUNCTION "qti"."__rounding_holds_names_6j2zaayymp"() RETURNS "pg_catalog"."name"[]
-LANGUAGE sql IMMUTABLE PARALLEL SAFE
-RETURN '{"neither","mode","figures","both"}'::"pg_catalog"."name"[];
-
-REVOKE ALL ON FUNCTION "qti"."__rounding_holds_names_6j2zaayymp"() FROM PUBLIC;
-
 CREATE FUNCTION "qti"."__shared_model_names_5s5lwnfjh3"() RETURNS "pg_catalog"."name"[]
 LANGUAGE sql IMMUTABLE PARALLEL SAFE
 RETURN '{"m:bvar","m:piecewise","m:piece","m:interval","m:lambda","m:set","m:list","m:vector","m:matrix","m:matrixrow","m:apply","m:bind","m:cerror","m:mfrac","m:mroot","m:msub","m:msup","m:msubsup","m:munder","m:mover","m:munderover","m:mmultiscripts","m:mlongdiv","ssml:speak","xi:include"}'::"pg_catalog"."name"[];
@@ -1305,12 +1299,6 @@ RETURN X'FFFFF0'::bit varying;
 
 REVOKE ALL ON FUNCTION "qti"."__resource_type_live_m5qnrkbzgq"() FROM PUBLIC;
 
-CREATE FUNCTION "qti"."__rounding_holds_live_7xm6dvdabq"() RETURNS bit varying
-LANGUAGE sql IMMUTABLE PARALLEL SAFE
-RETURN X'F0'::bit varying;
-
-REVOKE ALL ON FUNCTION "qti"."__rounding_holds_live_7xm6dvdabq"() FROM PUBLIC;
-
 CREATE FUNCTION "qti"."__shared_model_live_37zbpyitfj"() RETURNS bit varying
 LANGUAGE sql IMMUTABLE PARALLEL SAFE
 RETURN X'FFFFFF80'::bit varying;
@@ -1396,16 +1384,6 @@ CREATE DOMAIN "qti"."attribute_name" AS smallint CONSTRAINT "check" CHECK (VALUE
 CREATE DOMAIN "qti"."attribute_slot" AS smallint CONSTRAINT "check" CHECK (VALUE IS NULL OR (CASE WHEN VALUE >= 0 AND VALUE < 112 THEN "pg_catalog"."get_bit"("qti"."__attribute_slot_live_3plwjx3sjc"(), VALUE::integer) = 1 ELSE false END) IS TRUE);
 
 CREATE DOMAIN "qti"."base_type" AS smallint CONSTRAINT "check" CHECK (VALUE IS NULL OR (CASE WHEN VALUE >= 0 AND VALUE < 16 THEN "pg_catalog"."get_bit"("qti"."__base_type_live_y3pmvhj7zb"(), VALUE::integer) = 1 ELSE false END) IS TRUE);
-
-CREATE FUNCTION "qti"."__row_dfvu25q4di"("p1" "pg_catalog"."text", "p2" "qti"."base_type") RETURNS boolean
-LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE SET search_path = "pg_catalog", "pg_temp"
-AS $$
-BEGIN
-  RETURN $1::"pg_catalog"."text" ~ ("qti"."__constant_kk3tbfzgkz"())[NULLIF("pg_catalog"."substring"("qti"."__constant_7sx4k5dafp"(), $2::"qti"."base_type" * 4 + 1, 4)::integer, 0) - 1 + 1];
-END
-$$;
-
-REVOKE ALL ON FUNCTION "qti"."__row_dfvu25q4di"("pg_catalog"."text", "qti"."base_type") FROM PUBLIC;
 
 CREATE DOMAIN "qti"."bound_facet" AS smallint CONSTRAINT "check" CHECK (VALUE IS NULL OR (CASE WHEN VALUE >= 0 AND VALUE < 8 THEN "pg_catalog"."get_bit"("qti"."__bound_facet_live_kux6fr53gv"(), VALUE::integer) = 1 ELSE false END) IS TRUE);
 
@@ -1609,8 +1587,6 @@ $$;
 
 REVOKE ALL ON FUNCTION "qti"."__row_qjfz5sto5w"("qti"."resource_type") FROM PUBLIC;
 
-CREATE DOMAIN "qti"."rounding_holds" AS smallint CONSTRAINT "check" CHECK (VALUE IS NULL OR (CASE WHEN VALUE >= 0 AND VALUE < 8 THEN "pg_catalog"."get_bit"("qti"."__rounding_holds_live_7xm6dvdabq"(), VALUE::integer) = 1 ELSE false END) IS TRUE);
-
 CREATE DOMAIN "qti"."shared_model" AS smallint CONSTRAINT "check" CHECK (VALUE IS NULL OR (CASE WHEN VALUE >= 0 AND VALUE < 32 THEN "pg_catalog"."get_bit"("qti"."__shared_model_live_37zbpyitfj"(), VALUE::integer) = 1 ELSE false END) IS TRUE);
 
 CREATE DOMAIN "qti"."symbol_set" AS smallint CONSTRAINT "check" CHECK (VALUE IS NULL OR (CASE WHEN VALUE >= 0 AND VALUE < 336 THEN "pg_catalog"."get_bit"("qti"."__symbol_set_live_3wo3lzfzqb"(), VALUE::integer) = 1 ELSE false END) IS TRUE);
@@ -1694,16 +1670,6 @@ END
 $$;
 
 REVOKE ALL ON FUNCTION "qti"."__row_3k3gj4kfgc"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor") FROM PUBLIC;
-
-CREATE FUNCTION "qti"."__row_sk5tugqwcr"("p1" "qti"."__attribute_slot_bits_112_aecznthxg5", "p2" "qti"."governor") RETURNS boolean
-LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE SET search_path = "pg_catalog", "pg_temp"
-AS $$
-BEGIN
-  RETURN ("pg_catalog"."get_bit"($1::"qti"."__attribute_slot_bits_112_aecznthxg5", (((NULLIF("pg_catalog"."substring"("qti"."__constant_pqb7w4p5hy"(), ((NULLIF("pg_catalog"."substring"("qti"."__constant_rqidljwzm2"(), $2::"qti"."governor" * 8 + 1, 8)::integer, 0) - 1)::smallint * 413 + 402::smallint) * 16 + 1, 16)::integer, 0) - 1) / 2 % 110)::smallint)::integer) = 1) = true AND ("pg_catalog"."get_bit"($1::"qti"."__attribute_slot_bits_112_aecznthxg5", (((NULLIF("pg_catalog"."substring"("qti"."__constant_pqb7w4p5hy"(), ((NULLIF("pg_catalog"."substring"("qti"."__constant_rqidljwzm2"(), $2::"qti"."governor" * 8 + 1, 8)::integer, 0) - 1)::smallint * 413 + 401::smallint) * 16 + 1, 16)::integer, 0) - 1) / 2 % 110)::smallint)::integer) = 1) = true;
-END
-$$;
-
-REVOKE ALL ON FUNCTION "qti"."__row_sk5tugqwcr"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor") FROM PUBLIC;
 
 CREATE FUNCTION "qti"."__row_f3arllrhkz"("p1" "qti"."governor", "p2" "qti"."__attribute_slot_bits_112_aecznthxg5") RETURNS boolean
 LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE SET search_path = "pg_catalog", "pg_temp"
@@ -2045,8 +2011,6 @@ CREATE DOMAIN "qti"."__text_xey6ryorh5" AS "pg_catalog"."text" COLLATE "pg_catal
 
 CREATE DOMAIN "qti"."__text_lecej62lgl" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR ("pg_catalog"."octet_length"(VALUE) <= 268435453 AND VALUE ~ '\A[\u0009\u000A\u000D -\uFFFD\U00010000-\U0010FFFF]*\Z'::"pg_catalog"."text") IS TRUE);
 
-CREATE DOMAIN "qti"."__text_iqz277k5xr" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR (VALUE ~ '\A(?:[\!-\uFFFD\U00010000-\U0010FFFF]+(?: [\!-\uFFFD\U00010000-\U0010FFFF]+)*)?\Z'::"pg_catalog"."text") IS TRUE);
-
 CREATE DOMAIN "qti"."__text_tn2inwix7f" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR ("pg_catalog"."octet_length"(VALUE) <= 790 AND VALUE ~ '\A[\u0001-\.0-\U0010FFFF][\u0001-\U0010FFFF]*\Z'::"pg_catalog"."text") IS TRUE);
 
 CREATE FUNCTION "qti"."__row_wczkl5jgfh"("p1" "qti"."document_type", "p2" "qti"."__text_tn2inwix7f") RETURNS boolean
@@ -2129,16 +2093,6 @@ $$;
 
 REVOKE ALL ON FUNCTION "qti"."__row_ha5uesvxf5"("qti"."governor", "qti"."__text_tfkvgtjblt") FROM PUBLIC;
 
-CREATE FUNCTION "qti"."__row_tpgnuuvn6t"("p1" "qti"."__text_tfkvgtjblt", "p2" "pg_catalog"."text") RETURNS boolean
-LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE SET search_path = "pg_catalog", "pg_temp"
-AS $$
-BEGIN
-  RETURN NOT $1::"qti"."__text_tfkvgtjblt" ~ '\A(?:\+?0*(?:[1-8][0-9]{18}|[1-9][0-9]{0,17}|9[01][0-9]{17}|92[01][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[01][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807|0)|\-0*(?:[1-8][0-9]{18}|[1-9][0-9]{0,17}|9[01][0-9]{17}|92[01][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[01][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-7]|9223372036854775808|0))\Z'::"pg_catalog"."text" OR ($2::"pg_catalog"."text" <> 'decimalPlaces'::"pg_catalog"."text" OR ($1::"qti"."__text_tfkvgtjblt")::bigint >= 0::bigint) AND ($2::"pg_catalog"."text" <> 'significantFigures'::"pg_catalog"."text" OR ($1::"qti"."__text_tfkvgtjblt")::bigint >= 1::bigint);
-END
-$$;
-
-REVOKE ALL ON FUNCTION "qti"."__row_tpgnuuvn6t"("qti"."__text_tfkvgtjblt", "pg_catalog"."text") FROM PUBLIC;
-
 CREATE FUNCTION "qti"."__row_y3yv7uwbvr"("p1" "qti"."__text_tfkvgtjblt") RETURNS boolean
 LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE SET search_path = "pg_catalog", "pg_temp"
 AS E'\n'
@@ -2176,26 +2130,6 @@ END
 $$;
 
 REVOKE ALL ON FUNCTION "qti"."__row_e62lbw2mpq"("qti"."__text_tfkvgtjblt") FROM PUBLIC;
-
-CREATE FUNCTION "qti"."__row_xtuinpowgy"("p1" "qti"."base_type", "p2" "qti"."__text_tfkvgtjblt") RETURNS boolean
-LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE SET search_path = "pg_catalog", "pg_temp"
-AS $$
-BEGIN
-  RETURN ("qti"."__constant_wrlwssqvsp"())[NULLIF("pg_catalog"."substring"("qti"."__constant_ibvgt6pxwh"(), $1::"qti"."base_type" * 4 + 1, 4)::integer, 0) - 1 + 1] = $2::"qti"."__text_tfkvgtjblt";
-END
-$$;
-
-REVOKE ALL ON FUNCTION "qti"."__row_xtuinpowgy"("qti"."base_type", "qti"."__text_tfkvgtjblt") FROM PUBLIC;
-
-CREATE FUNCTION "qti"."__row_gvj4sjfiv5"("p1" "qti"."__text_tfkvgtjblt") RETURNS boolean
-LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE SET search_path = "pg_catalog", "pg_temp"
-AS $$
-BEGIN
-  RETURN NOT $1::"qti"."__text_tfkvgtjblt" ~ '\A(?:[\+\-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[Ee][\+\-]?[0-9]+)?|\-?INF|NaN)\Z'::"pg_catalog"."text" OR $1::"qti"."__text_tfkvgtjblt" ~ '\A(?:\+?(?:[0-9]*\.[0-9]*[1-9][0-9]*|[0-9]*[1-9][0-9]*(?:\.[0-9]*)?)(?:[Ee][\+\-]?[0-9]+)?|INF)\Z'::"pg_catalog"."text";
-END
-$$;
-
-REVOKE ALL ON FUNCTION "qti"."__row_gvj4sjfiv5"("qti"."__text_tfkvgtjblt") FROM PUBLIC;
 
 CREATE FUNCTION "qti"."__row_irvtzupi4u"("p1" "qti"."governor", "p2" "qti"."__text_tfkvgtjblt") RETURNS boolean
 LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE SET search_path = "pg_catalog", "pg_temp"
@@ -2823,30 +2757,6 @@ CREATE TYPE "qti"."__row_olds_resource_href_path_ryiz4pd2x6" AS ("package" "pg_c
 
 REVOKE ALL ON TYPE "qti"."__row_olds_resource_href_path_ryiz4pd2x6" FROM PUBLIC;
 
-CREATE TYPE "qti"."__row_news_rounding_wht6d4p3ec" AS ("holds" smallint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
-
-REVOKE ALL ON TYPE "qti"."__row_news_rounding_wht6d4p3ec" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_olds_rounding_rodl2gqnfk" AS ("holds" smallint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
-
-REVOKE ALL ON TYPE "qti"."__row_olds_rounding_rodl2gqnfk" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_news_rounding_figures_u3xetapo24" AS ("figures" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "figures_digest" "pg_catalog"."bytea", "figures_lexical" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "figures_lexical_digest" "pg_catalog"."bytea", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
-
-REVOKE ALL ON TYPE "qti"."__row_news_rounding_figures_u3xetapo24" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_olds_rounding_figures_t3soaj56y7" AS ("figures" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "figures_digest" "pg_catalog"."bytea", "figures_lexical" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "figures_lexical_digest" "pg_catalog"."bytea", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
-
-REVOKE ALL ON TYPE "qti"."__row_olds_rounding_figures_t3soaj56y7" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_news_rounding_mode_figures_4dto2s3h6p" AS ("figures" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "figures_digest" "pg_catalog"."bytea", "mode" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
-
-REVOKE ALL ON TYPE "qti"."__row_news_rounding_mode_figures_4dto2s3h6p" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_olds_rounding_mode_figures_aefqrvzknf" AS ("figures" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "figures_digest" "pg_catalog"."bytea", "mode" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
-
-REVOKE ALL ON TYPE "qti"."__row_olds_rounding_mode_figures_aefqrvzknf" FROM PUBLIC;
-
 CREATE TYPE "qti"."__row_news_share_fragment_gnfhrg2wac" AS ("assembled" boolean, "id" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "id_digest" "pg_catalog"."bytea", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "placements" bigint, "start" bigint);
 
 REVOKE ALL ON TYPE "qti"."__row_news_share_fragment_gnfhrg2wac" FROM PUBLIC;
@@ -2938,30 +2848,6 @@ REVOKE ALL ON TYPE "qti"."__row_news_text_reference_path_e35rofuhle" FROM PUBLIC
 CREATE TYPE "qti"."__row_olds_text_reference_path_2rhninp5ig" AS ("kind" smallint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "target" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8");
 
 REVOKE ALL ON TYPE "qti"."__row_olds_text_reference_path_2rhninp5ig" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_news_tolerance_rruu6vv4jd" AS ("package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "token_text" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "token_text_digest" "pg_catalog"."bytea", "tokens" bigint);
-
-REVOKE ALL ON TYPE "qti"."__row_news_tolerance_rruu6vv4jd" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_olds_tolerance_n4cyvclaoo" AS ("package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "token_text" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "token_text_digest" "pg_catalog"."bytea", "tokens" bigint);
-
-REVOKE ALL ON TYPE "qti"."__row_olds_tolerance_n4cyvclaoo" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_news_usage_value_rgazx5svef" AS ("base_type_lexical" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "base_type_lexical_digest" "pg_catalog"."bytea", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "text" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "text_digest" "pg_catalog"."bytea");
-
-REVOKE ALL ON TYPE "qti"."__row_news_usage_value_rgazx5svef" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_olds_usage_value_lx4bqfccvb" AS ("base_type_lexical" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "base_type_lexical_digest" "pg_catalog"."bytea", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "text" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "text_digest" "pg_catalog"."bytea");
-
-REVOKE ALL ON TYPE "qti"."__row_olds_usage_value_lx4bqfccvb" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_news_usage_value_base_type_crue77ur5f" AS ("base_type" smallint, "base_type_lexical" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "base_type_lexical_digest" "pg_catalog"."bytea", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "text" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "text_digest" "pg_catalog"."bytea");
-
-REVOKE ALL ON TYPE "qti"."__row_news_usage_value_base_type_crue77ur5f" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_olds_usage_value_base_type_wqsvslnpou" AS ("base_type" smallint, "base_type_lexical" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "base_type_lexical_digest" "pg_catalog"."bytea", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "text" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "text_digest" "pg_catalog"."bytea");
-
-REVOKE ALL ON TYPE "qti"."__row_olds_usage_value_base_type_wqsvslnpou" FROM PUBLIC;
 
 CREATE TYPE "qti"."__row_news_variable_ref_jq6apyyzyz" AS ("after" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "attribute" smallint, "before" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "identifier" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "language" smallint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "root_kind" smallint, "start" bigint);
 

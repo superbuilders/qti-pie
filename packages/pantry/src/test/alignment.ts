@@ -608,7 +608,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     105,
     {
       owner:
-        "PM's `UsageValue` (`src/qti/metadata.ts`): a row only for a `ud:value` that writes a `fieldIdentifier` (inside a record) and a `baseType` (`usageRecordValues`), its code a row of its own where the `baseType` spells one (`UsageValueBaseType`, decision 427), `Usage_typed_value` over `BaseTypePattern` on its text, folded by `copiedTextKinds` (`src/qti/node.ts`), and a `baseType` outside a record left untyped; the oracle's Usage typed value (`src/test/oracle.ts`), the same test",
+        "PM's view `UsageValueBaseType` (`src/qti/queries.ts`): a row only for a `ud:value` that writes a `fieldIdentifier` (inside a record) and a `baseType` that spells a code (decision 427), `Usage_typed_value` over `BaseTypePattern` on its text, folded by `copiedTextKinds` (`src/qti/node.ts`), and a `baseType` outside a record left untyped; the oracle's Usage typed value (`src/test/oracle.ts`), the same test",
       status: "G",
     },
   ],
@@ -720,7 +720,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     119,
     {
       owner:
-        "O's `Rounding` and `Rounding_figures`, one row per qti-equal-rounded and qti-round-to, its shape's `RoundingFigures`, `RoundingMode` and `RoundingModeFigures` where it has them (`src/qti/operators.ts`, rows from `src/import/overlays/operators.ts`)",
+        "O's `Rounding_figures` over the view `RoundingModeFigures`, each rounding operator's `figures` beside its mode in force, written or `qti-equal-rounded`'s default (`src/qti/overlay-queries/expression.ts`); held by `src/qti/operators.test.ts` and `src/qti/attribute-views.db.test.ts`",
       status: "G",
     },
   ],
@@ -735,7 +735,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     121,
     {
       owner:
-        "O's `Tolerance` and `ToleranceToken`, `toleranceRequired` (a containment from the absolute or relative mode's `Attribute` selection into `Tolerance`) and the two `Equal_tolerance` checks (`src/qti/operators.ts`, rows from `src/import/overlays/operators.ts`)",
+        "O's `toleranceRequired` (a containment from the absolute or relative mode's `Attribute` selection into the `tolerance` attributes, `src/qti/operators.ts`) and the view `ToleranceToken`'s first value's containment and its `Equal_tolerance` check (`src/qti/overlay-queries/expression.ts`)",
       status: "G",
     },
   ],

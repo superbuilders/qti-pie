@@ -286,8 +286,7 @@ describe("the oracle's key-text list", () => {
     // (`Entry.path`, the package's), its nearest interaction's document's and that one's copy on
     // the owner axis, each an entry's path (`#pantry/test/oracle.ts` `keyTexts`); or a running
     // text or the end of the string value's
-    // fold, which its axes and `UsageValue`'s containment carry by their digests (node.ts,
-    // metadata.ts), so no key holds it.
+    // fold, which its axes carry by their digests (node.ts), so no key holds it.
     // Bound: the document relations' fields.
     const held = new Set(keyCopies.map(({ field }) => field));
     const prefixes = new Set(

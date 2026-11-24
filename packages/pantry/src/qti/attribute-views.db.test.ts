@@ -3,18 +3,23 @@
  * against the tree they read, on the lease: each map entry's key and each lookup table's typed
  * values (`MapKey`, `LookupValue`, `#pantry/qti/mapping.ts`), each catalog's `id` and its bindings
  * in its assembly (`CatalogId`, `#pantry/qti/names.ts`; `AssembledCatalog`,
- * `#pantry/qti/overlay-queries/catalog.ts`), and each table cell's `headers` tokens, its nearest
- * table and each tabled header's `id` (`HeaderToken`, `CellTable`, `#pantry/qti/names.ts`;
- * `TableHeader`, `#pantry/qti/overlay-queries/html.ts`).
+ * `#pantry/qti/overlay-queries/catalog.ts`), each table cell's `headers` tokens, its nearest table
+ * and each tabled header's `id` (`HeaderToken`, `CellTable`, `#pantry/qti/names.ts`; `TableHeader`,
+ * `#pantry/qti/overlay-queries/html.ts`), and each rounding operator's `figures` beside its mode in
+ * force and each tolerance's values (`RoundingModeFigures`, `ToleranceToken`,
+ * `#pantry/qti/overlay-queries/expression.ts`), and each record's usage value's base type and text
+ * (`UsageValueBaseType`, `#pantry/qti/queries.ts`).
  *
- * One package is imported: an item that includes a fragment, so the item is an assembly, holding a
- * mapping whose keys repeat and carry whitespace, a match table and an interpolation table, two
- * catalogs, one with an `id` written with whitespace around it, and a table nested in a cell of
- * another, each with headers and cells whose `headers` name them, one written with whitespace
- * around and between its tokens. Each view is read back through the author role and compared with
- * what the item's text states (each attribute's value, by the attribute's own whitespace class)
- * beside the positions the database's own tree (`Node`) gives its elements, a cell's table read by
- * a walk up `Node`'s parents written here.
+ * One package is imported: a usage data file, and an item that includes a fragment, so the item is
+ * an assembly, holding a mapping whose keys repeat and carry whitespace, a match table and an
+ * interpolation table, two catalogs, one with an `id` written with whitespace around it, a table
+ * nested in a cell of another, each with headers and cells whose `headers` name them, one written
+ * with whitespace around and between its tokens, and response processing whose rounding operators
+ * take their mode by default and as written, and whose equality's `tolerance` is two values with
+ * whitespace around and between them. Each view is read back through the author role and compared
+ * with what the item's text states (each attribute's value, by the attribute's own whitespace
+ * class) beside the positions the database's own tree (`Node`) gives its elements, a cell's table
+ * read by a walk up `Node`'s parents written here.
  */
 import path from "node:path";
 import { answered, login, query, Sha256, v, workload } from "@bjornpagen/grizzle";
@@ -32,7 +37,9 @@ import { PackageName } from "#pantry/qti/limits.ts";
 import { LookupValue, MapKey } from "#pantry/qti/mapping.ts";
 import { CatalogId, CellTable, HeaderToken } from "#pantry/qti/names.ts";
 import { AssembledCatalog } from "#pantry/qti/overlay-queries/catalog.ts";
+import { RoundingModeFigures, ToleranceToken } from "#pantry/qti/overlay-queries/expression.ts";
 import { TableHeader } from "#pantry/qti/overlay-queries/html.ts";
+import { UsageValueBaseType } from "#pantry/qti/queries.ts";
 import { Author } from "#pantry/qti/roles.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
@@ -73,6 +80,8 @@ const itemText = [
   '<qti-outcome-declaration identifier="LEVEL" cardinality="single" base-type="float">',
   '<qti-interpolation-table><qti-interpolation-table-entry source-value="1" target-value=" 2.5 "/></qti-interpolation-table>',
   "</qti-outcome-declaration>",
+  '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>',
+  '<qti-outcome-declaration identifier="FLAG" cardinality="single" base-type="boolean"/>',
   "<qti-item-body>",
   '<table><tbody><tr><th id=" h1 ">H</th><th id="h3">J</th><td headers="h1 h3">a</td></tr>',
   '<tr><td><table><tbody><tr><th id="h2">I</th><td headers=" h2&#9;">b</td></tr></tbody></table></td></tr>',
@@ -81,20 +90,41 @@ const itemText = [
   "</qti-item-body>",
   '<qti-catalog-info><qti-catalog id="C"><qti-card support="spoken"><qti-html-content/></qti-card></qti-catalog>',
   '<qti-catalog id=" D "><qti-card support="spoken"><qti-html-content/></qti-card></qti-catalog></qti-catalog-info>',
+  "<qti-response-processing>",
+  '<qti-set-outcome-value identifier="FLAG"><qti-equal-rounded figures=" 3 "><qti-variable identifier="SCORE"/><qti-variable identifier="SCORE"/></qti-equal-rounded></qti-set-outcome-value>',
+  '<qti-set-outcome-value identifier="SCORE"><qti-round-to rounding-mode="decimalPlaces" figures="2"><qti-variable identifier="SCORE"/></qti-round-to></qti-set-outcome-value>',
+  '<qti-set-outcome-value identifier="FLAG"><qti-equal tolerance-mode="absolute" tolerance=" 0.5&#9;T "><qti-variable identifier="SCORE"/><qti-variable identifier="SCORE"/></qti-equal></qti-set-outcome-value>',
+  "</qti-response-processing>",
   "</qti-assessment-item>",
 ].join("");
 
 /**
- * The package: the item, which depends on the fragment, and the fragment, whose one paragraph names
- * the item's catalog `C`.
+ * A usage data file: a statistic of two values that write a `baseType`, one in a record (it writes
+ * a `fieldIdentifier`) and one outside, which states no base type (spec reading 105).
+ */
+const usageText = [
+  '<usageData xmlns="http://www.imsglobal.org/xsd/imsqti_usagedata_v3p0">',
+  '<ordinaryStatistic name="AIS" context="http://example.org/c"><targetObject identifier="item"/>',
+  '<value baseType="float" fieldIdentifier="SCORE">0.87</value>',
+  "</ordinaryStatistic>",
+  '<ordinaryStatistic name="AIS" context="http://example.org/d"><targetObject identifier="item"/>',
+  '<value baseType="float">1</value>',
+  "</ordinaryStatistic>",
+  "</usageData>",
+].join("");
+
+/**
+ * The package: the item, which depends on the fragment, the fragment, whose one paragraph names the
+ * item's catalog `C`, and a usage data file.
  */
 const entries: ReadonlyMap<string, Uint8Array> = new Map(
   Object.entries({
     "fragment.xml": `<div xmlns="${asi}"><p data-catalog-idref="C">x</p></div>`,
     "imsmanifest.xml": manifestOf(
-      '<resource identifier="R" type="imsqti_item_xmlv3p0" href="item.xml"><file href="item.xml"/><dependency identifierref="F"/></resource><resource identifier="F" type="imsqti_fragment_xmlv3p0" href="fragment.xml"><file href="fragment.xml"/></resource>',
+      '<resource identifier="R" type="imsqti_item_xmlv3p0" href="item.xml"><file href="item.xml"/><dependency identifierref="F"/></resource><resource identifier="F" type="imsqti_fragment_xmlv3p0" href="fragment.xml"><file href="fragment.xml"/></resource><resource identifier="U" type="qtiusagedata/xml" href="usage.xml"><file href="usage.xml"/></resource>',
     ),
     "item.xml": itemText,
+    "usage.xml": usageText,
   }).map(([file, text]) => [file, new TextEncoder().encode(text)] as const),
 );
 
@@ -188,6 +218,21 @@ const packageRows = {
         .find({ kind, parent, path: at, start });
     }),
   ),
+  roundingModeFigures: answered(
+    query(Qti).rule((r) => {
+      const { figures, mode, path: at, start } = v(RoundingModeFigures, "rounding");
+
+      return r
+        .match(RoundingModeFigures, {
+          figures,
+          mode,
+          package: r.param("package", PackageName),
+          path: at,
+          start,
+        })
+        .find({ figures, mode, path: at, start });
+    }),
+  ),
   tableHeaders: answered(
     query(Qti).rule((r) => {
       const { id, idDigest, path: at, start, table } = v(TableHeader, "header");
@@ -202,6 +247,36 @@ const packageRows = {
           table,
         })
         .find({ id, idDigest, path: at, start, table });
+    }),
+  ),
+  toleranceTokens: answered(
+    query(Qti).rule((r) => {
+      const { at, path: document, start, token } = v(ToleranceToken, "value");
+
+      return r
+        .match(ToleranceToken, {
+          at,
+          package: r.param("package", PackageName),
+          path: document,
+          start,
+          token,
+        })
+        .find({ at, path: document, start, token });
+    }),
+  ),
+  usageValues: answered(
+    query(Qti).rule((r) => {
+      const { baseType, path: at, start, text } = v(UsageValueBaseType, "usage");
+
+      return r
+        .match(UsageValueBaseType, {
+          baseType,
+          package: r.param("package", PackageName),
+          path: at,
+          start,
+          text,
+        })
+        .find({ baseType, path: at, start, text });
     }),
   ),
 } as const;
@@ -395,6 +470,42 @@ const viewsRead = Effect.gen(function* viewsRead() {
     ],
     "TableHeader: each tabled th's id beside its table",
   );
+  assert.sameDeepMembers(
+    [...(yield* db.workload.roundingModeFigures.once(read))].map(({ figures, mode, start }) => ({
+      figures,
+      mode,
+      start,
+    })),
+    [
+      {
+        figures: collapsed(" 3 "),
+        mode: "significantFigures",
+        start: nth("qti-equal-rounded", 0),
+      },
+      { figures: "2", mode: "decimalPlaces", start: nth("qti-round-to", 0) },
+    ],
+    "RoundingModeFigures: each rounding operator's figures, collapsed, beside its mode in force",
+  );
+  assert.sameDeepMembers(
+    [...(yield* db.workload.toleranceTokens.once(read))].map(({ at, start, token }) => ({
+      at,
+      start,
+      token,
+    })),
+    collapsed(" 0.5\tT ")
+      .split(" ")
+      .map((token, at) => ({ at: BigInt(at), start: nth("qti-equal", 0), token })),
+    "ToleranceToken: each tolerance's values, split at XML whitespace",
+  );
+  assert.deepStrictEqual(
+    [...(yield* db.workload.usageValues.once(read))].map(({ baseType, path: at, text }) => ({
+      at,
+      baseType,
+      text,
+    })),
+    [{ at: "usage.xml", baseType: "float", text: "0.87" }],
+    "UsageValueBaseType: a record's usage value's base type and text, and none outside a record",
+  );
 });
 
 describe.skipIf(!hasLease)("qti/attribute-views.db.test.ts, on the lease", () => {
@@ -405,7 +516,7 @@ describe.skipIf(!hasLease)("qti/attribute-views.db.test.ts, on the lease", () =>
     { excludeTestServices: true, timeout: "300 seconds" },
   )("the views of Attribute and Node", (it) => {
     it.effect(
-      "hold each map key, lookup value, catalog id and binding, header token, cell table and tabled header the item's tree states",
+      "hold each map key, lookup value, catalog id and binding, header token, cell table, tabled header, rounding operator's figures and mode, tolerance value and usage value the package's trees state",
       () =>
         // Oracle: the item's text, each attribute's value by its whitespace class, beside the
         // positions of the database's own tree, and a walk up the tree's parents written here.

@@ -17,11 +17,10 @@ import { dataSsmlLaws, dataSsmlRelations } from "#pantry/qti/data-ssml.ts";
 import { htmlLaws } from "#pantry/qti/html.ts";
 import { identityLaws, identityRelations } from "#pantry/qti/identity.ts";
 import { interactionLaws, interactionRelations } from "#pantry/qti/interactions.ts";
-import { metadataLaws, metadataRelations } from "#pantry/qti/metadata.ts";
 import { expressionLaws, expressionRelations } from "#pantry/qti/expressions.ts";
 import { nodeLaws, nodeRelations } from "#pantry/qti/node.ts";
 import { mathmlLaws, mathmlRelations } from "#pantry/qti/mathml.ts";
-import { operatorLaws, operatorRelations } from "#pantry/qti/operators.ts";
+import { operatorLaws } from "#pantry/qti/operators.ts";
 import { packageLaws, packageRelations, PackageUnit } from "#pantry/qti/package.ts";
 import { testLaws, testRelations } from "#pantry/qti/tests.ts";
 
@@ -39,7 +38,6 @@ type QtiStatement =
   | (typeof testLaws)[number]
   | (typeof interactionLaws)[number]
   | (typeof expressionLaws)[number]
-  | (typeof metadataLaws)[number]
   | (typeof htmlLaws)[number]
   | (typeof operatorLaws)[number]
   | (typeof mathmlLaws)[number]
@@ -48,7 +46,7 @@ type QtiStatement =
 
 /**
  * Every module's statements, in module order, each module's list one element: a list of lists
- * holds fourteen types, where a list literal of every statement would hold them all.
+ * holds thirteen types, where a list literal of every statement would hold them all.
  */
 const moduleLaws: readonly (readonly QtiStatement[])[] = [
   nodeLaws,
@@ -59,7 +57,6 @@ const moduleLaws: readonly (readonly QtiStatement[])[] = [
   testLaws,
   interactionLaws,
   expressionLaws,
-  metadataLaws,
   htmlLaws,
   operatorLaws,
   mathmlLaws,
@@ -83,8 +80,6 @@ export const qtiRelations = [
   ...testRelations,
   ...interactionRelations,
   ...expressionRelations,
-  ...metadataRelations,
-  ...operatorRelations,
   ...mathmlRelations,
   ...dataSsmlRelations,
 ] as const;

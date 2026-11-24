@@ -3,8 +3,9 @@
  * pairs an overlay's fact with its node's kind, parent or parent's kind, which only `Node` holds,
  * read through a query that matches the overlay with `Node` at its key
  * (`#pantry/qti/expressions.ts`, `#pantry/qti/operators.ts`, `#pantry/qti/mathml-*.ts`); and the
- * operators' laws over an attribute no row copies (C18), each a rule over a query that reads it:
- * a rounding operator's mode in force (`RoundingMode`) and a tolerance's form (`ToleranceForm`).
+ * operators' laws over the views of their attributes no row copies (C18): a rounding operator's
+ * `figures` beside its mode in force ({@link RoundingModeFigures}) and a tolerance's values
+ * ({@link ToleranceToken}).
  *
  * The placements (spec reading 117) are stated here once, {@link placedDocuments}: every type law
  * reads an expression's type where a placement gives it, `PlacedExpression`, so each law is stated
@@ -19,9 +20,13 @@ import {
   key,
   Logic,
   mirrors,
+  Num,
   on,
+  pg,
   query,
   select,
+  Text,
+  Type,
   v,
 } from "@bjornpagen/grizzle";
 import {
@@ -81,16 +86,17 @@ import {
 } from "#pantry/qti/mathml-share.ts";
 import {
   attributeValues,
-  listForms,
   LocatedTemplate,
+  matched,
   QtiViews,
-  spelledByTokens,
+  unmatched,
 } from "#pantry/qti/names.ts";
 import { Node } from "#pantry/qti/node.ts";
-import { Rounding, RoundingModeFigures, Tolerance } from "#pantry/qti/operators.ts";
+import { integerForm, matchedTextBytes } from "#pantry/qti/limits.ts";
+import { doublePattern, positivePattern, toleranceAttributes } from "#pantry/qti/operators.ts";
 import { Instance } from "#pantry/qti/tests.ts";
 import { attributeTypedKinds } from "#pantry/vocab/terms/expressions.ts";
-import { equalRoundedMode, roundingKinds } from "#pantry/vocab/terms/operators.ts";
+import { equalRoundedMode, roundingKinds, roundingModes } from "#pantry/vocab/terms/operators.ts";
 import {
   expressionKinds,
   rootLanguages,
@@ -735,42 +741,163 @@ const baseTypedKinds = [...containerKinds, ...firstKinds];
 const writtenModes = attributeValues("rounding-mode", roundingKinds);
 
 /**
- * Each rounding operator's mode in force, by its element's place, where it has one (reading 119):
- * its `rounding-mode` where it writes one, else, on a `qti-equal-rounded` that writes none, the
- * XSD's default, {@link equalRoundedMode}. A `qti-round-to` that writes none has none, which AL3
- * refuses. No row copies it (C18): its {@link Rounding} row holds a mode exactly where it has one,
- * and its {@link RoundingModeFigures} copies it.
+ * Each rounding operator's `figures` beside its mode in force (reading 119), by its element's
+ * place, where it has both: `figures`, the attribute's `value` (the form collapsed, decision 123),
+ * and `mode`, its `rounding-mode` where it writes one, else, on a `qti-equal-rounded` that writes
+ * none, the XSD's default, {@link equalRoundedMode}. A `qti-round-to` that writes no mode, and an
+ * operator with no `figures`, is AL3's, and has no row. No row copies either attribute (C18). It
+ * stores nothing: a check over a stored view that reads a pattern does not compile at the pin
+ * (`docs/grizzle-findings.md`).
  */
-const RoundingMode = derived(
-  "RoundingMode",
+export const RoundingModeFigures = derived(
+  "RoundingModeFigures",
   query(QtiBase)
     .rule((r) => {
-      const { package: pkg, path, start, value: mode } = v(writtenModes, "written");
+      const { kind, package: pkg, path, start, value: figures } = v(Attribute, "figures");
+      const { value: mode } = v(writtenModes, "written");
 
       return r
+        .match(Attribute, { kind, name: "figures", package: pkg, path, start, value: figures })
+        .where(r.in(kind, roundingKinds))
         .match(writtenModes, { package: pkg, path, start, value: mode })
-        .find({ mode, package: pkg, path, start });
+        .find({ figures, mode, package: pkg, path, start });
     })
     .rule((r) => {
-      const { package: pkg, path, start } = v(Node, "node");
+      const { package: pkg, path, start, value: figures } = v(Attribute, "figures");
 
       return r
-        .match(Node, { kind: "qti-equal-rounded", package: pkg, path, start })
+        .match(Attribute, {
+          kind: "qti-equal-rounded",
+          name: "figures",
+          package: pkg,
+          path,
+          start,
+          value: figures,
+        })
         .where(r.not(Attribute, { name: "rounding-mode", package: pkg, path, start }))
-        .find({ mode: equalRoundedMode, package: pkg, path, start });
+        .find({ figures, mode: equalRoundedMode, package: pkg, path, start });
     }),
 );
 
 /**
- * The rounding operators that hold a mode in force.
+ * Each value of a `qti-equal`'s `tolerance` (reading 121), by the element's place and the value's
+ * place among them, `at`, from 0: the attribute's lexical form collapsed and split at its spaces,
+ * grizzle's whitespace list split (`r.tokens`), so the split is true by definition and no row holds
+ * it. A form of whitespace alone has none. It stores nothing, as {@link RoundingModeFigures}.
  */
-const modedRoundings = select(Rounding, (r) => r.in(r.holds, ["mode", "both"]));
+export const ToleranceToken = derived(
+  "ToleranceToken",
+  query(QtiBase).rule((r) => {
+    const { lexical, package: pkg, path, start } = v(Attribute, "tolerance");
+    const split = r.tokens(lexical);
+    const { at, token } = v(split, "token");
+
+    return r
+      .match(Attribute, {
+        kind: "qti-equal",
+        lexical,
+        name: "tolerance",
+        package: pkg,
+        path,
+        start,
+      })
+      .match(split, { at, token })
+      .find({ at, package: pkg, path, start, token });
+  }),
+);
 
 /**
- * Each `qti-equal`'s {@link Tolerance} beside the `tolerance` it splits, written as it is
- * ({@link listForms}).
+ * The first value of each `tolerance`, which a `tolerance` of one value or two holds.
  */
-const ToleranceForm = listForms("ToleranceForm", Tolerance, "tolerance");
+const firstTolerances = select(ToleranceToken, (t) => t.eq(t.at, 0n));
+
+/**
+ * The least `figures` each rounding mode admits (reading 119; info §5.47.2 and §5.119.2): 1 under
+ * `significantFigures`, "a non-zero positive integer", and 0 under `decimalPlaces`, "an integer
+ * greater than or equal to zero".
+ */
+const leastFigures = { decimalPlaces: 0n, significantFigures: 1n } as const;
+
+/**
+ * Reading 119 (law "Rounding figures", rule `P10`; info §5.47.2 and §5.119.2): a `figures` that is
+ * an integer is at least its mode's {@link leastFigures}. A variable's name is no integer, and a
+ * mode outside the enumeration (AL1's) binds no bound; an operator with no `figures` or no mode is
+ * AL3's, and has no {@link RoundingModeFigures} row to judge. The cast reads only an integer's
+ * form, which the guard proves, so its `otherwise` is the least itself, which the bound admits. QTI
+ * bounds no `figures`, and a form past what PostgreSQL's regex engine reads (`matchedTextBytes`)
+ * is no form the law can read, and is refused.
+ */
+const roundingFigures = check("Rounding_figures", RoundingModeFigures, (m) =>
+  m.eq(
+    Logic.when(
+      Num.within(Text.octetLength(m.figures), 0, matchedTextBytes),
+      () =>
+        Logic.cond(
+          m.or(
+            m.not(Text.matches(m.figures, integerForm)),
+            m.and(
+              ...roundingModes.map((mode) =>
+                m.or(
+                  m.ne(m.mode, mode),
+                  m.ge(
+                    Logic.when(
+                      Text.matches(m.figures, integerForm),
+                      (figures) => Type.cast(figures, pg.bigint),
+                      leastFigures[mode],
+                    ),
+                    leastFigures[mode],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          matched,
+          unmatched,
+        ),
+      unmatched,
+    ),
+    true,
+  ),
+);
+
+/**
+ * Reading 121's count (law "Equal tolerance", rule `P36`; info §5.46.2: "The tolerance consists of
+ * two positive numbers, t0 and t1 ... If only one value is given it is used for both"): a
+ * `tolerance` holds one value or two, so it has a first value ({@link firstTolerances}).
+ */
+const toleranceFirst = contained(
+  on(toleranceAttributes, "package", "path", "start"),
+  on(firstTolerances, "package", "path", "start"),
+);
+
+/**
+ * Reading 121's count and sign over each value (law "Equal tolerance", rule `P36`; info §5.46.2,
+ * "two positive numbers"): no value stands at place 2 or after, and a value in `xs:double`'s
+ * lexical space is positive, a string naming a variable read at run time, and a value past what
+ * PostgreSQL's regex engine reads (`matchedTextBytes`) is no form the law can read, and is refused.
+ * One check states both, since a relation's checks are named apart.
+ */
+const toleranceValue = check("Equal_tolerance", ToleranceToken, (x) =>
+  x.and(
+    x.lt(x.at, 2n),
+    x.eq(
+      Logic.when(
+        Num.within(Text.octetLength(x.token), 0, matchedTextBytes),
+        () =>
+          Logic.cond(
+            x.or(
+              x.not(Text.matches(x.token, doublePattern)),
+              Text.matches(x.token, positivePattern),
+            ),
+            matched,
+            unmatched,
+          ),
+        unmatched,
+      ),
+      true,
+    ),
+  ),
+);
 
 /**
  * Each ranked MathML element beside its node's kind and parent, by its place: its
@@ -1391,10 +1518,10 @@ const operandExpressions = select(ExpressionNode, (e) => e.in(e.parentKind, expr
  * placement's expressions exactly its documents' ({@link PlacedExpressionSite}), the result type
  * each kind derives under each placement, a base value's its literal's, each expression's language
  * its parent's or a rule's root's, every operand's row, each operand's operator and rank its
- * node's, a rounding operator's `holds` by its mode in force ({@link RoundingMode}), its `both`
- * arm's mode its own, a tolerance's values spelling its form ({@link ToleranceForm}), and each
- * ranked MathML element's rank below its parent's; `MathML_share_cycle`, a share's rank above its
- * target's; "MathML arity" (MathML 3 §4.3.4.5 and §4.3.4.6, each operator's class from its §4.4
+ * node's, and each ranked MathML element's rank below its parent's; "Equal tolerance" and
+ * "Rounding figures" (readings 121 and 119) over {@link ToleranceToken} and
+ * {@link RoundingModeFigures}; `MathML_share_cycle`, a share's rank above its target's; "MathML
+ * arity" (MathML 3 §4.3.4.5 and §4.3.4.6, each operator's class from its §4.4
  * syntax table): a judged application, one whose every qualifier its head owns, holds at least one
  * argument where its class takes one and a pair of them where it takes two, and at most one
  * argument where its class takes one and one pair where it takes two, so no count is stored; and
@@ -1668,17 +1795,6 @@ const expressionLawsByName = {
       ),
       on(Processing, "package", "path", "start", "language"),
     ),
-    // A rounding operator holds a mode exactly where one is in force, and its `both` arm holds it.
-    mirrors(
-      on(RoundingMode, "package", "path", "start"),
-      on(modedRoundings, "package", "path", "start"),
-    ),
-    contained(
-      on(RoundingModeFigures, "package", "path", "start", "mode"),
-      on(RoundingMode, "package", "path", "start", "mode"),
-    ),
-    // A `qti-equal`'s tolerance values spell its `tolerance`.
-    spelledByTokens(ToleranceForm),
     contained(
       on(
         select(MathRankNode, (m) => m.and(m.ne(m.kind, "m:math"), m.ne(m.start, m.parent))),
@@ -1777,6 +1893,7 @@ const expressionLawsByName = {
       ),
     ),
   ]),
+  "Equal tolerance": declared("Equal tolerance", [toleranceFirst, toleranceValue]),
   "MathML align first": declared("MathML align first", [
     check("MathML_align_first", CellLeafNode, (l) =>
       l.or(l.ne(l.at, 0n), l.eq(l.groups, 0n), l.eq(l.kind, "m:maligngroup")),
@@ -1839,6 +1956,7 @@ const expressionLawsByName = {
       e.or(e.not(e.in(e.kind, outcomeOnlyKinds)), e.eq(e.language, "outcome")),
     ),
   ]),
+  "Rounding figures": declared("Rounding figures", [roundingFigures]),
 } as const;
 
 /**
@@ -1879,10 +1997,10 @@ export const expressionOverlayRelations = [
   PlacedMathRankStep,
   PlacedShareRanks,
   ProcessingNode,
-  RoundingMode,
+  RoundingModeFigures,
   ScopeNode,
   ShareRanks,
-  ToleranceForm,
+  ToleranceToken,
 ] as const;
 
 /**

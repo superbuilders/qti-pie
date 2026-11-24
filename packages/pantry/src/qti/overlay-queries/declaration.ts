@@ -17,11 +17,9 @@ import {
   Logic,
   Num,
   on,
-  pg,
   query,
   select,
   Text,
-  Type,
   v,
 } from "@bjornpagen/grizzle";
 import type { RowScalars } from "@bjornpagen/grizzle";
@@ -50,11 +48,13 @@ import {
   DeclarationCardinality,
   DeclarationName,
   DeclaredIdentifierText,
+  matched,
   MasteryValue,
   NamedDeclaration,
   NormalMaximum,
   NormalMinimum,
   QtiViews,
+  unmatched,
 } from "#pantry/qti/names.ts";
 import { identifierBytes, matchedTextBytes } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
@@ -546,17 +546,6 @@ const RootedDeclaration = derived(
       .find({ declarationKind, identifier, package: pkg, path, rootKind, start });
   }),
 );
-
-/**
- * A guarded match's true, as a typed term.
- */
-const matched = Type.literal(pg.boolean, true);
-
-/**
- * A guarded match's false, as a typed term: a text past what PostgreSQL's regex engine reads is no
- * form a law can read.
- */
-const unmatched = Type.literal(pg.boolean, false);
 
 /**
  * The declaration and mapping overlays' rules over their node, each named by its oracle law:
