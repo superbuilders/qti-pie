@@ -1,0 +1,110 @@
+/*
+ * Alpha's base sheet: what the classes of Alpha's renderer vocabulary (`#plate/alpha/vocabulary.ts`)
+ * need to work, with no look of their own, drawn over plate's base sheet. A host that serves Alpha's
+ * content imports it after plate's base sheet, `@qti-pie/plate/alpha/styles/base.css`, and after it
+ * Alpha's theme, `@qti-pie/plate/alpha/styles/theme.css`, or its own in that one's place, as it
+ * chooses plate's theme. No core sheet names an Alpha class, and this sheet keys on plate's parts,
+ * their states and plate's tokens, as plate's own sheets do.
+ *
+ * Layers. Every rule sits in `@layer plate-alpha`, after `plate`, so a rule here wins over one of
+ * plate's whatever their specificity: an Alpha class changes a part's presentation, so it must win
+ * over plate's presentation of that part, and plate's sheets never have to know it. The statement
+ * below puts the three layers in that order in a page that has named none of them; a host that
+ * orders its layers names `plate-alpha` right after `plate`. A host that imports this sheet into a
+ * layer of its own, as metis does into `plate`, nests the three under it, so this sheet's rules
+ * still win over the host's theme in that layer: what it sets here (a strip's layout, its cards'
+ * size, its start's reach) is the class's meaning, which no theme changes.
+ */
+@layer ui-sdk, plate, plate-alpha;
+
+@layer plate-alpha {
+  /* == hot text == */
+
+  /*
+   * A number strip (`alpha-number-strip`): the block that holds a Hot Text's hottexts, each a
+   * numeral card, in one row that never wraps, every column a share of a block as wide as its
+   * content, so every card is as wide as the widest. A strip is no sentence: each card takes the
+   * 64 px of a K–3 target both ways, the whole card its press, where a sentence's choice keeps to
+   * 44 px inside its 48 px line.
+   *
+   * A strip is no wider than the block it stands in, whatever measure a theme holds the block's
+   * paragraphs to: where its cards at 64 px do not fit, the strip scrolls inside its own box, so the
+   * page never scrolls sideways and no card shrinks below the target. The box has room on every
+   * side for what a card draws outside its edge, its focus ring and a review's badge, which a
+   * scrolling box would otherwise clip: `--alpha-number-strip-room`, which a theme sets to what its
+   * badges reach, 0.75rem where it sets none. Its margins take that room back on every side but the
+   * end, so the cards stand where they would without it and the box ends where its block does. A
+   * card the keyboard moves to is scrolled into the box whole: the box keeps two targets' width
+   * clear at either end of where it scrolls a focused control, which stands at its card's start.
+   */
+  :where([data-slot="plate-hottext"]) .alpha-number-strip {
+    display: grid;
+    grid-auto-columns: 1fr;
+    grid-auto-flow: column;
+    box-sizing: border-box;
+    inline-size: max-content;
+    max-inline-size: calc(100% + var(--alpha-number-strip-room, 0.75rem));
+    margin-block: calc(-1 * var(--alpha-number-strip-room, 0.75rem));
+    margin-inline: calc(-1 * var(--alpha-number-strip-room, 0.75rem)) 0;
+    padding: var(--alpha-number-strip-room, 0.75rem);
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-padding-inline: calc(2 * var(--plate-target-size));
+  }
+
+  /*
+   * A strip's Hot Text lets its parts shrink to its own width: plate lays a Hot Text's prompt and
+   * passage out as the items of a grid, and an item keeps its content's narrowest width, which for
+   * a strip is its whole row of cards, so it would take the page sideways with it.
+   */
+  :where([data-slot="plate-hottext"]:has(.alpha-number-strip)) > * {
+    min-inline-size: 0;
+  }
+
+  :where([data-slot="plate-hottext"]) .alpha-number-strip [data-slot="plate-hottext-choice"] {
+    display: flex;
+    align-items: center;
+    min-inline-size: var(--plate-target-size);
+    min-block-size: var(--plate-target-size);
+    padding: 0;
+  }
+
+  /*
+   * A card's face: its words fill the card, the numeral at their centre with a room of half its
+   * size clear of either side. The strip's start (`alpha-number-strip-start`), whose hottext plate
+   * writes as the span its passage stands in, reaches back over that room to the card's edges, so
+   * its highlight is the card's whole face and lies over any fill a theme gives the words of a card
+   * hovered, picked or marked: the start stays highlighted whatever the card shows, and a theme
+   * shows a state on it by an edge or a frame.
+   */
+  :where([data-slot="plate-hottext"]) .alpha-number-strip [data-slot="plate-hottext-content"] {
+    --plate-numeral-room: 0.5em;
+
+    display: grid;
+    flex: 1 1 auto;
+    align-self: stretch;
+    place-items: center;
+    margin: 0;
+    padding: 0 var(--plate-numeral-room);
+  }
+
+  :where([data-slot="plate-hottext"])
+    .alpha-number-strip
+    [data-slot="plate-hottext-content"]
+    > .alpha-number-strip-start {
+    display: grid;
+    place-self: stretch;
+    place-items: center;
+    margin: 0 calc(-1 * var(--plate-numeral-room));
+  }
+
+  /*
+   * A card's focus ring, and a review's badge on its corner, stand over the card after it, which
+   * would otherwise paint over them.
+   */
+  :where([data-slot="plate-hottext"])
+    .alpha-number-strip
+    [data-slot="plate-hottext-choice"]:is(:has(:focus-visible), [data-mark]) {
+    z-index: 1;
+  }
+}

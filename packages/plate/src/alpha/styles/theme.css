@@ -1,0 +1,101 @@
+/*
+ * Alpha's theme: plate's look of the classes of Alpha's renderer vocabulary
+ * (`#plate/alpha/vocabulary.ts`) and of the parts Alpha's renderers write, drawn over Alpha's base
+ * sheet and plate's two. A host that keeps plate's theme imports it after Alpha's base sheet,
+ * `@qti-pie/plate/alpha/styles/theme.css`; a host with its own theme draws these classes in it
+ * instead. It reads plate's tokens, and its look is plate's theme's: the plainest one, an edge's
+ * colour, width or style for each state a child must see.
+ *
+ * Layers are Alpha's base sheet's: every rule sits in `@layer plate-alpha`, after that sheet's
+ * rules, so where a rule here and one there weigh the same, this one wins.
+ */
+
+@layer plate-alpha {
+  /* == choice == */
+
+  /*
+   * Alpha's Choice line (`alpha-choice-instruction`, `#plate/alpha/choice/choice.tsx`), "Select
+   * your answer:" under the prompt: quieter than the prompt, its words set apart by weight.
+   */
+  :where([data-slot="plate-choice"]) [data-slot="alpha-choice-instruction"] {
+    margin: 0 0 0.5rem;
+    color: var(--ui-muted-foreground);
+    font-weight: 600;
+  }
+
+  /* == hot text == */
+
+  /*
+   * A number strip (`alpha-number-strip`): numeral cards framed edge to edge, the first card's
+   * start edge closing the strip. A card says "you can pick this" by its frame, so it carries no
+   * underline, unless the host has struck it out; its numeral is large and bold, in figures of one
+   * width. The start (`alpha-number-strip-start`), which the base sheet stretches over its card,
+   * fills it whole in the yellow of Alpha's K–2 forms (#ffe08a), in plate's highlight's ink, 15:1
+   * on it. A picked card is framed again inside its edge, 4 px in the foreground, so nothing moves
+   * (ruling R5) and the focus ring outside it stays, an edge forced colours keep; a review's mark
+   * frames it in the mark's colour, dashed for a right answer the child did not give, beside
+   * plate's badge, which reaches 0.75rem past the card's corner: the strip's room for it.
+   */
+  :where([data-slot="plate-hottext"]) .alpha-number-strip {
+    --alpha-number-strip-room: 0.75rem;
+
+    line-height: 1;
+  }
+
+  :where([data-slot="plate-hottext"]) .alpha-number-strip [data-slot="plate-hottext-choice"] {
+    border: 2px solid var(--ui-foreground);
+    border-inline-start: 0;
+    background: var(--ui-background);
+    font-size: 1.3em;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  :where([data-slot="plate-hottext"])
+    .alpha-number-strip
+    [data-slot="plate-hottext-choice"]:first-child {
+    border-inline-start: 2px solid var(--ui-foreground);
+  }
+
+  :where([data-slot="plate-hottext"])
+    .alpha-number-strip
+    [data-slot="plate-hottext-choice"]:not([data-eliminated]) {
+    text-decoration-line: none;
+  }
+
+  :where([data-slot="plate-hottext"])
+    .alpha-number-strip
+    [data-slot="plate-hottext-choice"]:is([data-selected], [data-mark])::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 4px solid var(--plate-mark, var(--ui-foreground));
+    pointer-events: none;
+  }
+
+  :where([data-slot="plate-hottext"])
+    .alpha-number-strip
+    [data-slot="plate-hottext-choice"][data-mark="missed"]::before {
+    border-style: dashed;
+  }
+
+  :where([data-slot="plate-hottext"])
+    .alpha-number-strip
+    [data-slot="plate-hottext-content"]
+    > .alpha-number-strip-start {
+    background: oklch(0.914 0.111 90.3);
+    color: oklch(0.15 0 0);
+  }
+
+  @media (forced-colors: active) {
+    /* The start in the system's mark colours, which forced colours keep, as plate's highlight. */
+    :where([data-slot="plate-hottext"])
+      .alpha-number-strip
+      [data-slot="plate-hottext-content"]
+      > .alpha-number-strip-start {
+      forced-color-adjust: none;
+      background: Mark;
+      color: MarkText;
+    }
+  }
+}
