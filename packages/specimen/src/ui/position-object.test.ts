@@ -190,7 +190,7 @@ const opened = Effect.gen(function* opened() {
  * @returns The identifiers.
  */
 const objectResponses = (count: number): readonly string[] =>
-  Arr.makeBy(count, (index) => `OBJECT_${String(index + 1)}`);
+  Array.from({ length: count }, (_, index) => `OBJECT_${String(index + 1)}`);
 
 /**
  * The specimen floor's first Position Object whose stage holds two objects or more, each placed as

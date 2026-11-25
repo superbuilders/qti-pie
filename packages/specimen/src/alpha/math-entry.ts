@@ -733,7 +733,8 @@ const fieldIn = (
  * Open Chrome and the page's server, and give `count` fields, each in a page of its own, all closed
  * with the scope.
  *
- * @param count How many fields: one per sequence typed at once.
+ * @param count How many fields: one per sequence typed at once, and one at least, the first, where
+ *   it is below one.
  * @param setup What each is set up with: plate's field unless given ({@link setupOf}).
  * @returns The fields.
  */
@@ -745,11 +746,14 @@ export const mathEntryFields = (
     const url = yield* pageServer;
     const browser = yield* chrome;
 
-    return yield* Effect.forEach(
-      Arr.makeBy(Math.max(1, count), () => url),
-      (at) => fieldIn(browser, at, setup),
-      { concurrency: "unbounded" },
-    );
+    const urls: Arr.NonEmptyReadonlyArray<string> = [
+      url,
+      ...Array.from({ length: count - 1 }, () => url),
+    ];
+
+    return yield* Effect.forEach(urls, (at) => fieldIn(browser, at, setup), {
+      concurrency: "unbounded",
+    });
   });
 
 /**
