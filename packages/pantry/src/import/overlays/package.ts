@@ -391,9 +391,12 @@ const encoder = new TextEncoder();
 const decodedSegmentOf = (segment: string): Result.Result<string, Limit> => {
   const octets: number[] = [];
   for (const [token] of segment.matchAll(regex("%[0-9A-Fa-f]{2}|.", "gsu"))) {
-    octets.push(
-      ...(token.startsWith("%") ? [Number.parseInt(token.slice(1), 16)] : encoder.encode(token)),
-    );
+    const spelled = token.startsWith("%")
+      ? [Number.parseInt(token.slice(1), 16)]
+      : encoder.encode(token);
+    for (const octet of spelled) {
+      octets.push(octet);
+    }
   }
 
   return Result.match(
