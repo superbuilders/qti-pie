@@ -678,7 +678,7 @@ export const domainOf = (
   ref:
     | { readonly _tag: "Anonymous"; readonly definition: Element; readonly name: string }
     | { readonly _tag: "Named"; readonly lexical: string },
-  seen: ReadonlySet<string> = new Set(),
+  seen: ReadonlySet<string>,
 ): Result.Result<Domain, DomainError> => {
   const here = ref._tag === "Named" ? ref.lexical : ref.name;
   const typed = (holder: Element, attribute: string): Result.Result<Domain, DomainError> =>
@@ -796,7 +796,7 @@ const readingDomainOf = (
     named: ({ name: lexical }) =>
       lexical.startsWith("xs:")
         ? builtinDomainOf(lexical.slice("xs:".length))
-        : domainOf(schema, { _tag: "Named", lexical }),
+        : domainOf(schema, { _tag: "Named", lexical }, new Set()),
     restriction: ({ base, facets }) =>
       Result.flatMap(readingDomainOf(schema, base, `the base type of ${name}`), (domain) =>
         restricted(domain, facets, name),

@@ -427,7 +427,7 @@ const renamed = (
   seed: Seed,
   tag: StartTag,
   name: (current: string) => string,
-  added = "",
+  added: string,
 ): string => {
   const current = spanned(seed.text, tag.name);
   const ended = Option.match(tag.end, {
@@ -557,7 +557,7 @@ const renaming = (
   faultClass: FaultClass,
   name: string,
   to: (current: string) => string,
-  added = "",
+  added: string,
 ): Fault =>
   byText(faultClass, name, (seed) =>
     lastSite(unprefixed(seed)).map((tag) => renamed(seed, tag, to, added)),
@@ -695,7 +695,7 @@ const faults: readonly Fault[] = [
       ),
     ),
   ),
-  renaming("mismatched name", "an element renamed in both its tags", (name) => `${name}z`),
+  renaming("mismatched name", "an element renamed in both its tags", (name) => `${name}z`, ""),
   ...[
     "&#0;",
     "&#x1;",
@@ -815,16 +815,17 @@ const faults: readonly Fault[] = [
   inTag("attribute syntax", ' zq = "1"'),
   inTag("attribute syntax", " zq='1'"),
   inTag("attribute syntax", '\n\tzq="1"'),
-  renaming("name", "an element named from a digit", (name) => `1${name}`),
-  renaming("name", "an element named from a hyphen", (name) => `-${name}`),
-  renaming("name", "an element named from a full stop", (name) => `.${name}`),
-  renaming("name", "an element named from a low line", (name) => `_${name}`),
+  renaming("name", "an element named from a digit", (name) => `1${name}`, ""),
+  renaming("name", "an element named from a hyphen", (name) => `-${name}`, ""),
+  renaming("name", "an element named from a full stop", (name) => `.${name}`, ""),
+  renaming("name", "an element named from a low line", (name) => `_${name}`, ""),
   renaming(
     "name",
     "an element named with a full stop, a hyphen and a digit",
     (name) => `${name}.-1`,
+    "",
   ),
-  renaming("name", "an element named from a letter outside ASCII", (name) => `é${name}`),
+  renaming("name", "an element named from a letter outside ASCII", (name) => `é${name}`, ""),
   inTag("name", ' 1zq="1"'),
   inTag("name", ' -zq="1"'),
   inTag("name", ' _zq="1"'),
@@ -863,7 +864,7 @@ const faults: readonly Fault[] = [
   inBytes("a low surrogate alone", utf16([0xdc_00])),
   inBytes("a surrogate pair", utf16([0xd8_34, 0xdd_1e])),
   inBytes("a byte past ASCII", new Map([["US-ASCII", [0xe9]]])),
-  renaming("namespace", "an element given an unbound prefix", (name) => `zq:${name}`),
+  renaming("namespace", "an element given an unbound prefix", (name) => `zq:${name}`, ""),
   inTag("namespace", ' zq:a="1"'),
   inTag("namespace", ' xmlns:zq=""'),
   inTag("namespace", ' xmlns:xml="urn:zq"'),
@@ -878,7 +879,7 @@ const faults: readonly Fault[] = [
     (name) => `zq:${name}:b`,
     ' xmlns:zq="urn:zq"',
   ),
-  renaming("namespace", "an element given the xmlns prefix", (name) => `xmlns:${name}`),
+  renaming("namespace", "an element given the xmlns prefix", (name) => `xmlns:${name}`, ""),
   inTag("namespace", ' xmlns:zq="urn:zq" zq:a="1"'),
   inTag("namespace", ' xmlns:xml="http://www.w3.org/XML/1998/namespace"'),
   inTag("namespace", ' xml:lang="en"'),

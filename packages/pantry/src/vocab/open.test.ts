@@ -47,7 +47,7 @@ const rosters: readonly VocabularyRoster[] = vocabularies;
  */
 const placesOf = (
   particle: Particle,
-  possible = true,
+  possible: boolean,
 ): readonly {
   readonly leaf: Extract<Particle, { readonly _tag: "any" | "element" }>;
   readonly possible: boolean;
@@ -118,7 +118,7 @@ const wildcardsIn = (
   content: ContentType,
 ): readonly Extract<Particle, { readonly _tag: "any" }>[] =>
   content._tag === "element-only" || content._tag === "mixed"
-    ? placesOf(content.particle).flatMap(({ leaf, possible }) =>
+    ? placesOf(content.particle, true).flatMap(({ leaf, possible }) =>
         possible && leaf._tag === "any" ? [leaf] : [],
       )
     : [];

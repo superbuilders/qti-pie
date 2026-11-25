@@ -1027,7 +1027,7 @@ const leaf = (
   kind: string,
   base: ValueBase,
   cardinality: ValueCardinality,
-  outcomeOnly = false,
+  outcomeOnly: boolean,
 ): ExpressionTyping => ({
   ...operator(kind, [], [], fixed(base, cardinality), sharingNothing),
   outcomeOnly,
@@ -1056,14 +1056,14 @@ export const expressionTypings: readonly ExpressionTyping[] = [
     operator(kind, ["boolean"], ["single"], predicate, sharingNothing),
   ),
   {
-    ...leaf("qti-base-value", "boolean", "single"),
+    ...leaf("qti-base-value", "boolean", "single", false),
     resultBases: allBases,
     typing: "attribute",
   },
   operator("qti-container-size", allBases, containers, fixed("integer", "single"), sharingNothing),
   operator("qti-contains", notDuration, containers, predicate, sharingBoth),
   ...["qti-correct", "qti-default", "qti-variable"].map((kind): ExpressionTyping => ({
-    ...leaf(kind, "unknown", "unknown"),
+    ...leaf(kind, "unknown", "unknown", false),
     resultBases: [...allBases, "unknown"],
     resultCardinalities: valueCardinalities,
     typing: "declared",
@@ -1124,10 +1124,10 @@ export const expressionTypings: readonly ExpressionTyping[] = [
     operator(kind, ["integer"], ["single"], fixed(result, "single"), sharingNothing),
   ),
   operator("qti-is-null", allBases, allCardinalities, predicate, sharingNothing),
-  leaf("qti-map-response", "float", "single"),
-  leaf("qti-map-response-point", "float", "single"),
+  leaf("qti-map-response", "float", "single", false),
+  leaf("qti-map-response-point", "float", "single", false),
   operator("qti-match", notDuration, allCardinalities, predicate, sharingBoth),
-  leaf("qti-math-constant", "float", "single"),
+  leaf("qti-math-constant", "float", "single", false),
   operator(
     "qti-math-operator",
     numerical,
@@ -1179,7 +1179,7 @@ export const expressionTypings: readonly ExpressionTyping[] = [
       sharingBase,
     ),
   ),
-  leaf("qti-null", "any", "unknown"),
+  leaf("qti-null", "any", "unknown", false),
   ...[
     "qti-number-correct",
     "qti-number-incorrect",
@@ -1206,8 +1206,8 @@ export const expressionTypings: readonly ExpressionTyping[] = [
   ).map(([kind, result]) =>
     operator(kind, numerical, ["single"], fixed(result, "single"), sharingNothing),
   ),
-  leaf("qti-random-float", "float", "single"),
-  leaf("qti-random-integer", "integer", "single"),
+  leaf("qti-random-float", "float", "single", false),
+  leaf("qti-random-integer", "integer", "single", false),
   operator("qti-stats-operator", numerical, containers, fixed("float", "single"), sharingNothing),
   {
     ...leaf("qti-test-variables", "unknown", "multiple", true),

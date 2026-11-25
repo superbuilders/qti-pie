@@ -291,6 +291,15 @@ interface SpecReading {
 }
 
 /**
+ * The definition as the XSD declares it: the definition of a reading that reads only the value's
+ * whitespace.
+ *
+ * @param domain - The definition.
+ * @returns The definition.
+ */
+const asDeclared = (domain: Domain): Domain => domain;
+
+/**
  * A reading of the attribute on the listed kinds.
  *
  * @param reading - The reading's number.
@@ -305,7 +314,7 @@ const on = (
   kinds: readonly string[],
   name: string,
   whiteSpace: Reading,
-  read: (domain: Domain) => Domain = (domain) => domain,
+  read: (domain: Domain) => Domain,
 ): SpecReading => ({
   kinds: Option.some(kinds),
   name,
@@ -970,9 +979,9 @@ const cnBaseReadings: readonly SpecReading[] = Option.toArray(
  * {@link readingUses}.
  */
 export const specReadings: readonly SpecReading[] = [
-  on(7, ["qti-map-entry"], "map-key", "xsd"),
-  on(7, ["qti-match-table", "qti-interpolation-table"], "default-value", "exact"),
-  on(7, ["qti-interpolation-table-entry"], "target-value", "exact"),
+  on(7, ["qti-map-entry"], "map-key", "xsd", asDeclared),
+  on(7, ["qti-match-table", "qti-interpolation-table"], "default-value", "exact", asDeclared),
+  on(7, ["qti-interpolation-table-entry"], "target-value", "exact", asDeclared),
   on(8, ["qti-match-table-entry"], "target-value", "exact", () => stringDomain),
   on(9, ["h1"], "role", "xsd", headingRole),
   on(16, ["qti-outcome-declaration"], "normal-maximum", "xsd", (domain) => ({

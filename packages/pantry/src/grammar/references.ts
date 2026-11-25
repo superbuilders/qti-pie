@@ -212,14 +212,14 @@ interface CensusEntry {
  * @param name - The attribute.
  * @param kinds - The kinds that carry it as a file reference.
  * @param source - What makes its value a reference to a file.
- * @param form - How its value names the file, `uri` unless stated.
+ * @param form - How its value names the file.
  * @returns The entry.
  */
 const onKinds = (
   name: string,
   kinds: readonly [string, ...string[]],
   source: string,
-  form: ReferenceForm = "uri",
+  form: ReferenceForm,
 ): CensusEntry => ({ form, kinds: { _tag: "listed", kinds }, name, source });
 
 /**
@@ -238,33 +238,47 @@ const onKinds = (
  * why.
  */
 export const asiCensus: readonly CensusEntry[] = [
-  onKinds("href", ["a"], "HTML, the a element: the hyperlink's URL"),
-  onKinds("cite", ["blockquote", "q"], "HTML, blockquote and q: the URL of the quotation's source"),
-  onKinds("src", ["img"], "HTML, the img element: the image's URL"),
-  onKinds("longdesc", ["img"], "HTML 4.01 §13.2: a link to the image's long description"),
-  onKinds("data", ["object"], "HTML, the object element: the resource's URL"),
-  onKinds("src", ["audio", "video", "source", "track"], "HTML, media elements: the resource's URL"),
-  onKinds("poster", ["video"], "HTML, the video element: the poster frame's URL"),
+  onKinds("href", ["a"], "HTML, the a element: the hyperlink's URL", "uri"),
+  onKinds(
+    "cite",
+    ["blockquote", "q"],
+    "HTML, blockquote and q: the URL of the quotation's source",
+    "uri",
+  ),
+  onKinds("src", ["img"], "HTML, the img element: the image's URL", "uri"),
+  onKinds("longdesc", ["img"], "HTML 4.01 §13.2: a link to the image's long description", "uri"),
+  onKinds("data", ["object"], "HTML, the object element: the resource's URL", "uri"),
+  onKinds(
+    "src",
+    ["audio", "video", "source", "track"],
+    "HTML, media elements: the resource's URL",
+    "uri",
+  ),
+  onKinds("poster", ["video"], "HTML, the video element: the poster frame's URL", "uri"),
   onKinds("srcset", ["source"], "HTML, srcset attributes: image candidate strings", "srcset"),
   onKinds(
     "href",
     ["qti-stylesheet"],
     "information model, Stylesheet: the stylesheet's location (§5.137)",
+    "uri",
   ),
   onKinds(
     "href",
     ["qti-assessment-item-ref", "qti-assessment-section-ref", "qti-assessment-stimulus-ref"],
     "information model, AssessmentItemRef §6.6, AssessmentSectionRef §6.8 and AssessmentStimulusRef §7.6: the referenced file",
+    "uri",
   ),
   onKinds(
     "href",
     ["qti-adaptive-engine-ref", "qti-adaptive-settings-ref"],
     "information model, the adaptive selection references: the engine's and the settings' files",
+    "uri",
   ),
   onKinds(
     "href",
     ["qti-metadata-ref", "qti-usagedata-ref"],
     "information model, the metadata and usage-data references: the file's location",
+    "uri",
   ),
   onKinds(
     "primary-configuration",
@@ -294,11 +308,13 @@ export const asiCensus: readonly CensusEntry[] = [
     "template-location",
     ["qti-response-processing"],
     "information model §5.119 and the implementation guide's ../rptemplates/match_correct.xml (impl.txt:13693): a template file",
+    "uri",
   ),
   onKinds(
     "long-interpretation",
     ["qti-outcome-declaration"],
     "information model §5.115: a URI that points to a fuller interpretation of the outcome",
+    "uri",
   ),
 ];
 
@@ -411,7 +427,12 @@ export const textReferenceKinds: readonly TextReferenceKind[] = [
  * of the resource to include" (XInclude 1.0 §3.1).
  */
 export const xiCensus: readonly CensusEntry[] = [
-  onKinds("href", ["xi:include"], "XInclude 1.0 §3.1: the location of the resource to include"),
+  onKinds(
+    "href",
+    ["xi:include"],
+    "XInclude 1.0 §3.1: the location of the resource to include",
+    "uri",
+  ),
 ];
 
 /**
@@ -428,14 +449,15 @@ export const mathmlCensus: readonly CensusEntry[] = [
     name: "href",
     source: "MathML 3 §2.1.6: a hyperlink",
   },
-  onKinds("altimg", ["m:math"], "MathML 3 §2.2.1: the fallback image"),
-  onKinds("cdgroup", ["m:math"], "MathML 3 §2.2.1: a content dictionary group file"),
-  onKinds("src", ["m:mglyph"], "MathML 3 §3.2.1.2: the glyph's image"),
-  onKinds("src", ["m:share"], "MathML 3 §4.2.7: the shared expression"),
+  onKinds("altimg", ["m:math"], "MathML 3 §2.2.1: the fallback image", "uri"),
+  onKinds("cdgroup", ["m:math"], "MathML 3 §2.2.1: a content dictionary group file", "uri"),
+  onKinds("src", ["m:mglyph"], "MathML 3 §3.2.1.2: the glyph's image", "uri"),
+  onKinds("src", ["m:share"], "MathML 3 §4.2.7: the shared expression", "uri"),
   onKinds(
     "src",
     ["m:annotation", "m:annotation-xml"],
     "MathML 3 §5.1.2: the annotation's location",
+    "uri",
   ),
 ];
 
@@ -444,8 +466,8 @@ export const mathmlCensus: readonly CensusEntry[] = [
  * `uri`, the pronunciation lexicon document (§3.1.4).
  */
 export const ssmlCensus: readonly CensusEntry[] = [
-  onKinds("src", ["ssml:audio"], "SSML 1.1 §3.3.1: the audio file"),
-  onKinds("uri", ["ssml:lexicon"], "SSML 1.1 §3.1.4: the lexicon document"),
+  onKinds("src", ["ssml:audio"], "SSML 1.1 §3.3.1: the audio file", "uri"),
+  onKinds("uri", ["ssml:lexicon"], "SSML 1.1 §3.1.4: the lexicon document", "uri"),
 ];
 
 /**

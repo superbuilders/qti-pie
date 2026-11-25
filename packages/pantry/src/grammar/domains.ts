@@ -1010,7 +1010,8 @@ const unread = (cursor: Cursor, detail: string): Result.Result<never, UnreadPatt
  * @param ahead - How many characters past it.
  * @returns The character.
  */
-const peek = (cursor: Cursor, ahead = 0): string | undefined => cursor.points[cursor.at + ahead];
+const peek = (cursor: Cursor, ahead: number): string | undefined =>
+  cursor.points[cursor.at + ahead];
 
 /**
  * Read a category or block escape's braces, `{Name}`, after `\p` or `\P`.
@@ -1023,7 +1024,7 @@ const readProperty = (
   cursor: Cursor,
   complement: boolean,
 ): Result.Result<CodeSet, UnreadPattern> => {
-  if (peek(cursor) !== "{") {
+  if (peek(cursor, 0) !== "{") {
     return unread(cursor, "a \\p or \\P without its braces");
   }
 
@@ -1070,7 +1071,7 @@ const setOfEscaped = (escaped: Escaped): CodeSet =>
  * @returns The character or the set it stands for.
  */
 const readEscape = (cursor: Cursor): Result.Result<Escaped, UnreadPattern> => {
-  const letter = peek(cursor);
+  const letter = peek(cursor, 0);
   if (letter === undefined) {
     return unread(cursor, "a backslash at the end");
   }
@@ -1122,13 +1123,13 @@ const readClassItem = (
     return Result.fail(start.failure);
   }
 
-  const dash = peek(cursor) === "-" && peek(cursor, 1) !== "]" && peek(cursor, 1) !== "[";
+  const dash = peek(cursor, 0) === "-" && peek(cursor, 1) !== "]" && peek(cursor, 1) !== "[";
   if (start.success._tag !== "point" || !dash) {
     return Result.succeed(setOfEscaped(start.success));
   }
 
   cursor.at += 1;
-  const endCharacter = peek(cursor);
+  const endCharacter = peek(cursor, 0);
   if (endCharacter === undefined) {
     return unread(cursor, "a range without its end");
   }
@@ -1156,7 +1157,7 @@ const readClassItem = (
  * @returns The class's set within XML's `Char`.
  */
 const readClass = (cursor: Cursor): Result.Result<CodeSet, UnreadPattern> => {
-  const negated = peek(cursor) === "^";
+  const negated = peek(cursor, 0) === "^";
   if (negated) {
     cursor.at += 1;
   }
@@ -1164,7 +1165,7 @@ const readClass = (cursor: Cursor): Result.Result<CodeSet, UnreadPattern> => {
   const runs: CodeRange[] = [];
   let subtracted: CodeSet = [];
   for (;;) {
-    const character = peek(cursor);
+    const character = peek(cursor, 0);
     if (character === undefined) {
       return unread(cursor, "a class without its closing bracket");
     }
@@ -1186,7 +1187,7 @@ const readClass = (cursor: Cursor): Result.Result<CodeSet, UnreadPattern> => {
       }
 
       subtracted = inner.success;
-      if (peek(cursor) !== "]") {
+      if (peek(cursor, 0) !== "]") {
         return unread(cursor, "a subtraction that is not the class's last part");
       }
 
@@ -1284,7 +1285,7 @@ const readAlternation = (cursor: Cursor): Result.Result<Regex, UnreadPattern> =>
   for (;;) {
     const parts: Regex[] = [];
     for (;;) {
-      const character = peek(cursor);
+      const character = peek(cursor, 0);
       if (character === undefined || character === "|" || character === ")") {
         break;
       }
@@ -1296,7 +1297,7 @@ const readAlternation = (cursor: Cursor): Result.Result<Regex, UnreadPattern> =>
       }
 
       if (character === "(") {
-        if (peek(cursor) !== ")") {
+        if (peek(cursor, 0) !== ")") {
           return unread(cursor, "a group without its closing parenthesis");
         }
 
@@ -1304,7 +1305,7 @@ const readAlternation = (cursor: Cursor): Result.Result<Regex, UnreadPattern> =>
       }
 
       let atom = read.success;
-      const quantifier = peek(cursor);
+      const quantifier = peek(cursor, 0);
       if (quantifier === "?") {
         cursor.at += 1;
         atom = opt(atom);
@@ -1328,7 +1329,7 @@ const readAlternation = (cursor: Cursor): Result.Result<Regex, UnreadPattern> =>
     }
 
     arms.push(seq(parts));
-    if (peek(cursor) !== "|") {
+    if (peek(cursor, 0) !== "|") {
       break;
     }
 
@@ -3450,7 +3451,7 @@ const spacesOf = (tree: Regex): Spaces => {
  * @param inRun - Whether the tree is one whole iteration of such a repetition.
  * @returns The tree as written.
  */
-const spacesToRuns = (tree: Regex, inRun = false): Regex => {
+const spacesToRuns = (tree: Regex, inRun: boolean): Regex => {
   switch (tree._tag) {
     case "chars": {
       if (!holds(tree.set, spacePoint)) {
@@ -3466,7 +3467,7 @@ const spacesToRuns = (tree: Regex, inRun = false): Regex => {
       return rest.length === 0 ? plus(whitespaceChar) : alt([plus(whitespaceChar), chars(rest)]);
     }
     case "seq": {
-      return seq(tree.parts.map((part) => spacesToRuns(part)));
+      return seq(tree.parts.map((part) => spacesToRuns(part, false)));
     }
     case "alt": {
       return alt(tree.arms.map((arm) => spacesToRuns(arm, inRun)));
@@ -3516,7 +3517,7 @@ interface Glushkov {
  * @param run - The unbounded repetition whose one iteration the tree is, through alternations.
  * @returns Its sets.
  */
-const glushkovOf = (tree: Regex, run: Option.Option<Run> = Option.none()): Glushkov => {
+const glushkovOf = (tree: Regex, run: Option.Option<Run>): Glushkov => {
   switch (tree._tag) {
     case "chars": {
       const position: SpacePosition = { run, space: holds(tree.set, spacePoint) };
@@ -3525,7 +3526,7 @@ const glushkovOf = (tree: Regex, run: Option.Option<Run> = Option.none()): Glush
     }
     case "seq": {
       let left: Glushkov = { first: [], follow: [], last: [], nullable: true };
-      for (const right of tree.parts.map((part) => glushkovOf(part))) {
+      for (const right of tree.parts.map((part) => glushkovOf(part, Option.none()))) {
         left = {
           first: left.nullable ? [...left.first, ...right.first] : left.first,
           follow: [
@@ -3593,7 +3594,7 @@ const droppable = (position: SpacePosition): boolean =>
  * @returns Whether every word's spaces may be merged.
  */
 const mergeSafe = (tree: Regex): boolean =>
-  glushkovOf(tree).follow.every(([from, to]) => {
+  glushkovOf(tree, Option.none()).follow.every(([from, to]) => {
     const sameRun =
       Option.isSome(from.run) &&
       Option.isSome(to.run) &&
@@ -3632,11 +3633,11 @@ const foldCollapse = (tree: Regex): Result.Result<Regex, UnreadDefinition> => {
   }
 
   if (!spaces.first && !spaces.last) {
-    return Result.succeed(seq([anyWhitespace, spacesToRuns(unbroken), anyWhitespace]));
+    return Result.succeed(seq([anyWhitespace, spacesToRuns(unbroken, false), anyWhitespace]));
   }
 
   const solid = subtract(xmlChar, whitespace);
-  const core = firstIn(lastIn(spacesToRuns(unbroken), solid), solid);
+  const core = firstIn(lastIn(spacesToRuns(unbroken, false), solid), solid);
 
   return Result.succeed(
     alt([seq([anyWhitespace, core, anyWhitespace]), ...(spaces.nullable ? [anyWhitespace] : [])]),

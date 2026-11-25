@@ -240,7 +240,7 @@ const holdToOracle = (
   input: AttributeGrammarInput,
   grammar: AttributeGrammar,
   compiled: readonly { readonly definition: Domain; readonly whiteSpace: Reading }[],
-  before: ReadonlySet<string> = new Set(),
+  before: ReadonlySet<string>,
 ): ReadonlySet<string> => {
   const read = oracle();
   const texts = compiled.map((unit) => definitionText(unit));
