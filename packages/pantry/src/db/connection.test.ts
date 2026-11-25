@@ -316,7 +316,7 @@ type Reached = "built" | "malformed" | "no CA";
 
 /**
  * The scratch folders a run reads: the file `QTI_PIE_PG_CA` names, the folder `QTI_PIE_PG_SECRETS`
- * names, with the login's password file in each kept database's installation, and an empty folder.
+ * names, with the login's password file of each installation a case reads, and an empty folder.
  */
 interface Scratch {
   readonly caFile: string;
@@ -336,7 +336,27 @@ const namedCa = "the CA QTI_PIE_PG_CA names";
 const secretsPassword = "the password in QTI_PIE_PG_SECRETS";
 
 /**
- * Write the scratch folders of one run into a temporary folder of `work/` that the scope removes.
+ * Write the login's password file of an installation into the folder `QTI_PIE_PG_SECRETS` names,
+ * the file its role names, with the whitespace around it the reader trims.
+ *
+ * @param secrets - The folder.
+ * @param database - The installation's database, its roles' prefix.
+ * @returns Nothing; the file is written.
+ */
+const passwordFileWritten = Effect.fnUntraced(function* passwordFileWritten(
+  secrets: string,
+  database: string,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const role = roleNameOf(rootLogin, { rolePrefix: database });
+
+  yield* fs.writeFileString(`${secrets}/${role}.password`, `  ${secretsPassword}  \n`);
+});
+
+/**
+ * Write the scratch folders of one run into a temporary folder of `work/` that the scope removes,
+ * the secrets folder holding the password file of the server's installation, which every case
+ * whose database is the server's reads; a case of another database writes its own.
  *
  * @returns The folders.
  */
@@ -352,14 +372,7 @@ const scratchFolders = Effect.gen(function* scratchFolders() {
   yield* fs.makeDirectory(scratch.empty, { recursive: true });
   yield* fs.writeFileString(scratch.caFile, namedCa);
   yield* fs.makeDirectory(scratch.secrets, { recursive: true });
-
-  for (const database of databases) {
-    if (Option.isSome(database.value)) {
-      const role = roleNameOf(rootLogin, { rolePrefix: database.value.value });
-
-      yield* fs.writeFileString(`${scratch.secrets}/${role}.password`, `  ${secretsPassword}  \n`);
-    }
-  }
+  yield* passwordFileWritten(scratch.secrets, serverSettings.QTI_PIE_PG_DATABASE);
 
   return scratch;
 });
@@ -765,6 +778,10 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
             },
             (settings, c) =>
               Effect.gen(function* oneCase() {
+                if (settings.secrets === "set" && Option.isSome(settings.database.value)) {
+                  yield* passwordFileWritten(scratch.secrets, settings.database.value.value);
+                }
+
                 const provider = ConfigProvider.layer(
                   ConfigProvider.fromUnknown(environmentOf(settings, scratch)),
                 );
@@ -1011,10 +1028,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
       Effect.gen(function* passwordCommands() {
         const fs = yield* FileSystem.FileSystem;
         const scratch = yield* scratchFolders;
-        for (const { file, text } of commandScripts) {
-          yield* fs.writeFileString(`${scratch.secrets}/${file}`, text);
-          yield* fs.chmod(`${scratch.secrets}/${file}`, 0o755);
-        }
 
         return yield* searched(
           ctx,
@@ -1063,7 +1076,11 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
 
                 const script = commandScripts.find((named) => named.variant === variant);
                 if (script !== undefined) {
-                  environment.QTI_PIE_PG_PASSWORD_COMMAND = `${scratch.secrets}/${script.file}`;
+                  const command = `${scratch.secrets}/${script.file}`;
+
+                  yield* fs.writeFileString(command, script.text);
+                  yield* fs.chmod(command, 0o755);
+                  environment.QTI_PIE_PG_PASSWORD_COMMAND = command;
                 }
 
                 const provider = ConfigProvider.layer(ConfigProvider.fromUnknown(environment));
@@ -1263,10 +1280,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
         Effect.gen(function* lingeringCommands() {
           const fs = yield* FileSystem.FileSystem;
           const scratch = yield* scratchFolders;
-          for (const { file, text } of lingeringScripts) {
-            yield* fs.writeFileString(`${scratch.secrets}/${file}`, text);
-            yield* fs.chmod(`${scratch.secrets}/${file}`, 0o755);
-          }
 
           return yield* searched(
             ctx,
@@ -1293,6 +1306,10 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               ({ script, side }, c) =>
                 Effect.gen(function* oneCase() {
                   const command = `${scratch.secrets}/${script.file}`;
+
+                  yield* fs.writeFileString(command, script.text);
+                  yield* fs.chmod(command, 0o755);
+
                   const role = loginRole;
                   const provider = ConfigProvider.layer(
                     ConfigProvider.fromUnknown({
