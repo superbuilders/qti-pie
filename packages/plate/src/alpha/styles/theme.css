@@ -37,7 +37,7 @@
    * plate's badge, which reaches 0.75rem past the card's corner: the strip's room for it.
    */
   :where([data-slot="plate-hottext"]) .alpha-number-strip {
-    --alpha-number-strip-room: 0.75rem;
+    --plate-number-strip-room: 0.75rem;
 
     line-height: 1;
   }

@@ -658,7 +658,7 @@ describe("Alpha's sheets", () => {
       `${strip} { grid-auto-columns: 1fr }`,
       `${strip} { grid-auto-flow: column }`,
       `${strip} { inline-size: max-content }`,
-      `${strip} { max-inline-size: calc(100% + var(--alpha-number-strip-room, 0.75rem)) }`,
+      `${strip} { max-inline-size: calc(100% + var(--plate-number-strip-room, 0.75rem)) }`,
       `${strip} { overflow-x: auto }`,
     ]);
     assert.deepStrictEqual(stripLayout(alphaSheets.get("alpha/styles/theme.css") ?? ""), []);
@@ -714,7 +714,7 @@ describe("Alpha's sheets", () => {
     );
 
     const rooms = [
-      ...uncommented(theme).matchAll(/--alpha-number-strip-room:\s*(?<rem>[0-9.]+)rem/gu),
+      ...uncommented(theme).matchAll(/--plate-number-strip-room:\s*(?<rem>[0-9.]+)rem/gu),
     ];
 
     assert.isAbove(rooms.length, 0, "the theme sets the strip's room");
@@ -725,7 +725,7 @@ describe("Alpha's sheets", () => {
       [
         ...new Set(
           [
-            ...uncommented(base).matchAll(/var\(--alpha-number-strip-room(?<fallback>[^)]*)\)/gu),
+            ...uncommented(base).matchAll(/var\(--plate-number-strip-room(?<fallback>[^)]*)\)/gu),
           ].map((match) => match.groups?.["fallback"]),
         ),
       ],

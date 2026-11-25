@@ -31,7 +31,7 @@
    * paragraphs to: where its cards at 64 px do not fit, the strip scrolls inside its own box, so the
    * page never scrolls sideways and no card shrinks below the target. The box has room on every
    * side for what a card draws outside its edge, its focus ring and a review's badge, which a
-   * scrolling box would otherwise clip: `--alpha-number-strip-room`, which a theme sets to what its
+   * scrolling box would otherwise clip: `--plate-number-strip-room`, which a theme sets to what its
    * badges reach, 0.75rem where it sets none. Its margins take that room back on every side but the
    * end, so the cards stand where they would without it and the box ends where its block does. A
    * card the keyboard moves to is scrolled into the box whole: the box keeps two targets' width
@@ -43,10 +43,10 @@
     grid-auto-flow: column;
     box-sizing: border-box;
     inline-size: max-content;
-    max-inline-size: calc(100% + var(--alpha-number-strip-room, 0.75rem));
-    margin-block: calc(-1 * var(--alpha-number-strip-room, 0.75rem));
-    margin-inline: calc(-1 * var(--alpha-number-strip-room, 0.75rem)) 0;
-    padding: var(--alpha-number-strip-room, 0.75rem);
+    max-inline-size: calc(100% + var(--plate-number-strip-room, 0.75rem));
+    margin-block: calc(-1 * var(--plate-number-strip-room, 0.75rem));
+    margin-inline: calc(-1 * var(--plate-number-strip-room, 0.75rem)) 0;
+    padding: var(--plate-number-strip-room, 0.75rem);
     overflow-x: auto;
     overscroll-behavior-inline: contain;
     scroll-padding-inline: calc(2 * var(--plate-target-size));
