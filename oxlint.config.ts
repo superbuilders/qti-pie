@@ -21,9 +21,9 @@ const effectLogStatement = {
 };
 
 /**
- * Import specifiers every package refuses: relative paths, and absolute or `file:` paths.
+ * Import specifiers every module refuses: relative paths, and absolute or `file:` paths.
  */
-const sharedImportPatterns = [
+const pathImportPatterns = [
   {
     message: "Use the package's `#<package>/*` import alias instead of a relative source import.",
     regex: "^\\.{1,2}/",
@@ -34,6 +34,27 @@ const sharedImportPatterns = [
     regex: "^(?:/|file:)",
   },
 ];
+
+/**
+ * The pattern by which core never imports `alpha/`. A package's `src/alpha/` holds Alpha's QTI
+ * extensions, each conformant to the specification, and core, every module outside an `alpha/`
+ * folder, reaches none of them: a host plugs one in through a registry, or content holds it, as an
+ * item's package holds its PCI's module file. The pattern is the specifier's `alpha` segment, so it
+ * refuses the package's own alias (`#plate/alpha/…`) and another package's export
+ * (`@qti-pie/plate/alpha/…`) alike, a type-only import too. The overrides on `alpha/` folders, last
+ * among the rule's, lift it there.
+ */
+const alphaImportPattern = {
+  message:
+    "Core never imports alpha/: Alpha's extensions reach a host through a registry, or content through its loader.",
+  regex: "(?:^|/)alpha(?:/|$)",
+};
+
+/**
+ * Import specifiers every core module refuses: {@link pathImportPatterns}, and
+ * {@link alphaImportPattern}.
+ */
+const sharedImportPatterns = [...pathImportPatterns, alphaImportPattern];
 
 /**
  * Every Node built-in, with or without `node:`, as a specifier pattern without its anchor.
@@ -88,6 +109,23 @@ const plateCorePatterns = [
 ];
 
 /**
+ * The UI entries server code never imports, a type-only import included, since TypeScript compiles
+ * what it names: the rendering entry and the client entry, whose modules reach the islands.
+ */
+const serverRefusedImportPaths = [
+  {
+    message:
+      "Server code imports the UI's types from `@qti-pie/plate/ui/props`, never the UI's rendering entry.",
+    name: "@qti-pie/plate/ui",
+  },
+  {
+    message:
+      "Server code imports the UI's types from `@qti-pie/plate/ui/props`, never the UI's client entry.",
+    name: "@qti-pie/plate/ui/client",
+  },
+];
+
+/**
  * Plate's modules outside `src/ui/` that a `"use client"` module loads, and so a page: what the
  * islands import from the core, and what that imports in turn, by path from the repository's root.
  * The list is derived as the config loads, by the root's one reader of plate's module graph
@@ -97,6 +135,45 @@ const plateCorePatterns = [
  * list, and nothing keeps the list by hand.
  */
 const plateClientModules = plateClientModulesOf(plateModules());
+
+/**
+ * Plate's `alpha/` modules a page loads, from {@link plateClientModules}: they keep the page's bans
+ * as core's do, and lift {@link alphaImportPattern} alone.
+ */
+const plateAlphaClientModules = plateClientModules.filter((module) =>
+  module.startsWith("packages/plate/src/alpha/"),
+);
+
+/**
+ * The options of the rule a module a page loads is held to, given the patterns its place takes
+ * ({@link sharedImportPatterns} in core, {@link pathImportPatterns} in `alpha/`): from `effect` only
+ * what costs a page little, no Schema, no Effect runtime, no Brand, and nothing but effect, plate's
+ * own modules and crust's re-exports of grizzle-text. A type-only import loads nothing.
+ *
+ * @param patterns The place's patterns.
+ * @returns The rule's options.
+ */
+const pageImportOptions = (patterns: typeof sharedImportPatterns) => ({
+  paths: [
+    {
+      allowImportNames: ["Array", "Data", "Option", "Result", "pipe"],
+      allowTypeImports: true,
+      message:
+        "A page loads this module: take only Array, Data, Option, Result and pipe from effect.",
+      name: "effect",
+    },
+  ],
+  patterns: [
+    ...patterns,
+    ...plateCorePatterns,
+    {
+      allowTypeImports: true,
+      group: ["*", "!effect", "!#plate/**", "!@qti-pie/crust/regex.ts", "!@qti-pie/crust/text.ts"],
+      message:
+        "A page loads this module: load only effect, plate's own modules and crust's re-exports of grizzle-text.",
+    },
+  ],
+});
 
 /**
  * The React Compiler's rules, as the toolchain preset turns them on in edullm's apps: oxlint's
@@ -268,21 +345,7 @@ export default defineConfig({
       rules: {
         "no-restricted-imports": [
           "error",
-          {
-            paths: [
-              {
-                message:
-                  "Server code imports the UI's types from `@qti-pie/plate/ui/props`, never the UI's rendering entry.",
-                name: "@qti-pie/plate/ui",
-              },
-              {
-                message:
-                  "Server code imports the UI's types from `@qti-pie/plate/ui/props`, never the UI's client entry.",
-                name: "@qti-pie/plate/ui/client",
-              },
-            ],
-            patterns: sharedImportPatterns,
-          },
+          { paths: serverRefusedImportPaths, patterns: sharedImportPatterns },
         ],
       },
     },
@@ -353,42 +416,44 @@ export default defineConfig({
         "workspace/no-bare-error": "off",
       },
     },
-    // A page loads these, so they take from `effect` only what costs a page little: no Schema, no
-    // Effect runtime, no Brand. A type-only import loads nothing.
+    // A page loads these, so they take from `effect` only what costs a page little (pageImportOptions).
     {
       files: [...plateClientModules],
+      rules: { "no-restricted-imports": ["error", pageImportOptions(sharedImportPatterns)] },
+    },
+    // Inside an `alpha/` folder a module imports its folder's siblings as well as core, and keeps its
+    // package's other bans: plate's, a page's for those of plate's a page loads, the server's for the
+    // ledger and pantry, and the shared ones elsewhere; plate's alpha suites load Node as plate's
+    // tests do. Last among the rule's overrides, they lift alphaImportPattern on `alpha/` alone.
+    {
+      files: ["packages/*/src/alpha/**/*.ts", "packages/*/src/alpha/**/*.tsx"],
+      rules: { "no-restricted-imports": ["error", { patterns: pathImportPatterns }] },
+    },
+    {
+      files: ["packages/ledger/src/alpha/**/*.ts", "packages/pantry/src/alpha/**/*.ts"],
       rules: {
         "no-restricted-imports": [
           "error",
-          {
-            paths: [
-              {
-                allowImportNames: ["Array", "Data", "Option", "Result", "pipe"],
-                allowTypeImports: true,
-                message:
-                  "A page loads this module: take only Array, Data, Option, Result and pipe from effect.",
-                name: "effect",
-              },
-            ],
-            patterns: [
-              ...sharedImportPatterns,
-              ...plateCorePatterns,
-              {
-                allowTypeImports: true,
-                group: [
-                  "*",
-                  "!effect",
-                  "!#plate/**",
-                  "!@qti-pie/crust/regex.ts",
-                  "!@qti-pie/crust/text.ts",
-                ],
-                message:
-                  "A page loads this module: load only effect, plate's own modules and crust's re-exports of grizzle-text.",
-              },
-            ],
-          },
+          { paths: serverRefusedImportPaths, patterns: pathImportPatterns },
         ],
       },
+    },
+    {
+      files: ["packages/plate/src/alpha/**/*.ts", "packages/plate/src/alpha/**/*.tsx"],
+      rules: {
+        "no-restricted-imports": [
+          "error",
+          { patterns: [...pathImportPatterns, ...plateCorePatterns] },
+        ],
+      },
+    },
+    {
+      files: ["packages/plate/src/alpha/**/*.test.ts", "packages/plate/src/alpha/**/*.test.tsx"],
+      rules: { "no-restricted-imports": ["error", { patterns: pathImportPatterns }] },
+    },
+    {
+      files: [...plateAlphaClientModules],
+      rules: { "no-restricted-imports": ["error", pageImportOptions(pathImportPatterns)] },
     },
     // Errors with no fields, each with a fixed message (plate's defects, assembly's RootMissing): a
     // getter writes it, since a `message` field would be an own property of every error, so the getter
