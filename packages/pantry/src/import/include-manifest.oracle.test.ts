@@ -135,9 +135,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("an include of the mani
                 Effect.gen(function* includeManifestCase() {
                   const of = cases[at];
                   assert.isDefined(of, `no case ${String(at)}`);
-                  if (of === undefined) {
-                    return;
-                  }
 
                   const named = `${of.href} under ${of.site.parent} in ${of.site.path}`;
                   const files = packageOf(of);

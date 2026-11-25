@@ -97,7 +97,7 @@ const braced = regex("^\\{(?<identifier>[^{}]+)\\}$", "u");
  */
 const referenced = (form: string, spelling: string): Option.Option<string> =>
   spelling === "braced"
-    ? Option.fromNullishOr(braced.exec(form)?.groups?.["identifier"])
+    ? Option.fromNullishOr(braced.exec(form)?.groups.identifier)
     : Option.liftPredicate(collapsed(form), (value) => ncNameForm.test(value));
 
 /**

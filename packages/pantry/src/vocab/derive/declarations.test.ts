@@ -149,8 +149,8 @@ const requiredNamesOf = (errors: readonly ValidityError[]): readonly string[] =>
       classOf(reported) === "attribute-required"
         ? Option.toArray(
             Option.fromNullishOr(
-              regex("The attribute '(?<name>.+)' is required", "u").exec(reported.message)
-                ?.groups?.["name"],
+              regex("The attribute '(?<name>.+)' is required", "u").exec(reported.message)?.groups
+                .name,
             ),
           )
         : [],

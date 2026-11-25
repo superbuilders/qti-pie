@@ -211,7 +211,7 @@ const sectionNumberOf = (text: string): Option.Option<string> => {
   ).exec(text);
 
   return Option.fromNullishOr(
-    match?.groups?.["appendix"] ?? match?.groups?.["lettered"] ?? match?.groups?.["numbered"],
+    match?.groups.appendix ?? match?.groups.lettered ?? match?.groups.numbered,
   );
 };
 
@@ -319,7 +319,7 @@ const htmlSections = (html: string): HtmlSections => {
       Option.toArray(
         Option.map(
           Option.fromNullishOr(markPattern.exec(textOfHtml(after))),
-          (mark) => [section, mark.groups?.["not"] === undefined] as const,
+          (mark) => [section, mark.groups.not === undefined] as const,
         ),
       ),
     ),
@@ -370,7 +370,7 @@ export const textMarks = (text: string): ReadonlyMap<string, boolean> => {
       return Option.toArray(
         Option.map(
           sectionNumberOf(heading ?? ""),
-          (section) => [section, mark.groups?.["not"] === undefined] as const,
+          (section) => [section, mark.groups.not === undefined] as const,
         ),
       );
     }),

@@ -34,7 +34,7 @@ export const readingsOf = (text: string): ReadonlyMap<number, string> => {
   const readings = new Map<number, string[]>();
   let current: string[] | undefined;
   for (const line of text.split("\n")) {
-    const numbered = regex("^(?<number>\\d+)\\. ", "u").exec(line)?.groups?.["number"];
+    const numbered = regex("^(?<number>\\d+)\\. ", "u").exec(line)?.groups.number;
     if (numbered !== undefined) {
       current = [line];
       readings.set(Number(numbered), current);

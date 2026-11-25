@@ -180,9 +180,7 @@ export const requireRecordsLibxml2 = Effect.fn("oracle.requireRecordsLibxml2")(
     const executable = yield* Effect.orDie(xmllintPath);
     const run = yield* xmllintRun(["--version"], {});
     const said = `${new TextDecoder().decode(run.stdout)}${run.stderr}`;
-    const version = regex("using libxml version (?<version>\\d+)", "u").exec(said)?.groups?.[
-      "version"
-    ];
+    const version = regex("using libxml version (?<version>\\d+)", "u").exec(said)?.groups.version;
 
     if (version !== String(recordsLibxml2)) {
       yield* new OracleVersionUnrecorded({

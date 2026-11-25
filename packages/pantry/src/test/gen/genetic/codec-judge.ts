@@ -243,7 +243,7 @@ const declaredLabel = (bytes: Uint8Array, family: Option.Option<string>): Option
 
   return Option.fromUndefinedOr(
     regex("^\uFEFF?<\\?xml\\s[^?]*?encoding\\s*=\\s*[\"'](?<label>[^\"']*)[\"']", "u").exec(text)
-      ?.groups?.["label"],
+      ?.groups.label,
   );
 };
 

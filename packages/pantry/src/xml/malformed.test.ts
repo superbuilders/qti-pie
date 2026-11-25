@@ -200,8 +200,8 @@ const startTagAt = (text: string, at: number): Option.Option<Omit<StartTag, "end
     return Option.none();
   }
 
-  const nameEnd = at + 1 + (groups["name"] ?? "").length;
-  const attributes = [...(groups["attributes"] ?? "").matchAll(attributePattern)].map(
+  const nameEnd = at + 1 + groups.name.length;
+  const attributes = [...groups.attributes.matchAll(attributePattern)].map(
     (held): WrittenAttribute => {
       const from = nameEnd + held.index;
       const to = from + held[0].length;
@@ -976,7 +976,7 @@ const judgedInBatches = Effect.fnUntraced(function* judgedInBatches(files: reado
     for (const line of run.stderr
       .split("\n")
       .filter((held) => regex(" error : ", "u").test(held))) {
-      const file = regex("^(?<file>/[^:]+\\.xml):", "u").exec(line)?.groups?.["file"];
+      const file = regex("^(?<file>/[^:]+\\.xml):", "u").exec(line)?.groups.file;
       if (file !== undefined && batch.includes(file)) {
         byFile.set(file, [...(byFile.get(file) ?? []), ...pending, line]);
         pending = [];

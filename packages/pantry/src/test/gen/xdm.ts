@@ -3061,30 +3061,26 @@ const corruptFolds = (
       });
     }
     case "ownerCopy": {
-      const { field } = variant;
       /**
-       * The attribute's row with its copy of its owner's `field` not its owner's.
-       *
-       * @param attribute - The attribute's row.
-       * @returns The row.
+       * Each owner field an attribute copies, with the attribute's row whose copy of it is not its
+       * owner's: one entry for every {@link OwnerCopy}, so a field the union gains fails to compile
+       * here until it has its own.
        */
-      const ownerCopied = (attribute: FoldedRows<Composed>["attributes"][number]) => {
-        switch (field) {
-          case "kind": {
-            const owner = byStart.get(attribute.start);
-
-            return {
-              ...attribute,
-              kind: otherKind(attribute.kind, owner?.parentKind ?? "document"),
-            };
-          }
-        }
+      const ownerCopied = {
+        kind: (attribute) => ({
+          ...attribute,
+          kind: otherKind(attribute.kind, byStart.get(attribute.start)?.parentKind ?? "document"),
+        }),
+      } as const satisfies {
+        readonly [Field in OwnerCopy]: (
+          attribute: FoldedRows<Composed>["attributes"][number],
+        ) => FoldedRows<Composed>["attributes"][number];
       };
 
       return {
         ...rows,
         attributes: rows.attributes.map((attribute, index) =>
-          index === variant.attribute ? ownerCopied(attribute) : attribute,
+          index === variant.attribute ? ownerCopied[variant.field](attribute) : attribute,
         ),
       };
     }

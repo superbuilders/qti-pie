@@ -50,7 +50,7 @@ export const processingVerdicts = Effect.gen(function* processingVerdicts() {
     Effect.fnUntraced(function* verdictOfLine(line) {
       const fields = line.split("\t");
       const name = regex("^(?:broken|guards)/(?<name>[^/]+)\\.xml$", "u").exec(fields[0] ?? "")
-        ?.groups?.["name"];
+        ?.groups.name;
       if (name === undefined) {
         return [];
       }

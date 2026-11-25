@@ -202,10 +202,6 @@ const judge = Effect.fn("cli.corpus.judge")(function* judge(
 
   assert.isDefined(importer, `${entry.name}: its importer case recorded no run`);
 
-  if (importer === undefined) {
-    return;
-  }
-
   const { direct, report } = importer;
   const refusal = direct._tag === "Failure" ? direct.failure : undefined;
 

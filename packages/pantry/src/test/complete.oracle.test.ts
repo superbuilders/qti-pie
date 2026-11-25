@@ -426,7 +426,7 @@ describe("a declaration that writes no cardinality", () => {
             const site = declarationSites[at];
             assert.isDefined(site, `no declaration site ${String(at)}`);
 
-            const { path, tag } = site ?? { path: "", tag: "" };
+            const { path, tag } = site;
             const mutated = withText(
               absentBase,
               path,
@@ -474,7 +474,7 @@ describe("every law the schema states", () => {
 
         assert.isDefined(declaredPart, `${law}'s part ${part} is no oracle law`);
         assert.strictEqual(
-          declaredPart === undefined ? "" : ruleOf(declaredPart),
+          ruleOf(declaredPart),
           stated === undefined ? "" : lawTable[stated].rule,
           `${law}'s part ${part} keeps another rule`,
         );

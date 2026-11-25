@@ -306,7 +306,7 @@ export const hunt = Effect.fnUntraced(function* hunt(
 
       return yield* reducedOf({
         disagreement:
-          last?.disagreements.find((disagreement) => recordsClassOf([signature], disagreement)) ??
+          last.disagreements.find((disagreement) => recordsClassOf([signature], disagreement)) ??
           found.disagreement,
         genome,
         lineage: found.lineage,

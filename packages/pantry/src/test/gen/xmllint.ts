@@ -240,8 +240,8 @@ const validityErrorOf = (message: XsdMessage): Option.Option<ValidityError> => {
     ? Option.none()
     : Option.some({
         attribute: Option.none(),
-        element: groups["local"] ?? "",
-        message: groups["message"] ?? "",
+        element: groups.local,
+        message: groups.message,
       });
 };
 

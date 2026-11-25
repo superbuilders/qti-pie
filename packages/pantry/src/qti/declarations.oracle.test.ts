@@ -103,7 +103,7 @@ const patternOf = (baseType: string): RegExp => {
       : ValueDomainOf.rows.find((row) => row.domain === domain)?.pattern;
   assert.isDefined(pattern, `${baseType} has a pattern`);
 
-  return regex.as(pattern ?? "", patternFlags);
+  return regex.as(pattern, patternFlags);
 };
 
 /**

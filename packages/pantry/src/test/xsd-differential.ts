@@ -529,7 +529,7 @@ export const isLaxXsiType = (difference: Difference, laxNames: ReadonlySet<strin
   difference.direction === laxXsiType.direction &&
   difference.class === laxXsiType.class &&
   difference.detail.split(" | ").every((message) => {
-    const name = unresolvedXsiType.exec(message)?.groups?.["name"];
+    const name = unresolvedXsiType.exec(message)?.groups["name"];
 
     return name !== undefined && laxNames.has(name.startsWith("{") ? name : `{}${name}`);
   });
@@ -544,7 +544,7 @@ export const isLaxXsiType = (difference: Difference, laxNames: ReadonlySet<strin
  * @returns Whether it is.
  */
 const isMessageOn = (message: string, names: ReadonlySet<string>): boolean => {
-  const name = regex("^line \\d+ (?<name>\\S+): ", "u").exec(message)?.groups?.["name"];
+  const name = regex("^line \\d+ (?<name>\\S+): ", "u").exec(message)?.groups.name;
 
   return name !== undefined && names.has(name.startsWith("{") ? name : `{}${name}`);
 };
@@ -771,7 +771,7 @@ export const isNestedRootLaw = (
   difference: Difference,
   nestedPaths: ReadonlySet<string>,
 ): boolean => {
-  const place = breachDetail.exec(difference.detail)?.groups?.["path"];
+  const place = breachDetail.exec(difference.detail)?.groups.path;
 
   return (
     difference.direction === nestedRootLaw.direction &&
@@ -808,7 +808,7 @@ export const isPaddedTypeLaw = (
   difference: Difference,
   paddedPaths: ReadonlySet<string>,
 ): boolean => {
-  const place = breachDetail.exec(difference.detail)?.groups?.["path"];
+  const place = breachDetail.exec(difference.detail)?.groups.path;
 
   return (
     difference.direction === paddedTypeLaw.direction &&
@@ -830,7 +830,7 @@ export const isSkippedContent = (
   difference: Difference,
   names: Pick<ForeignNames, "skippedPaths" | "skippedValues">,
 ): boolean => {
-  const place = breachDetail.exec(difference.detail)?.groups?.["path"];
+  const place = breachDetail.exec(difference.detail)?.groups.path;
 
   return (
     difference.direction === skippedContentRecord.direction &&
@@ -901,12 +901,12 @@ export const isOutsideSet = (
     return true;
   }
 
-  const kinds = (groups["path"] ?? "")
+  const kinds = groups.path
     .split("/")
     .slice(1)
     .map((segment) => segment.replace(regex("\\[\\d+\\]$", "u"), ""));
   const kind = kinds.at(-1) ?? "";
-  const rest = groups["rest"] ?? "";
+  const { rest } = groups;
   const attribute = groups["law"] === "value domain" ? rest.slice(0, rest.indexOf(": ")) : "";
   if (attribute.startsWith("xsi:")) {
     return false;

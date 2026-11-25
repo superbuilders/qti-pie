@@ -239,10 +239,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                 Effect.gen(function* tableClaimCase() {
                   const held = cases[at];
                   assert.isDefined(held, `no case ${String(at)}`);
-                  if (held === undefined) {
-                    return;
-                  }
-
                   c.note(`claim ${held.claimer.reader}`);
                   c.note(`target ${held.target.target}`);
 

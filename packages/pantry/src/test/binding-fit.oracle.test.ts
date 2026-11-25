@@ -337,9 +337,7 @@ describe("the bindings the fit laws judge", () => {
               Effect.gen(function* bindingCaseHolds() {
                 const drawn = cases[at];
                 assert.isDefined(drawn, `no case ${String(at)}`);
-                if (drawn !== undefined) {
-                  yield* holds(drawn.site, drawn.state);
-                }
+                yield* holds(drawn.site, drawn.state);
               }).pipe(Effect.scoped),
           ),
         ),

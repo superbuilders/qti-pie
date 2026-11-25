@@ -226,10 +226,8 @@ describe("qti/tests.ts, an external include", () => {
     );
     assert.isDefined(reached, "the site's href path");
     assert.deepStrictEqual(moreReached, []);
-    if (reached !== undefined) {
-      assert.isTrue(selects(reached.left, { entry: true, kind: include.kind }));
-      assert.isTrue(selects(reached.left, { entry: false, kind: include.kind }));
-    }
+    assert.isTrue(selects(reached.left, { entry: true, kind: include.kind }));
+    assert.isTrue(selects(reached.left, { entry: false, kind: include.kind }));
 
     const [mark, ...moreMarks] = containmentsOf(
       ["Site", "package", "path", "start"],
@@ -237,13 +235,11 @@ describe("qti/tests.ts, an external include", () => {
     );
     assert.isDefined(mark, "the external mark's proof");
     assert.deepStrictEqual(moreMarks, []);
-    if (mark !== undefined) {
-      assert.isTrue(selects(mark.left, external), "an external site is proven");
-      assert.isFalse(selects(mark.left, include), "an in-package site has its entry path");
-      assert.isTrue(selects(mark.right, { name: "href", scope: "external" }));
-      assert.isFalse(selects(mark.right, { name: "href", scope: "entry" }));
-      assert.isFalse(selects(mark.right, { name: "src", scope: "external" }));
-    }
+    assert.isTrue(selects(mark.left, external), "an external site is proven");
+    assert.isFalse(selects(mark.left, include), "an in-package site has its entry path");
+    assert.isTrue(selects(mark.right, { name: "href", scope: "external" }));
+    assert.isFalse(selects(mark.right, { name: "href", scope: "entry" }));
+    assert.isFalse(selects(mark.right, { name: "src", scope: "external" }));
   });
 });
 

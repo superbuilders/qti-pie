@@ -237,10 +237,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                 Effect.gen(function* untypedDeclarationCase() {
                   const held = ofCardinality[at];
                   assert.isDefined(held, `no case ${String(at)}`);
-                  if (held === undefined) {
-                    return;
-                  }
-
                   c.note(`cardinality ${held.cardinality.typing}`);
                   c.note(`base type ${held.baseType.typing}`);
 

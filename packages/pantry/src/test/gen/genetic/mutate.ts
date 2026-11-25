@@ -635,7 +635,7 @@ const operations: Readonly<
           {
             ...element,
             children: element.children.map((child) =>
-              child === held && child.kind === "text" ? { ...child, value } : child,
+              child === held ? { ...child, value } : child,
             ),
           },
         ]),

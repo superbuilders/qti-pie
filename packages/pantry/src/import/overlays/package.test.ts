@@ -843,9 +843,6 @@ layer(TestLayer, { excludeTestServices: true })("import/overlays/package.ts, fix
           const files = yield* readEntries(dir);
           const manifest = files.find(({ kind }) => kind === "manifest");
           assert.isDefined(manifest, name);
-          if (manifest === undefined) {
-            continue;
-          }
 
           const xml = yield* readXml(manifest.bytes);
           const tree = yield* Effect.option(shred(xml, shredGrammarOf(grammar)));

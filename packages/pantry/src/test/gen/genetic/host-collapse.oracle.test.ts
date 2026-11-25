@@ -147,9 +147,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                 Effect.gen(function* hostCollapseCase() {
                   const of = cases[at];
                   assert.isDefined(of, `no case ${String(at)}`);
-                  if (of === undefined) {
-                    return;
-                  }
 
                   const judged = yield* judgeOne(yield* genomeOf(packageOf(of)), bench, at);
                   const said = `${nameOf(of)}: the oracle ${judged.summary.oracle}; the import ${judged.summary.import}`;

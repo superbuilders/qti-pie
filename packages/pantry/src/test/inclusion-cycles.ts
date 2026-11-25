@@ -126,7 +126,7 @@ export const cyclePackageOf = (
 ): readonly PackageFile[] => {
   const edited = base.map((file): PackageFile => {
     const text = new TextDecoder().decode(file.bytes);
-    const set = regex("rtest01-set0(?<n>[123])\\.xml$", "u").exec(file.path)?.groups?.["n"];
+    const set = regex("rtest01-set0(?<n>[123])\\.xml$", "u").exec(file.path)?.groups.n;
     const encode = (edit: string): PackageFile => ({
       ...file,
       bytes: new TextEncoder().encode(edit),

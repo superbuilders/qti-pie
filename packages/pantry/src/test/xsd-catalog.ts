@@ -461,9 +461,7 @@ export const classOfMessage = (message: XsdMessage): Option.Option<RefusalClass>
   }
 
   if (Option.isSome(attribute)) {
-    const value = regex("^'(?<value>[^']*)' is not a valid value", "u").exec(text)?.groups?.[
-      "value"
-    ];
+    const value = regex("^'(?<value>[^']*)' is not a valid value", "u").exec(text)?.groups.value;
 
     return Option.some(
       value !== undefined && ncName.test(value) && idTypes.test(text)

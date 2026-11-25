@@ -209,9 +209,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("an item ref's href", (
               Effect.gen(function* itemRefHrefCase() {
                 const input = cases[at];
                 assert.isDefined(input, `no case ${String(at)}`);
-                if (input === undefined) {
-                  return;
-                }
 
                 const pathUnnamed = named.some(
                   (element) => element !== "item ref" && !input.written.has(element),

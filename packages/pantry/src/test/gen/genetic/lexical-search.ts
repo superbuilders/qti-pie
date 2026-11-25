@@ -313,8 +313,8 @@ const clockClasses = (core: string): readonly string[] => {
     "u",
   ).exec(core)?.groups;
   const zone = regex("(?:Z|(?<sign>[+-])(?<hours>\\d\\d):(?<minutes>\\d\\d))$", "u").exec(core);
-  const hours = Number(zone?.groups?.["hours"] ?? 0);
-  const minutes = Number(zone?.groups?.["minutes"] ?? 0);
+  const hours = Number(zone?.groups.hours ?? 0);
+  const minutes = Number(zone?.groups.minutes ?? 0);
 
   return [
     ...(time === undefined
@@ -417,7 +417,7 @@ const numberClasses = (core: string): readonly string[] => {
       ["exponent-E", mark === "E"],
     ]),
     ...firstOf([
-      ["exponent-bare", mark !== undefined && !regex("\\d", "u").test(exponent ?? "")],
+      ["exponent-bare", mark !== undefined && !regex("\\d", "u").test(exponent)],
       ["exponent-plus", (exponent ?? "").startsWith("+")],
     ]),
     `digits-${digitBins.find(([most]) => digits <= most)?.[1] ?? "25+"}`,
@@ -448,7 +448,7 @@ const spellingClasses = (value: string, core: string): readonly string[] => {
   const points = pointsOf(value);
 
   return [
-    ...(special === undefined ? [] : [`special-${special["sign"] ?? ""}${special["word"] ?? ""}`]),
+    ...(special === undefined ? [] : [`special-${special.sign}${special.word}`]),
     ...firstOf([["hex-prefix", regex("^[+-]?0[xX]", "u").test(core)]]),
     ...firstOf([
       ["hex-mixed", hex && lower && upper],
@@ -691,7 +691,7 @@ const valueEdits: Readonly<Record<Exclude<LexicalOperator, "regroup" | "transpla
       const field = source.draw(oneOf(calendarFields)) ?? calendarFields[0];
       const drawnValue = source.draw(oneOf(field.values)) ?? "";
       const fields = { ...groups, [field.name]: drawnValue };
-      const head = `${groups["sign"] ?? ""}${groups["year"] ?? ""}-${groups["month"] ?? ""}-${groups["day"] ?? ""}`;
+      const head = `${groups.sign}${groups.year}-${groups.month}-${groups.day}`;
       const rest = value.slice(head.length).replace(regex("(?:Z|[+-]\\d\\d:\\d\\d)$", "u"), "");
       const zone =
         field.name === "zone"
@@ -699,7 +699,7 @@ const valueEdits: Readonly<Record<Exclude<LexicalOperator, "regroup" | "transpla
           : (regex("(?:Z|[+-]\\d\\d:\\d\\d)$", "u").exec(value.slice(head.length))?.[0] ?? "");
 
       return Option.some(
-        `${field.name === "year" ? "" : (fields["sign"] ?? "")}${fields["year"] ?? ""}-${fields["month"] ?? ""}-${fields["day"] ?? ""}${rest}${zone}`,
+        `${field.name === "year" ? "" : fields.sign}${fields.year}-${fields.month}-${fields.day}${rest}${zone}`,
       );
     },
     case: (value) => (source) => {

@@ -178,10 +178,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                 Effect.gen(function* unnamedDeclarationCase() {
                   const held = cases[at];
                   assert.isDefined(held, `no case ${String(at)}`);
-                  if (held === undefined) {
-                    return;
-                  }
-
                   c.note(held.identifier.naming);
                   if (held.twin) {
                     c.note("beside its twin");

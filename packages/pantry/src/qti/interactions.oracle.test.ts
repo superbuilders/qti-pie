@@ -131,11 +131,11 @@ describe("qti/interactions.ts, the closed data its laws read", () => {
       assert.isDefined(bound, kind);
       assert.include(
         ["max-choices", "max-associations"],
-        bound?.max,
+        bound.max,
         `${kind}: one of ChoiceBound's max attributes`,
       );
       assert.isTrue(
-        Option.isSome(countDefault(kind, bound?.max ?? "max-choices")),
+        Option.isSome(countDefault(kind, bound.max)),
         `${kind}: the inventory leaf's attribute declarations give it an XSD default (countDefault)`,
       );
     }

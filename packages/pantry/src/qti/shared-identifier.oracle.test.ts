@@ -183,10 +183,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               Effect.gen(function* sharedIdentifierCase() {
                 const input = cases[at];
                 assert.isDefined(input, `no case ${String(at)}`);
-                if (input === undefined) {
-                  return;
-                }
-
                 if (input.items === 3 && input.spelling === "same") {
                   c.note("three items share one identifier");
                 }

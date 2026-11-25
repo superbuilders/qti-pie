@@ -827,7 +827,7 @@ const edgesOf = (form: string): readonly Situation[] => {
     return [];
   }
 
-  const digits = `${groups["whole"] ?? ""}${groups["fraction"] ?? ""}`
+  const digits = `${groups.whole}${groups.fraction ?? ""}`
     .replace(regex("^0+", "u"), "")
     .replace(regex("0+$", "u"), "");
   const value = doubleNamed(form);

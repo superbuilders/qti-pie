@@ -262,7 +262,7 @@ const beyondInt64 = (value: string): boolean => {
     return false;
   }
 
-  const integer = BigInt(`${digits["sign"] === "-" ? "-" : ""}${digits["digits"] ?? "0"}`);
+  const integer = BigInt(`${digits["sign"] === "-" ? "-" : ""}${digits.digits}`);
 
   return integer < -9_223_372_036_854_775_808n || integer > 9_223_372_036_854_775_807n;
 };
@@ -877,9 +877,7 @@ const boundedPattern = (pattern: string): string => {
     } else if (point === "+") {
       bounded += "{1,3}";
     } else {
-      const open = arkregex("^\\{(?<least>\\d+),\\}", "u").exec(pattern.slice(at))?.groups?.[
-        "least"
-      ];
+      const open = arkregex("^\\{(?<least>\\d+),\\}", "u").exec(pattern.slice(at))?.groups.least;
       if (point === "{" && open !== undefined) {
         bounded += `{${open},${String(Number(open) + 3)}}`;
         at += open.length + 2;

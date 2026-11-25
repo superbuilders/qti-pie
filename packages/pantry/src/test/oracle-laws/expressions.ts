@@ -282,7 +282,7 @@ export interface Typed {
 const spelledName = (lexical: string, spelling: string, kind: string): Option.Option<string> => {
   if (spelling === "braced") {
     return Option.fromNullishOr(
-      regex("^\\{(?<name>[^{}]+)\\}$", "u").exec(lexical)?.groups?.["name"],
+      regex("^\\{(?<name>[^{}]+)\\}$", "u").exec(lexical)?.groups.name,
     ).pipe(Option.filter((name) => ncName.test(name)));
   }
 

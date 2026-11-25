@@ -633,8 +633,7 @@ const declarationsOf = (text: string): readonly Declaration[] => {
       ? opening.index + opening[0].length
       : text.indexOf(`</qti-${kind}-declaration>`, opening.index) +
         `</qti-${kind}-declaration>`.length;
-    const identifier =
-      regex('\\sidentifier="(?<id>[^"]*)"', "u").exec(opening[0])?.groups?.["id"] ?? "";
+    const identifier = regex('\\sidentifier="(?<id>[^"]*)"', "u").exec(opening[0])?.groups.id ?? "";
 
     found.push({
       end,

@@ -7562,7 +7562,7 @@ const stubsOf = (test: string) => {
     let targetsScore = false;
 
     if (match.groups["self"] !== "/") {
-      const start = (match.index ?? 0) + match[0].length;
+      const start = match.index + match[0].length;
       const end = test.indexOf("</qti-assessment-item-ref>", start);
 
       for (const mapping of test

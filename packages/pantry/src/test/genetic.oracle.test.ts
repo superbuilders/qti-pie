@@ -467,9 +467,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               Effect.gen(function* knownCase() {
                 const held = knownList[at];
                 assert.isDefined(held, `no known entry ${String(at)}`);
-                if (held === undefined) {
-                  return;
-                }
 
                 const { entry, shows } = held;
                 const genome = yield* genomeOf(knownEntries(entry));
@@ -537,9 +534,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               Effect.gen(function* filledCase() {
                 const held = filledCases[at];
                 assert.isDefined(held, `no filled case ${String(at)}`);
-                if (held === undefined) {
-                  return;
-                }
 
                 const manifest = new TextEncoder().encode(held.manifest);
                 const genome = yield* genomeOf(new Map([["imsmanifest.xml", manifest]]));
@@ -688,9 +682,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                 Effect.gen(function* plantedCase() {
                   const planted = plantedCases[at];
                   assert.isDefined(planted, `no planted case ${String(at)}`);
-                  if (planted === undefined) {
-                    return;
-                  }
 
                   const judged = yield* judgeOne(yield* genomeOf(planted.entries), bench, at);
                   const domains = judged.disagreements.filter(
