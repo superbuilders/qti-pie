@@ -94,10 +94,20 @@ export const buildWithBlocks: AlphaPciModule<"build-with-blocks"> = alphaPciModu
 );
 
 /**
+ * The counter tray: a set built from a tray of identical counters, its response the count on the
+ * mat (`#plate/alpha/pci-modules/count-placements.ts`).
+ */
+export const countPlacements: AlphaPciModule<"count-placements"> = alphaPciModule(
+  "count-placements",
+  new URL("pci-modules/count-placements.js", import.meta.url),
+);
+
+/**
  * Every one of Alpha's PCI modules.
  */
 export const alphaPciModules = [
   buildWithBlocks,
+  countPlacements,
 ] as const satisfies readonly AlphaPciModule<string>[];
 
 /**
