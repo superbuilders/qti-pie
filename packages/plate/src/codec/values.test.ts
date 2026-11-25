@@ -425,8 +425,7 @@ describe("RecordValueSchema", () => {
 });
 
 describe("the plain types", () => {
-  // `tsc` refuses each line once a Schema's type parts from its plain type.
-  it("are the Schemas' types", () => {
+  it("are the Schemas' types, each line a type error once a Schema's type parts from its plain type", () => {
     expectTypeOf<typeof ValueSchema.Type>().toEqualTypeOf<Value>();
     expectTypeOf<typeof RecordValueSchema.Type>().toEqualTypeOf<RecordValue>();
     expectTypeOf<typeof ResponseValueSchema.Type>().toEqualTypeOf<ResponseValue>();

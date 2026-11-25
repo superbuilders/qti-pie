@@ -205,9 +205,11 @@ describe("readTyped", () => {
       Effect.gen(function* blankText() {
         const blank = " \t\r\n ";
 
-        // "where a response consists only of white-space characters … it should be treated as an
-        // empty string (NULL)" (TextFormatEnum, plain and preformatted).
-        assert.deepStrictEqual(yield* read(blank, reading("string", 10, true)), Option.none());
+        assert.deepStrictEqual(
+          yield* read(blank, reading("string", 10, true)),
+          Option.none(),
+          '"where a response consists only of white-space characters … it should be treated as an empty string (NULL)" (TextFormatEnum, plain and preformatted).',
+        );
         assert.deepStrictEqual(yield* Effect.fromResult(readRecord(blank, true)), {
           cardinality: "record",
           fields: [],

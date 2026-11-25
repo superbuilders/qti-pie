@@ -27,10 +27,15 @@ const holds = (pattern: string, match: string, nonMatch: string): void => {
 
 describe("compile and matches, against Appendix F", () => {
   it("reads the corpus's three patterns", () => {
+    /**
+     * The corpus's signed decimal: `\\` is an escaped backslash and the `-` before `]` is a literal
+     * dash.
+     */
+    const signed = String.raw`([0-9.\\-]{0,10})`;
+
     holds("([0-9.]{0,6})", "12.5", "1234567");
-    // `\\` is an escaped backslash and the `-` before `]` is a literal dash.
-    holds(String.raw`([0-9.\\-]{0,10})`, "-3.5", "3.5e1");
-    holds(String.raw`([0-9.\\-]{0,10})`, "\\", "a");
+    holds(signed, "-3.5", "3.5e1");
+    holds(signed, "\\", "a");
     holds(String.raw`[0-9\.]+`, "3.14", "");
   });
 

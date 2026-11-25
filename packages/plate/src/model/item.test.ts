@@ -506,13 +506,15 @@ describe("buildItem", () => {
 
   it("leaves out a rubric block exactly when its view leaves out candidate, over every view list", () => {
     const views = ["author", "candidate", "proctor", "scorer", "testConstructor", "tutor"];
+    /**
+     * Every set of the XSD's six views (View.Type), the empty one first. Each nonempty set is
+     * written as a list: the block is the Rubric Block module's content node, holding its content,
+     * when the set holds candidate, and in no node or verdict otherwise.
+     */
     const sets: (readonly string[])[] = [[]];
     for (const view of views) {
       sets.push(...sets.map((set) => [...set, view]));
     }
-    // Every nonempty set of the XSD's six views (View.Type), each written as a list: the
-    // block is the Rubric Block module's content node, holding its content, when the set holds
-    // candidate, and in no node or verdict otherwise.
     for (const listed of sets.filter((set) => set.length > 0)) {
       const built = admittedItem(
         item({

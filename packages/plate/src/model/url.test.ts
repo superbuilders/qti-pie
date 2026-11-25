@@ -193,9 +193,11 @@ describe("isPackagePath", () => {
 
 describe("resolution against the item's location", () => {
   it("names and addresses an entry whose path holds an empty segment, as the package that holds it does", () => {
-    // S7's package: `item.xml` writes `<img src="media//a.png">`, and its zip and its manifest's
-    // cp:file name the entry `media//a.png`, which pantry stores.
-    assert.deepStrictEqual(assetPaths("item.xml", "img", "src", "media//a.png"), ["media//a.png"]);
+    assert.deepStrictEqual(
+      assetPaths("item.xml", "img", "src", "media//a.png"),
+      ["media//a.png"],
+      "S7's package: `item.xml` writes `<img src=\"media//a.png\">`, and its zip and its manifest's cp:file name the entry `media//a.png`, which pantry stores.",
+    );
     assert.deepStrictEqual(
       addressUrl(
         inPackage("media//a.png"),

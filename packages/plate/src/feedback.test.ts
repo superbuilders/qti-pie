@@ -389,11 +389,10 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
           ),
         );
 
-        // At the start, ASKSOLUTION holds its default, asksolution, and FEEDBACK is NULL.
         assert.include(
           start.redacted.responses.map((response) => response.identifier),
           "SOLREQUEST",
-          "the response the shown asksolution block's End Attempt binds is given",
+          "at the start, ASKSOLUTION holds its default, asksolution, and FEEDBACK is NULL: the response the shown asksolution block's End Attempt binds is given",
         );
         assert.notInclude(start.text, "Correct");
         assert.notInclude(start.text, "No, that is not the correct answer");

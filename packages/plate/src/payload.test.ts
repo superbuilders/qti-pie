@@ -2028,15 +2028,11 @@ describe("payload", () => {
       choiceOrder(planets, "7"),
     );
     assert.deepStrictEqual(presentedOf(planets, answering), choiceOrder(planets, ""));
-    // `printf 'PLANET\037P<n>' | openssl dgst -sha256 -hmac 7` ranks P3, P0, P1, P4; under the
-    // empty key P0, P1, P3, P4.
-    assert.deepStrictEqual(presentedOf(planets, { ...answering, seed: "7" }), [
-      "P3",
-      "P0",
-      "P2",
-      "P1",
-      "P4",
-    ]);
+    assert.deepStrictEqual(
+      presentedOf(planets, { ...answering, seed: "7" }),
+      ["P3", "P0", "P2", "P1", "P4"],
+      "`printf 'PLANET\\037P<n>' | openssl dgst -sha256 -hmac 7` ranks P3, P0, P1, P4; under the empty key P0, P1, P3, P4.",
+    );
     assert.deepStrictEqual(presentedOf(planets, answering), ["P0", "P1", "P2", "P3", "P4"]);
   });
 
