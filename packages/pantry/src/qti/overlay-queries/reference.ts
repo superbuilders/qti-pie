@@ -767,29 +767,32 @@ const referableLaws = ({ own, placed }: ContentReferenceOf) => [
  *   single or multiple, and where it has a base type, `identifier`; **Template variable type**
  *   (reading R15-l, decision 432) the same of a template reference's variable but a
  *   `qti-template-variable`'s;
- * - **E1 derived**: a variable reference spells its attribute's form, bare or braced as its element's
- *   kind spells the attribute, and its element's language is its element's
- *   ({@link VariableRefNode}, the reference beside its element's kind and its attribute's form,
- *   which no row copies); each placement resolves exactly its documents' references
- *   ({@link PlacedReferenceSite}); a placed reference that stands for a declaration is typed as it
- *   ({@link PlacedVariableDeclaration}), its base type `unknown` where the declaration has none and
- *   else its `valueBase` (a base other than `unknown` names a declaration that has one, a
- *   containment into its name view, and a declaration that has one gives its image, a check over
- *   their join), and its cardinality its declaration's `ValueCardinalityOf` image where it has one;
- *   and an element that reads a variable as its own value is typed as it there, a weighted one
- *   promoted ({@link WeightedRead}). A declaration's `base-type` is optional (spec reading 158), so
- *   a base type `unknown` is a case of its own; its `cardinality` is required, so one with none is
- *   AL3's or its value domain's alone;
- * - **Lookup type** and **Mapped response**: a placed reference names no built-in it may not, and a
- *   declared map response or map response point names a response, a map response point's of base
- *   type point; the tables they read are their declarations'
- *   (`#pantry/qti/overlay-queries/declaration.ts`);
- * - **Reference type**, **Template reads** and **Variable kind**: a placed reference's built-in, a
- *   template expression's the context alone, and a declared placed reference's base type,
- *   cardinality and declaration kind, as its element reads it;
+ * - **E1 derived**: a variable reference's form is its split put back together, a name between
+ *   whitespace or braces (`#pantry/qti/expressions.ts`), braced exactly where its element's kind
+ *   spells its attribute's references braced (`VariableReference`), and its element's language is
+ *   its expression's, or its rule's ({@link VariableRefNode}, the reference beside its element's
+ *   kind and its attribute's form, which no row copies); each placement resolves exactly its
+ *   documents' references, each once (spec reading 117, {@link PlacedReferenceSite}); a placed
+ *   reference that stands for a declaration is typed as it ({@link PlacedVariableDeclaration}), its
+ *   base type `unknown` where the declaration has none and else its `valueBase` (a base other than
+ *   `unknown` names a declaration that has one, a containment into its name view, and a declaration
+ *   that has one gives its image, a check over their join), and its cardinality its declaration's
+ *   `ValueCardinalityOf` image where it has one; and an element that reads a variable as its own
+ *   value is typed as it there, a weighted one promoted ({@link WeightedRead}). A declaration's
+ *   `base-type` is optional (spec reading 158), so a base type `unknown` is a case of its own; its
+ *   `cardinality` is required, so one with none is AL3's or its value domain's alone;
+ * - **Lookup type** and **Mapped response**: a placed reference names no built-in it may not, a
+ *   lookup no built-in outcome, which has no declaration and no table (spec reading 197), and a map
+ *   no built-in response, which declares no table (reading 166); and a declared map response maps a
+ *   response, and a map response point a response of points (§2.11.3.29, §2.11.3.30); the tables
+ *   they read are their declarations' (`#pantry/qti/overlay-queries/declaration.ts`);
+ * - **Reference type**, **Template reads** and **Variable kind**: a placed reference's built-in, one
+ *   its element may name by `identifier`, a template expression's the context alone, and a declared
+ *   placed reference's base type, cardinality and declaration kind, as its element reads it;
  * - **Variable declared**: a declared placed reference names a declaration of its assembly's root, by
  *   the key "Declaration key" holds (spec reading 159), and an item's unresolved placed reference
- *   is braced, a string value (reading R15-k).
+ *   is braced, a string value (reading R15-k), its own and a fragment's and a located template's
+ *   alike (§4.6.1, §6.9.40).
  */
 export const referenceOverlayLawsByName = {
   ...pipe(
@@ -807,9 +810,6 @@ export const referenceOverlayLawsByName = {
     ),
   ]),
   "E1 derived": declared("E1 derived", [
-    // A reference's form is its split put back together, braced exactly where its element's kind
-    // spells its attribute's references braced (`VariableReference`), the split a name between
-    // whitespace or braces (`#pantry/qti/expressions.ts`).
     check("E1_derived", VariableRefNode, (n) =>
       n.and(
         n.eq(
@@ -831,7 +831,6 @@ export const referenceOverlayLawsByName = {
         ),
       ),
     ),
-    // Its element's language is its expression's, or its rule's.
     contained(
       on(
         select(VariableRefNode, (n) => n.in(n.kind, expressionKinds)),
@@ -852,7 +851,6 @@ export const referenceOverlayLawsByName = {
       ),
       on(Processing, "package", "path", "start", "language"),
     ),
-    // Each placement resolves its documents' references, each once (spec reading 117).
     mirrors(
       on(
         PlacedVariableRef,
@@ -875,7 +873,6 @@ export const referenceOverlayLawsByName = {
         "identifier",
       ),
     ),
-    // A placed reference that stands for a declaration is typed as it.
     contained(
       on(
         select(PlacedVariableDeclaration, (d) => d.ne(d.baseType, "unknown")),
@@ -889,7 +886,6 @@ export const referenceOverlayLawsByName = {
     check("E1_derived", PlacedVariableCardinality, (c) =>
       c.eq(c.cardinality, ValueCardinalityOf.at("value", c.declCardinality)),
     ),
-    // An element that reads a variable as its own value is typed as it, a weighted one promoted.
     check("E1_derived", UnweightedRead, (n) =>
       n.and(n.eq(n.elementBase, n.baseType), n.eq(n.elementCardinality, n.cardinality)),
     ),
@@ -910,15 +906,10 @@ export const referenceOverlayLawsByName = {
     check("Feedback_outcome_type", FeedbackRefBaseType, (f) => f.eq(f.baseType, "identifier")),
   ]),
   "Lookup type": declared("Lookup type", [
-    // A lookup names no built-in outcome, which has no declaration and no table (spec reading
-    // 197).
     check("Lookup_type", PlacedVariableRefNode, looksUpNoBuiltIn),
   ]),
   "Mapped response": declared("Mapped response", [
-    // A reference never names a built-in response, which declares no table (reading 166).
     check("Mapped_response", PlacedVariableRefNode, mapsNoBuiltIn),
-    // A declared map response maps a response, and a map response point a response of points
-    // (§2.11.3.29, §2.11.3.30).
     check("Mapped_response", PlacedVariableRefDeclaration, (d) =>
       d.or(
         d.ne(d.attribute, "identifier"),
@@ -951,7 +942,6 @@ export const referenceOverlayLawsByName = {
     ),
   ]),
   "Template reads": declared("Template reads", [
-    // A template expression reads no built-in variable but the context.
     check("Template_reads", PlacedVariableRefNode, (n) =>
       n.or(
         n.ne(n.language, "template"),
@@ -986,12 +976,9 @@ export const referenceOverlayLawsByName = {
       ),
       on(NamedDeclaration, "package", "path", "identifier"),
     ),
-    // An item's unresolved reference is braced, a string value (reading R15-k), its own and a
-    // fragment's and a located template's alike (§4.6.1, §6.9.40).
     check("Variable_declared", PlacedVariableRefNode, resolvedUnlessBraced),
   ]),
   "Variable kind": declared("Variable kind", [
-    // A reference by `identifier` to a built-in names one its element may.
     check("Variable_kind", PlacedVariableRefNode, namesAllowedBuiltIn),
     contained(
       on(

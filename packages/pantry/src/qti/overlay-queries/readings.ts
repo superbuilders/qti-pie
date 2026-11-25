@@ -1689,15 +1689,14 @@ const AssembledReplaceable = derived("AssembledReplaceable", assembledReplaceabl
  *   ref names a variable whose declaration holds a `qti-mapping`, and a map response point's one
  *   that holds a `qti-area-mapping`, a built-in variable none;
  * - **"E1 derived"**: a placed reference is read exactly where its one reading types it, and is typed
- *   as an item's built-in or a scope's `duration` it reads; and each stated numbered reading is a
- *   placed reference's, spelled `SCOPE.NUMBER.VARIABLE`, its number at least 1, its item ref one a
- *   replacement can repeat in its placement, and its variable one its item names.
+ *   as its variable (spec reading 167): as a declaration over `readDeclarations`
+ *   (overlay-queries/reference.ts), and here as an item's built-in or a scope's `duration` it
+ *   reads; and each stated numbered reading is a placed reference's, spelled
+ *   `SCOPE.NUMBER.VARIABLE`, its number at least 1, its item ref one a replacement can repeat in
+ *   its placement, and its variable one its item names.
  */
 export const readingLawsByName = {
   "E1 derived": declared("E1 derived", [
-    // A placed reference is read exactly where its one reading types it, and is typed as its
-    // variable (spec reading 167): a declaration's type is stated over `readDeclarations`
-    // (overlay-queries/reference.ts), an item built-in's and a scope's duration's here.
     mirrors(
       on(
         select(PlacedVariableRef, (ref) => ref.eq(ref.resolution, "read")),

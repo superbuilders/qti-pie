@@ -834,8 +834,10 @@ export const PatternText = derived(
  *   count decides its cardinality takes a most of 1, where that most has a value; and a gap match
  *   bound to a single response encloses at most one gap (spec reading 169), a key over its gaps.
  * - **"BindingFit"** and **"RecordBindingFit"** over each typed binding's base type, cardinality and
- *   interaction kind, and **"Max strings required"** (reading 19) over an extended text bound to a
- *   container.
+ *   interaction kind: a string identifier's variable is "of base-type string" (§5.48.2, §5.162.3),
+ *   which a record, having no base type, is not, so its whole value is judged by its cardinality
+ *   alone, and a typed variable's base type by its declaration's; and **"Max strings required"**
+ *   (reading 19) over an extended text bound to a container.
  * - **"E1 derived":** an interaction's and a choice's node is of their kinds; every interaction and
  *   choice of a kind `ChoiceBound` pairs has its {@link CountBound}, whose counts' names are its
  *   kind's, each of whose unwritten counts with an XSD default has its {@link LeastCount} or
@@ -896,9 +898,6 @@ export const interactionOverlayLawsByName = {
     key(on(PlacedSingleResponseGap, "package", "assembly", "instance", "start")),
   ]),
   BindingFit: declared("BindingFit", [
-    // A string identifier's variable is "of base-type string" (§5.48.2, §5.162.3), which a record,
-    // having no base type, is not: its whole value is judged by its cardinality alone, and a
-    // typed variable's base type by its declaration's.
     check("BindingFit", BindingCardinalityNode, (r) =>
       r.or(r.ne(r.attribute, "string-identifier"), r.ne(r.cardinality, "record")),
     ),
