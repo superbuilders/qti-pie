@@ -112,12 +112,23 @@ export const markObjects: AlphaPciModule<"mark-objects"> = alphaPciModule(
 );
 
 /**
+ * Tap to shade the parts of a partitioned shape or of a set of one pictured object, the Grade 3
+ * fraction items' PCI (`#plate/alpha/pci-modules/shade-parts.ts`): the response is the number of
+ * parts shaded.
+ */
+export const shadeParts: AlphaPciModule<"shade-parts"> = alphaPciModule(
+  "shade-parts",
+  new URL("pci-modules/shade-parts.js", import.meta.url),
+);
+
+/**
  * Every one of Alpha's PCI modules.
  */
 export const alphaPciModules = [
   buildWithBlocks,
   countPlacements,
   markObjects,
+  shadeParts,
 ] as const satisfies readonly AlphaPciModule<string>[];
 
 /**

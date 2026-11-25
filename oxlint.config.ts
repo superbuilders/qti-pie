@@ -559,6 +559,14 @@ export default defineConfig({
         "unicorn/consistent-function-scoping": "off",
       },
     },
+    // A specimen suite's reader of a PCI's frame (`readDrawn` of
+    // `packages/specimen/src/alpha/shade-parts.ts`) is the text Playwright evaluates in the frame's
+    // document, as `bootFrame` is the frame's script: every helper stays inside it, since one moved
+    // to the module's scope would be undefined in the frame.
+    {
+      files: ["packages/specimen/src/alpha/shade-parts.ts"],
+      rules: { "unicorn/consistent-function-scoping": "off" },
+    },
     // An Alpha PCI module (`packages/plate/src/alpha/pci-modules/`) is an author's AMD module that
     // runs in the PCI's sandboxed frame, as the frame's boot does: its text with the types stripped
     // is a content package's module file, so every helper stays inside its one factory, and the
