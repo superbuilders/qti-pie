@@ -379,7 +379,7 @@ export const isWireArray = (wire: Wire): wire is readonly Wire[] => Array.isArra
  * @returns The value.
  * @throws {Unwired} For an island no module of `clients` exports.
  */
-export const fromWire = (wire: Wire, clients: ReadonlyMap<string, unknown>): unknown => {
+const fromWire = (wire: Wire, clients: ReadonlyMap<string, unknown>): unknown => {
   const propsOf = (props: WiredObject, key: string | null) => {
     const read = Object.fromEntries(
       Object.entries(props.fields).map(([name, each]) => [name, fromWire(each, clients)]),

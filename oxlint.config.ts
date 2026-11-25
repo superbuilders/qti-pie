@@ -270,7 +270,8 @@ export default defineConfig({
     // specimen's hydration harness ships a page's element tree to the browser on its stand-in for
     // React Server Components' wire (`src/ui/wire.ts`): a serialization boundary, whose writer takes
     // any value an element's props hold, which React's element API types `unknown`, and whose reader
-    // gives each back as it was, a tree of elements or plain data, typed by its one reader of each.
+    // gives each back as it was, as the props of the elements it makes; the page reads the wire
+    // through its Schema first, and its tree through `treeFromWire`, which gives an element.
     {
       files: ["packages/specimen/src/ui/wire.ts"],
       rules: {

@@ -33,8 +33,12 @@
  *   every other object's response is unchanged.
  * - PO6, Delete on an object's first copy's control takes that copy off: that object's response loses
  *   its first point, and every other object's response is unchanged.
+ * - PO7, a tap on an object's button while a new copy of another object is held picks up a new copy
+ *   of the object tapped, its button alone pressed, and puts nothing on the stage: the copy held
+ *   goes back, and no response changes.
  *
- * Every page hydrates with no error React reports and none the page throws.
+ * Every page hydrates with no error React reports and none the page throws, and none is reported or
+ * thrown after any key or tap a case sends, by the time the page has settled.
  *
  * @module
  */
@@ -50,11 +54,19 @@ import type { SourceItem } from "#specimen/ui/rules.ts";
 import { itemFactsOf } from "#specimen/ui/source.ts";
 
 /**
- * How long the suite's harness may take to start, and a case to run, before vitest fails it bare:
- * a hang guard, never a budget. Vite bundles React and Chrome starts once for the file, seconds
- * alone here; a case loads and hydrates one page and presses a few keys.
+ * How long the suite's harness may take to start before vitest fails it bare: a hang guard, never a
+ * budget. Once for the file, Vite bundles React, Chrome starts, and the corpus is opened, every one
+ * of its items as the corpus suites open them, which a loaded machine takes a minute or more over;
+ * each case then loads and hydrates its pages and presses a few keys, within vitest's own guard.
  */
-const caseHang = "120 seconds";
+const harnessHang = "300 seconds";
+
+/**
+ * How long one case may run before vitest stops it: a hang guard, never a budget. A case loads and
+ * hydrates a page, or one a stage's object, and presses a few keys: seconds alone here, and a
+ * minute or more on a loaded machine.
+ */
+const caseHang = 300_000;
 
 /**
  * The corpus file of 1EdTech's Position Object example the suite drives.
@@ -77,11 +89,28 @@ const placed: readonly (readonly [x: bigint, y: bigint])[] = [
 ];
 
 /**
- * The service that opens the example, solved, in a page of its own.
+ * A stage of the specimen floor in answering, solved, and its objects' responses' identifiers in
+ * the stage's order.
  */
-class Pages extends Context.Service<Pages, Effect.Success<typeof hydratedPages>>()(
-  "specimen/ui/position-object.test/Pages",
-) {}
+interface FloorStage {
+  readonly answering: Answering;
+  readonly identifiers: readonly string[];
+}
+
+/**
+ * What the suite's cases share, made once for the file: the pages, to open an item in, hydrated;
+ * 1EdTech's example, solved; and the floor's stage of objects, solved.
+ */
+interface Shared {
+  readonly airports: Answering;
+  readonly objects: FloorStage;
+  readonly open: Effect.Success<typeof hydratedPages>;
+}
+
+/**
+ * The service that holds what the suite's cases share.
+ */
+class Pages extends Context.Service<Pages, Shared>()("specimen/ui/position-object.test/Pages") {}
 
 /**
  * A `point` response as the suite reads it: each value's two coordinates, in order.
@@ -107,21 +136,29 @@ const pointsIn = (
   ).pipe(Effect.map(({ values }) => values.map(({ value }) => value)));
 
 /**
- * Open the example, solved, every copy placed.
+ * 1EdTech's example in answering, solved, every copy placed.
  */
-const opened = Effect.gen(function* opened() {
-  const open = yield* Pages;
+const airportsStage = Effect.gen(function* airportsStage() {
   const items = yield* corpusItems;
   const item = Arr.findFirst(items, (each) => each.location === location);
 
-  if (item._tag === "None") {
+  if (Option.isNone(item)) {
     return yield* new HydrationFailure({
       cause: location,
       step: "found the example in the corpus",
     });
   }
 
-  return yield* open(solved(item.value));
+  return solved(item.value);
+});
+
+/**
+ * Open the example, solved, every copy placed, in a page of its own.
+ */
+const opened = Effect.gen(function* opened() {
+  const { airports, open } = yield* Pages;
+
+  return yield* open(airports);
 });
 
 /**
@@ -178,7 +215,7 @@ const objectsStage = Effect.gen(function* objectsStage() {
       ? held.description.interaction.settings.objects
       : 0;
 
-  return { answering, identifiers: objectResponses(count) };
+  return { answering, identifiers: objectResponses(count) } satisfies FloorStage;
 });
 
 /**
@@ -189,10 +226,24 @@ const objectsStage = Effect.gen(function* objectsStage() {
  */
 const openedObjects = (answering: Answering) =>
   Effect.gen(function* objectsPage() {
-    const open = yield* Pages;
+    const { open } = yield* Pages;
 
     return yield* open(answering);
   });
+
+/**
+ * What the suite's cases share, made once for the file.
+ */
+const shared = Layer.effect(
+  Pages,
+  Effect.gen(function* sharing() {
+    const open = yield* hydratedPages;
+    const airports = yield* airportsStage;
+    const objects = yield* objectsStage;
+
+    return { airports, objects, open } satisfies Shared;
+  }),
+);
 
 /**
  * Read every object's points from responses, in the stage's order.
@@ -318,7 +369,7 @@ const without = (index: number) => placed.filter((_, each) => each !== index);
  */
 const onlyAt = (index: number): readonly boolean[] => placed.map((_, each) => each === index);
 
-layer(Layer.effect(Pages, hydratedPages), { excludeTestServices: true, timeout: caseHang })(
+layer(shared, { excludeTestServices: true, timeout: harnessHang })(
   "Position Object hydrated in Chrome, on 1EdTech's Airport Locations with its three copies placed",
   (it) => {
     it.effect(
@@ -334,6 +385,7 @@ layer(Layer.effect(Pages, hydratedPages), { excludeTestServices: true, timeout: 
             assert.deepStrictEqual(yield* hydrated.changes, []);
           }),
         ),
+      caseHang,
     );
 
     for (const key of ["Delete", "Backspace"] as const) {
@@ -353,27 +405,31 @@ layer(Layer.effect(Pages, hydratedPages), { excludeTestServices: true, timeout: 
                 assert.deepStrictEqual(yield* lastPoints(hydrated), without(index));
               }),
             ),
+          caseHang,
         );
       }
     }
 
     for (const index of placed.keys()) {
-      it.effect(`PO2: a tap on copy ${String(index + 1)}'s control picks that copy up`, () =>
-        Effect.scoped(
-          Effect.gen(function* tapsControl() {
-            const hydrated = yield* opened;
+      it.effect(
+        `PO2: a tap on copy ${String(index + 1)}'s control picks that copy up`,
+        () =>
+          Effect.scoped(
+            Effect.gen(function* tapsControl() {
+              const hydrated = yield* opened;
 
-            yield* step("tapped the copy's control", () =>
-              hydrated.page.locator(controls).nth(index).click(),
-            );
-            yield* hydrated.settle;
-            const state = yield* shown(hydrated);
+              yield* step("tapped the copy's control", () =>
+                hydrated.page.locator(controls).nth(index).click(),
+              );
+              yield* hydrated.settle;
+              const state = yield* shown(hydrated);
 
-            assert.deepStrictEqual(state.pressed, onlyAt(index));
-            assert.deepStrictEqual(state.picked, onlyAt(index));
-            assert.deepStrictEqual(yield* hydrated.changes, []);
-          }),
-        ),
+              assert.deepStrictEqual(state.pressed, onlyAt(index));
+              assert.deepStrictEqual(state.picked, onlyAt(index));
+              assert.deepStrictEqual(yield* hydrated.changes, []);
+            }),
+          ),
+        caseHang,
       );
 
       it.effect(
@@ -401,6 +457,7 @@ layer(Layer.effect(Pages, hydratedPages), { excludeTestServices: true, timeout: 
               );
             }),
           ),
+        caseHang,
       );
 
       it.effect(
@@ -420,6 +477,7 @@ layer(Layer.effect(Pages, hydratedPages), { excludeTestServices: true, timeout: 
               assert.deepStrictEqual(state.picked, onlyAt(index));
             }),
           ),
+        caseHang,
       );
     }
 
@@ -428,7 +486,9 @@ layer(Layer.effect(Pages, hydratedPages), { excludeTestServices: true, timeout: 
       () =>
         Effect.scoped(
           Effect.gen(function* newCopies() {
-            const { answering, identifiers } = yield* objectsStage;
+            const {
+              objects: { answering, identifiers },
+            } = yield* Pages;
             const before = yield* everyObject(answering.responses, identifiers);
 
             assert.isAtLeast(identifiers.length, 2);
@@ -462,6 +522,7 @@ layer(Layer.effect(Pages, hydratedPages), { excludeTestServices: true, timeout: 
             }
           }),
         ),
+      caseHang,
     );
 
     it.effect(
@@ -469,7 +530,9 @@ layer(Layer.effect(Pages, hydratedPages), { excludeTestServices: true, timeout: 
       () =>
         Effect.scoped(
           Effect.gen(function* firstCopies() {
-            const { answering, identifiers } = yield* objectsStage;
+            const {
+              objects: { answering, identifiers },
+            } = yield* Pages;
             const before = yield* everyObject(answering.responses, identifiers);
 
             assert.isTrue(before.every((points) => points.length > 0));
@@ -489,6 +552,44 @@ layer(Layer.effect(Pages, hydratedPages), { excludeTestServices: true, timeout: 
             }
           }),
         ),
+      caseHang,
+    );
+
+    it.effect(
+      "PO7: a tap on an object's button while a new copy of another object is held picks up a copy of the object tapped, and writes nothing",
+      () =>
+        Effect.scoped(
+          Effect.gen(function* otherObject() {
+            const {
+              objects: { answering, identifiers },
+            } = yield* Pages;
+
+            for (const index of identifiers.keys()) {
+              const hydrated = yield* openedObjects(answering);
+              const other = (index + 1) % identifiers.length;
+
+              yield* step("focused the other object's button", () =>
+                hydrated.page.locator(objects).nth(other).focus(),
+              );
+              yield* step("pressed Enter", () => hydrated.page.keyboard.press("Enter"));
+              yield* hydrated.settle;
+              assert.deepStrictEqual(
+                yield* objectsPressed(hydrated),
+                identifiers.map((_, each) => each === other),
+              );
+              yield* step("tapped the object's button", () =>
+                hydrated.page.locator(objects).nth(index).click(),
+              );
+              yield* hydrated.settle;
+              assert.deepStrictEqual(
+                yield* objectsPressed(hydrated),
+                identifiers.map((_, each) => each === index),
+              );
+              assert.deepStrictEqual(yield* hydrated.changes, []);
+            }
+          }),
+        ),
+      caseHang,
     );
   },
 );

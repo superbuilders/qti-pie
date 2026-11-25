@@ -386,9 +386,15 @@ const contextIn = (
   browser: Browser,
 ): Effect.Effect<BrowserContext, HydrationFailure, Scope.Scope> =>
   Effect.acquireRelease(
-    attempt("opened a browser context", () =>
-      browser.newContext({ viewport: { height: 900, width: 1200 } }),
-    ),
+    attempt("opened a browser context", async () => {
+      const context = await browser.newContext({ viewport: { height: 900, width: 1200 } });
+
+      // Playwright waits on a page, its loads, its keys and its taps, with no timeout of its own:
+      // the case's hang guard is the one.
+      context.setDefaultTimeout(0);
+
+      return context;
+    }),
     (opened) => Effect.promise(() => opened.close()),
   );
 
@@ -412,7 +418,8 @@ export interface Hydrated {
   readonly changes: Effect.Effect<readonly ResponseValues[], HydrationFailure>;
   /**
    * Wait in the page until it has painted twice since now and run what those frames scheduled, so
-   * what an input changed has been rendered and every effect and microtask it started has run.
+   * what an input changed has been rendered and every effect and microtask it started has run; and
+   * fail where React has reported an error since the page opened, or the page has thrown one.
    */
   readonly settle: Effect.Effect<void, HydrationFailure>;
 }
@@ -472,16 +479,20 @@ const openedAt = (
           (cause) => new HydrationFailure({ cause, step: "read what the page kept" }),
         ),
     );
-    const settle = attempt("waited for the page to settle", () => page.evaluate(twoFramesAndATask));
+    const settle = attempt("waited for the page to settle", () =>
+      page.evaluate(twoFramesAndATask),
+    ).pipe(
+      Effect.andThen(kept),
+      Effect.flatMap((reported) => {
+        const errors = [...thrown, ...reported.errors];
+
+        return errors.length > 0
+          ? Effect.fail(new HydrationFailure({ cause: errors, step: "ran the page" }))
+          : Effect.void;
+      }),
+    );
 
     yield* settle;
-
-    const reported = yield* kept;
-    const errors = [...thrown, ...reported.errors];
-
-    if (errors.length > 0) {
-      return yield* new HydrationFailure({ cause: errors, step: "hydrated the page" });
-    }
 
     return {
       changes: kept.pipe(Effect.map(({ changes }) => changes)),
