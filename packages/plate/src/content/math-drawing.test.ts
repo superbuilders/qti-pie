@@ -27,6 +27,7 @@
  *
  * @module
  */
+import { isDeepStrictEqual } from "node:util";
 import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { Option } from "effect";
@@ -805,9 +806,7 @@ const bordered = ({ drawer, formula, sizes, written }: Case): Verdict => {
  * @returns What broke.
  */
 const settled = ({ drawer, drawing, formula, sizes }: Case): Verdict =>
-  JSON.stringify(drawer(formula, sizes)) === JSON.stringify(drawing)
-    ? []
-    : ["a second drawing differs"];
+  isDeepStrictEqual(drawer(formula, sizes), drawing) ? [] : ["a second drawing differs"];
 
 /**
  * Give the ids the slots of a formula name, in document order.

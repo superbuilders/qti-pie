@@ -6,6 +6,7 @@
  *
  * @module
  */
+import { isDeepStrictEqual } from "node:util";
 import { Option } from "effect";
 import type { namedAreasOf } from "#plate/interactions/area-names.ts";
 
@@ -66,8 +67,6 @@ export const walkNames = (subject: Subject): string | undefined =>
       const shown = subject.namedAreasOf(areas, "en");
       const rule = ruleOf(named);
 
-      return JSON.stringify(shown) === JSON.stringify(rule)
-        ? []
-        : [JSON.stringify({ named, rule, shown })];
+      return isDeepStrictEqual(shown, rule) ? [] : [JSON.stringify({ named, rule, shown })];
     })
     .at(0);

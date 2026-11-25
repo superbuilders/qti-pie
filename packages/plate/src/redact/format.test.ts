@@ -88,7 +88,10 @@ describe("formatPrinted: the conversions beyond the worked table", () => {
       printed(float(Number(2n ** 53n + 2n)), { format: "%i" }),
       "9007199254740994",
     );
-    assert.strictEqual(printed(float(2 ** 100), { format: "%i" }), (2n ** 100n).toString());
+    assert.strictEqual(
+      printed(float(2 ** 100), { format: "%i" }),
+      "1267650600228229401496703205376",
+    );
     assert.strictEqual(printed(float(1e21), { format: "%x" }), (10n ** 21n).toString(16));
   });
 
