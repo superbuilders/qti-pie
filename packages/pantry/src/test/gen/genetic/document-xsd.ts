@@ -18,7 +18,7 @@
  * (`verdict`), and each named edit with the verdicts it led to (`edit`).
  */
 import { regex } from "arkregex";
-import { Effect, Option, Result } from "effect";
+import { Effect, Equal, Option, Result } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import type { Child, Element, XmlDocument } from "@qti-pie/crust/tree.ts";
 import type { Source } from "@bjornpagen/testing/source";
@@ -552,7 +552,7 @@ export const editedNamespaces = (before: Element, after: Element): ReadonlySet<s
     if (
       left.qname !== right.qname ||
       left.namespace !== right.namespace ||
-      JSON.stringify(left.attributes) !== JSON.stringify(right.attributes)
+      !Equal.equals(left.attributes, right.attributes)
     ) {
       found.add(left.namespace);
       found.add(right.namespace);
@@ -563,7 +563,7 @@ export const editedNamespaces = (before: Element, after: Element): ReadonlySet<s
         const other = right.children[index];
         if (child.kind === "element" && other?.kind === "element") {
           stack.push([child, other]);
-        } else if (JSON.stringify(child) !== JSON.stringify(other)) {
+        } else if (!Equal.equals(child, other)) {
           found.add(right.namespace);
         }
       }

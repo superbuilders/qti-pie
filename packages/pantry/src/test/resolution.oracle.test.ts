@@ -22,7 +22,7 @@ import { completeShrink } from "@bjornpagen/testing/shrink";
 import { keep, swarm, swarmChoice } from "@bjornpagen/testing/swarm";
 import type { Swarm } from "@bjornpagen/testing/swarm";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Duration, Effect, Formatter } from "effect";
+import { Duration, Effect, Equal, Formatter } from "effect";
 import { baseIn, documentBase, hrefTextOf, resolveIn } from "#pantry/import/overlays/package.ts";
 import { collapse, normalizedIn } from "#pantry/grammar/domains.ts";
 import type { WhiteSpaceClass } from "#pantry/grammar/domains.ts";
@@ -451,7 +451,7 @@ const judged = (input: HrefCase, note: (situation: Situation) => void): void => 
   );
   note(expected.scope === "unresolved" ? `limit ${expected.limit}` : expected.scope);
   for (const bug of planted) {
-    if (Formatter.format(bug.resolveOf(input)) !== Formatter.format(expected)) {
+    if (!Equal.equals(bug.resolveOf(input), expected)) {
       note(`caught: ${bug.name}`);
     }
   }
