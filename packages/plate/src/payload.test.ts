@@ -35,7 +35,7 @@ import type {
 import { boxHolds } from "#plate/test/box.ts";
 import { recordOf } from "#plate/test/records.ts";
 import type { ItemRecord, RedactRecord, Showing } from "#plate/model/record.ts";
-import { nullOf, nullRecord } from "#plate/model/values.ts";
+import { format, nullOf, nullRecord } from "#plate/model/values.ts";
 import type { Declared, Responses, ResponseValue, Value } from "#plate/model/values.ts";
 import { interactionPayload } from "#plate/payload.ts";
 import type { PairedInteraction, View } from "#plate/payload.ts";
@@ -57,15 +57,26 @@ import { acceptedItem, acceptForTest } from "#plate/validate/verdict.ts";
 import type { Accepted } from "#plate/validate/verdict.ts";
 
 /**
- * The strings only the hidden parts of {@link item} hold: its correct responses, a mapping key and
- * an outcome default. None appears in its body.
+ * The values a page must never hold of an item, read from its declarations: each response's
+ * correct values and mapping keys and each outcome's default, which belong to the response
+ * processing the QTI database runs, each in its lexical form. A response's own default is no
+ * secret: the response starts at it (spec reading `response-default`).
+ *
+ * @param subject The item.
+ * @returns The secrets, in declaration order.
  */
-const markers = [
-  "MarkerCorrectChoice",
-  "MarkerCorrectText",
-  "MarkerMapKey",
-  "MarkerOutcomeDefault",
-] as const;
+const secretsOf = (subject: Item): readonly string[] => [
+  ...[...subject.responses.values()].flatMap((declaration) => [
+    ...Option.toArray(declaration.correct).flatMap((value) => value.values.map(format)),
+    ...Option.match(declaration.mapping, {
+      onNone: () => [],
+      onSome: (mapping) => mapping.entries.map((entry) => format(entry.key)),
+    }),
+  ]),
+  ...[...subject.outcomes.values()].flatMap((declaration) =>
+    Option.toArray(declaration.defaultValue).flatMap((value) => value.values.map(format)),
+  ),
+];
 
 /**
  * The default of {@link item}'s `NAMED`, which a Text Entry binds: the value the response starts
@@ -214,7 +225,7 @@ const essay: ExtendedTextInteraction = {
  * A hand-built item: a paragraph, a Choice, a paragraph holding two unnamed Text Entries and one
  * named by `aria-label`, an Extended Text with a Prompt, and an unsupported feedback block. Its
  * correct responses, mapping key, `NAMED` default, `FEEDBACK` default and processing value are
- * the {@link markers}.
+ * markers, strings its body holds nowhere, so a page that holds one leaked it.
  */
 const item: Item = {
   adaptive: false,
@@ -436,6 +447,16 @@ const held: ReadonlyMap<string, Value> = new Map([
   ["CAPITAL", one({ baseType: "identifier", value: "A" })],
   ["FIRST", one({ baseType: "string", value: "Marseille" })],
 ]);
+
+/**
+ * Draw a view of the secrets box: every seed of {@link seedBox}, with no values or with
+ * {@link held}.
+ */
+const viewCase: Gen<View> = (source) => ({
+  ...answering,
+  seed: source.draw(seedBox),
+  values: source.draw(oneOf([constant<View["values"]>(new Map()), constant(held)])),
+});
 
 /**
  * Hand `startingResponses` a hand-built item, which its type refuses: the type test is the
@@ -763,11 +784,14 @@ const orderedOf = (members: readonly string[]): Value => ({
 describe("redactItem", () => {
   it("keeps no correct response, mapping key or outcome default, and keeps the response default a Text Entry starts at", () => {
     const written = json(redacted);
+    const secrets = secretsOf(item);
 
-    for (const marker of markers) {
-      assert.include(json(item), marker, `the item holds ${marker}`);
-      assert.notInclude(written, marker, `the redacted item holds ${marker}`);
-    }
+    assert.isNotEmpty(secrets, "the item declares correct values, a mapping and outcome defaults");
+    assert.deepStrictEqual(
+      secrets.filter((secret) => written.includes(secret)),
+      [],
+      "the secrets the redacted item holds",
+    );
 
     assert.include(written, "Which city is the capital of France?");
     assert.deepStrictEqual(
@@ -2301,21 +2325,44 @@ const controlsSituationOf = (controls: ControlsCase): ControlsSituation => {
 };
 
 describe("payload", () => {
-  it("holds no correct response, mapping key, default or rule value in any view", () => {
-    const views: readonly (readonly [string, View])[] = [
-      ["no values", answering],
-      ["values", { ...answering, values: held }],
-    ];
+  it.effect(
+    `holds no correct response, mapping key or outcome default in any view: every seed of the seed box, with no values and with the values held: ${String(2 * SEEDS)} views`,
+    (ctx) => {
+      const secrets = secretsOf(item);
 
-    for (const [state, view] of views) {
-      const written = json(redacted) + json(shippedIn(pageFor(redacted, view)));
+      return Effect.andThen(
+        boxHolds(viewCase, 2 * SEEDS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every seed of 0 to 2 of a digit, a letter and the space, with no values and with a Choice's and a Text Entry's values",
+              caseHang,
+              coverage: noCoverage,
+              generator: viewCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the item's declarations, read by secretsOf: its correct values, mapping keys and outcome defaults belong to the response processing the database runs, so no page holds one, whatever its view",
+              },
+              suite: "plate/payload/secrets",
+            },
+            (view) =>
+              Effect.sync(() => {
+                const written = json(redacted) + json(shippedIn(pageFor(redacted, view)));
 
-      assert.include(written, "Which city is the capital of France?", state);
-      for (const marker of markers) {
-        assert.notInclude(written, marker, `${state} holds ${marker}`);
-      }
-    }
-  });
+                assert.include(written, "Which city is the capital of France?");
+                assert.deepStrictEqual(
+                  secrets.filter((secret) => written.includes(secret)),
+                  [],
+                  "the secrets the page holds",
+                );
+              }),
+          ),
+        ),
+      );
+    },
+  );
 
   it("gives an Inline Choice its choices, its Label and its placeholder, and restores the view's value", () => {
     const opened = inlineChoiceFor(pageFor(riverRedacted, answering), "RIVER");
