@@ -4,8 +4,9 @@
  * from QTI 3.0.1 and AlphaTest's player's toolbar (mastery-track-player 941a86a,
  * `ExtendedTextInteraction.tsx` lines 303–312), never from plate's code.
  *
- * - RT1, each command: each of the toolbar's commands, on a line of one word, writes the XHTML a
- *   table here gives by hand, and that XHTML reads back as the line.
+ * - RT1, each command: every line of one word, under every combination of the toolbar's formats,
+ *   writes the element or class QTI 3.0.1's HTML or its shared vocabulary holds for each format on,
+ *   once, and no other, and that XHTML reads back as the line.
  * - RT2, lossless: every document of the toolbar's formats reads back as it was from its XHTML, and
  *   from its Delta.
  * - RT3, inside QTI: every document's XHTML is well-formed XML (crust's reader) whose every element
@@ -14,49 +15,46 @@
  *   two, strike and justify, for which QTI has none.
  * - RT4, the review: a review shows an answer's document formatted, built from the document and never
  *   from the value's markup, as AlphaTest's review showed the answer in its read-only editor
- *   (`ExtendedTextInteraction.tsx` lines 296–300 and 831–841): each answer of a table here draws
- *   the markup the table gives, a link keeps its address only for http, https and mailto, and a
- *   value plate did not write shows as its text.
+ *   (`ExtendedTextInteraction.tsx` lines 296–300 and 831–841): every document plate writes reads
+ *   back from its review, a link keeping its address only for http, https and mailto, and a value
+ *   plate did not write shows as its text, a line to each line.
  * - RT5, the count: the count under the editor says how many words the answer holds, AlphaTest's "1
- *   word" or "N words" (line 848), each answer of a table here at the count the table gives by
- *   hand, a word a run of anything but JavaScript's `\s` on the answer's text, a paragraph's and a
- *   list item's end a space, a zero-width character nothing.
- *
- * Its kills, each a writer a slip would make in place of plate's: underline as HTML's `u`, which
- * QTI 3.0.1 does not hold; strike left out; a link's address and the text left unescaped; an
- * ordered list and a bullet list beside it written as one list; and Quill's own `ql-indent-N` class
- * in place of the vocabulary's margin.
+ *   word" or "N words" (line 848), a word a run of anything but JavaScript's `\s` on the answer's
+ *   text, a paragraph's and a list item's end a space, a zero-width space nothing; a plain answer's
+ *   count holds a zero-width space as typed, and a review counts as the editor did.
  *
  * @module
  */
-import { regex } from "arkregex";
+import { availableParallelism } from "node:os";
 import { assert, describe, it } from "@effect/vitest";
-import { drawn, explore } from "@bjornpagen/testing/explore";
-import { required } from "@bjornpagen/testing/features";
-import { array, boolean, characterOf, element, string } from "@bjornpagen/testing/gen";
+import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
+import { noCoverage, required } from "@bjornpagen/testing/features";
+import { array, boolean, characterOf, element, option, string } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
 import { readXml } from "@qti-pie/crust/read.ts";
 import type { Child } from "@qti-pie/crust/tree.ts";
-import { Effect, Exit, Formatter } from "effect";
+import { regex } from "arkregex";
+import { Array as Arr, Effect, Exit, Formatter, Option } from "effect";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { acceptedItem, configure } from "@qti-pie/plate";
 import {
   indentLevels,
+  isWritten,
   linesOfOps,
   linesOfXhtml,
   opsOfLines,
   plainLine,
-  plainRun,
   xhtmlOfLines,
 } from "@qti-pie/plate/rich-text";
 import type { Line, LineFormat, Run, RunFormat } from "@qti-pie/plate/rich-text";
 import { admitted } from "@qti-pie/plate/test/admitted";
 import { Item, standardRenderers } from "@qti-pie/plate/ui";
 import { ExtendedText, heldOf, Responses, RichText } from "@qti-pie/plate/ui/client";
+import { boxHolds } from "#specimen/test/box.ts";
 
 /**
  * QTI 3.0.1's HTML elements the essay may write (`imsqti_asiv3p0p1_v1p0.xsd`), each one a command
@@ -95,60 +93,6 @@ const essayClasses: ReadonlySet<string> = new Set([
   "qti-margin-s-5",
   "qti-underline",
 ]);
-
-/**
- * A line of one word, `w`, in a run format and a line format, each over plain.
- *
- * @param run What the run's format turns on.
- * @param line What the line's format turns on.
- * @returns The line.
- */
-const oneWord = (run: Partial<RunFormat>, line: Partial<LineFormat>): Line => ({
-  format: { ...plainLine, ...line },
-  runs: [{ format: { ...plainRun, ...run }, text: "w" }],
-});
-
-/**
- * RT1's table: each command of the toolbar, a line of one word under it, and the XHTML it writes,
- * by hand.
- */
-const commands: readonly (readonly [command: string, line: Line, xhtml: string])[] = [
-  ["normal", oneWord({}, {}), "<p>w</p>"],
-  ["header 1", oneWord({}, { header: 1 }), "<h1>w</h1>"],
-  ["header 2", oneWord({}, { header: 2 }), "<h2>w</h2>"],
-  ["header 3", oneWord({}, { header: 3 }), "<h3>w</h3>"],
-  ["bold", oneWord({ bold: true }, {}), "<p><strong>w</strong></p>"],
-  ["italic", oneWord({ italic: true }, {}), "<p><em>w</em></p>"],
-  ["underline", oneWord({ underline: true }, {}), '<p><span class="qti-underline">w</span></p>'],
-  ["strike", oneWord({ strike: true }, {}), '<p><span class="plate-strike">w</span></p>'],
-  ["ordered list", oneWord({}, { list: "ordered" }), "<ol><li>w</li></ol>"],
-  ["bullet list", oneWord({}, { list: "bullet" }), "<ul><li>w</li></ul>"],
-  ["subscript", oneWord({ script: "sub" }, {}), "<p><sub>w</sub></p>"],
-  ["superscript", oneWord({ script: "super" }, {}), "<p><sup>w</sup></p>"],
-  ["indent", oneWord({}, { indent: 1 }), '<p class="qti-margin-s-1">w</p>'],
-  ["indent 5 deep", oneWord({}, { indent: 5 }), '<p class="qti-margin-s-5">w</p>'],
-  ["align center", oneWord({}, { align: "center" }), '<p class="qti-align-center">w</p>'],
-  ["align right", oneWord({}, { align: "right" }), '<p class="qti-align-right">w</p>'],
-  ["align justify", oneWord({}, { align: "justify" }), '<p class="plate-align-justify">w</p>'],
-  [
-    "link",
-    oneWord({ link: "https://example.org/?a=1&b=2" }, {}),
-    '<p><a href="https://example.org/?a=1&amp;b=2">w</a></p>',
-  ],
-  [
-    "every inline command at once",
-    oneWord(
-      { bold: true, italic: true, link: "x", script: "super", strike: true, underline: true },
-      {},
-    ),
-    '<p><a href="x"><sup><strong><em><span class="qti-underline"><span class="plate-strike">w</span></span></em></strong></sup></a></p>',
-  ],
-  [
-    "a list item indented and aligned",
-    oneWord({}, { align: "right", indent: 2, list: "bullet" }),
-    '<ul><li class="qti-align-right qti-margin-s-2">w</li></ul>',
-  ],
-];
 
 /**
  * Tell whether two run formats are one, field by field.
@@ -221,12 +165,18 @@ const held = (runs: readonly Run[]): readonly Run[] => {
 
 /**
  * Draw a run's format: each inline command on or off, a script of two or none, and a link of three
- * or none, one holding the characters an attribute escapes.
+ * or none: an https address holding the characters an attribute escapes, a mailto one, and a
+ * data one, whose address a review drops.
  */
 const runFormats: Gen<RunFormat> = (source) => ({
   bold: boolean(source),
   italic: boolean(source),
-  link: element([undefined, 'https://example.org/a?b=1&c="2"', "mailto:t@example.org"])(source),
+  link: element([
+    undefined,
+    'https://example.org/a?b=1&c="2"',
+    "mailto:t@example.org",
+    "data:text/html,x",
+  ])(source),
   script: element([undefined, "sub", "super"] as const)(source),
   strike: boolean(source),
   underline: boolean(source),
@@ -410,77 +360,6 @@ const broken = (
 };
 
 /**
- * Turn strike off on every run of a document.
- *
- * @param lines The document.
- * @returns It, with no strike.
- */
-const struckOut = (lines: readonly Line[]): readonly Line[] =>
-  lines.map((line) => ({
-    format: line.format,
-    runs: line.runs.map((run) => ({ format: { ...run.format, strike: false }, text: run.text })),
-  }));
-
-/**
- * Give every list line the kind of the first line of the run of list lines it stands in.
- *
- * @param lines The document.
- * @returns It, each run of list lines one kind.
- */
-const oneListKind = (lines: readonly Line[]): readonly Line[] => {
-  let kind: LineFormat["list"];
-
-  return lines.map((line) => {
-    kind = line.format.list === undefined ? undefined : (kind ?? line.format.list);
-
-    return { format: { ...line.format, list: kind }, runs: line.runs };
-  });
-};
-
-/**
- * The kills: a writer a slip would make in place of plate's.
- */
-const kills: readonly (readonly [why: string, write: (lines: readonly Line[]) => string])[] = [
-  [
-    "underline as HTML's u",
-    (lines) =>
-      xhtmlOfLines(lines).replaceAll(
-        regex.as(
-          '<span class="qti-underline">(?<inner>(?:<span class="plate-strike">[^<]*</span>)|[^<]*)</span>',
-          "gu",
-        ),
-        "<u>$<inner></u>",
-      ),
-  ],
-  ["strike left out", (lines) => xhtmlOfLines(struckOut(lines))],
-  [
-    "a link's address and the text left unescaped",
-    (lines) => xhtmlOfLines(lines).replaceAll("&quot;", '"').replaceAll("&amp;", "&"),
-  ],
-  [
-    "an ordered list and a bullet list beside it as one list",
-    (lines) => xhtmlOfLines(oneListKind(lines)),
-  ],
-  [
-    "Quill's indent class",
-    (lines) =>
-      xhtmlOfLines(lines).replaceAll(
-        regex("qti-margin-s-(?<level>[1-5])", "gu"),
-        "ql-indent-$<level>",
-      ),
-  ],
-];
-
-/**
- * The documents the kills are held to: each of RT1's lines, and an ordered list beside a bullet
- * one.
- */
-const killDocuments: readonly (readonly Line[])[] = [
-  ...commands.map(([, line]) => [line]),
-  [oneWord({}, { list: "ordered" }), oneWord({}, { list: "bullet" })],
-];
-
-/**
  * An Extended Text of `format="xhtml"`, the essay a review shows.
  */
 const essayXml = `<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="essay" title="Essay" adaptive="false" time-dependent="false">
@@ -490,37 +369,6 @@ const essayXml = `<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqt
   </qti-item-body>
 </qti-assessment-item>
 `;
-
-/**
- * RT4's table: an answer, and the markup its review draws inside its answer part, by hand.
- */
-const reviews: readonly (readonly [answer: string, xhtml: string, markup: string])[] = [
-  [
-    "a sentence with a bold word, then a bullet list",
-    "<p>Our class likes it <strong>because</strong> the garden helps everyone.</p><ul><li>Plant seeds</li><li>Water plants</li></ul>",
-    "<p>Our class likes it <strong>because</strong> the garden helps everyone.</p><ul><li>Plant seeds</li><li>Water plants</li></ul>",
-  ],
-  [
-    "a header, an ordered list beside a bullet list, and an empty line",
-    "<h2>Why</h2><ol><li>one</li></ol><ul><li>two</li></ul><p></p>",
-    "<h2>Why</h2><ol><li>one</li></ol><ul><li>two</li></ul><p><br/></p>",
-  ],
-  [
-    "alignment, indent, underline, strike, scripts and italic",
-    '<p class="qti-align-center qti-margin-s-2"><span class="qti-underline"><span class="plate-strike">x</span></span><sub>2</sub><sup><em>3</em></sup></p>',
-    '<p data-align="center" data-indent="2"><span data-underline=""><span data-strike="">x</span></span><sub>2</sub><sup><em>3</em></sup></p>',
-  ],
-  [
-    "a link of https, and one of javascript, which keeps no address",
-    '<p><a href="https://example.org/a?b=1&amp;c=2">safe</a> <a href="javascript:alert(1)">unsafe</a></p>',
-    '<p><a href="https://example.org/a?b=1&amp;c=2">safe</a> <a>unsafe</a></p>',
-  ],
-  [
-    "a value plate did not write, shown as its text",
-    '<p style="color: red" onclick="steal()">red &amp; <b>bold</b></p>',
-    "<p>red &amp; bold</p>",
-  ],
-];
 
 /**
  * Render the essay's review of an answer.
@@ -569,37 +417,9 @@ const reviewOf = (xhtml: string) =>
   );
 
 /**
- * RT5's table: an answer, and what the count under the editor says of it, by hand.
- */
-const counts: readonly (readonly [answer: string, xhtml: string, count: string])[] = [
-  ["nothing typed", "", "0 words"],
-  ["one word", "<p>one</p>", "1 word"],
-  [
-    "a sentence, then a bullet list of two, where AlphaTest's counter said 11",
-    "<p>Our class likes it <strong>because</strong> the garden helps everyone.</p><ul><li>Plant seeds</li><li>Water plants</li></ul>",
-    "13 words",
-  ],
-  ["two paragraphs of a word each", "<p>one</p><p>two</p>", "2 words"],
-  ["a no-break space between two words", "<p>red\u00A0fox</p>", "2 words"],
-  ["a zero-width space alone", "<p>\u200B</p>", "0 words"],
-  ["punctuation and digits inside words", "<p>it's 3-4, ok?</p>", "3 words"],
-];
-
-/**
  * Keep no change: the `onChange` a server render's `<Responses>` is given, which it never calls.
  */
 const keepNothing = (): void => {};
-
-/**
- * RT5's plain table: a plain answer, and what the count under its textarea says of it, by hand.
- */
-const plainCounts: readonly (readonly [answer: string, text: string, count: string])[] = [
-  ["nothing typed", "", "0 words"],
-  ["one word", "one", "1 word"],
-  ["words on two lines", "Plant seeds\nWater plants", "4 words"],
-  ["a zero-width space alone, which a plain answer counts as typed", "\u200B", "1 word"],
-  ["punctuation and digits inside words", "it's 3-4, ok?", "3 words"],
-];
 
 /**
  * The words the count says, as the catalog gives them.
@@ -680,13 +500,611 @@ const plainIsland = createElement(ExtendedText, {
   size: { cols: undefined, rows: undefined },
 });
 
-describe("the rich-text essay's value", () => {
-  it("RT1: each command writes the XHTML the table gives, which reads back as its line", () => {
-    for (const [command, line, xhtml] of commands) {
-      assert.strictEqual(xhtmlOfLines([line]), xhtml, command);
-      assert.isTrue(sameDocument(linesOfXhtml(xhtml), [line]), `${command} reads back`);
+/**
+ * A case of RT1's box: a line format and the run format of its one word.
+ */
+interface OneWord {
+  readonly line: LineFormat;
+  readonly run: RunFormat;
+}
+
+/**
+ * Draw a case of RT1's box: a line format of {@link lineFormats} and a run format of
+ * {@link runFormats}.
+ */
+const oneWordLine: Gen<OneWord> = (source) => ({
+  line: lineFormats(source),
+  run: runFormats(source),
+});
+
+/**
+ * How many cases {@link oneWordLine} draws: 192 run formats (bold, italic, underline and strike
+ * each on or off, by 3 scripts and 4 links) by 144 line formats (6 blocks by 4 alignments by 6
+ * indents).
+ */
+const ONE_WORD_LINES = 2 ** 4 * 3 * 4 * (6 * 4 * indentLevels.length);
+
+/**
+ * The line of a case of RT1's box: the word `w` in its run format.
+ *
+ * @param word The case.
+ * @returns The line.
+ */
+const lineOf = ({ line, run }: OneWord): Line => ({
+  format: line,
+  runs: [{ format: run, text: "w" }],
+});
+
+/**
+ * An element of the tree crust reads.
+ */
+type XmlElement = Extract<Child, { readonly kind: "element" }>;
+
+/**
+ * The value of an element's attribute.
+ *
+ * @param node The element.
+ * @param name The attribute's local name.
+ * @returns Its value; none where the element has none of that name.
+ */
+const attributeOf = (node: XmlElement, name: string): Option.Option<string> =>
+  Option.map(
+    Arr.findFirst(node.attributes, (attribute) => attribute.local === name),
+    (attribute) => attribute.value,
+  );
+
+/**
+ * The element children of an element's children.
+ *
+ * @param children The children.
+ * @returns Its elements, in order.
+ */
+const elementsIn = (children: readonly Child[]): readonly XmlElement[] =>
+  children.flatMap((child) => (child.kind === "element" ? [child] : []));
+
+/**
+ * The text of a tree: every text node beneath its children, in document order.
+ *
+ * @param children The children.
+ * @returns The text.
+ */
+const textIn = (children: readonly Child[]): string =>
+  children
+    .map((child) => {
+      if (child.kind === "text") {
+        return child.value;
+      }
+
+      return child.kind === "element" ? textIn(child.children) : "";
+    })
+    .join("");
+
+/**
+ * Read an XHTML fragment with crust's reader, inside a `div` of XHTML's namespace.
+ *
+ * @param xhtml The fragment.
+ * @returns The `div`'s children.
+ */
+const fragmentOf = (xhtml: string) =>
+  Effect.map(
+    readXml(new TextEncoder().encode(`<div xmlns="http://www.w3.org/1999/xhtml">${xhtml}</div>`)),
+    (read) => read.root.children,
+  );
+
+/**
+ * What RT1 reads of a line's XHTML: its block, a list's element and its item or the block's own
+ * element; the block's classes; the inline elements around its word, each by its name, a span by
+ * its class and a link by its address; how deep they stand, so a format written twice shows; and
+ * the word.
+ */
+interface Shape {
+  readonly block: string;
+  readonly classes: ReadonlySet<string>;
+  readonly depth: number;
+  readonly inline: ReadonlySet<string>;
+  readonly word: string;
+}
+
+/**
+ * The classes an element's `class` attribute holds.
+ *
+ * @param node The element.
+ * @returns Its classes; none where it has no `class`.
+ */
+const classesOf = (node: XmlElement): ReadonlySet<string> =>
+  new Set(
+    Option.match(attributeOf(node, "class"), {
+      onNone: () => [],
+      onSome: (value) => value.split(" ").filter((name) => name !== ""),
+    }),
+  );
+
+/**
+ * Read the shape of a line's XHTML ({@link Shape}).
+ *
+ * @param xhtml The line's XHTML.
+ * @returns Its shape; fails where crust's reader refuses it.
+ */
+const shapeOf = (xhtml: string) =>
+  Effect.map(fragmentOf(xhtml), (children): Shape => {
+    const [outer, ...others] = elementsIn(children);
+
+    if (outer === undefined || others.length > 0) {
+      return assert.fail(`${xhtml} is not one block`);
     }
+
+    const items = outer.local === "ol" || outer.local === "ul" ? elementsIn(outer.children) : [];
+    const [item] = items;
+    const block = item ?? outer;
+    const inline: string[] = [];
+    let node = block;
+    let [only] = elementsIn(node.children);
+
+    while (only !== undefined) {
+      inline.push(
+        only.local === "a"
+          ? `a ${Option.getOrThrow(attributeOf(only, "href"))}`
+          : [only.local, ...classesOf(only)].join(" "),
+      );
+      node = only;
+      [only] = elementsIn(node.children);
+    }
+
+    return {
+      block: item === undefined ? outer.local : `${outer.local} ${item.local}`,
+      classes: classesOf(block),
+      depth: inline.length,
+      inline: new Set(inline),
+      word: textIn(node.children),
+    };
   });
+
+/**
+ * The class QTI's shared vocabulary gives each alignment, or plate's own for justify, for which it
+ * has none.
+ */
+const alignClasses = {
+  center: "qti-align-center",
+  justify: "plate-align-justify",
+  right: "qti-align-right",
+} as const;
+
+/**
+ * The shape RT1's rules give a case's line: a list an `ol` or `ul` of an `li`, a header `h1` to
+ * `h3`, else a `p`; an alignment's and an indent's class; and around the word `strong` for bold,
+ * `em` for italic, the underline's and the strike's spans, `sub` or `sup`, and `a` for a link, each
+ * once.
+ *
+ * @param word The case.
+ * @returns The shape.
+ */
+const shapeWritten = ({ line, run }: OneWord): Shape => {
+  const inline = new Set([
+    ...(run.bold ? ["strong"] : []),
+    ...(run.italic ? ["em"] : []),
+    ...(run.underline ? ["span qti-underline"] : []),
+    ...(run.strike ? ["span plate-strike"] : []),
+    ...(run.script === "sub" ? ["sub"] : []),
+    ...(run.script === "super" ? ["sup"] : []),
+    ...(run.link === undefined ? [] : [`a ${run.link}`]),
+  ]);
+  const header = line.header === undefined ? "p" : `h${String(line.header)}`;
+
+  return {
+    block: line.list === undefined ? header : `${line.list === "ordered" ? "ol" : "ul"} li`,
+    classes: new Set([
+      ...(line.align === undefined ? [] : [alignClasses[line.align]]),
+      ...(line.indent === 0 ? [] : [`qti-margin-s-${String(line.indent)}`]),
+    ]),
+    depth: inline.size,
+    inline,
+    word: "w",
+  };
+};
+
+/**
+ * A run as a review draws it: its marks, the formats around its text (bold, italic, underline,
+ * strike, sub, super); its link, none where no `a` holds it, and an `a`'s address, none where it
+ * has none; and its text.
+ */
+interface ReviewRun {
+  readonly link: Option.Option<Option.Option<string>>;
+  readonly marks: ReadonlySet<string>;
+  readonly text: string;
+}
+
+/**
+ * A line as a review draws it: its alignment and indent, from `data-align` and `data-indent`; its
+ * block, a list's element and its item, or the block's own element; and its runs.
+ */
+interface ReviewLine {
+  readonly align: Option.Option<string>;
+  readonly block: string;
+  readonly indent: number;
+  readonly runs: readonly ReviewRun[];
+}
+
+/**
+ * The mark a review's element draws, by its name, a span by its data attribute.
+ *
+ * @param node The element.
+ * @returns The mark; none for a link, which is no mark.
+ */
+const markOf = (node: XmlElement): Option.Option<string> => {
+  switch (node.local) {
+    case "strong": {
+      return Option.some("bold");
+    }
+    case "em": {
+      return Option.some("italic");
+    }
+    case "sub":
+    case "sup": {
+      return Option.some(node.local === "sub" ? "sub" : "super");
+    }
+    case "span": {
+      return Option.some(
+        Option.isSome(attributeOf(node, "data-underline")) ? "underline" : "strike",
+      );
+    }
+    default: {
+      return Option.none();
+    }
+  }
+};
+
+/**
+ * Read a run of a review's line from one of its children: its marks and link down to its text.
+ *
+ * @param child The child.
+ * @returns The run.
+ */
+const reviewRunOf = (child: Child): ReviewRun => {
+  const marks: string[] = [];
+  let link: Option.Option<Option.Option<string>> = Option.none();
+  let node = child;
+
+  while (node.kind === "element") {
+    const mark = markOf(node);
+
+    if (Option.isSome(mark)) {
+      marks.push(mark.value);
+    }
+
+    if (node.local === "a") {
+      link = Option.some(attributeOf(node, "href"));
+    }
+
+    const [only, ...others] = node.children;
+
+    if (only === undefined || others.length > 0) {
+      return assert.fail(`${node.local} holds other than one child`);
+    }
+
+    node = only;
+  }
+
+  return { link, marks: new Set(marks), text: node.kind === "text" ? node.value : "" };
+};
+
+/**
+ * Read a review's line from its block.
+ *
+ * @param block The block: a `p`, an `h1` to `h3`, or a list's `li`.
+ * @param list The list's element, none for a block of its own.
+ * @returns The line.
+ */
+const reviewLineOf = (block: XmlElement, list: Option.Option<string>): ReviewLine => {
+  const [first] = block.children;
+  const empty = block.children.length === 1 && first?.kind === "element" && first.local === "br";
+
+  return {
+    align: attributeOf(block, "data-align"),
+    block: Option.match(list, { onNone: () => block.local, onSome: (name) => `${name} li` }),
+    indent: Option.match(attributeOf(block, "data-indent"), { onNone: () => 0, onSome: Number }),
+    runs: empty ? [] : block.children.map(reviewRunOf),
+  };
+};
+
+/**
+ * Read the lines a review's answer part draws.
+ *
+ * @param markup The answer part's markup, none where the review draws no answer part.
+ * @returns The lines; fails where crust's reader refuses the markup.
+ */
+const reviewRead = (markup: string | undefined) =>
+  Effect.map(fragmentOf(markup ?? assert.fail("the review draws no answer part")), (children) =>
+    elementsIn(children).flatMap((block): readonly ReviewLine[] =>
+      block.local === "ol" || block.local === "ul"
+        ? elementsIn(block.children).map((item) => reviewLineOf(item, Option.some(block.local)))
+        : [reviewLineOf(block, Option.none())],
+    ),
+  );
+
+/**
+ * The protocols a review keeps a link's address under: Quill's own link keeps only these.
+ */
+const keptProtocols: ReadonlySet<string> = new Set(["http:", "https:", "mailto:"]);
+
+/**
+ * The address a review gives a link: the link as the URL standard serializes it, where its
+ * protocol is one a review keeps.
+ *
+ * @param link The link, as the document holds it.
+ * @returns The address; none where the review keeps none.
+ */
+const keptAddress = (link: string): Option.Option<string> =>
+  Option.flatMap(Option.fromNullishOr(URL.parse(link)), (url) =>
+    keptProtocols.has(url.protocol) ? Option.some(url.href) : Option.none(),
+  );
+
+/**
+ * The lines RT4's rules give a review of a document plate wrote: each line its block, alignment
+ * and indent, each run its marks, its text and its link's kept address.
+ *
+ * @param document The document.
+ * @returns The lines.
+ */
+const reviewExpected = (document: readonly Line[]): readonly ReviewLine[] =>
+  document.map(({ format, runs }) => ({
+    align: Option.fromUndefinedOr(format.align),
+    block:
+      format.list === undefined
+        ? format.header === undefined
+          ? "p"
+          : `h${String(format.header)}`
+        : `${format.list === "ordered" ? "ol" : "ul"} li`,
+    indent: format.indent,
+    runs: runs.map(({ format: run, text }) => ({
+      link: run.link === undefined ? Option.none() : Option.some(keptAddress(run.link)),
+      marks: new Set([
+        ...(run.bold ? ["bold"] : []),
+        ...(run.italic ? ["italic"] : []),
+        ...(run.underline ? ["underline"] : []),
+        ...(run.strike ? ["strike"] : []),
+        ...(run.script === undefined ? [] : [run.script]),
+      ]),
+      text,
+    })),
+  }));
+
+/**
+ * What a document of RT4's search reaches.
+ */
+type ReviewSituation = "dropped link" | "empty line" | "kept link" | "list" | "set apart";
+
+/**
+ * Name what a document of RT4's search reaches: a link a review keeps and one it drops, an empty
+ * line, a list, and a line set apart by its alignment or indent.
+ *
+ * @param document The document.
+ * @returns Each situation it reaches.
+ */
+const reviewSituationsOf = (document: readonly Line[]): readonly ReviewSituation[] =>
+  document.flatMap(({ format, runs }): readonly ReviewSituation[] => [
+    ...(runs.length === 0 ? ["empty line" as const] : []),
+    ...(format.list === undefined ? [] : ["list" as const]),
+    ...(format.align === undefined && format.indent === 0 ? [] : ["set apart" as const]),
+    ...runs.flatMap(({ format: run }): readonly ReviewSituation[] =>
+      run.link === undefined
+        ? []
+        : [Option.isSome(keptAddress(run.link)) ? "kept link" : "dropped link"],
+    ),
+  ]);
+
+/**
+ * What makes a paragraph one plate did not write: an attribute the essay never writes on its `p`,
+ * or an inline element the essay never writes around its runs.
+ */
+type ForeignMark =
+  | { readonly attribute: ' style="color: red"' | ' onclick="steal()"'; readonly kind: "attribute" }
+  | { readonly kind: "element"; readonly name: "b" | "font" };
+
+/**
+ * Draw what makes RT4's foreign paragraphs foreign ({@link ForeignMark}).
+ */
+const foreignMarks: Gen<ForeignMark> = (source) =>
+  boolean(source)
+    ? {
+        attribute: element([' style="color: red"', ' onclick="steal()"'] as const)(source),
+        kind: "attribute",
+      }
+    : { kind: "element", name: element(["b", "font"] as const)(source) };
+
+/**
+ * A value of RT4's foreign search: what makes it foreign, and each of its paragraphs' runs, at
+ * least one run of at least one character each.
+ */
+interface Foreign {
+  readonly mark: ForeignMark;
+  readonly paragraphs: readonly (readonly Run[])[];
+}
+
+/**
+ * Draw a value of RT4's foreign search: a mark of {@link foreignMarks} and one to three
+ * paragraphs, each of one to three runs of {@link runFormats} and one to five of the characters
+ * {@link runTexts} draws from, held as the editor holds them.
+ */
+const foreignValues: Gen<Foreign> = (source) => ({
+  mark: foreignMarks(source),
+  paragraphs: array(
+    (each) =>
+      held(
+        array(
+          (one): Run => ({
+            format: runFormats(one),
+            text: string(characterOf(["a", "b", " ", "\t", "&", "<", ">", '"', "'", "é", "😀"]), {
+              max: 5,
+              min: 1,
+            })(one),
+          }),
+          { max: 3, min: 1 },
+        )(each),
+      ),
+    { max: 3, min: 1 },
+  )(source),
+});
+
+/**
+ * Write a value of RT4's foreign search: each paragraph a `p` holding the runs as plate writes a
+ * plain line's, the `p` carrying the foreign attribute or the runs inside the foreign element.
+ *
+ * @param value The value.
+ * @returns Its XHTML.
+ */
+const foreignXhtml = ({ mark, paragraphs }: Foreign): string =>
+  paragraphs
+    .map((runs) => {
+      const inline = xhtmlOfLines([{ format: plainLine, runs }]).slice(
+        "<p>".length,
+        -"</p>".length,
+      );
+
+      return mark.kind === "attribute"
+        ? `<p${mark.attribute}>${inline}</p>`
+        : `<p><${mark.name}>${inline}</${mark.name}></p>`;
+    })
+    .join("");
+
+/**
+ * What a value of RT4's foreign search reaches: a foreign attribute, a foreign element, and
+ * several paragraphs.
+ */
+type ForeignSituation = "attribute" | "element" | "several paragraphs";
+
+/**
+ * Read a value's paragraphs' texts with crust's reader: each `p`'s text nodes, in document order.
+ *
+ * @param value The value, a sequence of `p` elements.
+ * @returns Each paragraph's text.
+ */
+const paragraphTextsOf = (value: string) =>
+  Effect.map(fragmentOf(value), (children) =>
+    elementsIn(children).map((paragraph) => textIn(paragraph.children)),
+  );
+
+/**
+ * The characters an answer of RT5's rich search is written with: letters, a space, a tab and a
+ * no-break space, which JavaScript's `\s` holds, punctuation and a digit, which stand inside a
+ * word, and a zero-width space, which the rich count drops.
+ */
+const COUNT_ALPHABET = ["a", "b", " ", "\t", "\u00A0", "'", "-", "3", "?", "\u200B"] as const;
+
+/**
+ * Draw an answer of RT5's rich search: one to four paragraphs or list items, each of up to three
+ * runs of up to five of {@link COUNT_ALPHABET}, held as the editor holds them.
+ */
+const countDocuments: Gen<readonly Line[]> = array(
+  (source): Line => ({
+    format: { ...plainLine, list: element([undefined, "ordered", "bullet"] as const)(source) },
+    runs: held(
+      array(
+        (each): Run => ({
+          format: runFormats(each),
+          text: string(characterOf(COUNT_ALPHABET), { max: 5, min: 0 })(each),
+        }),
+        { max: 3, min: 0 },
+      )(source),
+    ),
+  }),
+  { max: 4, min: 1 },
+);
+
+/**
+ * Draw an answer of RT5's plain search: up to eight of {@link COUNT_ALPHABET} and a line feed.
+ */
+const plainAnswers: Gen<string> = string(characterOf([...COUNT_ALPHABET, "\n"]), {
+  max: 8,
+  min: 0,
+});
+
+/**
+ * A word, as AlphaTest's count reads one: a run of anything but JavaScript's `\s`.
+ */
+const wordRun = regex("\\S+", "gu");
+
+/**
+ * Count a text's words ({@link wordRun}).
+ *
+ * @param text The text.
+ * @returns How many it holds.
+ */
+const wordsIn = (text: string): number => [...text.matchAll(wordRun)].length;
+
+/**
+ * What a count says of a number of words, as the catalog gives it.
+ *
+ * @param words The number.
+ * @returns The count's text.
+ */
+const countOf = (words: number): string =>
+  words === 1 ? countWords.one : countWords.other.replace("{n}", String(words));
+
+/**
+ * What an answer of RT5's searches reaches.
+ */
+type CountSituation =
+  | "no-break space"
+  | "nothing typed"
+  | "one word"
+  | "several words"
+  | "zero-width space";
+
+/**
+ * Name what an answer of RT5's searches reaches: nothing typed, one word or several, a no-break
+ * space and a zero-width space.
+ *
+ * @param typed Whether anything was typed.
+ * @param text The answer's text.
+ * @param words How many words it holds.
+ * @returns Each situation it reaches.
+ */
+const countSituationsOf = (
+  typed: boolean,
+  text: string,
+  words: number,
+): readonly CountSituation[] => [
+  ...(typed ? [] : ["nothing typed" as const]),
+  ...(words === 1 ? ["one word" as const] : []),
+  ...(words > 1 ? ["several words" as const] : []),
+  ...(text.includes("\u00A0") ? ["no-break space" as const] : []),
+  ...(text.includes("\u200B") ? ["zero-width space" as const] : []),
+];
+
+describe("the rich-text essay's value", () => {
+  it.effect(
+    `RT1: every line of one word, under every combination of the toolbar's formats, writes each format's element or class once and no other, and reads back as its line: ${String(ONE_WORD_LINES)} lines`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(oneWordLine, ONE_WORD_LINES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every line of the word w under every run format (bold, italic, underline and strike each on or off, a script of two or none, a link of three or none) and every line format (a paragraph, a header of 1 to 3 or a list of either kind, an alignment of three or none, an indent of 0 to 5)",
+              caseHang: "30 seconds",
+              concurrency: availableParallelism(),
+              coverage: noCoverage,
+              generator: oneWordLine,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "QTI 3.0.1's HTML elements and shared vocabulary for each of AlphaTest's toolbar's commands, as the module states them: a header h1 to h3, a list an ol or ul of li, bold strong, italic em, a script sub or sup, a link a href, underline the vocabulary's qti-underline span, alignment and indent its qti-align and qti-margin-s classes, and strike and justify plate's own plate-strike span and plate-align-justify class, for which QTI has none; read by crust's reader",
+              },
+              suite: "plate-ui/rich-text/commands",
+            },
+            (word) =>
+              Effect.gen(function* writesEachCommand() {
+                const line = lineOf(word);
+                const xhtml = xhtmlOfLines([line]);
+
+                assert.deepStrictEqual(yield* shapeOf(xhtml), shapeWritten(word), xhtml);
+                assert.isTrue(sameDocument(linesOfXhtml(xhtml), [line]), `${xhtml} reads back`);
+              }),
+          ),
+        ),
+      ),
+  );
 
   it.effect(
     "RT2 and RT3: every document reads back from its XHTML and its Delta, and its XHTML is QTI's",
@@ -746,39 +1164,182 @@ describe("the rich-text essay's value", () => {
       ),
   );
 
-  it.effect("RT4: a review draws each answer's document as the table gives", () =>
-    Effect.gen(function* reviewRule() {
-      for (const [answer, xhtml, markup] of reviews) {
-        assert.strictEqual(yield* reviewOf(xhtml), markup, answer);
-      }
-    }),
+  it.effect(
+    "RT4: a review draws every document plate writes as the document, each link's address kept only for http, https and mailto",
+    (ctx) =>
+      searched(
+        ctx,
+        explore(
+          {
+            caseHang: "30 seconds",
+            coverage: required<ReviewSituation>(
+              ["dropped link", "empty line", "kept link", "list", "set apart"],
+              { cases: 200, sense: notesOnly },
+            ),
+            draw: drawn(documents),
+            kept: [],
+            literal: Formatter.format,
+            oracle: {
+              kind: "specification",
+              name: "AlphaTest's review, its editor read-only (ExtendedTextInteraction.tsx lines 296-300 and 831-841): each line its block, each run its format's elements, an empty line a break, alignment and indent as data-align and data-indent, underline and strike as data-underline and data-strike spans; a link's address kept as the URL standard serializes it where its protocol is http, https or mailto, as Quill's link keeps one, and dropped otherwise; read by crust's reader",
+            },
+            runs: 200,
+            shrink: completeShrink,
+            steerEvery: 16,
+            suite: "plate-ui/rich-text/review",
+          },
+          (document, c) =>
+            Effect.gen(function* reviewsTheDocument() {
+              c.noteAll(reviewSituationsOf(document));
+
+              const xhtml = xhtmlOfLines(document);
+
+              assert.deepStrictEqual(
+                yield* reviewRead(yield* reviewOf(xhtml)),
+                reviewExpected(document),
+                xhtml,
+              );
+            }),
+        ),
+      ),
   );
 
-  it("RT5: the count under an essay's box says how many words each answer holds", () => {
-    for (const [answer, xhtml, count] of counts) {
-      assert.strictEqual(islandCount(richIsland, xhtml), count, `rich: ${answer}`);
-    }
+  it.effect(
+    "RT4: a review draws a value plate did not write as its text, its paragraphs parted by a blank line",
+    (ctx) =>
+      searched(
+        ctx,
+        explore(
+          {
+            caseHang: "30 seconds",
+            coverage: required<ForeignSituation>(["attribute", "element", "several paragraphs"], {
+              cases: 200,
+              sense: notesOnly,
+            }),
+            draw: drawn(foreignValues),
+            kept: [],
+            literal: Formatter.format,
+            oracle: {
+              kind: "specification",
+              name: "the rule for a value plate did not write (@qti-pie/plate's textOfXhtml, as its module states it): its text, its paragraphs parted by a blank line, its other markup dropped and its references resolved, a line of the review to each line of it with no format; each paragraph's text read by crust's reader",
+            },
+            runs: 200,
+            shrink: completeShrink,
+            steerEvery: 16,
+            suite: "plate-ui/rich-text/foreign",
+          },
+          (foreign, c) =>
+            Effect.gen(function* reviewsItsText() {
+              c.note(foreign.mark.kind);
+              if (foreign.paragraphs.length > 1) {
+                c.note("several paragraphs");
+              }
 
-    for (const [answer, text, count] of plainCounts) {
-      assert.strictEqual(islandCount(plainIsland, text), count, `plain: ${answer}`);
-    }
-  });
+              const value = foreignXhtml(foreign);
 
-  it.effect("RT5: a review counts the answer as the editor did", () =>
-    Effect.gen(function* reviewCountRule() {
-      for (const [answer, xhtml, count] of counts.filter(([, value]) => value !== "")) {
-        assert.strictEqual(countIn(yield* reviewHtml(xhtml)), count, `review: ${answer}`);
-      }
-    }),
+              assert.isFalse(isWritten(value), `${value} is one plate writes`);
+
+              const texts = yield* paragraphTextsOf(value);
+
+              assert.deepStrictEqual(
+                yield* reviewRead(yield* reviewOf(value)),
+                texts
+                  .join("\n\n")
+                  .split("\n")
+                  .map((line): ReviewLine => ({
+                    align: Option.none(),
+                    block: "p",
+                    indent: 0,
+                    runs:
+                      line === "" ? [] : [{ link: Option.none(), marks: new Set(), text: line }],
+                  })),
+                value,
+              );
+            }),
+        ),
+      ),
   );
 
-  it("its kills: each writer a slip would make breaks a rule", () => {
-    for (const [why, write] of kills) {
-      const caught =
-        commands.some(([, line, xhtml]) => write([line]) !== xhtml) ||
-        killDocuments.some((document) => broken(document, write).length > 0);
+  it.effect(
+    "RT5: the count under the rich editor and its review says how many words the answer holds",
+    (ctx) =>
+      searched(
+        ctx,
+        explore(
+          {
+            caseHang: "30 seconds",
+            coverage: required<CountSituation>(
+              ["no-break space", "nothing typed", "one word", "several words", "zero-width space"],
+              { cases: 200, sense: notesOnly },
+            ),
+            draw: drawn(option(countDocuments)),
+            kept: [],
+            literal: Formatter.format,
+            oracle: {
+              kind: "specification",
+              name: "AlphaTest's count under the editor (ExtendedTextInteraction.tsx line 848), 1 word or N words: a word a run of anything but JavaScript's \\s on the answer's text, a paragraph's and a list item's end a space, a zero-width space nothing; a review counts as the editor did",
+            },
+            runs: 200,
+            shrink: completeShrink,
+            steerEvery: 16,
+            suite: "plate-ui/rich-text/count",
+          },
+          (answer, c) =>
+            Effect.gen(function* countsTheWords() {
+              const xhtml = Option.match(answer, { onNone: () => "", onSome: xhtmlOfLines });
+              const text = Option.match(answer, {
+                onNone: () => "",
+                onSome: (lines) =>
+                  lines.map((line) => line.runs.map((run) => run.text).join("")).join(" "),
+              });
+              const words = wordsIn(text.replaceAll("\u200B", ""));
 
-      assert.isTrue(caught, `${why}: caught`);
-    }
-  });
+              c.noteAll(countSituationsOf(Option.isSome(answer), text, words));
+              assert.strictEqual(islandCount(richIsland, xhtml), countOf(words), xhtml);
+              if (Option.isSome(answer)) {
+                assert.strictEqual(countIn(yield* reviewHtml(xhtml)), countOf(words), xhtml);
+              }
+            }),
+        ),
+      ),
+  );
+
+  it.effect(
+    "RT5: the count under a plain essay's box says how many words the answer holds, a zero-width space a word's",
+    (ctx) =>
+      searched(
+        ctx,
+        explore(
+          {
+            caseHang: "30 seconds",
+            coverage: required<CountSituation>(
+              ["no-break space", "nothing typed", "one word", "several words", "zero-width space"],
+              { cases: 200, sense: notesOnly },
+            ),
+            draw: drawn(plainAnswers),
+            kept: [],
+            literal: (text) => JSON.stringify(text),
+            oracle: {
+              kind: "specification",
+              name: "AlphaTest's count under the textarea (ExtendedTextInteraction.tsx line 848), 1 word or N words: a word a run of anything but JavaScript's \\s on the answer's text, a zero-width space a character of its word, typed",
+            },
+            runs: 200,
+            shrink: completeShrink,
+            steerEvery: 16,
+            suite: "plate-ui/rich-text/plain-count",
+          },
+          (text, c) =>
+            Effect.sync(() => {
+              const words = wordsIn(text);
+
+              c.noteAll(countSituationsOf(text !== "", text, words));
+              assert.strictEqual(
+                islandCount(plainIsland, text),
+                countOf(words),
+                JSON.stringify(text),
+              );
+            }),
+        ),
+      ),
+  );
 });
