@@ -83,7 +83,7 @@ const nodesOf = (children: readonly Child[]): readonly ReactNode[] =>
             child.local,
             // The children are the MathML's own, in document order, and never reorder.
             { ...propsOf(child), key: index },
-            ...nodesOf(child.children),
+            nodesOf(child.children),
           ),
         ]
       : [];
@@ -126,7 +126,7 @@ export const MathAnswer = ({ latex }: { readonly latex: string }): ReactNode => 
         createElement(
           "math",
           { display: "inline", displaystyle: "true" },
-          ...nodesOf(formula.children),
+          nodesOf(formula.children),
         ),
     })}
   </span>
