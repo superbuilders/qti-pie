@@ -17,23 +17,24 @@
  * alone is held to it here; neither side raises `RootOfType`.
  *
  * Bound: the every-relation package with one resource added whose href, and its one file, names
- * no entry: for each of the 10 resource types `RootOfType` maps, at a path in the package with no
- * entry (10 cases), and for the item type, each other way an href names none: a path in a
- * directory, one through a dot-dot segment, and the two external forms, a scheme and a leading `/`
- * (4 cases); and the fragment item2.xml includes listed under a second type, the outcome
- * declaration's, beside its own (1 case): 15 cases, exhausted. The import reads that path once, as
- * the fragment its first resource names, so it is judged where item2.xml splices it and nowhere
- * alone, and the second type's href names no document of its type, "Document entry" alone: neither
- * side raises RootOfType for it, and the import's rows break no Idref target the oracle does not.
+ * no entry: each of the 10 resource types `RootOfType` maps, with each href {@link missingHref}
+ * draws, in the package's root or a directory, through a dot-dot segment or not, and relative,
+ * root-relative or a scheme's: 120 packages, exhausted. Beside it, the fragment item2.xml includes
+ * listed under a second type, the outcome declaration's, beside its own ({@link twin}): the import
+ * reads that path once, as the fragment its first resource names, so it is judged where item2.xml
+ * splices it and nowhere alone, and the second type's href names no document of its type,
+ * "Document entry" alone: neither side raises RootOfType for it, and the import's rows break no
+ * Idref target the oracle does not.
  */
 import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";
-import { int } from "@bjornpagen/testing/gen";
+import { boolean, element, int } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Duration, Effect } from "effect";
+import { Array as Arr, Duration, Effect } from "effect";
 import { grammar } from "#pantry/grammar/install.ts";
 import { everyRelationPackage } from "#pantry/test/gen/every-relation.ts";
 import type { PackageEntries } from "#pantry/test/gen/every-relation.ts";
@@ -74,19 +75,34 @@ interface Case {
 const twin: Case = { href: "items/fragment.xml", type: "imsqti_outcomes_xmlv3p0" };
 
 /**
- * Every case of the bound: each type naming a path with no entry, then the item type naming none
- * each other way, then the fragment listed under a second type.
+ * Draw an href that names no entry of the base package: `missing.xml`, which no entry is, in the
+ * package's root or its `items/` directory, through a dot-dot segment (`items/../`) or not, and
+ * written relative, root-relative (a leading `/`) or as an `https:` URL.
  */
-const cases: readonly Case[] = [
-  ...documentTypes.map((type): Case => ({ href: "missing.xml", type })),
-  ...[
-    "items/missing.xml",
-    "items/../missing.xml",
-    "https://example.com/missing.xml",
-    "/missing.xml",
-  ].map((href): Case => ({ href, type: "imsqti_item_xmlv3p0" })),
-  twin,
-];
+const missingHref: Gen<string> = (source) => {
+  const directory = source.draw(boolean) ? "items/" : "";
+  const through = source.draw(boolean) ? "items/../" : "";
+  const path = `${directory}${through}missing.xml`;
+  const written = source.draw(int(0, 2));
+  if (written === 0) {
+    return path;
+  }
+
+  return written === 1 ? `/${path}` : `https://example.com/${path}`;
+};
+
+/**
+ * Draw a case: a resource type `RootOfType` maps, with an href that names no entry.
+ *
+ * @param types - The types `RootOfType` maps ({@link documentTypes}).
+ * @returns The generator.
+ */
+const caseOf =
+  (types: Arr.NonEmptyReadonlyArray<string>): Gen<Case> =>
+  (source) => ({
+    href: source.draw(missingHref),
+    type: source.draw(element(types)),
+  });
 
 /**
  * Add a resource of the case's type to the base's manifest, its href and its one file the case's
@@ -111,6 +127,35 @@ const packageOf = (of: Case): PackageEntries => {
   return entries;
 };
 
+/**
+ * Judge one case's package, the laws apart from the import that the case watches.
+ *
+ * @param of - The case.
+ * @param bench - The judge's bench.
+ * @param at - The case's number.
+ * @param watched - The laws neither side may break alone.
+ * @returns The check.
+ */
+const judgedCase = Effect.fn("test.documentEntry.judgedCase")(function* judgedCase(
+  of: Case,
+  bench: Parameters<typeof judgeOne>[1],
+  at: number,
+  watched: readonly string[],
+) {
+  const judged = yield* judgeOne(yield* genomeOf(packageOf(of)), bench, at);
+  const said = `${of.type} at ${of.href}: the oracle ${judged.summary.oracle}; the import ${judged.summary.import}`;
+  const apart = judged.disagreements.filter(
+    (disagreement) =>
+      (disagreement.kind === "oracle-only-law" || disagreement.kind === "import-only-law") &&
+      watched.includes(disagreement.law),
+  );
+
+  assert.deepStrictEqual(apart.map(shownDisagreement), [], said);
+  assert.match(judged.summary.oracle, regex("\\bDocument entry\\b", "u"), said);
+  assert.notMatch(judged.summary.oracle, regex("\\bRootOfType\\b", "u"), said);
+  assert.notMatch(judged.summary.import, regex("\\bRootOfType\\b", "u"), said);
+});
+
 layer(NodeServices.layer, { excludeTestServices: true })(
   "a document-typed href that names no entry",
   (it) => {
@@ -120,53 +165,49 @@ layer(NodeServices.layer, { excludeTestServices: true })(
         Effect.gen(function* documentEntryRuns() {
           const directory = yield* scratchDirectory("document-entry-");
           const bench = { directory, grammar, laws };
+          let index = 0;
 
           assert.strictEqual(documentTypes.length, 10, "the resource types RootOfType maps");
-          assert.strictEqual(cases.length, 15);
+
+          const types = Arr.isReadonlyArrayNonEmpty(documentTypes)
+            ? documentTypes
+            : assert.fail("RootOfType maps no resource type");
 
           return yield* exhaust(
             {
-              box: "the 10 document types, each naming a path with no entry, the item type naming none four other ways, and an included fragment listed under a second type",
+              box: "the 10 document types RootOfType maps, each with an href to missing.xml in the root or items/, through items/../ or not, relative, rooted or https: 10 × 2 × 2 × 3, 120 packages",
               caseHang: Duration.minutes(5),
               coverage: noCoverage,
-              generator: int(0, cases.length - 1),
-              literal: (at) => {
-                const of = cases[at];
-
-                return of === undefined ? String(at) : `${of.type} at ${of.href}`;
-              },
+              generator: caseOf(types),
+              literal: (of) => `${of.type} at ${of.href}`,
               oracle: {
                 kind: "second-implementation",
                 name: "the law oracle against the laws the import's rows break on the host",
               },
               suite: "pantry/document-entry",
             },
-            (at) =>
-              Effect.gen(function* documentEntryCase() {
-                const of = cases[at];
-                assert.isDefined(of, `no case ${String(at)}`);
+            (of) => {
+              index += 1;
 
-                const judged = yield* judgeOne(yield* genomeOf(packageOf(of)), bench, at);
-                const said = `${of.type} at ${of.href}: the oracle ${judged.summary.oracle}; the import ${judged.summary.import}`;
-                const watched: readonly string[] =
-                  of === twin
-                    ? ["Document entry", "RootOfType", "Idref target"]
-                    : ["Document entry", "RootOfType"];
-                const apart = judged.disagreements.filter(
-                  (disagreement) =>
-                    (disagreement.kind === "oracle-only-law" ||
-                      disagreement.kind === "import-only-law") &&
-                    watched.includes(disagreement.law),
-                );
-
-                assert.deepStrictEqual(apart.map(shownDisagreement), [], said);
-                assert.match(judged.summary.oracle, regex("\\bDocument entry\\b", "u"), said);
-                assert.notMatch(judged.summary.oracle, regex("\\bRootOfType\\b", "u"), said);
-                assert.notMatch(judged.summary.import, regex("\\bRootOfType\\b", "u"), said);
-              }),
+              return judgedCase(of, bench, index, ["Document entry", "RootOfType"]);
+            },
           );
         }).pipe(Effect.scoped),
       ),
+    );
+
+    it.effect(
+      "is Document entry alone for an included fragment listed under a second type, on both sides",
+      () =>
+        Effect.gen(function* fragmentTwin() {
+          const directory = yield* scratchDirectory("document-entry-twin-");
+
+          yield* judgedCase(twin, { directory, grammar, laws }, 0, [
+            "Document entry",
+            "RootOfType",
+            "Idref target",
+          ]);
+        }).pipe(Effect.scoped),
     );
   },
 );
