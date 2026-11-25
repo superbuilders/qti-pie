@@ -34,7 +34,7 @@ import {
 import type { RoundingKind } from "#pantry/test/operator-spec.ts";
 import { brokenIn, evaluatorOf } from "#pantry/test/row-evaluation.ts";
 import { equalRoundedMode } from "#pantry/vocab/terms/operators.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
  * Where every drawn operator stands: one element of one item of one package.
@@ -69,65 +69,61 @@ type FiguresSituation = "integer" | "no integer" | "the greatest integer" | "the
  */
 const int64Range = { max: 2n ** 63n - 1n, min: -(2n ** 63n) } as const;
 
-describe(
-  "qti/operators.ts, integerForm over a collapsed figures",
-  { timeout: searchTimeout },
-  () => {
-    it.effect(
-      "reads every figures of at most 4 pieces over the box as reading 119 does, collapsed: an integer exactly where the specification reads one, at its value",
-      (ctx) =>
-        // Oracle: the specification as a checker, the union's xs:integer member read collapsed
-        // within reading 46's signed 64-bit range, `#pantry/test/operator-spec.ts` figuresIntegerOf.
-        // Bound: every figures of at most 4 pieces over 0, 1, 7, 8, 9, +, -, space, tab, F and
-        // {@link int64Stem}, 16,105, which reach both ends of the range and one past each.
-        searched(
-          ctx,
-          exhaust(
-            {
-              box: "every figures of at most 4 pieces over 0 1 7 8 9 + - space tab F and the 64-bit bounds' first 18 digits",
-              caseHang: Duration.seconds(10),
-              concurrency: searchWidth,
-              coverage: requiredInSpace<FiguresSituation>([
-                "integer",
-                "no integer",
-                "the greatest integer",
-                "the least integer",
-              ]),
-              generator: string(
-                element(["0", "1", "7", "8", "9", "+", "-", " ", "\t", "F", int64Stem] as const),
-                { max: 4, min: 0 },
-              ),
-              literal: (value) => JSON.stringify(value),
-              oracle: {
-                kind: "specification",
-                name: "xs:integer's lexical space, collapsed, within the signed 64-bit range",
-              },
-              suite: "qti/operators-figures",
+describe("qti/operators.ts, integerForm over a collapsed figures", () => {
+  it.effect(
+    "reads every figures of at most 4 pieces over the box as reading 119 does, collapsed: an integer exactly where the specification reads one, at its value",
+    (ctx) =>
+      // Oracle: the specification as a checker, the union's xs:integer member read collapsed
+      // within reading 46's signed 64-bit range, `#pantry/test/operator-spec.ts` figuresIntegerOf.
+      // Bound: every figures of at most 4 pieces over 0, 1, 7, 8, 9, +, -, space, tab, F and
+      // {@link int64Stem}, 16,105, which reach both ends of the range and one past each.
+      searched(
+        ctx,
+        exhaust(
+          {
+            box: "every figures of at most 4 pieces over 0 1 7 8 9 + - space tab F and the 64-bit bounds' first 18 digits",
+            caseHang: Duration.seconds(10),
+            concurrency: searchWidth,
+            coverage: requiredInSpace<FiguresSituation>([
+              "integer",
+              "no integer",
+              "the greatest integer",
+              "the least integer",
+            ]),
+            generator: string(
+              element(["0", "1", "7", "8", "9", "+", "-", " ", "\t", "F", int64Stem] as const),
+              { max: 4, min: 0 },
+            ),
+            literal: (value) => JSON.stringify(value),
+            oracle: {
+              kind: "specification",
+              name: "xs:integer's lexical space, collapsed, within the signed 64-bit range",
             },
-            (lexical: string, c) =>
-              Effect.sync(() => {
-                const spec = figuresIntegerOf(lexical);
-                c.note(spec === undefined ? "no integer" : "integer");
-                if (spec === int64Range.max) {
-                  c.note("the greatest integer");
-                }
+            suite: "qti/operators-figures",
+          },
+          (lexical: string, c) =>
+            Effect.sync(() => {
+              const spec = figuresIntegerOf(lexical);
+              c.note(spec === undefined ? "no integer" : "integer");
+              if (spec === int64Range.max) {
+                c.note("the greatest integer");
+              }
 
-                if (spec === int64Range.min) {
-                  c.note("the least integer");
-                }
+              if (spec === int64Range.min) {
+                c.note("the least integer");
+              }
 
-                const figures = collapsedText(lexical);
-                assert.deepStrictEqual(
-                  database.integer.test(figures) ? BigInt(figures) : undefined,
-                  spec,
-                  JSON.stringify(lexical),
-                );
-              }),
-          ),
+              const figures = collapsedText(lexical);
+              assert.deepStrictEqual(
+                database.integer.test(figures) ? BigInt(figures) : undefined,
+                spec,
+                JSON.stringify(lexical),
+              );
+            }),
         ),
-    );
-  },
-);
+      ),
+  );
+});
 
 /**
  * The named forms an operator a swarm draws takes: the floor `figures` first.
@@ -327,51 +323,47 @@ const toleranceBroken = (drawnCase: DrawnOperator): boolean => {
   );
 };
 
-describe(
-  "qti/overlay-queries/expression.ts, the operators' checks over their views",
-  { timeout: searchTimeout },
-  () => {
-    it.effect(
-      "refuse each operator a swarm draws exactly where readings 119 and 121 refuse it",
-      (ctx) =>
-        // Oracle: the specification as a checker, readings 119 and 121,
-        // `#pantry/test/operator-spec.ts`, against the checks over the views, evaluated by
-        // grizzle's row evaluator over the rows the specification gives each view.
-        searched(
-          ctx,
-          explore(
-            {
-              caseHang: Duration.seconds(30),
-              concurrency: 1,
-              coverage: required<OperatorForm>(OPERATOR_FORMS, { cases: 200, sense: notesOnly }),
-              draw: drawn(drawnOperator),
-              kept: [],
-              literal: (drawnCase) => JSON.stringify(drawnCase),
-              oracle: {
-                kind: "specification",
-                name: "the information model's EqualRounded, RoundTo and Equal, readings 119 and 121",
-              },
-              runs: 200,
-              shrink: completeShrink,
-              steerEvery: 16,
-              suite: "qti/operators-checks",
+describe("qti/overlay-queries/expression.ts, the operators' checks over their views", () => {
+  it.effect(
+    "refuse each operator a swarm draws exactly where readings 119 and 121 refuse it",
+    (ctx) =>
+      // Oracle: the specification as a checker, readings 119 and 121,
+      // `#pantry/test/operator-spec.ts`, against the checks over the views, evaluated by
+      // grizzle's row evaluator over the rows the specification gives each view.
+      searched(
+        ctx,
+        explore(
+          {
+            caseHang: Duration.seconds(30),
+            concurrency: 1,
+            coverage: required<OperatorForm>(OPERATOR_FORMS, { cases: 200, sense: notesOnly }),
+            draw: drawn(drawnOperator),
+            kept: [],
+            literal: (drawnCase) => JSON.stringify(drawnCase),
+            oracle: {
+              kind: "specification",
+              name: "the information model's EqualRounded, RoundTo and Equal, readings 119 and 121",
             },
-            (drawnCase, c) =>
-              Effect.sync(() => {
-                c.note(drawnCase.form);
+            runs: 200,
+            shrink: completeShrink,
+            steerEvery: 16,
+            suite: "qti/operators-checks",
+          },
+          (drawnCase, c) =>
+            Effect.sync(() => {
+              c.note(drawnCase.form);
 
-                assert.strictEqual(
-                  drawnCase.kind === "qti-equal"
-                    ? toleranceBroken(drawnCase)
-                    : roundingBroken(drawnCase.kind, drawnCase),
-                  drawnCase.kind === "qti-equal"
-                    ? toleranceRefused(drawnCase.mode, drawnCase.tolerance)
-                    : roundingRefused(drawnCase.kind, drawnCase.mode, drawnCase.figures),
-                  JSON.stringify(drawnCase),
-                );
-              }),
-          ),
+              assert.strictEqual(
+                drawnCase.kind === "qti-equal"
+                  ? toleranceBroken(drawnCase)
+                  : roundingBroken(drawnCase.kind, drawnCase),
+                drawnCase.kind === "qti-equal"
+                  ? toleranceRefused(drawnCase.mode, drawnCase.tolerance)
+                  : roundingRefused(drawnCase.kind, drawnCase.mode, drawnCase.figures),
+                JSON.stringify(drawnCase),
+              );
+            }),
         ),
-    );
-  },
-);
+      ),
+  );
+});

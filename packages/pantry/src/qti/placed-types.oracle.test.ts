@@ -56,7 +56,6 @@ import {
   sharedOf,
 } from "#pantry/test/placed-types.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's law tables over the composed grammar.
@@ -220,7 +219,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
           }).pipe(Effect.scoped),
         ),
-      searchTimeout,
     );
   },
 );

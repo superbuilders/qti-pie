@@ -63,11 +63,6 @@ import type { Domain } from "#pantry/vocab/inventory/types.ts";
 import { requireRecordsLibxml2, xmllintValidate } from "#pantry/xml/oracle.ts";
 
 /**
- * The timeout, in milliseconds, for the one test: a hang guard.
- */
-const testTimeoutMs = 300_000;
-
-/**
  * Draw the values a group is probed with, each with the variant that drew it.
  *
  * @param domain - The grammar's domain.
@@ -265,7 +260,6 @@ describe("lexical.oracle.test.ts, the domains against xmllint", () => {
             "every record still matches a disagreement",
           );
         }).pipe(Effect.scoped),
-      { timeout: testTimeoutMs },
     );
   });
 });

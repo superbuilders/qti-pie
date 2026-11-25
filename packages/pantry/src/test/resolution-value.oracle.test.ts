@@ -27,12 +27,6 @@ import { asiNamespace } from "#pantry/vocab/namespaces.ts";
 const largeLength = 64_000_000;
 
 /**
- * The timeout, in milliseconds, of the test that judges an item with an attribute of {@link
- * largeLength} characters, which reads the value beside the document's other laws: a hang guard.
- */
-const judgeTimeoutMs = 30_000;
-
-/**
  * The composed grammar the item is read and folded under.
  */
 const grammar = Result.getOrThrow(composed());
@@ -48,33 +42,30 @@ const laws = lawsOf(grammar);
 const item = `<qti-assessment-item xmlns="${asiNamespace}" identifier="i" title="t" time-dependent="false" adaptive="false"><qti-item-body><p class="x">x</p></qti-item-body></qti-assessment-item>`;
 
 describe("documentBreaches over an item whose class attribute holds 64,000,000 characters", () => {
-  it.effect(
-    "judges the item, and reads the attribute's value in full",
-    () =>
-      Effect.gen(function* judgesLargeClass() {
-        const read = yield* Effect.orDie(readXml(new TextEncoder().encode(item)));
-        const tree = yield* Effect.orDie(shred(read, shredGrammarOf(grammar)));
-        const rows = Result.getOrThrow(fold(tree, foldGrammarOf(grammar)));
-        assert.deepStrictEqual(
-          documentBreaches("doc.xml", rows, laws).map(({ law }) => law),
-          [],
-          "the item as written breaks no law",
-        );
+  it.effect("judges the item, and reads the attribute's value in full", () =>
+    Effect.gen(function* judgesLargeClass() {
+      const read = yield* Effect.orDie(readXml(new TextEncoder().encode(item)));
+      const tree = yield* Effect.orDie(shred(read, shredGrammarOf(grammar)));
+      const rows = Result.getOrThrow(fold(tree, foldGrammarOf(grammar)));
+      assert.deepStrictEqual(
+        documentBreaches("doc.xml", rows, laws).map(({ law }) => law),
+        [],
+        "the item as written breaks no law",
+      );
 
-        const lexical = "x".repeat(largeLength);
-        const edited = {
-          ...rows,
-          attributes: rows.attributes.map((attribute) =>
-            attribute.name === "class" ? { ...attribute, lexical } : attribute,
-          ),
-        };
-        const held = edited.attributes.find(({ name }) => name === "class");
-        assert.isDefined(held);
+      const lexical = "x".repeat(largeLength);
+      const edited = {
+        ...rows,
+        attributes: rows.attributes.map((attribute) =>
+          attribute.name === "class" ? { ...attribute, lexical } : attribute,
+        ),
+      };
+      const held = edited.attributes.find(({ name }) => name === "class");
+      assert.isDefined(held);
 
-        const typed = typedReadingOf(laws)(held);
-        assert.isTrue(Option.isSome(typed) && typed.value.length === largeLength);
-        assert.isArray(documentBreaches("doc.xml", edited, laws));
-      }),
-    judgeTimeoutMs,
+      const typed = typedReadingOf(laws)(held);
+      assert.isTrue(Option.isSome(typed) && typed.value.length === largeLength);
+      assert.isArray(documentBreaches("doc.xml", edited, laws));
+    }),
   );
 });

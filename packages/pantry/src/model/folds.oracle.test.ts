@@ -55,7 +55,6 @@ import type {
 import { documentBreaches, lawNames, lawsOf } from "#pantry/test/oracle.ts";
 import { admittedOf, ancestryIndexesOf } from "#pantry/test/indexes.ts";
 import type { LawName } from "#pantry/test/oracle.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar every property draws its trees over and folds them under.
@@ -232,7 +231,7 @@ const variantOracle: Oracle = {
   name: "the host's law model, naming each invalid variant's law as lawOf does",
 };
 
-describe("fold over generated trees", { timeout: searchTimeout }, () => {
+describe("fold over generated trees", () => {
   it.effect(
     "is total on valid trees and holds Node(parent, at)'s invariants where the generator's model places each node",
     (ctx) =>
@@ -488,7 +487,7 @@ describe("fold over generated trees", { timeout: searchTimeout }, () => {
   );
 });
 
-describe("fold's count and set folds", { timeout: searchTimeout }, () => {
+describe("fold's count and set folds", () => {
   /**
    * What a metamorphic case did to an element: permuted its children and attributes, appended
    * copies of one child, or appended a copy of one attribute.
@@ -593,7 +592,7 @@ describe("fold's count and set folds", { timeout: searchTimeout }, () => {
   );
 });
 
-describe("fold's refusals", { timeout: searchTimeout }, () => {
+describe("fold's refusals", () => {
   /**
    * What a refusal case added: a child its parent does not admit, or an attribute its kind does
    * not admit.
@@ -1125,7 +1124,7 @@ const unconstructedCases: readonly Kept<GeneratedXdm, Situation>[] = [
   ),
 ];
 
-describe("the host's law model over folded rows", { timeout: searchTimeout }, () => {
+describe("the host's law model over folded rows", () => {
   it.effect("holds every law a generated tree is built to meet", (ctx) =>
     // Oracle: the specification as a checker, the host's law model (`#pantry/test/oracle.ts`),
     // over the rows fold writes for trees built to meet those laws: every law of the oracle but

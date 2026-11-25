@@ -36,7 +36,6 @@ import { previewRowsOf } from "#pantry/test/host-judge.ts";
 import { lawsOf } from "#pantry/test/oracle.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's law tables over the composed grammar.
@@ -277,6 +276,5 @@ layer(NodeServices.layer, { excludeTestServices: true })("a second declaration o
           );
         }).pipe(Effect.scoped),
       ),
-    searchTimeout,
   );
 });

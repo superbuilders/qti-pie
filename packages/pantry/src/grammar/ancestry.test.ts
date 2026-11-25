@@ -8,7 +8,6 @@ import { flags, rowOf, step } from "#pantry/grammar/ancestry.ts";
 import { admits, ancestryIndexesOf } from "#pantry/test/indexes.ts";
 import type { Ancestry, Flag } from "#pantry/grammar/ancestry.ts";
 import { composed } from "#pantry/grammar/compose.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar of production, failing the test that reads it when a generator refuses.
@@ -213,7 +212,6 @@ describe("the ancestry grammar against the reference model", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it.effect("states every kind's rows as the reference does, over the whole roster", () =>

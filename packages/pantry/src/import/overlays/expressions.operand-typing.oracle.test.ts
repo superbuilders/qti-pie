@@ -69,7 +69,6 @@ import type { Type } from "#pantry/test/oracle-laws/expressions.ts";
 import { lawsOf, typedReadingOf } from "#pantry/test/oracle.ts";
 import { viewOf } from "#pantry/test/oracle-view.ts";
 import { asiNamespace } from "#pantry/vocab/namespaces.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's law tables over the installed grammar.
@@ -363,6 +362,5 @@ describe("import/overlays/expressions.ts, the types a Delete, an Index and a Ran
             }),
         ),
       ),
-    searchTimeout,
   );
 });

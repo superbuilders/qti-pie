@@ -23,7 +23,6 @@ import { caseHang, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { XdmFeature } from "#pantry/test/gen/xdm.ts";
 import { documentBreaches, lawsOf } from "#pantry/test/oracle.ts";
 import { asiNamespace, xsiNamespace, xsNamespace } from "#pantry/vocab/namespaces.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The installed `GoverningOf`, keyed `kind governs` by its rows: the second implementation
@@ -60,7 +59,7 @@ const reached = required<XdmFeature>(["attribute", "openName", "repeatedOpenClas
   sense: notesOnly,
 });
 
-describe("qti/attributes.ts, the host's view", { timeout: searchTimeout }, () => {
+describe("qti/attributes.ts, the host's view", () => {
   it.effect(
     "folds each element's attrs to the installed AttributeGrammar slots of its closed names under its governor, and to none of its open classes'",
     (ctx) =>

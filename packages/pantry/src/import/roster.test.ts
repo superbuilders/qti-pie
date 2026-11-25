@@ -18,12 +18,6 @@ import { everyRelationPackage, scopedPackage } from "#pantry/test/gen/every-rela
 import { nameOf } from "#pantry/test/package-name.ts";
 
 /**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 120_000;
-
-/**
  * The relations each member of a ChangeSet's Description inserts, as its `desc` holds them.
  */
 const InsertedRelations = Schema.Struct({
@@ -102,7 +96,6 @@ layer(NodeServices.layer)("the roster", (it) => {
 
         assert.deepStrictEqual(sortedNames(written), [...overlayNames]);
       }).pipe(Effect.scoped),
-    testTimeoutMs,
   );
 
   it.effect(
@@ -121,6 +114,5 @@ layer(NodeServices.layer)("the roster", (it) => {
         assert.deepStrictEqual(sortedNames(inserted), [...writtenNames]);
         assert.strictEqual(new Set(inserted).size, inserted.length);
       }).pipe(Effect.scoped),
-    testTimeoutMs,
   );
 });

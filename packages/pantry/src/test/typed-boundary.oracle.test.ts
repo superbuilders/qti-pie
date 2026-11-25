@@ -20,12 +20,6 @@ import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 
 /**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 60_000;
-
-/**
  * `simple`'s item declarations, interaction and response processing as its `choice.xml` writes
  * them, and its manifest's resource.
  */
@@ -297,34 +291,31 @@ layer(NodeServices.layer, { excludeTestServices: true })(
   "test/oracle-view.ts, typedValueOf",
   (it) => {
     for (const { control, fixture, label, seed } of seeds) {
-      it.effect(
-        `refuses ${label} under attribute-lexical alone, and accepts its control`,
-        () =>
-          Effect.gen(function* boundarySeed() {
-            const refused = yield* judged(fixture, label, seed);
-            const accepted = yield* judged(fixture, `${label}-control`, control);
+      it.effect(`refuses ${label} under attribute-lexical alone, and accepts its control`, () =>
+        Effect.gen(function* boundarySeed() {
+          const refused = yield* judged(fixture, label, seed);
+          const accepted = yield* judged(fixture, `${label}-control`, control);
 
-            assert.deepStrictEqual(
-              verdictOf(refused),
-              { rule: "attribute-lexical", verdict: "refused" },
-              Formatter.format(refused),
-            );
-            assert.deepStrictEqual(
-              refused._tag === "Judged"
-                ? refused.breaches
-                    .filter(({ law }) => ruleOf(law) !== "attribute-lexical")
-                    .map(({ keys, law }) => `${law} ${Formatter.format(keys)}`)
-                : [],
-              [],
-              "a law past AL1 read the form",
-            );
-            assert.deepStrictEqual(
-              verdictOf(accepted),
-              { verdict: "accepted" },
-              Formatter.format(accepted),
-            );
-          }),
-        testTimeoutMs,
+          assert.deepStrictEqual(
+            verdictOf(refused),
+            { rule: "attribute-lexical", verdict: "refused" },
+            Formatter.format(refused),
+          );
+          assert.deepStrictEqual(
+            refused._tag === "Judged"
+              ? refused.breaches
+                  .filter(({ law }) => ruleOf(law) !== "attribute-lexical")
+                  .map(({ keys, law }) => `${law} ${Formatter.format(keys)}`)
+              : [],
+            [],
+            "a law past AL1 read the form",
+          );
+          assert.deepStrictEqual(
+            verdictOf(accepted),
+            { verdict: "accepted" },
+            Formatter.format(accepted),
+          );
+        }),
       );
     }
   },

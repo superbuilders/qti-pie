@@ -90,7 +90,6 @@ describe.skipIf(!hasLease)("import/package.test.ts, on the lease", () => {
     ),
     {
       excludeTestServices: true,
-      timeout: "60 seconds",
     },
   )("importPackage on the lease", (it) => {
     it.effect("stores simple under its name, and again is no change", () =>

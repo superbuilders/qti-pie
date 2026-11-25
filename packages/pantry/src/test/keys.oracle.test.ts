@@ -60,13 +60,6 @@ import { statedLaws } from "#pantry/test/law-namer.ts";
 import { ruleOfLaw } from "#pantry/import/refusal.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 1_800_000;
 
 /**
  * The document relations the oracle has rows for.
@@ -1259,7 +1252,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
 
           assert.strictEqual(exhausted.cases, boxCases.length);
         }),
-      searchTimeout,
     );
 
     test.effect(
@@ -1295,7 +1287,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               }),
           ),
         ),
-      searchTimeout,
     );
 
     test.effect(
@@ -1315,7 +1306,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             assert.strictEqual(bound.length > 0, past, `${literal}: the oracle's Key text bound`);
           }
         }),
-      { timeout: testTimeoutMs },
     );
 
     test.effect(
@@ -1335,7 +1325,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             assert.deepStrictEqual(bound, [], `${literal}: the oracle's Key text bound`);
           }
         }),
-      { timeout: testTimeoutMs },
     );
 
     test.effect(
@@ -1353,7 +1342,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
           assert.deepStrictEqual([...refused], [], `${literal}: the import's rows`);
           assert.deepStrictEqual(bound, [], `${literal}: the oracle's Key text bound`);
         }),
-      { timeout: testTimeoutMs },
     );
   },
 );

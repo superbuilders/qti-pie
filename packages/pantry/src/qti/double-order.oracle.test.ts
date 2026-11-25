@@ -60,7 +60,6 @@ import { SliderBounds } from "#pantry/qti/overlay-queries/interaction.ts";
 import { documentBreaches, lawsOf } from "#pantry/test/oracle.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { brokenIn, evaluatorOf, insideDomains } from "#pantry/test/row-evaluation.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * `Qti`'s rows as the host evaluates them, its two double orders' checks among them: Slider bounds
@@ -1089,6 +1088,5 @@ describe("qti/interactions.ts and qti/declarations.ts, the double orders", () =>
             }),
         ),
       ),
-    searchTimeout,
   );
 });

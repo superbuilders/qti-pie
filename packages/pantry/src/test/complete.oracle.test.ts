@@ -60,7 +60,6 @@ import { documentBreaches, judge, lawNames, ruleOf, shownBreach } from "#pantry/
 import type { Breach, LawName } from "#pantry/test/oracle.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Every mutation of each group's module, by its name there, each naming the law it breaks
@@ -345,7 +344,6 @@ describe("every law the oracle declares", () => {
             property(mutation),
           ),
         ),
-      searchTimeout,
     );
   }
 });
@@ -375,54 +373,51 @@ const declarationSites = ["items/item.xml", "items/item2.xml", "items/item3.xml"
 );
 
 describe("a declaration that writes no cardinality", () => {
-  it.effect(
-    "is refused under required-attribute alone, an absent attribute no empty one",
-    (ctx) =>
-      // Oracle: the specification as a checker. AL3 refuses a declaration with no cardinality, and
-      // no law that reads a declaration's cardinality judges the `single` the schema holds an
-      // unwritten one as, so the oracle raises no other rule (the orchestrator's ruling of
-      // 2026-11-06: an absent attribute is no empty one, and one cause is refused under one rule).
-      // Bound: one declaration of each kind in each of the every-relation items and in its test,
-      // each its cardinality dropped, exhausted.
-      searched(
-        ctx,
-        exhaust(
-          {
-            box: "one declaration of each kind in each item, its cardinality dropped",
-            caseHang: Duration.seconds(60),
-            concurrency: 1,
-            coverage: noCoverage,
-            generator: int(0, declarationSites.length - 1),
-            literal: String,
-            oracle: { kind: "specification", name: "AL3's required cardinality, alone" },
-            suite: "pantry/oracle-complete/absent-cardinality",
-          },
-          (at) =>
-            Effect.gen(function* absentCardinality() {
-              const site = declarationSites[at];
-              assert.isDefined(site, `no declaration site ${String(at)}`);
+  it.effect("is refused under required-attribute alone, an absent attribute no empty one", (ctx) =>
+    // Oracle: the specification as a checker. AL3 refuses a declaration with no cardinality, and
+    // no law that reads a declaration's cardinality judges the `single` the schema holds an
+    // unwritten one as, so the oracle raises no other rule (the orchestrator's ruling of
+    // 2026-11-06: an absent attribute is no empty one, and one cause is refused under one rule).
+    // Bound: one declaration of each kind in each of the every-relation items and in its test,
+    // each its cardinality dropped, exhausted.
+    searched(
+      ctx,
+      exhaust(
+        {
+          box: "one declaration of each kind in each item, its cardinality dropped",
+          caseHang: Duration.seconds(60),
+          concurrency: 1,
+          coverage: noCoverage,
+          generator: int(0, declarationSites.length - 1),
+          literal: String,
+          oracle: { kind: "specification", name: "AL3's required cardinality, alone" },
+          suite: "pantry/oracle-complete/absent-cardinality",
+        },
+        (at) =>
+          Effect.gen(function* absentCardinality() {
+            const site = declarationSites[at];
+            assert.isDefined(site, `no declaration site ${String(at)}`);
 
-              const { path, tag } = site ?? { path: "", tag: "" };
-              const mutated = withText(
-                absentBase,
-                path,
-                textOf(absentBase, path).replace(tag, tag.replace(/ cardinality="[^"]*"/u, "")),
-              );
-              const judgment = yield* judge(filesOf(mutated), grammar, laws);
-              const rules =
-                judgment._tag === "Judged"
-                  ? judgment.breaches.map(({ law }) => ruleOf(law))
-                  : [judgment.rule];
+            const { path, tag } = site ?? { path: "", tag: "" };
+            const mutated = withText(
+              absentBase,
+              path,
+              textOf(absentBase, path).replace(tag, tag.replace(/ cardinality="[^"]*"/u, "")),
+            );
+            const judgment = yield* judge(filesOf(mutated), grammar, laws);
+            const rules =
+              judgment._tag === "Judged"
+                ? judgment.breaches.map(({ law }) => ruleOf(law))
+                : [judgment.rule];
 
-              assert.deepStrictEqual(
-                [...new Set(rules)],
-                ["required-attribute"],
-                `${path} ${tag}:\n${judgment._tag === "Judged" ? judgment.breaches.map((breach) => shownBreach(breach, grammar)).join("\n") : judgment.detail}`,
-              );
-            }),
-        ),
+            assert.deepStrictEqual(
+              [...new Set(rules)],
+              ["required-attribute"],
+              `${path} ${tag}:\n${judgment._tag === "Judged" ? judgment.breaches.map((breach) => shownBreach(breach, grammar)).join("\n") : judgment.detail}`,
+            );
+          }),
       ),
-    searchTimeout,
+    ),
   );
 });
 

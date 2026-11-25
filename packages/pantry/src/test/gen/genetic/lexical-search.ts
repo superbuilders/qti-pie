@@ -1043,11 +1043,10 @@ export const lexicalProblem = (
     judge: (genomes) =>
       Effect.gen(function* judgeGeneration() {
         round += 1;
-        const started = Date.now();
         const probes = genomes.map((genome) => probesOfGenome(breeding.sites, genome));
         const judged = yield* judgeAll(breeding, `round-${String(round)}`, probes.flat());
         yield* Console.log(
-          `genetic-lexical: round ${String(round)}, ${String(genomes.length)} candidates, ${String(probes.flat().length)} probes, ${String(Date.now() - started)} ms`,
+          `genetic-lexical: round ${String(round)}, ${String(genomes.length)} candidates, ${String(probes.flat().length)} probes`,
         );
 
         return probes.map((held) =>

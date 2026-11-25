@@ -16,12 +16,6 @@ import type { PackageFile } from "#pantry/package/read.ts";
 import { judge, lawsOf } from "#pantry/test/oracle.ts";
 import { collapsed } from "#pantry/test/oracle-view.ts";
 import { packageOf } from "#pantry/test/probe.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
-
-/**
- * How long building a schema over every relation of the schema may take: a hang guard.
- */
-const buildTimeout = 60_000;
 
 /**
  * The tables the oracle's laws read, derived from the installed grammar once.
@@ -87,7 +81,7 @@ type LabelSituation =
   | "unnamed tool"
   | "root label, unnamed tool";
 
-describe("test/oracle.ts, Label tools", { timeout: searchTimeout }, () => {
+describe("test/oracle.ts, Label tools", () => {
   it.effect(
     "breaks once at each labelled element, the paragraph and the root, exactly when its root lacks tool-name or tool-version",
     (ctx) =>
@@ -207,123 +201,119 @@ type TypedSituation =
   | "a reference resolved"
   | "a reference dangling";
 
-describe(
-  "test/oracle.ts, DocumentId key and Idref target over typed texts (C50)",
-  { timeout: searchTimeout },
-  () => {
-    it.effect(
-      "breaks DocumentId key exactly where one id is purported by two parents, and Idref target exactly where a text's IDREF names no id",
-      (ctx) =>
-        // Oracle: the specification as a checker, XML Schema 1.0 Part 1 §3.15.5 and cvc-id (reading
-        // 101): an element text's ID is bound to its parent, no id's binding has two members, and an
-        // IDREF names an id of its document.
-        // Bound: every pair of custom interactions, each of at most 2 foreign children over an ID
-        // `a`, an ID `b` and an IDREF to `a`, 169.
-        searched(
-          ctx,
-          exhaust(
-            {
-              box: "every two custom interactions of at most 2 xsi:typed foreign children over ID a, ID b and IDREF a",
-              caseHang: Duration.seconds(30),
-              concurrency: 1,
-              coverage: requiredInSpace<TypedSituation>([
-                "one id twice under one parent",
-                "one id under two parents",
-                "a reference resolved",
-                "a reference dangling",
-              ]),
-              generator: typedCases,
-              literal: (drawn) => JSON.stringify(drawn),
-              oracle: { kind: "specification", name: "XML Schema 1.0 Part 1 §3.15.5, cvc-id" },
-              suite: "test/oracle-typed-ids",
-            },
-            (drawn, c) =>
-              Effect.gen(function* typedIds() {
-                const interactions = drawn.map(
+describe("test/oracle.ts, DocumentId key and Idref target over typed texts (C50)", () => {
+  it.effect(
+    "breaks DocumentId key exactly where one id is purported by two parents, and Idref target exactly where a text's IDREF names no id",
+    (ctx) =>
+      // Oracle: the specification as a checker, XML Schema 1.0 Part 1 §3.15.5 and cvc-id (reading
+      // 101): an element text's ID is bound to its parent, no id's binding has two members, and an
+      // IDREF names an id of its document.
+      // Bound: every pair of custom interactions, each of at most 2 foreign children over an ID
+      // `a`, an ID `b` and an IDREF to `a`, 169.
+      searched(
+        ctx,
+        exhaust(
+          {
+            box: "every two custom interactions of at most 2 xsi:typed foreign children over ID a, ID b and IDREF a",
+            caseHang: Duration.seconds(30),
+            concurrency: 1,
+            coverage: requiredInSpace<TypedSituation>([
+              "one id twice under one parent",
+              "one id under two parents",
+              "a reference resolved",
+              "a reference dangling",
+            ]),
+            generator: typedCases,
+            literal: (drawn) => JSON.stringify(drawn),
+            oracle: { kind: "specification", name: "XML Schema 1.0 Part 1 §3.15.5, cvc-id" },
+            suite: "test/oracle-typed-ids",
+          },
+          (drawn, c) =>
+            Effect.gen(function* typedIds() {
+              const interactions = drawn.map(
+                (children) =>
+                  `<qti-custom-interaction response-identifier="RESPONSE">${children
+                    .map(
+                      (child) =>
+                        `<x:e xmlns:x="urn:x" xsi:type="${child.type}">${child.value}</x:e>`,
+                    )
+                    .join("")}</qti-custom-interaction>`,
+              );
+              const files = packageOf({
+                "imsmanifest.xml": `<manifest xmlns="${cp}" identifier="M"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="R" type="imsqti_item_xmlv3p0" href="item.xml"><file href="item.xml"/></resource></resources></manifest>`,
+                "item.xml": `<qti-assessment-item xmlns="${asi}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" identifier="item" title="Item" time-dependent="false"><qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/><qti-item-body><div>${interactions.join("")}</div></qti-item-body></qti-assessment-item>`,
+              });
+              const owners = (id: string) =>
+                drawn.flatMap((children, parent) =>
+                  children.some((child) => child.type === "xs:ID" && child.value === id)
+                    ? [parent]
+                    : [],
+                );
+              const ids = new Set(
+                drawn.flatMap((children) =>
+                  children.filter(({ type }) => type === "xs:ID").map((child) => child.value),
+                ),
+              );
+              const expectedKey = ["a", "b"].flatMap((id) =>
+                owners(id)
+                  .slice(1)
+                  .map((parent) => `${id} ${at(parent)}`),
+              );
+              const expectedTargets = drawn.flatMap((children, parent) =>
+                children.flatMap((child, slot) =>
+                  child.type === "xs:IDREF" && !ids.has(child.value)
+                    ? [`${child.value} ${at(parent)}/foreign-element[${String(slot)}]`]
+                    : [],
+                ),
+              );
+
+              if (
+                drawn.some(
                   (children) =>
-                    `<qti-custom-interaction response-identifier="RESPONSE">${children
-                      .map(
-                        (child) =>
-                          `<x:e xmlns:x="urn:x" xsi:type="${child.type}">${child.value}</x:e>`,
-                      )
-                      .join("")}</qti-custom-interaction>`,
-                );
-                const files = packageOf({
-                  "imsmanifest.xml": `<manifest xmlns="${cp}" identifier="M"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="R" type="imsqti_item_xmlv3p0" href="item.xml"><file href="item.xml"/></resource></resources></manifest>`,
-                  "item.xml": `<qti-assessment-item xmlns="${asi}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" identifier="item" title="Item" time-dependent="false"><qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/><qti-item-body><div>${interactions.join("")}</div></qti-item-body></qti-assessment-item>`,
-                });
-                const owners = (id: string) =>
-                  drawn.flatMap((children, parent) =>
-                    children.some((child) => child.type === "xs:ID" && child.value === id)
-                      ? [parent]
-                      : [],
-                  );
-                const ids = new Set(
-                  drawn.flatMap((children) =>
-                    children.filter(({ type }) => type === "xs:ID").map((child) => child.value),
-                  ),
-                );
-                const expectedKey = ["a", "b"].flatMap((id) =>
-                  owners(id)
-                    .slice(1)
-                    .map((parent) => `${id} ${at(parent)}`),
-                );
-                const expectedTargets = drawn.flatMap((children, parent) =>
-                  children.flatMap((child, slot) =>
-                    child.type === "xs:IDREF" && !ids.has(child.value)
-                      ? [`${child.value} ${at(parent)}/foreign-element[${String(slot)}]`]
-                      : [],
-                  ),
-                );
+                    children.filter((child) => child.type === "xs:ID" && child.value === "a")
+                      .length > 1,
+                )
+              ) {
+                c.note("one id twice under one parent");
+              }
 
-                if (
-                  drawn.some(
-                    (children) =>
-                      children.filter((child) => child.type === "xs:ID" && child.value === "a")
-                        .length > 1,
-                  )
-                ) {
-                  c.note("one id twice under one parent");
-                }
+              if (expectedKey.length > 0) {
+                c.note("one id under two parents");
+              }
 
-                if (expectedKey.length > 0) {
-                  c.note("one id under two parents");
-                }
-
-                if (drawn.some((children) => children.some(({ type }) => type === "xs:IDREF"))) {
-                  c.note(
-                    expectedTargets.length > 0 ? "a reference dangling" : "a reference resolved",
-                  );
-                }
-
-                const judgment = yield* judge(files, grammar, laws);
-                const breaches =
-                  judgment._tag === "Judged"
-                    ? judgment.breaches
-                    : assert.fail(`the codec refused the package: ${judgment.rule}`);
-
-                assert.deepStrictEqual(
-                  breaches
-                    .filter(({ law }) => law === "DocumentId key")
-                    .map(({ keys }) => `${keys["id"] ?? ""} ${keys["node"] ?? ""}`)
-                    .toSorted(),
-                  expectedKey.toSorted(),
-                  JSON.stringify(drawn),
+              if (drawn.some((children) => children.some(({ type }) => type === "xs:IDREF"))) {
+                c.note(
+                  expectedTargets.length > 0 ? "a reference dangling" : "a reference resolved",
                 );
-                assert.deepStrictEqual(
-                  breaches
-                    .filter(({ law }) => law === "Idref target")
-                    .map(({ keys }) => `${keys["token"] ?? ""} ${keys["node"] ?? ""}`)
-                    .toSorted(),
-                  expectedTargets.toSorted(),
-                  JSON.stringify(drawn),
-                );
-              }),
-          ),
+              }
+
+              const judgment = yield* judge(files, grammar, laws);
+              const breaches =
+                judgment._tag === "Judged"
+                  ? judgment.breaches
+                  : assert.fail(`the codec refused the package: ${judgment.rule}`);
+
+              assert.deepStrictEqual(
+                breaches
+                  .filter(({ law }) => law === "DocumentId key")
+                  .map(({ keys }) => `${keys["id"] ?? ""} ${keys["node"] ?? ""}`)
+                  .toSorted(),
+                expectedKey.toSorted(),
+                JSON.stringify(drawn),
+              );
+              assert.deepStrictEqual(
+                breaches
+                  .filter(({ law }) => law === "Idref target")
+                  .map(({ keys }) => `${keys["token"] ?? ""} ${keys["node"] ?? ""}`)
+                  .toSorted(),
+                expectedTargets.toSorted(),
+                JSON.stringify(drawn),
+              );
+            }),
         ),
-    );
-  },
-);
+      ),
+  );
+});
 
 /**
  * One choice of the Document lang box: the item root's `xml:lang`, whether its resource names it
@@ -388,7 +378,7 @@ type DocumentLangSituation =
   | "listed in another case"
   | "listed padded";
 
-describe("test/oracle.ts, Document lang (R26)", { timeout: searchTimeout }, () => {
+describe("test/oracle.ts, Document lang (R26)", () => {
   it.effect(
     "breaks once, at the item, exactly when its xml:lang states a language that a general category of its resource's record does not list",
     (ctx) =>
@@ -516,7 +506,6 @@ describe("test/oracle.ts, Document lang (R26) under a catalog (R9-c)", () => {
           [],
         );
       }),
-    { timeout: buildTimeout },
   );
 
   it.effect(
@@ -535,7 +524,6 @@ describe("test/oracle.ts, Document lang (R26) under a catalog (R9-c)", () => {
           ["item.xml es"],
         );
       }),
-    { timeout: buildTimeout },
   );
 });
 
@@ -593,111 +581,103 @@ type SsmlLawSituation =
   | "lookup in its own speak"
   | "lookup across speaks";
 
-describe(
-  "test/oracle.ts, SSML trim mark and SSML lexicon reference (reading 3)",
-  { timeout: searchTimeout },
-  () => {
-    it.effect(
-      "breaks SSML trim mark exactly where a startmark names a mark its own speak defines other than once, names compared collapsed, and SSML lexicon reference exactly where a lookup's lexicon is in another speak",
-      (ctx) =>
-        // Oracle: the specification as a checker, SSML 1.1 §3.1.1.1 ("Only markers defined once in
-        // the document, i.e. that are unique, are permitted as the value of either startmark or
-        // endmark") and §3.1.5.1 ("The scope of this name is the current SSML document"), read
-        // under spec reading 3: "the document" is each speak fragment, a name compared by its
-        // value, collapsed (`mark@name`, `startmark` and `endmark` are `xsd:token`s, SSML 1.1
-        // §3.3.2, whose whiteSpace is collapse, XML Schema Part 2 §4.3.6), so `a  b` and `a b` are
-        // one name.
-        // Bound: every first speak of 5 startmarks, at most 2 marks over 3 names and 3 lookups,
-        // beside a second speak that defines `a b` or not, 390.
-        searched(
-          ctx,
-          exhaust(
-            {
-              box: "every two speaks: the first of 5 startmarks, at most 2 marks over a b, a  b and ab, and 3 lookups, the second defining a b or not",
-              caseHang: Duration.seconds(30),
-              concurrency: 1,
-              coverage: requiredInSpace<SsmlLawSituation>([
-                "trim to a mark defined once",
-                "trim to a mark defined twice",
-                "trim to a mark of another speak",
-                "trim to a mark written otherwise",
-                "one name in two forms",
-                "lookup in its own speak",
-                "lookup across speaks",
-              ]),
-              generator: ssmlLawCases,
-              literal: (drawn) => JSON.stringify(drawn),
-              oracle: {
-                kind: "specification",
-                name: "SSML 1.1 §3.1.1.1, §3.1.5.1 and §3.3.2, reading 3",
-              },
-              suite: "test/oracle-ssml-fragment",
+describe("test/oracle.ts, SSML trim mark and SSML lexicon reference (reading 3)", () => {
+  it.effect(
+    "breaks SSML trim mark exactly where a startmark names a mark its own speak defines other than once, names compared collapsed, and SSML lexicon reference exactly where a lookup's lexicon is in another speak",
+    (ctx) =>
+      // Oracle: the specification as a checker, SSML 1.1 §3.1.1.1 ("Only markers defined once in
+      // the document, i.e. that are unique, are permitted as the value of either startmark or
+      // endmark") and §3.1.5.1 ("The scope of this name is the current SSML document"), read
+      // under spec reading 3: "the document" is each speak fragment, a name compared by its
+      // value, collapsed (`mark@name`, `startmark` and `endmark` are `xsd:token`s, SSML 1.1
+      // §3.3.2, whose whiteSpace is collapse, XML Schema Part 2 §4.3.6), so `a  b` and `a b` are
+      // one name.
+      // Bound: every first speak of 5 startmarks, at most 2 marks over 3 names and 3 lookups,
+      // beside a second speak that defines `a b` or not, 390.
+      searched(
+        ctx,
+        exhaust(
+          {
+            box: "every two speaks: the first of 5 startmarks, at most 2 marks over a b, a  b and ab, and 3 lookups, the second defining a b or not",
+            caseHang: Duration.seconds(30),
+            concurrency: 1,
+            coverage: requiredInSpace<SsmlLawSituation>([
+              "trim to a mark defined once",
+              "trim to a mark defined twice",
+              "trim to a mark of another speak",
+              "trim to a mark written otherwise",
+              "one name in two forms",
+              "lookup in its own speak",
+              "lookup across speaks",
+            ]),
+            generator: ssmlLawCases,
+            literal: (drawn) => JSON.stringify(drawn),
+            oracle: {
+              kind: "specification",
+              name: "SSML 1.1 §3.1.1.1, §3.1.5.1 and §3.3.2, reading 3",
             },
-            (drawn: SsmlLawCase, c) =>
-              Effect.gen(function* ssmlLaws() {
-                const lexicon = `<ssml:lexicon uri="a.pls" xml:id="L"/>`;
-                const first = `<ssml:speak version="1.1" xml:lang="en"${Option.match(drawn.startmark, { onNone: () => "", onSome: (mark) => ` startmark="${mark}"` })}>${drawn.lookup === "own" ? lexicon : ""}${drawn.marks.map((name) => `<ssml:mark name="${name}"/>`).join("")}${drawn.lookup === "none" ? "" : `<ssml:lookup ref="L">x</ssml:lookup>`}</ssml:speak>`;
-                const second = `<ssml:speak version="1.1" xml:lang="en">${drawn.lookup === "other" ? lexicon : ""}${drawn.markElsewhere ? `<ssml:mark name="a b"/>` : ""}</ssml:speak>`;
-                const files = packageOf({
-                  "a.pls": "<lexicon/>",
-                  "imsmanifest.xml": `<manifest xmlns="${cp}" identifier="M"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="R" type="imsqti_item_xmlv3p0" href="item.xml"><file href="item.xml"/><file href="a.pls"/></resource></resources></manifest>`,
-                  "item.xml": `<qti-assessment-item xmlns="${asi}" xmlns:ssml="http://www.w3.org/2001/10/synthesis" identifier="item" title="Item" time-dependent="false"><qti-item-body><p>${first}${second}</p></qti-item-body></qti-assessment-item>`,
-                });
-                const named = drawn.startmark.pipe(Option.map(markValueOf));
-                const defined = Option.match(named, {
-                  onNone: () => 0,
-                  onSome: (mark) => drawn.marks.filter((name) => markValueOf(name) === mark).length,
-                });
-                const trimBreaks = Option.isSome(named) && defined !== 1;
+            suite: "test/oracle-ssml-fragment",
+          },
+          (drawn: SsmlLawCase, c) =>
+            Effect.gen(function* ssmlLaws() {
+              const lexicon = `<ssml:lexicon uri="a.pls" xml:id="L"/>`;
+              const first = `<ssml:speak version="1.1" xml:lang="en"${Option.match(drawn.startmark, { onNone: () => "", onSome: (mark) => ` startmark="${mark}"` })}>${drawn.lookup === "own" ? lexicon : ""}${drawn.marks.map((name) => `<ssml:mark name="${name}"/>`).join("")}${drawn.lookup === "none" ? "" : `<ssml:lookup ref="L">x</ssml:lookup>`}</ssml:speak>`;
+              const second = `<ssml:speak version="1.1" xml:lang="en">${drawn.lookup === "other" ? lexicon : ""}${drawn.markElsewhere ? `<ssml:mark name="a b"/>` : ""}</ssml:speak>`;
+              const files = packageOf({
+                "a.pls": "<lexicon/>",
+                "imsmanifest.xml": `<manifest xmlns="${cp}" identifier="M"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="R" type="imsqti_item_xmlv3p0" href="item.xml"><file href="item.xml"/><file href="a.pls"/></resource></resources></manifest>`,
+                "item.xml": `<qti-assessment-item xmlns="${asi}" xmlns:ssml="http://www.w3.org/2001/10/synthesis" identifier="item" title="Item" time-dependent="false"><qti-item-body><p>${first}${second}</p></qti-item-body></qti-assessment-item>`,
+              });
+              const named = drawn.startmark.pipe(Option.map(markValueOf));
+              const defined = Option.match(named, {
+                onNone: () => 0,
+                onSome: (mark) => drawn.marks.filter((name) => markValueOf(name) === mark).length,
+              });
+              const trimBreaks = Option.isSome(named) && defined !== 1;
 
-                if (Option.isSome(named)) {
-                  if (defined === 0 && drawn.markElsewhere && named.value === "a b") {
-                    c.note("trim to a mark of another speak");
-                  } else {
-                    c.note(
-                      defined === 1
-                        ? "trim to a mark defined once"
-                        : "trim to a mark defined twice",
-                    );
-                  }
-
-                  if (
-                    defined === 1 &&
-                    !drawn.marks.includes(Option.getOrElse(drawn.startmark, () => ""))
-                  ) {
-                    c.note("trim to a mark written otherwise");
-                  }
-                }
-
-                if (drawn.marks.includes("a b") && drawn.marks.includes("a  b")) {
-                  c.note("one name in two forms");
-                }
-
-                if (drawn.lookup !== "none") {
+              if (Option.isSome(named)) {
+                if (defined === 0 && drawn.markElsewhere && named.value === "a b") {
+                  c.note("trim to a mark of another speak");
+                } else {
                   c.note(
-                    drawn.lookup === "own" ? "lookup in its own speak" : "lookup across speaks",
+                    defined === 1 ? "trim to a mark defined once" : "trim to a mark defined twice",
                   );
                 }
 
-                const judgment = yield* judge(files, grammar, laws);
-                const breaches =
-                  judgment._tag === "Judged"
-                    ? judgment.breaches
-                    : assert.fail(`the codec refused the package: ${judgment.rule}`);
+                if (
+                  defined === 1 &&
+                  !drawn.marks.includes(Option.getOrElse(drawn.startmark, () => ""))
+                ) {
+                  c.note("trim to a mark written otherwise");
+                }
+              }
 
-                assert.deepStrictEqual(
-                  breaches.filter(({ law }) => law === "SSML trim mark").length,
-                  trimBreaks ? 1 : 0,
-                  JSON.stringify(drawn),
-                );
-                assert.deepStrictEqual(
-                  breaches.filter(({ law }) => law === "SSML lexicon reference").length,
-                  drawn.lookup === "other" ? 1 : 0,
-                  JSON.stringify(drawn),
-                );
-              }),
-          ),
+              if (drawn.marks.includes("a b") && drawn.marks.includes("a  b")) {
+                c.note("one name in two forms");
+              }
+
+              if (drawn.lookup !== "none") {
+                c.note(drawn.lookup === "own" ? "lookup in its own speak" : "lookup across speaks");
+              }
+
+              const judgment = yield* judge(files, grammar, laws);
+              const breaches =
+                judgment._tag === "Judged"
+                  ? judgment.breaches
+                  : assert.fail(`the codec refused the package: ${judgment.rule}`);
+
+              assert.deepStrictEqual(
+                breaches.filter(({ law }) => law === "SSML trim mark").length,
+                trimBreaks ? 1 : 0,
+                JSON.stringify(drawn),
+              );
+              assert.deepStrictEqual(
+                breaches.filter(({ law }) => law === "SSML lexicon reference").length,
+                drawn.lookup === "other" ? 1 : 0,
+                JSON.stringify(drawn),
+              );
+            }),
         ),
-    );
-  },
-);
+      ),
+  );
+});

@@ -32,7 +32,6 @@ import type { Signature } from "#pantry/test/gen/genetic/judge.ts";
 import { known } from "#pantry/test/gen/genetic/known.ts";
 import { lawsOf } from "#pantry/test/oracle.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's law tables over the composed grammar.
@@ -205,63 +204,60 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     for (const cardinality of cardinalities) {
       const ofCardinality = cases.filter((held) => held.cardinality === cardinality);
 
-      it.effect(
-        `with ${cardinalityName(cardinality)}`,
-        (ctx) =>
-          searched(
-            ctx,
-            Effect.gen(function* untypedDeclarationRuns() {
-              const directory = yield* scratchDirectory("untyped-declarations-");
-              const bench = { directory, grammar, laws };
+      it.effect(`with ${cardinalityName(cardinality)}`, (ctx) =>
+        searched(
+          ctx,
+          Effect.gen(function* untypedDeclarationRuns() {
+            const directory = yield* scratchDirectory("untyped-declarations-");
+            const bench = { directory, grammar, laws };
 
-              return yield* exhaust(
-                {
-                  box: `an item's response declaration, its cardinality ${cardinalityName(cardinality)}, its base type unwritten, spelling no code or a code, holding nothing, a mapping of one key, of a repeated key or of one integer twice, or a correct response and a mapping`,
-                  caseHang: Duration.minutes(5),
-                  concurrency: 1,
-                  coverage: requiredInSpace<Noted>([
-                    "base type a code",
-                    "base type no code",
-                    "base type unwritten",
-                    `cardinality ${cardinality.typing}`,
-                  ]),
-                  generator: int(0, ofCardinality.length - 1),
-                  literal: (at) => {
-                    const held = ofCardinality[at];
+            return yield* exhaust(
+              {
+                box: `an item's response declaration, its cardinality ${cardinalityName(cardinality)}, its base type unwritten, spelling no code or a code, holding nothing, a mapping of one key, of a repeated key or of one integer twice, or a correct response and a mapping`,
+                caseHang: Duration.minutes(5),
+                concurrency: 1,
+                coverage: requiredInSpace<Noted>([
+                  "base type a code",
+                  "base type no code",
+                  "base type unwritten",
+                  `cardinality ${cardinality.typing}`,
+                ]),
+                generator: int(0, ofCardinality.length - 1),
+                literal: (at) => {
+                  const held = ofCardinality[at];
 
-                    return held === undefined ? String(at) : nameOf(held);
-                  },
-                  oracle: {
-                    kind: "second-implementation",
-                    name: "the law oracle against the laws the import's rows break on the host",
-                  },
-                  suite: suiteOf(cardinality),
+                  return held === undefined ? String(at) : nameOf(held);
                 },
-                (at: number, c) =>
-                  Effect.gen(function* untypedDeclarationCase() {
-                    const held = ofCardinality[at];
-                    assert.isDefined(held, `no case ${String(at)}`);
-                    if (held === undefined) {
-                      return;
-                    }
+                oracle: {
+                  kind: "second-implementation",
+                  name: "the law oracle against the laws the import's rows break on the host",
+                },
+                suite: suiteOf(cardinality),
+              },
+              (at: number, c) =>
+                Effect.gen(function* untypedDeclarationCase() {
+                  const held = ofCardinality[at];
+                  assert.isDefined(held, `no case ${String(at)}`);
+                  if (held === undefined) {
+                    return;
+                  }
 
-                    c.note(`cardinality ${held.cardinality.typing}`);
-                    c.note(`base type ${held.baseType.typing}`);
+                  c.note(`cardinality ${held.cardinality.typing}`);
+                  c.note(`base type ${held.baseType.typing}`);
 
-                    const judged = yield* judgeOne(yield* genomeOf(packageOf(held)), bench, at);
+                  const judged = yield* judgeOne(yield* genomeOf(packageOf(held)), bench, at);
 
-                    assert.deepStrictEqual(
-                      judged.disagreements
-                        .filter((disagreement) => !recordsClassOf(recorded, disagreement))
-                        .map(shownDisagreement),
-                      [],
-                      `${nameOf(held)}: the oracle ${judged.summary.oracle}; the import ${judged.summary.import}`,
-                    );
-                  }),
-              );
-            }).pipe(Effect.scoped),
-          ),
-        searchTimeout,
+                  assert.deepStrictEqual(
+                    judged.disagreements
+                      .filter((disagreement) => !recordsClassOf(recorded, disagreement))
+                      .map(shownDisagreement),
+                    [],
+                    `${nameOf(held)}: the oracle ${judged.summary.oracle}; the import ${judged.summary.import}`,
+                  );
+                }),
+            );
+          }).pipe(Effect.scoped),
+        ),
       );
     }
   },

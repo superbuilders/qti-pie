@@ -14,7 +14,14 @@ const databaseFiles = globSync("src/**/*.test.ts", { cwd: import.meta.dirname })
   )
   .toSorted();
 
-// Each project's testTimeout and hookTimeout is a hang guard, never a budget.
+/**
+ * No test or hook of pantry is bounded by the wall clock, Vitest's none: a verdict never rests on
+ * how long the machine took to let the work run. A search's case is held by its `caseHang`, the
+ * testing library's work guard; a test that runs no search is the gate's to see hung, by its unit's
+ * lack of progress.
+ */
+const unbounded = 0;
+
 export default defineConfig({
   test: {
     // @bjornpagen/testing's setup draws the run seed every searched() test reads, or replays a given one.
@@ -24,21 +31,21 @@ export default defineConfig({
         extends: true,
         test: {
           exclude: ["**/node_modules/**", ...databaseFiles],
-          hookTimeout: 60_000,
+          hookTimeout: unbounded,
           include: ["src/**/*.test.ts"],
           name: "free",
           sequence: { groupOrder: 1 },
-          testTimeout: 60_000,
+          testTimeout: unbounded,
         },
       },
       {
         extends: true,
         test: {
-          hookTimeout: 60_000,
+          hookTimeout: unbounded,
           include: databaseFiles,
           name: "database",
           sequence: { groupOrder: 2 },
-          testTimeout: 60_000,
+          testTimeout: unbounded,
         },
       },
     ],

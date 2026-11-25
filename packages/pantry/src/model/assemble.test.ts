@@ -45,7 +45,7 @@ import type {
   XdmFeature,
 } from "#pantry/test/gen/xdm.ts";
 import { rowSetOf } from "#pantry/test/row-sets.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar every property draws its trees over.
@@ -419,7 +419,7 @@ const smallRowsOf = ({ document, edit }: SmallCase): FlatRows<Composed> => {
  */
 type SmallFeature = "inside" | "outside" | NodeEdit["field"];
 
-describe("assemble", { timeout: searchTimeout }, () => {
+describe("assemble", () => {
   it.effect(
     "gives back every generated tree from its rows, every list in any order, up to the order of its sets, to the same canonical bytes",
     (ctx) =>

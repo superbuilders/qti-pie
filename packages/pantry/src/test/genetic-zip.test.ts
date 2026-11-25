@@ -90,14 +90,9 @@ const counts = settings.geneticRequested
 /**
  * The most reduction proposals one finding is judged on, how many go to Python at once, and how
  * many kinds of disagreement a run reduces, the rest reported as found, so a run that meets many
- * kinds, as a planted bug's does, reports them within its timeout.
+ * kinds, as a planted bug's does, reduces at most `kinds` times `tries` proposals.
  */
 const reduction = { batch: 60, kinds: 6, tries: 600 } as const;
-
-/**
- * The timeout, in milliseconds, of each test: a hang guard.
- */
-const timeoutMs = settings.geneticRequested ? 7_200_000 : 120_000;
 
 /**
  * The stream a test draws on: its floor stream in the free suite, the same on every run, and the
@@ -399,7 +394,6 @@ describe("genetic-zip.test.ts", () => {
               "the reader reads every box archive as its policy says",
             );
           }),
-        { timeout: timeoutMs },
       );
 
       it.effect(
@@ -440,7 +434,6 @@ describe("genetic-zip.test.ts", () => {
               "the reader reads every fixed seed as its policy says",
             );
           }),
-        { timeout: timeoutMs },
       );
 
       it.effect.skipIf(!settings.geneticRequested)(
@@ -478,7 +471,6 @@ describe("genetic-zip.test.ts", () => {
               "the reader reads every bred archive as its policy says",
             );
           }),
-        { timeout: timeoutMs },
       );
 
       it.effect(
@@ -537,7 +529,6 @@ describe("genetic-zip.test.ts", () => {
               "every written archive reads back as written",
             );
           }),
-        { timeout: timeoutMs },
       );
     },
   );

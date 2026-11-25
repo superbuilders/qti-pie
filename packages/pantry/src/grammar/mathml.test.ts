@@ -70,13 +70,7 @@ import {
 } from "#pantry/test/spec-cache/pins.ts";
 import { readPinned } from "#pantry/test/spec-cache/read.ts";
 import { xmllintValidate } from "#pantry/xml/oracle.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 120_000;
+import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar of production, failing the test that reads it when a generator refuses.
@@ -109,11 +103,6 @@ const relaxNgRoot = Effect.gen(function* relaxNgRoot() {
 
   return `${yield* relaxNgDirectory}/mathml3.rng`;
 }).pipe(Effect.provide(Digest.layerWebCrypto));
-
-/**
- * How long one xmllint run over a batch may take: a hang guard.
- */
-const xmllintTimeout = 120_000;
 
 /**
  * Collapse a value's whitespace as XML Schema's `collapse` does (Part 2, 4.3.6).
@@ -415,7 +404,6 @@ describe("spec reading 2: MathML's notation types (MathML 3 §2.1.5.1)", () => {
           ),
         );
       }),
-    searchTimeout,
   );
 
   it.effect(
@@ -461,40 +449,37 @@ describe("spec reading 2: MathML's notation types (MathML 3 §2.1.5.1)", () => {
 });
 
 describe("spec reading 2: MathML's content models (the MathML 3 RelaxNG)", () => {
-  it.effect(
-    "accept exactly the RelaxNG's child sequences, every sequence of each box",
-    () =>
-      // Oracle: the specification as a checker, `relaxNgModels`, written from the RelaxNG's text,
-      // which tries every split of an ambiguous pattern where the grammar's restatement is
-      // deterministic. Bound: `boxes`, every sequence of at most each box's length over its
-      // alphabet, every parent of it.
-      Effect.gen(function* everySequence() {
-        const composedGrammar = yield* grammar;
-        const wrong: string[] = [];
-        let compared = 0;
-        for (const { alphabet, length, parents } of boxes) {
-          const sequences = sequencesOf(alphabet, length);
-          for (const parent of parents) {
-            const recognizer = Option.getOrThrowWith(
-              Option.fromNullishOr(relaxNgModels.get(parent)),
-              () => new Error(`No RelaxNG recognizer reads ${parent}.`),
-            );
-            for (const children of sequences) {
-              compared += 1;
-              const installed = accepts(composedGrammar, parent, children);
-              if (installed !== recognizer(children, boxClasses)) {
-                wrong.push(
-                  `${parent} [${children.join(", ")}]: installed ${installed ? "accepts" : "refuses"}`,
-                );
-              }
+  it.effect("accept exactly the RelaxNG's child sequences, every sequence of each box", () =>
+    // Oracle: the specification as a checker, `relaxNgModels`, written from the RelaxNG's text,
+    // which tries every split of an ambiguous pattern where the grammar's restatement is
+    // deterministic. Bound: `boxes`, every sequence of at most each box's length over its
+    // alphabet, every parent of it.
+    Effect.gen(function* everySequence() {
+      const composedGrammar = yield* grammar;
+      const wrong: string[] = [];
+      let compared = 0;
+      for (const { alphabet, length, parents } of boxes) {
+        const sequences = sequencesOf(alphabet, length);
+        for (const parent of parents) {
+          const recognizer = Option.getOrThrowWith(
+            Option.fromNullishOr(relaxNgModels.get(parent)),
+            () => new Error(`No RelaxNG recognizer reads ${parent}.`),
+          );
+          for (const children of sequences) {
+            compared += 1;
+            const installed = accepts(composedGrammar, parent, children);
+            if (installed !== recognizer(children, boxClasses)) {
+              wrong.push(
+                `${parent} [${children.join(", ")}]: installed ${installed ? "accepts" : "refuses"}`,
+              );
             }
           }
         }
+      }
 
-        assert.isAbove(compared, 0);
-        assert.deepStrictEqual(wrong.slice(0, 30), []);
-      }),
-    testTimeoutMs,
+      assert.isAbove(compared, 0);
+      assert.deepStrictEqual(wrong.slice(0, 30), []);
+    }),
   );
 
   it.effect(
@@ -1287,27 +1272,24 @@ describe("the ending edit, which lambda's restatement reads (content.ts, endedBy
 });
 
 describe("spec reading 2 against libxml2's RelaxNG validator", () => {
-  it.effect(
-    "agree with the RelaxNG on each case's valid and invalid instance",
-    () =>
-      // Oracle: a second implementation, libxml2's RelaxNG validator over the MathML 3 RelaxNG.
-      // Bound: `cases`.
-      Effect.gen(function* everyCase() {
-        const composedGrammar = yield* grammar;
-        const texts = cases.map(({ instance }) => written(instance));
-        const rng = yield* validated(yield* relaxNgRoot, "cases-rng", texts);
-        const wrong = cases.flatMap(({ instance, name, relaxNg, rule }, index) => [
-          ...(Arr.getUnsafe(rng, index) === relaxNg
-            ? []
-            : [`${name}: libxml2's RelaxNG says ${String(!relaxNg)}`]),
-          ...(judged(composedGrammar, instance) === relaxNg
-            ? []
-            : [`${name}: the grammar says ${String(!relaxNg)} (${rule})`]),
-        ]);
+  it.effect("agree with the RelaxNG on each case's valid and invalid instance", () =>
+    // Oracle: a second implementation, libxml2's RelaxNG validator over the MathML 3 RelaxNG.
+    // Bound: `cases`.
+    Effect.gen(function* everyCase() {
+      const composedGrammar = yield* grammar;
+      const texts = cases.map(({ instance }) => written(instance));
+      const rng = yield* validated(yield* relaxNgRoot, "cases-rng", texts);
+      const wrong = cases.flatMap(({ instance, name, relaxNg, rule }, index) => [
+        ...(Arr.getUnsafe(rng, index) === relaxNg
+          ? []
+          : [`${name}: libxml2's RelaxNG says ${String(!relaxNg)}`]),
+        ...(judged(composedGrammar, instance) === relaxNg
+          ? []
+          : [`${name}: the grammar says ${String(!relaxNg)} (${rule})`]),
+      ]);
 
-        assert.deepStrictEqual(wrong, []);
-      }).pipe(Effect.provide(XsdOracleLayer)),
-    xmllintTimeout,
+      assert.deepStrictEqual(wrong, []);
+    }).pipe(Effect.provide(XsdOracleLayer)),
   );
 
   it.effect(
@@ -1354,6 +1336,5 @@ describe("spec reading 2 against libxml2's RelaxNG validator", () => {
         assert.isBelow(valid, trees.length);
         assert.deepStrictEqual(wrong.slice(0, 10), []);
       }).pipe(Effect.provide(XsdOracleLayer)),
-    xmllintTimeout,
   );
 });

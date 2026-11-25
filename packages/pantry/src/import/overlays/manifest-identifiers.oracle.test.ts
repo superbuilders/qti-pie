@@ -42,7 +42,6 @@ import { item } from "#pantry/test/probe.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
 import { rulesOf } from "#pantry/import/refusal.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar every case is judged by.
@@ -394,7 +393,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               }).pipe(Effect.scoped),
           ),
         ),
-      searchTimeout,
     );
 
     for (const padded of paddedCases) {

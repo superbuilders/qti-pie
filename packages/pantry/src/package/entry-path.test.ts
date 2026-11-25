@@ -19,7 +19,6 @@ import { Duration, Effect, FileSystem, Formatter } from "effect";
 import { readEntries } from "#pantry/package/read.ts";
 import { writeZip } from "#pantry/package/zip.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The segments a path is drawn from: plain names, a backslash inside a name, a drive prefix in
@@ -121,6 +120,5 @@ describe("an entry path", () => {
           }),
         ),
       ),
-    searchTimeout,
   );
 });

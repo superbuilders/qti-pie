@@ -15,12 +15,6 @@ import type * as Closed from "#pantry/grammar/closed.ts";
 import type * as Sequencing from "#pantry/vocab/sequencing.ts";
 
 /**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 600_000;
-
-/**
  * What the composition did: the rows each `closed` call stated, by relation name in call order, the
  * key of each outline `outlineOf` read, the follow-set structures `structureOf` built, and the
  * models `positionsOf` numbered.
@@ -103,16 +97,13 @@ const compose = await import("#pantry/grammar/compose.ts");
 const install = await import("#pantry/grammar/install.ts");
 
 describe("the content grammar's work", () => {
-  it.effect(
-    "states each content relation once, with exactly the rows install.ts installs",
-    () =>
-      Effect.sync(() => {
-        assert.deepStrictEqual(
-          Object.fromEntries(contentRelations.map((name) => [name, work.stated.get(name)])),
-          Object.fromEntries(contentRelations.map((name) => [name, [install[name].rows.length]])),
-        );
-      }),
-    testTimeoutMs,
+  it.effect("states each content relation once, with exactly the rows install.ts installs", () =>
+    Effect.sync(() => {
+      assert.deepStrictEqual(
+        Object.fromEntries(contentRelations.map((name) => [name, work.stated.get(name)])),
+        Object.fromEntries(contentRelations.map((name) => [name, [install[name].rows.length]])),
+      );
+    }),
   );
 
   it.effect(
@@ -146,6 +137,5 @@ describe("the content grammar's work", () => {
           install.ContentModel.handles.length,
         );
       }),
-    testTimeoutMs,
   );
 });

@@ -18,7 +18,6 @@ import type { FlatRows } from "#pantry/model/xdm.ts";
 import { caseHang, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { XdmFeature } from "#pantry/test/gen/xdm.ts";
 import { rowSetOf } from "#pantry/test/row-sets.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar every property draws its trees over.
@@ -287,7 +286,7 @@ const setOrders = [
   ["sets reversed", (rows) => rows.toReversed()],
 ] as const satisfies readonly (readonly [PagingFeature, SetOrder])[];
 
-describe("export/pages.ts", { timeout: searchTimeout }, () => {
+describe("export/pages.ts", () => {
   it.effect(
     "assembles every generated document to itself from its scan cut into pages at any boundaries and its sets in any order, as from one page",
     (ctx) =>

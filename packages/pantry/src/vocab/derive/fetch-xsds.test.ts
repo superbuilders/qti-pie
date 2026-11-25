@@ -54,7 +54,6 @@ import {
 } from "#pantry/vocab/derive/sources.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
 import type { XsdSource } from "#pantry/vocab/derive/sources.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The package directory, `packages/pantry`.
@@ -484,7 +483,6 @@ describe("pinFaults", () => {
           },
         ),
       ),
-    searchTimeout,
   );
 
   it.effect(
@@ -511,7 +509,6 @@ describe("pinFaults", () => {
           },
         ),
       ),
-    searchTimeout,
   );
 
   it("states one rule per fault kind it can report", () => {
@@ -866,34 +863,31 @@ const pinCasesOf: Gen<readonly PinCase[]> = (source) => {
 const fetchLayer = Layer.mergeAll(NodeServices.layer, Digest.layerWebCrypto);
 
 describe("fetchPinned", () => {
-  it.effect(
-    "settles one pin as the model says: every cache state against every answer",
-    (ctx) =>
-      // Oracle: the model, `expectationOf`, with digests by node:crypto. Bound: the 3 cache states
-      // and the 4 answers, 12 cases, exhausted.
-      searched(
-        ctx,
-        exhaust(
-          {
-            box: "one pin: each of the 3 cache states against each of the 4 answers",
-            caseHang,
-            concurrency: 1,
-            coverage: requiredInSpace<Situation>(SITUATIONS),
-            generator: (source) => source.draw(element(SITUATIONS)),
-            literal: Formatter.format,
-            oracle: { kind: "specification", name: "the fetcher's model" },
-            suite: "vocab/fetch-xsds/one-pin",
-          },
-          (situation, c) => {
-            c.note(situation);
+  it.effect("settles one pin as the model says: every cache state against every answer", (ctx) =>
+    // Oracle: the model, `expectationOf`, with digests by node:crypto. Bound: the 3 cache states
+    // and the 4 answers, 12 cases, exhausted.
+    searched(
+      ctx,
+      exhaust(
+        {
+          box: "one pin: each of the 3 cache states against each of the 4 answers",
+          caseHang,
+          concurrency: 1,
+          coverage: requiredInSpace<Situation>(SITUATIONS),
+          generator: (source) => source.draw(element(SITUATIONS)),
+          literal: Formatter.format,
+          oracle: { kind: "specification", name: "the fetcher's model" },
+          suite: "vocab/fetch-xsds/one-pin",
+        },
+        (situation, c) => {
+          c.note(situation);
 
-            return checkRun([
-              { ...pairOf[situation], bytes: new TextEncoder().encode("<xs:schema/>") },
-            ]);
-          },
-        ),
-      ).pipe(Effect.provide(fetchLayer)),
-    searchTimeout,
+          return checkRun([
+            { ...pairOf[situation], bytes: new TextEncoder().encode("<xs:schema/>") },
+          ]);
+        },
+      ),
+    ).pipe(Effect.provide(fetchLayer)),
   );
 
   it.effect(
@@ -922,6 +916,5 @@ describe("fetchPinned", () => {
           },
         ),
       ).pipe(Effect.provide(fetchLayer)),
-    searchTimeout,
   );
 });

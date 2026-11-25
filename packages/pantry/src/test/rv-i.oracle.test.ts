@@ -36,7 +36,6 @@ import { documentBreaches, judge, ruleOf, shownBreach, verdictOf } from "#pantry
 import type { Breach, Judgment, LawName, OracleRule } from "#pantry/test/oracle.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The QTI 3 ASI namespace, of every item element.
@@ -405,88 +404,82 @@ type DeclarationSituation =
   | "a body name refused"
   | "two names refused";
 
-describe(
-  "reading 131: the oracle's Namespace name over every declaration",
-  { timeout: searchTimeout },
-  () => {
-    it.effect(
-      "breaks Namespace name once at each declaration whose name is no URI reference, on the root and in the body alike, and nowhere else",
-      (ctx) =>
-        // Oracle: the specification as a checker, Namespaces in XML 1.0 §3 ("The attribute's
-        // normalized value MUST be either a URI reference … or an empty string") over each
-        // declaration the case writes, each name's verdict read off RFC 3986 Appendix A by hand.
-        // Bound: every item whose root and whose one paragraph each declare at most 2 prefixes over
-        // 4 names, 441.
-        searched(
-          ctx,
-          exhaust(
-            {
-              box: "every item whose root and paragraph each declare at most 2 prefixes over urn:x, %41, http://[bad and a b",
-              caseHang: Duration.seconds(30),
-              concurrency: 1,
-              coverage: requiredInSpace<DeclarationSituation>([
-                "no declaration",
-                "every name a reference",
-                "a root name refused",
-                "a body name refused",
-                "two names refused",
-              ]),
-              generator: (source) => ({
-                body: source.draw(declarationsOf),
-                root: source.draw(declarationsOf),
-              }),
-              literal: Formatter.format,
-              oracle: {
-                kind: "specification",
-                name: "Namespaces in XML 1.0 §3, RFC 3986 Appendix A",
-              },
-              suite: "test/oracle-namespace-name",
+describe("reading 131: the oracle's Namespace name over every declaration", () => {
+  it.effect(
+    "breaks Namespace name once at each declaration whose name is no URI reference, on the root and in the body alike, and nowhere else",
+    (ctx) =>
+      // Oracle: the specification as a checker, Namespaces in XML 1.0 §3 ("The attribute's
+      // normalized value MUST be either a URI reference … or an empty string") over each
+      // declaration the case writes, each name's verdict read off RFC 3986 Appendix A by hand.
+      // Bound: every item whose root and whose one paragraph each declare at most 2 prefixes over
+      // 4 names, 441.
+      searched(
+        ctx,
+        exhaust(
+          {
+            box: "every item whose root and paragraph each declare at most 2 prefixes over urn:x, %41, http://[bad and a b",
+            caseHang: Duration.seconds(30),
+            concurrency: 1,
+            coverage: requiredInSpace<DeclarationSituation>([
+              "no declaration",
+              "every name a reference",
+              "a root name refused",
+              "a body name refused",
+              "two names refused",
+            ]),
+            generator: (source) => ({
+              body: source.draw(declarationsOf),
+              root: source.draw(declarationsOf),
+            }),
+            literal: Formatter.format,
+            oracle: {
+              kind: "specification",
+              name: "Namespaces in XML 1.0 §3, RFC 3986 Appendix A",
             },
-            ({ body, root }, c) =>
-              Effect.gen(function* declarations() {
-                const refused = [
-                  ...root
-                    .filter(({ name }) => !isReference[name])
-                    .map(({ prefix }) => `root ${prefix}`),
-                  ...body
-                    .filter(({ name }) => !isReference[name])
-                    .map(({ prefix }) => `p ${prefix}`),
-                ];
-                if (root.length + body.length === 0) {
-                  c.note("no declaration");
-                } else if (refused.length === 0) {
-                  c.note("every name a reference");
-                }
+            suite: "test/oracle-namespace-name",
+          },
+          ({ body, root }, c) =>
+            Effect.gen(function* declarations() {
+              const refused = [
+                ...root
+                  .filter(({ name }) => !isReference[name])
+                  .map(({ prefix }) => `root ${prefix}`),
+                ...body.filter(({ name }) => !isReference[name]).map(({ prefix }) => `p ${prefix}`),
+              ];
+              if (root.length + body.length === 0) {
+                c.note("no declaration");
+              } else if (refused.length === 0) {
+                c.note("every name a reference");
+              }
 
-                if (refused.some((held) => held.startsWith("root"))) {
-                  c.note("a root name refused");
-                }
+              if (refused.some((held) => held.startsWith("root"))) {
+                c.note("a root name refused");
+              }
 
-                if (refused.some((held) => held.startsWith("p"))) {
-                  c.note("a body name refused");
-                }
+              if (refused.some((held) => held.startsWith("p"))) {
+                c.note("a body name refused");
+              }
 
-                if (refused.length >= 2) {
-                  c.note("two names refused");
-                }
+              if (refused.length >= 2) {
+                c.note("two names refused");
+              }
 
-                const breaches = (yield* breachesBelowReader(root, body)).filter(
-                  ({ law }) => law === "Namespace name",
-                );
+              const breaches = (yield* breachesBelowReader(root, body)).filter(
+                ({ law }) => law === "Namespace name",
+              );
 
-                assert.deepStrictEqual(
-                  breaches
-                    .map(
-                      ({ keys }) =>
-                        `${keys["node"]?.endsWith("/p[0]") === true ? "p" : "root"} ${keys["prefix"] ?? ""}`,
-                    )
-                    .toSorted(),
-                  refused.toSorted(),
-                  shown(breaches),
-                );
-              }),
-          ),
+              assert.deepStrictEqual(
+                breaches
+                  .map(
+                    ({ keys }) =>
+                      `${keys["node"]?.endsWith("/p[0]") === true ? "p" : "root"} ${keys["prefix"] ?? ""}`,
+                  )
+                  .toSorted(),
+                refused.toSorted(),
+                shown(breaches),
+              );
+            }),
         ),
-    );
-  },
-);
+      ),
+  );
+});

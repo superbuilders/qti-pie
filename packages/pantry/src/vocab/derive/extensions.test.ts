@@ -46,7 +46,6 @@ import { xsdDirectory } from "#pantry/vocab/derive/sources.ts";
 import { coveredElements } from "#pantry/vocab/inventory/extensions.ts";
 import { asiNamespace, mathmlNamespace } from "#pantry/vocab/namespaces.ts";
 import { xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The package folder, `packages/pantry`, which the committed leaf and oxfmt are relative to.
@@ -57,11 +56,6 @@ const packageRoot = path.resolve(import.meta.dirname, "../../..");
  * The leaf, relative to {@link packageRoot}.
  */
 const leafPath = "src/vocab/inventory/extensions.ts";
-
-/**
- * The timeout, in milliseconds, of the cache-gated tests: a hang guard.
- */
-const cacheTimeoutMs = 150_000;
 
 /**
  * How long one search case may run: each reads one small document.
@@ -99,42 +93,36 @@ const contextsInText = (text: string): ReadonlySet<string> =>
 describe("vocab/derive/extensions.ts over the pinned XSDs", () => {
   beforeAll(xsdCachePresent);
 
-  layer(SuiteLayer, { timeout: cacheTimeoutMs })("from the cache", (cached) => {
-    cached.effect(
-      "regenerates the leaf byte for byte after oxfmt",
-      () =>
-        Effect.gen(function* regenerate() {
-          const fs = yield* FileSystem.FileSystem;
+  layer(SuiteLayer)("from the cache", (cached) => {
+    cached.effect("regenerates the leaf byte for byte after oxfmt", () =>
+      Effect.gen(function* regenerate() {
+        const fs = yield* FileSystem.FileSystem;
 
-          assert.strictEqual(
-            yield* oxfmt(renderExtensions(yield* loadCovered()), leafPath),
-            yield* fs.readFileString(`${packageRoot}/${leafPath}`),
-          );
-        }),
-      cacheTimeoutMs,
+        assert.strictEqual(
+          yield* oxfmt(renderExtensions(yield* loadCovered()), leafPath),
+          yield* fs.readFileString(`${packageRoot}/${leafPath}`),
+        );
+      }),
     );
 
-    cached.effect(
-      "covers exactly the contexts the raw text of the patterns names, 127",
-      () =>
-        // Oracle: the pinned XSD as text, read by a regular expression and no XML reader; the
-        // count is reading 90's.
-        Effect.gen(function* againstTheText() {
-          const fs = yield* FileSystem.FileSystem;
-          const directory = yield* xsdDirectory;
-          const text = yield* fs.readFileString(`${directory}/${extensionSource}`);
-          const expected = contextsInText(text);
-          const leaf = coveredElements.map(({ element: named }) => named);
+    cached.effect("covers exactly the contexts the raw text of the patterns names, 127", () =>
+      // Oracle: the pinned XSD as text, read by a regular expression and no XML reader; the
+      // count is reading 90's.
+      Effect.gen(function* againstTheText() {
+        const fs = yield* FileSystem.FileSystem;
+        const directory = yield* xsdDirectory;
+        const text = yield* fs.readFileString(`${directory}/${extensionSource}`);
+        const expected = contextsInText(text);
+        const leaf = coveredElements.map(({ element: named }) => named);
 
-          assert.deepStrictEqual(
-            new Set(leaf.map(({ local }) => local)),
-            expected,
-            "the covered elements",
-          );
-          assert.isTrue(leaf.every(({ namespace }) => namespace === asiNamespace));
-          assert.strictEqual(expected.size, 127);
-        }),
-      cacheTimeoutMs,
+        assert.deepStrictEqual(
+          new Set(leaf.map(({ local }) => local)),
+          expected,
+          "the covered elements",
+        );
+        assert.isTrue(leaf.every(({ namespace }) => namespace === asiNamespace));
+        assert.strictEqual(expected.size, 127);
+      }),
     );
   });
 });
@@ -374,7 +362,6 @@ describe("coveredIn, over generated Schematron", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it.effect("reads a rule over another vocabulary's element in that vocabulary's namespace", () =>

@@ -18,7 +18,7 @@ import { foldGrammarOf, shredGrammarOf } from "#pantry/model/composed.ts";
 import { fold } from "#pantry/model/folds.ts";
 import { shred } from "#pantry/model/shred.ts";
 import { documentBreaches, lawsOf } from "#pantry/test/oracle.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's tables, read from the composed grammar once.
@@ -186,7 +186,7 @@ const textsOver = (alphabet: readonly [string, ...string[]]): Gen<string> => {
   return (source) => source.draw(letters).join("");
 };
 
-describe("qti/mapping.ts, a typed map key read collapsed", { timeout: searchTimeout }, () => {
+describe("qti/mapping.ts, a typed map key read collapsed", () => {
   it.effect("admits an integer key exactly where its collapsed text is an integer", (ctx) =>
     // Oracle: the specification as a checker: XML Schema 1.0 Part 2 §4.3.6, `xs:integer`'s
     // `whiteSpace` is `collapse`, and §3.3.13's lexical space, an optional sign and digits, so a

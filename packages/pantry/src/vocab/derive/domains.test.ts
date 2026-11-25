@@ -8,7 +8,6 @@ import { searched } from "@bjornpagen/testing/vitest";
 import { Duration, Effect, Formatter, Result } from "effect";
 import { anyUriPattern, patternFlags, translatePattern } from "#pantry/grammar/domains.ts";
 import { builtinDomainOf } from "#pantry/vocab/derive/domains.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The anyURI pattern as the schema reads it: {@link anyUriPattern} through the one translation of
@@ -534,39 +533,36 @@ describe("vocab/derive/domains.ts, xs:anyURI", () => {
     }
   });
 
-  it.effect(
-    "agrees with the RFC 2396 and RFC 2732 interpreter on every fuzzed value",
-    (ctx) =>
-      searched(
-        ctx,
-        explore(
-          {
-            caseHang: Duration.minutes(1),
-            concurrency: 1,
-            coverage: noCoverage,
-            draw: drawn(candidate),
-            kept: [],
-            literal: Formatter.format,
-            oracle: {
-              kind: "specification",
-              name: "an interpreter of RFC 2396's and RFC 2732's URI-reference grammar (specified), not the pattern",
-            },
-            runs: 4000,
-            shrink: completeShrink,
-            steerEvery: 16,
-            suite: "vocab/domains-anyuri",
+  it.effect("agrees with the RFC 2396 and RFC 2732 interpreter on every fuzzed value", (ctx) =>
+    searched(
+      ctx,
+      explore(
+        {
+          caseHang: Duration.minutes(1),
+          concurrency: 1,
+          coverage: noCoverage,
+          draw: drawn(candidate),
+          kept: [],
+          literal: Formatter.format,
+          oracle: {
+            kind: "specification",
+            name: "an interpreter of RFC 2396's and RFC 2732's URI-reference grammar (specified), not the pattern",
           },
-          (value) =>
-            Effect.sync(() => {
-              if (anyUri.test(value) !== specified(value)) {
-                throw new Error(
-                  `the pattern ${anyUri.test(value) ? "admits" : "refuses"} ${JSON.stringify(value)}, which the grammar ${specified(value) ? "admits" : "refuses"}`,
-                );
-              }
-            }),
-        ),
+          runs: 4000,
+          shrink: completeShrink,
+          steerEvery: 16,
+          suite: "vocab/domains-anyuri",
+        },
+        (value) =>
+          Effect.sync(() => {
+            if (anyUri.test(value) !== specified(value)) {
+              throw new Error(
+                `the pattern ${anyUri.test(value) ? "admits" : "refuses"} ${JSON.stringify(value)}, which the grammar ${specified(value) ? "admits" : "refuses"}`,
+              );
+            }
+          }),
       ),
-    searchTimeout,
+    ),
   );
 
   it("is the lexical pattern of the anyURI built-in's domain, which collapses its value", () => {

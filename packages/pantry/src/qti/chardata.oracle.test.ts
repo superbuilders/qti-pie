@@ -62,7 +62,7 @@ import type { XdmFeature } from "#pantry/test/gen/xdm.ts";
 import { lawNames } from "#pantry/test/oracle.ts";
 import { isUriReference } from "#pantry/test/uri-reference.ts";
 import { mathmlNamespace, namespaceClassOf, namespaceNameOf } from "#pantry/vocab/namespaces.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 import { asi } from "#pantry/test/probe.ts";
 
 /**
@@ -805,7 +805,6 @@ describe("qti/chardata.ts", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it.effect(
@@ -881,7 +880,6 @@ describe("qti/chardata.ts", () => {
 
         assert.strictEqual(exhausted.cases, limit);
       }),
-    searchTimeout,
   );
 
   it.effect(
@@ -955,7 +953,6 @@ describe("qti/chardata.ts", () => {
 
         assert.strictEqual(exhausted.cases, limit);
       }),
-    searchTimeout,
   );
 
   it("refuses a colon in an entity reference's name at the reader and in its row, as Namespaces in XML 1.0 §7 does", () => {
@@ -1095,7 +1092,6 @@ describe("qti/chardata.ts", () => {
 
         assert.strictEqual(exhausted.cases, slotVariants.length);
       }),
-    searchTimeout,
   );
 });
 
@@ -1383,7 +1379,6 @@ describe("qti/chardata.ts, a namespace name is an RFC 3986 URI reference (readin
 
         assert.strictEqual(exhausted.cases, limit);
       }),
-    searchTimeout,
   );
 
   it.effect(
@@ -1423,7 +1418,6 @@ describe("qti/chardata.ts, a namespace name is an RFC 3986 URI reference (readin
 
         assert.strictEqual(exhausted.cases, limit);
       }),
-    searchTimeout,
   );
 
   it.effect(
@@ -1491,6 +1485,5 @@ describe("qti/chardata.ts, a namespace name is an RFC 3986 URI reference (readin
             }),
         ),
       ),
-    searchTimeout,
   );
 });

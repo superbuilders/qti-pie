@@ -56,12 +56,6 @@ const readingsFile = path.resolve(
 const unownedCeiling = 0;
 
 /**
- * The timeout, in milliseconds, for the census test, which takes the census of the grammar built
- * above and writes one file: a hang guard.
- */
-const censusTimeoutMs = 20_000;
-
-/**
  * Write a rule as one line.
  *
  * @param rule - The rule.
@@ -72,63 +66,60 @@ const ruleLine = (rule: Rule): string =>
 
 describe("alignment.test.ts, the census", () => {
   layer(NodeServices.layer, { excludeTestServices: true })("every XSD rule and reading", (it) => {
-    it.effect(
-      "no rule is contradicted, every reading is held, and the unowned count holds",
-      () =>
-        Effect.gen(function* takeCensus() {
-          const fs = yield* FileSystem.FileSystem;
-          const rules = census(grammar);
-          const counts = countsOf(rules);
-          const numbered = [
-            ...readFileSync(readingsFile, "utf-8").matchAll(/^(?<number>\d+)\. \*\*/gmu),
-          ].map((found) => Number(found.groups?.["number"]));
+    it.effect("no rule is contradicted, every reading is held, and the unowned count holds", () =>
+      Effect.gen(function* takeCensus() {
+        const fs = yield* FileSystem.FileSystem;
+        const rules = census(grammar);
+        const counts = countsOf(rules);
+        const numbered = [
+          ...readFileSync(readingsFile, "utf-8").matchAll(/^(?<number>\d+)\. \*\*/gmu),
+        ].map((found) => Number(found.groups?.["number"]));
 
-          yield* fs.makeDirectory(outputRoot, { recursive: true });
-          yield* fs.writeFileString(
-            `${outputRoot}/rules.tsv`,
-            [
-              "family\tparent\tsubject\tstatus\towner\tdetail",
-              ...rules.map((rule) =>
-                [rule.family, rule.parent, rule.subject, rule.status, rule.owner, rule.detail]
-                  .map((field) => field.replaceAll(/[\t\r\n]+/gu, " "))
-                  .join("\t"),
-              ),
-            ]
-              .map((line) => `${line}\n`)
-              .join(""),
-          );
-          yield* Console.log(
-            [
-              `alignment: ${String(counts.total)} rules; unowned ${String(counts.unowned)} (ceiling ${String(unownedCeiling)})`,
-              ...Object.entries(counts.byFamily).map(
-                ([family, held]) =>
-                  `  ${family}: ${statuses
-                    .flatMap((status) =>
-                      held[status] === undefined ? [] : [`${status} ${String(held[status])}`],
-                    )
-                    .join(", ")}`,
-              ),
-            ].join("\n"),
-          );
+        yield* fs.makeDirectory(outputRoot, { recursive: true });
+        yield* fs.writeFileString(
+          `${outputRoot}/rules.tsv`,
+          [
+            "family\tparent\tsubject\tstatus\towner\tdetail",
+            ...rules.map((rule) =>
+              [rule.family, rule.parent, rule.subject, rule.status, rule.owner, rule.detail]
+                .map((field) => field.replaceAll(/[\t\r\n]+/gu, " "))
+                .join("\t"),
+            ),
+          ]
+            .map((line) => `${line}\n`)
+            .join(""),
+        );
+        yield* Console.log(
+          [
+            `alignment: ${String(counts.total)} rules; unowned ${String(counts.unowned)} (ceiling ${String(unownedCeiling)})`,
+            ...Object.entries(counts.byFamily).map(
+              ([family, held]) =>
+                `  ${family}: ${statuses
+                  .flatMap((status) =>
+                    held[status] === undefined ? [] : [`${status} ${String(held[status])}`],
+                  )
+                  .join(", ")}`,
+            ),
+          ].join("\n"),
+        );
 
-          assert.deepStrictEqual(
-            rules.filter(({ status }) => status === "X").map(ruleLine),
-            [],
-            "no rule is contradicted without a recorded reading or a ruled gap",
-          );
-          assert.deepStrictEqual(
-            [...readings.keys()].toSorted((left, right) => left - right),
-            numbered.toSorted((left, right) => left - right),
-            "the census holds exactly the readings docs/spec-readings.md states",
-          );
-          assert.isAtMost(counts.unowned, unownedCeiling, "the unowned count only goes down");
-          assert.strictEqual(
-            counts.unowned,
-            unownedCeiling,
-            "the unowned count moved down: record the new count as the ceiling",
-          );
-        }),
-      { timeout: censusTimeoutMs },
+        assert.deepStrictEqual(
+          rules.filter(({ status }) => status === "X").map(ruleLine),
+          [],
+          "no rule is contradicted without a recorded reading or a ruled gap",
+        );
+        assert.deepStrictEqual(
+          [...readings.keys()].toSorted((left, right) => left - right),
+          numbered.toSorted((left, right) => left - right),
+          "the census holds exactly the readings docs/spec-readings.md states",
+        );
+        assert.isAtMost(counts.unowned, unownedCeiling, "the unowned count only goes down");
+        assert.strictEqual(
+          counts.unowned,
+          unownedCeiling,
+          "the unowned count moved down: record the new count as the ceiling",
+        );
+      }),
     );
   });
 });

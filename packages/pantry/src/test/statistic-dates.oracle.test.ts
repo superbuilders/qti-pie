@@ -22,7 +22,6 @@ import { materialize } from "#pantry/test/fixtures.ts";
 import { judge, verdictOf } from "#pantry/test/oracle.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The years of the box: the year 0000 xs:date has none of, the first and the last, a common and a
@@ -230,7 +229,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             ),
           );
         }),
-      searchTimeout,
     );
   },
 );

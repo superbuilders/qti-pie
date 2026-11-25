@@ -23,7 +23,7 @@ import {
 } from "#pantry/vocab/namespaces.ts";
 import { foreignRoots, schemaSets } from "#pantry/vocab/open.ts";
 import { admittedOf } from "#pantry/test/indexes.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar of production. It is composed once, when the module loads.
@@ -113,7 +113,6 @@ describe("patternLiteral", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 });
 
@@ -191,7 +190,6 @@ describe("KindByNameUnder", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 });
 
@@ -279,7 +277,6 @@ describe("TypeAvailable", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it("names every vocabulary's namespace, and no other text, in the vocabulary pattern", () => {

@@ -22,12 +22,6 @@ import { laws } from "#pantry/test/installed-laws.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 
 /**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 600_000;
-
-/**
  * The keys the box must read somewhere, each a key a refusal of the DB tier named: a binding per
  * response and a hottext per identifier, each over its assembly where one places a fragment. A
  * document per path is `Document`'s primary key, `(package, path)`, which a keyed set of the
@@ -84,7 +78,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             "keys no fixture let the box read",
           );
         }),
-      testTimeoutMs,
     );
   },
 );

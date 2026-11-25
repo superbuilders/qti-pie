@@ -23,7 +23,6 @@ import { Duration, Effect, Formatter, Option } from "effect";
 import { probeErrorsOf } from "#pantry/test/gen/xmllint.ts";
 import type { ValidityError } from "#pantry/test/gen/xmllint.ts";
 import { verdictsOf } from "#pantry/xml/oracle.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The batch's path in every report.
@@ -184,47 +183,44 @@ const reachedBy = (drawnCase: ReportCase): readonly Reached[] => [
 ];
 
 describe("the vocabulary XSD oracle's batch reading", () => {
-  it.effect(
-    "reads each probe's errors from libxml2 2.12's report and from 2.13's alike",
-    (ctx) =>
-      searched(
-        ctx,
-        explore(
-          {
-            caseHang: Duration.seconds(30),
-            concurrency: 1,
-            coverage: required<Reached>(
-              ["2.12 prefix", "attribute", "identity", "warning", "several on one probe"],
-              { cases: 200, sense: notesOnly },
-            ),
-            draw: drawn(reportCase),
-            kept: [],
-            literal: Formatter.format,
-            oracle: {
-              kind: "second-implementation",
-              name: "the errors each report was written from, in libxml2 2.12's and 2.13's formats",
-            },
-            runs: 400,
-            shrink: completeShrink,
-            steerEvery: 16,
-            suite: "pantry/test/gen/xmllint-batch-report",
+  it.effect("reads each probe's errors from libxml2 2.12's report and from 2.13's alike", (ctx) =>
+    searched(
+      ctx,
+      explore(
+        {
+          caseHang: Duration.seconds(30),
+          concurrency: 1,
+          coverage: required<Reached>(
+            ["2.12 prefix", "attribute", "identity", "warning", "several on one probe"],
+            { cases: 200, sense: notesOnly },
+          ),
+          draw: drawn(reportCase),
+          kept: [],
+          literal: Formatter.format,
+          oracle: {
+            kind: "second-implementation",
+            name: "the errors each report was written from, in libxml2 2.12's and 2.13's formats",
           },
-          (drawnCase, c) =>
-            Effect.gen(function* agree() {
-              c.noteAll(reachedBy(drawnCase));
+          runs: 400,
+          shrink: completeShrink,
+          steerEvery: 16,
+          suite: "pantry/test/gen/xmllint-batch-report",
+        },
+        (drawnCase, c) =>
+          Effect.gen(function* agree() {
+            c.noteAll(reachedBy(drawnCase));
 
-              const expected = modelOf(drawnCase);
+            const expected = modelOf(drawnCase);
 
-              for (const format of ["2.12", "2.13"] as const) {
-                assert.deepStrictEqual(
-                  yield* readBack(drawnCase, reportOf(drawnCase, format)),
-                  expected,
-                  format,
-                );
-              }
-            }),
-        ),
+            for (const format of ["2.12", "2.13"] as const) {
+              assert.deepStrictEqual(
+                yield* readBack(drawnCase, reportOf(drawnCase, format)),
+                expected,
+                format,
+              );
+            }
+          }),
       ),
-    searchTimeout,
+    ),
   );
 });

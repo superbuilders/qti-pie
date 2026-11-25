@@ -32,7 +32,6 @@ import { genomeOf } from "#pantry/test/gen/genetic/genome.ts";
 import { judgeOne, shownDisagreement } from "#pantry/test/gen/genetic/judge.ts";
 import { lawsOf } from "#pantry/test/oracle.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's law tables over the composed grammar.
@@ -159,69 +158,66 @@ describe("the schema's keys over items", () => {
 layer(NodeServices.layer, { excludeTestServices: true })(
   "items that share an identifier",
   (scoped) => {
-    scoped.effect(
-      "are admitted, on the import's rows as in the law oracle",
-      (ctx) =>
-        searched(
-          ctx,
-          Effect.gen(function* sharedIdentifierRuns() {
-            const directory = yield* scratchDirectory("shared-identifier-");
-            const bench = { directory, grammar, laws };
+    scoped.effect("are admitted, on the import's rows as in the law oracle", (ctx) =>
+      searched(
+        ctx,
+        Effect.gen(function* sharedIdentifierRuns() {
+          const directory = yield* scratchDirectory("shared-identifier-");
+          const bench = { directory, grammar, laws };
 
-            return yield* exhaust(
-              {
-                box: "two or three items of one package, under one identifier as is or padded, or each its own",
-                caseHang: Duration.minutes(5),
-                concurrency: 1,
-                coverage: requiredInSpace<Situation>([
-                  "three items share one identifier",
-                  "two share it once collapsed",
-                ]),
-                generator: int(0, cases.length - 1),
-                literal: (at) =>
-                  Option.match(Option.fromUndefinedOr(cases[at]), {
-                    onNone: () => String(at),
-                    onSome: literalOf,
-                  }),
-                oracle: {
-                  kind: "specification",
-                  name: "QTI 3.0 information model §4.1.1 (info:6346) and §7.43 (info:83233)",
-                },
-                suite: "pantry/shared-identifier",
-              },
-              (at, c) =>
-                Effect.gen(function* sharedIdentifierCase() {
-                  const input = cases[at];
-                  assert.isDefined(input, `no case ${String(at)}`);
-                  if (input === undefined) {
-                    return;
-                  }
-
-                  if (input.items === 3 && input.spelling === "same") {
-                    c.note("three items share one identifier");
-                  }
-
-                  if (input.spelling === "padded before" || input.spelling === "padded after") {
-                    c.note("two share it once collapsed");
-                  }
-
-                  const judged = yield* judgeOne(yield* genomeOf(packageOf(input)), bench, at);
-
-                  assert.deepStrictEqual(
-                    judged.disagreements.map(shownDisagreement),
-                    [],
-                    literalOf(input),
-                  );
-                  assert.deepStrictEqual(
-                    judged.summary,
-                    { import: "built ", oracle: "laws " },
-                    literalOf(input),
-                  );
+          return yield* exhaust(
+            {
+              box: "two or three items of one package, under one identifier as is or padded, or each its own",
+              caseHang: Duration.minutes(5),
+              concurrency: 1,
+              coverage: requiredInSpace<Situation>([
+                "three items share one identifier",
+                "two share it once collapsed",
+              ]),
+              generator: int(0, cases.length - 1),
+              literal: (at) =>
+                Option.match(Option.fromUndefinedOr(cases[at]), {
+                  onNone: () => String(at),
+                  onSome: literalOf,
                 }),
-            );
-          }).pipe(Effect.scoped),
-        ),
-      searchTimeout,
+              oracle: {
+                kind: "specification",
+                name: "QTI 3.0 information model §4.1.1 (info:6346) and §7.43 (info:83233)",
+              },
+              suite: "pantry/shared-identifier",
+            },
+            (at, c) =>
+              Effect.gen(function* sharedIdentifierCase() {
+                const input = cases[at];
+                assert.isDefined(input, `no case ${String(at)}`);
+                if (input === undefined) {
+                  return;
+                }
+
+                if (input.items === 3 && input.spelling === "same") {
+                  c.note("three items share one identifier");
+                }
+
+                if (input.spelling === "padded before" || input.spelling === "padded after") {
+                  c.note("two share it once collapsed");
+                }
+
+                const judged = yield* judgeOne(yield* genomeOf(packageOf(input)), bench, at);
+
+                assert.deepStrictEqual(
+                  judged.disagreements.map(shownDisagreement),
+                  [],
+                  literalOf(input),
+                );
+                assert.deepStrictEqual(
+                  judged.summary,
+                  { import: "built ", oracle: "laws " },
+                  literalOf(input),
+                );
+              }),
+          );
+        }).pipe(Effect.scoped),
+      ),
     );
   },
 );

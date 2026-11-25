@@ -55,13 +55,7 @@ import { documentBreaches, lawNames, lawsOf, oracleRules, ruleOf } from "#pantry
 import type { LawName } from "#pantry/test/oracle.ts";
 import { asi, edit, item, itemResource, manifestOf, packageOf } from "#pantry/test/probe.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 420_000;
+import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar `install.ts` declares its relations from, read once when it loads.
@@ -218,28 +212,24 @@ const written = {
 } as const;
 
 describe("Node's declarations", () => {
-  it(
-    "build into a schema of the closed relations they read, with stand-ins for the attribute and namespace families, and a role and login over it",
-    () => {
-      // Oracle: grizzle's own admission, which refuses a malformed description, a side over a field
-      // the relation lacks and a statement over a relation the schema does not hold when the schema
-      // is built. The plan's refusals (two sequences, an axis's naming, a leaving copy) are the
-      // compiler's: the scratch `grizzle generate` in the slice report drafts the same schema.
-      const built = scratchSchema();
-      const author = role(
-        built,
-        "author",
-        { Node, StandInAttribute },
-        {
-          insert: ["Node", "StandInAttribute"],
-        },
-      );
+  it("build into a schema of the closed relations they read, with stand-ins for the attribute and namespace families, and a role and login over it", () => {
+    // Oracle: grizzle's own admission, which refuses a malformed description, a side over a field
+    // the relation lacks and a statement over a relation the schema does not hold when the schema
+    // is built. The plan's refusals (two sequences, an axis's naming, a leaving copy) are the
+    // compiler's: the scratch `grizzle generate` in the slice report drafts the same schema.
+    const built = scratchSchema();
+    const author = role(
+      built,
+      "author",
+      { Node, StandInAttribute },
+      {
+        insert: ["Node", "StandInAttribute"],
+      },
+    );
 
-      assert.strictEqual(built.name, "NodeScratch");
-      assert.strictEqual(login(built, "scratch_app", [author]).name, "scratch_app");
-    },
-    testTimeoutMs,
-  );
+    assert.strictEqual(built.name, "NodeScratch");
+    assert.strictEqual(login(built, "scratch_app", [author]).name, "scratch_app");
+  });
 
   it("names every check by an oracle law, each mapped to a rule, and states each law once on each relation", () => {
     // Oracle: the specification as a checker, the oracle's law list and its rule map
@@ -507,7 +497,7 @@ const foldedNodes = (document: XdmDocument<Composed>) =>
  */
 const keyOf = (node: FoldedNode<Composed>) => ({ kind: node.kind, parent: node.parentKind });
 
-describe("N5, content order", { timeout: searchTimeout }, () => {
+describe("N5, content order", () => {
   it.effect(
     "admits exactly stepOf's state for every child kind of every family from every state",
     (ctx) =>
@@ -572,7 +562,6 @@ describe("N5, content order", { timeout: searchTimeout }, () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it.effect(
@@ -1109,7 +1098,6 @@ describe("the memberships of a node's own position, by the host judge", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 });
 

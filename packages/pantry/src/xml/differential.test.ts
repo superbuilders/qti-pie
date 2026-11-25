@@ -21,7 +21,6 @@ import { encode } from "@qti-pie/crust/encode.ts";
 import { EncodeError } from "@qti-pie/crust/errors.ts";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { OracleLayer, xmllintC14n } from "#pantry/xml/oracle.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 const TestLayer = OracleLayer.pipe(
   Layer.provideMerge(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)),
@@ -513,6 +512,5 @@ describe("crust's reader as pantry uses it", () => {
           );
         }).pipe(Effect.scoped, Effect.provide(TestLayer)),
       ),
-    searchTimeout,
   );
 });

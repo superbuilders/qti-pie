@@ -56,13 +56,6 @@ import {
 } from "#pantry/vocab/inventory/attributes.ts";
 import { OracleLayer, xmllintC14n, xmllintValidate } from "#pantry/xml/oracle.ts";
 import type { XsdVerdict } from "#pantry/xml/oracle.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 240_000;
 
 /**
  * The composed grammar every property draws its trees over, and reads and writes them through.
@@ -247,7 +240,7 @@ const rewritten =
  */
 const crust = (tree: XdmDocument<Composed>): XmlDocument => toXmlDocument(tree, names);
 
-describe("shred and unshred", { timeout: searchTimeout }, () => {
+describe("shred and unshred", () => {
   it.effect(
     "give back every generated row set: shred ∘ unshred ∘ assemble is the identity on flatten's rows, under any ids",
     (ctx) =>
@@ -470,7 +463,7 @@ const unmodeled = [
  */
 type Unmodeled = (typeof unmodeled)[number];
 
-describe("shred's refusals", { timeout: searchTimeout }, () => {
+describe("shred's refusals", () => {
   it.effect(
     "refuses each name it has no handle for, with its reason and where it is, and an XML version other than 1.x",
     (ctx) =>
@@ -1260,7 +1253,6 @@ describe("a foreign element's governing type (spec readings 60 and 83)", () => {
         assert.strictEqual(compared, laxArms.length);
         assert.deepStrictEqual(disagreements, []);
       }).pipe(Effect.scoped, Effect.provide(OracleLayer), Effect.provide(XsdOracleLayer)),
-    testTimeoutMs,
   );
 });
 
@@ -1469,7 +1461,6 @@ describe("an element under its governing type (spec reading 84)", () => {
 
         assert.deepStrictEqual(disagreements, []);
       }).pipe(Effect.scoped, Effect.provide(OracleLayer), Effect.provide(XsdOracleLayer)),
-    150_000,
   );
 
   it.effect(
@@ -1591,7 +1582,6 @@ describe("an element under its governing type (spec reading 84)", () => {
         assert.isAbove(governors, 0);
         assert.deepStrictEqual(disagreements, []);
       }).pipe(Effect.scoped, Effect.provide(OracleLayer), Effect.provide(XsdOracleLayer)),
-    420_000,
   );
 });
 
@@ -1770,7 +1760,6 @@ describe("a strict wildcard's undeclared element (spec reading 81)", () => {
         assert.strictEqual(compared, 14);
         assert.deepStrictEqual(disagreements, []);
       }).pipe(Effect.scoped, Effect.provide(OracleLayer), Effect.provide(XsdOracleLayer)),
-    testTimeoutMs,
   );
 });
 
@@ -1930,7 +1919,6 @@ describe("a reading 6 root under a strict wildcard (C13)", () => {
         assert.strictEqual(accepted, 1);
         assert.deepStrictEqual(disagreements, []);
       }).pipe(Effect.scoped, Effect.provide(OracleLayer), Effect.provide(XsdOracleLayer)),
-    testTimeoutMs,
   );
 });
 

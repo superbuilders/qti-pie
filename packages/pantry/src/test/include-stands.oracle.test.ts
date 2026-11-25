@@ -39,7 +39,6 @@ import { judge as judgeOracle, lawsOf } from "#pantry/test/oracle.ts";
 import { databaseJudgedLawNames } from "#pantry/test/law-namer.ts";
 import { lawNameOf } from "#pantry/import/refusal.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The include parents of the box: an item's body, where a paragraph may stand and a rule may not,
@@ -281,11 +280,6 @@ const named = (laws: readonly { readonly law: Law }[]): ReadonlySet<string> =>
   new Set(laws.flatMap(({ law }) => Option.toArray(lawNameOf(law))));
 
 /**
- * The timeout, in milliseconds, that this file's test states: a hang guard.
- */
-const testTimeoutMs = 120_000;
-
-/**
  * The oracle's law tables over the installed grammar.
  */
 const oracleLaws = lawsOf(grammar);
@@ -395,7 +389,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             ),
           { discard: true },
         ),
-      testTimeoutMs,
     );
   },
 );
@@ -500,7 +493,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               ),
           ),
         ),
-      searchTimeout,
     );
   },
 );

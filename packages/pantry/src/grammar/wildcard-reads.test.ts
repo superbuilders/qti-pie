@@ -29,12 +29,6 @@ import { globalKinds } from "#pantry/vocab/inventory/vocabularies.ts";
 import { admittedOf } from "#pantry/test/indexes.ts";
 
 /**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 120_000;
-
-/**
  * The composed grammar.
  */
 const grammar = Result.getOrThrow(composed());
@@ -111,7 +105,6 @@ describe("a wildcard's global elements", () => {
             "no wildcard admits a global its schema sets do not declare",
           );
         }),
-      { timeout: testTimeoutMs },
     );
   });
 });

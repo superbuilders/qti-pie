@@ -41,13 +41,7 @@ import type { Entry, PackageFile } from "#pantry/package/read.ts";
 import { packageBudget, readZip, writeZip, ZipRefusal } from "#pantry/package/zip.ts";
 import type { ZipBudget, ZipEntry } from "#pantry/package/zip.ts";
 import { materializeCorpus, materializeZip } from "#pantry/test/fixtures.ts";
-import { settings, searchTimeout } from "#pantry/test/settings.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 300_000;
+import { settings } from "#pantry/test/settings.ts";
 
 /**
  * The file system the readers need, and the process spawner and path service the fixture
@@ -1001,7 +995,6 @@ describe("package/zip.ts readZip, and package/read.ts over a .zip", () => {
           );
         }).pipe(Effect.scoped, Effect.provide(TestLayer)),
       ),
-    searchTimeout,
   );
 });
 
@@ -1141,7 +1134,6 @@ describe("package/zip.ts readZip under a drawn budget", () => {
           );
         }).pipe(Effect.scoped, Effect.provide(TestLayer)),
       ),
-    searchTimeout,
   );
 });
 
@@ -1267,7 +1259,6 @@ describe("package/zip.ts writeZip", () => {
           );
         }).pipe(Effect.scoped, Effect.provide(TestLayer)),
       ),
-    searchTimeout,
   );
 });
 
@@ -1333,6 +1324,5 @@ describe("package/read.ts over the corpus", () => {
         // moves it.
         assert.strictEqual(files, 638);
       }).pipe(Effect.provide(TestLayer)),
-    { timeout: testTimeoutMs },
   );
 });

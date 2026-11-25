@@ -26,7 +26,6 @@ import {
 } from "#pantry/vocab/namespaces.ts";
 import { caseHang, closedElements, editElement, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import { rowSetOf } from "#pantry/test/row-sets.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar every property draws its trees over, and reads and writes them through.
@@ -130,7 +129,7 @@ const unreferencedPoints = (document: XdmDocument<Composed>): readonly number[] 
   return found;
 };
 
-describe("unshred", { timeout: searchTimeout }, () => {
+describe("unshred", () => {
   it.effect(
     "writes adjacent runs of character data as one, so a run split in two reads back whole, a ]]> across the split included",
     (ctx) =>

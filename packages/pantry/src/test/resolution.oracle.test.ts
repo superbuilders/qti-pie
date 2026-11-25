@@ -28,7 +28,7 @@ import type { WhiteSpaceClass } from "#pantry/grammar/domains.ts";
 import type { HrefResolution } from "#pantry/import/overlays/package.ts";
 import { oracleValueOf, resolve } from "#pantry/test/resolution.ts";
 import type { OracleResolution } from "#pantry/test/resolution.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
  * One href as the importer resolves it: its document's path, the `xml:base` values in scope,
@@ -543,7 +543,6 @@ describe("import/overlays/package.ts resolveIn against test/resolution.ts", () =
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it.effect(
@@ -583,7 +582,6 @@ describe("import/overlays/package.ts resolveIn against test/resolution.ts", () =
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it("resolves the readings' own examples as reading 102 states them", () => {

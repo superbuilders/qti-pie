@@ -21,14 +21,6 @@ import { readerOrigin, RefusedKind, WitnessKind } from "#pantry/package/refusal-
 import { lawTable } from "#pantry/vocab/laws.ts";
 import { captureCli, matchesCommitted, packageCopy } from "#pantry/test/cli.ts";
 import { fileScratchDirectory, makeScratch, scratchEnv } from "#pantry/test/scratch.ts";
-// The modules this file's commands import lazily, loaded with the file, so no test or hook pays that
-// load inside its timeout: the package name's check, which `import` and `roundtrip` run first
-// (`requireName`, `#pantry/cli/args.ts`), and the layers `withAuthorApp` (`#pantry/cli/engine.ts`)
-// builds, where a missing local set-up fails with kind `config`. No command here reaches an
-// importer, a preview or an exporter, so none of them loads.
-import "#pantry/qti/limits.ts";
-import "#pantry/db/layer.ts";
-import "#pantry/package/media.ts";
 
 const fixtures = inject("fixtures");
 

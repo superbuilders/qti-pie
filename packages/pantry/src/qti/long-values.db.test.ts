@@ -155,7 +155,6 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
     ),
     {
       excludeTestServices: true,
-      timeout: "120 seconds",
     },
   )("a long string value, stored and exported", (it) => {
     for (const bytes of lengths) {

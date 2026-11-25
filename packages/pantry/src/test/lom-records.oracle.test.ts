@@ -23,7 +23,6 @@ import { judge } from "#pantry/test/oracle.ts";
 import type { LawName } from "#pantry/test/oracle.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Every case of the box: what the resource's record names for each, by the file's record.
@@ -117,7 +116,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             ),
           );
         }),
-      searchTimeout,
     );
   },
 );

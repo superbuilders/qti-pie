@@ -78,7 +78,6 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
     ),
     {
       excludeTestServices: true,
-      timeout: "120 seconds",
     },
   )("export on the lease", (it) => {
     it.effect("--dry-run writes nothing and lists the files a real export writes", () =>

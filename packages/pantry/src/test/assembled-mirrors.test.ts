@@ -28,12 +28,6 @@ import { oracleVerdict } from "#pantry/test/oracle-verdict.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 
 /**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 600_000;
-
-/**
  * Whether a law side reads exactly `relation`'s fields `fields`, in order.
  *
  * @param side - The side.
@@ -124,7 +118,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
           }),
         ),
-      testTimeoutMs,
     );
   },
 );

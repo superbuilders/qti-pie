@@ -49,7 +49,6 @@ import { laws } from "#pantry/test/installed-laws.ts";
 import { filesOf } from "#pantry/test/oracle-complete/mutation.ts";
 import { judge, ruleOf, shownBreach } from "#pantry/test/oracle.ts";
 import { byPlace, nodePlacesOf, placeKey } from "#pantry/test/places.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Hold one case to the oracle and its rows to the laws.
@@ -178,7 +177,6 @@ describe("choices and their interactions (lane NIL's audit, B5 and B6)", () => {
           },
         ),
       ),
-    searchTimeout,
   );
 
   it.effect(
@@ -208,6 +206,5 @@ describe("choices and their interactions (lane NIL's audit, B5 and B6)", () => {
           holds,
         ),
       ),
-    searchTimeout,
   );
 });

@@ -7,12 +7,6 @@ import { OracleLayer, xmllintC14n } from "#pantry/xml/oracle.ts";
 import { readXml } from "@qti-pie/crust/read.ts";
 
 /**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 600_000;
-
-/**
  * Whether the operator asked for the corpus run: it reads 29 packages and spawns `xmllint` once
  * per file, so it runs only on request.
  */
@@ -55,57 +49,54 @@ const firstDifference = (a: Uint8Array, b: Uint8Array): number => {
 };
 
 layer(TestLayer)("xml/canonical.ts over the corpus", (it) => {
-  it.effect.skipIf(!requested)(
-    "every corpus XML file canonicalizes to the oracle's bytes",
-    () =>
-      Effect.gen(function* corpus() {
-        const fs = yield* FileSystem.FileSystem;
-        const packages = yield* materializeCorpus();
-        const skipped = new Set(excluded.map(([pkg, path]) => `${pkg}\u0000${path}`));
-        const disagreements: string[] = [];
-        let compared = 0;
-        let seen = 0;
+  it.effect.skipIf(!requested)("every corpus XML file canonicalizes to the oracle's bytes", () =>
+    Effect.gen(function* corpus() {
+      const fs = yield* FileSystem.FileSystem;
+      const packages = yield* materializeCorpus();
+      const skipped = new Set(excluded.map(([pkg, path]) => `${pkg}\u0000${path}`));
+      const disagreements: string[] = [];
+      let compared = 0;
+      let seen = 0;
 
-        for (const { dir, name } of packages) {
-          const entries = yield* fs.readDirectory(dir, { recursive: true });
-          const files = entries.filter((entry) => entry.endsWith(".xml")).toSorted();
+      for (const { dir, name } of packages) {
+        const entries = yield* fs.readDirectory(dir, { recursive: true });
+        const files = entries.filter((entry) => entry.endsWith(".xml")).toSorted();
 
-          for (const file of files) {
-            seen += 1;
-            if (skipped.has(`${name}\u0000${file}`)) {
-              continue;
-            }
+        for (const file of files) {
+          seen += 1;
+          if (skipped.has(`${name}\u0000${file}`)) {
+            continue;
+          }
 
-            compared += 1;
-            const path = `${dir}/${file}`;
-            const outcome = yield* Effect.gen(function* compare() {
-              const actual = Result.getOrThrow(
-                canonicalize(yield* readXml(yield* fs.readFile(path))),
-              );
-              const expected = yield* xmllintC14n(path);
+          compared += 1;
+          const path = `${dir}/${file}`;
+          const outcome = yield* Effect.gen(function* compare() {
+            const actual = Result.getOrThrow(
+              canonicalize(yield* readXml(yield* fs.readFile(path))),
+            );
+            const expected = yield* xmllintC14n(path);
 
-              return firstDifference(actual, expected) === actual.length &&
-                actual.length === expected.length
-                ? undefined
-                : `${name}/${file}: first differing byte offset ${firstDifference(actual, expected)}`;
-            }).pipe(Effect.catch((error) => Effect.succeed(`${name}/${file}: ${String(error)}`)));
+            return firstDifference(actual, expected) === actual.length &&
+              actual.length === expected.length
+              ? undefined
+              : `${name}/${file}: first differing byte offset ${firstDifference(actual, expected)}`;
+          }).pipe(Effect.catch((error) => Effect.succeed(`${name}/${file}: ${String(error)}`)));
 
-            if (outcome !== undefined) {
-              disagreements.push(outcome);
-            }
+          if (outcome !== undefined) {
+            disagreements.push(outcome);
           }
         }
+      }
 
-        console.log(
-          `compared: ${compared}, excluded: ${excluded.map(([pkg, path]) => `${pkg}/${path}`).join(" ")}`,
-        );
-        console.log(`seen: ${seen}, packages: ${packages.length}`);
-        for (const line of disagreements) {
-          console.log(`disagreement ${line}`);
-        }
+      console.log(
+        `compared: ${compared}, excluded: ${excluded.map(([pkg, path]) => `${pkg}/${path}`).join(" ")}`,
+      );
+      console.log(`seen: ${seen}, packages: ${packages.length}`);
+      for (const line of disagreements) {
+        console.log(`disagreement ${line}`);
+      }
 
-        assert.deepStrictEqual(disagreements, []);
-      }),
-    { timeout: testTimeoutMs },
+      assert.deepStrictEqual(disagreements, []);
+    }),
   );
 });

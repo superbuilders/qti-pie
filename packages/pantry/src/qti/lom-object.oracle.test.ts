@@ -33,7 +33,6 @@ import { genomeOf } from "#pantry/test/gen/genetic/genome.ts";
 import { judgeOne } from "#pantry/test/gen/genetic/judge.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The document's identifier and title, which a record's entry and string match or don't.
@@ -213,7 +212,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
           }).pipe(Effect.scoped),
         ),
-      searchTimeout,
     );
   },
 );

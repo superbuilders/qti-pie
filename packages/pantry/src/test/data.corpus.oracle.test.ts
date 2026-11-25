@@ -10,11 +10,6 @@ import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 
 /**
- * The timeout, in milliseconds, for judging one corpus package: a hang guard.
- */
-const caseTimeoutMs = 60_000;
-
-/**
  * The corpus packages that carry custom `data-*` attributes, by their tarball member: the five
  * packages Revision 2.1 of phase 8 counted 93 of them in.
  */
@@ -141,13 +136,10 @@ describe.skipIf(!settings.corpusRequested)("data.corpus.oracle.test.ts, the corp
       );
 
       for (const entry of corpus) {
-        it.effect(
-          `${entry.name}: no law of an attribute is breached on a data-* attribute`,
-          () =>
-            Effect.gen(function* held() {
-              dataHeld(yield* judged(entry.dir));
-            }),
-          { timeout: caseTimeoutMs },
+        it.effect(`${entry.name}: no law of an attribute is breached on a data-* attribute`, () =>
+          Effect.gen(function* held() {
+            dataHeld(yield* judged(entry.dir));
+          }),
         );
       }
     },

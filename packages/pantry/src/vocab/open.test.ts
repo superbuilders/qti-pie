@@ -53,7 +53,7 @@ import {
 } from "#pantry/vocab/namespaces.ts";
 import { dataName, foreignRoots, openClassOf } from "#pantry/vocab/open.ts";
 import { fileScratchDirectory } from "#pantry/test/scratch.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 import { xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
 
 /**
@@ -266,7 +266,6 @@ describe("vocab/open.ts", () => {
           "the box holds each local name under each namespace and host once",
         );
       }),
-    searchTimeout,
   );
 
   it("reads a data- name by the information model's pattern and prose: lower-case ASCII letters, digits, `_`, `.` and `-`", () => {
@@ -323,12 +322,6 @@ describe("vocab/open.ts", () => {
     }
   });
 });
-
-/**
- * The timeout, in milliseconds, of the hook that runs the XSD oracle over every probe, and of the
- * four tests that read the pinned XSDs: a hang guard.
- */
-const hookTimeoutMs = 240_000;
 
 /**
  * One attribute candidate of the admission suite: its namespace, local name and class.
@@ -906,7 +899,7 @@ const JudgementsLayer = Layer.effect(
 describe("vocab/open.ts against xmllint over the pinned XSDs", () => {
   beforeAll(xsdCachePresent);
 
-  layer(JudgementsLayer, { timeout: hookTimeoutMs })("from the cache", (cached) => {
+  layer(JudgementsLayer)("from the cache", (cached) => {
     cached.effect(
       "admits exactly the attributes XML Schema admits, by namespace class, but reading 13",
       (ctx) =>
@@ -972,7 +965,6 @@ describe("vocab/open.ts against xmllint over the pinned XSDs", () => {
             ),
           );
         }),
-      searchTimeout,
     );
 
     cached.effect(
@@ -1034,7 +1026,6 @@ describe("vocab/open.ts against xmllint over the pinned XSDs", () => {
             ),
           );
         }),
-      searchTimeout,
     );
   });
 });
@@ -1287,7 +1278,6 @@ describe("vocab/open.ts namespace classes against XML Schema 1.0, 3.10.4", () =>
           ),
         );
       }),
-    searchTimeout,
   );
 });
 
@@ -1343,7 +1333,6 @@ describe("XLink's global attributes (C30)", () => {
           [],
         );
       }),
-    hookTimeoutMs,
   );
 });
 
@@ -1406,6 +1395,5 @@ describe("MathML's attribute wildcards", () => {
         assert.isTrue(wildcards.every(({ namespace }) => namespace === "##other"));
         assert.strictEqual(wrong.join("\n"), "");
       }),
-    hookTimeoutMs,
   );
 });

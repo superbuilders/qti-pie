@@ -55,7 +55,6 @@ describe.skipIf(!hasLease)("import/refusal.packaging.test.ts, on the lease", () 
     ),
     {
       excludeTestServices: true,
-      timeout: "120 seconds",
     },
   )("the retired guards' packaging fixtures, refused under the rules their laws keep", (it) => {
     for (const [name, rules] of refused) {

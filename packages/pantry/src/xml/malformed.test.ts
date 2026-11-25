@@ -45,7 +45,6 @@ import { lawfulDocuments } from "#pantry/test/gen/genetic/lawful.ts";
 import { xdmDocument } from "#pantry/test/gen/xdm.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
 import { OracleLayer, xmllintRun } from "#pantry/xml/oracle.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The layer the oracle runs in: the process spawner, the file system and paths.
@@ -1138,11 +1137,8 @@ const searchClass = Effect.fnUntraced(function* searchClass(faultClass: FaultCla
 
 describe("crust's reader on malformed documents agrees with xmllint on whether each faulted document is well formed, every fault at the last site of each seed, exhausted", () => {
   for (const faultClass of faultClasses) {
-    it.effect(
-      faultClass,
-      (ctx) =>
-        searched(ctx, searchClass(faultClass).pipe(Effect.scoped, Effect.provide(TestLayer))),
-      searchTimeout,
+    it.effect(faultClass, (ctx) =>
+      searched(ctx, searchClass(faultClass).pipe(Effect.scoped, Effect.provide(TestLayer))),
     );
   }
 });

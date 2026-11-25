@@ -22,7 +22,6 @@ import { parseVerdicts, renderVerdicts, verdictsPath } from "#pantry/test/verdic
 import type { VerdictRow } from "#pantry/test/verdicts.ts";
 import { ImportRule } from "#pantry/import/rules.ts";
 import type { Rule } from "#pantry/import/rules.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 const HEADER = "file\tverdict\trule";
 
@@ -230,102 +229,92 @@ describe("test/verdicts.ts", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
-  it.effect(
-    "renderVerdicts refuses exactly the rows that break the format",
-    (ctx) =>
-      searched(
-        ctx,
-        explore(
-          search(
-            "pantry/verdicts/render-refusals",
-            rowsWithFault,
-            required<RowFault>(ROW_FAULTS, { cases: 300, sense: notesOnly }),
-            {
-              kind: "specification",
-              name: "AGENTS.md's format: rows break it exactly by the fault drawn into one of them",
-            },
-          ),
-          ({ fault, rows }, c) =>
-            Effect.gen(function* refusals() {
-              c.note(fault);
-
-              assert.strictEqual(
-                outcomeOf(yield* Effect.result(renderVerdicts(rows))),
-                fault === "valid" ? "succeeded" : "VerdictsInvalid",
-              );
-            }),
+  it.effect("renderVerdicts refuses exactly the rows that break the format", (ctx) =>
+    searched(
+      ctx,
+      explore(
+        search(
+          "pantry/verdicts/render-refusals",
+          rowsWithFault,
+          required<RowFault>(ROW_FAULTS, { cases: 300, sense: notesOnly }),
+          {
+            kind: "specification",
+            name: "AGENTS.md's format: rows break it exactly by the fault drawn into one of them",
+          },
         ),
+        ({ fault, rows }, c) =>
+          Effect.gen(function* refusals() {
+            c.note(fault);
+
+            assert.strictEqual(
+              outcomeOf(yield* Effect.result(renderVerdicts(rows))),
+              fault === "valid" ? "succeeded" : "VerdictsInvalid",
+            );
+          }),
       ),
-    searchTimeout,
+    ),
   );
 
-  it.effect(
-    "parseVerdicts refuses exactly the texts that break the format",
-    (ctx) =>
-      searched(
-        ctx,
-        explore(
-          search(
-            "pantry/verdicts/parse-refusals",
-            textWithFault,
-            required<TextFault>(TEXT_FAULTS, { cases: 300, sense: notesOnly }),
-            {
-              kind: "specification",
-              name: "AGENTS.md's format: a text breaks it exactly by the fault drawn into it, and a valid one reads back as its rows sorted by file",
-            },
-          ),
-          ({ fault, rows, text }, c) =>
-            Effect.gen(function* refusals() {
-              c.note(fault);
-
-              const outcome = yield* Effect.result(parseVerdicts(text));
-
-              assert.strictEqual(
-                outcomeOf(outcome),
-                fault === "valid" ? "succeeded" : "VerdictsInvalid",
-              );
-              if (Result.isSuccess(outcome)) {
-                assert.deepStrictEqual(outcome.success, rows.toSorted(byFile));
-              }
-            }),
+  it.effect("parseVerdicts refuses exactly the texts that break the format", (ctx) =>
+    searched(
+      ctx,
+      explore(
+        search(
+          "pantry/verdicts/parse-refusals",
+          textWithFault,
+          required<TextFault>(TEXT_FAULTS, { cases: 300, sense: notesOnly }),
+          {
+            kind: "specification",
+            name: "AGENTS.md's format: a text breaks it exactly by the fault drawn into it, and a valid one reads back as its rows sorted by file",
+          },
         ),
+        ({ fault, rows, text }, c) =>
+          Effect.gen(function* refusals() {
+            c.note(fault);
+
+            const outcome = yield* Effect.result(parseVerdicts(text));
+
+            assert.strictEqual(
+              outcomeOf(outcome),
+              fault === "valid" ? "succeeded" : "VerdictsInvalid",
+            );
+            if (Result.isSuccess(outcome)) {
+              assert.deepStrictEqual(outcome.success, rows.toSorted(byFile));
+            }
+          }),
       ),
-    searchTimeout,
+    ),
   );
 
-  it.effect(
-    "verdictsPath names the tarball's basename under pantry's verdicts/",
-    (ctx) =>
-      searched(
-        ctx,
-        explore(
-          search(
-            "pantry/verdicts/path",
-            array(string(element(["a", "x", "-", "0"] as const), { max: 6, min: 1 }), {
-              max: 4,
-              min: 1,
-            }),
-            noCoverage,
-            {
-              kind: "specification",
-              name: "AGENTS.md's path, packages/pantry/verdicts/<tarball basename>.tsv, resolved by node:path",
-            },
-          ),
-          (segments) =>
-            Effect.sync(() => {
-              const name = segments.at(-1) ?? "a";
-              const tarball = path.join("/", ...segments.slice(0, -1), `${name}.tar.gz`);
-
-              assert.strictEqual(
-                verdictsPath(tarball),
-                path.resolve(import.meta.dirname, "../../verdicts", `${name}.tsv`),
-              );
-            }),
+  it.effect("verdictsPath names the tarball's basename under pantry's verdicts/", (ctx) =>
+    searched(
+      ctx,
+      explore(
+        search(
+          "pantry/verdicts/path",
+          array(string(element(["a", "x", "-", "0"] as const), { max: 6, min: 1 }), {
+            max: 4,
+            min: 1,
+          }),
+          noCoverage,
+          {
+            kind: "specification",
+            name: "AGENTS.md's path, packages/pantry/verdicts/<tarball basename>.tsv, resolved by node:path",
+          },
         ),
+        (segments) =>
+          Effect.sync(() => {
+            const name = segments.at(-1) ?? "a";
+            const tarball = path.join("/", ...segments.slice(0, -1), `${name}.tar.gz`);
+
+            assert.strictEqual(
+              verdictsPath(tarball),
+              path.resolve(import.meta.dirname, "../../verdicts", `${name}.tsv`),
+            );
+          }),
       ),
-    searchTimeout,
+    ),
   );
 });

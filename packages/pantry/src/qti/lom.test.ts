@@ -43,7 +43,6 @@ import { RecordNode } from "#pantry/qti/names.ts";
 import { previewRowsOf } from "#pantry/test/host-judge.ts";
 import { evaluatorOf, insideDomains } from "#pantry/test/row-evaluation.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Grizzle's evaluator of the LOM level's rows.
@@ -397,7 +396,7 @@ describe("the LOM level", () => {
         }
       }
     }
-  }, 300_000);
+  });
 
   it("asks a package for nothing, judges only a record's terms, its vCards and its keyed texts' bound, and keys a term view only by its whole heading", () => {
     // Oracle: IEEE 1484.12.1-2002 §4.2 ("All data elements are optional"), QTI 3.0 Metadata
@@ -646,7 +645,6 @@ describe("what a package may state", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 });
 

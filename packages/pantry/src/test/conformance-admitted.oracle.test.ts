@@ -37,7 +37,6 @@ import { lawNamesOf } from "#pantry/test/host-law-names.ts";
 import { judge as judgeOracle, lawsOf } from "#pantry/test/oracle.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { edit, item, itemResource, manifestOf } from "#pantry/test/probe.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * What a case's package meets: the laws it breaks, none for an admitted one, and of them the ones
@@ -318,7 +317,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               ),
           ),
         ),
-      searchTimeout,
     );
   },
 );

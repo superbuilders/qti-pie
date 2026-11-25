@@ -69,7 +69,6 @@ import {
 import type { Fault } from "#pantry/test/gen/references.ts";
 import { admittedOf } from "#pantry/test/indexes.ts";
 import { xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Index the reference relations this file reads by key, none of which a serving path does.
@@ -96,11 +95,6 @@ const lookedUp = (relations: References) => ({
 const grammar = Effect.suspend(() => Effect.fromResult(composed()));
 
 /**
- * How long the first read of the composed grammar may take: a hang guard.
- */
-const composeTimeout = 60_000;
-
-/**
  * The reference relations of production: the ASI facet, coded in the composed `NodeKind` and
  * `AttributeName` rosters.
  */
@@ -118,11 +112,6 @@ const production = grammar.pipe(
  * The ASI XSD.
  */
 const asiXsd: SourcePath = "imsqti_asiv3p0p1_v1p0.xsd";
-
-/**
- * How long reading one ASI XSD and walking it may take: a hang guard.
- */
-const xsdTimeout = 120_000;
 
 /**
  * The XML Schema namespace.
@@ -401,7 +390,6 @@ describe("the reference relations against the XSD", () => {
 
         assert.deepStrictEqual(differences, []);
       }).pipe(Effect.provide(XsdOracleLayer)),
-    xsdTimeout,
   );
 });
 
@@ -441,7 +429,6 @@ describe("the reference relations of production", () => {
           [],
         );
       }),
-    composeTimeout,
   );
 
   it.effect(
@@ -494,7 +481,6 @@ describe("the reference relations of production", () => {
           ]),
         );
       }),
-    composeTimeout,
   );
 });
 
@@ -700,7 +686,6 @@ describe("references", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 });
 
@@ -782,7 +767,6 @@ describe("ReferenceAttribute, spec reading 103's census", () => {
           ],
         );
       }),
-    composeTimeout,
   );
 
   it.effect(
@@ -819,7 +803,6 @@ describe("ReferenceAttribute, spec reading 103's census", () => {
           "no left-out attribute is a census row",
         );
       }),
-    composeTimeout,
   );
 });
 

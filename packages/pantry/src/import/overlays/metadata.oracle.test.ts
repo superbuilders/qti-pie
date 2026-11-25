@@ -22,7 +22,6 @@ import { readEntries } from "#pantry/package/read.ts";
 import type { PackageFile } from "#pantry/package/read.ts";
 import { judge, lawsOf } from "#pantry/test/oracle.ts";
 import { caseHang } from "#pantry/test/gen/xdm.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The fixtures the global setup materializes: `metaData` among them.
@@ -540,7 +539,7 @@ const reached = required<SketchSituation>(
   { cases: 200, sense: notesOnly },
 );
 
-describe("the law oracle's reading 62, generated packages", { timeout: searchTimeout }, () => {
+describe("the law oracle's reading 62, generated packages", () => {
   it.effect(
     "refuses exactly the records reading 62 refuses: the identifier compared collapsed, the title in its value space with tags compared without regard to case",
     (ctx) =>

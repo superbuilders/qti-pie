@@ -86,11 +86,6 @@ const outputRoot = fileScratchDirectory("xsd-corpus-");
 const oracleRoot = fileScratchDirectory("xsd-oracle-");
 
 /**
- * The timeout, in milliseconds, for the one test: a hang guard.
- */
-const testTimeoutMs = 360_000;
-
-/**
  * One corpus document: the zip it is in, its path in the zip, its bytes, and where it was written
  * for `xmllint`.
  */
@@ -210,131 +205,123 @@ describe.skipIf(!settings.corpusRequested)("xsd.corpus.oracle.test.ts, the corpu
   beforeAll(xsdCachePresent);
 
   layer(XsdOracleLayer, { excludeTestServices: true })("xmllint against the law oracle", (it) => {
-    it.effect(
-      "every corpus document's two verdicts, per class, differ only as recorded",
-      () =>
-        Effect.gen(function* compareCorpus() {
-          yield* requireRecordsLibxml2();
+    it.effect("every corpus document's two verdicts, per class, differ only as recorded", () =>
+      Effect.gen(function* compareCorpus() {
+        yield* requireRecordsLibxml2();
 
-          const fs = yield* FileSystem.FileSystem;
-          const grammar = yield* Effect.fromResult(composed()).pipe(Effect.orDie);
-          const laws = lawsOf(grammar);
+        const fs = yield* FileSystem.FileSystem;
+        const grammar = yield* Effect.fromResult(composed()).pipe(Effect.orDie);
+        const laws = lawsOf(grammar);
 
-          yield* fs.remove(outputRoot, { force: true, recursive: true });
+        yield* fs.remove(outputRoot, { force: true, recursive: true });
 
-          const documents = yield* corpusDocuments();
-          const oracle = yield* writeXsdOracle(oracleRoot);
-          const judged: Judged[] = [];
-          const records = [...recorded, ...libxml2Records];
+        const documents = yield* corpusDocuments();
+        const oracle = yield* writeXsdOracle(oracleRoot);
+        const judged: Judged[] = [];
+        const records = [...recorded, ...libxml2Records];
 
-          const verdicts = yield* validated(oracle, documents);
+        const verdicts = yield* validated(oracle, documents);
 
-          for (const [at, document] of documents.entries()) {
-            const xsd =
-              verdicts[at] ??
-              (yield* Effect.die(new Error(`xmllint gave no verdict for ${document.file}`)));
+        for (const [at, document] of documents.entries()) {
+          const xsd =
+            verdicts[at] ??
+            (yield* Effect.die(new Error(`xmllint gave no verdict for ${document.file}`)));
 
-            const law = yield* judgeDocument({
-              bytes: document.bytes,
-              grammar,
-              laws,
-              path: document.path,
-            });
-            const comparison = compareJudgments(xsd, law);
-            // The gated classes read the document's rows, which only a difference needs.
-            const matches =
-              comparison.differences.length === 0
-                ? []
-                : yield* Effect.map(documentRowsOf(document.bytes, grammar), (rows) =>
-                    comparison.differences.map((difference) =>
-                      gatedRecordOf(document, difference, records, rows),
-                    ),
-                  );
+          const law = yield* judgeDocument({
+            bytes: document.bytes,
+            grammar,
+            laws,
+            path: document.path,
+          });
+          const comparison = compareJudgments(xsd, law);
+          // The gated classes read the document's rows, which only a difference needs.
+          const matches =
+            comparison.differences.length === 0
+              ? []
+              : yield* Effect.map(documentRowsOf(document.bytes, grammar), (rows) =>
+                  comparison.differences.map((difference) =>
+                    gatedRecordOf(document, difference, records, rows),
+                  ),
+                );
 
-            judged.push({ comparison, document, matches });
-          }
+          judged.push({ comparison, document, matches });
+        }
 
-          yield* fs.writeFileString(
-            `${outputRoot}/agreement.tsv`,
-            tsv(
-              ["zip", "document", "verdicts", "xmllint", "laws", "masked", "differences"],
-              judged.map(({ comparison, document }) => [
-                document.zip,
-                document.path,
-                comparison.verdicts,
-                comparison.xsdClasses.join(" "),
-                comparison.lawClasses.join(" "),
-                comparison.masked.join(" "),
-                String(comparison.differences.length),
-              ]),
+        yield* fs.writeFileString(
+          `${outputRoot}/agreement.tsv`,
+          tsv(
+            ["zip", "document", "verdicts", "xmllint", "laws", "masked", "differences"],
+            judged.map(({ comparison, document }) => [
+              document.zip,
+              document.path,
+              comparison.verdicts,
+              comparison.xsdClasses.join(" "),
+              comparison.lawClasses.join(" "),
+              comparison.masked.join(" "),
+              String(comparison.differences.length),
+            ]),
+          ),
+        );
+        yield* fs.writeFileString(
+          `${outputRoot}/differences.tsv`,
+          tsv(
+            ["zip", "document", "direction", "class", "rule", "record", "detail"],
+            judged.flatMap(({ comparison, document, matches }) =>
+              comparison.differences.map((difference, at) => {
+                const match = matches[at];
+
+                return [
+                  document.zip,
+                  document.path,
+                  difference.direction,
+                  difference.class,
+                  difference.rule,
+                  match === undefined ? "UNRECORDED" : reasonText(match.reason),
+                  difference.detail.slice(0, 600),
+                ];
+              }),
             ),
-          );
-          yield* fs.writeFileString(
-            `${outputRoot}/differences.tsv`,
-            tsv(
-              ["zip", "document", "direction", "class", "rule", "record", "detail"],
-              judged.flatMap(({ comparison, document, matches }) =>
-                comparison.differences.map((difference, at) => {
-                  const match = matches[at];
+          ),
+        );
 
-                  return [
-                    document.zip,
-                    document.path,
-                    difference.direction,
-                    difference.class,
-                    difference.rule,
-                    match === undefined ? "UNRECORDED" : reasonText(match.reason),
-                    difference.detail.slice(0, 600),
-                  ];
-                }),
-              ),
-            ),
-          );
+        const tally = (pair: Comparison["verdicts"]) =>
+          judged.filter(({ comparison }) => comparison.verdicts === pair).length;
+        const unrecorded = judged.flatMap(({ comparison, document, matches }) =>
+          comparison.differences.flatMap((difference, at) =>
+            matches[at] === undefined
+              ? [
+                  `${document.zip}/${document.path} ${difference.direction} ${difference.class} ${difference.rule}: ${difference.detail.slice(0, 300)}`,
+                ]
+              : [],
+          ),
+        );
+        const used = new Set(judged.flatMap(({ matches }) => matches));
+        const stale = recorded.filter((record) => !used.has(record));
 
-          const tally = (pair: Comparison["verdicts"]) =>
-            judged.filter(({ comparison }) => comparison.verdicts === pair).length;
-          const unrecorded = judged.flatMap(({ comparison, document, matches }) =>
-            comparison.differences.flatMap((difference, at) =>
-              matches[at] === undefined
-                ? [
-                    `${document.zip}/${document.path} ${difference.direction} ${difference.class} ${difference.rule}: ${difference.detail.slice(0, 300)}`,
-                  ]
-                : [],
-            ),
-          );
-          const used = new Set(judged.flatMap(({ matches }) => matches));
-          const stale = recorded.filter((record) => !used.has(record));
+        yield* Console.log(
+          [
+            `xsd.corpus: ${String(documents.length)} documents judged`,
+            `  accepted by both ${String(tally("accepted by both"))}, refused by both ${String(tally("refused by both"))}, xmllint only ${String(tally("xmllint only"))}, laws only ${String(tally("laws only"))}`,
+            `  differences ${String(judged.reduce((sum, { comparison }) => sum + comparison.differences.length, 0))}, unrecorded ${String(unrecorded.length)}, stale records ${String(stale.length)}, libxml2 ${String(libxml2Count(judged.flatMap(({ matches }) => matches)))} (${libxml2Records.map(({ reason }) => reasonText(reason)).join("; ")})`,
+          ].join("\n"),
+        );
 
-          yield* Console.log(
-            [
-              `xsd.corpus: ${String(documents.length)} documents judged`,
-              `  accepted by both ${String(tally("accepted by both"))}, refused by both ${String(tally("refused by both"))}, xmllint only ${String(tally("xmllint only"))}, laws only ${String(tally("laws only"))}`,
-              `  differences ${String(judged.reduce((sum, { comparison }) => sum + comparison.differences.length, 0))}, unrecorded ${String(unrecorded.length)}, stale records ${String(stale.length)}, libxml2 ${String(libxml2Count(judged.flatMap(({ matches }) => matches)))} (${libxml2Records.map(({ reason }) => reasonText(reason)).join("; ")})`,
-            ].join("\n"),
-          );
-
-          assert.deepStrictEqual(
-            unrecorded,
-            [],
-            "every difference between the two oracles is recorded",
-          );
-          assert.deepStrictEqual(
-            stale.map(
-              ({ class: cls, direction, reason }) => `${direction} ${cls}: ${reasonText(reason)}`,
-            ),
-            [],
-            "every record still matches a difference",
-          );
-        }),
-      { timeout: testTimeoutMs },
+        assert.deepStrictEqual(
+          unrecorded,
+          [],
+          "every difference between the two oracles is recorded",
+        );
+        assert.deepStrictEqual(
+          stale.map(
+            ({ class: cls, direction, reason }) => `${direction} ${cls}: ${reasonText(reason)}`,
+          ),
+          [],
+          "every record still matches a difference",
+        );
+      }),
     );
   });
 });
-
-/**
- * The timeout, in milliseconds, for the libxml2 control: a hang guard.
- */
-const controlTimeoutMs = 90_000;
 
 /**
  * The folder the libxml2 control writes to, `packages/pantry/work/xsd-control-*`, the run's own.
@@ -566,7 +553,6 @@ describe.skipIf(!settings.corpusRequested)(
               "a dangling IDREF validates and a repeated ID does not, in item-body content and under the lax wildcard alike",
             );
           }),
-        { timeout: controlTimeoutMs },
       );
 
       it.effect(
@@ -611,7 +597,6 @@ describe.skipIf(!settings.corpusRequested)(
               "an item's set is the ASI XSD with xml, XInclude, MathML and SSML; a manifest's the CP XSD with xml, LOM, the curriculum standards and QTI metadata, and the CP extension with XLink and the DRD; a LOM file's and a usage data file's their XSD alone",
             );
           }),
-        { timeout: controlTimeoutMs },
       );
 
       it.effect(
@@ -726,7 +711,6 @@ describe.skipIf(!settings.corpusRequested)(
               "each libxml2 record matches exactly its control's differences, and reading 60's the unresolved xsi:type's; a gated record matches only where the document holds its shape, so a repeated id that is no xml:id is the skipped content's and not a padded xml:id's, and a false xsi:nil is no unchecked value",
             );
           }),
-        { timeout: controlTimeoutMs },
       );
 
       it.effect(
@@ -754,7 +738,6 @@ describe.skipIf(!settings.corpusRequested)(
               "reading 6's class matches every difference the nested item makes",
             );
           }),
-        { timeout: controlTimeoutMs },
       );
 
       // Two defects the law oracle shares with the grammar and the codec, left unrecorded, so a
@@ -782,7 +765,6 @@ describe.skipIf(!settings.corpusRequested)(
               "xmllint assesses the retyped element against TrackDType, whose src is required, and refuses the unbound prefix on the xsi:type and, a second time, on its element",
             );
           }),
-        { timeout: controlTimeoutMs },
       );
 
       // The defects three earlier records named, now fixed and so no records: an element in no
@@ -790,27 +772,24 @@ describe.skipIf(!settings.corpusRequested)(
       // 3.10.1); a foreign element in xi:include, whose includeType is (fallback | any ##other
       // lax)*; and a simple-content element with no text, whose empty string its type must admit.
       // Both oracles judge each alike, so a regression shows here as well as in a generated run.
-      it.effect(
-        "both oracles judge alike the three defects the earlier records named",
-        () =>
-          Effect.gen(function* fixed() {
-            const held = yield* controlled("fixed", {
-              "empty-schemaversion": `<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="M"><metadata><schema>QTI Package</schema><schemaversion></schemaversion></metadata><organizations/><resources/></manifest>`,
-              "foreign-in-include": `<qti-assessment-test xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xi="http://www.w3.org/2001/XInclude" identifier="T" title="t"><qti-test-part identifier="P" navigation-mode="linear" submission-mode="individual"><qti-assessment-section identifier="S" title="s" visible="true"><xi:include href="s.xml"><widget xmlns="urn:w"/></xi:include></qti-assessment-section></qti-test-part></qti-assessment-test>`,
-              "no-namespace-under-other": `<lom xmlns="http://ltsc.ieee.org/xsd/LOM"><general/><widget xmlns="">x</widget></lom>`,
-            });
+      it.effect("both oracles judge alike the three defects the earlier records named", () =>
+        Effect.gen(function* fixed() {
+          const held = yield* controlled("fixed", {
+            "empty-schemaversion": `<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="M"><metadata><schema>QTI Package</schema><schemaversion></schemaversion></metadata><organizations/><resources/></manifest>`,
+            "foreign-in-include": `<qti-assessment-test xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xi="http://www.w3.org/2001/XInclude" identifier="T" title="t"><qti-test-part identifier="P" navigation-mode="linear" submission-mode="individual"><qti-assessment-section identifier="S" title="s" visible="true"><xi:include href="s.xml"><widget xmlns="urn:w"/></xi:include></qti-assessment-section></qti-test-part></qti-assessment-test>`,
+            "no-namespace-under-other": `<lom xmlns="http://ltsc.ieee.org/xsd/LOM"><general/><widget xmlns="">x</widget></lom>`,
+          });
 
-            assert.deepStrictEqual(
-              held.map(({ comparison }) => [comparison.verdicts, comparison.differences]),
-              [
-                ["refused by both", []],
-                ["accepted by both", []],
-                ["refused by both", []],
-              ],
-              "an empty schemaversion and a no-namespace element under ##other are refused by both, and a foreign element in xi:include is accepted by both",
-            );
-          }),
-        { timeout: controlTimeoutMs },
+          assert.deepStrictEqual(
+            held.map(({ comparison }) => [comparison.verdicts, comparison.differences]),
+            [
+              ["refused by both", []],
+              ["accepted by both", []],
+              ["refused by both", []],
+            ],
+            "an empty schemaversion and a no-namespace element under ##other are refused by both, and a foreign element in xi:include is accepted by both",
+          );
+        }),
       );
     });
   },

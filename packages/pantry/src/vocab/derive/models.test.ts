@@ -19,12 +19,6 @@ const packageRoot = path.resolve(import.meta.dirname, "../../..");
 const leafPath = "src/vocab/inventory/models.ts";
 
 /**
- * The timeout, in milliseconds, of the regeneration, which reads the schemas, derives their models
- * and formats the leaf through oxfmt: a hang guard.
- */
-const regenerateTimeoutMs = 900_000;
-
-/**
  * The layers the regeneration runs on: the file system, the digest the source reads check, and the
  * process spawner oxfmt runs through.
  */
@@ -39,17 +33,14 @@ const SuiteLayer = Layer.mergeAll(
 describe.skipIf(!settings.corpusRequested)("vocab/derive/models.ts over the pinned XSDs", () => {
   beforeAll(xsdCachePresent);
 
-  layer(SuiteLayer, { timeout: regenerateTimeoutMs })("from the cache", (cached) => {
-    cached.effect(
-      `regenerates ${leafPath} byte for byte after oxfmt`,
-      () =>
-        Effect.gen(function* regenerate() {
-          const fs = yield* FileSystem.FileSystem;
-          const derived = yield* oxfmt(renderModels(yield* loadModels()), leafPath);
+  layer(SuiteLayer)("from the cache", (cached) => {
+    cached.effect(`regenerates ${leafPath} byte for byte after oxfmt`, () =>
+      Effect.gen(function* regenerate() {
+        const fs = yield* FileSystem.FileSystem;
+        const derived = yield* oxfmt(renderModels(yield* loadModels()), leafPath);
 
-          assert.strictEqual(derived, yield* fs.readFileString(`${packageRoot}/${leafPath}`));
-        }),
-      regenerateTimeoutMs,
+        assert.strictEqual(derived, yield* fs.readFileString(`${packageRoot}/${leafPath}`));
+      }),
     );
   });
 });

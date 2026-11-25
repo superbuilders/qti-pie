@@ -22,11 +22,6 @@ import { Array as Arr, Equal } from "effect";
 import { Qti } from "#pantry/qti/schema.ts";
 
 /**
- * How long reading `Qti`'s laws may take: a hang guard.
- */
-const compileTimeout = 180_000;
-
-/**
  * A term of a side, as a key's terms are compared: its kind and its field.
  */
 type Term = LawSide["terms"][number];
@@ -131,7 +126,7 @@ const textOf = (key: Key): string => {
   return `${key.relation}(${terms.join(", ")})${selected}`;
 };
 
-describe("qti/schema.ts, its keys", { timeout: compileTimeout }, () => {
+describe("qti/schema.ts, its keys", () => {
   it("states no key that another key of its relation holds", () => {
     // Oracle: implication by selection and terms, the sufficient condition grizzle keys a target
     // by. Bound: every primary key and key statement of `lawsOf(Qti)`.

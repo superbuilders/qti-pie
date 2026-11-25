@@ -34,7 +34,6 @@ import { judge as judgeOracle, lawsOf } from "#pantry/test/oracle.ts";
 import { databaseJudgedLawNames } from "#pantry/test/law-namer.ts";
 import { lawNameOf } from "#pantry/import/refusal.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The declaration kind each built-in variable of an item stands as, by hand from the information
@@ -252,84 +251,77 @@ layer(NodeServices.layer, { excludeTestServices: true })(
   "a content reference to a built-in variable resolves only to a built-in of its item that it may name, the law oracle and the import's rows alike",
   (it) => {
     for (const placement of parts) {
-      it.effect(
-        `in an item, ${placement}`,
-        (ctx) =>
-          // Oracle: two implementations side by side, the law oracle's content references, which
-          // read `BuiltInVariable` under the item's root, and the schema's laws over the import's
-          // rows; and the specification's table of an item's built-ins, by hand. Bound: four names
-          // by five own and five placed references: 40 packages, the own or the placed references
-          // to a part.
-          searched(
-            ctx,
-            exhaust(
-              {
-                box: `an item's ${placement} feedback, template, printed variable, printed variable base or context variable reference naming each built-in variable`,
-                caseHang: Duration.minutes(1),
-                concurrency: 1,
-                coverage: requiredInSpace<Situation>([
-                  `${placement}, resolved`,
-                  `${placement}, unresolved`,
-                ]),
-                generator: rootCasesAt(placement),
-                literal: Formatter.format,
-                oracle: {
-                  kind: "second-implementation",
-                  name: "the law oracle's content references, the schema's laws over the import's rows, and the information model's built-ins of an item, by hand",
-                },
-                suite: `test/built-in-roots/item-${placement}`,
+      it.effect(`in an item, ${placement}`, (ctx) =>
+        // Oracle: two implementations side by side, the law oracle's content references, which
+        // read `BuiltInVariable` under the item's root, and the schema's laws over the import's
+        // rows; and the specification's table of an item's built-ins, by hand. Bound: four names
+        // by five own and five placed references: 40 packages, the own or the placed references
+        // to a part.
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: `an item's ${placement} feedback, template, printed variable, printed variable base or context variable reference naming each built-in variable`,
+              caseHang: Duration.minutes(1),
+              concurrency: 1,
+              coverage: requiredInSpace<Situation>([
+                `${placement}, resolved`,
+                `${placement}, unresolved`,
+              ]),
+              generator: rootCasesAt(placement),
+              literal: Formatter.format,
+              oracle: {
+                kind: "second-implementation",
+                name: "the law oracle's content references, the schema's laws over the import's rows, and the information model's built-ins of an item, by hand",
               },
-              (drawn, c) =>
-                Effect.scoped(
-                  Effect.gen(function* oneCase() {
-                    const dir = yield* scopedPackage(packageOf(drawn));
-                    const judgment = yield* judgeOracle(
-                      yield* readEntries(dir),
-                      grammar,
-                      oracleLaws,
-                    );
-                    assert.strictEqual(judgment._tag, "Judged", Formatter.format(drawn));
+              suite: `test/built-in-roots/item-${placement}`,
+            },
+            (drawn, c) =>
+              Effect.scoped(
+                Effect.gen(function* oneCase() {
+                  const dir = yield* scopedPackage(packageOf(drawn));
+                  const judgment = yield* judgeOracle(yield* readEntries(dir), grammar, oracleLaws);
+                  assert.strictEqual(judgment._tag, "Judged", Formatter.format(drawn));
 
-                    const oracle = new Set<string>(
-                      judgment._tag === "Judged" ? judgment.breaches.map(({ law }) => law) : [],
-                    );
-                    const program = yield* readProgram(dir, nameOf(dir));
-                    const host = judge(previewRowsOf(program.inputs), hostLaws);
-                    const broken = named(host.broken);
-                    const unjudged = named(host.skipped);
-                    const shown = [
-                      ...Iterator.from(broken)
-                        .filter((law) => !oracle.has(law))
-                        .map((law) => `import-only-law: ${law}`),
-                      ...Iterator.from(oracle)
-                        .filter(
-                          (law) =>
-                            !broken.has(law) &&
-                            !unjudged.has(law) &&
-                            !databaseJudgedLawNames.has(law),
-                        )
-                        .map((law) => `oracle-only-law: ${law}`),
-                    ].toSorted();
-                    const unresolved = oracle.has(lawOf[drawn.reference]);
-                    c.note(`${drawn.placement}, ${unresolved ? "unresolved" : "resolved"}`);
-                    // A context variable's identifier is also an IDREF of the item's context
-                    // declarations (`ContextUniqueIDRefDType`), so its `QTI_CONTEXT` breaks Idref
-                    // target beside resolving; the reference's own law is the table's alone.
-                    assert.strictEqual(
-                      unresolved,
-                      !resolves(drawn),
-                      `${Formatter.format(drawn)}: the oracle breaks ${[...oracle].toSorted().join(", ") || "no law"}`,
-                    );
-                    assert.deepStrictEqual(
-                      shown,
-                      [],
-                      `${Formatter.format(drawn)}: ${shown.join("; ")}; the oracle breaks ${[...oracle].toSorted().join(", ") || "no law"}; the import's rows break ${[...broken].toSorted().join(", ") || "no law"}`,
-                    );
-                  }),
-                ),
-            ),
+                  const oracle = new Set<string>(
+                    judgment._tag === "Judged" ? judgment.breaches.map(({ law }) => law) : [],
+                  );
+                  const program = yield* readProgram(dir, nameOf(dir));
+                  const host = judge(previewRowsOf(program.inputs), hostLaws);
+                  const broken = named(host.broken);
+                  const unjudged = named(host.skipped);
+                  const shown = [
+                    ...Iterator.from(broken)
+                      .filter((law) => !oracle.has(law))
+                      .map((law) => `import-only-law: ${law}`),
+                    ...Iterator.from(oracle)
+                      .filter(
+                        (law) =>
+                          !broken.has(law) &&
+                          !unjudged.has(law) &&
+                          !databaseJudgedLawNames.has(law),
+                      )
+                      .map((law) => `oracle-only-law: ${law}`),
+                  ].toSorted();
+                  const unresolved = oracle.has(lawOf[drawn.reference]);
+                  c.note(`${drawn.placement}, ${unresolved ? "unresolved" : "resolved"}`);
+                  // A context variable's identifier is also an IDREF of the item's context
+                  // declarations (`ContextUniqueIDRefDType`), so its `QTI_CONTEXT` breaks Idref
+                  // target beside resolving; the reference's own law is the table's alone.
+                  assert.strictEqual(
+                    unresolved,
+                    !resolves(drawn),
+                    `${Formatter.format(drawn)}: the oracle breaks ${[...oracle].toSorted().join(", ") || "no law"}`,
+                  );
+                  assert.deepStrictEqual(
+                    shown,
+                    [],
+                    `${Formatter.format(drawn)}: ${shown.join("; ")}; the oracle breaks ${[...oracle].toSorted().join(", ") || "no law"}; the import's rows break ${[...broken].toSorted().join(", ") || "no law"}`,
+                  );
+                }),
+              ),
           ),
-        searchTimeout,
+        ),
       );
     }
   },

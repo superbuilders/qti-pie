@@ -106,13 +106,7 @@ describe("grammar/labels.ts, the kinds whose label asks for its tool", () => {
   });
 });
 
-/**
- * The timeout, in milliseconds, for reading the ASI XSD, hashed against its pin and
- * parsed whole: a hang guard.
- */
-const xsdTimeoutMs = 90_000;
-
-describe("grammar/labels.ts, against the pinned XSD", { timeout: xsdTimeoutMs }, () => {
+describe("grammar/labels.ts, against the pinned XSD", () => {
   beforeAll(xsdCachePresent);
 
   it.effect(

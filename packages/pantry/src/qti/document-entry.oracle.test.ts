@@ -40,7 +40,6 @@ import { genomeOf } from "#pantry/test/gen/genetic/genome.ts";
 import { judgeOne, shownDisagreement } from "#pantry/test/gen/genetic/judge.ts";
 import { lawsOf } from "#pantry/test/oracle.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's law tables over the composed grammar.
@@ -112,66 +111,63 @@ const packageOf = (of: Case): PackageEntries => {
 layer(NodeServices.layer, { excludeTestServices: true })(
   "a document-typed href that names no entry",
   (it) => {
-    it.effect(
-      "is Document entry in the law oracle, and RootOfType on neither side",
-      (ctx) =>
-        searched(
-          ctx,
-          Effect.gen(function* documentEntryRuns() {
-            const directory = yield* scratchDirectory("document-entry-");
-            const bench = { directory, grammar, laws };
+    it.effect("is Document entry in the law oracle, and RootOfType on neither side", (ctx) =>
+      searched(
+        ctx,
+        Effect.gen(function* documentEntryRuns() {
+          const directory = yield* scratchDirectory("document-entry-");
+          const bench = { directory, grammar, laws };
 
-            assert.strictEqual(documentTypes.length, 10, "the resource types RootOfType maps");
-            assert.strictEqual(cases.length, 15);
+          assert.strictEqual(documentTypes.length, 10, "the resource types RootOfType maps");
+          assert.strictEqual(cases.length, 15);
 
-            return yield* exhaust(
-              {
-                box: "the 10 document types, each naming a path with no entry, the item type naming none four other ways, and an included fragment listed under a second type",
-                caseHang: Duration.minutes(5),
-                concurrency: 1,
-                coverage: noCoverage,
-                generator: int(0, cases.length - 1),
-                literal: (at) => {
-                  const of = cases[at];
+          return yield* exhaust(
+            {
+              box: "the 10 document types, each naming a path with no entry, the item type naming none four other ways, and an included fragment listed under a second type",
+              caseHang: Duration.minutes(5),
+              concurrency: 1,
+              coverage: noCoverage,
+              generator: int(0, cases.length - 1),
+              literal: (at) => {
+                const of = cases[at];
 
-                  return of === undefined ? String(at) : `${of.type} at ${of.href}`;
-                },
-                oracle: {
-                  kind: "second-implementation",
-                  name: "the law oracle against the laws the import's rows break on the host",
-                },
-                suite: "pantry/document-entry",
+                return of === undefined ? String(at) : `${of.type} at ${of.href}`;
               },
-              (at) =>
-                Effect.gen(function* documentEntryCase() {
-                  const of = cases[at];
-                  assert.isDefined(of, `no case ${String(at)}`);
-                  if (of === undefined) {
-                    return;
-                  }
+              oracle: {
+                kind: "second-implementation",
+                name: "the law oracle against the laws the import's rows break on the host",
+              },
+              suite: "pantry/document-entry",
+            },
+            (at) =>
+              Effect.gen(function* documentEntryCase() {
+                const of = cases[at];
+                assert.isDefined(of, `no case ${String(at)}`);
+                if (of === undefined) {
+                  return;
+                }
 
-                  const judged = yield* judgeOne(yield* genomeOf(packageOf(of)), bench, at);
-                  const said = `${of.type} at ${of.href}: the oracle ${judged.summary.oracle}; the import ${judged.summary.import}`;
-                  const watched: readonly string[] =
-                    of === twin
-                      ? ["Document entry", "RootOfType", "Idref target"]
-                      : ["Document entry", "RootOfType"];
-                  const apart = judged.disagreements.filter(
-                    (disagreement) =>
-                      (disagreement.kind === "oracle-only-law" ||
-                        disagreement.kind === "import-only-law") &&
-                      watched.includes(disagreement.law),
-                  );
+                const judged = yield* judgeOne(yield* genomeOf(packageOf(of)), bench, at);
+                const said = `${of.type} at ${of.href}: the oracle ${judged.summary.oracle}; the import ${judged.summary.import}`;
+                const watched: readonly string[] =
+                  of === twin
+                    ? ["Document entry", "RootOfType", "Idref target"]
+                    : ["Document entry", "RootOfType"];
+                const apart = judged.disagreements.filter(
+                  (disagreement) =>
+                    (disagreement.kind === "oracle-only-law" ||
+                      disagreement.kind === "import-only-law") &&
+                    watched.includes(disagreement.law),
+                );
 
-                  assert.deepStrictEqual(apart.map(shownDisagreement), [], said);
-                  assert.match(judged.summary.oracle, /\bDocument entry\b/u, said);
-                  assert.notMatch(judged.summary.oracle, /\bRootOfType\b/u, said);
-                  assert.notMatch(judged.summary.import, /\bRootOfType\b/u, said);
-                }),
-            );
-          }).pipe(Effect.scoped),
-        ),
-      searchTimeout,
+                assert.deepStrictEqual(apart.map(shownDisagreement), [], said);
+                assert.match(judged.summary.oracle, /\bDocument entry\b/u, said);
+                assert.notMatch(judged.summary.oracle, /\bRootOfType\b/u, said);
+                assert.notMatch(judged.summary.import, /\bRootOfType\b/u, said);
+              }),
+          );
+        }).pipe(Effect.scoped),
+      ),
     );
   },
 );

@@ -18,7 +18,6 @@ import {
 } from "#pantry/test/declared.ts";
 import type { RowFault } from "#pantry/test/declared.ts";
 import { namespaceNameOf } from "#pantry/vocab/namespaces.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The search budget of every exploration here; each states its own coverage.
@@ -260,6 +259,5 @@ describe("the kinds generator against a naive model", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 });

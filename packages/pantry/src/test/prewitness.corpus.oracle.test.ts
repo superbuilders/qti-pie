@@ -14,11 +14,6 @@ import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 
 /**
- * The timeout, in milliseconds, for judging one corpus package: a hang guard.
- */
-const caseTimeoutMs = 60_000;
-
-/**
  * The folder the predicted verdicts are written to, `packages/pantry/work/verdicts`, beside the
  * corpus witness's own output and, like it, never committed.
  */
@@ -173,9 +168,7 @@ describe.skipIf(!settings.corpusRequested)("prewitness.corpus.oracle.test.ts, th
     "the predicted verdict of every corpus package",
     (it) => {
       for (const entry of corpus) {
-        it.effect(`${entry.name} is judged by the laws`, () => predict(entry), {
-          timeout: caseTimeoutMs,
-        });
+        it.effect(`${entry.name} is judged by the laws`, () => predict(entry));
       }
 
       it.effect("the predictions, written beside the committed verdicts", () =>

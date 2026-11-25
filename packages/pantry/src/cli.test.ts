@@ -10,8 +10,8 @@ import { ChildProcessSpawner } from "effect/process";
 import { spawnCli } from "#pantry/test/cli.ts";
 
 layer(NodeServices.layer, { excludeTestServices: true })("cli.ts as a process", (it) => {
-  // A cold spawn of the CLI, under the free project's hang guard as `cli/run.test.ts`'s spawns are,
-  // for the reason given there.
+  // A cold spawn of the CLI, bounded by no clock as `cli/run.test.ts`'s spawns are, for the reason
+  // given there.
   it.effect(
     "import of a missing directory exits 2 with its message once on standard error, nothing on standard output, and no stack",
     () =>

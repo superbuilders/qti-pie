@@ -26,13 +26,7 @@ import {
 import type { Content, Probe, ProbeDocument, XsdSet } from "#pantry/test/gen/grammar.ts";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
 import { xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 600_000;
+import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
  * The toy base type.
@@ -142,7 +136,6 @@ describe("XsiType", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it("names a derived type only where a schema set of its kind's documents holds it", () => {
@@ -346,7 +339,6 @@ describe("XsiType against xmllint", () => {
           `${String(failures.length)} failures, the first 30: ${failures.slice(0, 30).join("; ")}`,
         );
       }).pipe(Effect.provide(XsdOracleLayer)),
-    testTimeoutMs,
   );
 });
 
@@ -442,7 +434,6 @@ describe("Governor", () => {
         assert.isAbove(attributes.governor.rows.length, 0);
         assert.deepStrictEqual(disagreements, []);
       }),
-    testTimeoutMs,
   );
 });
 
@@ -519,6 +510,5 @@ describe("the TypeName spelling", () => {
           );
         }
       }),
-    searchTimeout,
   );
 });

@@ -15,7 +15,6 @@ import { materialize, materializeZip, zipMembers } from "#pantry/test/fixtures.t
 import { canonicalize } from "@qti-pie/crust/canonical.ts";
 import { readXml } from "@qti-pie/crust/read.ts";
 import type { FixtureName } from "#pantry/test/fixtures.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * What every test here runs on: the file system the comparison reads packages through, and the
@@ -423,7 +422,6 @@ layer(TestLayer, { excludeTestServices: true })("export/compare.ts", (it) => {
           ),
         );
       }),
-    searchTimeout,
   );
 
   it.effect("a package directory and a zip of its entries compare byte-identical both ways", () =>

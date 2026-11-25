@@ -33,12 +33,6 @@ import { xsiNamespace } from "#pantry/vocab/namespaces.ts";
 import { admittedOf } from "#pantry/test/indexes.ts";
 
 /**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 120_000;
-
-/**
  * The composed grammar.
  */
 const grammar = Result.getOrThrow(composed());
@@ -389,6 +383,5 @@ describe("the codec's QName values", () => {
           "the codec refuses exactly the values §3.2.18 gives none",
         );
       }),
-    { timeout: testTimeoutMs },
   );
 });

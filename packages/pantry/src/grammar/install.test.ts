@@ -17,7 +17,7 @@ import * as install from "#pantry/grammar/install.ts";
 import { foreignKinds } from "#pantry/grammar/kinds.ts";
 import { valueDomainRoster } from "#pantry/grammar/value-domain-roster.ts";
 import { admittedOf, includeRowsOf, symbolRowsOf } from "#pantry/test/indexes.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar, the generators' rows every declaration is compared with.
@@ -500,7 +500,6 @@ describe("the installed relations", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it.effect(
@@ -551,7 +550,6 @@ describe("the installed relations", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it("give the host the generator's attribute rows, each (governor, name) once", () => {

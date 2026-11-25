@@ -43,11 +43,6 @@ import { statedLaws } from "#pantry/test/law-namer.ts";
 import { lawNameOf } from "#pantry/import/refusal.ts";
 
 /**
- * The timeout, in milliseconds, of this file's tests that compile Qti's law model: a hang guard.
- */
-const testTimeoutMs = 300_000;
-
-/**
  * A two-level scratch schema in grizzle's own shape for rules over queries (README, "Rules over
  * queries"): a stored level of four relations, and a level over it whose derived relation joins
  * two of them. Each level states a check, a containment into a relation, one from a selection and a
@@ -129,60 +124,48 @@ const judged = (law: Law): boolean =>
     : law.kind === "key" && heldRelations.has(law.side.relation);
 
 describe("the host judge's laws", () => {
-  it(
-    "names every law it judges as a refusal names an outcome's law",
-    () => {
-      // Oracle: the refusal's own naming, grizzle's sameLaw against the laws lawsOf states. Bound:
-      // every law of Qti the host judges.
-      const unnamed = judgedLaws(Qti).flatMap(({ law }) =>
+  it("names every law it judges as a refusal names an outcome's law", () => {
+    // Oracle: the refusal's own naming, grizzle's sameLaw against the laws lawsOf states. Bound:
+    // every law of Qti the host judges.
+    const unnamed = judgedLaws(Qti).flatMap(({ law }) =>
+      Option.isNone(lawNameOf(law)) ? [Formatter.format(law)] : [],
+    );
+
+    assert.deepStrictEqual(unnamed, [], "laws the refusal names none of");
+  });
+
+  it("names every containment a test reads from a relation as a refusal names an outcome's law", () => {
+    // Oracle: the refusal's own naming, as above. Bound: every containment Qti states, read from
+    // each of its relations.
+    const unnamed = Object.keys(Qti.relations).flatMap((from) =>
+      containmentsOf(Qti, from).flatMap(({ law }) =>
         Option.isNone(lawNameOf(law)) ? [Formatter.format(law)] : [],
+      ),
+    );
+
+    assert.deepStrictEqual(unnamed, [], "containments the refusal names none of");
+  });
+
+  it("judges every containment and key Qti states, in both host judges, whatever statement states it", () => {
+    // Oracle: the laws Qti states, as the refusal names them (`statedLaws`, from grizzle's
+    // `lawsOf`). Bound: every containment and key of every statement of Qti, an alternatives'
+    // among them.
+    const stated = statedLaws().flatMap(([law]) => (judged(law) ? [Formatter.format(law)] : []));
+    const judges = [
+      ["the host judge", judgedLaws(Qti).map(({ law }) => law)],
+      ["the genetic search", evaluatedLaws],
+    ] as const;
+
+    for (const [label, laws] of judges) {
+      const held = new Set(laws.map((law) => Formatter.format(law)));
+
+      assert.deepStrictEqual(
+        stated.filter((law) => !held.has(law)),
+        [],
+        `laws Qti states that ${label} judges not`,
       );
-
-      assert.deepStrictEqual(unnamed, [], "laws the refusal names none of");
-    },
-    testTimeoutMs,
-  );
-
-  it(
-    "names every containment a test reads from a relation as a refusal names an outcome's law",
-    () => {
-      // Oracle: the refusal's own naming, as above. Bound: every containment Qti states, read from
-      // each of its relations.
-      const unnamed = Object.keys(Qti.relations).flatMap((from) =>
-        containmentsOf(Qti, from).flatMap(({ law }) =>
-          Option.isNone(lawNameOf(law)) ? [Formatter.format(law)] : [],
-        ),
-      );
-
-      assert.deepStrictEqual(unnamed, [], "containments the refusal names none of");
-    },
-    testTimeoutMs,
-  );
-
-  it(
-    "judges every containment and key Qti states, in both host judges, whatever statement states it",
-    () => {
-      // Oracle: the laws Qti states, as the refusal names them (`statedLaws`, from grizzle's
-      // `lawsOf`). Bound: every containment and key of every statement of Qti, an alternatives'
-      // among them.
-      const stated = statedLaws().flatMap(([law]) => (judged(law) ? [Formatter.format(law)] : []));
-      const judges = [
-        ["the host judge", judgedLaws(Qti).map(({ law }) => law)],
-        ["the genetic search", evaluatedLaws],
-      ] as const;
-
-      for (const [label, laws] of judges) {
-        const held = new Set(laws.map((law) => Formatter.format(law)));
-
-        assert.deepStrictEqual(
-          stated.filter((law) => !held.has(law)),
-          [],
-          `laws Qti states that ${label} judges not`,
-        );
-      }
-    },
-    testTimeoutMs,
-  );
+    }
+  });
 
   it("decodes no statement over a derived relation, a check, a containment either way or a key", () => {
     // Oracle: grizzle's own two-level shape (README, "Rules over queries"): a rule over a derived

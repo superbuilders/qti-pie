@@ -59,13 +59,6 @@ import {
 } from "#pantry/vocab/inventory/attributes.ts";
 import { coveredElements } from "#pantry/vocab/inventory/extensions.ts";
 import type { Domain } from "#pantry/vocab/inventory/types.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 300_000;
 
 /**
  * The leaf's rosters: every kind that declares an attribute or has text, and every attribute name.
@@ -1383,7 +1376,6 @@ describe("The spec readings", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it("read 9: an h1's role is heading, tab or presentation, and every other kind's ARIA role keeps each role the XSD lists, every declarer against every listed role and the near misses", () => {
@@ -1468,115 +1460,110 @@ describe("The spec readings", () => {
           [],
         );
       }),
-    testTimeoutMs,
   );
 
-  it(
-    "read 135: every MIME type is RFC 2045's two tokens and a slash, and each item of the upload's list, against an independent reader on every string of up to four symbols and the named cases",
-    () => {
-      // Information model §7.25, MimeType: "The mime type (type and subtype), as defined by
-      // [RFC 2045]"; §5.1.2 and §5.135.2: "its value must be a valid MIME type". RFC 2045 §5.1:
-      // `type "/" subtype`, each a token, "1*<any (US-ASCII) CHAR except SPACE, CTLs, or
-      // tspecials>". Oracle: `mediaTypeFault`, a code-point walk of the RFC's sentence, not the
-      // pattern. Bound: every string of at most four of `mediaTypeSymbols` (88,741), each declarer,
-      // then the named cases with the verdicts the reading states.
-      const declarers = attributeDeclarations
-        .filter(({ type }) => type.type === "MimeTypeDType")
-        .map(({ kind, name }) => `${kind}@${name}`)
-        .toSorted();
+  it("read 135: every MIME type is RFC 2045's two tokens and a slash, and each item of the upload's list, against an independent reader on every string of up to four symbols and the named cases", () => {
+    // Information model §7.25, MimeType: "The mime type (type and subtype), as defined by
+    // [RFC 2045]"; §5.1.2 and §5.135.2: "its value must be a valid MIME type". RFC 2045 §5.1:
+    // `type "/" subtype`, each a token, "1*<any (US-ASCII) CHAR except SPACE, CTLs, or
+    // tspecials>". Oracle: `mediaTypeFault`, a code-point walk of the RFC's sentence, not the
+    // pattern. Bound: every string of at most four of `mediaTypeSymbols` (88,741), each declarer,
+    // then the named cases with the verdicts the reading states.
+    const declarers = attributeDeclarations
+      .filter(({ type }) => type.type === "MimeTypeDType")
+      .map(({ kind, name }) => `${kind}@${name}`)
+      .toSorted();
 
-      assert.deepStrictEqual(declarers, [
-        "a@type",
-        "object@type",
-        "param@type",
-        "qti-calculator-info@mime-type",
-        "qti-digital-material@mime-type",
-        "qti-file-href.card@mime-type",
-        "qti-stylesheet@type",
-        "source@type",
-      ]);
+    assert.deepStrictEqual(declarers, [
+      "a@type",
+      "object@type",
+      "param@type",
+      "qti-calculator-info@mime-type",
+      "qti-digital-material@mime-type",
+      "qti-file-href.card@mime-type",
+      "qti-stylesheet@type",
+      "source@type",
+    ]);
 
-      const named: readonly (readonly [string, boolean])[] = [
-        ["image/png", true],
-        ["IMAGE/PNG", true],
-        ["image/svg+xml", true],
-        ["application/vnd.ms-excel", true],
-        ["x-world/x-vrml", true],
-        ["*/*", true],
-        ["text/x-{a}~|`'!#$%&^_.", true],
-        [`${"a".repeat(200)}/${"b".repeat(300)}`, true],
-        [" image/png", false],
-        ["image/png ", false],
-        ["image /png", false],
-        ["image/ png", false],
-        ["a b/c", false],
-        ["image/png\t", false],
-        ["\nimage/png", false],
-        ["image/png\r", false],
-        ["image/png\u007F", false],
-        ["image", false],
-        ["/png", false],
-        ["image/", false],
-        ["/", false],
-        ["", false],
-        ["a/b/c", false],
-        ["a//b", false],
-        ["text/html;charset=utf-8", false],
-        ["text/html; charset=utf-8", false],
-        ["é/x", false],
-        ["a(b)/c", false],
-        ["a@b/c", false],
-        ["[a]/b", false],
-        ["a/b=c", false],
-        ['a/"b"', false],
-        ["\u00A0", false],
-        ["image/png\u00A0", false],
-        ["\uFEFFimage/png", false],
-      ];
-      const checked = new Map<string, readonly string[]>();
-      for (const at of declarers) {
-        const [kind = "", name = ""] = at.split("@");
-        if (declarersOf(name).some((declarer) => declarer.kind === kind)) {
-          const domain = Option.getOrThrow(domainAt(kind, name));
-          const wrong =
-            checked.get(domain.handle) ??
-            mediaTypeScope.filter(
-              (value) => matches(domain, value) !== (mediaTypeFault(value) === "valid"),
-            );
-          checked.set(domain.handle, wrong);
+    const named: readonly (readonly [string, boolean])[] = [
+      ["image/png", true],
+      ["IMAGE/PNG", true],
+      ["image/svg+xml", true],
+      ["application/vnd.ms-excel", true],
+      ["x-world/x-vrml", true],
+      ["*/*", true],
+      ["text/x-{a}~|`'!#$%&^_.", true],
+      [`${"a".repeat(200)}/${"b".repeat(300)}`, true],
+      [" image/png", false],
+      ["image/png ", false],
+      ["image /png", false],
+      ["image/ png", false],
+      ["a b/c", false],
+      ["image/png\t", false],
+      ["\nimage/png", false],
+      ["image/png\r", false],
+      ["image/png\u007F", false],
+      ["image", false],
+      ["/png", false],
+      ["image/", false],
+      ["/", false],
+      ["", false],
+      ["a/b/c", false],
+      ["a//b", false],
+      ["text/html;charset=utf-8", false],
+      ["text/html; charset=utf-8", false],
+      ["é/x", false],
+      ["a(b)/c", false],
+      ["a@b/c", false],
+      ["[a]/b", false],
+      ["a/b=c", false],
+      ['a/"b"', false],
+      ["\u00A0", false],
+      ["image/png\u00A0", false],
+      ["\uFEFFimage/png", false],
+    ];
+    const checked = new Map<string, readonly string[]>();
+    for (const at of declarers) {
+      const [kind = "", name = ""] = at.split("@");
+      if (declarersOf(name).some((declarer) => declarer.kind === kind)) {
+        const domain = Option.getOrThrow(domainAt(kind, name));
+        const wrong =
+          checked.get(domain.handle) ??
+          mediaTypeScope.filter(
+            (value) => matches(domain, value) !== (mediaTypeFault(value) === "valid"),
+          );
+        checked.set(domain.handle, wrong);
 
-          assert.deepStrictEqual(wrong.slice(0, 20), [], at);
-          for (const [value, valid] of named) {
-            assert.strictEqual(matches(domain, value), valid, `${at} ${JSON.stringify(value)}`);
-            assert.strictEqual(
-              mediaTypeFault(value) === "valid",
-              valid,
-              `the reader on ${JSON.stringify(value)}`,
-            );
-          }
+        assert.deepStrictEqual(wrong.slice(0, 20), [], at);
+        for (const [value, valid] of named) {
+          assert.strictEqual(matches(domain, value), valid, `${at} ${JSON.stringify(value)}`);
+          assert.strictEqual(
+            mediaTypeFault(value) === "valid",
+            valid,
+            `the reader on ${JSON.stringify(value)}`,
+          );
         }
       }
+    }
 
-      const upload = Option.getOrThrow(domainAt("qti-upload-interaction", "type"));
-      const lists = [
-        ...mediaTypeScope,
-        ...named.flatMap(([first]) => named.map(([second]) => `${first} ${second}`)),
-        " image/png  text/plain ",
-        "image/png\ttext/plain\n",
-        "\u00A0",
-        " \u00A0 ",
-        "image/png\u00A0text/plain",
-      ];
-      const wrong = lists.filter((value) => matches(upload, value) !== isMediaTypeList(value));
+    const upload = Option.getOrThrow(domainAt("qti-upload-interaction", "type"));
+    const lists = [
+      ...mediaTypeScope,
+      ...named.flatMap(([first]) => named.map(([second]) => `${first} ${second}`)),
+      " image/png  text/plain ",
+      "image/png\ttext/plain\n",
+      "\u00A0",
+      " \u00A0 ",
+      "image/png\u00A0text/plain",
+    ];
+    const wrong = lists.filter((value) => matches(upload, value) !== isMediaTypeList(value));
 
-      assert.deepStrictEqual(wrong.slice(0, 20), []);
-      assert.isTrue(matches(upload, " image/png  text/plain ") && matches(upload, ""));
-      assert.isFalse(
-        matches(upload, "image/png a(b)/c") || matches(upload, "image/png\u007F text/plain"),
-      );
-    },
-    testTimeoutMs,
-  );
+    assert.deepStrictEqual(wrong.slice(0, 20), []);
+    assert.isTrue(matches(upload, " image/png  text/plain ") && matches(upload, ""));
+    assert.isFalse(
+      matches(upload, "image/png a(b)/c") || matches(upload, "image/png\u007F text/plain"),
+    );
+  });
 
   it.effect(
     "read 135, searched: generated MIME values and lists, swarm-weighted over nine character classes, judged as the independent reader judges them, each rule of the reader reached alone",
@@ -1626,7 +1613,6 @@ describe("The spec readings", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it.effect(
@@ -1709,7 +1695,6 @@ describe("The spec readings", () => {
           "optional",
         );
       }),
-    testTimeoutMs,
   );
 });
 
@@ -2068,7 +2053,6 @@ describe("The XSD's attribute uses", () => {
         assert.isAbove(compared, 5000);
         assert.deepStrictEqual(differences, []);
       }).pipe(Effect.provide(XsdOracleLayer)),
-    testTimeoutMs,
   );
 });
 
@@ -2161,7 +2145,6 @@ describe("The document layer", () => {
           );
         }
       }),
-    testTimeoutMs,
   );
 });
 
@@ -2235,6 +2218,5 @@ describe("The Schematron's ARIA role rules", () => {
         assert.deepStrictEqual(allowed.toSorted(), ["heading", "presentation", "tab"]);
         assert.deepStrictEqual(wrong, [], "RULE ARIA ROLE 1b");
       }).pipe(Effect.provide(NodeServices.layer)),
-    testTimeoutMs,
   );
 });

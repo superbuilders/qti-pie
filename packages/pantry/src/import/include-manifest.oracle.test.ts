@@ -37,7 +37,6 @@ import { lawsOf } from "#pantry/test/oracle.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { breaksIncludeTarget } from "#pantry/test/placed-includes.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's law tables over the composed grammar.
@@ -165,6 +164,5 @@ layer(NodeServices.layer, { excludeTestServices: true })("an include of the mani
           );
         }).pipe(Effect.scoped),
       ),
-    searchTimeout,
   );
 });

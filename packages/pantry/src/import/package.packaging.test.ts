@@ -18,7 +18,7 @@ import { importDir } from "#pantry/test/import-dir.ts";
 import { materialize } from "#pantry/test/fixtures.ts";
 import { importAgreesWithOracle, packagingFixtures } from "#pantry/test/oracle-verdict.ts";
 import { danglingIncludeName, materializeProcessing } from "#pantry/test/processing-fixtures.ts";
-import { hasLease, searchTimeout } from "#pantry/test/settings.ts";
+import { hasLease } from "#pantry/test/settings.ts";
 import { ImportRefused } from "#pantry/import/rules.ts";
 import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
 
@@ -29,43 +29,39 @@ describe.skipIf(!hasLease)("import/package.packaging.test.ts, on the lease", () 
     ),
     {
       excludeTestServices: true,
-      timeout: "120 seconds",
     },
   )("importPackage of the packaging fixtures on the lease", (it) => {
-    it.effect(
-      "gives each drawn packaging fixture the law oracle's verdict",
-      (ctx) =>
-        // Oracle: a second implementation, the law oracle's verdict over the same entries. Bound:
-        // 12 of the packaging fixtures, drawn from the run's seed, one import each, so the runs
-        // between them cover the list.
-        searched(
-          ctx,
-          explore(
-            {
-              caseHang: Duration.seconds(120),
-              concurrency: 1,
-              coverage: noCoverage,
-              draw: drawn(int(0, packagingFixtures.length - 1)),
-              kept: [],
-              literal: (at) => packagingFixtures[at] ?? String(at),
-              oracle: { kind: "second-implementation", name: "the law oracle's verdict" },
-              runs: 12,
-              shrink: completeShrink,
-              steerEvery: 16,
-              suite: "pantry/package-packaging-db",
-            },
-            (at) =>
-              Effect.gen(function* oracleAgrees() {
-                const name = packagingFixtures[at];
-                if (name === undefined) {
-                  return;
-                }
+    it.effect("gives each drawn packaging fixture the law oracle's verdict", (ctx) =>
+      // Oracle: a second implementation, the law oracle's verdict over the same entries. Bound:
+      // 12 of the packaging fixtures, drawn from the run's seed, one import each, so the runs
+      // between them cover the list.
+      searched(
+        ctx,
+        explore(
+          {
+            caseHang: Duration.seconds(120),
+            concurrency: 1,
+            coverage: noCoverage,
+            draw: drawn(int(0, packagingFixtures.length - 1)),
+            kept: [],
+            literal: (at) => packagingFixtures[at] ?? String(at),
+            oracle: { kind: "second-implementation", name: "the law oracle's verdict" },
+            runs: 12,
+            shrink: completeShrink,
+            steerEvery: 16,
+            suite: "pantry/package-packaging-db",
+          },
+          (at) =>
+            Effect.gen(function* oracleAgrees() {
+              const name = packagingFixtures[at];
+              if (name === undefined) {
+                return;
+              }
 
-                yield* importAgreesWithOracle(yield* materialize(name), name);
-              }),
-          ),
+              yield* importAgreesWithOracle(yield* materialize(name), name);
+            }),
         ),
-      searchTimeout,
+      ),
     );
 
     it.effect(`refuses ${danglingIncludeName} by the law its dangling include breaks`, () =>

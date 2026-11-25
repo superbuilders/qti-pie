@@ -35,7 +35,6 @@ import { lawNameOf } from "#pantry/import/refusal.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Every law the host judges, read once.
@@ -195,7 +194,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             ),
           );
         }),
-      searchTimeout,
     );
   },
 );

@@ -19,7 +19,6 @@ import { searched } from "@bjornpagen/testing/vitest";
 import { Duration, Effect, FileSystem, Formatter } from "effect";
 import { packageBudget, readZip, writeZip } from "#pantry/package/zip.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The gap lengths the box draws.
@@ -196,6 +195,5 @@ describe("a zip's central directory and end record", () => {
           }),
         ),
       ),
-    searchTimeout,
   );
 });

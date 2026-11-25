@@ -42,7 +42,6 @@ import { lawTable } from "#pantry/vocab/laws.ts";
 import { databaseJudgedLawNames } from "#pantry/test/law-namer.ts";
 import { lawNameOf, rulesOf } from "#pantry/import/refusal.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Every law the host judges, read once.
@@ -303,103 +302,100 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     for (const cardinality of cardinalities) {
       const ofCardinality = cases.filter((held) => held.cardinality === cardinality);
 
-      it.effect(
-        `of cardinality ${cardinality}`,
-        (ctx) =>
-          // Oracle: a second implementation, the law oracle, which reads each declaration's
-          // `base-type` itself (`typedValueOf`), against the import's rows judged on the host by
-          // the schema's statements; and the specification by hand for which typed rows exist
-          // (information model tables 4.5.3, 5.34.3, 5.115.3 and 5.151.3: a record has no
-          // base-type). Bound: 8 referrers (a feedback's, a printed variable's and a template
-          // inline's references, a text entry's response and string identifiers, a mapping, an
-          // area mapping and a match table) × 4 cardinalities × an unwritten, a fitting and a
-          // misfitting base type, 96 packages, exhausted, one cardinality's 24 to a case.
-          searched(
-            ctx,
-            exhaust(
-              {
-                box: `a declaration of cardinality ${cardinality} and each base type state, named by each reference, binding and table`,
-                caseHang: Duration.minutes(2),
-                concurrency: 1,
-                coverage: requiredInSpace<"accepted" | "alone" | "record" | "several">(
-                  situationsAt(cardinality),
-                ),
-                generator: int(0, ofCardinality.length - 1),
-                literal: (at) => Formatter.format(ofCardinality[at]),
-                oracle: {
-                  kind: "second-implementation",
-                  name: "the law oracle, beside the specification's typed rows by hand",
-                },
-                suite: `test/record-declarations/${cardinality}`,
+      it.effect(`of cardinality ${cardinality}`, (ctx) =>
+        // Oracle: a second implementation, the law oracle, which reads each declaration's
+        // `base-type` itself (`typedValueOf`), against the import's rows judged on the host by
+        // the schema's statements; and the specification by hand for which typed rows exist
+        // (information model tables 4.5.3, 5.34.3, 5.115.3 and 5.151.3: a record has no
+        // base-type). Bound: 8 referrers (a feedback's, a printed variable's and a template
+        // inline's references, a text entry's response and string identifiers, a mapping, an
+        // area mapping and a match table) × 4 cardinalities × an unwritten, a fitting and a
+        // misfitting base type, 96 packages, exhausted, one cardinality's 24 to a case.
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: `a declaration of cardinality ${cardinality} and each base type state, named by each reference, binding and table`,
+              caseHang: Duration.minutes(2),
+              concurrency: 1,
+              coverage: requiredInSpace<"accepted" | "alone" | "record" | "several">(
+                situationsAt(cardinality),
+              ),
+              generator: int(0, ofCardinality.length - 1),
+              literal: (at) => Formatter.format(ofCardinality[at]),
+              oracle: {
+                kind: "second-implementation",
+                name: "the law oracle, beside the specification's typed rows by hand",
               },
-              (at, c) =>
-                Effect.scoped(
-                  Effect.gen(function* oneCase() {
-                    const drawn = ofCardinality[at];
-                    assert.isDefined(drawn, `no case ${String(at)}`);
-                    if (drawn === undefined) {
-                      return;
-                    }
+              suite: `test/record-declarations/${cardinality}`,
+            },
+            (at, c) =>
+              Effect.scoped(
+                Effect.gen(function* oneCase() {
+                  const drawn = ofCardinality[at];
+                  assert.isDefined(drawn, `no case ${String(at)}`);
+                  if (drawn === undefined) {
+                    return;
+                  }
 
-                    const label = `${drawn.referrer.name} ${drawn.cardinality} ${drawn.baseType}`;
-                    const entries = packageOf(drawn);
-                    const judgment = yield* judge(filesOf(entries), grammar, laws);
-                    assert.strictEqual(judgment._tag, "Judged", `${label}: the codec refuses it`);
+                  const label = `${drawn.referrer.name} ${drawn.cardinality} ${drawn.baseType}`;
+                  const entries = packageOf(drawn);
+                  const judgment = yield* judge(filesOf(entries), grammar, laws);
+                  assert.strictEqual(judgment._tag, "Judged", `${label}: the codec refuses it`);
 
-                    const breaches = judgment._tag === "Judged" ? judgment.breaches : [];
-                    const oracleLaws = new Set<string>(breaches.map(({ law }) => law));
-                    c.noteAll(situationsOf(oracleLaws, drawn));
+                  const breaches = judgment._tag === "Judged" ? judgment.breaches : [];
+                  const oracleLaws = new Set<string>(breaches.map(({ law }) => law));
+                  c.noteAll(situationsOf(oracleLaws, drawn));
 
-                    const { inputs } = yield* readProgram(yield* scopedPackage(entries), "scoped");
-                    assert.deepStrictEqual(
-                      sortedOf(typedRowsOf(inputs)),
-                      sortedOf(expectedTypedRowsOf(drawn)),
-                      `${label}: the typed rows`,
-                    );
+                  const { inputs } = yield* readProgram(yield* scopedPackage(entries), "scoped");
+                  assert.deepStrictEqual(
+                    sortedOf(typedRowsOf(inputs)),
+                    sortedOf(expectedTypedRowsOf(drawn)),
+                    `${label}: the typed rows`,
+                  );
 
-                    const rows = previewRowsOf(inputs);
-                    const { broken } = judgeHost(rows, hostLaws);
-                    // The declaration and mapping overlays' rules over a query are the database's alone,
-                    // restated here.
-                    const queried = declarationQueryLawsOf(rows);
-                    const hostNames = new Set([
-                      ...broken.map(({ law }) =>
-                        Option.getOrElse(lawNameOf(law), () => Formatter.format(law)),
-                      ),
-                      ...queried,
-                    ]);
-                    const shown =
-                      broken.map(({ law }) => Formatter.format(law)).join("; ") || "no law";
-                    // A law some statement of which is a rule over a query is the database's to
-                    // judge where the host does not break it ("BindingFit" reads its interaction's
-                    // kind through Node), so the oracle's breach of one is no disagreement.
-                    const hostJudged = (law: string) =>
-                      hostNames.has(law) || !databaseJudgedLawNames.has(law);
-                    assert.sameMembers(
-                      [...hostNames],
-                      [...oracleLaws].filter(hostJudged),
-                      `${label}: the import's rows break ${shown}; the law oracle:\n${breaches.map((breach) => `  ${shownBreach(breach, grammar)}`).join("\n")}`,
-                    );
+                  const rows = previewRowsOf(inputs);
+                  const { broken } = judgeHost(rows, hostLaws);
+                  // The declaration and mapping overlays' rules over a query are the database's alone,
+                  // restated here.
+                  const queried = declarationQueryLawsOf(rows);
+                  const hostNames = new Set([
+                    ...broken.map(({ law }) =>
+                      Option.getOrElse(lawNameOf(law), () => Formatter.format(law)),
+                    ),
+                    ...queried,
+                  ]);
+                  const shown =
+                    broken.map(({ law }) => Formatter.format(law)).join("; ") || "no law";
+                  // A law some statement of which is a rule over a query is the database's to
+                  // judge where the host does not break it ("BindingFit" reads its interaction's
+                  // kind through Node), so the oracle's breach of one is no disagreement.
+                  const hostJudged = (law: string) =>
+                    hostNames.has(law) || !databaseJudgedLawNames.has(law);
+                  assert.sameMembers(
+                    [...hostNames],
+                    [...oracleLaws].filter(hostJudged),
+                    `${label}: the import's rows break ${shown}; the law oracle:\n${breaches.map((breach) => `  ${shownBreach(breach, grammar)}`).join("\n")}`,
+                  );
 
-                    const brokenLaws = broken.map(({ law }) => law);
-                    const rule = Arr.isReadonlyArrayNonEmpty(brokenLaws)
-                      ? Arr.head(rulesOf(brokenLaws))
-                      : Option.map(Arr.head(queried), (name) => lawTable[name].rule);
-                    const rules = breaches
-                      .filter(({ law }) => hostJudged(law))
-                      .map(({ law }) => ruleOf(law));
-                    assert.isTrue(
-                      Option.match(rule, {
-                        onNone: () => rules.length === 0,
-                        onSome: (named) => rules.includes(named),
-                      }),
-                      `${label}: the import's refusal names ${Option.getOrElse(rule, () => "none")}, the law oracle ${rules.join(", ") || "none"}`,
-                    );
-                  }),
-                ),
-            ),
+                  const brokenLaws = broken.map(({ law }) => law);
+                  const rule = Arr.isReadonlyArrayNonEmpty(brokenLaws)
+                    ? Arr.head(rulesOf(brokenLaws))
+                    : Option.map(Arr.head(queried), (name) => lawTable[name].rule);
+                  const rules = breaches
+                    .filter(({ law }) => hostJudged(law))
+                    .map(({ law }) => ruleOf(law));
+                  assert.isTrue(
+                    Option.match(rule, {
+                      onNone: () => rules.length === 0,
+                      onSome: (named) => rules.includes(named),
+                    }),
+                    `${label}: the import's refusal names ${Option.getOrElse(rule, () => "none")}, the law oracle ${rules.join(", ") || "none"}`,
+                  );
+                }),
+              ),
           ),
-        searchTimeout,
+        ),
       );
     }
   },

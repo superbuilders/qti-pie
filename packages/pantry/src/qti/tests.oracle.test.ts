@@ -28,7 +28,6 @@ import { previewRowsOf, judge, judgedLaws } from "#pantry/test/host-judge.ts";
 import { lawNamesOf } from "#pantry/test/host-law-names.ts";
 import { judge as judgeOracle, lawsOf } from "#pantry/test/oracle.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * A selection's predicate term as grizzle keeps it on its `desc`, read field by field: the shapes a
@@ -1048,7 +1047,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               ),
           ),
         ),
-      searchTimeout,
     );
   },
 );
@@ -1183,7 +1181,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               ),
           ),
         ),
-      searchTimeout,
     );
   },
 );

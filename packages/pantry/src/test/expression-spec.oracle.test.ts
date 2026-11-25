@@ -42,12 +42,6 @@ import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 
 /**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 120_000;
-
-/**
  * A cardinality of QTI's, but record.
  */
 type Cardinality = "multiple" | "ordered" | "single";
@@ -389,6 +383,5 @@ describe("expression typing by the information model's tables", () => {
         assert.isAbove(cases.length, 0, "the box holds cases");
         assert.deepStrictEqual(wrong, [], "the oracle and the tables agree on every case");
       }),
-    { timeout: testTimeoutMs },
   );
 });

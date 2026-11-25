@@ -54,13 +54,7 @@ import { ZipRefusal } from "#pantry/package/zip.ts";
 import { ImportRefused, ImportRule, limitRules, ruleOfError } from "#pantry/import/rules.ts";
 import type { ReadRefusal, Rule } from "#pantry/import/rules.ts";
 import { plantedLaw, refusedOf, schemaLawsOf, statedLaws } from "#pantry/test/law-namer.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 120_000;
+import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
  * A scratch schema of the shapes whose axes grizzle merges, built with grizzle's own constructors:
@@ -1211,7 +1205,6 @@ describe("the rules of the laws one native object carries, in the precedence's o
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it.effect(
@@ -1240,7 +1233,6 @@ describe("the rules of the laws one native object carries, in the precedence's o
             }),
         ),
       ),
-    searchTimeout,
   );
 });
 
@@ -1387,30 +1379,22 @@ describe("the pattern laws, one per field", () => {
     ]);
   });
 
-  it(
-    "names two fields of one pattern apart: Node.chars an XML production, OpenElementName.namespace a key text's bound",
-    () => {
-      // Oracle: grizzle's per-field pattern law, its relation and field beside the patterns the
-      // field spells (changeset.ts's Law), and the entries their types declare
-      // (`#pantry/qti/law-entries.ts`): a node's characters and a foreign namespace name are both
-      // `Char*`, but only the name is bounded, so a refusal of the one is crust's production and
-      // of the other the stated limit.
-      const chars = statedPatternLaw("Node", "chars");
-      const namespace = statedPatternLaw("OpenElementName", "namespace");
+  it("names two fields of one pattern apart: Node.chars an XML production, OpenElementName.namespace a key text's bound", () => {
+    // Oracle: grizzle's per-field pattern law, its relation and field beside the patterns the
+    // field spells (changeset.ts's Law), and the entries their types declare
+    // (`#pantry/qti/law-entries.ts`): a node's characters and a foreign namespace name are both
+    // `Char*`, but only the name is bounded, so a refusal of the one is crust's production and
+    // of the other the stated limit.
+    const chars = statedPatternLaw("Node", "chars");
+    const namespace = statedPatternLaw("OpenElementName", "namespace");
 
-      assert.deepStrictEqual(
-        chars.patterns,
-        namespace.patterns,
-        "the two fields spell one pattern",
-      );
-      assert.isFalse(sameLaw(chars, namespace));
-      assert.deepStrictEqual(
-        [lawNameOf(chars), lawNameOf(namespace)],
-        [Option.some("XML production"), Option.some("Key text bound")],
-      );
-    },
-    testTimeoutMs,
-  );
+    assert.deepStrictEqual(chars.patterns, namespace.patterns, "the two fields spell one pattern");
+    assert.isFalse(sameLaw(chars, namespace));
+    assert.deepStrictEqual(
+      [lawNameOf(chars), lawNameOf(namespace)],
+      [Option.some("XML production"), Option.some("Key text bound")],
+    );
+  });
 });
 
 describe("the census of the composed Qti schema", () => {
@@ -1439,54 +1423,49 @@ describe("the census of the composed Qti schema", () => {
           ),
         );
       }),
-    testTimeoutMs,
   );
 
-  it(
-    "refuses a site that names no document by its own law: an include under include-target, a section ref under section-ref-target, an absent file under file-exists",
-    () => {
-      // Oracle: the specification as a checker, reading 115: an include whose path an entry holds
-      // but that names no document the manifest lists, and that holds no xi:fallback (XInclude 1.0
-      // §3.2 replaces one that does by its fallback), or that writes no href that names a path of
-      // the package, breaks "Include target", the oracle's law for includes; a section ref that
-      // does so breaks "Section ref target" (§7.5), its own; and a site whose path no entry holds
-      // breaks "File exists", its SitePath's check, which gates it. Each is a law Qti states, under
-      // its own rule, each containment of a site's kind stated once per kind, so a dangling site is
-      // refused under one rule.
-      const stated = schemaLawsOf(Qti);
-      const kinds: readonly (readonly [LawSide, LawSide, readonly Rule[]])[] = [
-        [
-          sideOf("PlacedIncludePath", "package", "path", "start"),
-          sideOf("SiteTarget", "package", "path", "start"),
-          ["include-target"],
-        ],
-        [
-          sideOf("Site", "package", "path", "start", "kind"),
-          sideOf("SitePath", "package", "path", "start", "kind"),
-          ["include-target", "section-ref-target"],
-        ],
-        [
-          sideOf("SitePath", "package", "target"),
-          sideOf("Entry", "package", "path"),
-          ["file-exists"],
-        ],
-      ];
+  it("refuses a site that names no document by its own law: an include under include-target, a section ref under section-ref-target, an absent file under file-exists", () => {
+    // Oracle: the specification as a checker, reading 115: an include whose path an entry holds
+    // but that names no document the manifest lists, and that holds no xi:fallback (XInclude 1.0
+    // §3.2 replaces one that does by its fallback), or that writes no href that names a path of
+    // the package, breaks "Include target", the oracle's law for includes; a section ref that
+    // does so breaks "Section ref target" (§7.5), its own; and a site whose path no entry holds
+    // breaks "File exists", its SitePath's check, which gates it. Each is a law Qti states, under
+    // its own rule, each containment of a site's kind stated once per kind, so a dangling site is
+    // refused under one rule.
+    const stated = schemaLawsOf(Qti);
+    const kinds: readonly (readonly [LawSide, LawSide, readonly Rule[]])[] = [
+      [
+        sideOf("PlacedIncludePath", "package", "path", "start"),
+        sideOf("SiteTarget", "package", "path", "start"),
+        ["include-target"],
+      ],
+      [
+        sideOf("Site", "package", "path", "start", "kind"),
+        sideOf("SitePath", "package", "path", "start", "kind"),
+        ["include-target", "section-ref-target"],
+      ],
+      [
+        sideOf("SitePath", "package", "target"),
+        sideOf("Entry", "package", "path"),
+        ["file-exists"],
+      ],
+    ];
 
-      for (const [from, to, rules] of kinds) {
-        const shown = Formatter.format({ from, to });
-        const laws = stated.filter(
-          (law) => law.kind === "contained" && readsAs(law.from, from) && readsAs(law.to, to),
-        );
+    for (const [from, to, rules] of kinds) {
+      const shown = Formatter.format({ from, to });
+      const laws = stated.filter(
+        (law) => law.kind === "contained" && readsAs(law.from, from) && readsAs(law.to, to),
+      );
 
-        assert.deepStrictEqual(
-          laws.flatMap((law) => Option.toArray(ruleOfLaw(law))).toSorted(),
-          [...rules],
-          shown,
-        );
-      }
-    },
-    testTimeoutMs,
-  );
+      assert.deepStrictEqual(
+        laws.flatMap((law) => Option.toArray(ruleOfLaw(law))).toSorted(),
+        [...rules],
+        shown,
+      );
+    }
+  });
 
   it("names no generated field that declares no entry, so a field Qti gains without one fails the census", () => {
     // Oracle: grizzle's laws (`lawsOf`) of a schema of one generated field that declares no entry

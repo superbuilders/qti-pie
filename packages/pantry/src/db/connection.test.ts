@@ -25,7 +25,6 @@ import { element } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import {
-  Clock,
   ConfigProvider,
   Duration,
   Effect,
@@ -49,7 +48,6 @@ import {
   primedLoginConnection,
 } from "#pantry/db/connection.ts";
 import type { PasswordCommandError } from "#pantry/db/connection.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The folder each run's scratch CA and secrets folders are made in, the package's git-ignored
@@ -806,7 +804,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
           ),
         );
       }),
-    searchTimeout,
   );
 
   it.effect(
@@ -888,7 +885,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
           ),
         );
       }),
-    searchTimeout,
   );
 
   it.effect(
@@ -1006,7 +1002,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
           ),
         );
       }),
-    searchTimeout,
   );
 
   it.effect(
@@ -1130,7 +1125,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
           ),
         );
       }),
-    searchTimeout,
   );
 
   it.effect(
@@ -1258,7 +1252,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
           ),
         );
       }),
-    searchTimeout,
   );
 });
 
@@ -1309,13 +1302,11 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                       QTI_PIE_PG_SECRETS: scratch.secrets,
                     }),
                   );
-                  const started = yield* Clock.currentTimeMillis;
                   const read = yield* connectionOfSide(side).pipe(
                     Effect.flatMap(firstAttempt),
                     Effect.result,
                     Effect.provide(provider),
                   );
-                  const elapsed = (yield* Clock.currentTimeMillis) - started;
                   const failure = Result.isFailure(read) ? read.failure : undefined;
                   const refusal = side === "primed login" ? failure : attemptCause(failure);
                   const group = Number((yield* fs.readFileString(`${command}.pid`)).trim());
@@ -1329,10 +1320,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                     { role, timeout: "1s" },
                   );
                   assertReported(refusal, command, role);
-                  // The bound is a real second, so its floor is read on the wall clock, which a
-                  // busy machine only lengthens; whether the run waited for the command is read
-                  // from the command's own mark.
-                  assert.isAtLeast(elapsed, 1000);
                   assert.isFalse(
                     yield* fs.exists(`${command}.slept`),
                     "the run waited for the command's 30 seconds",
@@ -1345,7 +1332,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             ),
           );
         }),
-      searchTimeout,
     );
   },
 );

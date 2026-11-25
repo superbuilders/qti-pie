@@ -145,11 +145,11 @@ layer(NodeServices.layer, { excludeTestServices: true })("the run's exit code", 
   );
 
   // Each spawn below is a cold start of a Node process that loads the CLI's static graph. It runs
-  // under the free project's hang guard, like every test that names no guard of its own: alone it
-  // takes about 1 s, and during a full free run, while every worker holds a CPU, its child waits
-  // for one, 1.0 s on average and 3.0 s at the slowest of 98 spawns at load average 306 to 377
-  // (`work/timing/cli-spawn-2026-11-15.tsv`), and past 10 s at load average 380 to 460, where a
-  // tighter guard decided the verdict the exit code is for.
+  // under no clock, like every test of pantry: alone it takes about 1 s, and during a full free
+  // run, while every worker holds a CPU, its child waits for one, 1.0 s on average and 3.0 s at the
+  // slowest of 98 spawns at load average 306 to 377 (`work/timing/cli-spawn-2026-11-15.tsv`), and
+  // past 10 s at load average 380 to 460, where a clock on it decided the verdict the exit code is
+  // for.
   live.effect(
     "the process ends with 0 for bare qti, which proves the teardown uses the same code",
     () =>

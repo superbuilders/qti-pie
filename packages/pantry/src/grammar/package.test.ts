@@ -24,12 +24,6 @@ import { writeXsdOracle, xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
 import { OracleLayer, xmllintValidate } from "#pantry/xml/oracle.ts";
 
 /**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 120_000;
-
-/**
  * The package relations of production's facets, over a roster of the kinds their roots name.
  */
 const relations = Effect.sync(() =>
@@ -148,7 +142,6 @@ describe("cp:resource's type against the content-packaging XSD", () => {
           assert.strictEqual(admits(type), held.has(type), JSON.stringify(type));
         }
       }).pipe(Effect.provide(XsdOracleLayer)),
-    testTimeoutMs,
   );
 });
 
@@ -300,6 +293,5 @@ describe("cp:resource's type against xmllint", () => {
         assert.isFalse(admits("imsqti_responseprocessing_xmlv3p0"));
         assert.deepStrictEqual(disagreements, []);
       }).pipe(Effect.scoped, Effect.provide(OracleLayer), Effect.provide(XsdOracleLayer)),
-    testTimeoutMs,
   );
 });

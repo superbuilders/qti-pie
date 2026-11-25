@@ -40,7 +40,6 @@ import {
 } from "#pantry/vocab/derive/domains.ts";
 import type { LengthRule } from "#pantry/vocab/derive/domains.ts";
 import type { Domain, Facet, FacetName } from "#pantry/vocab/inventory/types.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The facets of XML Schema Part 2, 4.3, every one a restriction step may state.
@@ -636,7 +635,6 @@ describe("vocab/derive/domains.ts, restriction by facets", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 });
 
@@ -1255,7 +1253,6 @@ describe("vocab/derive/domains.ts, length facets", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 });
 

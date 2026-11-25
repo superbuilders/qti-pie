@@ -52,11 +52,6 @@ const packageRoot = path.resolve(import.meta.dirname, "../../..");
 const absentHome = `${packageRoot}/work/vocab-derive-test-no-home`;
 
 /**
- * The timeout, in milliseconds, for the hook that reads and indexes the pinned XSDs: a hang guard.
- */
-const schemasHookTimeoutMs = 84_000;
-
-/**
  * The pinned XSDs as read once for the suite: every document, the ASI schema indexed, and the
  * MathML schema read through its includes.
  */
@@ -660,7 +655,6 @@ describe("vocab/derive/derive.ts over the pinned XSDs", () => {
       SchemasLayer.pipe(Layer.provide(Layer.mergeAll(NodeServices.layer, Digest.layerWebCrypto))),
       NodeServices.layer,
     ),
-    { timeout: schemasHookTimeoutMs },
   )("from the cache", (cached) => {
     cached.effect("reads every pinned XSD through its pin, XInclude's UTF-16 included", () =>
       Effect.gen(function* everySource() {

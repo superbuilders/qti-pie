@@ -37,7 +37,6 @@ import type { Attribute, XmlDocument } from "@qti-pie/crust/tree.ts";
 import { writeXml } from "@qti-pie/crust/write.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
 import { OracleLayer, xmllintC14n } from "#pantry/xml/oracle.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The layer the oracle runs in: the process spawner, the file system and paths.
@@ -359,6 +358,5 @@ describe("crust's reader on attribute defaults", () => {
           );
         }).pipe(Effect.scoped, Effect.provide(TestLayer)),
       ),
-    searchTimeout,
   );
 });

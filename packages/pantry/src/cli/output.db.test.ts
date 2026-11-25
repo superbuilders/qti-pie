@@ -80,7 +80,6 @@ describe.skipIf(!hasLease)("output.db.test.ts, on the lease", () => {
     ),
     {
       excludeTestServices: true,
-      timeout: "120 seconds",
     },
   )("--output on the lease", (it) => {
     it.effect(

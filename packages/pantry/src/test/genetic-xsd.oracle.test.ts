@@ -93,12 +93,6 @@ import type { Recorded } from "#pantry/test/xsd-differential.ts";
 import { requireRecordsLibxml2, xmllintValidate } from "#pantry/xml/oracle.ts";
 
 /**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 120_000;
-
-/**
  * The folder the bred documents are written to for `xmllint`, the run's own.
  */
 const scratchRoot = fileScratchDirectory("genetic-xsd-");
@@ -120,23 +114,12 @@ const fixedDrawn = 64;
 const budget: Budget = { candidates: 2400, edits: 4, generation: 96, initial: 96 };
 
 /**
- * The most reduction proposals one finding is judged on, how many go to `xmllint` at once, how many
- * findings are reduced, and until when in the test's run, in milliseconds from its start; the rest
- * are reported as bred. A batch is one `xmllint` process per schema set, so three batches reduce a
- * finding.
+ * The most reduction proposals one finding is judged on, how many go to `xmllint` at once, and how
+ * many findings are reduced, the first that many of the run's; the rest are reported as bred. A
+ * batch is one `xmllint` process per schema set, so three batches reduce a finding, and the
+ * reduction's whole work is at most `findings` times `tries` proposals.
  */
-const reduction = { batch: 60, findings: 8, tries: 180, until: 6_000_000 } as const;
-
-/**
- * The replay's timeout, in milliseconds: a hang guard.
- */
-const replayTimeoutMs = 600_000;
-
-/**
- * The exploration's timeout under `QTI_PIE_GENETIC=1`, in milliseconds: two hours, its reductions
- * until {@link reduction}'s `until`. The long run measures it.
- */
-const exploreTimeoutMs = 7_200_000;
+const reduction = { batch: 60, findings: 8, tries: 180 } as const;
 
 /**
  * Key a disagreement, a difference no record matches, by its class: its direction, class and rule,
@@ -790,7 +773,6 @@ describe("genetic-xsd.oracle.test.ts", () => {
               "both oracles judge every replayed document alike, but for the recorded classes",
             );
           }),
-        { timeout: replayTimeoutMs },
       );
 
       it.effect.skipIf(!settings.geneticRequested)(
@@ -819,7 +801,6 @@ describe("genetic-xsd.oracle.test.ts", () => {
             let generation = 0;
             let disagreeing = 0;
             const lawfulVerdicts = new Map<string, number>();
-            const started = Date.now();
             const judge = (genomes: readonly XsdGenome[]) => {
               generation += 1;
 
@@ -847,7 +828,7 @@ describe("genetic-xsd.oracle.test.ts", () => {
                   ).length;
 
                   return Console.log(
-                    `genetic-xsd: round ${String(generation)}, ${String(genomes.length)} documents, ${String(disagreeing)} disagreeing so far, ${String(Math.round((Date.now() - started) / 1000))} s`,
+                    `genetic-xsd: round ${String(generation)}, ${String(genomes.length)} documents, ${String(disagreeing)} disagreeing so far`,
                   );
                 }),
               );
@@ -879,8 +860,7 @@ describe("genetic-xsd.oracle.test.ts", () => {
             const reports: string[] = [];
             for (const [at, [signature, finding]] of found.entries()) {
               const difference = finding.disagreement;
-              // Reduce while the test's budget allows, so every class is reported before its timeout.
-              const reducing = at < reduction.findings && Date.now() - started < reduction.until;
+              const reducing = at < reduction.findings;
               const reduced = yield* reduce(
                 finding.genome,
                 smallerXsd,
@@ -910,7 +890,6 @@ describe("genetic-xsd.oracle.test.ts", () => {
               "both oracles judge every bred document alike, but for the recorded classes",
             );
           }),
-        { timeout: exploreTimeoutMs },
       );
     },
   );
@@ -1096,7 +1075,6 @@ describe("genetic-xsd.oracle.test.ts, libxml2's padded xsi:type", () => {
             "libxml2 resolves a padded xsi:type's QName uncollapsed, and so assesses the element by no type",
           );
         }),
-      { timeout: testTimeoutMs },
     );
   });
 });
@@ -1134,7 +1112,6 @@ describe("genetic-xsd.oracle.test.ts, libxml2's widened ##other", () => {
             "libxml2 admits the no-namespace attribute only where a derived type shares the group",
           );
         }),
-      { timeout: testTimeoutMs },
     );
   });
 });

@@ -59,12 +59,6 @@ import { XMLNS_NAMESPACE } from "@qti-pie/crust/tree.ts";
 import { rowSetOf } from "#pantry/test/row-sets.ts";
 
 /**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 600_000;
-
-/**
  * The corpus this test reads: the 29 packages `materializeCorpus` lists from the pinned examples
  * tarball, which hold 438 entries whose names end `.xml`. Both are pinned so that a run over a
  * missing or different corpus fails rather than passing over fewer entries.
@@ -748,7 +742,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             [],
           );
         }).pipe(Effect.scoped),
-      { timeout: testTimeoutMs },
     );
   },
 );

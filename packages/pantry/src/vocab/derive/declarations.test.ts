@@ -18,7 +18,7 @@ import {
 import { Digest } from "effect/crypto";
 import { XML_NAMESPACE } from "@qti-pie/crust/tree.ts";
 import { constraintAdmits, probeText, probeValueOf } from "#pantry/test/gen/vocab.ts";
-import { searchWidth, settings, searchTimeout } from "#pantry/test/settings.ts";
+import { searchWidth, settings } from "#pantry/test/settings.ts";
 import { oxfmt } from "#pantry/test/oxfmt.ts";
 import {
   attributeDeclarationsOf,
@@ -56,12 +56,6 @@ const oracleRoot = fileScratchDirectory("vocab-attributes-oracle-");
  * The package folder, `packages/pantry`, which the committed leaves and oxfmt are relative to.
  */
 const packageRoot = path.resolve(import.meta.dirname, "../../..");
-
-/**
- * The timeout, in milliseconds, of the hook that reads the schemas and runs the XSD oracle over
- * every probe, and of each test under it: a hang guard.
- */
-const hookTimeoutMs = 660_000;
 
 /**
  * How long one search case may run: each reads precomputed verdicts.
@@ -374,39 +368,36 @@ describe.skipIf(!settings.corpusRequested)(
   () => {
     beforeAll(xsdCachePresent);
 
-    layer(SuiteLayer, { timeout: hookTimeoutMs })("from the cache", (cached) => {
-      cached.effect(
-        "regenerates both leaves byte for byte after oxfmt",
-        () =>
-          Effect.gen(function* regenerate() {
-            const fs = yield* FileSystem.FileSystem;
-            const readings = yield* loadDeclarations();
-            const leaves = [
-              [
-                "src/vocab/inventory/vocabularies.ts",
-                renderVocabularies(rostersOf(readings), globalKindsOf(readings)),
-              ],
-              [
-                "src/vocab/inventory/attributes.ts",
-                renderAttributes(
-                  attributeDeclarationsOf(readings),
-                  attributeWildcardsOf(readings),
-                  textTypesOf(readings),
-                  yield* loadGlobalAttributes(),
-                  governingRowsOf(readings),
-                ),
-              ],
-            ] as const;
+    layer(SuiteLayer)("from the cache", (cached) => {
+      cached.effect("regenerates both leaves byte for byte after oxfmt", () =>
+        Effect.gen(function* regenerate() {
+          const fs = yield* FileSystem.FileSystem;
+          const readings = yield* loadDeclarations();
+          const leaves = [
+            [
+              "src/vocab/inventory/vocabularies.ts",
+              renderVocabularies(rostersOf(readings), globalKindsOf(readings)),
+            ],
+            [
+              "src/vocab/inventory/attributes.ts",
+              renderAttributes(
+                attributeDeclarationsOf(readings),
+                attributeWildcardsOf(readings),
+                textTypesOf(readings),
+                yield* loadGlobalAttributes(),
+                governingRowsOf(readings),
+              ),
+            ],
+          ] as const;
 
-            for (const [file, text] of leaves) {
-              assert.strictEqual(
-                yield* oxfmt(text, file),
-                yield* fs.readFileString(`${packageRoot}/${file}`),
-                file,
-              );
-            }
-          }),
-        hookTimeoutMs,
+          for (const [file, text] of leaves) {
+            assert.strictEqual(
+              yield* oxfmt(text, file),
+              yield* fs.readFileString(`${packageRoot}/${file}`),
+              file,
+            );
+          }
+        }),
       );
 
       cached.effect(
@@ -472,7 +463,6 @@ describe.skipIf(!settings.corpusRequested)(
               ),
             );
           }),
-        searchTimeout,
       );
     });
   },

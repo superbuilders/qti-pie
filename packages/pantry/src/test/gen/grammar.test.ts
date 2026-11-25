@@ -22,12 +22,6 @@ const root: SourcePath = "imsqti_asiv3p0p1_v1p0.xsd";
  */
 const xmlAttributes: ReadonlySet<string> = new Set(["base", "id", "lang", "space"]);
 
-/**
- * How long reading the 18 MB ASI XSD and walking it may take, beside the swarm's suites: a
- * hang guard.
- */
-const xsdTimeout = 240_000;
-
 describe("the XSD reader's QNames", () => {
   beforeAll(xsdCachePresent);
 
@@ -73,6 +67,5 @@ describe("the XSD reader's QNames", () => {
         assert.deepStrictEqual(strays, [], root);
         assert.deepStrictEqual([...both].toSorted(), leaf.toSorted(), root);
       }).pipe(Effect.provide(XsdOracleLayer)),
-    xsdTimeout,
   );
 });

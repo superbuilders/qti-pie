@@ -41,7 +41,7 @@ import { previewRowsOf, judge as judgeHost, judgedLaws } from "#pantry/test/host
 import { lawNamesOf } from "#pantry/test/host-law-names.ts";
 import { judge as judgeOracle, lawsOf } from "#pantry/test/oracle.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 
 describe("qti/declarations.ts, reserved names", () => {
   it("reserves exactly the built-in session variables, spelled exactly with no alias (spec reading 72)", () => {
@@ -208,7 +208,6 @@ describe("qti/declarations.ts, typed values", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it("admits a uri's text by xs:anyURI's pattern, spec reading 71's", () => {

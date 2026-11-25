@@ -77,7 +77,7 @@ import {
 import type { Isolating } from "#pantry/test/gen/genetic/search.ts";
 import { lawNameOf } from "#pantry/import/refusal.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-import { settings, searchTimeout } from "#pantry/test/settings.ts";
+import { settings } from "#pantry/test/settings.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 
 /**
@@ -411,125 +411,119 @@ afterAll(() => {
 layer(NodeServices.layer, { excludeTestServices: true })(
   "the genetic differential of the import's host path and the law oracle",
   (it) => {
-    it.effect(
-      "still shows every known disagreement, and no fixed one",
-      (ctx) =>
-        // Oracle: a second implementation, the law oracle, against readProgram's refusal and the
-        // laws its rows hold on the host. Bound: each known and fixed entry's package, judged once,
-        // and beside its noised twin where the entry names a noise.
-        searched(
-          ctx,
-          Effect.gen(function* knownRuns() {
-            const directory = yield* scratchDirectory("genetic-known-");
-            const bench = { directory, grammar, laws };
+    it.effect("still shows every known disagreement, and no fixed one", (ctx) =>
+      // Oracle: a second implementation, the law oracle, against readProgram's refusal and the
+      // laws its rows hold on the host. Bound: each known and fixed entry's package, judged once,
+      // and beside its noised twin where the entry names a noise.
+      searched(
+        ctx,
+        Effect.gen(function* knownRuns() {
+          const directory = yield* scratchDirectory("genetic-known-");
+          const bench = { directory, grammar, laws };
 
-            return yield* exhaust(
-              {
-                box: "every known and fixed disagreement's package",
-                caseHang: Duration.minutes(5),
-                concurrency: 1,
-                coverage: noCoverage,
-                generator: int(0, knownList.length - 1),
-                literal: (at) => {
-                  const held = knownList[at];
+          return yield* exhaust(
+            {
+              box: "every known and fixed disagreement's package",
+              caseHang: Duration.minutes(5),
+              concurrency: 1,
+              coverage: noCoverage,
+              generator: int(0, knownList.length - 1),
+              literal: (at) => {
+                const held = knownList[at];
 
-                  return held === undefined ? String(at) : shownSignature(held.entry.signature);
-                },
-                oracle: {
-                  kind: "second-implementation",
-                  name: "the law oracle against readProgram's refusal and its rows' host laws",
-                },
-                suite: "pantry/genetic-known",
+                return held === undefined ? String(at) : shownSignature(held.entry.signature);
               },
-              (at) =>
-                Effect.gen(function* knownCase() {
-                  const held = knownList[at];
-                  assert.isDefined(held, `no known entry ${String(at)}`);
-                  if (held !== undefined) {
-                    const { entry, shows } = held;
-                    const genome = yield* genomeOf(knownEntries(entry));
-                    const judged = yield* judgeOne(genome, bench, at);
-                    const moved =
-                      entry.noised === undefined
-                        ? []
-                        : movedBy(
-                            judged,
-                            yield* judgeOne(
-                              noised(genome, entry.noised.noise, entry.noised.salt),
-                              bench,
-                              at,
-                            ),
-                            entry.noised.noise,
-                            entry.noised.salt,
-                          );
-                    const disagreements = [...judged.disagreements, ...moved];
-                    const signature = shownSignature(entry.signature);
-                    const shown = disagreements.map(shownDisagreement).join("; ") || "none";
-                    // A known class shows as it is keyed; a fixed one must not show again, under its
-                    // plain signature or under any stated limit.
-                    assert.strictEqual(
-                      disagreements.some((disagreement) =>
-                        showsClass(entry.signature, shows, disagreement),
-                      ),
-                      shows,
-                      shows
-                        ? `stale: ${signature} no longer shows, which waits on ${entry.owner}'s fix (${entry.fix}); delete its entry from #pantry/test/gen/genetic/known.ts in the fix's commit, or move it to fixed (its package shows ${shown})`
-                        : `${signature} shows again, which ${entry.owner}'s fix (${entry.fix}) closed (its package shows ${shown})`,
-                    );
-                  }
-                }),
-            );
-          }).pipe(Effect.scoped),
-        ),
-      searchTimeout,
+              oracle: {
+                kind: "second-implementation",
+                name: "the law oracle against readProgram's refusal and its rows' host laws",
+              },
+              suite: "pantry/genetic-known",
+            },
+            (at) =>
+              Effect.gen(function* knownCase() {
+                const held = knownList[at];
+                assert.isDefined(held, `no known entry ${String(at)}`);
+                if (held !== undefined) {
+                  const { entry, shows } = held;
+                  const genome = yield* genomeOf(knownEntries(entry));
+                  const judged = yield* judgeOne(genome, bench, at);
+                  const moved =
+                    entry.noised === undefined
+                      ? []
+                      : movedBy(
+                          judged,
+                          yield* judgeOne(
+                            noised(genome, entry.noised.noise, entry.noised.salt),
+                            bench,
+                            at,
+                          ),
+                          entry.noised.noise,
+                          entry.noised.salt,
+                        );
+                  const disagreements = [...judged.disagreements, ...moved];
+                  const signature = shownSignature(entry.signature);
+                  const shown = disagreements.map(shownDisagreement).join("; ") || "none";
+                  // A known class shows as it is keyed; a fixed one must not show again, under its
+                  // plain signature or under any stated limit.
+                  assert.strictEqual(
+                    disagreements.some((disagreement) =>
+                      showsClass(entry.signature, shows, disagreement),
+                    ),
+                    shows,
+                    shows
+                      ? `stale: ${signature} no longer shows, which waits on ${entry.owner}'s fix (${entry.fix}); delete its entry from #pantry/test/gen/genetic/known.ts in the fix's commit, or move it to fixed (its package shows ${shown})`
+                      : `${signature} shows again, which ${entry.owner}'s fix (${entry.fix}) closed (its package shows ${shown})`,
+                  );
+                }
+              }),
+          );
+        }).pipe(Effect.scoped),
+      ),
     );
 
-    it.effect(
-      "flags no key text past its bound in a field the database fills",
-      (ctx) =>
-        // Oracle: a second implementation, the law oracle, against the laws the import's rows hold
-        // on the host. Bound: a cp:variant's and a cp:dependency's identifierref one byte past the
-        // key-text bound, and the variant's at the bound, each judged once.
-        searched(
-          ctx,
-          Effect.gen(function* filledRuns() {
-            const directory = yield* scratchDirectory("genetic-filled-");
-            const bench = { directory, grammar, laws };
+    it.effect("flags no key text past its bound in a field the database fills", (ctx) =>
+      // Oracle: a second implementation, the law oracle, against the laws the import's rows hold
+      // on the host. Bound: a cp:variant's and a cp:dependency's identifierref one byte past the
+      // key-text bound, and the variant's at the bound, each judged once.
+      searched(
+        ctx,
+        Effect.gen(function* filledRuns() {
+          const directory = yield* scratchDirectory("genetic-filled-");
+          const bench = { directory, grammar, laws };
 
-            return yield* exhaust(
-              {
-                box: "an identifierref one byte past the key-text bound, and one at it",
-                caseHang: Duration.minutes(5),
-                concurrency: 1,
-                coverage: noCoverage,
-                generator: int(0, filledCases.length - 1),
-                literal: (at) => filledCases[at]?.name ?? String(at),
-                oracle: {
-                  kind: "second-implementation",
-                  name: "the law oracle against the laws the import's rows hold on the host",
-                },
-                suite: "pantry/genetic-filled-key-text",
+          return yield* exhaust(
+            {
+              box: "an identifierref one byte past the key-text bound, and one at it",
+              caseHang: Duration.minutes(5),
+              concurrency: 1,
+              coverage: noCoverage,
+              generator: int(0, filledCases.length - 1),
+              literal: (at) => filledCases[at]?.name ?? String(at),
+              oracle: {
+                kind: "second-implementation",
+                name: "the law oracle against the laws the import's rows hold on the host",
               },
-              (at) =>
-                Effect.gen(function* filledCase() {
-                  const held = filledCases[at];
-                  assert.isDefined(held, `no filled case ${String(at)}`);
-                  if (held !== undefined) {
-                    const manifest = new TextEncoder().encode(held.manifest);
-                    const genome = yield* genomeOf(new Map([["imsmanifest.xml", manifest]]));
-                    const judged = yield* judgeOne(genome, bench, at);
-                    assert.isFalse(
-                      judged.disagreements.some((disagreement) =>
-                        recordsClassOf([keyTextBound], disagreement),
-                      ),
-                      `${held.name}: the oracle says ${judged.summary.oracle}, the import's rows ${judged.summary.import}`,
-                    );
-                  }
-                }),
-            );
-          }).pipe(Effect.scoped),
-        ),
-      searchTimeout,
+              suite: "pantry/genetic-filled-key-text",
+            },
+            (at) =>
+              Effect.gen(function* filledCase() {
+                const held = filledCases[at];
+                assert.isDefined(held, `no filled case ${String(at)}`);
+                if (held !== undefined) {
+                  const manifest = new TextEncoder().encode(held.manifest);
+                  const genome = yield* genomeOf(new Map([["imsmanifest.xml", manifest]]));
+                  const judged = yield* judgeOne(genome, bench, at);
+                  assert.isFalse(
+                    judged.disagreements.some((disagreement) =>
+                      recordsClassOf([keyTextBound], disagreement),
+                    ),
+                    `${held.name}: the oracle says ${judged.summary.oracle}, the import's rows ${judged.summary.import}`,
+                  );
+                }
+              }),
+          );
+        }).pipe(Effect.scoped),
+      ),
     );
 
     it.effect(
@@ -675,7 +669,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
           }).pipe(Effect.scoped),
         ),
-      searchTimeout,
     );
 
     it.effect.skipIf(!settings.geneticRequested)(
@@ -766,7 +759,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
           }).pipe(Effect.scoped),
         ),
-      searchTimeout,
     );
   },
 );

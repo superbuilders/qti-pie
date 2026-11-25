@@ -32,13 +32,6 @@ import { caseHang, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { Placed, XdmFeature } from "#pantry/test/gen/xdm.ts";
 import { canonicalize } from "@qti-pie/crust/canonical.ts";
 import type { Child } from "@qti-pie/crust/tree.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 120_000;
 
 /**
  * A vocabulary of literal handles, over which the tree's types state their contracts: they are
@@ -192,7 +185,6 @@ describe("flatten", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it.effect(
@@ -270,7 +262,6 @@ describe("flatten", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it.effect(
@@ -362,7 +353,6 @@ describe("flatten", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it("cannot hold what XML does not: an open class as a closed name, character data beside the root, a nameless foreign element, or a named closed one", () => {
@@ -495,6 +485,5 @@ describe("the model's walks", () => {
           assert.strictEqual(chainLength(tree.root), layout === "deep" ? extent + 2 : 4, layout);
         }
       }),
-    testTimeoutMs,
   );
 });

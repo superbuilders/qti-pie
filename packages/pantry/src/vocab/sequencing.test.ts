@@ -22,7 +22,7 @@ import { nameless, namespaceNameOf } from "#pantry/vocab/namespaces.ts";
 import type { NamespaceOfKind } from "#pantry/vocab/namespaces.ts";
 import { automatonOf, breachesOf } from "#pantry/vocab/sequencing.ts";
 import type { Automaton } from "#pantry/vocab/sequencing.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
  * The longest a case may run before the search stops it: every case here is pure and reads one
@@ -414,7 +414,6 @@ describe("vocab/sequencing.ts", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it.effect(
@@ -462,7 +461,6 @@ describe("vocab/sequencing.ts", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it("is deterministic on every model, as Unique Particle Attribution requires", () => {
@@ -521,7 +519,6 @@ describe("vocab/sequencing.ts", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it("numbers every element particle and wildcard once, densely, in tree order", () => {

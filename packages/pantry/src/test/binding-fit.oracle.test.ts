@@ -69,7 +69,6 @@ import { laws } from "#pantry/test/installed-laws.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { viewedDeclarationsOf } from "#pantry/test/declaration-queries.ts";
 import { nodePlacesOf, placeKey } from "#pantry/test/places.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Every law the host judges, read once.
@@ -340,7 +339,6 @@ describe("the bindings the fit laws judge", () => {
               }).pipe(Effect.scoped),
           ),
         ),
-      searchTimeout,
     );
   });
 });

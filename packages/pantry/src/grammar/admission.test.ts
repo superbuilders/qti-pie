@@ -38,7 +38,6 @@ import {
 } from "#pantry/test/gen/relaxng.ts";
 import { admittedOf } from "#pantry/test/indexes.ts";
 import { xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The names a spec reading takes out of a parent's model where the XSD declares them, each as
@@ -93,11 +92,6 @@ const schemas: readonly SourcePath[] = [
   "imsqtiv3p0p1_imscpv1p2_v1p0.xsd",
   "imsqti_metadatav3p0_v1p0.xsd",
 ];
-
-/**
- * How long reading the pinned XSDs and walking them may take: a hang guard.
- */
-const xsdTimeout = 120_000;
 
 /**
  * Each pinned schema set this file reads, read once for the file: the two tests walk the same
@@ -238,7 +232,6 @@ describe("Admission against the XSD", () => {
         assert.isAbove(compared, 0);
         assert.deepStrictEqual(differences, []);
       }).pipe(Effect.provide(XsdOracleLayer)),
-    xsdTimeout,
   );
 
   it.effect(
@@ -359,7 +352,6 @@ describe("Admission against the XSD", () => {
           `${String(differences.length)} differences, the first 30: ${differences.slice(0, 30).join("; ")}`,
         );
       }).pipe(Effect.provide(XsdOracleLayer)),
-    xsdTimeout,
   );
 });
 
@@ -630,7 +622,6 @@ describe("Admission projected from content models", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 });
 
@@ -640,88 +631,85 @@ describe("Admission projected from content models", () => {
 const restatedKinds = ["e1", "e2", "e3", "e4"] as const;
 
 describe("Admission through compose", () => {
-  it.effect(
-    "keeps a triple two vocabularies both state as one fact, as one stated once",
-    (ctx) =>
-      // Bound: up to 6 rows over 4 kinds, one restated.
-      searched(
-        ctx,
-        explore(
-          {
-            caseHang: Duration.minutes(1),
-            concurrency: 1,
-            coverage: required<"restated" | "stated once">(["restated", "stated once"], {
-              cases: 40,
-              sense: notesOnly,
-            }),
-            draw: drawn((source) => ({
-              restated: source.draw(int(0, 1)) === 1,
-              rows: source.draw(
-                array(
-                  (s) => ({
-                    child: s.draw(element(restatedKinds)),
-                    parent: s.draw(element(restatedKinds)),
-                  }),
-                  { max: 6, min: 1 },
-                ),
+  it.effect("keeps a triple two vocabularies both state as one fact, as one stated once", (ctx) =>
+    // Bound: up to 6 rows over 4 kinds, one restated.
+    searched(
+      ctx,
+      explore(
+        {
+          caseHang: Duration.minutes(1),
+          concurrency: 1,
+          coverage: required<"restated" | "stated once">(["restated", "stated once"], {
+            cases: 40,
+            sense: notesOnly,
+          }),
+          draw: drawn((source) => ({
+            restated: source.draw(int(0, 1)) === 1,
+            rows: source.draw(
+              array(
+                (s) => ({
+                  child: s.draw(element(restatedKinds)),
+                  parent: s.draw(element(restatedKinds)),
+                }),
+                { max: 6, min: 1 },
               ),
-            })),
-            kept: [],
-            literal: Formatter.format,
-            oracle: {
-              kind: "specification",
-              name: "grizzle keeps a row stated twice as one fact (closedRows), so a family holds one admission per (parent, child), whichever vocabulary states it",
-            },
-            runs: 40,
-            shrink: completeShrink,
-            steerEvery: 16,
-            suite: "grammar/admission/restated",
+            ),
+          })),
+          kept: [],
+          literal: Formatter.format,
+          oracle: {
+            kind: "specification",
+            name: "grizzle keeps a row stated twice as one fact (closedRows), so a family holds one admission per (parent, child), whichever vocabulary states it",
           },
-          ({ restated, rows }, c) =>
-            Effect.sync(() => {
-              c.note(restated ? "restated" : "stated once");
+          runs: 40,
+          shrink: completeShrink,
+          steerEvery: 16,
+          suite: "grammar/admission/restated",
+        },
+        ({ restated, rows }, c) =>
+          Effect.sync(() => {
+            c.note(restated ? "restated" : "stated once");
 
-              const triples = [
-                ...new Map(rows.map((row) => [`${row.parent} ${row.child}`, row])).values(),
-              ];
-              const [first] = triples;
-              const second = restated && first !== undefined ? [first] : [];
-              const result = toyGrammar([
-                toyVocabulary({
-                  admission: triples,
-                  attributes: [],
-                  data: ["ws"],
-                  facets: toyFacets({}),
-                  kinds: restatedKinds,
-                }),
-                toyVocabulary({
-                  admission: second,
-                  attributes: [],
-                  data: [],
-                  facets: toyFacets({}),
-                  kinds: [],
-                }),
-              ]);
+            const triples = [
+              ...new Map(rows.map((row) => [`${row.parent} ${row.child}`, row])).values(),
+            ];
+            const [first] = triples;
+            const second = restated && first !== undefined ? [first] : [];
+            const result = toyGrammar([
+              toyVocabulary({
+                admission: triples,
+                attributes: [],
+                data: ["ws"],
+                facets: toyFacets({}),
+                kinds: restatedKinds,
+              }),
+              toyVocabulary({
+                admission: second,
+                attributes: [],
+                data: [],
+                facets: toyFacets({}),
+                kinds: [],
+              }),
+            ]);
 
-              // A triple stated twice is no refusal: grizzle keeps a row stated twice as one fact
-              // when it declares `AdmissionIn` (`#pantry/test/declared.ts`), so the family admits
-              // each triple once, whichever vocabulary states it.
-              assert.deepStrictEqual(
-                result.pipe(
-                  Result.map(({ content }) => ({
-                    admitted: new Set(
-                      admittedOf(content.contentModelOf, content.admissionIn).map(
-                        ({ child, parent }) => tupleKey(parent, child),
-                      ),
-                    ).size,
-                    declared: Result.isSuccess(declaredRelation(content.admissionIn)),
-                  })),
-                ),
-                Result.succeed({ admitted: triples.length, declared: true }),
-              );
-            }),
-        ),
+            // A triple stated twice is no refusal: grizzle keeps a row stated twice as one fact
+            // when it declares `AdmissionIn` (`#pantry/test/declared.ts`), so the family admits
+            // each triple once, whichever vocabulary states it.
+            assert.deepStrictEqual(
+              result.pipe(
+                Result.map(({ content }) => ({
+                  admitted: new Set(
+                    admittedOf(content.contentModelOf, content.admissionIn).map(
+                      ({ child, parent }) => tupleKey(parent, child),
+                    ),
+                  ).size,
+                  declared: Result.isSuccess(declaredRelation(content.admissionIn)),
+                })),
+              ),
+              Result.succeed({ admitted: triples.length, declared: true }),
+            );
+          }),
       ),
-    searchTimeout,
+    ),
   );
 });

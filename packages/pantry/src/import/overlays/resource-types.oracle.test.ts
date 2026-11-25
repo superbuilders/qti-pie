@@ -41,11 +41,6 @@ const grammar = Result.getOrThrow(composed());
 const laws = lawsOf(grammar);
 
 /**
- * The timeout, in milliseconds, that each of this file's tests states: a hang guard.
- */
-const testTimeoutMs = 120_000;
-
-/**
  * The type `simple`'s one resource lists its item under.
  */
 const itemType = "imsqti_item_xmlv3p0";
@@ -161,7 +156,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               "the typed paths' (target, type) pairs",
             );
           }),
-        testTimeoutMs,
       );
     }
 
@@ -187,7 +181,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             assert.deepStrictEqual(first.host, [], `${type}: the host`);
           }
         }),
-      testTimeoutMs,
     );
   },
 );

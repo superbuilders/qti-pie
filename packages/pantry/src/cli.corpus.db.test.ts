@@ -22,12 +22,6 @@ import type { VerdictRow } from "#pantry/test/verdicts.ts";
 import { ImportRefused } from "#pantry/import/rules.ts";
 
 /**
- * The timeout, in milliseconds, for one half of one corpus package's judgment, the importer's run
- * or the CLI's: a hang guard.
- */
-const corpusCaseTimeoutMs = 120_000;
-
-/**
  * The folder every case's scratch lives under, `packages/pantry/work/cli-corpus`; each package has
  * a folder of its own under it, named for the package, so no two cases share a path.
  */
@@ -296,28 +290,18 @@ describe.skipIf(!hasLease)("cli.corpus.db.test.ts, on the lease", () => {
     ),
     {
       excludeTestServices: true,
-      timeout: "120 seconds",
     },
   )("the CLI against the importer over the corpus", (it) => {
-    // Each package is two cases, so the hang guard bounds one half of its judgment: the importer's
-    // run, then the CLI's, which reads what the importer's recorded.
+    // Each package is two cases, the two halves of its judgment: the importer's run, then the
+    // CLI's, which reads what the importer's recorded.
     for (const entry of corpus) {
-      it.effect(
-        `${entry.name} through the importer`,
-        () =>
-          Effect.gen(function* importerCase() {
-            importerRuns.set(entry.member, yield* importerRun(entry));
-          }),
-        {
-          timeout: corpusCaseTimeoutMs,
-        },
+      it.effect(`${entry.name} through the importer`, () =>
+        Effect.gen(function* importerCase() {
+          importerRuns.set(entry.member, yield* importerRun(entry));
+        }),
       );
-      it.effect(
-        `${entry.name} lands through the CLI as it does through the importer`,
-        () => judge(entry),
-        {
-          timeout: corpusCaseTimeoutMs,
-        },
+      it.effect(`${entry.name} lands through the CLI as it does through the importer`, () =>
+        judge(entry),
       );
     }
 

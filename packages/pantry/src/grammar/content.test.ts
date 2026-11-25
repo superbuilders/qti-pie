@@ -71,14 +71,8 @@ import type {
 } from "#pantry/test/gen/grammar.ts";
 import { relaxNgModels, semanticsContexp } from "#pantry/test/gen/relaxng.ts";
 import type { MathClasses } from "#pantry/test/gen/relaxng.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 import { xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 60_000;
 
 /**
  * The composed grammar of production, failing the test that reads it when a generator refuses.
@@ -256,11 +250,6 @@ const wildcardSchemas: readonly (readonly [SourcePath, string])[] = [
   ["imsqtiv3p0p1_imscpv1p2_v1p0.xsd", "http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1"],
   ["lom/imsmd_loose_v1p3p2.xsd", "http://ltsc.ieee.org/xsd/LOM"],
 ];
-
-/**
- * How long the differentials may take: a hang guard.
- */
-const xsdTimeout = 600_000;
 
 /**
  * A draw from the run's seed: a generator's first case on the stream the run seed and a label mint,
@@ -1034,7 +1023,6 @@ describe("the content automata against the XSD", () => {
         assert.isAbove(compared, 0);
         assert.deepStrictEqual(disagreements.slice(0, 40), []);
       }).pipe(Effect.provide(XsdOracleLayer)),
-    xsdTimeout,
   );
 
   it.effect(
@@ -1093,7 +1081,6 @@ describe("the content automata against the XSD", () => {
         assert.isAbove(probed, 0);
         assert.deepStrictEqual(failures.slice(0, 40), []);
       }).pipe(Effect.provide(XsdOracleLayer)),
-    xsdTimeout,
   );
 
   it.effect(
@@ -1158,7 +1145,6 @@ describe("the content automata against the XSD", () => {
         assert.isAbove(probed, 0);
         assert.deepStrictEqual(failures.slice(0, 40), []);
       }).pipe(Effect.provide(XsdOracleLayer)),
-    xsdTimeout,
   );
 });
 
@@ -1399,7 +1385,6 @@ describe("the occurrence bounds the automata relax", () => {
           expected,
         );
       }).pipe(Effect.provide(XsdOracleLayer)),
-    xsdTimeout,
   );
   it.effect(
     "agree with xmllint on every operator whose content is a counted group of operands, the automaton's 1..n and Arity's count together: every family of at most 3 children over two of its operands and one element kind it does not admit",
@@ -1446,7 +1431,6 @@ describe("the occurrence bounds the automata relax", () => {
         assert.isAbove(operators, 0);
         assert.deepStrictEqual(failures.slice(0, 40), []);
       }).pipe(Effect.provide(XsdOracleLayer)),
-    xsdTimeout,
   );
 });
 
@@ -1554,7 +1538,6 @@ describe("the content grammar's sources", () => {
         assert.isAbove(checked.size, 0);
         assert.deepStrictEqual(wrong.slice(0, 20), []);
       }).pipe(Effect.provide(NodeServices.layer)),
-    xsdTimeout,
   );
 });
 
@@ -1605,7 +1588,6 @@ describe("spec reading 130 in the LOM binding", () => {
         );
         assert.strictEqual(bounded.size, 82);
       }).pipe(Effect.provide(XsdOracleLayer)),
-    xsdTimeout,
   );
 
   it.effect(
@@ -1671,7 +1653,6 @@ describe("spec reading 130 in the LOM binding", () => {
         assert.deepStrictEqual(disagreements.slice(0, 20), []);
         assert.deepStrictEqual(met, capped, "every capped pair is probed");
       }).pipe(Effect.provide(XsdOracleLayer)),
-    xsdTimeout,
   );
 });
 
@@ -1950,7 +1931,6 @@ describe("the installed automata", () => {
         assert.isAbove(families.size, 0);
         assert.deepStrictEqual([...new Set(dead)].slice(0, 20), []);
       }),
-    testTimeoutMs,
   );
 
   it.effect(
@@ -2000,7 +1980,6 @@ describe("the installed automata", () => {
         assert.isAbove(content.sharedModelOf.rows.length, 0);
         assert.deepStrictEqual(undecided.slice(0, 20), []);
       }),
-    testTimeoutMs,
   );
 
   it.effect(
@@ -2029,7 +2008,6 @@ describe("the installed automata", () => {
 
         assert.deepStrictEqual(breaches.slice(0, 20), []);
       }),
-    testTimeoutMs,
   );
 
   it("find in every reading's edit what it names in its parent's model, as the edits before it leave the model", () => {
@@ -2153,7 +2131,6 @@ describe("spec reading 40 in ssml:speak", () => {
           ),
         );
       }).pipe(Effect.provide(XsdOracleLayer)),
-    searchTimeout,
   );
 });
 
@@ -2216,7 +2193,6 @@ describe("spec reading 44 in ssml:token and ssml:w", () => {
         assert.strictEqual(compared, 2 * (1 + 5 + 25 + 125));
         assert.deepStrictEqual(disagreements.slice(0, 20), []);
       }).pipe(Effect.provide(XsdOracleLayer)),
-    xsdTimeout,
   );
 });
 
@@ -2516,7 +2492,6 @@ describe("spec reading 96, a repeated wildcard keeps its sequence's order", () =
         assert.deepStrictEqual(failures.slice(0, 40), []);
         assert.isAbove(ruled, 0, "xmllint no longer widens these sequences: revisit reading 96");
       }).pipe(Effect.provide(XsdOracleLayer)),
-    xsdTimeout,
   );
 });
 
@@ -2561,7 +2536,6 @@ describe("the document node's content model (R5)", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it.effect(

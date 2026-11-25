@@ -49,11 +49,6 @@ const configured: readonly { readonly login: AnyLogin; readonly schema: string }
 ];
 
 /**
- * How long one login's compile and comparison may take, the compile nearly all of it: a hang guard.
- */
-const servedTimeoutMs = 200_000;
-
-/**
  * The text of a committed migration file, read as the JSON value it holds.
  */
 const JsonText = Schema.fromJsonString(Schema.Json);
@@ -181,7 +176,6 @@ layer(NodeServices.layer)("the committed served files", (live) => {
               : `migrations/${file} is not the served file grizzle generate writes for login ${login.name}: their JSON parts at character ${String(at)}, where the compile reads ${excerpt(compiled, at)} and the committed file ${excerpt(committed, at)}. Run \`pnpm fix\`, then \`pnpm exec grizzle generate\` in packages/pantry, and commit what it writes.`,
           );
         }),
-      servedTimeoutMs,
     );
   }
 });

@@ -34,7 +34,6 @@ import { unshred } from "#pantry/model/unshred.ts";
 import { flatten } from "#pantry/model/xdm.ts";
 import type { FlatRows } from "#pantry/model/xdm.ts";
 import { caseHang } from "#pantry/test/gen/xdm.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The grammar shred reads through, projected once.
@@ -251,6 +250,5 @@ describe("spec reading 137, attribute order, through the export", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 });

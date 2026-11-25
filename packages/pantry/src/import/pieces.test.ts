@@ -9,7 +9,7 @@ import { array, element } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Duration, Effect, Formatter } from "effect";
 import { piecesOf } from "#pantry/import/pieces.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 
 describe("import/pieces.ts", () => {
   it.effect(
@@ -57,6 +57,5 @@ describe("import/pieces.ts", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 });

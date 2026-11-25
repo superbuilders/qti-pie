@@ -46,7 +46,6 @@ import { filesOf } from "#pantry/test/oracle-complete/mutation.ts";
 import { judge, ruleOf, shownBreach } from "#pantry/test/oracle.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 import { nodePlacesOf } from "#pantry/test/places.ts";
-import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Every (site, state) of the scope, by its number: the first declaration of each kind in each
@@ -120,35 +119,32 @@ const holds = (at: number) =>
   }).pipe(Effect.scoped, Effect.provide(NodeServices.layer));
 
 describe("declarations whose cardinality or base type spells nothing (spec reading 158)", () => {
-  it.effect(
-    "keep their rows, and are refused by AL3 or the value domain alone",
-    (ctx) =>
-      // Oracle: the specification as a checker (the law oracle), and the families and checks the
-      // importer's rows feed, read over those rows. Bound: the first declaration of each kind in
-      // each of the every-relation items, under each state of its cardinality and base
-      // type that spells nothing, exhausted.
-      searched(
-        ctx,
-        exhaust(
-          {
-            box: "the first declaration of each kind in each item, under each untyped state",
-            caseHang: Duration.seconds(120),
-            concurrency: 1,
-            coverage: noCoverage,
-            generator: int(0, cases.length - 1),
-            literal: (at) => {
-              const drawn = cases[at];
+  it.effect("keep their rows, and are refused by AL3 or the value domain alone", (ctx) =>
+    // Oracle: the specification as a checker (the law oracle), and the families and checks the
+    // importer's rows feed, read over those rows. Bound: the first declaration of each kind in
+    // each of the every-relation items, under each state of its cardinality and base
+    // type that spells nothing, exhausted.
+    searched(
+      ctx,
+      exhaust(
+        {
+          box: "the first declaration of each kind in each item, under each untyped state",
+          caseHang: Duration.seconds(120),
+          concurrency: 1,
+          coverage: noCoverage,
+          generator: int(0, cases.length - 1),
+          literal: (at) => {
+            const drawn = cases[at];
 
-              return drawn === undefined
-                ? String(at)
-                : `${drawn.site.path} ${drawn.site.identifier} ${drawn.state.name}`;
-            },
-            oracle: { kind: "specification", name: "the law oracle, and the rows' own laws" },
-            suite: "pantry/declaration-rows",
+            return drawn === undefined
+              ? String(at)
+              : `${drawn.site.path} ${drawn.site.identifier} ${drawn.state.name}`;
           },
-          holds,
-        ),
+          oracle: { kind: "specification", name: "the law oracle, and the rows' own laws" },
+          suite: "pantry/declaration-rows",
+        },
+        holds,
       ),
-    searchTimeout,
+    ),
   );
 });

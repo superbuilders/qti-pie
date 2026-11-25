@@ -31,7 +31,7 @@ import {
 import type { RoundingKind } from "#pantry/test/operator-spec.ts";
 import { judge, lawsOf, shownBreach } from "#pantry/test/oracle.ts";
 import type { Breach, Judgment, LawName } from "#pantry/test/oracle.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
  * Test a text against a pattern as PostgreSQL's `~` reads one of grizzle's admitted grammar: the
@@ -232,7 +232,6 @@ describe("qti/operators.ts, the database's patterns", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it.effect(
@@ -266,7 +265,6 @@ describe("qti/operators.ts, the database's patterns", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it.effect(
@@ -311,7 +309,6 @@ describe("qti/operators.ts, the database's patterns", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it("reads the signed 64-bit range's edges as the specification does", () => {
@@ -462,7 +459,7 @@ type RoundingSituation =
   | "variable"
   | "no mode";
 
-describe("test/oracle.ts, Rounding figures", { timeout: searchTimeout }, () => {
+describe("test/oracle.ts, Rounding figures", () => {
   it.effect(
     "breaks once, at the operator, exactly where its integer figures is below its mode's least; a qti-round-to with no mode is AL3's",
     (ctx) =>
@@ -569,7 +566,7 @@ const toleranceCases: Gen<ToleranceCase> = (source) => ({
  */
 type ToleranceSituation = "missing" | "count" | "value" | "variable" | "accepted range";
 
-describe("test/oracle.ts, Equal tolerance", { timeout: searchTimeout }, () => {
+describe("test/oracle.ts, Equal tolerance", () => {
   it.effect(
     "breaks once, at the qti-equal, exactly where a range has no tolerance or a tolerance is not one or two values each above 0",
     (ctx) =>
@@ -789,7 +786,7 @@ const operatorCase: Gen<OperatorCase> = (source) =>
     ],
   );
 
-describe("test/oracle.ts, the operator laws past the box", { timeout: searchTimeout }, () => {
+describe("test/oracle.ts, the operator laws past the box", () => {
   it.effect(
     "refuses each operator a swarm draws under its law exactly where the specification does",
     (ctx) =>

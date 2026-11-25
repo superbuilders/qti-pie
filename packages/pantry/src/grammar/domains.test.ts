@@ -67,13 +67,7 @@ import { readPinned } from "#pantry/test/spec-cache/read.ts";
 import { builtinDomainOf } from "#pantry/vocab/derive/domains.ts";
 import type { Domain, Facet } from "#pantry/vocab/inventory/types.ts";
 import { OracleLayer, xmllintValidate } from "#pantry/xml/oracle.ts";
-import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 120_000;
+import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
  * Every distinct definition the leaf resolves, once each with a declaration it types: the leaf
@@ -641,7 +635,6 @@ describe("The whitespace fold", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it("refuses to fold the collapsed languages of three patterns in which two spaces that do not merge may stand together, folds five in which none may, and compiles three whose every word begins or ends with a space to the empty language", () => {
@@ -846,7 +839,6 @@ describe("The translation of XSD regular expressions", () => {
         assert.isAbove(probes.length, leafPatterns.length * 10);
         assert.deepStrictEqual(disagreements, []);
       }).pipe(Effect.scoped, Effect.provide(OracleLayer), Effect.provide(NodeServices.layer)),
-    testTimeoutMs,
   );
 
   it("refuses the patterns XSD's grammar does not define, and the blocks this reader has no range for", () => {
@@ -1035,7 +1027,6 @@ describe("Integer intervals", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it("read the bounds of the wide built-ins exactly at their edges: int, long, unsignedLong", () => {
@@ -1515,7 +1506,6 @@ describe("Length facets", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 });
 
@@ -1695,7 +1685,6 @@ describe("xs:boolean", () => {
             }),
         ),
       ),
-    searchTimeout,
   );
 
   it("is read in grammar/domains.ts alone: no other module spells a truth of its own", () => {

@@ -69,8 +69,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
   "readProgram over the packaging fixtures and the published packages refuses exactly what the oracle's codec refuses, under its rule",
   (suite) => {
     // Oracle: a second implementation, the law oracle's own read of the same entries (`judge`'s
-    // reader, version and shred). One case per package, so each is held to the hang guard alone
-    // and a disagreement names its package.
+    // reader, version and shred). One case per package, so a disagreement names its package.
     for (const name of packagingFixtures) {
       suite.effect(name, () =>
         Effect.gen(function* fixtureAgrees() {

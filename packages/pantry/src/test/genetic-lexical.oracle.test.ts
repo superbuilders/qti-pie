@@ -70,16 +70,6 @@ const long: Budget = { candidates: 48_000, edits: 4, generation: 4000, initial: 
 const reduced = { findings: 12, tries: 400 } as const;
 
 /**
- * The timeout, in milliseconds, for the bounded run: a hang guard.
- */
-const boundedTimeoutMs = 660_000;
-
-/**
- * The timeout, in milliseconds, for the long run: a hang guard.
- */
-const longTimeoutMs = 1_260_000;
-
-/**
  * Write a finding as one line: where, both verdicts, the value as JSON and the edge classes.
  *
  * @param finding - The finding.
@@ -100,7 +90,6 @@ describe("genetic-lexical.oracle.test.ts, bred values against xmllint", () => {
 
           const grammar = yield* Effect.fromResult(composed()).pipe(Effect.orDie);
           const directory = yield* scratchDirectory("genetic-lexical-");
-          const begun = Date.now();
           const harness = yield* sitesOf(grammar);
           const oracle = yield* writeXsdOracle(`${directory}/oracle`, harness.declarations);
           const run = yield* runOfProcess;
@@ -114,9 +103,7 @@ describe("genetic-lexical.oracle.test.ts, bred values against xmllint", () => {
           };
           const budget = settings.geneticRequested ? long : bounded;
 
-          yield* Console.log(
-            `genetic-lexical: ${String(breeding.sites.length)} sites ready in ${String(Date.now() - begun)} ms`,
-          );
+          yield* Console.log(`genetic-lexical: ${String(breeding.sites.length)} sites ready`);
 
           const evolved = yield* evolve(lexicalProblem(breeding), budget, seed);
 
@@ -134,7 +121,7 @@ describe("genetic-lexical.oracle.test.ts, bred values against xmllint", () => {
 
           const report = [
             `genetic-lexical: TEST_SEED=${String(run.seed)}, stream pantry/genetic-lexical, ${settings.geneticRequested ? "long" : "bounded"} budget ${JSON.stringify(budget)}, swarm ${JSON.stringify(breeding.swarm)}`,
-            `  ${String(breeding.sites.length)} sites, ${String(evolved.evaluated)} candidates judged, population ${String(evolved.population)}, ${String(evolved.features.size)} features, ${String(evolved.found.size)} signatures of ${String(classes.size)} unrecorded classes, in ${String(Date.now() - begun)} ms`,
+            `  ${String(breeding.sites.length)} sites, ${String(evolved.evaluated)} candidates judged, population ${String(evolved.population)}, ${String(evolved.features.size)} features, ${String(evolved.found.size)} signatures of ${String(classes.size)} unrecorded classes`,
             ...evolved.residual.map(
               ({ candidates, estimate, family, observed, singletons }) =>
                 `  residual ${family}: ${String(singletons)} seen once of ${String(observed)} over ${String(candidates)} candidates, f1/n = ${estimate.toFixed(4)}`,
@@ -198,7 +185,6 @@ describe("genetic-lexical.oracle.test.ts, bred values against xmllint", () => {
             `every bred value is judged alike by both sides, but as recorded; shrunk: ${shrunk.join(" | ")}`,
           );
         }).pipe(Effect.scoped),
-      { timeout: settings.geneticRequested ? longTimeoutMs : boundedTimeoutMs },
     );
   });
 });
