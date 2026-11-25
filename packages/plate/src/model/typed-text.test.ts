@@ -889,8 +889,8 @@ const begunByBoth = (mask: string): ((text: string) => boolean) => {
  * @param count The most digits after the first.
  * @returns The entry.
  */
-const entryOf = (count: number): TypedEntry =>
-  typedEntry({ base: 10, baseType: "integer" }, `[1-9][0-9]{0,${String(count)}}`);
+const entryOf = (count: number, lead = "[1-9]"): TypedEntry =>
+  typedEntry({ base: 10, baseType: "integer" }, `${lead}[0-9]{0,${String(count)}}`);
 
 describe("typedEntry and takesTyped", () => {
   it("takes, with no mask, exactly the empty text, a lone minus and an integer written plainly, over every text of up to four keystrokes", () => {
@@ -927,7 +927,7 @@ describe("typedEntry and takesTyped", () => {
   });
 
   it.effect(
-    "builds and checks a box's entry under a mask of any count in time linear in the count: [0-9]{1,2047} and eight times its count",
+    "builds and checks a box's entry under a mask of any count in time linear in the count: [1-9][0-9]{0,2047} and [0-9]{0,2047}, and eight times their counts",
     () =>
       Effect.gen(function* linearMask() {
         const fewer = 2047;
@@ -935,19 +935,24 @@ describe("typedEntry and takesTyped", () => {
         assert.isTrue(takesTyped(entryOf(fewer), "9".repeat(fewer + 1)));
         assert.isFalse(takesTyped(entryOf(fewer), "9".repeat(fewer + 2)));
 
-        const growth = yield* growthRatio(
-          () => {
-            takesTyped(entryOf(fewer), "9".repeat(fewer + 1));
-          },
-          () => {
-            takesTyped(entryOf(more), "9".repeat(more + 1));
-          },
-        );
-        assert.isBelow(
-          growth,
-          growthLimit,
-          `8 times the count took ${growth.toFixed(1)} times as long`,
-        );
+        assert.isTrue(takesTyped(entryOf(fewer, ""), "9".repeat(fewer)));
+        assert.isFalse(takesTyped(entryOf(fewer, ""), "09"));
+
+        for (const lead of ["[1-9]", ""]) {
+          const growth = yield* growthRatio(
+            () => {
+              takesTyped(entryOf(fewer, lead), "9".repeat(fewer));
+            },
+            () => {
+              takesTyped(entryOf(more, lead), "9".repeat(more));
+            },
+          );
+          assert.isBelow(
+            growth,
+            growthLimit,
+            `${lead}[0-9]{0,n}: 8 times the count took ${growth.toFixed(1)} times as long`,
+          );
+        }
       }),
   );
 

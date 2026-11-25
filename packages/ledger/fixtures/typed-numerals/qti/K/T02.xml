@@ -4,8 +4,8 @@
   <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" normal-maximum="1" normal-minimum="0"><qti-default-value><qti-value>0</qti-value></qti-default-value></qti-outcome-declaration>
   <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>1</qti-value></qti-default-value></qti-outcome-declaration>
   <qti-item-body>
-    <p>Ten ducks swim in a pond. Six swim away. How many are left?</p>
-    <p>10 − 6 = <qti-text-entry-interaction response-identifier="RESPONSE" expected-length="2" pattern-mask="0|[1-9]|1[0-9]|20"/></p>
+    <p>Eleven ducks swim in a pond. Seven swim away. How many are left?</p>
+    <p>11 − 7 = <qti-text-entry-interaction response-identifier="RESPONSE" expected-length="2" pattern-mask="0|[1-9]|1[0-9]|20"/></p>
   </qti-item-body>
   <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>

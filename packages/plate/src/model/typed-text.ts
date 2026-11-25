@@ -455,7 +455,8 @@ export type TypedEntry = Option.Option<Array.NonEmptyReadonlyArray<Matcher>>;
  * own matcher, built from the language's shape and run once over a text, so no mask, however great
  * its counts, makes a box's entry costly to build or to check: no automaton of the two is ever
  * made. In any other base the mask matches the value's decimal digits, no text the box shows, so it
- * narrows nothing here. A box whose texts include none it may post takes no text at all.
+ * narrows nothing here. A box whose mask matches no text takes no text at all, and one whose mask's
+ * texts begin no integer takes the empty text alone.
  *
  * @param reading How the box's text is read: its base type, and the base an integer is typed in.
  * @param patternMask The interaction's `pattern-mask`, none where the author wrote none; one outside
