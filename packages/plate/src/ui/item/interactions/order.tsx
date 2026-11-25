@@ -5,18 +5,19 @@
  *
  * The island takes its choices as presented, each with read-aloud's control for the catalog it
  * references where the candidate hears it read aloud, named by the choice's place as presented, its
- * orientation, and its positions and how many of them its response requires, the payload's bounds
- * (reading 18), which `redact` counts once. The
- * review shows each answer once: the numbered positions holding the choices the response places,
- * each position marked by the host's marks, the right choice standing in a position whose
- * answer is not it, and a bank of only the choices the response leaves out, none when it leaves
- * none out.
+ * orientation, its choices' container width (`data-choices-container-width`, QTI 3.0 shared
+ * vocabulary 1.2.9.4), and its positions, each labelled as its root's label classes ask (1.2.9.1,
+ * 1.2.9.2, `positionsOf`), and how many of them its response requires, the payload's bounds
+ * (reading 18), which `redact` counts once. The review shows each answer once: the positions,
+ * labelled the same, holding the choices the response places, each position marked by the host's
+ * marks, the right choice standing in a position whose answer is not it, and a bank of only the
+ * choices the response leaves out, none when it leaves none out.
  *
  * @module
  */
 import { Option } from "effect";
 import type { ReactNode } from "react";
-import { numeral } from "#plate/messages.ts";
+import { positionsOf } from "#plate/interactions/position-labels.ts";
 import type { Locale } from "#plate/messages.ts";
 import type { Paired } from "#plate/payload.ts";
 import { flag } from "#plate/ui/attributes.ts";
@@ -130,6 +131,7 @@ export const island = (
   context: IslandContext,
 ): ReactNode => {
   const prompt = promptAt(node.prompt, node.response, context);
+  const list = carriesRendererClass(model.class, "plate-order-list");
 
   return (
     <Order
@@ -146,24 +148,31 @@ export const island = (
         ...spokenOf(choice, index + 1, "readAloudChoice", context),
       }))}
       labels={labelsOf(orderKeys, context.locale, {})}
-      list={carriesRendererClass(model.class, "plate-order-list")}
+      list={list}
       naming={groupNameOf(prompt, node, context)}
       orientation={Option.getOrUndefined(node.orientation)}
-      positions={node.maxChoices}
+      positions={positionsOf(
+        context.className,
+        list ? node.choices.length : node.maxChoices,
+        context.locale,
+      )}
       prompt={prompt}
       required={node.minChoices}
       response={node.declared}
       root={rootOf(model, context)}
+      width={Option.getOrUndefined(node.choicesContainerWidth.pipe(Option.map(String)))}
     />
   );
 };
 
 /**
- * Render an Order's review: its numbered positions holding the choices the response places, each
- * position marked when the review marks, the right choice standing in a position whose answer is
- * not it, after its bank, which holds only the choices the response leaves out and is not written
- * when it leaves none out. A placed choice stands in its position alone, so the review shows each
- * answer once; a choice left out that a position shows missing says so in the bank too.
+ * Render an Order's review: its positions, labelled as the island labels them and, where a label
+ * does not show its number, named by their numbers as the island names them, holding the choices
+ * the response places, each position marked when the review marks, the right choice standing in a
+ * position whose answer is not it, after its bank, which holds only the choices the response leaves
+ * out and is not written when it leaves none out. A placed choice stands in its position alone, so
+ * the review shows each answer once; a choice left out that a position shows missing says so in the
+ * bank too.
  *
  * @param paired The Order.
  * @param paired.payload Its payload: its choices as presented, the order it shows, and the most
@@ -196,6 +205,7 @@ export const review = (
     ),
   };
   const orientation = Option.getOrUndefined(node.orientation);
+  const positions = positionsOf(context.className, slots.length, locale);
 
   return (
     <div
@@ -209,6 +219,17 @@ export const review = (
       <div data-slot="plate-placement">
         {left.length === 0 ? null : (
           <div data-slot="plate-placement-dock">
+            {Option.match(node.choicesContainerWidth, {
+              onNone: () => null,
+              onSome: (width) => (
+                <svg
+                  aria-hidden="true"
+                  data-slot="plate-placement-width"
+                  height="0"
+                  width={String(width)}
+                />
+              ),
+            })}
             <div data-slot="plate-placement-bank">
               {left.map((choice) =>
                 bankChipPart(
@@ -223,13 +244,20 @@ export const review = (
         )}
         <ol data-slot="plate-order-positions" role="list">
           {slots.map((slot, index) => (
-            // A position is a place, not an item: its place is its key.
+            // A position is a place, not an item: its place is its key. One its label does not
+            // name is a group named by its number, as the island's is, so its name is read before
+            // the chip and the mark it holds, never in place of them.
             <li
               key={index}
+              {...(positions[index]?.by === "aria-label"
+                ? { "aria-label": positions[index]?.name, role: "group" }
+                : {})}
               data-empty={flag(slot.kind === "empty")}
               data-slot="plate-placement-target"
             >
-              <div data-slot="plate-placement-target-label">{numeral(locale, index + 1)}</div>
+              {positions[index]?.label === undefined ? null : (
+                <div data-slot="plate-placement-target-label">{positions[index]?.label}</div>
+              )}
               {chipsAt(slot, writings, locale)}
             </li>
           ))}

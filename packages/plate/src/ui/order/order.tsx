@@ -2,8 +2,9 @@
 
 /**
  * The Order interaction's client island (`qti-order-interaction`): the child puts the choices in
- * order by moving each from a bank of chips into numbered positions, by a tap, a drag or a key,
- * and the choices in position order are the response.
+ * order by moving each from a bank of chips into positions, numbered unless its root asks for other
+ * labels or none (QTI 3.0 shared vocabulary, 1.2.9.1 and 1.2.9.2), by a tap, a drag or a key, and
+ * the choices in position order are the response.
  *
  * It follows the Choice island's pattern (`#plate/ui/choice/choice.tsx`) and stands on the
  * placement primitive (`#plate/ui/placement/parts.tsx`) as a sequence board: each choice is one
@@ -28,6 +29,7 @@
  */
 import { useMemo } from "react";
 import type { ReactNode } from "react";
+import type { Position as Shown } from "#plate/interactions/position-labels.ts";
 import type { Declared } from "#plate/model/values.ts";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
 import type { OrderLabels } from "#plate/ui/order/labels.ts";
@@ -81,13 +83,15 @@ export interface OrderProps extends Authored<NameAttributes> {
    */
   readonly labels: OrderLabels;
   /**
-   * How many positions the Order shows, which the server derives from `max-choices` and
-   * `min-choices`. With a `min-choices`, it is the `max-choices` written beside it, or one per
-   * choice when there is none, since "If unspecified, all of the choices may be ordered" (5.97.3);
-   * without one, it is one per choice, since then "all of the choices must be ordered and
-   * max-choices is ignored" (5.97.2, plate's reading 18).
+   * The positions the Order shows, the first position's first, each its name, its number, and the
+   * label its root's classes ask for (`positionsOf` in `#plate/interactions/position-labels.ts`),
+   * undefined under `qti-labels-none`. How many there are the server derives: in a list, one per
+   * choice; else from `max-choices` and `min-choices`, with a `min-choices` the `max-choices`
+   * written beside it, or one per choice when there is none, since "If unspecified, all of the
+   * choices may be ordered" (5.97.3), and without one, one per choice, since then "all of the
+   * choices must be ordered and max-choices is ignored" (5.97.2, plate's reading 18).
    */
-  readonly positions: number;
+  readonly positions: readonly Shown[];
   /**
    * The response the island writes, as its declaration types it: an `ordered` `identifier`
    * response.
@@ -119,6 +123,12 @@ export interface OrderProps extends Authored<NameAttributes> {
    * whether a submitted response is valid the server judges.
    */
   readonly required: number;
+  /**
+   * The author's `data-choices-container-width`, the width in pixels its bank is drawn at (QTI 3.0
+   * shared vocabulary, 1.2.9.4), its digits as written; undefined for none. A list has no bank, so
+   * it shows none.
+   */
+  readonly width: string | undefined;
 }
 
 /**
@@ -140,17 +150,20 @@ export interface OrderProps extends Authored<NameAttributes> {
  *   outright: the stylesheet takes its markers off, and WebKit stops exposing a list with no
  *   markers as a list, which would lose "1 of 4" for a screen reader;
  * - `plate-placement-target`, each position, an `li` with `data-over` under a dragged chip and
- *   `data-empty` while it holds none. It holds its `plate-placement-target-label`, its number,
- *   which names it in every announcement and slot, then the chip placed there. A position never
- *   shows `data-full` or `data-refuses`: a taken one swaps, and each takes any choice;
+ *   `data-empty` while it holds none. It holds its `plate-placement-target-label`, its label, where
+ *   the root asks for one, then the chip placed there; its name, its number, names it in every
+ *   announcement and slot, and names the position itself (`Position.by`): by its label where the
+ *   label shows its number, else by an `aria-label`, so "a." or no label still reads "1". A
+ *   position never shows `data-full` or `data-refuses`: a taken one swaps, and each takes any
+ *   choice;
  * - `plate-placement-slot`, in every empty position, which the primitive names with the `slot` label
  *   for that position: a drop, a tap or a key on it puts the held chip in that position. A press on
  *   a placed chip while another is held swaps the two;
  * - `plate-placement-message`, the latest refusal, as it was announced.
  *
- * The stylesheet makes every chip and position at least 64 px tall and the numbers large. The
+ * The stylesheet makes every chip and position at least 64 px tall and the labels large. The
  * primitive announces each step and refusal with the `labels`, filled with the chips' content and
- * the positions' numbers as the child sees them.
+ * the positions' names, their numbers.
  *
  * @param props The interaction, its response and its labels ({@link OrderProps}).
  * @returns The Order, its placements bound to the response.
@@ -167,14 +180,18 @@ export const Order = (props: OrderProps) => {
     required,
     response,
     root: authored,
+    width,
   } = props;
-  const board = useSequence(response, choices, positions, required);
+  const board = useSequence(response, choices, positions.length, required);
   const listed = useOrderList(response, choices);
   const root = list ? listed : board;
-  const shown = list ? choices.length : positions;
   const spots = useMemo(
-    () => Array.from({ length: shown }, (_, index): Position => ({ index, kind: "position" })),
-    [shown],
+    () =>
+      positions.map((shown, index) => ({
+        shown,
+        spot: { index, kind: "position" } satisfies Position,
+      })),
+    [positions],
   );
   const chipsBy = useMemo(
     () => new Map(choices.map((choice) => [choice.identifier, choice])),
@@ -192,7 +209,7 @@ export const Order = (props: OrderProps) => {
       <PromptPart prompt={prompt} />
       <PlacementRoot {...root} labels={labels}>
         {list ? null : (
-          <PlacementBank>
+          <PlacementBank width={width}>
             {choices.map((choice) =>
               spokenBeside(
                 <PlacementChip
@@ -210,16 +227,18 @@ export const Order = (props: OrderProps) => {
           </PlacementBank>
         )}
         <ol data-slot="plate-order-positions" role="list">
-          {spots.map((spot) => (
+          {spots.map(({ shown, spot }) => (
             <PlacementTarget
               key={spot.index}
-              name={{ by: "label-part", text: String(spot.index + 1) }}
+              name={{ by: shown.by, text: shown.name }}
               render={<li />}
               spot={spot}
             >
               {({ chips }) => (
                 <>
-                  <PlacementTargetLabel>{spot.index + 1}</PlacementTargetLabel>
+                  {shown.label === undefined ? null : (
+                    <PlacementTargetLabel>{shown.label}</PlacementTargetLabel>
+                  )}
                   {chips.map((chip) =>
                     list ? (
                       spokenBeside(

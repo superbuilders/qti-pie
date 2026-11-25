@@ -17,8 +17,8 @@
  *   naming the binding, as for every kind.
  *
  * {@link orderModule}'s `redact` gives the page the choices in presented order, the bounds the
- * response is held to, and the identifiers the response places, in order; the server shell
- * renders it (`#plate/ui/item/interactions/`).
+ * response is held to, the identifiers the response places, in order, and the width of its choices'
+ * container; the server shell renders it (`#plate/ui/item/interactions/`).
  *
  * @module
  */
@@ -73,6 +73,12 @@ const binding = { baseTypes: ["identifier"], cardinalities: ["ordered"] } as con
  */
 interface OrderInteraction<L extends Level = ModelLevel> extends ModuleInteraction<"order"> {
   readonly choices: readonly SimpleChoice<L>[];
+  /**
+   * `data-choices-container-width`, "The ordering choices container width in pixels" (QTI 3.0
+   * shared vocabulary, 1.2.9.4), an `xs:nonNegativeInteger` the XSD declares on the interaction;
+   * none when absent.
+   */
+  readonly choicesContainerWidth: Option.Option<bigint>;
   readonly class: Option.Option<string>;
   /**
    * `max-choices`, none when it is not written; ignored when `min-choices` is not written.
@@ -124,6 +130,11 @@ interface OrderPayload {
    * seed, the instance and the response key give, each fixed choice at its own place.
    */
   readonly choices: readonly OrderChoicePayload[];
+  /**
+   * `data-choices-container-width`, the width in pixels its choices' container is drawn at, none
+   * when absent (1.2.9.4).
+   */
+  readonly choicesContainerWidth: Option.Option<bigint>;
   readonly class: Option.Option<string>;
   /**
    * The response its island writes, as its declaration types it: an `ordered` `identifier`
@@ -211,7 +222,7 @@ const boundsOf = (interaction: OrderInteraction): Bounds => {
 /**
  * Read an Order from its element, which the body walk has bound to an ordered identifier
  * response (reading 172, {@link binding}): `shuffle`, `min-choices` and `max-choices`, its Prompt,
- * its choices and its authored hints.
+ * its choices and its authored hints, `data-choices-container-width` among them.
  *
  * A `template-identifier` on a choice is recorded as not rendered: the redacted copy holds no
  * template value to decide it by, so the choice is always shown.
@@ -259,6 +270,7 @@ const parseOrder = (
     ariaLabel: read.valueOf(source, "aria-label"),
     ariaLabelledby: read.valueOf(source, "aria-labelledby"),
     choices,
+    choicesContainerWidth: read.countAttribute(source, "data-choices-container-width"),
     class: read.valueOf(source, "class"),
     kind: "order",
     maxChoices,
@@ -299,7 +311,7 @@ const regionsOfOrder = <L extends Level>(
 /**
  * Copy an Order into its payload node: its content through the kit, its choices in presented
  * order, the declaration of the response its island writes, the identifiers the response places,
- * and the effective bounds.
+ * the effective bounds and its choices' container width.
  *
  * The identifiers placed are the values the view shows. An identifier that names no choice, and a
  * repeat of one, is left out, so a choice shows once, in one position, and the response holds what
@@ -325,6 +337,7 @@ const redactOrder = (
       content: choice.content,
       identifier: choice.identifier,
     })),
+    choicesContainerWidth: interaction.choicesContainerWidth,
     class: interaction.class,
     declared: { baseType: "identifier", cardinality: "ordered", identifier: interaction.response },
     maxChoices: Number(most),

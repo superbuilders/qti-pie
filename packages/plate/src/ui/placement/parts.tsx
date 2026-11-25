@@ -125,17 +125,32 @@ export const PlacementRoot = (
  * as the sticky box a theme could not cap the pinned tray only while it is pinned. The bank stays
  * the chips' parent, the tray and the place a drop lands in; the dock takes no press and no drop.
  *
+ * The dock is the choices' container, so an author's width for it (an Order's
+ * `data-choices-container-width`, QTI 3.0 shared vocabulary 1.2.9.4) is written there, as its first
+ * child, `plate-placement-width`: a zero-height `svg` whose `width` attribute is the width, a
+ * spacer, never a `style`, which a page whose policy has no `unsafe-inline` drops. The base sheet
+ * sizes a dock holding one to its narrowest content, so it is the spacer's width, or its widest
+ * chip where that is wider, and the chips wrap at it.
+ *
  * @param props.caption The words over the bank ({@link BankCaption}), undefined for none.
+ * @param props.width The author's width of the choices' container in pixels, its digits as written,
+ *   undefined for none.
  * @param props The bank `div`'s other props.
  * @returns The bank in its dock.
  */
 export const PlacementBank = (
-  props: { readonly caption?: string | undefined } & WithId<PartProps<"div">>,
+  props: {
+    readonly caption?: string | undefined;
+    readonly width?: string | undefined;
+  } & WithId<PartProps<"div">>,
 ) => {
-  const { caption, ...rest } = props;
+  const { caption, width, ...rest } = props;
 
   return (
     <div data-slot="plate-placement-dock">
+      {width === undefined ? null : (
+        <svg aria-hidden="true" data-slot="plate-placement-width" height="0" width={width} />
+      )}
       <BankCaption caption={caption} />
       <StandingContext value={bank}>
         <parts.Bank {...rest} />

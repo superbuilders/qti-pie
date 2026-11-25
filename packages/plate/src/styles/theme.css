@@ -2202,12 +2202,15 @@
   }
 
   /*
-   * A position: its number, large and bold, on its start edge, or on top in a horizontal order,
-   * then the chip placed there or the slot, filling the rest.
+   * A position: its label, large and bold, on its start edge, or on top in a horizontal order,
+   * then the chip placed there or the slot, filling the rest. The list's gap alone spaces the
+   * positions: a body list's step between its items (`li + li`) would push every position after the
+   * first down a horizontal order's row.
    */
   :is([data-slot="plate-order-positions"], [data-slot="plate-graphic-order-positions"])
     > [data-slot="plate-placement-target"] {
     flex-wrap: nowrap;
+    margin-block-start: 0;
   }
 
   :where([data-slot="plate-order"][data-orientation="horizontal"])
@@ -2215,6 +2218,21 @@
     > [data-slot="plate-placement-target"] {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  /*
+   * A horizontal order's positions share their row equally, so a picture wider than a position,
+   * such as the longest of three pencils, is drawn to the position's width there, never past it:
+   * the positions never widen or move under the child's finger as chips land, and the bank keeps
+   * every picture at its own size.
+   */
+  :where([data-slot="plate-order"][data-orientation="horizontal"])
+    [data-slot="plate-order-positions"]
+    > [data-slot="plate-placement-target"]
+    > [data-slot="plate-placement-chip"]
+    img {
+    max-inline-size: 100%;
+    block-size: auto;
   }
 
   :is([data-slot="plate-order-positions"], [data-slot="plate-graphic-order-positions"])

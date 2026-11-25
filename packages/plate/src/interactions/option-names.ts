@@ -92,21 +92,44 @@ const labelSuffixes = [
 ] as const;
 
 /**
+ * The class tokens on a root, none where it has no `class`.
+ *
+ * @param classes The `class` on the root, as the page writes it, none where it has none.
+ * @returns Its tokens.
+ */
+const tokensOf = (classes: Option.Option<string>): readonly string[] =>
+  Option.match(classes, {
+    onNone: () => [],
+    onSome: classTokensOf,
+  });
+
+/**
+ * Give the text the root's last label suffix class (1.2.1.2) writes after a label, none where it
+ * carries no suffix class.
+ *
+ * @param classes The `class` on the root, as the page writes it, none where it has none.
+ * @returns The suffix's text.
+ */
+export const labelSuffix = (classes: Option.Option<string>): Option.Option<string> => {
+  const tokens = tokensOf(classes);
+
+  return Option.fromUndefinedOr(labelSuffixes.findLast(([name]) => tokens.includes(name))?.[1]);
+};
+
+/**
  * Give the label a Choice's label class numbers a choice with, as plate's theme draws it before the
  * choice's content (`theme.css`'s choice labels): its place in the class's counter style, then its
- * suffix; none where the root carries no label class, or `qti-labels-none`.
+ * suffix ({@link labelSuffix}, a period where the root carries none); none where the root carries
+ * no label class, or `qti-labels-none`.
  *
  * @param classes The `class` on the Choice's root, as the page writes it, none where it has none.
  * @param n The choice's place among its choices as presented, from 1.
  * @returns The label.
  */
 export const choiceLabel = (classes: Option.Option<string>, n: number): Option.Option<string> => {
-  const tokens: readonly string[] = Option.match(classes, {
-    onNone: () => [],
-    onSome: classTokensOf,
-  });
+  const tokens = tokensOf(classes);
   const style = labelStyles.findLast(([name]) => tokens.includes(name));
-  const suffix = labelSuffixes.findLast(([name]) => tokens.includes(name))?.[1] ?? ".";
+  const suffix = Option.getOrElse(labelSuffix(classes), () => ".");
 
   return style === undefined || tokens.includes("qti-labels-none")
     ? Option.none()

@@ -671,16 +671,32 @@ export const placement = definePrimitive({
     };
 
     /**
-     * Read a target's name: its label part's text, else its `aria-label`, else its own text.
+     * Find the label part that names a target: its own, where its {@link TargetName} names it by
+     * its label part. A target named by an `aria-label` is named by no label part, though it may
+     * show one: an order position labelled "a." is still named "1".
+     *
+     * @param spot A target or a position.
+     * @returns The label part, none where no label part names the target.
+     */
+    const namingLabel = (spot: Spot): HTMLElement | undefined =>
+      elements<TargetProps>(context, "target").some(
+        (part) => samePlace(part.props.spot, spot) && part.props.by === "label-part",
+      )
+        ? elements<LabelProps>(context, "target-label").find((part) =>
+            samePlace(part.props.of, spot),
+          )?.el
+        : undefined;
+
+    /**
+     * Read a target's name: the text of the label part that names it ({@link namingLabel}), else
+     * its `aria-label`, else its own text.
      *
      * @param spot A target or a position.
      * @returns The name the page shows or gives it.
      */
     const targetName = (spot: Spot): string => {
-      const label = elements<LabelProps>(context, "target-label").find((part) =>
-        samePlace(part.props.of, spot),
-      );
-      const text = label === undefined ? "" : labelOf(label.el);
+      const label = namingLabel(spot);
+      const text = label === undefined ? "" : labelOf(label);
       const el = elements<TargetProps>(context, "target").find((part) =>
         samePlace(part.props.spot, spot),
       )?.el;
@@ -705,9 +721,8 @@ export const placement = definePrimitive({
       queueMicrotask(() => {
         renaming = false;
 
-        const labels = elements<LabelProps>(context, "target-label");
         const names = elements<TargetProps>(context, "target").map(({ props }): SpotName => ({
-          labelled: labels.some((label) => samePlace(label.props.of, props.spot)),
+          labelled: namingLabel(props.spot) !== undefined,
           spot: props.spot,
           text: targetName(props.spot),
         }));

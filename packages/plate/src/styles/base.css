@@ -1274,6 +1274,24 @@
   }
 
   /*
+   * The choices' container at the author's width (an Order's `data-choices-container-width`, QTI 3.0
+   * shared vocabulary 1.2.9.4): a dock holding its width spacer, `plate-placement-width`, a
+   * zero-height `svg` whose `width` attribute is the author's, takes its narrowest content's width,
+   * the spacer's or its widest chip's where that is wider, so its chips wrap at the author's width
+   * and never past a chip, and never past the interaction's own width. The width travels as an
+   * attribute, never a `style`; the spacer takes no percentage cap, which would make its narrowest
+   * width none.
+   */
+  [data-slot="plate-placement-dock"]:has(> [data-slot="plate-placement-width"]) {
+    inline-size: min-content;
+    max-inline-size: 100%;
+  }
+
+  [data-slot="plate-placement-width"] {
+    display: block;
+  }
+
+  /*
    * A chip: a target at least 64 px tall, in an edge at 3:1, and the box its hit area and its mark
    * stand in. A finger on it never scrolls, selects, or brings up a callout, in the server's HTML
    * already, since `touch-action` cannot change once a press begins; the markup sets the same.
