@@ -1188,7 +1188,10 @@ export const contentOf = (input: {
     /**
      * Position 0, the start, is every model's, so the roster always holds it.
      */
-    const positions = roster("Position", Arr.makeBy(widest + 1, String));
+    const positions = roster("Position", [
+      "0",
+      ...Array.from({ length: widest }, (_, at) => String(at + 1)),
+    ]);
     const parentField = idField("parent", input.kinds);
     const installedAt = (family: Family): Option.Option<Installed> =>
       Option.fromNullishOr(byFamily.get(family.parent));
