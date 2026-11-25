@@ -239,6 +239,10 @@ export const island = (
  * handed missed (proposal 2026-11-18-grading-in-sql, Decision 6: a Position Object's review marks
  * each point by area).
  *
+ * A copy is a place in its object's order, not an item: its place is its key.
+ *
+ * A missed position follows the copies shown, numbered after them: its place is its key.
+ *
  * @param paired The Position Object and its payload node.
  * @param paired.model The redacted model node the payload node was given for.
  * @param paired.payload Its payload node, as its module's `redact` gave it.
@@ -269,7 +273,6 @@ export const review = (
       </div>
       <ol data-slot="plate-position-object-copies" role="list">
         {node.positions.map((point, index) => (
-          // A copy is a place in its object's order, not an item: its place is its key.
           <li key={index} data-mark={marks.given[index]} data-slot="plate-position-object-copy">
             {fillLabel(position, {
               n: numeral(locale, index + 1),
@@ -281,7 +284,6 @@ export const review = (
           </li>
         ))}
         {marks.missed.map((point, index) => (
-          // A missed position follows the copies shown, numbered after them: its place is its key.
           <li
             key={`missed-${String(index)}`}
             data-mark="missed"

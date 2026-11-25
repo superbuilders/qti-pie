@@ -876,6 +876,7 @@ export default defineConfig({
     ],
     // Related Effect schemas and errors form one cohesive module.
     "max-classes-per-file": "off",
+    "no-empty-function": "off",
     "no-fallthrough": "off",
     // ultracite 8 relaxes these from ultracite 7's settings, which qti-pie keeps: sort-keys orders a relation's
     // fields, its column order.

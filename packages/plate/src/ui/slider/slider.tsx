@@ -145,9 +145,7 @@ const largeStepsAcross = 10;
  *
  * @returns The unsubscriber, which has nothing to undo.
  */
-const subscribeNever = (): (() => void) => () => {
-  // Nothing was subscribed, so there is nothing to undo.
-};
+const subscribeNever = (): (() => void) => () => {};
 
 /**
  * Tell whether the island renders in a hydrated page: false on the server and in the render that

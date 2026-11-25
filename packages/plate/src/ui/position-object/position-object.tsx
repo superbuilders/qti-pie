@@ -350,6 +350,8 @@ export interface PositionObjectProps extends Authored<Named> {
  * - `plate-position-object-copy`, a placed copy's control, a toggle pressed while it is held, with
  *   `data-picked`, numbered in the order the copies were placed and named by the `position` label.
  *
+ * A copy is a place in its object's order, not an item: its place is its key.
+ *
  * @param props The interaction ({@link PositionObjectProps}).
  * @returns The group.
  */
@@ -376,7 +378,6 @@ export const PositionObject = (props: PositionObjectProps) => {
           </parts.Object>
           <ol data-slot="plate-position-object-copies" role="list">
             {placed.map((_point, index) => (
-              // A copy is a place in its object's order, not an item: its place is its key.
               <li key={index}>
                 <parts.Copy index={index} name={name} object={objectName}>
                   {index + 1}

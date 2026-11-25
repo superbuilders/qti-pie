@@ -237,6 +237,8 @@ const answerPart = (single: Single, base: number, locale: Locale, key: string): 
  * with the mark's words, each right answer it misses after its box or after the last ({@link
  * marksOf}); or the cap's notice where its `min-strings` asks for more boxes than plate shows.
  *
+ * A box is a place, not an item: it keeps its place whatever its text, so its place is its key.
+ *
  * @param paired The Extended Text.
  * @param paired.model Its model node: the author's `data-*`, `expected-length`, and the control
  *   plate names when nothing else names it.
@@ -280,7 +282,6 @@ export const review = (
           ? { "aria-label": fillLabel(box, { count: node.restores.length, n: index + 1 }) }
           : naming;
 
-        // A box is a place, not an item: it keeps its place whatever its text, so its place is its key.
         return [
           <div key={`box-${String(index)}`} data-mark={mark} data-slot="plate-extended-text-box">
             {node.format === "xhtml" ? (

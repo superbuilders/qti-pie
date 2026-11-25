@@ -166,6 +166,9 @@ const polygonHolds = (
  * `circle`, `ellipse` and `poly` compare products of integers ({@link onIntegers}), never a
  * quotient, so nothing rounds and nothing overflows.
  *
+ * (dx / across)² + (dy / down)² <= 1, multiplied through by (across · down)² so nothing divides: in
+ * floats (12 / 13)² + (5 / 13)² is 1.0000000000000002, though 12,5 is on the boundary.
+ *
  * @see https://html.spec.whatwg.org/multipage/image-maps.html#image-map-processing-model
  */
 export const areaHolds: Readonly<Record<AreaMapEntry["shape"], AreaTest<number>>> = {
@@ -186,9 +189,6 @@ export const areaHolds: Readonly<Record<AreaMapEntry["shape"], AreaTest<number>>
       down !== undefined &&
       across > 0n &&
       down > 0n &&
-      // (dx / across)² + (dy / down)² <= 1, multiplied through by (across · down)² so nothing
-      // divides: in floats (12 / 13)² + (5 / 13)² is 1.0000000000000002, though 12,5 is on the
-      // boundary.
       ((x - centerX) * down) ** 2n + ((y - centerY) * across) ** 2n <= (across * down) ** 2n,
   ),
   poly: onIntegers((coords, x, y) => {

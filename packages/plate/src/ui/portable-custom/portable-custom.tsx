@@ -176,6 +176,12 @@ const inherited = (element: Element, name: "dir" | "lang"): string =>
  * Render a Portable Custom Interaction for the child to answer in its frame, its response bound
  * to the item's `<Responses>`.
  *
+ * The island makes its frame once: the server shell keys it by what the frame runs, so a change of
+ * that mounts a new island and frame, and a render that changes nothing of it, the response's value
+ * among them, keeps the running PCI.
+ *
+ * The templates are the author's, in document order, and never reorder.
+ *
  * @param props The interaction, where it runs, its response and its labels
  *   ({@link PortableCustomProps}).
  * @returns The island: the prompt, the frame's stage, its status and the hidden source.
@@ -300,9 +306,6 @@ export const PortableCustom = (props: PortableCustomProps) => {
     );
   });
 
-  // The island makes its frame once: the server shell keys it by what the frame runs, so a change of
-  // that mounts a new island and frame, and a render that changes nothing of it, the response's
-  // value among them, keeps the running PCI.
   useEffect((): (() => void) | undefined => {
     const at = stage.current;
     const held = source.current;
@@ -326,7 +329,6 @@ export const PortableCustom = (props: PortableCustomProps) => {
       <div data-slot="plate-portable-custom-source" hidden ref={source}>
         <div data-slot="plate-portable-custom-markup">{markup}</div>
         {templates.map((content, index) => (
-          // The templates are the author's, in document order, and never reorder.
           <div data-slot="plate-portable-custom-template" key={index}>
             {content}
           </div>

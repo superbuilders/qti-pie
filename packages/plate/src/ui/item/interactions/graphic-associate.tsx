@@ -108,6 +108,10 @@ export const island = (
  * holding its two halves, each a `plate-placement-target` named as the island names it with its
  * hotspot's `plate-placement-chip`.
  *
+ * A box is a place, not an item: its place is its key.
+ *
+ * A half is a place too, the first or the second.
+ *
  * @param paired The Graphic Associate and its payload node.
  * @param paired.payload Its payload node: its image, hotspots and the pairs it shows, the candidate's in
  *   `review` and the correct ones in `solution`.
@@ -147,7 +151,6 @@ export const review = (
               />
             ))}
             {boxes.map(({ mark, pair: [first, second] }, index) => (
-              // A box is a place, not an item: its place is its key.
               <PairLine
                 key={index}
                 from={byIdentifier.get(first)}
@@ -180,10 +183,8 @@ export const review = (
         </div>
         <ol data-slot="plate-placement-boxes" role="list">
           {boxes.map(({ mark, pair }, index) => (
-            // A box is a place, not an item: its place is its key.
             <li key={index} data-mark={mark} data-paired="" data-slot="plate-placement-box">
               {([0, 1] as const).map((side) => (
-                // A half is a place too, the first or the second.
                 <div
                   key={side}
                   aria-label={halfName(labels, { box: index, side })}

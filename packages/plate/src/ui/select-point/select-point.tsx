@@ -98,6 +98,8 @@ const parts = createParts(selectPoint, { board: "div", limit: "p", point: "butto
  * cross, which the stylesheet shows while the stage's region has keyboard focus. Every size is in
  * CSS pixels, the pins' unit.
  *
+ * A point's number is its place among the points: its place is its key.
+ *
  * @param props.cross Where the cross is.
  * @param props.drag The point dragged, if any.
  * @param props.focused The index of the point whose button has keyboard focus, if any.
@@ -119,7 +121,6 @@ const Marks = (props: {
         const dragging = drag?.index === index;
 
         return (
-          // A point's number is its place among the points: its place is its key.
           <Pin key={index} at={dragging ? drag.at : point} size={size}>
             <Marker
               index={index}
@@ -213,6 +214,8 @@ const Board = (props: {
  * The overlay the marks stand in is `aria-hidden`: the list says everything it shows, and the
  * primitive announces each step and refusal with the `labels`.
  *
+ * A point's number is its place among the points: its place is its key.
+ *
  * @param props The interaction, its response and its labels ({@link SelectPointProps}).
  * @returns The Select Point, its points bound to the response.
  */
@@ -250,7 +253,6 @@ export const SelectPoint = (props: SelectPointProps) => {
       {points.length === 0 ? null : (
         <ol data-slot="plate-select-point-points" role="list">
           {points.map((point, index) => (
-            // A point's number is its place among the points: its place is its key.
             <li key={index}>
               <parts.Point index={index} value={String(index)}>
                 {fillLabel(labels.point, { n: index + 1, x: point.x, y: point.y })}

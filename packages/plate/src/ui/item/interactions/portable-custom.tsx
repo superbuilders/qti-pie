@@ -128,6 +128,9 @@ const frameOf = (host: PortableCustomHost): FrameFacts => ({
 /**
  * Render a Portable Custom Interaction's island, where it can run and post.
  *
+ * The island makes its frame once, so its key is what the frame runs: a change of that mounts a new
+ * island and frame, and a render that changes nothing of it keeps the running PCI.
+ *
  * @param paired The Portable Custom Interaction and its payload node.
  * @param paired.model The redacted model node the payload node was given for, whose bound
  *   declaration's type says how the response posts.
@@ -148,8 +151,6 @@ export const island = (
       const frame = frameOf(host);
       const { properties, responseIdentifier } = node.configuration;
 
-      // The island makes its frame once, so its key is what the frame runs: a change of that mounts
-      // a new island and frame, and a render that changes nothing of it keeps the running PCI.
       return (
         <PortableCustom
           frame={frame}
@@ -190,6 +191,9 @@ const missedValue: ValueMark = { mark: "missed", words: "silent" };
  * Write the values of a value shown in a review or a solution as text: each value in plate's
  * lexical form, a list for a `multiple` (unordered) or `ordered` one, a record field by field.
  *
+ * A bag may hold one value twice, and a sequence keeps its order, so a value's place is its
+ * identity.
+ *
  * @param shown The value, holding at least one value or field.
  * @returns The value's text.
  */
@@ -218,8 +222,6 @@ const valueText = (shown: ResponseValue): ReactNode => {
   return (
     <List>
       {shown.values.map((single, index) => (
-        // A bag may hold one value twice, and a sequence keeps its order, so a value's place is
-        // its identity.
         <li key={index}>{format(single)}</li>
       ))}
     </List>

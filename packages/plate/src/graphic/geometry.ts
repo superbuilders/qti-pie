@@ -167,6 +167,9 @@ const verticesOf = (pixels: readonly number[]): readonly Vertex[] => {
 /**
  * Give the drawing of an area in the image's pixels ({@link Drawing}).
  *
+ * A polygon reaches its drawing only once `holdsAny` has held, so it has the vertices `areaHolds`
+ * needs; the non-empty test gives the type the first of them.
+ *
  * @param area The area.
  * @param size The image's size.
  * @returns The drawing, or none for an area that holds no point, which nothing draws and no point
@@ -193,8 +196,6 @@ export const drawingOf = (area: GraphicArea, size: ImageSize): Drawing | undefin
     case "poly": {
       const vertices = verticesOf(pixels);
 
-      // `holdsAny` held, so the polygon has the vertices `areaHolds` needs; the test gives the type
-      // the first of them.
       return Arr.isReadonlyArrayNonEmpty(vertices)
         ? { element: "polygon", pixels, vertices }
         : undefined;
@@ -359,6 +360,10 @@ export interface Box {
  * distance, positive where the point stands inside the region it measures, so the point found is
  * the region's deepest, within that resolution.
  *
+ * The search stops at the first cell, best bound first, whose bound is within the resolution of
+ * the best depth found: the queue holds no cell with a higher bound, so no point is deeper than
+ * the best by more than the resolution.
+ *
  * @param depth The function: a signed distance, in the image's pixels.
  * @param box The box searched.
  * @returns The deepest point and its depth; none where no point of the box has a positive depth,
@@ -410,7 +415,6 @@ const deepestBy = (depth: (x: number, y: number) => number, box: Box): Interior 
       best = cell;
     }
 
-    // The queue holds no cell with a higher bound, so none can be deeper by more than this.
     if (cell.bound - best.depth <= precision) {
       break;
     }

@@ -865,6 +865,9 @@ const stimulusInteraction = (build: Build, child: SourceElement): Option.Option<
 /**
  * Read one child of a body element.
  *
+ * It reads feedback blocks and inlines itself, before the content modules, whose feedback stubs
+ * would give their notice.
+ *
  * @param build The build.
  * @param parent The element that holds it.
  * @param child The child.
@@ -901,8 +904,6 @@ const bodyNode = (
     return interaction.value;
   }
 
-  // The model reads feedback blocks and inlines itself, so they are read before the content
-  // modules, whose feedback stubs would give their notice.
   if (isQti(child, "qti-feedback-block")) {
     return feedbackContent(build, child, "feedback-block", own);
   }

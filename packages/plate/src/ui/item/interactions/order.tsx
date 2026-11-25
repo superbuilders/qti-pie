@@ -165,6 +165,10 @@ export const island = (
  * the review shows each answer once; a choice left out that a position shows missing says so in the
  * bank too.
  *
+ * A position is a place, not an item: its place is its key. One its label does not name is a group
+ * named by its number, as the island's is, so its name is read before the chip and the mark it
+ * holds, never in place of them.
+ *
  * @param paired The Order.
  * @param paired.payload Its payload: its choices as presented, the order it shows, and the most
  *   choices it may place, one position each.
@@ -235,9 +239,6 @@ export const review = (
         )}
         <ol data-slot="plate-order-positions" role="list">
           {slots.map((slot, index) => (
-            // A position is a place, not an item: its place is its key. One its label does not
-            // name is a group named by its number, as the island's is, so its name is read before
-            // the chip and the mark it holds, never in place of them.
             <li
               key={index}
               {...(positions[index]?.by === "aria-label"

@@ -178,6 +178,8 @@ const chipsAt = (slot: Slot, names: ReadonlyMap<string, string>, locale: Locale)
  * still, which the island's placeholders are for. A hotspot left out that a position shows
  * missing is the bank's `left` chip, with `data-missed` and its words.
  *
+ * A position is a place, not an item: its place is its key.
+ *
  * @param paired The Graphic Order and its payload node.
  * @param paired.model The redacted model node: its `data-*`.
  * @param paired.payload Its payload node: its image, hotspots, the order it shows and its
@@ -251,7 +253,6 @@ export const review = (
         )}
         <ol data-slot="plate-graphic-order-positions" role="list">
           {slots.map((slot, index) => (
-            // A position is a place, not an item: its place is its key.
             <li
               key={index}
               data-empty={flag(slot.kind === "empty")}

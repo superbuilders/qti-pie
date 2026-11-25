@@ -176,6 +176,20 @@ interface Modelled {
  *
  * The item model reads these lists, and the verdict names each feature it finds unsupported, so an
  * element is modelled exactly when the verdict does not name it.
+ *
+ * A record response declaration is never marked: the item model holds every one in `Item.records`,
+ * a field of `file` as a single of `file`. An outcome or template declaration of that cardinality
+ * is marked.
+ *
+ * A declaration with no base type is keyed `base-type=""`, as an interaction bound to one is.
+ *
+ * `data-ssml` and `data-qti-suppress-tts` are not marks: the body walk keeps both on their
+ * elements, and `<Item>` writes them to the page.
+ *
+ * Every pattern in Appendix F's language compiles and is checked, whatever its counts. A
+ * pattern-mask outside that grammar is no regular expression, which the information model's §5.48.4
+ * and §5.162.5 forbid ("The regular expression language used is defined in Appendix F of [XSCHEMA,
+ * 01]"): there is nothing to check a response by, so the item keeps this notice.
  */
 export const modelled = {
   controlNotices: [controlCap],
@@ -217,25 +231,15 @@ export const modelled = {
       on: textInteractions,
       when: { kind: "attribute", name: "string-identifier" },
     },
-    // A record response declaration is never marked: the item model holds every one in
-    // `Item.records`, a field of `file` as a single of `file`. An outcome or template declaration
-    // of that cardinality is marked.
     {
       feature: 'cardinality="record"',
       on: ["qti-outcome-declaration", "qti-template-declaration"],
       when: { kind: "attribute-value", name: "cardinality", value: "record" },
     },
-    // A declaration with no base type is keyed `base-type=""`, as an interaction bound to one is.
     { feature: 'base-type=""', on: declarations, when: { kind: "untyped" } },
     { feature: "xml:base", on: "body", when: { kind: "attribute", name: "xml:base" } },
-    // `data-ssml` and `data-qti-suppress-tts` are not marks: the body walk keeps both on their
-    // elements, and `<Item>` writes them to the page.
   ],
   notices: [
-    // Every pattern in Appendix F's language compiles and is checked, whatever its counts. A
-    // pattern-mask outside that grammar is no regular expression, which the information model's
-    // §5.48.4 and §5.162.5 forbid ("The regular expression language used is defined in Appendix F
-    // of [XSCHEMA, 01]"): there is nothing to check a response by, so the item keeps this notice.
     {
       feature: "pattern-mask",
       on: textInteractions,

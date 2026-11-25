@@ -274,10 +274,10 @@ interface Tally {
 
 /**
  * Keep no play: a replay's write.
+ *
+ * A replay is no attempt, so its plays reach no response.
  */
-const keepNoPlay = (): void => {
-  // A replay is no attempt, so its plays reach no response.
-};
+const keepNoPlay = (): void => {};
 
 /**
  * A replay's tally: it never starts by itself, counts from none, may play without limit, asks for
@@ -308,6 +308,12 @@ interface PlayerProps
 /**
  * Render a Media's player: the media, its Play or Pause control and its Captions toggle, its plays
  * stepped and counted as its tally says.
+ *
+ * A track is loaded, and its cues begin and end, only while it is not disabled; hidden, it still
+ * draws nothing.
+ *
+ * A seek sets `seeking` before its own events, and its `timeupdate` comes after its `seeking`: so
+ * `last` is the position before the seek when `seeking` reads it.
  *
  * @param props The interaction and its tally ({@link PlayerProps}).
  * @returns The Media.
@@ -451,8 +457,6 @@ const Player = (props: PlayerProps) => {
 
     for (const track of element.textTracks) {
       if (track.kind === "descriptions") {
-        // A track is loaded, and its cues begin and end, only while it is not disabled; hidden, it
-        // still draws nothing.
         if (track.mode === "disabled") {
           track.mode = "hidden";
         }
@@ -527,8 +531,6 @@ const Player = (props: PlayerProps) => {
       },
       { signal },
     );
-    // A seek sets `seeking` before its own events, and its `timeupdate` comes after its `seeking`:
-    // so `last` is the position before the seek when `seeking` reads it.
     element.addEventListener(
       "timeupdate",
       () => {

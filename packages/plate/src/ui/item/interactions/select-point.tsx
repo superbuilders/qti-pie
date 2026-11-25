@@ -99,6 +99,10 @@ const shownOf = (node: PayloadOf<"select-point">): readonly Point[] =>
  * then each correct point handed missed, for a screen reader (proposal 2026-11-18-grading-in-sql,
  * Decision 6: a Select Point's review marks each point by area).
  *
+ * A point's number is its place among the points: its place is its key.
+ *
+ * A missed point follows the points shown, numbered after them: its place is its key.
+ *
  * @param paired The Select Point and its payload node.
  * @param paired.model The redacted model node: its `data-*`.
  * @param paired.payload Its payload node: its image and size and the points it shows.
@@ -133,7 +137,6 @@ export const review = (
         naming={names}
         pins={() =>
           points.map((point, index) => (
-            // A point's number is its place among the points: its place is its key.
             <Pin key={index} at={point} size={size}>
               <Marker index={index} state={{ kind: "shown" }} />
             </Pin>
@@ -144,7 +147,6 @@ export const review = (
       {points.length === 0 && marks.missed.length === 0 ? null : (
         <ol data-slot="plate-select-point-points" role="list">
           {points.map((point, index) => (
-            // A point's number is its place among the points: its place is its key.
             <li key={index} data-mark={marks.given[index]} data-slot="plate-select-point-point">
               {message(locale, "selectPointShown", {
                 n: numeral(locale, index + 1),
@@ -155,7 +157,6 @@ export const review = (
             </li>
           ))}
           {marks.missed.map((point, index) => (
-            // A missed point follows the points shown, numbered after them: its place is its key.
             <li
               key={`missed-${String(index)}`}
               data-mark="missed"

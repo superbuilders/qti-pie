@@ -143,6 +143,10 @@ const resting = (): Shown => "resting";
  * Render the control of one recording: the island proper, whose `audio`, mounted once, holds that
  * recording alone.
  *
+ * A recording that plays to its end fires `pause` before `ended`, and one stopped otherwise fires
+ * `pause` alone; a `pause` that a press to play again overtook finds the recording playing, and is
+ * no stop.
+ *
  * @param props The control's name and the recording's files ({@link ReadAloudProps}).
  * @returns The `plate-read-aloud` part.
  * @throws {ReadAloudOutsideItem} When it is rendered outside its item's `<ReadAloudItem>`.
@@ -175,9 +179,6 @@ const RecordingControl = ({ label, sources }: ReadAloudProps) => {
     const listeners = new AbortController();
     const { signal } = listeners;
 
-    // A recording that plays to its end fires `pause` before `ended`, and one stopped otherwise
-    // fires `pause` alone; a `pause` that a press to play again overtook finds the recording
-    // playing, and is no stop.
     element.addEventListener(
       "pause",
       () => {

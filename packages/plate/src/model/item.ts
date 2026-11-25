@@ -945,7 +945,8 @@ export const buildStimulus = (source: AdmittedDocument): Stimulus => {
  * adds an unsupported feature, and so does each `qti-*` element outside the body that the model
  * does not read; the root's `adaptive` is read into `adaptive`, unmarked, since the QTI database
  * delivers an adaptive item. `qti-response-processing` and `qti-template-processing` are read into
- * nothing and marked nothing: the database runs both from the stored document, and the model holds
+ * nothing and marked nothing: the database runs both from the stored document, the page renders
+ * neither, and the model holds
  * only whether template processing is there ({@link Item.templated}). A response declaration of
  * cardinality `record` is held in `records`, with no mark, whatever interaction binds it: its
  * `qti-correct-response` and `qti-default-value` are read field by field ({@link recordResponse}),
@@ -1012,7 +1013,6 @@ export const buildItem = (source: AdmittedDocument): Item => {
       part.local === "qti-response-processing" ||
       part.local === "qti-template-processing"
     ) {
-      // The QTI database runs both from the stored document; the page renders neither.
       markElement(build, part, false);
     } else if (part.local === "qti-response-declaration") {
       markElement(build, part, false);

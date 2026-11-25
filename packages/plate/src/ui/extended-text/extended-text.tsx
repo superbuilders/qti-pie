@@ -151,6 +151,8 @@ const asXhtml: Written = { read: textOfXhtml, write: xhtmlOfText };
  * The browser offers nothing of its own: no remembered answers, no spelling marks, no correction
  * and no capital letters, since each would change or judge the child's own writing.
  *
+ * A box is a place, not an item: it keeps its place whatever its text, so its place is its key.
+ *
  * @param props The interaction, its response and its labels
  *   ({@link ExtendedTextProps}).
  * @returns The Extended Text, its boxes bound to the response.
@@ -197,7 +199,6 @@ export const ExtendedText = (props: ExtendedTextProps) => {
     >
       <PromptPart prompt={prompt} />
       {boxes.map((box, index) => (
-        // A box is a place, not an item: it keeps its place whatever its text, so its place is its key.
         <Field key={index} invalid={box.flagged}>
           <Textarea
             {...boxName(index)}

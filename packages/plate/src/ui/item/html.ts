@@ -405,7 +405,10 @@ const scopedFragment = (url: KeptUrl, instance: string): KeptUrl =>
     : url;
 
 /**
- * Write one of the author's attributes as React writes it.
+ * Write one of the author's attributes as React writes it. A boolean attribute (`xs:boolean`) is
+ * read as XSD reads one, its whitespace collapsed first (the enumeration's values hold none), and
+ * any value but a false one is true, since the database refuses a value outside the lexical space
+ * before any page is written.
  *
  * @param attribute The attribute as the redacted body holds it.
  * @param tag The element's local name, which says whether the attribute is a URL.
@@ -442,12 +445,10 @@ const propFor = (
   }
 
   if (ariaBooleans.has(name)) {
-    // The database refuses a value outside the lexical space before any page is written.
     return [[name, falseValues.has(trimXmlSpace(value)) ? "false" : "true"]];
   }
 
   if (booleanAttributes.has(name)) {
-    // `xs:boolean` collapses whitespace before it reads a value; the enumeration's values hold none.
     return falseValues.has(trimXmlSpace(value)) ? [] : [[propNames.get(name) ?? name, true]];
   }
 

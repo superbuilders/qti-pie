@@ -645,6 +645,8 @@ export const positionObject = definePrimitive({
        * the threshold, its offset from the pointer kept and its place held to the stage. The copy
        * captures the pointer, so a press that never moves is released on it and clicks it.
        *
+       * A placed copy is dragged where it stands: no copy follows the pointer, and nothing scrolls.
+       *
        * @param event The press.
        * @param el The copy's element on the stage.
        * @param name The interaction's response's identifier.
@@ -669,10 +671,7 @@ export const positionObject = definePrimitive({
         let started = false;
 
         drag = {
-          end: () => {
-            // A placed copy is dragged where it stands: no copy follows the pointer, and nothing
-            // scrolls.
-          },
+          end: () => {},
           stop: bindDrag(el, event, {
             cancelOnEscape: true,
             onEnd: (end, canceled) => {

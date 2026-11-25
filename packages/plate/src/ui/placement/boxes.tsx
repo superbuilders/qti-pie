@@ -167,6 +167,8 @@ export interface PairBoxesProps {
  * Removing a pair needs no control of its own: a placed chip goes back to the bank by a tap on the
  * bank's slot, a drag, or Delete, and the primitive keeps focus on it there.
  *
+ * A box is a place, not an item: its place is its key.
+ *
  * @param props The boxes, the chips, their focus handlers and the labels ({@link PairBoxesProps}).
  * @returns The list of boxes.
  */
@@ -184,7 +186,6 @@ export const PairBoxes = (props: PairBoxesProps) => {
         const [first, second] = boxes[index] ?? [null, null];
 
         return (
-          // A box is a place, not an item: its place is its key.
           <li
             key={index}
             data-empty={flag(first === null && second === null)}

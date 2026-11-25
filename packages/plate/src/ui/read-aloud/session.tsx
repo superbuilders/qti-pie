@@ -149,6 +149,8 @@ const sessionOf = (): ReadAloudStore => {
 
   /**
    * Run one turn of the machine, carry out its commands on their controls and tell the listeners.
+   * The session commands no control that has left the page (`session.test.ts`), so each command
+   * finds its control's recording.
    *
    * @param report What a control reports.
    */
@@ -158,8 +160,6 @@ const sessionOf = (): ReadAloudStore => {
     ({ session } = turn);
 
     for (const { act, control } of turn.commands) {
-      // The session commands no control that has left the page (`session.test.ts`), so each
-      // command finds its control's recording.
       const part = parts.get(control);
 
       if (part !== undefined && act === "play") {

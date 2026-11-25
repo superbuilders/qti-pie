@@ -233,6 +233,8 @@ const classOf = (paired: PairedInteraction): Option.Option<string> => paired.pay
  * hides is not there. Where the host says the page shows no feedback (`showFeedback` `false`, the
  * test's `show-feedback`), no feedback block, inline or modal feedback is there at all.
  *
+ * One read-aloud session per item session, so nothing of one item's carries into another's.
+ *
  * @example
  *   <Item
  *     item={accepted}
@@ -467,10 +469,12 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
     },
     spoken,
   });
-  // What each interaction writes after the body while the child answers, in the order of the
-  // interactions, a Text Entry's on-screen keypad among them: below everything the child reads, so
-  // the keys never split a sentence or an equation, never stand over the box, a line or a picture,
-  // and never come between the box and a line after it. A review and a solution write none.
+  /**
+   * What each interaction writes after the body while the child answers, in the order of the
+   * interactions, a Text Entry's on-screen keypad among them: below everything the child reads, so
+   * the keys never split a sentence or an equation, never stand over the box, a line or a picture,
+   * and never come between the box and a line after it. A review and a solution write none.
+   */
   const afterBody =
     mode === "answering"
       ? redactedInteractionsIn(redacted.body).map((model, index) => {
@@ -479,8 +483,10 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
           return renderAfter(renderers, paired, contextOf(paired), `after-${String(index)}`);
         })
       : [];
-  // The item's own content: its companion materials, its body, its catalog's listing and its
-  // feedback, which stand in `plate-question` beside the stimulus pane where the item shows one.
+  /**
+   * The item's own content: its companion materials, its body, its catalog's listing and its
+   * feedback, which stand in `plate-question` beside the stimulus pane where the item shows one.
+   */
   const own = (
     <>
       {companionMaterials(
@@ -519,7 +525,6 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
       lang={Option.getOrUndefined(redacted.lang)}
     >
       {mode === "answering" ? (
-        // One read-aloud session per item session, so nothing of one item's carries into another's.
         <ReadAloudItem
           failed={{
             description: message(configuration.locale, "readAloudFailed"),
