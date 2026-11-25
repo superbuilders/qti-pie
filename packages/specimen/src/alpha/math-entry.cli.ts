@@ -74,11 +74,8 @@ await Effect.runPromise(
   Effect.scoped(
     Effect.gen(function* run() {
       const keys = yield* sequences;
-      const fields = yield* mathEntryFields(
-        Math.min(availableParallelism(), keys.length),
-        setupOf(keyboard),
-      );
-      const typed = yield* typedAll(fields, keys);
+      const fields = yield* mathEntryFields(Math.min(availableParallelism(), keys.length));
+      const typed = yield* typedAll(fields, keys, setupOf(keyboard));
 
       for (const [sequence, result] of keys.map((each, at) => [each, typed[at]] as const)) {
         const line =

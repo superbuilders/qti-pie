@@ -144,12 +144,12 @@ const PointResponse = Schema.Struct({
  * Read a `point` response from responses: its points, in order.
  *
  * @param responses The responses.
- * @param identifier The response's identifier, the example's by default.
+ * @param identifier The response's identifier.
  * @returns The points.
  */
 const pointsIn = (
   responses: ResponseValues,
-  identifier = response,
+  identifier: string,
 ): Effect.Effect<readonly (readonly [bigint, bigint])[], HydrationFailure> =>
   Effect.mapError(
     Schema.decodeUnknownEffect(PointResponse)(responses[identifier]),
@@ -357,7 +357,7 @@ const lastChange = (hydrated: Hydrated) =>
  * @returns The points.
  */
 const lastPoints = (hydrated: Hydrated) =>
-  Effect.flatMap(lastChange(hydrated), (latest) => pointsIn(latest));
+  Effect.flatMap(lastChange(hydrated), (latest) => pointsIn(latest, response));
 
 /**
  * Read which objects' buttons are pressed, in the stage's order.

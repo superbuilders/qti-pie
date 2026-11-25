@@ -687,13 +687,12 @@ const press = (
  */
 export interface MathEntryField {
   /**
-   * Press keys in order on a fresh field, set up as `setup` gives or as the field was opened, and
-   * give the LaTeX it holds once the last has landed: its `value`, which the island posts as the
-   * response.
+   * Press keys in order on a fresh field, set up as `setup` gives, and give the LaTeX it holds once
+   * the last has landed: its `value`, which the island posts as the response.
    */
   readonly typed: (
     keys: readonly MathEntryKey[],
-    setup?: Setup,
+    setup: Setup,
   ) => Effect.Effect<string, MathEntryFailure>;
 }
 
@@ -703,23 +702,21 @@ export interface MathEntryField {
  *
  * @param browser The Chrome it opens in.
  * @param url The page's address.
- * @param setup The keyboard's setup.
  * @returns The field, its page closed with the scope.
  */
 const fieldIn = (
   browser: Browser,
   url: string,
-  setup: Setup,
 ): Effect.Effect<MathEntryField, MathEntryFailure, Scope.Scope> =>
   Effect.map(
     Effect.tap(launched.pageOf(browser, { reducedMotion: "reduce" }), (page) =>
       attempt("opened the page", () => page.goto(url)),
     ),
     (page): MathEntryField => ({
-      typed: (keys, given = setup) =>
+      typed: (keys, setup) =>
         Effect.gen(function* typed() {
-          yield* freshField(page, given);
-          yield* Effect.forEach(keys, (each) => press(page, given, each), { discard: true });
+          yield* freshField(page, setup);
+          yield* Effect.forEach(keys, (each) => press(page, setup, each), { discard: true });
           yield* attempt("waited for the page to paint", () => page.evaluate(twoFrames));
 
           return yield* attempt("read the field's value", () =>
@@ -735,12 +732,11 @@ const fieldIn = (
  *
  * @param count How many fields: one per sequence typed at once, and one at least, the first, where
  *   it is below one.
- * @param setup What each is set up with: plate's field unless given ({@link setupOf}).
- * @returns The fields.
+ * @returns The fields, each set up afresh as each sequence it types asks
+ *   ({@link MathEntryField.typed}).
  */
 export const mathEntryFields = (
   count: number,
-  setup: Setup = setups.plate,
 ): Effect.Effect<Arr.NonEmptyReadonlyArray<MathEntryField>, MathEntryFailure, Scope.Scope> =>
   Effect.gen(function* fields() {
     const url = yield* pageServer;
@@ -751,7 +747,7 @@ export const mathEntryFields = (
       ...Array.from({ length: count - 1 }, () => url),
     ];
 
-    return yield* Effect.forEach(urls, (at) => fieldIn(browser, at, setup), {
+    return yield* Effect.forEach(urls, (at) => fieldIn(browser, at), {
       concurrency: "unbounded",
     });
   });
@@ -762,14 +758,14 @@ export const mathEntryFields = (
  *
  * @param fields The fields, each in a page of its own ({@link mathEntryFields}).
  * @param sequences The key sequences.
- * @param setup What each field is set up with, as each was opened unless given.
+ * @param setup What each field is set up with ({@link setupOf}).
  * @returns The LaTeX each sequence leaves, or why it could not be typed (a key the keyboard has
  *   not), in the sequences' order: one sequence's failure leaves the others typed.
  */
 export const typedAll = (
   fields: Arr.NonEmptyReadonlyArray<MathEntryField>,
   sequences: readonly (readonly MathEntryKey[])[],
-  setup?: Setup,
+  setup: Setup,
 ): Effect.Effect<readonly Result.Result<string, MathEntryFailure>[]> =>
   Effect.map(
     Effect.forEach(
