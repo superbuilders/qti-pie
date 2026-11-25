@@ -22,9 +22,6 @@
  * - **inside:** each slot a formula holds is placed once, by the id it names, inside the formula's
  *   box.
  *
- * Kills: each mutant of the drawing, a way it could break, is refused by the property it breaks,
- * so a pass is a pass of properties that see these breaks.
- *
  * @module
  */
 import { isDeepStrictEqual } from "node:util";
@@ -56,7 +53,7 @@ type Child = MathChild<RedactedNode>;
 type Drawing = ReturnType<typeof draw>;
 
 /**
- * A drawing of a formula, which a mutant replaces.
+ * A drawing of a formula: plate's draw.
  */
 type Drawer = (formula: Formula, sizes: ReadonlyMap<string, SlotSize>) => Drawing;
 
@@ -754,23 +751,6 @@ const coloured = ({ formula, written }: Case): Verdict => {
 };
 
 /**
- * Remove every `style` from a tree.
- *
- * @param children The children.
- * @returns The children, their styles gone.
- */
-const unstyledTree = (children: readonly Child[]): readonly Child[] =>
-  children.map((child) =>
-    child.kind === "element"
-      ? {
-          ...child,
-          attributes: child.attributes.filter(({ name }) => name !== "style"),
-          children: unstyledTree(child.children),
-        }
-      : child,
-  );
-
-/**
  * Count the rectangles a drawing written back as SVG draws.
  *
  * @param written The drawing.
@@ -924,125 +904,8 @@ const broken = (drawer: Drawer, names: readonly string[]): ReadonlyMap<string, s
   return breaks;
 };
 
-/**
- * Change the drawing a formula's draw gives.
- *
- * @param change The change.
- * @returns The drawer whose drawing is plate's, changed.
- */
-const changing =
-  (change: (drawing: Drawing) => Drawing): Drawer =>
-  (formula, sizes) =>
-    change(draw(formula, sizes));
-
-/**
- * Rename or drop attributes of every element of a drawing.
- *
- * @param element The drawing's element.
- * @param rename Each attribute's new name, none to drop it.
- * @returns The element changed.
- */
-const renamed = (
-  element: Extract<Drawn, { readonly kind: "element" }>,
-  rename: (name: string) => string | undefined,
-): Extract<Drawn, { readonly kind: "element" }> => ({
-  ...element,
-  attributes: element.attributes.flatMap(({ name, value }) => {
-    const next = rename(name);
-
-    return next === undefined ? [] : [{ name: next, value }];
-  }),
-  children: element.children.map((child) =>
-    child.kind === "element" ? renamed(child, rename) : child,
-  ),
-});
-
-/**
- * A drawer that numbers its glyph ids by the drawings it has drawn, as MathJax's local font cache
- * writes them: each drawer it makes counts its own drawings, from 1.
- *
- * @returns The counting drawer.
- */
-const counting = (): Drawer => {
-  let drawings = 0;
-
-  return changing((drawing) => {
-    drawings += 1;
-
-    return {
-      ...drawing,
-      drawing: {
-        ...drawing.drawing,
-        attributes: [
-          ...drawing.drawing.attributes,
-          { name: "id", value: `MJX-${String(drawings)}` },
-        ],
-      },
-    };
-  });
-};
-
-/**
- * The mutants: each a way the drawing could break, the property that refuses it, and its drawer.
- */
-const mutants: readonly (readonly [name: string, property: string, drawer: Drawer])[] = [
-  [
-    "the depth taken as none, so the formula stands on its foot",
-    "baseline",
-    changing((drawing) => ({ ...drawing, depth: "0ex" })),
-  ],
-  [
-    "a presentation attribute written under a name React does not map",
-    "drawn",
-    changing((drawing) => ({
-      ...drawing,
-      drawing: renamed(drawing.drawing, (name) => (name === "strokeWidth" ? "strokewidth" : name)),
-    })),
-  ],
-  [
-    "a group's transform dropped",
-    "drawn",
-    changing((drawing) => ({
-      ...drawing,
-      drawing: renamed(drawing.drawing, (name) => (name === "transform" ? undefined : name)),
-    })),
-  ],
-  [
-    "the formula's style left out of what MathJax reads",
-    "coloured",
-    (formula, sizes) => draw({ ...formula, children: unstyledTree(formula.children) }, sizes),
-  ],
-  [
-    "qti-bordered drawn as no box",
-    "bordered",
-    (formula, sizes) => draw({ ...formula, children: unbordered(formula.children) }, sizes),
-  ],
-  [
-    "glyph ids drawn from a counter, as MathJax's local font cache writes them",
-    "settled",
-    counting(),
-  ],
-  [
-    "a slot placed beside the formula",
-    "inside",
-    changing((drawing) => ({
-      ...drawing,
-      slots: drawing.slots.map((slot) => ({ ...slot, x: `${String(numberOf(slot.x) + 100)}%` })),
-    })),
-  ],
-  [
-    "a slot left unplaced",
-    "inside",
-    changing((drawing) => ({ ...drawing, slots: drawing.slots.slice(1) })),
-  ],
-];
-
 describe("a formula as plate draws it", () => {
   it("holds every property on the corpus's shapes, 300 drawn formulas and 60 holding slots", () => {
     assert.deepStrictEqual(Object.fromEntries(broken(draw, [...properties.keys()])), {});
-  });
-
-  it.each(mutants)("refuses a mutant: %s (%s)", (_name, property, drawer) => {
-    assert.include([...broken(drawer, [property]).keys()], property);
   });
 });

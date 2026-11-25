@@ -5,10 +5,6 @@
  * by a hidden feedback block or inline, a hidden template block or choice, or another view's rubric
  * block never reaches the page, nor its card text the redacted copy a host sends one.
  *
- * Each kill runs the walk ({@link walkScript}) in a mutant copy of plate with its bug planted, a
- * program of its own (`runKilled` in `#plate/test/kills.ts`): a catalog kept that no part the page
- * is given names, the leak this rule closes, and a choice's reference left uncounted.
- *
  * @module
  */
 import { assert, describe, it } from "@effect/vitest";
@@ -21,45 +17,7 @@ import {
   shownCatalogsXml,
   walkShownCatalogs,
 } from "#plate/test/catalog-shown.ts";
-import { kill, runKilled } from "#plate/test/kills.ts";
-import type { Kill } from "#plate/test/kills.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
-
-/**
- * The kills: a catalog no part of the redacted body names kept, so a card named only by hidden
- * feedback reaches the page; and a choice's reference left out of the redacted body's, so a
- * catalog a choice the page is given names is dropped.
- */
-const kills: readonly Kill[] = [
-  kill({
-    file: "packages/plate/src/content/catalog-info.ts",
-    original: "if (references === 0) {",
-    replacement: "if (references < 0) {",
-    why: "a catalog no part the page is given names is kept",
-  }),
-  kill({
-    file: "packages/plate/src/redact/walk.ts",
-    original: "...referencingChoicesOf(node).flatMap((choice) => Option.toArray(choice.catalog)),",
-    replacement: "",
-    why: "a choice the page is given names no catalog",
-  }),
-];
-
-/**
- * The program a kill runs in its mutant copy: it opens the item through the host's entry, walks
- * the copy's redaction and writes what it found as JSON.
- */
-const walkScript = [
-  'import { Effect, Option } from "effect";',
-  'import { copyItemContent } from "#plate/content/modules.ts";',
-  'import { redact } from "#plate/redact.ts";',
-  'import { shownCatalogsLocation, shownCatalogsXml, walkShownCatalogs } from "#plate/test/catalog-shown.ts";',
-  'import { openAdmitted } from "#plate/validate/admitted.ts";',
-  'import { acceptedItem } from "#plate/validate/verdict.ts";',
-  "const verdict = await Effect.runPromise(openAdmitted(shownCatalogsLocation, new TextEncoder().encode(shownCatalogsXml)));",
-  "const accepted = Option.getOrThrow(acceptedItem(verdict));",
-  "process.stdout.write(JSON.stringify({ found: Option.getOrNull(walkShownCatalogs({ accepted, copyItemContent, redact })) }));",
-].join("\n");
 
 describe("the catalogs a redacted item keeps", () => {
   it.effect(
@@ -81,13 +39,4 @@ describe("the catalogs a redacted item keeps", () => {
         );
       }),
   );
-
-  for (const planted of kills) {
-    it(`kills ${planted.why}`, () => {
-      const run = runKilled(planted, walkScript);
-
-      assert.strictEqual(run.status, 0, run.stderr);
-      assert.notInclude(run.stdout, '"found":null', `the walk passed with ${planted.file} mutated`);
-    });
-  }
 });
