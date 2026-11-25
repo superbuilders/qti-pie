@@ -28,9 +28,8 @@
  * Each case is a package of its own, its PCIs under the K–2 forms' names (Bjorn's hard cutover:
  * type identifier `urn:fdc:alpha.school:2026:<name>`, module id `<name>`, file
  * `modules/<name>.js`), published through the suite's login under a name of this run's own, since a
- * package is closed and never published twice. The media policy lists no extension until the suite
- * writes it, so the first test publishes a held module before `js` is listed, and the table's cases
- * after.
+ * package is closed and never published twice. The media policy is the player's, pantry's closed
+ * `mediaPolicy`, which lists `js` and no `json`, so a configuration in a `.json` file is withheld.
  */
 import { createHash, randomBytes } from "node:crypto";
 import { Sha256 } from "@bjornpagen/grizzle";
@@ -755,32 +754,14 @@ describe.skipIf(Option.isNone(lease))("Module held, on the lease's result databa
   layer(suiteLayerOf("module_held"), { excludeTestServices: true })(
     "a PCI's modules are files of its own package the delivery serves",
     (it) => {
-      it.effect("refuses a held module while the media policy lists no js, its file withheld", () =>
-        // Oracle: pantry's media level (`ServedFile`, `WithheldFile`: a file of an extension the
-        // policy does not list is stored and served to no player), and the owner's rule.
-        // Bound: the table's first case, before the suite writes the policy.
-        Effect.gen(function* withheld() {
-          const got = yield* Effect.scoped(publishCase(cases[0], `module-held-${run}-withheld`));
-
-          assert.strictEqual(got.kind, "refused", "refused");
-          assert.sameMembers(got.kind === "refused" ? [...got.laws] : [], ["Module held"]);
-        }),
-      );
-
       it.effect(
         "publishes and routes every case the table admits, and refuses every other naming only laws it breaks",
         (ctx) =>
           // Oracle: the table, written from QTI 3.0.1 §5.106.2, §5.77.1–2, §7.17.2–3, readings 7, 201
           // and 246, the implementation guide §3.7.12 and the owner's rule, in this module's header.
-          // Bound: every case of the table, each its own package, under a policy that lists js.
+          // Bound: every case of the table, each its own package, under the player's media policy,
+          // which lists js (pantry's `mediaPolicy`).
           Effect.gen(function* everyCase() {
-            const { suite } = yield* SuiteLogin;
-            const db = yield* Db.open(suite.roles.result_runner, {});
-            yield* db.workload.writePolicy.once({
-              facts: {},
-              params: { types: [{ extension: "js", type: "text/javascript" }] },
-            });
-
             return yield* searched(
               ctx,
               exhaust(

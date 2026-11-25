@@ -1,10 +1,10 @@
 /**
  * The package-media level, `QtiMedia`: what an application stacks over `Qti` with grizzle's
  * `schema.extend` to serve a package's files, and the one authority on which files it serves. The
- * policy is data, the rows of {@link MediaType}, each extension the application serves files of
- * with the media type it serves them with, which the application writes as its own rows. The
- * level states no law: it refuses no package `Qti` admits, and only says which of a document's
- * files a player is given.
+ * policy is the player's, one closed relation, {@link MediaType}, each extension a player is served
+ * files of with the media type it is served them as, which the schema states and no program
+ * writes. The level states no law: it refuses no package `Qti` admits, and only says which of a
+ * document's files a player is given.
  *
  * - **{@link ServedFile}**: each media file a document names, a reference, an image candidate of a
  *   `srcset` or a text reference resolved to a `Media` entry of the package, whose extension a
@@ -59,12 +59,12 @@
  * @see {@link https://nodejs.org/api/path.html#pathextnamepath | Node.js, path.extname}
  */
 import {
+  closed,
+  closedId,
   derived,
-  generated,
   Logic,
   login,
   query,
-  relation,
   role,
   schema,
   str,
@@ -74,16 +74,17 @@ import {
   wholeEntriesOf,
   workload,
 } from "@bjornpagen/grizzle";
+import { Array as Arr, Record as Rec } from "effect";
 import { authorReads, authorWrites, insertWrite } from "#pantry/qti/logins.ts";
 import { CandidatePath, Media, ReferencePath, TextReferencePath } from "#pantry/qti/package.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 
 /**
- * A file extension a policy lists: lowercase ASCII letters and digits, without its dot, as an
- * entry's path writes it after its last `.` (`photo.jpg` is `jpg`). An entry's extension is matched
- * against it in ASCII lower case, so one row serves `photo.jpg` and `photo.JPG`.
+ * A file extension's text as the policy writes it: lowercase ASCII letters and digits, without its
+ * dot, as an entry's path writes it after its last `.` (`photo.jpg` is `jpg`). An entry's extension
+ * is matched against it in ASCII lower case, so one row serves `photo.jpg` and `photo.JPG`.
  */
-const MediaExtension = str.regex("^[a-z0-9]{1,127}$");
+const MediaExtensionText = str.regex("^[a-z0-9]{1,127}$");
 
 /**
  * The most bytes a media type holds, a type and a subtype a `/` apart, each a restricted name of at
@@ -113,56 +114,86 @@ const MediaTypeName = str.regex(
 );
 
 /**
- * An extension with its dot before it, as a path ends with it.
+ * The player's media policy, each extension whose files a player is served with the media type it
+ * is served them as, the one policy of every installation: the file types the QTI player renders
+ * and a browser runs, which no package and no application chooses. A media type may stand under
+ * several extensions (`jpg` and `jpeg`). `js` is a Portable Custom Interaction's module, which QTI
+ * 3.0.1's loader finds at a `.js` path (information model §7.17.2) and a browser runs only when it
+ * is served as JavaScript (RFC 9239). An application that serves a package's files reads it here,
+ * the rows {@link MediaType} holds, as each upload's `Content-Type`, and keeps no copy of its own.
  */
-const Suffix = str.regex("^[.][a-z0-9]{1,127}$");
+export const mediaPolicy = {
+  gif: "image/gif",
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  js: "text/javascript",
+  m4a: "audio/mp4",
+  mp3: "audio/mpeg",
+  mp4: "video/mp4",
+  ogg: "audio/ogg",
+  pdf: "application/pdf",
+  png: "image/png",
+  svg: "image/svg+xml",
+  vtt: "text/vtt",
+  wav: "audio/wav",
+  webm: "video/webm",
+  webp: "image/webp",
+} as const;
 
 /**
- * An extension with its dot and a `/` before it, as a path ends with it whose last segment is the
- * suffix alone: a name that begins with its only `.`, which has no extension.
+ * The `MediaExtension` roster, whose order means nothing: the extensions of {@link mediaPolicy}, the
+ * key of {@link MediaType}.
  */
-const SegmentSuffix = str.regex("^/[.][a-z0-9]{1,127}$");
-
-/**
- * The application's media policy, one row per extension it serves files of: the extension, the
- * media type it serves them with, `suffix`, the extension with its dot, as a path ends with it, and
- * `segmentSuffix`, the suffix after a `/`, as a path ends with it whose last segment is the suffix
- * alone, each of which PostgreSQL generates. A media type may stand under several extensions. A
- * policy of no row serves no file: every file a document names is then withheld.
- */
-export const MediaType = relation.generated(
-  "MediaType",
-  { extension: MediaExtension, type: MediaTypeName },
-  ["extension"],
-  (m) => ({
-    segmentSuffix: generated(
-      SegmentSuffix,
-      Text.concat(Type.literal(str.regex("^/[.]$"), "/."), m.extension),
-    ),
-    suffix: generated(Suffix, Text.concat(Type.literal(str.regex("^[.]$"), "."), m.extension)),
-  }),
+const MediaExtension = closed.unordered(
+  "MediaExtension",
+  Arr.map(Rec.keys(mediaPolicy), (extension) => extension),
 );
 
 /**
- * The policy's level over `Qti`: {@link MediaType}, the rows the level's derived relations read, a
- * level of its own since a derived relation reads only the levels below its own. It states no law.
- *
- * An application writes these rows through a role of their own, one that writes nothing its READ
- * COMMITTED readers read: a reader of {@link ServedFile} reads `MediaType`, so a role writing it
- * beside relations that reader reads gives grizzle's certifier another writer of that reader's
- * reads, and it lifts the reader to SERIALIZABLE (found by edullm: a publisher that also wrote the
- * policy moved its learner).
+ * {@link mediaPolicy} as a closed relation, one row per extension: the extension, its text as a
+ * path writes it, `name`, and the media type it is served as. The schema states it, a migration
+ * alone changes it, and no program writes it, so a change of policy is a migration that derives
+ * every package's served files again, and what a player is served is a function of its package's
+ * own rows and the policy alone.
  */
-export const QtiMediaPolicy = schema.extend([Qti], "QtiMediaPolicy", [MediaType], []);
+export const MediaType = closed.relation(
+  "MediaType",
+  { extension: closedId(MediaExtension), name: MediaExtensionText, type: MediaTypeName },
+  ["extension"],
+  Arr.map(Rec.toEntries(mediaPolicy), ([extension, type]) => ({
+    extension,
+    name: extension,
+    type,
+  })),
+);
 
 /**
- * The relations a role that writes the media policy writes, by name and by the mode it writes each
- * by: {@link QtiMediaPolicy}'s one stored relation, {@link MediaType}, closed, so under `insert`,
- * which `authorWrites` of `#pantry/qti/logins.ts` leaves out, since the author role writes `Qti`
- * alone. An application's role that writes the policy spreads each list into its list of the same
- * mode.
+ * The policy's level over `Qti`: {@link MediaExtension} and {@link MediaType}, the closed relations
+ * the level's derived relations read, a level of its own since a derived relation reads only the
+ * levels below its own. It states no law.
  */
-export const mediaPolicyWrites = { insert: [MediaType.name], write: [] } as const;
+export const QtiMediaPolicy = schema.extend(
+  [Qti],
+  "QtiMediaPolicy",
+  [MediaExtension, MediaType],
+  [],
+);
+
+/**
+ * Each extension of the policy with the media type it is served as, `suffix`, the extension with
+ * its dot, as a path ends with it, and `segmentSuffix`, the suffix after a `/`, as a path ends with
+ * it whose last segment is the suffix alone: a name that begins with its only `.`, which has no
+ * extension.
+ */
+const policySuffixes = query(QtiMediaPolicy).rule((r) => {
+  const { name, type } = v(MediaType, "policy");
+
+  return r.match(MediaType, { name, type }).find({
+    segmentSuffix: Text.concat(Type.literal(str.regex("^/[.]$"), "/."), name),
+    suffix: Text.concat(Type.literal(str.regex("^[.]$"), "."), name),
+    type,
+  });
+});
 
 /**
  * Every media file each document names, by the document's place and the file's path, with the
@@ -212,12 +243,12 @@ const namedMedia = query(QtiMediaPolicy)
  */
 const listedMedia = query(QtiMediaPolicy).rule((r) => {
   const { package: pkg, path } = v(Media, "media");
-  const { segmentSuffix, suffix, type } = v(MediaType, "policy");
+  const { segmentSuffix, suffix, type } = v(policySuffixes, "policy");
 
   return (
     r
       .match(Media, { package: pkg, path })
-      .match(MediaType, { segmentSuffix, suffix, type })
+      .match(policySuffixes, { segmentSuffix, suffix, type })
       // GRIZZLE-PENDING: a boolean term as a predicate
       .where(Logic.eq(Text.endsWith(Text.lowerAscii(path), suffix), true))
       .where(Logic.eq(Text.endsWith(Text.lowerAscii(path), segmentSuffix), false))
@@ -267,8 +298,7 @@ export const WithheldFile = derived(
 /**
  * The package-media level over {@link QtiMediaPolicy}: {@link ServedFile} and
  * {@link WithheldFile}, and no law. An application lists it, or a level of its own over it, in its
- * grizzle config's `schemas`, so the installation holds `Qti`, the policy and these relations, and
- * writes its policy as {@link MediaType} rows.
+ * grizzle config's `schemas`, so the installation holds `Qti`, the policy and these relations.
  */
 export const QtiMedia = schema.extend([QtiMediaPolicy], "QtiMedia", [ServedFile, WithheldFile], []);
 
@@ -277,8 +307,7 @@ export const QtiMedia = schema.extend([QtiMediaPolicy], "QtiMedia", [ServedFile,
  * level: it holds every stored relation and roster of the installation whole, the policy's and the
  * level's derived relations among them (grizzle's `wholeEntriesOf`), and writes `Qti`'s stored
  * relations by their modes (`authorWrites` of `#pantry/qti/logins.ts`), as `Author` of
- * `#pantry/qti/roles.ts` does, and no relation of the policy: {@link MediaType} is written through a
- * role of its own, one that writes nothing a READ COMMITTED reader reads ({@link QtiMediaPolicy}).
+ * `#pantry/qti/roles.ts` does; the policy, {@link MediaType}, is a closed relation no role writes.
  * Every relation of `Qti` is closed, so each is under `insert`, which grants SELECT and INSERT and
  * no UPDATE or DELETE: a package is published whole (`insertWrite`) and never changed or removed.
  */

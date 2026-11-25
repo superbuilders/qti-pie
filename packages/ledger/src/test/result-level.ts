@@ -54,7 +54,6 @@ import {
 import { EntryPath, PackageName } from "@qti-pie/pantry/qti/limits.ts";
 import { authorWrites, insertWrite } from "@qti-pie/pantry/qti/logins.ts";
 import { QtiLom } from "@qti-pie/pantry/qti/lom.ts";
-import { mediaPolicyWrites } from "@qti-pie/pantry/qti/media.ts";
 import { deliveryOf } from "#ledger/delivery.ts";
 import {
   evaluationProgramsOf,
@@ -139,7 +138,6 @@ const {
   ItemSessionValueSingleIdentifier,
   ItemSessionValueSingleInteger,
   LastPresence,
-  MediaType,
   MemberPlace,
   OutcomeInForceSingleFloat,
   Package,
@@ -192,7 +190,6 @@ const facts = ChangeSet.empty(ResultLevel).insertAll({
 const Suite = role(ResultLevel, "result_runner", wholeEntriesOf(ResultLevel), {
   insert: [
     ...authorWrites.insert,
-    ...mediaPolicyWrites.insert,
     ...sessionWrites.insert,
     ...evaluationWrites.insert,
     ...personValueWrites.insert,
@@ -1043,24 +1040,6 @@ const finalsOf = query(ResultLevel).rule((r) => {
 });
 
 /**
- * The installation's media policy as rows, each extension a player may fetch with the media type it
- * is served as, the call's `types`, as an application writes its policy (edullm's publisher); a
- * policy already written changes nothing.
- */
-const writePolicy = ChangeSet.empty(ResultLevel).insert(
-  MediaType,
-  query(ResultLevel).rule((r) => {
-    const given = r.relation("types", {
-      extension: MediaType.fields.extension,
-      type: MediaType.fields.type,
-    });
-    const { extension, type } = v(given, "given");
-
-    return r.match(given, { extension, type }).find({ extension, type });
-  }),
-);
-
-/**
  * The item document the call names, as opening it reads it (`itemRowsOf`, the read every
  * application attaches under its own read of the item it serves): what served-item opens and
  * routes its PCIs from.
@@ -1154,7 +1133,6 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       testOutcomeFloatsOf,
       windowFacts,
       windowsOf,
-      writePolicy,
     }),
   ],
 });

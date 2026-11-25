@@ -33,10 +33,9 @@
  *   unless its file ends in it ({@link LocatedModule}, pantry's `ReferencePath`).
  * - **What holds it**: the file that location names is one the item document's media is served as
  *   (pantry's `ServedFile`): a `Media` entry of the package, which "File exists" and "File listed"
- *   hold to the manifest, of an extension the installation's media policy lists, served by its
- *   SHA-256. An installation lists `js` in its policy (`MediaType`) before it publishes a PCI item,
- *   or in the same write, as it publishes the reference package before an item that names a
- *   published template.
+ *   hold to the manifest, of an extension the player's media policy lists, served by its SHA-256.
+ *   The policy is one closed relation (pantry's `mediaPolicy`, `MediaType`), which lists `js`, so a
+ *   module at a `.js` path is served wherever the package holds its file.
  *
  * A configuration a PCI's modules child writes (`primary-configuration`, `secondary-configuration`,
  * information model §5.77.1–2: "a JSON configuration file which describes the PCI module

@@ -83,7 +83,7 @@ const packagePath = Brand.nominal<PackagePath>();
  *   entry's are a media file's, which the import puts in its content-addressed store under their
  *   SHA-256 (`MediaStore` of `#pantry/package/media.ts`) and states that digest as its `Media` row.
  *   No entry's bytes are stored in the database. Its `type` is empty, since the reader knows no
- *   media type; a package-media install's policy (`MediaType` of `#pantry/qti/media.ts`) gives an
+ *   media type; the player's media policy (`MediaType` of `#pantry/qti/media.ts`) gives an
  *   extension's.
  * - `referenced`: every path a reference of a document resolves to in the package, the attributes of
  *   the reference census, each image candidate of a `srcset` and the texts of the text census

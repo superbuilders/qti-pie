@@ -34,7 +34,7 @@ describe("the package-media level", () => {
       Object.keys(QtiMedia.relations)
         .filter((name) => !Object.hasOwn(Qti.relations, name))
         .toSorted(),
-      ["MediaType", "ServedFile", "WithheldFile"],
+      ["MediaExtension", "MediaType", "ServedFile", "WithheldFile"],
     );
   });
 });
