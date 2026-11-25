@@ -424,8 +424,8 @@ describe("a declaration that writes no cardinality", () => {
                 : [judgment.rule];
 
             assert.deepStrictEqual(
-              [...new Set(rules)],
-              ["required-attribute"],
+              new Set(rules),
+              new Set(["required-attribute"]),
               `${path} ${tag}:\n${judgment._tag === "Judged" ? judgment.breaches.map((breach) => shownBreach(breach, grammar)).join("\n") : judgment.detail}`,
             );
           }),
