@@ -64,7 +64,8 @@ const propsOf = (element: Element): Readonly<Record<string, string>> =>
 
 /**
  * Write the children of an answer's element: each text as text, each MathML 3 element of the
- * MathML namespace as an element, and nothing else.
+ * MathML namespace as an element, and nothing else. An element's key is its place among its
+ * siblings: the children are the MathML's own, in document order, and never reorder.
  *
  * @param children The children.
  * @returns The nodes.
@@ -78,14 +79,7 @@ const nodesOf = (children: readonly Child[]): readonly ReactNode[] =>
     return child.kind === "element" &&
       child.namespace === mathmlNamespace &&
       elementAttributes.has(child.local)
-      ? [
-          createElement(
-            child.local,
-            // The children are the MathML's own, in document order, and never reorder.
-            { ...propsOf(child), key: index },
-            nodesOf(child.children),
-          ),
-        ]
+      ? [createElement(child.local, { ...propsOf(child), key: index }, nodesOf(child.children))]
       : [];
   });
 

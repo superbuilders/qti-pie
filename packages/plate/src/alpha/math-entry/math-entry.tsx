@@ -131,6 +131,8 @@ const makeField = async (
  * the response holds, so the field always shows what it posts. A response that changes from
  * outside the field, such as a host's restore, is written into it.
  *
+ * The island makes its field once, and the field goes with it.
+ *
  * @param props The interaction, its response and its names ({@link MathEntryProps}).
  * @returns The math entry, its field bound to the response.
  */
@@ -175,7 +177,6 @@ export const MathEntry = (props: MathEntryProps) => {
     },
   }));
 
-  // The island makes its field once, and the field goes with it.
   useEffect((): (() => void) | undefined => {
     const at = place.current;
 
@@ -195,7 +196,6 @@ export const MathEntry = (props: MathEntryProps) => {
     };
   }, []);
 
-  // A response the field did not write, such as a host's restore, is written into the field.
   useEffect(() => {
     const made = field.current;
 

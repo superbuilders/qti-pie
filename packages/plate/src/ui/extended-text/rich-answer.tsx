@@ -41,7 +41,7 @@ const hrefOf = (link: string): string | undefined => {
  * nests them: a link, a script, bold, italic, the underline and the strike.
  *
  * @param run The run.
- * @param key Its place among its line's runs.
+ * @param key Its place among its line's runs, its key: a run is a place in its line.
  * @returns The run's markup.
  */
 const runNode = ({ format, text }: Run, key: number): ReactNode => {
@@ -71,7 +71,6 @@ const runNode = ({ format, text }: Run, key: number): ReactNode => {
     node = <a href={hrefOf(format.link)}>{node}</a>;
   }
 
-  // A run is a place in its line: its place is its key.
   return <Fragment key={key}>{node}</Fragment>;
 };
 

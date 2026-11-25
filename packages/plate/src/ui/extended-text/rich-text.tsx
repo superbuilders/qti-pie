@@ -129,6 +129,9 @@ interface EditorHooks {
  * document, its editing area named as the Extended Text's box is, and writing its value on every
  * change. The editor goes with the island.
  *
+ * Quill's indent is one attributor for every editor of the page, so its depth is set there:
+ * plate's editors are the page's, and indent 5 deep at most.
+ *
  * @param place The element the editor stands in.
  * @param gone Aborted when the island unmounts.
  * @param hooksNow What the editor opens holding, its names and placeholder, and where its value
@@ -149,8 +152,6 @@ const makeEditor = async (
   const { Attributor } = Editor.import("parchment");
   const indent = Editor.import("formats/indent");
 
-  // Quill's indent is one attributor for every editor of the page: plate's editors are the
-  // page's, and indent 5 deep at most.
   if (indent instanceof Attributor) {
     indent.whitelist = indentLevels.filter((level) => level > 0).map(String);
   }
@@ -207,7 +208,11 @@ const makeEditor = async (
  *
  * Every change writes the response, the XHTML of the editor's document: an empty editor posts
  * nothing. A value the host gives the response from outside, a save restored or the item started
- * afresh, is drawn into the editor, so the child's next keystroke never writes over it.
+ * afresh, is drawn into the editor, so the child's next keystroke never writes over it, and it is
+ * drawn in the commit's own task, so a keystroke the editor writes meanwhile is never compared with
+ * a value it has passed.
+ *
+ * The island makes its editor once, and the editor goes with it.
  *
  * @param props The interaction, its response and its words ({@link RichTextProps}).
  * @returns The essay, its editor bound to the response.
@@ -255,7 +260,6 @@ export const RichText = (props: RichTextProps) => {
     },
   }));
 
-  // The island makes its editor once, and the editor goes with it.
   useEffect((): (() => void) | undefined => {
     const at = place.current;
 
@@ -272,8 +276,6 @@ export const RichText = (props: RichTextProps) => {
     };
   }, []);
 
-  // A value the editor did not write, the host's, is drawn into the editor, in the commit's own task,
-  // so a keystroke the editor writes meanwhile is never compared with a value it has passed.
   useLayoutEffect(() => {
     const made = editor.current;
 

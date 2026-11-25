@@ -505,8 +505,6 @@ describe("a press", () => {
 
           press(room, control);
           room.commands = [];
-          // The session, not the page, says whether the control plays: a second press stops it
-          // even while its `play()` is pending, before the page could show it playing.
           press(room, control);
 
           const stops = actsIn(room);
@@ -530,7 +528,11 @@ describe("a press", () => {
       ),
     );
 
-    assert.deepStrictEqual(wrong, []);
+    assert.deepStrictEqual(
+      wrong,
+      [],
+      "the session, not the page, says whether the control plays: a second press stops it even while its play() is pending, before the page could show it playing",
+    );
   });
 });
 
@@ -788,7 +790,6 @@ describe("late echoes", () => {
       }
     };
 
-    // The session reads no role, so one item of each size stands for every item of that size.
     const wrong = [1, 2, 3].flatMap((size) => {
       const item = Array.from({ length: size }, (_, place): Spot => ({
         name: `c${String(place)}`,
@@ -825,6 +826,7 @@ describe("late echoes", () => {
     assert.deepStrictEqual(
       { first: wrong.slice(0, 5), wrong: wrong.length },
       { first: [], wrong: 0 },
+      "every sequence on one item of each size, 1 to 3: the session reads no role, so one item of a size stands for every item of that size",
     );
   });
 });
@@ -875,7 +877,6 @@ describe("a press that cannot play", () => {
 
           let standing = first;
 
-          // Every later press that fails is told again, the notice before it down first.
           for (const control of item) {
             room.commands = [];
             press(room, control);
@@ -915,7 +916,11 @@ describe("a press that cannot play", () => {
       ),
     );
 
-    assert.deepStrictEqual(wrong, []);
+    assert.deepStrictEqual(
+      wrong,
+      [],
+      "every later press that fails is told again, the notice before it down first",
+    );
   });
 
   it("is never told of an interruption, an AbortError or MEDIA_ERR_ABORTED, which changes nothing", () => {
