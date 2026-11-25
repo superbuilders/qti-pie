@@ -40,7 +40,8 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { afterAll, assert, layer } from "@effect/vitest";
 import { exhaust, explore, steered } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";
-import { int } from "@bjornpagen/testing/gen";
+import { boolean, int } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
 import { boundedShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Duration, Effect, Option } from "effect";
@@ -218,25 +219,52 @@ const nameOf = (bytes: number): string => `K${"x".repeat(bytes - 1)}`;
 const btreeEntryBytes = 2704;
 
 /**
- * The manifests whose identifierref the database's fold copies into `Attribute.idrefText`, a field
- * the import never writes, of any length, beside its token, `Idref.token`, an `xs:ID` of any
- * length a key holds by its SHA-256 (`tokenDigest`), which the import writes: one byte past a
- * B-tree entry on a cp:variant and on a cp:dependency, and a short one on the variant.
+ * How many bytes either side of a B-tree entry a filled case's identifierref is drawn: enough to
+ * hold the entry's length, one byte past it, and the lengths near both.
  */
-const filledCases = [
-  {
-    manifest: filledManifest(`<cpx:variant identifierref="${nameOf(btreeEntryBytes + 1)}"/>`),
-    name: "a cp:variant's identifierref past a B-tree entry",
-  },
-  {
-    manifest: filledManifest(`<dependency identifierref="${nameOf(btreeEntryBytes + 1)}"/>`),
-    name: "a cp:dependency's identifierref past a B-tree entry",
-  },
-  {
-    manifest: filledManifest(`<cpx:variant identifierref="${nameOf(8)}"/>`),
-    name: "a cp:variant's short identifierref",
-  },
-] as const;
+const aroundEntry = 16;
+
+/**
+ * A manifest whose identifierref the database's fold copies into `Attribute.idrefText`, a field the
+ * import never writes, of any length, beside its token, `Idref.token`, an `xs:ID` of any length a
+ * key holds by its SHA-256 (`tokenDigest`), which the import writes: on a cp:variant or a
+ * cp:dependency, of a length in bytes.
+ */
+interface Filled {
+  readonly bytes: number;
+  readonly dependency: boolean;
+}
+
+/**
+ * Draw a filled case: a cp:variant's or a cp:dependency's identifierref, of a length within
+ * {@link aroundEntry} bytes of a B-tree entry ({@link btreeEntryBytes}).
+ */
+const filledOf: Gen<Filled> = (source) => ({
+  bytes: source.draw(int(btreeEntryBytes - aroundEntry, btreeEntryBytes + aroundEntry)),
+  dependency: source.draw(boolean),
+});
+
+/**
+ * Name a filled case.
+ *
+ * @param filled - The case.
+ * @returns Its element and its identifierref's length.
+ */
+const filledName = ({ bytes, dependency }: Filled): string =>
+  `a ${dependency ? "cp:dependency" : "cp:variant"}'s identifierref of ${String(bytes)} bytes`;
+
+/**
+ * Write a filled case's manifest.
+ *
+ * @param filled - The case.
+ * @returns The manifest's text.
+ */
+const filledManifestOf = ({ bytes, dependency }: Filled): string =>
+  filledManifest(
+    dependency
+      ? `<dependency identifierref="${nameOf(bytes)}"/>`
+      : `<cpx:variant identifierref="${nameOf(bytes)}"/>`,
+  );
 
 /**
  * The class no filled case may show: the oracle finding a key text past its bound that the import's
@@ -508,18 +536,19 @@ layer(NodeServices.layer, { excludeTestServices: true })(
         Effect.gen(function* filledRuns() {
           const directory = yield* scratchDirectory("genetic-filled-");
           const bench = { directory, grammar, laws };
+          let index = 0;
 
           return yield* exhaust(
             {
               /**
-               * A cp:variant's and a cp:dependency's identifierref one byte past the key-text
-               * bound, and the variant's at the bound, each judged once.
+               * A cp:variant's and a cp:dependency's identifierref of every length within 16 bytes
+               * of a B-tree entry, at it and past it among them, each judged once.
                */
-              box: "an identifierref one byte past the key-text bound, and one at it",
+              box: "a cp:variant's or a cp:dependency's identifierref of every length within 16 bytes of a B-tree entry (2704 bytes): 2 × 33, 66 manifests",
               caseHang: Duration.minutes(5),
               coverage: noCoverage,
-              generator: int(0, filledCases.length - 1),
-              literal: (at) => filledCases[at]?.name ?? String(at),
+              generator: filledOf,
+              literal: filledName,
               /**
                * A second implementation, the law oracle, against the laws the import's rows hold on
                * the host.
@@ -530,19 +559,17 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               },
               suite: "pantry/genetic-filled-key-text",
             },
-            (at) =>
+            (filled) =>
               Effect.gen(function* filledCase() {
-                const held = filledCases[at];
-                assert.isDefined(held, `no filled case ${String(at)}`);
-
-                const manifest = new TextEncoder().encode(held.manifest);
+                index += 1;
+                const manifest = new TextEncoder().encode(filledManifestOf(filled));
                 const genome = yield* genomeOf(new Map([["imsmanifest.xml", manifest]]));
-                const judged = yield* judgeOne(genome, bench, at);
+                const judged = yield* judgeOne(genome, bench, index);
                 assert.isFalse(
                   judged.disagreements.some((disagreement) =>
                     recordsClassOf([keyTextBound], disagreement),
                   ),
-                  `${held.name}: the oracle says ${judged.summary.oracle}, the import's rows ${judged.summary.import}`,
+                  `${filledName(filled)}: the oracle says ${judged.summary.oracle}, the import's rows ${judged.summary.import}`,
                 );
               }),
           );
