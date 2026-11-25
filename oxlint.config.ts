@@ -207,7 +207,8 @@ const reactCompilerRules = {
 export default defineConfig({
   extends: [core, antiSlop],
   // A fixture package's JS modules (a PCI's AMD module, its JSON module resolution file) are data a
-  // test reads, not source.
+  // test reads, not source. An Alpha PCI module file is its typed source with the types stripped,
+  // byte for byte (`packages/plate/src/alpha/pci-modules.test.ts`): the source is linted.
   ignorePatterns: [
     // grizzle, this repository's submodule, is linted by its own gate and config.
     "vendor/**",
@@ -216,6 +217,7 @@ export default defineConfig({
     ".claude/**",
     "**/migrations/**",
     "packages/plate/fixtures/**",
+    "packages/plate/src/alpha/pci-modules/*.js",
   ],
   jsPlugins: ["./tools/lint-plugin.ts", "@stylistic/eslint-plugin"],
   // Keep source imports stable when files move: each package maps `#<package>/*` to its `src/` in package.json
@@ -423,8 +425,9 @@ export default defineConfig({
     },
     // Inside an `alpha/` folder a module imports its folder's siblings as well as core, and keeps its
     // package's other bans: plate's, a page's for those of plate's a page loads, the server's for the
-    // ledger and pantry, and the shared ones elsewhere; plate's alpha suites load Node as plate's
-    // tests do. Last among the rule's overrides, they lift alphaImportPattern on `alpha/` alone.
+    // ledger and pantry, and the shared ones elsewhere; plate's alpha suites, and the emit step that
+    // writes each PCI module file under the machine's Node, load Node as plate's tests do. Last among
+    // the rule's overrides, they lift alphaImportPattern on `alpha/` alone.
     {
       files: ["packages/*/src/alpha/**/*.ts", "packages/*/src/alpha/**/*.tsx"],
       rules: { "no-restricted-imports": ["error", { patterns: pathImportPatterns }] },
@@ -448,7 +451,11 @@ export default defineConfig({
       },
     },
     {
-      files: ["packages/plate/src/alpha/**/*.test.ts", "packages/plate/src/alpha/**/*.test.tsx"],
+      files: [
+        "packages/plate/src/alpha/**/*.test.ts",
+        "packages/plate/src/alpha/**/*.test.tsx",
+        "packages/plate/src/alpha/emit-pci-modules.ts",
+      ],
       rules: { "no-restricted-imports": ["error", { patterns: pathImportPatterns }] },
     },
     {
@@ -530,6 +537,27 @@ export default defineConfig({
         "anti-slop/no-unknown-type-aliases": "off",
         "anti-slop/no-unsafe-dictionary-type": "off",
         "unicorn/consistent-function-scoping": "off",
+      },
+    },
+    // An Alpha PCI module (`packages/plate/src/alpha/pci-modules/`) is an author's AMD module that
+    // runs in the PCI's sandboxed frame, as the frame's boot does: its text with the types stripped
+    // is a content package's module file, so every helper stays inside its one factory, and the
+    // state and bound response it is handed cross `postMessage` untyped, so they are `unknown` until
+    // a predicate has read them, a script with no imports having no Schema to parse them with. Its
+    // one failure is the PCI contract's, an exception from `getInstance` that the boot reports, and
+    // such a script has no tagged error class to throw. It is an AMD module, as QTI 3.0.1 has a
+    // PCI's module be: its one statement is the `define` the frame's loader runs, and its module
+    // file is a classic script, never an ES module, so its factory states strict mode itself.
+    {
+      files: ["packages/plate/src/alpha/pci-modules/*.ts"],
+      rules: {
+        "anti-slop/no-runtime-typeof": "off",
+        "anti-slop/no-unknown-parameters": "off",
+        "anti-slop/no-unsafe-dictionary-type": "off",
+        "import/no-amd": "off",
+        "unicorn/consistent-function-scoping": "off",
+        "unicorn/prefer-module": "off",
+        "workspace/no-bare-error": "off",
       },
     },
     {

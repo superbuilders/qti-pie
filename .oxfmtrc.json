@@ -5,7 +5,8 @@
     "**/migrations/**",
     "README.md",
     "packages/*/README.md",
-    "packages/plate/fixtures/**"
+    "packages/plate/fixtures/**",
+    "packages/plate/src/alpha/pci-modules/*.js"
   ],
   "jsdoc": { "commentLineStrategy": "multiline", "lineWrappingStyle": "balance" }
 }

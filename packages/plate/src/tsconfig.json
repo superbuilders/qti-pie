@@ -7,6 +7,6 @@
     "jsx": "react-jsx",
     "tsBuildInfoFile": "../node_modules/.cache/tsconfig.src.tsbuildinfo"
   },
-  "include": ["ui/**/*.ts", "ui/**/*.tsx", "math-entry/**/*.ts"],
+  "include": ["ui/**/*.ts", "ui/**/*.tsx", "math-entry/**/*.ts", "alpha/pci-modules/**/*.ts"],
   "exclude": ["**/node_modules"]
 }
