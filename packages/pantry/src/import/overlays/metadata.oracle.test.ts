@@ -9,8 +9,8 @@
 import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
-import { drawn, explore } from "@bjornpagen/testing/explore";
-import { required } from "@bjornpagen/testing/features";
+import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
+import { required, requiredInSpace } from "@bjornpagen/testing/features";
 import { array, boolean, element } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { notesOnly } from "@bjornpagen/testing/sense";
@@ -21,6 +21,7 @@ import { inject } from "vitest";
 import { grammar } from "#pantry/grammar/install.ts";
 import { readEntries } from "#pantry/package/read.ts";
 import type { PackageFile } from "#pantry/package/read.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { judge, lawsOf } from "#pantry/test/oracle.ts";
 import { caseHang } from "#pantry/test/gen/xdm.ts";
 
@@ -588,9 +589,14 @@ describe("the law oracle's reading `identity-from-lom`, generated packages", () 
 });
 
 /**
- * The `metaData` package's one entry, which names no document: its item is `choice`.
+ * The `metaData` package's one entry as published, which names no document: its item is `choice`.
  */
-const metaDataEntry = "<imsmd:entry>qti_v2_item_01</imsmd:entry>";
+const publishedEntry = "qti_v2_item_01";
+
+/**
+ * The published entry as the manifest writes it.
+ */
+const metaDataEntry = `<imsmd:entry>${publishedEntry}</imsmd:entry>`;
 
 /**
  * Replace a text of the `metaData` manifest, failing when the manifest does not hold it.
@@ -626,31 +632,68 @@ const withManifestText = (
 const withEntry = (files: readonly PackageFile[], entry: string): readonly PackageFile[] =>
   withManifestText(files, metaDataEntry, `<imsmd:entry>${entry}</imsmd:entry>`);
 
+/**
+ * Draw an entry of the fixture's box: none, the fixture as published, or an entry sketch
+ * ({@link entries}) in its place.
+ */
+const fixtureEntry: Gen<Option.Option<EntrySketch>> = (source) =>
+  source.draw(boolean) ? Option.some(source.draw(entries)) : Option.none();
+
+/**
+ * How many entries {@link fixtureEntry} draws: the published one, and 4 values by 3 paddings before
+ * and 3 after.
+ */
+const FIXTURE_ENTRIES = 1 + 4 * 3 * 3;
+
 describe("the law oracle's reading `identity-from-lom`, the metaData fixture", () => {
   it.effect(
-    "refuses metaData's record, whose entry names another item, and accepts it naming choice, padded or not",
-    () =>
-      // Oracle: a second implementation, the law oracle's `LomObjectIdentifier` over each package.
-      // Bound: the fixture as published, and its entry edited to `choice` and to `choice` padded.
-      Effect.gen(function* metaData() {
-        const files = yield* readEntries(fixtures.metaData);
+    `refuses metaData's record exactly when its entry, collapsed, names another item than choice, as published and with every entry sketch in its place: ${String(FIXTURE_ENTRIES)} records`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(fixtureEntry, FIXTURE_ENTRIES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "the metaData fixture as published, and its entry edited to each of choice, other, ch oice and none, padded before and after by nothing, a space, or a line feed, a tab and a space",
+              caseHang,
+              coverage: requiredInSpace<"named" | "refused">(["named", "refused"]),
+              generator: fixtureEntry,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "reading `identity-from-lom` (QTI 3.0 Metadata §2.7.1.1): the record names its item, choice, when its one general entry, compared collapsed as UniqueIdentifierDType's value, is choice, and the published entry is qti_v2_item_01; its title names another, so LomObjectTitle refuses it throughout; against the law oracle's LomObjectIdentifier and LomObjectTitle over the package",
+              },
+              suite: "import/overlays/metadata-fixture",
+            },
+            (edit, c) =>
+              Effect.gen(function* metaData() {
+                const files = yield* readEntries(fixtures.metaData);
+                const entry = Option.match(edit, {
+                  onNone: () => publishedEntry,
+                  onSome: ({ lead, trail, value }) => `${lead}${value}${trail}`,
+                });
+                const named = collapse(entry) === "choice";
+                c.note(named ? "named" : "refused");
 
-        for (const [label, edited, expected] of [
-          ["metaData", files, 1],
-          ["choice", withEntry(files, "choice"), 0],
-          ["padded choice", withEntry(files, "\n    choice\t"), 0],
-        ] as const) {
-          assert.strictEqual(
-            yield* oracleBreaches(edited, "LomObjectIdentifier"),
-            expected,
-            `${label}, by the oracle`,
-          );
-          assert.strictEqual(
-            yield* oracleBreaches(edited, "LomObjectTitle"),
-            1,
-            `${label}: titled otherwise`,
-          );
-        }
-      }).pipe(Effect.provide(NodeServices.layer)),
+                const edited = Option.match(edit, {
+                  onNone: () => files,
+                  onSome: () => withEntry(files, entry),
+                });
+
+                assert.strictEqual(
+                  yield* oracleBreaches(edited, "LomObjectIdentifier"),
+                  named ? 0 : 1,
+                  `${JSON.stringify(entry)}, by the oracle`,
+                );
+                assert.strictEqual(
+                  yield* oracleBreaches(edited, "LomObjectTitle"),
+                  1,
+                  `${JSON.stringify(entry)}: titled otherwise`,
+                );
+              }).pipe(Effect.provide(NodeServices.layer)),
+          ),
+        ),
+      ),
   );
 });
