@@ -339,8 +339,8 @@ export const glossaryOf = (
               { "aria-labelledby": `${summary} ${term}`, id: summary },
               message(locale, "glossarySummary"),
             ),
-            ...nodes(card.content),
-            ...card.files.map((file, index) => fileLink(file, addressing, `file-${String(index)}`)),
+            nodes(card.content),
+            card.files.map((file, index) => fileLink(file, addressing, `file-${String(index)}`)),
           ),
         term,
       };
@@ -383,8 +383,8 @@ export const listing = (
               key: index,
               lang: Option.getOrUndefined(card.lang),
             },
-            ...nodes(card.content),
-            ...card.files.map((file, at) => fileLink(file, addressing, `file-${String(at)}`)),
+            nodes(card.content),
+            card.files.map((file, at) => fileLink(file, addressing, `file-${String(at)}`)),
           ),
         ),
       );

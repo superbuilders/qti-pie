@@ -327,7 +327,7 @@ export const stimulusArticle = (
       key,
       lang: Option.getOrUndefined(redacted.lang),
     },
-    ...nodesOf(redacted.body, {
+    nodesOf(redacted.body, {
       ...outside,
       scope: {
         answer: () => noItemPart("an interaction's answer"),

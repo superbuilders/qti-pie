@@ -613,7 +613,7 @@ export const feedbackOf = (
       "data-slot": "plate-feedback",
       key,
     },
-    ...content,
+    content,
   );
 
 /**
@@ -1177,7 +1177,7 @@ const elementOf = (element: BodyElement<RedactedLevel>, key: Key, walk: Walk): R
 
   return preceding.length === 0 && following.length === 0
     ? elementAt(key)
-    : createElement(Fragment, { key }, ...preceding, elementAt("block"), ...following);
+    : createElement(Fragment, { key }, preceding, elementAt("block"), following);
 };
 
 /**
@@ -1217,7 +1217,7 @@ const interactionOf = (
 
   return preceding.length === 0 && following.length === 0
     ? rendered
-    : createElement(Fragment, { key }, ...preceding, rendered, ...following);
+    : createElement(Fragment, { key }, preceding, rendered, following);
 };
 
 /**

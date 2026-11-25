@@ -95,6 +95,6 @@ export const feedbackBlockOf = (
   createElement(
     element,
     { "aria-label": Option.getOrUndefined(name), "data-slot": "plate-feedback-block", key },
-    ...content,
+    content,
   ),
 ];
