@@ -7,7 +7,12 @@
  *
  * The cluster is the caller's, reached over its socket as a superuser for the installation's own
  * setup, and over verify-full TLS on localhost for the migration, as grizzle connects. It must be a
- * cluster of the test's own, never a live, staging or production database.
+ * cluster of the test's own, never a live, staging or production database. It must preload
+ * pg_stat_statements, whose view the second check reads every action's pages from: the installation
+ * creates the extension in the cluster's `postgres` database, where the view is read, and asks the
+ * extension's own state before it drops anything, so a cluster that does not preload it is refused
+ * with the extension's error, which names `shared_preload_libraries`, and keeps no extension, the
+ * two statements sharing one implicit transaction.
  *
  * @module
  */
@@ -133,6 +138,12 @@ export const installFresh = (install: Installation) =>
     const password = randomBytes(24).toString("hex");
 
     mkdirSync(install.secrets, { mode: 0o700, recursive: true });
+    yield* asSuperuser(
+      install,
+      "postgres",
+      "pg_stat_statements",
+      "CREATE EXTENSION IF NOT EXISTS pg_stat_statements; SELECT pg_stat_statements_info()",
+    );
     yield* asSuperuser(
       install,
       "postgres",
