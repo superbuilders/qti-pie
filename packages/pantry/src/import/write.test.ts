@@ -24,6 +24,7 @@ import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Duration, Effect, Formatter, Option, Predicate, Result } from "effect";
+import { agree, exact, set, structuralHash } from "@bjornpagen/testing/oracle";
 import { inject } from "vitest";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { placementOf } from "#pantry/grammar/content.ts";
@@ -627,7 +628,7 @@ describe("rootInsertOf", () => {
 
                 const label = `${node.kind} at ${String(start)}`;
                 assert.strictEqual(expected.start, start, label);
-                assert.strictEqual(node.state, String(expected.derived.state), label);
+                assert.strictEqual(Number(node.state), expected.derived.state, label);
                 assert.deepStrictEqual(new Set(node.ancestry), new Set(expected.derived.ancestry));
                 assert.strictEqual(node.nearest, expected.nearest, label);
                 assert.strictEqual(node.nearestKind, expected.nearestKind, label);
@@ -929,7 +930,7 @@ describe("the written types", () => {
     type Exact<R, T> = [Exclude<keyof R, keyof T> | Exclude<keyof T, keyof R>] extends [never]
       ? true
       : false;
-    const exact = {
+    const exactFields = {
       attribute: true,
       entity: true,
       entry: true,
@@ -952,7 +953,7 @@ describe("the written types", () => {
     };
 
     assert.isTrue(Object.values(noLeak).every(Boolean));
-    assert.isTrue(Object.values(exact).every(Boolean));
+    assert.isTrue(Object.values(exactFields).every(Boolean));
   });
 });
 
@@ -1020,8 +1021,8 @@ describe("unionOf", () => {
             const first = new Map<string, number>();
             let conflict: Option.Option<string> = Option.none();
             let repeat = false;
-            for (const set of sets) {
-              for (const [key, { v }] of set) {
+            for (const keyed of sets) {
+              for (const [key, { v }] of keyed) {
                 const held = first.get(key);
                 if (held === undefined) {
                   first.set(key, v);
@@ -1039,9 +1040,19 @@ describe("unionOf", () => {
             Option.match(conflict, {
               onNone: () => {
                 assert.strictEqual(union._tag, "Success", "the sets union with no conflict");
-                assert.deepStrictEqual(
-                  Result.isSuccess(union) ? [...union.success].map(([key, { v }]) => [key, v]) : [],
-                  [...first],
+                Effect.runSync(
+                  agree(
+                    [
+                      [
+                        "the union's entries",
+                        Result.isSuccess(union)
+                          ? [...union.success].map(([key, { v }]) => [key, v])
+                          : [],
+                      ],
+                      ["the first set's", [...first]],
+                    ],
+                    set(structuralHash, exact),
+                  ),
                 );
               },
               onSome: (key) => {

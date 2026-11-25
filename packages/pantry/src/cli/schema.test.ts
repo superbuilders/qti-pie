@@ -3,6 +3,7 @@ import path from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect, Schema } from "effect";
+import { agree, exact, set, structuralHash } from "@bjornpagen/testing/oracle";
 import { captureCli } from "#pantry/test/cli.ts";
 import { fileScratchDirectory, scratchEnv } from "#pantry/test/scratch.ts";
 
@@ -64,7 +65,13 @@ layer(NodeServices.layer, { excludeTestServices: true })("qti schema, database-f
       });
 
       assert.strictEqual(result.status, 0);
-      assert.deepStrictEqual(Object.keys(parseObject(result.stdout)), yield* listedNames);
+      yield* agree(
+        [
+          ["the schema command's objects", Object.keys(parseObject(result.stdout))],
+          ["the listed names", yield* listedNames],
+        ],
+        set(structuralHash, exact),
+      );
     }),
   );
 });

@@ -31,7 +31,7 @@ import { element as elementOf, int } from "@bjornpagen/testing/gen";
 import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Effect, Formatter, Option, Result } from "effect";
+import { Array as Arr, Effect, Equal, Formatter, Option, Result } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { followPairsOf, stepOf } from "#pantry/grammar/content.ts";
 import * as install from "#pantry/grammar/install.ts";
@@ -551,6 +551,7 @@ describe("N5, content order", () => {
 
                 for (let was = 0; was < positions; was += 1) {
                   const lawful = lawfulStates({ kind, parent }, String(was));
+                  const lawfulSteps = lawful.map(Number);
                   const stepped = stepOf(grammar, { child: kind, parent }, was);
                   if (lawful.length === 0) {
                     c.note("unfollowed step");
@@ -558,10 +559,7 @@ describe("N5, content order", () => {
                     c.note("carried state");
                   }
 
-                  if (
-                    lawful.length > 1 ||
-                    String(Option.getOrElse(stepped, () => -1)) !== (lawful[0] ?? "-1")
-                  ) {
+                  if (lawfulSteps.length > 1 || !Equal.equals(stepped, Arr.head(lawfulSteps))) {
                     assert.fail(
                       `${kind} under ${parent} from state ${String(was)}: N5 admits [${lawful.join(", ")}], stepOf gives ${Formatter.format(stepped)}`,
                     );

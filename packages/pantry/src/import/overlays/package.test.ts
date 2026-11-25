@@ -1282,9 +1282,24 @@ describe("import/overlays/package.ts, hrefs and references", () => {
               );
               assert.match(pieces.target, regex.as(hrefPathPattern.source, "u"));
               assert.match(pieces.params, regex.as(hrefParamsPattern, "su"));
-              assert.strictEqual(
-                `${pieces.lead}${pieces.target}${pieces.params}${pieces.trail}`,
-                lexical,
+
+              const targetEnd = pieces.lead.length + pieces.target.length;
+              const paramsEnd = targetEnd + pieces.params.length;
+
+              assert.deepStrictEqual(
+                {
+                  lead: lexical.slice(0, pieces.lead.length),
+                  params: lexical.slice(targetEnd, paramsEnd),
+                  target: lexical.slice(pieces.lead.length, targetEnd),
+                  trail: lexical.slice(paramsEnd),
+                },
+                {
+                  lead: pieces.lead,
+                  params: pieces.params,
+                  target: pieces.target,
+                  trail: pieces.trail,
+                },
+                "the pieces are the href's spans, in order",
               );
             }),
         ),
