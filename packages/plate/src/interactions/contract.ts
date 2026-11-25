@@ -184,9 +184,9 @@ export interface ModuleInteraction<K extends ModuleKind> {
    * the catalog module before its prompt's ({@link promptCatalog}), the order the two stand in.
    * None where the root references no catalog. The body walk sets it after the module's `parse`
    * ({@link Parsed}); a module never reads or writes it, and the server shell presents the
-   * catalog's spoken audio before the interaction as the control for its prompt, first in the
-   * item's chain (`interactionOf` in `#plate/ui/item/content.tsx`), as AlphaTest's player showed a
-   * question's prompt clip however the question was written.
+   * catalog's spoken audio before the interaction as the control for its prompt (`interactionOf`
+   * in `#plate/ui/item/content.tsx`), as AlphaTest's player showed a question's prompt clip
+   * however the question was written.
    */
   readonly catalog: Option.Option<string>;
   /**

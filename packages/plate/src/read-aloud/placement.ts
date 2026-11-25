@@ -1,7 +1,7 @@
 /**
  * Where read-aloud's controls stand in a body: the control a body node has, the catalog it reads
- * and the role its chain plays it in. Pure, so its rules are checked apart from any page
- * (`placement.test.ts`). Two places, by where the node stands:
+ * and the role of the part it reads, which names it. Pure, so its rules are checked apart from any
+ * page (`placement.test.ts`). Two places, by where the node stands:
  *
  * - **Before**, in the item's body: the one control that stands before a node, as AlphaTest's player
  *   put a passage's and a question's control at the top of what it reads and showed a question's
@@ -20,15 +20,16 @@
  */
 import { Option } from "effect";
 import type { BodyElement, Interaction, RedactedLevel } from "#plate/model/item.ts";
-import type { ReadAloudRole } from "#plate/read-aloud/session.ts";
 import { barsControls, holdsPhrasing } from "#plate/ui/item/html.ts";
 
 /**
- * A control a body node has: the catalog it reads and its role in the item's chain.
+ * A control a body node has: the catalog it reads, and the role of the part it reads, an
+ * interaction's `prompt` or the `text` of an element, which names the control (`readAloudPrompt`
+ * and `readAloudText` in `#plate/messages/read-aloud.ts`).
  */
 export interface SpokenControl {
   readonly catalog: string;
-  readonly role: Extract<ReadAloudRole, "prompt" | "text">;
+  readonly role: "prompt" | "text";
 }
 
 /**
@@ -47,10 +48,9 @@ const spokenText = (element: BodyElement<RedactedLevel>): Option.Option<SpokenCo
 /**
  * Give the control that stands before a body node at a flow position: an element's `text` control
  * for the catalog it references ({@link spokenText}), and an interaction's `prompt` control for the
- * catalog its own root references, which a chain plays first; none for a node that references no
- * catalog. A node at a phrasing position, whose parent may admit no control beside it (a list
- * item's, a table cell's, a paragraph's), takes none, which the walk keeps by asking only at a flow
- * position.
+ * catalog its own root references; none for a node that references no catalog. A node at a
+ * phrasing position, whose parent may admit no control beside it (a list item's, a table cell's, a
+ * paragraph's), takes none, which the walk keeps by asking only at a flow position.
  *
  * @param node The element or the interaction.
  * @returns The control, none where none stands before it.

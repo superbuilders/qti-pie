@@ -2,8 +2,7 @@
  * Plate's client entry: what a host's client components use to hold an item's responses, with the
  * contract that decides what a host posts of them, to type into a Text Entry from a keypad of the
  * host's own, to hold the options a test's cross-out has eliminated, to hear of
- * a Portable Custom Interaction that fails, to remember a test's read-aloud across its items and to
- * post a sitting's presence beacon,
+ * a Portable Custom Interaction that fails and to post a sitting's presence beacon,
  * and the interactions' islands with their props and labels types, which the server entry renders.
  * Every module it re-exports is a client module, or holds types and pure data only.
  *
@@ -61,8 +60,6 @@ export {
 } from "#plate/ui/presence/beacon.ts";
 
 export type { PresenceBeacon, PresenceInputEvent } from "#plate/ui/presence/beacon.ts";
-
-export { ReadAloudSession } from "#plate/ui/read-aloud/session.tsx";
 
 export { Responses, useTyping } from "#plate/ui/responses.tsx";
 

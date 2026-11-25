@@ -25,10 +25,9 @@
  *   goes back to the start. The pressed state follows the recording's own events, so a play the
  *   browser refuses leaves it unpressed.
  * - **The item's session.** What plays is the item's read-aloud session's to say
- *   (`#plate/ui/read-aloud/session.tsx`), which every control of the item mounts in: the item's
- *   first press in its test, where it is a prompt's, plays the prompt and then every other control
- *   in turn, prompts, texts and choices, by its `role`, and any other press plays its own part
- *   alone.
+ *   (`#plate/ui/read-aloud/session.tsx`), which every control of the item mounts in: a press plays
+ *   the control's own part alone and stops any other of the item's controls playing, and nothing
+ *   plays after it.
  * - **The notice.** A press that cannot play is told so once, at the control that failed, in
  *   `plate-read-aloud-notice`, an assertive live region (WCAG 4.1.3) that stays in the page empty,
  *   so the words it then says are read; the next press takes them down. It cannot play where every
@@ -51,7 +50,6 @@
  */
 import { Toggle } from "@ui-sdk/react/toggle";
 import { useEffect, useRef, useState } from "react";
-import type { ReadAloudRole } from "#plate/read-aloud/session.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import { useReadAloudItem } from "#plate/ui/read-aloud/session.tsx";
 import type { ReadAloudPort } from "#plate/ui/read-aloud/session.tsx";
@@ -67,12 +65,11 @@ export interface ReadAloudSource {
 
 /**
  * What the server gives a read-aloud island, every member serializable: the control's name, from
- * plate's message catalog, what it reads, which places it in the item's chain, and the recording's
- * files in document order, one or more.
+ * plate's message catalog, which says what it reads, and the recording's files in document order,
+ * one or more.
  */
 export interface ReadAloudProps {
   readonly label: string;
-  readonly role: ReadAloudRole;
   readonly sources: readonly [ReadAloudSource, ...ReadAloudSource[]];
 }
 
@@ -129,12 +126,11 @@ const reportError = (event: Event, element: HTMLAudioElement, port: ReadAloudPor
 /**
  * Render the control that reads one part of the item aloud from its recording.
  *
- * @param props The control's name, what it reads and the recording's files
- *   ({@link ReadAloudProps}).
+ * @param props The control's name and the recording's files ({@link ReadAloudProps}).
  * @returns The `plate-read-aloud` part.
  * @throws {ReadAloudOutsideItem} When it is rendered outside its item's `<ReadAloudItem>`.
  */
-export const ReadAloud = ({ label, role, sources }: ReadAloudProps) => {
+export const ReadAloud = ({ label, sources }: ReadAloudProps) => {
   const { failed, mount } = useReadAloudItem();
   const audio = useRef<HTMLAudioElement>(null);
   const port = useRef<ReadAloudPort>(undefined);
@@ -148,12 +144,10 @@ export const ReadAloud = ({ label, role, sources }: ReadAloudProps) => {
     }
 
     const control = mount({
-      element,
       hush: () => {
         setTold(false);
       },
       play: () => play(element),
-      role,
       stop: () => {
         stop(element);
       },
@@ -226,7 +220,7 @@ export const ReadAloud = ({ label, role, sources }: ReadAloudProps) => {
       control.unmount();
       port.current = undefined;
     };
-  }, [mount, role]);
+  }, [mount]);
 
   return (
     <span data-playing={flag(playing)} data-slot="plate-read-aloud">

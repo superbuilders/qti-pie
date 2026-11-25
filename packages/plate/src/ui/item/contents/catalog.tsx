@@ -223,9 +223,9 @@ export const readAloudOf = (
     ),
   );
 
-  return (catalog, role, label, key) =>
+  return (catalog, label, key) =>
     Option.map(Option.fromUndefinedOr(recordings.get(catalogKey(catalog))), (sources) =>
-      createElement(ReadAloud, { key, label, role, sources }),
+      createElement(ReadAloud, { key, label, sources }),
     );
 };
 

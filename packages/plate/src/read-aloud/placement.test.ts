@@ -6,8 +6,8 @@
  * - **text:** an element that references a catalog has its catalog's control before it, in the `text`
  *   role, and one that references none has none;
  * - **prompt:** an interaction whose own root references a catalog has that catalog's control before
- *   it, in the `prompt` role, which a chain plays first, as AlphaTest's player showed a question's
- *   prompt clip however the question carried it; one whose root references none has none.
+ *   it, in the `prompt` role, as AlphaTest's player showed a question's prompt clip however the
+ *   question carried it; one whose root references none has none.
  *
  * Kills: a placement that reads no interaction root's catalog, as plate did before, one that gives
  * a root's control the `text` role, and one that reads no element's catalog are each refused.

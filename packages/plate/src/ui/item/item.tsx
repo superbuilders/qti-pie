@@ -204,11 +204,10 @@ const classOf = (paired: PairedInteraction): Option.Option<string> => paired.pay
  *   term of the body that references the catalog, `plate-read-aloud`, in `answering`, read-aloud's
  *   control for a catalog's `spoken` card that gives audio, after each element of the body at a
  *   flow position, each prompt and beside each choice that references the catalog, every one of the
- *   item's in one read-aloud session keyed by the instance, which the host's `<ReadAloudSession>`
- *   remembers for its test where one encloses the item (`#plate/ui/read-aloud/session.tsx`), and
- *   `plate-catalog`, after the body, the listing of every other card the supports the host enabled
- *   keep but a spoken card, which is never drawn on the page
- *   (`#plate/ui/item/contents/catalog.tsx`);
+ *   item's in one read-aloud session keyed by the instance, in which each plays its own part alone
+ *   at its own press (`#plate/ui/read-aloud/session.tsx`), and `plate-catalog`, after the body, the
+ *   listing of every other card the supports the host enabled keep but a spoken card, which is
+ *   never drawn on the page (`#plate/ui/item/contents/catalog.tsx`);
  * - Each interaction, through its kind's renderer in `renderers`: in `answering` its island inside
  *   its own `<Suspense fallback={null}>`, a hydration unit that suspends on nothing; in `review`
  *   and `solution` its server markup, with no boundary;
@@ -330,12 +329,7 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
     readAloud,
     spokenPrompt: paired.model.promptCatalog.pipe(
       Option.flatMap((catalog) =>
-        readAloud(
-          catalog,
-          "prompt",
-          message(configuration.locale, "readAloudPrompt"),
-          "read-aloud",
-        ),
+        readAloud(catalog, message(configuration.locale, "readAloudPrompt"), "read-aloud"),
       ),
     ),
   });
@@ -461,13 +455,12 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
       lang={Option.getOrUndefined(redacted.lang)}
     >
       {mode === "answering" ? (
-        // One read-aloud session per item session, so a chain never outlives its item.
+        // One read-aloud session per item session, so nothing of one item's carries into another's.
         <ReadAloudItem
           failed={{
             description: message(configuration.locale, "readAloudFailed"),
             title: message(configuration.locale, "readAloudFailedTitle"),
           }}
-          instance={instance}
           key={instance}
         >
           {shown}

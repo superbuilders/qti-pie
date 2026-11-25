@@ -17,23 +17,16 @@ import type { TextEntryKeypad } from "#plate/configuration.ts";
 import type { Locale } from "#plate/messages.ts";
 import type { BodyElement, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
 import type { ResponseValue } from "#plate/model/values.ts";
-import type { ReadAloudRole } from "#plate/read-aloud/session.ts";
 import type { PartMark } from "#plate/ui/item/interactions/marks.ts";
 import type { Writing } from "#plate/ui/item/html.ts";
 
 /**
  * What read-aloud gives one page: for a catalog a part of the item references, by its `id` as the
- * reference writes it, read-aloud's control for that catalog's spoken audio, placed in the item's
- * chain by the role of the part it reads, named by the label that says which part that is and
- * keyed among its siblings; none where the catalog keeps no spoken card that gives audio, and none
- * on a page that presents no read-aloud.
+ * reference writes it, read-aloud's control for that catalog's spoken audio, named by the label
+ * that says which part it reads and keyed among its siblings; none where the catalog keeps no
+ * spoken card that gives audio, and none on a page that presents no read-aloud.
  */
-export type ReadsAloud = (
-  catalog: string,
-  role: ReadAloudRole,
-  label: string,
-  key: Key,
-) => Option.Option<ReactNode>;
+export type ReadsAloud = (catalog: string, label: string, key: Key) => Option.Option<ReactNode>;
 
 /**
  * Where a run of content stands, which decides a notice's element: `phrasing`, a `span`, where

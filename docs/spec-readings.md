@@ -5223,21 +5223,22 @@ C2: the oracle's own reader.)
      Choice's choice, an option of a select where no control can stand, and a hottext its template shows as plain
      text) it is not presented, and the card is never listed, since a recording heard apart from its text, or a link
      to it, presents nothing the candidate can follow. The entry's other files (the guide's `application/xml`) are not
-     presented, and a `spoken` card with no audio file is listed as before. A review and a solution present no
-     control: their page ships no island but a Media's replay (plate's UI suite's J1). An item's controls play as one
-     session, AlphaTest's player's (mastery-track-player 941a86a, `src/contexts/TtsSessionContext.tsx` lines 96–159):
-     the item's first press, where it is a prompt's, plays that prompt, then every other control mounted, prompts
-     before texts before choices, each in document order, skipping any unmounted before its turn; any other press
-     plays its own part alone; and a press of another control, a press that stops the one playing, a stop by anything
-     else and moving to another item end the chain. A host that holds one `<ReadAloudSession>` around every item of its
-     test session keeps an item's first press spent when the candidate comes back to it, as AlphaTest's player does for
-     the whole test; where none encloses it, the item's first press chains each time it is shown. A press that cannot
-     play, where every `source` fails, `play()` is refused but with an `AbortError` or a `MediaError` but
-     `MEDIA_ERR_ABORTED` arrives, is told so once at the control, in an assertive live region, in the words of plate's
-     catalog for the configuration's `locale`. This changes no verdict. This is not a case of documents in conflict.
-     (Stated 2026-11-20 by lane IMPL-READALOUD; widened from Choice and Order, AlphaTest's two, to every choice kind the
-     same day by lane MM-PLATE-READALOUD, and given its session and its notice by lane PLATE-READALOUD; to be confirmed
-     by the owner, Bjorn.)
+     presented, and a `spoken` card with no audio file is listed as before. A review and a solution present no control:
+     their page ships no island but a Media's replay (plate's UI suite's J1). Each control plays its own part alone, and
+     only at its own press: the guide stores a recording as the alternative to the written text of the part that
+     references its catalog and states no sequencing of an item's recordings (section 5.2.8.3), so a press presents its
+     own part's alternative and no other's. A press of a control plays its recording from its start and stops the one
+     playing, and a press of the control playing stops it; nothing plays by itself, when the item opens or after a
+     recording ends, stops or cannot play; and a stop by anything else and moving to another item leave the item at
+     rest. A press that cannot play, where every `source` fails, `play()` is refused but with an `AbortError` or a
+     `MediaError` but `MEDIA_ERR_ABORTED` arrives, is told so once at the control, in an assertive live region, in the
+     words of plate's catalog for the configuration's `locale`. This changes no verdict. This is not a case of documents
+     in conflict. (Stated 2026-11-20 by lane IMPL-READALOUD; widened from Choice and Order, AlphaTest's two, to every
+     choice kind the same day by lane MM-PLATE-READALOUD, and given its session and its notice by lane PLATE-READALOUD;
+     to be confirmed by the owner, Bjorn. Amended 2026-11-25 by lane FORM-AUDIO on edullm-bd's ruling, a hard cutover:
+     the session's chain, AlphaTest's player's (mastery-track-player 941a86a, `src/contexts/TtsSessionContext.tsx` lines
+     96–159), in which an item's first press of a prompt played every other control mounted after it, is gone, with the
+     test's memory of first presses, `<ReadAloudSession>`.)
 
 238. **Under `tolerance-mode` absolute or relative, a `qti-equal` compares the exact binary values of its floats, the
      ends of its range computed exactly over them.** The information model gives the range, "In absolute mode the result

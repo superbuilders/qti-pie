@@ -1,26 +1,50 @@
+/**
+ * Read-aloud's session over one item (`heard` beside this file), against a page written apart from
+ * it: every item of up to five controls, each reading an interaction's prompt, a text of the body
+ * or a choice, at every place in document order, driven as the browser carries out the session's
+ * commands. Each control plays its own part alone and only at its own press, as the implementation
+ * guide stores a part's recording, the alternative to that part's written text, and states no
+ * sequencing of an item's recordings (§5.2.8.3):
+ *
+ * - **alone:** a press of a control, a prompt's as any other's, the item's first press or a later
+ *   one, plays that control and no other, and nothing plays after its recording ends;
+ * - **one at a time:** a press of a second control while the first plays stops the first and plays
+ *   the second alone, and a press of the control playing stops it;
+ * - **nothing next:** nothing plays after a recording ends, stops by anything else or fails, or its
+ *   control unmounts, nor once the item is left;
+ * - **the notice:** a press that cannot play is told once, at its control, and the next press takes
+ *   the notice down; an interruption is told nothing, and so is a refusal no press waits on.
+ *
+ * Kills: the chain, as plate's session played it before, an item's first press of a prompt playing
+ * the prompt and then every other control mounted, prompts before texts before choices, fails
+ * "alone" at each of the 546 presses of a prompt in an item of two to five controls (a press of
+ * `prompt0` in `prompt0 text1 choice2` played all three).
+ *
+ * @module
+ */
 import { assert, describe, it } from "@effect/vitest";
 import { Option } from "effect";
-import { heard, openedIn, pressedAfter } from "#plate/read-aloud/session.ts";
-import type {
-  Command,
-  ReadAloudRole,
-  Refusal,
-  Report,
-  Session,
-} from "#plate/read-aloud/session.ts";
+import { heard, newSession } from "#plate/read-aloud/session.ts";
+import type { Command, Refusal, Report, Session } from "#plate/read-aloud/session.ts";
+
+/**
+ * The role of the part a control of a test item reads: an interaction's prompt, a text of the
+ * body or a choice. The session reads no role: a prompt's control is a control as any other.
+ */
+type Role = "choice" | "prompt" | "text";
 
 /**
  * A control of a test item: its role, and its name, the role and its place in document order.
  */
 interface Spot {
   readonly name: string;
-  readonly role: ReadAloudRole;
+  readonly role: Role;
 }
 
 /**
- * The roles a control may read.
+ * The roles a control may read in.
  */
-const roles: readonly ReadAloudRole[] = ["prompt", "text", "choice"];
+const roles: readonly Role[] = ["prompt", "text", "choice"];
 
 /**
  * Every sequence of `length` roles.
@@ -28,7 +52,7 @@ const roles: readonly ReadAloudRole[] = ["prompt", "text", "choice"];
  * @param length The sequence's length.
  * @returns The sequences.
  */
-const rolesOf = (length: number): readonly (readonly ReadAloudRole[])[] =>
+const rolesOf = (length: number): readonly (readonly Role[])[] =>
   length === 0 ? [[]] : rolesOf(length - 1).flatMap((rest) => roles.map((role) => [...rest, role]));
 
 /**
@@ -42,32 +66,6 @@ const itemsUpTo = (most: number): readonly (readonly Spot[])[] =>
     rolesOf(length).map((sequence) =>
       sequence.map((role, place): Spot => ({ name: `${role}${place}`, role })),
     ),
-  );
-
-/**
- * The chain a first press of a prompt plays, written apart from the session's sort: the prompt,
- * then the item's other prompts, its texts and its choices, each in document order.
- *
- * @param item The item's controls, in document order.
- * @param prompt The prompt pressed.
- * @returns The controls in the order they play.
- */
-const chainOf = (item: readonly Spot[], prompt: Spot): readonly Spot[] => [
-  prompt,
-  ...item.filter((spot) => spot.role === "prompt" && spot !== prompt),
-  ...item.filter((spot) => spot.role === "text"),
-  ...item.filter((spot) => spot.role === "choice"),
-];
-
-/**
- * Each item's prompts, with the item: every first press that starts a chain.
- *
- * @param most The most controls an item holds.
- * @returns Each item and one of its prompts.
- */
-const promptsUpTo = (most: number): readonly (readonly [readonly Spot[], Spot])[] =>
-  itemsUpTo(most).flatMap((item) =>
-    item.filter((spot) => spot.role === "prompt").map((prompt) => [item, prompt] as const),
   );
 
 /**
@@ -104,18 +102,14 @@ const failures: readonly Refusal[] = [
  * controls are mounted, in document order, which one's recording plays, every command the session
  * gave, the faults no session may commit, a play over a recording still playing and a command to a
  * control that left the page, and whether a recording the session stops fires its `pause`, as one
- * playing does, or not, as one whose play the browser refused does not; and the item's instance,
- * with the instances of its test's items a press has been heard of, as its test's memory holds them
- * after each turn.
+ * playing does, or not, as one whose play the browser refused does not.
  */
 interface Room {
   commands: Command<Spot>[];
   readonly echoes: boolean;
   faults: string[];
-  readonly instance: string;
   mounted: readonly Spot[];
   playing: Option.Option<Spot>;
-  pressed: ReadonlySet<string>;
   session: Session<Spot>;
 }
 
@@ -126,34 +120,19 @@ interface Room {
 const echoings: readonly boolean[] = [true, false];
 
 /**
- * Show an item in its test: a room on it, opening with the session its test's memory gives it.
- *
- * @param item The item's controls, in document order.
- * @param instance The item's instance.
- * @param pressed The instances of the test's items a press has been heard of.
- * @returns The room.
- */
-const visit = (item: readonly Spot[], instance: string, pressed: ReadonlySet<string>): Room => ({
-  commands: [],
-  echoes: true,
-  faults: [],
-  instance,
-  mounted: item,
-  playing: Option.none(),
-  pressed,
-  session: openedIn(pressed, instance),
-});
-
-/**
- * Open a room on an item no control of which has been pressed.
+ * Open a room on an item, its session the one every item opens with.
  *
  * @param item The item's controls, in document order.
  * @param echoes Whether a recording the session stops fires its `pause`.
  * @returns The room.
  */
 const opened = (item: readonly Spot[], echoes = true): Room => ({
-  ...visit(item, "item", new Set()),
+  commands: [],
   echoes,
+  faults: [],
+  mounted: item,
+  playing: Option.none(),
+  session: newSession,
 });
 
 /**
@@ -179,7 +158,6 @@ const hear = (room: Room, report: Report<Spot>): void => {
   const stopped: Spot[] = [];
 
   room.session = turn.session;
-  room.pressed = pressedAfter(room.pressed, room.instance, turn.session);
 
   for (const command of turn.commands) {
     room.commands.push(command);
@@ -212,18 +190,13 @@ const hear = (room: Room, report: Report<Spot>): void => {
 
 /**
  * Press a control as a child does: a press that stops it while its recording plays, else one
- * that plays it, which names the controls mounted then.
+ * that plays it.
  *
  * @param room The room.
  * @param control The control.
  */
 const press = (room: Room, control: Spot): void => {
-  hear(
-    room,
-    sounds(room, control)
-      ? { control, kind: "release" }
-      : { control, kind: "press", mounted: room.mounted },
-  );
+  hear(room, sounds(room, control) ? { control, kind: "release" } : { control, kind: "press" });
 };
 
 /**
@@ -285,20 +258,6 @@ const unmount = (room: Room, control: Spot): void => {
 };
 
 /**
- * Leave an item for another, as a host does: every control of the item unmounts.
- *
- * @param room The room.
- * @returns The instances of the test's items a press has been heard of, as the item leaves them.
- */
-const leave = (room: Room): ReadonlySet<string> => {
-  for (const spot of room.mounted) {
-    unmount(room, spot);
-  }
-
-  return room.pressed;
-};
-
-/**
  * Give the names of the controls a room's session played, in order.
  *
  * @param room The room.
@@ -331,111 +290,52 @@ const toldIn = (room: Room): string =>
 const namesOf = (spots: readonly Spot[]): string => spots.map((spot) => spot.name).join(" ");
 
 /**
- * Press a prompt first and let its chain play its first `steps` controls to their end, so the
- * chain plays its next.
+ * Give what is wrong with a room once a press of every control still mounted has played to its
+ * end: each press must play that control alone and command no control that left.
  *
- * @param item The item.
- * @param prompt The prompt.
- * @param steps How many of the chain's controls end.
- * @param echoes Whether a recording the session stops fires its `pause`.
- * @returns The room.
+ * @param room The room, copied and left as it is.
+ * @returns Each control whose press went wrong, with what it played and the faults.
  */
-const chainedTo = (item: readonly Spot[], prompt: Spot, steps: number, echoes = true): Room => {
-  const room = opened(item, echoes);
+const afterwards = (room: Room): readonly string[] =>
+  room.mounted.flatMap((spot) => {
+    const again: Room = { ...room, commands: [], faults: [] };
 
-  press(room, prompt);
+    press(again, spot);
+    finish(again);
 
-  for (let ended = 0; ended < steps; ended += 1) {
-    end(room);
-  }
-
-  return room;
-};
-
-/**
- * Every moment of every chain, up to items of `most` controls: the item, its prompt, the chain it
- * plays, and how many of the chain's controls have ended, so the next one plays.
- *
- * @param most The most controls an item holds.
- * @returns Each moment.
- */
-const momentsUpTo = (
-  most: number,
-): readonly {
-  readonly chain: readonly Spot[];
-  readonly item: readonly Spot[];
-  readonly prompt: Spot;
-  readonly steps: number;
-}[] =>
-  promptsUpTo(most).flatMap(([item, prompt]) => {
-    const chain = chainOf(item, prompt);
-
-    return chain.map((_, steps) => ({ chain, item, prompt, steps }));
+    return playedIn(again) === spot.name && again.faults.length === 0
+      ? []
+      : [`${spot.name}: ${playedIn(again)} ${again.faults.join(", ")}`];
   });
 
-describe("an item's first press, where it plays a prompt", () => {
-  it("plays that prompt, then the item's other prompts, its texts and its choices, each in document order, one after another", () => {
-    const wrong = promptsUpTo(5).flatMap(([item, prompt]) => {
-      const room = opened(item);
+describe("a press", () => {
+  it("plays its own control alone, a prompt's as any other's, as the item's first press: nothing plays after its recording ends", () => {
+    const wrong = itemsUpTo(5).flatMap((item) =>
+      item.flatMap((control) => {
+        const room = opened(item);
 
-      press(room, prompt);
-      finish(room);
-
-      const expected = namesOf(chainOf(item, prompt));
-
-      return playedIn(room) === expected && room.faults.length === 0
-        ? []
-        : [{ expected, faults: room.faults, item: namesOf(item), played: playedIn(room) }];
-    });
-
-    assert.deepStrictEqual(wrong, []);
-  });
-
-  it("skips every control unmounted before its turn, at any moment, and plays the rest in order", () => {
-    const wrong = momentsUpTo(4).flatMap(({ chain, item, prompt, steps }) => {
-      const waiting = chain.slice(steps + 1);
-
-      return Array.from({ length: 2 ** waiting.length }, (_, bits) => {
-        const gone = waiting.filter((_spot, index) => Math.floor(bits / 2 ** index) % 2 === 1);
-        const room = chainedTo(item, prompt, steps);
-
-        for (const spot of gone) {
-          unmount(room, spot);
-        }
-
+        press(room, control);
         finish(room);
 
-        const expected = namesOf(chain.filter((spot) => !gone.includes(spot)));
-
-        return playedIn(room) === expected && room.faults.length === 0
+        return playedIn(room) === control.name &&
+          Option.isNone(room.playing) &&
+          room.faults.length === 0
           ? []
-          : [{ expected, faults: room.faults, gone: namesOf(gone), played: playedIn(room) }];
-      }).flat();
-    });
+          : [
+              {
+                control: control.name,
+                faults: room.faults,
+                item: namesOf(item),
+                played: playedIn(room),
+              },
+            ];
+      }),
+    );
 
     assert.deepStrictEqual(wrong, []);
   });
 
-  it("chains no control mounted after the press", () => {
-    const wrong = promptsUpTo(4).flatMap(([item, prompt]) => {
-      const later: Spot = { name: "later", role: "choice" };
-      const room = opened(item);
-
-      press(room, prompt);
-      room.mounted = [...room.mounted, later];
-      finish(room);
-
-      const expected = namesOf(chainOf(item, prompt));
-
-      return playedIn(room) === expected ? [] : [{ expected, played: playedIn(room) }];
-    });
-
-    assert.deepStrictEqual(wrong, []);
-  });
-});
-
-describe("every other press", () => {
-  it("plays its own part alone: an item's first press of a text or a choice, and any later press, of a prompt too, whether the first still plays or not", () => {
+  it("plays its own control alone after an earlier press, whether the earlier still plays or has ended", () => {
     const wrong = itemsUpTo(4).flatMap((item) =>
       item.flatMap((first) =>
         item.flatMap((second) =>
@@ -448,8 +348,6 @@ describe("every other press", () => {
               finish(room);
             }
 
-            const before = playedIn(room);
-
             if (sounds(room, second)) {
               return [];
             }
@@ -457,17 +355,143 @@ describe("every other press", () => {
             press(room, second);
             finish(room);
 
-            const firstPlays = first.role === "prompt" ? namesOf(chainOf(item, first)) : first.name;
-            const expected = `${waits ? firstPlays : first.name} ${second.name}`;
+            const expected = `${first.name} ${second.name}`;
 
             return playedIn(room) === expected && room.faults.length === 0
               ? []
+              : [{ expected, faults: room.faults, item: namesOf(item), played: playedIn(room) }];
+          }),
+        ),
+      ),
+    );
+
+    assert.deepStrictEqual(wrong, []);
+  });
+
+  it("of a second control while the first plays stops the first, then plays the second alone", () => {
+    const wrong = itemsUpTo(4).flatMap((item) =>
+      echoings.flatMap((echoes) =>
+        item.flatMap((first) =>
+          item
+            .filter((second) => second !== first)
+            .flatMap((second) => {
+              const room = opened(item, echoes);
+
+              press(room, first);
+              room.commands = [];
+              press(room, second);
+
+              const acts = room.commands.map((each) => `${each.act} ${each.control.name}`);
+
+              // The first ends late, as one the browser's own media controls played on would:
+              // the second's press stopped it, so nothing follows it.
+              hear(room, { control: first, kind: "ended" });
+              finish(room);
+
+              const expected = [`stop ${first.name}`, `play ${second.name}`];
+
+              return acts.join(", ") === expected.join(", ") &&
+                playedIn(room) === second.name &&
+                room.faults.length === 0
+                ? []
+                : [
+                    {
+                      acts: acts.join(", "),
+                      echoes,
+                      faults: room.faults,
+                      item: namesOf(item),
+                      played: playedIn(room),
+                    },
+                  ];
+            }),
+        ),
+      ),
+    );
+
+    assert.deepStrictEqual(wrong, []);
+  });
+
+  it("of the control playing stops it, and nothing plays after", () => {
+    const wrong = itemsUpTo(4).flatMap((item) =>
+      echoings.flatMap((echoes) =>
+        item.flatMap((control) => {
+          const room = opened(item, echoes);
+
+          press(room, control);
+          press(room, control);
+
+          const stopped = Option.isNone(room.playing);
+
+          finish(room);
+
+          return stopped && playedIn(room) === control.name && room.faults.length === 0
+            ? []
+            : [{ control: control.name, echoes, item: namesOf(item), played: playedIn(room) }];
+        }),
+      ),
+    );
+
+    assert.deepStrictEqual(wrong, []);
+  });
+});
+
+describe("nothing plays next", () => {
+  it("after a recording ends, stops by anything else, fails or its control unmounts, and a press after plays its control alone", () => {
+    const causes: readonly (readonly [string, (room: Room, current: Spot) => void])[] = [
+      [
+        "its end",
+        (room) => {
+          end(room);
+        },
+      ],
+      [
+        "a stop by anything else",
+        (room) => {
+          stopElsewhere(room);
+        },
+      ],
+      ...failures.map((refusal): readonly [string, (room: Room, current: Spot) => void] => [
+        `its failure ${JSON.stringify(refusal)}`,
+        (room, current) => {
+          hear(room, { control: current, kind: "refused", refusal });
+        },
+      ]),
+      [
+        "its unmount",
+        (room, current) => {
+          unmount(room, current);
+        },
+      ],
+    ];
+    const wrong = itemsUpTo(4).flatMap((item) =>
+      echoings.flatMap((echoes) =>
+        item.flatMap((current) =>
+          causes.flatMap(([cause, act]) => {
+            const room = opened(item, echoes);
+
+            press(room, current);
+            act(room, current);
+
+            const after = playedIn(room);
+
+            finish(room);
+
+            const others = afterwards(room);
+
+            return after === current.name &&
+              playedIn(room) === current.name &&
+              Option.isNone(room.playing) &&
+              room.faults.length === 0 &&
+              others.length === 0
+              ? []
               : [
                   {
-                    before,
-                    expected,
+                    cause,
+                    current: current.name,
+                    echoes,
                     faults: room.faults,
                     item: namesOf(item),
+                    others,
                     played: playedIn(room),
                   },
                 ];
@@ -478,104 +502,8 @@ describe("every other press", () => {
 
     assert.deepStrictEqual(wrong, []);
   });
-});
 
-describe("the chain", () => {
-  it("ends at a press of another control, which plays alone, at any moment", () => {
-    const wrong = momentsUpTo(4).flatMap(({ chain, item, prompt, steps }) =>
-      echoings.flatMap((echoes) =>
-        item.flatMap((other) => {
-          const room = chainedTo(item, prompt, steps, echoes);
-          const current = chain[steps] ?? prompt;
-
-          if (other === current) {
-            return [];
-          }
-
-          press(room, other);
-          // The control the chain played ends late, as one the browser's own media controls
-          // played on would: the chain is over, so nothing follows it.
-          hear(room, { control: current, kind: "ended" });
-          finish(room);
-
-          const expected = `${namesOf(chain.slice(0, steps + 1))} ${other.name}`;
-
-          return playedIn(room) === expected && room.faults.length === 0
-            ? []
-            : [
-                {
-                  echoes,
-                  expected,
-                  faults: room.faults,
-                  other: other.name,
-                  played: playedIn(room),
-                },
-              ];
-        }),
-      ),
-    );
-
-    assert.deepStrictEqual(wrong, []);
-  });
-
-  it("ends at a press that stops the control playing, at a stop by anything else, and at the playing control's unmount, at any moment", () => {
-    const causes: readonly (readonly [string, (room: Room, current: Spot) => void])[] = [
-      [
-        "a press that stops it",
-        (room, current) => {
-          press(room, current);
-        },
-      ],
-      [
-        "a stop by anything else",
-        (room) => {
-          stopElsewhere(room);
-        },
-      ],
-      [
-        "its unmount",
-        (room, current) => {
-          unmount(room, current);
-        },
-      ],
-    ];
-    const wrong = momentsUpTo(4).flatMap(({ chain, item, prompt, steps }) =>
-      echoings.flatMap((echoes) =>
-        causes.flatMap(([cause, act]) => {
-          const room = chainedTo(item, prompt, steps, echoes);
-          const current = chain[steps] ?? prompt;
-
-          act(room, current);
-          // The control that played ends late, as one the browser's own media controls played on
-          // would: the chain is over, so nothing follows it.
-          hear(room, { control: current, kind: "ended" });
-          finish(room);
-
-          const ended = namesOf(chain.slice(0, steps + 1));
-          // Afterwards a press of any control still mounted plays it alone, and commands no
-          // control that left.
-          const after = room.mounted.flatMap((spot) => {
-            const again: Room = { ...room, commands: [], faults: [] };
-
-            press(again, spot);
-            finish(again);
-
-            return playedIn(again) === spot.name && again.faults.length === 0
-              ? []
-              : [`${spot.name}: ${playedIn(again)} ${again.faults.join(", ")}`];
-          });
-
-          return playedIn(room) === ended && room.faults.length === 0 && after.length === 0
-            ? []
-            : [{ after, cause, echoes, ended, faults: room.faults, played: playedIn(room) }];
-        }),
-      ),
-    );
-
-    assert.deepStrictEqual(wrong, []);
-  });
-
-  it("ends when the item is left, every control unmounting in any order, and commands nothing after", () => {
+  it("once the item is left, every control unmounting in any order, and commands nothing after", () => {
     /**
      * Give every order of some controls.
      *
@@ -588,127 +516,95 @@ describe("the chain", () => {
         : spots.flatMap((spot) =>
             orders(spots.filter((other) => other !== spot)).map((rest) => [spot, ...rest]),
           );
-    const wrong = momentsUpTo(4).flatMap(({ chain, item, prompt, steps }) =>
-      orders(item).flatMap((order) => {
-        const room = chainedTo(item, prompt, steps);
-        const before = room.commands.length;
+    const wrong = itemsUpTo(4).flatMap((item) =>
+      item.flatMap((current) =>
+        orders(item).flatMap((order) => {
+          const room = opened(item);
 
-        for (const spot of order) {
-          unmount(room, spot);
-        }
+          press(room, current);
 
-        finish(room);
+          const before = room.commands.length;
 
-        return room.commands.length === before && room.faults.length === 0
-          ? []
-          : [{ chain: namesOf(chain), order: namesOf(order), steps }];
-      }),
+          for (const spot of order) {
+            unmount(room, spot);
+          }
+
+          finish(room);
+
+          return room.commands.length === before && room.faults.length === 0
+            ? []
+            : [{ current: current.name, order: namesOf(order) }];
+        }),
+      ),
     );
 
     assert.deepStrictEqual(wrong, []);
   });
+});
 
-  it("plays on through an end, a stop, a refusal, a release or an unmount it did not play next, and through a refusal that interrupts the control playing", () => {
-    const wrong = momentsUpTo(4).flatMap(({ chain, item, prompt, steps }) => {
-      const current = chain[steps] ?? prompt;
-      const idle = item.filter((spot) => spot !== current);
-      const played = chain.slice(0, steps);
-      const reports: readonly (readonly [string, Report<Spot>])[] = [
-        ...idle.flatMap((spot): readonly (readonly [string, Report<Spot>])[] => [
-          [`ended ${spot.name}`, { control: spot, kind: "ended" }],
-          [`paused ${spot.name}`, { control: spot, kind: "paused" }],
-          [`release ${spot.name}`, { control: spot, kind: "release" }],
-          ...[...interruptions, ...failures].map((refusal): readonly [string, Report<Spot>] => [
-            `refused ${spot.name} ${JSON.stringify(refusal)}`,
-            { control: spot, kind: "refused", refusal },
+describe("the control playing", () => {
+  it("plays on through an end, a stop, a refusal, a release or an unmount of another control, and through a refusal that interrupts it, and nothing plays after it", () => {
+    const wrong = itemsUpTo(4).flatMap((item) =>
+      item.flatMap((current) => {
+        const idle = item.filter((spot) => spot !== current);
+        const reports: readonly (readonly [string, Report<Spot>])[] = [
+          ...idle.flatMap((spot): readonly (readonly [string, Report<Spot>])[] => [
+            [`ended ${spot.name}`, { control: spot, kind: "ended" }],
+            [`paused ${spot.name}`, { control: spot, kind: "paused" }],
+            [`release ${spot.name}`, { control: spot, kind: "release" }],
+            ...[...interruptions, ...failures].map((refusal): readonly [string, Report<Spot>] => [
+              `refused ${spot.name} ${JSON.stringify(refusal)}`,
+              { control: spot, kind: "refused", refusal },
+            ]),
           ]),
-        ]),
-        ...interruptions.map((refusal): readonly [string, Report<Spot>] => [
-          `refused ${current.name} ${JSON.stringify(refusal)}`,
-          { control: current, kind: "refused", refusal },
-        ]),
-      ];
+          ...interruptions.map((refusal): readonly [string, Report<Spot>] => [
+            `refused ${current.name} ${JSON.stringify(refusal)}`,
+            { control: current, kind: "refused", refusal },
+          ]),
+        ];
 
-      return [
-        ...reports.flatMap(([name, report]) => {
-          const room = chainedTo(item, prompt, steps);
+        return [
+          ...reports.flatMap(([name, report]) => {
+            const room = opened(item);
 
-          hear(room, report);
-          finish(room);
+            press(room, current);
+            hear(room, report);
 
-          return playedIn(room) === namesOf(chain) &&
-            toldIn(room) === "" &&
-            room.faults.length === 0
-            ? []
-            : [{ chain: namesOf(chain), name, played: playedIn(room), told: toldIn(room) }];
-        }),
-        ...played.flatMap((spot) => {
-          const room = chainedTo(item, prompt, steps);
+            const still = sounds(room, current);
 
-          unmount(room, spot);
-          finish(room);
+            finish(room);
 
-          return playedIn(room) === namesOf(chain) && room.faults.length === 0
-            ? []
-            : [{ chain: namesOf(chain), name: `unmount ${spot.name}`, played: playedIn(room) }];
-        }),
-      ];
-    });
+            return still &&
+              playedIn(room) === current.name &&
+              toldIn(room) === "" &&
+              room.faults.length === 0
+              ? []
+              : [{ current: current.name, name, played: playedIn(room), told: toldIn(room) }];
+          }),
+          ...idle.flatMap((spot) => {
+            const room = opened(item);
+
+            press(room, current);
+            unmount(room, spot);
+
+            const still = sounds(room, current);
+
+            finish(room);
+
+            return still && playedIn(room) === current.name && room.faults.length === 0
+              ? []
+              : [{ current: current.name, name: `unmount ${spot.name}`, played: playedIn(room) }];
+          }),
+        ];
+      }),
+    );
 
     assert.deepStrictEqual(wrong, []);
   });
 });
 
 describe("a press that cannot play", () => {
-  it("is told once, at the first control that fails, however many of its chain's recordings fail and however often each says so, and its chain plays on past each", () => {
-    const wrong = promptsUpTo(4).flatMap(([item, prompt]) => {
-      const chain = chainOf(item, prompt);
-
-      return Array.from({ length: 2 ** chain.length - 1 }, (_, code) => code + 1).flatMap(
-        (bits) => {
-          const failing = chain.filter((_spot, index) => Math.floor(bits / 2 ** index) % 2 === 1);
-
-          return failures.flatMap((refusal) => {
-            const room = opened(item);
-
-            press(room, prompt);
-
-            for (let turns = chain.length; turns > 0 && Option.isSome(room.playing); turns -= 1) {
-              if (Option.isSome(room.playing) && failing.includes(room.playing.value)) {
-                const control = room.playing.value;
-
-                // A broken source refuses the play and fires the element's error both.
-                hear(room, { control, kind: "refused", refusal });
-                hear(room, { control, kind: "refused", refusal: { kind: "no-source" } });
-              } else {
-                end(room);
-              }
-            }
-
-            const first = failing[0]?.name ?? "";
-
-            return playedIn(room) === namesOf(chain) &&
-              toldIn(room) === first &&
-              Option.isNone(room.playing) &&
-              room.faults.length === 0
-              ? []
-              : [
-                  {
-                    failing: namesOf(failing),
-                    played: playedIn(room),
-                    refusal: JSON.stringify(refusal),
-                    told: toldIn(room),
-                  },
-                ];
-          });
-        },
-      );
-    });
-
-    assert.deepStrictEqual(wrong, []);
-  });
-
-  it("is told once where it plays its part alone, and nothing plays after", () => {
+  it("is told once, at its control, however often its recording says so, and nothing plays after", () => {
     const wrong = itemsUpTo(3).flatMap((item) =>
       item.flatMap((first) =>
         item.flatMap((control) =>
@@ -721,12 +617,14 @@ describe("a press that cannot play", () => {
 
             const before = playedIn(room);
 
+            // A broken source refuses the play and fires the element's error both.
             hear(room, { control, kind: "refused", refusal });
-            hear(room, { control, kind: "refused", refusal });
+            hear(room, { control, kind: "refused", refusal: { kind: "no-source" } });
             finish(room);
 
             return toldIn(room) === control.name &&
               playedIn(room) === before &&
+              Option.isNone(room.playing) &&
               room.faults.length === 0
               ? []
               : [{ control: control.name, played: playedIn(room), told: toldIn(room) }];
@@ -738,82 +636,80 @@ describe("a press that cannot play", () => {
     assert.deepStrictEqual(wrong, []);
   });
 
-  it("is told anew at every press, and the notice comes down at the next press, a press that stops the chain included", () => {
-    const wrong = momentsUpTo(3).flatMap(({ chain, item, prompt, steps }) => {
-      const current = chain[steps] ?? prompt;
+  it("is told anew at every press, and the notice comes down at the next press, a press that stops a control included", () => {
+    const wrong = itemsUpTo(3).flatMap((item) =>
+      item.flatMap((first) =>
+        failures.flatMap((refusal) => {
+          const room = opened(item);
+          const faults: string[] = [];
 
-      return failures.flatMap((refusal) => {
-        const room = chainedTo(item, prompt, steps);
+          press(room, first);
+          hear(room, { control: first, kind: "refused", refusal });
 
-        hear(room, { control: current, kind: "refused", refusal });
+          let standing = first;
 
-        const faults: string[] = [];
-        const told = toldIn(room);
+          // Every later press that fails is told again, the notice before it down first.
+          for (const control of item) {
+            room.commands = [];
+            press(room, control);
+            hear(room, { control, kind: "refused", refusal });
 
-        if (told !== current.name) {
-          faults.push(`the chain's failure told ${told}`);
-        }
+            const acts = room.commands.map((each) => `${each.act} ${each.control.name}`);
+            const expected = [
+              `hush ${standing.name}`,
+              `play ${control.name}`,
+              `stop ${control.name}`,
+              `tell ${control.name}`,
+            ];
 
-        // A press that stops the chain playing on past the failure takes the notice down.
-        if (Option.isSome(room.playing)) {
-          const playing = room.playing.value;
+            if (acts.join(", ") !== expected.join(", ")) {
+              faults.push(`pressing ${control.name} gave ${acts.join(", ")}`);
+            }
 
-          room.commands = [];
-          press(room, playing);
-
-          const [first] = room.commands;
-
-          if (first?.act !== "hush" || first.control !== current || sounds(room, playing)) {
-            faults.push(`the release of ${playing.name} gave ${JSON.stringify(room.commands)}`);
+            standing = control;
           }
-        }
 
-        // Every later press that fails is told again, the notice before it down first.
-        for (const control of item) {
-          const standing = Option.getOrUndefined(room.session.told);
+          // A press that stops a control takes the notice down too, and plays nothing.
+          for (const control of item) {
+            const again: Room = { ...room, commands: [], faults: [] };
 
-          room.commands = [];
-          press(room, control);
-          hear(room, { control, kind: "refused", refusal });
+            hear(again, { control, kind: "release" });
 
-          const acts = room.commands.map((each) => `${each.act} ${each.control.name}`);
-          const expected = [
-            ...(standing === undefined ? [] : [`hush ${standing.name}`]),
-            `play ${control.name}`,
-            `stop ${control.name}`,
-            `tell ${control.name}`,
-          ];
+            const acts = again.commands.map((each) => `${each.act} ${each.control.name}`);
+            const expected = [`hush ${standing.name}`, `stop ${control.name}`];
 
-          if (acts.join(", ") !== expected.join(", ")) {
-            faults.push(`pressing ${control.name} gave ${acts.join(", ")}`);
+            if (acts.join(", ") !== expected.join(", ") || again.faults.length > 0) {
+              faults.push(`releasing ${control.name} gave ${acts.join(", ")}`);
+            }
           }
-        }
 
-        return faults.length === 0 && room.faults.length === 0
-          ? []
-          : [{ chain: namesOf(chain), faults: [...faults, ...room.faults], steps }];
-      });
-    });
+          return faults.length === 0 && room.faults.length === 0
+            ? []
+            : [{ faults: [...faults, ...room.faults], first: first.name, item: namesOf(item) }];
+        }),
+      ),
+    );
 
     assert.deepStrictEqual(wrong, []);
   });
 
-  it("is never told of an interruption, an AbortError or MEDIA_ERR_ABORTED, which changes nothing, alone or in a chain", () => {
+  it("is never told of an interruption, an AbortError or MEDIA_ERR_ABORTED, which changes nothing", () => {
     const wrong = itemsUpTo(3).flatMap((item) =>
       item.flatMap((first) =>
         interruptions.flatMap((refusal) => {
           const room = opened(item);
 
           press(room, first);
+          hear(room, { control: first, kind: "refused", refusal });
 
-          for (let turns = item.length; turns > 0 && Option.isSome(room.playing); turns -= 1) {
-            hear(room, { control: room.playing.value, kind: "refused", refusal });
-            end(room);
-          }
+          const still = sounds(room, first);
 
-          const expected = first.role === "prompt" ? namesOf(chainOf(item, first)) : first.name;
+          finish(room);
 
-          return toldIn(room) === "" && playedIn(room) === expected && room.faults.length === 0
+          return still &&
+            toldIn(room) === "" &&
+            playedIn(room) === first.name &&
+            room.faults.length === 0
             ? []
             : [{ first: first.name, played: playedIn(room), told: toldIn(room) }];
         }),
@@ -846,90 +742,6 @@ describe("a press that cannot play", () => {
           }),
         ),
       ),
-    );
-
-    assert.deepStrictEqual(wrong, []);
-  });
-});
-
-describe("an item the student comes back to", () => {
-  it("keeps its first press spent where its test holds one memory, so a press of a prompt plays the prompt alone, however the first visit pressed it; and chains again where each visit holds its own", () => {
-    const wrong = itemsUpTo(4).flatMap((item) =>
-      item.flatMap((first) =>
-        item
-          .filter((spot) => spot.role === "prompt")
-          .flatMap((prompt) => {
-            const before = visit(item, "a", new Set());
-
-            press(before, first);
-            finish(before);
-
-            const remembered = leave(before);
-            const test = visit(item, "a", remembered);
-            const own = visit(item, "a", new Set());
-
-            for (const room of [test, own]) {
-              press(room, prompt);
-              finish(room);
-            }
-
-            const chain = namesOf(chainOf(item, prompt));
-
-            return playedIn(test) === prompt.name &&
-              playedIn(own) === chain &&
-              test.faults.length === 0 &&
-              own.faults.length === 0
-              ? []
-              : [
-                  {
-                    first: first.name,
-                    item: namesOf(item),
-                    own: playedIn(own),
-                    prompt: prompt.name,
-                    test: playedIn(test),
-                  },
-                ];
-          }),
-      ),
-    );
-
-    assert.deepStrictEqual(wrong, []);
-  });
-
-  it("still chains where its earlier visit pressed nothing, and where only another item was pressed", () => {
-    const wrong = itemsUpTo(4).flatMap((item) =>
-      item
-        .filter((spot) => spot.role === "prompt")
-        .flatMap((prompt) =>
-          item.flatMap((other) => {
-            const unpressed = visit(item, "a", new Set());
-            const elsewhere = visit(item, "b", leave(unpressed));
-
-            press(elsewhere, other);
-            finish(elsewhere);
-
-            const back = visit(item, "a", leave(elsewhere));
-
-            press(back, prompt);
-            finish(back);
-
-            const chain = namesOf(chainOf(item, prompt));
-
-            return playedIn(back) === chain &&
-              [...back.pressed].join(" ") === "b a" &&
-              back.faults.length === 0
-              ? []
-              : [
-                  {
-                    item: namesOf(item),
-                    other: other.name,
-                    played: playedIn(back),
-                    pressed: [...back.pressed].join(" "),
-                    prompt: prompt.name,
-                  },
-                ];
-          }),
-        ),
     );
 
     assert.deepStrictEqual(wrong, []);

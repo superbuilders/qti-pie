@@ -53,12 +53,12 @@ export const contentOf = (
 
 /**
  * Give read-aloud for a choice of an interaction's own content, which its island writes beside the
- * choice: the control for the catalog the choice references, a choice's in the item's chain, named
- * by what the choice is and its place, where the candidate hears it (`IslandContext.readAloud`);
- * none where the choice references no catalog, or one that keeps no spoken card that gives audio.
- * Its key is the choice's identifier and ` read-aloud`: it stands beside the choice's own part,
- * which the identifier keys, and a space, which no identifier holds, keeps the two keys apart, as
- * React asks of siblings, while the identifier keeps it apart from another choice's control.
+ * choice: the control for the catalog the choice references, named by what the choice is and its
+ * place, where the candidate hears it (`IslandContext.readAloud`); none where the choice
+ * references no catalog, or one that keeps no spoken card that gives audio. Its key is the
+ * choice's identifier and ` read-aloud`: it stands beside the choice's own part, which the
+ * identifier keys, and a space, which no identifier holds, keeps the two keys apart, as React asks
+ * of siblings, while the identifier keeps it apart from another choice's control.
  *
  * @param choice The choice: its identifier and the catalog it references.
  * @param n Its place among its set as presented, from 1.
@@ -77,7 +77,6 @@ export const spokenOf = (
       Option.flatMap((catalog) =>
         context.readAloud(
           catalog,
-          "choice",
           message(context.locale, part, { n: numeral(context.locale, n) }),
           `${choice.identifier} read-aloud`,
         ),

@@ -351,11 +351,10 @@ export const spokenIn = (
   const [, controls] = Arr.mapAccum(
     held,
     1,
-    (n, [path, { catalog, role }]): readonly [number, readonly (readonly [string, ReactNode])[]] =>
+    (n, [path, { catalog }]): readonly [number, readonly (readonly [string, ReactNode])[]] =>
       Option.match(
         readAloud(
           catalog,
-          role,
           message(locale, "readAloudLabel", { n: numeral(locale, n) }),
           "read-aloud",
         ),
@@ -947,7 +946,6 @@ const spokenAt = (
       Option.flatMap(({ catalog, role }) =>
         readAloud(
           catalog,
-          role,
           message(locale, role === "prompt" ? "readAloudPrompt" : "readAloudText"),
           "read-aloud",
         ),
@@ -1069,9 +1067,8 @@ const elementOf = (element: BodyElement<RedactedLevel>, key: Key, walk: Walk): R
  * the right answer the seam writes for it apart from it (`answer` in {@link Scope}'s `body` arm)
  * follows it there, and read-aloud's control for the catalog its own root references
  * (`ModuleInteraction.catalog` in `#plate/interactions/contract.ts`) precedes it, the control for
- * its prompt, which a chain plays first, as AlphaTest's player showed a question's prompt clip
- * however its markup carried it. At a phrasing position it stands alone: its parent may admit no
- * control beside it.
+ * its prompt, as AlphaTest's player showed a question's prompt clip however its markup carried
+ * it. At a phrasing position it stands alone: its parent may admit no control beside it.
  *
  * @param interaction The interaction, as the redacted body holds it.
  * @param key Its key among its siblings.
