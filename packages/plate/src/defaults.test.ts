@@ -1,4 +1,3 @@
-import { regex } from "arkregex";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 /**
@@ -16,10 +15,11 @@ import path from "node:path";
  * - **Restored values win.** After an attempt that cleared a defaulted response, the record the
  *   database returns holds NULL for it, which shows nothing, not the default.
  *
- * The items are every fixture and every accepted corpus item whose response declares a default,
- * and the fixtures of each other kind with a default written into a response here, each a value
- * other than the correct one where the item has one, with two items written here: an Inline
- * Choice, and a Text Entry in base 16, whose default 255 its box shows as `ff`.
+ * The items are every fixture and every accepted corpus item whose response declares a default.
+ * Among the fixtures, beside each of ten of another kind, is its copy with a default written into a
+ * response (`<name>-default.xml`), a value other than the correct one where the item has one, so
+ * the sweep meets a default on every kind plate renders, and `defaults/items/` holds two items of
+ * its own: an Inline Choice, and a Text Entry in base 16, whose default 255 its box shows as `ff`.
  *
  * @module
  */
@@ -52,168 +52,18 @@ const fixtures = path.resolve(import.meta.dirname, "..", "fixtures");
 type Start = { readonly kind: "default" } | { readonly kind: "empty"; readonly holds: Value };
 
 /**
- * One response given a default here: the values written into its `qti-default-value`, as written,
- * and how the information model starts it.
- */
-interface Defaulted {
-  readonly response: string;
-  readonly start: Start;
-  readonly values: readonly string[];
-}
-
-/**
- * One item: its location under the fixtures, or its XML where it is written here, and the defaults
- * written into it.
- */
-interface Case {
-  readonly defaults: readonly Defaulted[];
-  readonly location: string;
-  readonly xml?: string;
-}
-
-/**
  * Starting at the default.
  */
 const atDefault: Start = { kind: "default" };
 
 /**
- * Starting empty, as NULL of a type.
- *
- * @param baseType The response's base type.
- * @param cardinality Its cardinality.
- * @returns The start.
+ * The value an End Attempt's response starts at whatever its default: `false`, the response's
+ * value until the candidate ends the attempt with it (information model 2.4.5).
  */
-const emptyAs = (baseType: Value["baseType"], cardinality: Value["cardinality"]): Start => ({
-  holds: nullOf(baseType, cardinality),
-  kind: "empty",
-});
-
-/**
- * A Text Entry in base 16 bound to an integer: its default, 255, which its box shows as `ff`, and
- * its correct value is 254.
- */
-const hexItem = `<?xml version="1.0" encoding="UTF-8"?>
-<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="hex" title="Hex" adaptive="false" time-dependent="false">
-  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="integer">
-    <qti-correct-response><qti-value>254</qti-value></qti-correct-response>
-  </qti-response-declaration>
-  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
-  <qti-item-body>
-    <p>Write the largest two-digit hexadecimal number: <qti-text-entry-interaction response-identifier="RESPONSE" base="16"/></p>
-  </qti-item-body>
-  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
-</qti-assessment-item>`;
-
-/**
- * An Inline Choice whose correct choice is `L`.
- */
-const inlineItem = `<?xml version="1.0" encoding="UTF-8"?>
-<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="river" title="River" adaptive="false" time-dependent="false">
-  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
-    <qti-correct-response><qti-value>L</qti-value></qti-correct-response>
-  </qti-response-declaration>
-  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
-  <qti-item-body>
-    <p>The longest river in France is the <qti-inline-choice-interaction response-identifier="RESPONSE" shuffle="false"><qti-inline-choice identifier="S">Seine</qti-inline-choice><qti-inline-choice identifier="L">Loire</qti-inline-choice></qti-inline-choice-interaction>.</p>
-  </qti-item-body>
-  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
-</qti-assessment-item>`;
-
-/**
- * The items given a default here, one per kind plate renders, each default other than the correct
- * value but Match's, whose two correct pairs make its count known.
- */
-const cases: readonly Case[] = [
-  {
-    defaults: [{ response: "RESPONSE", start: emptyAs("identifier", "single"), values: ["C"] }],
-    location: "m2/items/p1-single-choice.xml",
-  },
-  {
-    defaults: [
-      { response: "RESPONSE", start: emptyAs("identifier", "single"), values: ["tree"] },
-      {
-        response: "HINT",
-        start: {
-          holds: {
-            baseType: "boolean",
-            cardinality: "single",
-            values: [{ baseType: "boolean", value: false }],
-          },
-          kind: "empty",
-        },
-        values: ["true"],
-      },
-    ],
-    location: "ei/items/end-attempt.xml",
-  },
-  {
-    defaults: [{ response: "RESPONSE", start: atDefault, values: ["six"] }],
-    location: "m2/items/p1-text-entry.xml",
-  },
-  {
-    defaults: [{ response: "RESPONSE", start: atDefault, values: ["255"] }],
-    location: "hex",
-    xml: hexItem,
-  },
-  {
-    defaults: [{ response: "RESPONSE", start: atDefault, values: ["S"] }],
-    location: "river",
-    xml: inlineItem,
-  },
-  {
-    defaults: [{ response: "RESPONSE", start: atDefault, values: ["Once upon a time"] }],
-    location: "m2/items/p2-extended-text.xml",
-  },
-  {
-    defaults: [{ response: "RESPONSE", start: atDefault, values: ["D", "C", "B", "A"] }],
-    location: "ei/items/order.xml",
-  },
-  {
-    defaults: [
-      { response: "RESPONSE", start: atDefault, values: ["TROWEL GARDENER", "ANVIL SMITH"] },
-    ],
-    location: "m3d/items/match.xml",
-  },
-  {
-    defaults: [{ response: "RESPONSE", start: atDefault, values: ["C G1"] }],
-    location: "m3d/items/gap-match.xml",
-  },
-  {
-    defaults: [{ response: "RESPONSE", start: atDefault, values: ["LOG"] }],
-    location: "m3d/items/hottext.xml",
-  },
-  {
-    defaults: [{ response: "RESPONSE", start: atDefault, values: ["A"] }],
-    location: "m3d/items/hotspot.xml",
-  },
-  {
-    defaults: [{ response: "RESPONSE", start: atDefault, values: ["4"] }],
-    location: "ei/items/slider.xml",
-  },
-];
-
-/**
- * Write a default into a response's declaration, as its first child, where QTI's content model
- * puts `qti-default-value`.
- *
- * @param xml The item.
- * @param defaulted The response and its default's values, as written.
- * @returns The item with the default.
- */
-const withDefault = (xml: string, defaulted: Defaulted): string => {
-  const opening = regex.as(
-    `<qti-response-declaration identifier="${defaulted.response}"([^>]*?)(/?)>`,
-    "u",
-  );
-  const found = opening.exec(xml) ?? assert.fail(`no declaration of ${defaulted.response}`);
-  const values = defaulted.values.map((value) => `<qti-value>${value}</qti-value>`).join("");
-  const written = `<qti-default-value>${values}</qti-default-value>`;
-  const replacement =
-    found[2] === "/"
-      ? `<qti-response-declaration identifier="${defaulted.response}"${found[1] ?? ""}>${written}</qti-response-declaration>`
-      : `${found[0]}${written}`;
-
-  return xml.replace(found[0], replacement);
+const endAttemptStart: Value = {
+  baseType: "boolean",
+  cardinality: "single",
+  values: [{ baseType: "boolean", value: false }],
 };
 
 /**
@@ -232,20 +82,16 @@ const openXml = Effect.fnUntraced(function* openXml(location: string, xml: strin
 });
 
 /**
- * Open a case's item with its defaults written in.
+ * Open a fixture item by its path under the fixtures.
  *
- * @param known The case.
+ * @param location The item's path under the fixtures.
  * @returns The accepted item.
  */
-const openCase = Effect.fnUntraced(function* openCase(known: Case) {
-  let xml =
-    known.xml ??
-    (yield* Effect.promise(() => readFile(path.join(fixtures, known.location), "utf-8")));
-  for (const defaulted of known.defaults) {
-    xml = withDefault(xml, defaulted);
-  }
-
-  return yield* openXml(known.location, xml);
+const openFixture = Effect.fnUntraced(function* openFixture(location: string) {
+  return yield* openXml(
+    location,
+    yield* Effect.promise(() => readFile(path.join(fixtures, location), "utf-8")),
+  );
 });
 
 /**
@@ -266,19 +112,23 @@ const fixtureItems = Effect.promise(() =>
 
 /**
  * Tell how the information model starts a response the item declares a default for: empty where a
- * Choice or an End Attempt is the first interaction to bind it, at its default otherwise.
+ * Choice or an End Attempt is the first interaction to bind it, a Choice's holding NULL ("always
+ * initialized with no choices selected", 2.4.1.1) and an End Attempt's `false` (its default "is
+ * always ignored", 2.4.5), at its default otherwise.
  *
  * @param accepted The item.
  * @param response The response.
- * @param holds The value an empty start holds, for each of the two kinds.
+ * @param holds The NULL of the response's type, which an empty Choice's start holds.
  * @returns The start.
  */
 const declaredStart = (accepted: Accepted, response: string, holds: Value): Start => {
   const first = interactionsIn(accepted.item.body).find((each) => each.response === response);
 
-  return first?.kind === "choice" || first?.kind === "end-attempt"
-    ? { holds, kind: "empty" }
-    : atDefault;
+  if (first?.kind === "end-attempt") {
+    return { holds: endAttemptStart, kind: "empty" };
+  }
+
+  return first?.kind === "choice" ? { holds, kind: "empty" } : atDefault;
 };
 
 /**
@@ -410,68 +260,63 @@ const declaredStarts = (accepted: Accepted): ReadonlyMap<string, Start> =>
   );
 
 describe("a fresh attempt's start", () => {
-  it.effect("is every fixture's response default, a Slider's 0.75 among them", () =>
-    Effect.gen(function* fixtureDefaults() {
-      const held: string[] = [];
+  it.effect(
+    "is every fixture's response default, each kind's defaulted copy among them, a Choice's and an End Attempt's none, and a Slider's 0.75",
+    () =>
+      Effect.gen(function* fixtureDefaults() {
+        const held: string[] = [];
+        const locations = yield* fixtureItems;
 
-      for (const location of yield* fixtureItems) {
-        const xml = yield* Effect.promise(() => readFile(path.join(fixtures, location), "utf-8"));
-        const verdict = yield* admitted(location, new TextEncoder().encode(xml));
+        for (const location of locations) {
+          const xml = yield* Effect.promise(() => readFile(path.join(fixtures, location), "utf-8"));
+          const verdict = yield* admitted(location, new TextEncoder().encode(xml));
 
-        for (const accepted of Option.toArray(acceptedItem(verdict))) {
-          const starts = declaredStarts(accepted);
+          for (const accepted of Option.toArray(acceptedItem(verdict))) {
+            const starts = declaredStarts(accepted);
 
-          if (starts.size > 0) {
-            held.push(location);
-            holdsStart(accepted, starts, location);
+            if (starts.size > 0) {
+              held.push(location);
+              holdsStart(accepted, starts, location);
+            }
           }
         }
-      }
 
-      const sliderFloat = path.join("ei", "items", "slider-float.xml");
+        const sliderFloat = path.join("ei", "items", "slider-float.xml");
 
-      assert.includeMembers(held, [sliderFloat]);
-
-      const accepted = yield* openXml(
-        sliderFloat,
-        yield* Effect.promise(() => readFile(path.join(fixtures, sliderFloat), "utf-8")),
-      );
-
-      assert.deepStrictEqual(
-        startingResponses(accepted, feedbackHidden),
-        {
-          RESPONSE: {
-            baseType: "float",
-            cardinality: "single",
-            values: [{ baseType: "float", value: 0.75 }],
-          },
-        },
-        "slider-float starts at its default",
-      );
-    }),
-  );
-
-  it.effect("is each kind's default, a Choice's and an End Attempt's none", () =>
-    Effect.gen(function* kindDefaults() {
-      for (const known of cases) {
-        holdsStart(
-          yield* openCase(known),
-          new Map(known.defaults.map((defaulted) => [defaulted.response, defaulted.start])),
-          known.location,
+        assert.includeMembers(
+          held,
+          [
+            sliderFloat,
+            ...locations.filter(
+              (location) =>
+                location.endsWith("-default.xml") ||
+                location.startsWith(path.join("defaults", "items")),
+            ),
+          ],
+          "each fixture with a default written in declares it",
         );
-      }
-    }),
+
+        const accepted = yield* openFixture(sliderFloat);
+
+        assert.deepStrictEqual(
+          startingResponses(accepted, feedbackHidden),
+          {
+            RESPONSE: {
+              baseType: "float",
+              cardinality: "single",
+              values: [{ baseType: "float", value: 0.75 }],
+            },
+          },
+          "slider-float starts at its default",
+        );
+      }),
   );
 
   it.effect("gives way to a restored NULL, which shows nothing", () =>
     Effect.gen(function* restoredWins() {
-      const known = cases.find((each) => each.location === "m2/items/p1-text-entry.xml");
-      const accepted = yield* openCase(known ?? assert.fail("no text entry case"));
-      const started = startedAt(
-        startingResponses(accepted, feedbackHidden),
-        "RESPONSE",
-        "m2/items/p1-text-entry.xml",
-      );
+      const location = path.join("m2", "items", "p1-text-entry-default.xml");
+      const accepted = yield* openFixture(location);
+      const started = startedAt(startingResponses(accepted, feedbackHidden), "RESPONSE", location);
       const restored = restore(
         accepted,
         recordOf({ attempt: "submitted", responses: { RESPONSE: nullOf("string", "single") } }),
