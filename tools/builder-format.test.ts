@@ -482,7 +482,10 @@ const encodingOf = (bytes: Buffer): "utf-8" | "utf-16be" | "utf-16le" => {
 
 /**
  * Name what a tracked file carries, by its path, a symlink's target, its bytes and its text. A
- * finding no single line holds (it spans lines) is named once for the file.
+ * finding no single line holds (it spans lines) is named once for the file. A link that resolves
+ * to a file is judged by that file's bytes too. A path the index lists but this checkout deleted,
+ * or a submodule's gitlink, holds nothing; any other listed path that is not there fails the suite
+ * ({@link UNREAD}).
  *
  * @param root The repository's root.
  * @param file The file's path under the root.
@@ -492,8 +495,6 @@ const encodingOf = (bytes: Buffer): "utf-8" | "utf-16be" | "utf-16le" => {
 const scan = (root: string, file: string, missing: ReadonlySet<string>): readonly string[] => {
   const found = offences(file).map((what) => `${file}: path holds ${what}`);
   const at = path.join(root, file);
-  // A path the index lists but this checkout deleted, or a submodule's gitlink, holds nothing; any
-  // other listed path that is not there fails the suite (UNREAD).
   const stat = reachable(root, Buffer.from(file))
     ? lstatSync(at, { throwIfNoEntry: false })
     : undefined;
@@ -506,7 +507,6 @@ const scan = (root: string, file: string, missing: ReadonlySet<string>): readonl
     for (const what of offences(readlinkSync(at))) {
       found.push(`${file}: symlink target holds ${what}`);
     }
-    // A link that resolves to a file is judged by that file's bytes too.
     if (statSync(at, { throwIfNoEntry: false })?.isFile() === true) {
       const linked = readFileSync(at);
 
@@ -705,11 +705,10 @@ describe("a private item builder's draft format and its delivery's files are ban
     const { root, ...entries } = trackedFiles();
     const { files } = entries;
 
-    // Inside edullm, a tree filled without git would resolve to edullm's root and scan the wrong repository.
     assert.strictEqual(
       root,
       path.resolve(import.meta.dirname, ".."),
-      "git's root here is not qti-pie's",
+      "git's root here is not qti-pie's: inside edullm, a tree filled without git resolves to edullm's root and would scan the wrong repository",
     );
     assert.isAbove(files.length, 100, `git listed only ${files.length} files under ${root}`);
 
