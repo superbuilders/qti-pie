@@ -86,9 +86,6 @@ describe.skipIf(!hasLease)("output.db.test.ts, on the lease", () => {
     it.effect(
       "--json import prints one line, the envelope with the package's name, and the same package again is unchanged under it",
       () =>
-        // Oracle: the contract's identity: a package is keyed by the name it is imported under
-        // and an import mints nothing, so a second import of the same bytes under that name names
-        // the same package and changes nothing, whatever the first found stored.
         Effect.gen(function* importJson() {
           const first = yield* captureCli(["--json", "import", fixtures.simple, "simple"]);
           const again = yield* captureCli(["--json", "import", fixtures.simple, "simple"]);
@@ -107,16 +104,17 @@ describe.skipIf(!hasLease)("output.db.test.ts, on the lease", () => {
           }
 
           assert.strictEqual(stored.data.package, "simple");
-          assert.deepStrictEqual(repeated.data, { outcome: "unchanged", package: "simple" });
+          assert.deepStrictEqual(
+            repeated.data,
+            { outcome: "unchanged", package: "simple" },
+            "the contract's identity: a package is keyed by the name it is imported under and an import mints nothing, so a second import of the same bytes under that name names the same package and changes nothing, whatever the first found stored",
+          );
         }),
     );
 
     it.effect(
       "--json roundtrip prints the exporter's report of the stored package, no differing",
       () =>
-        // Oracle: the exporter's comparison of the package's source with an export of the package
-        // the envelope names, read again from the database, and the committed schema of the
-        // envelope.
         Effect.gen(function* roundtripJson() {
           const copy = yield* packageCopy(fixtures.simple, "copy-output-json-simple");
           const { exit, stderr, stdout } = yield* captureCli([
@@ -138,9 +136,11 @@ describe.skipIf(!hasLease)("output.db.test.ts, on the lease", () => {
           }
 
           assert.strictEqual(envelope.data.differing, 0);
-          assert.deepStrictEqual(envelope.data.entries, [
-            ...(yield* sourceReport(copy, envelope.data.package)),
-          ]);
+          assert.deepStrictEqual(
+            envelope.data.entries,
+            [...(yield* sourceReport(copy, envelope.data.package))],
+            "the entries are the exporter's comparison of the package's source with an export of the package the envelope names, read again from the database",
+          );
         }),
     );
 

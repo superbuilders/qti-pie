@@ -310,13 +310,12 @@ describe.skipIf(!hasLease)("cli.corpus.db.test.ts, on the lease", () => {
   )("the CLI against the importer over the corpus", (it) => {
     const tally = emptyTally();
     /**
-     * Each corpus package's importer run, by its tarball member: its importer case records it, and
-     * its CLI case, which vitest runs after it, reads it.
+     * Each corpus package's importer run, by its tarball member. Each package is two cases, the two
+     * halves of its judgment: the importer's run, which records it here, then the CLI's, which
+     * vitest runs after it and which reads what the importer's recorded.
      */
     const importerRuns = new Map<string, ImporterRun>();
 
-    // Each package is two cases, the two halves of its judgment: the importer's run, then the
-    // CLI's, which reads what the importer's recorded.
     for (const entry of corpus) {
       it.effect(`${entry.name} through the importer`, () =>
         Effect.gen(function* importerCase() {

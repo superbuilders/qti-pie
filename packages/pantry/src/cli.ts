@@ -51,6 +51,14 @@ const description = [
 /**
  * The command line: `import`, `export` and `roundtrip`, each printing text, `json` or `jsonl`, then
  * `completions` and `schema`.
+ *
+ * - `completions` reads the finished root when it runs; the annotation on the root it is handed keeps
+ *   `cli`'s own type from being circular.
+ * - `--output`, `--json` and `--jsonl` reach every command; a handler reads the mode it prints in.
+ * - `--quiet` and `--verbose` choose the minimum log level the chosen handler runs at.
+ * - Log lines are diagnostics: they go to standard error, so standard output carries only the data
+ *   asked for. The root's handler runs the chosen subcommand's, so the root's `LogToStderr` reaches
+ *   every handler.
  */
 export const cli = Command.make("qti").pipe(
   Command.withDescription(description),
@@ -76,18 +84,12 @@ export const cli = Command.make("qti").pipe(
     importCommand,
     exportCommand,
     roundtripCommand,
-    // `completions` reads the finished root when it runs; the annotation keeps `cli`'s own type
-    // from being circular.
     completionsCommand((): Command.Command.Any => cli),
     schemaCommand,
   ]),
-  // `--output`, `--json` and `--jsonl` reach every command; a handler reads the mode it prints in.
   Command.withGlobalFlags(outputGlobalFlags),
-  // `--quiet` and `--verbose` choose the minimum log level the chosen handler runs at.
   withVerbosity,
   Command.withGlobalFlags(verbosityGlobalFlags),
-  // Log lines are diagnostics: they go to standard error, so standard output carries only the data
-  // asked for. The root's handler runs the chosen subcommand's, so this reaches every handler.
   Command.provideSync(Logger.LogToStderr, true),
 );
 
