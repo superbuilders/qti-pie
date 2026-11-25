@@ -1,5 +1,6 @@
 import { globSync, readFileSync } from "node:fs";
-import { NodeFileSystem, NodePath } from "@effect/platform-node";
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import * as NodePath from "@effect/platform-node/NodePath";
 import { assert, beforeAll, describe, it, layer } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";

@@ -20,7 +20,7 @@
  * outcome declaration that writes the same identifier: 7 × 5 × 2 = 70 packages, exhausted.
  */
 import { keyTextBytes } from "@bjornpagen/grizzle";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

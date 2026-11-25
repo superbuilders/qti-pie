@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import path from "node:path";
-import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Config, Console, Effect, FileSystem, Match, Schema } from "effect";
 import type { PlatformError } from "effect";
 import type { ChildProcessSpawner } from "effect/process";

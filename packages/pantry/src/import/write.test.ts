@@ -13,7 +13,7 @@
  * - Nothing is minted: a package placed twice is the same rows.
  */
 import type { Addition, Fact, InsertAllRowsOf } from "@bjornpagen/grizzle";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
 import { noCoverage, required, requiredInSpace } from "@bjornpagen/testing/features";

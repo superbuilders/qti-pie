@@ -14,7 +14,7 @@
  * identifier is one, and each with an ASCII space in its place (the controls): 4 cases,
  * exhausted. None shows a disagreement.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";

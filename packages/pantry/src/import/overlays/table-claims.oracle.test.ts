@@ -14,7 +14,7 @@
  * each of {@link heldTables}' five table states, a built-in variable or nothing, the lookup of an
  * integer or a float: 28 packages, exhausted.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

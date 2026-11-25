@@ -9,7 +9,7 @@
  * manifest. Paths a directory cannot hold as a file inside it (absolute, `.` or `..` segments) are
  * the zip reader's alone, and `zip.test.ts` holds them.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

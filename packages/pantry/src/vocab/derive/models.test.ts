@@ -1,5 +1,6 @@
 import path from "node:path";
-import { NodeChildProcessSpawner, NodeServices } from "@effect/platform-node";
+import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, beforeAll, describe, layer } from "@effect/vitest";
 import { Effect, FileSystem, Layer } from "effect";
 import { Digest } from "effect/crypto";

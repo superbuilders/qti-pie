@@ -7,7 +7,9 @@
  * `xml:base` values the walk meets on its way down. The walk shares no code with the builder,
  * which reads the tree's flat rows (`flatten`) and resolves by `resolveIn`.
  */
-import { NodeChildProcessSpawner, NodeFileSystem, NodePath } from "@effect/platform-node";
+import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import * as NodePath from "@effect/platform-node/NodePath";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
 import { required, requiredInSpace } from "@bjornpagen/testing/features";

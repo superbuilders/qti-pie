@@ -11,7 +11,7 @@
  * `FragmentScope`'s placements), and the laws each side breaks must be one set.
  */
 import type { Law } from "@bjornpagen/grizzle";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

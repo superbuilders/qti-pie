@@ -22,7 +22,7 @@
  * holds, an external URI, the empty reference or an absolute path, and the item ref with or without
  * a mapping whose source the item declares nothing under: 192 packages, exhausted.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

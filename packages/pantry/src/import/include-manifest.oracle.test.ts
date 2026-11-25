@@ -19,7 +19,7 @@
  * `items/`, its href each of four spellings that resolve to the manifest (a parent step, a dot
  * step before it, a step down and back, and a percent-encoded dot): 8 cases, exhausted.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";

@@ -5,7 +5,7 @@
  * import's rows (`AL5_attribute_count`, `#pantry/qti/attributes.ts`) must give each case below one
  * verdict, refusing the five that break the count under `attribute-count`.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Array as Arr, Effect, Option } from "effect";
 import { readProgram } from "#pantry/import/program.ts";

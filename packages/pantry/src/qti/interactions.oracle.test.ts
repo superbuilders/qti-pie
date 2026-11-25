@@ -7,7 +7,7 @@
  * The builder's tests (`#pantry/import/overlays/interactions.oracle.test.ts`) check its rows.
  */
 import type { Law } from "@bjornpagen/grizzle";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Option, Result } from "effect";
 import { inject } from "vitest";

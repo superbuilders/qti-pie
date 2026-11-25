@@ -10,7 +10,7 @@
  * each in four forms; the booleans of a test's selection, ordering and item refs stand in no
  * package pantry admits (spec reading 228).
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Array as Arr, Effect, Formatter, Option } from "effect";
 import { readProgram } from "#pantry/import/program.ts";

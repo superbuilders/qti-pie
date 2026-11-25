@@ -27,7 +27,8 @@
  * - An element two rules name (the ASI XSD states `qti-rubric-block` and `qti-template-inline` twice)
  *   is one row, sourced to its first rule.
  */
-import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Array as Arr, Console, Effect, Layer, Option, Result } from "effect";
 import { Command } from "effect/cli";
 import { Digest } from "effect/crypto";

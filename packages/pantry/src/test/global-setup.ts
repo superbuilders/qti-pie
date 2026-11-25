@@ -1,4 +1,4 @@
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
 import type { TestProject } from "vitest/node";
 import { materialize, materializePackage } from "#pantry/test/fixtures.ts";

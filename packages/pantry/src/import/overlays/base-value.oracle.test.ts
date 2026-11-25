@@ -5,7 +5,7 @@
  * The schema's laws over the import's rows are held to the same verdicts by
  * `#pantry/import/overlays/expressions.test.ts`.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect } from "effect";
 import { grammar } from "#pantry/grammar/install.ts";

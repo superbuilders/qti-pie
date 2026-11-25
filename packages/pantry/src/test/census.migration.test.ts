@@ -9,7 +9,7 @@
  * targets. It lands with the migration it reads, so it is a file of its own: the census's parser
  * and its targets are `census.test.ts`'s, which need no migration.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, FileSystem } from "effect";
 import { Qti } from "#pantry/qti/schema.ts";

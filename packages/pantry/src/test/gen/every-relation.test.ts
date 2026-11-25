@@ -5,7 +5,7 @@
  * The list of relations is read from the schema, so a relation that joins `Qti` joins this test.
  */
 import { writableNamesOf } from "@bjornpagen/grizzle";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

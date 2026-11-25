@@ -10,7 +10,8 @@
  * - **Toy compositions** ({@link toyVocabulary}): vocabularies that compose through production's
  *   `compose`, so a generated grammar is built the production way.
  */
-import { NodeChildProcessSpawner, NodeServices } from "@effect/platform-node";
+import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import type { Result } from "effect";
 import { Array as Arr, Effect, FileSystem, Layer, Option } from "effect";
 import { Digest } from "effect/crypto";

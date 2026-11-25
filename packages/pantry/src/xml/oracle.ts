@@ -1,4 +1,4 @@
-import { NodeChildProcessSpawner } from "@effect/platform-node";
+import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
 import { Array as Arr, Config, Effect, Option, Schema, Stream, String as Str } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 

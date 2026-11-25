@@ -17,7 +17,7 @@
  * (`#pantry/test/declaration-queries.ts`), under the refusal's rule. The database judges the check
  * itself.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

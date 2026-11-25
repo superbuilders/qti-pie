@@ -41,7 +41,8 @@
  *   ({@link mixedOf}). A type with simple content holds text of the base its `simpleContent`
  *   extends, through the simple content of a complex base ({@link textTypeOf}).
  */
-import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Array as Arr, Console, Effect, Layer, Match, Option, pipe, Result, Schema } from "effect";
 import { Argument, Command } from "effect/cli";
 import { Digest } from "effect/crypto";

@@ -1,6 +1,6 @@
 /* oxlint-disable unicorn/text-encoding-identifier-case -- The tests spell the XML encoding labels (`UTF-8`) as crust's charset table spells them. */
 import path from "node:path";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { required } from "@bjornpagen/testing/features";

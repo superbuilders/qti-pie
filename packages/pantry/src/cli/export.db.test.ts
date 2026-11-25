@@ -1,5 +1,5 @@
 import path from "node:path";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Cause, Effect, Exit, FileSystem, Layer, Schema } from "effect";
 import { describe, inject } from "vitest";

@@ -1,6 +1,6 @@
 import path from "node:path";
 import type { Law, Witness } from "@bjornpagen/grizzle";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Cause, Effect, Exit, FileSystem, Formatter, Schema } from "effect";
 import { Command } from "effect/cli";

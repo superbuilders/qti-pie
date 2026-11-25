@@ -15,7 +15,7 @@
  * parent the grammar's `Admission` admits them in. Every attribute value a seed writes is a word of
  * the dictionary of its attribute's name, the values the code branches on.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
 import type { Element } from "@qti-pie/crust/tree.ts";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";

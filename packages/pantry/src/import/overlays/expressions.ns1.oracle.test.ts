@@ -10,7 +10,7 @@
  * (`judgeOne` of `#pantry/test/gen/genetic/judge.ts`), and its host rows are held to the
  * resolution directly.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

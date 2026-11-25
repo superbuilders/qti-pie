@@ -27,7 +27,7 @@
  * (every probe) and `differences.tsv` (every disagreement, with the record that classifies it). A
  * fixed folder let two runs at once remove each other's batches under xmllint.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, beforeAll, describe, it as unit, layer } from "@effect/vitest";
 import { Console, Effect, FileSystem, Option } from "effect";
 import type { ValueDomain } from "#pantry/grammar/attributes.ts";

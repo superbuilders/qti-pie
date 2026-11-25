@@ -18,7 +18,7 @@
  * the two declared one, two or three times: each added declaration of the original's codes or of
  * others, all of them before the original or after it. 21 packages, exhausted.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

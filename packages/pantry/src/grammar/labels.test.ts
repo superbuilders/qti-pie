@@ -3,7 +3,7 @@
  * tool are exactly the kinds whose `label` the pinned ASI XSD declares inside one of the types
  * whose characteristic states the tool sentence, and each declares a `label`.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, beforeAll, describe, it } from "@effect/vitest";
 import { Effect, Layer, Result } from "effect";
 import { Digest } from "effect/crypto";

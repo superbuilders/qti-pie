@@ -22,7 +22,7 @@ import {
 } from "@bjornpagen/grizzle";
 import type { Addition, RelationOf } from "@bjornpagen/grizzle";
 import type { RowSource } from "@bjornpagen/grizzle/compile";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { drawn as drawnCase, exhaust, explore } from "@bjornpagen/testing/explore";
 import { required, requiredInSpace } from "@bjornpagen/testing/features";

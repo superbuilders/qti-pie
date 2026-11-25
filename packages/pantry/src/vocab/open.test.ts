@@ -1,4 +1,5 @@
-import { NodeChildProcessSpawner, NodeServices } from "@effect/platform-node";
+import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, beforeAll, describe, it, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

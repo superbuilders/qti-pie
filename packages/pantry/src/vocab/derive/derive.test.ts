@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import path from "node:path";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, beforeAll, describe, it, layer } from "@effect/vitest";
 import { ConfigProvider, Context, Effect, FileSystem, Layer, Match, Option, Result } from "effect";
 import { Digest } from "effect/crypto";

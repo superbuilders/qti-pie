@@ -17,7 +17,7 @@
  * base type each of {@link baseTypes}, and its children each of {@link contents}: 7 × 7 × 5 = 245
  * packages, exhausted, one cardinality's 35 to a case.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

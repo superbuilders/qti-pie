@@ -8,7 +8,7 @@
  * Oracle: the platform's proleptic Gregorian calendar (`Date`), which says whether a year, month
  * and day name a day, so no expected verdict is computed by the domain compiler or the oracle.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

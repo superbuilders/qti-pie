@@ -28,7 +28,7 @@
  * it judges `Mastery_range` over each pair's join, restated over the host's rows
  * (`#pantry/test/declaration-queries.ts`), and the database judges it too.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

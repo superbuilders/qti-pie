@@ -1,5 +1,5 @@
 import path from "node:path";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { ConfigProvider, Effect, FileSystem, Option, Result } from "effect";
 import { assemble } from "#pantry/model/assemble.ts";

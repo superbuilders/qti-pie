@@ -19,7 +19,7 @@
  * - SV-READ-04: a boolean value written `1` and `0`, `xs:boolean`'s lexical space (§8.14); the
  *   control, `2`, breaks Typed value.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

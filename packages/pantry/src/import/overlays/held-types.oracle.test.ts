@@ -24,7 +24,7 @@
  * Bound: every setter and the lookup, by each of seven identifiers, over an expression that fits
  * its declared variable and one that does not: 70 packages, exhausted.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

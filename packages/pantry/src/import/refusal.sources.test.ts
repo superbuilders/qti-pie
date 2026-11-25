@@ -10,7 +10,7 @@
  * refusal's law table and every specification record the differential exports, every citation of
  * an IMS specification in them, exhausted.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Layer, Option } from "effect";
 import { Digest } from "effect/crypto";

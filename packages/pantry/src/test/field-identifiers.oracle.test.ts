@@ -19,7 +19,7 @@
  * `field-identifier` is required (§5.53.1, multiplicity 1) and an `IdentifierDType`, so AL3 refuses
  * one unwritten and the value domain one that names nothing.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

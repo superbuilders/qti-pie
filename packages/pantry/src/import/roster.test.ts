@@ -4,7 +4,7 @@
  * `insertableNamesOf(Qti)`, every relation a builder writes is one the roster names, every relation
  * the roster names is one a builder writes, and the ChangeSet inserts each once.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { ChangeSet, insertableNamesOf } from "@bjornpagen/grizzle";
 import { Effect, Schema } from "effect";

@@ -17,7 +17,7 @@
  * Bound: two or three items, each its own resource, under one identifier written as is, padded
  * before or after (one value collapsed), or under distinct identifiers: 8 packages, exhausted.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

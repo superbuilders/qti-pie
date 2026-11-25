@@ -22,7 +22,7 @@
  * (`#pantry/test/declaration-queries.ts`): "Mapped response" reads a map response's declaration's
  * table through a query. The two verdicts must be one, and both the case's.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Array as Arr, Effect, Option } from "effect";
 import { readProgram } from "#pantry/import/program.ts";

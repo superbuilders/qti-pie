@@ -8,7 +8,7 @@
  * holds and both answers to `--yes`. `export` and `roundtrip` both take their dry-run's
  * `target_action` and `export_dir_action` from this one function.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

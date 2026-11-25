@@ -27,7 +27,7 @@
 import { Buffer } from "node:buffer";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect, FileSystem, Option, Result } from "effect";
 import type { PlatformError } from "effect";

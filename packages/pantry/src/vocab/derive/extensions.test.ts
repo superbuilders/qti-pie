@@ -12,7 +12,8 @@
  *   on the elements and their lines, and every variant is a required situation of the search.
  */
 import path from "node:path";
-import { NodeChildProcessSpawner, NodeServices } from "@effect/platform-node";
+import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, beforeAll, describe, it, layer } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { required } from "@bjornpagen/testing/features";

@@ -32,7 +32,7 @@
  * reported, and kept. It writes the documents under a folder of the run's own,
  * `work/genetic-xsd-*`, removed after the file.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, beforeAll, describe, it as unit, layer } from "@effect/vitest";
 import { Console, Effect, FileSystem, Option, Result } from "effect";
 import { encode } from "@qti-pie/crust/encode.ts";

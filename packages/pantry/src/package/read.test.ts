@@ -1,5 +1,7 @@
 import path from "node:path";
-import { NodeChildProcessSpawner, NodeFileSystem, NodePath } from "@effect/platform-node";
+import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import * as NodePath from "@effect/platform-node/NodePath";
 import { assert, beforeAll, layer } from "@effect/vitest";
 import { Effect, FileSystem, Layer } from "effect";
 import { listPackage, PackageReadError, readEntry } from "#pantry/package/read.ts";

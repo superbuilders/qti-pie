@@ -7,7 +7,7 @@
  * @see {@link https://www.w3.org/TR/xmlschema-2/#rf-facets | XML Schema Part 2, 4.3 Constraining Facets}
  * @see {@link https://www.w3.org/TR/xmlschema-2/#schema | XML Schema Part 2, A Schema for Datatype Definitions (normative)}
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { required } from "@bjornpagen/testing/features";

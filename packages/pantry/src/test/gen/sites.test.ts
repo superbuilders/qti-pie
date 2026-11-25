@@ -12,7 +12,7 @@
  * that names no document breaks "Include target" alone.
  */
 import type { Addition } from "@bjornpagen/grizzle";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import type { Case } from "@bjornpagen/testing/explore";

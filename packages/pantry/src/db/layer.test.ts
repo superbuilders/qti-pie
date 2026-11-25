@@ -17,7 +17,7 @@
  */
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { Cause, ConfigProvider, Effect, Exit, FileSystem } from "effect";
 import { AuthorAppLayer } from "#pantry/db/layer.ts";

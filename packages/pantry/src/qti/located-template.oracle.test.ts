@@ -24,7 +24,7 @@
  * its own processing is ("Operand fit", P23); the same undeclared reference under a processing that
  * holds a rule of its own, under a published template, and with no location.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

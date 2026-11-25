@@ -18,7 +18,7 @@
  * {@link baseTypes}, bound at each of {@link sites}: 8 × 4 × 6 = 192 packages, exhausted, one site's
  * 32 to a case.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

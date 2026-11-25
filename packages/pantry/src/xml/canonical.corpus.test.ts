@@ -1,4 +1,5 @@
-import { NodeFileSystem, NodePath } from "@effect/platform-node";
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import * as NodePath from "@effect/platform-node/NodePath";
 import { assert, layer } from "@effect/vitest";
 import { Effect, FileSystem, Layer, Result } from "effect";
 import { materializeCorpus } from "#pantry/test/fixtures.ts";

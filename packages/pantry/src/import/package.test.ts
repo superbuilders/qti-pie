@@ -12,7 +12,7 @@
 import { randomUUID } from "node:crypto";
 import { Db } from "@bjornpagen/grizzle/runtime";
 import type { CallError } from "@bjornpagen/grizzle/runtime";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect, Layer, Ref, Result } from "effect";
 import { describe, inject } from "vitest";

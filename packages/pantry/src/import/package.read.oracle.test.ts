@@ -3,7 +3,7 @@
  * exactly the packages the law oracle's reader and codec refuse, under the same rule, and read
  * every other one, so every refusal past them is the database's.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect, Option, Result } from "effect";
 import type { PlatformError } from "effect";

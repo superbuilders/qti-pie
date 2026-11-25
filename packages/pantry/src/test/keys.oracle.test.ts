@@ -18,7 +18,7 @@
  */
 import { keyTextBytes } from "@bjornpagen/grizzle";
 import type { LawSide } from "@bjornpagen/grizzle";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
 import { required, requiredInSpace } from "@bjornpagen/testing/features";

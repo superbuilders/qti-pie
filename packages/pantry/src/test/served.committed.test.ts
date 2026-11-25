@@ -26,7 +26,7 @@
 import path from "node:path";
 import type { AnyLogin } from "@bjornpagen/grizzle";
 import { compileServed } from "@bjornpagen/grizzle/compile";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { Effect, FileSystem, Schema } from "effect";
 import { servedPath } from "#pantry/db/served.ts";

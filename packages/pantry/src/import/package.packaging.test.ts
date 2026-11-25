@@ -3,7 +3,7 @@
  * fixture's verdict is the law oracle's (`#pantry/test/oracle-verdict.ts`, a second
  * implementation), and a dangling include is refused under the law it breaks.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";

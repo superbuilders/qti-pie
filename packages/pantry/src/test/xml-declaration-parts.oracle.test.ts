@@ -12,7 +12,7 @@
  * `EncodingDecl` and `SdDecl` (`#pantry/qti/chardata.ts`) each hold a row exactly where the
  * document writes the part, and the export writes back exactly what was written.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

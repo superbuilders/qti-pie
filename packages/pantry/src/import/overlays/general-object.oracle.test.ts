@@ -25,7 +25,7 @@
  * nothing (no `href`), and whose record's general category lists the document's language alone, or
  * also an identifier and a title that are not the document's: 10 cases, exhausted.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";

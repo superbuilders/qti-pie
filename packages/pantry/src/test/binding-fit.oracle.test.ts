@@ -35,7 +35,7 @@
  * rows (`#pantry/test/host-judge.ts`) break "Binding cardinality" together exactly where a gap
  * match of two gaps binds a single response, whatever its `max-associations`.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";

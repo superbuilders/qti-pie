@@ -22,7 +22,7 @@
  * empty `colgroup`, each column shape of a table, a figure of zero to two captions, and three names
  * under one to three operands: 27 packages, exhausted.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

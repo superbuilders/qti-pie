@@ -9,7 +9,7 @@
  * ZIP64 end record and its locator standing before the end record, after the gap. GEN-B's zip
  * search (`src/test/genetic-zip.test.ts`) breeds the rest.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

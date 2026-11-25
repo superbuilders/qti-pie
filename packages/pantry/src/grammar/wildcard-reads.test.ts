@@ -19,7 +19,7 @@
  * pair needs a root set holding both namespaces. It kills the composition's `wildcardReads`
  * conjunct dropped (compose.ts, 8,730 rows added).
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, beforeAll, describe, layer } from "@effect/vitest";
 import { Effect, Option, Result } from "effect";
 import { composed } from "#pantry/grammar/compose.ts";

@@ -3,7 +3,7 @@
  * exit code `cli.ts`'s main gives a failure, and which stream it prints to. Every other contract of
  * the command line is held in this process (`cli/present.test.ts`, `cli/errors.test.ts`).
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect } from "effect";
 import { ChildProcessSpawner } from "effect/process";

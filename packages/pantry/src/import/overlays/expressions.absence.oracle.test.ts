@@ -15,7 +15,7 @@
  * disagreement the known table (`#pantry/test/gen/genetic/known.ts`) does not record, which waits
  * on its owner's fix there, as NS1's dangling `VariableRef.declaration` of a built-in does.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

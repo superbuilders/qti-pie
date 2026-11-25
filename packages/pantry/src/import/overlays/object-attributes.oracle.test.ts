@@ -29,7 +29,7 @@
  * root's title or another: 64 cases; and a usage value whose `baseType` is unwritten, spelled,
  * misspelled or padded: 4 cases; exhausted.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";

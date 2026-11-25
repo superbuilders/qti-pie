@@ -19,7 +19,7 @@
  */
 import type { Law } from "@bjornpagen/grizzle";
 import type { CallError } from "@bjornpagen/grizzle/runtime";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect, Formatter, Layer, Option, Result } from "effect";
 import { describe, inject } from "vitest";

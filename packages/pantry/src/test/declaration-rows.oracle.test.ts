@@ -24,7 +24,7 @@
  * - No family member names an owner the import writes no row of (`#pantry/test/family-owners.ts`), so
  *   no row of a relation grizzle writes before `Node` breaks a CHECK.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";

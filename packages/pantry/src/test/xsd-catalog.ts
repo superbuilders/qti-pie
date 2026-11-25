@@ -24,7 +24,7 @@
  * Under the union driver a `strict` wildcard would find a declaration no XSD of the document's
  * set imports, as a DRD element under an item's `qti-companion-materials-info`.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Array as Arr, Effect, FileSystem, Option } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import {

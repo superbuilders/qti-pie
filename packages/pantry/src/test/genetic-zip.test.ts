@@ -20,7 +20,7 @@
  * seed, each with the long budget; a class it meets is reduced, reported, and kept. The archives
  * are written under a folder of the run's own, `work/genetic-zip-*`, removed after the file.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, beforeAll, describe, layer } from "@effect/vitest";
 import { Console, Effect, FileSystem } from "effect";
 import { array, element, int } from "@bjornpagen/testing/gen";

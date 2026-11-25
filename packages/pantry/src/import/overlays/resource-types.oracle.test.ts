@@ -14,7 +14,7 @@
  * (a document has one type, so one path under two document types is refused) and 162 (that type is
  * the one its root bears out), and the law oracle's verdict on each case.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Array as Arr, Effect, Formatter, Option, Result } from "effect";
 import { composed } from "#pantry/grammar/compose.ts";

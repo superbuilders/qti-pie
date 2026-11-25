@@ -23,7 +23,7 @@
  * listing its own file: 4 packages, exhausted, with a row planted on every resource of each that
  * writes none.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { sameLaw } from "@bjornpagen/grizzle";
 import type { Law } from "@bjornpagen/grizzle";
 import { assert, layer } from "@effect/vitest";

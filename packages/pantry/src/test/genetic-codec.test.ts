@@ -29,7 +29,7 @@
  * cannot outlive its fix. {@link fixed} holds the defects since closed, their documents kept as
  * planted seeds that every oracle must pass.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, layer } from "@effect/vitest";
 import { Console, Effect, Layer, Option } from "effect";
 import { floorSeed, rotatingSeed } from "@bjornpagen/testing/random";

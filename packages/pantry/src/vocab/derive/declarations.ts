@@ -35,7 +35,8 @@
  * - A kind declared more than once reads its first declaration's attributes; a kind whose
  *   declarations disagree on them is refused.
  */
-import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import {
   Array as Arr,
   Console,

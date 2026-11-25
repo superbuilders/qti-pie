@@ -36,7 +36,7 @@
  * run, the Good–Turing residual of each feature family over the rotating runs is printed: residual
  * risk of the generator and its features, never proof.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { afterAll, assert, layer } from "@effect/vitest";
 import { exhaust, explore, steered } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";

@@ -6,7 +6,7 @@
  * leaves one unset or empty, which the script refuses, naming it, before any psql runs.
  */
 import path from "node:path";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect, FileSystem, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";

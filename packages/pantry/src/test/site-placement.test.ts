@@ -9,7 +9,7 @@
  * every-relation package, which the law oracle accepts, with one site placed differently, and
  * every law the host judges (`#pantry/test/host-judge.ts`) holds over its rows.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

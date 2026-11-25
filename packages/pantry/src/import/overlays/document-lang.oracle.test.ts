@@ -35,7 +35,7 @@
  * general category listing nothing, `en`, `en-gb` or `en_gb`: 72 packages, exhausted.
  */
 import type { PreviewRows } from "@bjornpagen/grizzle";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

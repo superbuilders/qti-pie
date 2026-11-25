@@ -7,7 +7,7 @@
  * schema's own laws over the import's rows (the builder's `reading.owns`,
  * `#pantry/import/overlays/mathml-align.ts`) accept every case, and break no other law.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Array as Arr, Effect, Option } from "effect";
 import { readProgram } from "#pantry/import/program.ts";

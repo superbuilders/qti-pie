@@ -5,7 +5,7 @@
  * package's value is read into, which the law refuses where the schema does. The refusal itself is
  * the database's alone; no host step judges a `data-ssml`.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { Effect, Option, Schema } from "effect";
 import { dataSsmlOf } from "#pantry/vocab/data-ssml.ts";

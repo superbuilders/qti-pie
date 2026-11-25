@@ -30,7 +30,7 @@ import { noCoverage } from "@bjornpagen/testing/features";
 import { int } from "@bjornpagen/testing/gen";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { Duration, Effect } from "effect";
 import { grammar, interactionKinds } from "#pantry/grammar/install.ts";

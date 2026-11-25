@@ -6,7 +6,7 @@
  * database: the schema's own laws over the import's rows (`#pantry/test/host-judge.ts`) accept
  * every case, and the import's rows break no other law.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Array as Arr, Effect, Formatter, Option } from "effect";
 import { readProgram } from "#pantry/import/program.ts";

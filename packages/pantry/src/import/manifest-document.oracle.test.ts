@@ -24,7 +24,7 @@
  * `item.xml` with and without an include of the manifest in its body: (1 + 8 + 64) × 2 = 146
  * packages, exhausted.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";

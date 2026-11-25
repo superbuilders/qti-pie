@@ -12,7 +12,7 @@
  */
 import { readFileSync } from "node:fs";
 import nodePath from "node:path";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { Effect, Formatter, Option } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";

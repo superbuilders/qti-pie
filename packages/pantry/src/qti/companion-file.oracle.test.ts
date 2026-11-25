@@ -17,7 +17,7 @@
  * listed PDF, a listed `.JPG`, a path the package does not hold, a held path no `cp:file` lists, an
  * `https:` PDF and a `data:` URI): 14 packages, exhausted.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

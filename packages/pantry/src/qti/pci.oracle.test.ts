@@ -4,7 +4,7 @@
  * research c92da8fd). The database's own verdict over imported packages is the law oracle's
  * (`#pantry/import/program.oracle.db.test.ts`), so these need no lease.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect } from "effect";
 import { readEntries } from "#pantry/package/read.ts";

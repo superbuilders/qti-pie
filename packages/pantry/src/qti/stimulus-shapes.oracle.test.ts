@@ -17,7 +17,7 @@
  * stimulus, and leaves an external one unresolved (reading 35); a ref that names an item breaks it
  * alone, the instrument's control.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

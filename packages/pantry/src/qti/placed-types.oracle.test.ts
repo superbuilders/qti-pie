@@ -34,7 +34,7 @@
  * where an item's response is an identifier it breaks "Operand fit" (P23) in the oracle, the
  * database's alone on the import's side, since the operands' fit reads `OperandOf`, a query.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";

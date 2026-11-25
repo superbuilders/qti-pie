@@ -5,7 +5,7 @@
  *
  * @module
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Layer } from "effect";
 import { fileDatabaseLayer } from "#pantry/test/file-database.ts";
 

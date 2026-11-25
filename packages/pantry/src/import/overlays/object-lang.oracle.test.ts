@@ -26,7 +26,7 @@
  * is absent, the root's or another, its string's `language` unwritten, `en` or `fr`: 28 cases,
  * exhausted.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";

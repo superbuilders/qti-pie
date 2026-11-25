@@ -24,7 +24,7 @@
  * nothing, and raised no clash of a padded manifest identifier with a resource's, where the oracle
  * raises "DocumentId key".
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

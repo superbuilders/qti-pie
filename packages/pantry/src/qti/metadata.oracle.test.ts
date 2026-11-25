@@ -6,7 +6,7 @@
  * `#pantry/qti/attribute-views.db.test.ts` reads a usage value's typed view.
  */
 import { date, lexicalForm } from "@bjornpagen/grizzle";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

@@ -7,7 +7,7 @@
  * The overlay builders' tests (`#pantry/import/overlays/tests.test.ts`) judge the rows the laws
  * read.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
 import { noCoverage, requiredInSpace } from "@bjornpagen/testing/features";

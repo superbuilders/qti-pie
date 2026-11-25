@@ -19,7 +19,7 @@
  *   row for every text type; `ValueIdentity` derived from the built-in alone; the generator's
  *   refusals as named invalid inputs.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, beforeAll, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { required } from "@bjornpagen/testing/features";

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect, Exit, Schema } from "effect";
 import { captureCli, spawnCli } from "#pantry/test/cli.ts";

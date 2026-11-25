@@ -14,7 +14,7 @@
  */
 import { createHash } from "node:crypto";
 import path from "node:path";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
 import { required, requiredInSpace } from "@bjornpagen/testing/features";

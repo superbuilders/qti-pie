@@ -41,7 +41,8 @@
  * - **Sources.** Every model and particle cites the file and line of the construct it is read from
  *   (`sources.ts`'s lines, joined to the tree by document order).
  */
-import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Array as Arr, Console, Effect, Layer, Match, Option, Order, Result } from "effect";
 import { Command } from "effect/cli";
 import { Digest } from "effect/crypto";

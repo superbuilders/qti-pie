@@ -8,7 +8,7 @@
  * Oracle: two implementations side by side, the law oracle's breaches and the schema's own key
  * statements over the import's rows; neither computes the other's verdict.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect, Result } from "effect";
 import { readProgram } from "#pantry/import/program.ts";

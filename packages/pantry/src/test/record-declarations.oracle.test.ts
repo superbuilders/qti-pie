@@ -21,7 +21,7 @@
  * variable of no base type that is no record is Declaration base type's alone (the orchestrator's
  * ruling of 2026-11-06: one cause is refused under one rule).
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

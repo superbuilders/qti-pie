@@ -7,7 +7,7 @@
  * Oracle: the case as written, which says which record names what, so no expected verdict is
  * computed by the oracle's own selection of records.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";

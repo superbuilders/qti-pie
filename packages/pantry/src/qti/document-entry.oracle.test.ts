@@ -26,7 +26,7 @@
  * alone, and the second type's href names no document of its type, "Document entry" alone: neither
  * side raises RootOfType for it, and the import's rows break no Idref target the oracle does not.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";

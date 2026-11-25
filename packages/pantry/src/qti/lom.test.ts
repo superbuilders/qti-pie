@@ -18,7 +18,7 @@ import { requiredInSpace } from "@bjornpagen/testing/features";
 import { element } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { Duration, Effect, FileSystem, Formatter, Option, Record as Rec, Result } from "effect";
 import { lawNameOf } from "#pantry/import/refusal.ts";

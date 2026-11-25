@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, layer } from "@effect/vitest";
 import { Console, Effect, Order } from "effect";
 import { readEntries } from "#pantry/package/read.ts";

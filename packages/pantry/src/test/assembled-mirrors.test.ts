@@ -16,7 +16,7 @@
  * refused.
  */
 import type { Law, LawSide } from "@bjornpagen/grizzle";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect, Formatter } from "effect";
 import { readProgram } from "#pantry/import/program.ts";

@@ -33,7 +33,7 @@
  * package only, so plate never depends on pantry.
  */
 import path from "node:path";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { assetPaths } from "@qti-pie/plate";

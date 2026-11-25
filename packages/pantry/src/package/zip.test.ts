@@ -15,7 +15,9 @@
 import { crc32, deflateRawSync } from "node:zlib";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import { NodeChildProcessSpawner, NodeFileSystem, NodePath } from "@effect/platform-node";
+import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import * as NodePath from "@effect/platform-node/NodePath";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { required } from "@bjornpagen/testing/features";

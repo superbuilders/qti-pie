@@ -20,7 +20,7 @@
  * it. 8 cases in three boxes, each exhausted: the 3 escaped spellings under another title, the same
  * under the item's title, and the plain spelling under both.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";

@@ -21,7 +21,7 @@
  * object), and each of 3 forms of the record's identifier and of its title (absent, the
  * document's, another): 27 cases, exhausted.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";

@@ -11,7 +11,8 @@
  * attempted; the run then fails naming each one it could not settle, and a second run requests
  * only those.
  */
-import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Console, Effect, FileSystem, Layer, Option, Path, Result, Schema } from "effect";
 import { Command } from "effect/cli";
 import { Digest } from "effect/crypto";

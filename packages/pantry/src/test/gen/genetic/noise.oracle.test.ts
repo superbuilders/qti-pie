@@ -16,7 +16,7 @@
  * second with its `cp:resource` naming the document too, and a control whose `cp:file` href is
  * unpadded, which the noise does rename: 3 cases, each judged with its twin under salt 706.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect } from "effect";
 import { grammar } from "#pantry/grammar/install.ts";

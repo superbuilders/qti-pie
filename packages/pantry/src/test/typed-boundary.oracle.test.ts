@@ -9,7 +9,7 @@
  * `xs:nonNegativeInteger` such as `max-choices`) and spec reading 7 (a mapping's typed QTI value in
  * an attribute is read exactly), and the law oracle's verdict over each seed and its control.
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect, Formatter } from "effect";
 import { readEntries } from "#pantry/package/read.ts";

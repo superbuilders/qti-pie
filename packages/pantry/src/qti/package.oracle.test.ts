@@ -4,7 +4,9 @@
  * entries are the same keyed sets from a directory and from its zip, and the entries keep the
  * listing's paths, one entry per path, each a document or media with the digest of its bytes.
  */
-import { NodeChildProcessSpawner, NodeFileSystem, NodePath } from "@effect/platform-node";
+import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import * as NodePath from "@effect/platform-node/NodePath";
 import { ChangeSet, schema, Sha256 } from "@bjornpagen/grizzle";
 import type { Addition } from "@bjornpagen/grizzle";
 import { assert, describe, it, layer } from "@effect/vitest";

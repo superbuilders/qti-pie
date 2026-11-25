@@ -6,7 +6,7 @@
  * overlay. A usage value's typed row is the view `UsageValueBaseType`'s
  * (`#pantry/qti/attribute-views.db.test.ts`).
  */
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { required } from "@bjornpagen/testing/features";

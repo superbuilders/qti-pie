@@ -15,7 +15,7 @@
  * and exported byte for byte, and one whose namespace name is a byte past it refused.
  */
 import { keyTextBytes } from "@bjornpagen/grizzle";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect, FileSystem, Layer } from "effect";
 import { describe } from "vitest";

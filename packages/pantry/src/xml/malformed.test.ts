@@ -20,7 +20,8 @@
  * Coverage requires every class to be refused by both readers and accepted by both. Each class is
  * a case of its own over the same seeds.
  */
-import { NodeFileSystem, NodePath } from "@effect/platform-node";
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import * as NodePath from "@effect/platform-node/NodePath";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
