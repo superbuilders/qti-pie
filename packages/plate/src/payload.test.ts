@@ -1,6 +1,11 @@
 import { assert, describe, it } from "@effect/vitest";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { requiredInSpace } from "@bjornpagen/testing/features";
+import { constant, int, map, oneOf } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
 import { growthFactor, growthLimit, growthRatio } from "@qti-pie/crust/test/growth.ts";
-import { Effect, Option } from "effect";
+import { Duration, Effect, Formatter, Option } from "effect";
 import { configure } from "#plate/configuration.ts";
 import type { SourceAttribute, SourceDocument, SourceElement } from "#plate/document/source.ts";
 import { choiceOrder } from "#plate/interactions/choice.ts";
@@ -27,6 +32,7 @@ import type {
   Unsupported,
   UnsupportedFeature,
 } from "#plate/model/item.ts";
+import { boxHolds } from "#plate/test/box.ts";
 import { recordOf } from "#plate/test/records.ts";
 import type { ItemRecord, RedactRecord, Showing } from "#plate/model/record.ts";
 import { nullOf, nullRecord } from "#plate/model/values.ts";
@@ -1958,6 +1964,130 @@ describe("redactItem on responses only hidden content binds", () => {
   });
 });
 
+/**
+ * A case of the Controls box: an ordered Extended Text's `max-strings` and `min-strings`, and how
+ * many members the value the view restores holds.
+ */
+interface ControlsCase {
+  readonly maxStrings: Option.Option<bigint>;
+  readonly members: number;
+  readonly minStrings: bigint;
+}
+
+/**
+ * Draw a count around the bounds the Controls' rule turns on: 0 to 2, 9 to 12 around the 10 an
+ * unrestricted container shows, and 99 to 102 around the cap of 100.
+ */
+const nearControlBounds: Gen<number> = oneOf([int(0, 2), int(9, 12), int(99, 102)]);
+
+/**
+ * Draw a case of the Controls box: `max-strings` absent, near a bound or 10^12; `min-strings` near
+ * a bound; a restored value of 0 to 2 members, 11 or 12, beside the 10, or 100 or 101, beside the
+ * cap.
+ */
+const controlsCase: Gen<ControlsCase> = (source) => ({
+  maxStrings: source.draw(
+    oneOf([
+      constant(Option.none()),
+      map(nearControlBounds, (count) => Option.some(BigInt(count))),
+      constant(Option.some(1_000_000_000_000n)),
+    ]),
+  ),
+  members: source.draw(oneOf([int(0, 2), int(11, 12), int(100, 101)])),
+  minStrings: source.draw(map(nearControlBounds, BigInt)),
+});
+
+/**
+ * How many cases {@link controlsCase} draws: 1 + 11 + 1 `max-strings`, 7 member counts and 11
+ * `min-strings`.
+ */
+const CONTROLS_CASES = (1 + 11 + 1) * 7 * 11;
+
+/**
+ * The cap of the Controls an Extended Text shows, past which its notice `min-strings>100` shows.
+ */
+const controlCap = 100;
+
+/**
+ * The Controls an ordered Extended Text shows for a case, as reading `max-strings-zero` and the
+ * payload's rule state them: a `min-strings` above the cap leaves none, its notice in their place;
+ * else `max-strings` Controls when it restricts (it is not 0, reading `max-strings-zero`) and is at
+ * most 10, else the greater of 10 and `min-strings`, enough besides for each member restored up to
+ * a restricting `max-strings` and the cap, with the notice beside them when the members held pass
+ * the cap. Each Control restores its member, the rest none.
+ *
+ * @param controls The case.
+ * @returns How many Controls, what each restores, and the notice.
+ */
+const expectedControls = (
+  controls: ControlsCase,
+): {
+  readonly n: number;
+  readonly notice: Option.Option<string>;
+  readonly restores: readonly string[];
+} => {
+  if (controls.minStrings > BigInt(controlCap)) {
+    return { n: 0, notice: Option.some("min-strings>100"), restores: [] };
+  }
+
+  const restricting = Option.filter(controls.maxStrings, (maxStrings) => maxStrings > 0n);
+  const asked = Option.match(
+    Option.filter(restricting, (maxStrings) => maxStrings <= 10n),
+    {
+      onNone: () => Math.max(10, Number(controls.minStrings)),
+      onSome: Number,
+    },
+  );
+  const heldMembers = Option.match(restricting, {
+    onNone: () => controls.members,
+    onSome: (maxStrings) => Math.min(controls.members, Number(maxStrings)),
+  });
+  const n = Math.max(asked, Math.min(heldMembers, controlCap));
+
+  return {
+    n,
+    notice: heldMembers > controlCap ? Option.some("min-strings>100") : Option.none(),
+    restores: Array.from({ length: n }, (_, index) =>
+      index < controls.members ? `stage ${String(index + 1)}` : "",
+    ),
+  };
+};
+
+/**
+ * What a case of the Controls box reaches.
+ */
+const controlsSituations = [
+  "min-strings past the cap",
+  "members past the cap",
+  "max-strings restricts to it",
+  "10 or min-strings",
+] as const;
+
+/**
+ * A {@link controlsSituations} member.
+ */
+type ControlsSituation = (typeof controlsSituations)[number];
+
+/**
+ * The situation a case of the Controls box reaches, the cap's first.
+ *
+ * @param controls The case.
+ * @returns The situation.
+ */
+const controlsSituationOf = (controls: ControlsCase): ControlsSituation => {
+  if (controls.minStrings > BigInt(controlCap)) {
+    return "min-strings past the cap";
+  }
+
+  if (Option.isSome(expectedControls(controls).notice)) {
+    return "members past the cap";
+  }
+
+  return Option.exists(controls.maxStrings, (maxStrings) => maxStrings > 0n && maxStrings <= 10n)
+    ? "max-strings restricts to it"
+    : "10 or min-strings";
+};
+
 describe("payload", () => {
   it("holds no correct response, mapping key, default or rule value in any view", () => {
     const views: readonly (readonly [string, View])[] = [
@@ -2171,73 +2301,49 @@ describe("payload", () => {
     );
   });
 
-  for (const [counts, maxStrings, minStrings, n] of [
-    ['max-strings="3"', Option.some(3n), 0n, 3],
-    ['max-strings="1000000000000" and no min-strings', Option.some(1_000_000_000_000n), 0n, 10],
-    ['min-strings="100" max-strings="200"', Option.some(200n), 100n, 100],
-    ['max-strings="0"', Option.some(0n), 0n, 10],
-    ["no max-strings", Option.none(), 0n, 10],
-    ['min-strings="12" max-strings="0"', Option.some(0n), 12n, 12],
-  ] as const) {
-    it(`gives an ordered Extended Text with ${counts} ${String(n)} Controls`, () => {
-      const list = extendedTextFor(pageFor(listOf(maxStrings, minStrings), answering), "LIST");
+  it(`gives an ordered Extended Text its Controls by max-strings, min-strings and the value it restores, as reading \`max-strings-zero\` and the cap of 100 decide: ${String(CONTROLS_CASES)} cases`, (ctx) =>
+    Effect.andThen(
+      boxHolds(controlsCase, CONTROLS_CASES),
+      searched(
+        ctx,
+        exhaust(
+          {
+            box: "max-strings absent, 0 to 2, 9 to 12, 99 to 102 or 10^12; min-strings 0 to 2, 9 to 12 or 99 to 102; a restored value of 0 to 2, 11, 12, 100 or 101 members",
+            caseHang: Duration.seconds(30),
+            coverage: requiredInSpace<ControlsSituation>(controlsSituations),
+            generator: controlsCase,
+            literal: Formatter.format,
+            oracle: {
+              kind: "specification",
+              name: "reading `max-strings-zero` (max-strings 0 restricts nothing) and the Extended Text payload's rule, transcribed in expectedControls: a min-strings above 100 leaves no Control beside its notice; else max-strings from 1 to 10 Controls, or the greater of 10 and min-strings, covering each member restored up to a restricting max-strings and the cap of 100, the notice beside them over it",
+            },
+            suite: "plate/payload/extended-text-controls",
+          },
+          (controls, c) =>
+            Effect.sync(() => {
+              c.note(controlsSituationOf(controls));
 
-      assert.deepStrictEqual(
-        [list.cardinality, list.n, list.restores, list.notice],
-        ["ordered", n, Array.from({ length: n }, () => ""), Option.none()],
-      );
-    });
-  }
+              const view: View =
+                controls.members === 0
+                  ? answering
+                  : {
+                      ...answering,
+                      values: new Map([["LIST", orderedOf(stages(controls.members))]]),
+                    };
+              const list = extendedTextFor(
+                pageFor(listOf(controls.maxStrings, controls.minStrings), view),
+                "LIST",
+              );
+              const expected = expectedControls(controls);
 
-  for (const [counts, maxStrings, minStrings] of [
-    ['min-strings="101" max-strings="200"', Option.some(200n), 101n],
-    ['min-strings="1000000000000"', Option.some(1_000_000_000_000n), 1_000_000_000_000n],
-    ['max-strings="5" min-strings="101"', Option.some(5n), 101n],
-  ] as const) {
-    it(`holds the notice min-strings>100 and no Control for an ordered Extended Text with ${counts}`, () => {
-      const list = extendedTextFor(
-        pageFor(listOf(maxStrings, minStrings), {
-          ...answering,
-          values: new Map([
-            [
-              "LIST",
-              {
-                baseType: "string",
-                cardinality: "ordered",
-                values: [{ baseType: "string", value: "first" }],
-              },
-            ],
-          ]),
-        }),
-        "LIST",
-      );
-
-      assert.deepStrictEqual(
-        [list.n, list.restores, list.notice],
-        [0, [], Option.some("min-strings>100")],
-      );
-    });
-  }
-
-  for (const [counts, maxStrings] of [
-    ['max-strings="0"', Option.some(0n)],
-    ['max-strings="1000000000000"', Option.some(1_000_000_000_000n)],
-    ["no max-strings", Option.none()],
-  ] as const) {
-    it(`gives an ordered Extended Text with ${counts} a Control for each of a 12-member value, each restoring its member`, () => {
-      const list = listOf(maxStrings, 0n);
-      const members = stages(12);
-      const shownValues = extendedTextFor(
-        pageFor(list, { ...answering, values: new Map([["LIST", orderedOf(members)]]) }),
-        "LIST",
-      );
-
-      assert.deepStrictEqual(
-        [shownValues.n, shownValues.restores, shownValues.notice],
-        [12, members, Option.none()],
-      );
-    });
-  }
+              assert.deepStrictEqual(
+                [list.cardinality, list.n, list.restores, list.notice],
+                ["ordered", expected.n, expected.restores, expected.notice],
+              );
+            }),
+        ),
+      ),
+    ));
 
   it("shows the first 100 members of a 150-member value and the cap's notice beside them", () => {
     const members = stages(150);
