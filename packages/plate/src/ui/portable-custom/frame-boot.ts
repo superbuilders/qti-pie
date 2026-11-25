@@ -179,6 +179,11 @@ export const bootFrame = (): void => {
   const bridgeId = "qtiCustomInteractionContext";
   const commonJsNames = ["require", "exports", "module"] as const;
   const inputEvents = ["change", "click", "drop", "input", "keyup", "pointerup"] as const;
+  /**
+   * The longest delay a browser's timer holds, in milliseconds: `setTimeout` takes it as a WebIDL
+   * `long`, a 32-bit signed integer.
+   */
+  const longestTimerMs = 2_147_483_647;
   const definitions = new Map<string, AmdDefinition>();
   const exported = new Map<string, unknown>();
   const builtins = new Map<string, unknown>();
@@ -436,12 +441,16 @@ export const bootFrame = (): void => {
    * Load one script and wait for it to define its module: loaded when the module is defined by
    * the time the script ran; failed when the script does not load, when an uncaught error is
    * reported while it loads, or when the wait runs out first (an empty script defines nothing, so
-   * its wait runs out). A wait of 0 is no limit.
+   * its wait runs out). A wait of 0 is no limit, and so is a wait longer than a timer holds: HTML's
+   * `setTimeout` takes its delay as a WebIDL `long`, milliseconds in a 32-bit signed integer, and a
+   * longer delay wraps, so it fires early, at once just past the bound, which would fail the load a
+   * configuration stated as longer than any session (reading 246: a stated wait is never dropped).
    *
    * @param id The route's module id, which an anonymous define takes.
    * @param url The script's absolute URL.
    * @param waitSeconds How long to wait, 0 for no limit.
    * @returns How the load came out.
+   * @see https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timers
    */
   const loadLocation = (id: string, url: string, waitSeconds: number): Promise<Outcome> => {
     const { promise, resolve } = Promise.withResolvers<Outcome>();
@@ -479,7 +488,7 @@ export const bootFrame = (): void => {
       }
     });
 
-    if (waitSeconds > 0) {
+    if (waitSeconds > 0 && waitSeconds * 1000 <= longestTimerMs) {
       timer = setTimeout(() => {
         settle({
           kind: "failed",

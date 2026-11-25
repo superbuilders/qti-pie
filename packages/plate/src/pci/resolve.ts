@@ -11,15 +11,14 @@
  * `modules/module_resolution.js`) and `secondary-configuration` (default
  * `modules/fallback_module_resolution.js`) name two configuration files, and whose
  * `qti-interaction-module` children each carry an `id` and may carry a `primary-path` and a
- * `fallback-path`. A module `N` loads from its own `primary-path` when written, else from
- * `paths[N]` of the primary configuration; on a timeout or a fatal error it loads from its own
- * `fallback-path` when written, else from `paths[N]` of the secondary configuration. A
- * configuration file is a JSON document despite its `.js` name: `waitSeconds`, how long to wait
- * for each file before falling back (default 7; 0 is no timeout), and `paths`, module name to
- * location without a file extension, to which `.js` is appended. A location that starts with a
- * protocol is fetched from there; any other is a path relative to the content package's base. A
- * delivery engine may ignore a package-relative location the manifest does not list, and may apply
- * security rules to the URLs it loads script from.
+ * `fallback-path`. A module `N` loads from its own `primary-path`; on a timeout or a fatal error it
+ * loads from its own `fallback-path`. The guide (informative, reading 82) lets a configuration's
+ * `paths[N]` stand in for either; this delivery reads none (R2). A configuration file is a JSON
+ * document despite its `.js` name: `waitSeconds`, how long to wait for each file before falling
+ * back (default 7; 0 is no timeout), and `paths`, module name to location without a file
+ * extension. A location that starts with a protocol is fetched from there; any other is a path
+ * relative to the content package's base. A delivery engine may ignore a package-relative location
+ * the manifest does not list, and may apply security rules to the URLs it loads script from.
  *
  * Reading 11 binds the attribute names: **A PCI's secondary module configuration is
  * `secondary-configuration`.** An item writing `fallback-configuration` is refused before it
@@ -27,10 +26,20 @@
  *
  * Where the sources are silent, these defaults apply, each named where it is applied:
  *
- * - **R1** `.js` is appended to a location unless it already ends in `.js`, so it is never doubled.
- * - **R2** A configuration file absent from the package contributes no path and no notice; one
- *   present but not a JSON object with an object `paths` gives `pci-configuration-invalid` and
- *   contributes nothing.
+ * - **R1** `.js` is appended to a location's path unless the file it names already ends in `.js`, so
+ *   it is never doubled (reading 201): the path is the location before its query and fragment, the
+ *   file is that path resolved from the package root and percent-decoded, as the package names its
+ *   files (`resolveIn`, the database's `moduleFileOf` reads it the same way), and `.js` goes after
+ *   the path, before the query and the fragment, which name no part of the file; a path whose last
+ *   segment is a dot segment names a directory, so `.js` names a file of it (`modules/b/..` names
+ *   `modules/.js`), as the database appends `.js` to the resolved path.
+ * - **R2** A configuration contributes its `waitSeconds` alone, never a location: its `paths` and
+ *   every other member are passed over, so a module loads only from its own `primary-path` and
+ *   `fallback-path` (reading 246: the information model gives a configuration "to use", and the
+ *   guide, informative, lets the delivery "apply security rules to the URLs from which it will load
+ *   Javascript files"). A configuration file absent from the package contributes nothing and no
+ *   notice; one present but not a JSON object with, where written, a non-negative finite
+ *   `waitSeconds` gives `pci-configuration-invalid` and contributes nothing.
  * - **R3** The timeout is the primary configuration's `waitSeconds` for primary loads and the
  *   secondary's for fallback loads, 7 when absent.
  * - **R4** A module with no location at all, primary or fallback, gives `pci-module-unresolved`; one
@@ -51,6 +60,8 @@
  * @module
  */
 import { Option, Result, Schema } from "effect";
+import { isDotSegment, resolveIn, withoutQuery } from "#plate/document/href.ts";
+import { packageRootDocument } from "#plate/model/url.ts";
 
 /**
  * The module facts of one `qti-portable-custom-interaction`: its `module` attribute, the
@@ -97,8 +108,7 @@ export interface PciResolution {
   readonly entry: Option.Option<string>;
   /**
    * The routes of every module the PCI names: the entry first when it is written, then the listed
-   * modules in their order, each id once. A name the configurations map that the PCI does not
-   * name is not routed.
+   * modules in their order, each id once.
    */
   readonly routes: readonly ModuleRoute[];
   /**
@@ -112,11 +122,11 @@ export interface PciResolution {
  * Why a module's route is incomplete or suspect, for the frame host to show or log.
  *
  * `pci-configuration-invalid` (R2) names a configuration `file` the package holds that is not a
- * JSON object with an object `paths` of string locations and, when written, a non-negative
- * finite `waitSeconds`. `pci-module-unresolved` (R4) names a module with no location at all.
- * `pci-module-unlisted` (R5) names a module and its package-relative `location`, kept though the
- * manifest does not list it. `pci-module-remote` (R5) names a module and its absolute
- * `location`, dropped since plate loads no script from outside the package.
+ * JSON object with, when written, a non-negative finite `waitSeconds`. `pci-module-unresolved` (R4)
+ * names a module with no location at all. `pci-module-unlisted` (R5) names a module and its
+ * package-relative `location`, kept though the manifest does not list it. `pci-module-remote` (R5)
+ * names a module and its absolute `location`, dropped since plate loads no script from outside the
+ * package.
  */
 export type PciNotice =
   | { readonly kind: "pci-configuration-invalid"; readonly file: string }
@@ -131,17 +141,16 @@ export type PciNotice =
 const defaultWaitSeconds = 7;
 
 /**
- * A configuration file's content, after R2 and R3: the locations by module name and the timeout.
+ * What a configuration file contributes, after R2 and R3: its timeout alone.
  */
 interface Configuration {
-  readonly paths: ReadonlyMap<string, string>;
   readonly waitSeconds: number;
 }
 
 /**
- * The configuration an absent or invalid file contributes: no path, the default timeout.
+ * The configuration an absent or invalid file contributes: the default timeout.
  */
-const emptyConfiguration: Configuration = { paths: new Map(), waitSeconds: defaultWaitSeconds };
+const emptyConfiguration: Configuration = { waitSeconds: defaultWaitSeconds };
 
 /**
  * A configuration file as read: its content after R2 and R3, and the notice R2 gives.
@@ -173,12 +182,11 @@ interface RoutedModule {
 type ListedModule = PciModules["modules"][number];
 
 /**
- * The shape a configuration file must have (R2): a JSON object with an object `paths` of string
- * locations and, when written, a non-negative finite `waitSeconds`. Any other member, such as
- * RequireJS's `baseUrl` or `shim`, is passed over.
+ * The shape a configuration file must have (R2): a JSON object with, when written, a non-negative
+ * finite `waitSeconds`. Any other member, `paths` and RequireJS's `baseUrl` or `shim` among them,
+ * is passed over.
  */
 const ConfigurationFile = Schema.Struct({
-  paths: Schema.Record(Schema.String, Schema.String),
   waitSeconds: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
 });
 
@@ -215,23 +223,40 @@ const readConfiguration = (
           notices: [{ file, kind: "pci-configuration-invalid" }],
         }),
         onSuccess: (decoded) => ({
-          configuration: {
-            paths: new Map(Object.entries(decoded.paths)),
-            waitSeconds: decoded.waitSeconds ?? defaultWaitSeconds,
-          },
+          configuration: { waitSeconds: decoded.waitSeconds ?? defaultWaitSeconds },
           notices: [],
         }),
       }),
   });
 
 /**
- * Append `.js` to a location that does not already end in it (R1).
+ * The suffix R1 gives a module's file, which the implementation guide assumes of every location
+ * (Appendix D: "'.js' will be assumed").
+ */
+const scriptSuffix = ".js";
+
+/**
+ * Append `.js` to a location's path where the file it names does not already end in it (R1): the
+ * path, the location before its query and fragment, resolved from the package root and
+ * percent-decoded as the package names its files, decides, so `modules/a%2Ejs` names
+ * `modules/a.js`; `.js` goes after the path, so `modules/a?v=1` names `modules/a.js` and keeps its
+ * query. A path whose last segment is a dot segment (`isDotSegment`) resolves to a directory, so
+ * `.js` goes after a `/`, naming the file of that directory the database names: `modules/b/..`
+ * names `modules/.js`, never `modules/b/...js`. A path that names no file of the package (a remote
+ * one, or one climbing above the root) is read as written.
  *
  * @param location The location, as a configuration or a module attribute writes it.
- * @returns The location ending in `.js` once.
+ * @returns The location whose path names a file ending in `.js` once.
  */
-const withScriptSuffix = (location: string): string =>
-  location.endsWith(".js") ? location : `${location}.js`;
+export const scriptLocationOf = (location: string): string => {
+  const path = withoutQuery(location);
+  const file = Option.getOrElse(resolveIn(packageRootDocument, path), () => path);
+  const separator = isDotSegment(path.slice(path.lastIndexOf("/") + 1)) ? "/" : "";
+
+  return file.endsWith(scriptSuffix)
+    ? location
+    : `${path}${separator}${scriptSuffix}${location.slice(path.length)}`;
+};
 
 /**
  * Turn a module's location into the URL the host loads, by R1 and R5.
@@ -249,7 +274,7 @@ const placeLocation = (
   Option.match(location, {
     onNone: () => ({ notices: [], url: Option.none() }),
     onSome: (written) => {
-      const url = withScriptSuffix(written);
+      const url = scriptLocationOf(written);
 
       if (schemePrefix.test(url)) {
         return { notices: [{ id, kind: "pci-module-remote", location: url }], url: Option.none() };
@@ -263,29 +288,12 @@ const placeLocation = (
   });
 
 /**
- * Find a module's location: its own path when the PCI lists one and writes it, else the
- * configuration's `paths` entry for its id.
- *
- * @param id The module's id.
- * @param own The module's own `primary-path` or `fallback-path`, when the PCI lists it and
- *   writes the attribute.
- * @param configuration The configuration that stands in for it.
- * @returns The location, none when neither names one.
- */
-const locationOf = (
-  id: string,
-  own: Option.Option<string>,
-  configuration: Configuration,
-): Option.Option<string> =>
-  Option.orElse(own, () => Option.fromNullishOr(configuration.paths.get(id)));
-
-/**
- * Route one module: its own paths first, else the configurations' (R3, R4).
+ * Route one module: its own paths alone (R2), each load waiting its configuration's time (R3, R4).
  *
  * @param id The module's id.
  * @param written The module's `qti-interaction-module`, when the PCI lists one.
- * @param primary The primary configuration.
- * @param secondary The secondary configuration.
+ * @param primary The primary configuration, whose wait its primary load takes.
+ * @param secondary The secondary configuration, whose wait its fallback load takes.
  * @param listed Whether the manifest lists a package-relative path.
  * @returns The route and its notices: the primary location's, the fallback location's, then
  *   `pci-module-unresolved` when no URL remains, primary or fallback.
@@ -301,8 +309,8 @@ const routeModule = (
     onNone: () => ({ fallbackPath: Option.none<string>(), primaryPath: Option.none<string>() }),
     onSome: (module) => ({ fallbackPath: module.fallbackPath, primaryPath: module.primaryPath }),
   });
-  const placedPrimary = placeLocation(id, locationOf(id, own.primaryPath, primary), listed);
-  const placedFallback = placeLocation(id, locationOf(id, own.fallbackPath, secondary), listed);
+  const placedPrimary = placeLocation(id, own.primaryPath, listed);
+  const placedFallback = placeLocation(id, own.fallbackPath, listed);
 
   return {
     notices: [
@@ -326,10 +334,10 @@ const routeModule = (
  * defaults R1 to R6 the module doc states.
  *
  * The routes cover the module the PCI names with `module` and every module it lists, each id
- * once, the entry first; a module named by `module` alone takes its locations from the
- * configurations. Both configuration files are read from the package by their written or default
- * paths, never fetched: one named by an absolute URL is not held, so it contributes nothing, as an
- * absent file does. Paths reach `files` and `listed` as the document writes them, with `.js`
+ * once, the entry first; a module named by `module` alone has no location (R2, R4). Both
+ * configuration files are read from the package by their written or default paths, for their
+ * waits alone, never fetched: one named by an absolute URL is not held, so it contributes nothing,
+ * as an absent file does. Paths reach `files` and `listed` as the document writes them, with `.js`
  * appended; normalising them is the caller's, which holds the package.
  *
  * @param modules The interaction's module facts, as written.

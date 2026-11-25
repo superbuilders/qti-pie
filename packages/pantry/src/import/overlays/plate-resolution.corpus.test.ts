@@ -14,18 +14,19 @@
  *
  * For each URL attribute plate writes, an attribute of the importer's reference census, or one spec
  * reading 103 leaves out of it on purpose (`asiLeftOut`): when plate names one file, the importer
- * resolves the value to that entry; when plate names none (a remote
- * URL, a fragment, a value it drops, or a path that climbs above the package root), the importer
- * names no entry either (reading 102: a climb above the root is external). A value the importer
- * cannot resolve under a stated limit (a stray `%`, a backslash, …) and a `srcset` of several
- * candidates or with a descriptor are refused at import by "Href form", so no admitted item holds
- * one, and they are counted, never compared. plate resolves against the item's location alone and
- * marks `xml:base` unsupported, so a reference under an `xml:base` would resolve apart; the corpus
- * holds none, and the run fails if it ever does. A PCI's four module attributes resolve against the
- * package's root in both (spec reading 201; plate's `baseLocationOf`, `#plate/model/url.ts`). A
- * module location names the file its loader loads, the path with `.js` appended unless it ends in
- * `.js`, in the importer and in plate's loader (`#plate/pci/resolve.ts`) alike, while `assetPaths`
- * names the path as written, so plate's file is that path with the loader's `.js` applied.
+ * resolves the value to that entry; when plate names none (a remote URL, a fragment, a value it
+ * drops, or a path that climbs above the package root), the importer names no entry either (reading
+ * 102: a climb above the root is external). A value the importer cannot resolve under a stated
+ * limit (a stray `%`, a backslash, …) and a `srcset` of several candidates or with a descriptor are
+ * refused at import by "Href form", so no admitted item holds one, and they are counted, never
+ * compared. plate resolves against the item's location alone and marks `xml:base` unsupported, so a
+ * reference under an `xml:base` would resolve apart; the corpus holds none, and the run fails if it
+ * ever does. A PCI's four module attributes resolve against the package's root in both (spec
+ * reading 201; plate's `baseLocationOf`, `#plate/model/url.ts`). A module location names the file
+ * its loader loads, the path with `.js` appended unless its file ends in `.js` (reading 201): the
+ * importer appends it to the resolved path, and plate's loader to the written path before its query
+ * and fragment (`scriptLocationOf`, `#plate/pci/resolve.ts`), whose location `assetPaths` then
+ * resolves, as the served path does, so plate's file is `assetPaths` of the loader's location.
  * Planted resolvers, each a plausible slip of plate's, show that the corpus tells each apart from
  * the importer.
  *
@@ -36,7 +37,7 @@ import path from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect, Option } from "effect";
-import { assetPaths } from "@qti-pie/plate";
+import { assetPaths, scriptLocationOf } from "@qti-pie/plate";
 import {
   baseIn,
   documentBase,
@@ -318,17 +319,14 @@ type Compared =
  */
 const compare = (resolver: Resolver, reference: Reference): Compared => {
   const importer = importerOf(reference);
-  const written = resolver(
+  // Plate's loader gives a module location, collapsed as plate reads an `xs:anyURI`, its `.js` before
+  // the location is resolved, as the served path does (`scriptLocationOf`, `#plate/pci/resolve.ts`).
+  const files = resolver(
     reference.document,
     reference.element,
     reference.attribute,
-    reference.lexical,
+    reference.form === "module" ? scriptLocationOf(collapse(reference.lexical)) : reference.lexical,
   );
-  // Plate's loader appends `.js` to a module location that does not end in it (`#plate/pci/resolve.ts`).
-  const files =
-    reference.form === "module"
-      ? written.map((file) => (file.endsWith(".js") ? file : `${file}.js`))
-      : written;
   const words = `plate names ${JSON.stringify(files)} where the importer resolves ${JSON.stringify(importer)}`;
   if (reference.bases.length > 0) {
     return { _tag: "skipped", reason: "under xml:base" };

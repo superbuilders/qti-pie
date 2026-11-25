@@ -76,6 +76,7 @@ import { creditRelationsOf } from "#ledger/credit-relations.ts";
 import { named } from "#ledger/laws.ts";
 import type { ledgerOf } from "#ledger/ledger.ts";
 import { memberControlsOf } from "#ledger/member-controls.ts";
+import { moduleHeldOf } from "#ledger/module-held.ts";
 import { applicationOperandRelationsOf } from "#ledger/operands.ts";
 import { resultRelationsOf } from "#ledger/results.ts";
 import { responseProgramsOf } from "#ledger/response-programs.ts";
@@ -1213,6 +1214,12 @@ export const deliveryOf = (ledger: LedgerLevel) => {
   const programs = responseProgramsOf(ledger);
 
   /**
+   * The modules a package holds for its portable custom interactions: every one a PCI names is a
+   * file of its package ("Module held").
+   */
+  const modules = moduleHeldOf(ledger);
+
+  /**
    * The walk of every processing program a package holds, by the document that holds it
    * (COMPILE-AT-PUBLISH C2, the walk).
    */
@@ -1238,6 +1245,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     ...assertions.relations,
     ...servable.relations,
     ...programs.relations,
+    ...modules.relations,
     ...walks.relations,
     ...creditRelationsOf(ledger, assertions),
     ...results.relations,
@@ -1295,6 +1303,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     ...assertions.laws,
     ...servable.laws,
     ...programs.laws,
+    ...modules.laws,
     ...results.laws,
     ...sessionControls.laws,
     ...operands.laws,

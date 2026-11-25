@@ -834,7 +834,7 @@ interface AssetReference {
  * A document at the package root, where the package's manifest is: a relative path resolved
  * against it names a file from the package root.
  */
-const packageRootDocument = "imsmanifest.xml";
+export const packageRootDocument = "imsmanifest.xml";
 
 /**
  * Give the location a URL attribute's package paths resolve against: the item's own, and the

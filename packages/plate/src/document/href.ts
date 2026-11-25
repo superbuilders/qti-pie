@@ -64,6 +64,18 @@ const decodeSegment = (segment: string): string =>
 const dotsOnly = /^(?:\.|%2[Ee])+$/u;
 
 /**
+ * Whether a path segment is one of RFC 3986's dot segments, `.` or `..`, each `%2E` read as the `.`
+ * it encodes, as {@link resolveIn} reads it: resolved, a dot segment at a path's end names a
+ * directory, never a file of it.
+ *
+ * @param segment The segment, as written.
+ * @returns Whether it is `.` or `..`.
+ * @see https://www.rfc-editor.org/rfc/rfc3986#section-5.2.4
+ */
+export const isDotSegment = (segment: string): boolean =>
+  dotsOnly.test(segment) && segment.replaceAll(/%2[Ee]/gu, ".").length <= 2;
+
+/**
  * Write a name of the location's path as a URI's path segment, each character RFC 3986's
  * resolution reads as syntax percent-escaped: `%` the escape itself first, `?` and `#` the query's
  * and the fragment's start, and `.` the dot segments' letter, so a name `..` stays a name. The

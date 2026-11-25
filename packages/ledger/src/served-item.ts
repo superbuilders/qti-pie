@@ -324,10 +324,10 @@ const xmlOf = (read: DocumentRead) =>
 
 /**
  * Give the path in the package that a location of a PCI's module facts names, as plate's resolution
- * passes it on: as the item writes it, with `.js` appended to a module's unless it already ends in
- * `.js`. It is a path from the package's root, percent-decoded, whatever the item's directory, as
- * plate resolves all four of a PCI's module attributes (`assetPaths`, which sets the item's
- * location aside for them), by reading 201.
+ * passes it on, a module's with its `.js` already given (R1, plate's `scriptLocationOf`): its file
+ * by reading 201. It is a path from the package's root, percent-decoded, whatever the item's
+ * directory, its query and fragment set aside, as plate resolves all four of a PCI's module
+ * attributes (`assetPaths`, which sets the item's location aside for them).
  *
  * @param item The item's path in its package.
  * @param location The location as the item writes it.
@@ -418,17 +418,23 @@ const servedAt = (
  * frame page as the loader, and, by the response each binds, every PCI's module routes, which
  * plate's resolution (`resolvePciModules`) gives from its module facts as written (`pciModulesIn`)
  * and the item's files, each location then mapped to where the frame loads it (`servedAt`). A
- * configuration file the item references is read from the store by its digest; one it references no
- * file at is absent. The manifest lists each file the item references, the only files whose digest
- * the application holds, so those are the files it calls listed. Each of the resolution's notices
- * is logged as a warning, naming the item and the response. An item with no PCI reads nothing.
+ * configuration file the item references is read from the store by its digest, for its waits alone:
+ * plate's resolution routes a module only from its own `primary-path` and `fallback-path`, never
+ * from a configuration's `paths` (plate's R2, reading 246), the locations "Module held" holds to
+ * files the delivery serves, and the law holds every configuration a PCI writes to one too, so a
+ * stated wait is always read; one the item references no file at, the schema's default, is absent
+ * and waits 7. The manifest lists each file the item references, the only files whose digest the
+ * application holds, so those are the files it calls listed. Each of the resolution's notices is
+ * logged as a warning, naming the item and the response. An item with no PCI reads nothing.
+ * Exported as the one routing of an item's PCIs, which the delivery level's "Module held" is held
+ * to by its test (`#ledger/module-held.db.test.ts`).
  *
  * @param host The application's addresses.
  * @param accepted The item, accepted.
  * @param rows The item's read.
  * @returns The host facts.
  */
-const pciFactsOf = Effect.fnUntraced(function* pciFactsOf(
+export const pciFactsOf = Effect.fnUntraced(function* pciFactsOf(
   host: Host,
   accepted: Accepted,
   rows: ItemRows,

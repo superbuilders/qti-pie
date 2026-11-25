@@ -43,7 +43,7 @@ export const lease = Effect.runSync(Config.option(clusterDatabase));
  * the result database: a closed union of at most 18 bytes each, so a copy's name, the result
  * database's, `_` and the suffix, stays within PostgreSQL's 63.
  */
-export type ResultFile = "results" | "placement" | "typed";
+export type ResultFile = "results" | "placement" | "typed" | "module_held";
 
 /**
  * The suite's login as `grizzle generate` compiled it.

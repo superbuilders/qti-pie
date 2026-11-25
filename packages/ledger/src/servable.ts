@@ -14,8 +14,12 @@
  * "Applications that do not support specific features can leave the exchangeable materials
  * unaltered, but not implement the unsupported features". So an item whose response processing
  * holds a part the grader does not run is never served for credit: neither refused at admission
- * (valid QTI 3.0.1 is never refused) nor scored with that part evaluated as NULL or left out, which
- * would report outcomes the item's rules never compute (SPEC-AUDIT SV-APP-05).
+ * (pantry refuses no valid QTI 3.0.1; the delivery's two laws over content, "Template held" and
+ * "Module held", refuse only a publish whose item this delivery will not run: a template the store
+ * does not hold, or a PCI whose modules are not files the delivery serves, named by its `module`
+ * and listed by their `id`s, the owner's narrowing of QTI 3.0.1) nor scored with that part
+ * evaluated as NULL or left out, which would report outcomes the item's rules never compute
+ * (SPEC-AUDIT SV-APP-05).
  *
  * An item is {@link servableOf}'s `Servable` where no document of its assembly holds a row of:
  *
@@ -25,8 +29,8 @@
  * - `UnassertableOutcome`: an outcome declared `external-scored` whose cardinality is not `single`,
  *   whose score no assertion of the ledger can hold;
  * - The registry's `OutsideProfile`: an element outside this deployment's profile, among them every
- *   custom operator no registered class defines and every portable custom interaction no registered
- *   module implements.
+ *   custom operator no registered class defines. A portable custom interaction is none: its package
+ *   holds its module, or it is refused at its publish ("Module held", `#ledger/module-held.ts`).
  *
  * Every pattern the grader reads runs (SPEC-AUDIT SV-PATTERN-01, fixed in the grader: an Appendix F
  * matcher with no bound, true or false for every pattern pantry's grammar admits), so no pattern

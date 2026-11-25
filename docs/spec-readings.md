@@ -3088,7 +3088,10 @@ at integration.)
 R10-a. **A PCI names its module by `module`, by `qti-interaction-modules`, or by both.** The information model's
 section 5.106.2 (`module`) says "If this characteristic is provided the qti-interaction-modules child
 attribute is not required, if omitted then the modules child element is mandatory." The XSD makes both optional; this
-follows the information model. (A proposal for the operator; numbered at integration.)
+follows the information model. (A proposal for the operator; numbered at integration.) Pantry admits all three forms;
+the delivery serves an item's PCI only in the third, its `module` named and listed by `id` with a location the item's
+media is served from, and refuses the publish of any other under the ledger's law "Module held" (edullm-bd's ruling,
+2026-11-25, lane MODULE-HELD).
 
 R10-b. **Withdrawn.** It read where a `qti-custom-interaction` may not stand. One stands wherever the 3.0.1 XSD admits
 one.
@@ -4542,8 +4545,13 @@ C2: the oracle's own reader.)
      href. The guide says the path "should not" carry the extension, which is a recommendation, not a requirement, so a
      path that already ends in `.js` names that file. This is how the corpus writes its locations: `pci_item_examples`
      writes `primary-path="modules/lib/eve.js"` and `fallback-path="modules/shading.js"`, and its manifest lists exactly
-     `modules/lib/eve.js` and `modules/shading.js`. Plate's resolver already reads the extension this way
-     (`#plate/pci/resolve.ts`).
+     `modules/lib/eve.js` and `modules/shading.js`. Plate's resolver reads the extension this way
+     (`#plate/pci/resolve.ts`, R1, `scriptLocationOf`): it appends `.js` to the location's path, before its query and
+     fragment, unless the file that path names, resolved and percent-decoded, already ends in `.js`, so
+     `modules/a?v=1` and `modules/a%2Ejs` both name `modules/a.js`, as the importer resolves them; a path whose last
+     segment is a dot segment names a directory, so its `.js` names a file of it, `modules/b/..` naming `modules/.js`.
+     (Amended 2026-11-25 by lane MODULE-HELD: plate appended `.js` to the whole written value, so a query, a fragment,
+     an encoded `.js` or a final dot segment named another file than the importer's.)
 
      `primary-path` and `fallback-path` join reading 103's census and leave its "Left out" list. The two configuration
      attributes are already in the census, and now resolve against the package root too. Reading 103's rule then holds
@@ -5402,3 +5410,36 @@ C2: the oracle's own reader.)
      2026-11-25 by lane FORM-AUDIO on edullm-bd's question; pinned in Chrome by plate's UI suite: RB19, two Media
      interactions, one stopping the other mid-play and a read-aloud press stopping one, each posting its one play, and
      one stopped while it loads posting none until its next press sounds; and RB20, a refused play stopping nothing.)
+246. **A PCI's module configuration gives its loads' waits, never their locations, and every configuration an item's PCI
+     writes is a file the delivery serves.** The information model gives `primary-configuration` and
+     `secondary-configuration` one description: "Provides a URL which is a reference to a JSON configuration file which
+     describes the PCI module configuration to use for this interaction instance. Relative URLs indicate relative paths
+     in the QTI content package" (sections 5.77.1 and 5.77.2). It defines no member of the file. Only the implementation
+     guide does (section 3.7.12.2): `waitSeconds` "defines how long the delivery engine should wait for each Javascript
+     file to load before timing out. A setting of 0 indicates that no timeout should be used … If "waitSeconds" is not
+     specified then a default of 7 seconds should be assumed", and `paths` "provides a collection of AMD module name to
+     URL mappings"; the same section says "A delivery engine MAY apply security rules to the URLs from which it will
+     load Javascript files". The guide "does not include any normative requirements" (section 1.3; reading 82). So the
+     configuration is one "to use", and this delivery uses it for what it can use without loading a script the content
+     package's law has not held: it honours `waitSeconds` (0, no timeout; absent, 7), the primary configuration's for a
+     module's primary load and the secondary's for its fallback load, so a stated wait is never dropped; and it reads no
+     `paths`, a security rule on the URLs it loads script from, so a module loads only from its own `primary-path` and
+     `fallback-path`, the locations the ledger's law "Module held" holds to files the delivery serves (plate's R2,
+     `#plate/pci/resolve.ts`; `#ledger/module-held.ts`). Without it, a configuration's `paths` could stand in for a
+     module's missing primary path and load another file than the one the law held, first. "Module held" holds the wait
+     too: every `primary-configuration` and `secondary-configuration` a PCI of an item document writes names a file
+     among the item's served files (pantry's `ServedFile`), so the delivery can always read it, and a publish whose PCI
+     names one it does not serve (outside the package, or of an extension the media policy withholds) is refused. A
+     configuration the PCI does not write, the schema's default, is read where the item names that file and waits 7
+     where it does not, as before. A configuration file that is not a JSON object with, where written, a non-negative
+     finite `waitSeconds` gives plate's `pci-configuration-invalid` and the default wait; every other member is passed
+     over. A wait longer than a browser's timer holds (2,147,483.647 seconds: HTML's `setTimeout` takes its delay as a
+     WebIDL `long` of milliseconds, and a longer one wraps, firing early, at once just past the bound) is longer than
+     any session, so the frame arms no timer for it, as for 0 (`#plate/ui/portable-custom/frame-boot.ts`). An empty
+     configuration, valid as an `xs:anyURI`, names no file the item's media is served as, so it is refused too. This
+     moves no admission of stored content and no served line: GOLDEN-INSTALL's one configured PCI (a-d6d95092,
+     `counter.xml`, its configuration listed and served under edullm's policy) keeps its 30 seconds, and the K–2 forms
+     write no configuration, so each of their modules waits 7, each file 29 to 38 KB. This is not a case of documents in
+     conflict: the normative model leaves the file's members to the delivery. (Decided 2026-11-25 by edullm-bd on lane
+     MODULE-HELD's proposal, after lane RED's counterexample: a configuration's `paths` routed a module held at its own
+     fallback to another module's file.)

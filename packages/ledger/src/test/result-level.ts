@@ -51,9 +51,10 @@ import {
   wholeEntriesOf,
   workload,
 } from "@bjornpagen/grizzle";
-import { PackageName } from "@qti-pie/pantry/qti/limits.ts";
+import { EntryPath, PackageName } from "@qti-pie/pantry/qti/limits.ts";
 import { authorWrites, insertWrite } from "@qti-pie/pantry/qti/logins.ts";
 import { QtiLom } from "@qti-pie/pantry/qti/lom.ts";
+import { mediaPolicyWrites } from "@qti-pie/pantry/qti/media.ts";
 import { deliveryOf } from "#ledger/delivery.ts";
 import {
   evaluationProgramsOf,
@@ -82,6 +83,7 @@ import { attemptRowsOf } from "#ledger/attempt-rows.ts";
 import { savedRowsOf } from "#ledger/saved-rows.ts";
 import { sittingHeading, sittingOfSessionOf, takenHeading } from "#ledger/sitting-queries.ts";
 import { settleWrites } from "#ledger/test-run-writes.ts";
+import { itemRowsOf } from "#ledger/served-reads.ts";
 
 /**
  * The grader version of `rubric-score` the composition registers, in force for every item that
@@ -137,6 +139,7 @@ const {
   ItemSessionValueSingleIdentifier,
   ItemSessionValueSingleInteger,
   LastPresence,
+  MediaType,
   MemberPlace,
   OutcomeInForceSingleFloat,
   Package,
@@ -189,6 +192,7 @@ const facts = ChangeSet.empty(ResultLevel).insertAll({
 const Suite = role(ResultLevel, "result_runner", wholeEntriesOf(ResultLevel), {
   insert: [
     ...authorWrites.insert,
+    ...mediaPolicyWrites.insert,
     ...sessionWrites.insert,
     ...evaluationWrites.insert,
     ...personValueWrites.insert,
@@ -1023,6 +1027,35 @@ const finalsOf = query(ResultLevel).rule((r) => {
 });
 
 /**
+ * The installation's media policy as rows, each extension a player may fetch with the media type it
+ * is served as, the call's `types`, as an application writes its policy (edullm's publisher); a
+ * policy already written changes nothing.
+ */
+const writePolicy = ChangeSet.empty(ResultLevel).insert(
+  MediaType,
+  query(ResultLevel).rule((r) => {
+    const given = r.relation("types", {
+      extension: MediaType.fields.extension,
+      type: MediaType.fields.type,
+    });
+    const { extension, type } = v(given, "given");
+
+    return r.match(given, { extension, type }).find({ extension, type });
+  }),
+);
+
+/**
+ * The item document the call names, as opening it reads it (`itemRowsOf`, the read every
+ * application attaches under its own read of the item it serves): what served-item opens and
+ * routes its PCIs from.
+ */
+const servedItemOf = query(ResultLevel)
+  .rule((r) =>
+    r.find({ package: r.param("package", PackageName), path: r.param("path", EntryPath) }),
+  )
+  .attach("item", (found) => itemRowsOf(found), "array");
+
+/**
  * The tests of the call's package this runtime delivers (`DeliveredTest`), by their path.
  */
 const deliveredTestsOf = query(ResultLevel).rule((r) => {
@@ -1084,6 +1117,7 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       reviewOf,
       saveTestItem: sittingPrograms.saveTestItem.bind({ sittings: namedSitting }),
       savesOf,
+      servedItemOf,
       sessionsOf,
       sittingFacts,
       snapshotBooleansOf,
@@ -1104,6 +1138,7 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       testOutcomeFloatsOf,
       windowFacts,
       windowsOf,
+      writePolicy,
     }),
   ],
 });

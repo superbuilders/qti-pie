@@ -1698,6 +1698,14 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
       status: "G",
     },
   ],
+  [
+    246,
+    {
+      owner:
+        "the ledger's \"Module held\", every `primary-configuration` and `secondary-configuration` a PCI of an item writes one of the item's `ServedFile` rows (`ItemConfiguration`, `ServedConfiguration`, `src/module-held.ts`), held by `module-held.db.test.ts`; plate's R2, a configuration's `waitSeconds` read and its `paths` never (`#plate/pci/resolve.ts`), held by `pci/modules.test.ts`, and its frame arming no timer for a wait past a timer's bound (`#plate/ui/portable-custom/frame-boot.ts`), held by `frame-boot.test.ts`; pantry stores both configuration attributes as written and resolves them from the package root (`resolveFromRoot`)",
+      status: "G",
+    },
+  ],
 ]);
 
 /**

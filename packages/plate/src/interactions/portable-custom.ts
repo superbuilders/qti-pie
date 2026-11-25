@@ -46,6 +46,7 @@ import type {
   OwnRegion,
   ReaderKit,
 } from "#plate/interactions/contract.ts";
+import { collapseXmlSpace } from "#plate/model/attributes.ts";
 import type { BodyNode, Level, ModelLevel, Nodes, RedactedLevel } from "#plate/model/item.ts";
 import type { PciHostFacts, PciModuleRoute } from "#plate/pci/host.ts";
 
@@ -60,9 +61,11 @@ const feature = "Q-16";
 const element = "qti-portable-custom-interaction";
 
 /**
- * One `qti-interaction-module` of a Portable Custom Interaction (Q-16), as written: its `id`, and
- * its `primary-path` and `fallback-path`, each none when absent. The module resolves no path
- * (issue pci-01's `resolvePciModules` does); it carries them to the frame host.
+ * One `qti-interaction-module` of a Portable Custom Interaction (Q-16): its `id`, an `xs:NCName`
+ * read as `identifierOf` reads it, and its `primary-path` and `fallback-path`, each an `xs:anyURI`
+ * with its whitespace collapsed (reading 7, as the database reads all three), each none when
+ * absent. The module resolves no path (issue pci-01's `resolvePciModules` does); it carries them to
+ * the frame host.
  */
 interface PortableCustomModuleRef {
   readonly fallbackPath: Option.Option<string>;
@@ -148,7 +151,8 @@ export interface PortableCustomInteraction<L extends Level = ModelLevel> extends
    */
   readonly markup: Nodes<L>;
   /**
-   * The `module` attribute, the AMD module id, none when absent (then `modules` names it).
+   * The `module` attribute, the AMD module id, an `xs:NCName` read as `identifierOf` reads it
+   * (reading 7), none when absent (then `modules` names it).
    */
   readonly module: Option.Option<string>;
   readonly modules: PortableCustomModules;
@@ -298,20 +302,20 @@ const modulesOf = (read: ReaderKit, pci: SourceElement): PortableCustomModules =
       for (const module of read.childrenNamed(modules, "qti-interaction-module")) {
         read.markElement(module);
         listed.push({
-          fallbackPath: read.valueOf(module, "fallback-path"),
-          id: read.requiredValue(module, "id"),
-          primaryPath: read.valueOf(module, "primary-path"),
+          fallbackPath: Option.map(read.valueOf(module, "fallback-path"), collapseXmlSpace),
+          id: read.identifierOf(read.requiredValue(module, "id")),
+          primaryPath: Option.map(read.valueOf(module, "primary-path"), collapseXmlSpace),
         });
       }
 
       return {
         modules: listed,
         primaryConfiguration: Option.getOrElse(
-          read.valueOf(modules, "primary-configuration"),
+          Option.map(read.valueOf(modules, "primary-configuration"), collapseXmlSpace),
           () => defaultPrimaryConfiguration,
         ),
         secondaryConfiguration: Option.getOrElse(
-          read.valueOf(modules, "secondary-configuration"),
+          Option.map(read.valueOf(modules, "secondary-configuration"), collapseXmlSpace),
           () => defaultSecondaryConfiguration,
         ),
       };
@@ -502,7 +506,7 @@ export const portableCustomModule: InteractionModule<
       inertTemplates,
       kind: "portable-custom",
       markup,
-      module: read.valueOf(pci, "module"),
+      module: Option.map(read.valueOf(pci, "module"), read.identifierOf),
       modules,
       path: read.pathOf(pci),
       prompt,

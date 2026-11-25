@@ -11,10 +11,10 @@
  *   operator in the global namespace" (Table 5.37.2), and its `class`, which "allows simple
  *   sub-classes to be named. The definition of a sub-class is tool specific" (Table 5.37.1), must
  *   agree with it.
- * - **Portable custom interactions** (`qti-portable-custom-interaction`, ASI §5.106) are registered
- *   by none: every one is outside the profile (`unregisteredPci`), since each of AlphaTest's widget
- *   families is a standard interaction graded by standard operators (qti-port
- *   spec/idiomatic-widgets.md).
+ * - **Portable custom interactions** (`qti-portable-custom-interaction`, ASI §5.106) are no extension
+ *   of the roster: a PCI's module travels with its content, a file of its own package, which the
+ *   delivery level's "Module held" holds (`#ledger/module-held.ts`), and its response is graded by
+ *   its item's own response processing.
  * - **Machine graders**: who produced a recorded operator's value, at a version.
  *
  * A roster is a profile of QTI 3.0.1 (ASI §10.2: "a profile must only increase the constraints"):
@@ -240,5 +240,4 @@ export const profileReasons = [
   "rubricOperand",
   "literalOperand",
   "recordedPlacement",
-  "unregisteredPci",
 ] as const;

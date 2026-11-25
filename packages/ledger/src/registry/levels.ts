@@ -866,9 +866,10 @@ export const registryOf = (qti: typeof QtiLom, roster: Roster) => {
    *   that is no `qti-base-value`, so the operand is no fact of the content.
    * - `recordedPlacement`: a recorded class outside response processing, where no attempt's response
    *   exists.
-   * - `unregisteredPci`: every `qti-portable-custom-interaction`, since the deployment registers
-   *   none: each of AlphaTest's widget families is a standard interaction graded by standard
-   *   operators (spec/idiomatic-widgets.md).
+   *
+   * A portable custom interaction is in the profile: its module is a file of its own package, which
+   * the delivery level's "Module held" holds at its publish (`#ledger/module-held.ts`), not a
+   * registered extension.
    */
   const OutsideProfile = derived(
     "OutsideProfile",
@@ -1010,13 +1011,6 @@ export const registryOf = (qti: typeof QtiLom, roster: Roster) => {
           .match(boundOperators, { language, package: pkg, path, source: "recorded", start })
           .where(r.ne(language, "response"))
           .find({ package: pkg, path, reason: ProfileReason.handle("recordedPlacement"), start });
-      })
-      .rule((r) => {
-        const { package: pkg, path, start } = v(Node, "interaction");
-
-        return r
-          .match(Node, { kind: "qti-portable-custom-interaction", package: pkg, path, start })
-          .find({ package: pkg, path, reason: ProfileReason.handle("unregisteredPci"), start });
       }),
   );
 

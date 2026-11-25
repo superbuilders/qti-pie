@@ -127,7 +127,7 @@ export { pciModulesIn } from "#plate/pci/modules.ts";
 
 export type { ModuleRoute, PciModules, PciNotice, PciResolution } from "#plate/pci/resolve.ts";
 
-export { resolvePciModules } from "#plate/pci/resolve.ts";
+export { resolvePciModules, scriptLocationOf } from "#plate/pci/resolve.ts";
 
 export { shownResponses, startingResponses } from "#plate/starting.ts";
 
