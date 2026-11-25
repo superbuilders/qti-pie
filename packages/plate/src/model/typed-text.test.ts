@@ -12,12 +12,19 @@
  *
  * @module
  */
+import { availableParallelism } from "node:os";
 import { assert, describe, it } from "@effect/vitest";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { requiredInSpace } from "@bjornpagen/testing/features";
+import { array, element, map } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
 import { growthFactor, growthLimit, growthRatio } from "@qti-pie/crust/test/growth.ts";
-import { Effect, Option, Result } from "effect";
+import { Array as Arr, Duration, Effect, Option, Result } from "effect";
 import { readRecord, readTyped } from "#plate/model/typed-text.ts";
 import type { TypedReading, UnreadReason } from "#plate/model/typed-text.ts";
 import type { RecordField, RecordValue, Single } from "#plate/model/values.ts";
+import { boxHolds } from "#plate/test/box.ts";
 
 /**
  * Construct a box's reading for a test.
@@ -44,16 +51,6 @@ const read = (
   text: string,
   how: TypedReading,
 ): Effect.Effect<Option.Option<Single>, UnreadReason> => Effect.fromResult(readTyped(text, how));
-
-/**
- * Give why a box's text is unread, none when it reads.
- *
- * @param text The box's text.
- * @param how How it is read.
- * @returns The reason, or none.
- */
-const unreadOf = (text: string, how: TypedReading): Option.Option<UnreadReason> =>
-  Result.getFailure(readTyped(text, how));
 
 /**
  * Construct an integer single.
@@ -198,6 +195,162 @@ const parseQuadratically = (digits: string): bigint => {
   return total;
 };
 
+/**
+ * How long one case of a search here may run before it is stopped and reported.
+ */
+const caseHang = Duration.seconds(30);
+
+/**
+ * The pieces a float box's text is written with in the float box: a digit, a run of digits long
+ * enough as an exponent to put a numeral past the largest double, the point, both exponent marks,
+ * both signs, the space's other literals `INF` and `NaN`, a letter and the space, which XML white
+ * space a number sheds around it.
+ */
+const FLOAT_PIECES = ["1", "999", ".", "E", "e", "+", "-", "INF", "NaN", "a", " "] as const;
+
+/**
+ * Draw a text of the float box: every text of up to four of {@link FLOAT_PIECES}.
+ */
+const floatBoxText: Gen<string> = map(array(element(FLOAT_PIECES), { max: 4, min: 0 }), (pieces) =>
+  pieces.join(""),
+);
+
+/**
+ * How many texts {@link floatBoxText} draws: for each length of 0 to 4, every sequence of the
+ * pieces.
+ */
+const FLOAT_BOX_TEXTS = 1 + 11 + 11 ** 2 + 11 ** 3 + 11 ** 4;
+
+/**
+ * Whether a character is XML white space (XML 1.0 production [3] S): the space, the tab, the
+ * carriage return and the line feed.
+ *
+ * @param character One character.
+ * @returns Whether it is.
+ */
+const isXmlSpace = (character: string): boolean =>
+  character === " " || character === "\t" || character === "\r" || character === "\n";
+
+/**
+ * A text without its outer XML white space.
+ *
+ * @param text The text.
+ * @returns What stands between its first and its last character that is no XML white space.
+ */
+const withoutOuterSpace = (text: string): string => {
+  const characters = Array.from(text);
+  const first = Arr.findFirstIndex(characters, (character) => !isXmlSpace(character));
+  const last = Arr.findLastIndex(characters, (character) => !isXmlSpace(character));
+
+  return Option.match(Option.all([first, last]), {
+    onNone: () => "",
+    onSome: ([from, to]) => characters.slice(from, to + 1).join(""),
+  });
+};
+
+/**
+ * How many ASCII digits a text starts with.
+ *
+ * @param text The text.
+ * @returns The length of its leading run of digits.
+ */
+const leadingDigits = (text: string): number =>
+  Option.getOrElse(
+    Arr.findFirstIndex(Array.from(text), (character) => character < "0" || character > "9"),
+    () => text.length,
+  );
+
+/**
+ * A text without one leading sign.
+ *
+ * @param text The text.
+ * @returns The text after its `+` or `-`, the text itself when it starts with neither.
+ */
+const unsigned = (text: string): string =>
+  text.startsWith("+") || text.startsWith("-") ? text.slice(1) : text;
+
+/**
+ * Whether a text is a numeral of xs:double's lexical space as XML Schema 1.0 Part 2 states it
+ * (section 3.2.5): a mantissa, a decimal (section 3.2.3: an optional sign, then digits with an
+ * optional period before, among or after them, one digit at least), then optionally `E` or `e` and
+ * an exponent, an integer (an optional sign, then one digit or more). The space's other literals,
+ * `INF`, `-INF` and `NaN`, are no numerals.
+ *
+ * @param text The text, its outer white space shed.
+ * @returns Whether it is a numeral.
+ */
+const isDoubleNumeral = (text: string): boolean => {
+  const mantissa = unsigned(text);
+  const whole = leadingDigits(mantissa);
+  const afterWhole = mantissa.slice(whole);
+  const pointed = afterWhole.startsWith(".");
+  const fraction = pointed ? leadingDigits(afterWhole.slice(1)) : 0;
+  const rest = pointed ? afterWhole.slice(1 + fraction) : afterWhole;
+  if (whole + fraction === 0) {
+    return false;
+  }
+
+  if (rest === "") {
+    return true;
+  }
+
+  const exponent = unsigned(rest.slice(1));
+
+  return (
+    (rest.startsWith("E") || rest.startsWith("e")) &&
+    exponent !== "" &&
+    leadingDigits(exponent) === exponent.length
+  );
+};
+
+/**
+ * What a float box's text reaches that a reader could misread.
+ */
+const floatSituations = [
+  "no answer",
+  "a finite numeral",
+  "a numeral past the largest double",
+  "INF or NaN",
+  "no numeral",
+] as const;
+
+/**
+ * A {@link floatSituations} member.
+ */
+type FloatSituation = (typeof floatSituations)[number];
+
+/**
+ * What a float box gives for a text, by the rule the oracle states: no answer for text of XML
+ * white space alone, the double a finite numeral names (ECMAScript's StringToNumber, which rounds
+ * a decimal to the nearest double, ties to even, as XML Schema 1.1's doubleLexicalMap does), and
+ * `number` for every other text, `INF`, `-INF`, `NaN` and a numeral past the largest double among
+ * them (reading `bounded-double`).
+ *
+ * @param text The box's text.
+ * @returns What the box gives, and the situation the text reaches.
+ */
+const floatBoxExpected = (
+  text: string,
+): readonly [Result.Result<Option.Option<Single>, UnreadReason>, FloatSituation] => {
+  const lexical = withoutOuterSpace(text);
+  if (lexical === "") {
+    return [Result.succeedNone, "no answer"];
+  }
+
+  if (!isDoubleNumeral(lexical)) {
+    return [
+      Result.fail("number"),
+      ["INF", "-INF", "NaN"].includes(lexical) ? "INF or NaN" : "no numeral",
+    ];
+  }
+
+  const value = Number(lexical);
+
+  return Number.isFinite(value)
+    ? [Result.succeedSome({ baseType: "float", value }), "a finite numeral"]
+    : [Result.fail("number"), "a numeral past the largest double"];
+};
+
 describe("readTyped", () => {
   it.effect(
     "reads a string of XML white space alone as no answer under blankIsEmpty, as QTI's TextFormatEnum reads plain and preformatted text, and as the text otherwise",
@@ -221,15 +374,42 @@ describe("readTyped", () => {
       }),
   );
 
-  it("leaves abc, INF, -INF, NaN and a decimal beyond the largest double, an infinity, unread as a float", () => {
-    for (const text of ["abc", "INF", "-INF", "NaN", "1E999", "-1E999"]) {
-      assert.deepStrictEqual(
-        unreadOf(text, reading("float", 10, false)),
-        Option.some("number"),
-        text,
-      );
-    }
-  });
+  it.effect(
+    `reads as a float only a finite xs:double numeral, leaving INF, -INF, NaN, a numeral past the largest double and every other text unread, over every text of up to 4 of ${String(FLOAT_PIECES.length)} pieces: ${String(FLOAT_BOX_TEXTS)} texts`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(floatBoxText, FLOAT_BOX_TEXTS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every text of 0 to 4 pieces over a digit, 999, the point, E, e, both signs, INF, NaN, a letter and the space",
+              caseHang,
+              concurrency: availableParallelism(),
+              coverage: requiredInSpace<FloatSituation>(floatSituations),
+              generator: floatBoxText,
+              literal: (text) => JSON.stringify(text),
+              oracle: {
+                kind: "specification",
+                name: "XML Schema 1.0 Part 2's xs:double numeral (sections 3.2.5 and 3.2.3), transcribed here, after the outer XML white space a number sheds (XML 1.0 [3] S): a finite one reads as the double ECMAScript's StringToNumber names, ties to even as doubleLexicalMap; INF, -INF, NaN and one past the largest double are unread as no number (reading `bounded-double`), and blank text is no answer",
+              },
+              suite: "plate/typed-text/float-box",
+            },
+            (text, c) =>
+              Effect.sync(() => {
+                const [expected, situation] = floatBoxExpected(text);
+                c.note(situation);
+
+                assert.deepStrictEqual(
+                  readTyped(text, reading("float", 10, false)),
+                  expected,
+                  JSON.stringify(text),
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 
   it.effect(
     "reads 100,000 base-36 digits exactly, 8 times the digits in under 32 times the time",
