@@ -107,4 +107,1235 @@
     [data-slot="plate-hottext-choice"]:is(:has(:focus-visible), [data-mark]) {
     z-index: 1;
   }
+
+  /* == gap match: alpha-open-number-line == */
+
+  /*
+   * A Gap Match drawn as an open number line (`alpha-open-number-line` on the interaction), as the
+   * number line form closes it: its gapped content one author paragraph whose elements are, in
+   * order, the left end's label (a `span`), two to six gaps and the right end's label, with as many
+   * cards as gaps, each a single card, never a stack, and beside them no author element. Plate's
+   * own parts (the latest refusal, a paragraph of its own) never count, so a refusal never moves
+   * the line. Each rule below holds only there, so an interaction of the class with any other
+   * content draws as a plain Gap Match, never a guess at a line. A sheet sees elements, not text,
+   * so text between them stands in the row as it stands in any sentence. Where the cards stand is
+   * the author's (`qti-choices-top` in the form, plate's base sheet).
+   *
+   * Then: the gaps in one row of equal columns, so the positions stand evenly spaced (the child
+   * orders them, never estimates), each a target wide at least and as wide as its column allows up
+   * to a slot's width, so the row shrinks with the item down to the gaps' targets side by side;
+   * under them a line with an arrowhead at each end and no scale, a tick under each gap; the labels
+   * under the line's two ends, each at most half the line wide, its words, then its read-aloud
+   * control, which drops under the words where the two do not fit, in a band under the line two
+   * rows tall, so the labels never meet; every card a large bold numeral in figures of one width;
+   * and a card's place in the bank, once it stands in a gap, an empty frame, so its numeral shows
+   * once, where it was put. A number line runs left to right whatever the text's direction. It keys
+   * on the gaps' parts alone, so a review draws the same line.
+   */
+  .alpha-open-number-line:where(
+      :has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > span:first-child:not([data-slot])
+            + [data-slot="plate-gap"]
+            + [data-slot="plate-gap"]
+        ):has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > [data-slot="plate-gap"]
+            + span:last-child:not([data-slot])
+        ):not(
+          :has(
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"]),
+            > [data-slot="plate-placement"]
+              > p:not([data-slot])
+              > :not(:first-child, :last-child, [data-slot="plate-gap"])
+          )
+        ):is(
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(4):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(2 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(3 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(5):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(3 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(4 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(6):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(4 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(5 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(7):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(5 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(6 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(8):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(6 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(7 of [data-slot="plate-placement-chip"])
+              )
+            )
+        )
+    )
+    > [data-slot="plate-placement"]
+    > p:not([data-slot]) {
+    --alpha-line-stroke: 0.25rem;
+    --alpha-line-head: 1rem;
+    --alpha-line-drop: 1.5rem;
+    --alpha-line-labels: calc(
+      1lh + var(--plate-gap) + var(--plate-target-size) + var(--alpha-line-head)
+    );
+    --alpha-position: 10rem;
+    position: relative;
+    display: grid;
+    grid-auto-columns: minmax(var(--plate-target-size), 1fr);
+    grid-auto-flow: column;
+    align-items: end;
+    gap: var(--plate-gap);
+    max-inline-size: 48rem;
+    margin-block: 1rem;
+    padding-block-end: calc(var(--alpha-line-drop) + var(--alpha-line-labels));
+    padding-inline: calc(var(--alpha-line-head) * 1.5);
+    direction: ltr;
+  }
+
+  /* The line: a bar across the block with an arrowhead at each end, cut from one box. */
+  .alpha-open-number-line:where(
+      :has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > span:first-child:not([data-slot])
+            + [data-slot="plate-gap"]
+            + [data-slot="plate-gap"]
+        ):has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > [data-slot="plate-gap"]
+            + span:last-child:not([data-slot])
+        ):not(
+          :has(
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"]),
+            > [data-slot="plate-placement"]
+              > p:not([data-slot])
+              > :not(:first-child, :last-child, [data-slot="plate-gap"])
+          )
+        ):is(
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(4):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(2 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(3 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(5):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(3 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(4 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(6):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(4 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(5 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(7):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(5 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(6 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(8):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(6 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(7 of [data-slot="plate-placement-chip"])
+              )
+            )
+        )
+    )
+    > [data-slot="plate-placement"]
+    > p:not([data-slot])::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: calc(var(--alpha-line-labels) - var(--alpha-line-head) / 2);
+    block-size: var(--alpha-line-head);
+    background: currentColor;
+    clip-path: polygon(
+      0 50%,
+      var(--alpha-line-head) 0,
+      var(--alpha-line-head) calc(50% - var(--alpha-line-stroke) / 2),
+      calc(100% - var(--alpha-line-head)) calc(50% - var(--alpha-line-stroke) / 2),
+      calc(100% - var(--alpha-line-head)) 0,
+      100% 50%,
+      calc(100% - var(--alpha-line-head)) 100%,
+      calc(100% - var(--alpha-line-head)) calc(50% + var(--alpha-line-stroke) / 2),
+      var(--alpha-line-head) calc(50% + var(--alpha-line-stroke) / 2),
+      var(--alpha-line-head) 100%
+    );
+  }
+
+  /*
+   * Forced colours paint every background in the page's own colour, which would erase the line: it
+   * keeps the text's colour there, as the ticks' borders keep theirs. A used card's frame keeps its
+   * numeral unpainted there too.
+   */
+  @media (forced-colors: active) {
+    .alpha-open-number-line:where(
+        :has(
+            > [data-slot="plate-placement"]
+              > p:not([data-slot])
+              > span:first-child:not([data-slot])
+              + [data-slot="plate-gap"]
+              + [data-slot="plate-gap"]
+          ):has(
+            > [data-slot="plate-placement"]
+              > p:not([data-slot])
+              > [data-slot="plate-gap"]
+              + span:last-child:not([data-slot])
+          ):not(
+            :has(
+              > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+              > [data-slot="plate-placement"] > :not([data-slot], p),
+              [data-slot="plate-placement-bank"] > [data-copies],
+              [data-slot="plate-placement-bank"]
+                > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"]),
+              > [data-slot="plate-placement"]
+                > p:not([data-slot])
+                > :not(:first-child, :last-child, [data-slot="plate-gap"])
+            )
+          ):is(
+            :has(
+                > [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(4):last-child
+              ):has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(2 of [data-slot="plate-placement-chip"])
+              ):not(
+                :has(
+                  [data-slot="plate-placement-bank"]
+                    > :nth-child(3 of [data-slot="plate-placement-chip"])
+                )
+              ),
+            :has(
+                > [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(5):last-child
+              ):has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(3 of [data-slot="plate-placement-chip"])
+              ):not(
+                :has(
+                  [data-slot="plate-placement-bank"]
+                    > :nth-child(4 of [data-slot="plate-placement-chip"])
+                )
+              ),
+            :has(
+                > [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(6):last-child
+              ):has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(4 of [data-slot="plate-placement-chip"])
+              ):not(
+                :has(
+                  [data-slot="plate-placement-bank"]
+                    > :nth-child(5 of [data-slot="plate-placement-chip"])
+                )
+              ),
+            :has(
+                > [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(7):last-child
+              ):has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(5 of [data-slot="plate-placement-chip"])
+              ):not(
+                :has(
+                  [data-slot="plate-placement-bank"]
+                    > :nth-child(6 of [data-slot="plate-placement-chip"])
+                )
+              ),
+            :has(
+                > [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(8):last-child
+              ):has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(6 of [data-slot="plate-placement-chip"])
+              ):not(
+                :has(
+                  [data-slot="plate-placement-bank"]
+                    > :nth-child(7 of [data-slot="plate-placement-chip"])
+                )
+              )
+          )
+      )
+      > [data-slot="plate-placement"]
+      > p:not([data-slot])::before {
+      background: CanvasText;
+      forced-color-adjust: none;
+    }
+
+    .alpha-open-number-line:where(
+        :has(
+            > [data-slot="plate-placement"]
+              > p:not([data-slot])
+              > span:first-child:not([data-slot])
+              + [data-slot="plate-gap"]
+              + [data-slot="plate-gap"]
+          ):has(
+            > [data-slot="plate-placement"]
+              > p:not([data-slot])
+              > [data-slot="plate-gap"]
+              + span:last-child:not([data-slot])
+          ):not(
+            :has(
+              > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+              > [data-slot="plate-placement"] > :not([data-slot], p),
+              [data-slot="plate-placement-bank"] > [data-copies],
+              [data-slot="plate-placement-bank"]
+                > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"]),
+              > [data-slot="plate-placement"]
+                > p:not([data-slot])
+                > :not(:first-child, :last-child, [data-slot="plate-gap"])
+            )
+          ):is(
+            :has(
+                > [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(4):last-child
+              ):has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(2 of [data-slot="plate-placement-chip"])
+              ):not(
+                :has(
+                  [data-slot="plate-placement-bank"]
+                    > :nth-child(3 of [data-slot="plate-placement-chip"])
+                )
+              ),
+            :has(
+                > [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(5):last-child
+              ):has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(3 of [data-slot="plate-placement-chip"])
+              ):not(
+                :has(
+                  [data-slot="plate-placement-bank"]
+                    > :nth-child(4 of [data-slot="plate-placement-chip"])
+                )
+              ),
+            :has(
+                > [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(6):last-child
+              ):has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(4 of [data-slot="plate-placement-chip"])
+              ):not(
+                :has(
+                  [data-slot="plate-placement-bank"]
+                    > :nth-child(5 of [data-slot="plate-placement-chip"])
+                )
+              ),
+            :has(
+                > [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(7):last-child
+              ):has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(5 of [data-slot="plate-placement-chip"])
+              ):not(
+                :has(
+                  [data-slot="plate-placement-bank"]
+                    > :nth-child(6 of [data-slot="plate-placement-chip"])
+                )
+              ),
+            :has(
+                > [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(8):last-child
+              ):has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(6 of [data-slot="plate-placement-chip"])
+              ):not(
+                :has(
+                  [data-slot="plate-placement-bank"]
+                    > :nth-child(7 of [data-slot="plate-placement-chip"])
+                )
+              )
+          )
+      )
+      [data-slot="plate-placement-bank"]
+      > [data-slot="plate-placement-chip"][data-used] {
+      color: transparent;
+      forced-color-adjust: none;
+    }
+  }
+
+  /*
+   * Each gap a marked position, centred in its column over a tick from its middle across the line:
+   * what it holds as wide as the column allows, up to a slot's width, and never narrower than a
+   * target, whatever width a theme gives a slot.
+   */
+  .alpha-open-number-line:where(
+      :has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > span:first-child:not([data-slot])
+            + [data-slot="plate-gap"]
+            + [data-slot="plate-gap"]
+        ):has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > [data-slot="plate-gap"]
+            + span:last-child:not([data-slot])
+        ):not(
+          :has(
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"]),
+            > [data-slot="plate-placement"]
+              > p:not([data-slot])
+              > :not(:first-child, :last-child, [data-slot="plate-gap"])
+          )
+        ):is(
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(4):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(2 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(3 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(5):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(3 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(4 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(6):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(4 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(5 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(7):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(5 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(6 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(8):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(6 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(7 of [data-slot="plate-placement-chip"])
+              )
+            )
+        )
+    )
+    > [data-slot="plate-placement"]
+    > p:not([data-slot])
+    > [data-slot="plate-gap"] {
+    position: relative;
+    justify-self: center;
+    justify-content: center;
+    inline-size: min(100%, var(--alpha-position));
+    min-inline-size: 0;
+    margin: 0;
+  }
+
+  .alpha-open-number-line:where(
+      :has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > span:first-child:not([data-slot])
+            + [data-slot="plate-gap"]
+            + [data-slot="plate-gap"]
+        ):has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > [data-slot="plate-gap"]
+            + span:last-child:not([data-slot])
+        ):not(
+          :has(
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"]),
+            > [data-slot="plate-placement"]
+              > p:not([data-slot])
+              > :not(:first-child, :last-child, [data-slot="plate-gap"])
+          )
+        ):is(
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(4):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(2 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(3 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(5):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(3 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(4 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(6):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(4 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(5 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(7):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(5 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(6 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(8):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(6 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(7 of [data-slot="plate-placement-chip"])
+              )
+            )
+        )
+    )
+    > [data-slot="plate-placement"]
+    > p:not([data-slot])
+    > [data-slot="plate-gap"]
+    :is(
+      [data-slot="plate-placement-target"],
+      [data-slot="plate-placement-slot"],
+      [data-slot="plate-placement-chip"]
+    ) {
+    inline-size: 100%;
+    min-inline-size: var(--plate-target-size);
+    max-inline-size: 100%;
+  }
+
+  .alpha-open-number-line:where(
+      :has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > span:first-child:not([data-slot])
+            + [data-slot="plate-gap"]
+            + [data-slot="plate-gap"]
+        ):has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > [data-slot="plate-gap"]
+            + span:last-child:not([data-slot])
+        ):not(
+          :has(
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"]),
+            > [data-slot="plate-placement"]
+              > p:not([data-slot])
+              > :not(:first-child, :last-child, [data-slot="plate-gap"])
+          )
+        ):is(
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(4):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(2 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(3 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(5):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(3 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(4 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(6):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(4 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(5 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(7):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(5 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(6 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(8):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(6 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(7 of [data-slot="plate-placement-chip"])
+              )
+            )
+        )
+    )
+    > [data-slot="plate-placement"]
+    > p:not([data-slot])
+    > [data-slot="plate-gap"]::after {
+    content: "";
+    position: absolute;
+    inset-block-start: calc(100% + var(--alpha-line-drop) - var(--alpha-line-head) * 0.75);
+    inset-inline-start: calc(50% - var(--alpha-line-stroke) / 2);
+    block-size: calc(var(--alpha-line-head) * 1.5);
+    border-inline-start: var(--alpha-line-stroke) solid currentColor;
+  }
+
+  /*
+   * Its end labels, under the line's two ends: the first at the left, the last at the right, each
+   * at most half the line wide, so the two never meet; its words, then its read-aloud control,
+   * under the words where both do not fit.
+   */
+  .alpha-open-number-line:where(
+      :has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > span:first-child:not([data-slot])
+            + [data-slot="plate-gap"]
+            + [data-slot="plate-gap"]
+        ):has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > [data-slot="plate-gap"]
+            + span:last-child:not([data-slot])
+        ):not(
+          :has(
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"]),
+            > [data-slot="plate-placement"]
+              > p:not([data-slot])
+              > :not(:first-child, :last-child, [data-slot="plate-gap"])
+          )
+        ):is(
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(4):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(2 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(3 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(5):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(3 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(4 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(6):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(4 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(5 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(7):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(5 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(6 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(8):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(6 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(7 of [data-slot="plate-placement-chip"])
+              )
+            )
+        )
+    )
+    > [data-slot="plate-placement"]
+    > p:not([data-slot])
+    > :is(:first-child, :last-child) {
+    position: absolute;
+    inset-block-end: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--plate-gap);
+    max-inline-size: calc(50% - var(--plate-gap) / 2);
+    min-block-size: var(--plate-target-size);
+    font-weight: 600;
+  }
+
+  .alpha-open-number-line:where(
+      :has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > span:first-child:not([data-slot])
+            + [data-slot="plate-gap"]
+            + [data-slot="plate-gap"]
+        ):has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > [data-slot="plate-gap"]
+            + span:last-child:not([data-slot])
+        ):not(
+          :has(
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"]),
+            > [data-slot="plate-placement"]
+              > p:not([data-slot])
+              > :not(:first-child, :last-child, [data-slot="plate-gap"])
+          )
+        ):is(
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(4):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(2 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(3 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(5):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(3 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(4 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(6):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(4 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(5 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(7):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(5 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(6 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(8):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(6 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(7 of [data-slot="plate-placement-chip"])
+              )
+            )
+        )
+    )
+    > [data-slot="plate-placement"]
+    > p:not([data-slot])
+    > :first-child {
+    inset-inline-start: 0;
+  }
+
+  .alpha-open-number-line:where(
+      :has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > span:first-child:not([data-slot])
+            + [data-slot="plate-gap"]
+            + [data-slot="plate-gap"]
+        ):has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > [data-slot="plate-gap"]
+            + span:last-child:not([data-slot])
+        ):not(
+          :has(
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"]),
+            > [data-slot="plate-placement"]
+              > p:not([data-slot])
+              > :not(:first-child, :last-child, [data-slot="plate-gap"])
+          )
+        ):is(
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(4):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(2 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(3 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(5):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(3 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(4 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(6):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(4 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(5 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(7):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(5 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(6 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(8):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(6 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(7 of [data-slot="plate-placement-chip"])
+              )
+            )
+        )
+    )
+    > [data-slot="plate-placement"]
+    > p:not([data-slot])
+    > :last-child {
+    inset-inline-end: 0;
+    justify-content: flex-end;
+    text-align: end;
+  }
+
+  /* Its cards, in the bank and in the gaps: large bold numerals, in figures of one width. */
+  .alpha-open-number-line:where(
+      :has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > span:first-child:not([data-slot])
+            + [data-slot="plate-gap"]
+            + [data-slot="plate-gap"]
+        ):has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > [data-slot="plate-gap"]
+            + span:last-child:not([data-slot])
+        ):not(
+          :has(
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"]),
+            > [data-slot="plate-placement"]
+              > p:not([data-slot])
+              > :not(:first-child, :last-child, [data-slot="plate-gap"])
+          )
+        ):is(
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(4):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(2 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(3 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(5):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(3 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(4 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(6):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(4 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(5 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(7):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(5 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(6 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(8):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(6 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(7 of [data-slot="plate-placement-chip"])
+              )
+            )
+        )
+    )
+    :is(
+      [data-slot="plate-placement-bank"] > [data-slot="plate-placement-chip"],
+      [data-slot="plate-gap"] [data-slot="plate-placement-chip"]
+    ) {
+    justify-content: center;
+    font-size: 1.75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* A card's place in the bank while the card stands in a gap: its frame, its numeral unpainted. */
+  .alpha-open-number-line:where(
+      :has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > span:first-child:not([data-slot])
+            + [data-slot="plate-gap"]
+            + [data-slot="plate-gap"]
+        ):has(
+          > [data-slot="plate-placement"]
+            > p:not([data-slot])
+            > [data-slot="plate-gap"]
+            + span:last-child:not([data-slot])
+        ):not(
+          :has(
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"]),
+            > [data-slot="plate-placement"]
+              > p:not([data-slot])
+              > :not(:first-child, :last-child, [data-slot="plate-gap"])
+          )
+        ):is(
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(4):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(2 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(3 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(5):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(3 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(4 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(6):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(4 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(5 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(7):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(5 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(6 of [data-slot="plate-placement-chip"])
+              )
+            ),
+          :has(> [data-slot="plate-placement"] > p:not([data-slot]) > :nth-child(8):last-child):has(
+              [data-slot="plate-placement-bank"]
+                > :nth-child(6 of [data-slot="plate-placement-chip"])
+            ):not(
+              :has(
+                [data-slot="plate-placement-bank"]
+                  > :nth-child(7 of [data-slot="plate-placement-chip"])
+              )
+            )
+        )
+    )
+    [data-slot="plate-placement-bank"]
+    > [data-slot="plate-placement-chip"][data-used] {
+    color: transparent;
+  }
+
+  /* == gap match: alpha-symbol-compare == */
+
+  /*
+   * A Gap Match drawn as a comparison of two numbers (`alpha-symbol-compare` on the interaction),
+   * as the comparison form closes it: its gapped content one author paragraph whose one element is
+   * its gap, between the two numerals, with three single symbol cards, and beside them no author
+   * element (plate's own parts, the latest refusal among them, never count). Each rule below holds
+   * only there; any other content draws as a plain Gap Match. Where the cards stand is the author's
+   * (`qti-choices-bottom` in the form, plate's base sheet); this draws only what the shared
+   * vocabulary cannot say: the sentence on one line, its numerals large and bold in figures of one
+   * width, at most 72 px and smaller in a narrow item, so four digits either side still fit; the
+   * gap a box the symbol fills at the numerals' size, never smaller than a target; and the symbol
+   * cards in the bank large, each the same size. It keys on the gaps' parts alone, so a review
+   * draws the same sentence.
+   */
+  .alpha-symbol-compare:where(
+      :has(
+          > [data-slot="plate-placement"] > p:not([data-slot]) > [data-slot="plate-gap"]:only-child
+        ):has(
+          [data-slot="plate-placement-bank"] > :nth-child(3 of [data-slot="plate-placement-chip"])
+        ):not(
+          :has(
+            [data-slot="plate-placement-bank"]
+              > :nth-child(4 of [data-slot="plate-placement-chip"]),
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"])
+          )
+        )
+    )
+    > [data-slot="plate-placement"] {
+    container-type: inline-size;
+  }
+
+  .alpha-symbol-compare:where(
+      :has(
+          > [data-slot="plate-placement"] > p:not([data-slot]) > [data-slot="plate-gap"]:only-child
+        ):has(
+          [data-slot="plate-placement-bank"] > :nth-child(3 of [data-slot="plate-placement-chip"])
+        ):not(
+          :has(
+            [data-slot="plate-placement-bank"]
+              > :nth-child(4 of [data-slot="plate-placement-chip"]),
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"])
+          )
+        )
+    )
+    > [data-slot="plate-placement"]
+    > p:not([data-slot]) {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.4em;
+    margin-block: 1rem;
+    font-size: clamp(1.75rem, 12cqi, 4.5rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .alpha-symbol-compare:where(
+      :has(
+          > [data-slot="plate-placement"] > p:not([data-slot]) > [data-slot="plate-gap"]:only-child
+        ):has(
+          [data-slot="plate-placement-bank"] > :nth-child(3 of [data-slot="plate-placement-chip"])
+        ):not(
+          :has(
+            [data-slot="plate-placement-bank"]
+              > :nth-child(4 of [data-slot="plate-placement-chip"]),
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"])
+          )
+        )
+    )
+    > [data-slot="plate-placement"]
+    > p:not([data-slot])
+    > [data-slot="plate-gap"] {
+    flex: none;
+    min-inline-size: max(1.34em, var(--plate-target-size));
+    margin: 0;
+  }
+
+  .alpha-symbol-compare:where(
+      :has(
+          > [data-slot="plate-placement"] > p:not([data-slot]) > [data-slot="plate-gap"]:only-child
+        ):has(
+          [data-slot="plate-placement-bank"] > :nth-child(3 of [data-slot="plate-placement-chip"])
+        ):not(
+          :has(
+            [data-slot="plate-placement-bank"]
+              > :nth-child(4 of [data-slot="plate-placement-chip"]),
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"])
+          )
+        )
+    )
+    > [data-slot="plate-placement"]
+    > p:not([data-slot])
+    > [data-slot="plate-gap"]
+    > [data-slot="plate-placement-target"] {
+    justify-content: center;
+    min-inline-size: max(1.34em, var(--plate-target-size));
+    min-block-size: max(1.34em, var(--plate-target-size));
+  }
+
+  .alpha-symbol-compare:where(
+      :has(
+          > [data-slot="plate-placement"] > p:not([data-slot]) > [data-slot="plate-gap"]:only-child
+        ):has(
+          [data-slot="plate-placement-bank"] > :nth-child(3 of [data-slot="plate-placement-chip"])
+        ):not(
+          :has(
+            [data-slot="plate-placement-bank"]
+              > :nth-child(4 of [data-slot="plate-placement-chip"]),
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"])
+          )
+        )
+    )
+    > [data-slot="plate-placement"]
+    > p:not([data-slot])
+    > [data-slot="plate-gap"]
+    :is([data-slot="plate-placement-slot"], [data-slot="plate-placement-chip"]) {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    min-inline-size: max(1.34em, var(--plate-target-size));
+    min-block-size: max(1.34em, var(--plate-target-size));
+    padding: 0;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: 1;
+  }
+
+  .alpha-symbol-compare:where(
+      :has(
+          > [data-slot="plate-placement"] > p:not([data-slot]) > [data-slot="plate-gap"]:only-child
+        ):has(
+          [data-slot="plate-placement-bank"] > :nth-child(3 of [data-slot="plate-placement-chip"])
+        ):not(
+          :has(
+            [data-slot="plate-placement-bank"]
+              > :nth-child(4 of [data-slot="plate-placement-chip"]),
+            > [data-slot="plate-placement"] > p:not([data-slot]) ~ p:not([data-slot]),
+            > [data-slot="plate-placement"] > :not([data-slot], p),
+            [data-slot="plate-placement-bank"] > [data-copies],
+            [data-slot="plate-placement-bank"]
+              > :not([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"])
+          )
+        )
+    )
+    [data-slot="plate-placement-bank"]
+    > [data-slot="plate-placement-chip"] {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    min-inline-size: max(var(--plate-target-size), 7.5rem);
+    min-block-size: max(var(--plate-target-size), 6rem);
+    font-size: 3.5rem;
+    font-weight: 700;
+    line-height: 1;
+  }
 }

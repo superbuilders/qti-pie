@@ -35,4 +35,19 @@ export const alphaClasses = {
    */
   "alpha-number-strip-start":
     "a number strip's start, the numeral its count starts from, highlighted over its card",
+  /**
+   * On a `qti-gap-match-interaction` of the number line form: its one paragraph, the left end's
+   * label, its gaps and the right end's label, drawn as an open number line, the gaps marked
+   * positions evenly spaced over an arrow with no scale, a tick under each, the labels under the
+   * line's ends, the cards large numerals. Only that closed structure is drawn so; any other
+   * content stays a plain Gap Match. Where the cards stand is the author's `qti-choices-top`.
+   */
+  "alpha-open-number-line": "a Gap Match's gaps as marked positions on an open number line",
+  /**
+   * On a `qti-gap-match-interaction` of the comparison form: its one paragraph, a numeral, the gap
+   * and a numeral, drawn on one line with the numerals large and the gap a box the symbol fills at
+   * their size, the three symbol cards large. Only that closed structure is drawn so; any other
+   * content stays a plain Gap Match. Where the cards stand is the author's `qti-choices-bottom`.
+   */
+  "alpha-symbol-compare": "a Gap Match's sentence as two large numerals with the symbol's gap",
 } as const;
