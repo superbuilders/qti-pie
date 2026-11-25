@@ -53,7 +53,8 @@ import { searchWidth } from "#pantry/test/settings.ts";
 const grammar = Result.getOrThrow(composed());
 
 /**
- * The trees every property is checked over: the one generator's, over the composed grammar.
+ * The trees every property is checked over: the one generator's, over the composed grammar, up to
+ * 200 nodes and depth 7 a tree.
  */
 const documents = xdmDocument(grammar);
 
@@ -420,11 +421,6 @@ describe("assemble", () => {
   it.effect(
     "gives back every generated tree from its rows, every list in any order, up to the order of its sets, to the same canonical bytes",
     (ctx) =>
-      // Oracle: a universal one, the round trip assemble ∘ flatten = id up to the order of each
-      // element's attributes and namespace declarations, sets, so held by the rows they flatten
-      // to, and the canonical bytes of the tree assembled equal to the source tree's; row order
-      // is not data.
-      // Bound: the generator's drawn bounds, up to 200 nodes and depth 7 a tree.
       searched(
         ctx,
         explore(
@@ -451,7 +447,7 @@ describe("assemble", () => {
             literal: Formatter.format,
             oracle: {
               kind: "universal",
-              name: "the round trip assemble ∘ flatten = id up to set order, to the same canonical bytes",
+              name: "the round trip assemble ∘ flatten = id up to the order of each element's attributes and namespace declarations, sets, so held by the rows they flatten to, and the canonical bytes of the tree assembled equal to the source tree's; row order is not data",
             },
             runs: 150,
             shrink: completeShrink,
@@ -477,10 +473,6 @@ describe("assemble", () => {
   );
 
   it.effect("refuses each named row variant as a node row outside flatten's image", (ctx) =>
-    // Oracle: the specification as a checker, trees.md §6: every row variant edits a node's
-    // parent, slot or interval so that no tree's rows hold it, and the document row and every
-    // other list are as the tree wrote them, so the nodes list is the first to leave the image.
-    // Bound: the generator's drawn bounds, every row variant a tree admits.
     searched(
       ctx,
       explore(
@@ -495,7 +487,7 @@ describe("assemble", () => {
           literal: Formatter.format,
           oracle: {
             kind: "specification",
-            name: "trees.md §6: a row variant's node rows are no tree's, its other rows its tree's",
+            name: "trees.md §6, over every row variant a tree admits: each edits a node's parent, slot or interval so that no tree's rows hold it, and the document row and every other list are as the tree wrote them, so the nodes list is the first to leave the image",
           },
           runs: 150,
           shrink: completeShrink,
@@ -533,8 +525,6 @@ describe("assemble", () => {
   it.effect(
     "refuses rows outside flatten's image: a row a node names missing, any row repeated, a node of a kind its parent cannot hold",
     (ctx) =>
-      // Oracle: the specification as a checker, the rows flatten writes for some tree.
-      // Bound: the generator's drawn bounds, one edit a case.
       searched(
         ctx,
         explore(
@@ -549,7 +539,7 @@ describe("assemble", () => {
             literal: Formatter.format,
             oracle: {
               kind: "specification",
-              name: "the rows flatten writes for some tree: a row missing, repeated or misplaced leaves that image",
+              name: "the rows flatten writes for some tree: a row missing, repeated or misplaced, one edit a case, leaves that image",
             },
             runs: 150,
             shrink: completeShrink,
@@ -648,16 +638,11 @@ describe("assemble", () => {
   it.effect(
     "assembles exactly the rows flatten writes for some tree, over every small document and every single-field edit of a node row",
     (ctx) =>
-      // Oracle: the image, enumerated: every document of at most three nodes below the document
-      // node, its rows' canonical form against the edited rows'. Rows the image
-      // holds assemble to their document; rows it does not are refused.
-      // Bound: every such document in each prefix and governing type, and every edit of
-      // one field of one node row to each value of the box.
       searched(
         ctx,
         exhaust(
           {
-            box: `every document of at most ${String(SMALL_NODES)} nodes below the document node, unedited and with each single-field edit of a node row: ${String(smallCases.length)} cases`,
+            box: `every document of at most ${String(SMALL_NODES)} nodes below the document node in each prefix and governing type, unedited and with each edit of one field of one node row to each value of the box: ${String(smallCases.length)} cases`,
             caseHang,
             concurrency: searchWidth,
             coverage: requiredInSpace<SmallFeature>([
@@ -676,7 +661,7 @@ describe("assemble", () => {
             literal: Formatter.format,
             oracle: {
               kind: "second-implementation",
-              name: "the image of every small document, enumerated, by canonical form",
+              name: "the image of every small document, enumerated: its rows' canonical form against the edited rows', so rows the image holds assemble to their document and rows it does not are refused",
             },
             suite: "model/assemble-small-image",
           },

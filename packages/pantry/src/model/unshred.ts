@@ -391,7 +391,9 @@ export const toXmlDocument = <V extends XdmVocabulary>(
  * The tree is converted by {@link toXmlDocument} and encoded by crust in `exportCharset`. A
  * document exported in a label other than the one it was read under has its XML declaration name
  * that label, so the bytes decode as they are written; a document without a declaration gains none.
- * The label was decided at import, and nothing falls back to another.
+ * The label was decided at import, and nothing falls back to another. Every character of the tree
+ * is one crust's reader admitted at import, so the writer's refusal of a character XML allows
+ * nowhere would be a defect of the rows, never a refusal of the package.
  *
  * @param document - The tree to write.
  * @param names - The vocabulary's names, for every kind and closed attribute name the tree holds.
@@ -412,8 +414,6 @@ export const unshred = Effect.fn("model.unshred")(function* unshred<V extends Xd
     Option.map((declaration) => ({ ...declaration, encoding: Option.some(exportCharset) })),
   );
 
-  // Every character of the tree is one crust's reader admitted at import, so the writer's refusal of
-  // a character XML allows nowhere would be a defect of the rows, never a refusal of the package.
   return yield* encode(
     exportCharset === charset ? tree : { ...tree, declaration: relabelled },
     exportCharset,

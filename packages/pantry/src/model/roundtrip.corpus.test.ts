@@ -231,7 +231,8 @@ const erasuresIn = (root: Element): ReadonlySet<Erasure> => {
 
 /**
  * Encode a document as today's export writes a tree: in the label `exportCharset` decides from the
- * label it was read under, its XML declaration naming that label when it differs.
+ * label it was read under, its XML declaration naming that label when it differs. A tree the reader
+ * read holds only characters XML allows, so the writer's WriteRefusal would be a defect.
  *
  * @param doc - The document.
  * @returns Its export bytes, or crust's `EncodeError`.
@@ -249,11 +250,7 @@ const exportBytes = (doc: XmlDocument): Effect.Effect<Uint8Array, EncodeError> =
           ),
         },
     label,
-  ).pipe(
-    // A tree the reader read holds only characters XML allows, so the writer's WriteRefusal would
-    // be a defect.
-    Effect.catchTag("WriteRefusal", Effect.die),
-  );
+  ).pipe(Effect.catchTag("WriteRefusal", Effect.die));
 };
 
 /**
