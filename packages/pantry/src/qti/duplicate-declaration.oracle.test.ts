@@ -16,18 +16,20 @@
  * the test's `ref1.SCORE`, a variable mapping's source and a `qti-test-variables`) and its template
  * `N` (its template processing, a printed variable and the test's template default), with one of
  * the two declared one, two or three times: each added declaration of the original's codes or of
- * others, all of them before the original or after it. 28 packages, exhausted ({@link caseOf}).
+ * others, all of them before the original or after it where any is added. 26 packages, exhausted
+ * ({@link duplicateCase}).
  */
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
-import { array, boolean, map } from "@bjornpagen/testing/gen";
+import { array, boolean, element } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Duration, Effect } from "effect";
 import { grammar } from "#pantry/grammar/install.ts";
 import { readProgram } from "#pantry/import/program.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { declarationQueryLawsOf } from "#pantry/test/declaration-queries.ts";
 import { everyRelationPackage, scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import type { PackageEntries } from "#pantry/test/gen/every-relation.ts";
@@ -116,36 +118,37 @@ interface Case extends Added {
 }
 
 /**
- * How many times a name is declared with its added declarations: the original's once more for
- * each.
- *
- * @param codes - The added declarations' codes.
- * @returns The times.
+ * The codes an added declaration takes, each its own: the original's, or others.
  */
-const timesOf = (codes: readonly Codes[]): Times => {
-  if (codes.length === 0) {
-    return "declared once";
-  }
+const CODES = ["same", "other"] as const satisfies readonly Codes[];
 
-  return codes.length === 1 ? "declared twice" : "declared three times";
+/**
+ * Draw a case: one of the two names, none, one or two added declarations, each of the original's
+ * codes or others, and, where it adds any, whether they stand before the original or after it.
+ */
+const duplicateCase: Gen<Case> = (source) => {
+  const name = source.draw(element([score, template]));
+  const codes = source.draw(array(element(CODES), { max: 2, min: 0 }));
+  const before = codes.length > 0 && source.draw(boolean);
+
+  return {
+    before,
+    codes,
+    name,
+    times:
+      codes.length === 0
+        ? "declared once"
+        : codes.length === 1
+          ? "declared twice"
+          : "declared three times",
+  };
 };
 
 /**
- * Draw a case: either declared name (`SCORE` or `N`), up to two added declarations, each of the
- * original's codes or of others, and whether they stand before the original or after its element.
- * With none added, the item is the base's, declared once.
+ * How many cases {@link duplicateCase} draws: for each of the two names, its declaration alone, and
+ * each of the 2 + 4 lists of one or two codes before the original or after it.
  */
-const caseOf: Gen<Case> = (source) => {
-  const name = source.draw(boolean) ? template : score;
-  const codes = source.draw(
-    array(
-      map(boolean, (other): Codes => (other ? "other" : "same")),
-      { max: 2, min: 0 },
-    ),
-  );
-
-  return { before: source.draw(boolean), codes, name, times: timesOf(codes) };
-};
+const DUPLICATE_CASES = 2 * (1 + (2 + 4) * 2);
 
 /**
  * Name a case.
@@ -215,11 +218,12 @@ const names = (features: ReadonlySet<string>, prefix: string): boolean =>
 
 layer(NodeServices.layer, { excludeTestServices: true })("a second declaration of a name", (it) => {
   it.effect(
-    "is refused by Declaration key alone, on the import's rows as in the law oracle",
+    `is refused by Declaration key alone, on the import's rows as in the law oracle: ${String(DUPLICATE_CASES)} cases`,
     (ctx) =>
       searched(
         ctx,
         Effect.gen(function* duplicateDeclarationRuns() {
+          yield* boxHolds(duplicateCase, DUPLICATE_CASES);
           const directory = yield* scratchDirectory("duplicate-declaration-");
           const bench = { directory, grammar, laws };
           const item = new TextDecoder().decode(base.get(itemPath));
@@ -236,7 +240,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("a second declaration o
                 "declared three times",
                 "declared twice",
               ]),
-              generator: caseOf,
+              generator: duplicateCase,
               literal: caseLiteral,
               oracle: {
                 kind: "second-implementation",
