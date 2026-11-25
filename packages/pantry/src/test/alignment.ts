@@ -1706,6 +1706,14 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
       status: "G",
     },
   ],
+  [
+    247,
+    {
+      owner:
+        "every integer value read in `xs:integer`'s lexical space: the value domains' `integerPattern` (`src/grammar/domains.ts`), plate's `parseLexical`, the ledger's walks; a typed integer read by plate's `readTyped`; plate's codec reading each integer only as its canonical digits (`IntegerFromDigits`, `codec/values.ts`); no verdict moves",
+      status: "G",
+    },
+  ],
 ]);
 
 /**

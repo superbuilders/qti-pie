@@ -64,11 +64,31 @@ const namedFloats: Readonly<Record<typeof FloatNames.Type, number>> = {
 };
 
 /**
- * A float as a Schema whose encoded form survives JSON text: a finite number other than negative
- * zero stays a number, and the infinities, NaN and negative zero are written by name. The decode
- * reads the four names back and refuses any other string, so a stored value has one spelling.
+ * A check that a number the stored form writes as a JSON number is not negative zero, the number
+ * `JSON.parse("-0")` gives: zero has one spelling, `0`, and negative zero, where it is a value of
+ * its own, is written by name (spec reading 247).
+ *
+ * @param issue What to change, in words, when the number is negative zero.
+ * @returns The check.
  */
-const FloatFromJson = Schema.Union([Schema.Finite, FloatNames]).pipe(
+const isNotNegativeZero = (issue: string) =>
+  Schema.makeFilter((number: number) => (Object.is(number, -0) ? issue : undefined));
+
+/**
+ * A float the stored form writes as a JSON number: a finite number other than negative zero, which
+ * only its name `"-0"` writes, so the number `-0` is no second spelling of it.
+ */
+const FloatNumber = Schema.Finite.check(
+  isNotNegativeZero('negative zero is written by name; write "-0"'),
+);
+
+/**
+ * A float as a Schema whose encoded form survives JSON text: a finite number other than negative
+ * zero stays a number ({@link FloatNumber}), and the infinities, NaN and negative zero are written
+ * by name. The decode reads exactly what the encode writes, the four names and those numbers, so a
+ * stored value has one spelling.
+ */
+const FloatFromJson = Schema.Union([FloatNumber, FloatNames]).pipe(
   Schema.decodeTo(
     Schema.Number,
     SchemaTransformation.transform({
@@ -83,6 +103,30 @@ const FloatFromJson = Schema.Union([Schema.Finite, FloatNames]).pipe(
 );
 
 /**
+ * An integer's stored form: its canonical decimal digits, `0` or an optional `-` and digits whose
+ * first is not `0`, as `String` writes a `bigint` and XML Schema writes an integer canonically
+ * (Part 2, section 3.3.13.2). The decimal of each integer is one text, so `+7`, `007`, ` 7` and
+ * `-0` are none.
+ */
+const canonicalInteger = /^(?:0|-?[1-9][0-9]*)$/u;
+
+/**
+ * An integer as a Schema whose encoded form is its canonical decimal digits ({@link
+ * canonicalInteger}): the encode writes what `String` writes of the `bigint`, and the decode reads
+ * that form and no other, so a stored or posted integer has one spelling, as a float has ({@link
+ * FloatFromJson}). It decodes plate's own output, a value the host already holds as an integer,
+ * never text a candidate typed: a box's text is read by `readTyped`, which reads QTI's lexical
+ * space, `+7`, `007` and ` 7` among it, before any value is posted (spec reading 247).
+ */
+const IntegerFromDigits = Schema.String.check(
+  Schema.makeFilter((digits: string) =>
+    canonicalInteger.test(digits)
+      ? undefined
+      : "an integer is written as its decimal digits, with no + sign, no leading zero, no white space and 0 for zero: write 7 for +7 or 007, and 0 for -0",
+  ),
+).pipe(Schema.decodeTo(Schema.BigInt, SchemaTransformation.bigintFromString));
+
+/**
  * A MIME type as a posted file reports it: `type/subtype`, each a token of RFC 2045's `token`
  * production, with no parameters, in any case; or the empty string, which a browser reports for a
  * file whose type it does not know. A `File`'s `type` is one of these two and nothing else.
@@ -92,14 +136,17 @@ const FloatFromJson = Schema.Union([Schema.Finite, FloatNames]).pipe(
 const mimeType = /^(?:[!#$%&'*+\-.^_`|~0-9A-Za-z]+\/[!#$%&'*+\-.^_`|~0-9A-Za-z]+)?$/u;
 
 /**
- * A posted file's metadata as a Schema; its type is `FileValue`. The name holds only characters
- * XML can carry, since a result writes it; the size is a count of bytes, a non-negative safe
- * integer; the type is a MIME type or the empty string ({@link mimeType}). No field holds a byte of
- * the file.
+ * A posted file's metadata as a Schema; its type is `FileValue`. The name holds only characters XML
+ * can carry, since a result writes it; the size is a count of bytes, a non-negative safe integer
+ * whose zero is `0`, never the number `-0`; the type is a MIME type or the empty string ({@link
+ * mimeType}). No field holds a byte of the file.
  */
 const FileValueSchema = Schema.Struct({
   name: XmlText,
-  size: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  size: Schema.Int.check(
+    Schema.isGreaterThanOrEqualTo(0),
+    isNotNegativeZero("a file's size is a count of bytes; write 0 for -0"),
+  ),
   type: Schema.String.check(
     Schema.makeFilter((text: string) =>
       mimeType.test(text)
@@ -112,23 +159,23 @@ const FileValueSchema = Schema.Struct({
 /**
  * The Schema of one QTI value, tagged by its base type; its type is {@link Single}.
  *
- * An integer is exact at any size. Its encoded form is its decimal digits, which `parseLexical`
- * reads to the same value, so a value decoded from a record is one the parser could have read. A
- * point is two such integers, x then y, each encoded as its decimal digits. A string or a URI holds
- * only characters XML can carry. A float is an xs:double. Its encoded form is a JSON number when it
- * is finite and not negative zero, and otherwise `"INF"`, `"-INF"`, `"NaN"` or `"-0"`, so
- * `JSON.stringify` keeps every float. A file is its name, size and type ({@link FileValueSchema}),
- * never its bytes.
+ * An integer is exact at any size. Its encoded form is its canonical decimal digits ({@link
+ * IntegerFromDigits}), which `parseLexical` reads to the same value, so a value decoded from a
+ * record is one the parser could have read. A point is two such integers, x then y, each encoded as
+ * its canonical decimal digits. A string or a URI holds only characters XML can carry. A float is
+ * an xs:double. Its encoded form is a JSON number when it is finite and not negative zero, and
+ * otherwise `"INF"`, `"-INF"`, `"NaN"` or `"-0"`, so `JSON.stringify` keeps every float. A file is
+ * its name, size and type ({@link FileValueSchema}), never its bytes.
  */
 const SingleSchema = Schema.Union([
   Schema.Struct({ baseType: Schema.Literal("identifier"), value: IdentifierText }),
   Schema.Struct({ baseType: Schema.Literal("boolean"), value: Schema.Boolean }),
-  Schema.Struct({ baseType: Schema.Literal("integer"), value: Schema.BigIntFromString }),
+  Schema.Struct({ baseType: Schema.Literal("integer"), value: IntegerFromDigits }),
   Schema.Struct({ baseType: Schema.Literal("float"), value: FloatFromJson }),
   Schema.Struct({ baseType: Schema.Literal("string"), value: XmlText }),
   Schema.Struct({
     baseType: Schema.Literal("point"),
-    value: Schema.Tuple([Schema.BigIntFromString, Schema.BigIntFromString]),
+    value: Schema.Tuple([IntegerFromDigits, IntegerFromDigits]),
   }),
   Schema.Struct({
     baseType: Schema.Literal("pair"),

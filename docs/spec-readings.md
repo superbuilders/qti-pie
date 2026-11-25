@@ -5448,3 +5448,69 @@ C2: the oracle's own reader.)
      conflict: the normative model leaves the file's members to the delivery. (Decided 2026-11-25 by edullm-bd on lane
      MODULE-HELD's proposal, after lane RED's counterexample: a configuration's `paths` routed a module held at its own
      fallback to another module's file.)
+
+247. **An integer's text is read in `xs:integer`'s lexical space, so `+7` and `007` name 7; a Text Entry bound to an
+     integer reads the candidate's text in that space, in its `base`; and plate's codec, which carries an integer
+     already read, writes and reads each integer in one spelling, its canonical digits.** The XSD types a value's text
+     as a string and fixes no integer form in it: `qti-value` is a `ValueDType`, an extension of `xs:normalizedString`
+     (`imsqti_asiv3p0p1_v1p0.xsd` line 34905), `qti-base-value` a `BaseValueDType`, an extension of `xs:string` (line
+     34176), and `map-key` an `xs:normalizedString` (reading 7). The information model decides: its integer base type is
+     "the same as the set of values defined by the integer primitiveType" (section 8.14, BaseTypeEnum, normative), and
+     wherever the XSD types that primitive itself, it is one of XML Schema's integers: IntegerOrVariableRef, whose super
+     class is "Integer (PrimitiveType)" (section 9.3.3), is a union whose integer member is
+     `<xs:restriction base="xs:integer" />` (`qti-random-integer`'s `min` and `max`, lines 24345 to 24361; `figures`,
+     lines 27126 to 27130), and IntegerList, of which "Each integer value is of primitiveType Integer" (section 9.1.2),
+     is `IntegerListDType`, a restriction of `xs:int` (line 23961). The two share one lexical space: "integer has a
+     lexical representation consisting of a finite-length sequence of decimal digits (#x30-#x39) with an optional
+     leading sign. If the sign is omitted, "+" is assumed. For example: -1, 0, 12678967543233, +100000." (XML Schema
+     Part 2, section 3.3.13.1; `int`'s, section 3.3.17.1, says the same). The canonical representation, which prohibits
+     "the preceding optional "+" sign" and "leading zeroes" (section 3.3.13.2), is the one form of each value a
+     processor writes, never a bound on what it reads. The informative texts agree: Appendix A1.3 gives "Integer - the
+     integer data-type (this is derived from the "decimal" data-type i.e. no decimal places)", and the binding's Table
+     2.9, in a section marked "This Section is NOT NORMATIVE", "This is mapped to the XML "xs:integer" data-type". So,
+     as reading 34 reads a boolean through its primitive's type, `+7`, `007` and `+007` are the integer 7 in a
+     `qti-value`, a `qti-base-value`, a `map-key`, a default and a correct response alike, trimmed in element text and
+     collapsed in an attribute (reading 7), at any size (reading 45); `7.0`, `1e3`, `0x7`, a fullwidth `７`, `7 7`, `+`
+     and `-` are no integer. plate's `parseLexical` (`integerLexical`, `src/model/values.ts`), pantry's integer domain
+     (`integerPattern`, `src/grammar/domains.ts`) and the ledger's walks (`integerText`, `src/walks.ts`) read it so, and
+     the QTI database's `p3.xml_single` reads only text pantry admitted.
+
+     A response variable's value is a value of its base type, an integer for an integer response, never text, and QTI
+     3.0.1 states no form in which a candidate's client hands one to a delivery engine: the one binding for exchanging a
+     variable, a PCI's JSON, writes an integer as a JSON number (`{ "base" : {"integer" : 123 } }`, the implementation
+     guide's Appendix C, a guide that "does not include any normative requirements"). So how plate carries a value it
+     holds is plate's own format, not a lexical form of QTI's, and policy: `PostedResponses` (`src/codec/values.ts`),
+     the one codec of a posted answer, writes an integer, and each coordinate of a point, as its canonical decimal
+     digits (`0`, or an optional `-` and digits whose first is not `0`, as `String` writes a `bigint`) and reads that
+     form and no other (`IntegerFromDigits`), and it writes negative zero by its name `"-0"` alone, never as the number
+     `-0` (`FloatNumber`), and a file's size, a count of bytes, writes zero as `0` alone. Each value then has one
+     encoded form, as each float already had, and the codec reads exactly what it writes: its own output, never a
+     candidate's text, which the next paragraph reads before any value is posted. It had decoded an integer by Effect's
+     `BigIntFromString`, `^-?\d+$`, which took `007` and `-0` beside `7` and `0`.
+
+     The information model says of a Text Entry's `base`: "If the string interaction is bound to a numeric response
+     variable then the base attribute must be used to set the number base in which to interpret the value entered by the
+     candidate" (section 5.162.2; of an Extended Text, section 5.48.1), and the XSD types it `xs:int` with
+     `default="10"` (line 33540). It states no syntax for the entered text: white space around it, a sign and leading
+     zeros are open, and section 2.4.2.2's "the numeric value of the string typed by the candidate" stands in a section
+     marked "This Section is NOT NORMATIVE". This reading reads the text as a value of the base type the response is
+     declared with, in the lexical space above, in the interaction's base: XML white space (space, tab, line feed,
+     carriage return) at either end is shed, as `xs:integer`'s `collapse` sheds it, then an optional `+` or `-` and one
+     or more digits below the base, `a` to `z` in either case from 10, leading zeros allowed, exact at any size (reading
+     45). Blank text is no answer, and any other text is no value of the base type, of which the response holds none. So
+     ` 7`, `7 `, `+7` and `007` are 7 in base 10, and `0x7`, `7.0`, `1e3`, a no-break space beside a digit and `1 000`
+     are no integer. plate's `readTyped` (`src/model/typed-text.ts`), from which the typed islands derive their
+     responses and which `@qti-pie/plate` exports for server code, is this reading's one implementation, and a record's
+     `integerValue` (reading 191) reads its digits so.
+
+     A grader that reads a candidate's typed text, AlphaTest's marked grader among them, reads it by the third
+     paragraph, and a value an item writes by the first; neither is read by plate's codec, which reads no text.
+     AlphaTest's marked grader at backend 0e52b86b read a typed integer by `^-?[0-9]+$`, untrimmed and within 32 bits,
+     after plate's `BigIntFromString`, and so refused ` 7`, `7 ` and `+7`, which qti-pie's delivery grades as 7. This
+     binds plate, pantry and the QTI database. It changes no verdict of qti-pie's: its readers of an item's integers and
+     of a typed one already read so, and its islands post only canonical integers and negative zero by name, so the
+     codec's one spelling refuses nothing a page posts. This is not a case of documents in conflict: the XSD fixes no
+     integer form, the information model's primitive does, and a typed number's syntax and plate's own format are open,
+     which the coordinator ruled. (Stated 2026-11-25 by lane SPEC-INTEGER, on metis's AT-GRADING differential, under the
+     owner's rule that QTI 3.0.1's normative text decides; the codec's one spelling and the typed syntax decided the
+     same day by the coordinator, edullm-bd.)

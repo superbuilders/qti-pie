@@ -59,6 +59,19 @@ const singleInput = (baseType: string, values: readonly object[]) => ({
   values,
 });
 
+/**
+ * Decide whether {@link ValueSchema} decodes a single value of a base type whose encoded value is
+ * as given.
+ *
+ * @param baseType The value's base type.
+ * @param written The encoded value of its one single.
+ * @returns Whether the decode succeeds.
+ */
+const decodesSingle = (baseType: string, written: Schema.Json): boolean =>
+  Result.isSuccess(
+    Schema.decodeUnknownResult(ValueSchema)(singleInput(baseType, [{ baseType, value: written }])),
+  );
+
 describe("ValueSchema", () => {
   it.effect("encodes and decodes through its Schema", () =>
     Effect.gen(function* valueRoundTrips() {
@@ -126,6 +139,54 @@ describe("ValueSchema", () => {
       );
 
       assert.isTrue(Result.isFailure(decoded), JSON.stringify(coordinates));
+    }
+  });
+
+  it("decodes an integer only from its canonical digits, the form the encode writes", () => {
+    for (const written of ["0", "7", "-7", "10", String(-(10n ** 400n))]) {
+      assert.isTrue(decodesSingle("integer", written), written);
+    }
+
+    for (const written of [
+      "+7",
+      "007",
+      "-07",
+      "00",
+      "-0",
+      " 7",
+      "7 ",
+      "",
+      "-",
+      "7.0",
+      "1e3",
+      "0x7",
+      "\uFF17",
+    ]) {
+      assert.isFalse(decodesSingle("integer", written), JSON.stringify(written));
+    }
+
+    assert.isTrue(decodesSingle("point", ["0", "-12"]));
+    for (const coordinates of [
+      ["+1", "2"],
+      ["1", "02"],
+      ["-0", "2"],
+      [" 1", "2"],
+    ]) {
+      assert.isFalse(decodesSingle("point", coordinates), JSON.stringify(coordinates));
+    }
+  });
+
+  it('decodes negative zero only from its name "-0", never from the number -0', () => {
+    assert.isFalse(decodesSingle("float", -0));
+    assert.isFalse(decodesSingle("duration", -0));
+    assert.isTrue(decodesSingle("float", "-0"));
+    assert.isTrue(decodesSingle("float", 0));
+  });
+
+  it("decodes a file's size of zero only from the number 0, never from -0", () => {
+    for (const size of [0, -0]) {
+      const decodes = decodesSingle("file", { name: "a.png", size, type: "image/png" });
+      assert.strictEqual(decodes, Object.is(size, 0), String(size));
     }
   });
 
