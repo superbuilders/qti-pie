@@ -6,13 +6,11 @@
  * MathLive math field under AlphaTest's virtual keyboard, the field's LaTeX its response.
  *
  * The field is MathLive's custom element, made once the island mounts, from MathLive's module
- * loaded then: a page with no math entry loads none of it, and the server's markup holds the
- * field's place, an empty span. It is set up by `setUpField` with plate's settings and keyboard,
- * the settings and keys the field's suite holds plate to (`#specimen/ui/math-entry.test.ts` in
- * qti-pie's specimen). MathLive is told to load neither fonts nor sounds: its fonts are the
- * page's, from plate's base sheet, which imports MathLive's own (`mathlive/fonts.css`), so the
- * host's build serves them from its own origin; and the field plays no sound, as AlphaTest's never
- * did, so no click competes with read-aloud. Nothing loads from another host.
+ * loaded then as plate loads it, once a page (`#plate/math-entry/mathlive.ts`): a page with no math
+ * entry loads none of it, and the server's markup holds the field's place, an empty span. It is set
+ * up by `setUpField` with plate's settings and keyboard, the settings and keys the field's suite
+ * holds plate to (`#specimen/ui/math-entry.test.ts` in qti-pie's specimen). Nothing loads from
+ * another host.
  *
  * @module
  */
@@ -78,11 +76,9 @@ const makeField = async (
   hooks: FieldHooks,
   made: (field: MathfieldElement) => void,
 ): Promise<void> => {
-  const { MathfieldElement: Field } = await import("mathlive");
+  const { Field } = await import("#plate/math-entry/mathlive.ts");
 
   if (!gone.aborted) {
-    Field.fontsDirectory = null;
-    Field.soundsDirectory = null;
     const field = new Field();
 
     field.value = hooks.opened;

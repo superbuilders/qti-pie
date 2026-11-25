@@ -19,6 +19,9 @@
  *   every key that types nothing) posts on plate's field what it posts on AlphaTest's player's.
  * - ME4, the thin space and the template's place: a mixed number typed `2 1/2` posts `2\,\frac12`,
  *   and the fraction key after a 3 makes an empty fraction beside it, the 3 left whole.
+ * - ME5, a key's own work: ME1 and ME4 post the same in a page whose `Math.random` draws one number
+ *   every time, where MathLive alone would name keys alike and run one key's command for
+ *   another's.
  *
  * Its kills, each a slip planted in plate's field as the page sets it up, which ME1, ME4 and
  * ME3's kept sequences catch: smart fences off, smart superscripts on, MathLive's inline shortcuts
@@ -485,6 +488,35 @@ const withShortcuts = (
 };
 
 /**
+ * Plate's `setUpField` in a page whose `Math.random` draws one number from then on, as MathLive's
+ * draw did for two keys whenever it named them alike: every assignment of `setUpField`'s, written
+ * here, since a page runs a setup's function from its own source. ME5 opens pages of its own for
+ * it, so no other rule's page draws so.
+ *
+ * @param field The field.
+ * @param keyboard The page's keyboard.
+ * @param settings The options.
+ * @param layout The layout.
+ */
+const drawingAlike = (
+  field: MathfieldElement,
+  keyboard: VirtualKeyboardInterface,
+  settings: Setup["settings"],
+  layout: VirtualKeyboardLayout,
+): void => {
+  Math.random = () => 0.5;
+  field.smartFence = settings.smartFence;
+  field.smartMode = settings.smartMode;
+  field.smartSuperscript = settings.smartSuperscript;
+  field.placeholderSymbol = settings.placeholderSymbol;
+  field.scriptDepth = settings.scriptDepth;
+  field.inlineShortcuts = settings.inlineShortcuts;
+  field.mathModeSpace = settings.mathModeSpace;
+  field.menuItems = settings.menuItems;
+  keyboard.layouts = [layout];
+};
+
+/**
  * The kills.
  */
 const kills: readonly Kill[] = [
@@ -727,6 +759,27 @@ layer(FieldsLayer, { timeout: Duration.millis(ruleHang) })("plate's math entry",
           "every slip is caught",
         );
       }),
+    ruleHang,
+  );
+
+  it.effect(
+    "ME5: every key alone, and the thin space and the template's place, post the same where every draw of Math.random is one number",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* drawnAlikeRule() {
+          const fields = yield* Effect.orDie(mathEntryFields(fieldCount));
+          const disagreements = yield* aloneAndFacts(fields, {
+            ...plateField,
+            setUp: drawingAlike,
+          });
+
+          assert.deepStrictEqual(
+            disagreements,
+            [],
+            "each key does its own work, however MathLive's draws fall",
+          );
+        }),
+      ),
     ruleHang,
   );
 });

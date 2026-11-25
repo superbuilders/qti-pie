@@ -29,15 +29,19 @@
  * - Its cut of a value longer than 100 characters to its first 100, which can split a LaTeX command;
  * - Its fonts and sounds, which its build served from no address, so its fields drew in fallback
  *   fonts and its keys made no sound. plate's base sheet serves MathLive's fonts, and the field
- *   plays no sound, as AlphaTest's never did, so no click competes with read-aloud.
+ *   plays no sound, as AlphaTest's never did, so no click competes with read-aloud;
+ * - Its keys' ids, which MathLive drew at random each time it built the keyboard, so that about one
+ *   keyboard in 300 gave two keys one id, and a press on the earlier ran the later's command, such
+ *   as a `\geq` that moved the caret left. plate's page counts its keys' ids
+ *   ({@link countKeycaps}).
  *
  * The bottom row's `class` `.digit` is kept although it reads as a slip, since it changes what the
  * keys show: it replaces the classes MathLive's own shortcut keys carry, so those keys show as a
  * digit's do, the layer's `.digit` rule matching no key.
  *
- * The module is data and one self-contained function, imported by the island and by the field's
+ * The module is data and two self-contained functions, imported by the island and by the field's
  * test support (`#specimen/ui/math-entry.ts` in qti-pie's specimen), which runs
- * {@link setUpField}'s own source in the page it drives.
+ * {@link setUpField}'s and {@link countKeycaps}'s own source in the page it drives.
  *
  * @module
  * @see https://mathlive.io/mathfield/guides/virtual-keyboard/
@@ -302,4 +306,43 @@ export const setUpField = (
   field.mathModeSpace = settings.mathModeSpace;
   field.menuItems = settings.menuItems;
   keyboard.layouts = [layout];
+};
+
+/**
+ * Give the page's virtual keyboard's keys ids it counts, in place of the ids MathLive draws.
+ * MathLive 0.105.3 names each key of a keyboard it builds `ML__k`, the last two base-36 digits of
+ * the millisecond and a random whole number below 100,000 (`registerKeycap`), keeps one key per
+ * name, and on a press runs the key its element's name holds: of two keys a build named alike, the
+ * earlier runs the later's command. Of 6,000 builds of AlphaTest's 40 keys in Chrome, 19 named two
+ * keys alike (PANTRY-CULL, 2026-11-24). Counted from 1 over the page's life, no two keys are named
+ * alike; the shortcut keys MathLive names itself, such as `[left]`, are read as MathLive reads
+ * them.
+ *
+ * The keyboard is the page's, shared by every field in it, so the page counts its keys once, as it
+ * loads MathLive (`#plate/math-entry/mathlive.ts`), before the keyboard is first built. The
+ * function reads nothing but its argument, so its own source runs where it is written out, as
+ * {@link setUpField}'s does.
+ *
+ * @param keyboard The page's virtual keyboard, MathLive's `window.mathVirtualKeyboard`.
+ */
+export const countKeycaps = (keyboard: VirtualKeyboardInterface): void => {
+  const keycaps = new Map<string, Partial<VirtualKeyboardKeycap>>();
+  const shortcutOf = keyboard.getKeycap.bind(keyboard);
+  let counted = 0;
+
+  Object.assign(keyboard, {
+    getKeycap: (id: string): Partial<VirtualKeyboardKeycap> | undefined =>
+      shortcutOf(id) ?? keycaps.get(id),
+    registerKeycap: (keycap: Partial<VirtualKeyboardKeycap>): string => {
+      counted += 1;
+      const id = `ML__k${counted.toString(36)}`;
+
+      keycaps.set(id, keycap);
+
+      return id;
+    },
+    resetKeycapRegistry: (): void => {
+      keycaps.clear();
+    },
+  });
 };

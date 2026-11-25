@@ -44,6 +44,7 @@ import {
   alphaTestLayout,
   alphaTestRows,
   alphaTestSettings,
+  countKeycaps,
   fieldSettings,
   keyboardKeys,
   keyboardLayout,
@@ -327,7 +328,12 @@ const mathliveFolder = path.dirname(fileURLToPath(import.meta.resolve("mathlive"
 
 /**
  * The page: MathLive's module, its fonts from its own sheet as plate's base sheet gives them, and
- * MathLive told to load neither fonts nor sounds itself, as plate's island tells it.
+ * MathLive set up for the page as plate sets it up once a page (`#plate/math-entry/mathlive.ts`):
+ * told to load neither fonts nor sounds itself, and its keyboard's keys given counted ids by
+ * `countKeycaps`'s own source. Every setup's field runs in such a page, AlphaTest's player's
+ * among them: the ids MathLive draws at random gave two keys one id about one keyboard in 300, a
+ * defect AlphaTest's player had and plate does not keep, so ME3 holds plate to AlphaTest's keys
+ * without it, and no draw decides a run.
  */
 const pageHtml = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>math entry</title>
@@ -336,6 +342,7 @@ const pageHtml = `<!doctype html>
 import { MathfieldElement } from "/mathlive/mathlive.min.mjs";
 MathfieldElement.fontsDirectory = null;
 MathfieldElement.soundsDirectory = null;
+(${String(countKeycaps)})(window.mathVirtualKeyboard);
 window.fieldReady = customElements.whenDefined("math-field");
 </script></head><body></body></html>`;
 
