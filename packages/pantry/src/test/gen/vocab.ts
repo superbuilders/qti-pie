@@ -54,9 +54,6 @@ export const constraintAdmits = (
     case "##other": {
       return namespace !== "" && namespace !== own;
     }
-    default: {
-      return constraint satisfies never;
-    }
   }
 };
 
@@ -172,13 +169,7 @@ const endsOf = (
           case "sequence": {
             return sequenceEnds(particle.particles, from);
           }
-          default: {
-            return particle.compositor satisfies never;
-          }
         }
-      }
-      default: {
-        return particle satisfies never;
       }
     }
   };

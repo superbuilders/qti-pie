@@ -352,9 +352,6 @@ class InvalidLengthFacets extends Schema.TaggedError<InvalidLengthFacets>()("Inv
         case "minLength <= maxLength": {
           return spelled.join(" beside ");
         }
-        default: {
-          return this.rule satisfies never;
-        }
       }
     })();
 

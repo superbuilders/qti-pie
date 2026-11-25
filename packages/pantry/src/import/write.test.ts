@@ -297,9 +297,6 @@ const classOfNode = (node: XdmChild<Composed>): NodeClass => {
     case "entityRef": {
       return node._tag;
     }
-    default: {
-      return node satisfies never;
-    }
   }
 };
 

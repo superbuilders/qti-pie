@@ -2455,9 +2455,6 @@ const mapSets = (tree: Regex, map: (set: CodeSet) => Regex): Regex => {
     case "repeat": {
       return repeat(mapSets(tree.body, map), tree.min, tree.max);
     }
-    default: {
-      return tree satisfies never;
-    }
   }
 };
 
@@ -2480,9 +2477,6 @@ const alphabetOf = (tree: Regex): CodeSet => {
     }
     case "repeat": {
       return alphabetOf(tree.body);
-    }
-    default: {
-      return tree satisfies never;
     }
   }
 };
@@ -2511,9 +2505,6 @@ const firstSetOf = (tree: Regex): CodeSet => {
     case "repeat": {
       return firstSetOf(tree.body);
     }
-    default: {
-      return tree satisfies never;
-    }
   }
 };
 
@@ -2537,9 +2528,6 @@ const reversed = (tree: Regex): Regex => {
     }
     case "repeat": {
       return repeat(reversed(tree.body), tree.min, tree.max);
-    }
-    default: {
-      return tree satisfies never;
     }
   }
 };
@@ -2588,9 +2576,6 @@ const firstIn = (tree: Regex, set: CodeSet): Regex => {
         firstIn(tree.body, set),
         repeat(tree.body, Math.max(tree.min - 1, 0), tree.max.pipe(Option.map((most) => most - 1))),
       );
-    }
-    default: {
-      return tree satisfies never;
     }
   }
 };
@@ -2651,9 +2636,6 @@ const positionsOf = (tree: Regex): number => {
         positionsOf(tree.body) *
         Option.match(tree.max, { onNone: () => tree.min + 1, onSome: (most) => most })
       );
-    }
-    default: {
-      return tree satisfies never;
     }
   }
 };
@@ -2766,9 +2748,6 @@ const automatonOf = (tree: Regex): Automaton => {
         });
 
         return sequence([...Array.from({ length: node.min }, () => once), ...more]);
-      }
-      default: {
-        return node satisfies never;
       }
     }
   };
@@ -3423,9 +3402,6 @@ const spacesOf = (tree: Regex): Spaces => {
         nullable: tree.min === 0 || body.nullable,
       };
     }
-    default: {
-      return tree satisfies never;
-    }
   }
 };
 
@@ -3468,9 +3444,6 @@ const spacesToRuns = (tree: Regex, inRun = false): Regex => {
         tree.min,
         tree.max,
       );
-    }
-    default: {
-      return tree satisfies never;
     }
   }
 };
@@ -3562,9 +3535,6 @@ const glushkovOf = (tree: Regex, run: Option.Option<Run> = Option.none()): Glush
         last: inner.last,
         nullable: tree.min === 0 || inner.nullable,
       };
-    }
-    default: {
-      return tree satisfies never;
     }
   }
 };
@@ -3807,9 +3777,6 @@ const emit = (tree: Regex): string => {
       const body = emit(tree.body);
 
       return spellRepeat(isAtom(tree.body) ? body : `(?:${body})`, tree.min, tree.max);
-    }
-    default: {
-      return tree satisfies never;
     }
   }
 };

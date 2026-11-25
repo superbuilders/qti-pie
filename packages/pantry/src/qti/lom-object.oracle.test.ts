@@ -95,9 +95,6 @@ const valueOf = (form: (typeof forms)[number], own: string): string | undefined 
     case "another": {
       return `${own} two`;
     }
-    default: {
-      return form satisfies never;
-    }
   }
 };
 

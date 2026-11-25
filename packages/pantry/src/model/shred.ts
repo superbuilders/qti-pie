@@ -908,9 +908,6 @@ const characterOf = (child: Exclude<Child, Element>, replaced: boolean): XdmChar
     case "entityRef": {
       return { _tag: "entityRef", name: child.name };
     }
-    default: {
-      return child satisfies never;
-    }
   }
 };
 

@@ -482,10 +482,6 @@ const statedRows: Gen<StatedRow> = (source) => {
         view,
       };
     }
-
-    default: {
-      return view satisfies never;
-    }
   }
 };
 
@@ -595,10 +591,6 @@ const checksOver = (row: StatedRow): readonly string[] => {
           what,
         ).checks,
       );
-    }
-
-    default: {
-      return row satisfies never;
     }
   }
 };

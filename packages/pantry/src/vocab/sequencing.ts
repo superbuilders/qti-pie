@@ -275,9 +275,6 @@ const bodyOf = (
         nullable: inner.every(({ nullable }) => nullable),
       };
     }
-    default: {
-      return compositor satisfies never;
-    }
   }
 };
 

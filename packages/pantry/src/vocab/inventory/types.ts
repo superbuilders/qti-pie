@@ -280,9 +280,6 @@ export const contentParticle = (content: ContentType): Option.Option<Particle> =
     case "simple": {
       return Option.none();
     }
-    default: {
-      return content satisfies never;
-    }
   }
 };
 

@@ -154,9 +154,6 @@ const childBoundsOf = (particle: Particle): ChildBounds => {
               min: Math.min(...parts.map(({ min }) => min)),
             };
       }
-      default: {
-        return particle satisfies never;
-      }
     }
   })();
   const most = maxOccursOf(particle.occurs);

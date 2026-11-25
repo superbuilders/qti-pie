@@ -96,10 +96,6 @@ const identifierOf = (input: SharedCase, at: number): string => {
     case "distinct": {
       return `item${String(at)}`;
     }
-
-    default: {
-      return input.spelling satisfies never;
-    }
   }
 };
 

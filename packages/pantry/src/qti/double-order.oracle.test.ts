@@ -520,9 +520,6 @@ const attributesOf = ({ carrier, forms: [low, high] }: OrderCase): ReadonlyMap<s
         ["normal-maximum", high],
       ]);
     }
-    default: {
-      return carrier satisfies never;
-    }
   }
 };
 

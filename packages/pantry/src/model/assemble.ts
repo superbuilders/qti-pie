@@ -224,9 +224,6 @@ export class RowsOutsideImage extends Schema.TaggedError<RowsOutsideImage>()("Ro
 
         return `The ${this.rows} row at (${this.key}) holds ${field} ${found}, where the tree the rows read as writes ${written}. ${repair}`;
       }
-      default: {
-        return this.departure satisfies never;
-      }
     }
   }
 }
@@ -833,9 +830,6 @@ const appendTo = <V extends XdmVocabulary>(parent: Owner<V>, child: Built<V>): b
 
       return true;
     }
-    default: {
-      return child satisfies never;
-    }
   }
 };
 
@@ -896,9 +890,6 @@ const placeInDocument = <V extends XdmVocabulary>(
     }
     case "document": {
       return false;
-    }
-    default: {
-      return child satisfies never;
     }
   }
 };

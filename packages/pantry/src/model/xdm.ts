@@ -397,9 +397,6 @@ export const attributePrefixOf = <V extends XdmVocabulary>(name: XdmAttributeNam
     case "no-namespace": {
       return "";
     }
-    default: {
-      return name satisfies never;
-    }
   }
 };
 
@@ -766,9 +763,6 @@ const openNameOf = (name: OpenName): Pick<OpenAttributeRow, "class" | "local" | 
     case "foreign": {
       return { class: name._tag, local: name.local, uri: name.uri };
     }
-    default: {
-      return name satisfies never;
-    }
   }
 };
 
@@ -898,9 +892,6 @@ export const flatten = <V extends XdmVocabulary>(document: XdmDocument<V>): Flat
         nodes.push({ ...row, kind: node._tag, prefix: "" });
         valued[node._tag].push({ start, value: node.value });
         break;
-      }
-      default: {
-        return node satisfies never;
       }
     }
   }

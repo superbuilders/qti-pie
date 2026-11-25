@@ -826,9 +826,6 @@ export const elementsOf = (
     case "sequence": {
       return particle.particles.flatMap(elementsOf);
     }
-    default: {
-      return particle satisfies never;
-    }
   }
 };
 
@@ -957,9 +954,6 @@ export const wordOf =
           }
 
           return drawn;
-        }
-        default: {
-          return particle satisfies never;
         }
       }
     };
@@ -1257,9 +1251,6 @@ export const wildcardsOf = (
     case "sequence": {
       return particle.particles.flatMap(wildcardsOf);
     }
-    default: {
-      return particle satisfies never;
-    }
   }
 };
 
@@ -1339,9 +1330,6 @@ export const acceptorOf = (
                 ? parts.every(({ nullable }) => nullable)
                 : parts.length === 0 || parts.some(({ nullable }) => nullable),
           };
-        }
-        default: {
-          return node satisfies never;
         }
       }
     })();

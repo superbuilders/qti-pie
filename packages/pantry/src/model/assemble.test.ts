@@ -334,9 +334,6 @@ const editedRow = (row: NodeRow<Composed>, edit: NodeEdit): NodeRow<Composed> =>
     case "kind": {
       return { ...row, kind: edit.value };
     }
-    default: {
-      return edit satisfies never;
-    }
   }
 };
 

@@ -247,8 +247,5 @@ export const noised = (genome: Genome, noise: Noise, salt: number): Genome => {
     case "path-rename": {
       return pathRename(genome, salt);
     }
-    default: {
-      return noise satisfies never;
-    }
   }
 };

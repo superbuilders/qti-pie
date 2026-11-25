@@ -607,9 +607,6 @@ const oracleLine = (verdict: OracleVerdict): string => {
     case "inapplicable": {
       return `xmllint does not apply: ${verdict.reason}`;
     }
-    default: {
-      return verdict satisfies never;
-    }
   }
 };
 
@@ -635,9 +632,6 @@ const outcomeLine = (outcome: Outcome): string => {
     }
     case "unread": {
       return `unread: ${outcome.message}`;
-    }
-    default: {
-      return outcome satisfies never;
     }
   }
 };

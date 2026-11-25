@@ -448,9 +448,6 @@ const refusedVerdicts = (
     case "Uncompiled": {
       throw refusal.error;
     }
-    default: {
-      return refusal satisfies never;
-    }
   }
 };
 

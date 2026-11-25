@@ -232,9 +232,6 @@ const wordOf =
 
         return Array.from({ length: times }, () => source.draw(wordOf(tree.body))).join("");
       }
-      default: {
-        return tree satisfies never;
-      }
     }
   };
 
@@ -362,9 +359,6 @@ const rawCase: Gen<RawCase> = (source) => {
       }
       case "wild": {
         return source.draw(insertedInto(word, source.draw(element(wildCharacters))));
-      }
-      default: {
-        return variant satisfies never;
       }
     }
   })();

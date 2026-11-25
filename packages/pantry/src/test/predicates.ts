@@ -621,9 +621,6 @@ const operandsOf = (term: Term): readonly Term[] => {
     case "unread": {
       return [];
     }
-    default: {
-      return term satisfies never;
-    }
   }
 };
 
@@ -1329,9 +1326,6 @@ const evaluate = (
           Option.fromUndefinedOr(value(branch)),
         ),
       );
-    }
-    default: {
-      return term satisfies never;
     }
   }
 };

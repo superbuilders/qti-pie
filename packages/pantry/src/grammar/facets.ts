@@ -179,9 +179,6 @@ const expressionsIn = (models: readonly ContentModel[]): ReadonlySet<string> => 
       case "group": {
         return node.particles.flatMap(named);
       }
-      default: {
-        return node satisfies never;
-      }
     }
   };
 
@@ -1060,9 +1057,6 @@ const kindsIn = (node: Particle): readonly string[] => {
     }
     case "group": {
       return [...new Set(node.particles.flatMap(kindsIn))];
-    }
-    default: {
-      return node satisfies never;
     }
   }
 };

@@ -352,9 +352,6 @@ const plainSignatureOf = (disagreement: Disagreement): Signature => {
         witness: disagreement.witness,
       };
     }
-    default: {
-      return disagreement satisfies never;
-    }
   }
 };
 
@@ -493,9 +490,6 @@ const shownPlainSignature = (signature: Signature): string => {
     case "lone-refusal": {
       return `${signature.kind}: ${signature.law} named ${signature.importRule}, witness ${signature.witness}`;
     }
-    default: {
-      return signature satisfies never;
-    }
   }
 };
 
@@ -544,9 +538,6 @@ export const shownDisagreement = (disagreement: Disagreement): string => {
     }
     case "lone-refusal": {
       return `lone-refusal: the oracle breaks ${disagreement.law} (${disagreement.rule}) alone; the import's refusal over the laws its rows break (${disagreement.laws}) is under ${disagreement.importRule}, witness ${disagreement.witness}`;
-    }
-    default: {
-      return disagreement satisfies never;
     }
   }
 };
@@ -742,9 +733,6 @@ const oracleFeatures = (
             ...aloneOf(oracle.breaches),
           ];
     }
-    default: {
-      return oracle satisfies never;
-    }
   }
 };
 
@@ -772,9 +760,6 @@ const importFeatures = (side: ImportSide): Feature[] => {
         ),
         ...(side.host.overLong.size > 0 ? ["i:key-text-bound @ bound" as const] : []),
       ];
-    }
-    default: {
-      return side satisfies never;
     }
   }
 };

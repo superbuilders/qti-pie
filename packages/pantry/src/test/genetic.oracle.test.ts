@@ -188,9 +188,6 @@ const disagreementOf = (signature: Signature): Disagreement => {
         ...limited,
       };
     }
-    default: {
-      return signature satisfies never;
-    }
   }
 };
 
@@ -286,9 +283,6 @@ const canShow = (signature: Signature): boolean => {
     case "noise-moved":
     case "oracle-died": {
       return true;
-    }
-    default: {
-      return signature satisfies never;
     }
   }
 };

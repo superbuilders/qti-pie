@@ -172,9 +172,6 @@ const attributeName = <V extends XdmVocabulary>(
     case "foreign": {
       return { local: name.local, namespace: name.uri, prefix: name.prefix };
     }
-    default: {
-      return name satisfies never;
-    }
   }
 };
 
@@ -267,9 +264,6 @@ const characterOf = (node: XdmCharacter): Child => {
     case "entityRef": {
       return { kind: "entityRef", name: node.name };
     }
-    default: {
-      return node satisfies never;
-    }
   }
 };
 
@@ -355,9 +349,6 @@ const rootOf = <V extends XdmVocabulary>(root: XdmElement<V>, names: XdmNames<V>
       case "entityRef": {
         append(into, characterOf(node));
         break;
-      }
-      default: {
-        return node satisfies never;
       }
     }
   }

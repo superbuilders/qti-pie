@@ -582,16 +582,10 @@ const edited = (particle: Particle, edit: ModelEdit): Particle => {
           case "group": {
             return { ...node, particles: node.particles.map(walk) };
           }
-          default: {
-            return node satisfies never;
-          }
         }
       };
 
       return walk(particle);
-    }
-    default: {
-      return edit satisfies never;
     }
   }
 };
@@ -639,9 +633,6 @@ export const finds = (particle: Particle, edit: ModelEdit): boolean => {
     }
     case "beside": {
       return kindsNamed(leavesOf(particle)).has(edit.with);
-    }
-    default: {
-      return edit satisfies never;
     }
   }
 };
@@ -1723,9 +1714,6 @@ export const placedStep = (
       const next = placement.positions.filter(follows);
 
       return next.length === 1 ? Arr.head(next) : Option.none();
-    }
-    default: {
-      return placement satisfies never;
     }
   }
 };

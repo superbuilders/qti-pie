@@ -545,9 +545,6 @@ const charactersOf = <V extends XdmVocabulary>(
     case "doctype": {
       return "";
     }
-    default: {
-      return child satisfies never;
-    }
   }
 };
 
@@ -631,9 +628,6 @@ const familiesOf = <V extends XdmVocabulary>(node: Walked<V>): Families<V> => {
     case "pi":
     case "entityRef": {
       return { attributes: 0, children: [], namespaces: 0, openAttributes: 0 };
-    }
-    default: {
-      return node satisfies never;
     }
   }
 };

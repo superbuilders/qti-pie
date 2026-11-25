@@ -315,9 +315,6 @@ const wordOf = (
         cheapest,
       );
     }
-    default: {
-      return walk satisfies never;
-    }
   }
 };
 

@@ -722,9 +722,6 @@ const resolves = (v: Reference, rows: Rows): boolean => {
         v.cardinality === "unknown"
       );
     }
-    default: {
-      return v.resolution satisfies never;
-    }
   }
 };
 

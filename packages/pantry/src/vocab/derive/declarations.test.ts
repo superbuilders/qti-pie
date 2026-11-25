@@ -355,9 +355,6 @@ const disagreementOf = (judged: Judged): Option.Option<string> => {
             `the leaf ${question.admitted ? "admits" : "refuses"} the undeclared ${question.name}, xmllint ${admitted ? "admits" : "refuses"} it`,
           );
     }
-    default: {
-      return question satisfies never;
-    }
   }
 };
 

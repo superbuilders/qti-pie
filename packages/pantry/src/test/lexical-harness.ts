@@ -665,9 +665,6 @@ export const enumerationsOf = (domain: Domain): readonly string[] => {
     case "union": {
       return [...own, ...domain.members.flatMap(enumerationsOf)];
     }
-    default: {
-      return domain satisfies never;
-    }
   }
 };
 
@@ -791,9 +788,6 @@ const builtinsOf = (domain: Domain): readonly string[] => {
     }
     case "union": {
       return domain.members.flatMap(builtinsOf);
-    }
-    default: {
-      return domain satisfies never;
     }
   }
 };
@@ -938,9 +932,6 @@ const boundHolds = (bound: Option.Option<DoubleBound>, raw: string): boolean =>
       }
       case "minInclusive": {
         return !(value >= limit);
-      }
-      default: {
-        return facet satisfies never;
       }
     }
   });
@@ -1126,9 +1117,6 @@ const probeLine = (probe: Probe): string => {
     case "typed": {
       return plainElement(probe.target, attribute, content);
     }
-    default: {
-      return probe.target satisfies never;
-    }
   }
 };
 
@@ -1148,9 +1136,6 @@ const judgedElement = (target: Target): string => {
     }
     case "typed": {
       return nameKey({ local: target.probe, namespace: driverNamespace });
-    }
-    default: {
-      return target satisfies never;
     }
   }
 };
@@ -1250,9 +1235,6 @@ export const reasonText = (reason: Reason): string => {
     }
     case "reading": {
       return `reading ${String(reason.reading)}: ${reason.why}`;
-    }
-    default: {
-      return reason satisfies never;
     }
   }
 };
@@ -1580,9 +1562,6 @@ const probeScopeOf = (probe: Probe): ReadonlySet<string> => {
       }
       case "typed": {
         return [driverNamespace];
-      }
-      default: {
-        return probe.target satisfies never;
       }
     }
   })();

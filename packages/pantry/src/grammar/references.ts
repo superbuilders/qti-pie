@@ -715,9 +715,6 @@ const memberName = (member: TypeReading): Option.Option<string> => {
     case "union": {
       return Option.none();
     }
-    default: {
-      return member satisfies never;
-    }
   }
 };
 
@@ -880,9 +877,6 @@ const kindsWithin = (particle: Particle): readonly string[] => {
     }
     case "group": {
       return particle.particles.flatMap(kindsWithin);
-    }
-    default: {
-      return particle satisfies never;
     }
   }
 };

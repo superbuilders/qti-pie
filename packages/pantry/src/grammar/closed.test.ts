@@ -240,9 +240,6 @@ const drawnRelation: Gen<Drawn> = (source) => {
       case "valid": {
         return 0;
       }
-      default: {
-        return variant satisfies never;
-      }
     }
   })();
   // A beyond-prefix row needs room in the widest roster past its prefix's size.
@@ -366,9 +363,6 @@ const built = (drawnCase: Drawn) => {
       }
       case "outsidePayload": {
         return { ...first, [`p${at}`]: payloadFields[at]?._tag === "value" ? "vzz" : "zz" };
-      }
-      default: {
-        return variant satisfies never;
       }
     }
   };
@@ -799,9 +793,6 @@ describe("rosters and value fields", () => {
                     valueField("v", drawnColumn.column).values,
                     [...new Set(drawnColumn.column)].toSorted(byCodeUnits),
                   ];
-                }
-                default: {
-                  return drawnColumn satisfies never;
                 }
               }
             })();
