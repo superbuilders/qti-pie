@@ -74,7 +74,9 @@ const pass = async (
  */
 export const toolsFor = (scratch: string, target: string): GeneratorTools => ({
   format: (text) => pass(scratch, target, text, "oxfmt", ["--config", ".oxfmtrc.json"], [0]),
-  // oxlint ends with 1 when findings remain after its fixes, which a generator leaves as they are.
+  /**
+   * Oxlint ends with 1 when findings remain after its fixes, which a generator leaves as they are.
+   */
   lintFix: (text) =>
     pass(
       scratch,

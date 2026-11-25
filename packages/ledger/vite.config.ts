@@ -10,9 +10,11 @@ const unbounded = 0;
 
 export default defineConfig({
   test: {
-    // @bjornpagen/testing's setup draws the run seed every searched() test reads, or replays a given
-    // one; the ledger's generates and installs the result suite's composition where a lane names its
-    // lease.
+    /**
+     * @bjornpagen/testing's setup draws the run seed every searched() test reads, or replays a
+     * given one; the ledger's generates and installs the result suite's composition where a lane
+     * names its lease.
+     */
     globalSetup: ["@bjornpagen/testing/vitest/global-setup", "./src/test/result-install.ts"],
     hookTimeout: unbounded,
     include: ["src/**/*.test.ts"],
