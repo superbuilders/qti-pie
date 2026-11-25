@@ -236,12 +236,11 @@ describe("ValueSchema", () => {
         const handedBack = storedAsJson(encoded);
         const decoded = yield* Schema.decodeUnknownEffect(ValueSchema)(handedBack);
         assert.deepStrictEqual(decoded, original);
-        assert.isTrue(
-          Result.isFailure(
-            Schema.decodeUnknownResult(ValueSchema)(
-              singleInput("duration", [{ baseType: "duration", value: "PT1M30.5S" }]),
-            ),
-          ),
+        assert.strictEqual(
+          Schema.decodeUnknownResult(ValueSchema)(
+            singleInput("duration", [{ baseType: "duration", value: "PT1M30.5S" }]),
+          )._tag,
+          "Failure",
         );
       }),
   );

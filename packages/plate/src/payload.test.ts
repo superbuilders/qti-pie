@@ -746,7 +746,7 @@ describe("redactItem", () => {
       "title",
       "unprinted",
     ]);
-    assert.isTrue(Option.isNone(copied.unprinted));
+    assert.deepStrictEqual(copied.unprinted, Option.none());
     assert.deepStrictEqual(copied.responses, [
       {
         baseType: "identifier",
@@ -3243,7 +3243,7 @@ describe("redactItem on a printed variable whose text passes 1,000,000 character
         );
 
         assert.deepStrictEqual(paragraphOf(shown), texts("Value: ", " 1; 1; 1"));
-        assert.isTrue(Option.isNone(shown.unprinted));
+        assert.deepStrictEqual(shown.unprinted, Option.none());
       }),
   );
 });
@@ -3474,7 +3474,7 @@ describe("redactItem records the first text past its bound on content the page s
     );
 
     assert.deepStrictEqual(redaction.body, []);
-    assert.isTrue(Option.isNone(redaction.unprinted));
+    assert.deepStrictEqual(redaction.unprinted, Option.none());
     assert.strictEqual(lengthy.reads(), 0);
     assert.deepStrictEqual(
       redactItem(
@@ -3564,7 +3564,7 @@ describe("redactItem under an output budget", () => {
     );
 
     assert.strictEqual(paragraphOf(exact).length, 4500);
-    assert.isTrue(Option.isNone(exact.unprinted));
+    assert.deepStrictEqual(exact.unprinted, Option.none());
     assert.strictEqual(paragraphOf(under).length, 4499);
     assert.deepStrictEqual(
       under.unprinted,
@@ -3589,7 +3589,7 @@ describe("redactItem under an output budget", () => {
       paragraphOf(redaction),
       Array.from({ length: 50 }, () => text(slotText)),
     );
-    assert.isTrue(Option.isNone(redaction.unprinted));
+    assert.deepStrictEqual(redaction.unprinted, Option.none());
   });
 
   it("runs under the default budget, 16,777,216, when given none: 17 slots of 1,000,000 characters print 16 and record the 17th with that bound", () => {
@@ -3644,7 +3644,7 @@ describe("redactItem under an output budget", () => {
       ["set", "A;B"],
       ["none", ""],
     ]);
-    assert.isTrue(Option.isNone(fits.unprinted));
+    assert.deepStrictEqual(fits.unprinted, Option.none());
   });
 });
 

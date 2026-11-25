@@ -141,7 +141,7 @@ describe("formatPrinted: a caller's smaller bound holds the whole text, so redac
   it("stops at the first member whose text passes the bound, so it builds no text past it: 1,000 members of 10 characters under a bound of 25 are read 3 times", () => {
     const counted = watched("y".repeat(10), 1000);
 
-    assert.isTrue(Option.isNone(formatPrinted(counted.value, plainPrinting, 25)));
+    assert.deepStrictEqual(formatPrinted(counted.value, plainPrinting, 25), Option.none());
     assert.strictEqual(counted.reads(), 3);
   });
 });
