@@ -228,7 +228,7 @@ const aloneOf = (keycap: string): string => {
 /**
  * Every key of plate's keyboard, by its name: AlphaTest's, then the added ones.
  */
-const plateKeycaps = [
+const plateKeycaps: readonly string[] = [
   ...alphaTestKeys.flat().map((key) => ("latex" in key ? key.latex : key.label)),
   ...addedKeys,
 ];
