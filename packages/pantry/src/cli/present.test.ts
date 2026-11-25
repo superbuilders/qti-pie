@@ -2,7 +2,22 @@ import path from "node:path";
 import type { Law, Witness } from "@bjornpagen/grizzle";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
-import { Cause, Effect, Exit, FileSystem, Formatter, Option, Schema } from "effect";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { noCoverage } from "@bjornpagen/testing/features";
+import { boolean, element } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
+import {
+  Array as Arr,
+  Cause,
+  Duration,
+  Effect,
+  Exit,
+  FileSystem,
+  Formatter,
+  Option,
+  Schema,
+} from "effect";
 import { Command } from "effect/cli";
 import { inject } from "vitest";
 import { TargetNotEmpty } from "#pantry/cli/args.ts";
@@ -25,6 +40,7 @@ import { lawTable } from "#pantry/vocab/laws.ts";
 import { qti } from "#pantry/cli.ts";
 import { qtiImport } from "#pantry/qti-import.ts";
 import { qtiRoundtrip } from "#pantry/qti-roundtrip.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { captureCli, matchesCommitted, packageCopy } from "#pantry/test/cli.ts";
 import { fileScratchDirectory, makeScratch, scratchEnv } from "#pantry/test/scratch.ts";
 
@@ -72,11 +88,13 @@ layer(NodeServices.layer, { excludeTestServices: true })("the text error shape",
 
       assert.isTrue(stderr.startsWith("error[cli-usage]:"));
       assert.include(stderr, "= help:");
-
-      for (const command of ["import", "export", "roundtrip"]) {
-        assert.include(stderr, command);
-      }
-
+      assert.deepStrictEqual(
+        qti.command.subcommands
+          .flatMap(({ commands }) => commands.map(({ name }) => name))
+          .filter((name) => !stderr.includes(name)),
+        [],
+        "the commands qti declares that its usage leaves out",
+      );
       assert.notInclude(stderr, "GLOBAL FLAGS");
       assert.strictEqual(stdout, "");
     }),
@@ -265,137 +283,233 @@ const helpByOrigin = {
   unreproduced: "another write committed beside this one changed the row it refused",
 } as const satisfies Readonly<Record<"Reader" | typeof WitnessKind.Type, string>>;
 
+/**
+ * AL1 admission's row of the law table, the law a database refusal of the origin box names.
+ */
+const al1 = lawTable["AL1 admission"];
+
+/**
+ * AL1 admission's one check, as `Qti` states it over `Attribute`.
+ */
+const al1Law = {
+  entry: { kind: "declared", name: "AL1 admission", source: al1.source },
+  kind: "check",
+  name: "AL1_admission",
+  relation: "Attribute",
+} as const;
+
+/**
+ * What a refusal prints of AL1's check: the table's name and rule, and the law's text.
+ */
+const lawFact = { name: "AL1 admission", rule: al1.rule, text: Formatter.format(al1Law) } as const;
+
+/**
+ * What a refusal prints of the check of no law: its text alone.
+ */
+const unownedFact = { text: Formatter.format(unownedLaw) } as const;
+
+/**
+ * AL1's check as a level above, `QtiMedia`, states it, by the name of the law it wraps.
+ */
+const aboveLaw = { kind: "above", law: al1Law, level: "QtiMedia" } as const;
+
+/**
+ * What a refusal prints of {@link aboveLaw}.
+ */
+const aboveFact = { ...lawFact, text: Formatter.format(aboveLaw) } as const;
+
+/**
+ * Each decision a database refusal makes, with the refusal that makes it and the facts it prints:
+ * a `some` outcome names two laws, AL1's check and a check of no law, which `Qti` does not state
+ * and which has its text alone, as grizzle's `Refused` requires; an `above` outcome names AL1's
+ * check first as a level above states it, and `above every` the login's own AL1 check after it.
+ */
+const refusalsByDecision = {
+  "above every": {
+    facts: [aboveFact, lawFact],
+    refused: {
+      above: [refusedLawOf(aboveLaw)],
+      kind: "above",
+      laws: [refusedLawOf(al1Law)],
+      own: "every",
+    },
+  },
+  "above none": {
+    facts: [aboveFact],
+    refused: { above: [refusedLawOf(aboveLaw)], kind: "above", own: "none" },
+  },
+  "above unjudged": {
+    facts: [aboveFact],
+    refused: { above: [refusedLawOf(aboveLaw)], kind: "above", own: "unjudged" },
+  },
+  every: { facts: [lawFact], refused: { kind: "every", laws: [refusedLawOf(al1Law)] } },
+  first: { facts: [lawFact], refused: { kind: "first", laws: [refusedLawOf(al1Law)] } },
+  some: {
+    facts: [lawFact, unownedFact],
+    refused: { kind: "some", laws: [refusedLawOf(al1Law), refusedLawOf(unownedLaw)] },
+  },
+} as const satisfies {
+  readonly [Decision in typeof RefusedKind.Type]: {
+    readonly facts: readonly unknown[];
+    readonly refused: RefusalOf;
+  };
+};
+
+/**
+ * The reader's refusal of the origin box: one rule, and no decision, law, source or witness.
+ */
+const readerRefusal = new ImportRefused({
+  detail: "The zip entry a.xml was refused",
+  origin: readerOrigin,
+  rules: ["zip-format"],
+});
+
+/**
+ * A case of the origin box: the reader's origin, none, or the database's under a decision and a
+ * kind of witness.
+ */
+type OriginCase = Option.Option<{
+  readonly kind: typeof RefusedKind.Type;
+  readonly witness: typeof WitnessKind.Type;
+}>;
+
+/**
+ * The decisions a database refusal makes, every one `RefusedKind` declares.
+ */
+const refusedKinds = Arr.isReadonlyArrayNonEmpty(RefusedKind.literals)
+  ? RefusedKind.literals
+  : assert.fail("RefusedKind declares no decision");
+
+/**
+ * The kinds of witness a database refusal names its row by, every one `WitnessKind` declares.
+ */
+const witnessKinds = Arr.isReadonlyArrayNonEmpty(WitnessKind.literals)
+  ? WitnessKind.literals
+  : assert.fail("WitnessKind declares no kind");
+
+/**
+ * Draw a case of the origin box: the reader's origin, or the database's under each kind of
+ * `RefusedKind` and of `WitnessKind`, the two rosters the refusal's origin declares.
+ */
+const originCase: Gen<OriginCase> = (source) =>
+  source.draw(boolean)
+    ? Option.some({
+        kind: source.draw(element(refusedKinds)),
+        witness: source.draw(element(witnessKinds)),
+      })
+    : Option.none();
+
+/**
+ * How many origins {@link originCase} draws: the reader's, and every decision under every kind of
+ * witness.
+ */
+const ORIGIN_CASES = 1 + RefusedKind.literals.length * WitnessKind.literals.length;
+
+/**
+ * What a refusal of an origin must print: the decision its text names, the decision, laws, sources
+ * and witness its JSON holds, the help it gives, the sources its text prints, and the refusal.
+ *
+ * @param origin - The case.
+ * @returns What it must print, and the refusal it prints it from.
+ */
+const printedOf = (origin: OriginCase) =>
+  Option.match(origin, {
+    onNone: () => ({
+      decided: [],
+      expected: {},
+      help: helpByOrigin.Reader,
+      printed: [],
+      refusal: readerRefusal,
+    }),
+    onSome: ({ kind, witness }) => ({
+      decided: [kind],
+      expected: {
+        laws: refusalsByDecision[kind].facts,
+        refused_kind: kind,
+        sources: [al1.source],
+        witness,
+      },
+      help: helpByOrigin[witness],
+      printed: [al1.source],
+      refusal: refusalOf(refusalsByDecision[kind].refused, witnessesByKind[witness]),
+    }),
+  });
+
 layer(NodeServices.layer, { excludeTestServices: true })("every origin of a refusal", (it) => {
   it.effect(
-    "prints the decision, the laws, their sources and the witness exactly when the database refused, and its origin's help",
-    () =>
-      // Oracle: the origin each refusal is built from, and the law table read directly by the name
-      // its one check was built from: a refusal the reader made prints its one rule and no
-      // decision, law, source or witness in either mode; one the database made prints how grizzle
-      // decided its laws, its laws with the table's name and rule, the table's source once, and
-      // the kind of the witness it was built under. A `some` outcome names two laws, AL1's check and a check of no law, which `Qti` does
-      // not state and which has its text alone, as grizzle's `Refused` requires. An `above`
-      // outcome names AL1's check first as a level above states it, by the name of the law it
-      // wraps, and `above every` the login's own AL1 check after it. The help is
-      // the origin's, by its own words. Bound: the reader's origin and the database's under each
-      // kind of `RefusedKind` and of `WitnessKind`, exhausted, each in text and JSON; residual
-      // none.
-      Effect.gen(function* everyOrigin() {
-        const { rule, source } = lawTable["AL1 admission"];
-        const law = {
-          entry: { kind: "declared", name: "AL1 admission", source },
-          kind: "check",
-          name: "AL1_admission",
-          relation: "Attribute",
-        } as const;
-        const lawFact = {
-          name: "AL1 admission",
-          rule,
-          text: Formatter.format(law),
-        };
-        const unownedFact = { text: Formatter.format(unownedLaw) };
-        const aboveLaw = { kind: "above", law, level: "QtiMedia" } as const;
-        const aboveFact = { ...lawFact, text: Formatter.format(aboveLaw) };
-        const refusedAbove = refusedLawOf(aboveLaw);
-        const own = refusedLawOf(law);
-        const refusalsByDecision = {
-          "above every": {
-            facts: [aboveFact, lawFact],
-            refused: { above: [refusedAbove], kind: "above", laws: [own], own: "every" },
-          },
-          "above none": {
-            facts: [aboveFact],
-            refused: { above: [refusedAbove], kind: "above", own: "none" },
-          },
-          "above unjudged": {
-            facts: [aboveFact],
-            refused: { above: [refusedAbove], kind: "above", own: "unjudged" },
-          },
-          every: { facts: [lawFact], refused: { kind: "every", laws: [own] } },
-          first: { facts: [lawFact], refused: { kind: "first", laws: [own] } },
-          some: {
-            facts: [lawFact, unownedFact],
-            refused: { kind: "some", laws: [own, refusedLawOf(unownedLaw)] },
-          },
-        } as const satisfies {
-          readonly [Decision in typeof RefusedKind.Type]: {
-            readonly facts: readonly unknown[];
-            readonly refused: RefusalOf;
-          };
-        };
-        const reader = new ImportRefused({
-          detail: "The zip entry a.xml was refused",
-          origin: readerOrigin,
-          rules: ["zip-format"],
-        });
-        const origins = [
-          { decided: [], expected: {}, help: helpByOrigin.Reader, printed: [], refusal: reader },
-          ...WitnessKind.literals.flatMap((witness) =>
-            RefusedKind.literals.map((kind) => ({
-              decided: [kind],
-              expected: {
-                laws: refusalsByDecision[kind].facts,
-                refused_kind: kind,
-                sources: [source],
-                witness,
+    `prints the decision, the laws, their sources and the witness exactly when the database refused, and its origin's help: ${String(ORIGIN_CASES)} origins`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(originCase, ORIGIN_CASES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "the reader's origin and the database's under each kind of RefusedKind and of WitnessKind, each in text and JSON",
+              caseHang: Duration.seconds(30),
+              coverage: noCoverage,
+              generator: originCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the origin each refusal is built from, and the law table read directly by the name its one check was built from: a refusal the reader made prints its one rule and no decision, law, source or witness in either mode; one the database made prints how grizzle decided its laws, its laws with the table's name and rule, the table's source once, and the kind of the witness it was built under; the help is the origin's, by its own words",
               },
-              help: helpByOrigin[witness],
-              printed: [source],
-              refusal: refusalOf(refusalsByDecision[kind].refused, witnessesByKind[witness]),
-            })),
+              suite: "pantry/cli/present-origins",
+            },
+            (origin) =>
+              Effect.gen(function* everyOrigin() {
+                const { decided, expected, help, printed, refusal } = printedOf(origin);
+                const label =
+                  refusal.origin._tag === "Database"
+                    ? `${refusal.origin.kind} ${refusal.origin.witness}`
+                    : "Reader";
+                const command = ending("import", () => refusal, false);
+                const json = yield* captureCli(
+                  { command, shownAs: command.name },
+                  ["--json"],
+                  Option.none(),
+                );
+                const text = yield* captureCli(
+                  { command, shownAs: command.name },
+                  [],
+                  Option.none(),
+                );
+                const error = errorLine(json.stderr);
+                const { laws, refused_kind: refusedKind, sources, witness } = error;
+
+                assert.strictEqual(exitCodeOf(json.exit), 1, label);
+                assert.strictEqual(exitCodeOf(text.exit), 1, label);
+                assert.isTrue(matchesCommittedError(json.stderr), `${label}: ${json.stderr}`);
+                assert.strictEqual(error.kind, "import-refused", label);
+                assert.deepStrictEqual(error.rules, refusal.rules, label);
+                assert.deepStrictEqual(
+                  Object.fromEntries(
+                    Object.entries({ laws, refused_kind: refusedKind, sources, witness }).filter(
+                      ([, value]) => value !== undefined,
+                    ),
+                  ),
+                  expected,
+                  label,
+                );
+                assert.include(error.help, help, label);
+                assert.include(text.stderr, `= help: ${error.help}`, label);
+                assert.deepStrictEqual(
+                  text.stderr
+                    .split("\n")
+                    .filter((line) => line.startsWith("  refused: "))
+                    .map((line) => line.slice("  refused: ".length).split(",")[0]),
+                  decided,
+                  label,
+                );
+                assert.deepStrictEqual(
+                  text.stderr.split("\n").filter((line) => line.startsWith("  source: ")),
+                  printed.map((stated) => `  source: ${stated}`),
+                  label,
+                );
+              }),
           ),
-        ];
-
-        assert.strictEqual(
-          origins.length,
-          1 + WitnessKind.literals.length * RefusedKind.literals.length,
-        );
-        for (const { decided, expected, help, printed, refusal } of origins) {
-          const label =
-            refusal.origin._tag === "Database"
-              ? `${refusal.origin.kind} ${refusal.origin.witness}`
-              : "Reader";
-          const command = ending("import", () => refusal, false);
-          const json = yield* captureCli(
-            { command, shownAs: command.name },
-            ["--json"],
-            Option.none(),
-          );
-          const text = yield* captureCli({ command, shownAs: command.name }, [], Option.none());
-          const error = errorLine(json.stderr);
-          const { laws, refused_kind: refusedKind, sources, witness } = error;
-
-          assert.strictEqual(exitCodeOf(json.exit), 1, label);
-          assert.strictEqual(exitCodeOf(text.exit), 1, label);
-          assert.isTrue(matchesCommittedError(json.stderr), `${label}: ${json.stderr}`);
-          assert.strictEqual(error.kind, "import-refused", label);
-          assert.deepStrictEqual(error.rules, refusal.rules, label);
-          assert.deepStrictEqual(
-            Object.fromEntries(
-              Object.entries({ laws, refused_kind: refusedKind, sources, witness }).filter(
-                ([, value]) => value !== undefined,
-              ),
-            ),
-            expected,
-            label,
-          );
-          assert.include(error.help, help, label);
-          assert.include(text.stderr, `= help: ${error.help}`, label);
-          assert.deepStrictEqual(
-            text.stderr
-              .split("\n")
-              .filter((line) => line.startsWith("  refused: "))
-              .map((line) => line.slice("  refused: ".length).split(",")[0]),
-            decided,
-            label,
-          );
-          assert.deepStrictEqual(
-            text.stderr.split("\n").filter((line) => line.startsWith("  source: ")),
-            printed.map((stated) => `  source: ${stated}`),
-            label,
-          );
-        }
-      }),
+        ),
+      ),
   );
 });
 
