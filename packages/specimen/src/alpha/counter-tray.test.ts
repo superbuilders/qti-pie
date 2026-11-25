@@ -31,16 +31,18 @@
  *   chosen counter's own zone lets it go, a tap on another counter of its zone chooses that one
  *   instead, and a tap on a counter of the other zone takes the chosen counter there.
  * - CT5, resume: a tray bound to the value a child left shows that many counters on the mat, and the
- *   next move counts on from it.
+ *   next move counts on from it; a tray bound to an integer it could not have left (0, below it,
+ *   past the supply, or no whole number) starts with an empty mat and tells the host so, NULL,
+ *   once, so a wrong stored answer never keeps the child from the item.
  * - CT6, a malformed item is refused: a property beyond the two (a target and a colour among them), a
  *   supply that is no whole number from 1 to 20 on either mat, a mat that is neither `open` nor
- *   `double-ten-frame`, or a bound value its tray cannot hold, or one of another cardinality than
- *   single, a bound count below one (an empty mat is NULL), or `data-ssml` (which QTI's schema does
- *   not give the element), and the frame says the PCI cannot run, while QTI's own
- *   `data-catalog-idref` and `data-qti-suppress-tts` are passed over; the error the module throws
- *   names what is wrong, as Chrome's devtools read it (the frame's own report carries only "Script
- *   error.": the module's script is another origin's than the frame's opaque one, loaded without
- *   CORS, so Chrome mutes its errors' messages).
+ *   `double-ten-frame`, `data-ssml` (which QTI's schema does not give the element), or a bound
+ *   value of another cardinality or base type than single integer (its declaration is not the
+ *   tray's), and the frame says the PCI cannot run, while QTI's own `data-catalog-idref` and
+ *   `data-qti-suppress-tts` are passed over; the error the module throws names what is wrong, as
+ *   Chrome's devtools read it (the frame's own report carries only "Script error.": the module's
+ *   script is another origin's than the frame's opaque one, loaded without CORS, so Chrome mutes
+ *   its errors' messages).
  * - CT7, untouched: a tray the child never touched relays nothing, so the page posts no response.
  * - CT8, a drop is read where it lands: a drag let go beside the mat to its right or its left at the
  *   mat's height, between the mat and the tray, or below the tray, puts its counter back, and one
@@ -65,9 +67,9 @@
  *   counter and then on the mat move the counter.
  * - CT13, a press that ends unseen: a mouse drag whose capture a right click (a context menu) takes
  *   midway, let go beside the board, or a press whose release is lost before the pointer moves, the
- *   pointer then moving with no button held, leaves nothing following the pointer and no press
- *   standing: the keyboard then moves a counter, and a click on the mat with nothing chosen moves
- *   nothing.
+ *   pointer then moving with no button held across the board or straight off it, leaves nothing
+ *   following the pointer and no press standing: the keyboard then moves a counter, and a click on
+ *   the mat with nothing chosen moves nothing.
  * - CT14, the ring goes with its counter: a chosen counter dragged halfway leaves no ring behind.
  *
  * Every item is opened by plate's admission, its module resolved to its package's file with no
@@ -278,8 +280,13 @@ const kills: readonly Kill[] = [
     write: "pressed === undefined || !event.isPrimary || event.button !== 0 ||",
   },
   {
-    at: /if \(event\.buttons === 0\) \{\s*endPress\(\);\s*return;\s*\}/gu,
+    at: /event\.buttons !== 0\) \{\s*return false;\s*\}\s*endPress\(\);/gu,
     why: "a press left standing when its release is lost before it moves",
+    write: "event.buttons !== 0) { return false; } return false;",
+  },
+  {
+    at: /board\.ownerDocument\.addEventListener\(\s*"pointermove",[\s\S]*?\{ signal \},\s*\);/gu,
+    why: "a lost release heard only on the board, not where the pointer first moves",
     write: "",
   },
   {
@@ -598,7 +605,7 @@ const unseenEnd = (trays: Trays, played: Played) =>
  * @param played The item as played.
  * @returns The check.
  */
-const lostEnd = (trays: Trays, played: Played) =>
+const lostEnd = (trays: Trays, played: Played, moves: number) =>
   Effect.scoped(
     Effect.gen(function* lost() {
       const tray = yield* running(trays, played, integer(2));
@@ -607,6 +614,7 @@ const lostEnd = (trays: Trays, played: Played) =>
         tray.lostRelease(
           { at: 0, kind: "counter", zone: "tray" },
           { kind: "beside the mat, right" },
+          moves,
         ),
       );
 
@@ -820,9 +828,9 @@ const battery = (trays: Trays, module: string) =>
 
     yield* restingFinger(trays, openMat, { kind: "beside the mat, right" });
     yield* unseenEnd(trays, openMat);
-    yield* lostEnd(trays, openMat);
+    yield* lostEnd(trays, openMat, 1);
     yield* jumped(trays, openMat);
-    yield* narrowDrift(trays, openMat, 300, 18);
+    yield* narrowDrift(trays, openMat, 200, 18);
     yield* ringGoes(trays, openMat);
   });
 
@@ -1056,7 +1064,7 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
   );
 
   it.effect(
-    "CT5: a tray bound to what the child left shows it, and the next move counts on from it",
+    "CT5: a tray bound to what the child left shows it, the next move counts on from it, and one bound to what it could not have left starts empty",
     () =>
       Effect.gen(function* resumeRule() {
         const trays = yield* TraysService;
@@ -1085,6 +1093,45 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
                   Option.some(integer(left + 1)),
                   where,
                 );
+              }),
+            ),
+          { concurrency: trayCount, discard: true },
+        );
+
+        const openMat = yield* playing(trays, "open-mat", trays.module);
+        const unreadable: readonly Given[] = [
+          integer(0),
+          integer(-1),
+          integer(openMat.supply + 1),
+          { base: { integer: "3" } },
+          { base: { integer: true } },
+          { base: { integer: 3.5 } },
+        ];
+
+        yield* Effect.forEach(
+          unreadable,
+          (bound) =>
+            Effect.scoped(
+              Effect.gen(function* emptied() {
+                const where = `open-mat bound to ${JSON.stringify(bound)}`;
+                const started = yield* Effect.orDie(trays.start(openMat.hosted, bound));
+
+                assert.strictEqual(started.kind, "running", `${where}: the tray still starts`);
+
+                if (started.kind !== "running") {
+                  return;
+                }
+
+                const look = yield* Effect.orDie(started.running.look);
+
+                assert.strictEqual(look.mat, 0, `${where}: with an empty mat`);
+                assert.strictEqual(look.tray, openMat.supply, `${where}: and a full tray`);
+                assert.deepStrictEqual(
+                  yield* Effect.orDie(started.running.posted),
+                  Option.some(empty),
+                  `${where}: telling the host its empty mat, NULL, once`,
+                );
+                assert.strictEqual(look.fired, 1, `${where}: one change`);
               }),
             ),
           { concurrency: trayCount, discard: true },
@@ -1133,36 +1180,21 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
             played: tenFrame,
             properties: { ...tenFrame.hosted.properties, supply: "21" },
           },
-          ...[{ integer: "3" }, { integer: true }, { integer: 3.5 }].map((base) => ({
-            bound: { base },
-            names: ["no number of counters"],
-            played: openMat,
-            properties: good,
-          })),
-          { bound: null, names: ["no single value"], played: openMat, properties: good },
+          ...(
+            [
+              [{ base: { float: 4, integer: 3 } }, "no integer"],
+              [{ base: { float: 3 } }, "no integer"],
+              [{ base: { integer: 3 }, list: { integer: [1] } }, "no single value"],
+              [{ list: { integer: [3] } }, "no single value"],
+              [{ record: null }, "no single value"],
+              [null, "no single value"],
+            ] as const
+          ).map(([bound, name]) => ({ bound, names: [name], played: openMat, properties: good })),
           {
             bound: empty,
             names: ["data-ssml"],
             played: openMat,
             properties: { ...good, ssml: "<speak>x</speak>" },
-          },
-          {
-            bound: integer(0),
-            names: ["no number of counters"],
-            played: openMat,
-            properties: good,
-          },
-          {
-            bound: { base: { float: 4, integer: 3 } },
-            names: ["no number of counters"],
-            played: openMat,
-            properties: good,
-          },
-          {
-            bound: { base: { integer: 3 }, list: { integer: [1] } },
-            names: ["no single value"],
-            played: openMat,
-            properties: good,
           },
           ...["rows", "ten-frame", "double ten frame", "Open"].map((mat) => ({
             bound: empty,
@@ -1175,25 +1207,6 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
             names: ['data-mat is ""'],
             played: openMat,
             properties: withoutKey("mat"),
-          },
-          {
-            bound: integer(openMat.supply + 1),
-            names: ["bound to"],
-            played: openMat,
-            properties: good,
-          },
-          { bound: integer(-1), names: ["bound to"], played: openMat, properties: good },
-          {
-            bound: { list: { integer: [3] } },
-            names: ["no single value"],
-            played: openMat,
-            properties: good,
-          },
-          {
-            bound: { record: null },
-            names: ["no single value"],
-            played: openMat,
-            properties: good,
           },
         ];
 
@@ -1569,7 +1582,8 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
 
         yield* unseenEnd(trays, yield* playing(trays, "open-mat", trays.module));
         yield* unseenEnd(trays, yield* playing(trays, "ten-frame", trays.module));
-        yield* lostEnd(trays, yield* playing(trays, "open-mat", trays.module));
+        yield* lostEnd(trays, yield* playing(trays, "open-mat", trays.module), 4);
+        yield* lostEnd(trays, yield* playing(trays, "ten-frame", trays.module), 1);
       }),
     ruleHang,
   );
@@ -1584,7 +1598,7 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
 
         yield* jumped(trays, openMat);
         yield* jumped(trays, tenFrame);
-        yield* narrowDrift(trays, openMat, 300, 18);
+        yield* narrowDrift(trays, openMat, 200, 18);
         yield* narrowDrift(trays, tenFrame, 400, 15);
       }),
     ruleHang,

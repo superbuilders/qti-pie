@@ -19,7 +19,7 @@
  *   item's: the interaction's markup is exactly one `img`, the counter, which the module shows as
  *   every counter at the picture's own size (its `width`, equal to its `height`, 32 to 64 CSS
  *   pixels, the board drawn to that scale), and never as a counter of its own. A picture the child
- *   is asked to match is the item's prompt's, never the module's.
+ *   is asked to match is the item body's, before the interaction, never the module's.
  * - **The state is a count.** The one fact the tray holds is how many counters stand on the mat, from
  *   none to the whole supply; every counter is the same, so which one moved is no fact. The screen
  *   is drawn from the count alone: the mat shows that many counters and the tray the rest, each in
@@ -298,17 +298,21 @@ define(["qtiCustomInteractionContext"], (context) => {
   /**
    * Read the response a tray is bound to as the counters on its mat: none for no response or NULL
    * (`{ "base": null }`), the integer of `{ "base": { "integer": n } }` for a whole number from 1
-   * to the supply (the module never reports 0: an empty mat is NULL); a value of another
-   * cardinality than single, or a single value that is no such number, is refused, each naming
-   * what it is, since it crosses `postMessage` untyped.
+   * to the supply (the module never reports 0: an empty mat is NULL). A value of another
+   * cardinality than single, or a single value of another base type than integer, can only come
+   * from a declaration that is not the single integer the tray answers: the item's defect, refused.
+   * A single integer the tray could not have left (0 or below, past the supply, or no whole number)
+   * is a stored answer gone wrong: the tray starts with an empty mat, says why on the console, and
+   * is unreadable, so it tells the host its empty mat once it is ready; a wrong stored answer never
+   * keeps the child from the item.
    *
    * @param bound The bound response, if any.
    * @param supply The tray's supply.
-   * @returns The counters on the mat.
+   * @returns The counters on the mat, and whether the bound value was unreadable.
    */
-  const boundCount = (bound         , supply        )         => {
+  const boundCount = (bound         , supply        ) => {
     if (bound === undefined) {
-      return 0;
+      return { count: 0, unreadable: false };
     }
 
     const base =
@@ -317,25 +321,35 @@ define(["qtiCustomInteractionContext"], (context) => {
       "base" in bound &&
       Object.keys(bound).length === 1
         ? bound.base
-        : refuse("the response it is bound to is no single value.");
-    const integer =
-      typeof base === "object" &&
-      base !== null &&
-      "integer" in base &&
-      Object.keys(base).length === 1
-        ? base.integer
-        : undefined;
+        : refuse(
+            "the response it is bound to is no single value: its declaration is no single integer.",
+          );
 
     if (base === null) {
-      return 0;
+      return { count: 0, unreadable: false };
     }
 
-    return typeof integer === "number" &&
+    const integer =
+      typeof base === "object" && "integer" in base && Object.keys(base).length === 1
+        ? base.integer
+        : refuse(
+            "the response it is bound to is no integer: its declaration is no single integer.",
+          );
+
+    if (
+      typeof integer === "number" &&
       Number.isInteger(integer) &&
       integer >= 1 &&
       integer <= supply
-      ? integer
-      : refuse("the response it is bound to is no number of counters its tray holds.");
+    ) {
+      return { count: integer, unreadable: false };
+    }
+
+    console.warn(
+      `count-placements: the response it is bound to, ${JSON.stringify(integer)}, is no number of counters its tray holds. It starts with an empty mat.`,
+    );
+
+    return { count: 0, unreadable: true };
   };
 
   /**
@@ -528,7 +542,8 @@ define(["qtiCustomInteractionContext"], (context) => {
       tray: (count) => rows(count, trayInside),
     };
 
-    let placed = boundCount(configuration.boundTo[configuration.responseIdentifier], supply);
+    const bound = boundCount(configuration.boundTo[configuration.responseIdentifier], supply);
+    let placed = bound.count;
 
     /**
      * The counters each zone holds now: the count on the mat, the rest of the supply in the tray.
@@ -801,15 +816,9 @@ define(["qtiCustomInteractionContext"], (context) => {
     };
 
     /**
-     * Move a counter from a zone to the other, and tell the host. The zone holds the counter moved,
-     * which stands on the screen, so the count stays between none and the supply.
-     *
-     * @param from The zone it leaves.
+     * Tell the host the tray's response: `qti-interaction-changed`, at the `dom`.
      */
-    const move = (from      )       => {
-      placed += leaving[from];
-      choice = undefined;
-      draw();
+    const changed = ()       => {
       dom.dispatchEvent(
         new CustomEvent("qti-interaction-changed", {
           bubbles: true,
@@ -820,6 +829,19 @@ define(["qtiCustomInteractionContext"], (context) => {
           },
         }),
       );
+    };
+
+    /**
+     * Move a counter from a zone to the other, and tell the host. The zone holds the counter moved,
+     * which stands on the screen, so the count stays between none and the supply.
+     *
+     * @param from The zone it leaves.
+     */
+    const move = (from      )       => {
+      placed += leaving[from];
+      choice = undefined;
+      draw();
+      changed();
     };
 
     /**
@@ -968,6 +990,34 @@ define(["qtiCustomInteractionContext"], (context) => {
       { signal },
     );
 
+    /**
+     * End the press under way when its pointer moves with no button held, which means its release
+     * was lost (taken by something outside the page before the pointer first moved, when the
+     * board's capture had not yet begun): the press ends with no gesture.
+     *
+     * @param event The pointer event.
+     * @returns Whether it ended the press.
+     */
+    const endedUnheld = (event              )          => {
+      if (press === undefined || event.pointerId !== press.pointer || event.buttons !== 0) {
+        return false;
+      }
+
+      endPress();
+
+      return true;
+    };
+
+    // The frame hears a move the board does not (its capture had not begun): a lost release ends
+    // there too, wherever the pointer first moves.
+    board.ownerDocument.addEventListener(
+      "pointermove",
+      (event              ) => {
+        endedUnheld(event);
+      },
+      { signal },
+    );
+
     board.addEventListener(
       "pointermove",
       (event              ) => {
@@ -975,12 +1025,7 @@ define(["qtiCustomInteractionContext"], (context) => {
           return;
         }
 
-        // A press's pointer moving with no button held has lost its release (taken by something
-        // outside the page before the pointer first moved, when the board's capture had not yet
-        // begun): the press ends with no gesture.
-        if (event.buttons === 0) {
-          endPress();
-
+        if (endedUnheld(event)) {
           return;
         }
 
@@ -1074,7 +1119,13 @@ define(["qtiCustomInteractionContext"], (context) => {
     );
 
     draw();
+
     configuration.onready(instance, response());
+
+    // The host still holds the unreadable stored answer: tell it the empty mat the child sees.
+    if (bound.unreadable) {
+      changed();
+    }
 
     return instance;
   };

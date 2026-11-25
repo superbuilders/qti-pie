@@ -194,7 +194,7 @@ export type Bound = typeof BoundJson.Type;
  */
 export type Given =
   | Bound
-  | { readonly base: { readonly float: number; readonly integer: number } }
+  | { readonly base: { readonly float: number; readonly integer?: number } }
   | {
       readonly base: { readonly integer: number };
       readonly list: { readonly integer: readonly number[] };
@@ -1233,11 +1233,15 @@ export interface Running {
    */
   readonly jump: (from: Spot, to: Spot) => Effect.Effect<void, CounterTrayFailure>;
   /**
-   * Press the mouse on one spot, then move it toward another with no button held, as when
-   * something outside the page takes the release before the pointer first moves, then wait until
-   * the page has settled.
+   * Press the mouse on one spot, then move it toward another in `moves` steps with no button held,
+   * as when something outside the page takes the release before the pointer first moves (one step:
+   * straight to the other spot), then wait until the page has settled.
    */
-  readonly lostRelease: (from: Spot, to: Spot) => Effect.Effect<void, CounterTrayFailure>;
+  readonly lostRelease: (
+    from: Spot,
+    to: Spot,
+    moves: number,
+  ) => Effect.Effect<void, CounterTrayFailure>;
   /**
    * Read what the screen shows ({@link Look}).
    */
@@ -1636,12 +1640,12 @@ const startIn = (
             return midway ?? (yield* failed("read the screen midway", seen));
           }),
         ),
-      lostRelease: (from, to) =>
+      lostRelease: (from, to, moves) =>
         cdpMouse(page, from, to, (mouse, start, end) =>
           Effect.gen(function* lost() {
             yield* mouse("mouseMoved", start, 0);
             yield* mouse("mousePressed", start, 1);
-            yield* Effect.forEach(pathOf(start, end, 4), (at) => mouse("mouseMoved", at, 0), {
+            yield* Effect.forEach(pathOf(start, end, moves), (at) => mouse("mouseMoved", at, 0), {
               discard: true,
             });
           }),
