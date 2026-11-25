@@ -9,7 +9,10 @@
  *
  * Written by the admission run (`packages/qti-pie/packages/pantry/scripts/admit.ts`) at edullm
  * 98d15c69d5d5333721442fccfa57dd126a2fd21e: 1251 documents judged, 1156 admitted, by the schema's
- * laws at that commit. Do not edit it: run the admission again when a document a suite opens
+ * laws at that commit. The two synthetic Gap Match items of Alpha's fixtures
+ * (`#plate/alpha/fixtures/gap-match/`, the comparison and number line forms), collected alone,
+ * were admitted by the same run at qti-pie 525c9c179ba8b4ac2909958a1d2ebe52cd834800's laws: 2
+ * judged, 2 admitted. Do not edit it: run the admission again when a document a suite opens
  * changes, and when a law lands that moves a verdict (follow-up 5's template needs, the normative
  * half of G1, refuse 1EdTech's slider-1, which this set admits).
  *
@@ -250,6 +253,14 @@ export const admittedDocuments: ReadonlyMap<
   ["2b9f1775f8968dd667c0b3ffa46c1dcc1d4185726e47b5904683868c43c90385", []],
   ["2ba954996d9f58c596ffb9e948828920f22a7ccf73a19ec60b523b6a11f6d2ac", []],
   ["2bb8b9e0ac19b4bd16b061933e7b3554b58a1f80fa824e6d2403385d389c6a8e", []],
+  [
+    "2be5529ff2743755c52b9fd3915ba5b0e575e7a7785590d27c13034521deb097",
+    [
+      [27, "", "data-reading-type"],
+      [31, "", "data-reading-type"],
+      [35, "", "data-reading-type"],
+    ],
+  ],
   [
     "2bfe1045e98018c825468604568611ec56df03eb609d22e652d18d0b99a8b67c",
     [
@@ -787,6 +798,10 @@ export const admittedDocuments: ReadonlyMap<
   ["8b6e115203d353c8feb1b4cb87c7dbcf62cd240e7de6a41a5fc0ae1a8af03847", []],
   ["8bba7d1650bb39e385fa3eb095572e0b67003ef527fb7c29aa8f0986fec4dc41", []],
   ["8bd8e5385e94fd99b7142e6bafd364e860c4051bfcda8e4bd3fc22c3da6cff39", []],
+  [
+    "8be212e2ca1cd20e68c2e8cf0e1e6739420ce510edcd9f4e0dd1639ab684bc9d",
+    [[21, "", "data-reading-type"]],
+  ],
   ["8cba5cc9f4da89dafd447ba7036b4894c31a91393fe38514f446523edef35a1a", []],
   ["8cba7bff81a74ccd2c00569bd11b41c855ee200cce438eb9779db4f7d174e79c", []],
   ["8ceb9887832948a8bf7fdb4a255b8a0d7b229363210e0f19607a92e5ec185f7d", []],
