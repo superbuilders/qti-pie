@@ -208,9 +208,6 @@ export const drawingOf = (area: GraphicArea, size: ImageSize): Drawing | undefin
         y: Math.min(second, fourth),
       };
     }
-    default: {
-      return area.geometry satisfies never;
-    }
   }
 };
 
@@ -513,9 +510,6 @@ export const interiorOf = (drawing: Drawing): Interior => {
         y: drawing.y + drawing.height / 2,
       };
     }
-    default: {
-      return drawing satisfies never;
-    }
   }
 };
 
@@ -554,9 +548,6 @@ export const boundsOf = (drawing: Drawing): Box => {
         right: drawing.x + drawing.width,
         top: drawing.y,
       };
-    }
-    default: {
-      return drawing satisfies never;
     }
   }
 };
@@ -612,9 +603,6 @@ export const cornerOf = (drawing: Drawing): ImagePoint => {
     case "rect": {
       return { x: drawing.x + drawing.width, y: drawing.y };
     }
-    default: {
-      return drawing satisfies never;
-    }
   }
 };
 
@@ -648,9 +636,6 @@ const inscribedDiameterOf = (drawing: Drawing): number => {
     }
     case "rect": {
       return Math.min(drawing.width, drawing.height);
-    }
-    default: {
-      return drawing satisfies never;
     }
   }
 };
@@ -731,9 +716,6 @@ const regionOf = (drawing: Drawing, fit: "around" | "inside"): Region => {
         kind: "rect",
       };
     }
-    default: {
-      return drawing satisfies never;
-    }
   }
 };
 
@@ -776,9 +758,6 @@ const regionDepth = (region: Region, x: number, y: number): number => {
     case "rect": {
       return boxDepth(region.box, x, y);
     }
-    default: {
-      return region satisfies never;
-    }
   }
 };
 
@@ -803,9 +782,6 @@ const boxOfRegion = (region: Region): Box => {
     }
     case "rect": {
       return region.box;
-    }
-    default: {
-      return region satisfies never;
     }
   }
 };

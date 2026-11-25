@@ -304,9 +304,6 @@ const failingKey = (issue: SchemaIssue.Issue): Option.Option<PropertyKey> => {
     case "UnexpectedKey": {
       return Option.none();
     }
-    default: {
-      return issue satisfies never;
-    }
   }
 };
 

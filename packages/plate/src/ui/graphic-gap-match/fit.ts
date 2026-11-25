@@ -201,9 +201,6 @@ const measuredOf = ({ marked, measure }: FitChoice): Measured | undefined => {
     case "unsized": {
       return undefined;
     }
-    default: {
-      return measure satisfies never;
-    }
   }
 };
 

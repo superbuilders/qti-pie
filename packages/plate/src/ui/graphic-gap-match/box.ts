@@ -71,8 +71,5 @@ export const placedBoxOf = (area: GraphicArea, size: ImageSize): PlacedBox | und
         y: drawing.y + drawing.height / 2,
       };
     }
-    default: {
-      return drawing satisfies never;
-    }
   }
 };

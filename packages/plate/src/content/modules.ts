@@ -257,9 +257,6 @@ export const parseBodyContent = (
     case "qti-rubric-block": {
       return parseWith("qti-rubric-block", source, context);
     }
-    default: {
-      return module satisfies never;
-    }
   }
 };
 
@@ -319,9 +316,6 @@ export const redactContent = (
     case "qti-rubric-block": {
       return redactWith(node, kit);
     }
-    default: {
-      return node satisfies never;
-    }
   }
 };
 
@@ -339,9 +333,6 @@ export const copyContent = (node: ContentNode<RedactedLevel>): ContentPayload =>
     }
     case "qti-rubric-block": {
       return copyWith(node);
-    }
-    default: {
-      return node satisfies never;
     }
   }
 };

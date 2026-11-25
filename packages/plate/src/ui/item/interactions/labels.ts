@@ -221,9 +221,6 @@ const isUnnamed = (
         !Option.exists(control.label, (label) => namesSomething(label, context.locale))
       );
     }
-    default: {
-      return control satisfies never;
-    }
   }
 };
 

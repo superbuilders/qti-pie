@@ -756,10 +756,6 @@ export const bootFrame = (): void => {
         load(data);
         break;
       }
-      default: {
-        data satisfies never;
-        break;
-      }
     }
   };
 

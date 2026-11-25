@@ -315,9 +315,6 @@ const answerParts = (mark: ControlMark<Value>, locale: Locale): ReactNode => {
     case "unmarked": {
       return null;
     }
-    default: {
-      return mark satisfies never;
-    }
   }
 };
 

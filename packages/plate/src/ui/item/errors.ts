@@ -30,9 +30,6 @@ const breachText = (breach: InstanceBreach): string => {
     case "non-empty": {
       return "is empty";
     }
-    default: {
-      return breach satisfies never;
-    }
   }
 };
 

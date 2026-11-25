@@ -915,9 +915,6 @@ const judge = (source: SourceDocument, kind: AcceptedKind, tables: Tables): Verd
     case "stimulus": {
       return checkStimulus(source, visits, tables);
     }
-    default: {
-      return kind satisfies never;
-    }
   }
 };
 
@@ -991,9 +988,6 @@ export const unsupportedFeatures = (verdict: Verdict): readonly UnsupportedFeatu
     }
     case "stimulus": {
       return verdict.accepted.stimulus.unsupported;
-    }
-    default: {
-      return verdict satisfies never;
     }
   }
 };

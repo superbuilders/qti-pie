@@ -142,9 +142,6 @@ export const step = (plays: Plays, seen: Seen, limit: Limit): Stepped => {
         plays: { ...plays, phase: plays.phase === "pending" ? "pending" : "rest" },
       };
     }
-    default: {
-      return seen satisfies never;
-    }
   }
 };
 

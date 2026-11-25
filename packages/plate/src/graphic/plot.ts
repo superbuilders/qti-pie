@@ -427,9 +427,6 @@ export const figuresOf = (
     case "plain": {
       return [];
     }
-    default: {
-      return kind satisfies never;
-    }
   }
 };
 

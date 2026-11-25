@@ -251,9 +251,6 @@ export const urlValueOf = (
     case "preserve": {
       return lexical;
     }
-    default: {
-      return whiteSpace satisfies never;
-    }
   }
 };
 
@@ -918,10 +915,6 @@ export const formatUrl = (url: KeptUrl): string => {
         .map((candidate) => [formatUrl(candidate.url), ...candidate.descriptors].join(" "))
         .join(", ");
     }
-
-    default: {
-      return url satisfies never;
-    }
   }
 };
 
@@ -998,10 +991,6 @@ export const addressUrl = (
       return kept.length === 0 && withheld !== undefined
         ? Result.fail(withheld)
         : Result.succeed(kept.join(", "));
-    }
-
-    default: {
-      return url satisfies never;
     }
   }
 };
@@ -1085,10 +1074,6 @@ export const classifyUrl = (context: UrlContext, value: string): ClassifiedUrl =
     case "srcset": {
       return classifySrcset(value);
     }
-
-    default: {
-      return context satisfies never;
-    }
   }
 };
 
@@ -1115,10 +1100,6 @@ const packageUrlsOf = (url: ClassifiedUrl): readonly PackageUrl[] => {
     case "fragment":
     case "remote": {
       return [];
-    }
-
-    default: {
-      return url satisfies never;
     }
   }
 };

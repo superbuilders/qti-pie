@@ -109,9 +109,6 @@ const answerOf = (mark: ControlMark): Option.Option<string> => {
     case "unmarked": {
       return Option.none();
     }
-    default: {
-      return mark satisfies never;
-    }
   }
 };
 

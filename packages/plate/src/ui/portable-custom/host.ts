@@ -438,10 +438,6 @@ export const hostFrame = (
       case "done": {
         break;
       }
-      default: {
-        message satisfies never;
-        break;
-      }
     }
   };
 

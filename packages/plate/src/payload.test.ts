@@ -498,9 +498,6 @@ const textFor = (
     case "inline-choice": {
       return assert.fail(`${response} is an Inline Choice`);
     }
-    default: {
-      return found satisfies never;
-    }
   }
 };
 

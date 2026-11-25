@@ -106,8 +106,5 @@ export const pressStep = (press: Press, event: PressEvent, pointersDown: number)
     case "spoilt": {
       return { press: pointersDown === 0 ? noPress : press };
     }
-    default: {
-      return press satisfies never;
-    }
   }
 };

@@ -90,8 +90,5 @@ export const marksOf = (
         return missed.has(identifier) ? "missed" : "unpicked";
       };
     }
-    default: {
-      return marking satisfies never;
-    }
   }
 };

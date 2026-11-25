@@ -145,9 +145,6 @@ const answerPart = (shown: ControlMark, locale: Locale): ReactNode => {
     case "unmarked": {
       return null;
     }
-    default: {
-      return shown satisfies never;
-    }
   }
 };
 

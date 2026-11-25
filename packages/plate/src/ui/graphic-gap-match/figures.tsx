@@ -87,9 +87,6 @@ const markOf = (figure: Figure, key: number) => {
     case "point": {
       return null;
     }
-    default: {
-      return figure satisfies never;
-    }
   }
 };
 

@@ -42,8 +42,5 @@ export const sizeOf = (authored: AuthoredSize, natural?: ImageSize): ImageSize |
         ? undefined
         : { height: (authored.width * natural.height) / natural.width, width: authored.width };
     }
-    default: {
-      return authored satisfies never;
-    }
   }
 };

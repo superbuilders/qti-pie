@@ -137,9 +137,6 @@ export const textOf = (nodes: readonly RedactedNode[]): string => {
       case "unsupported": {
         return [];
       }
-      default: {
-        return node satisfies never;
-      }
     }
   };
 

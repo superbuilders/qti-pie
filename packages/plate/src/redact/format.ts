@@ -790,9 +790,6 @@ const printerOf = (
               : plain(single),
           );
         }
-        default: {
-          return layout satisfies never;
-        }
       }
     },
   });

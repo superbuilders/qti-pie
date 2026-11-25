@@ -638,9 +638,6 @@ const declaredChild = (
         onSome: (entry): Admission => ({ kind: "governed", table: entry, types: [type] }),
       });
     }
-    default: {
-      return declaration satisfies never;
-    }
   }
 };
 
@@ -687,9 +684,6 @@ const underGoverned = (
           }
           case "skip": {
             return none;
-          }
-          default: {
-            return wildcard.process satisfies never;
           }
         }
       },

@@ -139,9 +139,6 @@ const interrupts = (refusal: Refusal): boolean => {
     case "rejected": {
       return refusal.cause instanceof DOMException && refusal.cause.name === "AbortError";
     }
-    default: {
-      return refusal satisfies never;
-    }
   }
 };
 
@@ -224,9 +221,6 @@ export const heard = <Control>(
       return shownAt(session, report.control) === "resting"
         ? unchanged
         : { commands: [], session: newSession };
-    }
-    default: {
-      return report satisfies never;
     }
   }
 };

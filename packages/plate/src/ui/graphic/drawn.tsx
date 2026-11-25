@@ -58,9 +58,6 @@ const elementOf = (drawing: Drawing, own: DrawnAttributes): ReactNode => {
         <rect {...own} height={drawing.height} width={drawing.width} x={drawing.x} y={drawing.y} />
       );
     }
-    default: {
-      return drawing satisfies never;
-    }
   }
 };
 

@@ -141,9 +141,6 @@ const keysOf = (reading: TypedReading, entry: TypedEntry): Option.Option<Keypad>
         whole: false,
       });
     }
-    default: {
-      return reading.baseType satisfies never;
-    }
   }
 };
 
@@ -167,9 +164,6 @@ export const keypadOf = (
     }
     case "on-screen": {
       return keysOf(reading, entry);
-    }
-    default: {
-      return setting satisfies never;
     }
   }
 };
