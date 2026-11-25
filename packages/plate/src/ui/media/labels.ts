@@ -17,8 +17,13 @@ export const mediaKeys = {
    */
   captions: "mediaCaptions",
   /**
-   * What a screen reader hears once a play the control asked for has waited a second to begin,
-   * the media still loading: UI SDK Button's `pendingAnnouncement`.
+   * Shown beside the control, as an alert a screen reader says at once, when the media cannot play:
+   * every `source` failed, or a `MediaError` reached it. The control's next press clears it.
+   */
+  failed: "mediaFailed",
+  /**
+   * What a screen reader hears, politely, as the control asks for a play of a media that has yet
+   * to load; the control is its Pause meanwhile.
    */
   loading: "mediaLoading",
   /**
@@ -39,5 +44,5 @@ export const mediaKeys = {
    */
   playsLeft: "mediaPlaysLeft",
 } as const satisfies LabelKeys<
-  "captions" | "loading" | "noPlaysLeft" | "pause" | "play" | "playsLeft"
+  "captions" | "failed" | "loading" | "noPlaysLeft" | "pause" | "play" | "playsLeft"
 >;

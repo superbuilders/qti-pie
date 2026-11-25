@@ -23,7 +23,7 @@ import type { MathNode } from "#plate/content/mathml.ts";
 import { contentNodes, copyContent } from "#plate/content/modules.ts";
 import type { ContentNode } from "#plate/content/modules.ts";
 import type { ContainerKind } from "#plate/interactions/contract.ts";
-import { message, numeral } from "#plate/messages.ts";
+import { message } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
 import { isInteraction, regionsOf } from "#plate/model/interactions.ts";
 import type {
@@ -143,11 +143,12 @@ export interface Walk {
    */
   readonly slots: ReadonlyMap<string, Slotted>;
   /**
-   * Read-aloud's control each element of the walk holds after its own content, by the element's
-   * path, the page's numbering of them ({@link heldControls}): in the body, each element inside a
-   * table cell; in a Gap Match's sentence, each of its elements ({@link heldIn}); none elsewhere.
+   * The elements of the walk that hold read-aloud's control after their own content, and the
+   * read-aloud that makes each as the walk writes it ({@link Holding}): in the body, each element
+   * inside a table cell; in a Gap Match's sentence, each of its elements ({@link heldIn}); none
+   * elsewhere.
    */
-  readonly spoken: ReadonlyMap<string, ReactNode>;
+  readonly spoken: Holding;
   readonly standing: Standing;
 }
 
@@ -171,7 +172,7 @@ export const noSlots: ReadonlyMap<string, Slotted> = new Map();
  * they read ({@link readAloudBefore}), and of any content but an interaction's that stands outside
  * every control.
  */
-export const noSpoken: ReadonlyMap<string, ReactNode> = new Map();
+export const noSpoken: Holding = { held: new Map(), readAloud: () => Option.none() };
 
 /**
  * What a walk renders beyond the HTML subset, by what it walks:
@@ -403,58 +404,32 @@ const heldWithin = (nodes: readonly RedactedNode[], within: readonly string[]): 
 export const heldIn = (body: readonly RedactedNode[]): Held => heldWithin(body, []);
 
 /**
- * One document of an item's page as its held controls are written: the elements of its body that
- * hold them ({@link heldIn}), and its own read-aloud, which reads its own catalogs.
+ * The elements of a walk that hold read-aloud's control after their own content: each by its path,
+ * with the control the placement gives it ({@link heldIn}), and the read-aloud of the document the
+ * walk writes, which reads its own catalogs. The walk makes each control as it writes the element,
+ * after the element's own children, so the page's namer names the labels in the order the page
+ * shows them, a passage the body places among them where it stands.
  */
 export interface Holding {
-  readonly held: Held;
+  readonly held: ReadonlyMap<string, SpokenControl>;
   readonly readAloud: ReadsAloud;
 }
 
 /**
- * Write the controls the elements of an item's page hold after their own content, each document's
- * by its elements' paths: each element whose catalog keeps a spoken card that gives audio, named
- * `readAloudLabel` by its place among them all, across the page's documents in the order given and
- * in document order within each, so no two of the page's labels share a name (WCAG 2.4.6), a
- * picture graph's labels, a Gap Match's ("least", "greatest") and a passage's among them, and keyed
- * `read-aloud` among the element's children.
+ * Make the control an element of a walk holds after its own content, now, as the walk writes it:
+ * a `readAloudLabel` the page's namer names, keyed `read-aloud` among the element's children; none
+ * for an element that holds none, or whose catalog keeps no spoken card that gives audio.
  *
- * @template D A document of the page.
- * @param documents The page's documents, each with its holding, in the order they are named.
- * @param locale The locale of plate's own text.
- * @returns Each document's controls, by its elements' paths.
+ * @param element The element.
+ * @param walk The walk where it stands.
+ * @returns The control, or nothing.
  */
-export const heldControls = <D,>(
-  documents: readonly (readonly [document: D, holding: Holding])[],
-  locale: Locale,
-): ReadonlyMap<D, ReadonlyMap<string, ReactNode>> => {
-  const [, written] = Arr.mapAccum(
-    documents,
-    1,
-    (
-      from,
-      [document, { held, readAloud }],
-    ): readonly [number, readonly [D, ReadonlyMap<string, ReactNode>]] => {
-      const [next, controls] = Arr.mapAccum(
-        held,
-        from,
-        (n, [path, { catalog }]): readonly [number, readonly (readonly [string, ReactNode])[]] =>
-          Option.match(
-            readAloud(
-              catalog,
-              message(locale, "readAloudLabel", { n: numeral(locale, n) }),
-              "read-aloud",
-            ),
-            { onNone: () => [n, []], onSome: (control) => [n + 1, [[path, control]]] },
-          ),
-      );
-
-      return [next, [document, new Map(controls.flat())]];
-    },
+const heldBy = (element: BodyElement<RedactedLevel>, walk: Walk): readonly ReactNode[] =>
+  Option.toArray(
+    Option.flatMap(Option.fromUndefinedOr(walk.spoken.held.get(element.path)), ({ catalog }) =>
+      walk.spoken.readAloud(catalog, "readAloudLabel", "read-aloud"),
+    ),
   );
-
-  return new Map(written);
-};
 
 /**
  * Collect every content module's node among body nodes, at any depth and in document order: below
@@ -1014,33 +989,27 @@ const disclosuresAfter = (
  * @returns The control, or nothing.
  */
 const readAloudBefore = (element: BodyElement<RedactedLevel>, walk: Walk): readonly ReactNode[] =>
-  walk.scope.kind === "body" && !walk.spoken.has(element.path)
-    ? spokenAt(spokenBefore({ element, kind: "element" }), walk.scope.readAloud, walk.locale)
+  walk.scope.kind === "body" && !walk.spoken.held.has(element.path)
+    ? spokenAt(spokenBefore({ element, kind: "element" }), walk.scope.readAloud)
     : [];
 
 /**
  * Write read-aloud's control the placement gives (`spokenBefore` in
- * `#plate/read-aloud/placement.ts`), named by its role: none where the catalog keeps no spoken card
- * that gives audio.
+ * `#plate/read-aloud/placement.ts`), named by its role, a prompt's or a text's, and its place among
+ * the page's controls of that part: none where the catalog keeps no spoken card that gives audio.
  *
  * @param spoken The control the placement gives, none where none stands.
  * @param readAloud The page's read-aloud.
- * @param locale The locale of plate's own text.
  * @returns The control, or nothing.
  */
 const spokenAt = (
   spoken: Option.Option<SpokenControl>,
   readAloud: ReadsAloud,
-  locale: Locale,
 ): readonly ReactNode[] =>
   Option.toArray(
     spoken.pipe(
       Option.flatMap(({ catalog, role }) =>
-        readAloud(
-          catalog,
-          message(locale, role === "prompt" ? "readAloudPrompt" : "readAloudText"),
-          "read-aloud",
-        ),
+        readAloud(catalog, role === "prompt" ? "readAloudPrompt" : "readAloudText", "read-aloud"),
       ),
     ),
   );
@@ -1119,11 +1088,19 @@ const elementOf = (element: BodyElement<RedactedLevel>, key: Key, walk: Walk): R
   const tag = tagFor(element.tag, walk.headingOffset);
   const below = (): readonly ReactNode[] =>
     element.tag === "table" ? tableChildren(entries, inner) : renderedOf(entries, inner);
-  // A stimulus the item places here stands after the element's own children: "the stimulus is
-  // injected into" the element that names it (implementation guide §3.7.7).
-  const placedHere = walk.scope.kind === "body" ? Option.toArray(walk.scope.stimulus(element)) : [];
-  const held = Option.toArray(Option.fromUndefinedOr(walk.spoken.get(element.path)));
-  const children = voidElements.has(element.tag) ? undefined : [...below(), ...placedHere, ...held];
+  /**
+   * The element's children, none for a void element: its own, then a stimulus the item places
+   * here, since "the stimulus is injected into" the element that names it (implementation guide
+   * §3.7.7), then the control the element holds after them, each written in that order, so the
+   * page makes, and its namer names, the controls in the order it shows them.
+   */
+  const children = voidElements.has(element.tag)
+    ? undefined
+    : [
+        ...below(),
+        ...(walk.scope.kind === "body" ? Option.toArray(walk.scope.stimulus(element)) : []),
+        ...heldBy(element, walk),
+      ];
   const writtenAt = (at: Key): ReactNode => {
     // `satisfies` gives the literal React's `Attributes` as its contextual type, so `key` stays a
     // `Key`: without one, React's experimental types (Next loads them) widen `optimisticKey`'s
@@ -1186,7 +1163,6 @@ const interactionOf = (
   const preceding = spokenAt(
     spokenBefore({ interaction, kind: "interaction" }),
     walk.scope.readAloud,
-    walk.locale,
   );
   const following = writtenOf(walk.scope.answer(interaction, "answer"));
 

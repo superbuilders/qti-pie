@@ -14,8 +14,8 @@
  */
 import { Option } from "effect";
 import type { ReactNode } from "react";
-import { message, numeral } from "#plate/messages.ts";
 import type { RedactedNode, ReferencingChoice } from "#plate/model/item.ts";
+import type { SpokenPart } from "#plate/read-aloud/naming.ts";
 import type { IslandContext, Position } from "#plate/ui/item/context.ts";
 import { limitOf } from "#plate/placement/limit.ts";
 import { chipName } from "#plate/content/text.ts";
@@ -24,18 +24,16 @@ import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
 import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
 
 /**
- * The catalog's names of read-aloud's control beside a choice, by what the choice is to the child:
- * `readAloudChoice` for an option, one it picks, moves or orders, `readAloudGroup` for a Match's
- * group, which the options go to, `readAloudRow` and `readAloudColumn` for a row's and a column's
- * header of a Match laid out as a table, and `readAloudArea` for an area of a graphic
- * interaction's image. `{n}` is the choice's place among its set as presented.
+ * The catalog's names of read-aloud's control beside a choice, by what the choice is to the child
+ * (`SpokenPart` in `#plate/read-aloud/naming.ts`): `readAloudChoice` for an option, one it picks,
+ * moves or orders, `readAloudGroup` for a Match's group, which the options go to, `readAloudRow`
+ * and `readAloudColumn` for a row's and a column's header of a Match laid out as a table, and
+ * `readAloudArea` for an area of a graphic interaction's image.
  */
-type SpokenPart =
-  | "readAloudArea"
-  | "readAloudChoice"
-  | "readAloudColumn"
-  | "readAloudGroup"
-  | "readAloudRow";
+type ChoicePart = Extract<
+  SpokenPart,
+  "readAloudArea" | "readAloudChoice" | "readAloudColumn" | "readAloudGroup" | "readAloudRow"
+>;
 
 /**
  * Write a run of content through the shell, as server React elements.
@@ -54,32 +52,28 @@ export const contentOf = (
 /**
  * Give read-aloud for a choice of an interaction's own content, which its island writes beside the
  * choice: the control for the catalog the choice references, named by what the choice is and its
- * place, where the candidate hears it (`IslandContext.readAloud`); none where the choice
+ * place among the page's controls of that part, which the page's namer gives as the island makes
+ * the controls of its choices in their order as presented, where the candidate hears it
+ * (`IslandContext.readAloud`); none where the choice
  * references no catalog, or one that keeps no spoken card that gives audio. Its key is the
  * choice's identifier and ` read-aloud`: it stands beside the choice's own part, which the
  * identifier keys, and a space, which no identifier holds, keeps the two keys apart, as React asks
  * of siblings, while the identifier keeps it apart from another choice's control.
  *
  * @param choice The choice: its identifier and the catalog it references.
- * @param n Its place among its set as presented, from 1.
  * @param part What the choice is to the child, which names the control.
- * @param context What the page may know: the locale and read-aloud.
+ * @param context What the page may know: its read-aloud.
  * @returns The choice's read-aloud.
  */
 export const spokenOf = (
   choice: ReferencingChoice,
-  n: number,
-  part: SpokenPart,
-  context: Pick<IslandContext, "locale" | "readAloud">,
+  part: ChoicePart,
+  context: Pick<IslandContext, "readAloud">,
 ): Spoken =>
   Option.match(
     choice.catalog.pipe(
       Option.flatMap((catalog) =>
-        context.readAloud(
-          catalog,
-          message(context.locale, part, { n: numeral(context.locale, n) }),
-          `${choice.identifier} read-aloud`,
-        ),
+        context.readAloud(catalog, part, `${choice.identifier} read-aloud`),
       ),
     ),
     { onNone: () => ({}), onSome: (readAloud) => ({ readAloud }) },
@@ -114,5 +108,5 @@ export const associableOf = (
   label: chipName(choice.content, choice.label, place, context.locale),
   matchGroup: choice.matchGroup,
   matchMax: limitOf(choice.matchMax),
-  ...spokenOf(choice, place.n, "readAloudChoice", context),
+  ...spokenOf(choice, "readAloudChoice", context),
 });

@@ -5220,7 +5220,13 @@ C2: the oracle's own reader.)
      `computer-read-aloud` reading type: "The intent of the storage of the audio files is to present the audio as an
      alternative to the written text provided in the default content" (section 5.2.8.3). So plate presents an active
      `spoken` card that gives a file whose `mime-type` is `audio/*` (RFC 2045 section 5.1: compared without case) as one
-     play control: a native toggle button whose name says what it reads and whose pressed state says whether it plays,
+     play control: a native toggle button whose name says what it reads, the part it reads and its place among the
+     page's controls of that part, from 1 ("Listen to question 2", "Listen to choice 3", "Listen to text 1", "Listen to
+     label 2"), the page's one namer counting across the item and its passages in the order the page writes them, a
+     pane's passages before the question, each control named as the page writes it, never again from 1 at an
+     interaction, a run or a document, so no two controls of the page share a name (WCAG 2.4.6), the page being one
+     `<Item>`'s, its passages with it (two items a host shows on one page are two pages of names, and may share them),
+     and whose pressed state says whether it plays,
      over an `audio` element with one `source` per audio file in document order, among which the browser plays the first
      format it can (HTML's source selection; the guide's example stores one recording as `audio/mpeg` and `audio/ogg`),
      so plate picks none (step 7). The control stands before an element of the body at a flow position, at the top of
@@ -5229,9 +5235,8 @@ C2: the oracle's own reader.)
      keeps its place in its cell and its row; before an interaction, for the catalog the interaction's own root
      references; after an interaction's prompt; inside an element of a Gap Match's sentence, after its own words, as a
      slot's label holds its play icon; an element that holds its control so may hold phrasing content and stands inside
-     no element that bars a control (a link, a label, a media element), and each such control is named by its place
-     among them all on the item's page, its passages' first, in the order of their refs, as the page writes them before
-     the question, then its own, so no two share a name (WCAG 2.4.6; "Listen to label 1"); and beside every choice the
+     no element that bars a control (a link, a label, a media element), and each such control is a label's ("Listen to
+     label 1"); and beside every choice the
      child picks, moves, orders or fills, each heard from
      one place and never inside a control: a Choice's choice in its row, a Hot Text's hottext after it in its line, a
      Match's group and a Graphic Gap Match's hotspot after its name in its target, and beside its chip in the bank an
@@ -5279,7 +5284,13 @@ C2: the oracle's own reader.)
      refused play and leaves muted media alone; and section 5.1.2.4 is read as it says. Amended a fourth time the same
      day by lane FORM-AUDIO on the reviews: a label's control is named by its place among all the page's labels, its
      passages' and its own, never restarting at a run or a document, and a muted media heard while it plays takes the
-     voice.)
+     voice. Amended a fifth time the same day by lane FORM-AUDIO on edullm-bd's car D: every control is named by its
+     part and its place among the page's controls of that part, the stem's and a graph title's, a prompt's and a
+     choice's among them, and plate's UI suite pins the rules in Chrome on plate's own items, hydrated, as RN1 and RN2
+     pin the names. Amended a sixth time the same day by lane FORM-AUDIO on the reviews: a question's control and a
+     label's are named as the page writes them, a passage the body places among them where it stands, the voice is held
+     in each page, never in plate's module, so two pages one copy of plate serves each have their own, and the names are
+     stated unique within one `<Item>`.)
 
 238. **Under `tolerance-mode` absolute or relative, a `qti-equal` compares the exact binary values of its floats, the
      ends of its range computed exactly over them.** The information model gives the range, "In absolute mode the result
@@ -5399,7 +5410,8 @@ C2: the oracle's own reader.)
      the candidate's next press of the Media resumes where it stopped and spends no play, so under `max-plays` 1 the
      interrupted Media still plays, a pause makes no play and so can never carry the count past `max-plays`, and
      `min-plays` counts the play the pause interrupted. A pause of a playback that never sounded, a press while its data
-     still loads followed by another press elsewhere, leaves the media at rest with no play counted: nothing of it was
+     still loads followed by another press elsewhere or by the Media's own control, which is its Pause while the play
+     loads and stops it, leaves the media at rest with no play counted: nothing of it was
      experienced, so its next press plays and counts, under `max-plays` 1 too. A play refused past `max-plays`, as the
      Media's native controls may start one, takes the voice from nothing. A play the candidate leaves paused, by a press
      elsewhere or by the Media's own Pause, ends when the item is left: the island holds no position across items, so on
@@ -5412,7 +5424,11 @@ C2: the oracle's own reader.)
      stores the four characteristics as written and counts no play. This is not a case of documents in conflict. (Stated
      2026-11-25 by lane FORM-AUDIO on edullm-bd's question; pinned in Chrome by plate's UI suite: RB19, two Media
      interactions, one stopping the other mid-play and a read-aloud press stopping one, each posting its one play, and
-     one stopped while it loads posting none until its next press sounds; and RB20, a refused play stopping nothing.)
+     one stopped while it loads posting none until its next press sounds; and RB20, a refused play stopping nothing.
+     Amended the same day by lane FORM-AUDIO on the reviews: the Media's own Pause stops a play still loading, where its
+     control had waited on the play, and RB25 pins it on plate's hydrated items; and a playback whose media cannot play,
+     every `source` failed or a `MediaError` reached it, ends at rest, counting the play it counted where it had
+     sounded, the Media telling the child beside its control, as RB27 pins.)
 246. **A PCI's module configuration gives its loads' waits, never their locations, and every configuration an item's PCI
      writes is a file the delivery serves.** The information model gives `primary-configuration` and
      `secondary-configuration` one description: "Provides a URL which is a reference to a JSON configuration file which

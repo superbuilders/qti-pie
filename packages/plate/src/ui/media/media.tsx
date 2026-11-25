@@ -29,13 +29,19 @@
  *   past the limit, refused, takes nothing. A read-aloud press or another media that starts to play
  *   pauses it: a playback that sounded keeps the play it counted, and the control's next press
  *   resumes it and spends none; one that never sounded is no play (spec reading 245).
- * - **The control.** UI SDK's Button: Play, or Pause while the media plays, so media that starts by
- *   itself can always be paused, with or without the native controls (WCAG 1.4.2, 2.2.2). Pressed,
- *   it calls the element's `play()`, whose promise keeps the button pending, announcing `loading`,
- *   while the media loads. Once the plays reach `max-plays` and the media is at rest it is
- *   disabled, kept focusable so a child on it is not dropped, and described by the plays left. A
- *   play the native controls ask for past the limit is paused at once and announced assertively;
- *   the plays-left text beside the control shows the same.
+ * - **The control.** UI SDK's Button: Play, or Pause while the media plays or still loads, so media
+ *   that starts by itself can always be paused, with or without the native controls (WCAG 1.4.2,
+ *   2.2.2). Pressed, it calls the element's `play()` and announces `loading` politely where the
+ *   media has yet to load; the button never waits on that `play()`, so its Pause stops a play still
+ *   loading, before it sounded, which is no play: the media is at rest again and the count stands
+ *   (spec reading 245). Once the plays reach `max-plays` and the media is at rest it is disabled,
+ *   kept focusable so a child on it is not dropped, and described by the plays left. A play the
+ *   native controls ask for past the limit is paused at once and announced assertively; the
+ *   plays-left text beside the control shows the same.
+ * - **A failure.** A media that cannot play, every `source` failed or a `MediaError` reached it, ends
+ *   its playback at rest, counting what it counted (`failed` in `#plate/media/plays.ts`): the
+ *   island pauses it, so the control is its Play again, and tells the child beside the control, an
+ *   alert a screen reader says at once, until the next press, which loads its sources afresh.
  * - **Text tracks.** The author's `track` children stay the element's (WCAG 1.2). A `video` with a
  *   captions or subtitles track has a Captions toggle, UI SDK's Toggle, pressed while one shows, so
  *   captions can be turned on where the author gave no native controls; turned on, it shows the
@@ -226,6 +232,33 @@ const describe = (track: TextTrack): void => {
 const startRefused = (): undefined => undefined;
 
 /**
+ * Tell whether an `error` event says the media cannot play: a `MediaError` at the element itself,
+ * or, at its last `source`, every source failed, since the browser tries them in order and fires
+ * `error` at each one that fails. An `error` at any other `source` leaves the next to try, and one
+ * at a `track` says nothing of the media's sound.
+ *
+ * @param event The `error` event, heard as it is captured on the way to its target.
+ * @param element The media element.
+ * @returns Whether the media cannot play.
+ * @see https://html.spec.whatwg.org/multipage/media.html#concept-media-load-algorithm
+ */
+const failure = (event: Event, element: HTMLMediaElement): boolean =>
+  (event.target === element && element.error !== null) ||
+  (event.target !== null &&
+    event.target === [...element.querySelectorAll(":scope > source")].at(-1));
+
+/**
+ * Leave a play the control asked for that never began as it is: the control's own Pause, or a press
+ * elsewhere that takes the voice, paused it while it loaded, which rejects its `play()` with an
+ * `AbortError` (HTML's internal pause steps), and the step heard that pause and left the media at
+ * rest; or the media cannot play, which its own `error` says.
+ *
+ * @returns Nothing.
+ * @see https://html.spec.whatwg.org/multipage/media.html#internal-pause-steps
+ */
+const playEnded = (): undefined => undefined;
+
+/**
  * How a Media's plays count, the one thing its attempt and its replay differ in: whether the media
  * starts by itself, how many plays the response counts so far, how many it may count and asks for,
  * and where each new count goes.
@@ -284,6 +317,7 @@ const Player = (props: PlayerProps) => {
   const { autostart, count, least, maxPlays } = tally;
   const [phase, setPhase] = useState<Phase>("rest");
   const [captioned, setCaptioned] = useState(false);
+  const [failed, setFailed] = useState(false);
   const plays = useRef<Plays>({ count, phase: "rest" });
   const player = useRef<HTMLDivElement>(null);
   const media = useRef<HTMLMediaElement | undefined>(undefined);
@@ -335,6 +369,24 @@ const Player = (props: PlayerProps) => {
     if (!element.paused) {
       speak(element);
     }
+  });
+
+  /**
+   * Hear the media fail, every `source` failed or a `MediaError` reached it: the playback ends at
+   * rest, counting what it counted, the media is paused, so its next press plays it again, and the
+   * child is told beside the control.
+   *
+   * @param event The `error` event, heard as it is captured on the way to its target.
+   * @param element The media element.
+   */
+  const heardFailure = useEffectEvent((event: Event, element: HTMLMediaElement) => {
+    if (!failure(event, element)) {
+      return;
+    }
+
+    observe("failed", element);
+    element.pause();
+    setFailed(true);
   });
 
   /**
@@ -461,6 +513,13 @@ const Player = (props: PlayerProps) => {
       { signal },
     );
     element.addEventListener(
+      "error",
+      (event) => {
+        heardFailure(event, element);
+      },
+      { capture: true, signal },
+    );
+    element.addEventListener(
       "ended",
       () => {
         observe("ended", element);
@@ -505,26 +564,35 @@ const Player = (props: PlayerProps) => {
   }, []);
 
   /**
-   * Play the media, or pause it while it plays.
-   *
-   * @returns The promise `play()` gives, which keeps the button pending until the media plays or
-   *   cannot; none for a pause, or before the island holds the media.
+   * Play the media, or pause it while it plays or still loads: a pause before it sounded leaves it
+   * at rest, no play counted. A play that has yet to load is announced as loading. A media whose
+   * every source failed, or that a `MediaError` reached, waits for a new source, and `play()` alone
+   * never tries its sources again: the press loads them afresh.
    */
-  const press = (): Promise<void> | undefined => {
+  const press = (): void => {
     const element = media.current;
     if (element === undefined) {
-      return undefined;
+      return;
     }
 
     if (!element.paused) {
       element.pause();
 
-      return undefined;
+      return;
     }
 
+    setFailed(false);
     speak(element);
 
-    return element.play();
+    if (element.error !== null || element.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
+      element.load();
+    }
+
+    if (element.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+      announce(labels.loading, { priority: "polite" });
+    }
+
+    element.play().catch(playEnded);
   };
 
   const described = [...(left === undefined ? [] : [leftId]), ...(short ? [leastId] : [])];
@@ -547,7 +615,6 @@ const Player = (props: PlayerProps) => {
           disabled={full && phase === "rest"}
           focusableWhenDisabled
           onClick={press}
-          pendingAnnouncement={labels.loading}
         >
           {playing ? labels.pause : labels.play}
         </Button>
@@ -564,6 +631,11 @@ const Player = (props: PlayerProps) => {
           </Toggle>
         ) : null}
       </div>
+      {failed ? (
+        <p data-slot="plate-media-failed" role="alert">
+          {labels.failed}
+        </p>
+      ) : null}
       {left === undefined ? null : (
         <p data-slot="plate-media-plays" id={leftId}>
           {fillLabel(labels.playsLeft, { n: left })}

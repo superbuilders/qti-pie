@@ -387,6 +387,29 @@ const fromWire = (wire: Wire, clients: ReadonlyMap<string, unknown>): unknown =>
 
     return key === null ? read : { ...read, key };
   };
+  /**
+   * Give an element's props and its children as `createElement` takes them: its children, where
+   * they are several, as its own arguments, as the server's code wrote them
+   * (`createElement(tag, props, ...children)` and JSX alike), never as one list. The wire holds
+   * both as an array, and a list given as `children` is one React checks for keys, which children
+   * given as arguments never are; neither way changes what React renders or how it reconciles.
+   *
+   * @param props The element's wired props.
+   * @param key Its key, none where it has none.
+   * @returns Its props, without `children`, and its children.
+   */
+  const argumentsOf = (
+    props: WiredObject,
+    key: string | null,
+  ): readonly [props: Readonly<Record<string, unknown>>, children: readonly ReactNode[]] => {
+    const { children, ...rest } = propsOf(props, key);
+
+    if (Array.isArray(children)) {
+      return [rest, children];
+    }
+
+    return ["children" in props.fields ? { ...rest, children } : rest, []];
+  };
 
   if (
     wire === null ||
@@ -429,16 +452,24 @@ const fromWire = (wire: Wire, clients: ReadonlyMap<string, unknown>): unknown =>
         });
       }
 
-      return createElement(type, propsOf(wire.props, wire.key));
+      const [props, children] = argumentsOf(wire.props, wire.key);
+
+      return createElement(type, props, ...children);
     }
     case "fragment": {
-      return createElement(Fragment, propsOf(wire.props, wire.key));
+      const [props, children] = argumentsOf(wire.props, wire.key);
+
+      return createElement(Fragment, props, ...children);
     }
     case "suspense": {
-      return createElement(Suspense, propsOf(wire.props, wire.key));
+      const [props, children] = argumentsOf(wire.props, wire.key);
+
+      return createElement(Suspense, props, ...children);
     }
     case "host": {
-      return createElement(wire.tag, propsOf(wire.props, wire.key));
+      const [props, children] = argumentsOf(wire.props, wire.key);
+
+      return createElement(wire.tag, props, ...children);
     }
     default: {
       return wire satisfies never;

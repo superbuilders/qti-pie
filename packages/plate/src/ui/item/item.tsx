@@ -21,6 +21,7 @@ import type { ItemPayloadsHeld } from "#plate/content/modules.ts";
 import { checkInstance, scopedId } from "#plate/instance.ts";
 import { message } from "#plate/messages.ts";
 import { redactedInteractionsIn } from "#plate/model/interactions.ts";
+import { pageNamer } from "#plate/read-aloud/naming.ts";
 import type { Interaction, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
 import { interactionPayload } from "#plate/payload.ts";
 import type { PairedInteraction, View } from "#plate/payload.ts";
@@ -34,11 +35,10 @@ import {
   missingInNodes,
   noSlots,
   noSpoken,
-  heldControls,
   heldIn,
   nodesOf,
 } from "#plate/ui/item/content.tsx";
-import type { InteractionAt, VerdictAt, Walk } from "#plate/ui/item/content.tsx";
+import type { Holding, InteractionAt, VerdictAt, Walk } from "#plate/ui/item/content.tsx";
 import {
   glossaryOf,
   listing,
@@ -293,29 +293,44 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
     configuration.headingLevel,
   );
   const catalogs = itemContent["qti-catalog-info"];
+  /**
+   * The page's one namer, which every read-aloud of the page shares, the item's and its passages':
+   * each control the page makes is named by its part and its place among the page's controls of
+   * that part, so no two share a name.
+   */
+  const namer = pageNamer();
   // Read-aloud presents a spoken card's recording while the candidate answers alone: a review's and
   // a solution's page ships no island but a Media's replay.
-  const readAloud = mode === "answering" ? readAloudOf(catalogs, addressing) : noReadAloud;
-  // The controls the page's elements hold after their own content, numbered across the page: each
-  // stimulus's, in the order of its ref, as the page writes the passages before the question, then
-  // the item's own, so no two of the page's labels share a name.
-  const held = heldControls<ShownStimulus | "item">(
-    [
-      ...stimuli.map(
-        (shown) =>
-          [
-            shown,
-            {
-              held: heldIn(shown.redacted.body),
-              readAloud: stimulusReadAloud(shown, { assets: configuration.assets, mode }),
-            },
-          ] as const,
-      ),
-      ["item", { held: heldIn(redacted.body), readAloud }],
-    ],
-    configuration.locale,
+  const readAloud =
+    mode === "answering"
+      ? readAloudOf(catalogs, addressing, namer, configuration.locale)
+      : noReadAloud;
+  const stimulusReadings = new Map(
+    stimuli.map((shown) => [
+      shown,
+      stimulusReadAloud(shown, {
+        assets: configuration.assets,
+        locale: configuration.locale,
+        mode,
+        namer,
+      }),
+    ]),
   );
-  const spoken = held.get("item") ?? noSpoken;
+  /**
+   * The elements each document of the page holds a control after, the item's and each passage's:
+   * the walk of each makes a control as it writes its element, so the page's namer names them in
+   * the order the page shows them.
+   */
+  const spoken: Holding = { held: new Map(heldIn(redacted.body)), readAloud };
+  const stimulusHoldings = new Map(
+    stimuli.map((shown) => [
+      shown,
+      {
+        held: new Map(heldIn(shown.redacted.body)),
+        readAloud: stimulusReadings.get(shown) ?? noReadAloud,
+      } satisfies Holding,
+    ]),
+  );
   const content = (nodes: readonly RedactedNode[], options: ContentOptions = {}): ReactNode => {
     const position = options.position ?? "phrasing";
     const walk: Walk = {
@@ -342,16 +357,31 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
     textEntryKeypad: configuration.textEntryKeypad,
     values: mapOf(props.values),
   };
-  const contextOf = (paired: PairedInteraction): ReviewContext => ({
-    ...shared,
-    className: carriedClass(paired.kind, classOf(paired), supports),
-    readAloud,
-    spokenPrompt: paired.model.promptCatalog.pipe(
-      Option.flatMap((catalog) =>
-        readAloud(catalog, message(configuration.locale, "readAloudPrompt"), "read-aloud"),
+  /**
+   * Each interaction's context, made once, at its first use: its prompt's control is made with it,
+   * so the namer names each prompt once, however often the page asks for the context.
+   */
+  const contexts = new Map<Interaction<RedactedLevel>, ReviewContext>();
+  const contextOf = (paired: PairedInteraction): ReviewContext => {
+    const known = contexts.get(paired.model);
+
+    if (known !== undefined) {
+      return known;
+    }
+
+    const made: ReviewContext = {
+      ...shared,
+      className: carriedClass(paired.kind, classOf(paired), supports),
+      readAloud,
+      spokenPrompt: paired.model.promptCatalog.pipe(
+        Option.flatMap((catalog) => readAloud(catalog, "readAloudPrompt", "read-aloud")),
       ),
-    ),
-  });
+    };
+
+    contexts.set(paired.model, made);
+
+    return made;
+  };
   const interaction: InteractionAt = (model: Interaction<RedactedLevel>, key: Key) => {
     const paired = interactionPayload(model, view);
 
@@ -362,18 +392,6 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
 
     return renderAnswer(renderers, paired, contextOf(paired), mode, key);
   };
-  // What each interaction writes after the body while the child answers, in the order of the
-  // interactions, a Text Entry's on-screen keypad among them: below everything the child reads, so
-  // the keys never split a sentence or an equation, never stand over the box, a line or a picture,
-  // and never come between the box and a line after it. A review and a solution write none.
-  const afterBody =
-    mode === "answering"
-      ? redactedInteractionsIn(redacted.body).map((model, index) => {
-          const paired = interactionPayload(model, view);
-
-          return renderAfter(renderers, paired, contextOf(paired), `after-${String(index)}`);
-        })
-      : [];
   const outside: Walk = {
     addressing,
     credit,
@@ -395,7 +413,8 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
     headingLevel: configuration.headingLevel,
     locale: configuration.locale,
     mode,
-    spoken: (shown) => held.get(shown) ?? noSpoken,
+    readAloud: (shown) => stimulusReadings.get(shown) ?? noReadAloud,
+    spoken: (shown) => stimulusHoldings.get(shown) ?? noSpoken,
   };
   const placements = placementsOf(redacted.body, stimuli);
   const placed = new Set(placements.values());
@@ -420,6 +439,40 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
     ),
   ];
 
+  /**
+   * The item's body, written before what each interaction writes after it, so the page makes its
+   * controls, and its namer names them, in the order the page shows them: each interaction's
+   * context, its prompt's control with it, made first by the body's walk.
+   */
+  const body = nodesOf(redacted.body, {
+    ...outside,
+    scope: {
+      answer,
+      container: renderContainer(mode, view),
+      glossary: glossaryOf(catalogs, redacted.body, addressing, configuration.locale),
+      interaction,
+      kind: "body",
+      readAloud,
+      stimulus: (element) =>
+        Option.map(Option.fromUndefinedOr(placements.get(element)), (shown) =>
+          stimulusArticle(shown, setting, "stimulus"),
+        ),
+      verdict: verdictAt,
+    },
+    spoken,
+  });
+  // What each interaction writes after the body while the child answers, in the order of the
+  // interactions, a Text Entry's on-screen keypad among them: below everything the child reads, so
+  // the keys never split a sentence or an equation, never stand over the box, a line or a picture,
+  // and never come between the box and a line after it. A review and a solution write none.
+  const afterBody =
+    mode === "answering"
+      ? redactedInteractionsIn(redacted.body).map((model, index) => {
+          const paired = interactionPayload(model, view);
+
+          return renderAfter(renderers, paired, contextOf(paired), `after-${String(index)}`);
+        })
+      : [];
   // The item's own content: its companion materials, its body, its catalog's listing and its
   // feedback, which stand in `plate-question` beside the stimulus pane where the item shows one.
   const own = (
@@ -430,23 +483,7 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
         configuration.locale,
         configuration.headingLevel,
       )}
-      {nodesOf(redacted.body, {
-        ...outside,
-        scope: {
-          answer,
-          container: renderContainer(mode, view),
-          glossary: glossaryOf(catalogs, redacted.body, addressing, configuration.locale),
-          interaction,
-          kind: "body",
-          readAloud,
-          stimulus: (element) =>
-            Option.map(Option.fromUndefinedOr(placements.get(element)), (shown) =>
-              stimulusArticle(shown, setting, "stimulus"),
-            ),
-          verdict: verdictAt,
-        },
-        spoken,
-      })}
+      {body}
       {afterBody}
       {listing(catalogs, redacted.body, (nodes) => nodesOf(nodes, outside), addressing)}
       {after.length === 0 ? null : feedbackOf("div", "feedback", outside, after)}

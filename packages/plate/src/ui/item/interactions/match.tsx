@@ -79,7 +79,7 @@ const targetOf = (
       label === undefined
         ? { by: "label-part", text: shownText(target.content, context.locale) }
         : { by: "aria-label", text: label },
-    ...spokenOf(target, place.n, "readAloudGroup", context),
+    ...spokenOf(target, "readAloudGroup", context),
   };
 };
 
@@ -151,7 +151,7 @@ const headerAt = (
     matchGroup: choice.matchGroup,
     matchMax: limitOf(choice.matchMax),
     name: label ?? shownText(choice.content, context.locale),
-    ...spokenOf(choice, place.n, side === "row" ? "readAloudRow" : "readAloudColumn", context),
+    ...spokenOf(choice, side === "row" ? "readAloudRow" : "readAloudColumn", context),
   };
 };
 

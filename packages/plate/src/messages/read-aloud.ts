@@ -8,17 +8,17 @@
 /**
  * Read-aloud's texts, keyed by the role each plays. Most are the name of one control, a toggle
  * whose name stays while its pressed state says whether it plays, so a screen reader tells the
- * controls apart by what each reads: `readAloudPrompt` reads an interaction's prompt,
- * `readAloudChoice` a choice, `{n}` its place among the choices as presented, `readAloudGroup` a
- * Match's group, `{n}` its place among the groups, `readAloudRow` and `readAloudColumn` a row's and
- * a column's header of a Match laid out as a table, `{n}` its place, `readAloudArea` an area of a
- * graphic interaction's image, `{n}` its place among the areas, as plate names an area with no name
- * of its own ("Area 2 of 4"), `readAloudLabel` an element that holds its control after its words,
- * in a Gap Match's sentence (a slot's label, "least") or inside a table cell (a picture graph's
- * category), `{n}` its place among them all on the item's page, its passages' and its own, so no
- * two share a name, and `readAloudText` any other part of the item. A press whose recording cannot
- * play tells the child so at the control, once, under the title
- * `readAloudFailedTitle`, in the words `readAloudFailed`: AlphaTest's player's
+ * controls apart by what each reads, each with `{n}`, its place among the page's controls of that
+ * part, the item's own and its passages', from 1, which the page's one namer gives
+ * (`#plate/read-aloud/naming.ts`), so no two controls of the page share a name (WCAG 2.4.6):
+ * `readAloudPrompt` reads an interaction's prompt, or the catalog its root references,
+ * `readAloudText` an element of a body, a stem or a passage's paragraph, `readAloudLabel` an
+ * element that holds its control after its words, in a Gap Match's sentence (a slot's label,
+ * "least") or inside a table cell (a picture graph's category), `readAloudChoice` a choice,
+ * `readAloudGroup` a Match's group, `readAloudRow` and `readAloudColumn` a row's and a column's
+ * header of a Match laid out as a table, and `readAloudArea` an area of a graphic interaction's
+ * image. A press whose recording cannot play tells the child so at the control, once, under the
+ * title `readAloudFailedTitle`, in the words `readAloudFailed`: AlphaTest's player's
  * (mastery-track-player 941a86a, `src/utils/audio-failure.ts` lines 4–6).
  */
 export const readAloudMessages = {
@@ -30,7 +30,7 @@ export const readAloudMessages = {
   readAloudFailedTitle: "Audio error",
   readAloudGroup: "Listen to group {n}",
   readAloudLabel: "Listen to label {n}",
-  readAloudPrompt: "Listen to the question",
+  readAloudPrompt: "Listen to question {n}",
   readAloudRow: "Listen to row {n}",
-  readAloudText: "Listen",
+  readAloudText: "Listen to text {n}",
 } as const;

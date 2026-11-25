@@ -59,7 +59,7 @@ const choicesOf = (
     ),
     matchGroup: choice.matchGroup,
     matchMax: limitOf(choice.matchMax),
-    ...spokenOf(choice, index + 1, "readAloudChoice", context),
+    ...spokenOf(choice, "readAloudChoice", context),
   }));
 
 /**

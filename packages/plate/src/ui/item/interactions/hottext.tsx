@@ -141,7 +141,7 @@ export const island = (
                 >
                   <span data-slot="plate-hottext-content">{content}</span>
                 </PickOption>,
-                spokenOf(part, index + 1, "readAloudChoice", context),
+                spokenOf(part, "readAloudChoice", context),
                 { key: path, slot: "plate-hottext-spoken" },
               ),
             ],

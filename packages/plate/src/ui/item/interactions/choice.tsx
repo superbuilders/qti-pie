@@ -65,7 +65,7 @@ export const leadIsland = (
           choiceLabel(context.className, index + 1),
           context.locale,
         ),
-        ...spokenOf(choice, index + 1, "readAloudChoice", context),
+        ...spokenOf(choice, "readAloudChoice", context),
       }))}
       labels={labelsOf(picksKeys, context.locale, { limit: model.messages.max })}
       lead={lead}

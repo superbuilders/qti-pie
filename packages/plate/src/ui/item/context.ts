@@ -11,6 +11,7 @@
  *
  * @module
  */
+import type { SpokenPart } from "#plate/read-aloud/naming.ts";
 import type { Option } from "effect";
 import type { Key, ReactNode } from "react";
 import type { TextEntryKeypad } from "#plate/configuration.ts";
@@ -22,11 +23,12 @@ import type { Writing } from "#plate/ui/item/html.ts";
 
 /**
  * What read-aloud gives one page: for a catalog a part of the item references, by its `id` as the
- * reference writes it, read-aloud's control for that catalog's spoken audio, named by the label
- * that says which part it reads and keyed among its siblings; none where the catalog keeps no
+ * reference writes it, read-aloud's control for that catalog's spoken audio, named by the part it
+ * reads and its place among the page's controls of that part, which the page's one namer gives
+ * (`#plate/read-aloud/naming.ts`), and keyed among its siblings; none where the catalog keeps no
  * spoken card that gives audio, and none on a page that presents no read-aloud.
  */
-export type ReadsAloud = (catalog: string, label: string, key: Key) => Option.Option<ReactNode>;
+export type ReadsAloud = (catalog: string, part: SpokenPart, key: Key) => Option.Option<ReactNode>;
 
 /**
  * Where a run of content stands, which decides a notice's element: `phrasing`, a `span`, where
@@ -60,8 +62,9 @@ export interface ContentOptions {
    * content the page shows elsewhere too, which writes none of the author's `id`s
    * (`Addressing.writing` in `#plate/ui/item/html.ts`) and none of the read-aloud controls its
    * elements hold, which the original holds: each element of a Gap Match's sentence holds its
-   * control after its own content wherever the run is written, the page numbering them all
-   * (`heldIn` and `heldControls` in `#plate/ui/item/content.tsx`).
+   * control after its own content wherever the run is written, made as the walk writes it, so the
+   * page's namer names them in the order the page shows them (`heldIn` and `Holding` in
+   * `#plate/ui/item/content.tsx`).
    */
   readonly writing?: Writing;
 }

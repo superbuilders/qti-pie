@@ -29,6 +29,6 @@ export const spokenAreasOf = <H extends PayloadArea>(
 ): readonly (NamedArea<H> & Spoken)[] =>
   Arr.zipWith(
     namedAreasOf(areas, context.locale),
-    areas.map((area, index) => spokenOf(area, index + 1, "readAloudArea", context)),
+    areas.map((area) => spokenOf(area, "readAloudArea", context)),
     (named, spoken) => ({ ...named, ...spoken }),
   );

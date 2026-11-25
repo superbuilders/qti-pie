@@ -13,6 +13,13 @@
  * loads; so nothing loads from another host, and no page waits on a bundle Vite discovers late.
  * Chrome is the machine's, through Playwright's `chrome` channel, headless.
  *
+ * A page may show several items, as a host does, each in a `section` of its own under an
+ * `<Activity>`, and move between them as a host moves from item to item ({@link scenePages}). The
+ * pages' server also serves synthetic recordings, a sine tone of a stated length, which it answers
+ * at once, holds back until the suite releases it, or refuses, as a slow or broken network would,
+ * and reports when it was asked for one and when it delivered it, so a suite waits on what comes,
+ * never on a delay. Every page keeps an account of its media (`#specimen/ui/hydrate-account.ts`).
+ *
  * Test support for plate's UI suite under `src/ui/`.
  *
  * @module
@@ -28,7 +35,7 @@ import { Config, Data, Effect, Option, Predicate, Schema } from "effect";
 import type { Scope } from "effect";
 import { chromium } from "playwright-core";
 import type { Browser, BrowserContext, ConsoleMessage, Page } from "playwright-core";
-import { createElement } from "react";
+import { Activity, createElement } from "react";
 import { renderToString } from "react-dom/server";
 import type { Responses as ResponseValues } from "@qti-pie/plate";
 import { solution, startingResponses } from "@qti-pie/plate";
@@ -41,6 +48,7 @@ import { createViteServer } from "vitest/node";
 import { clientExports, plateSource } from "#specimen/ui/clients.ts";
 import { instance } from "#specimen/ui/rules.ts";
 import type { SourceItem } from "#specimen/ui/rules.ts";
+import type { Scene } from "#specimen/ui/hydrate-page.ts";
 import { isWireArray, toWire, treeFromWire } from "#specimen/ui/wire.ts";
 import type { Wire } from "#specimen/ui/wire.ts";
 
@@ -110,13 +118,24 @@ export const solved = (item: SourceItem): Answering => {
 
 /**
  * A page as its server writes it: the server's markup, the data the harness's page reads, and the
- * modules whose islands the tree holds, each by its file under plate's `src/`, as the islands'
+ * modules whose islands its trees hold, each by its file under plate's `src/`, as the islands'
  * names start, and the address the Vite server serves it at.
  */
 interface Written {
   readonly data: string;
   readonly html: string;
   readonly modules: readonly { readonly file: string; readonly url: string }[];
+}
+
+/**
+ * A page as a suite asks for it: the items it may show, each in answering, by its key; the first
+ * scene, every item of it shown, none hidden, as a host's first page shows its items; and whether
+ * React renders it under `<StrictMode>`.
+ */
+export interface PageSpec {
+  readonly scene: Scene;
+  readonly shows: ReadonlyMap<string, Answering>;
+  readonly strict: boolean;
 }
 
 /**
@@ -189,45 +208,88 @@ const servedAt = (file: string): string => `/@fs${realpathSync(file)}`;
 const pageModule = fileURLToPath(new URL("hydrate-page.ts", import.meta.url));
 
 /**
- * Write an item's answering page as a host serves it, `<Item>` drawing each interaction with
+ * The page's account of its media.
+ */
+const accountModule = fileURLToPath(new URL("hydrate-account.ts", import.meta.url));
+
+/**
+ * Write a page of items in answering as a host serves it, `<Item>` drawing each interaction with
  * plate's standard renderers, as specimen's other pages draw it (`render` in
- * `#specimen/ui/rendered.ts`): its tree, every server component expanded, wired; the server's
- * markup of `<Responses>` around that tree as the page reads it back, so the markup is the tree the
- * page hydrates; and the modules whose islands the tree holds.
+ * `#specimen/ui/rendered.ts`): each item's tree, every server component expanded, wired; the
+ * server's markup of the first scene as the page's host renders it
+ * (`#specimen/ui/hydrate-page.ts`), each item in a `section` under an `<Activity>`, with
+ * `<Responses>` around its tree as the page reads it back, so the markup is the tree the page
+ * hydrates; and the modules whose islands the trees hold.
  *
- * @param answering The item in answering.
+ * @param spec The page.
  * @param clients Every export of plate's `"use client"` modules, by value, with its name.
  * @returns The page's markup and data.
  */
-const written = (answering: Answering, clients: ReadonlyMap<unknown, string>): Written => {
+const written = (spec: PageSpec, clients: ReadonlyMap<unknown, string>): Written => {
   const byName = new Map(Array.from(clients, ([value, name]) => [name, value] as const));
-  const tree = toWire(
-    createElement(Item, { ...answering.props, renderers: standardRenderers }),
-    clients,
-  );
-  const responses = Schema.encodeSync(PostedResponses)(answering.responses);
+  const shows = Array.from(spec.shows, ([key, answering]) => ({
+    answering,
+    key,
+    tree: toWire(
+      createElement(Item, { ...answering.props, renderers: standardRenderers }),
+      clients,
+    ),
+  }));
   const html = renderToString(
-    createElement(Responses, {
-      children: treeFromWire(tree, byName),
-      onChange: keepNothing,
-      value: heldOf(answering.responses),
-    }),
+    createElement(
+      "main",
+      null,
+      spec.scene.map(({ hidden, key, slot }) => {
+        const show = shows.find((each) => each.key === key);
+
+        return createElement(
+          "section",
+          { "data-show": key, key: slot },
+          createElement(Activity, {
+            children:
+              show === undefined
+                ? null
+                : createElement(Responses, {
+                    children: treeFromWire(show.tree, byName),
+                    onChange: keepNothing,
+                    value: heldOf(show.answering.responses),
+                  }),
+            mode: hidden ? "hidden" : "visible",
+          }),
+        );
+      }),
+    ),
   );
   const modules = Array.from(
-    new Set(islandNames(tree).map((name) => name.slice(0, name.lastIndexOf("#")))),
+    new Set(
+      shows.flatMap(({ tree }) =>
+        islandNames(tree).map((name) => name.slice(0, name.lastIndexOf("#"))),
+      ),
+    ),
     (file) => ({ file, url: servedAt(path.join(plateSource, file)) }),
   );
+  const data = {
+    scene: spec.scene,
+    shows: Object.fromEntries(
+      shows.map(({ answering, key, tree }) => [
+        key,
+        { responses: Schema.encodeSync(PostedResponses)(answering.responses), tree },
+      ]),
+    ),
+    strict: spec.strict,
+  };
 
-  return { data: JSON.stringify({ responses, tree }), html, modules };
+  return { data: JSON.stringify(data), html, modules };
 };
 
 /**
  * A page's document, with an empty icon of its own, so the browser asks the server for none: the
  * server's markup in `#hydrated-root`, the data in `#hydrated-data`, its
- * `</` escaped so no string in it ends the script, and a module script that loads the modules whose
- * islands the tree holds and hands them to the harness's page (`hydrate`). The script imports each
- * module by its address, statically, so the browser loads every one before it runs, and Vite, which
- * never sees the document, adds nothing of its own to it.
+ * `</` escaped so no string in it ends the script, and a module script that installs the page's
+ * account of its media (`#specimen/ui/hydrate-account.ts`), then loads the modules whose islands
+ * the trees hold and hands them to the harness's page (`hydrate`). The script imports each module
+ * by its address, statically, so the browser loads every one before it runs, and Vite, which never
+ * sees the document, adds nothing of its own to it.
  *
  * @param page The page.
  * @returns The document.
@@ -245,8 +307,10 @@ const documentOf = (page: Written): string => {
 <body><div id="hydrated-root">${page.html}</div>
 <script id="hydrated-data" type="application/json">${page.data.replaceAll("</", "<\\/")}</script>
 <script type="module">
+import { installAccount } from ${JSON.stringify(servedAt(accountModule))};
 import { hydrate } from ${JSON.stringify(servedAt(pageModule))};
 ${imports.join("\n")}
+installAccount();
 hydrate({ ${modules.join(", ")} });
 </script>
 </body></html>`;
@@ -320,19 +384,297 @@ const vite: Effect.Effect<ViteServer, HydrationFailure, Scope.Scope> = Effect.ac
 const ListeningAddress = Schema.Struct({ port: Schema.Number });
 
 /**
+ * The sample rate of a synthetic recording, in samples a second: telephone speech's (G.711's),
+ * enough for a tone and small to serve; the suite's own choice of input.
+ */
+const sampleRate = 8000;
+
+/**
+ * Write a synthetic recording: a WAV file of 16-bit mono PCM holding a 440 Hz sine tone of the
+ * length given, at a third of full scale.
+ *
+ * @param milliseconds Its length.
+ * @returns The file's bytes.
+ * @see {@link http://soundfile.sapp.org/doc/WaveFormat/ | The canonical WAVE file format}
+ */
+const toneOf = (milliseconds: number): Buffer => {
+  const samples = Math.round((sampleRate * milliseconds) / 1000);
+  const file = Buffer.alloc(44 + samples * 2);
+
+  file.write("RIFF", 0, "ascii");
+  file.writeUInt32LE(36 + samples * 2, 4);
+  file.write("WAVEfmt ", 8, "ascii");
+  file.writeUInt32LE(16, 16);
+  file.writeUInt16LE(1, 20);
+  file.writeUInt16LE(1, 22);
+  file.writeUInt32LE(sampleRate, 24);
+  file.writeUInt32LE(sampleRate * 2, 28);
+  file.writeUInt16LE(2, 32);
+  file.writeUInt16LE(16, 34);
+  file.write("data", 36, "ascii");
+  file.writeUInt32LE(samples * 2, 40);
+
+  for (let at = 0; at < samples; at += 1) {
+    file.writeInt16LE(
+      Math.round(10_000 * Math.sin((2 * Math.PI * 440 * at) / sampleRate)),
+      44 + at * 2,
+    );
+  }
+
+  return file;
+};
+
+/**
+ * Tell whether a text is a run of decimal digits, empty included.
+ *
+ * @param text The text.
+ * @returns Whether every character of it is a digit.
+ */
+const digitsOnly = (text: string): boolean => {
+  for (const character of text) {
+    if (character < "0" || character > "9") {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+/**
+ * Read a request's `Range` header of one byte range, `bytes=<from>-<to>`, either end empty.
+ *
+ * @param header The header, absent where the request asks for the whole file.
+ * @returns The range's two ends as written, none where the header asks for no such range.
+ */
+const rangeOf = (
+  header: string | undefined,
+): Option.Option<readonly [from: string, to: string]> => {
+  const prefix = "bytes=";
+
+  if (header === undefined || !header.startsWith(prefix)) {
+    return Option.none();
+  }
+
+  const ends = header.slice(prefix.length).split("-");
+  const [from, to] = ends;
+
+  return ends.length === 2 &&
+    from !== undefined &&
+    to !== undefined &&
+    digitsOnly(from) &&
+    digitsOnly(to)
+    ? Option.some([from, to] as const)
+    : Option.none();
+};
+
+/**
+ * Answer a recording's request, a byte range of it where Chrome asks for one, as a media element
+ * reads a file it may seek in. A range may name an end past the file's, which is its last byte
+ * (RFC 9110 §14.1.2).
+ *
+ * @param request The request.
+ * @param response Its response.
+ * @param bytes The recording.
+ */
+const answerRange = (request: IncomingMessage, response: ServerResponse, bytes: Buffer): void => {
+  const range = Option.getOrUndefined(rangeOf(request.headers.range));
+  const last = bytes.length - 1;
+  const from = range === undefined || range[0] === "" ? 0 : Number(range[0]);
+  const to = range === undefined || range[1] === "" ? last : Math.min(Number(range[1]), last);
+
+  if (range === undefined) {
+    response
+      .writeHead(200, {
+        "accept-ranges": "bytes",
+        "content-length": String(bytes.length),
+        "content-type": "audio/wav",
+      })
+      .end(bytes);
+  } else if (from > to) {
+    response.writeHead(416, { "content-range": `bytes */${String(bytes.length)}` }).end();
+  } else {
+    response
+      .writeHead(206, {
+        "accept-ranges": "bytes",
+        "content-length": String(to - from + 1),
+        "content-range": `bytes ${String(from)}-${String(to)}/${String(bytes.length)}`,
+        "content-type": "audio/wav",
+      })
+      .end(bytes.subarray(from, to + 1));
+  }
+};
+
+/**
+ * A recording the server holds back, as the server knows it: whether it was asked for, the
+ * suite's release of it, and whether an answer was delivered.
+ */
+interface Held {
+  readonly delivered: PromiseWithResolvers<boolean>;
+  readonly release: PromiseWithResolvers<void>;
+  readonly requested: PromiseWithResolvers<void>;
+}
+
+/**
+ * The recordings the server holds back, by their path's page and name, each made at its first
+ * mention, the suite's or a request's.
+ */
+type HeldRecordings = Map<string, Held>;
+
+/**
+ * Give a held-back recording, making it where it is not known yet.
+ *
+ * @param held The recordings the server holds back.
+ * @param key Its page and name.
+ * @returns It.
+ */
+const heldAt = (held: HeldRecordings, key: string): Held => {
+  const known = held.get(key);
+
+  if (known !== undefined) {
+    return known;
+  }
+
+  const made: Held = {
+    delivered: Promise.withResolvers(),
+    release: Promise.withResolvers(),
+    requested: Promise.withResolvers(),
+  };
+
+  held.set(key, made);
+
+  return made;
+};
+
+/**
+ * How the server answers a synthetic recording: `tone` at once, `held` once the suite releases
+ * it, and `held-refused` with a 404 once released.
+ */
+type Answered = "held" | "held-refused" | "tone";
+
+/**
+ * A synthetic recording's path as the server reads it: how it is answered, the page it belongs
+ * to, its length in milliseconds, and its name.
+ */
+interface RecordingPath {
+  readonly kind: Answered;
+  readonly length: number;
+  readonly name: string;
+  readonly page: string;
+}
+
+/**
+ * The ways the server answers a recording, each by its path's segment.
+ */
+const answeredKinds: ReadonlyMap<string, Answered> = new Map([
+  ["held", "held"],
+  ["held-refused", "held-refused"],
+  ["tone", "tone"],
+]);
+
+/**
+ * The extension of every synthetic recording's file.
+ */
+const wav = ".wav";
+
+/**
+ * Read a request's path as a synthetic recording's: `/recording/<kind>/<page>/<length>/<name>.wav`.
+ *
+ * @param url The request's path.
+ * @returns The recording's path, none where it names no synthetic recording.
+ */
+const recordingPath = (url: string): Option.Option<RecordingPath> => {
+  const segments = url.split("/");
+  const [root, area, kindName, page, length, file] = segments;
+  const kind = answeredKinds.get(kindName ?? "");
+
+  return segments.length === 6 &&
+    root === "" &&
+    area === "recording" &&
+    kind !== undefined &&
+    page !== undefined &&
+    page !== "" &&
+    length !== undefined &&
+    length !== "" &&
+    digitsOnly(length) &&
+    file !== undefined &&
+    file.endsWith(wav) &&
+    file.length > wav.length
+    ? Option.some({ kind, length: Number(length), name: file.slice(0, -wav.length), page })
+    : Option.none();
+};
+
+/**
+ * Answer a request for a synthetic recording, as its path says: a held-back one once the suite
+ * releases it, its delivery reported as written whole or as the page letting the request go
+ * first, whichever of the two comes first.
+ *
+ * @param asked The recording's path.
+ * @param request The request.
+ * @param response Its response.
+ * @param held The recordings the server holds back.
+ */
+const answerRecording = (
+  asked: RecordingPath,
+  request: IncomingMessage,
+  response: ServerResponse,
+  held: HeldRecordings,
+): void => {
+  const answer = (): void => {
+    if (asked.kind === "held-refused") {
+      response.writeHead(404).end();
+    } else {
+      answerRange(request, response, toneOf(asked.length));
+    }
+  };
+
+  if (asked.kind === "tone") {
+    answer();
+
+    return;
+  }
+
+  const recording = heldAt(held, `${asked.page}/${asked.name}`);
+
+  recording.requested.resolve();
+
+  const released = async (): Promise<void> => {
+    await recording.release.promise;
+    response.once("finish", () => {
+      recording.delivered.resolve(true);
+    });
+    response.once("close", () => {
+      recording.delivered.resolve(false);
+    });
+    answer();
+  };
+
+  void released();
+};
+
+/**
  * The pages' server on a port of the loopback the system chose, closed with its scope: each page
- * at `/page/<n>`, and every other address Vite's.
+ * at `/page/<n>`, each synthetic recording at `/recording/…` ({@link recordingPath}), and every
+ * other address Vite's.
  *
  * @param server Vite.
  * @param pages The pages, by address.
+ * @param held The recordings the server holds back.
  * @returns The server's address.
  */
 const pageServer = (
   server: ViteServer,
   pages: ReadonlyMap<string, Written>,
+  held: HeldRecordings,
 ): Effect.Effect<string, HydrationFailure, Scope.Scope> => {
   const serve = (request: IncomingMessage, response: ServerResponse) => {
     const page = pages.get(request.url ?? "");
+    const asked = Option.getOrUndefined(recordingPath(request.url ?? ""));
+
+    if (asked !== undefined) {
+      answerRecording(asked, request, response, held);
+
+      return;
+    }
 
     if (page === undefined) {
       server.middlewares(request, response);
@@ -435,10 +777,10 @@ export interface Hydrated {
    */
   readonly changes: Effect.Effect<readonly ResponseValues[], HydrationFailure>;
   /**
-   * Wait in the page until it has painted twice since now and run what those frames scheduled, so
-   * what an input changed has been rendered and every effect and microtask it started has run; and
-   * fail where React has reported an error since the page opened, the page has thrown one, or its
-   * console has logged one.
+   * Wait in the page until it has painted twice since now, run what those frames scheduled and gone
+   * idle, so what an input changed has been rendered and every effect, task and microtask it
+   * started has run, every boundary hydrated; and fail where React has reported an error since the
+   * page opened, the page has thrown one, or its console has logged one.
    */
   readonly settle: Effect.Effect<void, HydrationFailure>;
 }
@@ -452,8 +794,9 @@ const pictureAddress = /\.(?:avif|gif|jpe?g|png|svg|webp)(?:[?#]|$)/iu;
  * Tell whether a console message reports an error of the page's. React's development build reports
  * what it does not throw, a hydration mismatch among it, as an error; UI SDK's warns of what it
  * judges a misuse, two parts that share one key among it, as a warning that names it. A picture
- * the item names, which the harness does not serve, is no error of the page's: the browser reports
- * its failed load as an error at the picture's address, which is excepted, and no other.
+ * the item names, which the harness does not serve, is no error of the page's, nor a recording the
+ * harness refuses, which a suite asks for to see the page meet a failure: the browser reports
+ * either's failed load as an error at its address, which is excepted, and no other.
  *
  * @param message The message.
  * @returns Whether it reports an error.
@@ -467,17 +810,22 @@ const reportsAnError = (message: ConsoleMessage): boolean => {
     message.type() === "error" &&
     !(
       message.text().startsWith("Failed to load resource") &&
-      pictureAddress.test(message.location().url)
+      (pictureAddress.test(message.location().url) ||
+        message.location().url.includes("/recording/held-refused/"))
     )
   );
 };
 
 /**
- * Wait in the page for two frames and the task after them.
+ * Wait in the page for two frames, the task after them, and the page's next idle period, which
+ * comes only once the page has no task to run: so React has hydrated every Suspense boundary it
+ * still had to, an island's among them, and run their effects, which it schedules as tasks of its
+ * own, whatever the machine's load. A boundary hydrates after the page's root, so two frames alone
+ * left a press on a control whose effect had yet to run.
  *
  * @returns The wait, in the page.
  */
-const twoFramesAndATask = async (): Promise<void> => {
+const framesAndIdle = async (): Promise<void> => {
   const first = Promise.withResolvers<number>();
 
   requestAnimationFrame(first.resolve);
@@ -490,6 +838,10 @@ const twoFramesAndATask = async (): Promise<void> => {
 
   setTimeout(task.resolve, 0);
   await task.promise;
+  const idle = Promise.withResolvers<IdleDeadline>();
+
+  requestIdleCallback(idle.resolve);
+  await idle.promise;
 };
 
 /**
@@ -556,7 +908,7 @@ const openedAt = (
         ),
     );
     const settle = attempt("waited for the page to settle", () =>
-      page.evaluate(twoFramesAndATask),
+      page.evaluate(framesAndIdle),
     ).pipe(
       Effect.andThen(kept),
       Effect.flatMap((reported) => {
@@ -578,6 +930,125 @@ const openedAt = (
   });
 
 /**
+ * The addresses of a page's synthetic recordings on the pages' server, each by its name, and what
+ * the server reports of those it holds back. A name is the page's own: another page's recording of
+ * the same name is another recording.
+ */
+export interface Recordings {
+  /**
+   * Give a recording's address: a tone of the length given, answered at once.
+   *
+   * @param name Its name.
+   * @param milliseconds Its length.
+   * @returns Its address.
+   */
+  readonly tone: (name: string, milliseconds: number) => string;
+  /**
+   * Give a recording's address: a tone the server holds back until the suite releases it.
+   *
+   * @param name Its name.
+   * @param milliseconds Its length.
+   * @returns Its address.
+   */
+  readonly held: (name: string, milliseconds: number) => string;
+  /**
+   * Give a recording's address: one the server refuses, with a 404, once the suite releases it.
+   *
+   * @param name Its name.
+   * @returns Its address.
+   */
+  readonly refused: (name: string) => string;
+  /**
+   * Wait until the server has been asked for a held-back recording.
+   *
+   * @param name Its name.
+   * @returns The wait.
+   */
+  readonly requested: (name: string) => Effect.Effect<void>;
+  /**
+   * Let a held-back recording go: the server answers every request for it, now and from now on.
+   *
+   * @param name Its name.
+   * @returns The release.
+   */
+  readonly release: (name: string) => Effect.Effect<void>;
+  /**
+   * Wait until the server has delivered an answer to a request for a held-back recording, all of
+   * it written, or the page let the request go before it was.
+   *
+   * @param name Its name.
+   * @returns Whether the answer reached the page whole.
+   */
+  readonly delivered: (name: string) => Effect.Effect<boolean>;
+}
+
+/**
+ * A page of items hydrated in Chrome, with its recordings.
+ */
+export interface HydratedScene extends Hydrated {
+  readonly recordings: Recordings;
+}
+
+/**
+ * Give a page's recordings: their addresses under its own segment of the server's, and what the
+ * server reports of those it holds back.
+ *
+ * @param base The pages' server's address.
+ * @param page The page's segment.
+ * @param held The recordings the server holds back.
+ * @returns The recordings.
+ */
+const recordingsOf = (base: string, page: string, held: HeldRecordings): Recordings => {
+  const at = (kind: string, name: string, milliseconds: number): string =>
+    `${base}/recording/${kind}/${page}/${String(milliseconds)}/${name}.wav`;
+  const heldNamed = (name: string): Held => heldAt(held, `${page}/${name}`);
+
+  return {
+    delivered: (name) => Effect.promise(() => heldNamed(name).delivered.promise),
+    held: (name, milliseconds) => at("held", name, milliseconds),
+    refused: (name) => at("held-refused", name, 0),
+    release: (name) =>
+      Effect.sync(() => {
+        heldNamed(name).release.resolve();
+      }),
+    requested: (name) => Effect.promise(() => heldNamed(name).requested.promise),
+    tone: (name, milliseconds) => at("tone", name, milliseconds),
+  };
+};
+
+/**
+ * Vite, the pages' server and Chrome, for the scope, and how a page opens on them: each page at an
+ * address of its own, hydrated, its recordings under a segment of their own.
+ */
+const harness = Effect.gen(function* harness() {
+  const clients = yield* clientExports;
+  const server = yield* vite;
+  const pages = new Map<string, Written>();
+  const held: HeldRecordings = new Map();
+  const base = yield* pageServer(server, pages, held);
+  const context = yield* contextIn(yield* chrome);
+
+  return <E>(
+    build: (recordings: Recordings) => Effect.Effect<PageSpec, E>,
+  ): Effect.Effect<HydratedScene, E | HydrationFailure, Scope.Scope> =>
+    Effect.suspend(() => {
+      const page = `p${String(pages.size)}`;
+      const recordings = recordingsOf(base, page, held);
+
+      return Effect.gen(function* opened() {
+        const spec = yield* build(recordings);
+        const address = `/page/${page}`;
+
+        pages.set(address, written(spec, clients));
+
+        const hydrated = yield* openedAt(context, `${base}${address}`);
+
+        return { ...hydrated, recordings };
+      });
+    });
+});
+
+/**
  * Vite, the pages' server and Chrome, for the scope: open an item in answering, hydrated, in a page
  * of its own.
  */
@@ -585,19 +1056,27 @@ export const hydratedPages: Effect.Effect<
   (answering: Answering) => Effect.Effect<Hydrated, HydrationFailure, Scope.Scope>,
   HydrationFailure,
   Scope.Scope
-> = Effect.gen(function* hydratedPages() {
-  const clients = yield* clientExports;
-  const server = yield* vite;
-  const pages = new Map<string, Written>();
-  const base = yield* pageServer(server, pages);
-  const context = yield* contextIn(yield* chrome);
+> = harness.pipe(
+  Effect.map(
+    (open) => (answering: Answering) =>
+      open(() =>
+        Effect.succeed({
+          scene: [{ frame: false, hidden: false, key: "item", slot: "item" }],
+          shows: new Map([["item", answering]]),
+          strict: false,
+        }),
+      ),
+  ),
+);
 
-  return (answering) =>
-    Effect.suspend(() => {
-      const address = `/page/${String(pages.size)}`;
-
-      pages.set(address, written(answering, clients));
-
-      return openedAt(context, `${base}${address}`);
-    });
-});
+/**
+ * Vite, the pages' server and Chrome, for the scope: open a page of items in answering, hydrated,
+ * as a host shows them, its first scene and its items built from the page's own recordings.
+ */
+export const scenePages: Effect.Effect<
+  <E>(
+    build: (recordings: Recordings) => Effect.Effect<PageSpec, E>,
+  ) => Effect.Effect<HydratedScene, E | HydrationFailure, Scope.Scope>,
+  HydrationFailure,
+  Scope.Scope
+> = harness;

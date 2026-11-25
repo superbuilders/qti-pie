@@ -10,9 +10,10 @@
  * to play the media object more than `max-plays` times (5.92.3). Neither says what one play is.
  * plate reads it so (spec readings 188 and 245), from upstream issues #359 and #452:
  *
- * - The media is at rest before its first playback and again once it has ended. A playback begun at
- *   rest is a play, wherever the child had moved the position to, counted when it first sounds (its
- *   first `playing`), since a media is experienced once it sounds: a playback paused while it still
+ * - The media is at rest before its first playback and again once it has ended, or failed: a playback
+ *   whose media cannot play ends there, counting what it counted. A playback begun at rest is a
+ *   play, wherever the child had moved the position to, counted when it first sounds (its first
+ *   `playing`), since a media is experienced once it sounds: a playback paused while it still
  *   loads, before it sounded, as one voice pauses it at another press, is no play, and leaves the
  *   media at rest.
  * - A playback paused and resumed is the same play, wherever it resumes.
@@ -47,9 +48,10 @@ export interface Plays {
 /**
  * What the media element reports, as the step reads it: it began or resumed a playback (`play`),
  * it sounds, its data having come (`playing`), it paused (`pause`), it reached its end and stopped
- * (`ended`), or its position came back to the start from past it ({@link rewound}).
+ * (`ended`), its media cannot play, every `source` failed or a `MediaError` reached it (`failed`),
+ * or its position came back to the start from past it ({@link rewound}).
  */
-export type Seen = "ended" | "pause" | "play" | "playing" | "rewound";
+export type Seen = "ended" | "failed" | "pause" | "play" | "playing" | "rewound";
 
 /**
  * What one step leaves, and what the island does about it: `count` writes the new count, `refuse`
@@ -107,7 +109,8 @@ const pausedFrom = {
  */
 export const step = (plays: Plays, seen: Seen, limit: Limit): Stepped => {
   switch (seen) {
-    case "ended": {
+    case "ended":
+    case "failed": {
       return { does: "none", plays: { ...plays, phase: "rest" } };
     }
     case "pause": {

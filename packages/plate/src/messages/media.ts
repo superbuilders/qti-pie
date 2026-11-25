@@ -11,8 +11,10 @@
  * begun; a video's captions toggle is `mediaCaptions`. Beside it, `mediaPlaysLeft` says how many
  * plays `max-plays` leaves, `{n}` that number, and `mediaAtLeast` asks for `min-plays`, `{n}` that
  * number, until the child has played that many; `mediaAtLeastOnce` is its singular, for a
- * `min-plays` of 1. A play past `max-plays` is refused and says `mediaNoPlaysLeft`. A review or
- * solution shows the count it holds as `mediaPlays`, `{n}` the count.
+ * `min-plays` of 1. A play past `max-plays` is refused and says `mediaNoPlaysLeft`. A play whose
+ * media cannot play, every `source` failed or a `MediaError` reached it, says `mediaFailed`, in the
+ * words read-aloud's failure says (`readAloudFailed`, AlphaTest's player's). A review or solution
+ * shows the count it holds as `mediaPlays`, `{n}` the count.
  */
 export const mediaMessages = {
   mediaAtLeast: "Play it at least {n} times.",
@@ -22,6 +24,8 @@ export const mediaMessages = {
   mediaCheckAtLeastOnce: "Play the media at least once.",
   mediaCheckAtMost: "The media can be played at most {n} times.",
   mediaCheckAtMostOnce: "The media can be played only once.",
+  mediaFailed:
+    "This audio is unavailable right now. Please try again, and tell your teacher if it keeps happening.",
   mediaLoading: "Loading",
   mediaNoPlaysLeft: "No plays left.",
   mediaPause: "Pause",

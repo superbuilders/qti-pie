@@ -145,7 +145,7 @@ export const island = (
           { count: node.choices.length, n: index + 1 },
           context.locale,
         ),
-        ...spokenOf(choice, index + 1, "readAloudChoice", context),
+        ...spokenOf(choice, "readAloudChoice", context),
       }))}
       labels={labelsOf(orderKeys, context.locale, {})}
       list={list}

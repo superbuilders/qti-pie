@@ -19,9 +19,13 @@
  *   video, neither takes the voice nor loses it; once it is heard while it plays, unmuted or turned
  *   up, as its native controls let the candidate, it takes the voice as its `volumechange` is heard
  *   at the document, a player's as any other's, since that change is the candidate's own.
- * - **The page is its document.** The voice holds the media elements of the players' document tree: a
- *   host's media outside it, an `Audio()` never placed in the document, or one in a shadow root or
- *   another frame, is neither paused nor heard.
+ * - **The page is its document, and the voice is the page's.** The voice holds the media elements of
+ *   one document tree, and it is held there, never in this module: a player joined is marked on its
+ *   own media element ({@link joinedMark}), and the document listens while a player of its own is
+ *   marked in it, so two pages one copy of plate serves (a page and a frame it renders into, or two
+ *   test pages in one run) each have their own voice, and nothing of a page's voice outlives it. A
+ *   host's media outside the document, an `Audio()` never placed in it, or one in a shadow root or
+ *   another page's frame, is neither paused nor heard.
  *
  * A media element that loses the voice is paused, nothing more: each player hears its own pause,
  * read-aloud's item session resting and a Media keeping the play it counted (spec reading 245).
@@ -31,9 +35,22 @@
  */
 
 /**
- * The media elements of plate's players mounted now, each joined to the voice.
+ * The attribute a player's media element carries while the player is joined to its page's voice:
+ * the page's own record of its players, in its own document tree.
  */
-const joined = new Set<HTMLMediaElement>();
+const joinedMark = "data-plate-voice";
+
+/**
+ * Tell whether an event's target is a media element, by its own local name, which holds in every
+ * page's realm: a frame's elements are no instances of this realm's `HTMLMediaElement`.
+ *
+ * @param target The target.
+ * @returns Whether it is an `audio` or a `video`.
+ */
+const isMedia = (target: EventTarget | null): target is HTMLMediaElement =>
+  target !== null &&
+  "localName" in target &&
+  (target.localName === "audio" || target.localName === "video");
 
 /**
  * Tell whether a media element is heard: it is neither muted nor at volume 0.
@@ -70,7 +87,7 @@ export const speak = (element: HTMLMediaElement): void => {
 const started = (event: Event): void => {
   const { target } = event;
 
-  if (target instanceof HTMLMediaElement && !joined.has(target) && !target.paused) {
+  if (isMedia(target) && !target.hasAttribute(joinedMark) && !target.paused) {
     speak(target);
   }
 };
@@ -85,33 +102,33 @@ const started = (event: Event): void => {
 const turnedUp = (event: Event): void => {
   const { target } = event;
 
-  if (target instanceof HTMLMediaElement && !target.paused) {
+  if (isMedia(target) && !target.paused) {
     speak(target);
   }
 };
 
 /**
- * Join a player's media element to the page's voice while the player is mounted: the page's
- * listeners are there from the first player joined to the last one's leaving.
+ * Join a player's media element to its page's voice while the player is mounted: the element is
+ * marked a player's, and its document listens from the first player joined there to the last one's
+ * leaving. Adding a listener the document holds already adds nothing.
  *
  * @param element The player's media element.
  * @returns The leave, which the player runs as it unmounts: the element is a player's no more, and
- *   the last player's leave takes the page's listeners away.
+ *   the leave of the document's last player takes its listeners away.
  */
 export const joinVoice = (element: HTMLMediaElement): (() => void) => {
-  if (joined.size === 0) {
-    element.ownerDocument.addEventListener("play", started, { capture: true });
-    element.ownerDocument.addEventListener("volumechange", turnedUp, { capture: true });
-  }
+  const page = element.ownerDocument;
 
-  joined.add(element);
+  element.setAttribute(joinedMark, "");
+  page.addEventListener("play", started, { capture: true });
+  page.addEventListener("volumechange", turnedUp, { capture: true });
 
   return () => {
-    joined.delete(element);
+    element.removeAttribute(joinedMark);
 
-    if (joined.size === 0) {
-      element.ownerDocument.removeEventListener("play", started, { capture: true });
-      element.ownerDocument.removeEventListener("volumechange", turnedUp, { capture: true });
+    if (page.querySelector(`[${joinedMark}]`) === null) {
+      page.removeEventListener("play", started, { capture: true });
+      page.removeEventListener("volumechange", turnedUp, { capture: true });
     }
   };
 };

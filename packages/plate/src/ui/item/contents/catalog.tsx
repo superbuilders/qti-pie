@@ -52,13 +52,14 @@ import type {
 } from "#plate/content/catalog-info.ts";
 import { contentNodes, copyContent } from "#plate/content/modules.ts";
 import { scopedId } from "#plate/instance.ts";
-import { message } from "#plate/messages.ts";
+import { message, numeral } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
 import { addressUrl, classifyUrl, missingPathOf } from "#plate/model/url.ts";
 import { isInteraction } from "#plate/model/interactions.ts";
 import type { Addressing } from "#plate/ui/item/html.ts";
 import { writtenTag } from "#plate/ui/item/html.ts";
 import { authoredId } from "#plate/ui/item/ids.ts";
+import type { Namer } from "#plate/read-aloud/naming.ts";
 import type { ReadsAloud } from "#plate/ui/item/context.ts";
 import { bodyAttributeOf } from "#plate/model/attributes.ts";
 import type { BodyElement, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
@@ -194,15 +195,22 @@ export const noReadAloud: ReadsAloud = () => Option.none();
  * card gives audio ({@link spokenAudioOf}), by its key, with that audio's files as their
  * addresses in `assets` and their `mime-type`s, in document order. A catalog holds one card of a
  * support at most (information model §5.26.1, "Use only one card for any particular named support
- * in a catalog", which the database holds), so it has one recording at most.
+ * in a catalog", which the database holds), so it has one recording at most. Each control it makes
+ * takes its name from the page's namer, which every read-aloud of the page shares, the item's and
+ * its passages': the part it reads and the next place among the page's controls of that part, so
+ * no two controls of the page share a name (spec reading 237).
  *
  * @param payloads The payload's `qti-catalog-info` nodes.
  * @param addressing The item's location and the assets.
+ * @param namer The page's namer.
+ * @param locale The locale of plate's own text.
  * @returns The page's read-aloud.
  */
 export const readAloudOf = (
   payloads: readonly CatalogInfoPayload[],
   addressing: Pick<Addressing, "assets" | "document">,
+  namer: Namer,
+  locale: Locale,
 ): ReadsAloud => {
   const recordings = new Map(
     catalogsOf(payloads).flatMap((catalog) =>
@@ -223,9 +231,13 @@ export const readAloudOf = (
     ),
   );
 
-  return (catalog, label, key) =>
+  return (catalog, part, key) =>
     Option.map(Option.fromUndefinedOr(recordings.get(catalogKey(catalog))), (sources) =>
-      createElement(ReadAloud, { key, label, sources }),
+      createElement(ReadAloud, {
+        key,
+        label: message(locale, part, { n: numeral(locale, namer.next(part)) }),
+        sources,
+      }),
     );
 };
 
