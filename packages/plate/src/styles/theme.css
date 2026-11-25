@@ -1961,15 +1961,6 @@
     border: 2px dashed var(--ui-muted-foreground);
   }
 
-  /*
-   * An empty gap's number, inside its dashed blank: a "which blank" that goes with the blank once a
-   * chip fills it. Its slot's name says the same to a screen reader.
-   */
-  [data-slot="plate-gap-number"] {
-    font-variant-numeric: tabular-nums;
-    font-weight: 600;
-  }
-
   /* == match, gap match, order and associate: their layouts == */
 
   :is(

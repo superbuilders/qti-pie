@@ -16,7 +16,6 @@ import { Option } from "effect";
 import type { ReactNode } from "react";
 import type { GapElement } from "#plate/interactions/gap-match.ts";
 import { countsOf } from "#plate/interactions/counts.ts";
-import { numeral } from "#plate/messages.ts";
 import type { BodyElement, RedactedLevel } from "#plate/model/item.ts";
 import type { Paired } from "#plate/payload.ts";
 import { flag } from "#plate/ui/attributes.ts";
@@ -153,19 +152,13 @@ export const review = (
           data-slot="plate-placement-target"
           role="group"
         >
-          {chips.length === 0 ? (
-            <span aria-hidden="true" data-slot="plate-gap-number">
-              {numeral(locale, number)}
-            </span>
-          ) : (
-            chips.map((chip, at) =>
-              chipPart(
-                texts.get(chip.identifier),
-                chip.mark,
-                `${chip.identifier} ${String(at)}`,
-                locale,
-              ),
-            )
+          {chips.map((chip, at) =>
+            chipPart(
+              texts.get(chip.identifier),
+              chip.mark,
+              `${chip.identifier} ${String(at)}`,
+              locale,
+            ),
           )}
         </span>
       </span>

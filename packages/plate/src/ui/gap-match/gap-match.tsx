@@ -261,12 +261,12 @@ export interface GapProps {
  * - `plate-placement-target`, the primitive's target, a `span` and a `group` named by the `gap`
  *   label, "Blank 2", which announcements and refusals read;
  * - `plate-placement-slot`, while the gap is empty: the button that puts the held gap text here,
- *   named by the `slot` label with the gap's name, "Put it in Blank 2", a dashed place at least 64
- *   px tall;
- * - `plate-gap-number`, inside the slot: the gap's number, `index` plus 1, so a child who reads
- *   "Blank 2" in a message finds the place it means. It goes with the slot once a gap text fills
- *   the gap, which keeps its name for a screen reader. It is hidden from assistive technology,
- *   since the slot's name already says it;
+ *   named by the `slot` label with the gap's name, "Put it in Blank 2", an empty dashed place at
+ *   least 64 px tall. It shows no number or letter of plate's own: the author's content around a
+ *   gap may hold numerals of its own, a comparison's or a number line's, which a number of plate's
+ *   would read as part of, and AlphaTest's player drew the empty place blank, as the K–2 mastery
+ *   forms' design does. The gap's number lives in its name alone, which a refusal says just after
+ *   the child acted on that gap;
  * - `plate-placement-chip`, while the gap is filled: the gap text it holds, at a chip's full size,
  *   which picks it up again, or, while another is held, trades places with it.
  *
@@ -286,8 +286,7 @@ export const Gap = (props: GapProps) => {
     throw new GapOutsideGapMatch();
   }
 
-  const number = index + 1;
-  const gapName = fillLabel(gapMatch.labels.gap, { n: number });
+  const gapName = fillLabel(gapMatch.labels.gap, { n: index + 1 });
 
   return (
     <span data-slot="plate-gap">
@@ -298,11 +297,7 @@ export const Gap = (props: GapProps) => {
       >
         {({ chips: [chip] }) =>
           chip === undefined ? (
-            <PlacementSlot>
-              <span aria-hidden="true" data-slot="plate-gap-number">
-                {number}
-              </span>
-            </PlacementSlot>
+            <PlacementSlot />
           ) : (
             <PlacementChip key={chip} aria-label={gapMatch.gapTexts.get(chip)?.label} value={chip}>
               {gapMatch.gapTexts.get(chip)?.content}
