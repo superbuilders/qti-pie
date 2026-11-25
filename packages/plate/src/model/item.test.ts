@@ -1389,7 +1389,7 @@ describe("buildItem", () => {
       tag: "p",
     });
     assert.deepStrictEqual(built.lang, Option.none());
-    assert.deepStrictEqual([...built.responses.keys()], ["POINT"]);
+    assert.deepStrictEqual([...built.responses.keys()].toSorted(), ["POINT"]);
     assert.isTrue(built.adaptive);
     assert.deepStrictEqual(built.unsupported, [
       { feature: "xml:base", path: `${body}/p`, shown: "mark" },
@@ -1497,7 +1497,7 @@ describe("buildItem", () => {
 
     assert.deepStrictEqual(childrenOf(built.body[0]), [entry]);
     assert.deepStrictEqual(built.body[1], working);
-    assert.deepStrictEqual([...built.records.keys()], ["NUMBER", "WORKING"]);
+    assert.deepStrictEqual([...built.records.keys()].toSorted(), ["NUMBER", "WORKING"]);
     assert.deepStrictEqual(built.unsupported, []);
   });
 
@@ -1661,7 +1661,7 @@ describe("buildItem", () => {
         }),
       );
 
-      assert.deepStrictEqual([...built.outcomes.keys()], ["TIME", "UPLOAD"], written);
+      assert.deepStrictEqual([...built.outcomes.keys()].toSorted(), ["TIME", "UPLOAD"], written);
       assert.deepStrictEqual(
         built.outcomes.get("TIME")?.defaultValue,
         Option.some({
@@ -1762,8 +1762,10 @@ describe("buildItem", () => {
       },
     ];
 
-    assert.deepStrictEqual([...built.templates.keys()], ["T", "NAMES", "D", "P"]);
-    assert.deepStrictEqual([...built.templates.values()], expected);
+    assert.deepStrictEqual(
+      Object.fromEntries(built.templates),
+      Object.fromEntries(expected.map((held) => [held.identifier, held])),
+    );
     assert.isFalse(built.templated);
     assert.deepStrictEqual(built.unsupported, [
       {
@@ -2046,7 +2048,7 @@ describe("buildItem", () => {
       }),
     );
 
-    assert.deepStrictEqual([...built.responses.keys()], ["RESPONSE"]);
+    assert.deepStrictEqual([...built.responses.keys()].toSorted(), ["RESPONSE"]);
     assert.strictEqual(built.responses.get("RESPONSE")?.identifier, "RESPONSE");
     assert.strictEqual(choiceIn(built.body).response, "RESPONSE");
   });

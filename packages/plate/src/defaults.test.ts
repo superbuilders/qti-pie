@@ -438,14 +438,14 @@ describe("a fresh attempt's start", () => {
       );
 
       assert.deepStrictEqual(
-        Object.values(startingResponses(accepted, feedbackHidden)),
-        [
-          {
+        startingResponses(accepted, feedbackHidden),
+        {
+          RESPONSE: {
             baseType: "float",
             cardinality: "single",
             values: [{ baseType: "float", value: 0.75 }],
           },
-        ],
+        },
         "slider-float starts at its default",
       );
     }),
