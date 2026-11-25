@@ -252,15 +252,14 @@ layer(NodeServices.layer, { excludeTestServices: true })(
   (it) => {
     for (const placement of parts) {
       it.effect(`in an item, ${placement}`, (ctx) =>
-        // Oracle: two implementations side by side, the law oracle's content references, which
-        // read `BuiltInVariable` under the item's root, and the schema's laws over the import's
-        // rows; and the specification's table of an item's built-ins, by hand. Bound: four names
-        // by five own and five placed references: 40 packages, the own or the placed references
-        // to a part.
         searched(
           ctx,
           exhaust(
             {
+              /**
+               * Four names by five own and five placed references: 40 packages, the own or the
+               * placed references to a part.
+               */
               box: `an item's ${placement} feedback, template, printed variable, printed variable base or context variable reference naming each built-in variable`,
               caseHang: Duration.minutes(1),
               coverage: requiredInSpace<Situation>([
@@ -269,6 +268,11 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               ]),
               generator: rootCasesAt(placement),
               literal: Formatter.format,
+              /**
+               * Two implementations side by side, the law oracle's content references, which read
+               * `BuiltInVariable` under the item's root, and the schema's laws over the import's
+               * rows; and the specification's table of an item's built-ins, by hand.
+               */
               oracle: {
                 kind: "second-implementation",
                 name: "the law oracle's content references, the schema's laws over the import's rows, and the information model's built-ins of an item, by hand",

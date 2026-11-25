@@ -193,13 +193,13 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     it.effect(
       "resolve in the assembly that places it, once per placement, the law oracle and the import's rows alike",
       (ctx) =>
-        // Oracle: two implementations side by side, the law oracle's judgment of the item with what
-        // it splices, and the schema's laws over the import's rows. Bound: two content references,
-        // a name declared or not, one or two includes: 8 packages.
         searched(
           ctx,
           exhaust(
             {
+              /**
+               * Two content references, a name declared or not, one or two includes: 8 packages.
+               */
               box: "a fragment spliced into an item's body, once or twice, its printed variable or feedback outcome naming a declared or an undeclared variable",
               caseHang: Duration.minutes(2),
               coverage: requiredInSpace<Situation>([
@@ -210,6 +210,10 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               ]),
               generator: fragmentCases,
               literal: Formatter.format,
+              /**
+               * Two implementations side by side, the law oracle's judgment of the item with what
+               * it splices, and the schema's laws over the import's rows.
+               */
               oracle: {
                 kind: "second-implementation",
                 name: "the law oracle's item read through what it splices, and the schema's laws over the import's rows",

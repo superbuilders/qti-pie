@@ -306,16 +306,17 @@ describe("the bindings the fit laws judge", () => {
     it.effect(
       "resolve to a response declaration exactly where one holds the name, which the schema's fit relations judge as the oracle does",
       (ctx) =>
-        // Oracle: a second implementation, the law oracle, against the importer's rows and the
-        // schema's closed fit relations read over them. Bound: every site of
-        // binding-cases.ts (a choice, a slider, a custom interaction, a text entry's string
-        // identifier and a placed fragment's text entry) under every state (renamed to an
-        // undeclared name, an outcome or a built-in; its declaration's cardinality dropped,
-        // empty, unspelled, padded or each of the four spelled), exhausted.
         searched(
           ctx,
           exhaust(
             {
+              /**
+               * Every site of binding-cases.ts (a choice, a slider, a custom interaction, a text
+               * entry's string identifier and a placed fragment's text entry) under every state
+               * (renamed to an undeclared name, an outcome or a built-in; its declaration's
+               * cardinality dropped, empty, unspelled, padded or each of the four spelled),
+               * exhausted.
+               */
               box: "every binding site of binding-cases.ts under every state",
               caseHang: Duration.seconds(60),
               coverage: noCoverage,
@@ -325,6 +326,10 @@ describe("the bindings the fit laws judge", () => {
 
                 return drawn === undefined ? String(at) : `${drawn.site.identifier} ${drawn.state}`;
               },
+              /**
+               * A second implementation, the law oracle, against the importer's rows and the
+               * schema's closed fit relations read over them.
+               */
               oracle: { kind: "second-implementation", name: "the law oracle's binding laws" },
               suite: "pantry/binding-fit",
             },

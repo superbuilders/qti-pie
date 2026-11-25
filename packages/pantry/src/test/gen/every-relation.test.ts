@@ -31,12 +31,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("test/gen/every-relatio
   it.effect(
     "draws packages whose entries are a keyed set, whose import writes every stored relation of Qti, and which the law oracle accepts",
     (ctx) =>
-      // Oracle: the specification as a checker. A package's entries are a set by path, read back
-      // by `readEntries` as written, each once; the import's program (`readProgram`, the rows its
-      // one ChangeSet writes, counted by `rowCountsOf`) holds a row of each stored relation of
-      // `Qti`, grizzle's `writableNamesOf(Qti)`; and the law oracle (`#pantry/test/oracle.ts`, plan
-      // §1.3 to §1.7 on the host) finds no breach.
-      // Bound: every count of 2 or 3 choices, 1 or 2 hottexts and 1 or 2 hotspots, 8 cases.
       searched(
         ctx,
         exhaust(
@@ -50,6 +44,13 @@ layer(NodeServices.layer, { excludeTestServices: true })("test/gen/every-relatio
             ]),
             generator: memberCounts,
             literal: JSON.stringify,
+            /**
+             * The specification as a checker. A package's entries are a set by path, read back by
+             * `readEntries` as written, each once; the import's program (`readProgram`, the rows
+             * its one ChangeSet writes, counted by `rowCountsOf`) holds a row of each stored
+             * relation of `Qti`, grizzle's `writableNamesOf(Qti)`; and the law oracle
+             * (`#pantry/test/oracle.ts`, plan §1.3 to §1.7 on the host) finds no breach.
+             */
             oracle: {
               kind: "specification",
               name: "the package's set of entries, Qti's stored relations, and the law oracle",

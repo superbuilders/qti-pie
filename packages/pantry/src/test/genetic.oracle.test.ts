@@ -432,9 +432,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     });
 
     it.effect("still shows every known disagreement, and no fixed one", (ctx) =>
-      // Oracle: a second implementation, the law oracle, against readProgram's refusal and the
-      // laws its rows hold on the host. Bound: each known and fixed entry's package, judged once,
-      // and beside its noised twin where the entry names a noise.
       searched(
         ctx,
         Effect.gen(function* knownRuns() {
@@ -443,6 +440,10 @@ layer(NodeServices.layer, { excludeTestServices: true })(
 
           return yield* exhaust(
             {
+              /**
+               * Each known and fixed entry's package, judged once, and beside its noised twin where
+               * the entry names a noise.
+               */
               box: "every known and fixed disagreement's package",
               caseHang: Duration.minutes(5),
               coverage: noCoverage,
@@ -452,6 +453,10 @@ layer(NodeServices.layer, { excludeTestServices: true })(
 
                 return held === undefined ? String(at) : shownSignature(held.entry.signature);
               },
+              /**
+               * A second implementation, the law oracle, against readProgram's refusal and the laws
+               * its rows hold on the host.
+               */
               oracle: {
                 kind: "second-implementation",
                 name: "the law oracle against readProgram's refusal and its rows' host laws",
@@ -503,9 +508,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     );
 
     it.effect("flags no key text past its bound in a field the database fills", (ctx) =>
-      // Oracle: a second implementation, the law oracle, against the laws the import's rows hold
-      // on the host. Bound: a cp:variant's and a cp:dependency's identifierref one byte past the
-      // key-text bound, and the variant's at the bound, each judged once.
       searched(
         ctx,
         Effect.gen(function* filledRuns() {
@@ -514,11 +516,19 @@ layer(NodeServices.layer, { excludeTestServices: true })(
 
           return yield* exhaust(
             {
+              /**
+               * A cp:variant's and a cp:dependency's identifierref one byte past the key-text
+               * bound, and the variant's at the bound, each judged once.
+               */
               box: "an identifierref one byte past the key-text bound, and one at it",
               caseHang: Duration.minutes(5),
               coverage: noCoverage,
               generator: int(0, filledCases.length - 1),
               literal: (at) => filledCases[at]?.name ?? String(at),
+              /**
+               * A second implementation, the law oracle, against the laws the import's rows hold on
+               * the host.
+               */
               oracle: {
                 kind: "second-implementation",
                 name: "the law oracle against the laws the import's rows hold on the host",
@@ -638,8 +648,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     it.effect(
       "disagrees on each planted value outside its domain's facets exactly while it waits on a fix",
       (ctx) =>
-        // Oracle: a second implementation, the law oracle, against the laws the import's rows hold
-        // on the host. Bound: the three planted cases, each judged once.
         searched(
           ctx,
           Effect.gen(function* plantedRuns() {
@@ -648,11 +656,18 @@ layer(NodeServices.layer, { excludeTestServices: true })(
 
             return yield* exhaust(
               {
+                /**
+                 * The three planted cases, each judged once.
+                 */
                 box: "the three planted values outside their domain's facets",
                 caseHang: Duration.minutes(5),
                 coverage: noCoverage,
                 generator: int(0, plantedCases.length - 1),
                 literal: (at) => plantedCases[at]?.name ?? String(at),
+                /**
+                 * A second implementation, the law oracle, against the laws the import's rows hold
+                 * on the host.
+                 */
                 oracle: {
                   kind: "second-implementation",
                   name: "the law oracle against the laws the import's rows hold on the host",
@@ -697,10 +712,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     it.effect.skipIf(!settings.geneticRequested)(
       "breeds no package the two judge differently, but as known",
       (ctx) =>
-        // Oracle: a second implementation, the law oracle, against readProgram's refusal and the
-        // laws its rows hold on the host. Bound: per run, the budget above, each candidate one to
-        // its most edits from a parent of the corpus or of the run's population, every other one
-        // judged beside a noised copy.
         searched(
           ctx,
           Effect.gen(function* searchRuns() {
@@ -722,10 +733,19 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                 kept: [],
                 literal: (drawnRun) =>
                   `{ run: ${runLiteral(drawnRun.run)}, rotating: ${String(drawnRun.rotating)} }`,
+                /**
+                 * A second implementation, the law oracle, against readProgram's refusal and the
+                 * laws its rows hold on the host.
+                 */
                 oracle: {
                   kind: "second-implementation",
                   name: "the law oracle against readProgram's refusal and its rows' host laws",
                 },
+                /**
+                 * Per run, the budget above, each candidate one to its most edits from a parent of
+                 * the corpus or of the run's population, every other one judged beside a noised
+                 * copy.
+                 */
                 runs: chosen.runs,
                 shrink: boundedShrink(0),
                 steerEvery: 1,

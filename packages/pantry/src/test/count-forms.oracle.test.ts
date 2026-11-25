@@ -175,12 +175,13 @@ layer(NodeServices.layer, { excludeTestServices: true })("a count's value", (it)
   it.effect(
     "reads each form of a count by §3.3.20's map, in the law oracle and in the import alike",
     (ctx) =>
-      // Oracle: XML Schema 1.1 Part 2 §3.3.13 and §3.3.20 by hand, and reading 92. Bound: the
-      // seven forms as the most choices, under a single response: 7 packages.
       searched(
         ctx,
         exhaust(
           {
+            /**
+             * The seven forms as the most choices, under a single response: 7 packages.
+             */
             box: "0, +0, -0, 00, +1, -1 and ' 1' as max-choices, under a single response",
             caseHang: Duration.minutes(2),
             coverage: requiredInSpace<Situation>([
@@ -191,6 +192,9 @@ layer(NodeServices.layer, { excludeTestServices: true })("a count's value", (it)
             ]),
             generator: formCases,
             literal: Formatter.format,
+            /**
+             * XML Schema 1.1 Part 2 §3.3.13 and §3.3.20 by hand, and reading 92.
+             */
             oracle: {
               kind: "specification",
               name: "XML Schema 1.1 Part 2 §3.3.20's lexical mapping by hand, and reading 92",

@@ -481,12 +481,6 @@ describe("import/overlays/package.ts resolveIn against test/resolution.ts", () =
   it.effect(
     "resolves every swarmed and adversarial href as the oracle's RFC 3986 resolver does, and catches each planted bug",
     (ctx) =>
-      // Oracle: a second implementation, the law oracle's resolver (`#pantry/test/resolution.ts`),
-      // RFC 3986's §5.2.3 merge and §5.2.4 rules over text below a sentinel root, §6.2.2.2's
-      // unreserved decoding first and its own UTF-8 decoder last.
-      // Bound: 1,500 cases, a third the 42 adversarial cases by name under 3 whitespace classes, the
-      // rest hrefs of up to 4 segments of 15 kinds under a swarm, in 7 documents, under up to 3
-      // bases.
       searched(
         ctx,
         explore(
@@ -499,10 +493,20 @@ describe("import/overlays/package.ts resolveIn against test/resolution.ts", () =
             draw: drawn(cases),
             kept: [],
             literal: Formatter.format,
+            /**
+             * A second implementation, the law oracle's resolver (`#pantry/test/resolution.ts`),
+             * RFC 3986's §5.2.3 merge and §5.2.4 rules over text below a sentinel root, §6.2.2.2's
+             * unreserved decoding first and its own UTF-8 decoder last.
+             */
             oracle: {
               kind: "second-implementation",
               name: "the law oracle's RFC 3986 resolver over text",
             },
+            /**
+             * 1,500 cases, a third the 42 adversarial cases by name under 3 whitespace classes, the
+             * rest hrefs of up to 4 segments of 15 kinds under a swarm, in 7 documents, under up to
+             * 3 bases.
+             */
             runs: 1500,
             shrink: completeShrink,
             steerEvery: 16,

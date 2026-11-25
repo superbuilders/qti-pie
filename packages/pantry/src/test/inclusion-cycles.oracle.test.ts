@@ -113,9 +113,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     it.effect(
       "breaks Inclusion cycle alone, and no key, exactly where the fragments include a document on their chain, whether or not an item places it",
       (ctx) =>
-        // Oracle: the case's inclusion graph. Bound: no cycle, a self-inclusion and a two-fragment
-        // cycle, each placed by none to three set items, each with and without a tail fragment the
-        // fragment alone includes: 24 packages of `rtest01`.
         Effect.gen(function* cycleBox() {
           const base = yield* readEntries(yield* materialize("rtest01"));
 
@@ -123,6 +120,11 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             ctx,
             exhaust(
               {
+                /**
+                 * No cycle, a self-inclusion and a two-fragment cycle, each placed by none to three
+                 * set items, each with and without a tail fragment the fragment alone includes: 24
+                 * packages of `rtest01`.
+                 */
                 box: "rtest01 with no cycle, its fragment including itself, or it and a text fragment including each other, placed by 0 to 3 set items, with and without a tail fragment",
                 caseHang: Duration.seconds(30),
                 coverage: requiredInSpace<CycleSituation>([
@@ -135,6 +137,9 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                 ]),
                 generator: cycleCases,
                 literal: (drawn) => JSON.stringify(drawn),
+                /**
+                 * The case's inclusion graph.
+                 */
                 oracle: {
                   kind: "specification",
                   name: "XInclude 1.0 §4.5 (an inclusion loop is a fatal error) and spec reading 85, over the case's inclusion graph",

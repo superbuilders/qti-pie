@@ -295,19 +295,15 @@ layer(NodeServices.layer, { excludeTestServices: true })("test/gen/sites.ts", (i
   it.effect(
     "writes each site's href and target as rows of their own, so each package breaks exactly the site laws its cases, the law oracle and the schema's own statements name, an absent file File_exists alone",
     (ctx) =>
-      // Oracle: a second implementation, the law oracle (`#pantry/test/oracle.ts`) over the same
-      // entries; the schema's statements as grizzle keeps them, their selections included
-      // (`#pantry/test/host-judge.ts`), judged by grizzle's evaluator over the rows the import's
-      // write stores; and the specification as
-      // a checker, reading 115 per case (`ruleOfCase`), against the import's rows under the site
-      // laws restated on the host.
-      // Bound: the every-relation package's two sites, each listed, naming an absent file, an
-      // entry listed as no document or a file outside the package, or writing no href, 25, each
-      // imported once and held to every verdict.
       searched(
         ctx,
         exhaust(
           {
+            /**
+             * The every-relation package's two sites, each listed, naming an absent file, an entry
+             * listed as no document or a file outside the package, or writing no href, 25, each
+             * imported once and held to every verdict.
+             */
             box: "the every-relation package's include of fragment.xml and include of rules.xml, each listed, naming an absent file, an entry listed as no document or an external file, or writing no href",
             caseHang: Duration.seconds(120),
             coverage: requiredInSpace<Situation>([
@@ -324,6 +320,13 @@ layer(NodeServices.layer, { excludeTestServices: true })("test/gen/sites.ts", (i
             ]),
             generator: siteBox,
             literal: siteLiteral,
+            /**
+             * A second implementation, the law oracle (`#pantry/test/oracle.ts`) over the same
+             * entries; the schema's statements as grizzle keeps them, their selections included
+             * (`#pantry/test/host-judge.ts`), judged by grizzle's evaluator over the rows the
+             * import's write stores; and the specification as a checker, reading 115 per case
+             * (`ruleOfCase`), against the import's rows under the site laws restated on the host.
+             */
             oracle: { kind: "second-implementation", name: "the law oracle over the same entries" },
             suite: "pantry/test/gen-sites-box",
           },

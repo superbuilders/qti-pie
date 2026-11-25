@@ -325,12 +325,6 @@ describe("every law the oracle declares", () => {
     it.effect(
       `${name}: a package drawn to break ${mutation.law} is refused by it, and by no law ahead of its rule`,
       (ctx) =>
-        // Oracle: the specification as a checker. The law's own source names what breaks it,
-        // and the mutation writes exactly that into a package the oracle accepts. Bound: one
-        // rotating case and one floor case per law, each drawing the member counts of the
-        // every-relation package (or the mutation's own base) and the mutation's site and value,
-        // so the run's seed moves every law to another corner: completeness asks for one
-        // package per law that raises it, and the eight bases are judged once each.
         searched(
           ctx,
           explore(
@@ -340,10 +334,20 @@ describe("every law the oracle declares", () => {
               draw: drawn(memberCounts),
               kept: Object.entries(keptCases).find(([kept]) => kept === name)?.[1] ?? [],
               literal: JSON.stringify,
+              /**
+               * The specification as a checker. The law's own source names what breaks it, and the
+               * mutation writes exactly that into a package the oracle accepts.
+               */
               oracle: {
                 kind: "specification",
                 name: `${mutation.law}'s source, written into an accepted package`,
               },
+              /**
+               * One rotating case and one floor case per law, each drawing the member counts of the
+               * every-relation package (or the mutation's own base) and the mutation's site and
+               * value, so the run's seed moves every law to another corner: completeness asks for
+               * one package per law that raises it, and the eight bases are judged once each.
+               */
               runs: 1,
               shrink: completeShrink,
               steerEvery: 16,
@@ -385,21 +389,26 @@ const declarationSites = ["items/item.xml", "items/item2.xml", "items/item3.xml"
 
 describe("a declaration that writes no cardinality", () => {
   it.effect("is refused under required-attribute alone, an absent attribute no empty one", (ctx) =>
-    // Oracle: the specification as a checker. AL3 refuses a declaration with no cardinality, and
-    // no law that reads a declaration's cardinality judges the `single` the schema holds an
-    // unwritten one as, so the oracle raises no other rule (the orchestrator's ruling of
-    // 2026-11-06: an absent attribute is no empty one, and one cause is refused under one rule).
-    // Bound: one declaration of each kind in each of the every-relation items and in its test,
-    // each its cardinality dropped, exhausted.
     searched(
       ctx,
       exhaust(
         {
+          /**
+           * One declaration of each kind in each of the every-relation items and in its test, each
+           * its cardinality dropped, exhausted.
+           */
           box: "one declaration of each kind in each item, its cardinality dropped",
           caseHang: Duration.seconds(60),
           coverage: noCoverage,
           generator: int(0, declarationSites.length - 1),
           literal: String,
+          /**
+           * The specification as a checker. AL3 refuses a declaration with no cardinality, and no
+           * law that reads a declaration's cardinality judges the `single` the schema holds an
+           * unwritten one as, so the oracle raises no other rule (the orchestrator's ruling of
+           * 2026-11-06: an absent attribute is no empty one, and one cause is refused under one
+           * rule).
+           */
           oracle: { kind: "specification", name: "AL3's required cardinality, alone" },
           suite: "pantry/oracle-complete/absent-cardinality",
         },
