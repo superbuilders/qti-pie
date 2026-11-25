@@ -25,7 +25,7 @@ import * as NodePath from "@effect/platform-node/NodePath";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { required } from "@bjornpagen/testing/features";
-import { element, int } from "@bjornpagen/testing/gen";
+import { constant, element, int, weighted } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
@@ -148,7 +148,12 @@ const caseOf: Gen<DefaultCase> = (source) => ({
   context: source.draw(element(CONTEXTS)),
   declared: source.draw(element(DECLARED)),
   fixed: source.draw(element([false, true])),
-  shadowed: source.draw(element([false, false, true])),
+  shadowed: source.draw(
+    weighted([
+      [2, constant(false)],
+      [1, constant(true)],
+    ]),
+  ),
   tokens: tokensOf(source.draw(swarm(TOKEN_CLASS_NAMES)))(source),
   type: source.draw(element(TYPES)),
   use: source.draw(element(USES)),
