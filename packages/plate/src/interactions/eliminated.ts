@@ -1,8 +1,7 @@
 /**
  * The options a host has eliminated, a test's cross-out, by the response they are options of: what
  * the picks groups read to disable and describe each one (`Eliminated` in
- * `#plate/ui/picks/eliminated.tsx`). Pure, so its rule is checked apart from any page
- * (`eliminated.test.ts`), and safe for a page to load.
+ * `#plate/ui/picks/eliminated.tsx`). Pure, and safe for a page to load.
  *
  * @module
  */

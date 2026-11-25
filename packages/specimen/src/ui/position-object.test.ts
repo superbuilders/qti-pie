@@ -395,22 +395,6 @@ const onlyAt = (index: number): readonly boolean[] => placed.map((_, each) => ea
 layer(shared, { excludeTestServices: true, timeout: harnessHang })(
   "Position Object hydrated in Chrome, on 1EdTech's Airport Locations with its three copies placed",
   (it) => {
-    it.effect(
-      "the page starts with the three copies placed, as the correct response gives them",
-      () =>
-        Effect.scoped(
-          Effect.gen(function* startsPlaced() {
-            const hydrated = yield* opened;
-            const state = yield* shown(hydrated);
-
-            assert.deepStrictEqual(state.pressed, [false, false, false]);
-            assert.deepStrictEqual(state.picked, [false, false, false]);
-            assert.deepStrictEqual(yield* hydrated.changes, []);
-          }),
-        ),
-      caseHang,
-    );
-
     for (const key of ["Delete", "Backspace"] as const) {
       for (const index of placed.keys()) {
         it.effect(

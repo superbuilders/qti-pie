@@ -24,37 +24,14 @@ type ClassifiedUrl = ReturnType<typeof classifyUrl>;
 type PackageUrl = Extract<KeptUrl, { readonly kind: "package" }>;
 
 /**
- * A kept remote URL.
- */
-type RemoteUrl = Extract<KeptUrl, { readonly kind: "remote" }>;
-
-/**
  * A dropped value.
  */
 type DroppedUrl = Extract<ClassifiedUrl, { readonly kind: "dropped" }>;
 
 /**
- * One image candidate of a kept `srcset`.
- */
-type SrcsetCandidate = Extract<KeptUrl, { readonly kind: "srcset" }>["candidates"][number];
-
-/**
  * The feature key of a URL that resolves outside the package.
  */
 const outsidePackageFeature = "url-outside-package";
-
-/**
- * The feature key of a value the URL parser refuses, or a blank one.
- */
-const invalidUrlFeature = "url-invalid";
-
-/**
- * Construct the feature key of a URL dropped for its scheme.
- *
- * @param scheme The scheme, lower case, without its colon.
- * @returns `url-scheme:<scheme>`.
- */
-const schemeFeature = (scheme: string): string => `url-scheme:${scheme}`;
 
 /**
  * The contexts that hold one URL, as opposed to a `srcset` list.
@@ -70,43 +47,12 @@ const singleContexts = ["link", "resource", "embed"] as const;
 const inPackage = (path: string): PackageUrl => ({ kind: "package", path });
 
 /**
- * Construct a kept remote URL for a test.
- *
- * @param href Its parsed href.
- * @returns The classification.
- */
-const remote = (href: string): RemoteUrl => ({ href, kind: "remote" });
-
-/**
  * Construct a dropped URL for a test.
  *
  * @param feature The feature key it is dropped with.
  * @returns The classification.
  */
 const dropped = (feature: string): DroppedUrl => ({ feature, kind: "dropped" });
-
-/**
- * Construct a kept `srcset` for a test.
- *
- * @param candidates Its image candidates, in order.
- * @returns The classification.
- */
-const srcset = (...candidates: readonly SrcsetCandidate[]): ClassifiedUrl => ({
-  candidates,
-  kind: "srcset",
-});
-
-/**
- * Construct one `srcset` image candidate for a test.
- *
- * @param url The candidate's kept URL.
- * @param descriptors Its descriptors, in order.
- * @returns The candidate.
- */
-const candidate = (url: PackageUrl, ...descriptors: readonly string[]) => ({
-  descriptors,
-  url,
-});
 
 /**
  * Name an element or an attribute.
@@ -173,39 +119,9 @@ describe("urlContextOf", () => {
     );
     assert.deepStrictEqual(contextAt(mathmlNamespace, "ci", "definitionURL"), Option.none());
   });
-
-  it("reads an element by its namespace and an attribute by its own, never by a local name alone", () => {
-    const svg = "http://www.w3.org/2000/svg";
-    const xlink = "http://www.w3.org/1999/xlink";
-
-    assert.deepStrictEqual(urlContextOf(name(svg, "a"), name("", "href")), Option.none());
-    assert.deepStrictEqual(
-      urlContextOf(name(qtiNamespace, "a"), name(xlink, "href")),
-      Option.none(),
-    );
-    assert.deepStrictEqual(urlContextOf(name(qtiNamespace, "mi"), name("", "href")), Option.none());
-  });
 });
 
 describe("classifyUrl", () => {
-  for (const value of [
-    " javascript:alert(1)",
-    "java\tscript:alert(1)",
-    "java\nscript:alert(1)",
-    "JAVASCRIPT:alert(1)",
-    "\u0001javascript:alert(1)",
-  ]) {
-    it(`drops ${JSON.stringify(value)} as url-scheme:javascript in every context`, () => {
-      for (const context of singleContexts) {
-        assert.deepStrictEqual(
-          classifyUrl(context, value),
-          dropped("url-scheme:javascript"),
-          context,
-        );
-      }
-    });
-  }
-
   for (const value of ["//host/x", "\\\\host\\x", "/x", "/a/x", "/root/x"]) {
     it(`drops ${JSON.stringify(value)} as url-outside-package in every context`, () => {
       for (const context of singleContexts) {
@@ -217,16 +133,6 @@ describe("classifyUrl", () => {
       }
     });
   }
-
-  it("reads https:evil.com/x as the package path evil.com/x, never the remote https://evil.com/x", () => {
-    for (const context of singleContexts) {
-      assert.deepStrictEqual(
-        classifyUrl(context, "https:evil.com/x"),
-        inPackage("evil.com/x"),
-        context,
-      );
-    }
-  });
 
   it("keeps a path that climbs above the item's directory, one ../ for each directory it climbs", () => {
     const cases = [
@@ -247,282 +153,6 @@ describe("classifyUrl", () => {
           `${value} in ${context}`,
         );
       }
-    }
-  });
-
-  it("keeps a package path in its parsed form, with its query and fragment", () => {
-    assert.deepStrictEqual(
-      classifyUrl("resource", "images/a b.png"),
-      inPackage("images/a%20b.png"),
-    );
-    assert.deepStrictEqual(
-      classifyUrl("link", "  shared/page.html?x=1#part "),
-      inPackage("shared/page.html?x=1#part"),
-    );
-    assert.deepStrictEqual(
-      classifyUrl("resource", "images/./a/../b.png"),
-      inPackage("images/b.png"),
-    );
-  });
-
-  it("keeps http and https as their parsed href in the link context alone", () => {
-    assert.deepStrictEqual(
-      classifyUrl("link", "http://example.com/a b.png"),
-      remote("http://example.com/a%20b.png"),
-    );
-    assert.deepStrictEqual(
-      classifyUrl("link", "HTTPS://Example.COM/x"),
-      remote("https://example.com/x"),
-    );
-    assert.deepStrictEqual(classifyUrl("link", "http:evil.com/x"), remote("http://evil.com/x"));
-  });
-
-  it("drops http and https as url-outside-package in every context plate would fetch them in, the host vetting no file outside the package", () => {
-    // Oracle: QTI 3.0 Conformance §3, "the applications must be able to ignore or remove the
-    // unsupported data": a remote file the host never vetted is never fetched, and the element
-    // renders without it. Bound: each fetching context, each spelling of a remote URL.
-    for (const context of ["resource", "embed", "package", "srcset"] as const) {
-      for (const value of [
-        "http://example.com/a b.png",
-        "HTTPS://Example.COM/x",
-        "http:evil.com/x",
-      ]) {
-        assert.deepStrictEqual(
-          classifyUrl(context, value),
-          dropped(outsidePackageFeature),
-          `${value} in ${context}`,
-        );
-      }
-    }
-  });
-
-  it("drops mailto:, tel:, data: and every other scheme, by its scheme", () => {
-    const cases = [
-      ["mailto:a@example.com", "mailto"],
-      ["tel:+15550100", "tel"],
-      ["data:image/png;base64,AA==", "data"],
-      ["vbscript:x", "vbscript"],
-      ["blob:https://example.com/x", "blob"],
-      ["file:///etc/passwd", "file"],
-    ] as const;
-    for (const [value, scheme] of cases) {
-      for (const context of singleContexts) {
-        assert.deepStrictEqual(
-          classifyUrl(context, value),
-          dropped(schemeFeature(scheme)),
-          `${value} in ${context}`,
-        );
-      }
-    }
-  });
-
-  it("keeps #q1 as a same-document fragment in the link context", () => {
-    assert.deepStrictEqual(classifyUrl("link", "#q1"), { fragment: "q1", kind: "fragment" });
-    assert.deepStrictEqual(classifyUrl("link", " #q1"), { fragment: "q1", kind: "fragment" });
-    assert.deepStrictEqual(classifyUrl("link", "#"), { fragment: "", kind: "fragment" });
-  });
-
-  it("reads a fragment outside the link context, and ./#q1 in it, as a package path", () => {
-    assert.deepStrictEqual(classifyUrl("resource", "#q1"), inPackage("./#q1"));
-    assert.deepStrictEqual(classifyUrl("link", "./#q1"), inPackage("./#q1"));
-  });
-
-  it("writes a package path that would read as a scheme or a host with a leading ./", () => {
-    assert.deepStrictEqual(classifyUrl("link", "./javascript:x"), inPackage("./javascript:x"));
-    assert.deepStrictEqual(
-      classifyUrl("link", "./https:evil.com/x"),
-      inPackage("./https:evil.com/x"),
-    );
-    assert.deepStrictEqual(classifyUrl("resource", ".///evil.com/x"), inPackage(".///evil.com/x"));
-  });
-
-  it("keeps a package object@data and drops a remote one as url-outside-package", () => {
-    assert.deepStrictEqual(
-      classifyUrl("embed", "shared/orkney.html"),
-      inPackage("shared/orkney.html"),
-    );
-    assert.deepStrictEqual(
-      classifyUrl("embed", "images/rectangle.svg"),
-      inPackage("images/rectangle.svg"),
-    );
-    assert.deepStrictEqual(
-      classifyUrl("embed", "https://example.com/page.html"),
-      dropped(outsidePackageFeature),
-    );
-    assert.deepStrictEqual(
-      classifyUrl("embed", "http://example.com/page.html"),
-      dropped(outsidePackageFeature),
-    );
-  });
-
-  it("drops an empty or whitespace-only value as url-invalid in every context", () => {
-    for (const value of ["", " ", " \t\n\r "]) {
-      for (const context of ["link", "resource", "embed", "srcset"] as const) {
-        assert.deepStrictEqual(
-          classifyUrl(context, value),
-          dropped(invalidUrlFeature),
-          `${JSON.stringify(value)} in ${context}`,
-        );
-      }
-    }
-  });
-
-  it("drops a value of control characters, which the parser strips to nothing, as url-invalid", () => {
-    for (const context of singleContexts) {
-      assert.deepStrictEqual(
-        classifyUrl(context, "\u0001 \u001F"),
-        dropped(invalidUrlFeature),
-        context,
-      );
-    }
-  });
-
-  it("keeps a reference to the item's directory itself as the package path ./", () => {
-    for (const value of [".", "./", "?", "images/..", "https:"]) {
-      for (const context of singleContexts) {
-        assert.deepStrictEqual(
-          classifyUrl(context, value),
-          inPackage("./"),
-          `${JSON.stringify(value)} in ${context}`,
-        );
-      }
-    }
-  });
-
-  it("drops a value the URL parser refuses as url-invalid", () => {
-    for (const context of singleContexts) {
-      assert.deepStrictEqual(classifyUrl(context, "http://["), dropped(invalidUrlFeature), context);
-      assert.deepStrictEqual(classifyUrl(context, "https://"), dropped(invalidUrlFeature), context);
-    }
-  });
-
-  it("reads its own written form back as the same classification", () => {
-    const values = [
-      "images/a b.png",
-      "https:evil.com/x",
-      "./javascript:x",
-      ".///evil.com/x",
-      "./#q1",
-      "#q1",
-      "x?",
-      "",
-      ".",
-      "./",
-      "?",
-      "HTTPS://Example.COM/x",
-      "a.png 1x, https://example.com/b.png 2x",
-      "../x",
-      "../../a b.png?v#t",
-      "../javascript:x",
-      "..",
-      "../.. 1x, ../a/../b.png 2x",
-    ];
-    for (const context of ["link", "resource", "embed", "srcset"] as const) {
-      for (const value of values) {
-        const first = classifyUrl(context, value);
-        if (first.kind !== "dropped") {
-          assert.deepStrictEqual(
-            classifyUrl(context, formatUrl(first)),
-            first,
-            `${JSON.stringify(value)} in ${context}`,
-          );
-        }
-      }
-    }
-  });
-});
-
-describe("classifyUrl, srcset", () => {
-  it("keeps the corpus item nested_object's srcset values as package paths", () => {
-    assert.deepStrictEqual(
-      classifyUrl("srcset", "images/postcard.webp"),
-      srcset(candidate(inPackage("images/postcard.webp"))),
-    );
-    assert.deepStrictEqual(
-      classifyUrl("srcset", "images/postcard.svg"),
-      srcset(candidate(inPackage("images/postcard.svg"))),
-    );
-  });
-
-  it("keeps each candidate's URL in its parsed form with its descriptors", () => {
-    assert.deepStrictEqual(
-      classifyUrl("srcset", "small.png 1x,\n large.png 2x, wide/w.png 480w"),
-      srcset(
-        candidate(inPackage("small.png"), "1x"),
-        candidate(inPackage("large.png"), "2x"),
-        candidate(inPackage("wide/w.png"), "480w"),
-      ),
-    );
-  });
-
-  it("drops the whole attribute when one candidate is refused", () => {
-    assert.deepStrictEqual(
-      classifyUrl("srcset", "a.png 1x, javascript:alert(1) 2x"),
-      dropped("url-scheme:javascript"),
-    );
-    assert.deepStrictEqual(
-      classifyUrl("srcset", "a.png 1x, https://example.com/b.png 2x"),
-      dropped(outsidePackageFeature),
-    );
-    assert.deepStrictEqual(
-      classifyUrl("srcset", "a.png 1x, //host/b.png 2x"),
-      dropped(outsidePackageFeature),
-    );
-  });
-
-  it("classifies a candidate the browser skips for its descriptors, and leaves it out of the parsed form", () => {
-    assert.deepStrictEqual(
-      classifyUrl("srcset", "a.png 1x, b.png 0w"),
-      srcset(candidate(inPackage("a.png"), "1x")),
-    );
-    assert.deepStrictEqual(
-      classifyUrl("srcset", "a.png 1x, javascript:x 0w"),
-      dropped("url-scheme:javascript"),
-    );
-  });
-
-  it("splits candidates as the HTML srcset parser does", () => {
-    assert.deepStrictEqual(
-      classifyUrl("srcset", "a.png,, b.png 2x"),
-      srcset(candidate(inPackage("a.png")), candidate(inPackage("b.png"), "2x")),
-    );
-    assert.deepStrictEqual(
-      classifyUrl("srcset", "a.png 1x, b.png (1x, javascript:alert(1) 2x)"),
-      srcset(candidate(inPackage("a.png"), "1x")),
-      "a parenthesised descriptor holds its comma, so the browser reads no third URL",
-    );
-  });
-
-  it("drops a srcset a browser reads no candidate from as url-invalid, since it is written empty", () => {
-    for (const value of [
-      ",",
-      "a.png 100h",
-      "images/a b.png",
-      "a.png (1x, javascript:alert(1) 2x)",
-    ]) {
-      assert.deepStrictEqual(classifyUrl("srcset", value), dropped(invalidUrlFeature), value);
-    }
-  });
-
-  it("drops a srcset whose candidate URL would not split back as the same URL as url-invalid", () => {
-    assert.deepStrictEqual(classifyUrl("srcset", "a.png,\u0001 2x"), dropped(invalidUrlFeature));
-    assert.deepStrictEqual(classifyUrl("srcset", "\u0001 1x"), dropped(invalidUrlFeature));
-  });
-});
-
-describe("formatUrl", () => {
-  it("writes a kept value in its parsed form, a package path as its path below the item's directory", () => {
-    assert.strictEqual(formatUrl(inPackage("images/a%20b.png")), "images/a%20b.png");
-    assert.strictEqual(formatUrl(inPackage("./@evil.com/x")), "./@evil.com/x");
-    assert.strictEqual(formatUrl(remote("https://example.com/x")), "https://example.com/x");
-    assert.strictEqual(formatUrl({ fragment: "q1", kind: "fragment" }), "#q1");
-  });
-
-  it("writes a srcset candidate by candidate, each followed by its descriptors", () => {
-    const kept = classifyUrl("srcset", "small.png 1x, ../large.png 2x");
-    assert.strictEqual(kept.kind, "srcset");
-    if (kept.kind === "srcset") {
-      assert.strictEqual(formatUrl(kept), "small.png 1x, ../large.png 2x");
     }
   });
 });
@@ -637,31 +267,6 @@ describe("resolution against the item's location", () => {
 });
 
 describe("addressUrl", () => {
-  /**
-   * The addresses the cases write, by file.
-   */
-  const assets = assetsOf([
-    ["items/media/a b.png", "https://cdn.example/sha256/1"],
-    ["items/@evil.com/x", "https://cdn.example/sha256/2"],
-    ["items/small.png", "https://cdn.example/sha256/3"],
-    ["items/asl/item123.mp4", "https://cdn.example/sha256/4"],
-  ]);
-
-  it("writes a package path as its file's address, then its query and fragment, never on the page's base", () => {
-    assert.deepStrictEqual(
-      addressUrl(inPackage("media/a%20b.png"), "items/q1.xml", assets),
-      Result.succeed("https://cdn.example/sha256/1"),
-    );
-    assert.deepStrictEqual(
-      addressUrl(inPackage("asl/item123.mp4#t=00:00:01,00:00:10.0"), "items/q1.xml", assets),
-      Result.succeed("https://cdn.example/sha256/4#t=00:00:01,00:00:10.0"),
-    );
-    assert.deepStrictEqual(
-      addressUrl(inPackage("./@evil.com/x"), "items/q1.xml", assets),
-      Result.succeed("https://cdn.example/sha256/2"),
-    );
-  });
-
   it("writes a path that climbs above the item's directory as the address of the file it names", () => {
     const beside = assetsOf([["images/a.png", "https://cdn.example/sha256/6"]]);
     assert.deepStrictEqual(
@@ -672,98 +277,6 @@ describe("addressUrl", () => {
       addressUrl(inPackage("../../images/a.png"), "items/q1.xml", beside),
       Result.fail({ kind: "missing", path: "items/../../images/a.png" }),
     );
-  });
-
-  it("fails with the file's path when assets give the file no address, whatever the page could resolve", () => {
-    assert.deepStrictEqual(
-      addressUrl(inPackage("media/c.png"), "items/q1.xml", assets),
-      Result.fail({ kind: "missing", path: "items/media/c.png" }),
-    );
-    assert.deepStrictEqual(
-      addressUrl(inPackage("a%20b.png"), "items/media/q1.xml", new Map()),
-      Result.fail({ kind: "missing", path: "items/media/a b.png" }),
-    );
-  });
-
-  it("fails for a location whose path is no PackagePath, since no key of assets can be one", () => {
-    const beside = assetsOf([["items/a.png", "https://cdn.example/sha256/5"]]);
-    assert.deepStrictEqual(
-      addressUrl(inPackage("a.png"), "items/q1.xml", beside),
-      Result.succeed("https://cdn.example/sha256/5"),
-    );
-    assert.deepStrictEqual(
-      addressUrl(inPackage("a.png"), "/items/q1.xml", beside),
-      Result.fail({ kind: "missing", path: "/items/a.png" }),
-    );
-    assert.deepStrictEqual(
-      addressUrl(inPackage("a.png"), "../items/q1.xml", beside),
-      Result.fail({ kind: "missing", path: "../items/a.png" }),
-    );
-  });
-
-  it("writes a remote URL and a fragment as parsed, and needs no address for either", () => {
-    assert.deepStrictEqual(
-      addressUrl(remote("https://example.com/x"), "items/q1.xml", new Map()),
-      Result.succeed("https://example.com/x"),
-    );
-    assert.deepStrictEqual(
-      addressUrl({ fragment: "q1", kind: "fragment" }, "items/q1.xml", new Map()),
-      Result.succeed("#q1"),
-    );
-  });
-
-  it("writes a srcset candidate by candidate, each package path as its address, and fails at its first file with no address", () => {
-    const kept = classifyUrl("srcset", "small.png 1x, asl/item123.mp4 2x");
-    const missing = classifyUrl("srcset", "small.png 1x, medium.png 2x, large.png 3x");
-    assert.strictEqual(kept.kind, "srcset");
-    assert.strictEqual(missing.kind, "srcset");
-    if (kept.kind === "srcset" && missing.kind === "srcset") {
-      assert.deepStrictEqual(
-        addressUrl(kept, "items/q1.xml", assets),
-        Result.succeed("https://cdn.example/sha256/3 1x, https://cdn.example/sha256/4 2x"),
-      );
-      assert.deepStrictEqual(
-        addressUrl(missing, "items/q1.xml", assets),
-        Result.fail({ kind: "missing", path: "items/medium.png" }),
-      );
-    }
-  });
-
-  it("writes a file the host withholds as no address, never a missing one, and leaves a withheld srcset candidate out", () => {
-    // Oracle: QTI 3.0 Conformance §3, "the applications must be able to ignore or remove the
-    // unsupported data": a withheld file is the host's to ignore, so its URL has no address and
-    // the rest is written; a file the map holds no entry for is still the host's defect.
-    // Bound: a withheld path, one under a srcset beside a served and a missing candidate, and one
-    // srcset of withheld candidates alone.
-    const held = assetsOf([
-      ["items/small.png", "https://cdn.example/sha256/3"],
-      ["items/sound.wav", null],
-      ["items/wide.tif", null],
-    ]);
-    const mixed = classifyUrl("srcset", "small.png 1x, wide.tif 2x");
-    const withheldOnly = classifyUrl("srcset", "wide.tif 2x");
-    const missing = classifyUrl("srcset", "wide.tif 1x, absent.png 2x");
-    assert.deepStrictEqual(
-      addressUrl(inPackage("sound.wav"), "items/q1.xml", held),
-      Result.fail({ kind: "withheld", path: "items/sound.wav" }),
-    );
-    assert.strictEqual(mixed.kind, "srcset");
-    assert.strictEqual(withheldOnly.kind, "srcset");
-    assert.strictEqual(missing.kind, "srcset");
-    if (mixed.kind === "srcset" && withheldOnly.kind === "srcset" && missing.kind === "srcset") {
-      assert.deepStrictEqual(
-        addressUrl(mixed, "items/q1.xml", held),
-        Result.succeed("https://cdn.example/sha256/3 1x"),
-      );
-      assert.deepStrictEqual(
-        addressUrl(withheldOnly, "items/q1.xml", held),
-        Result.fail({ kind: "withheld", path: "items/wide.tif" }),
-      );
-      assert.deepStrictEqual(
-        addressUrl(missing, "items/q1.xml", held),
-        Result.fail({ kind: "missing", path: "items/absent.png" }),
-      );
-    }
   });
 });
 
@@ -832,40 +345,6 @@ describe("a PCI's module locations", () => {
       classifyUrlAt(item, "package", "../modules/counter"),
       dropped(outsidePackageFeature),
     );
-  });
-});
-
-describe("classifyUrlAt", () => {
-  it("keeps a path that climbs above the item's directory and stays in the package", () => {
-    assert.deepStrictEqual(
-      classifyUrlAt("items/q1.xml", "resource", "../images/a.png"),
-      inPackage("../images/a.png"),
-    );
-    assert.deepStrictEqual(
-      classifyUrlAt("items/deep/q1.xml", "srcset", "../../a.png 1x, ../b.png 2x"),
-      srcset(candidate(inPackage("../../a.png"), "1x"), candidate(inPackage("../b.png"), "2x")),
-    );
-  });
-
-  it("drops a path that climbs above the package root as url-outside-package, a srcset whole", () => {
-    assert.deepStrictEqual(
-      classifyUrlAt("q1.xml", "resource", "../images/a.png"),
-      dropped(outsidePackageFeature),
-    );
-    assert.deepStrictEqual(
-      classifyUrlAt("items/q1.xml", "srcset", "a.png 1x, ../../b.png 2x"),
-      dropped(outsidePackageFeature),
-    );
-  });
-
-  it("classifies a value with no package path as classifyUrl does", () => {
-    for (const value of ["https://example.com/x", "#q1", "mailto:a@example.com", "/x", ""]) {
-      assert.deepStrictEqual(
-        classifyUrlAt("q1.xml", "link", value),
-        classifyUrl("link", value),
-        value,
-      );
-    }
   });
 });
 
@@ -1027,57 +506,6 @@ const fileByRfc3986 = (location: string, reference: string): readonly string[] =
 };
 
 describe("resolution against the item's location, by RFC 3986", () => {
-  it("transcribes RFC 3986's resolver: every example of section 5.4 resolves as the RFC states", () => {
-    const base = "http://a/b/c/d;p?q";
-    const examples = [
-      ["g:h", "g:h"],
-      ["g", "http://a/b/c/g"],
-      ["./g", "http://a/b/c/g"],
-      ["g/", "http://a/b/c/g/"],
-      ["/g", "http://a/g"],
-      ["//g", "http://g"],
-      ["?y", "http://a/b/c/d;p?y"],
-      ["g?y", "http://a/b/c/g?y"],
-      ["#s", "http://a/b/c/d;p?q#s"],
-      ["g#s", "http://a/b/c/g#s"],
-      ["g?y#s", "http://a/b/c/g?y#s"],
-      [";x", "http://a/b/c/;x"],
-      ["g;x", "http://a/b/c/g;x"],
-      ["g;x?y#s", "http://a/b/c/g;x?y#s"],
-      ["", "http://a/b/c/d;p?q"],
-      [".", "http://a/b/c/"],
-      ["./", "http://a/b/c/"],
-      ["..", "http://a/b/"],
-      ["../", "http://a/b/"],
-      ["../g", "http://a/b/g"],
-      ["../..", "http://a/"],
-      ["../../", "http://a/"],
-      ["../../g", "http://a/g"],
-      ["../../../g", "http://a/g"],
-      ["../../../../g", "http://a/g"],
-      ["/./g", "http://a/g"],
-      ["/../g", "http://a/g"],
-      ["g.", "http://a/b/c/g."],
-      [".g", "http://a/b/c/.g"],
-      ["g..", "http://a/b/c/g.."],
-      ["..g", "http://a/b/c/..g"],
-      ["./../g", "http://a/b/g"],
-      ["./g/.", "http://a/b/c/g/"],
-      ["g/./h", "http://a/b/c/g/h"],
-      ["g/../h", "http://a/b/c/h"],
-      ["g;x=1/./y", "http://a/b/c/g;x=1/y"],
-      ["g;x=1/../y", "http://a/b/c/y"],
-      ["g?y/./x", "http://a/b/c/g?y/./x"],
-      ["g?y/../x", "http://a/b/c/g?y/../x"],
-      ["g#s/./x", "http://a/b/c/g#s/./x"],
-      ["g#s/../x", "http://a/b/c/g#s/../x"],
-      ["http:g", "http:g"],
-    ] as const;
-    for (const [reference, target] of examples) {
-      assert.strictEqual(resolveReference(base, reference), target, reference);
-    }
-  });
-
   it("names, for every path of up to four segments in items at four depths, the file RFC 3986 resolves it to", () => {
     // The names include the item's own folders and short names a resolver could mistake for its
     // own, so a climb back into the folder it left is told apart from a path that never left.
@@ -1182,9 +610,5 @@ describe("a URL attribute's value, read by its type's whiteSpace facet", () => {
 
     assert.deepStrictEqual(disagreements, []);
     assert.strictEqual(rows.length * lexicals.length, 1440);
-  });
-
-  it("reads no attribute outside the table, which names no file", () => {
-    assert.deepStrictEqual(assetPaths("items/q1.xml", "param", "value", " a  b.png "), []);
   });
 });

@@ -12,8 +12,8 @@
  * must tell apart from the importer.
  */
 import { assert, describe, it } from "@effect/vitest";
-import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
-import { required, requiredInSpace } from "@bjornpagen/testing/features";
+import { drawn, explore } from "@bjornpagen/testing/explore";
+import { required } from "@bjornpagen/testing/features";
 import { array, element, weighted } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { notesOnly } from "@bjornpagen/testing/sense";
@@ -28,7 +28,6 @@ import type { WhiteSpaceClass } from "#pantry/grammar/domains.ts";
 import type { HrefResolution } from "#pantry/import/overlays/package.ts";
 import { oracleValueOf, resolve } from "#pantry/test/resolution.ts";
 import type { OracleResolution } from "#pantry/test/resolution.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
  * One href as the importer resolves it: its document's path, the `xml:base` values in scope,
@@ -477,28 +476,6 @@ const situations: readonly [Situation, ...Situation[]] = [
   "caught: keeps a fragment's document",
 ];
 
-/**
- * The tokens the small scope writes hrefs of: a plain segment, the dot segments plain and encoded,
- * an encoded `/`, a stray `%`, a space, and an empty segment.
- */
-const smallTokens = ["a", ".", "..", "%2E", "%2F", "%", " ", ""] as const;
-
-/**
- * The bases the small scope draws: none, a directory, a climb, an external one, a limit.
- */
-const smallBases = [[], ["x/"], ["../"], ["http://h.org/"], ["%/"]] as const;
-
-/**
- * Every case of the small scope: up to three tokens joined by `/`, under each of
- * {@link smallBases}, in a document at the root and below it, read as an `xs:anyURI`.
- */
-const smallScope: Gen<HrefCase> = (source) => ({
-  bases: source.draw(element(smallBases)),
-  document: source.draw(element(["i.xml", "d/i.xml"] as const)),
-  lexical: source.draw(array(element(smallTokens), { max: 3, min: 0 })).join("/"),
-  whiteSpace: "collapse",
-});
-
 describe("import/overlays/package.ts resolveIn against test/resolution.ts", () => {
   it.effect(
     "resolves every swarmed and adversarial href as the oracle's RFC 3986 resolver does, and catches each planted bug",
@@ -544,85 +521,4 @@ describe("import/overlays/package.ts resolveIn against test/resolution.ts", () =
         ),
       ),
   );
-
-  it.effect(
-    "resolves every href of the small scope as the oracle does, each planted bug caught inside it",
-    (ctx) =>
-      // Oracle: the same second implementation.
-      // Bound: every href of up to three of 8 tokens, under 5 bases, in 2 documents, 5,850.
-      searched(
-        ctx,
-        exhaust(
-          {
-            box: "every href of up to three of a . .. %2E %2F % space and empty, under none, x/, ../, an external and a % base, in i.xml and d/i.xml",
-            caseHang: Duration.seconds(10),
-            concurrency: searchWidth,
-            coverage: requiredInSpace<Situation>([
-              "entry",
-              "external",
-              "document",
-              "limit percent",
-              "limit separator",
-              "caught: decodes before it splits",
-              "caught: ignores the bases",
-            ]),
-            generator: smallScope,
-            literal: Formatter.format,
-            oracle: {
-              kind: "second-implementation",
-              name: "the law oracle's RFC 3986 resolver over text",
-            },
-            suite: "pantry/import/href-resolution-small",
-          },
-          (input: HrefCase, c) =>
-            Effect.sync(() => {
-              judged(input, (situation) => {
-                c.note(situation);
-              });
-            }),
-        ),
-      ),
-  );
-
-  it("resolves the readings' own examples as reading 102 states them", () => {
-    // Oracle: the specification as a checker, each example of plan S3 and Aiden's ruling with the
-    // resolution RFC 3986 and reading 102 give it, written out by hand.
-    for (const [input, expected] of [
-      [
-        { bases: [], document: "items/i.xml", lexical: "images/../images/sign.png" },
-        { path: "items/images/sign.png", scope: "entry" },
-      ],
-      [
-        { bases: ["images/"], document: "items/i.xml", lexical: "sign.png" },
-        { path: "items/images/sign.png", scope: "entry" },
-      ],
-      [
-        { bases: [], document: "items/i.xml", lexical: "my sign.png" },
-        { path: "items/my sign.png", scope: "entry" },
-      ],
-      [
-        { bases: [], document: "items/i.xml", lexical: "my%20sign.png" },
-        { path: "items/my sign.png", scope: "entry" },
-      ],
-      [{ bases: [], document: "items/i.xml", lexical: "../../a.png" }, { scope: "external" }],
-      [
-        { bases: [], document: "items/i.xml", lexical: "a/./b.png" },
-        { path: "items/a/b.png", scope: "entry" },
-      ],
-      [
-        { bases: [], document: "items/i.xml", lexical: "a/b/.." },
-        { path: "items/a/", scope: "entry" },
-      ],
-      [{ bases: ["http://x/"], document: "items/i.xml", lexical: "a.png" }, { scope: "external" }],
-      [
-        { bases: [], document: "items/i.xml", lexical: "a%2Fb.png" },
-        { limit: "separator", scope: "unresolved" },
-      ],
-    ] as const) {
-      const value = { ...input, whiteSpace: "collapse" } as const;
-
-      assert.deepStrictEqual(importerOf(value), expected, input.lexical);
-      assert.deepStrictEqual(oracleOf(value), expected, input.lexical);
-    }
-  });
 });

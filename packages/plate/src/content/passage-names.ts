@@ -1,7 +1,6 @@
 /**
  * The name of each stimulus's tab where an item's stimulus pane holds two or more
- * (`PassageTabs` in `#plate/ui/passages/passage-tabs.tsx`). Pure, so its rule is checked apart
- * from any page (`passage-names.test.ts`).
+ * (`PassageTabs` in `#plate/ui/passages/passage-tabs.tsx`). Pure.
  *
  * @module
  */

@@ -3,8 +3,8 @@
  * a model's element and wildcard particles in tree order and links each to the positions that may
  * come after it, and `grammar/content.ts` installs each model's automaton as the content grammar.
  * {@link breachesOf} finds the states where Unique Particle Attribution fails: the models are fixed
- * data, so the tests over them read it (`sequencing.test.ts` over the XSDs' models,
- * `grammar/content.test.ts` over the composition's), and no load runs it.
+ * data, so the tests over them read it (`grammar/content.test.ts` over the composition's), and no
+ * load runs it.
  */
 import { Option } from "effect";
 import type {

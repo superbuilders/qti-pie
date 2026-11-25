@@ -38,9 +38,7 @@ const attributeNameOf = (handle: string): ExpandedName =>
  * in, which names that vocabulary's namespace (`vocabularyNamespaces`), and the ASI vocabulary's
  * handles have none; after it, the element's local name, up to the dot that a kind of an element
  * declared with several types puts before its type (`#pantry/vocab/derive/naming.ts`). A local
- * name holds no colon, an NCName's, and no vocabulary's holds a dot, so the handle splits one way;
- * `#pantry/model/names.test.ts` holds every roster kind to the name its roster gives it, the
- * composition's `ElementName` row.
+ * name holds no colon, an NCName's, and no vocabulary's holds a dot, so the handle splits one way.
  *
  * @param kind - The element kind's handle.
  * @returns The local name and namespace name of every element of the kind. A prefix no vocabulary

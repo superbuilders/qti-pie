@@ -1499,13 +1499,12 @@ against it. A reading that is not an information-model-over-XSD case says which 
     between literals in the lexical space and values in the value space of QName requires a namespace declaration to be
     in scope for the context in which QName is used". An `xsi:type` is refused as `type-unresolved`; SSML's `role`, a
     list of `xs:QName`, and the text of an element an `xsi:type` of `xs:QName` governs, as `prefix-unbound`; both are
-    `unmodeled-vocabulary` refusals, so no stored row holds such a value. No kind's own text is of a QName type
-    (`src/model/qname-scope.test.ts` reads every QName site the grammar holds). An element's or an attribute's name is
-    held by the reader's namespace well-formedness (Namespaces in XML 1.0, section 5, "Namespace constraint: Prefix
-    Declared"), since crust's reader refuses a prefix no declaration in scope binds as a `WellFormednessError`
-    (`packages/crust/src/read.ts`, `saxes` reading with namespaces on). The corpus holds no `xsi:type` and no `role`, so
-    no verdict moves. (The limit recorded 2026-11-06 from W5 seat PN, C48 of the port's audit, a local record not in the
-    repository, closed 2026-11-07 by
+    `unmodeled-vocabulary` refusals, so no stored row holds such a value. No kind's own text is of a QName type. An
+    element's or an attribute's name is held by the reader's namespace well-formedness (Namespaces in XML 1.0, section
+    5, "Namespace constraint: Prefix Declared"), since crust's reader refuses a prefix no declaration in scope binds as
+    a `WellFormednessError` (`packages/crust/src/read.ts`, `saxes` reading with namespaces on). The corpus holds no
+    `xsi:type` and no `role`, so no verdict moves. (The limit recorded 2026-11-06 from W5 seat PN, C48 of the port's
+    audit, a local record not in the repository, closed 2026-11-07 by
     GEN-B (`5cdc88e7`), after the lexical differential found `ssml:token`'s `role="a:b"` accepted where xmllint refuses
     it.)
 
@@ -5373,13 +5372,12 @@ C2: the oracle's own reader.)
      `p3.xhtml_text` in the ledger's machine (`machine/admission.sql`, its block list `p3.xhtml_blocks`, held to plate's
      `blockElements` by the ledger's xhtml-blocks test), and its admission matches the mask against it;
      plate's `textOfXhtml` (`src/interactions/xhtml-text.ts`), which its island's box shows and its hint judges, reads
-     the same text, and the ledger's `xhtml-text.db.test.ts` holds the two to one reading over drawn values. A numeric
-     reference to U+0000 or to a surrogate, which neither an XML value nor PostgreSQL's text can hold, stands as written
-     in the database's text. This binds the QTI database's admission and plate; pantry stores `pattern-mask` as written.
-     This changes no verdict: no item of the 1EdTech corpus or of AlphaTest's content holds a `pattern-mask` on an
-     `xhtml` Extended Text. This is not a case of documents in conflict: the information model leaves the matched text
-     open. (Decided 2026-11-22 by lane WORDCAP on the coordinator's ruling, for parity with AlphaTest's player, which
-     counts an essay's words on its text: mastery-track-player 941a86a,
+     the same text. A numeric reference to U+0000 or to a surrogate, which neither an XML value nor PostgreSQL's text
+     can hold, stands as written in the database's text. This binds the QTI database's admission and plate; pantry
+     stores `pattern-mask` as written. This changes no verdict: no item of the 1EdTech corpus or of AlphaTest's content
+     holds a `pattern-mask` on an `xhtml` Extended Text. This is not a case of documents in conflict: the information
+     model leaves the matched text open. (Decided 2026-11-22 by lane WORDCAP on the coordinator's ruling, for parity
+     with AlphaTest's player, which counts an essay's words on its text: mastery-track-player 941a86a,
      `src/components/questions/ExtendedTextInteraction.tsx`, `getWordCount`.)
 
 245. **A media interaction that the page's one voice pauses keeps the play it counted where its playback had sounded,

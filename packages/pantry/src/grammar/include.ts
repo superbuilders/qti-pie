@@ -12,8 +12,7 @@
  * include's alternatives: the element kinds of the choice group the include's particle sits in,
  * nested choices flattened (spec reading 114). Each alternative's position in the parent's
  * Glushkov automaton follows and is followed by the same positions as the include's own, so N5,
- * stepping the include at its own position, steps the parent's automaton as its root would
- * (`include.test.ts` proves it over every row).
+ * stepping the include at its own position, steps the parent's automaton as its root would.
  *
  * An include held by a wildcard (`qti-custom-interaction`'s markup, `qti-ordering`'s extension
  * slot, HTML's `template`) is no Include of the information model: it has no explicit particle, so

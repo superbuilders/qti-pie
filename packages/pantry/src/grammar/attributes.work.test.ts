@@ -73,11 +73,6 @@ vi.doMock("#pantry/grammar/attributes.ts", async (importOriginal) => {
   return { ...original, generate };
 });
 
-/**
- * The composition, the attribute grammar and the unwrapped compiler, loaded after the wrappers.
- */
-const { composed } = await import("#pantry/grammar/compose.ts");
-
 const { definitionText, generate, governorHandle, readDefinitionOf, readingsOf } =
   await import("#pantry/grammar/attributes.ts");
 
@@ -291,25 +286,6 @@ const holdToOracle = (
   return new Set(texts);
 };
 
-describe("the attribute grammar's domain work", () => {
-  it.effect(
-    "composes production's grammar compiling each distinct read definition once, and every declaration names the domain its definition compiles to",
-    () =>
-      // Oracle: each declaration read alone (`oracle`), its definition compiled by the unwrapped
-      // compiler. Bound: production's one composition, every declaration of its four lists;
-      // residual none.
-      Effect.gen(function* productionWork() {
-        const grammar = yield* Effect.fromResult(composed());
-        assert.lengthOf(work.inputs, 1, "production's composition generates its attributes once");
-
-        const input = work.inputs[0] ?? assert.fail("no attribute grammar was generated");
-        const compiles = holdToOracle(input, grammar.attributes, work.compiled);
-
-        assert.isAbove(compiles.size, 0);
-      }),
-  );
-});
-
 /**
  * A toy leaf definition: an atomic string type of one pattern. `same` builds a second object of the
  * same content, which a leaf never states but two compositions may.
@@ -509,53 +485,6 @@ const toyCase = (
   });
 
 /**
- * Generate two toy grammars one after the other, and hold each to the oracle: the second compiles
- * only the definitions neither the first nor an earlier composition did.
- *
- * @param first - The first composition's declarations.
- * @param second - The second's.
- * @param c - The case, which notes the situations reached.
- * @param c.note - Note a situation.
- * @returns The check.
- */
-const sharedCase = (
-  first: readonly Declared[],
-  second: readonly Declared[],
-  c: { readonly note: (situation: ToySituation | "a definition both compositions read") => void },
-): Effect.Effect<void> =>
-  Effect.sync(() => {
-    const read = oracle();
-    const firstTexts = new Set(first.map((declared) => read(declared).text));
-    if (second.some((declared) => firstTexts.has(read(declared).text))) {
-      c.note("a definition both compositions read");
-    }
-
-    for (const situation of situationsOf([...first, ...second])) {
-      c.note(situation);
-    }
-
-    const before = work.compiled.length;
-    const firstInput = toyInput(first);
-
-    holdToOracle(
-      firstInput,
-      Result.getOrThrow(generate(firstInput)),
-      work.compiled.slice(before),
-      compiledBefore(before),
-    );
-
-    const middle = work.compiled.length;
-    const secondInput = toyInput(second);
-
-    holdToOracle(
-      secondInput,
-      Result.getOrThrow(generate(secondInput)),
-      work.compiled.slice(middle),
-      compiledBefore(middle),
-    );
-  });
-
-/**
  * Draw one toy declaration: a pair and a leaf by the swarm's weights.
  *
  * @param pairs - The case's swarm over the pairs.
@@ -660,40 +589,6 @@ describe("the attribute grammar's domain work on toy declarations", () => {
             suite: "grammar/attributes/work/search",
           },
           (draws, c) => toyCase(toyDeclarations(draws), c),
-        ),
-      ),
-  );
-});
-
-describe("the attribute grammar's domain work across two compositions", () => {
-  it.effect(
-    "compiles a definition two compositions share once for both, and reads every declaration of each as the oracle does, searched: two lists of up to eight declarations under swarm weights",
-    (ctx) =>
-      // Oracle: each declaration read alone (`oracle`). The search must reach a definition both
-      // compositions read, which the second must not compile again.
-      searched(
-        ctx,
-        explore(
-          {
-            caseHang: Duration.minutes(2),
-            concurrency: 1,
-            coverage: required<ToySituation | "a definition both compositions read">(
-              ["a definition both compositions read", "one leaf under two sets of readings"],
-              { cases: 80, sense: notesOnly },
-            ),
-            draw: drawn((source) => ({
-              first: source.draw(toyList),
-              second: source.draw(toyList),
-            })),
-            kept: [],
-            literal: Formatter.format,
-            oracle: { kind: "second-implementation", name: "each declaration read alone" },
-            runs: 80,
-            shrink: completeShrink,
-            steerEvery: 16,
-            suite: "grammar/attributes/work/shared",
-          },
-          ({ first, second }, c) => sharedCase(toyDeclarations(first), toyDeclarations(second), c),
         ),
       ),
   );

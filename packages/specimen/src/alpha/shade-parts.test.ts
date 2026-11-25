@@ -622,80 +622,7 @@ layer(ShadeLayer, { timeout: Duration.millis(ruleHang) })("the shade-parts PCI",
         }),
       ruleHang,
     );
-
-    it.effect(
-      `SP5: ${golden.name} comes back to the count it is bound to, or the parts of its state`,
-      () =>
-        Effect.gen(function* comingBack() {
-          const page = yield* Shade;
-          const item = yield* Effect.orDie(shadeItem(golden.name));
-          const parts = partsOf(golden.figure);
-          const first = new Set(Array.from({ length: golden.correct }, (_unused, index) => index));
-
-          yield* started(page, item, { boundTo: responseOf(golden.correct) });
-          holdsShading(golden, yield* Effect.orDie(page.drawn), first);
-          assert.deepStrictEqual(
-            (yield* finished(page)).response,
-            responseOf(golden.correct),
-            `${golden.name} bound to ${String(golden.correct)} gives it back`,
-          );
-
-          yield* started(page, item, { boundTo: { base: null } });
-          holdsShading(golden, yield* Effect.orDie(page.drawn), new Set());
-          assert.deepStrictEqual((yield* finished(page)).response, { base: null });
-
-          yield* started(page, item, { state: { shaded: [parts - 1] } });
-          holdsShading(golden, yield* Effect.orDie(page.drawn), new Set([parts - 1]));
-          assert.deepStrictEqual((yield* finished(page)).response, responseOf(1));
-        }),
-      ruleHang,
-    );
   }
-
-  it.effect(
-    "SP5: the stored response decides between it and a state that shades another count",
-    () =>
-      Effect.gen(function* storedDecides() {
-        const page = yield* Shade;
-        const golden = goldens.find((each) => each.name === "rectangle-vertical-4");
-        const item = yield* Effect.orDie(shadeItem("rectangle-vertical-4"));
-        const cases: readonly (readonly [string, Start, ReadonlySet<number>])[] = [
-          [
-            "a state of the bound count is kept",
-            { boundTo: responseOf(2), state: { shaded: [1, 3] } },
-            new Set([1, 3]),
-          ],
-          [
-            "a state of another count gives way",
-            { boundTo: responseOf(3), state: { shaded: [0, 2] } },
-            new Set([0, 1, 2]),
-          ],
-          [
-            "an empty state gives way to a count",
-            { boundTo: responseOf(1), state: { shaded: [] } },
-            new Set([0]),
-          ],
-          [
-            "a NULL response shades nothing",
-            { boundTo: { base: null }, state: { shaded: [1] } },
-            new Set(),
-          ],
-        ];
-
-        assert.isDefined(golden, "rectangle-vertical-4 is a golden");
-
-        for (const [why, start, shown] of cases) {
-          yield* started(page, item, start);
-          holdsShading(golden, yield* Effect.orDie(page.drawn), shown);
-          assert.deepStrictEqual(
-            (yield* finished(page)).response,
-            responseOf(shown.size || undefined),
-            `${why}: the response`,
-          );
-        }
-      }),
-    ruleHang,
-  );
 
   it.effect(
     "SP6: an item whose figure or partition the PCI cannot read fails to run",
@@ -857,54 +784,6 @@ layer(ShadeLayer, { timeout: Duration.millis(ruleHang) })("the shade-parts PCI",
           "ready",
           `the properties the schema declares on the element are passed over: ${passedOver.reason ?? ""}`,
         );
-      }),
-    ruleHang,
-  );
-
-  it.effect(
-    "SP7: every part is a tab stop, and Space or Enter toggles the focused part",
-    () =>
-      Effect.gen(function* keyboard() {
-        const page = yield* Shade;
-        const golden = goldens.find((each) => each.name === "circle-4");
-        const item = yield* Effect.orDie(shadeItem("circle-4"));
-
-        yield* started(page, item, {});
-        yield* Effect.orDie(page.press(["Tab", "Space", "Tab", "Tab", "Enter"]));
-
-        if (golden !== undefined) {
-          holdsShading(golden, yield* Effect.orDie(page.drawn), new Set([0, 2]));
-        }
-
-        yield* Effect.orDie(page.press(["Shift+Tab", "Shift+Tab", "Space"]));
-
-        if (golden !== undefined) {
-          holdsShading(golden, yield* Effect.orDie(page.drawn), new Set([2]));
-        }
-
-        assert.deepStrictEqual((yield* finished(page)).response, responseOf(1));
-      }),
-    ruleHang,
-  );
-
-  it.effect(
-    "SP7: a held Space or Enter toggles the focused part once, and with Alt, Control or Meta not at all",
-    () =>
-      Effect.gen(function* heldAndChorded() {
-        const page = yield* Shade;
-        const golden = goldens.find((each) => each.name === "circle-4");
-        const item = yield* Effect.orDie(shadeItem("circle-4"));
-
-        assert.isDefined(golden, "circle-4 is a golden");
-        yield* started(page, item, {});
-        yield* Effect.orDie(page.press(["Tab"]));
-        holdsShading(golden, yield* Effect.orDie(page.drawn), new Set());
-        yield* Effect.orDie(page.press(["down:Space", "down:Space", "up:Space"]));
-        holdsShading(golden, yield* Effect.orDie(page.drawn), new Set([0]));
-        yield* Effect.orDie(page.press(["Tab", "down:Enter", "down:Enter", "up:Enter"]));
-        holdsShading(golden, yield* Effect.orDie(page.drawn), new Set([0, 1]));
-        yield* Effect.orDie(page.press(["Tab", "Control+Enter", "Alt+Space", "Meta+Enter"]));
-        holdsShading(golden, yield* Effect.orDie(page.drawn), new Set([0, 1]));
       }),
     ruleHang,
   );

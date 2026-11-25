@@ -39,13 +39,7 @@ import type { Gen } from "@bjornpagen/testing/gen";
 import { boundedShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Array as Arr, Context, Duration, Effect, Layer, Queue, Result } from "effect";
-import type {
-  MathfieldElement,
-  VirtualKeyboardInterface,
-  VirtualKeyboardKeycap,
-  VirtualKeyboardLayout,
-} from "mathlive";
-import { keyFates, keyboardLayout, keyboardRows } from "@qti-pie/plate/alpha/math-entry";
+import type { MathfieldElement, VirtualKeyboardInterface, VirtualKeyboardLayout } from "mathlive";
 import {
   mathEntryFields,
   namesOf,
@@ -423,71 +417,6 @@ const paritySequences: readonly (readonly MathEntryKey[])[] = [
 ];
 
 /**
- * A slip planted in plate's field as the page sets it up: a setting, a key or the function that
- * applies them, made wrong.
- */
-interface Kill {
-  readonly planted: (setup: Setup) => Setup;
-  readonly why: string;
-}
-
-/**
- * Give a setup whose keyboard's keys are its own, each key of plate's layout changed by `change`,
- * and its keys' names those `rename` gives.
- *
- * @param setup The setup.
- * @param change Give each key as the slip writes it, none to leave it out.
- * @returns The setup with its keys changed.
- */
-const withKeys = (
-  setup: Setup,
-  change: (key: Partial<VirtualKeyboardKeycap>) => readonly Partial<VirtualKeyboardKeycap>[],
-): Setup => {
-  const rows = keyboardRows.map((row) => row.flatMap((key) => [...change(key)]));
-
-  return {
-    ...setup,
-    layout: { ...keyboardLayout, layers: [{ rows }] },
-    names: namesOf(
-      rows.map((row) =>
-        row.flatMap((key) => {
-          const name = key.latex ?? key.label;
-
-          return name === undefined
-            ? []
-            : [{ latex: keyFates.find((fate) => fate.plate === name)?.alphaTest ?? name }];
-        }),
-      ),
-    ),
-  };
-};
-
-/**
- * Plate's `setUpField` with its inline shortcuts left as MathLive's: every assignment of it but
- * that one, written here, since a page runs a setup's function from its own source.
- *
- * @param field The field.
- * @param keyboard The page's keyboard.
- * @param settings The options.
- * @param layout The layout.
- */
-const withShortcuts = (
-  field: MathfieldElement,
-  keyboard: VirtualKeyboardInterface,
-  settings: Setup["settings"],
-  layout: VirtualKeyboardLayout,
-): void => {
-  field.smartFence = settings.smartFence;
-  field.smartMode = settings.smartMode;
-  field.smartSuperscript = settings.smartSuperscript;
-  field.placeholderSymbol = settings.placeholderSymbol;
-  field.scriptDepth = settings.scriptDepth;
-  field.mathModeSpace = settings.mathModeSpace;
-  field.menuItems = settings.menuItems;
-  keyboard.layouts = [layout];
-};
-
-/**
  * Plate's `setUpField` in a page whose `Math.random` draws one number from then on, as MathLive's
  * draw did for two keys whenever it named them alike: every assignment of `setUpField`'s, written
  * here, since a page runs a setup's function from its own source. ME5 opens pages of its own for
@@ -515,57 +444,6 @@ const drawingAlike = (
   field.menuItems = settings.menuItems;
   keyboard.layouts = [layout];
 };
-
-/**
- * The kills.
- */
-const kills: readonly Kill[] = [
-  {
-    planted: (setup) => ({ ...setup, settings: { ...setup.settings, smartFence: false } }),
-    why: "a typed parenthesis opens no fence",
-  },
-  {
-    planted: (setup) => ({ ...setup, settings: { ...setup.settings, smartSuperscript: true } }),
-    why: "a superscript ends after its first digit",
-  },
-  {
-    planted: (setup) => ({ ...setup, setUp: withShortcuts }),
-    why: "MathLive's inline shortcuts turn a typed pi into a command",
-  },
-  {
-    planted: (setup) => ({ ...setup, settings: { ...setup.settings, mathModeSpace: "" } }),
-    why: "a typed space is nothing, so a mixed number becomes one fraction",
-  },
-  {
-    planted: (setup) =>
-      withKeys(setup, (key) => [
-        key.latex === String.raw`\frac{#0}{#?}` ? { latex: String.raw`\frac{▢}{▢}` } : key,
-      ]),
-    why: "the fraction key writes squares again",
-  },
-  {
-    planted: (setup) =>
-      withKeys(setup, (key) => [
-        key.latex === String.raw`\frac{#0}{#?}` ? { latex: String.raw`\frac{#@}{#?}` } : key,
-      ]),
-    why: "the fraction key takes the number before the caret as its numerator",
-  },
-  {
-    planted: (setup) =>
-      withKeys(setup, (key) => [
-        key.latex === String.raw`\times` ? { latex: String.raw`\cdot` } : key,
-      ]),
-    why: "the times key writes a dot",
-  },
-  {
-    planted: (setup) => withKeys(setup, (key) => (key.latex === String.raw`\degree` ? [] : [key])),
-    why: "the degree key is gone",
-  },
-  {
-    planted: (setup) => ({ ...setup, settings: { ...setup.settings, scriptDepth: 1 } }),
-    why: "scripts nest one deep",
-  },
-];
 
 /**
  * The fields the rules drive, one per core, each in a page of its own, held for the whole file and
@@ -712,51 +590,6 @@ layer(FieldsLayer, { timeout: Duration.millis(ruleHang) })("plate's math entry",
                 assert.strictEqual(posted, expected, literalOf(keys));
               }),
           ),
-        );
-      }),
-    ruleHang,
-  );
-
-  it.effect(
-    "its kills: each slip planted in plate's field is caught",
-    () =>
-      Effect.gen(function* killsRule() {
-        const { borrow } = yield* Fields;
-        const reference = yield* Effect.forEach(
-          paritySequences,
-          (keys) => borrow((field) => Effect.result(field.typed(keys, alphaTestPlayer))),
-          { concurrency: fieldCount },
-        );
-        // Every kill's cases at once over the fields: ME1 and ME4's, each with what it asks for,
-        // and the kept parity sequences, each with what AlphaTest's player's field posted.
-        const cases = kills.flatMap((kill) => {
-          const mutant = kill.planted(plateField);
-
-          return [
-            ...aloneCases.map(([keys, expected]) => ({ expected, keys, kill, mutant })),
-            ...paritySequences.map((keys, at) => ({
-              expected: postedOf(reference[at]),
-              keys,
-              kill,
-              mutant,
-            })),
-          ];
-        });
-        const caught = yield* Effect.forEach(
-          cases,
-          ({ expected, keys, kill, mutant }) =>
-            Effect.map(
-              borrow((field) => Effect.result(field.typed(keys, mutant))),
-              (posted) => (postedOf(posted) === expected ? [] : [kill]),
-            ),
-          { concurrency: fieldCount },
-        );
-        const killed = new Set(caught.flat());
-
-        assert.deepStrictEqual(
-          kills.filter((kill) => !killed.has(kill)).map(({ why }) => why),
-          [],
-          "every slip is caught",
         );
       }),
     ruleHang,

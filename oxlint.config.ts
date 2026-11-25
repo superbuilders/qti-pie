@@ -292,11 +292,7 @@ export default defineConfig({
     // one boundary that turns it into a kind, a next step, and text or the JSON error object. The
     // describer's suite hands it any value, as a run would.
     {
-      files: [
-        "packages/pantry/src/cli/errors.test.ts",
-        "packages/pantry/src/cli/errors.ts",
-        "packages/pantry/src/cli/present.ts",
-      ],
+      files: ["packages/pantry/src/cli/errors.ts", "packages/pantry/src/cli/present.ts"],
       rules: { "anti-slop/no-unknown-parameters": "off" },
     },
     // crust reads and writes XML's encoding labels: `UTF-8`, `UTF-16LE` and `US-ASCII` are the labels
@@ -308,14 +304,8 @@ export default defineConfig({
         "packages/crust/src/canonical.test.ts",
         "packages/crust/src/charset.test.ts",
         "packages/crust/src/charset.ts",
-        "packages/crust/src/decode.detection.test.ts",
-        "packages/crust/src/decode.test.ts",
         "packages/crust/src/decode.ts",
-        "packages/crust/src/encode.test.ts",
-        "packages/crust/src/read.test.ts",
-        "packages/crust/src/refusal-position.test.ts",
         "packages/crust/src/scale.test.ts",
-        "packages/crust/src/test/appendix-f.ts",
         "packages/crust/src/test/trees.ts",
         "packages/crust/src/write.test.ts",
       ],
@@ -324,11 +314,7 @@ export default defineConfig({
     // crust's UTF-16 writers and its code point order work in UTF-16 code units: `codePointAt` joins
     // a surrogate pair into one value, which no unit-wise write or comparison can carry.
     {
-      files: [
-        "packages/crust/src/charset.ts",
-        "packages/crust/src/decode.detection.test.ts",
-        "packages/crust/src/encode.ts",
-      ],
+      files: ["packages/crust/src/charset.ts", "packages/crust/src/encode.ts"],
       rules: { "unicorn/prefer-code-point": "off" },
     },
     {
@@ -574,7 +560,6 @@ export default defineConfig({
         "packages/plate/src/model/declarations.ts",
         "packages/plate/src/model/item.test.ts",
         "packages/plate/src/model/item.ts",
-        "packages/plate/src/graphic/holds.test.ts",
         "packages/plate/src/graphic/holds.ts",
       ],
       rules: { "anti-slop/no-shape-in-symbol-names": "off" },

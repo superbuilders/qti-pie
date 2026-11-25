@@ -6,8 +6,7 @@
  * Run it from `packages/pantry` as `node src/vocab/derive/derive.ts arity`. It reads only the files
  * {@link sources} pins, from the shared cache, and touches no database. It prints to standard
  * output the child-expression multiplicity of the 64 expression kinds from the ASI 3.0.1 XSD: the
- * table `OperatorArity` holds (`src/grammar/expression.ts`), which `derive.test.ts` checks against
- * the arity `aritiesOf` reads from the content-model IR.
+ * table `OperatorArity` holds (`src/grammar/expression.ts`).
  *
  * Reading rules, stated once for every reading:
  *

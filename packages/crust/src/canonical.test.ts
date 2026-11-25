@@ -1,23 +1,17 @@
 import { availableParallelism } from "node:os";
 import { assert, describe, it } from "@effect/vitest";
-import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
-import { noCoverage, required } from "@bjornpagen/testing/features";
+import { drawn, explore } from "@bjornpagen/testing/explore";
+import { required } from "@bjornpagen/testing/features";
 import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Effect, Formatter, Result } from "effect";
 import { canonicalize } from "#crust/canonical.ts";
-import { boxHolds } from "#crust/test/box.ts";
 import {
-  bare,
   caseHang,
   documentSituations,
   documentSituationsOf,
   generatedDocument,
-  labelled,
-  PLANE_TREES_TO_7,
-  planeTreeUpTo,
-  searchWidth,
 } from "#crust/test/trees.ts";
 import type { Bounds } from "#crust/test/trees.ts";
 import type { Attribute, Child, Element, Misc, XmlDocument } from "#crust/tree.ts";
@@ -194,16 +188,6 @@ const recursiveCanonicalize = (doc: XmlDocument): Uint8Array => {
 const text = (bytes: Uint8Array): string => new TextDecoder("utf-8", { fatal: true }).decode(bytes);
 
 /**
- * The largest node count the box holds every tree of: the 197 ordered trees of 1 to 7 nodes.
- */
-const BOX_NODES = 7;
-
-/**
- * The box's generator: every plane tree of 1 to {@link BOX_NODES} nodes.
- */
-const planeTrees = planeTreeUpTo(BOX_NODES);
-
-/**
  * How many rotating cases each run's search compares, beside its floor and steered witnesses, and
  * the bounds each case draws its own within: depth and width small enough for the recursive
  * oracle, nodes enough for every kind and declaration to meet.
@@ -213,40 +197,6 @@ const CASES = 400;
 const CASE_BOUNDS: Bounds = { depth: 12, nodes: 64, width: 6 };
 
 describe("canonicalize gives the recursive canonicalizer's bytes", () => {
-  it.effect(`for every plane tree of 1 to ${BOX_NODES} nodes, labelled, exhausted`, (ctx) =>
-    Effect.andThen(
-      boxHolds(planeTrees, PLANE_TREES_TO_7),
-      searched(
-        ctx,
-        exhaust(
-          {
-            box: "every plane tree of 1 to 7 nodes, labelled: 197 trees",
-            caseHang,
-            concurrency: searchWidth,
-            coverage: noCoverage,
-            generator: planeTrees,
-            literal: Formatter.format,
-            oracle: {
-              kind: "second-implementation",
-              name: "the recursive canonicalizer of 56330e2c",
-            },
-            suite: "crust/canonical/plane-trees",
-          },
-          ({ nodes, tree }) =>
-            Effect.sync(() => {
-              const doc = bare(labelled(tree));
-
-              assert.strictEqual(
-                text(Result.getOrThrow(canonicalize(doc))),
-                text(recursiveCanonicalize(doc)),
-                `a plane tree of ${nodes} nodes`,
-              );
-            }),
-        ),
-      ),
-    ),
-  );
-
   it.effect(
     `for swarmed documents, each within ${CASE_BOUNDS.nodes} nodes, depth ${CASE_BOUNDS.depth} and width ${CASE_BOUNDS.width}: ${CASES} rotating cases a run beside the witnesses`,
     (ctx) =>

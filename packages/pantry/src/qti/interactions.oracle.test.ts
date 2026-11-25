@@ -3,8 +3,6 @@
  * references, the last-slot rules, the count pairs and the attributes copied. The built-in
  * variables the laws read are `BuiltInVariable`'s own rows, under each root
  * (`#pantry/test/built-in-roots.oracle.test.ts`).
- *
- * The builder's tests (`#pantry/import/overlays/interactions.oracle.test.ts`) check its rows.
  */
 import type { Law } from "@bjornpagen/grizzle";
 import * as NodeServices from "@effect/platform-node/NodeServices";

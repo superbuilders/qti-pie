@@ -192,9 +192,8 @@ describe("RootOfType", () => {
     () =>
       // Oracle: the specification as a checker, the guide's resource types and their files' roots,
       // stated above, and the guide's `imsqti_fragment_xmlv3p0`, "QTI 3 inclusion (XInclude)", whose
-      // document's root is any kind an include stands for (spec reading 114), the rows
-      // `include.test.ts` proves against each parent's automaton. Set equality, so a pair dropped,
-      // added or re-rooted fails, as does a document root no stated file holds.
+      // document's root is any kind an include stands for (spec reading 114). Set equality, so a
+      // pair dropped, added or re-rooted fails, as does a document root no stated file holds.
       Effect.gen(function* roots() {
         const { rootOfType } = yield* relations;
         const fragments = fragmentRoots.map(({ root }) => ({

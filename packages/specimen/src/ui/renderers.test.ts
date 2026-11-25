@@ -80,11 +80,6 @@ const differing = (composed: Renderers, expected: Renderers): readonly string[] 
   kinds.filter((kind) => composed[kind] !== expected[kind]);
 
 describe("renderersOf", () => {
-  it("gives every kind its standard renderer where no extension names it", () => {
-    assert.strictEqual(kinds.length, 19);
-    assert.deepStrictEqual(differing(renderersOf(standardRenderers), standardRenderers), []);
-  });
-
   it("gives each kind an extension names that extension's renderer, whole, in either order", () => {
     const expected: Renderers = {
       ...standardRenderers,

@@ -129,7 +129,7 @@ export const assembledRoots = [testKind, sectionKind] as const satisfies readonl
  * (`#pantry/import/overlays/tests.ts` `assembledRowsOf`) read this list and `IncludeRoot`, through
  * `Inclusion.splices`, and nothing else of them decides a head. The law oracle, the second
  * implementation, states its own from the grammar (`#pantry/test/oracle.ts` `splicingParentsOf` and
- * `standsFor`), and `splicing-parents.oracle.test.ts` holds the two lists equal.
+ * `standsFor`).
  */
 export const splicingParents = includeParentKinds.filter((kind) => kind !== sectionKind);
 

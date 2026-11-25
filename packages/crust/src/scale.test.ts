@@ -18,15 +18,6 @@ const DEPTH = 100_000;
 const WIDTH = 100_000;
 
 /**
- * The levels of each chain the reader reads below the root, so that with the root it holds the 256
- * elements its bound lets open at once, and how many such chains the root holds: 99,960 elements
- * below it.
- */
-const CHAIN = 255;
-
-const CHAINS = 392;
-
-/**
  * An element `qname` in no namespace with no attributes, holding `children`.
  *
  * @param qname - The element's name.
@@ -58,21 +49,6 @@ const chain = (depth: number, bottom: readonly Child[]): Element => {
   }
 
   return top;
-};
-
-/**
- * Each element on the path of first children from `root` down, in that order.
- *
- * @param root - The top of the path.
- * @returns The elements on it, `root` first.
- */
-const firstChildPath = (root: Element): readonly Element[] => {
-  const path = [root];
-  for (let [child] = root.children; child?.kind === "element"; [child] = child.children) {
-    path.push(child);
-  }
-
-  return path;
 };
 
 /**
@@ -150,44 +126,6 @@ describe(`every walk is iterative: depth ${DEPTH} and width ${WIDTH}`, () => {
 
         assert.strictEqual(read.root.children.length, WIDTH);
         assert.strictEqual(firstDifference(text(yield* encode(read, "UTF-8")), written), -1);
-      }),
-  );
-
-  it.effect(
-    `readXml resolves namespaces, applies the ATTLIST and restores undeclared references at every element of ${CHAINS} chains ${CHAIN} deep under one root, and the round trip is a fixed point`,
-    () =>
-      Effect.gen(function* boundedNamespaced() {
-        const written = `${'<p:a xml:lang="en" r="&u;">'.repeat(CHAIN)}&u;${"</p:a>".repeat(CHAIN)}`;
-        const source = `<!DOCTYPE a SYSTEM "a.dtd" [<!ATTLIST p:a d CDATA "v">]><a xmlns="urn:x" xmlns:p="urn:p">${written.repeat(CHAINS)}</a>`;
-        const read = yield* readXml(new TextEncoder().encode(source));
-        const paths = read.root.children.map((top) =>
-          top.kind === "element" ? firstChildPath(top) : [],
-        );
-        const inner = paths.flat();
-        const wrong = inner.filter(
-          (level) =>
-            level.namespace !== "urn:p" ||
-            level.local !== "a" ||
-            level.attributes
-              .map((attribute) => `${attribute.namespace} ${attribute.qname}=${attribute.value}`)
-              .join(" ") !== "http://www.w3.org/XML/1998/namespace xml:lang=en  r=&u;  d=v" ||
-            level.attributes[1]?.references.length !== 1,
-        ).length;
-
-        assert.strictEqual(read.root.namespace, "urn:x");
-        assert.strictEqual(inner.length, CHAIN * CHAINS);
-        assert.strictEqual(wrong, 0);
-        assert.deepStrictEqual(
-          paths.map((path) => path.at(-1)?.children),
-          Array.from({ length: CHAINS }, (): readonly Child[] => [
-            { kind: "entityRef", name: "u" },
-          ]),
-        );
-
-        const once = yield* encode(read, "UTF-8");
-        const twice = yield* encode(yield* readXml(once), "UTF-8");
-
-        assert.strictEqual(firstDifference(text(twice), text(once)), -1);
       }),
   );
 

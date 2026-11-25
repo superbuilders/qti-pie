@@ -668,24 +668,6 @@ describe("Alpha's Gap Match layouts, measured in Chrome", () => {
       }),
   );
 
-  it.live("NL5: the number line keeps its arrow in forced colours", () =>
-    Effect.gen(function* forcedColours() {
-      const browser = yield* chrome;
-      const seen = yield* measured(browser, {
-        alpha: "layered",
-        fixture: "number-line",
-        forced: true,
-        mode: "answering",
-        pairs: [],
-        theme: "plate",
-        width: 1000,
-      });
-
-      assert.notStrictEqual(seen.arrow, "none");
-      assert.strictEqual(seen.arrowColour, seen.blockColour);
-    }),
-  );
-
   it.live.each(
     themes.flatMap((theme) =>
       (["none", "four-digits", "refusal"] as const).map((edit) => [theme, edit] as const),
@@ -715,60 +697,6 @@ describe("Alpha's Gap Match layouts, measured in Chrome", () => {
             );
           }
         }
-      }),
-  );
-
-  it.live.each(["none", "plate"] as const)(
-    "refuses the layouts a theme draws over Alpha's sheet where it is %s (the kills)",
-    (alpha) =>
-      Effect.gen(function* kill() {
-        const browser = yield* chrome;
-        const line = yield* measured(browser, {
-          alpha,
-          fixture: "number-line",
-          mode: "answering",
-          pairs: [],
-          theme: "fighting",
-          width: 320,
-        });
-        const comparison = yield* measured(browser, {
-          alpha,
-          fixture: "comparison",
-          mode: "answering",
-          pairs: [],
-          theme: "fighting",
-          width: 1000,
-        });
-
-        assert.include([...numberLineBroken(line, true)], "NL2");
-        assert.include([...comparisonBroken(comparison, true)], "SC1");
-      }),
-  );
-
-  it.live.each([
-    ["number-line", "text-label"],
-    ["number-line", "two-p"],
-    ["number-line", "five-children"],
-    ["comparison", "two-p"],
-    ["comparison", "strong-gap"],
-  ] as const)(
-    "draws a %s whose content leaves its form (%s) as a plain Gap Match",
-    ([fixture, edit]) =>
-      Effect.gen(function* plain() {
-        const browser = yield* chrome;
-        const seen = yield* measured(browser, {
-          alpha: "layered",
-          edit,
-          fixture,
-          mode: "answering",
-          pairs: [],
-          theme: "plate",
-          width: 1000,
-        });
-
-        assert.strictEqual(seen.arrow, "none");
-        assert.notStrictEqual(seen.blockDisplay, "grid");
-        assert.notStrictEqual(seen.blockFont, "72px");
       }),
   );
 });

@@ -206,7 +206,7 @@ export const contentEdits = {
   // Namespace name (reading 131): a prefix's declaration in the item's rows bound to a namespace
   // name no URI reference spells. crust's reader refuses such a declaration in a package as not
   // well-formed (reading 142), so the law is reached below the reader, on the rows a direct write
-  // could hold; `rv-i.oracle.test.ts` holds the package-level refusal.
+  // could hold.
   "Namespace name": editingRows("Namespace name", item, (rows) => (source) => {
     const value = source.draw(element(unnamedNamespaces));
 

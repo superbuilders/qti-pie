@@ -13,8 +13,6 @@
  * which attributes name a file. The XSD states the rest: which kinds declare which attributes, how
  * each attribute is typed, what a kind's content holds, and what a section's model repeats.
  *
- * `references.test.ts` checks every relation against the XSD.
- *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info | QTI 3.0 ASI Information Model}
  */
 import { Array as Arr, Option } from "effect";

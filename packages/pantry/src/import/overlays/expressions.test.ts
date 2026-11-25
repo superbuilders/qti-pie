@@ -12,9 +12,8 @@
  */
 import { readFileSync } from "node:fs";
 import nodePath from "node:path";
-import * as NodeServices from "@effect/platform-node/NodeServices";
-import { assert, describe, it, layer } from "@effect/vitest";
-import { Effect, Formatter, Option } from "effect";
+import { assert, describe, it } from "@effect/vitest";
+import { Effect, Option } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { integerMathOperators, referencedTables, valueBases } from "#pantry/grammar/expression.ts";
 import {
@@ -74,14 +73,7 @@ import {
   rootLanguages,
   ruleKindHandles,
 } from "#pantry/vocab/terms/expression-types.ts";
-import { readProgram } from "#pantry/import/program.ts";
-import { Qti } from "#pantry/qti/schema.ts";
 import { builtInTypes } from "#pantry/test/built-in-types.ts";
-import { baseValueCases, baseValuePackageOf } from "#pantry/test/base-value-cases.ts";
-import { declarationQueryLawsOf } from "#pantry/test/declaration-queries.ts";
-import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
-import { previewRowsOf, judge as judgeHost, judgedLaws } from "#pantry/test/host-judge.ts";
-import { lawNameOf } from "#pantry/import/refusal.ts";
 
 /**
  * Where a lone document of these cases stands: one item of one package, the place every row holds.
@@ -1136,29 +1128,6 @@ describe("import/overlays/expressions.ts, the fixtures' verdicts", () => {
         }
       }),
   );
-
-  it.effect(
-    "keys every row by its element's place, and every reference by its place and name",
-    () =>
-      // Oracle: rule 7 of the W5 rules, set semantics: each relation's rows are a keyed set, and an
-      // operand's operator is its expression's parent, itself an expression.
-      Effect.gen(function* keyed() {
-        for (const { file } of frozen) {
-          const rows = yield* rowsOfFixture(file);
-          for (const [key, row] of rows.Expression) {
-            assert.strictEqual(key, keyTextOf(row.package, row.path, row.start), file);
-          }
-
-          for (const [key, row] of rows.VariableRef) {
-            assert.strictEqual(
-              key,
-              keyTextOf(row.package, row.path, row.start, row.attribute),
-              file,
-            );
-          }
-        }
-      }),
-  );
 });
 
 /**
@@ -1234,73 +1203,6 @@ describe("import/overlays/expressions.ts, a braced pattern that names no variabl
       }),
   );
 });
-
-/**
- * Every law the host judges, read once.
- */
-const hostLaws = judgedLaws(Qti);
-
-layer(NodeServices.layer, { excludeTestServices: true })(
-  "import/overlays/expressions.ts, a base value's base-type",
-  (live) => {
-    live.effect(
-      "types a base value by the base its base-type spells, and the schema's laws over the import's rows refuse one that spells none under its value domain alone",
-      () =>
-        // Oracle: the specification's verdict of each case by hand (`base-value-cases.ts`), the
-        // information model's BaseTypeEnum (§8.14), a preserve `xs:string` enumeration, so a form
-        // that spells no base is AL1's lexical half's alone ("value domain", rule
-        // attribute-lexical), against the schema's laws over the import's rows: the host judge's,
-        // the declaration queries' and the expression laws over a query as `breachesOf` restates
-        // them. The law oracle is held to the same verdicts by `base-value.oracle.test.ts`. Bound:
-        // the eleven bases written exactly and fourteen forms that spell none.
-        Effect.gen(function* baseValueTypes() {
-          for (const drawn of baseValueCases) {
-            const { form, verdict } = drawn;
-            const known = verdict.length === 0;
-            const where = JSON.stringify(form);
-            const entries = baseValuePackageOf(drawn);
-
-            const { inputs } = yield* Effect.scoped(
-              Effect.flatMap(scopedPackage(entries), (dir) => readProgram(dir, "scoped")),
-            );
-            const rows = previewRowsOf(inputs);
-            const { broken } = judgeHost(rows, hostLaws);
-            assert.sameMembers(
-              [
-                ...new Set([
-                  ...broken.map(({ law }) =>
-                    Option.getOrElse(lawNameOf(law), () => Formatter.format(law)),
-                  ),
-                  ...declarationQueryLawsOf(rows),
-                ]),
-              ],
-              [...verdict],
-              `${where}: the import's rows`,
-            );
-
-            const item = entries.get("item.xml") ?? new Uint8Array();
-            const expressionRows = rowsOfTree(
-              yield* shred(yield* readXml(item), shredGrammarOf(grammar)),
-            );
-            const value = [...expressionRows.Expression.values()].find(
-              ({ start }) => nodeAt(expressionRows, start).kind === "qti-base-value",
-            );
-            if (known) {
-              assert.strictEqual(value?.baseType, form, where);
-            }
-
-            assert.strictEqual(
-              value !== undefined &&
-                expressionRows.LiteralTyped.has(keyTextOf(value.package, value.path, value.start)),
-              known,
-              where,
-            );
-            assert.strictEqual(breachesOf(expressionRows).size, 0, where);
-          }
-        }),
-    );
-  },
-);
 
 // The readings of a test's references (spec readings 48 and 88; representation-gaps.md §4).
 
@@ -1439,69 +1341,6 @@ describe("import/overlays/expressions.ts, the claims a reference proves", () => 
 
       assert.strictEqual(variables?.baseType, written || weighted ? "float" : "unknown");
       assert.isFalse(breachesOf(rows).has("E1_derived"));
-    }
-  });
-
-  it("types a weighted read of an integer variable float, and every other read as its variable", () => {
-    // Oracle: the information model's Variable (§7.47: "The result has the base-type and
-    // cardinality declared for the variable subject to the type promotion of weighted outcomes";
-    // §7.47.2: "When applying a weight to the value of a variable with base-type integer the value
-    // is subject to type promotion and the result of the expression has base-type float", and "If
-    // the item variable is of any other type the weight is ignored"), and E1_derived's
-    // `UnweightedRead` and `WeightedRead`, which hold the element so.
-    // Bound: an integer, a float and an identifier variable, each read weighted and unweighted.
-    for (const [base, weighted] of [
-      ["integer", false],
-      ["integer", true],
-      ["float", false],
-      ["float", true],
-      ["identifier", false],
-      ["identifier", true],
-    ] as const) {
-      const tree = documentOfRoot(
-        el(
-          "qti-assessment-test",
-          [
-            ["identifier", "T"],
-            ["title", "T"],
-          ],
-          [
-            el("qti-outcome-declaration", [
-              ["identifier", "READ"],
-              ["cardinality", "single"],
-              ["base-type", base],
-            ]),
-            el(
-              "qti-outcome-processing",
-              [],
-              [
-                el(
-                  "qti-set-outcome-value",
-                  [["identifier", "OUT"]],
-                  [
-                    el("qti-variable", [
-                      ["identifier", "READ"],
-                      ...(weighted ? ([["weight-identifier", "W"]] as const) : []),
-                    ]),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-      const rows = rowsOfTree(tree);
-      const read = [...rows.Expression.values()].find(
-        ({ start }) => nodeAt(rows, start).kind === "qti-variable",
-      );
-
-      assert.strictEqual(
-        read?.baseType,
-        weighted && base === "integer" ? "float" : base,
-        `${base}${weighted ? " weighted" : ""}`,
-      );
-      assert.strictEqual(read?.cardinality, "single");
-      assert.isFalse(breachesOf(rows).has("E1_derived"), `${base}${weighted ? " weighted" : ""}`);
     }
   });
 

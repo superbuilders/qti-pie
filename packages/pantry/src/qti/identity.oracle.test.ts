@@ -1,8 +1,6 @@
 /**
  * The identity overlays' free tests: the law oracle's Label tools, DocumentId key and Idref target
  * over typed texts, Document lang and the SSML laws.
- *
- * The builder's tests (`#pantry/import/overlays/identity.test.ts`) its rows.
  */
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";

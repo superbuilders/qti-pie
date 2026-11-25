@@ -1,7 +1,6 @@
 /**
  * Where read-aloud's controls stand in a body: the control a body node has, the catalog it reads
- * and the role of the part it reads, which names it. Pure, so its rules are checked apart from any
- * page (`placement.test.ts`). Two places, by where the node stands:
+ * and the role of the part it reads, which names it. Pure. Two places, by where the node stands:
  *
  * - **Before**, in the item's body: the one control that stands before a node, as AlphaTest's player
  *   put a passage's and a question's control at the top of what it reads and showed a question's

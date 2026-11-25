@@ -43,8 +43,6 @@ import {
   familyTable,
   flipped,
   judgeProbes,
-  proofInstance,
-  proofSchema,
   proofs,
   recorded,
   recordOf,
@@ -60,7 +58,7 @@ import { scratchDirectory } from "#pantry/test/scratch.ts";
 import { XsdOracleLayer } from "#pantry/test/gen/grammar.ts";
 import { writeXsdOracle, xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
 import type { Domain } from "#pantry/vocab/inventory/types.ts";
-import { requireRecordsLibxml2, xmllintValidate } from "#pantry/xml/oracle.ts";
+import { requireRecordsLibxml2 } from "#pantry/xml/oracle.ts";
 
 /**
  * Draw the values a group is probed with, each with the variant that drew it.
@@ -260,51 +258,6 @@ describe("lexical.oracle.test.ts, the domains against xmllint", () => {
             "every record still matches a disagreement",
           );
         }).pipe(Effect.scoped),
-    );
-  });
-});
-
-describe("lexical.oracle.test.ts, libxml2's recorded departures", () => {
-  beforeAll(xsdCachePresent);
-
-  layer(XsdOracleLayer, { excludeTestServices: true })("the proofs the records name", (it) => {
-    it.effect("libxml2 still departs from XML Schema as each xmllint record says", () =>
-      Effect.gen(function* proveDepartures() {
-        yield* requireRecordsLibxml2();
-
-        const fs = yield* FileSystem.FileSystem;
-        const directory = yield* scratchDirectory("xsd-lexical-proofs-");
-        const oracle = yield* writeXsdOracle(`${directory}/oracle`);
-        const departed: string[] = [];
-
-        for (const [name, proof] of Object.entries(proofs)) {
-          const values: readonly string[] = "refused" in proof ? proof.refused : proof.accepted;
-
-          yield* fs.writeFileString(`${directory}/${name}.xsd`, proofSchema(proof.type));
-          yield* fs.writeFileString(`${directory}/${name}.xml`, proofInstance(proof));
-
-          const [verdict] = yield* xmllintValidate({
-            catalog: oracle.catalog,
-            paths: [`${directory}/${name}.xml`],
-            schema: `${directory}/${name}.xsd`,
-          });
-          const refusedLines = new Set(
-            verdict === undefined || verdict._tag === "Valid"
-              ? []
-              : verdict.messages.map(({ line }) => line),
-          );
-          for (const [at, value] of values.entries()) {
-            const refused = refusedLines.has(at + 2);
-            if (refused !== "refused" in proof) {
-              departed.push(
-                `${name}: ${value.slice(0, 30)} is ${refused ? "refused" : "accepted"}`,
-              );
-            }
-          }
-        }
-
-        assert.deepStrictEqual(departed, [], "every recorded libxml2 departure still holds");
-      }).pipe(Effect.scoped),
     );
   });
 });

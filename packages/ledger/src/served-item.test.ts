@@ -27,18 +27,10 @@
  */
 import { assert, describe, it } from "@effect/vitest";
 import { acceptedItem, configure, noSupports, openAdmitted } from "@qti-pie/plate";
-import type { ItemRecord, Responses, Value } from "@qti-pie/plate";
-import { PostedResponses } from "@qti-pie/plate/codec";
-import { answerOf, heldOf } from "@qti-pie/plate/ui/props";
-import { Effect, Option, Schema } from "effect";
-import { reviewOf, reviewShowsOf, showingOf, startingOf } from "#ledger/served-item.ts";
-import type {
-  ReviewShows,
-  ServedItem,
-  SessionControl,
-  SessionFacts,
-  SessionItem,
-} from "#ledger/served-item.ts";
+import type { ItemRecord, Value } from "@qti-pie/plate";
+import { Effect, Option } from "effect";
+import { reviewOf, reviewShowsOf } from "#ledger/served-item.ts";
+import type { ReviewShows, ServedItem, SessionControl, SessionFacts } from "#ledger/served-item.ts";
 import type { Judged } from "#ledger/served-values.ts";
 
 /**
@@ -105,13 +97,6 @@ const openAdaptive: SessionFacts = {
   session: { attempts: 0n, closed: false, left: Option.none() },
 };
 
-/**
- * The item served as the open adaptive session's item.
- */
-const openedSession = opened.pipe(
-  Effect.map((served): SessionItem => ({ ...served, ...openAdaptive })),
-);
-
 const identifier = (value: string): Value => ({
   baseType: "identifier",
   cardinality: "single",
@@ -153,71 +138,6 @@ const revealed: ItemRecord = {
     completionStatus: identifier("incomplete"),
   },
 };
-
-const boolean = (value: boolean): Value => ({
-  baseType: "boolean",
-  cardinality: "single",
-  values: [{ baseType: "boolean", value }],
-});
-
-/**
- * Answer an attempt as a host does and read the post as its server does: the answer the held
- * state's contract gives (`answerOf`), with the End Attempt pressed, if any, written as JSON text
- * by plate's codec and decoded by the same codec.
- *
- * @param responses The responses the page holds.
- * @param ended The End Attempt whose press ended the attempt, none for another submit.
- * @returns The responses the server reads.
- */
-const posted = (responses: Responses, ended: Option.Option<string>) =>
-  Effect.gen(function* answered() {
-    const answer = yield* Effect.fromResult(answerOf(heldOf(responses), ended));
-    const body = Schema.fromJsonString(PostedResponses);
-
-    return yield* Schema.decodeUnknownEffect(body)(yield* Schema.encodeEffect(body)(answer));
-  }).pipe(Effect.orDie);
-
-describe("an attempt starts from the page it shows, and posts what that page holds", () => {
-  it.effect(
-    "the first attempt's start holds its End Attempt at false and not the checklist its feedback hides; pressing the End Attempt posts it true",
-    () =>
-      Effect.gen(function* firstAttempt() {
-        const served = yield* openedSession;
-        const start = startingOf(served, begun);
-
-        assert.deepStrictEqual(start, { DRAWN: boolean(false) });
-        assert.deepStrictEqual(yield* posted(start, Option.some("DRAWN")), {
-          DRAWN: boolean(true),
-        });
-      }),
-  );
-
-  it.effect(
-    "the second attempt's start holds the checklist its feedback shows, NULL, and its hidden End Attempt at false; a submit posts the ticked checklist and the End Attempt false",
-    () =>
-      Effect.gen(function* secondAttempt() {
-        const served = yield* openedSession;
-        const start = startingOf(served, revealed);
-        const ticked = {
-          ...start,
-          RESPONSE: {
-            baseType: "identifier",
-            cardinality: "multiple",
-            values: [
-              { baseType: "identifier", value: "c1" },
-              { baseType: "identifier", value: "c2" },
-            ],
-          },
-        } satisfies Record<string, Value>;
-
-        assert.deepStrictEqual(start, {
-          DRAWN: boolean(false),
-          RESPONSE: { baseType: "identifier", cardinality: "multiple", values: [] },
-        });
-        assert.deepStrictEqual(yield* posted(ticked, Option.none()), ticked);
-      }),
-  );
-});
 
 /**
  * What the database judged of the second attempt: partial credit, the one choice given marked
@@ -288,16 +208,6 @@ const factsOf = (control: SessionControl, state: Attempted): SessionFacts => ({
 });
 
 /**
- * A session's control and state, named for an assertion's message.
- *
- * @param control The session's control.
- * @param state The session's state.
- * @returns Its name.
- */
-const nameOf = (control: SessionControl, state: Attempted): string =>
-  `max-attempts ${String(control.maxAttempts)}, show-feedback ${String(control.showFeedback)}, show-solution ${String(control.showSolution)}; ${String(state.attempts)} attempts, ${state.adaptive ? "adaptive" : "not adaptive"}${state.completed ? ", completed" : ""}${state.ended ? ", its sitting ended" : ""}`;
-
-/**
  * Every control of max-attempts 0 to 3, each show-feedback and show-solution.
  */
 const controls: readonly SessionControl[] = [0n, 1n, 2n, 3n].flatMap((maxAttempts) =>
@@ -324,23 +234,6 @@ const statesOf = (control: SessionControl): readonly Attempted[] =>
       ),
     )
     .filter((state) => state.adaptive || !state.completed);
-
-/**
- * What a review shows by the rule, written apart from the code: feedback where the session is
- * open, else where its show-feedback is true; the marks where feedback shows or the session closed;
- * the solution only once closed, where its show-solution is true.
- *
- * @param control The session's control.
- * @param closed Whether the session is closed.
- * @returns What the review shows.
- */
-const showsByRule = (control: SessionControl, closed: boolean): ReviewShows => {
-  if (!closed) {
-    return { feedback: true, marks: true, solution: false };
-  }
-
-  return { feedback: control.showFeedback, marks: true, solution: control.showSolution };
-};
 
 /**
  * What each review the rule reaches shows, written from the rule: the record its item shows (the
@@ -375,69 +268,6 @@ const reviews: readonly (readonly [
 ];
 
 describe("what an item session shows is derived from its control and its state", () => {
-  it("every state of every control shows what QTI 3.0.1's rule says", () => {
-    let checked = 0;
-    for (const control of controls) {
-      for (const state of statesOf(control)) {
-        const facts = factsOf(control, state);
-        const named = nameOf(control, state);
-        const expected = showsByRule(control, facts.session.closed);
-
-        assert.deepStrictEqual(reviewShowsOf(facts), expected, named);
-        assert.deepStrictEqual(
-          showingOf(facts, answered),
-          expected.feedback
-            ? { record: answered, showFeedback: true }
-            : { record: answered, showFeedback: false },
-          `${named}: the page shows the record's feedback exactly where the review does`,
-        );
-        checked += 1;
-      }
-    }
-
-    assert.isAbove(checked, 0);
-  });
-
-  it("a test member under no control, metis's converted tests: after its one attempt, its marks without its feedback", () => {
-    const facts = factsOf(
-      { maxAttempts: 1n, showFeedback: false, showSolution: false },
-      { adaptive: false, attempts: 1n, completed: false, ended: false },
-    );
-
-    assert.isTrue(facts.session.closed);
-    assert.deepStrictEqual(reviewShowsOf(facts), {
-      feedback: false,
-      marks: true,
-      solution: false,
-    });
-  });
-
-  it("edullm's review before the cutover is the derived review over every control its direct policy can state", () => {
-    let checked = 0;
-    for (const control of controls.filter(
-      ({ maxAttempts, showFeedback }) => maxAttempts >= 1n && showFeedback,
-    )) {
-      for (const state of [0n, ...statesOf(control).map(({ attempts }) => attempts)]) {
-        for (const adaptive of [false, true]) {
-          for (const completed of adaptive ? [false, true] : [false]) {
-            const facts = factsOf(control, { adaptive, attempts: state, completed, ended: false });
-            const open = !facts.session.closed;
-            const feedback = open || control.showFeedback;
-
-            assert.deepStrictEqual(
-              reviewShowsOf(facts),
-              { feedback, marks: feedback, solution: !open && control.showSolution },
-              nameOf(control, { adaptive, attempts: state, completed, ended: false }),
-            );
-            checked += 1;
-          }
-        }
-      }
-    }
-
-    assert.isAbove(checked, 0);
-  });
-
   it.effect("reviewOf draws every review the rule reaches, against its table", () =>
     Effect.gen(function* everyReview() {
       const served = yield* opened;

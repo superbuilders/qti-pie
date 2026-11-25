@@ -7,8 +7,7 @@
  * state the rows in the shape the QTI vocabulary states them. grizzle refuses a row naming a
  * handle the composition has no code for when `install.ts` declares the relation.
  *
- * The arity rows are the ASI XSD's, which `expression.test.ts` checks over the pinned XSD cache,
- * and the binding and mapping rules are stated once.
+ * The arity rows are the ASI XSD's, and the binding and mapping rules are stated once.
  */
 import { Array as Arr, Option, pipe } from "effect";
 import { closed, idField, valueField } from "#pantry/grammar/closed.ts";
@@ -1042,9 +1041,7 @@ const predicate = fixed("boolean", "single");
  * `qti-delete` is a duration, Member's restriction, which Delete carries (§6.9.20, §6.9.33; spec
  * reading 189). A leaf whose table leaves its type open (`qti-null`, `qti-test-variables`
  * with no `base-type` and no `weight-identifier`) is typed `unknown`, and a weighted
- * `qti-test-variables` with no `base-type` float (§7.39.5; spec reading 167);
- * `expression-spec.oracle.test.ts` holds every leaf to its table. `expression.test.ts` holds its
- * kinds to `OperatorArity`'s, the 64 the ASI XSD's expression group names.
+ * `qti-test-variables` with no `base-type` float (§7.39.5; spec reading 167).
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Expr3 | QTI 3.0 information model, §2.11.3 Operators}
  */

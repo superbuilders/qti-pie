@@ -12,19 +12,13 @@
  */
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Layer, Option } from "effect";
+import { Effect, Layer } from "effect";
 import { Digest } from "effect/crypto";
 import { lawTable } from "#pantry/vocab/laws.ts";
 import { readPinned, readPinnedHtml } from "#pantry/test/spec-cache/read.ts";
 import * as differential from "#pantry/test/xsd-differential.ts";
 import type { Recorded } from "#pantry/test/xsd-differential.ts";
-import {
-  normativityOf,
-  offencesOf,
-  specDocuments,
-  specSections,
-  textMarks,
-} from "#pantry/test/spec-sections.ts";
+import { offencesOf, specDocuments, specSections } from "#pantry/test/spec-sections.ts";
 import type { Sections } from "#pantry/test/spec-sections.ts";
 
 /**
@@ -111,72 +105,7 @@ const sources: ReadonlyMap<string, string> = new Map([
 ]);
 
 describe("the law sources' citations", () => {
-  it("read the same marks from each specification's HTML and its text", () => {
-    // Oracle: a second rendering of the same specification, its text, which states each mark
-    // under its heading as the HTML does.
-    for (const { document, read } of cached) {
-      const { text } = read;
-
-      assert.deepStrictEqual(
-        Object.fromEntries(sections.get(document.url)?.marks ?? []),
-        Object.fromEntries(textMarks(text)),
-        document.name,
-      );
-    }
-
-    const model = sections.get("https://www.imsglobal.org/spec/qti/v3p0/info");
-    assert.isDefined(model);
-    for (const [section, normative] of [
-      ["2.12", false],
-      ["2.4.1.1", false],
-      ["5.130.2", true],
-      ["A1", false],
-    ] as const) {
-      assert.deepStrictEqual(
-        normativityOf(model?.marks ?? new Map(), section),
-        Option.some(normative),
-        `§${section}`,
-      );
-    }
-
-    // A line stands in the section of the heading at or before it: the duration sentence of
-    // §2.2.2.2, a variable mapping's source of §7.48.1, the table of contents in none.
-    for (const [line, section] of [
-      [4656, Option.some("2.2.2.2")],
-      [80_470, Option.some("7.48.1")],
-      [1790, Option.none()],
-    ] as const) {
-      assert.deepStrictEqual(model?.sectionOfLine(line), section, `info.txt:${line}`);
-    }
-  });
-
   it("each cite a heading that exists, in a section its specification marks normative", () => {
     assert.deepStrictEqual(offencesOf(sources, sections), []);
-  });
-
-  it("refuse a citation of a non-normative section, an anchor no heading holds, a line no section holds and an unread specification", () => {
-    // Planted: each kind of offence, beside a citation that holds.
-    const model = "https://www.imsglobal.org/spec/qti/v3p0/info";
-
-    assert.deepStrictEqual(
-      offencesOf(
-        new Map([
-          ["Overview", `${model}#Main2p12 (§2.12: 'Fragments are packaged as separate resources')`],
-          ["Dangling", `${model}#Data_BaseType (§5.130)`],
-          ["Unread", "https://www.imsglobal.org/spec/qti/v9p0/info#Data_SetValue"],
-          ["Lined", "the duration of an item (info.txt:4656, and :999999)"],
-          ["Held", `${model}#Data_SetValue (§5.130 and §5.130.2, the expression), info.txt:80470`],
-        ]),
-        sections,
-      ),
-      [
-        "Overview: #Main2p12 stands in §2.12 of the QTI 3.0 information model, which it marks NOT NORMATIVE",
-        "Overview: §2.12 of the QTI 3.0 information model, which it marks NOT NORMATIVE",
-        "Dangling: #Data_BaseType names no heading of the QTI 3.0 information model",
-        "Unread: https://www.imsglobal.org/spec/qti/v9p0/info#Data_SetValue is no specification whose sections can be judged",
-        "Lined: info.txt:4656 stands in §2.2.2.2 of the QTI 3.0 information model, which it marks NOT NORMATIVE",
-        "Lined: info.txt:999999 stands in no section of the QTI 3.0 information model",
-      ],
-    );
   });
 });

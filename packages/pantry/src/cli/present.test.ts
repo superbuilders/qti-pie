@@ -127,8 +127,8 @@ layer(NodeServices.layer, { excludeTestServices: true })("the JSON error shape",
   it.effect(
     "a roundtrip onto an earlier export without --yes is target-not-empty, exit 1, before any import, and the export stays",
     () =>
-      // The guard itself, requireReplaceable, is exhausted in cli/target-action.test.ts; this
-      // holds roundtrip to calling it before the import, whose settings here reach no database.
+      // This holds roundtrip to calling the guard, requireReplaceable, before the import, whose
+      // settings here reach no database.
       Effect.gen(function* earlierExport() {
         const fs = yield* FileSystem.FileSystem;
         const env = scratchEnv(scratch);

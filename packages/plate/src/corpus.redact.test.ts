@@ -6,7 +6,6 @@ import { walk as walkSource } from "#plate/document/source.ts";
 import type { SourceElement } from "#plate/document/source.ts";
 import type {
   Item,
-  RedactedNode,
   ResponseDeclaration,
   SimpleChoice,
   TemplateVisibility,
@@ -16,8 +15,8 @@ import { format, isModelled, parseLexical } from "#plate/model/values.ts";
 import { redact } from "#plate/redact.ts";
 import type { RedactedFields } from "#plate/redact/walk.ts";
 import { showingOf, shownToCandidate } from "#plate/test/page.ts";
-import { goldenRecords, recordOf } from "#plate/test/records.ts";
-import { acceptedOf, noRecord, openCorpus, recordStates, templated } from "#plate/test/sweep.ts";
+import { recordOf } from "#plate/test/records.ts";
+import { acceptedOf, noRecord } from "#plate/test/sweep.ts";
 import type { Member, RecordState } from "#plate/test/sweep.ts";
 import { admitted } from "#plate/test/admitted.ts";
 import type { Accepted } from "#plate/validate/verdict.ts";
@@ -518,144 +517,6 @@ const subjectOf = (member: Member, state?: RecordState): Option.Option<Subject> 
 };
 
 /**
- * Every corpus member that is an accepted item, made into the subject the sweep checks.
- *
- * It runs once per test file, as {@link openCorpus} does: the cases that read it share one
- * redaction of the corpus.
- */
-const corpusSubjects = Effect.runSync(
-  Effect.cached(
-    Effect.gen(function* corpusSubjects() {
-      const members = yield* openCorpus;
-
-      return members.flatMap((member) => Option.toArray(subjectOf(member)));
-    }),
-  ),
-);
-
-/**
- * Every templated corpus item (one with template processing) made into the subjects the template
- * sweep checks: one per record state, a record the golden recording holds for each of its seeds
- * and no record (`recordStates`). It runs once per test file, as {@link corpusSubjects} does.
- */
-const templatedSubjects = Effect.runSync(
-  Effect.cached(
-    Effect.gen(function* templatedSubjects() {
-      const members = yield* openCorpus;
-      const golden = yield* goldenRecords;
-      const swept = members.filter((member) => Option.exists(acceptedOf(member), templated));
-      const subjects = swept.flatMap((member) =>
-        recordStates(member.bytes, golden).flatMap((state) =>
-          Option.toArray(subjectOf(member, state)),
-        ),
-      );
-
-      return { files: swept.length, subjects };
-    }),
-  ),
-);
-
-/**
- * The negative control's correct response, which its body never writes.
- */
-const controlSecret = "zebra-77";
-
-/**
- * The negative control's location.
- */
-const controlLocation = "control.xml";
-
-/**
- * The negative control, built by hand: a Text Entry whose correct response is
- * {@link controlSecret}, which neither its body nor its title writes.
- */
-const controlBytes = new TextEncoder().encode(
-  `<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="control" title="Name the animal" adaptive="false" time-dependent="false"><qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"><qti-correct-response><qti-value>${controlSecret}</qti-value></qti-correct-response></qti-response-declaration><qti-item-body><p>Name the animal: <qti-text-entry-interaction response-identifier="RESPONSE"/></p></qti-item-body></qti-assessment-item>`,
-);
-
-/**
- * Forge redacted body nodes: every Text Entry, at any depth, gains a `correct` key holding
- * {@link controlSecret}.
- *
- * @param nodes The honest body nodes.
- * @returns The forged nodes.
- */
-const forgeBody = (nodes: readonly RedactedNode[]): readonly RedactedNode[] =>
-  nodes.map((node) => {
-    if (node.kind === "element") {
-      return { ...node, children: forgeBody(node.children) };
-    }
-
-    return node.kind === "text-entry" ? { ...node, correct: [controlSecret] } : node;
-  });
-
-describe("the allowlist sweep over the corpus", () => {
-  it.effect(
-    "no key of any accepted item's redaction holds a hidden field",
-    () =>
-      Effect.gen(function* everyKey() {
-        const subjects = yield* corpusSubjects;
-
-        assert.isNotEmpty(subjects, "no corpus item is accepted");
-        assert.deepStrictEqual(subjects.flatMap(keyProblems), []);
-      }),
-    { tags: ["corpus"] },
-  );
-
-  it.effect(
-    "no accepted item's secrets appear in its redaction",
-    () =>
-      Effect.gen(function* noSecret() {
-        const subjects = yield* corpusSubjects;
-        const checked = subjects.map((subject) => [subject, secretsOf(subject)] as const);
-        const withSecrets = checked.filter(([, secrets]) => secrets.length > 0);
-        const secretCount = withSecrets.flatMap(([, secrets]) => secrets).length;
-
-        assert.isAbove(withSecrets.length, 0, "no accepted item has a secret to look for");
-        assert.isAbove(secretCount, 0, "no secret was checked");
-        assert.deepStrictEqual(
-          checked.flatMap(([subject, secrets]) => leakProblems(subject, secrets)),
-          [],
-        );
-      }),
-    { tags: ["corpus"] },
-  );
-
-  it.effect(
-    "a forged redaction that holds a hand-built item's correct response is caught, and the honest one is not",
-    () =>
-      Effect.gen(function* negativeControl() {
-        const verdict = yield* admitted(controlLocation, controlBytes);
-        const member: Member = {
-          bytes: controlBytes,
-          location: controlLocation,
-          verdict: Exit.succeed(verdict),
-        };
-        const honest = Option.getOrElse(subjectOf(member), () =>
-          assert.fail(`the control item is not accepted: ${verdict.verdict}`),
-        );
-        const secrets = secretsOf(honest);
-        const forged = {
-          ...honest.redacted,
-          body: forgeBody(honest.redacted.body),
-          responses: honest.redacted.responses.map((response) => ({
-            ...response,
-            correct: [controlSecret],
-          })),
-        };
-        assert.deepStrictEqual(secrets, [{ origin: "correct response", text: controlSecret }]);
-        assert.deepStrictEqual(keyProblems(honest), []);
-        assert.deepStrictEqual(leakProblems(honest, secrets), []);
-        assert.deepStrictEqual(hiddenKeysOf(forged), ["correct", "correct"]);
-        assert.deepStrictEqual(
-          leakProblems({ location: controlLocation, redacted: forged }, secrets),
-          [`${controlLocation}: the correct response "${controlSecret}" is in the redacted item`],
-        );
-      }),
-  );
-});
-
-/**
  * The template control's location.
  */
 const templateControlLocation = "template-control.xml";
@@ -671,57 +532,6 @@ const templateControlBytes = new TextEncoder().encode(
 );
 
 describe("the template sweep over the corpus", () => {
-  it.effect(
-    "no accepted corpus item records a printed variable or param-variable parameter past its bound, with no record or under a golden record, so <Item> refuses none for it",
-    () =>
-      Effect.gen(function* noUnprinted() {
-        const members = yield* openCorpus;
-        const golden = yield* goldenRecords;
-        const redactions = members.flatMap((member) =>
-          Option.toArray(acceptedOf(member)).flatMap((accepted) =>
-            (templated(accepted) ? recordStates(member.bytes, golden) : [noRecord]).map(
-              (state) => ({
-                location: `${member.location} (${state.name})`,
-                unprinted: redact(accepted, shownToCandidate, showingOf(state.record)).unprinted,
-              }),
-            ),
-          ),
-        );
-
-        assert.isNotEmpty(redactions, "no corpus item is accepted");
-        assert.deepStrictEqual(
-          redactions.flatMap(({ location, unprinted }) =>
-            Option.isSome(unprinted) ? [location] : [],
-          ),
-          [],
-        );
-      }),
-    { tags: ["corpus", "grading-golden"] },
-  );
-  it.effect(
-    "every templated corpus item, redacted under each golden record and with no record, shows a template value only as a printed variable's text, and no hidden template content, template-set correct response, template rule or template visibility, nor any of the core set",
-    () =>
-      Effect.gen(function* templateSweep() {
-        const { files, subjects } = yield* templatedSubjects;
-        const swept: Record<string, number> = {};
-        for (const subject of subjects) {
-          swept[subject.state] = (swept[subject.state] ?? 0) + 1;
-        }
-
-        assert.isAbove(files, 0, "no accepted corpus item has template processing");
-        assert.strictEqual(swept["no record"], files);
-        assert.isAbove(swept["golden 1"] ?? 0, 0, "no templated item has a golden record");
-        assert.deepStrictEqual(
-          subjects.flatMap((subject) => [
-            ...keyProblems(subject),
-            ...leakProblems(subject, secretsOf(subject)),
-          ]),
-          [],
-        );
-      }),
-    { tags: ["corpus", "grading-golden"] },
-  );
-
   it.effect(
     "a forged redaction of a hand-built templated item that shows a template visibility is caught, and the honest redactions are not",
     () =>

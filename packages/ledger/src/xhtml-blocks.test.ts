@@ -4,8 +4,7 @@
  * contain), which the ledger's machine reads as written: every alternation of block tag names in
  * `p3.xhtml_blocks` (`machine/admission.sql`, the source `src/grading.ts` is generated from) names
  * exactly plate's elements, in plate's order, so the database's text and plate's part an essay's
- * lines at the same tags (the equality of the two texts over drawn values is
- * `#ledger/xhtml-text.db.test.ts`'s).
+ * lines at the same tags.
  */
 import { readFileSync } from "node:fs";
 import { assert, describe, it } from "@effect/vitest";

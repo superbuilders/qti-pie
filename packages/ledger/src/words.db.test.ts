@@ -6,9 +6,8 @@
  * reading 244) and a plain one as posted; so for every answer and every word minimum, the machine's
  * own XML Schema matcher (`p3.xsd_compile`, `p3.xsd_run`, machine/xsd.sql) must accept the
  * minimum's pattern (`wordPatternOf`) exactly when `wordsIn` counts at least its least, or a child
- * who sees enough words is refused, or one who sees too few is not. Plate's matcher and
- * JavaScript's are held to the same count by plate's own suite (`#plate/words.test.ts`); this one
- * holds the database's.
+ * who sees enough words is refused, or one who sees too few is not. This suite holds the
+ * database's.
  *
  * The answers are drawn from words (letters, digits, hyphens, punctuation), every space a count
  * reads (XML's four, U+00A0, U+3000, U+FEFF) and the zero-width U+200B, and, for a rich answer,

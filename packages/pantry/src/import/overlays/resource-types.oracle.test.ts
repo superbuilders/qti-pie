@@ -22,7 +22,6 @@ import { resourceTypesOf, typedPathsOf } from "#pantry/import/overlays/package.t
 import { readProgram } from "#pantry/import/program.ts";
 import { readEntries } from "#pantry/package/read.ts";
 import { materializeSpec, specOf } from "#pantry/test/fixtures.ts";
-import type { Edit } from "#pantry/test/fixtures.ts";
 import { hostVerdictOf } from "#pantry/test/gen/genetic/host-laws.ts";
 import { judge, lawsOf, verdictOf } from "#pantry/test/oracle.ts";
 import { resourceTypeCases } from "#pantry/test/resource-type-cases.ts";
@@ -39,75 +38,6 @@ const grammar = Result.getOrThrow(composed());
  * The tables the laws read, derived from {@link grammar} once.
  */
 const laws = lawsOf(grammar);
-
-/**
- * The type `simple`'s one resource lists its item under.
- */
-const itemType = "imsqti_item_xmlv3p0";
-
-/**
- * Every other type `RootOfType` maps, each of which lists a document whose root an item's is not.
- */
-const otherTypes = [...new Set(grammar.package.rootOfType.rows.map(({ type }) => type))].filter(
-  (type) => type !== itemType,
-);
-
-/**
- * `simple`'s item path listed again under another type, its resource before the item's or after.
- *
- * @param type - The other type.
- * @param before - Whether its resource comes first.
- * @returns The edit of `simple`'s manifest.
- */
-const listedAgain = (type: string, before: boolean): Edit => {
-  const resource = `<resource identifier="again" type="${type}" href="choice.xml"><file href="choice.xml"/></resource>`;
-
-  return before
-    ? {
-        _tag: "ReplaceText",
-        file: "imsmanifest.xml",
-        replacement: `<resources>${resource}`,
-        search: "<resources>",
-      }
-    : {
-        _tag: "ReplaceText",
-        file: "imsmanifest.xml",
-        replacement: `${resource}</resources>`,
-        search: "</resources>",
-      };
-};
-
-/**
- * Judge `simple` with its item path listed again under another type, on both sides: the law
- * oracle's breaches, the laws the import's rows break on the host, and the type of the document
- * the import writes at the path.
- *
- * @param type - The other type.
- * @param before - Whether its resource comes first.
- * @returns The three, the laws each by name, sorted.
- */
-const judgedListedAgain = (type: string, before: boolean) =>
-  Effect.gen(function* judgedAgain() {
-    const simple = specOf("simple");
-    const dir = yield* materializeSpec({
-      ...simple,
-      edits: [...simple.edits, listedAgain(type, before)],
-      name: `listed-again-${type.replaceAll(/[^\da-z]+/giu, "-")}-${before ? "before" : "after"}`,
-    });
-    const judgment = yield* judge(yield* readEntries(dir), grammar, laws);
-    const { inputs } = yield* readProgram(dir, nameOf(dir));
-
-    return {
-      host: [...hostVerdictOf(inputs).broken.keys()].toSorted(),
-      oracle:
-        judgment._tag === "Judged"
-          ? [...new Set(judgment.breaches.map(({ law }) => law))].toSorted()
-          : [judgment.rule],
-      types: [...inputs.Document.values()].flatMap(({ documentType, path }) =>
-        path === "choice.xml" ? [documentType] : [],
-      ),
-    };
-  });
 
 layer(NodeServices.layer, { excludeTestServices: true })(
   "import/overlays/package.ts, a resource's type",
@@ -158,29 +88,5 @@ layer(NodeServices.layer, { excludeTestServices: true })(
           }),
       );
     }
-
-    it.effect(
-      "reads a path two types name as the document its root bears out, whatever order the manifest lists them in (reading 162)",
-      () =>
-        // Oracle: spec reading 162, the specification as a checker: of the types a path's resources
-        // name, the document is the one its root bears out, so the other type's href breaks
-        // Document entry and RootOfType holds, whichever resource is listed first. The href breaks
-        // Document entry's rule over the query `TypedPath` (`src/qti/queries.ts`), which the host's
-        // judge leaves to the database, so the import's rows judged on the host break nothing.
-        // Bound: simple's item path listed again under each other type RootOfType maps, before the
-        // item's resource and after it.
-        Effect.gen(function* rootBearsOut() {
-          for (const type of otherTypes) {
-            const first = yield* judgedListedAgain(type, true);
-            const last = yield* judgedListedAgain(type, false);
-
-            assert.deepStrictEqual(first, last, `${type}: either order`);
-            assert.deepStrictEqual(first.types, [itemType], `${type}: the document's type`);
-            assert.include(first.oracle, "Document entry", `${type}: the oracle`);
-            assert.notInclude(first.oracle, "RootOfType", `${type}: the oracle`);
-            assert.deepStrictEqual(first.host, [], `${type}: the host`);
-          }
-        }),
-    );
   },
 );

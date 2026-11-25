@@ -210,7 +210,7 @@ const layer = <const K extends readonly string[], const A extends readonly strin
  * and XLink's ten. The roster takes them from the leaf at run time (`generateKinds`'s `layer`); the
  * document layer lists them again so the static {@link Name} is the roster, a vocabulary's
  * `attributes` being the only names it reads. A name the roster already holds keeps its code, so
- * the list moves no code. `compose.test.ts` checks it against the leaf.
+ * the list moves no code.
  */
 export const layerAttributeNames = [
   "xml:lang",

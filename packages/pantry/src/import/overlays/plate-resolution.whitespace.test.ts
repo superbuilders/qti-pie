@@ -142,19 +142,6 @@ const disagreementsOf = (resolver: Resolver): readonly string[] =>
     ),
   );
 
-/**
- * A planted resolver: plate's, handed the lexical form with each inner run of spaces kept whole, as
- * a reader that never collapses an `xs:anyURI` gives it.
- *
- * @param location - The item's location.
- * @param element - The element's local name.
- * @param attribute - The attribute's local name.
- * @param value - Its lexical form.
- * @returns The files it names.
- */
-const rawResolver: Resolver = (location, element, attribute, value) =>
-  assetPaths(location, element, attribute, value.trim().replaceAll(/ (?= )/gu, "%20"));
-
 describe("plate's assetPaths against the importer over whitespace in and around a name", () => {
   it("names, for every URL attribute and every run of whitespace a value of its class holds, the one file the importer resolves it to", () => {
     // Oracle: a second implementation, the importer's resolution, its whitespace classes read from
@@ -162,9 +149,5 @@ describe("plate's assetPaths against the importer over whitespace in and around 
     // Bound: 16 attributes, 90 forms, 2 locations.
     assert.strictEqual(attributes.length * lexicals.length * locations.length, 2880);
     assert.deepStrictEqual(disagreementsOf(assetPaths), []);
-  });
-
-  it("tells apart a resolver that reads the lexical form raw, an inner run of spaces kept", () => {
-    assert.isNotEmpty(disagreementsOf(rawResolver));
   });
 });

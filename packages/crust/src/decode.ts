@@ -449,8 +449,6 @@ const decodeRow = (row: Decodable, body: Uint8Array): Effect.Effect<Decoded, Rea
  *   decoder errs on a leading surrogate that no trailing one follows, and on a lone trailing one
  *   (§14.2.1, steps 6.7 and 8). In fatal mode an error refuses the document as `decode`.
  *
- * `decode.test.ts` holds this to every lone surrogate.
- *
  * @param decoded - The label and the decoded text.
  * @returns `decoded` itself; a `nul` refusal naming the first U+0000's offset, positioned at its
  *   line and column in the decoded text.

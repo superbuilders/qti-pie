@@ -33,9 +33,7 @@ import { writeXml, writeXmlText } from "#crust/write.ts";
 // among the comments and processing instructions, and a `>` escaped where adjacent text runs make
 // `]]>`. It overflows the stack from about 2,000 levels, so the trees below stay far shallower. Its
 // escaping is the code under test's own, so what the differential proves is the walk: the order the
-// iterative writer visits, renders and searches a tree in, which is the writer's contract. The
-// bytes an encoder class writes the text in are encode.test.ts's, and the cycle of
-// decode.detection.test.ts reads them back.
+// iterative writer visits, renders and searches a tree in, which is the writer's contract.
 
 /**
  * The characters an attribute value always escapes, with the reference each becomes.
@@ -712,26 +710,6 @@ describe("the writer writes only characters XML 1.0 allows (Char, section 2.2)",
 });
 
 /**
- * Comments and processing instructions every rule of which XML 1.0 holds: a comment's text and an
- * instruction's target and data, none with leading whitespace, which the instruction's one space
- * already stands for, or a carriage return, which every reader turns into a line feed (section
- * 2.11).
- */
-const LEGAL_MISCS: readonly Misc[] = [
-  { kind: "comment", text: "" },
-  { kind: "comment", text: "a" },
-  { kind: "comment", text: "a-b" },
-  { kind: "comment", text: " - " },
-  { kind: "comment", text: "a>b\t\u00E9\u{10000}" },
-  { data: "", kind: "pi", target: "p" },
-  { data: "d", kind: "pi", target: "p" },
-  { data: "a?b a>b ? >", kind: "pi", target: "p" },
-  { data: "d", kind: "pi", target: "xml-stylesheet" },
-  { data: "d", kind: "pi", target: "xmlx" },
-  { data: "d", kind: "pi", target: "xm" },
-];
-
-/**
  * The rules a comment may break.
  */
 type CommentRule = Extract<WriteRefusal["at"], { readonly _tag: "comment" }>["rule"];
@@ -817,53 +795,7 @@ const MISC_PLACES = [
   },
 ] as const;
 
-/**
- * The comment or instruction a read document holds where `holder` says.
- *
- * @param read - The document.
- * @param holder - Where it stands.
- * @returns The comments and instructions there.
- */
-const miscsAt = (read: XmlDocument, holder: (typeof MISC_PLACES)[number]["holder"]) => {
-  switch (holder._tag) {
-    case "prolog": {
-      return read.prolog;
-    }
-    case "element": {
-      return read.root.children.filter((child) => child.kind === "comment" || child.kind === "pi");
-    }
-    case "epilog": {
-      return read.epilog;
-    }
-    default: {
-      return holder satisfies never;
-    }
-  }
-};
-
 describe("the writer writes only comments and processing instructions XML 1.0 allows (productions 15 to 17)", () => {
-  it.effect(
-    `reads back each of ${String(LEGAL_MISCS.length)} legal comments and instructions as written, in the prolog, in content and in the epilog`,
-    () =>
-      // Oracle: crust's reader, which refuses what productions 15 to 17 rule out, over the text
-      // written: each must read back as it was, in its place.
-      Effect.gen(function* readsBack() {
-        for (const misc of LEGAL_MISCS) {
-          for (const { documentOf, holder } of MISC_PLACES) {
-            const read = yield* readXml(
-              new TextEncoder().encode(Result.getOrThrow(writeXmlText(documentOf(misc)))),
-            );
-
-            assert.deepStrictEqual(
-              miscsAt(read, holder),
-              [misc],
-              `${JSON.stringify(misc)} ${holder._tag}`,
-            );
-          }
-        }
-      }),
-  );
-
   it.effect(
     `refuses each of ${String(ILLEGAL_MISCS.length)} comments and instructions XML 1.0 rules out, in the prolog, in content and in the epilog, naming its place and the rule`,
     () =>

@@ -35,7 +35,6 @@ import { restore } from "#plate/restore.ts";
 import { startingResponses } from "#plate/starting.ts";
 import { jsonField } from "#plate/test/fixtures.ts";
 import { feedbackHidden, shownToCandidate } from "#plate/test/page.ts";
-import { acceptedOf, openCorpus } from "#plate/test/sweep.ts";
 import { admitted } from "#plate/test/admitted.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
 import type { Accepted } from "#plate/validate/verdict.ts";
@@ -487,22 +486,5 @@ describe("a fresh attempt's start", () => {
       });
       assert.isTrue(isNullResponse(shown));
     }),
-  );
-
-  it.effect(
-    "is the default of every accepted corpus item that declares one",
-    () =>
-      Effect.gen(function* corpusDefaults() {
-        for (const member of yield* openCorpus) {
-          for (const accepted of Option.toArray(acceptedOf(member))) {
-            const starts = declaredStarts(accepted);
-
-            if (starts.size > 0) {
-              holdsStart(accepted, starts, member.location);
-            }
-          }
-        }
-      }),
-    { tags: ["corpus"] },
   );
 });

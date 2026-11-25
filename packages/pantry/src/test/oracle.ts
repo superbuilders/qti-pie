@@ -5514,9 +5514,7 @@ const sitesOf = (documents: readonly Listed[], grammar: ComposedGrammar): readon
  * itself: every parent the composed grammar gives an Include (reading 114) but a section, since an
  * include in a section follows reading 86's rule for a section document ("includes in a section
  * follow it"), a site of the test's assembly that writes each element once, so its document is
- * judged as written. The schema states its own list (`#pantry/qti/tests.ts` `splicingParents`), and
- * `splicing-parents.oracle.test.ts` holds the two equal, so a bug in either shows there and is not
- * shared.
+ * judged as written. The schema states its own list (`#pantry/qti/tests.ts` `splicingParents`).
  *
  * @param grammar - The composed grammar.
  * @returns The parents' kinds.

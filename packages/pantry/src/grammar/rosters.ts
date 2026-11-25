@@ -283,7 +283,7 @@ type KindRosters<Kind extends string, Name extends string> = Omit<Kinds<Kind, Na
  * element kinds `ElementName` writes with it, and asks the parent's admission of each, in
  * `NodeKind` code order; no relation of (name, parent) is built. A parent admits at most one kind
  * of a name, as XML Schema's Element Declarations Consistent requires of a content model
- * (§3.8.6), which the composition's tests hold (`compose.test.ts`).
+ * (§3.8.6).
  *
  * @param kinds - The composition's kinds.
  * @param admits - Whether a parent admits a kind as a child: the content grammar's admission

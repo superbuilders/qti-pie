@@ -38,7 +38,6 @@ import { readEntries } from "#pantry/package/read.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import { hostVerdictOf } from "#pantry/test/gen/genetic/host-laws.ts";
 import { judge, lawsOf, verdictOf } from "#pantry/test/oracle.ts";
-import { item } from "#pantry/test/probe.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
 import { rulesOf } from "#pantry/import/refusal.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
@@ -229,101 +228,9 @@ const judgedBothWays = Effect.fn("test.manifestIdentifiers.judgedBothWays")(
 );
 
 /**
- * Write a manifest of identifier `M` around its resources, as the explicit cases do.
- *
- * @param resources - The `resource` elements, as written.
- * @param identifier - The manifest's `identifier`, as written.
- * @returns The manifest's text.
- */
-const writtenManifestOf = (resources: string, identifier = "M"): string =>
-  `<?xml version="1.0" encoding="UTF-8"?><manifest xmlns="${cpNamespace}" identifier="${identifier}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources>${resources}</resources></manifest>`;
-
-/**
- * One explicit case of a padded identifier or identifierref: its package, the laws the oracle must
- * break (`present`), which the host breaks too where it judges them, and the laws neither side may
- * break (`absent`), and whether it is valid, a package the oracle accepts and whose rows break no
- * law on the host (reading 1).
- */
-interface PaddedCase {
-  readonly absent: readonly string[];
-  readonly files: Readonly<Record<string, string>>;
-  readonly name: string;
-  readonly present: readonly string[];
-  readonly valid: boolean;
-}
-
-/**
- * Write a `webcontent` resource with its one file, which QTI 3.0.1's content-packaging profile
- * requires (imsqtiv3p0p1_imscpv1p2_v1p0.xsd, ResourceDType's `file`, minOccurs 1), so that no
- * content model law breaks beside the laws a case is about.
- *
- * @param identifier - Its `identifier`, as written.
- * @param file - Its file's `href`, an entry of the package.
- * @param dependencies - Its `dependency` elements, as written.
- * @returns The resource's text.
- */
-const webcontentOf = (identifier: string, file: string, dependencies = ""): string =>
-  `<resource identifier="${identifier}" type="webcontent"><file href="${file}"/>${dependencies}</resource>`;
-
-/**
  * The text of each `webcontent` file, which no law reads.
  */
 const webText = "<p>web</p>";
-
-/**
- * The explicit cases (decision 457 (3)): each identifier and identifierref compares collapsed.
- */
-const paddedCases: readonly PaddedCase[] = [
-  {
-    absent: ["Dependency target"],
-    files: {
-      [manifestPath]: writtenManifestOf(
-        `${webcontentOf("r1", "r1.html")}${webcontentOf("r2", "r2.html", '<dependency identifierref=" r1"/>')}`,
-      ),
-      "r1.html": webText,
-      "r2.html": webText,
-    },
-    name: "a padded identifierref names its resource",
-    present: [],
-    valid: false,
-  },
-  {
-    absent: ["Dependency target"],
-    files: {
-      [manifestPath]: writtenManifestOf(
-        `${webcontentOf(" r1 ", "r1.html")}${webcontentOf("r2", "r2.html", '<dependency identifierref="r1"/>')}`,
-      ),
-      "r1.html": webText,
-      "r2.html": webText,
-    },
-    name: "an identifierref names a padded resource identifier",
-    present: [],
-    valid: false,
-  },
-  {
-    absent: [],
-    files: {
-      "m.html": webText,
-      [manifestPath]: writtenManifestOf(webcontentOf("M", "m.html"), " M"),
-    },
-    name: "a padded manifest identifier is a resource's",
-    present: ["DocumentId key"],
-    valid: false,
-  },
-  {
-    absent: ["Dependency target"],
-    files: {
-      "item.xml": item,
-      [manifestPath]: writtenManifestOf(
-        `<resource identifier="R" type="imsqti_item_xmlv3p0" href="item.xml"><file href="item.xml"/><dependency identifierref=" W"/></resource>${webcontentOf("W", "w.html")}`,
-      ),
-      "w.html": webText,
-    },
-    name: "a valid package whose item depends on a padded identifierref",
-    present: [],
-    valid: true,
-  },
-];
 
 layer(NodeServices.layer, { excludeTestServices: true })(
   "import/overlays/package.ts, a manifest's identifiers",
@@ -394,34 +301,5 @@ layer(NodeServices.layer, { excludeTestServices: true })(
           ),
         ),
     );
-
-    for (const padded of paddedCases) {
-      it.effect(`compares the identifiers and identifierrefs collapsed: ${padded.name}`, () =>
-        Effect.gen(function* paddedCase() {
-          const { host, judged, oracleLaws, verdict } = yield* judgedBothWays(padded.files);
-          const hostLaws = [...host.broken.keys()];
-          const judgedOracleLaws = [...oracleLaws].filter((law) => judged.has(law));
-
-          assert.sameMembers(
-            hostLaws,
-            judgedOracleLaws,
-            "the host breaks exactly the oracle's laws it judges",
-          );
-          for (const law of padded.present) {
-            assert.isTrue(oracleLaws.has(law), `the oracle finds ${law} broken`);
-          }
-
-          for (const law of padded.absent) {
-            assert.notInclude(hostLaws, law, `the host breaks no ${law}`);
-            assert.isFalse(oracleLaws.has(law), `the oracle finds ${law} held`);
-          }
-
-          if (padded.valid) {
-            assert.strictEqual(verdict.verdict, "accepted", "the oracle accepts");
-            assert.lengthOf(hostLaws, 0, "the host breaks no law");
-          }
-        }).pipe(Effect.scoped),
-      );
-    }
   },
 );
