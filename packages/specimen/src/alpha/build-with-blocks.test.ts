@@ -26,7 +26,8 @@
  *   nothing and completes with that response; a bound value the PCI could not have posted, one past
  *   the supply (the number in cubes alone) or every count zero (an empty mat it posts as NULL), is
  *   no interaction, and the frame fails rather than show it; an empty list is NULL, as plate reads
- *   it, and opens an empty mat.
+ *   it, and opens an empty mat, while NULL written as another cardinality's (`base` or `record` of
+ *   `null`), which plate refuses for an ordered response, fails the frame too.
  * - B5, the drawing: the frame holds nothing before the module draws (the island's markup is empty),
  *   and the PCI's element holds no text at all, so no count and no numeral, before and after the
  *   build; a rod is ten cubes long and a flat ten cubes square, on the screen; the pieces on the
@@ -529,6 +530,10 @@ layer(Layer.effect(Pages, blocksPages), { excludeTestServices: true, timeout: ca
               const empty = yield* open(hosted, { list: { integer: zeros } });
 
               assert.strictEqual(empty.started, "failed");
+
+              for (const other of [{ base: null }, { record: null }] as const) {
+                assert.strictEqual((yield* open(hosted, other)).started, "failed");
+              }
 
               const none = yield* opened(hosted, { list: { integer: [] } });
 

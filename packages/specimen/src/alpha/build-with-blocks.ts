@@ -127,6 +127,12 @@ export const BlocksResponse = Schema.Struct({
 export type Response = typeof BlocksResponse.Type;
 
 /**
+ * What a host may bind the PCI to: a response of the blocks, or NULL in the Appendix C form of
+ * another cardinality, which plate's reader refuses for an ordered response and so must the module.
+ */
+export type Bound = Response | { readonly base: null } | { readonly record: null };
+
+/**
  * A point on the screen, in CSS pixels.
  */
 export interface Point {
@@ -778,7 +784,7 @@ const openOn = (
   browser: Browser,
   base: string,
   hosted: BlocksHosted,
-  bound: Response,
+  bound: Bound,
 ): Effect.Effect<BlocksFrame, BlocksFailure, Scope.Scope> =>
   Effect.gen(function* openBlocks() {
     const page = yield* Effect.acquireRelease(
@@ -1048,7 +1054,7 @@ const openOn = (
  * of its own.
  */
 export const blocksPages: Effect.Effect<
-  (hosted: BlocksHosted, bound: Response) => Effect.Effect<BlocksFrame, BlocksFailure, Scope.Scope>,
+  (hosted: BlocksHosted, bound: Bound) => Effect.Effect<BlocksFrame, BlocksFailure, Scope.Scope>,
   BlocksFailure,
   Scope.Scope
 > = Effect.gen(function* blocksPages() {
