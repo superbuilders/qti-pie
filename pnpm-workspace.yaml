@@ -17,6 +17,8 @@ minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - effect
   - "@effect/*"
+  - "@ui-sdk/core@0.1.0-beta.17"
+  - "@ui-sdk/react@0.1.0-beta.17"
 overrides:
   "@types/node": "catalog:"
 # Every version a manifest of this workspace names by `catalog:` (qti-pie's packages, grizzle's and the toolchain's), at
@@ -32,8 +34,8 @@ catalog:
   "@types/pg": 8.23.1
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
-  "@ui-sdk/core": 0.1.0-beta.10
-  "@ui-sdk/react": 0.1.0-beta.10
+  "@ui-sdk/core": 0.1.0-beta.17
+  "@ui-sdk/react": 0.1.0-beta.17
   arkregex: 0.0.15
   effect: 4.1.4
   eslint-plugin-better-tailwindcss: 4.11.0

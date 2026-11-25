@@ -121,19 +121,6 @@ export class PositionObjectOffStage extends Data.TaggedError("PositionObjectOffS
 }
 
 /**
- * A plate primitive was defined with no `options` schema, which UI SDK's adapters need to type its
- * options and its parts' props (`adapted` in `#plate/ui/adapted.ts`).
- */
-export class PrimitiveWithoutOptions extends Data.TaggedError("PrimitiveWithoutOptions") {
-  /**
-   * What the primitive lacks, and where it belongs.
-   */
-  override get message(): string {
-    return "A plate primitive needs an options schema in its definePrimitive definition.";
-  }
-}
-
-/**
  * A read-aloud control was rendered outside a `ReadAloudItem`, whose session plays it: something
  * other than `<Item>`, which holds one around every control it writes, rendered the control.
  */

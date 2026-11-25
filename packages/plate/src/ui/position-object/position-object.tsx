@@ -28,7 +28,6 @@
 import { createParts, usePart, usePrimitive } from "@ui-sdk/react/primitive";
 import { useMemo } from "react";
 import type { ReactNode } from "react";
-import { adapted } from "#plate/ui/adapted.ts";
 import type { AuthoredSize, ImageSize } from "#plate/interactions/image-size.ts";
 import type { Authored, Labelled, Named } from "#plate/ui/attributes.ts";
 import { GraphicStage, useGraphicStage } from "#plate/ui/graphic/stage.tsx";
@@ -46,14 +45,9 @@ import { pointsOf, valuesOf } from "#plate/ui/position-object/points.ts";
 import type { Placements } from "#plate/ui/position-object/points.ts";
 
 /**
- * The primitive, typed as UI SDK's React adapter reads it.
- */
-const primitive = adapted(positionObject);
-
-/**
  * The parts UI SDK makes from the primitive, one per tagged slot.
  */
-const parts = createParts(primitive, {
+const parts = createParts(positionObject, {
   copy: "button",
   group: "div",
   layer: "g",
@@ -252,7 +246,7 @@ export const PositionObjectStage = (props: PositionObjectStageProps) => {
       new Map([...values].map(([identifier, points]) => [identifier, pointsOf(points)])),
     [values],
   );
-  const handle = usePrimitive(primitive, {
+  const handle = usePrimitive(positionObject, {
     labels,
     objects,
     onPlacementsChange: (next) => {

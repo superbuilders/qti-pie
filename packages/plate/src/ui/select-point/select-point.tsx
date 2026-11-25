@@ -28,7 +28,6 @@ import { useId, useMemo } from "react";
 import type { ReactNode } from "react";
 import type { AuthoredSize, ImageSize } from "#plate/interactions/image-size.ts";
 import type { Declared } from "#plate/model/values.ts";
-import { adapted } from "#plate/ui/adapted.ts";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
 
 import { Pin } from "#plate/ui/graphic/frame.tsx";
@@ -88,15 +87,10 @@ export interface SelectPointProps extends Authored<NameAttributes> {
 }
 
 /**
- * The primitive, as UI SDK's React adapter takes it.
- */
-const primitive = adapted(selectPoint);
-
-/**
  * The parts UI SDK makes from the primitive, one per tagged slot. The root is the island's own,
  * rendered with `usePart`, so the island holds the instance whose api takes the stage's taps.
  */
-const parts = createParts(primitive, { board: "div", limit: "p", point: "button" });
+const parts = createParts(selectPoint, { board: "div", limit: "p", point: "button" });
 
 /**
  * Pin the island's marks over the image: each point's marker, the one dragged where it is dragged
@@ -227,7 +221,7 @@ export const SelectPoint = (props: SelectPointProps) => {
   const [values, set] = useResponse(response, pointSingles);
   const points = useMemo(() => pointsOf(values), [values]);
   const keysId = useId();
-  const handle = usePrimitive(primitive, {
+  const handle = usePrimitive(selectPoint, {
     labels,
     onPointsChange: (next) => {
       set(valuesOf(next));

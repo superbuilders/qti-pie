@@ -41,7 +41,6 @@
 import { createParts } from "@ui-sdk/react/primitive";
 import type { PartProps } from "@ui-sdk/react/primitive";
 import { createContext, use, useMemo } from "react";
-import { adapted } from "#plate/ui/adapted.ts";
 import { BankCaption } from "#plate/ui/placement/caption.tsx";
 import { PlacementPartOutside, TargetLabelInBank } from "#plate/ui/defects.ts";
 import { bank } from "#plate/placement/machine.ts";
@@ -77,7 +76,7 @@ const StandingContext = createContext<Standing | undefined>(undefined);
 /**
  * The parts UI SDK makes from the primitive, one per tagged slot.
  */
-const parts = createParts(adapted(placement), {
+const parts = createParts(placement, {
   bank: "div",
   chip: "button",
   message: "p",

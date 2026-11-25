@@ -50,7 +50,6 @@ import { definePrimitive } from "@ui-sdk/core";
 import { createParts } from "@ui-sdk/react/primitive";
 import { Fragment, createContext, use, useId } from "react";
 import type { ReactNode } from "react";
-import { adapted } from "#plate/ui/adapted.ts";
 import { StagePartOutside } from "#plate/ui/defects.ts";
 import { CheckBadge, CornerPin } from "#plate/ui/graphic/drawn.tsx";
 import {
@@ -554,7 +553,7 @@ const graphic = definePrimitive({
 /**
  * The parts UI SDK makes from the primitive, one per tagged slot.
  */
-const parts = createParts(adapted(graphic), { image: "div", overlay: "svg", root: "div" });
+const parts = createParts(graphic, { image: "div", overlay: "svg", root: "div" });
 
 /**
  * The view of the stage around a part, while its size is known.

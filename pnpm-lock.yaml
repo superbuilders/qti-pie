@@ -31,11 +31,11 @@ catalogs:
       specifier: 19.3.0
       version: 19.3.0
     '@ui-sdk/core':
-      specifier: 0.1.0-beta.10
-      version: 0.1.0-beta.10
+      specifier: 0.1.0-beta.17
+      version: 0.1.0-beta.17
     '@ui-sdk/react':
-      specifier: 0.1.0-beta.10
-      version: 0.1.0-beta.10
+      specifier: 0.1.0-beta.17
+      version: 0.1.0-beta.17
     arkregex:
       specifier: 0.0.15
       version: 0.0.15
@@ -332,10 +332,10 @@ importers:
         version: link:../crust
       '@ui-sdk/core':
         specifier: 'catalog:'
-        version: 0.1.0-beta.10
+        version: 0.1.0-beta.17
       '@ui-sdk/react':
         specifier: 'catalog:'
-        version: 0.1.0-beta.10(@types/react@19.3.0)(@ui-sdk/core@0.1.0-beta.10)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 0.1.0-beta.17(@types/react@19.3.0)(@ui-sdk/core@0.1.0-beta.17)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       effect:
         specifier: 'catalog:'
         version: 4.1.4
@@ -1506,14 +1506,14 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@ui-sdk/core@0.1.0-beta.10':
-    resolution: {integrity: sha512-Rtm3QtuRT9U5nAlhIwKf2TzNIDZeOq3VmPzIiy55K3nFGeZokpPmHdF5ryaZmsByImNhOdRv5P7TOMro48NB+Q==}
+  '@ui-sdk/core@0.1.0-beta.17':
+    resolution: {integrity: sha512-wBWNqT0Qf1sE6fqD1XuBnSGBFcY6+cek1z7rKl/r4j2bsv2or9i7z44PLy0J9hmflm3IJ5MLW0P4ur2H9BCIvg==}
 
-  '@ui-sdk/react@0.1.0-beta.10':
-    resolution: {integrity: sha512-iObTzV2owJmF6GNVIiudpunoPlQ7mnDezdXc7XVajkmBpAzwq6gMuT0xLesWH71ct9wKcWRPkxbWC+E3ahOUPA==}
+  '@ui-sdk/react@0.1.0-beta.17':
+    resolution: {integrity: sha512-oAJu+/e8woA5gboO28nm3aiO2qZbjccGc8hukCijSz3biX71AYBw8mo14HkMAZUuPlbSnzVAuNYQMaW0z8vsrw==}
     peerDependencies:
       '@types/react': '>=19.2.10'
-      '@ui-sdk/core': ^0.1.0-beta.10
+      '@ui-sdk/core': ^0.1.0-beta.17
       react: '>=19'
       react-dom: '>=19'
     peerDependenciesMeta:
@@ -3287,11 +3287,11 @@ snapshots:
   '@typescript/typescript-win32-x64@7.1.0-beta':
     optional: true
 
-  '@ui-sdk/core@0.1.0-beta.10': {}
+  '@ui-sdk/core@0.1.0-beta.17': {}
 
-  '@ui-sdk/react@0.1.0-beta.10(@types/react@19.3.0)(@ui-sdk/core@0.1.0-beta.10)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@ui-sdk/react@0.1.0-beta.17(@types/react@19.3.0)(@ui-sdk/core@0.1.0-beta.17)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
-      '@ui-sdk/core': 0.1.0-beta.10
+      '@ui-sdk/core': 0.1.0-beta.17
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
     optionalDependencies:
