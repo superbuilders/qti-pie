@@ -2846,14 +2846,16 @@ const includedIn = (small: Regex, big: Regex): boolean => {
       const toLeft = fromLeft.filter((at) => holds(entryAt(mine.sets, at), point));
       const toRight = fromRight.filter((at) => holds(entryAt(theirs.sets, at), point));
       const key = `${toLeft.join(",")}|${toRight.join(",")}`;
-      if (toLeft.length > 0 && !seen.has(key)) {
-        if (toRight.length === 0 || seen.size >= inclusionStates) {
-          return false;
-        }
-
-        seen.add(key);
-        queue.push([toLeft, toRight]);
+      if (!(toLeft.length > 0 && !seen.has(key))) {
+        continue;
       }
+
+      if (toRight.length === 0 || seen.size >= inclusionStates) {
+        return false;
+      }
+
+      seen.add(key);
+      queue.push([toLeft, toRight]);
     }
   }
 

@@ -127,17 +127,19 @@ const walk = (start: string, read: (file: string) => string): ReadonlyMap<string
   for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
     const [file, from] = next;
 
-    if (!reached.has(file)) {
-      const source = read(file);
+    if (reached.has(file)) {
+      continue;
+    }
 
-      reached.set(file, { bytes: Buffer.byteLength(source), from });
+    const source = read(file);
 
-      for (const { form, specifier } of moduleImports(source)) {
-        const target = form === "type" ? undefined : resolved(specifier, file);
+    reached.set(file, { bytes: Buffer.byteLength(source), from });
 
-        if (target !== undefined) {
-          pending.push([target, file]);
-        }
+    for (const { form, specifier } of moduleImports(source)) {
+      const target = form === "type" ? undefined : resolved(specifier, file);
+
+      if (target !== undefined) {
+        pending.push([target, file]);
       }
     }
   }

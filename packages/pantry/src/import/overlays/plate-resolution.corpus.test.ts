@@ -249,15 +249,19 @@ const corpus: Effect.Effect<Corpus> = Effect.runSync(
             ? yield* Effect.option(readXml(file.bytes))
             : Option.none();
           if (
-            Option.isSome(read) &&
-            read.value.root.namespace === qtiNamespace &&
-            read.value.root.local === "qti-assessment-item"
+            !(
+              Option.isSome(read) &&
+              read.value.root.namespace === qtiNamespace &&
+              read.value.root.local === "qti-assessment-item"
+            )
           ) {
-            const found = referencesIn(read.value.root, { document: file.path, package: name });
-            references.push(...found.references);
-            for (const each of found.uncensused) {
-              uncensused.add(each);
-            }
+            continue;
+          }
+
+          const found = referencesIn(read.value.root, { document: file.path, package: name });
+          references.push(...found.references);
+          for (const each of found.uncensused) {
+            uncensused.add(each);
           }
         }
       }

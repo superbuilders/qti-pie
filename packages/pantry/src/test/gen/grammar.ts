@@ -236,20 +236,22 @@ export const loadXsd = Effect.fn("test.loadXsd")(function* loadXsd(root: SourceP
       for (const node of xsChildren(schema)) {
         const table = tables.get(node.local);
         const name = attributeOf(node, "name");
-        if (table !== undefined && Option.isSome(name)) {
-          const at = nameKey({ local: name.value, namespace: target });
-          const component = { document, node };
-          if (replaced.has(`${categoryOf(node.local)} ${name.value}`)) {
-            originals.set(at, component);
-          } else {
-            table.set(at, component);
-          }
+        if (!(table !== undefined && Option.isSome(name))) {
+          continue;
+        }
 
-          if (node.local === "element") {
-            for (const head of Option.toArray(attributeOf(node, "substitutionGroup"))) {
-              const headKey = nameKey(qnameOf(document, head));
-              members.set(headKey, [...(members.get(headKey) ?? []), at]);
-            }
+        const at = nameKey({ local: name.value, namespace: target });
+        const component = { document, node };
+        if (replaced.has(`${categoryOf(node.local)} ${name.value}`)) {
+          originals.set(at, component);
+        } else {
+          table.set(at, component);
+        }
+
+        if (node.local === "element") {
+          for (const head of Option.toArray(attributeOf(node, "substitutionGroup"))) {
+            const headKey = nameKey(qnameOf(document, head));
+            members.set(headKey, [...(members.get(headKey) ?? []), at]);
           }
         }
       }

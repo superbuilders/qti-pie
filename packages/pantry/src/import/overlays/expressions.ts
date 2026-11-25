@@ -860,15 +860,17 @@ const expressionRowsOf = (
   const at = placeOf(doc, node);
   built.Expression.set(key, { ...at, language: doc.languageOf(node.start) });
 
-  if (node.kind === "qti-base-value") {
-    const text = doc.childrenOf(node.start).map(doc.charsOf).join("");
-    built.Literal.set(key, { ...at, baseType: type.baseType, text });
+  if (node.kind !== "qti-base-value") {
+    return;
+  }
 
-    // A literal is typed where its base-type spells a code, the one its type is (7230d050).
-    const typeCode = spelledBaseTypeOf(lexicalOf(doc, node.start, "base-type"));
-    if (type.baseType !== "unknown" && Option.isSome(typeCode)) {
-      built.LiteralTyped.set(key, { ...at, text, typeCode: typeCode.value });
-    }
+  const text = doc.childrenOf(node.start).map(doc.charsOf).join("");
+  built.Literal.set(key, { ...at, baseType: type.baseType, text });
+
+  // A literal is typed where its base-type spells a code, the one its type is (7230d050).
+  const typeCode = spelledBaseTypeOf(lexicalOf(doc, node.start, "base-type"));
+  if (type.baseType !== "unknown" && Option.isSome(typeCode)) {
+    built.LiteralTyped.set(key, { ...at, text, typeCode: typeCode.value });
   }
 };
 

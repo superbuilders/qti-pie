@@ -200,15 +200,17 @@ const listDocuments = Effect.fn("import.listDocuments")(function* listDocuments(
   const documents = new Map<string, ListedDocument>();
   for (const [at, { path, type }] of pairs.entries()) {
     const entry = byPath.get(path);
-    if (entry !== undefined && path !== manifest.path && !documents.has(path)) {
-      const tree = yield* shredFile(entry);
-      const others = pairs.slice(at + 1).flatMap((pair) => (pair.path === path ? [pair.type] : []));
-      documents.set(path, {
-        documentType: documentTypeOf([type, ...others], tree.root.kind),
-        path,
-        tree,
-      });
+    if (!(entry !== undefined && path !== manifest.path && !documents.has(path))) {
+      continue;
     }
+
+    const tree = yield* shredFile(entry);
+    const others = pairs.slice(at + 1).flatMap((pair) => (pair.path === path ? [pair.type] : []));
+    documents.set(path, {
+      documentType: documentTypeOf([type, ...others], tree.root.kind),
+      path,
+      tree,
+    });
   }
 
   return { documents: [...documents.values()], entries, manifest };

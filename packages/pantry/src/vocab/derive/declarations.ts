@@ -559,29 +559,28 @@ const governingReadingOf = (
 
       // A built-in derived from a declared type is a simple type, which governs no attributes.
       for (const name of derivation.value.derived.slice(1)) {
-        if (name.namespace !== xsNamespace) {
-          const view = Option.fromNullishOr(world.get(name.namespace));
+        if (name.namespace === xsNamespace) {
+          continue;
+        }
 
-          if (Option.isNone(view)) {
-            return yield* refuse(
-              `the type {${name.namespace}}${name.local} derives from ${expanded} in a namespace no pinned schema is of`,
-            );
-          }
+        const view = Option.fromNullishOr(world.get(name.namespace));
 
-          const owner = typeHandle(name);
-          const definition = complexTypeIn(view.value, name.local);
+        if (Option.isNone(view)) {
+          return yield* refuse(
+            `the type {${name.namespace}}${name.local} derives from ${expanded} in a namespace no pinned schema is of`,
+          );
+        }
 
-          // A named simple type governs text alone, which `simple` below reads.
-          if (Option.isSome(definition) && !governors.has(owner)) {
-            governors.set(
-              owner,
-              yield* complexReadingOf(world, view.value, owner, definition.value),
-            );
-          } else if (Option.isNone(definition) && !view.value.schema.simpleTypes.has(name.local)) {
-            return yield* refuse(
-              `the type {${name.namespace}}${name.local} derives from ${expanded}, but its schema declares no complex or simple type of that name`,
-            );
-          }
+        const owner = typeHandle(name);
+        const definition = complexTypeIn(view.value, name.local);
+
+        // A named simple type governs text alone, which `simple` below reads.
+        if (Option.isSome(definition) && !governors.has(owner)) {
+          governors.set(owner, yield* complexReadingOf(world, view.value, owner, definition.value));
+        } else if (Option.isNone(definition) && !view.value.schema.simpleTypes.has(name.local)) {
+          return yield* refuse(
+            `the type {${name.namespace}}${name.local} derives from ${expanded}, but its schema declares no complex or simple type of that name`,
+          );
         }
       }
     }

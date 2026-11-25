@@ -356,14 +356,16 @@ const nestingSituationsOf = (document: XdmDocument<Composed>): ReadonlySet<Nesti
   const stack: (readonly [XdmChild<Composed>, number])[] = [[document.root, 1]];
   for (let next = stack.pop(); next !== undefined; next = stack.pop()) {
     const [node, depth] = next;
-    if ("children" in node) {
-      const parent = node._tag === "element" ? "element" : "wildcard";
-      deepest = Math.max(deepest, depth);
-      widest = Math.max(widest, node.children.length);
-      for (const child of node.children) {
-        found.add(`${parent} > ${classOfNode(child)}`);
-        stack.push([child, depth + 1]);
-      }
+    if (!("children" in node)) {
+      continue;
+    }
+
+    const parent = node._tag === "element" ? "element" : "wildcard";
+    deepest = Math.max(deepest, depth);
+    widest = Math.max(widest, node.children.length);
+    for (const child of node.children) {
+      found.add(`${parent} > ${classOfNode(child)}`);
+      stack.push([child, depth + 1]);
     }
   }
 

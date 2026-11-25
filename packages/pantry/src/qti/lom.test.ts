@@ -281,11 +281,13 @@ const readVcard = (text: string): ReadVcard => {
   const properties = new Map<string, string[]>();
   for (const line of lines) {
     const colon = line.indexOf(":");
-    if (colon > 0) {
-      const head = line.slice(0, colon);
-      const name = (head.split(";")[0] ?? "").replace(/^[0-9A-Za-z-]+\./u, "").toUpperCase();
-      properties.set(name, [...(properties.get(name) ?? []), line.slice(colon + 1)]);
+    if (colon <= 0) {
+      continue;
     }
+
+    const head = line.slice(0, colon);
+    const name = (head.split(";")[0] ?? "").replace(/^[0-9A-Za-z-]+\./u, "").toUpperCase();
+    properties.set(name, [...(properties.get(name) ?? []), line.slice(colon + 1)]);
   }
 
   return {

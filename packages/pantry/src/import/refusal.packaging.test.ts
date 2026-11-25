@@ -64,16 +64,18 @@ describe.skipIf(!hasLease)("import/refusal.packaging.test.ts, on the lease", () 
 
           assert.instanceOf(failure, ImportRefused, `${name}: refused by another error`);
 
-          if (failure instanceof ImportRefused) {
-            yield* Effect.log(`${name} refused under ${failure.rules.join(", ")}`, failure.detail);
-
-            const expected: readonly string[] = rules;
-
-            assert.isTrue(
-              failure.rules.some((rule) => expected.includes(rule)),
-              `${name}: the refusal names ${failure.rules.join(", ")}, none of ${rules.join(", ")}`,
-            );
+          if (!(failure instanceof ImportRefused)) {
+            return;
           }
+
+          yield* Effect.log(`${name} refused under ${failure.rules.join(", ")}`, failure.detail);
+
+          const expected: readonly string[] = rules;
+
+          assert.isTrue(
+            failure.rules.some((rule) => expected.includes(rule)),
+            `${name}: the refusal names ${failure.rules.join(", ")}, none of ${rules.join(", ")}`,
+          );
         }),
       );
     }

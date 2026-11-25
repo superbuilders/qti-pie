@@ -2076,12 +2076,14 @@ export const loadSchemaSet = Effect.fn("vocab.loadSchemaSet")(function* loadSche
   const pending = [...(yield* Effect.fromResult(includesOf(path, entry.document)))];
 
   for (let next = pending.shift(); next !== undefined; next = pending.shift()) {
-    if (!placed.has(next)) {
-      const read = yield* readPlaced(next);
-
-      placed.set(next, read);
-      pending.unshift(...(yield* Effect.fromResult(includesOf(next, read.document))));
+    if (placed.has(next)) {
+      continue;
     }
+
+    const read = yield* readPlaced(next);
+
+    placed.set(next, read);
+    pending.unshift(...(yield* Effect.fromResult(includesOf(next, read.document))));
   }
 
   const [, ...included] = placed.values();

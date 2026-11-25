@@ -647,19 +647,21 @@ const poolsOf = (
   for (const section of sections) {
     for (const owner of owners.get(section.node.start) ?? []) {
       const ownerSection = document.sections.get(owner);
-      if (ownerSection !== undefined && !mixedIn(ownerSection)) {
-        const pool = pools.get(owner) ?? { blocks: [], replacing: false, sections: [] };
-        pool.sections.push(section.node.start);
-        pool.replacing ||= section.replacing;
-        pool.blocks.push(
-          ...elementsOf(document.listed.rows, section.node.start).filter(
-            (child) =>
-              partKinds.has(child.kind) &&
-              !Option.exists(Option.fromUndefinedOr(document.sections.get(child.start)), mixedIn),
-          ),
-        );
-        pools.set(owner, pool);
+      if (!(ownerSection !== undefined && !mixedIn(ownerSection))) {
+        continue;
       }
+
+      const pool = pools.get(owner) ?? { blocks: [], replacing: false, sections: [] };
+      pool.sections.push(section.node.start);
+      pool.replacing ||= section.replacing;
+      pool.blocks.push(
+        ...elementsOf(document.listed.rows, section.node.start).filter(
+          (child) =>
+            partKinds.has(child.kind) &&
+            !Option.exists(Option.fromUndefinedOr(document.sections.get(child.start)), mixedIn),
+        ),
+      );
+      pools.set(owner, pool);
     }
   }
 

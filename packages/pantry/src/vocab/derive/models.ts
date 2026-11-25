@@ -1031,18 +1031,20 @@ export const derivationsOf = (
       for (const [local, definition] of [...view.schema.complexTypes, ...view.schema.simpleTypes]) {
         // A redefinition stands under its own key beside the type it replaces, whose name and base
         // are the type's.
-        if (!local.endsWith(redefinitionKey(""))) {
-          const name = { local, namespace: view.schema.targetNamespace };
-          const { base, method } = yield* baseOf(view, definition);
-
-          if (finals.has(forbiddenKey(base, method))) {
-            return yield* refuse(
-              `the type ${nameKey(name)} derives by ${method} from ${nameKey(base)}, whose final forbids it`,
-            );
-          }
-
-          bases.set(nameKey(name), [name, Option.some(base)]);
+        if (local.endsWith(redefinitionKey(""))) {
+          continue;
         }
+
+        const name = { local, namespace: view.schema.targetNamespace };
+        const { base, method } = yield* baseOf(view, definition);
+
+        if (finals.has(forbiddenKey(base, method))) {
+          return yield* refuse(
+            `the type ${nameKey(name)} derives by ${method} from ${nameKey(base)}, whose final forbids it`,
+          );
+        }
+
+        bases.set(nameKey(name), [name, Option.some(base)]);
       }
     }
 

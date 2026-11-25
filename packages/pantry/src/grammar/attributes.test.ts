@@ -891,15 +891,14 @@ describe("The spec readings", () => {
     assert.isAbove(listed.length, 0);
     for (const reading of listed) {
       for (const kind of Option.getOrElse(reading.kinds, () => [])) {
-        if (declarersOf(reading.name).some((declarer) => declarer.kind === kind)) {
-          const domain = Option.getOrThrow(domainAt(kind, reading.name));
-          assert.include(["string", "anySimpleType"], domain.primitive, `${kind}@${reading.name}`);
-          for (const value of spaced) {
-            assert.isTrue(
-              matches(domain, value),
-              `${kind}@${reading.name} ${JSON.stringify(value)}`,
-            );
-          }
+        if (!declarersOf(reading.name).some((declarer) => declarer.kind === kind)) {
+          continue;
+        }
+
+        const domain = Option.getOrThrow(domainAt(kind, reading.name));
+        assert.include(["string", "anySimpleType"], domain.primitive, `${kind}@${reading.name}`);
+        for (const value of spaced) {
+          assert.isTrue(matches(domain, value), `${kind}@${reading.name} ${JSON.stringify(value)}`);
         }
       }
     }
@@ -921,12 +920,14 @@ describe("The spec readings", () => {
     ] as const;
     let judged = 0;
     for (const [kind, name] of doubles) {
-      if (declarersOf(name).some((declarer) => declarer.kind === kind)) {
-        const domain = Option.getOrThrow(domainAt(kind, name));
-        judged += 1;
-        for (const value of spaced) {
-          assert.isTrue(matches(domain, value), `${kind}@${name} ${JSON.stringify(value)}`);
-        }
+      if (!declarersOf(name).some((declarer) => declarer.kind === kind)) {
+        continue;
+      }
+
+      const domain = Option.getOrThrow(domainAt(kind, name));
+      judged += 1;
+      for (const value of spaced) {
+        assert.isTrue(matches(domain, value), `${kind}@${name} ${JSON.stringify(value)}`);
       }
     }
 
@@ -1524,24 +1525,26 @@ describe("The spec readings", () => {
     const checked = new Map<string, readonly string[]>();
     for (const at of declarers) {
       const [kind = "", name = ""] = at.split("@");
-      if (declarersOf(name).some((declarer) => declarer.kind === kind)) {
-        const domain = Option.getOrThrow(domainAt(kind, name));
-        const wrong =
-          checked.get(domain.handle) ??
-          mediaTypeScope.filter(
-            (value) => matches(domain, value) !== (mediaTypeFault(value) === "valid"),
-          );
-        checked.set(domain.handle, wrong);
+      if (!declarersOf(name).some((declarer) => declarer.kind === kind)) {
+        continue;
+      }
 
-        assert.deepStrictEqual(wrong.slice(0, 20), [], at);
-        for (const [value, valid] of named) {
-          assert.strictEqual(matches(domain, value), valid, `${at} ${JSON.stringify(value)}`);
-          assert.strictEqual(
-            mediaTypeFault(value) === "valid",
-            valid,
-            `the reader on ${JSON.stringify(value)}`,
-          );
-        }
+      const domain = Option.getOrThrow(domainAt(kind, name));
+      const wrong =
+        checked.get(domain.handle) ??
+        mediaTypeScope.filter(
+          (value) => matches(domain, value) !== (mediaTypeFault(value) === "valid"),
+        );
+      checked.set(domain.handle, wrong);
+
+      assert.deepStrictEqual(wrong.slice(0, 20), [], at);
+      for (const [value, valid] of named) {
+        assert.strictEqual(matches(domain, value), valid, `${at} ${JSON.stringify(value)}`);
+        assert.strictEqual(
+          mediaTypeFault(value) === "valid",
+          valid,
+          `the reader on ${JSON.stringify(value)}`,
+        );
       }
     }
 

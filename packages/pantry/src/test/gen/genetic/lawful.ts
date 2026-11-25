@@ -250,14 +250,14 @@ const cheapestPath = (
     for (const next of automaton.follow.get(state) ?? []) {
       const through = least + (costs.get(next) ?? Infinity);
       if (
-        !settled.has(next) &&
-        Number.isFinite(through) &&
-        through < (best.get(next) ?? Infinity)
+        !(!settled.has(next) && Number.isFinite(through) && through < (best.get(next) ?? Infinity))
       ) {
-        best.set(next, through);
-        before.set(next, state);
-        open.add(next);
+        continue;
       }
+
+      best.set(next, through);
+      before.set(next, state);
+      open.add(next);
     }
   }
 

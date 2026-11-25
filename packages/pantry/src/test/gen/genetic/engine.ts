@@ -286,24 +286,26 @@ export const evolve = Effect.fnUntraced(function* evolve<G, F extends string, D,
     const judgments = yield* problem.judge(bred.map(({ genome }) => genome));
     for (const [at, { genome, lineage }] of bred.entries()) {
       const judgment = judgments[at];
-      if (judgment !== undefined) {
-        evaluated += 1;
-        let novel = false;
-        for (const feature of judgment.features) {
-          novel ||= !counts.has(feature);
-          counts.set(feature, (counts.get(feature) ?? 0) + 1);
-        }
+      if (judgment === undefined) {
+        continue;
+      }
 
-        for (const disagreement of judgment.disagreements) {
-          const signature = problem.signatureOf(disagreement);
-          if (!found.has(signature)) {
-            found.set(signature, { disagreement, genome, lineage });
-          }
-        }
+      evaluated += 1;
+      let novel = false;
+      for (const feature of judgment.features) {
+        novel ||= !counts.has(feature);
+        counts.set(feature, (counts.get(feature) ?? 0) + 1);
+      }
 
-        if (novel || members.length === 0) {
-          members.push({ features: judgment.features, genome, lineage });
+      for (const disagreement of judgment.disagreements) {
+        const signature = problem.signatureOf(disagreement);
+        if (!found.has(signature)) {
+          found.set(signature, { disagreement, genome, lineage });
         }
+      }
+
+      if (novel || members.length === 0) {
+        members.push({ features: judgment.features, genome, lineage });
       }
     }
   });
@@ -400,12 +402,14 @@ export const reduce = Effect.fnUntraced(function* reduce<G, E, R>(
       const verdicts = yield* fails(chunk);
       const at = verdicts.indexOf(true);
       const reduced = chunk[at];
-      if (at !== -1 && reduced !== undefined) {
-        best = reduced;
-        resume = from + start + at;
-        progressed = true;
-        break;
+      if (!(at !== -1 && reduced !== undefined)) {
+        continue;
       }
+
+      best = reduced;
+      resume = from + start + at;
+      progressed = true;
+      break;
     }
   }
 

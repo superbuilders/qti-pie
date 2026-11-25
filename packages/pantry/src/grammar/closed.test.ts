@@ -505,63 +505,65 @@ describe("closed relations against a naive tuple-set model", () => {
               c.note(drawnCase.variant);
               c.noteAll(model.layoutsHeld);
 
-              if (Option.isNone(model.reason)) {
-                // Every key point of the code spaces, held or not, each row, each row with its
-                // most significant field one past its roster, and each row with one key field
-                // left out, which no key holds.
-                const probes = [
-                  ...model.pointRows,
-                  ...model.rows,
-                  ...model.rows.map((row) => ({
-                    ...row,
-                    k0: String(
-                      drawnCase.key[0]?._tag === "id" ? drawnCase.key[0].size : dependentWidth,
-                    ),
-                  })),
-                  ...model.rows.flatMap((row) =>
-                    drawnCase.key.map((_, place) =>
-                      Object.fromEntries(
-                        Object.entries(row).filter(([name]) => name !== `k${String(place)}`),
-                      ),
+              if (Option.isSome(model.reason)) {
+                return;
+              }
+
+              // Every key point of the code spaces, held or not, each row, each row with its
+              // most significant field one past its roster, and each row with one key field
+              // left out, which no key holds.
+              const probes = [
+                ...model.pointRows,
+                ...model.rows,
+                ...model.rows.map((row) => ({
+                  ...row,
+                  k0: String(
+                    drawnCase.key[0]?._tag === "id" ? drawnCase.key[0].size : dependentWidth,
+                  ),
+                })),
+                ...model.rows.flatMap((row) =>
+                  drawnCase.key.map((_, place) =>
+                    Object.fromEntries(
+                      Object.entries(row).filter(([name]) => name !== `k${String(place)}`),
                     ),
                   ),
-                ];
-                if (model.rows.length > 0) {
-                  c.note("lookup missing a field");
-                }
+                ),
+              ];
+              if (model.rows.length > 0) {
+                c.note("lookup missing a field");
+              }
 
-                // Each row's source is its own stated index, so a key that answers another row's
-                // source names the wrong row.
-                const indexOf = new Map(model.rows.map((row, index) => [row, index]));
-                const indexedRelation = indexed(relation);
-                const withSources = indexedSourced(
-                  sourced({
-                    key: model.key,
-                    name: "Toy",
-                    payload: model.payload,
-                    rows: model.rows.map((row, index) => ({
-                      row,
-                      source: { _tag: "spec", cite: String(index) } as const,
-                    })),
-                  }),
+              // Each row's source is its own stated index, so a key that answers another row's
+              // source names the wrong row.
+              const indexOf = new Map(model.rows.map((row, index) => [row, index]));
+              const indexedRelation = indexed(relation);
+              const withSources = indexedSourced(
+                sourced({
+                  key: model.key,
+                  name: "Toy",
+                  payload: model.payload,
+                  rows: model.rows.map((row, index) => ({
+                    row,
+                    source: { _tag: "spec", cite: String(index) } as const,
+                  })),
+                }),
+              );
+              assert.deepStrictEqual(withSources.rows, relation.rows);
+              for (const probe of probes) {
+                const expected = Option.flatMap(model.keyOf(probe), (point) =>
+                  Option.fromNullishOr(model.seen.get(point)),
                 );
-                assert.deepStrictEqual(withSources.rows, relation.rows);
-                for (const probe of probes) {
-                  const expected = Option.flatMap(model.keyOf(probe), (point) =>
-                    Option.fromNullishOr(model.seen.get(point)),
-                  );
-                  assert.deepStrictEqual(indexedRelation.lookup(model.keyRowOf(probe)), expected);
-                  assert.deepStrictEqual(withSources.lookup(model.keyRowOf(probe)), expected);
-                  assert.deepStrictEqual(
-                    withSources.sourceOf(model.keyRowOf(probe)),
-                    expected.pipe(
-                      Option.map((row) => ({
-                        _tag: "spec",
-                        cite: String(indexOf.get(row) ?? -1),
-                      })),
-                    ),
-                  );
-                }
+                assert.deepStrictEqual(indexedRelation.lookup(model.keyRowOf(probe)), expected);
+                assert.deepStrictEqual(withSources.lookup(model.keyRowOf(probe)), expected);
+                assert.deepStrictEqual(
+                  withSources.sourceOf(model.keyRowOf(probe)),
+                  expected.pipe(
+                    Option.map((row) => ({
+                      _tag: "spec",
+                      cite: String(indexOf.get(row) ?? -1),
+                    })),
+                  ),
+                );
               }
             }),
         ),

@@ -1348,15 +1348,17 @@ export const targetsOf = Effect.fn("lexical.targetsOf")(function* targetsOf(
 
   const targets = new Map<string, readonly Target[]>(plain);
   for (const [kind, held] of contents) {
-    if ((plain.get(kind) ?? []).length === 0 && held.some(({ type }) => type === "anonymous")) {
-      const parent = admittedOf(grammar.content.contentModelOf, grammar.content.admissionIn).find(
-        (row) => row.child === kind && (plain.get(row.parent) ?? []).length > 0,
-      );
-      const frame = parent === undefined ? undefined : plain.get(parent.parent)?.[0];
-      const child = held[0]?.name;
-      if (frame !== undefined && child !== undefined) {
-        targets.set(kind, [{ _tag: "framed", child, parent: frame }]);
-      }
+    if (!((plain.get(kind) ?? []).length === 0 && held.some(({ type }) => type === "anonymous"))) {
+      continue;
+    }
+
+    const parent = admittedOf(grammar.content.contentModelOf, grammar.content.admissionIn).find(
+      (row) => row.child === kind && (plain.get(row.parent) ?? []).length > 0,
+    );
+    const frame = parent === undefined ? undefined : plain.get(parent.parent)?.[0];
+    const child = held[0]?.name;
+    if (frame !== undefined && child !== undefined) {
+      targets.set(kind, [{ _tag: "framed", child, parent: frame }]);
     }
   }
 

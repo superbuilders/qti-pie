@@ -1678,16 +1678,18 @@ const defaultBeforeEntity = (genome: CodecGenome): boolean => {
     const seen = new Set<string>();
     const pending = [...declaration.default.pieces];
     for (let piece = pending.pop(); piece !== undefined; piece = pending.pop()) {
-      if (piece._tag === "ref" && !seen.has(piece.name)) {
-        seen.add(piece.name);
-
-        const included = bound.get(piece.name);
-        if (included === undefined && later.has(piece.name)) {
-          return true;
-        }
-
-        pending.push(...(included ?? []));
+      if (!(piece._tag === "ref" && !seen.has(piece.name))) {
+        continue;
       }
+
+      seen.add(piece.name);
+
+      const included = bound.get(piece.name);
+      if (included === undefined && later.has(piece.name)) {
+        return true;
+      }
+
+      pending.push(...(included ?? []));
     }
 
     return false;

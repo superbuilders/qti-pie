@@ -436,38 +436,40 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               Effect.gen(function* knownCase() {
                 const held = knownList[at];
                 assert.isDefined(held, `no known entry ${String(at)}`);
-                if (held !== undefined) {
-                  const { entry, shows } = held;
-                  const genome = yield* genomeOf(knownEntries(entry));
-                  const judged = yield* judgeOne(genome, bench, at);
-                  const moved =
-                    entry.noised === undefined
-                      ? []
-                      : movedBy(
-                          judged,
-                          yield* judgeOne(
-                            noised(genome, entry.noised.noise, entry.noised.salt),
-                            bench,
-                            at,
-                          ),
-                          entry.noised.noise,
-                          entry.noised.salt,
-                        );
-                  const disagreements = [...judged.disagreements, ...moved];
-                  const signature = shownSignature(entry.signature);
-                  const shown = disagreements.map(shownDisagreement).join("; ") || "none";
-                  // A known class shows as it is keyed; a fixed one must not show again, under its
-                  // plain signature or under any stated limit.
-                  assert.strictEqual(
-                    disagreements.some((disagreement) =>
-                      showsClass(entry.signature, shows, disagreement),
-                    ),
-                    shows,
-                    shows
-                      ? `stale: ${signature} no longer shows, which waits on ${entry.owner}'s fix (${entry.fix}); delete its entry from #pantry/test/gen/genetic/known.ts in the fix's commit, or move it to fixed (its package shows ${shown})`
-                      : `${signature} shows again, which ${entry.owner}'s fix (${entry.fix}) closed (its package shows ${shown})`,
-                  );
+                if (held === undefined) {
+                  return;
                 }
+
+                const { entry, shows } = held;
+                const genome = yield* genomeOf(knownEntries(entry));
+                const judged = yield* judgeOne(genome, bench, at);
+                const moved =
+                  entry.noised === undefined
+                    ? []
+                    : movedBy(
+                        judged,
+                        yield* judgeOne(
+                          noised(genome, entry.noised.noise, entry.noised.salt),
+                          bench,
+                          at,
+                        ),
+                        entry.noised.noise,
+                        entry.noised.salt,
+                      );
+                const disagreements = [...judged.disagreements, ...moved];
+                const signature = shownSignature(entry.signature);
+                const shown = disagreements.map(shownDisagreement).join("; ") || "none";
+                // A known class shows as it is keyed; a fixed one must not show again, under its
+                // plain signature or under any stated limit.
+                assert.strictEqual(
+                  disagreements.some((disagreement) =>
+                    showsClass(entry.signature, shows, disagreement),
+                  ),
+                  shows,
+                  shows
+                    ? `stale: ${signature} no longer shows, which waits on ${entry.owner}'s fix (${entry.fix}); delete its entry from #pantry/test/gen/genetic/known.ts in the fix's commit, or move it to fixed (its package shows ${shown})`
+                    : `${signature} shows again, which ${entry.owner}'s fix (${entry.fix}) closed (its package shows ${shown})`,
+                );
               }),
           );
         }).pipe(Effect.scoped),
@@ -501,17 +503,19 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               Effect.gen(function* filledCase() {
                 const held = filledCases[at];
                 assert.isDefined(held, `no filled case ${String(at)}`);
-                if (held !== undefined) {
-                  const manifest = new TextEncoder().encode(held.manifest);
-                  const genome = yield* genomeOf(new Map([["imsmanifest.xml", manifest]]));
-                  const judged = yield* judgeOne(genome, bench, at);
-                  assert.isFalse(
-                    judged.disagreements.some((disagreement) =>
-                      recordsClassOf([keyTextBound], disagreement),
-                    ),
-                    `${held.name}: the oracle says ${judged.summary.oracle}, the import's rows ${judged.summary.import}`,
-                  );
+                if (held === undefined) {
+                  return;
                 }
+
+                const manifest = new TextEncoder().encode(held.manifest);
+                const genome = yield* genomeOf(new Map([["imsmanifest.xml", manifest]]));
+                const judged = yield* judgeOne(genome, bench, at);
+                assert.isFalse(
+                  judged.disagreements.some((disagreement) =>
+                    recordsClassOf([keyTextBound], disagreement),
+                  ),
+                  `${held.name}: the oracle says ${judged.summary.oracle}, the import's rows ${judged.summary.import}`,
+                );
               }),
           );
         }).pipe(Effect.scoped),
@@ -633,28 +637,30 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                 Effect.gen(function* plantedCase() {
                   const planted = plantedCases[at];
                   assert.isDefined(planted, `no planted case ${String(at)}`);
-                  if (planted !== undefined) {
-                    const judged = yield* judgeOne(yield* genomeOf(planted.entries), bench, at);
-                    const domains = judged.disagreements.filter(
-                      (disagreement) =>
-                        (disagreement.kind === "oracle-only-law" ||
-                          disagreement.kind === "import-only-law") &&
-                        disagreement.law === "value domain",
+                  if (planted === undefined) {
+                    return;
+                  }
+
+                  const judged = yield* judgeOne(yield* genomeOf(planted.entries), bench, at);
+                  const domains = judged.disagreements.filter(
+                    (disagreement) =>
+                      (disagreement.kind === "oracle-only-law" ||
+                        disagreement.kind === "import-only-law") &&
+                      disagreement.law === "value domain",
+                  );
+                  const sides = `the oracle says ${judged.summary.oracle}, the import's rows ${judged.summary.import}`;
+                  if (Option.isSome(planted.waits)) {
+                    const { fix, owner } = planted.waits.value;
+                    assert.isNotEmpty(
+                      domains,
+                      `stale: ${planted.name} no longer disagrees, which waits on ${owner}'s fix (${fix}); drop its wait in #pantry/test/gen/genetic/planted.ts in the fix's commit (${sides})`,
                     );
-                    const sides = `the oracle says ${judged.summary.oracle}, the import's rows ${judged.summary.import}`;
-                    if (Option.isSome(planted.waits)) {
-                      const { fix, owner } = planted.waits.value;
-                      assert.isNotEmpty(
-                        domains,
-                        `stale: ${planted.name} no longer disagrees, which waits on ${owner}'s fix (${fix}); drop its wait in #pantry/test/gen/genetic/planted.ts in the fix's commit (${sides})`,
-                      );
-                    } else {
-                      assert.deepStrictEqual(
-                        domains.map(shownDisagreement),
-                        [],
-                        `${planted.name}: ${sides}`,
-                      );
-                    }
+                  } else {
+                    assert.deepStrictEqual(
+                      domains.map(shownDisagreement),
+                      [],
+                      `${planted.name}: ${sides}`,
+                    );
                   }
                 }),
             );

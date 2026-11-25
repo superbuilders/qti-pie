@@ -283,34 +283,36 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                         .toSorted((a, b) => Number(a.start - b.start)),
                     );
                     assert.isTrue(Option.isSome(file), `${said}: the resource's file`);
-                    if (Option.isSome(file)) {
-                      // The href a writer plants is its resource's own file's, in the package, so its
-                      // header beside its entry arm; its typed path is the query `TypedPath`'s,
-                      // which no row stores.
-                      const { target } = file.value;
-                      const head = {
-                        package: resource.package,
-                        path: resource.path,
-                        start: resource.start,
-                      };
-                      const planted: PackageInputs = {
-                        ...inputs,
-                        ResourceHref: new Map([
-                          ...inputs.ResourceHref,
-                          [`planted ${placeOf(resource)}`, { ...head, scope: "entry" }],
-                        ]),
-                        ResourceHrefPath: new Map([
-                          ...inputs.ResourceHrefPath,
-                          [`planted ${placeOf(resource)}`, { ...head, target }],
-                        ]),
-                      };
-                      const broken = newlyBroken(planted, inputs);
-                      assert.deepStrictEqual(
-                        broken,
-                        ['ResourceHref ⊆ Attribute, "Manifest overlay"'],
-                        `${said}: a ResourceHref planted on ${target}'s resource, which writes no href, newly breaks ${JSON.stringify(broken)}`,
-                      );
+                    if (Option.isNone(file)) {
+                      continue;
                     }
+
+                    // The href a writer plants is its resource's own file's, in the package, so its
+                    // header beside its entry arm; its typed path is the query `TypedPath`'s,
+                    // which no row stores.
+                    const { target } = file.value;
+                    const head = {
+                      package: resource.package,
+                      path: resource.path,
+                      start: resource.start,
+                    };
+                    const planted: PackageInputs = {
+                      ...inputs,
+                      ResourceHref: new Map([
+                        ...inputs.ResourceHref,
+                        [`planted ${placeOf(resource)}`, { ...head, scope: "entry" }],
+                      ]),
+                      ResourceHrefPath: new Map([
+                        ...inputs.ResourceHrefPath,
+                        [`planted ${placeOf(resource)}`, { ...head, target }],
+                      ]),
+                    };
+                    const broken = newlyBroken(planted, inputs);
+                    assert.deepStrictEqual(
+                      broken,
+                      ['ResourceHref ⊆ Attribute, "Manifest overlay"'],
+                      `${said}: a ResourceHref planted on ${target}'s resource, which writes no href, newly breaks ${JSON.stringify(broken)}`,
+                    );
                   }
                 }),
             );
