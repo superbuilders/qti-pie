@@ -75,10 +75,6 @@ const isProduction = (file: string): boolean =>
 
 layer(NodeServices.layer)("db/layer.ts, built from the committed served file", (test) => {
   test.effect("builds the author login's layer with no database, compiling nothing", () =>
-    // Oracle: grizzle itself, `served` and `DbLayer.make`, which refuse a file of another login
-    // with `OpenError` at stage `config`, and the layer's own `ServedLoadError` for a file it
-    // cannot read or decode, such as a git-lfs pointer.
-    // Bound: the one login and its committed served file; residual none.
     Effect.gen(function* layerBuilds() {
       const fs = yield* FileSystem.FileSystem;
       /**
@@ -91,6 +87,12 @@ layer(NodeServices.layer)("db/layer.ts, built from the committed served file", (
       yield* fs.makeDirectory(secrets, { recursive: true });
       yield* fs.writeFileString(ca, unusedCa);
 
+      /**
+       * The layer's build, with no session. Oracle: grizzle itself, `served` and `DbLayer.make`,
+       * which refuse a file of another login with `OpenError` at stage `config`, and the layer's
+       * own `ServedLoadError` for a file it cannot read or decode, such as a git-lfs pointer.
+       * Bound: the one login and its committed served file; residual none.
+       */
       const exit = yield* Effect.provide(Effect.void, AuthorAppLayer).pipe(
         Effect.provide(
           ConfigProvider.layer(
@@ -125,9 +127,6 @@ describe("db/layer.ts, read from disk", () => {
   });
 
   it("finds a planted import of a migration artifact in each form on the production path, and none in test support", () => {
-    // Oracle: the rule above, on the named cases. Wild: a static import of the served file, a
-    // dynamic import of the snapshot inside a layer's effect, a type-only import and a re-export.
-    // Live: the served file's path as `#pantry/db/served.ts` resolves it, which reads no module.
     assert.deepStrictEqual(
       migrationImports(
         [
@@ -144,9 +143,8 @@ describe("db/layer.ts, read from disk", () => {
         "#migrations/qti/types.ts",
         "#migrations/qti/fingerprint.ts",
       ],
+      "the rule finds a static import of the served file, a dynamic import of the snapshot inside a layer's effect, a type-only import and a re-export, and not the served file's path as `#pantry/db/served.ts` resolves it, which reads no module",
     );
-    // A planted read on the production path counts, and the same read in a test or in test support
-    // does not.
     assert.deepStrictEqual(
       [
         path.join("db", "layer.ts"),
@@ -155,6 +153,7 @@ describe("db/layer.ts, read from disk", () => {
         path.join("test", "scratch.ts"),
       ].map(isProduction),
       [true, true, false, false],
+      "a planted read on the production path counts, and the same read in a test or in test support does not",
     );
   });
 });

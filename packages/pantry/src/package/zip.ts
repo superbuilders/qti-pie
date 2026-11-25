@@ -455,7 +455,8 @@ const endRecordAt = (view: DataView): Option.Option<number> => {
  *
  * The central directory must end exactly where the end record begins: APPNOTE's overall layout
  * places nothing between them but the ZIP64 records (section 4.3.6, reading 139), which are not
- * read, so an archive with other bytes in that gap is not a zip.
+ * read and are refused first, so the directory's own offset and size (sections 4.4.23 and 4.4.24)
+ * name the end record's offset, and an archive with other bytes in that gap is not a zip.
  *
  * @param archive - The zip file's path, naming refusals.
  * @param view - The whole file.
@@ -501,9 +502,6 @@ const locateDirectory = Effect.fn("package.locateDirectory")(function* locateDir
     );
   }
 
-  // The end record follows the central directory, with only the ZIP64 records, refused above,
-  // between them (APPNOTE 6.3.10, section 4.3.6), so the directory's own offset and size (sections
-  // 4.4.23 and 4.4.24) name the end record's offset, and any other bytes there are no zip.
   if (offset + size !== end) {
     return yield* malformed(
       offset + size > end
@@ -996,8 +994,9 @@ const signatureBytes = (signature: number): Uint8Array => {
  * Each entry is deflated (RFC 1951), or stored when it is under 64 bytes, in the order given. The
  * archive has local headers, a central directory and an end record, no directory entries and no
  * comments, UTF-8 names with general-purpose bit 11, and a fixed DOS timestamp of 1980-01-01
- * 00:00:00, so the same entries give the same bytes. The container is not part of what a round trip
- * compares: the entries are.
+ * 00:00:00, so the same entries give the same bytes. A central record's comment length, disk
+ * number, internal attributes and external attributes are zero; only its local header's offset is
+ * set. The container is not part of what a round trip compares: the entries are.
  *
  * It does not check the archive against the reader's caps or write ZIP64, so more than 65,535
  * entries or 4 GiB are outside it.
@@ -1035,8 +1034,6 @@ export const writeZip = (entries: readonly ZipEntry[]): Uint8Array => {
     const tail = new Uint8Array(14);
     const view = new DataView(tail.buffer);
 
-    // Comment length, disk number, internal attributes and external attributes are
-    // zero; only the local header's offset is set.
     view.setUint32(10, record.offset, true);
     parts.push(
       signatureBytes(CENTRAL_SIGNATURE),

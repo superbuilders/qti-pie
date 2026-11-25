@@ -119,7 +119,8 @@ const describeCanonical = (source: Uint8Array, exported: Uint8Array, offset: num
  * Canonicalize an entry when it is well-formed XML.
  *
  * An entry crust's reader refuses, for its charset, its prolog, an entity reference or its
- * well-formedness, is no XML document, and none is its canonical form.
+ * well-formedness, is no XML document, and none is its canonical form. A tree crust's reader built
+ * holds only characters XML allows, so canonicalization's refusal of one is a defect.
  *
  * @param bytes - The entry's bytes.
  * @returns Its Canonical XML 1.0 form with comments, or none for bytes that are not an XML
@@ -129,7 +130,6 @@ const describeCanonical = (source: Uint8Array, exported: Uint8Array, offset: num
 const canonicalOf = (bytes: Uint8Array) =>
   Effect.option(
     Effect.flatMap(readXml(bytes), (document) =>
-      // A tree crust's reader built holds only characters XML allows, so a refusal is a defect.
       Effect.orDie(Effect.fromResult(canonicalize(document))),
     ),
   );
