@@ -1,8 +1,9 @@
 /**
  * The item-session control each member of a delivered test is delivered under, read from pantry's
  * test views (`SessionControl`, `MaxAttempts`, `TestMember`, `ItemRefSection`), each a query over
- * the ledger so the delivery level states its laws over them and its programs read them
- * (`#ledger/delivery.ts`):
+ * them alone, a test's content, which the Ledger stores at publication (`#ledger/ledger.ts`
+ * MemberControl, IndividualRef, ValidatedMember, UnlimitedMember) for the delivery level's laws and
+ * programs to read by the member's key:
  *
  * - **Settings in force**: each setting a member's item session is delivered under is the nearest
  *   scope's that writes it, the item ref's own control, then each section that holds it, innermost
@@ -36,25 +37,26 @@
  * scope alone, so for those two the ref's own control is the one in force.
  */
 import { pg, query, Type, v } from "@bjornpagen/grizzle";
-import type { LedgerLevel } from "#ledger/delivery.ts";
+import type { RegistryLevel } from "#ledger/registry/levels.ts";
 
 /**
- * The member queries of the ledger's item-session controls.
+ * The member queries of the ledger's item-session controls, each a function of a package's content
+ * alone, read from pantry's test views.
  *
- * @param ledger The Ledger level.
+ * @param qti The level holding pantry's test views: the Registry, or a level above it.
  * @returns `memberControls`, each member's settings in force, and `individualRefs`,
  *   `validatedMembers` and `unlimitedMembers`, each keyed by the test's package and path and the
  *   item ref's place, `start`, with its identifier, `item`.
  */
-export const memberControlsOf = (ledger: LedgerLevel) => {
+export const memberControlsOf = (qti: RegistryLevel) => {
   const { ItemRefSection, MaxAttempts, SessionControl, SubmissionMode, TestMember, TestPart } =
-    ledger.relations;
+    qti.relations;
 
   /**
    * Each scope of an item ref, by the ref's place and the scope's: the ref itself, each section
    * that holds it at any depth, and its part.
    */
-  const refScopes = query(ledger)
+  const refScopes = query(qti)
     .rule((r) => {
       const { package: pkg, path, start } = v(TestMember, "ownScope");
 
@@ -89,7 +91,7 @@ export const memberControlsOf = (ledger: LedgerLevel) => {
   /**
    * Each scope of an item ref that writes a boolean setting, by the ref, the setting and the scope.
    */
-  const statingScopes = query(ledger).rule((r) => {
+  const statingScopes = query(qti).rule((r) => {
     const { package: pkg, path, scope, start } = v(refScopes, "statingScope");
     const { setting } = v(SessionControl, "stated");
 
@@ -103,7 +105,7 @@ export const memberControlsOf = (ledger: LedgerLevel) => {
    * Each boolean setting a scope of an item ref writes, by the ref and the setting, with the
    * nearest such scope, the one that starts last.
    */
-  const nearestSettings = query(ledger).rule((r) => {
+  const nearestSettings = query(qti).rule((r) => {
     const { package: pkg, path, scope, setting, start } = v(statingScopes, "nearestScope");
 
     return r
@@ -114,7 +116,7 @@ export const memberControlsOf = (ledger: LedgerLevel) => {
   /**
    * Each boolean setting in force for an item ref that some scope of it writes, with its value.
    */
-  const settingsInForce = query(ledger).rule((r) => {
+  const settingsInForce = query(qti).rule((r) => {
     const { package: pkg, path, scope, setting, start } = v(nearestSettings, "nearest");
     const { value } = v(SessionControl, "inForce");
 
@@ -127,7 +129,7 @@ export const memberControlsOf = (ledger: LedgerLevel) => {
   /**
    * Each scope of an item ref that writes a `max-attempts`, by the ref and the scope.
    */
-  const attemptScopes = query(ledger).rule((r) => {
+  const attemptScopes = query(qti).rule((r) => {
     const { package: pkg, path, scope, start } = v(refScopes, "attemptScope");
 
     return r
@@ -139,7 +141,7 @@ export const memberControlsOf = (ledger: LedgerLevel) => {
   /**
    * The nearest scope of an item ref that writes a `max-attempts`, the one that starts last.
    */
-  const nearestAttempts = query(ledger).rule((r) => {
+  const nearestAttempts = query(qti).rule((r) => {
     const { package: pkg, path, scope, start } = v(attemptScopes, "nearestAttemptScope");
 
     return r
@@ -150,7 +152,7 @@ export const memberControlsOf = (ledger: LedgerLevel) => {
   /**
    * Each member's `max-attempts` in force, a bigint: the nearest scope's, else QTI's 1.
    */
-  const attemptsInForce = query(ledger)
+  const attemptsInForce = query(qti)
     .rule((r) => {
       const { package: pkg, path, scope, start } = v(nearestAttempts, "stated");
       const { attempts } = v(MaxAttempts, "attemptsInForce");
@@ -177,7 +179,7 @@ export const memberControlsOf = (ledger: LedgerLevel) => {
    * @returns The query, by the member, with its `value`.
    */
   const falseByDefault = (setting: "show-feedback" | "show-solution") =>
-    query(ledger)
+    query(qti)
       .rule((r) => {
         const { package: pkg, path, start, value } = v(settingsInForce, "stated");
 
@@ -198,26 +200,28 @@ export const memberControlsOf = (ledger: LedgerLevel) => {
   const solutionInForce = falseByDefault("show-solution");
 
   /**
-   * Each member's `max-attempts`, `show-feedback` and `show-solution` in force, one row a member.
+   * Each member's `max-attempts`, `show-feedback` and `show-solution` in force, one row a member,
+   * with its item's document, the member's name in a sitting (`ItemSession`'s `path`), by which an
+   * item session reads its control.
    */
-  const memberControls = query(ledger).rule((r) => {
-    const { package: pkg, path, start } = v(TestMember, "controlled");
+  const memberControls = query(qti).rule((r) => {
+    const { document, package: pkg, path, start } = v(TestMember, "controlled");
     const { maxAttempts } = v(attemptsInForce, "memberAttempts");
     const { value: showFeedback } = v(feedbackInForce, "memberFeedback");
     const { value: showSolution } = v(solutionInForce, "memberSolution");
 
     return r
-      .match(TestMember, { package: pkg, path, start })
+      .match(TestMember, { document, package: pkg, path, start })
       .match(attemptsInForce, { maxAttempts, package: pkg, path, start })
       .match(feedbackInForce, { package: pkg, path, start, value: showFeedback })
       .match(solutionInForce, { package: pkg, path, start, value: showSolution })
-      .find({ maxAttempts, package: pkg, path, showFeedback, showSolution, start });
+      .find({ document, maxAttempts, package: pkg, path, showFeedback, showSolution, start });
   });
 
   /**
    * Each item reference of a part whose submission mode is individual, by its test and its place.
    */
-  const individualRefs = query(ledger).rule((r) => {
+  const individualRefs = query(qti).rule((r) => {
     const { item, package: pkg, part, path, start } = v(TestMember, "individualRef");
 
     return r
@@ -234,7 +238,7 @@ export const memberControlsOf = (ledger: LedgerLevel) => {
   /**
    * Each individual ref whose `validate-responses` in force is true.
    */
-  const validatedMembers = query(ledger).rule((r) => {
+  const validatedMembers = query(qti).rule((r) => {
     const { item, package: pkg, path, start } = v(individualRefs, "validatedRef");
 
     return r
@@ -252,7 +256,7 @@ export const memberControlsOf = (ledger: LedgerLevel) => {
   /**
    * Each individual ref whose `max-attempts` in force is 0, no limit.
    */
-  const unlimitedMembers = query(ledger).rule((r) => {
+  const unlimitedMembers = query(qti).rule((r) => {
     const { item, package: pkg, path, start } = v(individualRefs, "unlimitedRef");
     const { maxAttempts } = v(attemptsInForce, "noLimit");
 

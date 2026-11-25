@@ -75,7 +75,6 @@ import { assertionViewsOf } from "#ledger/assertion-views.ts";
 import { creditRelationsOf } from "#ledger/credit-relations.ts";
 import { named } from "#ledger/laws.ts";
 import type { ledgerOf } from "#ledger/ledger.ts";
-import { memberControlsOf } from "#ledger/member-controls.ts";
 import { moduleHeldOf } from "#ledger/module-held.ts";
 import { applicationOperandRelationsOf } from "#ledger/operands.ts";
 import { resultRelationsOf } from "#ledger/results.ts";
@@ -252,28 +251,16 @@ export const deliveryOf = (ledger: LedgerLevel) => {
   const { LateTest, TimingScope } = ledger.relations;
 
   /**
-   * Each member's item-session control in force, by the nearest scope, and the item refs whose own
-   * item-session-control a delivered test admits (`#ledger/member-controls.ts`).
+   * The item refs whose own item-session-control a delivered test admits, the Ledger's
+   * (`IndividualRef`, `#ledger/member-controls.ts`).
    */
-  const controls = memberControlsOf(ledger);
+  const { IndividualRef } = ledger.relations;
 
   /**
    * Each item session's control, a member's from its test and an item stage's from its stage, and
    * whether it takes another attempt (`#ledger/session-control.ts`).
    */
-  const sessionControls = sessionControlsOf(ledger, controls);
-
-  /**
-   * Each validated member, by its test and item ref: an answer to it is admitted under
-   * validate-responses true (`#ledger/grade.ts` memberAnswerAdmissionOf).
-   */
-  const ValidatedMember = derived("ValidatedMember", controls.validatedMembers);
-
-  /**
-   * Each unlimited member, by its test and item ref: its item session takes another attempt after
-   * each one (`#ledger/sitting-programs.ts` responseTarget).
-   */
-  const UnlimitedMember = derived("UnlimitedMember", controls.unlimitedMembers);
+  const sessionControls = sessionControlsOf(ledger);
 
   const undeliveredTests = query(ledger)
     .rule((r) => {
@@ -382,7 +369,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
           parentKind: "qti-assessment-item-ref",
           path,
         })
-        .where(r.not(controls.individualRefs, { package: pkg, path, start: ref }))
+        .where(r.not(IndividualRef, { package: pkg, path, start: ref }))
         .find({ package: pkg, path });
     })
     .rule((r) => {
@@ -414,7 +401,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
           setting: "validate-responses",
           value: true,
         })
-        .where(r.not(controls.individualRefs, { package: pkg, path, start: scope }))
+        .where(r.not(IndividualRef, { package: pkg, path, start: scope }))
         .find({ package: pkg, path });
     })
     .rule((r) => {
@@ -434,7 +421,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
       return r
         .match(TestRoot, { package: pkg, path })
         .match(MaxAttempts, { attempts: 0, package: pkg, path, scope })
-        .where(r.not(controls.individualRefs, { package: pkg, path, start: scope }))
+        .where(r.not(IndividualRef, { package: pkg, path, start: scope }))
         .find({ package: pkg, path });
     })
     .rule((r) => {
@@ -1235,8 +1222,6 @@ export const deliveryOf = (ledger: LedgerLevel) => {
   const deliveryRelations = [
     DeliveredTest,
     ItemDuration,
-    ValidatedMember,
-    UnlimitedMember,
     UndeliveredSitting,
     NextBudget,
     BudgetChain,

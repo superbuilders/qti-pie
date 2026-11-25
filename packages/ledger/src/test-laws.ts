@@ -33,10 +33,11 @@
  *   (Table 7.19.6). The members' order is the sitting's, the places its take writes
  *   (`MemberPlace`): the test's own order, but a section whose `qti-ordering` shuffles presents its
  *   members in their sitting's ranks (§5.98.1, `ShuffleRank`). It is stated as each presented
- *   member's predecessor in its part presented, which is every member before it in turn, one probe
- *   a presentation. Sound while a delivered test holds no qti-selection, qti-pre-condition or
- *   qti-branch-rule (`#ledger/delivery.ts` undeliveredKinds; a pre-condition skips an item and a
- *   branch rule jumps, §2.8.3, §5.23).
+ *   member's predecessor presented, which is every member before it in turn, one probe a
+ *   presentation; a delivered test has one part, so that is its predecessor in its part. Sound
+ *   while a delivered test holds no qti-selection, qti-pre-condition or qti-branch-rule
+ *   (`#ledger/delivery.ts` undeliveredKinds; a pre-condition skips an item and a branch rule jumps,
+ *   §2.8.3, §5.23).
  * - **Members placed** and **Placed members only**: a sitting's places are exactly its members, one
  *   each, which its take writes.
  * - **Placed from the first** and **Placed in order**: a sitting's places run from 1 with no gap, and
@@ -61,7 +62,6 @@
 import { check, contained, derived, key, on, query, Type, v } from "@bjornpagen/grizzle";
 import type { LedgerLevel } from "#ledger/delivery.ts";
 import { named } from "#ledger/laws.ts";
-import { memberControlsOf } from "#ledger/member-controls.ts";
 
 export const testLawsOf = (ledger: LedgerLevel) => {
   const {
@@ -78,6 +78,7 @@ export const testLawsOf = (ledger: LedgerLevel) => {
     TestPart,
     TestPresented,
     TestSession,
+    UnlimitedMember,
   } = ledger.relations;
 
   /**
@@ -143,11 +144,6 @@ export const testLawsOf = (ledger: LedgerLevel) => {
   });
 
   /**
-   * The unlimited members, whose item sessions take any number of attempts.
-   */
-  const { unlimitedMembers } = memberControlsOf(ledger);
-
-  /**
    * Each attempt of a sitting's member that takes at most one: every member's but an unlimited
    * one's.
    */
@@ -162,7 +158,7 @@ export const testLawsOf = (ledger: LedgerLevel) => {
         .match(testAttempts, { at, child, n, package: pkg, path, stage })
         .match(TestSession, { child, package: pkg, path: test, stage })
         .match(TestMember, { document: path, package: pkg, path: test, start })
-        .where(r.not(unlimitedMembers, { package: pkg, path: test, start }))
+        .where(r.not(UnlimitedMember, { package: pkg, path: test, start }))
         .find({ at, child, n, package: pkg, path, stage });
     }),
   );
@@ -281,32 +277,26 @@ export const testLawsOf = (ledger: LedgerLevel) => {
   const MovedOn = derived("MovedOn", movesOn);
 
   /**
-   * Each member of a linear part's sitting placed just before a presented member of the same part,
-   * by its item document: the member whose place (`MemberPlace`) is the presented member's prior.
-   * Every presented member's predecessor presented is every member before it presented, each in
-   * turn back to the part's first, so one probe a presentation states the law. A delivered test
-   * selects, skips and branches nothing (`#ledger/delivery.ts` undeliveredKinds).
+   * Each member of a linear sitting placed just before a presented member, by its item document:
+   * the member whose place (`MemberPlace`) is the presented member's prior. Every presented
+   * member's predecessor presented is every member before it presented, each in turn back to the
+   * first, so one probe a presentation states the law. A delivered test has one part, and selects,
+   * skips and branches nothing (`#ledger/delivery.ts` undeliveredTests, undeliveredKinds), so a
+   * test whose part is linear holds every member in it, and the law reads the test's part and two
+   * places, never the test's members.
    */
   const linearPreceding = query(ledger).rule((r) => {
     const { child, stage, package: pkg, path } = v(TestPresented, "presentedLater");
     const { path: test } = v(TestSession, "linearSitting");
-    const { part } = v(TestMember, "shownMember");
     const { prior } = v(MemberPlace, "shownPlace");
     const before = v(MemberPlace, "beforePlace");
 
     return r
       .match(TestPresented, { child, package: pkg, path, stage })
       .match(TestSession, { child, package: pkg, path: test, stage })
-      .match(TestMember, { document: path, package: pkg, part, path: test })
-      .match(TestPart, {
-        navigation: NavigationMode.handle("linear"),
-        package: pkg,
-        path: test,
-        start: part,
-      })
+      .match(TestPart, { navigation: NavigationMode.handle("linear"), package: pkg, path: test })
       .match(MemberPlace, { child, package: pkg, path, prior, stage })
       .match(MemberPlace, { child, package: pkg, path: before.path, place: before.place, stage })
-      .match(TestMember, { document: before.path, package: pkg, part, path: test })
       .where(r.eq(Type.base(before.place), prior))
       .find({ child, package: pkg, path: before.path, stage });
   });

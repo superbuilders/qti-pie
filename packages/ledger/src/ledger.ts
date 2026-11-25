@@ -65,6 +65,7 @@ import {
 } from "#ledger/grading.ts";
 import { anyText, LearnerId, ScorerId, someText } from "#ledger/keys.ts";
 import { named } from "#ledger/laws.ts";
+import { memberControlsOf } from "#ledger/member-controls.ts";
 import type { RegistryLevel } from "#ledger/registry/levels.ts";
 import { customOperators } from "#ledger/registry/operators.ts";
 import { QtiFloat, QtiInteger } from "#ledger/scalars.ts";
@@ -517,6 +518,28 @@ export const ledgerOf = (qti: RegistryLevel) => {
    * time"), so it reads the table, never the timing scopes again.
    */
   const LateTest = derived("LateTest", lateTests);
+
+  /**
+   * The item-session control of each member of a test (`#ledger/member-controls.ts`), a test's
+   * content, each stored at publication by the sealed Package, so a sitting's every read and law
+   * probes them by the member's key, its test and its item ref's place, where each derived every
+   * scope, setting and nearest one of the package's members anew:
+   *
+   * - **MemberControl**: each member's `max-attempts`, `show-feedback` and `show-solution` in force,
+   *   beside its item's document, what an item session is delivered under, read by its test and
+   *   that document (`#ledger/session-control.ts` ItemSessionControl).
+   * - **IndividualRef**: each item ref of a part whose submission mode is individual, the only refs
+   *   whose own control a delivered test admits (`#ledger/delivery.ts` undeliveredTests).
+   * - **ValidatedMember**: each individual ref whose `validate-responses` in force is true, whose
+   *   answer is admitted under it (`#ledger/grade.ts` memberAnswerAdmissionOf).
+   * - **UnlimitedMember**: each individual ref whose `max-attempts` in force is 0, whose item session
+   *   takes another attempt after each one (`#ledger/sitting-programs.ts` responseTarget).
+   */
+  const controls = memberControlsOf(qti);
+  const MemberControl = derived("MemberControl", controls.memberControls);
+  const IndividualRef = derived("IndividualRef", controls.individualRefs);
+  const ValidatedMember = derived("ValidatedMember", controls.validatedMembers);
+  const UnlimitedMember = derived("UnlimitedMember", controls.unlimitedMembers);
 
   /**
    * QTI's outcome declarations a candidate sees, by the document's place `(package, path)` and the
@@ -2731,6 +2754,10 @@ export const ledgerOf = (qti: RegistryLevel) => {
       SessionSeed,
       TimingScope,
       LateTest,
+      MemberControl,
+      IndividualRef,
+      ValidatedMember,
+      UnlimitedMember,
       StageControl,
       ProgramNodeKind,
       DeclarationNodeKind,

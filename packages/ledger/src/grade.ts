@@ -15250,20 +15250,26 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
    * The run admission judges: the answered session, by its run key (child, package, path, stage),
    * under the validate-responses its item ref's session control states (QTI 3.0.1 §7.19.7), a fact
    * of the run: true for a validated member (`ValidatedMember`, an individual part's ref whose own
-   * control sets it), false for every other, QTI's default (Table 7.19.7).
+   * control sets it), false for every other, QTI's default (Table 7.19.7); each read by the
+   * member's test and the item ref the call names.
    */
   const runsOf = query(delivery)
     .rule((r) => {
       const answered = answeredIn(r);
+      const sittings = r.relation("sittings", sittingHeading);
+      const { child: sittingChild, stage: sittingStage } = v(sittings, "subjectSitting");
       const { child, package: pkg, path, stage } = v(answered, "validatedAnswered");
       const { path: test } = v(fields.TestSession, "validatedTest");
-      const { item } = v(fields.TestMember, "validatedMember");
 
       return r
+        .match(sittings, { child: sittingChild, stage: sittingStage })
         .match(answered, { child, package: pkg, path, stage })
         .match(fields.TestSession, { child, package: pkg, path: test, stage })
-        .match(fields.TestMember, { document: path, item, package: pkg, path: test })
-        .match(fields.ValidatedMember, { item, package: pkg, path: test })
+        .match(fields.ValidatedMember, {
+          item: r.param("item", fields.Named.fields.identifier),
+          package: pkg,
+          path: test,
+        })
         .find({
           child,
           package: pkg,
@@ -15274,15 +15280,22 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const answered = answeredIn(r);
+      const sittings = r.relation("sittings", sittingHeading);
+      const { child: sittingChild, stage: sittingStage } = v(sittings, "subjectSitting");
       const { child, package: pkg, path, stage } = v(answered, "unvalidatedAnswered");
       const { path: test } = v(fields.TestSession, "unvalidatedTest");
-      const { item } = v(fields.TestMember, "unvalidatedMember");
 
       return r
+        .match(sittings, { child: sittingChild, stage: sittingStage })
         .match(answered, { child, package: pkg, path, stage })
         .match(fields.TestSession, { child, package: pkg, path: test, stage })
-        .match(fields.TestMember, { document: path, item, package: pkg, path: test })
-        .where(r.not(fields.ValidatedMember, { item, package: pkg, path: test }))
+        .where(
+          r.not(fields.ValidatedMember, {
+            item: r.param("item", fields.Named.fields.identifier),
+            package: pkg,
+            path: test,
+          }),
+        )
         .find({
           child,
           package: pkg,

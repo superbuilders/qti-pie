@@ -6,9 +6,10 @@
  *
  * - **ItemSessionControl** `(child, package, path, n) → maxAttempts, showFeedback, showSolution`: the
  *   session's effective `qti-item-session-control`. A test sitting's member's is its test's, each
- *   setting the nearest scope's that writes it, else QTI's default (`#ledger/member-controls.ts`);
- *   an item stage's is its `StageControl`, which the application's decision states, since no test's
- *   scope holds the item.
+ *   setting the nearest scope's that writes it, else QTI's default, the Ledger's `MemberControl`
+ *   stored at publication (`#ledger/member-controls.ts`), read by the session's test and item
+ *   document; an item stage's is its `StageControl`, which the application's decision states, since
+ *   no test's scope holds the item.
  * - **ItemSessionOpen** `(child, package, path, n)`: each session that takes another attempt. An
  *   adaptive item's until its `completionStatus` is completed, "the number of attempts is limited
  *   by the value of the completion-status built-in outcome variable"; any other's under
@@ -39,7 +40,6 @@ import type { Facts, NaturalDomain, Term } from "@bjornpagen/grizzle";
 import { check, contained, derived, Num, on, pg, query, Type, v } from "@bjornpagen/grizzle";
 import type { deliveryOf, LedgerLevel } from "#ledger/delivery.ts";
 import { named } from "#ledger/laws.ts";
-import type { memberControlsOf } from "#ledger/member-controls.ts";
 import { completedSessionsOf, countedAttemptsOf } from "#ledger/session-attempts.ts";
 
 /**
@@ -47,14 +47,10 @@ import { completedSessionsOf, countedAttemptsOf } from "#ledger/session-attempts
  * their laws, for the level to spread.
  *
  * @param ledger - The ledger level.
- * @param members - The member queries of the delivery level (`memberControlsOf`).
  * @returns The derived relations and their laws.
  */
-export const sessionControlsOf = (
-  ledger: LedgerLevel,
-  members: ReturnType<typeof memberControlsOf>,
-) => {
-  const { ItemMode, ItemSession, StageControl, TestEnd, TestMember, TestSession } =
+export const sessionControlsOf = (ledger: LedgerLevel) => {
+  const { ItemMode, ItemSession, MemberControl, StageControl, TestEnd, TestSession } =
     ledger.relations;
 
   /**
@@ -64,23 +60,18 @@ export const sessionControlsOf = (
     .rule((r) => {
       const { child, package: pkg, path, n, stage } = v(ItemSession, "memberSession");
       const { path: test } = v(TestSession, "memberSitting");
-      const { start } = v(TestMember, "member");
-      const { maxAttempts, showFeedback, showSolution } = v(
-        members.memberControls,
-        "memberControl",
-      );
+      const { maxAttempts, showFeedback, showSolution } = v(MemberControl, "memberControl");
 
       return r
         .match(ItemSession, { child, n, package: pkg, path, stage })
         .match(TestSession, { child, package: pkg, path: test, stage })
-        .match(TestMember, { document: path, package: pkg, path: test, start })
-        .match(members.memberControls, {
+        .match(MemberControl, {
+          document: path,
           maxAttempts,
           package: pkg,
           path: test,
           showFeedback,
           showSolution,
-          start,
         })
         .find({ child, maxAttempts, n, package: pkg, path, showFeedback, showSolution });
     })
