@@ -31,6 +31,7 @@ import { completeShrink } from "@bjornpagen/testing/shrink";
 import { swarm, swarmChoice } from "@bjornpagen/testing/swarm";
 import type { Swarm } from "@bjornpagen/testing/swarm";
 import { searched } from "@bjornpagen/testing/vitest";
+import { agree, exact, set as setOf, structuralHash } from "@bjornpagen/testing/oracle";
 import { Array as Arr, Duration, Effect, FileSystem, Formatter, Option, Result } from "effect";
 import { XML_NAMESPACE } from "@qti-pie/crust/tree.ts";
 import {
@@ -2252,7 +2253,13 @@ describe("The Schematron's ARIA role rules", () => {
           (found) => found.groups?.["role"] ?? "",
         );
 
-        assert.deepStrictEqual([...rules.keys()], ["source", "h1"]);
+        yield* agree(
+          [
+            ["RULE ARIA ROLE 1a's and 1b's elements", ["source", "h1"]],
+            ["the rules read", [...rules.keys()]],
+          ],
+          setOf(structuralHash, exact),
+        );
         assert.strictEqual(rules.get("source"), "count(@role)=0");
         assert.match(
           heading,
