@@ -22,11 +22,13 @@
  *   refusals as named invalid inputs.
  */
 import { regex } from "arkregex";
+import type { TestContext } from "vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, beforeAll, describe, it } from "@effect/vitest";
-import { drawn, explore } from "@bjornpagen/testing/explore";
-import { required } from "@bjornpagen/testing/features";
-import { array, element, int, weighted } from "@bjornpagen/testing/gen";
+import { nonEmpty } from "@bjornpagen/testing/assert";
+import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
+import { required, requiredInSpace } from "@bjornpagen/testing/features";
+import { array, element, int, map, weighted } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
@@ -48,6 +50,8 @@ import {
 import type { AttributeGrammar, Declared, ValueDomain } from "#pantry/grammar/attributes.ts";
 import { roster } from "#pantry/grammar/closed.ts";
 import { declaredRelation, rowFaultOf } from "#pantry/test/declared.ts";
+import { boxHolds } from "#pantry/test/box.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 import type { Roster } from "#pantry/grammar/closed.ts";
 import { composed, processCompiler } from "#pantry/grammar/compose.ts";
 import { patternFlags } from "#pantry/grammar/domains.ts";
@@ -146,24 +150,163 @@ const declarersOf = (name: string): readonly { readonly kind: string }[] =>
 const enumerationOf = (domain: Domain): readonly string[] =>
   domain.facets.flatMap(({ facet, value }) => (facet === "enumeration" ? [value] : []));
 
-describe("The departures from the XSD", () => {
-  it("are gone: a slider's step is NonNegativeDoubleDType, 0 and INF its lexical forms, NaN none, and zero its bound", () => {
-    const step = Option.getOrThrow(domainAt("qti-slider-interaction", "step"));
-    for (const value of ["0", "0.0", "INF", " 2.5 ", "1e3"]) {
-      assert.isTrue(matches(step, value), value);
-    }
+/**
+ * Draw a form of a lexical box: every string of up to `most` of `pieces`, run together.
+ *
+ * @param pieces - What a form is written with.
+ * @param most - The most pieces a form holds.
+ * @returns The box's generator.
+ */
+const formsOf = (pieces: Arr.NonEmptyReadonlyArray<string>, most: number): Gen<string> =>
+  map(array(element(pieces), { max: most, min: 0 }), (written) => written.join(""));
 
-    assert.isFalse(
-      matches(step, "NaN"),
-      "NaN meets no bound, so it is outside the bounded lexical space",
-    );
+/**
+ * How many forms {@link formsOf} draws from `pieces` pieces: every count of them from none to
+ * `most`, each piece any of them.
+ *
+ * @param pieces - How many pieces there are.
+ * @param most - The most pieces a form holds.
+ * @returns The count.
+ */
+const formCount = (pieces: number, most: number): number =>
+  Array.from({ length: most + 1 }, (_, length) => pieces ** length).reduce(
+    (sum, each) => sum + each,
+    0,
+  );
 
-    assert.deepStrictEqual(step.bound, Option.some({ facet: "minInclusive", value: 0 }));
+/**
+ * An attribute a lexical box reads: a kind's name, under the domain the leaf grammar admits it in.
+ */
+interface Target {
+  readonly kind: string;
+  readonly name: string;
+}
+
+/**
+ * Every kind of the leaf that declares a name, as the box's targets.
+ *
+ * @param name - The attribute.
+ * @returns Its declarers' targets; fails the test where none declares it.
+ */
+const targetsOf = (name: string): Arr.NonEmptyReadonlyArray<Target> =>
+  nonEmpty(
+    declarersOf(name).map(({ kind }) => ({ kind, name })),
+    `the kinds that declare ${name}`,
+  );
+
+/**
+ * What a form of a lexical box reaches: the oracle admits it, or refuses it.
+ */
+type Verdict = "accepted" | "refused";
+
+/**
+ * A lexical box: every target with every form, each read under the target's domain and held to an
+ * oracle that reads the specification, not the pattern.
+ */
+interface LexicalBox {
+  readonly accepts: (target: Target, form: string) => boolean;
+  readonly box: string;
+  readonly forms: Gen<string>;
+  readonly formsPerTarget: number;
+  readonly oracle: string;
+  readonly reaches: Arr.NonEmptyReadonlyArray<Verdict>;
+  readonly suite: string;
+  readonly targets: Arr.NonEmptyReadonlyArray<Target>;
+}
+
+/**
+ * Exhaust a lexical box: hold its size to its targets times its forms, then read every form under
+ * every target's domain as `matches` does, against the box's oracle.
+ *
+ * @param ctx - The test's context.
+ * @param lexical - The box.
+ * @returns The search; fails at the first form the domain and the oracle judge apart.
+ */
+const exhaustLexical = (ctx: TestContext, lexical: LexicalBox) => {
+  const generator: Gen<{ readonly form: string; readonly target: Target }> = (source) => ({
+    target: source.draw(element(lexical.targets)),
+    form: source.draw(lexical.forms),
   });
 
+  return Effect.andThen(
+    boxHolds(generator, lexical.targets.length * lexical.formsPerTarget),
+    searched(
+      ctx,
+      exhaust(
+        {
+          box: lexical.box,
+          caseHang: Duration.seconds(30),
+          concurrency: searchWidth,
+          coverage: requiredInSpace<Verdict>(lexical.reaches),
+          generator,
+          literal: Formatter.format,
+          oracle: { kind: "specification", name: lexical.oracle },
+          suite: lexical.suite,
+        },
+        ({ form, target }, c) =>
+          Effect.sync(() => {
+            const expected = lexical.accepts(target, form);
+            c.note(expected ? "accepted" : "refused");
+
+            assert.strictEqual(
+              matches(Option.getOrThrow(domainAt(target.kind, target.name)), form),
+              expected,
+              `${target.kind}@${target.name} on ${JSON.stringify(form)}`,
+            );
+          }),
+      ),
+    ),
+  );
+};
+
+/**
+ * XML Schema 1.0's `xs:double` lexical space (Part 2 §3.2.5.1), as printed: a decimal mantissa
+ * and an optional exponent, `INF`, `-INF` and `NaN`, and no `+INF`, which 1.0 does not write
+ * (reading `anyuri-lexical`'s edition).
+ */
+const xsDouble = regex(
+  "^(?:[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[Ee][+-]?[0-9]+)?|-?INF|NaN)$",
+  "u",
+);
+
+/**
+ * The pieces a double's box writes its forms with: digits, a decimal point, an exponent, both
+ * signs, the three names and two whitespace characters `collapse` reads.
+ */
+const doublePieces = ["0", "2.5", ".", "e3", "-", "+", "INF", "NaN", " ", "\t"] as const;
+
+describe("The departures from the XSD", () => {
+  it.effect(
+    `are gone: a slider's step is NonNegativeDoubleDType, its lexical space XML Schema 1.0's xs:double less NaN, collapsed, on every form of up to 3 of ${String(doublePieces.length)} pieces, and zero its bound`,
+    (ctx) =>
+      Effect.andThen(
+        exhaustLexical(ctx, {
+          accepts: (_, form) => {
+            const collapsed = collapseXml(form);
+
+            return xsDouble.test(collapsed) && collapsed !== "NaN";
+          },
+          box: "every form of up to 3 of 0, 2.5, the point, e3, both signs, INF, NaN, the space and the tab, on the slider's step",
+          forms: formsOf(doublePieces, 3),
+          formsPerTarget: formCount(doublePieces.length, 3),
+          oracle:
+            "XML Schema Part 2 §4.3.6's collapse, then 1.0's xs:double lexical space (§3.2.5.1) less NaN, which meets no bound and so is no value of the bounded type (the spec reading on NonNegativeDouble); the bound judges the value apart",
+          reaches: ["accepted", "refused"],
+          suite: "grammar/attributes/slider-step",
+          targets: [{ kind: "qti-slider-interaction", name: "step" }],
+        }),
+        Effect.sync(() => {
+          assert.deepStrictEqual(
+            Option.getOrThrow(domainAt("qti-slider-interaction", "step")).bound,
+            Option.some({ facet: "minInclusive", value: 0 }),
+          );
+        }),
+      ),
+  );
+
   it("are gone: a cell's headers are a plain list of identifiers in the attribute grammar, with no IDREF identity, since reading `cell-headers`'s same-table rule is an overlay's law", () => {
-    for (const kind of ["td", "th"]) {
-      const headers = Option.getOrThrow(domainAt(kind, "headers"));
+    for (const { kind, name } of targetsOf("headers")) {
+      const headers = Option.getOrThrow(domainAt(kind, name));
 
       assert.isTrue(
         matches(headers, "a b  c"),
@@ -173,13 +316,15 @@ describe("The departures from the XSD", () => {
     }
   });
 
-  it("are gone: param@valuetype is required, and xml:base is admitted on the three manifest kinds", () => {
+  it("are gone: param@valuetype is required, and xml:base is admitted on every content-packaging kind that declares it", () => {
     assert.strictEqual(
       Option.getOrThrow(leafGrammar.admission.lookup({ kind: "param", name: "valuetype" })).use,
       "required",
     );
-    for (const kind of ["cp:manifest", "cp:resources", "cp:resource"]) {
-      const base = Option.getOrThrow(domainAt(kind, "xml:base"));
+    for (const { kind, name } of targetsOf("xml:base").filter((target) =>
+      target.kind.startsWith("cp:"),
+    )) {
+      const base = Option.getOrThrow(domainAt(kind, name));
 
       assert.isTrue(matches(base, " ../items/ "), kind);
     }
