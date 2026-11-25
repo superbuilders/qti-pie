@@ -3,7 +3,8 @@ import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
-import { array, element as member, map } from "@bjornpagen/testing/gen";
+import { word } from "@bjornpagen/testing/dictionary";
+import { array, element as member, int, map } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Array as Arr, Duration, Effect, Formatter, Option, Result } from "effect";
@@ -20,6 +21,8 @@ import {
 import { boxHolds } from "#plate/test/box.ts";
 import { assetsOf } from "#plate/test/fixtures.ts";
 import type { KeptUrl, UrlContext } from "#plate/model/url.ts";
+import { htmlAttributes } from "#plate/model/url.dictionary.ts";
+import type { HtmlAttribute } from "#plate/model/url.dictionary.ts";
 
 /**
  * A URL attribute value's classification, as {@link classifyUrl} gives it.
@@ -277,6 +280,138 @@ const referenceValue: Gen<string> = map(
  */
 const REFERENCES = 1 + 7 + 7 ** 2;
 
+/**
+ * A case of the address box: a package path, the query and fragment after it, and the item's
+ * location.
+ */
+interface AddressCase {
+  readonly location: string;
+  readonly params: string;
+  readonly path: string;
+}
+
+/**
+ * Draw a case of the address box: an item at the package root, in `items` or in `items/deep`, and
+ * a package path of up to two of `media`, `..`, `a%20b` and `%C3%A9` before `a.png`, bare or after
+ * `./`, with no query or fragment, `?v=1`, `#x` or `?v=1#x`.
+ */
+const addressCase: Gen<AddressCase> = (source) => {
+  const depth = source.draw(int(0, 2));
+  const start = source.draw(member(["", "./"] as const));
+  const middle = source.draw(
+    array(member(["media", "..", "a%20b", "%C3%A9"] as const), { max: 2, min: 0 }),
+  );
+
+  return {
+    location: [...["items", "deep"].slice(0, depth), "q1.xml"].join("/"),
+    params: source.draw(member(["", "?v=1", "#x", "?v=1#x"] as const)),
+    path: `${start}${[...middle, "a.png"].join("/")}`,
+  };
+};
+
+/**
+ * How many cases {@link addressCase} draws.
+ */
+const ADDRESS_CASES = 3 * 2 * (1 + 4 + 4 ** 2) * 4;
+
+/**
+ * A case of the attribute box: an HTML attribute and the value it holds.
+ */
+interface AttributeCase {
+  readonly attribute: HtmlAttribute;
+  readonly value: string;
+}
+
+/**
+ * Draw a URL of the attribute box: none, a slash, a remote origin or another scheme before up to
+ * two of `media`, `..` and `a%20b` and then `a.png`, with no fragment or `#v`.
+ */
+const attributeUrl: Gen<string> = (source) => {
+  const start = source.draw(member(["", "/", "https://r.example/", "mailto:"] as const));
+  const middle = source.draw(array(member(["media", "..", "a%20b"] as const), { max: 2, min: 0 }));
+  const fragment = source.draw(member(["", "#v"] as const));
+
+  return `${start}${[...middle, "a.png"].join("/")}${fragment}`;
+};
+
+/**
+ * Draw a srcset of the attribute box: one or two candidates, each `a.png`, `../a.png` or
+ * `../../b.png`, bare or on a remote origin, with its density, 1x then 2x.
+ */
+const attributeSrcset: Gen<string> = map(
+  array(
+    (source) =>
+      `${source.draw(member(["", "https://r.example/"] as const))}${source.draw(member(["a.png", "../a.png", "../../b.png"] as const))}`,
+    { max: 2, min: 1 },
+  ),
+  (urls) => urls.map((url, at) => `${url} ${String(at + 1)}x`).join(", "),
+);
+
+/**
+ * Draw a case of the attribute box: each of {@link htmlAttributes}, holding a srcset where it is a
+ * srcset and a URL of {@link attributeUrl} elsewhere.
+ */
+const attributeCase: Gen<AttributeCase> = (source) => {
+  const attribute = source.draw(word(htmlAttributes));
+
+  return {
+    attribute,
+    value: source.draw(attribute.context === "srcset" ? attributeSrcset : attributeUrl),
+  };
+};
+
+/**
+ * How many cases {@link attributeCase} draws: six attributes by 4 * 13 * 2 URLs, and the srcset
+ * attribute by 6 + 6 * 6 lists.
+ */
+const ATTRIBUTE_CASES = 6 * 4 * (1 + 3 + 3 ** 2) * 2 + (6 + 6 * 6);
+
+/**
+ * Whether a value is a relative path: no scheme (RFC 3986 section 3.1: a letter, then letters,
+ * digits, `+`, `-` or `.`, then a colon, before any `/`, `?` or `#`) and no slash first.
+ *
+ * @param value The value.
+ * @returns Whether it is a relative path.
+ */
+const isRelativePath = (value: string): boolean => {
+  const colon = value.indexOf(":");
+  const beforeColon = value.slice(0, Math.max(colon, 0));
+  const hasScheme =
+    colon > 0 &&
+    !beforeColon.includes("/") &&
+    !beforeColon.includes("?") &&
+    !beforeColon.includes("#");
+
+  return !hasScheme && !value.startsWith("/");
+};
+
+/**
+ * The files an attribute's value names, by the oracle: none for an attribute that holds no URL, a
+ * value with a scheme or a slash first; a relative path's file, its fragment apart, as the suite's
+ * RFC 3986 transcription resolves it from `items/q1.xml` ({@link fileByRfc3986}); and a srcset's
+ * candidates' files in order where every candidate names one, none where any does not.
+ *
+ * @param attribute The attribute.
+ * @param value Its value.
+ * @returns The files, from the package root.
+ */
+const attributeFiles = (attribute: HtmlAttribute, value: string): readonly string[] => {
+  const fileOf = (url: string): readonly string[] =>
+    isRelativePath(url) ? fileByRfc3986("items/q1.xml", url.split("#")[0] ?? url) : [];
+
+  if (attribute.context === "none") {
+    return [];
+  }
+
+  if (attribute.context !== "srcset") {
+    return fileOf(value);
+  }
+
+  const files = value.split(", ").map((entry) => fileOf(entry.split(" ")[0] ?? entry));
+
+  return files.every((named) => named.length === 1) ? files.flat() : [];
+};
+
 describe("urlContextOf", () => {
   it("names each body attribute's context, and none for param@value or an undeclared pair", () => {
     assert.deepStrictEqual(
@@ -474,27 +609,53 @@ describe("resolution against the item's location", () => {
     );
   });
 
-  it("names the file a package path names from the item's directory, each segment percent-decoded, its query and fragment apart", () => {
-    const cases = [
-      ["items/q1.xml", "media/a%20b.png", "items/media/a b.png", ""],
-      ["items/q1.xml", "media/%C3%A9.png", "items/media/é.png", ""],
-      ["items/q1.xml", "asl/item123.mp4#t=00:00:16.0", "items/asl/item123.mp4", "#t=00:00:16.0"],
-      ["items/q1.xml", "a.png?v=1#x", "items/a.png", "?v=1#x"],
-      ["items/q1.xml", "./@evil.com/x", "items/@evil.com/x", ""],
-      ["items/q1.xml", "./javascript:x", "items/javascript:x", ""],
-      ["items/deep/q1.xml", "../x.png", "items/x.png", ""],
-      ["items/q1.xml", "../images/a.png", "images/a.png", ""],
-      ["q1.xml", "media/a.png", "media/a.png", ""],
-      ["items/q1.xml", "a%ZZ.png", "items/a%ZZ.png", ""],
-    ] as const;
-    for (const [location, path, file, params] of cases) {
-      assert.deepStrictEqual(
-        addressUrl(inPackage(path), location, assetsOf([[file, "https://cdn.example/f"]])),
-        Result.succeed(`https://cdn.example/f${params}`),
-        `${path} in ${location}`,
-      );
-    }
-  });
+  it.effect(
+    `names the file a package path names from the item's directory, each segment percent-decoded, its query and fragment apart, over every path of the address box in an item at each depth: ${String(ADDRESS_CASES)} cases`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(addressCase, ADDRESS_CASES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every package path of up to two of media, .., a%20b and %C3%A9 before a.png, bare or after ./, with no query or fragment, ?v=1, #x or ?v=1#x, in an item at the package root, in items and in items/deep",
+              caseHang,
+              coverage: requiredInSpace<"addressed" | "above the root">([
+                "addressed",
+                "above the root",
+              ]),
+              generator: addressCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "RFC 3986, by the suite's transcription (fileByRfc3986): the path resolved against the item's location, each segment percent-decoded, names the file whose address assets gives, its query and fragment written after it; a path that climbs above the package root names no file, so addressUrl gives it missing, the item's directory and the path as written (reading `href-resolution`)",
+              },
+              suite: "plate/url/addressed",
+            },
+            ({ location, params, path }, c) =>
+              Effect.sync(() => {
+                const files = fileByRfc3986(location, path);
+                c.note(files.length === 0 ? "above the root" : "addressed");
+
+                assert.deepStrictEqual(
+                  addressUrl(
+                    inPackage(`${path}${params}`),
+                    location,
+                    assetsOf(files.map((file) => [file, "https://cdn.example/f"])),
+                  ),
+                  files.length === 0
+                    ? Result.fail({
+                        kind: "missing",
+                        path: [...location.split("/").slice(0, -1), path].join("/"),
+                      })
+                    : Result.succeed(`https://cdn.example/f${params}`),
+                  `${path}${params} in ${location}`,
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 
   it("names a directory for a path that ends in one, and no file for one that climbs above the package root", () => {
     for (const [location, value, files] of [
@@ -567,39 +728,41 @@ describe("addressUrl", () => {
 });
 
 describe("assetPaths", () => {
-  it("names each file a URL attribute's package paths name, a srcset's in order, and none for any other value", () => {
-    const cases = [
-      ["img", "src", "media/a%20b.png", ["items/media/a b.png"]],
-      ["object", "data", "media/graph.svg#v", ["items/media/graph.svg"]],
-      ["video", "poster", "./poster.png", ["items/poster.png"]],
-      ["a", "href", "passage.html", ["items/passage.html"]],
-      [
-        "source",
-        "srcset",
-        "a.png 1x, b.png 2x, c.png 3x",
-        ["items/a.png", "items/b.png", "items/c.png"],
-      ],
-      ["source", "srcset", "a.png 1x, https://r.example/b.png 2x, c.png 3x", []],
-      ["img", "src", "../shared/a.png", ["shared/a.png"]],
-      ["img", "src", "../../shared/a.png", []],
-      ["source", "srcset", "a.png 1x, ../../b.png 2x", []],
-      ["img", "src", "/a.png", []],
-      ["img", "src", "https://r.example/a.png", []],
-      ["object", "data", "https://r.example/a.svg", []],
-      ["a", "href", "#q1", []],
-      ["img", "src", "javascript:alert(1)", []],
-      ["img", "src", " ", []],
-      ["img", "alt", "a.png", []],
-      ["p", "src", "a.png", []],
-    ] as const;
-    for (const [element, attribute, value, files] of cases) {
-      assert.deepStrictEqual(
-        assetPaths("items/q1.xml", element, attribute, value),
-        files,
-        `${element}@${attribute}="${value}"`,
-      );
-    }
-  });
+  it.effect(
+    `names each file a URL attribute's package paths name, a srcset's in order, and none for any other value, over every value of the attribute box on each HTML attribute: ${String(ATTRIBUTE_CASES)} cases`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(attributeCase, ATTRIBUTE_CASES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "on each of htmlAttributes, in items/q1.xml: every value of none, a slash, https://r.example/ or javascript: before up to two of media, .. and a%20b and then a.png, with no fragment or #v; on a srcset, every list of one or two candidates, each a.png, ../a.png or ../../b.png, bare or remote, with its density",
+              caseHang,
+              coverage: requiredInSpace<"files" | "no file">(["files", "no file"]),
+              generator: attributeCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "an attribute that holds no URL names no file; a value with a scheme (RFC 3986 section 3.1) or that starts with a slash names none, a remote link included, which no host serves from the package; a relative path names the file the suite's RFC 3986 transcription resolves from the item's location (fileByRfc3986), its fragment apart, none above the package root (reading `href-resolution`); a srcset names its candidates' files in order where every candidate names one, and none where any does not",
+              },
+              suite: "plate/url/asset-paths",
+            },
+            ({ attribute, value }, c) =>
+              Effect.sync(() => {
+                const files = attributeFiles(attribute, value);
+                c.note(files.length === 0 ? "no file" : "files");
+
+                assert.deepStrictEqual(
+                  assetPaths("items/q1.xml", attribute.element, attribute.attribute, value),
+                  files,
+                  `${attribute.element}@${attribute.attribute}="${value}"`,
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 });
 
 describe("a PCI's module locations", () => {
