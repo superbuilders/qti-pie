@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -58,7 +59,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("qti schema, database-f
 
   it.effect("scripts/anc.sh schema exits 0 with JSON on standard output", () =>
     Effect.gen(function* ancProbe() {
-      const { spawnSync } = yield* Effect.promise(() => import("node:child_process"));
       const result = spawnSync(path.join(packageRoot, "scripts", "anc.sh"), ["schema"], {
         encoding: "utf-8",
         stdio: ["ignore", "pipe", "pipe"],
