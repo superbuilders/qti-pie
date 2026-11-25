@@ -87,6 +87,7 @@ const plateNodePattern = {
  * through UI SDK's.
  */
 const plateDefinePattern = {
+  allowTypeImports: true,
   importNames: ["definePrimitive"],
   message:
     "Define a plate primitive with definePrimitive from #plate/ui/define-primitive.ts, which refuses a slot whose parts take props but no key.",

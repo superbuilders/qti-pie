@@ -281,7 +281,24 @@ const viteServer = () =>
         noDiscovery: true,
       },
       root: path.dirname(path.dirname(path.dirname(pageModule))),
-      server: { hmr: false, middlewareMode: true, ws: false },
+      // A deny list replaces Vite's own, so this is Vite 8.3's (`_serverConfigDefaults.fs.deny`)
+      // with jj's store beside git's, which a page never reads.
+      server: {
+        fs: {
+          deny: [
+            ".env",
+            ".env.*",
+            "*.{crt,pem,key,p12,pfx,cer,der}",
+            ".npmrc",
+            ".yarnrc.yml",
+            "**/.git/**",
+            "**/.jj/**",
+          ],
+        },
+        hmr: false,
+        middlewareMode: true,
+        ws: false,
+      },
     });
 
     await server.environments.client.depsOptimizer?.init();
@@ -503,18 +520,30 @@ const openedAt = (
       }
     });
     yield* attempt("loaded the page", () => page.goto(address));
+
     // The page hydrates, or something it reported ends the wait at once: a module that failed to
-    // load never hydrates it.
+    // load never hydrates it, and an error React reports to the page's own handlers stops it. The
+    // page's errors read as none while it is still loading, where nothing can be read of it yet.
+    const errorsNow = attempt("read the page's errors", () =>
+      page.evaluate(() => window.hydrated?.errors ?? []),
+    ).pipe(
+      Effect.orElseSucceed((): readonly string[] => []),
+      Effect.map((reported) => [...thrown, ...reported]),
+    );
+
     yield* Effect.raceFirst(
       attempt("waited for the page to hydrate", () =>
         page.waitForFunction(() => window.hydrated?.hydrated === true),
       ),
       Effect.gen(function* reporting() {
-        while (thrown.length === 0) {
+        let errors = yield* errorsNow;
+
+        while (errors.length === 0) {
           yield* Effect.sleep("100 millis");
+          errors = yield* errorsNow;
         }
 
-        return yield* new HydrationFailure({ cause: thrown, step: "loaded the page" });
+        return yield* new HydrationFailure({ cause: errors, step: "loaded the page" });
       }),
     );
 
