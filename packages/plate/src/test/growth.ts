@@ -10,11 +10,13 @@
  * @module
  */
 import { execFileSync } from "node:child_process";
-import { execPath } from "node:process";
+import { rmSync } from "node:fs";
+import { env, execPath } from "node:process";
 import { fileURLToPath } from "node:url";
 import { growthFactor } from "@qti-pie/crust/test/growth.ts";
 import { Effect, Schema } from "effect";
 import type { SubjectName } from "#plate/test/counted.ts";
+import { scratchFolder } from "#plate/test/scratch.ts";
 
 /**
  * The ratio of blocks that tells linear growth from quadratic: the geometric mean of the ratios
@@ -54,11 +56,13 @@ const baselineTiers = "--max-opt=1";
  * of a subject (`#plate/test/counted.ts`) takes on `fewer` parts and on {@link growthFactor} times
  * as many, in a Node process of its own, whose V8 compiles every function the subject runs with
  * block counters (`#plate/test/blocks.ts`) and none with an optimizing compiler
- * ({@link baselineTiers}). The count is exact, so one run of each size tells the
- * growth. It counts every function call and every block a branch or a loop enters in JavaScript,
- * and no step a builtin takes inside itself: a quadratic dedupe that scans what it kept with
- * `Array.prototype.some` reads about 64 times the blocks on 8 times the entries, and one that scans
- * with `Array.prototype.includes` about 8 times.
+ * ({@link baselineTiers}). The process runs with `NODE_V8_COVERAGE` set, so Node turns block
+ * coverage on before any module loads; Node writes its own coverage into that folder as the
+ * process exits, a scratch folder of the run's own, removed once the process has ended. The count
+ * is exact, so one run of each size tells the growth. It counts every function call and every
+ * block a branch or a loop enters in JavaScript, and no step a builtin takes inside itself: a
+ * quadratic dedupe that scans what it kept with `Array.prototype.some` reads about 64 times the
+ * blocks on 8 times the entries, and one that scans with `Array.prototype.includes` about 8 times.
  *
  * @param subject The subject: the computation and the input it builds.
  * @param fewer How many parts the smaller input holds.
@@ -66,14 +70,20 @@ const baselineTiers = "--max-opt=1";
  *   smaller.
  */
 export const blockGrowth = (subject: SubjectName, fewer: number): Effect.Effect<number> =>
-  Effect.sync(() =>
-    execFileSync(
-      execPath,
-      [baselineTiers, blocksScript, subject, String(fewer), String(fewer * growthFactor)],
-      {
-        encoding: "utf-8",
-      },
-    ),
+  Effect.acquireUseRelease(
+    Effect.sync(() => scratchFolder("coverage-")),
+    (coverage) =>
+      Effect.sync(() =>
+        execFileSync(
+          execPath,
+          [baselineTiers, blocksScript, subject, String(fewer), String(fewer * growthFactor)],
+          { encoding: "utf-8", env: { ...env, NODE_V8_COVERAGE: coverage } },
+        ),
+      ),
+    (coverage) =>
+      Effect.sync(() => {
+        rmSync(coverage, { force: true, recursive: true });
+      }),
   ).pipe(
     Effect.flatMap((written) => Effect.orDie(Schema.decodeUnknownEffect(BlocksSchema)(written))),
     Effect.map((blocks) => blocks.more / blocks.fewer),
