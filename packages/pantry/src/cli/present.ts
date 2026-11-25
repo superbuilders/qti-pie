@@ -20,7 +20,7 @@ import type { DatabaseRefusal } from "#pantry/cli/refused.ts";
 const layOut = (
   description: Pick<FailureDescription, "help" | "kind">,
   message: string,
-  details: readonly string[] = [],
+  details: readonly string[],
 ): string =>
   [
     `error[${description.kind}]: ${message.replaceAll("\n", "\n  ")}`,
@@ -230,8 +230,8 @@ const render = (
   shown: Presentation,
   description: FailureDescription,
   message: string,
-  details: readonly string[] = [],
-  facts: Facts = {},
+  details: readonly string[],
+  facts: Facts,
 ): string => {
   if (shown.mode === "text") {
     return layOut(description, message, [...details, ...factLines(facts)]);
@@ -265,12 +265,18 @@ export const presenterFor = (shown: Presentation): CliOutput.Presenter => ({
   present: (event) =>
     event._tag === "InvalidInvocation"
       ? Console.error(
-          render(shown, usage, event.errors.map(({ message }) => message).join("\n"), [
-            `usage: ${event.helpDoc.usage}`,
-            ...(validCommands(event.helpDoc).length === 0
-              ? []
-              : [`commands: ${validCommands(event.helpDoc).join(", ")}`]),
-          ]),
+          render(
+            shown,
+            usage,
+            event.errors.map(({ message }) => message).join("\n"),
+            [
+              `usage: ${event.helpDoc.usage}`,
+              ...(validCommands(event.helpDoc).length === 0
+                ? []
+                : [`commands: ${validCommands(event.helpDoc).join(", ")}`]),
+            ],
+            {},
+          ),
         )
       : CliOutput.defaultPresenter.present(event),
 });
@@ -287,7 +293,7 @@ export const formatterFor = (shown: Presentation): CliOutput.Formatter => {
 
   return {
     formatCliError: base.formatCliError,
-    formatError: (error) => render(shown, describeFailure(error), error.message),
+    formatError: (error) => render(shown, describeFailure(error), error.message, [], {}),
     formatErrors: base.formatErrors,
     formatHelpDoc: base.formatHelpDoc,
     formatVersion: base.formatVersion,
@@ -316,8 +322,14 @@ const renderDefect = (shown: Presentation, defect: unknown): string => {
       };
 
       return shown.mode === "text"
-        ? [layOut(internal, "an unexpected failure ended the run."), trace].join("\n")
-        : render(shown, internal, `an unexpected failure ended the run: ${messageOf(defect)}`);
+        ? [layOut(internal, "an unexpected failure ended the run.", []), trace].join("\n")
+        : render(
+            shown,
+            internal,
+            `an unexpected failure ended the run: ${messageOf(defect)}`,
+            [],
+            {},
+          );
     },
     onSome: (tag) => {
       const description = describeFailure(defect);

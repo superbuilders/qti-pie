@@ -70,7 +70,7 @@ const pathOf = (bytes: number): string => {
  * @param path - The item's path.
  * @returns Its entries.
  */
-const packageOf = (answer: string, path = "item.xml"): ReadonlyMap<string, Uint8Array> =>
+const packageOf = (answer: string, path: string): ReadonlyMap<string, Uint8Array> =>
   new Map([
     [
       "imsmanifest.xml",
@@ -167,7 +167,7 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
           Effect.gen(function* oneLength() {
             const fs = yield* FileSystem.FileSystem;
             const answer = sentenceOf(bytes);
-            const dir = yield* scopedPackage(packageOf(answer));
+            const dir = yield* scopedPackage(packageOf(answer, "item.xml"));
             const target = yield* fs.makeTempDirectoryScoped();
             const imported = yield* importDir(dir);
 

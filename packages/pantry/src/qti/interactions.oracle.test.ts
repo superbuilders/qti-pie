@@ -644,7 +644,7 @@ interface ModuleForms {
  * @param content - What follows its module element, as written: by default its empty markup.
  * @returns The interaction's text.
  */
-const pciOf = ({ attribute, element }: ModuleForms, content = "<qti-interaction-markup/>") =>
+const pciOf = ({ attribute, element }: ModuleForms, content: string) =>
   `<qti-portable-custom-interaction response-identifier="RESPONSE"${attribute ? ` module="m"` : ""} custom-interaction-type-identifier="t">${element ? moduleElement : ""}${content}</qti-portable-custom-interaction>`;
 
 /**
@@ -673,7 +673,7 @@ const breachesOfLaw = (law: string) => (judgment: Parameters<typeof breachesOf>[
  */
 const pciBreachesOf = (forms: ModuleForms) =>
   Effect.map(
-    judged({ ...base, "item.xml": itemWith(pciOf(forms)) }),
+    judged({ ...base, "item.xml": itemWith(pciOf(forms, "<qti-interaction-markup/>")) }),
     breachesOfLaw("PCI module source"),
   );
 
@@ -707,7 +707,7 @@ describe("qti/interactions.ts, PCI module source", () => {
  * @param declarations - Text inserted before the item's first declaration.
  * @returns The distinct names of the laws breached.
  */
-const lawsBreachedBy = (interaction: string, declarations = "") =>
+const lawsBreachedBy = (interaction: string, declarations: string) =>
   Effect.map(
     judged({
       "imsmanifest.xml": manifestOf(itemResource),
@@ -726,7 +726,7 @@ describe("qti/interactions.ts, the context variable and the markup's content", (
     // 'QTI_CONTEXT'", and its issue #142, which makes a `qti-context-variable`'s `identifier` "an
     // open string" so that it names the built-in variable with no declaration.
     Effect.gen(function* undeclared() {
-      const found = yield* lawsBreachedBy(contextPci("QTI_CONTEXT"));
+      const found = yield* lawsBreachedBy(contextPci("QTI_CONTEXT"), "");
       assert.notInclude(found, "Idref target", found.join(", "));
       assert.notInclude(found, "Context variable reference", found.join(", "));
     }),
@@ -771,11 +771,13 @@ describe("qti/interactions.ts, the context variable and the markup's content", (
             'response-identifier="RESPONSE"',
             'response-identifier="NOWHERE"',
           )}</qti-custom-interaction>`,
+          "",
         );
         assert.notInclude(inside, "Binding declared", inside.join(", "));
 
         const outside = yield* lawsBreachedBy(
           '<qti-custom-interaction response-identifier="NOWHERE"/>',
+          "",
         );
         assert.include(outside, "Binding declared", outside.join(", "));
       }),

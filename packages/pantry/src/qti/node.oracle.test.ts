@@ -698,7 +698,7 @@ const editedForeign = (
   rows: FoldedRows<Composed>,
   kind: string,
   node: Partial<Pick<FoldedNode<Composed>, "governs" | "prefix">>,
-  name: { readonly local?: string } = {},
+  name: { readonly local?: string },
 ): FoldedRows<Composed> => {
   const target = rows.nodes.find((held) => held.kind === kind);
   assert.isDefined(target, kind);
@@ -741,7 +741,7 @@ const foreignCases: readonly {
   {
     corrupt: {
       _tag: "edit",
-      edit: (rows) => editedForeign(rows, "foreign-element", { governs: Option.none() }),
+      edit: (rows) => editedForeign(rows, "foreign-element", { governs: Option.none() }, {}),
     },
     law: "Strictly held",
     lawful: `<qti-assessment-item xmlns="${asi}" xmlns:f="urn:f" xmlns:xsi="${xsiNamespace}" xmlns:xs="${xsNamespace}" identifier="item" title="Item" time-dependent="false" adaptive="false"><qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/><qti-companion-materials-info><f:x xsi:type="xs:string"/></qti-companion-materials-info><qti-item-body><p>x</p></qti-item-body></qti-assessment-item>`,
@@ -749,7 +749,7 @@ const foreignCases: readonly {
   {
     corrupt: {
       _tag: "edit",
-      edit: (rows) => editedForeign(rows, "no-namespace-element", { prefix: "p" }),
+      edit: (rows) => editedForeign(rows, "no-namespace-element", { prefix: "p" }, {}),
     },
     law: "Foreign element class",
     lawful: customItem(`<foo xmlns=""/><qti-variable/>`),
@@ -766,7 +766,7 @@ const foreignCases: readonly {
     corrupt: {
       _tag: "edit",
       edit: (rows) =>
-        editedForeign(rows, "foreign-element", { governs: Option.some(otherSetType) }),
+        editedForeign(rows, "foreign-element", { governs: Option.some(otherSetType) }, {}),
     },
     law: "XsiType available",
     lawful: sectionTest(

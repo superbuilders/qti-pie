@@ -1379,7 +1379,7 @@ describe("import/overlays/package.ts, hrefs and references", () => {
     const textOf = (
       kind: "qti-file-href" | "qti-file-href.card" | "qti-resource-icon",
       value: string,
-      base?: string,
+      base: string | undefined,
     ) => [
       { _tag: "ws", value: "\n" } as const,
       elementOf(kind, baseAttribute(base), value === "" ? [] : [{ _tag: "text", value }]),

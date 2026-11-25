@@ -133,7 +133,7 @@ const ranksOf = <Key>(
   members: readonly Key[],
   childrenOf: ReadonlyMap<Key, readonly Key[]>,
   targetOf: ReadonlyMap<Key, Key>,
-  includerOf: ReadonlyMap<Key, Key> = new Map(),
+  includerOf: ReadonlyMap<Key, Key>,
 ): ReadonlyMap<Key, bigint> => {
   const ranks = new Map<Key, bigint>();
   const open = new Set<Key>();
@@ -271,6 +271,7 @@ export const rowsOf = (view: DocumentView, ids: IdentityIds): MathmlShareRows =>
     members.map(({ start }) => start),
     childrenOf,
     targetOf,
+    new Map(),
   );
   const rankOf = (start: bigint): bigint => ranks.get(start) ?? 0n;
   const nodeKeyOf = (start: bigint): string => keyTextOf(ids.package, ids.path, start);

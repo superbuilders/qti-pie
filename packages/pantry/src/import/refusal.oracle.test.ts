@@ -266,16 +266,20 @@ const sideOf = (name: string, ...terms: readonly [string, ...string[]]): LawSide
 };
 
 /**
+ * Every law, the filter that keeps a table's stated laws whole.
+ *
+ * @returns True.
+ */
+const everyLaw = (): boolean => true;
+
+/**
  * Collect the laws of {@link statedLaws} named `name` that `where` holds of.
  *
  * @param name - The law's name.
  * @param where - Which of its laws, every one by default.
  * @returns The laws.
  */
-const statedNamed = (
-  name: keyof typeof lawTable,
-  where: (law: Law) => boolean = () => true,
-): readonly Law[] =>
+const statedNamed = (name: keyof typeof lawTable, where: (law: Law) => boolean): readonly Law[] =>
   statedLaws().flatMap(([law, owner]) => (owner === name && where(law) ? [law] : []));
 
 /**
@@ -569,24 +573,29 @@ const plannedAxis = (
  * tree's own, and an attribute law over its family's.
  */
 const plannedAxes = nonEmpty("the planned axes", [
-  plannedAxis("Node owner", "reachability", statedNamed("N2 tree"), statedNamed("T3 first child")),
+  plannedAxis(
+    "Node owner",
+    "reachability",
+    statedNamed("N2 tree", everyLaw),
+    statedNamed("T3 first child", everyLaw),
+  ),
   plannedAxis(
     "Node predecessor",
     "ordering",
-    statedNamed("N2 tree"),
-    statedNamed("N5 fold"),
-    statedNamed("N7 Counted"),
-    statedNamed("N7 barred by"),
+    statedNamed("N2 tree", everyLaw),
+    statedNamed("N5 fold", everyLaw),
+    statedNamed("N7 Counted", everyLaw),
+    statedNamed("N7 barred by", everyLaw),
     statedNamed("E1 derived", foldOver("Node", "children")),
   ),
   plannedAxis(
     "Node last",
     "ordering",
-    statedNamed("N2 tree"),
-    statedNamed("N7 last slot"),
+    statedNamed("N2 tree", everyLaw),
+    statedNamed("N7 last slot", everyLaw),
     statedNamed("N5 fold", isFold),
-    statedNamed("N7 Counted"),
-    statedNamed("N7 barred by"),
+    statedNamed("N7 Counted", everyLaw),
+    statedNamed("N7 barred by", everyLaw),
     statedNamed("E1 derived", foldOver("Node", "children")),
   ),
   plannedAxis(
@@ -599,7 +608,7 @@ const plannedAxes = nonEmpty("the planned axes", [
     "Attribute predecessor and last",
     "attribute-admission",
     statedNamed("AL2 count", familyOver("Node", "attributes")),
-    statedNamed("AL2 fold"),
+    statedNamed("AL2 fold", everyLaw),
   ),
   plannedAxis(
     "OpenAttribute owner",
@@ -636,7 +645,7 @@ const plannedAxes = nonEmpty("the planned axes", [
  */
 const crossTier = nonEmpty("the cross-tier laws", [
   ...statedNamed("Binding declared", containedInto("Declaration")),
-  ...statedNamed("Choice bounds"),
+  ...statedNamed("Choice bounds", everyLaw),
   {
     entry: { kind: "declared", ...entryOf("MathML arity") },
     kind: "check",
@@ -650,8 +659,8 @@ const crossTier = nonEmpty("the cross-tier laws", [
     name: "N5_Follow",
     relation: "Node",
   } satisfies Law,
-  ...statedNamed("N7 last slot"),
-  ...statedNamed("N2 tree"),
+  ...statedNamed("N7 last slot", everyLaw),
+  ...statedNamed("N2 tree", everyLaw),
   ...statedNamed("E1 derived", foldOver("Node", "children")),
 ]);
 

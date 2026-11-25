@@ -1214,8 +1214,8 @@ describe("import/overlays/expressions.ts, a braced pattern that names no variabl
  */
 const el = (
   kind: ElementKind<Composed>,
-  attributes: readonly (readonly [ClosedName<Composed>, string])[] = [],
-  children: readonly XdmChild<Composed>[] = [],
+  attributes: readonly (readonly [ClosedName<Composed>, string])[],
+  children: readonly XdmChild<Composed>[],
 ): XdmClosedElement<Composed> => ({
   _tag: "element",
   attributes: attributes.map(([handle, lexical]) => ({
@@ -1318,11 +1318,15 @@ describe("import/overlays/expressions.ts, the claims a reference proves", () => 
                       "qti-sum",
                       [],
                       [
-                        el("qti-test-variables", [
-                          ["variable-identifier", "SCORE"],
-                          ...(written ? ([["base-type", "float"]] as const) : []),
-                          ...(weighted ? ([["weight-identifier", "W"]] as const) : []),
-                        ]),
+                        el(
+                          "qti-test-variables",
+                          [
+                            ["variable-identifier", "SCORE"],
+                            ...(written ? ([["base-type", "float"]] as const) : []),
+                            ...(weighted ? ([["weight-identifier", "W"]] as const) : []),
+                          ],
+                          [],
+                        ),
                       ],
                     ),
                   ],

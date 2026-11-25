@@ -41,7 +41,7 @@ const mappedItem = (
   baseType: string,
   keys: readonly string[],
   target: string,
-  caseSensitive: readonly string[] = [],
+  caseSensitive: readonly string[],
 ): string =>
   [
     '<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="item" title="Item" time-dependent="false">',
@@ -136,7 +136,7 @@ describe("qti/mapping.ts, the oracle's mapping laws", () => {
         ] as const;
 
         for (const { breaks, keys, name, type } of cases) {
-          const found = yield* mappingBreachesOf(mappedItem(type, keys, "7"));
+          const found = yield* mappingBreachesOf(mappedItem(type, keys, "7", []));
 
           assert.deepStrictEqual(
             found.map((breach) => breach.split(" {")[0]),
@@ -159,7 +159,7 @@ describe("qti/mapping.ts, the oracle's mapping laws", () => {
           );
         }
 
-        const target = yield* mappingBreachesOf(mappedItem("string", ["a"], "x"));
+        const target = yield* mappingBreachesOf(mappedItem("string", ["a"], "x", []));
         assert.deepStrictEqual(
           target.map((breach) => breach.split(" {")[0]),
           ["Typed attribute value"],
@@ -224,7 +224,7 @@ describe("qti/mapping.ts, a typed map key read collapsed", () => {
             const integerNote = read === text ? "bare integer" : "padded integer";
             c.note(integer ? integerNote : "no integer");
 
-            const found = yield* mappingBreachesOf(mappedItem("integer", [text], "7"));
+            const found = yield* mappingBreachesOf(mappedItem("integer", [text], "7", []));
 
             assert.strictEqual(
               found.length === 0,
