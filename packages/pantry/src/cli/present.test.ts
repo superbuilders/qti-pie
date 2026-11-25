@@ -16,7 +16,10 @@ import {
 } from "#pantry/cli/output.ts";
 import { RoundtripData } from "#pantry/cli/roundtrip.ts";
 import { exitCodeOf } from "#pantry/cli/run.ts";
+import { OverlayConflict } from "#pantry/import/overlays/index.ts";
+import { refusalOf } from "#pantry/import/refusal.ts";
 import type { RefusalLaw, RefusalOf } from "#pantry/import/refusal.ts";
+import { ImportRefused } from "#pantry/import/rules.ts";
 import { readerOrigin, RefusedKind, WitnessKind } from "#pantry/package/refusal-origin.ts";
 import { lawTable } from "#pantry/vocab/laws.ts";
 import { qti } from "#pantry/cli.ts";
@@ -220,17 +223,17 @@ const unownedLaw = {
 const refusedLawOf = (law: Law): RefusalLaw => ({ id: "", law });
 
 /**
- * A command named `name` that fails with `failure`, or dies with it when `dies`, under the output
- * flags.
+ * A command named `name` that fails with what `failure` makes when it runs, or dies with it when
+ * `dies`, under the output flags.
  */
-const ending = <F>(name: string, failure: () => Promise<F>, dies: boolean) =>
+const ending = <F>(name: string, failure: () => F, dies: boolean) =>
   Command.make(
     name,
     {},
     Effect.fn("test.present.ending")(function* endingHandler() {
       yield* outputMode;
 
-      const value = yield* Effect.promise(failure);
+      const value = yield* Effect.sync(failure);
 
       return yield* dies ? Effect.die(value) : Effect.fail(value);
     }),
@@ -275,8 +278,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("every origin of a refu
       // kind of `RefusedKind` and of `WitnessKind`, exhausted, each in text and JSON; residual
       // none.
       Effect.gen(function* everyOrigin() {
-        const { refusalOf } = yield* Effect.promise(() => import("#pantry/import/refusal.ts"));
-        const { ImportRefused } = yield* Effect.promise(() => import("#pantry/import/rules.ts"));
         const { rule, source } = lawTable["AL1 admission"];
         const law = {
           entry: { kind: "declared", name: "AL1 admission", source },
@@ -351,7 +352,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("every origin of a refu
             refusal.origin._tag === "Database"
               ? `${refusal.origin.kind} ${refusal.origin.witness}`
               : "Reader";
-          const command = ending("import", () => Promise.resolve(refusal), false);
+          const command = ending("import", () => refusal, false);
           const json = yield* captureCli(
             { command, shownAs: command.name },
             ["--json"],
@@ -400,11 +401,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("a failure qti names", 
     Effect.gen(function* conflict() {
       const dying = ending(
         "import",
-        () =>
-          import("#pantry/import/overlays/index.ts").then(
-            ({ OverlayConflict }) =>
-              new OverlayConflict({ first: "a", key: "k", relation: "Choice", second: "b" }),
-          ),
+        () => new OverlayConflict({ first: "a", key: "k", relation: "Choice", second: "b" }),
         true,
       );
       const text = yield* captureCli({ command: dying, shownAs: dying.name }, [], Option.none());
