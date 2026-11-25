@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
-import { requiredInSpace } from "@bjornpagen/testing/features";
-import { constant, int, map, oneOf } from "@bjornpagen/testing/gen";
+import { noCoverage, requiredInSpace } from "@bjornpagen/testing/features";
+import { array, constant, element, int, map, oneOf } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { growthFactor, growthLimit, growthRatio } from "@qti-pie/crust/test/growth.ts";
@@ -370,6 +370,63 @@ const redacted = redactItem(item, shownToCandidate, feedbackHidden);
  * The view of a first render: no values.
  */
 const answering: View = { host: {}, instance, seed: "", values: new Map() };
+
+/**
+ * The characters a seed of the seed box is written with: a digit, a letter and the space. A seed is
+ * any string a host chooses, used as given (`seed` in `#plate/configuration.ts`), so the box is
+ * every short string of a few kinds of character, the empty one among them.
+ */
+const SEED_ALPHABET = ["7", "a", " "] as const;
+
+/**
+ * Draw a seed of the seed box: every string of 0 to 2 of {@link SEED_ALPHABET}.
+ */
+const seedBox: Gen<string> = map(array(element(SEED_ALPHABET), { max: 2, min: 0 }), (characters) =>
+  characters.join(""),
+);
+
+/**
+ * How many seeds {@link seedBox} draws.
+ */
+const SEEDS = 1 + 3 + 3 ** 2;
+
+/**
+ * A case of a search over a payload may run this long before it is stopped and reported.
+ */
+const caseHang = Duration.seconds(30);
+
+/**
+ * Draw an `aria-label` of the aria box: none, or every text of 0 to 2 of a letter, the space and
+ * a character above 0x7f.
+ */
+const ariaLabelBox: Gen<Option.Option<string>> = oneOf([
+  constant(Option.none()),
+  map(array(element(["a", " ", "é"]), { max: 2, min: 0 }), (characters) =>
+    Option.some(characters.join("")),
+  ),
+]);
+
+/**
+ * Draw an `aria-labelledby` of the aria box: none, the id of the paragraph beside the Choice, an id
+ * no element carries, or both, an IDREFS of two.
+ */
+const ariaLabelledbyBox: Gen<Option.Option<string>> = oneOf([
+  constant(Option.none()),
+  map(element(["intro", "elsewhere", "intro elsewhere"]), Option.some),
+]);
+
+/**
+ * Draw a case of the aria box: a Choice's `aria-label` and `aria-labelledby`.
+ */
+const ariaCase: Gen<Pick<ChoiceInteraction, "ariaLabel" | "ariaLabelledby">> = (source) => ({
+  ariaLabel: source.draw(ariaLabelBox),
+  ariaLabelledby: source.draw(ariaLabelledbyBox),
+});
+
+/**
+ * How many cases {@link ariaCase} draws: 1 + 13 labels by 1 + 3 references.
+ */
+const ARIA_CASES = (1 + 13) * (1 + 3);
 
 /**
  * The values the author's flow holds for this instance: `CAPITAL` answered `A` and `FIRST`
@@ -1622,29 +1679,56 @@ describe("redactItem on template blocks, inlines and choices", () => {
     );
   });
 
-  it("presents a shuffled Choice with a template-hidden choice in choiceOrder's order over the choices shown, under the same key", () => {
-    const shuffled: Item = {
-      ...visibility,
-      body: [{ ...planets, choices: planets.choices.map(hidingP1) }],
-      unsupported: [],
-    };
-    const redaction = redactItem(
-      shuffled,
-      shownToCandidate,
-      underRecord(holding({ VISIBLE: identifierValue("P1") })),
-    );
-    const remaining = planets.choices.filter((entry) => entry.identifier !== "P1");
-
-    for (const seed of ["7", ""]) {
-      const view: View = { ...answering, seed };
-      const presented = choiceFor(pageFor(redaction, view), "PLANET").choices.map(
-        (entry) => entry.identifier,
+  it.effect(
+    `presents a shuffled Choice with a template-hidden choice in choiceOrder's order over the choices shown, under the same key: ${String(SEEDS)} seeds`,
+    (ctx) => {
+      const shuffled: Item = {
+        ...visibility,
+        body: [{ ...planets, choices: planets.choices.map(hidingP1) }],
+        unsupported: [],
+      };
+      const redaction = redactItem(
+        shuffled,
+        shownToCandidate,
+        underRecord(holding({ VISIBLE: identifierValue("P1") })),
       );
+      const remaining = planets.choices.filter((entry) => entry.identifier !== "P1");
 
-      assert.deepStrictEqual(presented, choiceOrder({ ...planets, choices: remaining }, seed));
-      assert.sameMembers([...presented], ["P0", "P2", "P3", "P4"]);
-    }
-  });
+      return Effect.andThen(
+        boxHolds(seedBox, SEEDS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every seed of 0 to 2 of a digit, a letter and the space",
+              caseHang,
+              coverage: noCoverage,
+              generator: seedBox,
+              literal: (seed) => JSON.stringify(seed),
+              oracle: {
+                kind: "second-implementation",
+                name: "choiceOrder over the choices the template value leaves, under the seed: the order the page presents is choiceOrder's of what it shows, whatever the seed",
+              },
+              suite: "plate/payload/template-hidden-shuffle",
+            },
+            (seed) =>
+              Effect.sync(() => {
+                const presented = choiceFor(
+                  pageFor(redaction, { ...answering, seed }),
+                  "PLANET",
+                ).choices.map((entry) => entry.identifier);
+
+                assert.deepStrictEqual(
+                  presented,
+                  choiceOrder({ ...planets, choices: remaining }, seed),
+                );
+                assert.sameMembers([...presented], ["P0", "P2", "P3", "P4"]);
+              }),
+          ),
+        ),
+      );
+    },
+  );
 
   it("with no record, withholds a templated item's template block and inline behind their notices and leaves out each choice with a template visibility", () => {
     const withheld = redactItem(visibility, shownToCandidate, feedbackHidden);
@@ -2172,43 +2256,91 @@ describe("payload", () => {
 
     assert.strictEqual(first[2], "P2");
     assert.deepStrictEqual(first, second);
-    for (const order of [first, second]) {
-      assert.sameMembers([...order], ["P0", "P1", "P2", "P3", "P4"]);
-    }
+    assert.sameMembers([...first], ["P0", "P1", "P2", "P3", "P4"]);
   });
 
-  it("keeps document order when shuffle is false, whatever the seed", () => {
-    const ordered = { ...planets, shuffle: false };
+  it.effect(
+    `keeps document order when shuffle is false, whatever the seed: ${String(SEEDS)} seeds`,
+    (ctx) => {
+      const ordered = { ...planets, shuffle: false };
 
-    for (const view of [answering, { ...answering, seed: "7" }]) {
-      assert.deepStrictEqual(presentedOf(ordered, view), ["P0", "P1", "P2", "P3", "P4"]);
-    }
-  });
-
-  it("carries the Choice's aria-label and aria-labelledby as written", () => {
-    const named: ChoiceInteraction = {
-      ...choice,
-      ariaLabel: Option.some("Pick a city"),
-      ariaLabelledby: Option.some("intro"),
-    };
-
-    for (const interaction of [choice, named]) {
-      const capital = choiceFor(
-        pageFor(
-          redactItem(
-            { ...item, body: [idParagraph("intro"), interaction] },
-            shownToCandidate,
-            feedbackHidden,
+      return Effect.andThen(
+        boxHolds(seedBox, SEEDS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every seed of 0 to 2 of a digit, a letter and the space",
+              caseHang,
+              coverage: noCoverage,
+              generator: seedBox,
+              literal: (seed) => JSON.stringify(seed),
+              oracle: {
+                kind: "specification",
+                name: "the Choice's shuffle attribute: false keeps the choices in the order the document writes them, so no seed moves one",
+              },
+              suite: "plate/payload/unshuffled-order",
+            },
+            (seed) =>
+              Effect.sync(() => {
+                assert.deepStrictEqual(presentedOf(ordered, { ...answering, seed }), [
+                  "P0",
+                  "P1",
+                  "P2",
+                  "P3",
+                  "P4",
+                ]);
+              }),
           ),
-          answering,
         ),
-        "CAPITAL",
       );
+    },
+  );
 
-      assert.deepStrictEqual(capital.ariaLabel, interaction.ariaLabel);
-      assert.deepStrictEqual(capital.ariaLabelledby, interaction.ariaLabelledby);
-    }
-  });
+  it.effect(
+    `carries the Choice's aria-label and aria-labelledby as written: ${String(ARIA_CASES)} pairs`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(ariaCase, ARIA_CASES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "aria-label absent or 0 to 2 of a letter, the space and é; aria-labelledby absent, the id beside it, an id nothing carries, or both",
+              caseHang,
+              coverage: noCoverage,
+              generator: ariaCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "WAI-ARIA's aria-label and aria-labelledby, which name the element as written: the payload carries each as the item wrote it, or none where it wrote none",
+              },
+              suite: "plate/payload/aria",
+            },
+            ({ ariaLabel, ariaLabelledby }) =>
+              Effect.sync(() => {
+                const capital = choiceFor(
+                  pageFor(
+                    redactItem(
+                      {
+                        ...item,
+                        body: [idParagraph("intro"), { ...choice, ariaLabel, ariaLabelledby }],
+                      },
+                      shownToCandidate,
+                      feedbackHidden,
+                    ),
+                    answering,
+                  ),
+                  "CAPITAL",
+                );
+
+                assert.deepStrictEqual(capital.ariaLabel, ariaLabel);
+                assert.deepStrictEqual(capital.ariaLabelledby, ariaLabelledby);
+              }),
+          ),
+        ),
+      ),
+  );
 
   it("restores the view's values, and nothing with none", () => {
     const built = pageFor(redacted, { ...answering, values: held });
@@ -2444,48 +2576,90 @@ const presentedOrder = Effect.fn(function* presentedOrder(seed: string, token: s
 });
 
 /**
- * The seeds the order is checked under: the empty one, and two others.
+ * A case of the order box: the configuration's seed and the page's instance.
  */
-const seeds: readonly string[] = ["", "7", "11"];
+interface OrderCase {
+  readonly seed: string;
+  readonly token: string;
+}
 
 /**
- * The instances the order is checked under.
+ * Draw a case of the order box: every seed of {@link seedBox} on two instances, the suite's and
+ * another.
  */
-const instances: readonly string[] = [instance, "q1"];
+const orderCase: Gen<OrderCase> = (source) => ({
+  seed: source.draw(seedBox),
+  token: source.draw(element([instance, "q1"])),
+});
 
 describe("choiceOrder", () => {
   it.effect(
-    "gives the order the page presents for a shuffled Choice, under two seeds, no seed and two instances, the instance deciding nothing",
-    () =>
-      Effect.gen(function* presentedOrders() {
-        const orders: string[] = [];
-        for (const seed of seeds) {
-          for (const token of instances) {
-            const presented = yield* presentedOrder(seed, token);
+    `gives the order the page presents for a shuffled Choice, under every seed of the box and two instances, the instance deciding nothing: ${String(SEEDS * 2)} pages`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(orderCase, SEEDS * 2),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every seed of 0 to 2 of a digit, a letter and the space, on the suite's instance and another",
+              caseHang,
+              coverage: noCoverage,
+              generator: orderCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "second-implementation",
+                name: "choiceOrder over the Choice and the seed alone: the page presents every choice once, in choiceOrder's order, whatever its instance",
+              },
+              suite: "plate/payload/choice-order",
+            },
+            ({ seed, token }) =>
+              Effect.gen(function* presentsChoiceOrder() {
+                const presented = yield* presentedOrder(seed, token);
 
-            assert.lengthOf(presented, planets.choices.length);
-            assert.deepStrictEqual(choiceOrder(planets, seed), presented);
-            orders.push(presented.join(" "));
-          }
-        }
-
-        assert.isAbove(new Set(orders).size, 1);
-      }),
+                assert.lengthOf(presented, planets.choices.length);
+                assert.deepStrictEqual(choiceOrder(planets, seed), presented);
+              }),
+          ),
+        ),
+      ),
   );
 
-  it("keeps a fixed choice at its document index in a shuffled Choice", () => {
-    for (const seed of seeds) {
-      assert.strictEqual(choiceOrder(planets, seed)[2], "P2");
-    }
-  });
-
-  it("keeps document order for a Choice that is not shuffled, whatever the seed", () => {
-    const ordered = { ...planets, shuffle: false };
-
-    for (const seed of seeds) {
-      assert.deepStrictEqual(choiceOrder(ordered, seed), ["P0", "P1", "P2", "P3", "P4"]);
-    }
-  });
+  it.effect(
+    `keeps a fixed choice at its document index in a shuffled Choice, and document order in a Choice that is not shuffled, whatever the seed: ${String(SEEDS)} seeds`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(seedBox, SEEDS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every seed of 0 to 2 of a digit, a letter and the space",
+              caseHang,
+              coverage: noCoverage,
+              generator: seedBox,
+              literal: (seed) => JSON.stringify(seed),
+              oracle: {
+                kind: "specification",
+                name: "the Choice's shuffle attribute and a choice's fixed: a fixed choice keeps its place when the rest are shuffled, and no choice moves when shuffle is false",
+              },
+              suite: "plate/payload/fixed-and-unshuffled",
+            },
+            (seed) =>
+              Effect.sync(() => {
+                assert.strictEqual(choiceOrder(planets, seed)[2], "P2");
+                assert.deepStrictEqual(choiceOrder({ ...planets, shuffle: false }, seed), [
+                  "P0",
+                  "P1",
+                  "P2",
+                  "P3",
+                  "P4",
+                ]);
+              }),
+          ),
+        ),
+      ),
+  );
 });
 
 /**
