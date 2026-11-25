@@ -393,7 +393,7 @@ const numberClasses = (core: string): readonly string[] => {
     return [];
   }
 
-  const { exponent, mantissa = "", mark, sign = "" } = numeral;
+  const { exponent, mantissa, mark, sign } = numeral;
   const digits = mantissa.replaceAll(".", "").length;
   const number = Number(core);
   const tiny =

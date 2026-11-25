@@ -365,19 +365,17 @@ interface XdmClosedName<V extends XdmVocabulary> {
 }
 
 /**
- * Name an attribute by a closed handle, written with the prefix the handle spells unless another is
- * given: the closed name a tree built by hand holds. It is typed by the handle, so it is the
- * {@link XdmClosedName} of every vocabulary whose closed names hold that handle.
+ * Name an attribute by a closed handle, written with the prefix the handle spells,
+ * {@link handlePrefixOf} it: the closed name a tree built by hand holds, and the only one a name in
+ * no namespace or in the XML namespace is written with. It is typed by the handle, so it is the
+ * {@link XdmClosedName} of every vocabulary whose closed names hold that handle. A name written
+ * with another prefix is the closed name of its own literal.
  *
  * @param handle - The handle.
- * @param prefix - The prefix the name is written with; {@link handlePrefixOf} the handle by
- *   default, the only prefix a name in no namespace or in the XML namespace is written with.
  * @returns The closed name.
  */
-export const closedName = <const Handle extends string>(
-  handle: Handle,
-  prefix: string = handlePrefixOf(handle),
-) => ({ _tag: "closed", handle, prefix }) as const;
+export const closedName = <const Handle extends string>(handle: Handle) =>
+  ({ _tag: "closed", handle, prefix: handlePrefixOf(handle) }) as const;
 
 /**
  * Read the prefix an attribute's name is written with.

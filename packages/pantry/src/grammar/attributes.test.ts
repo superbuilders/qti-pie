@@ -1793,7 +1793,7 @@ const readingsNamed = (handle: string): readonly number[] =>
     Option.fromNullishOr(regex(" \\(reading (?<numbers>[\\d, ]+)\\)", "u").exec(handle)?.groups),
     {
       onNone: () => [],
-      onSome: ({ numbers = "" }) => numbers.split(", ").map(Number),
+      onSome: ({ numbers }) => numbers.split(", ").map(Number),
     },
   ).toSorted((left, right) => left - right);
 

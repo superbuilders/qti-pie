@@ -824,7 +824,7 @@ const closedNameOf =
       other !== undefined && source.draw(keep(context.swarm, "boundPrefix")) ? other : spelled;
     needed.push({ prefix, uri });
 
-    return closedName(handle, prefix);
+    return { _tag: "closed", handle, prefix };
   };
 
 /**
