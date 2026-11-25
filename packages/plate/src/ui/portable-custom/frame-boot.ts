@@ -317,6 +317,15 @@ export const bootFrame = (): void => {
     isObject(node) && isCallable(node["getResponse"]) && isCallable(node["getState"]);
 
   /**
+   * Write a value as JSON text, as `JSON.stringify` does, typed as it behaves: it gives undefined,
+   * no text, for undefined, a function or a symbol, which the lib's `string` hides.
+   *
+   * @param value The value.
+   * @returns Its JSON text, or undefined where it has none.
+   */
+  const jsonOf = (value: unknown): string | undefined => JSON.stringify(value);
+
+  /**
    * Post a message to the island. The target origin is `"*"`: an opaque frame cannot name the
    * page's origin, and the island accepts only by source and nonce.
    *
@@ -595,7 +604,7 @@ export const bootFrame = (): void => {
    * @param identifier The response identifier it names.
    */
   const relay = (value: unknown, valid: boolean | undefined, identifier: string): void => {
-    const text = JSON.stringify(value) ?? "undefined";
+    const text = jsonOf(value) ?? "undefined";
 
     if (text !== relayed) {
       relayed = text;
