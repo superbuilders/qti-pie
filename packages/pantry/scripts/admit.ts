@@ -106,9 +106,8 @@ const collectedIn = Effect.fn("admit.collected")(function* collectedIn(directory
   const lines = (yield* fs.readFileString(path.join(directory, "opens.jsonl")))
     .split("\n")
     .filter((line) => line !== "");
-  const opens = yield* pipe(
-    lines,
-    Effect.forEach((line) => Schema.decodeUnknownEffect(Schema.fromJsonString(Opened))(line)),
+  const opens = yield* Effect.forEach(lines, (line) =>
+    Schema.decodeUnknownEffect(Schema.fromJsonString(Opened))(line),
   );
   const byDigest = pipe(
     opens,
@@ -163,11 +162,8 @@ const treeDocuments = Effect.fn("admit.tree")(function* treeDocuments(root: stri
     { concurrency: "unbounded" },
   );
 
-  const rooted = yield* pipe(
-    read,
-    Effect.forEach(({ bytes, file }) =>
-      Effect.map(asiRootOf(bytes), (asiRoot) => ({ asiRoot, bytes, file })),
-    ),
+  const rooted = yield* Effect.forEach(read, ({ bytes, file }) =>
+    Effect.map(asiRootOf(bytes), (asiRoot) => ({ asiRoot, bytes, file })),
   );
 
   return rooted.flatMap(({ asiRoot, bytes, file }): readonly Candidate[] =>
@@ -242,9 +238,9 @@ const linesOf = Effect.fn("admit.lines")(function* linesOf<A>(
   const fs = yield* FileSystem.FileSystem;
   const decodeLine = Schema.decodeUnknownEffect(Schema.fromJsonString(schema));
 
-  return yield* pipe(
+  return yield* Effect.forEach(
     (yield* fs.readFileString(file)).split("\n").filter((line) => line !== ""),
-    Effect.forEach((line) => decodeLine(line)),
+    (line) => decodeLine(line),
   );
 });
 
@@ -269,13 +265,9 @@ const packagesCommand = Command.make(
   }) {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const fromTrees = (yield* pipe(
-      trees,
-      Effect.forEach((tree) => treeDocuments(tree, "suite")),
-    )).flat();
-    const fromSnapshots = (yield* pipe(
-      snapshots,
-      Effect.forEach((tree) => treeDocuments(tree, "snapshot")),
+    const fromTrees = (yield* Effect.forEach(trees, (tree) => treeDocuments(tree, "suite"))).flat();
+    const fromSnapshots = (yield* Effect.forEach(snapshots, (tree) =>
+      treeDocuments(tree, "snapshot"),
     )).flat();
     const fromSuites = yield* Option.match(collected, {
       onNone: () => Effect.succeed<readonly Candidate[]>([]),
