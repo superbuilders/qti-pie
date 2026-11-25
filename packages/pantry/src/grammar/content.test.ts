@@ -6,6 +6,7 @@ import { sample } from "@bjornpagen/testing/source";
 import { runOfProcess } from "@bjornpagen/testing/vitest/run";
 import { Effect, FileSystem, Option } from "effect";
 import { composed } from "#pantry/grammar/compose.ts";
+import { schemas } from "#pantry/grammar/content.dictionary.ts";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
 import { documentLayer, openVocabulary, vocabularyFacets } from "#pantry/grammar/facets.ts";
 import { foreignKinds } from "#pantry/grammar/kinds.ts";
@@ -130,15 +131,6 @@ const schematronCaps = (composedGrammar: ComposedGrammar) =>
 
     return { caps, unread };
   });
-
-/**
- * The pinned schema sets.
- */
-const schemas: readonly SourcePath[] = [
-  "imsqti_asiv3p0p1_v1p0.xsd",
-  "imsqtiv3p0p1_imscpv1p2_v1p0.xsd",
-  "imsqti_metadatav3p0_v1p0.xsd",
-];
 
 /**
  * A draw from the run's seed: a generator's first case on the stream the run seed and a label mint,
