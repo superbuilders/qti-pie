@@ -30,8 +30,8 @@
    * start edge closing the strip. A card says "you can pick this" by its frame, so it carries no
    * underline, unless the host has struck it out; its numeral is large and bold, in figures of one
    * width. The start (`alpha-number-strip-start`), which the base sheet stretches over its card,
-   * fills it whole in the yellow of Alpha's K–2 forms (#ffe08a), in plate's highlight's ink, 15:1
-   * on it. A picked card is framed again inside its edge, 4 px in the foreground, so nothing moves
+   * fills it whole in Tailwind's yellow-200 (#fef08a), in plate's highlight's ink, 17:1 on it. A
+   * picked card is framed again inside its edge, 4 px in the foreground, so nothing moves
    * (ruling R5) and the focus ring outside it stays, an edge forced colours keep; a review's mark
    * frames it in the mark's colour, dashed for a right answer the child did not give, beside
    * plate's badge, which reaches 0.75rem past the card's corner: the strip's room for it.
@@ -83,7 +83,7 @@
     .alpha-number-strip
     [data-slot="plate-hottext-content"]
     > .alpha-number-strip-start {
-    background: oklch(0.914 0.111 90.3);
+    background: oklch(0.945 0.124 101.5);
     color: oklch(0.15 0 0);
   }
 
