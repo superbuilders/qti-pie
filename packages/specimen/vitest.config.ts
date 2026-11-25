@@ -13,9 +13,9 @@ const unbounded = 0;
 requireHardened();
 
 /**
- * `test:ui`: plate's UI suite, `src/ui/*.test.ts`, and the Alpha interactions' suite,
- * `src/alpha/*.test.ts`, under the testing library's hardened flags. The
- * parent process takes them from the `test:ui` script's command line, which this config refuses to
+ * `test`: specimen's suites, plate's UI suite `src/ui/*.test.ts` and the Alpha interactions'
+ * suite `src/alpha/*.test.ts`, under the testing library's hardened flags. The
+ * parent process takes them from the `test` script's command line, which this config refuses to
  * run without, and each worker from `execArgv`, which its setup checks
  * (`#specimen/ui/hardened.ts`).
  */

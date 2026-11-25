@@ -51,7 +51,7 @@ const corpusDirectory = "qti-examples-0a92fbbb6d2e620a1f7fad19977be4c418246bc0";
 /**
  * The digest of the corpus's files ({@link digestOf}), which pins the suite to the corpus it was
  * run on: turbo's cache cannot read a folder outside the repository, so this tracked value is the
- * corpus's version among the `test:ui` task's inputs, and the reader refuses a corpus of any other
+ * corpus's version among the `test` task's inputs, and the reader refuses a corpus of any other
  * digest, so a replayed pass is a pass on this corpus.
  */
 const corpusDigest = "3ee408912ab0b1d6fd7edbbc19ba9085fad26e0f394de1d1368fa1c1664369ce";

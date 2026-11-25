@@ -39,7 +39,8 @@ the specifications.
   re-checks its package and what depends on it. Nothing gates a push: before pushing to `main`, run what the change
   needs. The whole gate is `pnpm trunk` at qti-pie's root: every package's typecheck, oxlint with qti-pie's own
   `oxlint.config.ts`, oxfmt with its `.oxfmtrc.json`, the ledger's `generate:check`, pantry's `grizzle:check`, and every
-  package's tests and the tools' tests at the pinned seed.
+  package's tests (specimen's, its UI and Alpha suites, under the testing library's hardened flags) and the tools'
+  tests at the pinned seed.
 
 ## Local database
 
