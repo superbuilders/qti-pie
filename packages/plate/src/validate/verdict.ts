@@ -178,13 +178,6 @@ type RootKind =
   | "test";
 
 /**
- * The kind a verdict carries: its root's. A document plate opens has one of the six QTI 3 roots:
- * the database admitted it, and a root outside QTI's namespace, or a QTI element other than the six
- * at the root, is no document a host opens, a defect thrown (`InadmissibleDocument`).
- */
-export type VerdictKind = RootKind;
-
-/**
  * The kinds of root {@link checkAdmitted} accepts.
  */
 type AcceptedKind = "item" | "section" | "stimulus";
@@ -216,7 +209,13 @@ type AcceptedByKind =
 export type Verdict =
   | {
       readonly document: string;
-      readonly kind: VerdictKind;
+      /**
+       * The kind a verdict carries: its root's. A document plate opens has one of the six QTI 3
+       * roots: the database admitted it, and a root outside QTI's namespace, or a QTI element other
+       * than the six at the root, is no document a host opens, a defect thrown
+       * (`InadmissibleDocument`).
+       */
+      readonly kind: RootKind;
       readonly reasons: readonly UncheckedReason[];
       readonly verdict: "unchecked";
     }
@@ -244,7 +243,7 @@ const rootKinds: ReadonlyMap<string, RootKind> = new Map<string, RootKind>([
  * @param kind The root's kind.
  * @returns Whether it is an item, a section or a stimulus.
  */
-const isAcceptedKind = (kind: VerdictKind): kind is AcceptedKind =>
+const isAcceptedKind = (kind: RootKind): kind is AcceptedKind =>
   kind === "item" || kind === "section" || kind === "stimulus";
 
 /**

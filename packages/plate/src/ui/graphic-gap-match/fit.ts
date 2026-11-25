@@ -123,11 +123,6 @@ const wordWidth = (word: string): number =>
 const spaceWidth = cardMetrics.font * cardMetrics.narrow;
 
 /**
- * A card's size, in CSS pixels.
- */
-type Card = FitBox;
-
-/**
  * Size a text card whose words wrap at a width: its words on one line where they fit across it,
  * else broken between words into lines as wide as it allows, as the stylesheet wraps a card's
  * text, a word wider than the width standing alone on its line, since none breaks inside a word.
@@ -137,7 +132,7 @@ type Card = FitBox;
  * @param wrap The width its lines wrap at, its chrome included.
  * @returns The card.
  */
-const textCard = (words: readonly number[], across: number, wrap: number): Card => {
+const textCard = (words: readonly number[], across: number, wrap: number): FitBox => {
   const room = wrap - across;
   const lines: number[] = [];
 
@@ -181,7 +176,7 @@ const acrossOf = (marked: boolean): number => chrome.x + (marked ? cardMetrics.b
  */
 type Measured =
   | { readonly across: number; readonly kind: "text"; readonly words: readonly number[] }
-  | { readonly card: Card; readonly kind: "image" };
+  | { readonly card: FitBox; readonly kind: "image" };
 
 /**
  * Measure a choice for the layout: none for a picture with no written size, which is never drawn.
@@ -216,7 +211,7 @@ const measuredOf = ({ marked, measure }: FitChoice): Measured | undefined => {
  * @param wrap The box's width.
  * @returns The size the cards take: their widest row's width and their rows' height.
  */
-const flowOf = (measured: readonly Measured[], wrap: number): Card => {
+const flowOf = (measured: readonly Measured[], wrap: number): FitBox => {
   const rows: { height: number; width: number }[] = [];
 
   for (const content of measured) {
@@ -255,7 +250,7 @@ const wrapsOf = (measured: readonly Measured[]): readonly number[] => {
   const singles = measured.map((content) =>
     content.kind === "image"
       ? content.card.width
-      : textCard(content.words, content.across, Infinity).width,
+      : textCard(content.words, content.across, Number.POSITIVE_INFINITY).width,
   );
   const runs = measured.flatMap((content) =>
     content.kind === "image"
