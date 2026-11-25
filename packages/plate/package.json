@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@bjornpagen/devtools": "workspace:*",
+    "@bjornpagen/testing": "workspace:*",
     "@effect/vitest": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

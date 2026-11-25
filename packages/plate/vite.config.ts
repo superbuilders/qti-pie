@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { defineConfig } from "vitest/config";
+import type { ViteUserConfig } from "vitest/config";
 import { cacheTags } from "#plate/test/caches.ts";
 
 /**
@@ -10,10 +11,19 @@ import { cacheTags } from "#plate/test/caches.ts";
  */
 const unbounded = 0;
 
-export default defineConfig(async () => ({
+export default defineConfig(async (): Promise<ViteUserConfig> => ({
   test: {
+    /**
+     * @bjornpagen/testing's setup draws the run seed every searched() test reads, or replays a
+     * given one.
+     */
+    globalSetup: ["@bjornpagen/testing/vitest/global-setup"],
     hookTimeout: unbounded,
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    reporters: [
+      "default",
+      ["@bjornpagen/testing/vitest/reporter", { examples: { kind: "allowed" } }],
+    ],
     /**
      * One tag per cache under ~/.cache/qti-pie. A missing cache fails the tests that carry its tag,
      * with a message naming the missing path and how to fetch it (`src/test/setup.ts`).
