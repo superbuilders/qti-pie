@@ -94,7 +94,7 @@ export class CorpusFileUnreadable extends Schema.TaggedError<CorpusFileUnreadabl
  * @returns Its message, or its text when it is not an `Error`.
  */
 const causeText = (cause: unknown): string =>
-  cause instanceof Error ? cause.message : String(cause);
+  Error.isError(cause) ? cause.message : String(cause);
 
 /**
  * Give the absolute path a corpus-relative path names, when it stays inside the root.

@@ -58,7 +58,7 @@ describe("deltaTablesOf", () => {
       CREATE TEMPORARY TABLE "pg_temp"."__delta_news_decision_46wdjalzy7" ("at" bigint, "child" "pg_catalog"."text", "__count" bigint) ON COMMIT DROP;
     END`);
 
-    assert.deepStrictEqual([...tables.keys()], ["__delta_news_decision_46wdjalzy7"]);
+    assert.deepStrictEqual(new Set(tables.keys()), new Set(["__delta_news_decision_46wdjalzy7"]));
   });
 });
 
