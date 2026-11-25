@@ -134,12 +134,16 @@ export const graphicAssociate = kind("graphic-associate", {
       areas.map((area, at) => ({ area, name: word(at) })),
     );
     const drawn = areas.map((area, at) =>
-      element("qti-associable-hotspot", {
-        ...areaAttributes(stage, area),
-        "hotspot-label": word(at),
-        identifier: idOf(at),
-        "match-max": settings.reach,
-      }),
+      element(
+        "qti-associable-hotspot",
+        {
+          ...areaAttributes(stage, area),
+          "hotspot-label": word(at),
+          identifier: idOf(at),
+          "match-max": settings.reach,
+        },
+        [],
+      ),
     );
     const middle = Math.ceil(drawn.length / 2);
 
@@ -151,32 +155,35 @@ export const graphicAssociate = kind("graphic-associate", {
           "max-associations": maxAssociations(settings.pairs, rights.length),
           "response-identifier": response,
         },
-        ...Option.match(context.prompt, {
-          onNone: () => [],
-          onSome: (prompt) => [element("qti-prompt", {}, prompt)],
-        }),
-        picture.markup,
-        ...drawn.slice(0, middle),
-        ...(settings.rest === "rest"
-          ? [
-              element("qti-associable-hotspot", {
-                ...restAttributes(stage),
-                "hotspot-label": rest.name,
-                identifier: rest.identifier,
-                "match-max": 0,
-              }),
-            ]
-          : []),
-        ...drawn.slice(middle),
+        [
+          ...Option.match(context.prompt, {
+            onNone: () => [],
+            onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
+          }),
+          picture.markup,
+          ...drawn.slice(0, middle),
+          ...(settings.rest === "rest"
+            ? [
+                element(
+                  "qti-associable-hotspot",
+                  {
+                    ...restAttributes(stage),
+                    "hotspot-label": rest.name,
+                    identifier: rest.identifier,
+                    "match-max": 0,
+                  },
+                  [],
+                ),
+              ]
+            : []),
+          ...drawn.slice(middle),
+        ],
       ),
       declarations: [
-        declaration(
-          response,
-          settings.pairs === "one" ? "single" : "multiple",
-          "pair",
+        declaration(response, settings.pairs === "one" ? "single" : "multiple", "pair", [
           correctResponse(rights.map(pairText)),
           mapping(rights.map(pairText)),
-        ),
+        ]),
       ],
       host: Option.none(),
       scoring: { kind: "scored", most: rights.length, rules: [mapped(response)] },

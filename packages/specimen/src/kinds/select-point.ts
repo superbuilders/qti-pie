@@ -156,20 +156,19 @@ export const selectPoint = kind("select-point", {
           "min-choices": settings.least === "all" ? Option.some(targets.length) : Option.none(),
           "response-identifier": response,
         },
-        ...Option.match(context.prompt, {
-          onNone: () => [],
-          onSome: (prompt) => [element("qti-prompt", {}, prompt)],
-        }),
-        picture.markup,
+        [
+          ...Option.match(context.prompt, {
+            onNone: () => [],
+            onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
+          }),
+          picture.markup,
+        ],
       ),
       declarations: [
-        declaration(
-          response,
-          settings.points === "one" ? "single" : "multiple",
-          "point",
+        declaration(response, settings.points === "one" ? "single" : "multiple", "point", [
           correctResponse(targets.map((area) => pointText(area.centre))),
           areaMapping(targets, settings.miss),
-        ),
+        ]),
       ],
       host: Option.none(),
       scoring: { kind: "scored", most: targets.length, rules: [mappedPoints(response)] },

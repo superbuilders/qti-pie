@@ -153,30 +153,40 @@ export const graphicOrder = kind("graphic-order", {
           "min-choices": settings.counts === "some" ? Option.some(1) : Option.none(),
           "response-identifier": response,
         },
-        ...Option.match(context.prompt, {
-          onNone: () => [],
-          onSome: (prompt) => [element("qti-prompt", {}, prompt)],
-        }),
-        picture.markup,
-        ...areas.map((area, at) =>
-          element("qti-hotspot-choice", {
-            ...areaAttributes(stage, area),
-            "hotspot-label": word(at),
-            identifier: idOf(at),
+        [
+          ...Option.match(context.prompt, {
+            onNone: () => [],
+            onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
           }),
-        ),
-        ...(settings.rest === "rest"
-          ? [
-              element("qti-hotspot-choice", {
-                ...restAttributes(stage),
-                "hotspot-label": rest.name,
-                identifier: rest.identifier,
-              }),
-            ]
-          : []),
+          picture.markup,
+          ...areas.map((area, at) =>
+            element(
+              "qti-hotspot-choice",
+              {
+                ...areaAttributes(stage, area),
+                "hotspot-label": word(at),
+                identifier: idOf(at),
+              },
+              [],
+            ),
+          ),
+          ...(settings.rest === "rest"
+            ? [
+                element(
+                  "qti-hotspot-choice",
+                  {
+                    ...restAttributes(stage),
+                    "hotspot-label": rest.name,
+                    identifier: rest.identifier,
+                  },
+                  [],
+                ),
+              ]
+            : []),
+        ],
       ),
       declarations: [
-        declaration(response, "ordered", "identifier", correctResponse(rightOrder(settings))),
+        declaration(response, "ordered", "identifier", [correctResponse(rightOrder(settings))]),
       ],
       host: Option.none(),
       scoring: { kind: "scored", most: 1, rules: [credited(matchesCorrect(response), 1)] },

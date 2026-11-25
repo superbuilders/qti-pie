@@ -906,13 +906,17 @@ const expandLiteral = Effect.fnUntraced(function* expandLiteralContent<P, E>(
   const pieces: P[] = [];
   let from = 0;
   for (const token of literal.content.matchAll(pattern)) {
-    pieces.push(
-      ...between(literal.content.slice(from, token.index)),
-      ...(yield* replace(token, literal.start + token.index)),
-    );
+    for (const piece of between(literal.content.slice(from, token.index))) {
+      pieces.push(piece);
+    }
+    for (const piece of yield* replace(token, literal.start + token.index)) {
+      pieces.push(piece);
+    }
     from = token.index + token[0].length;
   }
-  pieces.push(...between(literal.content.slice(from)));
+  for (const piece of between(literal.content.slice(from))) {
+    pieces.push(piece);
+  }
 
   return pieces;
 });

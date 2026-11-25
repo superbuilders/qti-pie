@@ -149,12 +149,10 @@ export const match = kind("match", {
       element(
         "qti-simple-match-set",
         {},
-        ...Arr.makeBy(count, (at) =>
-          element(
-            "qti-simple-associable-choice",
-            { identifier: idOf(at), "match-max": matchMax },
+        Arr.makeBy(count, (at) =>
+          element("qti-simple-associable-choice", { identifier: idOf(at), "match-max": matchMax }, [
             text(run(settings.text, offset + at)),
-          ),
+          ]),
         ),
       );
 
@@ -166,15 +164,20 @@ export const match = kind("match", {
           "max-associations": settings.most === "right" ? rights.length : 0,
           "response-identifier": response,
         },
-        ...Option.match(context.prompt, {
-          onNone: () => [],
-          onSome: (prompt) => [element("qti-prompt", {}, prompt)],
-        }),
-        set(settings.sources, sourceOf, 1, 0),
-        set(settings.targets, targetOf, settings.takes === "one" ? 1 : 0, settings.sources),
+        [
+          ...Option.match(context.prompt, {
+            onNone: () => [],
+            onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
+          }),
+          set(settings.sources, sourceOf, 1, 0),
+          set(settings.targets, targetOf, settings.takes === "one" ? 1 : 0, settings.sources),
+        ],
       ),
       declarations: [
-        declaration(response, "multiple", "directedPair", correctResponse(rights), mapping(rights)),
+        declaration(response, "multiple", "directedPair", [
+          correctResponse(rights),
+          mapping(rights),
+        ]),
       ],
       host: Option.none(),
       scoring: { kind: "scored", most: rights.length, rules: [mapped(response)] },

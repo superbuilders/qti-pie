@@ -132,30 +132,30 @@ export const associate = kind("associate", {
           "response-identifier": response,
           shuffle: settings.shuffle === "none" ? Option.none() : Option.some("true"),
         },
-        ...Option.match(context.prompt, {
-          onNone: () => [],
-          onSome: (prompt) => [element("qti-prompt", {}, prompt)],
-        }),
-        ...Arr.makeBy(settings.choices, (at) =>
-          element(
-            "qti-simple-associable-choice",
-            {
-              fixed: settings.shuffle === "fixed" && at === 0 ? Option.some("true") : Option.none(),
-              identifier: idOf(at),
-              "match-max": settings.reach,
-            },
-            text(run(settings.length, at)),
+        [
+          ...Option.match(context.prompt, {
+            onNone: () => [],
+            onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
+          }),
+          ...Arr.makeBy(settings.choices, (at) =>
+            element(
+              "qti-simple-associable-choice",
+              {
+                fixed:
+                  settings.shuffle === "fixed" && at === 0 ? Option.some("true") : Option.none(),
+                identifier: idOf(at),
+                "match-max": settings.reach,
+              },
+              [text(run(settings.length, at))],
+            ),
           ),
-        ),
+        ],
       ),
       declarations: [
-        declaration(
-          response,
-          settings.pairs === "one" ? "single" : "multiple",
-          "pair",
+        declaration(response, settings.pairs === "one" ? "single" : "multiple", "pair", [
           correctResponse(rights),
           mapping(rights),
-        ),
+        ]),
       ],
       host: Option.none(),
       scoring: { kind: "scored", most: rights.length, rules: [mapped(response)] },

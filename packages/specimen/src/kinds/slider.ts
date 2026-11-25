@@ -176,21 +176,18 @@ export const slider = kind("slider", {
           "step-label": settings.labels === "labelled" ? Option.some("true") : Option.none(),
           "upper-bound": scale.upper,
         },
-        ...Option.match(context.prompt, {
+        Option.match(context.prompt, {
           onNone: () => [],
-          onSome: (prompt) => [element("qti-prompt", {}, prompt)],
+          onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
         }),
       ),
       declarations: [
-        declaration(
-          response,
-          "single",
-          scale.baseType,
+        declaration(response, "single", scale.baseType, [
           ...(settings.start === "default"
-            ? [element("qti-default-value", {}, element("qti-value", {}, String(scale.start)))]
+            ? [element("qti-default-value", {}, [element("qti-value", {}, [String(scale.start)])])]
             : []),
           correctResponse([String(scale.right)]),
-        ),
+        ]),
       ],
       host: Option.none(),
       scoring: { kind: "scored", most: 1, rules: [credited(matchesCorrect(response), 1)] },

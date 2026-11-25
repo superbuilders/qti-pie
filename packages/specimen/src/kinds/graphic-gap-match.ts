@@ -146,11 +146,9 @@ export const graphicGapMatch = kind("graphic-gap-match", {
         case "text": {
           return {
             files: [],
-            markup: element(
-              "qti-gap-text",
-              { identifier: chipOf(at), "match-max": 1 },
+            markup: element("qti-gap-text", { identifier: chipOf(at), "match-max": 1 }, [
               text(run(settings.chips.length, at)),
-            ),
+            ]),
           };
         }
         case "picture": {
@@ -158,11 +156,9 @@ export const graphicGapMatch = kind("graphic-gap-match", {
 
           return {
             files: [shown.file.asset],
-            markup: element(
-              "qti-gap-img",
-              { identifier: chipOf(at), "match-max": 1 },
+            markup: element("qti-gap-img", { identifier: chipOf(at), "match-max": 1 }, [
               shown.markup,
-            ),
+            ]),
           };
         }
       }
@@ -174,23 +170,32 @@ export const graphicGapMatch = kind("graphic-gap-match", {
       body: element(
         "qti-graphic-gap-match-interaction",
         { "max-associations": most, "response-identifier": response },
-        ...Option.match(context.prompt, {
-          onNone: () => [],
-          onSome: (prompt) => [element("qti-prompt", {}, prompt)],
-        }),
-        picture.markup,
-        ...chips.map((chip) => chip.markup),
-        ...areas.map((area, at) =>
-          element("qti-associable-hotspot", {
-            ...areaAttributes(stage, area),
-            "hotspot-label": word(at),
-            identifier: areaOf(at),
-            "match-max": 1,
+        [
+          ...Option.match(context.prompt, {
+            onNone: () => [],
+            onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
           }),
-        ),
+          picture.markup,
+          ...chips.map((chip) => chip.markup),
+          ...areas.map((area, at) =>
+            element(
+              "qti-associable-hotspot",
+              {
+                ...areaAttributes(stage, area),
+                "hotspot-label": word(at),
+                identifier: areaOf(at),
+                "match-max": 1,
+              },
+              [],
+            ),
+          ),
+        ],
       ),
       declarations: [
-        declaration(response, "multiple", "directedPair", correctResponse(rights), mapping(rights)),
+        declaration(response, "multiple", "directedPair", [
+          correctResponse(rights),
+          mapping(rights),
+        ]),
       ],
       host: Option.none(),
       scoring: { kind: "scored", most: rights.length, rules: [mapped(response)] },

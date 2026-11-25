@@ -382,7 +382,11 @@ const bottomOf = (area: Area): number => {
       return y + fourth;
     }
     case "poly": {
-      return Math.max(...area.coords.filter((_, at) => at % 2 === 1));
+      return Arr.reduce(
+        area.coords.filter((_, at) => at % 2 === 1),
+        Number.NEGATIVE_INFINITY,
+        (most, ordinate) => Math.max(most, ordinate),
+      );
     }
   }
 };
@@ -403,22 +407,26 @@ const outlineOf = (area: Area): string => {
 
   switch (area.geometry) {
     case "rect": {
-      return element("rect", {
-        ...paint,
-        height: fourth - second,
-        width: third - first,
-        x: first,
-        y: second,
-      });
+      return element(
+        "rect",
+        {
+          ...paint,
+          height: fourth - second,
+          width: third - first,
+          x: first,
+          y: second,
+        },
+        [],
+      );
     }
     case "circle": {
-      return element("circle", { ...paint, cx: first, cy: second, r: third });
+      return element("circle", { ...paint, cx: first, cy: second, r: third }, []);
     }
     case "ellipse": {
-      return element("ellipse", { ...paint, cx: first, cy: second, rx: third, ry: fourth });
+      return element("ellipse", { ...paint, cx: first, cy: second, rx: third, ry: fourth }, []);
     }
     case "poly": {
-      return element("polygon", { ...paint, points: area.coords.join(",") });
+      return element("polygon", { ...paint, points: area.coords.join(",") }, []);
     }
   }
 };
@@ -449,7 +457,7 @@ const marksOf = (size: Size, area: Area, name: string): string => {
         x: area.centre[0],
         y: below - area.centre[1] < font ? below + font : area.centre[1],
       },
-      text(name),
+      [text(name)],
     )
   );
 };
@@ -488,12 +496,16 @@ export const pictureOf = (
     ),
   );
   const written = stage.sizing === "written";
-  const img = element("img", {
-    alt: label,
-    height: written ? Option.some(size.height) : Option.none(),
-    src: file.src,
-    width: written ? Option.some(size.width) : Option.none(),
-  });
+  const img = element(
+    "img",
+    {
+      alt: label,
+      height: written ? Option.some(size.height) : Option.none(),
+      src: file.src,
+      width: written ? Option.some(size.width) : Option.none(),
+    },
+    [],
+  );
 
   switch (stage.carrier) {
     case "img": {
@@ -502,12 +514,10 @@ export const pictureOf = (
     case "picture": {
       return {
         asset: file.asset,
-        markup: element(
-          "picture",
-          {},
-          element("source", { srcset: file.src, type: "image/svg+xml" }),
+        markup: element("picture", {}, [
+          element("source", { srcset: file.src, type: "image/svg+xml" }, []),
           img,
-        ),
+        ]),
       };
     }
   }
@@ -534,13 +544,17 @@ export const areaMapping = (areas: readonly Area[], miss: number): string =>
   element(
     "qti-area-mapping",
     { "default-value": miss },
-    ...areas.map((area) =>
-      element("qti-area-map-entry", {
-        ...Object.fromEntries([
-          ["coords", area.coords.join(",")],
-          ["shape", area.geometry],
-        ]),
-        "mapped-value": 1,
-      }),
+    areas.map((area) =>
+      element(
+        "qti-area-map-entry",
+        {
+          ...Object.fromEntries([
+            ["coords", area.coords.join(",")],
+            ["shape", area.geometry],
+          ]),
+          "mapped-value": 1,
+        },
+        [],
+      ),
     ),
   );

@@ -120,33 +120,26 @@ export const inlineChoice = kind("inline-choice", {
       body: [
         ...Option.toArray(context.prompt),
         ...menus.map((menu) =>
-          element(
-            "p",
-            {},
+          element("p", {}, [
             text(`The ${word(menu)} picked `),
             element(
               "qti-inline-choice-interaction",
               { "response-identifier": responseOf(menu) },
-              ...Arr.makeBy(offered, (at) =>
-                element(
-                  "qti-inline-choice",
-                  { identifier: idOf(menu, at) },
+              Arr.makeBy(offered, (at) =>
+                element("qti-inline-choice", { identifier: idOf(menu, at) }, [
                   text(run(settings.values, menu * offered + at)),
-                ),
+                ]),
               ),
             ),
             text(" before lunch."),
-          ),
+          ]),
         ),
       ].join(""),
       declarations: menus.map((menu) =>
-        declaration(
-          responseOf(menu),
-          "single",
-          "identifier",
+        declaration(responseOf(menu), "single", "identifier", [
           correctResponse([idOf(menu, rightOf(menu))]),
           mapping([idOf(menu, rightOf(menu))]),
-        ),
+        ]),
       ),
       host: Option.none(),
       scoring: {

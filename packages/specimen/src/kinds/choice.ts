@@ -179,22 +179,21 @@ export const choice = kind("choice", {
           orientation: settings.orientation,
           "response-identifier": response,
         },
-        ...Option.match(context.prompt, {
-          onNone: () => [],
-          onSome: (prompt) => [element("qti-prompt", {}, prompt)],
-        }),
-        ...options.map((option, at) =>
-          element("qti-simple-choice", { identifier: idOf(at) }, option.markup),
-        ),
+        [
+          ...Option.match(context.prompt, {
+            onNone: () => [],
+            onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
+          }),
+          ...options.map((option, at) =>
+            element("qti-simple-choice", { identifier: idOf(at) }, [option.markup]),
+          ),
+        ],
       ),
       declarations: [
-        declaration(
-          response,
-          cardinalityOf(settings.picks),
-          "identifier",
+        declaration(response, cardinalityOf(settings.picks), "identifier", [
           correctResponse(rights),
           mapping(rights),
-        ),
+        ]),
       ],
       host: Option.none(),
       scoring: { kind: "scored", most: rights.length, rules: [mapped(response)] },

@@ -106,18 +106,22 @@ export const order = kind("order", {
           orientation: settings.orientation,
           "response-identifier": response,
         },
-        ...Option.match(context.prompt, {
-          onNone: () => [],
-          onSome: (prompt) => [element("qti-prompt", {}, prompt)],
-        }),
-        ...right
-          .toReversed()
-          .map((at) =>
-            element("qti-simple-choice", { identifier: idOf(at) }, text(run(settings.text, at))),
-          ),
+        [
+          ...Option.match(context.prompt, {
+            onNone: () => [],
+            onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
+          }),
+          ...right
+            .toReversed()
+            .map((at) =>
+              element("qti-simple-choice", { identifier: idOf(at) }, [
+                text(run(settings.text, at)),
+              ]),
+            ),
+        ],
       ),
       declarations: [
-        declaration(response, "ordered", "identifier", correctResponse(right.map(idOf))),
+        declaration(response, "ordered", "identifier", [correctResponse(right.map(idOf))]),
       ],
       host: Option.none(),
       scoring: {
@@ -125,16 +129,12 @@ export const order = kind("order", {
         most: settings.choices,
         rules: right.map((at) =>
           credited(
-            element(
-              "qti-match",
-              {},
-              element(
-                "qti-index",
-                { n: at + 1 },
-                element("qti-variable", { identifier: response }),
-              ),
-              element("qti-base-value", { "base-type": "identifier" }, idOf(at)),
-            ),
+            element("qti-match", {}, [
+              element("qti-index", { n: at + 1 }, [
+                element("qti-variable", { identifier: response }, []),
+              ]),
+              element("qti-base-value", { "base-type": "identifier" }, [idOf(at)]),
+            ]),
             1,
           ),
         ),

@@ -169,9 +169,9 @@ export const extendedText = kind("extended-text", {
             settings.placeholder === "written" ? Option.some("Write here") : Option.none(),
           "response-identifier": response,
         },
-        ...Option.match(context.prompt, {
+        Option.match(context.prompt, {
           onNone: () => [],
-          onSome: (prompt) => [element("qti-prompt", {}, prompt)],
+          onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
         }),
       ),
       declarations: [
@@ -179,7 +179,7 @@ export const extendedText = kind("extended-text", {
           response,
           cardinalities[settings.boxes],
           "string",
-          ...(settings.scoring === "scored" ? [correctResponse(rights.map(text))] : []),
+          settings.scoring === "scored" ? [correctResponse(rights.map(text))] : [],
         ),
       ],
       host: Option.none(),

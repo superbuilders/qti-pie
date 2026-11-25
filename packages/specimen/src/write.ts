@@ -80,26 +80,24 @@ const contentOf = (content: Content): Placed => {
       return {
         assets: [],
         markup: Arr.makeBy(count, (at) =>
-          element("p", {}, text(`Once upon a time ${run(content.length, at)}.`)),
+          element("p", {}, [text(`Once upon a time ${run(content.length, at)}.`)]),
         ).join(""),
       };
     }
     case "picture": {
       const shown = image(content.picture, "Stimulus");
 
-      return { assets: [shown.file.asset], markup: element("p", {}, shown.markup) };
+      return { assets: [shown.file.asset], markup: element("p", {}, [shown.markup]) };
     }
     case "figure": {
       const shown = image(content.picture, "Figure");
 
       return {
         assets: [shown.file.asset],
-        markup: element(
-          "figure",
-          {},
+        markup: element("figure", {}, [
           shown.markup,
-          element("figcaption", {}, text("A figure, captioned under its picture.")),
-        ),
+          element("figcaption", {}, [text("A figure, captioned under its picture.")]),
+        ]),
       };
     }
     case "table": {
@@ -107,34 +105,30 @@ const contentOf = (content: Content): Placed => {
 
       return {
         assets: [],
-        markup: element(
-          "table",
-          {},
-          element(
-            "thead",
-            {},
+        markup: element("table", {}, [
+          element("thead", {}, [
             element(
               "tr",
               {},
-              ...columns.map((column) =>
-                element("th", { scope: "col" }, text(`Heading ${word(column)}`)),
+              columns.map((column) =>
+                element("th", { scope: "col" }, [text(`Heading ${word(column)}`)]),
               ),
             ),
-          ),
+          ]),
           element(
             "tbody",
             {},
-            ...Arr.makeBy(content.rows, (row) =>
+            Arr.makeBy(content.rows, (row) =>
               element(
                 "tr",
                 {},
-                ...columns.map((column) =>
-                  element("td", {}, text(String(row * content.columns + column + 1))),
+                columns.map((column) =>
+                  element("td", {}, [text(String(row * content.columns + column + 1))]),
                 ),
               ),
             ),
           ),
-        ),
+        ]),
       };
     }
     case "video": {
@@ -154,7 +148,7 @@ const contentOf = (content: Content): Placed => {
             poster: poster.src,
             width: videoSize.width,
           },
-          element("source", { src: clip.src, type: "video/webm" }),
+          [element("source", { src: clip.src, type: "video/webm" }, [])],
         ),
       };
     }
@@ -168,7 +162,7 @@ const contentOf = (content: Content): Placed => {
  * @returns Its markup and files, none when there is no prompt.
  */
 const promptOf = (prompt: Prompt): Option.Option<Placed> => {
-  const line = element("p", {}, text("Answer the question."));
+  const line = element("p", {}, [text("Answer the question.")]);
 
   switch (prompt.kind) {
     case "none": {
@@ -182,7 +176,7 @@ const promptOf = (prompt: Prompt): Option.Option<Placed> => {
 
       return Option.some({
         assets: [shown.file.asset],
-        markup: `${line}${element("p", {}, shown.markup)}`,
+        markup: `${line}${element("p", {}, [shown.markup])}`,
       });
     }
   }
@@ -212,7 +206,7 @@ const laidOut = (stimulus: Stimulus, interaction: string): Placed => {
     case "shown": {
       const content = contentOf(stimulus.content);
       const framed = stimulus.well
-        ? element("div", { class: "qti-well" }, content.markup)
+        ? element("div", { class: "qti-well" }, [content.markup])
         : content.markup;
 
       if (stimulus.layout === "stacked") {
@@ -223,12 +217,10 @@ const laidOut = (stimulus: Stimulus, interaction: string): Placed => {
 
       return {
         assets: content.assets,
-        markup: element(
-          "div",
-          { class: "qti-layout-row" },
-          element("div", { class: `qti-layout-col${String(left)}` }, framed),
-          element("div", { class: `qti-layout-col${String(right)}` }, interaction),
-        ),
+        markup: element("div", { class: "qti-layout-row" }, [
+          element("div", { class: `qti-layout-col${String(left)}` }, [framed]),
+          element("div", { class: `qti-layout-col${String(right)}` }, [interaction]),
+        ]),
       };
     }
   }
@@ -251,11 +243,9 @@ const feedbackText = [
  * @returns The `qti-outcome-declaration`.
  */
 const declared = (identifier: string, value: number): string =>
-  element(
-    "qti-outcome-declaration",
-    { "base-type": "float", cardinality: "single", identifier },
-    element("qti-default-value", {}, element("qti-value", {}, String(value))),
-  );
+  element("qti-outcome-declaration", { "base-type": "float", cardinality: "single", identifier }, [
+    element("qti-default-value", {}, [element("qti-value", {}, [String(value)])]),
+  ]);
 
 /**
  * Set `FEEDBACK` to an identifier.
@@ -264,11 +254,9 @@ const declared = (identifier: string, value: number): string =>
  * @returns The `qti-set-outcome-value`.
  */
 const feedbackSet = (value: string): string =>
-  element(
-    "qti-set-outcome-value",
-    { identifier: "FEEDBACK" },
-    element("qti-base-value", { "base-type": "identifier" }, value),
-  );
+  element("qti-set-outcome-value", { identifier: "FEEDBACK" }, [
+    element("qti-base-value", { "base-type": "identifier" }, [value]),
+  ]);
 
 /**
  * Write the item's outcome declarations: `SCORE` always, `MAXSCORE` when the kind scores, and
@@ -283,11 +271,15 @@ const outcomes = (scoring: Scoring, feedback: boolean): readonly string[] => [
   ...(scoring.kind === "scored" ? [declared("MAXSCORE", scoring.most)] : []),
   ...(feedback
     ? [
-        element("qti-outcome-declaration", {
-          "base-type": "identifier",
-          cardinality: "single",
-          identifier: "FEEDBACK",
-        }),
+        element(
+          "qti-outcome-declaration",
+          {
+            "base-type": "identifier",
+            cardinality: "single",
+            identifier: "FEEDBACK",
+          },
+          [],
+        ),
       ]
     : []),
 ];
@@ -308,31 +300,23 @@ const processing = (scoring: Scoring, feedback: boolean): readonly string[] => {
     }
     case "scored": {
       return [
-        element(
-          "qti-response-processing",
-          {},
+        element("qti-response-processing", {}, [
           ...scoring.rules,
           ...(feedback
             ? [
-                element(
-                  "qti-response-condition",
-                  {},
-                  element(
-                    "qti-response-if",
-                    {},
-                    element(
-                      "qti-gte",
-                      {},
-                      element("qti-variable", { identifier: "SCORE" }),
+                element("qti-response-condition", {}, [
+                  element("qti-response-if", {}, [
+                    element("qti-gte", {}, [
+                      element("qti-variable", { identifier: "SCORE" }, []),
                       float(scoring.most),
-                    ),
+                    ]),
                     feedbackSet("correct"),
-                  ),
-                  element("qti-response-else", {}, feedbackSet("incorrect")),
-                ),
+                  ]),
+                  element("qti-response-else", {}, [feedbackSet("incorrect")]),
+                ]),
               ]
             : []),
-        ),
+        ]),
       ];
     }
   }
@@ -356,7 +340,7 @@ export const itemOf = (description: Description): Item => {
           element(
             "qti-feedback-block",
             { identifier, "outcome-identifier": "FEEDBACK", "show-hide": "show" },
-            element("qti-content-body", {}, element("p", {}, text(said))),
+            [element("qti-content-body", {}, [element("p", {}, [text(said)])])],
           ),
         )
       : [];
@@ -366,7 +350,7 @@ export const itemOf = (description: Description): Item => {
           element(
             "qti-modal-feedback",
             { identifier, "outcome-identifier": "FEEDBACK", "show-hide": "show" },
-            element("qti-content-body", {}, element("p", {}, text(said))),
+            [element("qti-content-body", {}, [element("p", {}, [text(said)])])],
           ),
         )
       : [];
@@ -393,11 +377,13 @@ export const itemOf = (description: Description): Item => {
         "xml:lang": "en",
         xmlns: "http://www.imsglobal.org/xsd/imsqtiasi_v3p0",
       },
-      ...kind.declarations,
-      ...outcomes(kind.scoring, shows),
-      element("qti-item-body", {}, body.markup),
-      ...processing(kind.scoring, shows),
-      ...modal,
+      [
+        ...kind.declarations,
+        ...outcomes(kind.scoring, shows),
+        element("qti-item-body", {}, [body.markup]),
+        ...processing(kind.scoring, shows),
+        ...modal,
+      ],
     ),
   };
 };

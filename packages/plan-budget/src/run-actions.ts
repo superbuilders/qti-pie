@@ -189,11 +189,17 @@ export const verdictOf = (
     .map((runs) => ({
       cpuMs: Arr.headNonEmpty(runs).cpuMs,
       ended: Arr.headNonEmpty(runs).ended,
-      leastCpuMs: Math.min(...runs.map(({ cpuMs }) => cpuMs)),
-      pages: Math.min(...runs.map(({ pages }) => pages)),
+      leastCpuMs: Arr.reduce(runs, Number.POSITIVE_INFINITY, (least, { cpuMs }) =>
+        Math.min(least, cpuMs),
+      ),
+      pages: Arr.reduce(runs, Number.POSITIVE_INFINITY, (least, { pages }) =>
+        Math.min(least, pages),
+      ),
       scale: Arr.headNonEmpty(runs).size,
       waits: Arr.lastNonEmpty(runs).waits,
-      wallMs: Math.min(...runs.map(({ wallMs }) => wallMs)),
+      wallMs: Arr.reduce(runs, Number.POSITIVE_INFINITY, (least, { wallMs }) =>
+        Math.min(least, wallMs),
+      ),
     }))
     .toSorted((a, b) => a.scale - b.scale);
   const slope =

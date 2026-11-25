@@ -107,34 +107,35 @@ export const textEntry = kind("text-entry", {
       body: [
         ...Option.toArray(context.prompt),
         ...blanks.map((blank) =>
-          element(
-            "p",
-            {},
+          element("p", {}, [
             text(`Write the word ${rightOf(blank)} here: `),
-            element("qti-text-entry-interaction", {
-              "expected-length": settings.expected,
-              "response-identifier": responseOf(blank),
-            }),
+            element(
+              "qti-text-entry-interaction",
+              {
+                "expected-length": settings.expected,
+                "response-identifier": responseOf(blank),
+              },
+              [],
+            ),
             text("."),
-          ),
+          ]),
         ),
       ].join(""),
       declarations: blanks.map((blank) =>
-        declaration(
-          responseOf(blank),
-          "single",
-          "string",
+        declaration(responseOf(blank), "single", "string", [
           correctResponse([rightOf(blank)]),
-          element(
-            "qti-mapping",
-            { "default-value": 0, "lower-bound": 0 },
-            element("qti-map-entry", {
-              "case-sensitive": "false",
-              "map-key": rightOf(blank),
-              "mapped-value": 1,
-            }),
-          ),
-        ),
+          element("qti-mapping", { "default-value": 0, "lower-bound": 0 }, [
+            element(
+              "qti-map-entry",
+              {
+                "case-sensitive": "false",
+                "map-key": rightOf(blank),
+                "mapped-value": 1,
+              },
+              [],
+            ),
+          ]),
+        ]),
       ),
       host: Option.none(),
       scoring: {

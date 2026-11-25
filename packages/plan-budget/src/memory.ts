@@ -6,7 +6,7 @@
  * @module
  */
 import { appendFileSync } from "node:fs";
-import { Effect } from "effect";
+import { Array as Arr, Effect } from "effect";
 import { loadNow } from "#plan-budget/backend.ts";
 import { installedActions, measurePlans } from "#plan-budget/plans.ts";
 import type { ActionPlans, Connections, MeasureFailed } from "#plan-budget/plans.ts";
@@ -97,7 +97,7 @@ export const memoryRecordOf = (
     judges: served.judges,
     load: loadNow(),
     measured,
-    peakKb: Math.max(0, ...measured.plans.map(({ cold }) => cold.usedKb)),
+    peakKb: Arr.reduce(measured.plans, 0, (most, { cold }) => Math.max(most, cold.usedKb)),
     run: served.steps.filter(({ kind }) => kind === "run").length,
     statements: served.statements,
     verdict: verdictOf(measured, coldKb, run.ceilingKb),

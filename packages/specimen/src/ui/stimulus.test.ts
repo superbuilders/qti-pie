@@ -36,7 +36,7 @@ import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
 import { element } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Duration, Effect, Option } from "effect";
+import { Array as Arr, Duration, Effect, Option } from "effect";
 import { parseHTML } from "linkedom";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -333,7 +333,12 @@ describe("plate's UI over the corpus's shared stimuli", () => {
                 const levels = [...article.querySelectorAll("h1, h2, h3, h4, h5, h6")].map(
                   (heading) => Number(heading.tagName.slice(1)),
                 );
-                assert.strictEqual(Math.min(...levels), 2);
+                assert.strictEqual(
+                  Arr.reduce(levels, Number.POSITIVE_INFINITY, (least, level) =>
+                    Math.min(least, level),
+                  ),
+                  2,
+                );
 
                 // SP4: its card, dormant until its support is enabled, then inside its article.
                 const enabled = showing.endsWith("linguistic guidance");

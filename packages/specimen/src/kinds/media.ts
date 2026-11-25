@@ -149,7 +149,7 @@ const playerOf = (settings: MediaSettings, inside: readonly string[]): Player =>
 
   switch (settings.player.kind) {
     case "audio": {
-      return { assets: [], markup: element("audio", controls, ...inside) };
+      return { assets: [], markup: element("audio", controls, inside) };
     }
     case "video": {
       const size = sizeOf(settings.player.picture);
@@ -163,7 +163,7 @@ const playerOf = (settings: MediaSettings, inside: readonly string[]): Player =>
         markup: element(
           "video",
           { ...controls, height: size.height, poster: poster.src, width: size.width },
-          ...inside,
+          inside,
         ),
       };
     }
@@ -230,9 +230,9 @@ export const media = kind("media", {
     }),
   write: (settings: MediaSettings, context) => {
     const inside = [
-      element("source", { src: recording.src, type: "audio/wav" }),
+      element("source", { src: recording.src, type: "audio/wav" }, []),
       ...(settings.captions
-        ? [element("track", { kind: "captions", src: captions.src, srclang: "en" })]
+        ? [element("track", { kind: "captions", src: captions.src, srclang: "en" }, [])]
         : []),
     ];
     const player = playerOf(settings, inside);
@@ -248,25 +248,25 @@ export const media = kind("media", {
           "min-plays": Option.liftPredicate(settings.plays.least, (least) => least > 0),
           "response-identifier": response,
         },
-        ...Option.match(context.prompt, {
-          onNone: () => [],
-          onSome: (prompt) => [element("qti-prompt", {}, prompt)],
-        }),
-        player.markup,
+        [
+          ...Option.match(context.prompt, {
+            onNone: () => [],
+            onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
+          }),
+          player.markup,
+        ],
       ),
-      declarations: [declaration(response, "single", "integer")],
+      declarations: [declaration(response, "single", "integer", [])],
       host: Option.none(),
       scoring: {
         kind: "scored",
         most: 1,
         rules: [
           credited(
-            element(
-              "qti-gte",
-              {},
-              element("qti-variable", { identifier: response }),
-              element("qti-base-value", { "base-type": "integer" }, String(enough(settings))),
-            ),
+            element("qti-gte", {}, [
+              element("qti-variable", { identifier: response }, []),
+              element("qti-base-value", { "base-type": "integer" }, [String(enough(settings))]),
+            ]),
             1,
           ),
         ],

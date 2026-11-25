@@ -16,7 +16,7 @@
  * @module
  */
 import { readFileSync } from "node:fs";
-import { Schema } from "effect";
+import { Array as Arr, Schema } from "effect";
 
 /**
  * One action's point of the fit: its cold planner memory and the least cold CPU of its runs.
@@ -138,8 +138,10 @@ export const calibrationOf = (
 
     points.push({
       action,
-      coldCpuMs: Math.min(...runs.map(({ coldCpuMs }) => coldCpuMs)),
-      coldKb: Math.min(...memories),
+      coldCpuMs: Arr.reduce(runs, Number.POSITIVE_INFINITY, (least, { coldCpuMs }) =>
+        Math.min(least, coldCpuMs),
+      ),
+      coldKb: Arr.reduce(memories, Number.POSITIVE_INFINITY, (least, kb) => Math.min(least, kb)),
       runs: runs.length,
     });
   }
@@ -164,7 +166,10 @@ export const calibrationOf = (
     ceilingKb: Math.floor(Math.exp((Math.log(budgetMs) - logAtOneMb) / exponent) * kbPerMb),
     conditions,
     exponent,
-    loads: { least: Math.min(...loads), most: Math.max(...loads) },
+    loads: {
+      least: Arr.reduce(loads, Number.POSITIVE_INFINITY, (least, load) => Math.min(least, load)),
+      most: Arr.reduce(loads, Number.NEGATIVE_INFINITY, (most, load) => Math.max(most, load)),
+    },
     msAtOneMb: Math.exp(logAtOneMb),
     points: points.toSorted((a, b) => a.coldKb - b.coldKb),
     r2: 1 - ssRes / ssTot,

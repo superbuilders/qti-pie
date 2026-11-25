@@ -111,42 +111,52 @@ export const placeholder = (size: Size, label: string, marks: readonly string[])
       width,
       xmlns: "http://www.w3.org/2000/svg",
     },
-    element("rect", {
-      fill: "#e6e6e6",
-      height: height - 2,
-      stroke: "#7a7a7a",
-      "stroke-width": 2,
-      width: width - 2,
-      x: 1,
-      y: 1,
-    }),
-    element("path", {
-      d: `M0 0L${String(width)} ${String(height)}M${String(width)} 0L0 ${String(height)}`,
-      stroke: "#c4c4c4",
-    }),
-    element(
-      "text",
-      {
-        "font-family": "sans-serif",
-        "font-size": font,
-        "text-anchor": "middle",
-        x: width / 2,
-        y: height / 2 - font * 0.2,
-      },
-      text(label),
-    ),
-    element(
-      "text",
-      {
-        "font-family": "sans-serif",
-        "font-size": font,
-        "text-anchor": "middle",
-        x: width / 2,
-        y: height / 2 + font,
-      },
-      text(`${String(width)} × ${String(height)}`),
-    ),
-    ...marks,
+    [
+      element(
+        "rect",
+        {
+          fill: "#e6e6e6",
+          height: height - 2,
+          stroke: "#7a7a7a",
+          "stroke-width": 2,
+          width: width - 2,
+          x: 1,
+          y: 1,
+        },
+        [],
+      ),
+      element(
+        "path",
+        {
+          d: `M0 0L${String(width)} ${String(height)}M${String(width)} 0L0 ${String(height)}`,
+          stroke: "#c4c4c4",
+        },
+        [],
+      ),
+      element(
+        "text",
+        {
+          "font-family": "sans-serif",
+          "font-size": font,
+          "text-anchor": "middle",
+          x: width / 2,
+          y: height / 2 - font * 0.2,
+        },
+        [text(label)],
+      ),
+      element(
+        "text",
+        {
+          "font-family": "sans-serif",
+          "font-size": font,
+          "text-anchor": "middle",
+          x: width / 2,
+          y: height / 2 + font,
+        },
+        [text(`${String(width)} × ${String(height)}`)],
+      ),
+      ...marks,
+    ],
   );
 };
 
@@ -208,6 +218,10 @@ export const image = (picture: Picture, label: string): Shown => {
 
   return {
     file,
-    markup: element("img", { alt: label, height: size.height, src: file.src, width: size.width }),
+    markup: element(
+      "img",
+      { alt: label, height: size.height, src: file.src, width: size.width },
+      [],
+    ),
   };
 };

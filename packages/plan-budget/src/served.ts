@@ -312,13 +312,17 @@ const statementsIn = (member: ServedMember): readonly SentStatement[] => {
     const value = stack.pop();
 
     if (isCollection(value)) {
-      stack.push(...[...value.values()].toReversed());
+      for (const each of [...value.values()].toReversed()) {
+        stack.push(each);
+      }
     } else if (isUnits(value)) {
       const sql = assembledText(value);
 
       found.set(sql, { name: "assembled", sql });
     } else if (isList(value)) {
-      stack.push(...value.toReversed());
+      for (const each of value.toReversed()) {
+        stack.push(each);
+      }
     } else if (isStandUp(value)) {
       for (const { name, sql } of standUpTexts(value)) {
         found.set(sql, { name, sql });
@@ -333,7 +337,9 @@ const statementsIn = (member: ServedMember): readonly SentStatement[] => {
 
         found.set(sql, { name: "assembled", sql });
       } else {
-        stack.push(...Object.values(value).toReversed());
+        for (const each of Object.values(value).toReversed()) {
+          stack.push(each);
+        }
       }
     }
   }

@@ -245,7 +245,11 @@ export const page = (held: Query, from: Option.Option<string>, count: number): P
   for (let walked = 0; walked < count && Option.isSome(branch); walked += 1) {
     const step = enumerated(recorded, generator, branch.value);
 
-    specimens.push(...Option.toArray(specimenOf(held, step.generated.value, step.generated.tape)));
+    const specimen = specimenOf(held, step.generated.value, step.generated.tape);
+    if (Option.isSome(specimen)) {
+      specimens.push(specimen.value);
+    }
+
     branch = step.next;
   }
 

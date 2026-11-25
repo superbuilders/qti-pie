@@ -104,9 +104,11 @@ const posted = (settings: HottextSettings, places: readonly number[]): Answered[
  * @returns Its markup.
  */
 const hottextAt = (settings: HottextSettings, at: number): string => {
-  const hottext = element("qti-hottext", { identifier: idOf(at) }, text(run(settings.length, at)));
+  const hottext = element("qti-hottext", { identifier: idOf(at) }, [
+    text(run(settings.length, at)),
+  ]);
 
-  return settings.nesting === "em" && at % 2 === 1 ? element("em", {}, hottext) : hottext;
+  return settings.nesting === "em" && at % 2 === 1 ? element("em", {}, [hottext]) : hottext;
 };
 
 /**
@@ -127,11 +129,11 @@ const passageOf = (settings: HottextSettings): readonly string[] => {
         )
         .join("");
 
-      return [element("p", {}, `On the walk we saw ${listed}.`)];
+      return [element("p", {}, [`On the walk we saw ${listed}.`])];
     }
     case "paragraphs": {
       return runs.map((markup, at) =>
-        element("p", {}, `${at === 0 ? "First" : "Then"} we saw ${markup}.`),
+        element("p", {}, [`${at === 0 ? "First" : "Then"} we saw ${markup}.`]),
       );
     }
   }
@@ -215,20 +217,19 @@ export const hottext = kind("hottext", {
           "min-choices": settings.least === "one" ? Option.some(1) : Option.none(),
           "response-identifier": response,
         },
-        ...Option.match(context.prompt, {
-          onNone: () => [],
-          onSome: (prompt) => [element("qti-prompt", {}, prompt)],
-        }),
-        ...passageOf(settings),
+        [
+          ...Option.match(context.prompt, {
+            onNone: () => [],
+            onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
+          }),
+          ...passageOf(settings),
+        ],
       ),
       declarations: [
-        declaration(
-          response,
-          cardinalityOf(settings.picks),
-          "identifier",
+        declaration(response, cardinalityOf(settings.picks), "identifier", [
           correctResponse(rights),
           mapping(rights),
-        ),
+        ]),
       ],
       host: Option.none(),
       scoring: { kind: "scored", most: rights.length, rules: [mapped(response)] },

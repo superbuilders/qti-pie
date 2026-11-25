@@ -179,36 +179,43 @@ export const hotspot = kind("hotspot", {
           "min-choices": settings.least === "one" ? Option.some(1) : Option.none(),
           "response-identifier": response,
         },
-        ...Option.match(context.prompt, {
-          onNone: () => [],
-          onSome: (prompt) => [element("qti-prompt", {}, prompt)],
-        }),
-        picture.markup,
-        ...areas.map((area, at) =>
-          element("qti-hotspot-choice", {
-            ...areaAttributes(stage, area),
-            "hotspot-label": word(at),
-            identifier: idOf(at),
+        [
+          ...Option.match(context.prompt, {
+            onNone: () => [],
+            onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
           }),
-        ),
-        ...(settings.rest === "rest"
-          ? [
-              element("qti-hotspot-choice", {
-                ...restAttributes(stage),
-                "hotspot-label": rest.name,
-                identifier: rest.identifier,
-              }),
-            ]
-          : []),
+          picture.markup,
+          ...areas.map((area, at) =>
+            element(
+              "qti-hotspot-choice",
+              {
+                ...areaAttributes(stage, area),
+                "hotspot-label": word(at),
+                identifier: idOf(at),
+              },
+              [],
+            ),
+          ),
+          ...(settings.rest === "rest"
+            ? [
+                element(
+                  "qti-hotspot-choice",
+                  {
+                    ...restAttributes(stage),
+                    "hotspot-label": rest.name,
+                    identifier: rest.identifier,
+                  },
+                  [],
+                ),
+              ]
+            : []),
+        ],
       ),
       declarations: [
-        declaration(
-          response,
-          cardinalityOf(settings.picks),
-          "identifier",
+        declaration(response, cardinalityOf(settings.picks), "identifier", [
           correctResponse(rights),
           mapping(rights),
-        ),
+        ]),
       ],
       host: Option.none(),
       scoring: { kind: "scored", most: rights.length, rules: [mapped(response)] },

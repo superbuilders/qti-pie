@@ -514,7 +514,14 @@ const parse = (
       // of the text, so two text events in one element always have a node between them (saxes
       // 6.0.0, saxes.js:1624-1704 and :1820-1825): each run is put in the tree as it comes.
       parser.on("text", (value) => {
-        open.at(-1)?.children.push(...restoredText(value, names));
+        const parent = open.at(-1);
+        if (parent === undefined) {
+          return;
+        }
+
+        for (const node of restoredText(value, names)) {
+          parent.children.push(node);
+        }
       });
       parser.on("cdata", (value) => {
         open.at(-1)?.children.push({ cdata: true, kind: "text", value });

@@ -13,11 +13,9 @@ import { element } from "#specimen/xml.ts";
  * @returns The `qti-set-outcome-value`.
  */
 const added = (expression: string): string =>
-  element(
-    "qti-set-outcome-value",
-    { identifier: "SCORE" },
-    element("qti-sum", {}, element("qti-variable", { identifier: "SCORE" }), expression),
-  );
+  element("qti-set-outcome-value", { identifier: "SCORE" }, [
+    element("qti-sum", {}, [element("qti-variable", { identifier: "SCORE" }, []), expression]),
+  ]);
 
 /**
  * A float written as a base value.
@@ -26,7 +24,7 @@ const added = (expression: string): string =>
  * @returns The `qti-base-value`.
  */
 export const float = (value: number): string =>
-  element("qti-base-value", { "base-type": "float" }, String(value));
+  element("qti-base-value", { "base-type": "float" }, [String(value)]);
 
 /**
  * Add `worth` when a condition holds: a response matching its correct response, one of its values
@@ -37,11 +35,9 @@ export const float = (value: number): string =>
  * @returns The rule.
  */
 export const credited = (condition: string, worth: number): string =>
-  element(
-    "qti-response-condition",
-    {},
-    element("qti-response-if", {}, condition, added(float(worth))),
-  );
+  element("qti-response-condition", {}, [
+    element("qti-response-if", {}, [condition, added(float(worth))]),
+  ]);
 
 /**
  * Add a mapping's value of a response, and nothing when it is NULL, as QTI's `map_response` and
@@ -56,20 +52,14 @@ const mappedBy = (
   response: string,
   mapper: "qti-map-response" | "qti-map-response-point",
 ): string =>
-  element(
-    "qti-response-condition",
-    {},
-    element(
-      "qti-response-if",
-      {},
-      element(
-        "qti-not",
-        {},
-        element("qti-is-null", {}, element("qti-variable", { identifier: response })),
-      ),
-      added(element(mapper, { identifier: response })),
-    ),
-  );
+  element("qti-response-condition", {}, [
+    element("qti-response-if", {}, [
+      element("qti-not", {}, [
+        element("qti-is-null", {}, [element("qti-variable", { identifier: response }, [])]),
+      ]),
+      added(element(mapper, { identifier: response }, [])),
+    ]),
+  ]);
 
 /**
  * Add a response's mapped value: its declaration's `qti-mapping` applied to it.
@@ -96,9 +86,7 @@ export const mappedPoints = (response: string): string =>
  * @returns The condition.
  */
 export const matchesCorrect = (response: string): string =>
-  element(
-    "qti-match",
-    {},
-    element("qti-variable", { identifier: response }),
-    element("qti-correct", { identifier: response }),
-  );
+  element("qti-match", {}, [
+    element("qti-variable", { identifier: response }, []),
+    element("qti-correct", { identifier: response }, []),
+  ]);

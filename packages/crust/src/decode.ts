@@ -91,22 +91,11 @@ const declarationPattern =
 const declarationOpen: readonly number[] = [0x3c, 0x3f, 0x78, 0x6d, 0x6c];
 
 /**
- * How many bytes one `String.fromCodePoint` call takes: a call over a whole large document
- * overflows the call stack.
+ * Read each byte of `bytes` as the character whose code point is the byte's value, one character a
+ * byte, so no call takes the document's bytes as its arguments.
  */
-const latin1Chunk = 0x80_00;
-
-/**
- * Read each byte of `bytes` as the character whose code point is the byte's value.
- */
-const latin1Text = (bytes: Uint8Array): string => {
-  const chunks: string[] = [];
-  for (let start = 0; start < bytes.length; start += latin1Chunk) {
-    chunks.push(String.fromCodePoint(...bytes.subarray(start, start + latin1Chunk)));
-  }
-
-  return chunks.join("");
-};
+const latin1Text = (bytes: Uint8Array): string =>
+  Array.from(bytes, (byte) => String.fromCodePoint(byte)).join("");
 
 /**
  * Test whether `bytes` begins with `prefix`.

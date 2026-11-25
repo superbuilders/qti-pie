@@ -87,9 +87,11 @@ export const writeBacklog = (folder: string, file: string): void => {
         "",
         `${summary.subject}; run ${summary.at}, load ${summary.load.toFixed(0)}.`,
         "",
-        ...summary.failing.map(({ action, reason }) => `- \`${action}\`: ${reason}`),
-        "",
       );
+      for (const { action, reason } of summary.failing) {
+        lines.push(`- \`${action}\`: ${reason}`);
+      }
+      lines.push("");
     }
   }
 

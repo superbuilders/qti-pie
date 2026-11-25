@@ -196,9 +196,7 @@ export const positionObject = kind("position-object", {
       assets: [picture.asset, ...tokens.map((shown) => shown.file.asset)],
       body: [
         ...Option.toArray(context.prompt),
-        element(
-          "qti-position-object-stage",
-          {},
+        element("qti-position-object-stage", {}, [
           picture.markup,
           ...tokens.map((shown, at) =>
             element(
@@ -212,19 +210,16 @@ export const positionObject = kind("position-object", {
                 "min-choices": settings.least === "one" ? Option.some(1) : Option.none(),
                 "response-identifier": responseOf(at),
               },
-              shown.markup,
+              [shown.markup],
             ),
           ),
-        ),
+        ]),
       ].join(""),
       declarations: homes.map((areas, at) =>
-        declaration(
-          responseOf(at),
-          settings.placings === "one" ? "single" : "multiple",
-          "point",
+        declaration(responseOf(at), settings.placings === "one" ? "single" : "multiple", "point", [
           correctResponse(areas.map((area) => pointText(area.centre))),
           areaMapping(areas, 0),
-        ),
+        ]),
       ),
       host: Option.none(),
       scoring: {

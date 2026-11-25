@@ -188,36 +188,32 @@ export const portableCustom = kind("portable-custom", {
         module: module.id,
         "response-identifier": response,
       },
-      ...Option.match(context.prompt, {
-        onNone: () => [],
-        onSome: (prompt) => [element("qti-prompt", {}, prompt)],
-      }),
-      element(
-        "qti-interaction-modules",
-        {},
-        element("qti-interaction-module", { id: module.id, "primary-path": module.path }),
-      ),
-      element(
-        "qti-interaction-markup",
-        {},
-        element("p", {}, `Press the button until the count says ${String(rightCount(settings))}.`),
-        ...(settings.face === "template"
-          ? [
-              element(
-                "template",
-                {},
-                element(
-                  "div",
-                  { class: "counter-face" },
-                  element("span", { class: "counter-value" }, "0"),
-                ),
-              ),
-            ]
-          : []),
-      ),
+      [
+        ...Option.match(context.prompt, {
+          onNone: () => [],
+          onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
+        }),
+        element("qti-interaction-modules", {}, [
+          element("qti-interaction-module", { id: module.id, "primary-path": module.path }, []),
+        ]),
+        element("qti-interaction-markup", {}, [
+          element("p", {}, [
+            `Press the button until the count says ${String(rightCount(settings))}.`,
+          ]),
+          ...(settings.face === "template"
+            ? [
+                element("template", {}, [
+                  element("div", { class: "counter-face" }, [
+                    element("span", { class: "counter-value" }, ["0"]),
+                  ]),
+                ]),
+              ]
+            : []),
+        ]),
+      ],
     ),
     declarations: [
-      declaration(response, "single", "integer", correctResponse([String(rightCount(settings))])),
+      declaration(response, "single", "integer", [correctResponse([String(rightCount(settings))])]),
     ],
     host: Option.some(host),
     scoring: { kind: "scored", most: 1, rules: [credited(matchesCorrect(response), 1)] },

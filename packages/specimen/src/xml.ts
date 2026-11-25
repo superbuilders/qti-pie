@@ -30,13 +30,14 @@ const attributeText = (raw: string): string => text(raw).replaceAll('"', "&quot;
  * @param name The element's qualified name.
  * @param attributes Its attributes, each written as given, a number in its digits; an option is
  *   written when it holds a value and left out when it is none.
- * @param children Its children, markup already written.
+ * @param children Its children, markup already written, as one list: a kind's lists of choices,
+ *   areas and rows join it as elements of the literal, never as arguments of the call.
  * @returns The element's markup.
  */
 export const element = (
   name: string,
   attributes: Readonly<Record<string, number | Option.Option<number | string> | string>>,
-  ...children: readonly string[]
+  children: readonly string[],
 ): string => {
   const written = Object.entries(attributes)
     .flatMap(([key, value]) =>

@@ -193,11 +193,9 @@ export const gapMatch = kind("gap-match", {
         case "text": {
           return {
             files: [],
-            markup: element(
-              "qti-gap-text",
-              { identifier: choiceOf(at), "match-max": matchMax },
+            markup: element("qti-gap-text", { identifier: choiceOf(at), "match-max": matchMax }, [
               text(run(settings.content.length, at)),
-            ),
+            ]),
           };
         }
         case "picture": {
@@ -205,11 +203,9 @@ export const gapMatch = kind("gap-match", {
 
           return {
             files: [shown.file.asset],
-            markup: element(
-              "qti-gap-img",
-              { identifier: choiceOf(at), "match-max": matchMax },
+            markup: element("qti-gap-img", { identifier: choiceOf(at), "match-max": matchMax }, [
               shown.markup,
-            ),
+            ]),
           };
         }
       }
@@ -220,23 +216,26 @@ export const gapMatch = kind("gap-match", {
       body: element(
         "qti-gap-match-interaction",
         { "max-associations": 0, "response-identifier": response },
-        ...Option.match(context.prompt, {
-          onNone: () => [],
-          onSome: (prompt) => [element("qti-prompt", {}, prompt)],
-        }),
-        ...choices.map((choice) => choice.markup),
-        ...Arr.makeBy(gapCount(settings), (gap) =>
-          element(
-            "p",
-            {},
-            text(`The ${word(gap)} went to `),
-            element("qti-gap", { identifier: gapOf(gap) }),
-            text(" in the morning."),
+        [
+          ...Option.match(context.prompt, {
+            onNone: () => [],
+            onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
+          }),
+          ...choices.map((choice) => choice.markup),
+          ...Arr.makeBy(gapCount(settings), (gap) =>
+            element("p", {}, [
+              text(`The ${word(gap)} went to `),
+              element("qti-gap", { identifier: gapOf(gap) }, []),
+              text(" in the morning."),
+            ]),
           ),
-        ),
+        ],
       ),
       declarations: [
-        declaration(response, "multiple", "directedPair", correctResponse(rights), mapping(rights)),
+        declaration(response, "multiple", "directedPair", [
+          correctResponse(rights),
+          mapping(rights),
+        ]),
       ],
       host: Option.none(),
       scoring: { kind: "scored", most: rights.length, rules: [mapped(response)] },

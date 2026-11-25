@@ -64,19 +64,21 @@ export const endAttempt = kind("end-attempt", {
     assets: [],
     body: [
       ...Option.toArray(context.prompt),
-      element(
-        "p",
-        {},
+      element("p", {}, [
         "When you are ready, press ",
-        element("qti-end-attempt-interaction", {
-          "count-attempt": settings.counts ? Option.none() : Option.some("false"),
-          "response-identifier": response,
-          title: titles[settings.title],
-        }),
+        element(
+          "qti-end-attempt-interaction",
+          {
+            "count-attempt": settings.counts ? Option.none() : Option.some("false"),
+            "response-identifier": response,
+            title: titles[settings.title],
+          },
+          [],
+        ),
         ".",
-      ),
+      ]),
     ].join(""),
-    declarations: [declaration(response, "single", "boolean", correctResponse(["true"]))],
+    declarations: [declaration(response, "single", "boolean", [correctResponse(["true"])])],
     host: Option.none(),
     scoring: { kind: "scored", most: 1, rules: [credited(matchesCorrect(response), 1)] },
   }),
