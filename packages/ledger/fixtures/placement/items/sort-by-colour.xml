@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_itemv3p0p1_v1p0.xsd" identifier="sort-by-colour" title="match" time-dependent="false" xml:lang="en-US">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair"><qti-correct-response><qti-value>ball-a basket-1</qti-value><qti-value>ball-b basket-2</qti-value><qti-value>ball-c basket-1</qti-value><qti-value>ball-d basket-2</qti-value><qti-value>ball-e basket-1</qti-value></qti-correct-response></qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>0</qti-value></qti-default-value></qti-outcome-declaration>
+  <qti-item-body>
+    <qti-match-interaction response-identifier="RESPONSE" shuffle="false" max-associations="5" class="qti-choices-top">
+      <qti-prompt><p>Put each ball in the basket of its colour.</p></qti-prompt>
+      <qti-simple-match-set>
+        <qti-simple-associable-choice identifier="ball-a" match-max="1"><img src="../images/sort-by-colour/ball-a.svg" alt="a big red ball" width="84" height="84"/></qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="ball-b" match-max="1"><img src="../images/sort-by-colour/ball-b.svg" alt="a small blue ball" width="84" height="84"/></qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="ball-c" match-max="1"><img src="../images/sort-by-colour/ball-c.svg" alt="a small red ball" width="84" height="84"/></qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="ball-d" match-max="1"><img src="../images/sort-by-colour/ball-d.svg" alt="a big blue ball" width="84" height="84"/></qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="ball-e" match-max="1"><img src="../images/sort-by-colour/ball-e.svg" alt="a middle-sized red ball" width="84" height="84"/></qti-simple-associable-choice>
+      </qti-simple-match-set>
+      <qti-simple-match-set>
+        <qti-simple-associable-choice identifier="basket-1" match-max="0">Red</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="basket-2" match-max="0">Blue</qti-simple-associable-choice>
+      </qti-simple-match-set>
+    </qti-match-interaction>
+  </qti-item-body>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct"/>
+</qti-assessment-item>
