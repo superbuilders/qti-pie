@@ -1948,6 +1948,35 @@
     font-weight: 700;
   }
 
+  /* == gap match == */
+
+  /*
+   * A Gap Match whose author puts its gap choices below the passage (`qti-choices-bottom`, the
+   * shared vocabulary's position of a Gap Match's choices, 1.2.4.1: "the gap choices container is
+   * displayed below the passage text"): the bank's dock after the gapped content and the latest
+   * refusal after the dock, so the child reads the passage, then takes a card from under it. The
+   * markup keeps the bank first, so the tab order and a screen reader meet the cards before their
+   * gaps either way. `qti-choices-top`, "above the passage text", is the order plate's markup
+   * has, and the sheet states it, so a theme that moves every bank keeps an author's.
+   */
+  [data-slot="plate-gap-match"]:is(.qti-choices-bottom, .qti-choices-top)
+    > [data-slot="plate-placement"] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  [data-slot="plate-gap-match"].qti-choices-top
+    > [data-slot="plate-placement"]
+    > [data-slot="plate-placement-dock"] {
+    order: -1;
+  }
+
+  [data-slot="plate-gap-match"].qti-choices-bottom
+    > [data-slot="plate-placement"]
+    > :is([data-slot="plate-placement-dock"], [data-slot="plate-placement-message"]) {
+    order: 1;
+  }
+
   /* == graphic gap match == */
 
   /*

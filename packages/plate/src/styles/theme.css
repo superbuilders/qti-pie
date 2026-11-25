@@ -1692,6 +1692,24 @@
     background: var(--ui-background);
   }
 
+  /*
+   * A Gap Match whose bank stands under its passage (`qti-choices-bottom`): the room over the bank
+   * instead of under it, and while the child answers its dock sticks to the bottom of the screen,
+   * the edge it stands at, so the cards and their gaps still share one screen.
+   */
+  [data-slot="plate-gap-match"].qti-choices-bottom
+    > [data-slot="plate-placement"]
+    > [data-slot="plate-placement-dock"] {
+    margin-block: 1rem 0;
+  }
+
+  :where([data-slot="plate-item"][data-mode="answering"])
+    [data-slot="plate-gap-match"].qti-choices-bottom
+    > [data-slot="plate-placement"]
+    > [data-slot="plate-placement-dock"] {
+    inset-block: auto 0;
+  }
+
   /* A chip: a card, its text wrapping at 22em. */
   [data-slot="plate-placement-chip"] {
     display: inline-flex;
