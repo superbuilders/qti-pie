@@ -6,6 +6,7 @@
  * overlay. A usage value's typed row is the view `UsageValueBaseType`'s
  * (`#pantry/qti/attribute-views.db.test.ts`).
  */
+import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
@@ -51,10 +52,10 @@ const namespaces = {
  */
 const collapse = (text: string): string =>
   text
-    .replaceAll(/[\t\n\r]/gu, " ")
-    .replaceAll(/ +/gu, " ")
-    .replace(/^ /u, "")
-    .replace(/ $/u, "");
+    .replaceAll(regex("[\t\n\r]", "gu"), " ")
+    .replaceAll(regex(" +", "gu"), " ")
+    .replace(regex("^ ", "u"), "")
+    .replace(regex(" $", "u"), "");
 
 /**
  * Normalize a text as XML Schema's `replace` whitespace class does, `xs:normalizedString`'s.
@@ -62,7 +63,7 @@ const collapse = (text: string): string =>
  * @param text - The text.
  * @returns Its value: each tab, line feed and carriage return a space.
  */
-const normalize = (text: string): string => text.replaceAll(/[\t\n\r]/gu, " ");
+const normalize = (text: string): string => text.replaceAll(regex("[\t\n\r]", "gu"), " ");
 
 /**
  * Read a language tag without regard to case (RFC 5646 §2.1.1): its ASCII capitals as small
@@ -71,7 +72,8 @@ const normalize = (text: string): string => text.replaceAll(/[\t\n\r]/gu, " ");
  * @param tag - The tag.
  * @returns The folded tag.
  */
-const asciiFolded = (tag: string): string => tag.replaceAll(/[A-Z]/gu, (c) => c.toLowerCase());
+const asciiFolded = (tag: string): string =>
+  tag.replaceAll(regex("[A-Z]", "gu"), (c) => c.toLowerCase());
 
 /**
  * Count the breaches of one of reading 62's laws the law oracle finds in a package.
