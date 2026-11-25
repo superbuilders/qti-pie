@@ -28,7 +28,9 @@ import type { AlphaPciModuleId } from "#plate/alpha/pci-modules.ts";
  * Each module file's SHA-256, base64, as Subresource Integrity writes it, by the module's id.
  * `emit:alpha-pci-modules` prints the new pin of a file it changes.
  */
-const pinned: Readonly<Record<AlphaPciModuleId, string>> = {};
+const pinned: Readonly<Record<AlphaPciModuleId, string>> = {
+  "build-with-blocks": "sha256-6stn3fsywlNDVJDGsQTZKuWc0qXbmnWihgKVGHCsyr8=",
+};
 
 /**
  * The folder of the module sources and their files.

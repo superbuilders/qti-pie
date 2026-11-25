@@ -85,9 +85,20 @@ export const alphaPciModule = <const Id extends string>(
 });
 
 /**
+ * Base-ten blocks: a number built from flats, rods and cubes, its response the count of each kind
+ * on the mat (`#plate/alpha/pci-modules/build-with-blocks.ts`).
+ */
+export const buildWithBlocks: AlphaPciModule<"build-with-blocks"> = alphaPciModule(
+  "build-with-blocks",
+  new URL("pci-modules/build-with-blocks.js", import.meta.url),
+);
+
+/**
  * Every one of Alpha's PCI modules.
  */
-export const alphaPciModules = [] as const satisfies readonly AlphaPciModule<string>[];
+export const alphaPciModules = [
+  buildWithBlocks,
+] as const satisfies readonly AlphaPciModule<string>[];
 
 /**
  * The id of one of Alpha's PCI modules.

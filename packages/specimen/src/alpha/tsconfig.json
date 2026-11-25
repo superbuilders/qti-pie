@@ -1,0 +1,12 @@
+{
+  "extends": "../../../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["esnext", "dom"],
+    "types": ["node", "react/experimental"],
+    "customConditions": ["browser", "production"],
+    "jsx": "react-jsx",
+    "tsBuildInfoFile": "../../node_modules/.cache/tsconfig.alpha.tsbuildinfo"
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["**/node_modules"]
+}

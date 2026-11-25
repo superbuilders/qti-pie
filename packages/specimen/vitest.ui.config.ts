@@ -11,7 +11,8 @@ const timeoutMs = 60_000;
 requireHardened();
 
 /**
- * `test:ui`: plate's UI suite, `src/ui/*.test.ts`, under the testing library's hardened flags. The
+ * `test:ui`: plate's UI suite, `src/ui/*.test.ts`, and the Alpha interactions' suite,
+ * `src/alpha/*.test.ts`, under the testing library's hardened flags. The
  * parent process takes them from the `test:ui` script's command line, which this config refuses to
  * run without, and each worker from `execArgv`, which its setup checks
  * (`#specimen/ui/hardened.ts`).
@@ -23,7 +24,7 @@ export default defineConfig({
     // one (TEST_SEED, TEST_REPLAY), and its reporter tables what each search proved or estimated.
     globalSetup: ["@bjornpagen/testing/vitest/global-setup"],
     hookTimeout: timeoutMs,
-    include: ["src/ui/*.test.ts"],
+    include: ["src/ui/*.test.ts", "src/alpha/*.test.ts"],
     reporters: [
       "default",
       ["@bjornpagen/testing/vitest/reporter", { examples: { kind: "allowed" } }],

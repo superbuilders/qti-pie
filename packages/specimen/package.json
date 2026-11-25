@@ -12,7 +12,7 @@
     "./specimen": "./src/specimen.ts"
   },
   "scripts": {
-    "typecheck": "sh -c 'toolchain-typecheck -p src/ui/tsconfig.json \"$@\" & toolchain-typecheck -p tsconfig.json \"$@\"; specimen=$?; wait $! && exit $specimen' typecheck",
+    "typecheck": "sh -c 'toolchain-typecheck -p src/ui/tsconfig.json \"$@\" & ui=$!; toolchain-typecheck -p src/alpha/tsconfig.json \"$@\" & alpha=$!; toolchain-typecheck -p tsconfig.json \"$@\"; specimen=$?; wait $ui || exit 1; wait $alpha || exit 1; exit $specimen' typecheck",
     "test": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" NODE_OPTIONS=\"$NODE_OPTIONS --disable-proto=delete --disable-sigusr1\" vitest run",
     "test:ui": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" node --disable-proto=delete --disable-sigusr1 --throw-deprecation --pending-deprecation --force-context-aware --no-global-search-paths --unhandled-rejections=strict node_modules/vitest/vitest.mjs run --config vitest.ui.config.ts"
   },
