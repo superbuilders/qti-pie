@@ -12,7 +12,11 @@ export { AssetMissing, InvalidInstance, OutputTooLarge } from "#plate/ui/item/er
 
 export { Item } from "#plate/ui/item/item.tsx";
 
-export { RendererClaimedTwice, renderersOf } from "#plate/ui/registry/compose.ts";
+export {
+  RendererClaimedTwice,
+  RendererKindUnknown,
+  renderersOf,
+} from "#plate/ui/registry/compose.ts";
 
 export type { Renderer, RendererExtension, Renderers } from "#plate/ui/registry/contract.ts";
 
