@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0p1_v1p0.xsd" identifier="alpha-gap-match-number-line" title="Numbers on a line" time-dependent="false" xml:lang="en-US">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair"><qti-correct-response><qti-value>n36 position-1</qti-value><qti-value>n63 position-2</qti-value><qti-value>n106 position-3</qti-value></qti-correct-response></qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" normal-maximum="1" normal-minimum="0"><qti-default-value><qti-value>0</qti-value></qti-default-value></qti-outcome-declaration>
+  <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>1</qti-value></qti-default-value></qti-outcome-declaration>
+  <qti-item-body>
+    <p data-catalog-idref="audio-stem">Move each number to its place on the line, from least to greatest.</p>
+    <qti-gap-match-interaction class="qti-choices-top alpha-open-number-line" response-identifier="RESPONSE" shuffle="false" max-associations="3">
+      <qti-gap-text identifier="n106" match-max="1" data-qti-suppress-tts="computer-read-aloud">106</qti-gap-text>
+      <qti-gap-text identifier="n36" match-max="1" data-qti-suppress-tts="computer-read-aloud">36</qti-gap-text>
+      <qti-gap-text identifier="n63" match-max="1" data-qti-suppress-tts="computer-read-aloud">63</qti-gap-text>
+      <p><span data-catalog-idref="audio-least">least</span> <qti-gap identifier="position-1"/> <qti-gap identifier="position-2"/> <qti-gap identifier="position-3"/> <span data-catalog-idref="audio-greatest">greatest</span></p>
+    </qti-gap-match-interaction>
+  </qti-item-body>
+  <qti-catalog-info>
+    <qti-catalog id="audio-stem"><qti-card support="spoken"><qti-card-entry data-reading-type="computer-read-aloud" default="true"><qti-file-href mime-type="audio/mpeg">media/prompt.mp3</qti-file-href></qti-card-entry></qti-card></qti-catalog>
+    <qti-catalog id="audio-least"><qti-card support="spoken"><qti-card-entry data-reading-type="computer-read-aloud" default="true"><qti-file-href mime-type="audio/mpeg">media/least.mp3</qti-file-href></qti-card-entry></qti-card></qti-catalog>
+    <qti-catalog id="audio-greatest"><qti-card support="spoken"><qti-card-entry data-reading-type="computer-read-aloud" default="true"><qti-file-href mime-type="audio/mpeg">media/greatest.mp3</qti-file-href></qti-card-entry></qti-card></qti-catalog>
+  </qti-catalog-info>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>

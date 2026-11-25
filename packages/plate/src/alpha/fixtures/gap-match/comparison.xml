@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_itemv3p0p1_v1p0.xsd" identifier="alpha-gap-match-comparison" title="Which symbol is true" time-dependent="false" xml:lang="en-US">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="directedPair"><qti-correct-response><qti-value>lt relation</qti-value></qti-correct-response></qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" normal-maximum="1" normal-minimum="0"><qti-default-value><qti-value>0</qti-value></qti-default-value></qti-outcome-declaration>
+  <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>1</qti-value></qti-default-value></qti-outcome-declaration>
+  <qti-item-body>
+    <p data-catalog-idref="audio-stem">Which symbol goes in the box? Move it there.</p>
+    <qti-gap-match-interaction response-identifier="RESPONSE" shuffle="false" max-associations="1" class="qti-choices-bottom alpha-symbol-compare">
+      <qti-gap-text identifier="gt" match-max="1" data-qti-suppress-tts="computer-read-aloud">&gt;</qti-gap-text>
+      <qti-gap-text identifier="eq" match-max="1" data-qti-suppress-tts="computer-read-aloud">=</qti-gap-text>
+      <qti-gap-text identifier="lt" match-max="1" data-qti-suppress-tts="computer-read-aloud">&lt;</qti-gap-text>
+      <p data-qti-suppress-tts="computer-read-aloud">47 <qti-gap identifier="relation"/> 74</p>
+    </qti-gap-match-interaction>
+  </qti-item-body>
+  <qti-catalog-info>
+    <qti-catalog id="audio-stem"><qti-card support="spoken"><qti-card-entry data-reading-type="computer-read-aloud" default="true"><qti-file-href mime-type="audio/mpeg">media/prompt.mp3</qti-file-href></qti-card-entry></qti-card></qti-catalog>
+  </qti-catalog-info>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>
