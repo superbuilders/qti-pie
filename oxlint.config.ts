@@ -81,12 +81,26 @@ const plateNodePattern = {
 };
 
 /**
+ * The pattern by which plate defines its UI SDK primitives through its own `definePrimitive`
+ * (`#plate/ui/define-primitive.ts`), which refuses a slot whose parts take props but carry no key,
+ * one of {@link plateCorePatterns}; that module's override, the one place it is lifted, defines
+ * through UI SDK's.
+ */
+const plateDefinePattern = {
+  importNames: ["definePrimitive"],
+  message:
+    "Define a plate primitive with definePrimitive from #plate/ui/define-primitive.ts, which refuses a slot whose parts take props but no key.",
+  regex: "^@ui-sdk/core$",
+};
+
+/**
  * What plate's modules may not load, each refused by its own specifier, so the rule holds file by
  * file and needs no walk of the module graph. Its served entries (`.`, `./open`, `./package` and
  * the UI's four) stay loadable by any host, and its islands by a page: test support (the Node-only
  * corpus reader among it), every Node built-in (with or without `node:`; the keyed digest alone
  * loads `node:crypto`), the test runner by package, so no re-export under another name routes
- * around the list, and pantry and grizzle. A type-only import loads nothing, and is allowed.
+ * around the list, and pantry and grizzle. A type-only import loads nothing, and is allowed. Nor
+ * does a module but plate's own `definePrimitive` take UI SDK's ({@link plateDefinePattern}).
  */
 const plateCorePatterns = [
   {
@@ -106,6 +120,7 @@ const plateCorePatterns = [
       "plate depends on crust, never on pantry, grizzle or grizzle-text: it reads grizzle-text through crust's re-exports (@qti-pie/crust/regex.ts, @qti-pie/crust/text.ts, @qti-pie/crust/uri.ts).",
     regex: "^(?:@qti-pie/pantry|@bjornpagen/grizzle(?:-text)?|@grizzle)(?:/|$)",
   },
+  plateDefinePattern,
 ];
 
 /**
@@ -252,6 +267,19 @@ export default defineConfig({
         ],
       },
     },
+    // specimen's hydration harness ships a page's element tree to the browser on its stand-in for
+    // React Server Components' wire (`src/ui/wire.ts`): a serialization boundary, whose writer takes
+    // any value an element's props hold, which React's element API types `unknown`, and whose reader
+    // gives each back as it was, a tree of elements or plain data, typed by its one reader of each.
+    {
+      files: ["packages/specimen/src/ui/wire.ts"],
+      rules: {
+        "anti-slop/no-known-value-widening": "off",
+        "anti-slop/no-unknown-parameters": "off",
+        "anti-slop/no-unknown-returns": "off",
+        "anti-slop/no-unsafe-dictionary-type": "off",
+      },
+    },
     // pantry's command line describes and prints how a run failed: a run fails or dies with any
     // value, the squashed cause Effect types `unknown`, so `describeFailure` decodes it once, and the
     // printer reads each failure and defect it is handed, by their decoders and predicates, at the
@@ -305,6 +333,21 @@ export default defineConfig({
           { patterns: [...sharedImportPatterns, ...plateCorePatterns] },
         ],
         "workspace/no-bare-error": "error",
+      },
+    },
+    // plate's own `definePrimitive` defines through UI SDK's, the one module that does.
+    {
+      files: ["packages/plate/src/ui/define-primitive.ts"],
+      rules: {
+        "no-restricted-imports": [
+          "error",
+          {
+            patterns: [
+              ...sharedImportPatterns,
+              ...plateCorePatterns.filter((pattern) => pattern !== plateDefinePattern),
+            ],
+          },
+        ],
       },
     },
     // The UI's data entry, `@qti-pie/plate/ui/props`, is what server code imports of the UI, so it

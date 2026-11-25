@@ -40,11 +40,11 @@ import {
   createChange,
   createFocusRecovery,
   createRovingFocus,
-  definePrimitive,
   dragThreshold,
   prepareAnnouncements,
 } from "@ui-sdk/core";
 import type { ChangeDetails } from "@ui-sdk/core";
+import { definePrimitive } from "#plate/ui/define-primitive.ts";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import type { ImagePoint } from "#plate/graphic/geometry.ts";

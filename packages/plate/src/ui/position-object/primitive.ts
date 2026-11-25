@@ -39,13 +39,13 @@ import {
   createAutoScroll,
   createChange,
   createFocusRecovery,
-  definePrimitive,
   dragThreshold,
   elements,
   labelOf,
   prepareAnnouncements,
 } from "@ui-sdk/core";
 import type { ChangeDetails, DragPreview } from "@ui-sdk/core";
+import { definePrimitive } from "#plate/ui/define-primitive.ts";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import { PositionObjectOffStage } from "#plate/ui/defects.ts";
@@ -179,17 +179,24 @@ interface State {
 }
 
 /**
- * An interaction's part's props: its response's identifier.
+ * An interaction's part's props: its response's identifier. `id` keys the part, made by the
+ * adapter, so each interaction's group and object are parts of their own, whose handlers read their
+ * own interaction (`definePrimitive` in `#plate/ui/define-primitive.ts`).
  */
 interface ObjectProps {
+  readonly id?: string;
   readonly name: string;
 }
 
 /**
  * A placed copy's part's props: its interaction's response's identifier and the copy's place among
- * its object's copies.
+ * its object's copies. `id` keys the part, made by the adapter, so each copy's control and mark are
+ * parts of their own, whose handlers read their own copy's place: a press or Delete on one copy
+ * acts on that copy, and picking it up binds no other copy's control in its stead, so focus stays
+ * on it.
  */
 interface CopyProps {
+  readonly id?: string;
   readonly index: number;
   readonly name: string;
 }
@@ -203,9 +210,11 @@ interface CopyControlProps extends CopyProps {
 }
 
 /**
- * The layer's props: the stage's pointer geometry, from the stage it is drawn in.
+ * The layer's props: the stage's pointer geometry, from the stage it is drawn in. `id` keys the
+ * part, made by the adapter, as every slot whose parts take props declares one.
  */
 interface LayerProps {
+  readonly id?: string;
   /**
    * Map a pointer's viewport position to the stage image's pixels (`StageView.pointAt` in
    * `#plate/ui/graphic/stage.tsx`).
@@ -972,7 +981,7 @@ export const positionObject = definePrimitive({
       press: ({ api, props }, event) => {
         api.pressCopy(props.name, props.index, event);
       },
-      props: { index: "number", name: "string", object: "string" },
+      props: { id: "id", index: "number", name: "string", object: "string" },
       role: "button",
     }),
     group: slot<ObjectProps, PositionGroupState>({
@@ -981,7 +990,7 @@ export const positionObject = definePrimitive({
         "data-full": flag(fullOf(state, objectOf(state, part.props.name))),
         "data-picked": flag(state.held?.name === part.props.name),
       }),
-      props: { name: "string" },
+      props: { id: "id", name: "string" },
       // An application, not a group: a screen reader in browse mode keeps the arrow keys for
       // itself in a group, and hands them on in an application, where they move a held copy.
       role: "application",
@@ -996,7 +1005,7 @@ export const positionObject = definePrimitive({
       },
     }),
     layer: slot<LayerProps>({
-      props: { pointAt: "value" },
+      props: { id: "id", pointAt: "value" },
     }),
     message: slot<object, PositionMessageState>({
       present: (state) => state.message !== null,
@@ -1046,7 +1055,7 @@ export const positionObject = definePrimitive({
       press: ({ api, props }, event) => {
         api.pressObject(props.name, event);
       },
-      props: { name: "string" },
+      props: { id: "id", name: "string" },
       role: "button",
     }),
     root: slot<object, PositionRootState>({
@@ -1081,7 +1090,7 @@ export const positionObject = definePrimitive({
           }
         },
       },
-      props: { index: "number", name: "string" },
+      props: { id: "id", index: "number", name: "string" },
     }),
   }),
   state: (options: PositionOptions): State => ({

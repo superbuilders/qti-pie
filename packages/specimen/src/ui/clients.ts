@@ -26,9 +26,10 @@ const useClient = /^(?:\s|\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)*(?<quote>["'])use clien
 const ModuleExports = Schema.Record(Schema.String, Schema.Unknown);
 
 /**
- * Plate's `src/`, the folder two above the module its `./ui` entry names.
+ * Plate's `src/`, the folder two above the module its `./ui` entry names, which every client
+ * module's name in {@link clientExports} is relative to.
  */
-const plateSource = path.dirname(
+export const plateSource = path.dirname(
   path.dirname(createRequire(import.meta.url).resolve("@qti-pie/plate/ui")),
 );
 

@@ -36,7 +36,6 @@ import {
   createChange,
   createFocusRecovery,
   createRovingFocus,
-  definePrimitive,
   dragThreshold,
   elements,
   idPart,
@@ -45,6 +44,7 @@ import {
   spatialMove,
 } from "@ui-sdk/core";
 import type { ChangeDetails, DragPreview } from "@ui-sdk/core";
+import { definePrimitive } from "#plate/ui/define-primitive.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
 import type { PlacementLabels } from "#plate/ui/placement/labels.ts";

@@ -158,3 +158,26 @@ export class TargetLabelInBank extends Data.TaggedError("TargetLabelInBank") {
     return "A PlacementTargetLabel names its target; render it inside a PlacementTarget, not the bank.";
   }
 }
+
+/**
+ * A plate primitive was defined with a slot whose parts take props but no `id: "id"`, so UI SDK
+ * would key every part of it `""` and hold them as one part, whose handlers read whichever part's
+ * props rendered last (`definePrimitive` in `#plate/ui/define-primitive.ts`).
+ */
+export class PrimitiveSlotUnkeyed extends Data.TaggedError("PrimitiveSlotUnkeyed")<{
+  /**
+   * The primitive's name, as its definition gives it.
+   */
+  readonly primitive: string;
+  /**
+   * The slot that declares no key.
+   */
+  readonly slot: string;
+}> {
+  /**
+   * Which slot of which primitive needs a key, and how to declare it.
+   */
+  override get message(): string {
+    return `The ${JSON.stringify(this.slot)} slot of the plate primitive ${JSON.stringify(this.primitive)} takes props but no key; declare id: "id" in its props, so each of its parts is its own.`;
+  }
+}

@@ -46,10 +46,10 @@
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Coords
  */
-import { definePrimitive } from "@ui-sdk/core";
 import { createParts } from "@ui-sdk/react/primitive";
 import { Fragment, createContext, use, useId } from "react";
 import type { ReactNode } from "react";
+import { definePrimitive } from "#plate/ui/define-primitive.ts";
 import { StagePartOutside } from "#plate/ui/defects.ts";
 import { CheckBadge, CornerPin } from "#plate/ui/graphic/drawn.tsx";
 import {
