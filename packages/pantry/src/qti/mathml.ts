@@ -12,6 +12,7 @@ import { alignLaws, alignRelations } from "#pantry/qti/mathml-align.ts";
 import { cnCountLaws, cnLaws, cnRelations } from "#pantry/qti/mathml-cn.ts";
 import { shareLaws, shareRelations, shareResolution } from "#pantry/qti/mathml-share.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
+import type { lawTable } from "#pantry/vocab/laws.ts";
 
 /**
  * The relations of the three MathML families, in one list, in the order cn, align, share.
@@ -25,13 +26,32 @@ export const mathmlRelations = [...cnRelations, ...alignRelations, ...shareRelat
 const mathmlStatements = [...cnLaws, ...alignLaws, ...shareLaws] as const;
 
 /**
- * The checks of {@link mathmlStatements} that one name names.
+ * The name of a check of {@link mathmlStatements}.
+ */
+type CheckName = Extract<(typeof mathmlStatements)[number], { readonly kind: "check" }>["name"];
+
+/**
+ * The law that states each check of {@link mathmlStatements}, by the check's name: every
+ * `E1_derived` is a restatement "E1 derived" holds, and `MathML_cn_form` is "MathML cn form"'s own.
+ * It names exactly the families' check names, so a check of a new name fails to compile here until
+ * it is given its law; {@link mathmlLawsByName} files each check under the law this names, and
+ * grizzle names each check by its own name.
+ */
+const checkLaws = {
+  E1_derived: "E1 derived",
+  MathML_cn_form: "MathML cn form",
+} as const satisfies Readonly<Record<CheckName, keyof typeof lawTable>>;
+
+/**
+ * The checks of {@link mathmlStatements} one law states ({@link checkLaws}).
  *
- * @param name - The check's name.
+ * @param name - The law's name.
  * @returns Those checks.
  */
-const checksNamed = (name: string) =>
-  mathmlStatements.filter((statement) => statement.kind === "check" && statement.name === name);
+const checksOf = (name: keyof typeof lawTable) =>
+  mathmlStatements.filter(
+    (statement) => statement.kind === "check" && checkLaws[statement.name] === name,
+  );
 
 /**
  * Whether a statement is one {@link mathmlLawsByName} names apart from the restatements: a cn part
@@ -61,26 +81,21 @@ export const mathmlLawsByName = {
   "E1 derived": declared(
     "E1 derived",
     mathmlStatements.filter((statement) =>
-      statement.kind === "check" ? statement.name === "E1_derived" : !namedApart(statement),
+      statement.kind === "check"
+        ? checkLaws[statement.name] === "E1 derived"
+        : !namedApart(statement),
     ),
   ),
   "Idref target": declared("Idref target", [shareResolution]),
   "MathML cn form": declared("MathML cn form", [
     ...Object.values(cnCountLaws),
-    ...checksNamed("MathML_cn_form"),
+    ...checksOf("MathML cn form"),
   ]),
 } as const;
 
 /**
  * The laws of the three MathML families, each with its entry: {@link mathmlLawsByName}'s groups,
- * then each check a group of its own name holds apart, which grizzle names by its own name.
+ * which hold every check of the families under the law {@link checkLaws} names for it.
  */
-export const mathmlLaws = [
-  ...Object.values(mathmlLawsByName).flat(),
-  ...mathmlStatements.filter(
-    (statement) =>
-      statement.kind === "check" &&
-      statement.name !== "E1_derived" &&
-      statement.name !== "MathML_cn_form",
-  ),
-] as const;
+export const mathmlLaws: readonly (typeof mathmlLawsByName)[keyof typeof mathmlLawsByName][number][] =
+  Object.values(mathmlLawsByName).flat();
