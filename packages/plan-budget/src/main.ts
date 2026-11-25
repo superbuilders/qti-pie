@@ -23,9 +23,9 @@
  * @module
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Config, Effect, Schema } from "effect";
@@ -183,11 +183,7 @@ const install = (config: string) =>
         return { name, schema };
       }),
       grizzle: path.join(
-        path.dirname(
-          createRequire(path.join(process.cwd(), "package.json")).resolve(
-            "@bjornpagen/grizzle/package.json",
-          ),
-        ),
+        path.dirname(fileURLToPath(import.meta.resolve("@bjornpagen/grizzle/package.json"))),
         "src/cli/bin.ts",
       ),
       packageDir: process.cwd(),

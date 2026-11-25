@@ -10,9 +10,8 @@
  * @module
  */
 import { readdirSync, readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { Effect, Schema } from "effect";
 
 /**
@@ -30,7 +29,7 @@ const ModuleExports = Schema.Record(Schema.String, Schema.Unknown);
  * module's name in {@link clientExports} is relative to.
  */
 export const plateSource = path.dirname(
-  path.dirname(createRequire(import.meta.url).resolve("@qti-pie/plate/ui")),
+  path.dirname(fileURLToPath(import.meta.resolve("@qti-pie/plate/ui"))),
 );
 
 /**
