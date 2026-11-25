@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 /**
  * The text a child types into an Extended Text of `format="xhtml"`, written as XHTML and read back.
  * QTI 3.0.1's `TextFormatEnum` (information model §8.42): "xhtml - indicates that the text to be
@@ -25,7 +26,10 @@
  * Every code point XML 1.0 cannot hold (§2.2, `Char`: "#x9 | #xA | #xD | [#x20-#xD7FF] |
  * [#xE000-#xFFFD] | [#x10000-#x10FFFF]"), a lone surrogate among them: a value holds none.
  */
-const notXmlCharacters = /[^\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu;
+const notXmlCharacters = regex(
+  "[^\t\n\r\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]",
+  "gu",
+);
 
 /**
  * Escape a text for XML character data: `&` and `<` always, `>` since `]]>` may not stand in
@@ -58,7 +62,7 @@ export const xhtmlOfText = (text: string): string =>
  * A value as {@link xhtmlOfText} writes it: `p` elements holding text and `br`s alone, in their
  * escaped form.
  */
-const plateWritten = /^(?:<p>(?:[^<&]|&(?:amp|lt|gt|#13);|<br\/>)*<\/p>)+$/u;
+const plateWritten = regex("^(?:<p>(?:[^<&]|&(?:amp|lt|gt|#13);|<br/>)*</p>)+$", "u");
 
 /**
  * The references plate writes, by what each stands for.
@@ -87,7 +91,7 @@ const namedReferences: ReadonlyMap<string, string> = new Map([
  * and a named one {@link namedReferences} holds; any other stands as written.
  */
 const resolved = (text: string): string =>
-  text.replaceAll(/&#x[0-9A-Fa-f]+;|&#[0-9]+;|&[A-Za-z]+;/gu, (reference) => {
+  text.replaceAll(regex("&#x[0-9A-Fa-f]+;|&#[0-9]+;|&[A-Za-z]+;", "gu"), (reference) => {
     const body = reference.slice(1, -1);
 
     if (!body.startsWith("#")) {
@@ -168,7 +172,7 @@ const blockEnd = String.raw`<\/(?:${blockElements.join("|")})(?:${space}[^>]*)?>
  * after an end tag and before the next block tag, where it stands between two elements; after a
  * start tag it is the block's own text, as a paragraph's space is.
  */
-const blockRun = new RegExp(
+const blockRun = regex.as(
   `(?:${blockStart}|${blockEnd}(?:${space}+(?=${blockStart}|${blockEnd}))?)+`,
   "giu",
 );
@@ -176,17 +180,17 @@ const blockRun = new RegExp(
 /**
  * The value's first paragraph's start tag, at the start of a run that opens the value.
  */
-const openingParagraph = new RegExp(`^<p(?:${space}[^>]*)?>`, "iu");
+const openingParagraph = regex.as(`^<p(?:${space}[^>]*)?>`, "iu");
 
 /**
  * The value's last paragraph's end tag, at the end of a run that closes the value.
  */
-const closingParagraph = new RegExp(`<\\/p${space}*>$`, "iu");
+const closingParagraph = regex.as(`<\\/p${space}*>$`, "iu");
 
 /**
  * A run of paragraph boundaries alone: one paragraph's end and the next one's start, once or more.
  */
-const paragraphBoundaries = new RegExp(
+const paragraphBoundaries = regex.as(
   `^(?:${space}*<\\/p${space}*>${space}*<p(?:${space}[^>]*)?>)+${space}*$`,
   "iu",
 );
@@ -210,7 +214,7 @@ const runText = (run: string, opens: boolean, closes: boolean): string => {
   }
 
   if (paragraphBoundaries.test(inner)) {
-    return "\n\n".repeat(inner.match(/<\/p/giu)?.length ?? 0);
+    return "\n\n".repeat(inner.match(regex("</p", "giu"))?.length ?? 0);
   }
 
   return opens || closes ? "" : "\n";
@@ -237,7 +241,7 @@ export const textOfXhtml = (xhtml: string): string => {
           .split("<br/>")
           .map((line) =>
             line.replaceAll(
-              /&(?:amp|lt|gt|#13);/gu,
+              regex("&(?:amp|lt|gt|#13);", "gu"),
               (reference) => plateReferences.get(reference) ?? reference,
             ),
           )
@@ -246,13 +250,13 @@ export const textOfXhtml = (xhtml: string): string => {
       .join("\n\n");
   }
 
-  const lines = xhtml.replaceAll(new RegExp(`<br${space}*\\/?>`, "giu"), "\n");
+  const lines = xhtml.replaceAll(regex.as(`<br${space}*\\/?>`, "giu"), "\n");
 
   return resolved(
     lines
       .replaceAll(blockRun, (run: string, at: number) =>
         runText(run, at === 0, at + run.length === lines.length),
       )
-      .replaceAll(/<[^>]*>/gu, ""),
+      .replaceAll(regex("<[^>]*>", "gu"), ""),
   );
 };

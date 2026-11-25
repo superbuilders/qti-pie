@@ -37,6 +37,7 @@
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info/index.html#DerivedEnum_TextFormatEnum
  */
+import { regex } from "arkregex";
 import { Array as Arr, Option, pipe } from "effect";
 import type { Op } from "quill";
 import { textOfXhtml } from "#plate/interactions/xhtml-text.ts";
@@ -363,7 +364,10 @@ export const opsOfLines = (lines: readonly Line[]): readonly Op[] =>
 /**
  * Every code point XML 1.0 cannot hold (§2.2, `Char`), a lone surrogate among them.
  */
-const notXmlCharacters = /[^\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu;
+const notXmlCharacters = regex(
+  "[^\t\n\r\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]",
+  "gu",
+);
 
 /**
  * Escape a text for XML character data, and for an attribute's value in double quotes, leaving out
@@ -490,8 +494,10 @@ type Token =
  * The tokens of plate's XHTML: an element's start or end tag, with its attributes in double
  * quotes, or a run of text.
  */
-const tokenPattern =
-  /<(?<slash>\/?)(?<name>[a-z0-9]+)(?<attributes>(?:\s+[a-z]+="[^"<]*")*)\s*>|(?<text>[^<]+)/gu;
+const tokenPattern = regex(
+  '<(?<slash>/?)(?<name>[a-z0-9]+)(?<attributes>(?:\\s+[a-z]+="[^"<]*")*)\\s*>|(?<text>[^<]+)',
+  "gu",
+);
 
 /**
  * Read plate's XHTML into tokens: none when it holds anything else, a self-closed tag or a
@@ -541,7 +547,7 @@ const references: ReadonlyMap<string, string> = new Map([
  * @returns The text, resolved.
  */
 const unescaped = (text: string): Option.Option<string> => {
-  const parts = text.split(/(?<reference>&[^;]*;)/u);
+  const parts = text.split(regex("(?<reference>&[^;]*;)", "u"));
 
   return parts.every((part, at) => at % 2 === 0 || references.has(part))
     ? Option.some(
@@ -559,7 +565,7 @@ const unescaped = (text: string): Option.Option<string> => {
 const attributesOf = (attributes: string): Option.Option<ReadonlyMap<string, string>> =>
   Option.map(
     Option.all(
-      [...attributes.matchAll(/(?<name>[a-z]+)="(?<value>[^"]*)"/gu)].map((match) =>
+      [...attributes.matchAll(regex('(?<name>[a-z]+)="(?<value>[^"]*)"', "gu"))].map((match) =>
         Option.map(
           unescaped(match.groups?.["value"] ?? ""),
           (resolved) => [match.groups?.["name"] ?? "", resolved] as const,

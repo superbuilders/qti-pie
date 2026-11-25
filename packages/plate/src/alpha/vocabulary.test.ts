@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { assert, describe, it } from "@effect/vitest";
@@ -38,7 +39,9 @@ const modulesUnder = (folder: string): readonly string[] => {
   const root = new URL(folder, import.meta.url);
 
   return readdirSync(root, { encoding: "utf-8", recursive: true })
-    .filter((file) => /\.tsx?$/u.test(file) && !/\.test\.tsx?$/u.test(file))
+    .filter(
+      (file) => regex("\\.tsx?$", "u").test(file) && !regex("\\.test\\.tsx?$", "u").test(file),
+    )
     .toSorted()
     .map((file) => readFileSync(new URL(file.split(path.sep).join("/"), root), "utf-8"));
 };
@@ -50,7 +53,8 @@ const modulesUnder = (folder: string): readonly string[] => {
  * @param sheet The sheet.
  * @returns Its text without comments.
  */
-const uncommented = (sheet: string): string => sheet.replaceAll(/\/\*[\s\S]*?\*\//gu, "");
+const uncommented = (sheet: string): string =>
+  sheet.replaceAll(regex("/\\*[\\s\\S]*?\\*/", "gu"), "");
 
 /**
  * Give the classes a sheet selects under a prefix.
@@ -61,7 +65,7 @@ const uncommented = (sheet: string): string => sheet.replaceAll(/\/\*[\s\S]*?\*\
  */
 const selectedClasses = (sheet: string, prefix: string): ReadonlySet<string> =>
   new Set(
-    [...uncommented(sheet).matchAll(new RegExp(`\\.(?<name>${prefix}[a-z0-9-]+)`, "gu"))].map(
+    [...uncommented(sheet).matchAll(regex.as(`\\.(?<name>${prefix}[a-z0-9-]+)`, "gu"))].map(
       (match) => match.groups?.["name"] ?? "",
     ),
   );
@@ -74,7 +78,7 @@ const selectedClasses = (sheet: string, prefix: string): ReadonlySet<string> =>
  */
 const selectedSlots = (sheet: string): ReadonlySet<string> =>
   new Set(
-    [...uncommented(sheet).matchAll(/\[data-slot="(?<slot>[^"]+)"\]/gu)].map(
+    [...uncommented(sheet).matchAll(regex('\\[data-slot="(?<slot>[^"]+)"\\]', "gu"))].map(
       (match) => match.groups?.["slot"] ?? "",
     ),
   );
@@ -91,7 +95,7 @@ const coreModules = (): ReadonlyMap<string, string> => {
   return new Map(
     readdirSync(root, { encoding: "utf-8", recursive: true })
       .map((file) => file.split(path.sep).join("/"))
-      .filter((file) => /\.tsx?$/u.test(file) && !file.split("/").includes("alpha"))
+      .filter((file) => regex("\\.tsx?$", "u").test(file) && !file.split("/").includes("alpha"))
       .toSorted()
       .map((file) => [file, readFileSync(new URL(file, root), "utf-8")]),
   );
@@ -105,7 +109,7 @@ const coreModules = (): ReadonlyMap<string, string> => {
  * @returns Each class it names, once.
  */
 const namedClasses = (text: string, classes: readonly string[]): readonly string[] =>
-  classes.filter((name) => new RegExp(`(?<![\\w-])${name}(?![\\w-])`, "u").test(text));
+  classes.filter((name) => regex.as(`(?<![\\w-])${name}(?![\\w-])`, "u").test(text));
 
 describe("Alpha's renderer vocabulary", () => {
   it("is no core class: plate's vocabulary and its sheets name none", () => {
@@ -115,7 +119,7 @@ describe("Alpha's renderer vocabulary", () => {
     );
     for (const [sheet, text] of coreSheets) {
       assert.deepStrictEqual([...selectedClasses(text, "alpha-")], [], sheet);
-      assert.notMatch(text, /plate-alpha/u, `${sheet} names Alpha's layer`);
+      assert.notMatch(text, regex("plate-alpha", "u"), `${sheet} names Alpha's layer`);
     }
   });
 

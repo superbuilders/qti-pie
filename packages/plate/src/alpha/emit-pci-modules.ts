@@ -9,6 +9,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { stripTypeScriptTypes } from "node:module";
@@ -28,7 +29,10 @@ for (const source of sources) {
     readFileSync(path.join(import.meta.dirname, source), "utf-8"),
   );
 
-  writeFileSync(path.join(import.meta.dirname, source.replace(/\.ts$/u, ".js")), script);
+  writeFileSync(
+    path.join(import.meta.dirname, source.replace(regex("\\.ts$", "u"), ".js")),
+    script,
+  );
   process.stdout.write(
     `${path.basename(source, ".ts")}: sha256-${createHash("sha256").update(script).digest("base64")}\n`,
   );

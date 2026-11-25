@@ -75,7 +75,7 @@ const dotsOnly = regex("^(?:\\.|%2[Ee])+$", "u");
  * @see https://www.rfc-editor.org/rfc/rfc3986#section-5.2.4
  */
 export const isDotSegment = (segment: string): boolean =>
-  dotsOnly.test(segment) && segment.replaceAll(/%2[Ee]/gu, ".").length <= 2;
+  dotsOnly.test(segment) && segment.replaceAll(regex("%2[Ee]", "gu"), ".").length <= 2;
 
 /**
  * Write a name of the location's path as a URI's path segment, each character RFC 3986's
