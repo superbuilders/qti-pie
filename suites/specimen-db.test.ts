@@ -39,11 +39,6 @@ import { everyCase } from "@qti-pie/specimen/specimen";
 import { Effect, FileSystem, Formatter, Layer, Option } from "effect";
 
 /**
- * How long the search may take: a hang guard, never a budget.
- */
-const searchTimeoutMs = 1_800_000;
-
-/**
  * This run's own token, in every package name it imports under, so no run, a replay included,
  * meets a package an earlier run stored.
  */
@@ -57,7 +52,7 @@ const importer = localMediaStore.pipe(
   Layer.provideMerge(NodeServices.layer),
 );
 
-layer(importer, { excludeTestServices: true, timeout: searchTimeoutMs })(
+layer(importer, { excludeTestServices: true })(
   "specimen's generator against the database",
   (it) => {
     it.effect(
