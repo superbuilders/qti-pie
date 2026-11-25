@@ -287,9 +287,12 @@ describe("vocab/open.ts namespace classes against XML Schema 1.0, 3.10.4", () =>
                     grammar.attributes.admission.lookup({ kind, name: attribute }),
                   );
 
-                  for (const { namespace: constraint } of [...elements, ...attributes]) {
-                    c.note(`${constraint} ${label}`);
-                  }
+                  c.noteAll(
+                    Arr.map(
+                      Arr.appendAll(elements, attributes),
+                      ({ namespace: constraint }) => `${constraint} ${label}` as const,
+                    ),
+                  );
 
                   return [
                     ...(elementRead === elementSpecified
