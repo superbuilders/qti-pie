@@ -543,19 +543,8 @@ const reached = required<SketchSituation>(
 
 describe("the law oracle's reading 62, generated packages", () => {
   it.effect(
-    "refuses exactly the records reading 62 refuses: the identifier compared collapsed, the title in its value space with tags compared without regard to case",
+    "refuses exactly the records reading 62 refuses: the identifier compared collapsed, the title in its value space with tags compared without regard to case; up to 2 resources of 3 kinds, each with up to 2 records of up to 2 general and 1 meta-metadata identifiers of up to 2 entries over 4 values and 3 paddings, and up to 1 title of up to 2 strings over 5 texts and 5 languages, 300 cases",
     (ctx) =>
-      // Oracle: the specification as a checker, reading 62 over the package's sketch: a naming
-      // record that lists general entries names its document's collapsed identifier
-      // (QTI 3.0 Metadata §2.7.1.1), and one with a general title names its document's title, as
-      // xs:normalizedString values, in its language, the root's xml:lang collapsed and tags
-      // compared without regard to case (§2.7.1.2, RFC 5646 §2.1.1); against the law oracle's
-      // `LomObjectIdentifier` and `LomObjectTitle` (`#pantry/test/oracle.ts`, over the shredded and
-      // folded package). The database holds both laws by rules over queries over `Node`
-      // (`#pantry/qti/queries.ts`), which only a database judges.
-      // Bound: up to 2 resources of 3 kinds, each with up to 2 records of up to 2 general and 1
-      // meta-metadata identifiers of up to 2 entries over 4 values and 3 paddings, and up to 1
-      // title of up to 2 strings over 5 texts and 5 languages; 300 cases.
       searched(
         ctx,
         explore(
@@ -566,7 +555,10 @@ describe("the law oracle's reading 62, generated packages", () => {
             draw: drawn(sketches),
             kept: [],
             literal: Formatter.format,
-            oracle: { kind: "specification", name: "reading 62 over the package's sketch" },
+            oracle: {
+              kind: "specification",
+              name: "reading 62 over the package's sketch: a naming record that lists general entries names its document's collapsed identifier (QTI 3.0 Metadata §2.7.1.1), and one with a general title names its document's title, as xs:normalizedString values, in its language, the root's xml:lang collapsed and tags compared without regard to case (§2.7.1.2, RFC 5646 §2.1.1); against the law oracle's LomObjectIdentifier and LomObjectTitle over the shredded and folded package, since the database holds both laws by rules over queries over Node (#pantry/qti/queries.ts), which only a database judges",
+            },
             runs: 300,
             shrink: completeShrink,
             steerEvery: 16,

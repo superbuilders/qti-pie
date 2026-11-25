@@ -262,74 +262,80 @@ layer(NodeServices.layer, { excludeTestServices: true })(
         }),
     );
 
+    /**
+     * Oracle: drop removes the database, so a check that connects to it can only fail; the
+     * stub psql's log names every database a connection was opened to, and its empty answer
+     * is a server that holds neither the database nor a role of its installation.
+     */
+    const clearAfterDrop = Effect.gen(function* clearAfterDrop() {
+      const scratch = yield* scriptScratch;
+      const command = yield* scratch.command("password.sh", "echo the-password");
+      const run = yield* runScript("check-clear", {
+        ...scratch.environment,
+        QTI_PIE_PG_DATABASE: "qti_pie_gone",
+        QTI_PIE_PG_PASSWORD_COMMAND: command,
+      });
+
+      assert.strictEqual(run.code, 0, run.stderr);
+      assert.strictEqual(run.stdout, "");
+
+      const runs = yield* scratch.psqlRuns;
+
+      assert.isNotEmpty(runs);
+
+      for (const line of runs) {
+        assert.include(line, " dbname=postgres ");
+        assert.notInclude(line, "qti_pie_gone");
+      }
+    });
+
     it.effect(
       "checks a dropped database clear through the server's catalog alone, never connecting to the database it drops",
-      () =>
-        // Oracle: drop removes the database, so a check that connects to it can only fail; the
-        // stub psql's log names every database a connection was opened to, and its empty answer
-        // is a server that holds neither the database nor a role of its installation.
-        Effect.gen(function* clearAfterDrop() {
-          const scratch = yield* scriptScratch;
-          const command = yield* scratch.command("password.sh", "echo the-password");
-          const run = yield* runScript("check-clear", {
-            ...scratch.environment,
-            QTI_PIE_PG_DATABASE: "qti_pie_gone",
-            QTI_PIE_PG_PASSWORD_COMMAND: command,
-          });
-
-          assert.strictEqual(run.code, 0, run.stderr);
-          assert.strictEqual(run.stdout, "");
-
-          const runs = yield* scratch.psqlRuns;
-
-          assert.isNotEmpty(runs);
-
-          for (const line of runs) {
-            assert.include(line, " dbname=postgres ");
-            assert.notInclude(line, "qti_pie_gone");
-          }
-        }),
+      () => clearAfterDrop,
     );
+
+    /**
+     * Bound: one grizzle migrate of the probe config, whose connection, grizzle.config.ts's,
+     * reads the CA from QTI_PIE_PG_CA alone, so the script must export it; the config's own
+     * reading of the variable is db/connection.test.ts's.
+     */
+    const exportedCa = Effect.gen(function* exportedCa() {
+      const fs = yield* FileSystem.FileSystem;
+      const scratch = yield* scriptScratch;
+      const command = yield* scratch.command("password.sh", "echo the-password");
+      const missing = `${scratch.root}/no-such-ca.crt`;
+      const config = `${scratch.root}/grizzle.config.ts`;
+      const environment = {
+        ...scratch.environment,
+        QTI_PIE_GRIZZLE_CONFIG: config,
+        QTI_PIE_PG_CA: missing,
+        QTI_PIE_PG_PASSWORD_COMMAND: command,
+      };
+
+      yield* fs.writeFileString(config, probeConfig);
+
+      const run = yield* runScript("migrate", environment);
+
+      assert.notStrictEqual(run.code, 0);
+      assert.include(
+        run.stderr,
+        `Cannot read the database's CA certificate at ${missing}, the file QTI_PIE_PG_CA names.`,
+      );
+
+      yield* runScript("create", environment);
+
+      const runs = yield* scratch.psqlRuns;
+
+      assert.lengthOf(runs, 2);
+
+      for (const line of runs) {
+        assert.include(line, `sslrootcert=${missing}`);
+      }
+    });
 
     it.effect(
       "gives grizzle migrate the CA file it gives psql, which the config reads from QTI_PIE_PG_CA and names when it cannot read it",
-      () =>
-        // Bound: one grizzle migrate of the probe config, whose connection, grizzle.config.ts's,
-        // reads the CA from QTI_PIE_PG_CA alone, so the script must export it; the config's own
-        // reading of the variable is db/connection.test.ts's.
-        Effect.gen(function* exportedCa() {
-          const fs = yield* FileSystem.FileSystem;
-          const scratch = yield* scriptScratch;
-          const command = yield* scratch.command("password.sh", "echo the-password");
-          const missing = `${scratch.root}/no-such-ca.crt`;
-          const config = `${scratch.root}/grizzle.config.ts`;
-          const environment = {
-            ...scratch.environment,
-            QTI_PIE_GRIZZLE_CONFIG: config,
-            QTI_PIE_PG_CA: missing,
-            QTI_PIE_PG_PASSWORD_COMMAND: command,
-          };
-
-          yield* fs.writeFileString(config, probeConfig);
-
-          const run = yield* runScript("migrate", environment);
-
-          assert.notStrictEqual(run.code, 0);
-          assert.include(
-            run.stderr,
-            `Cannot read the database's CA certificate at ${missing}, the file QTI_PIE_PG_CA names.`,
-          );
-
-          yield* runScript("create", environment);
-
-          const runs = yield* scratch.psqlRuns;
-
-          assert.lengthOf(runs, 2);
-
-          for (const line of runs) {
-            assert.include(line, `sslrootcert=${missing}`);
-          }
-        }),
+      () => exportedCa,
     );
 
     it.effect(
