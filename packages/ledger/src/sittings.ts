@@ -47,6 +47,7 @@
  * over a query of the level above, `#delivery.ts`.
  */
 import {
+  check,
   closed,
   contained,
   contract,
@@ -60,6 +61,8 @@ import {
   pg,
   pred,
   relation,
+  select,
+  sha256,
   span,
   Type,
 } from "@bjornpagen/grizzle";
@@ -195,6 +198,23 @@ export const SittingStanding = closed.ordered("SittingStanding", [
  *   (`#ledger/delivery.ts` ItemDuration).
  * - **SittingFinal** `(child, stage, at)`: the sitting's outcomes are final, at the instant they
  *   became so; one per sitting, and only of an ended one.
+ * - **ShuffleRank** `(child, stage, package, path) → rank`: the rank the member whose item document
+ *   is `path` takes in its sitting's order, where its section's `qti-ordering` shuffles: "If 'true'
+ *   causes the order of the child elements to be randomized" (§5.98.1). Its take draws it once, in
+ *   the database, from its decision's seed over the test's package and the item ref's identifier
+ *   (the SQL grader's `orderingRank`, plate's keyed digest), and a shuffling section presents its
+ *   members in ascending rank, so the order is the sitting's fact from its start: a resumption, a
+ *   review and the end read the one it began with, and two sittings of one test are two draws. No
+ *   two members of a sitting share a rank, so the order is total.
+ * - **MemberPlace** `(child, stage, package, path) → place, prior`: the 1-based place the member
+ *   whose item document is `path` takes in its sitting's order: the test's own order, its members'
+ *   places ("If no ordering rule is given, assume that the elements are to be ordered in the order
+ *   in which they are defined", §5.98), but a shuffling section's members in ascending ShuffleRank
+ *   over the places the section's run holds; and `prior`, the place before it. Its take writes it
+ *   after the ranks, once, so every reader of the order (the start, a resumption, the member after
+ *   one, a review, the linear laws) reads one number by the sitting's key. No two members of a
+ *   sitting share a place, nor a prior, so a member's neighbour is one key probe either way: the
+ *   member whose place is its `prior`, or whose `prior` is its place.
  *
  * A candidate session is the sitting's next only after the one before it was suspended, so they run
  * gapless from 0 and at most one is open: `pred` of a visit's `k` is a suspension's.
@@ -265,6 +285,22 @@ export const sittingTablesOf = (qti: RegistryLevel) => {
     "Final instant",
     relation("SittingFinal", { ...sitting, at: instant }, ["child", "stage", "at"]),
   );
+  const ShuffleRank = named(
+    "One rank a member",
+    relation(
+      "ShuffleRank",
+      { ...sitting, package: PackageName, path: DocumentPath, rank: sha256 },
+      ["child", "stage", "package", "path"],
+    ),
+  );
+  const MemberPlace = named(
+    "One place a member",
+    relation(
+      "MemberPlace",
+      { ...sitting, package: PackageName, path: DocumentPath, place: natural, prior: pg.bigint },
+      ["child", "stage", "package", "path"],
+    ),
+  );
   const moment = (
     r: typeof TestVisit | typeof TestSuspension | typeof TestPresented | typeof TestEnd,
   ) =>
@@ -274,7 +310,9 @@ export const sittingTablesOf = (qti: RegistryLevel) => {
     );
 
   const tables = {
+    MemberPlace,
     Presence,
+    ShuffleRank,
     SittingFinal,
     TestBudget,
     TestEnd,
@@ -325,6 +363,37 @@ export const sittingTablesOf = (qti: RegistryLevel) => {
     ),
     mutable(Presence),
     named("Final key", key(on(SittingFinal, "child", "stage"))),
+    named(
+      "Rank of its test session",
+      contained(on(ShuffleRank, "child", "stage"), on(TestSession, "child", "stage")),
+    ),
+    named("One member a rank", key(on(ShuffleRank, "child", "stage", "rank"))),
+    named(
+      "Place of its test session",
+      contained(on(MemberPlace, "child", "stage"), on(TestSession, "child", "stage")),
+    ),
+    named("One member a place", key(on(MemberPlace, "child", "stage", "place"))),
+    named("One member a place", key(on(MemberPlace, "child", "stage", "prior"))),
+    named(
+      "Placed from the first",
+      check("Placed_from_first", MemberPlace, (p) =>
+        p.and(p.ge(p.place, 1n), p.eq(Num.sub(Type.base(p.place), Type.base(p.prior)), 1n)),
+      ),
+    ),
+    // Each prior of a place after a sitting's first is a member's place, so with the check above a
+    // sitting's places are 1 to its count of members.
+    named(
+      "Placed from the first",
+      contained(
+        on(
+          select(MemberPlace, (p) => p.gt(p.place, 1n)),
+          "child",
+          "stage",
+          "prior",
+        ),
+        on(MemberPlace, "child", "stage", "place"),
+      ),
+    ),
     named(
       "Final after the end",
       contained(on(SittingFinal, "child", "stage"), on(TestEnd, "child", "stage")),

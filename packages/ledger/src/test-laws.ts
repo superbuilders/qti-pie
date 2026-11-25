@@ -30,9 +30,25 @@
  * - **Linear in order**: in a linear part every member before a presented member was presented, so
  *   with "Linear never back" its presentations run in member order from the first: "each item in
  *   turn" (Table 5.159.4) is every item, a skipped one presented and submitted with no response
- *   (Table 7.19.6). The members' order is their places, sound while a delivered test holds no
- *   qti-selection, qti-ordering, qti-pre-condition or qti-branch-rule (`#ledger/delivery.ts`
- *   undeliveredKinds; a pre-condition skips an item and a branch rule jumps, §2.8.3, §5.23).
+ *   (Table 7.19.6). The members' order is the sitting's, the places its take writes
+ *   (`MemberPlace`): the test's own order, but a section whose `qti-ordering` shuffles presents its
+ *   members in their sitting's ranks (§5.98.1, `ShuffleRank`). It is stated as each presented
+ *   member's predecessor in its part presented, which is every member before it in turn, one probe
+ *   a presentation. Sound while a delivered test holds no qti-selection, qti-pre-condition or
+ *   qti-branch-rule (`#ledger/delivery.ts` undeliveredKinds; a pre-condition skips an item and a
+ *   branch rule jumps, §2.8.3, §5.23).
+ * - **Members placed** and **Placed members only**: a sitting's places are exactly its members, one
+ *   each, which its take writes.
+ * - **Placed from the first** and **Placed in order**: a sitting's places run from 1 with no gap, and
+ *   each member placed after another is after it in the test's order: by its item ref's place, but
+ *   within one shuffling section by its rank. A sitting's places are a total order of its members
+ *   (One member a place), so every step in order makes them the one order its test and ranks give,
+ *   each place held by its neighbour's alone, one key probe a member (its `prior`), never by a
+ *   comparison of every pair.
+ * - **Shuffled members ranked** and **Ranked members only**: a sitting's ranks are exactly the
+ *   members of its test's shuffling sections, one each, which its take draws (§5.98.1: "If 'true'
+ *   causes the order of the child elements to be randomized"; §5.98: "If no ordering rule is given,
+ *   assume that the elements are to be ordered in the order in which they are defined").
  * - **Shown before saved**: a save is of a presented member, in any part. An item session is in its
  *   initial state "before the delivery has taken place" (§2.2.1), and the candidate sets or updates
  *   its response variables only in the interacting state, in which "The body must be presented to
@@ -42,14 +58,25 @@
  *
  * Every relation here is derived and stores nothing; each law reads its query at commit.
  */
-import { check, contained, derived, key, on, query, v } from "@bjornpagen/grizzle";
+import { check, contained, derived, key, on, query, Type, v } from "@bjornpagen/grizzle";
 import type { LedgerLevel } from "#ledger/delivery.ts";
 import { named } from "#ledger/laws.ts";
 import { memberControlsOf } from "#ledger/member-controls.ts";
 
 export const testLawsOf = (ledger: LedgerLevel) => {
-  const { Attempt, ItemSession, Save, TestEnd, TestMember, TestPart, TestPresented, TestSession } =
-    ledger.relations;
+  const {
+    Attempt,
+    ItemSession,
+    MemberPlace,
+    Save,
+    SectionShuffle,
+    ShuffleRank,
+    TestEnd,
+    TestMember,
+    TestPart,
+    TestPresented,
+    TestSession,
+  } = ledger.relations;
 
   /**
    * Each member of each sitting, by the item document its ref names (IMPL-TESTS'
@@ -66,6 +93,23 @@ export const testLawsOf = (ledger: LedgerLevel) => {
       .find({ child, package: pkg, part, path: document, stage, test });
   });
   const SittingMember = derived("SittingMember", sittingMembers);
+
+  /**
+   * Each member of each sitting in a section whose ordering shuffles, by the item document its ref
+   * names: `section` the section's place, `test` the test's, the members its sitting ranks
+   * (`ShuffleRank`).
+   */
+  const shuffledMembers = query(ledger).rule((r) => {
+    const { child, stage, package: pkg, path: test } = v(TestSession, "shuffledSitting");
+    const { document, section } = v(TestMember, "shuffledMember");
+
+    return r
+      .match(TestSession, { child, package: pkg, path: test, stage })
+      .match(TestMember, { document, package: pkg, path: test, section })
+      .match(SectionShuffle, { package: pkg, path: test, section })
+      .find({ child, package: pkg, path: document, section, stage, test });
+  });
+  const ShuffledMember = derived("ShuffledMember", shuffledMembers);
 
   /**
    * Each item session of a sitting's stage, with its sitting's test: `package` and `path` the item
@@ -225,42 +269,165 @@ export const testLawsOf = (ledger: LedgerLevel) => {
   const MovedOn = derived("MovedOn", movesOn);
 
   /**
-   * Each member of a linear part's sitting before a presented member: the item document of every
-   * item ref of the part whose place precedes the presented member's. A delivered test selects,
-   * orders, skips and branches nothing (`#ledger/delivery.ts` undeliveredKinds), so the members'
-   * order is their places.
+   * Each member of a linear part's sitting placed just before a presented member of the same part,
+   * by its item document: the member whose place (`MemberPlace`) is the presented member's prior.
+   * Every presented member's predecessor presented is every member before it presented, each in
+   * turn back to the part's first, so one probe a presentation states the law. A delivered test
+   * selects, skips and branches nothing (`#ledger/delivery.ts` undeliveredKinds).
    */
   const linearPreceding = query(ledger).rule((r) => {
     const { child, stage, package: pkg, path } = v(TestPresented, "presentedLater");
     const { path: test } = v(TestSession, "linearSitting");
-    const shown = v(TestMember, "shownMember");
-    const before = v(TestMember, "beforeMember");
+    const { part } = v(TestMember, "shownMember");
+    const { prior } = v(MemberPlace, "shownPlace");
+    const before = v(MemberPlace, "beforePlace");
 
     return r
       .match(TestPresented, { child, package: pkg, path, stage })
       .match(TestSession, { child, package: pkg, path: test, stage })
-      .match(TestMember, {
-        document: path,
-        package: pkg,
-        part: shown.part,
-        path: test,
-        start: shown.start,
-      })
-      .match(TestPart, { navigation: "linear", package: pkg, path: test, start: shown.part })
-      .match(TestMember, {
-        document: before.document,
-        package: pkg,
-        part: shown.part,
-        path: test,
-        start: before.start,
-      })
-      .where(r.lt(before.start, shown.start))
-      .find({ child, package: pkg, path: before.document, stage });
+      .match(TestMember, { document: path, package: pkg, part, path: test })
+      .match(TestPart, { navigation: "linear", package: pkg, path: test, start: part })
+      .match(MemberPlace, { child, package: pkg, path, prior, stage })
+      .match(MemberPlace, { child, package: pkg, path: before.path, place: before.place, stage })
+      .match(TestMember, { document: before.path, package: pkg, part, path: test })
+      .where(r.eq(Type.base(before.place), prior))
+      .find({ child, package: pkg, path: before.path, stage });
   });
   const LinearPreceding = derived("LinearPreceding", linearPreceding);
 
+  /**
+   * Each two members of a sitting placed one after the other (`MemberPlace`), the earlier's place
+   * the later's prior, so a step is one key probe from either: `from` and `to` the places of their
+   * item refs in the test, `section` and `next` their sections'.
+   */
+  const placeSteps = query(ledger).rule((r) => {
+    const { child, stage, package: pkg, path: test } = v(TestSession, "steppedSitting");
+    const later = v(MemberPlace, "laterPlaced");
+    const earlier = v(MemberPlace, "earlierPlaced");
+    const to = v(TestMember, "laterRef");
+    const from = v(TestMember, "earlierRef");
+
+    return r
+      .match(TestSession, { child, package: pkg, path: test, stage })
+      .match(MemberPlace, { child, package: pkg, path: later.path, prior: later.prior, stage })
+      .match(MemberPlace, { child, package: pkg, path: earlier.path, place: earlier.place, stage })
+      .match(TestMember, {
+        document: later.path,
+        package: pkg,
+        path: test,
+        section: to.section,
+        start: to.start,
+      })
+      .match(TestMember, {
+        document: earlier.path,
+        package: pkg,
+        path: test,
+        section: from.section,
+        start: from.start,
+      })
+      .where(r.eq(Type.base(earlier.place), later.prior))
+      .find({
+        child,
+        earlier: earlier.path,
+        from: from.start,
+        later: later.path,
+        next: to.section,
+        package: pkg,
+        section: from.section,
+        stage,
+        test,
+        to: to.start,
+      });
+  });
+
+  /**
+   * Each step of a sitting's places ({@link placeSteps}) but between two members of one shuffling
+   * section, by the places of their item refs in the test: the test's own order (§5.98: "If no
+   * ordering rule is given, assume that the elements are to be ordered in the order in which they
+   * are defined"). A shuffling section holds item refs alone, so its members are one run of places,
+   * and a step into or out of it compares as any other.
+   */
+  const RefSteps = derived(
+    "RefSteps",
+    query(ledger)
+      .rule((r) => {
+        const { child, stage, from, to, section, next } = v(placeSteps, "crossingStep");
+        const { earlier, later, package: pkg, test } = v(placeSteps, "crossingMembers");
+
+        return r
+          .match(placeSteps, {
+            child,
+            earlier,
+            from,
+            later,
+            next,
+            package: pkg,
+            section,
+            stage,
+            test,
+            to,
+          })
+          .where(r.ne(section, next))
+          .find({ child, from, later, stage, to });
+      })
+      .rule((r) => {
+        const { child, stage, from, to, section } = v(placeSteps, "sectionStep");
+        const { earlier, later, package: pkg, test } = v(placeSteps, "sectionMembers");
+
+        return r
+          .match(placeSteps, {
+            child,
+            earlier,
+            from,
+            later,
+            next: section,
+            package: pkg,
+            section,
+            stage,
+            test,
+            to,
+          })
+          .where(r.not(SectionShuffle, { package: pkg, path: test, section }))
+          .find({ child, from, later, stage, to });
+      }),
+  );
+
+  /**
+   * Each step of a sitting's places ({@link placeSteps}) between two members of one shuffling
+   * section, by their ranks in the sitting (`ShuffleRank`): the section presents its members in
+   * ascending rank (§5.98.1).
+   */
+  const RankSteps = derived(
+    "RankSteps",
+    query(ledger).rule((r) => {
+      const { child, stage, section } = v(placeSteps, "rankedStep");
+      const { earlier, from, later, package: pkg, test, to } = v(placeSteps, "rankedMembers");
+      const fromRank = v(ShuffleRank, "earlierRank");
+      const toRank = v(ShuffleRank, "laterRank");
+
+      return r
+        .match(placeSteps, {
+          child,
+          earlier,
+          from,
+          later,
+          next: section,
+          package: pkg,
+          section,
+          stage,
+          test,
+          to,
+        })
+        .match(SectionShuffle, { package: pkg, path: test, section })
+        .match(ShuffleRank, { child, package: pkg, path: earlier, rank: fromRank.rank, stage })
+        .match(ShuffleRank, { child, package: pkg, path: later, rank: toRank.rank, stage })
+        .find({ child, from: fromRank.rank, later, stage, to: toRank.rank });
+    }),
+  );
+
   const relations = [
     SittingMember,
+    ShuffledMember,
     SittingSession,
     LimitedTestAttempt,
     AttemptedMember,
@@ -270,6 +437,8 @@ export const testLawsOf = (ledger: LedgerLevel) => {
     EndedPresentation,
     MovedOn,
     LinearPreceding,
+    RefSteps,
+    RankSteps,
   ] as const;
 
   /**
@@ -374,8 +543,72 @@ export const testLawsOf = (ledger: LedgerLevel) => {
     ),
   );
 
+  /**
+   * Members placed: every member of a sitting has its place in the sitting's order.
+   */
+  const membersPlaced = named(
+    "Members placed",
+    contained(
+      on(SittingMember, "child", "stage", "package", "path"),
+      on(MemberPlace, "child", "stage", "package", "path"),
+    ),
+  );
+
+  /**
+   * Placed members only: a sitting's place is of a member of its test.
+   */
+  const placedOnlyMembers = named(
+    "Placed members only",
+    contained(
+      on(MemberPlace, "child", "stage", "package", "path"),
+      on(SittingMember, "child", "stage", "package", "path"),
+    ),
+  );
+
+  /**
+   * Placed in order: a member placed after another is after it in the test's order, by item ref
+   * outside a shuffling section, by rank within one.
+   */
+  const placedByRef = named(
+    "Placed in order",
+    check("Placed_by_ref", RefSteps, (p) => p.lt(p.from, p.to)),
+  );
+  const placedByRank = named(
+    "Placed in order",
+    check("Placed_by_rank", RankSteps, (p) => p.lt(p.from, p.to)),
+  );
+
+  /**
+   * Shuffled members ranked: every member of a sitting's shuffling section has its rank in the
+   * sitting.
+   */
+  const shuffledRanked = named(
+    "Shuffled members ranked",
+    contained(
+      on(ShuffledMember, "child", "stage", "package", "path"),
+      on(ShuffleRank, "child", "stage", "package", "path"),
+    ),
+  );
+
+  /**
+   * Ranked members only: a sitting's rank is of a member of one of its test's shuffling sections.
+   */
+  const rankedOnlyShuffled = named(
+    "Ranked members only",
+    contained(
+      on(ShuffleRank, "child", "stage", "package", "path"),
+      on(ShuffledMember, "child", "stage", "package", "path"),
+    ),
+  );
+
   const laws = [
     membersCompletely,
+    membersPlaced,
+    placedOnlyMembers,
+    placedByRef,
+    placedByRank,
+    shuffledRanked,
+    rankedOnlyShuffled,
     memberPackage,
     membersOnly,
     oneAttempt,

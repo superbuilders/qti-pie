@@ -110,6 +110,19 @@
  * waits for its score (`pendingExternalScoring`, Results Reporting Table 2.7.7), so its sitting is
  * final only where the essay was never presented.
  *
+ * And a shuffling section's sittings (`takeSitting`, `resumeTest`, `presentItem`, `suspendTest`),
+ * held to the order plate's keyed digest gives ({@link shuffledOrderOf}): a section whose
+ * qti-ordering shuffles presents its members in ascending HMAC-SHA-256 under its sitting's
+ * decision seed over "ordering", the package and the item ref (§5.98.1, "causes the order of the
+ * child elements to be randomized"), its start at the first of them, a member ahead of its turn
+ * refused by "Linear in order" and one behind it by "Linear never back", a resumption at the
+ * member its candidate left, and two sittings of the test under two seeds in two orders; the same
+ * order among other members (a member before, two shuffling sections, one inside an unshuffled
+ * section, a member after), in a nonlinear part, an individual part, and an ordering written with
+ * whitespace and a comment over refs fixed false; and a shuffling section that holds a section, a
+ * fixed item ref, or an ordering's extension element of any namespace is no test this runtime
+ * delivers.
+ *
  * And a sitting's entries (`enterTest` at a named member, `resumeTest` where its candidate left it,
  * `suspendTest`, `saveTestItem`), held to their table ({@link entryExpectedOf}): an entry presents
  * the member it names, the last presented or else the first for a resumed one, any in a nonlinear
@@ -140,6 +153,7 @@ import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
 import { assert, describe, layer } from "@effect/vitest";
+import { createHmac } from "node:crypto";
 import { importRowsOf } from "@qti-pie/pantry/import/program.ts";
 import { readPackage } from "@qti-pie/pantry/import/read.ts";
 import {
@@ -260,6 +274,47 @@ const SHOWN_TEST = "shown.xml";
 const LINEAR_TEST = "linear.xml";
 
 const LINEAR_TOGETHER_TEST = "linear-together.xml";
+
+/**
+ * The test of a shuffling section ({@link shuffledTestXml}): one linear, simultaneous part whose
+ * one section's qti-ordering shuffles its six item refs ({@link shuffledMembers}).
+ */
+const SHUFFLED_TEST = "shuffled.xml";
+
+/**
+ * The shuffled test's members as one individual part takes them ({@link shuffledTestXml},
+ * FastMath's shape): one linear, individual part whose one section shuffles the same six item
+ * refs.
+ */
+const SHUFFLED_INDIVIDUAL_TEST = "shuffled-individual.xml";
+
+/**
+ * The tests of shuffling sections among other members ({@link mixedTestXmlOf}): one linear and one
+ * nonlinear simultaneous part over {@link mixedMembers}.
+ */
+const SHUFFLED_MIXED_TEST = "shuffled-mixed.xml";
+
+const SHUFFLED_FREE_TEST = "shuffled-free.xml";
+
+/**
+ * The test of a shuffle written loosely ({@link shuffledLooseTestXml}): whitespace and a comment
+ * inside its ordering, and each item ref writing `fixed="false"`, QTI's default (§5.6.3).
+ */
+const SHUFFLED_LOOSE_TEST = "shuffled-loose.xml";
+
+/**
+ * Tests of a shuffling section this runtime does not deliver: one that holds a section, one whose
+ * item ref is fixed, one whose ordering holds an extension element of another namespace, and one
+ * whose ordering holds QTI's own HTML `span`, which pantry reads as its declaration, no foreign
+ * element (§5.98.1, §5.98.3, docs/spec-readings.md reading 61).
+ */
+const SHUFFLED_NESTED_TEST = "shuffled-nested.xml";
+
+const SHUFFLED_FIXED_TEST = "shuffled-fixed.xml";
+
+const SHUFFLED_EXTENDED_TEST = "shuffled-extended.xml";
+
+const SHUFFLED_MARKUP_TEST = "shuffled-markup.xml";
 
 /**
  * The human-scored essay's document ({@link humanXml}).
@@ -685,6 +740,114 @@ const linearTestXmlOf = (identifier: string, submission: "individual" | "simulta
 </qti-assessment-test>`;
 
 /**
+ * The shuffled test's members in document order, each its item ref and its item's document: every
+ * item of the package that is neither adaptive nor templated, each once.
+ */
+const shuffledMembers = [
+  { path: SHORT, ref: MEMBER },
+  { path: OTHER, ref: SAVED },
+  { path: MEMBER_MIN, ref: MEMBER_REF },
+  { path: DRAFT_MIN, ref: DRAFT_REF },
+  { path: ESSAY_MIN, ref: ESSAY_REF },
+  { path: HUMAN, ref: HUMAN_REF },
+] as const;
+
+/**
+ * The item resources every test over the six members depends on.
+ */
+const sixMembers = ["short", "other", "member-min", "draft-min", "essay-min", HUMAN_REF] as const;
+
+/**
+ * A test of one linear part of one section, holding `content`.
+ *
+ * @param identifier - The test's identifier.
+ * @param content - The section's content.
+ * @param submission - The part's submission mode.
+ */
+const shuffledSectionXmlOf = (
+  identifier: string,
+  content: string,
+  submission: "individual" | "simultaneous" = "simultaneous",
+) =>
+  `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-test xmlns="${asi}" identifier="${identifier}" title="${identifier}"><qti-test-part identifier="part" navigation-mode="linear" submission-mode="${submission}"><qti-assessment-section identifier="section" title="section" visible="true">${content}</qti-assessment-section></qti-test-part>
+</qti-assessment-test>`;
+
+const shuffledContent = `<qti-ordering shuffle="true"/>${shuffledMembers.map(({ path, ref }) => refXml(ref, path, "")).join("")}`;
+
+const shuffledTestXml = shuffledSectionXmlOf("shuffled", shuffledContent);
+
+const shuffledIndividualTestXml = shuffledSectionXmlOf(
+  "shuffled-individual",
+  shuffledContent,
+  "individual",
+);
+
+/**
+ * The mixed tests' members in document order, each its item ref, its item's document, and `block`,
+ * the shuffling section that holds it, if one does: {@link MEMBER} alone, then the section `first`
+ * shuffling {@link SAVED} and {@link MEMBER_REF}, then an unshuffled section `middle` holding the
+ * section `second`, which shuffles {@link DRAFT_REF} and {@link ESSAY_REF}, and then
+ * {@link HUMAN_REF}.
+ */
+const mixedMembers = [
+  { block: undefined, path: SHORT, ref: MEMBER },
+  { block: "first", path: OTHER, ref: SAVED },
+  { block: "first", path: MEMBER_MIN, ref: MEMBER_REF },
+  { block: "second", path: DRAFT_MIN, ref: DRAFT_REF },
+  { block: "second", path: ESSAY_MIN, ref: ESSAY_REF },
+  { block: undefined, path: HUMAN, ref: HUMAN_REF },
+] as const;
+
+/**
+ * A test of one simultaneous part over {@link mixedMembers}: a shuffling section after a member, two
+ * shuffling sections one after the other, the second inside an unshuffled section, and a member
+ * after them.
+ *
+ * @param identifier - The test's identifier.
+ * @param navigation - The part's navigation mode.
+ */
+const mixedTestXmlOf = (identifier: string, navigation: "linear" | "nonlinear") =>
+  `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-test xmlns="${asi}" identifier="${identifier}" title="${identifier}"><qti-test-part identifier="part" navigation-mode="${navigation}" submission-mode="simultaneous"><qti-assessment-section identifier="top" title="top" visible="true">${refXml(MEMBER, SHORT, "")}<qti-assessment-section identifier="first" title="first" visible="true"><qti-ordering shuffle="true"/>${refXml(SAVED, OTHER, "")}${refXml(MEMBER_REF, MEMBER_MIN, "")}</qti-assessment-section><qti-assessment-section identifier="middle" title="middle" visible="true"><qti-assessment-section identifier="second" title="second" visible="true"><qti-ordering shuffle="true"/>${refXml(DRAFT_REF, DRAFT_MIN, "")}${refXml(ESSAY_REF, ESSAY_MIN, "")}</qti-assessment-section>${refXml(HUMAN_REF, HUMAN, "")}</qti-assessment-section></qti-assessment-section></qti-test-part>
+</qti-assessment-test>`;
+
+/**
+ * The loose test's members in document order.
+ */
+const looseMembers = [
+  { block: "section", path: SHORT, ref: MEMBER },
+  { block: "section", path: OTHER, ref: SAVED },
+] as const;
+
+const shuffledLooseTestXml = shuffledSectionXmlOf(
+  "shuffled-loose",
+  `<qti-ordering shuffle="true">
+  <!-- each sitting draws its own order -->
+</qti-ordering>${looseMembers.map(({ path, ref }) => `<qti-assessment-item-ref identifier="${ref}" href="${path}" fixed="false"/>`).join("")}`,
+);
+
+const shuffledNestedTestXml = shuffledSectionXmlOf(
+  "shuffled-nested",
+  `<qti-ordering shuffle="true"/>${refXml(MEMBER, SHORT, "")}<qti-assessment-section identifier="inner" title="inner" visible="true">${refXml(SAVED, OTHER, "")}</qti-assessment-section>`,
+);
+
+const shuffledFixedTestXml = shuffledSectionXmlOf(
+  "shuffled-fixed",
+  `<qti-ordering shuffle="true"/><qti-assessment-item-ref identifier="${MEMBER}" href="${SHORT}" fixed="true"/>${refXml(SAVED, OTHER, "")}`,
+);
+
+const shuffledExtendedTestXml = shuffledSectionXmlOf(
+  "shuffled-extended",
+  `<qti-ordering shuffle="true"><by:rank xmlns:by="urn:example:ordering"/></qti-ordering>${refXml(MEMBER, SHORT, "")}${refXml(SAVED, OTHER, "")}`,
+);
+
+const shuffledMarkupTestXml = shuffledSectionXmlOf(
+  "shuffled-markup",
+  `<qti-ordering shuffle="true"><span>by rank</span></qti-ordering>${refXml(MEMBER, SHORT, "")}${refXml(SAVED, OTHER, "")}`,
+);
+
+/**
  * The test of shown members: one simultaneous, nonlinear part, {@link MEMBER} first, the one its
  * start presents, then the human-scored essay {@link HUMAN_REF}.
  */
@@ -759,7 +922,7 @@ const itemResource = (path: string) =>
   `<resource identifier="${path.replace("items/", "").replace(".xml", "")}" type="imsqti_item_xmlv3p0" href="${path}"><file href="${path}"/></resource>`;
 
 const manifest = `<?xml version="1.0" encoding="UTF-8"?>
-<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="wave" type="imsqti_item_xmlv3p0" href="${WAVE}"><file href="${WAVE}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="patterns" type="imsqti_item_xmlv3p0" href="${PATTERNS}"><file href="${PATTERNS}"/></resource><resource identifier="patterns-located" type="imsqti_item_xmlv3p0" href="${PATTERNS_LOCATED}"><file href="${PATTERNS_LOCATED}"/><dependency identifierref="patterns-template"/></resource><resource identifier="patterns-template" type="imsqti_rptemplate_xmlv3p0" href="${PATTERNS_TEMPLATE}"><file href="${PATTERNS_TEMPLATE}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${[ESSAY_MIN, MEMBER_MIN, DRAFT_MIN, HUMAN].map(itemResource).join("")}${tests.map(([path]) => testResource(path, ["short", "other"])).join("")}${controlTests.map(([path]) => testResource(path, ["essay-min", "member-min", "draft-min", "other"])).join("")}${testResource(SHOWING_TEST, ["short", "other", "member-min", "draft-min"])}${testResource(SHOWN_TEST, ["short", HUMAN_REF])}${testResource(LINEAR_TEST, ["short", "other"])}${testResource(LINEAR_TOGETHER_TEST, ["short", "other"])}${[BOUNDED_A, BOUNDED_B].map(itemResource).join("")}${testResource(OUTCOME_BOUNDS_TEST, [BOUNDED_A_REF, BOUNDED_B_REF])}</resources></manifest>`;
+<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="wave" type="imsqti_item_xmlv3p0" href="${WAVE}"><file href="${WAVE}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="patterns" type="imsqti_item_xmlv3p0" href="${PATTERNS}"><file href="${PATTERNS}"/></resource><resource identifier="patterns-located" type="imsqti_item_xmlv3p0" href="${PATTERNS_LOCATED}"><file href="${PATTERNS_LOCATED}"/><dependency identifierref="patterns-template"/></resource><resource identifier="patterns-template" type="imsqti_rptemplate_xmlv3p0" href="${PATTERNS_TEMPLATE}"><file href="${PATTERNS_TEMPLATE}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${[ESSAY_MIN, MEMBER_MIN, DRAFT_MIN, HUMAN].map(itemResource).join("")}${tests.map(([path]) => testResource(path, ["short", "other"])).join("")}${controlTests.map(([path]) => testResource(path, ["essay-min", "member-min", "draft-min", "other"])).join("")}${testResource(SHOWING_TEST, ["short", "other", "member-min", "draft-min"])}${testResource(SHOWN_TEST, ["short", HUMAN_REF])}${testResource(LINEAR_TEST, ["short", "other"])}${testResource(LINEAR_TOGETHER_TEST, ["short", "other"])}${[SHUFFLED_TEST, SHUFFLED_INDIVIDUAL_TEST, SHUFFLED_MIXED_TEST, SHUFFLED_FREE_TEST].map((path) => testResource(path, sixMembers)).join("")}${[SHUFFLED_LOOSE_TEST, SHUFFLED_NESTED_TEST, SHUFFLED_FIXED_TEST, SHUFFLED_EXTENDED_TEST, SHUFFLED_MARKUP_TEST].map((path) => testResource(path, ["short", "other"])).join("")}${[BOUNDED_A, BOUNDED_B].map(itemResource).join("")}${testResource(OUTCOME_BOUNDS_TEST, [BOUNDED_A_REF, BOUNDED_B_REF])}</resources></manifest>`;
 
 /**
  * The response every answered case gives.
@@ -1408,6 +1571,15 @@ const published = Effect.gen(function* publish() {
     [SHOWN_TEST, shownTestXml],
     [LINEAR_TEST, linearTestXmlOf("linear", "individual")],
     [LINEAR_TOGETHER_TEST, linearTestXmlOf("linear-together", "simultaneous")],
+    [SHUFFLED_TEST, shuffledTestXml],
+    [SHUFFLED_INDIVIDUAL_TEST, shuffledIndividualTestXml],
+    [SHUFFLED_MIXED_TEST, mixedTestXmlOf("shuffled-mixed", "linear")],
+    [SHUFFLED_FREE_TEST, mixedTestXmlOf("shuffled-free", "nonlinear")],
+    [SHUFFLED_LOOSE_TEST, shuffledLooseTestXml],
+    [SHUFFLED_NESTED_TEST, shuffledNestedTestXml],
+    [SHUFFLED_FIXED_TEST, shuffledFixedTestXml],
+    [SHUFFLED_EXTENDED_TEST, shuffledExtendedTestXml],
+    [SHUFFLED_MARKUP_TEST, shuffledMarkupTestXml],
     [OUTCOME_BOUNDS_TEST, outcomeBoundsTestXml],
   ]) {
     yield* fs.writeFileString(`${dir}/${path}`, xml);
@@ -5318,6 +5490,364 @@ const gapOf: Gen<number> = oneOf([
 ]);
 
 /**
+ * A decision's seed, as an application draws one: a version 4 UUID in its canonical lowercase text,
+ * which the take hands the database (`takenHeading`'s `seed`).
+ */
+const decisionSeed: Gen<`${string}-${string}-${string}-${string}-${string}`> = (source) => {
+  const digits = array(int(0, 15), { max: 30, min: 30 })(source).map((d) => d.toString(16));
+  const variant = int(8, 11)(source).toString(16);
+  const hex = [
+    ...digits.slice(0, 12),
+    "4",
+    ...digits.slice(12, 15),
+    variant,
+    ...digits.slice(15, 30),
+  ].join("");
+
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+};
+
+/**
+ * A run of the shuffled test: two sittings, each a fresh child's under a seed of its own.
+ */
+type ShuffleRun = Readonly<{
+  first: `${string}-${string}-${string}-${string}-${string}`;
+  second: `${string}-${string}-${string}-${string}-${string}`;
+}>;
+
+const shuffleRuns: Gen<ShuffleRun> = (source) => ({
+  first: decisionSeed(source),
+  second: decisionSeed(source),
+});
+
+/**
+ * A test's members in the order a sitting under `decision` presents them, plate's protocol stated
+ * apart from the database: each member of no shuffling section at its place in the document, and
+ * each run of one shuffling section's members (`block`) over the places it holds, ranked by
+ * HMAC-SHA-256 keyed by the decision's text over "ordering", the package's name and its item ref's
+ * identifier, joined by U+001F (plate's keyedDigest), lowest first (§5.98, §5.98.1).
+ *
+ * @param decision - The sitting's decision seed.
+ * @param members - The test's members in document order, each shuffling section's one run.
+ * @returns Its members, item ref and document, in presented order.
+ */
+const drawnOrderOf = <
+  M extends { readonly block: string | undefined; readonly path: string; readonly ref: string },
+>(
+  decision: string,
+  members: readonly M[],
+): readonly M[] => {
+  const runs: M[][] = [];
+  for (const member of members) {
+    const run = runs.at(-1);
+    if (run !== undefined && member.block !== undefined && run[0]?.block === member.block) {
+      run.push(member);
+    } else {
+      runs.push([member]);
+    }
+  }
+
+  return runs.flatMap((run) =>
+    Arr.sort(
+      run.map((member) => ({
+        member,
+        rank: createHmac("sha256", decision)
+          .update(["ordering", PACKAGE, member.ref].join("\u001F"))
+          .digest("hex"),
+      })),
+      Order.mapInput(Order.String, ({ rank }: { readonly rank: string }) => rank),
+    ).map(({ member }) => member),
+  );
+};
+
+/**
+ * The shuffled test's members in the order a sitting under `decision` presents them
+ * ({@link drawnOrderOf}): its one section shuffles all six.
+ *
+ * @param decision - The sitting's decision seed.
+ */
+const shuffledOrderOf = (decision: string) =>
+  drawnOrderOf(
+    decision,
+    shuffledMembers.map((member) => ({ ...member, block: "section" })),
+  );
+
+/**
+ * The situations the shuffle runs must reach.
+ */
+const shuffleSituations = [
+  "a shuffled start presents the least-ranked member",
+  "a member ahead of its rank is refused",
+  "a member behind the one presented is refused",
+  "a resumption presents the member its candidate left",
+  "a sitting walks its section in rank order",
+  "a sitting's order is not its document's",
+  "two sittings of the test, two orders",
+  "MemberPlace places a sitting's members as it presents them",
+  "a mixed start presents the first member by place",
+  "a shuffled member ahead of its section's first is refused",
+  "a member after a shuffling section waits for all of it",
+  "a member before a shuffling section is never returned to",
+  "a mixed sitting walks its members, then each section in rank order",
+  "a nonlinear sitting is placed in its order and moves freely",
+  "an ordering of whitespace and a comment, over refs fixed false, is delivered",
+  "an individual part's sitting starts at its least-ranked member",
+] as const;
+
+type ShuffleSituation = (typeof shuffleSituations)[number];
+
+/**
+ * One shuffle run: each of its two seeds a fresh child's sitting of the shuffled test, taken by the
+ * test runtime's own take; the first started where it begins, held to present the first member of
+ * its order; the third member presented, refused by "Linear in order"; the second presented; the
+ * sitting suspended and resumed, held to present the second again; the first presented, refused by
+ * "Linear never back"; then the rest presented in order, and every presentation of the sitting held
+ * to the order {@link shuffledOrderOf} gives. The second sitting is started and walked the same
+ * way, and held to its own seed's order.
+ *
+ * @param run - The two seeds.
+ * @param child - The run's fresh child, a suffix of which names each sitting's child.
+ * @param note - Records the situation the run reaches.
+ */
+const holdShuffle = (run: ShuffleRun, child: string, note: (situation: ShuffleSituation) => void) =>
+  Effect.gen(function* hold() {
+    const { suite } = yield* SuiteLogin;
+    const db = yield* Db.open(suite.roles.result_runner, {});
+    const walked = (
+      seed: `${string}-${string}-${string}-${string}-${string}`,
+      learner: string,
+      probe: boolean,
+    ) =>
+      Effect.gen(function* walk() {
+        const order = shuffledOrderOf(seed);
+        const sitting = { child: learner, stage: 1n };
+        const taken = yield* db.workload.takeSitting.once({
+          facts: {},
+          params: { ...sitting, package: PACKAGE, path: SHUFFLED_TEST, seed },
+        });
+        assert.strictEqual(taken.kind, "accepted", `${seed}: the sitting, as the take writes it`);
+
+        const started = yield* db.workload.resumeTest.once({ facts: {}, params: sitting });
+        assert.strictEqual(started.kind, "accepted", `${seed}: the start`);
+
+        const at = (i: number) => Option.getOrThrow(Arr.get(order, i));
+        const presentAt = (i: number) =>
+          Effect.result(
+            db.workload.presentItem.once({ facts: {}, params: { ...sitting, item: at(i).ref } }),
+          );
+        if (probe) {
+          const ahead = yield* presentAt(2);
+          assert.isTrue(
+            Result.isFailure(ahead) &&
+              ahead.failure.kind === "refused" &&
+              refusedBy(ahead.failure.refused, "Linear in order"),
+            `${seed}: the third member first, refused by "Linear in order", got ${Formatter.format(ahead)}`,
+          );
+          note("a member ahead of its rank is refused");
+        }
+
+        assert.strictEqual(
+          Result.getOrThrow(yield* presentAt(1)).kind,
+          "accepted",
+          `${seed}: the second member`,
+        );
+        if (probe) {
+          const suspended = yield* db.workload.suspendTest.once({ facts: {}, params: sitting });
+          assert.strictEqual(suspended.kind, "accepted", `${seed}: the suspension`);
+
+          const resumed = yield* db.workload.resumeTest.once({ facts: {}, params: sitting });
+          assert.strictEqual(resumed.kind, "accepted", `${seed}: the resumption`);
+
+          const behind = yield* presentAt(0);
+          assert.isTrue(
+            Result.isFailure(behind) &&
+              behind.failure.kind === "refused" &&
+              refusedBy(behind.failure.refused, "Linear never back"),
+            `${seed}: the first member again, refused by "Linear never back", got ${Formatter.format(behind)}`,
+          );
+          note("a member behind the one presented is refused");
+        }
+
+        for (const i of Arr.range(2, order.length - 1)) {
+          assert.strictEqual(
+            Result.getOrThrow(yield* presentAt(i)).kind,
+            "accepted",
+            `${seed}: member ${String(i + 1)} of its order`,
+          );
+        }
+
+        const presented = Arr.fromIterable(
+          yield* db.workload.presentationsOf.once({ facts: {}, params: { child: learner } }),
+        ).map(({ path }) => path);
+        const expected = probe
+          ? [at(0).path, at(1).path, at(1).path, ...order.slice(2).map(({ path }) => path)]
+          : order.map(({ path }) => path);
+        assert.deepStrictEqual<unknown>(
+          presented,
+          expected,
+          `${seed}: the sitting presents its section in its ranks' order`,
+        );
+        assert.deepStrictEqual<unknown>(
+          Arr.fromIterable(
+            yield* db.workload.placesOf.once({ facts: {}, params: { child: learner } }),
+          ).map(({ path }) => path),
+          order.map(({ path }) => path),
+          `${seed}: MemberPlace places the sitting's members in its ranks' order`,
+        );
+        note("a shuffled start presents the least-ranked member");
+        note("a sitting walks its section in rank order");
+        note("MemberPlace places a sitting's members as it presents them");
+        if (probe) {
+          note("a resumption presents the member its candidate left");
+        }
+
+        if (order.some(({ ref }, i) => ref !== shuffledMembers[i]?.ref)) {
+          note("a sitting's order is not its document's");
+        }
+
+        return order.map(({ ref }) => ref);
+      });
+
+    const first = yield* walked(run.first, `${child}a`, true);
+    const second = yield* walked(run.second, `${child}b`, false);
+    if (first.join(",") !== second.join(",")) {
+      note("two sittings of the test, two orders");
+    }
+
+    /**
+     * A fresh sitting of `test` under `seed`, taken and started: what it presented first, and its
+     * places' item documents in order.
+     */
+    const started = (
+      test: string,
+      seed: `${string}-${string}-${string}-${string}-${string}`,
+      learner: string,
+    ) =>
+      Effect.gen(function* start() {
+        const sitting = { child: learner, stage: 1n };
+        const taken = yield* db.workload.takeSitting.once({
+          facts: {},
+          params: { ...sitting, package: PACKAGE, path: test, seed },
+        });
+        assert.strictEqual(taken.kind, "accepted", `${test} ${seed}: the take`);
+
+        const entered = yield* db.workload.resumeTest.once({ facts: {}, params: sitting });
+        assert.strictEqual(entered.kind, "accepted", `${test} ${seed}: the start`);
+
+        return {
+          places: Arr.fromIterable(
+            yield* db.workload.placesOf.once({ facts: {}, params: { child: learner } }),
+          ).map(({ path }) => path),
+          present: (ref: string) =>
+            Effect.result(
+              db.workload.presentItem.once({ facts: {}, params: { ...sitting, item: ref } }),
+            ),
+          presented: Arr.fromIterable(
+            yield* db.workload.presentationsOf.once({ facts: {}, params: { child: learner } }),
+          ).map(({ path }) => path),
+        };
+      });
+
+    // The linear mixed test: the first member by place, refusals across the sections' runs, then
+    // its order walked.
+    const mixed = drawnOrderOf(run.first, mixedMembers);
+    const mixedAt = (i: number) => Option.getOrThrow(Arr.get(mixed, i));
+    const linear = yield* started(SHUFFLED_MIXED_TEST, run.first, `${child}c`);
+    assert.deepStrictEqual<unknown>(linear.presented, [SHORT], `${run.first}: the mixed start`);
+    note("a mixed start presents the first member by place");
+
+    const ahead = yield* linear.present(mixedAt(2).ref);
+    assert.isTrue(
+      Result.isFailure(ahead) &&
+        ahead.failure.kind === "refused" &&
+        refusedBy(ahead.failure.refused, "Linear in order"),
+      `${run.first}: the first section's second-ranked first, refused by "Linear in order", got ${Formatter.format(ahead)}`,
+    );
+    note("a shuffled member ahead of its section's first is refused");
+
+    const past = yield* linear.present(HUMAN_REF);
+    assert.isTrue(
+      Result.isFailure(past) &&
+        past.failure.kind === "refused" &&
+        refusedBy(past.failure.refused, "Linear in order"),
+      `${run.first}: the member after both sections, refused by "Linear in order", got ${Formatter.format(past)}`,
+    );
+    note("a member after a shuffling section waits for all of it");
+    assert.strictEqual(
+      Result.getOrThrow(yield* linear.present(mixedAt(1).ref)).kind,
+      "accepted",
+      `${run.first}: the first section's first-ranked`,
+    );
+
+    const back = yield* linear.present(MEMBER);
+    assert.isTrue(
+      Result.isFailure(back) &&
+        back.failure.kind === "refused" &&
+        refusedBy(back.failure.refused, "Linear never back"),
+      `${run.first}: the first member again, refused by "Linear never back", got ${Formatter.format(back)}`,
+    );
+    note("a member before a shuffling section is never returned to");
+    for (const i of Arr.range(2, mixed.length - 1)) {
+      assert.strictEqual(
+        Result.getOrThrow(yield* linear.present(mixedAt(i).ref)).kind,
+        "accepted",
+        `${run.first}: mixed member ${String(i + 1)} of its order`,
+      );
+    }
+    assert.deepStrictEqual<unknown>(
+      Arr.fromIterable(
+        yield* db.workload.presentationsOf.once({ facts: {}, params: { child: `${child}c` } }),
+      ).map(({ path }) => path),
+      mixed.map(({ path }) => path),
+      `${run.first}: the mixed sitting presents its members, each section in its ranks' order`,
+    );
+    assert.deepStrictEqual<unknown>(
+      linear.places,
+      mixed.map(({ path }) => path),
+      `${run.first}: MemberPlace places the mixed sitting's members in its order`,
+    );
+    note("a mixed sitting walks its members, then each section in rank order");
+
+    // The nonlinear mixed test: placed in its order, and free to move either way.
+    const free = drawnOrderOf(run.second, mixedMembers);
+    const nonlinear = yield* started(SHUFFLED_FREE_TEST, run.second, `${child}d`);
+    assert.deepStrictEqual<unknown>(nonlinear.presented, [SHORT], `${run.second}: the free start`);
+    assert.deepStrictEqual<unknown>(
+      nonlinear.places,
+      free.map(({ path }) => path),
+      `${run.second}: MemberPlace places the nonlinear sitting's members in its order`,
+    );
+    for (const ref of [HUMAN_REF, MEMBER, Option.getOrThrow(Arr.last(free)).ref]) {
+      assert.strictEqual(
+        Result.getOrThrow(yield* nonlinear.present(ref)).kind,
+        "accepted",
+        `${run.second}: the nonlinear sitting presents ${ref}`,
+      );
+    }
+    note("a nonlinear sitting is placed in its order and moves freely");
+
+    // The loose test: whitespace and a comment in its ordering, its refs fixed false, delivered.
+    const loose = drawnOrderOf(run.first, looseMembers);
+    const looseSitting = yield* started(SHUFFLED_LOOSE_TEST, run.first, `${child}e`);
+    assert.deepStrictEqual<unknown>(
+      [looseSitting.presented, looseSitting.places],
+      [loose.slice(0, 1).map(({ path }) => path), loose.map(({ path }) => path)],
+      `${run.first}: the loose sitting starts at its least-ranked member and places its order`,
+    );
+    note("an ordering of whitespace and a comment, over refs fixed false, is delivered");
+
+    // The individual test, FastMath's shape: its start and its places.
+    const individual = shuffledOrderOf(run.second);
+    const alone = yield* started(SHUFFLED_INDIVIDUAL_TEST, run.second, `${child}f`);
+    assert.deepStrictEqual<unknown>(
+      [alone.presented, alone.places],
+      [individual.slice(0, 1).map(({ path }) => path), individual.map(({ path }) => path)],
+      `${run.second}: the individual sitting starts at its least-ranked member and places its order`,
+    );
+    note("an individual part's sitting starts at its least-ranked member");
+  });
+
+/**
  * A run of up to twelve beacons, sent in order or in a drawn order.
  */
 const beaconRuns: Gen<BeaconRun> = (source) => {
@@ -6437,6 +6967,85 @@ describe.skipIf(Option.isNone(lease))(
                 ),
               );
               yield* Effect.log(`the entries held over ${String(exhausted.cases)} cases`);
+            }).pipe(Effect.orDie),
+          searchTimeout,
+        );
+
+        it.effect(
+          "delivers a shuffling section of item refs in its sitting's own drawn order, the same at every resumption, and no other shuffle",
+          (ctx) =>
+            Effect.gen(function* holdEveryShuffleRun() {
+              yield* Effect.scoped(published);
+
+              const { suite } = yield* SuiteLogin;
+              const db = yield* Db.open(suite.roles.result_runner, {});
+              const delivered = new Set(
+                Arr.fromIterable(
+                  yield* db.workload.deliveredTestsOf.once({
+                    facts: {},
+                    params: { package: PACKAGE },
+                  }),
+                ).map((row) => row.path),
+              );
+              assert.deepStrictEqual<unknown>(
+                [
+                  SHUFFLED_TEST,
+                  SHUFFLED_INDIVIDUAL_TEST,
+                  SHUFFLED_MIXED_TEST,
+                  SHUFFLED_FREE_TEST,
+                  SHUFFLED_LOOSE_TEST,
+                  SHUFFLED_NESTED_TEST,
+                  SHUFFLED_FIXED_TEST,
+                  SHUFFLED_EXTENDED_TEST,
+                  SHUFFLED_MARKUP_TEST,
+                ].map((path) => [path, delivered.has(path)]),
+                [
+                  [SHUFFLED_TEST, true],
+                  [SHUFFLED_INDIVIDUAL_TEST, true],
+                  [SHUFFLED_MIXED_TEST, true],
+                  [SHUFFLED_FREE_TEST, true],
+                  [SHUFFLED_LOOSE_TEST, true],
+                  [SHUFFLED_NESTED_TEST, false],
+                  [SHUFFLED_FIXED_TEST, false],
+                  [SHUFFLED_EXTENDED_TEST, false],
+                  [SHUFFLED_MARKUP_TEST, false],
+                ],
+                "a shuffle delivered over a section of item refs alone, none fixed, its ordering extended by no element (§5.98)",
+              );
+
+              const runs = yield* Ref.make(0);
+              yield* searched(
+                ctx,
+                explore(
+                  {
+                    caseHang,
+                    coverage: required<ShuffleSituation>(shuffleSituations, {
+                      cases: 24,
+                      sense: notesOnly,
+                    }),
+                    draw: drawnBy(shuffleRuns),
+                    kept: [],
+                    literal: (run) => JSON.stringify(run),
+                    oracle: {
+                      kind: "specification",
+                      name: "shuffledOrderOf: a shuffling section presents its members in ascending HMAC-SHA-256 under the sitting's decision seed over ordering, package and item ref (§5.98.1, plate's keyed digest), in turn and never back (Table 5.159.4, §2.8.2)",
+                    },
+                    runs: 24,
+                    shrink: completeShrink,
+                    steerEvery: 8,
+                    suite: "ledger/results/shuffle",
+                  },
+                  (run, c) =>
+                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                      Effect.flatMap((k) =>
+                        holdShuffle(run, `user_ledgershuffle${String(k)}`, (situation) => {
+                          c.note(situation);
+                        }),
+                      ),
+                      Effect.orDie,
+                    ),
+                ),
+              );
             }).pipe(Effect.orDie),
           searchTimeout,
         );

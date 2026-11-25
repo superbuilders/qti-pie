@@ -187,10 +187,10 @@ export const ledgerLaws = {
     source: `${info}#Enumerated_BaseTypeEnum (§8.14, BaseTypeEnum: 'pair' - 'The association is undirected so (A,B) and (B,A) are equivalent'): 'pair as its two identifiers in code-point order, least and greatest, so the two orders of one pair are one row' (src/ledger.ts)`,
   },
   "Linear in order": {
-    source: `${info}#DataCharacteristic_TestPart.Attr_navigation-mode (Table 5.159.4: 'A testPart in linear mode restricts the candidate to attempt each item in turn'): in a linear part every member before a presented member was presented, so presentations run in member order from the first, a skip being a presentation submitted with no response (Table 7.19.6); member order is TestMember's place, sound while a delivered test holds no qti-selection, qti-ordering, qti-pre-condition or qti-branch-rule (src/delivery.ts undeliveredKinds; §2.8.3, §5.23) (src/test-laws.ts LinearPreceding)`,
+    source: `${info}#DataCharacteristic_TestPart.Attr_navigation-mode (Table 5.159.4: 'A testPart in linear mode restricts the candidate to attempt each item in turn'): in a linear part every member before a presented member was presented, so presentations run in member order from the first, a skip being a presentation submitted with no response (Table 7.19.6); member order is the sitting's (src/sittings.ts MemberPlace): TestMember's place, but among a shuffling section's members their sitting's ranks (§5.98.1, ShuffleRank), sound while a delivered test holds no qti-selection, qti-pre-condition or qti-branch-rule and shuffles only sections of item refs none of which is fixed (src/delivery.ts undeliveredKinds; §2.8.3, §5.23, §5.98) (src/test-laws.ts LinearPreceding: each presented member's predecessor in its part presented, which is every member before it in turn)`,
   },
   "Linear never back": {
-    source: `${info}#Main2p8p2 (§2.8.2: 'Once the candidate moves on they are not permitted to return'): a linear part's later presentation is never of an item ref before the earlier's (src/delivery.ts LinearPresentations)`,
+    source: `${info}#Main2p8p2 (§2.8.2: 'Once the candidate moves on they are not permitted to return'): a linear part's later presentation is never of a member before the earlier's in its sitting's order (src/sittings.ts MemberPlace; src/delivery.ts LinearPresentations)`,
   },
   "Maximum of a demand": {
     source:
@@ -206,6 +206,9 @@ export const ledgerLaws = {
   },
   "Members only, its package": {
     source: "src/test-laws.ts: 'every item session of a sitting's stage is in its test's package'",
+  },
+  "Members placed": {
+    source: `${info}#Data_Ordering (§5.98: 'If no ordering rule is given, assume that the elements are to be ordered in the order in which they are defined'; §5.98.1): every member of a sitting has its place in the sitting's order from its start, which its take writes (src/sittings.ts MemberPlace; src/test-laws.ts)`,
   },
   "Members, completely": {
     source: `${info}#DataCharacteristic_Selection.Attr_select (Table 5.129: 'If no selection rules are given it must be assumed that all elements are to be selected'): every member of a sitting's test has its item session in the sitting's stage (src/test-laws.ts)`,
@@ -260,6 +263,20 @@ export const ledgerLaws = {
   "One maximum a human demand": {
     source: "src/ledger.ts HumanDemandMaximum: one maximum per human demand, its key the demand's",
   },
+  "One member a place": {
+    source:
+      "src/sittings.ts MemberPlace: 'No two members of a sitting share a place', so the order is total",
+  },
+  "One member a rank": {
+    source:
+      "src/sittings.ts ShuffleRank: 'No two members of a sitting share a rank, so the order is total'",
+  },
+  "One place a member": {
+    source: "src/sittings.ts MemberPlace: a member of a sitting takes one place in its order",
+  },
+  "One rank a member": {
+    source: `${info}#Data_Ordering (§5.98.1, Ordering's shuffle: 'If 'true' causes the order of the child elements to be randomized'): a member of a shuffling section takes one rank in its sitting, which its take draws from its decision's seed (src/sittings.ts ShuffleRank)`,
+  },
   "One seed a session": {
     source:
       "src/ledger.ts SessionSeed: 'the seed an item session's template and response processing draw under, by the session's sitting (`stage`) and item', one a session",
@@ -283,6 +300,21 @@ export const ledgerLaws = {
   "Piece start": {
     source:
       "src/delivery.ts PieceStart: 'The first microsecond of a piece of a sitting's presence: never before the clock's 0'",
+  },
+  "Place of its test session": {
+    source:
+      "src/sittings.ts MemberPlace: the place a member takes 'in its sitting's order', of a sitting's test session",
+  },
+  "Placed from the first": {
+    source:
+      "src/sittings.ts MemberPlace: 'the 1-based place the member ... takes in its sitting's order; and prior, the place before it': every place at least 1 and one more than its prior, and each prior of a place after the first a member's place, so a sitting's places are 1 to its count of members",
+  },
+  "Placed in order": {
+    source: `${info}#Data_Ordering (§5.98: 'If no ordering rule is given, assume that the elements are to be ordered in the order in which they are defined'; §5.98.1, Ordering's shuffle: 'If 'true' causes the order of the child elements to be randomized'): a member placed after another in its sitting is after it in the test's order, by its item ref's place, but within one shuffling section by its sitting's rank (src/sittings.ts MemberPlace, ShuffleRank; src/test-laws.ts RefSteps, RankSteps)`,
+  },
+  "Placed members only": {
+    source:
+      "src/sittings.ts MemberPlace: a sitting's place is of a member of its test (src/test-laws.ts SittingMember)",
   },
   "Presence moment": {
     source:
@@ -315,6 +347,13 @@ export const ledgerLaws = {
   "QTI integer": {
     source:
       "src/scalars.ts QtiInteger: 'QTI's integer, exact ... an integral numeric of integerDigits digits' (825, the SQL grader's numeric(825, 0)), at scale 0 no NaN",
+  },
+  "Rank of its test session": {
+    source:
+      "src/sittings.ts ShuffleRank: the rank a member takes 'in its sitting's order', of a sitting's test session",
+  },
+  "Ranked members only": {
+    source: `${info}#Data_Ordering (§5.98: 'If no ordering rule is given, assume that the elements are to be ordered in the order in which they are defined'): a sitting's rank is of a member of a section of its test whose ordering shuffles, every other member presented at its place (src/sittings.ts ShuffleRank; src/test-laws.ts ShuffledMember)`,
   },
   "Record declared": {
     source:
@@ -373,6 +412,9 @@ export const ledgerLaws = {
   },
   "Shown before saved": {
     source: `${info}#Main2p2 (§2.2.1: 'The initial state of an item session represents the state after it has been determined that the item will be delivered to the candidate but before the delivery has taken place'; §2.3: 'The body must be presented to the candidate when the associated item session is in the interacting state. In this state, the candidate must be able to interact with each of the visible interactions and therefore set or update the values of the associated response variables'): a save is of a member the candidate was shown, in any part (src/test-laws.ts)`,
+  },
+  "Shuffled members ranked": {
+    source: `${info}#Data_Ordering (§5.98.1, Ordering's shuffle: 'If 'true' causes the order of the child elements to be randomized'): every member of a sitting's shuffling section has its rank from the sitting's start, so its order is drawn once (src/sittings.ts ShuffleRank; src/test-laws.ts ShuffledMember)`,
   },
   "Single value": {
     source: `${info}#Enumerated_CardinalityEnum (§8.17, CardinalityEnum: 'single' - 'a cardinality of single i.e. a single value'): a single variable's sidecar holds one row a variable, its value (src/ledger.ts: 'a single value')`,

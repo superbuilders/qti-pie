@@ -2907,6 +2907,8 @@ export const ledgerOf = (qti: RegistryLevel) => {
       sittings.tables.SittingFinal,
       sittings.tables.TestEnd,
       sittings.tables.Presence,
+      sittings.tables.ShuffleRank,
+      sittings.tables.MemberPlace,
       SittingStanding,
       ItemVariable,
       ItemSessionVariable,

@@ -137,6 +137,7 @@ const {
   ItemSessionValueSingleIdentifier,
   ItemSessionValueSingleInteger,
   LastPresence,
+  MemberPlace,
   OutcomeInForceSingleFloat,
   Package,
   PendingApplication,
@@ -998,6 +999,20 @@ const presentationsOf = query(ResultLevel).rule((r) => {
 });
 
 /**
+ * The members of the child's sittings in the order each presents them (`MemberPlace`): by stage,
+ * then place, each with its item's document.
+ */
+const placesOf = query(ResultLevel)
+  .rule((r) => {
+    const { stage, place, path } = v(MemberPlace, "placed");
+
+    return r
+      .match(MemberPlace, { child: r.param("child", LearnerId), path, place, stage })
+      .find({ path, place, stage });
+  })
+  .orderBy(["stage", "asc"], ["place", "asc"]);
+
+/**
  * The child's final sittings (`SittingFinal`), each by its stage: an ended sitting none of whose
  * attempts waits for its response processing or an external score.
  */
@@ -1059,6 +1074,7 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
         }),
         { now: "micros" },
       ),
+      placesOf,
       presentItem: sittingPrograms.presentItem.bind({ sittings: namedSitting }),
       presentTimesOf,
       presentationsOf,

@@ -751,6 +751,14 @@ end $$;
 create function p3.processing_seed(decision uuid, identifier text, package text) returns bytea language sql immutable as $$
   select keyed_digest(key => decision::text, message => 'processing' || chr(31) || package || chr(31) || identifier)
 $$;
+-- The rank a member of a shuffling section takes in its sitting's order, from its decision's seed, a v4 uuid in its
+-- canonical lowercase text, over the test's package and the item ref's identifier (keyedDigest(decision, ["ordering",
+-- package, identifier]), its fields joined by U+001F): the members of a section whose qti-ordering shuffles are presented
+-- in ascending rank (QTI 3.0.1 §5.98.1, "causes the order of the child elements to be randomized"), as plate presents a
+-- shuffled interaction's choices in ascending keyed digest, so a sitting's order is a function of its seed alone.
+create function p3.ordering_rank(decision uuid, identifier text, package text) returns bytea language sql immutable as $$
+  select keyed_digest(key => decision::text, message => 'ordering' || chr(31) || package || chr(31) || identifier)
+$$;
 -- The key an item's draw stream is made under, from its processing seed (32 raw bytes, the ledger's SessionSeed): the
 -- seed's 64 lowercase hex digits, which `word` reads as UTF-8. That text is plate's protocol, the key its itemSeeds hand
 -- its draw stream, and every draw a session recorded was made under it, so it is spelled here, once, and never changes:

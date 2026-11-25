@@ -1,9 +1,10 @@
 /**
- * The served position of each member of a test: the one statement of where a delivery serves an
- * item ref, which the history of served tests reads, so no reader ranks members itself. The order
- * it ranks by is the item ref's place, `start`; a law that needs only that order, as the runtime's
- * linear navigation law does, compares places, since a law reads no derived relation that
- * aggregates.
+ * The position of each member of a test in its document's order: where a delivery serves an item
+ * ref of a test that neither selects nor orders, so no reader ranks members itself. The order it
+ * ranks by is the item ref's place, `start`. A sitting of a test whose section shuffles presents
+ * that section's members in a draw of its own, so the ledger's take writes each sitting's order as
+ * the sitting's fact (`@qti-pie/ledger` MemberPlace), counting these positions for every member
+ * outside a shuffling section, and its readers and laws read that.
  */
 import { query, v } from "@bjornpagen/grizzle";
 import { QtiBase } from "#pantry/qti/base.ts";

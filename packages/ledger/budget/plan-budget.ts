@@ -6,9 +6,12 @@
  *
  * The content is one package of twenty choice items, each with its own match-correct response
  * processing, and two tests over them: `std.xml` (nonlinear, simultaneous) and `rate.xml` (linear,
- * individual, the rate test's shape), published through the suite's own `publish`. A seed child's
- * sitting is a whole path: its take, its entry, each member presented and saved twice (std) or
- * answered (rate), and its finish.
+ * individual, the rate test's shape), published through the suite's own `publish`; beside them
+ * `drill.xml`, a FastMath drill's shape: one linear, individual part whose one section shuffles
+ * 210 items, each sitting in a draw of its own (§5.98.1). A seed child's sitting is a whole path:
+ * its take, its entry, each member presented and saved twice (std) or answered (rate), and its
+ * finish; one in eight takes the drill instead, starts it and answers its first member, so the
+ * ledger holds every scale's drilled sittings, their ranks and places among them.
  *
  * - `start`: the entry into a taken test (`enterTest`).
  * - `present`: a member presented (`presentItem`).
@@ -19,6 +22,11 @@
  * - `beacon`: the sitting's presence beacon (`beaconTest`), measured warm at its own bar of 10 ms, on
  *   a connection that already sent one, as the browser sends one a second: from PRESENCE-LEDGER's
  *   Presence on, one put of the sitting's growing window.
+ * - `drill-take`: the drill's take (`takeSitting`): its 210 item sessions, its ranks and its places.
+ * - `drill-start`: the drill entered where it begins (`resumeTest`, at its first place).
+ * - `drill-answer`: the drill's first member answered, the next named by its places.
+ * - `drill-resume`: the suspended drill entered again (`resumeTest`, at the member last presented).
+ * - `drill-places`: the drill's order read (`placesOf`), as an application orders its list by.
  *
  * `--only <name,…>` measures those actions alone, as a run that scopes its heavy arm does.
  *
@@ -42,10 +50,13 @@ import { importRowsOf } from "@qti-pie/pantry/import/program.ts";
 import { readPackage } from "@qti-pie/pantry/import/read.ts";
 import type { StudentAction, StudentCallFailed } from "@qti-pie/plan-budget/actions.ts";
 import { cold, warm } from "@qti-pie/plan-budget/actions.ts";
-import { accepted, acceptedOrHeld, opened } from "@qti-pie/plan-budget/calls.ts";
+import { accepted, acceptedOrHeld, opened, read } from "@qti-pie/plan-budget/calls.ts";
 import {
   choiceItems,
   choicePackage,
+  drillItems,
+  drillTest,
+  itemPathOf,
   nextOf,
   rateTest,
   stdTest,
@@ -194,6 +205,56 @@ const suspend = (db: SuiteDb, child: string) =>
 const finish = (db: SuiteDb, child: string) =>
   accepted("finishTest", db.workload.finishTest.once({ facts: {}, params: sittingOf(child) }));
 
+/**
+ * A candidate session entered where the sitting's runtime resumes it (`resumeTest`): at its first
+ * place at the start, at the member last presented after.
+ */
+const resume = (db: SuiteDb, child: string) =>
+  accepted("resumeTest", db.workload.resumeTest.once({ facts: {}, params: sittingOf(child) }));
+
+/**
+ * Each item of the package by its document.
+ */
+const itemOfPath = new Map([...choiceItems, ...drillItems].map((q) => [itemPathOf(q), q]));
+
+/**
+ * The child's sitting's members in its order (`placesOf`, the ledger's MemberPlace), each its
+ * item's identifier.
+ */
+const placed = (db: SuiteDb, child: string) =>
+  Effect.map(
+    read("placesOf", db.workload.placesOf.once({ facts: {}, params: { child } })),
+    (rows) => Array.from(rows, (row) => itemOfPath.get(row.path) ?? row.path),
+  );
+
+/**
+ * A drill's member answered, `next` the member its sitting places after it.
+ */
+const answerPlaced = (
+  db: SuiteDb,
+  child: string,
+  item: string,
+  next: readonly { readonly item: string }[],
+) =>
+  Effect.flatMap(choice("C"), (given) =>
+    accepted(
+      "answerTestItem",
+      db.workload.answerTestItem.once({
+        facts: {},
+        params: { ...sittingOf(child), given: 1n, item, next, ...given },
+      }),
+    ),
+  );
+
+/**
+ * The drill's first member answered, its next the member its sitting places second, both read from
+ * its places first.
+ */
+const answerFirstPlaced = (db: SuiteDb, child: string) =>
+  Effect.flatMap(placed(db, child), ([first = "", second]) =>
+    answerPlaced(db, child, first, second === undefined ? [] : [{ item: second }]),
+  );
+
 const [firstItem = "q01", secondItem = "q02"] = choiceItems;
 
 /**
@@ -211,11 +272,19 @@ const savedAll = (db: SuiteDb, child: string) =>
   );
 
 /**
- * A seed child's whole sitting: three in four std, one in four rate.
+ * A seed child's whole sitting: one in four rate, one in eight a drill begun, the rest std.
  */
 const fullPath = (db: SuiteDb, child: string, n: number) =>
   Effect.gen(function* fullPathOf() {
     const rate = n % 4 === 3;
+
+    if (n % 8 === 1) {
+      yield* take(db, child, drillTest);
+      yield* resume(db, child);
+      yield* answerFirstPlaced(db, child);
+
+      return;
+    }
 
     yield* take(db, child, rate ? rateTest : stdTest);
     yield* enter(db, child, firstItem);
@@ -249,6 +318,12 @@ const taken = (test: string) => (child: string) => withDb((db) => take(db, child
 
 const entered = (test: string) => (child: string) =>
   withDb((db) => Effect.andThen(take(db, child, test), enter(db, child, firstItem)));
+
+/**
+ * The child's drill, taken and started where it begins.
+ */
+const drilled = (child: string) =>
+  withDb((db) => Effect.andThen(take(db, child, drillTest), resume(db, child)));
 
 /**
  * The package, published through the suite's own `publish`: accepted the first time, and unchanged
@@ -363,6 +438,53 @@ const program = (run: Run) =>
             ),
             cold(withDb((db) => enter(db, child, firstItem))),
           ),
+      },
+      {
+        barMs: actionBarMs,
+        name: "drill-take",
+        prepare: (child) => Effect.succeed(cold(withDb((db) => take(db, child, drillTest)))),
+      },
+      {
+        barMs: actionBarMs,
+        name: "drill-start",
+        prepare: (child) =>
+          Effect.as(taken(drillTest)(child), cold(withDb((db) => resume(db, child)))),
+      },
+      {
+        barMs: actionBarMs,
+        name: "drill-answer",
+        prepare: (child) =>
+          Effect.map(
+            Effect.andThen(
+              drilled(child),
+              withDb((db) => placed(db, child)),
+            ),
+            ([first = "", second]) =>
+              cold(
+                withDb((db) =>
+                  answerPlaced(db, child, first, second === undefined ? [] : [{ item: second }]),
+                ),
+              ),
+          ),
+      },
+      {
+        barMs: actionBarMs,
+        name: "drill-resume",
+        prepare: (child) =>
+          Effect.as(
+            withDb((db) =>
+              Effect.andThen(
+                Effect.andThen(take(db, child, drillTest), resume(db, child)),
+                suspend(db, child),
+              ),
+            ),
+            cold(withDb((db) => resume(db, child))),
+          ),
+      },
+      {
+        barMs: actionBarMs,
+        name: "drill-places",
+        prepare: (child) => Effect.as(drilled(child), cold(withDb((db) => placed(db, child)))),
       },
       {
         barMs: actionBarMs,

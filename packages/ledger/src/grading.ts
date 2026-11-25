@@ -15630,6 +15630,18 @@ export const processingSeed = fn("processingSeed", {
   volatility: "immutable",
 });
 
+export const orderingRank = fn("orderingRank", {
+  args: { decision: uuid, identifier: anyText, package: anyText },
+  body: fn.body`
+  select keyed_digest(key => decision::text, message => 'ordering' || chr(31) || package || chr(31) || identifier)
+`,
+  calls: [keyedDigest],
+  language: "sql",
+  nullInput: "called",
+  returns: sha256,
+  volatility: "immutable",
+});
+
 export const seedStreamKey = fn("seedStreamKey", {
   args: { seed: sha256 },
   body: fn.body`
@@ -17267,6 +17279,7 @@ export const gradingFunctions = [
   copies,
   keyedDigest,
   processingSeed,
+  orderingRank,
   seedStreamKey,
   responseLabel,
   templateLabel,

@@ -4,7 +4,9 @@
  * processing, and two tests over them, `std.xml` (nonlinear, simultaneous) and `rate.xml` (linear,
  * individual, the rate test's shape). It is AlphaTest's commonest shape, and small enough to
  * publish in seconds through any composition's own publish path; content is not the population's
- * axis, the children are.
+ * axis, the children are. Beside them, `drill.xml`: a FastMath drill's shape, one linear,
+ * individual part whose one section shuffles 210 items of the same kind (QTI 3.0.1 §5.98.1), each
+ * sitting presenting them in a draw of its own.
  *
  * @module
  */
@@ -42,6 +44,34 @@ export const choiceItems: readonly string[] = Array.from(
   { length: itemCount },
   (_, k) => `q${String(k + 1).padStart(2, "0")}`,
 );
+
+/**
+ * How many items the drill shuffles: a FastMath form's facts, whose sitting draws an order of its
+ * own at its take, so the take's ranks and places grow with it.
+ *
+ * @limitKind provisional
+ * @owner the planning budget's measured content (#plan-budget/content.ts)
+ * @unit items per test
+ * @scope the drill every measured composition publishes beside the choice tests
+ * @guards a drill so short that the take's ranks and places, and the reads of its order, cost nothing
+ * @measure the member counts of the converted FastMath forms (the rate-paced forms), and take the largest
+ * @origin the shuffle's first review, 2026-11-25: "a 210-member form", with no count of the corpus
+ * @recorded 2026-11-25
+ */
+const drillCount = 210;
+
+/**
+ * The drill's items' identifiers, in its document's order.
+ */
+export const drillItems: readonly string[] = Array.from(
+  { length: drillCount },
+  (_, k) => `d${String(k + 1).padStart(3, "0")}`,
+);
+
+/**
+ * The drill's path.
+ */
+export const drillTest = "drill.xml";
 
 /**
  * The nonlinear, simultaneous test's path.
@@ -90,36 +120,53 @@ const itemXml = (id: string) => `<?xml version="1.0" encoding="UTF-8"?>
 </qti-assessment-item>`;
 
 /**
- * A test's document over every item: its SCORE and MAXSCORE the sums of its items'.
+ * A test's document over `items`, in one section, which `ordering` heads: its SCORE and MAXSCORE
+ * the sums of its items'.
  *
  * @param id - Its identifier.
  * @param navigation - Its part's navigation mode.
  * @param submission - Its part's submission mode.
+ * @param items - Its items, in its document's order.
+ * @param ordering - Its section's `qti-ordering`, or nothing.
  * @returns Its XML.
  */
 const testXml = (
   id: string,
   navigation: string,
   submission: string,
+  items: readonly string[],
+  ordering: string,
 ) => `<?xml version="1.0" encoding="UTF-8"?>
-<qti-assessment-test xmlns="${asi}" identifier="${id}" title="${id}"><qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/><qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float"/><qti-test-part identifier="P" navigation-mode="${navigation}" submission-mode="${submission}"><qti-assessment-section identifier="S" title="S" visible="true">${choiceItems.map((q) => `<qti-assessment-item-ref identifier="${q}" href="${itemPathOf(q)}"/>`).join("")}</qti-assessment-section></qti-test-part><qti-outcome-processing><qti-set-outcome-value identifier="SCORE"><qti-sum><qti-test-variables variable-identifier="SCORE"/></qti-sum></qti-set-outcome-value><qti-set-outcome-value identifier="MAXSCORE"><qti-sum><qti-test-variables variable-identifier="MAXSCORE"/></qti-sum></qti-set-outcome-value></qti-outcome-processing>
+<qti-assessment-test xmlns="${asi}" identifier="${id}" title="${id}"><qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/><qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float"/><qti-test-part identifier="P" navigation-mode="${navigation}" submission-mode="${submission}"><qti-assessment-section identifier="S" title="S" visible="true">${ordering}${items.map((q) => `<qti-assessment-item-ref identifier="${q}" href="${itemPathOf(q)}"/>`).join("")}</qti-assessment-section></qti-test-part><qti-outcome-processing><qti-set-outcome-value identifier="SCORE"><qti-sum><qti-test-variables variable-identifier="SCORE"/></qti-sum></qti-set-outcome-value><qti-set-outcome-value identifier="MAXSCORE"><qti-sum><qti-test-variables variable-identifier="MAXSCORE"/></qti-sum></qti-set-outcome-value></qti-outcome-processing>
 </qti-assessment-test>`;
 
 /**
- * The package's manifest: both tests, each depending on every item, and the items.
+ * A test resource's dependencies: one on each of its items.
+ *
+ * @param items - Its items.
+ * @returns Their dependency elements.
+ */
+const dependenciesOf = (items: readonly string[]) =>
+  items.map((q) => `<dependency identifierref="${q}"/>`).join("");
+
+/**
+ * The package's manifest: the choice tests, each depending on every choice item, the drill on every
+ * drill item, and the items.
  */
 const manifest = () => {
-  const dependencies = choiceItems.map((q) => `<dependency identifierref="${q}"/>`).join("");
-  const tests = [
-    ["std", stdTest],
-    ["rate", rateTest],
-  ]
+  const tests = (
+    [
+      ["std", stdTest, choiceItems],
+      ["rate", rateTest, choiceItems],
+      ["drill", drillTest, drillItems],
+    ] as const
+  )
     .map(
-      ([id = "", href = ""]) =>
-        `<resource identifier="${id}" type="imsqti_test_xmlv3p0" href="${href}"><file href="${href}"/>${dependencies}</resource>`,
+      ([id, href, items]) =>
+        `<resource identifier="${id}" type="imsqti_test_xmlv3p0" href="${href}"><file href="${href}"/>${dependenciesOf(items)}</resource>`,
     )
     .join("");
-  const resources = choiceItems
+  const resources = [...choiceItems, ...drillItems]
     .map(
       (q) =>
         `<resource identifier="${q}" type="imsqti_item_xmlv3p0" href="${itemPathOf(q)}"><file href="${itemPathOf(q)}"/></resource>`,
@@ -139,10 +186,17 @@ const manifest = () => {
 export const writeChoicePackage = (dir: string): void => {
   mkdirSync(path.join(dir, "items"), { recursive: true });
   writeFileSync(path.join(dir, "imsmanifest.xml"), manifest());
-  writeFileSync(path.join(dir, stdTest), testXml("std", "nonlinear", "simultaneous"));
-  writeFileSync(path.join(dir, rateTest), testXml("rate", "linear", "individual"));
+  writeFileSync(
+    path.join(dir, stdTest),
+    testXml("std", "nonlinear", "simultaneous", choiceItems, ""),
+  );
+  writeFileSync(path.join(dir, rateTest), testXml("rate", "linear", "individual", choiceItems, ""));
+  writeFileSync(
+    path.join(dir, drillTest),
+    testXml("drill", "linear", "individual", drillItems, '<qti-ordering shuffle="true"/>'),
+  );
 
-  for (const q of choiceItems) {
+  for (const q of [...choiceItems, ...drillItems]) {
     writeFileSync(path.join(dir, itemPathOf(q)), itemXml(q));
   }
 };

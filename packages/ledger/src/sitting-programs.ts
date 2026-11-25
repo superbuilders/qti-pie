@@ -6,11 +6,13 @@
  *
  * - `take` { taken }: each sitting the application's decision made (`taken`, its key, its test and
  *   its decision's seed), its test session, and an item session "in the initial state for all items
- *   at the start of the test" (§2.2.1) per member with the seed its processing draws under, and
- *   beside them the template processing of each and the record it begins with (`#ledger/grade.ts`
- *   takeValuesOf), all in one stratum, so `taken` is read once. The application binds `taken` to
- *   its query of what its decision wrote, in the stratum after it, its guard in that query
- *   (`ChangeSet.sequence(appDecide, take.bind({ taken: appTaken }))`).
+ *   at the start of the test" (§2.2.1) per member with the seed its processing draws under, the
+ *   rank each member of a shuffling section takes in the sitting's order (`ShuffleRank`, §5.98.1)
+ *   and every member's place in it (`MemberPlace`), and beside them the template processing of each
+ *   and the record it begins with (`#ledger/grade.ts` takeValuesOf), all in one stratum, so `taken`
+ *   is read once. The application binds `taken` to its query of what its decision wrote, in the
+ *   stratum after it, its guard in that query (`ChangeSet.sequence(appDecide, take.bind({ taken:
+ *   appTaken }))`).
  * - `enterTest` { sittings, entries }: the sitting's next candidate session (§1.5, §2.2.1), its `k`
  *   the count of the sessions before it, presenting the member whose item ref its entry names, at
  *   the start and on a resumption alike, the application binding `entries` to the entries its call
@@ -70,12 +72,11 @@
  * admitting one: what arrives by a timed session's deadline and the in-flight grace, by the
  * database's stamp, is admitted, the latest save winning.
  */
-import { ChangeSet, Fn, Num, pg, query, Range, Type, v } from "@bjornpagen/grizzle";
-import { memberPositions } from "@qti-pie/pantry/qti/positions.ts";
+import { ChangeSet, Fn, Logic, Num, pg, query, Range, Type, v } from "@bjornpagen/grizzle";
 import { presenceGraceMicros } from "#ledger/delivery.ts";
 import type { deliveryOf } from "#ledger/delivery.ts";
 import { memberAnswerAdmissionOf, takeValuesOf } from "#ledger/grade.ts";
-import { processingSeed } from "#ledger/grading.ts";
+import { orderingRank, processingSeed } from "#ledger/grading.ts";
 import { SnapshotKind } from "#ledger/ledger.ts";
 import {
   shownMemberOf,
@@ -88,9 +89,9 @@ import { Moment, Reading } from "#ledger/sittings.ts";
 /**
  * The relations the test runtime's programs write of a sitting beside its item sessions, by name
  * and by the mode a role writes each by: its test session, its moments, candidate sessions,
- * suspensions, budgets, presentations and end, a save's rows and its snapshot's given reading, and
- * the close's `DefaultSubmission` of a presented member with no save, each closed, so a role's
- * insert list names it.
+ * suspensions, budgets, presentations and end, a save's rows and its snapshot's given reading, the
+ * close's `DefaultSubmission` of a presented member with no save, and its take's ranks of a
+ * shuffling section's members, each closed, so a role's insert list names it.
  */
 export const sittingWrites = {
   insert: [
@@ -104,6 +105,8 @@ export const sittingWrites = {
     "Save",
     "SnapshotGiven",
     "DefaultSubmission",
+    "ShuffleRank",
+    "MemberPlace",
   ],
   write: [],
 } as const;
@@ -310,6 +313,162 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
         stage,
       });
   });
+  /**
+   * The ranks of the take's members in shuffling sections, each with its section's place: each
+   * member's from its decision's seed over the test's package and its item ref's identifier (the
+   * SQL grader's `orderingRank`, keyed as plate's digests are), so its sitting presents the section
+   * in a draw of its own, the same at every read of the sitting.
+   */
+  const takenRanked = query(delivery).rule((r) => {
+    const taken = r.relation("taken", takenHeading);
+    const { child, stage, package: pkg, path: test, seed: decision } = v(taken, "rankedSitting");
+    const { document, item, section } = v(f.TestMember, "rankedMember");
+
+    return r
+      .match(taken, { child, package: pkg, path: test, seed: decision, stage })
+      .match(f.TestMember, { document, item, package: pkg, path: test, section })
+      .match(f.SectionShuffle, { package: pkg, path: test, section })
+      .find({
+        child,
+        package: pkg,
+        path: document,
+        rank: Fn.call(orderingRank, { decision, identifier: item, package: pkg }),
+        section,
+        stage,
+      });
+  });
+
+  /**
+   * {@link takenRanked} as `ShuffleRank` holds it.
+   */
+  const takenRanks = query(delivery).rule((r) => {
+    const ranked = takenRanked.bind({ taken: r.relation("taken", takenHeading) });
+    const { child, stage, package: pkg, path, rank } = v(ranked, "rank");
+
+    return r
+      .match(ranked, { child, package: pkg, path, rank, stage })
+      .find({ child, package: pkg, path, rank, stage });
+  });
+  /**
+   * Each member of the take's sittings that its sitting presents at or before a member of a
+   * shuffling section (`predecessor`, by its item document): every member of the test whose place
+   * is before the section's, and every member of the section whose rank ({@link takenRanks}) is at
+   * or below its own, itself among them. A shuffling section holds item refs alone, so its members
+   * are one run of places and no member outside it is placed between two of them.
+   */
+  const takenPredecessors = query(delivery)
+    .rule((r) => {
+      const taken = r.relation("taken", takenHeading);
+      const { child, stage, package: pkg, path: test } = v(taken, "precededSitting");
+      const { document, section } = v(f.TestMember, "precededMember");
+      const before = v(f.TestMember, "beforeSection");
+
+      return r
+        .match(taken, { child, package: pkg, path: test, stage })
+        .match(f.TestMember, { document, package: pkg, path: test, section })
+        .match(f.SectionShuffle, { package: pkg, path: test, section })
+        .match(f.TestMember, {
+          document: before.document,
+          package: pkg,
+          path: test,
+          start: before.start,
+        })
+        .where(r.lt(before.start, section))
+        .find({ child, package: pkg, path: document, predecessor: before.document, stage });
+    })
+    .rule((r) => {
+      const ranked = takenRanked.bind({ taken: r.relation("taken", takenHeading) });
+      const { child, stage, package: pkg, path, rank, section } = v(ranked, "rankedMember");
+      const lower = v(ranked, "lowerMember");
+
+      return r
+        .match(ranked, { child, package: pkg, path, rank, section, stage })
+        .match(ranked, { child, package: pkg, path: lower.path, rank: lower.rank, section, stage })
+        .where(r.le(lower.rank, rank))
+        .find({ child, package: pkg, path, predecessor: lower.path, stage });
+    });
+
+  /**
+   * The place of each member of the take's sittings in its sitting's order: a member of no
+   * shuffling section at its test's own position, the count of the test's members at or before its
+   * item ref's place (§5.98: "If no ordering rule is given, assume that the elements are to be
+   * ordered in the order in which they are defined"; pantry's memberPositions counts the same, here
+   * for the unshuffled members alone); a member of one at the count of the members its sitting
+   * presents at or before it ({@link takenPredecessors}), so a shuffling section's members take the
+   * positions its run holds, in ascending rank (§5.98.1). grizzle has no window function at run
+   * time, so a place is the count it is, once, at the take.
+   */
+  const takenCounts = query(delivery)
+    .rule((r) => {
+      const taken = r.relation("taken", takenHeading);
+      const { child, stage, package: pkg, path: test, seed } = v(taken, "placedSitting");
+      const placed = v(f.TestMember, "placedRef");
+      const earlier = v(f.TestMember, "placedAfter");
+
+      // The query's key is not proven at the type level, so the count binds its sources' whole headings.
+      return r
+        .match(taken, { child, package: pkg, path: test, seed, stage })
+        .match(f.TestMember, {
+          document: placed.document,
+          item: placed.item,
+          package: pkg,
+          part: placed.part,
+          path: test,
+          section: placed.section,
+          start: placed.start,
+          test: placed.test,
+        })
+        .match(f.TestMember, {
+          document: earlier.document,
+          item: earlier.item,
+          package: pkg,
+          part: earlier.part,
+          path: test,
+          section: earlier.section,
+          start: earlier.start,
+          test: placed.test,
+        })
+        .where(
+          r.not(f.SectionShuffle, { package: pkg, path: test, section: placed.section }),
+          r.le(earlier.start, placed.start),
+        )
+        .find({ child, package: pkg, path: placed.document, place: r.count(), stage });
+    })
+    .rule((r) => {
+      const predecessors = takenPredecessors.bind({ taken: r.relation("taken", takenHeading) });
+      const { child, stage, package: pkg, path, predecessor } = v(predecessors, "placedShuffled");
+
+      // The query's key is not proven at the type level, so the count binds its source's whole heading.
+      return r
+        .match(predecessors, { child, package: pkg, path, predecessor, stage })
+        .find({ child, package: pkg, path, place: r.count(), stage });
+    });
+
+  /**
+   * {@link takenCounts} as `MemberPlace` holds them, each with the place before it: written once,
+   * beside the ranks, so every reader of the order reads one number by the sitting's key, and a
+   * member's neighbour is one key probe.
+   */
+  const takenPlaces = query(delivery).rule((r) => {
+    const counts = takenCounts.bind({ taken: r.relation("taken", takenHeading) });
+    const { child, stage, package: pkg, path, place } = v(counts, "counted");
+
+    return r.match(counts, { child, package: pkg, path, place, stage }).find({
+      child,
+      package: pkg,
+      path,
+      place,
+      // A count of a sitting's members is far inside bigint; one past it would take prior -1, which
+      // "Placed from the first" refuses, so the take fails rather than place a member wrongly.
+      prior: Logic.when(
+        Num.within(Num.sub(Type.base(place), 1n), 0n, 2n ** 62n),
+        (before) => Type.cast(before, pg.bigint),
+        -1n,
+      ),
+      stage,
+    });
+  });
+
   const take = ChangeSet.union(
     ChangeSet.empty(delivery)
       .insert(
@@ -344,7 +503,9 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
             .match(members, { child, package: pkg, path, seed, stage })
             .find({ child, package: pkg, path, seed, stage });
         }),
-      ),
+      )
+      .insert(f.ShuffleRank, takenRanks)
+      .insert(f.MemberPlace, takenPlaces),
     takeValuesOf(delivery).bind({ takenSessions: takenMembers }),
   );
 
@@ -363,12 +524,13 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
 
   /**
    * The entries that resume each of the call's sittings where its candidate left it: the member
-   * last presented, where a candidate session showed one, else the test's first member in its
-   * delivered order (`memberPositions`, DeliveredTest admitting no selection or ordering). QTI
-   * names no member a start or a resumption opens at ("Test delivery systems are free to implement
-   * their own user interface elements to facilitate navigation provided they honour the navigation
-   * mode currently in effect", §2.8.2), so this is a delivery's choice, stated once for every
-   * application that makes it, and the delivery level's laws judge it as any other entry.
+   * last presented, where a candidate session showed one, else the member its sitting places first
+   * (`MemberPlace` 1: the test's first member, or, where that is a member of a shuffling section,
+   * the section's least-ranked). QTI names no member a start or a resumption opens at ("Test
+   * delivery systems are free to implement their own user interface elements to facilitate
+   * navigation provided they honour the navigation mode currently in effect", §2.8.2), so this is a
+   * delivery's choice, stated once for every application that makes it, and the delivery level's
+   * laws judge it as any other entry.
    */
   const resumedEntries = query(delivery)
     .rule((r) => {
@@ -387,12 +549,14 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
       const sittings = r.relation("sittings", sittingHeading);
       const { child, stage } = v(sittings, "startedAt");
       const { package: pkg, path: test } = v(f.TestSession, "startedTest");
-      const { item } = v(memberPositions, "firstMember");
+      const { path } = v(f.MemberPlace, "firstPlaced");
+      const { item } = v(f.TestMember, "firstMember");
 
       return r
         .match(sittings, { child, stage })
         .match(f.TestSession, { child, package: pkg, path: test, stage })
-        .match(memberPositions, { item, k: 1n, package: pkg, path: test })
+        .match(f.MemberPlace, { child, package: pkg, path, place: 1n, stage })
+        .match(f.TestMember, { document: path, item, package: pkg, path: test })
         .where(r.not(f.TestPresented, { child, stage }))
         .find({ child, item, stage });
     });

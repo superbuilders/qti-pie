@@ -7,9 +7,13 @@
  * - **DeliveredTest**: the tests this runtime delivers, exactly to QTI 3.0.1, and the one stated
  *   limit of what it delivers: IMPL-TESTS' DeliverableTest (no section ref, include under a
  *   section, with-replacement or adaptive selection, or item ref naming no item of the package),
- *   and beyond it a test of one part, which neither selects, orders, branches nor conditions, and
- *   controls item sessions only as `#ledger/member-controls.ts` reads them (each setting inherited
- *   from the nearest scope that writes it, its part, its sections, its item ref; show-feedback and
+ *   and beyond it a test of one part, which neither selects, branches nor conditions, orders only
+ *   by a section's shuffle, of a section of item refs none of which is fixed, its ordering extended
+ *   by no element (each sitting's ranks and places, `#ledger/sittings.ts` ShuffleRank and
+ *   MemberPlace; QTI's OrderingDType admits a foreign attribute only as its declaration validates
+ *   it strictly, and pantry holds no such declaration, so it admits none), and controls item
+ *   sessions only as `#ledger/member-controls.ts` reads them (each setting inherited from the
+ *   nearest scope that writes it, its part, its sections, its item ref; show-feedback and
  *   show-solution at any scope, what a served item shows of them `#ledger/session-control.ts`'s; an
  *   item ref of an individual part may set `validate-responses` true and `max-attempts` 0 on its
  *   own control; allow-comment stays false, allow-skipping true and max-attempts at most 1), holds
@@ -65,6 +69,8 @@ import {
   Type,
   v,
 } from "@bjornpagen/grizzle";
+import { booleanTrue } from "@qti-pie/pantry/grammar/domains.ts";
+import { nonElementKinds } from "@qti-pie/pantry/grammar/install.ts";
 import { assertionViewsOf } from "#ledger/assertion-views.ts";
 import { creditRelationsOf } from "#ledger/credit-relations.ts";
 import { named } from "#ledger/laws.ts";
@@ -87,14 +93,13 @@ export type LedgerLevel = ReturnType<typeof ledgerOf>;
 
 /**
  * The elements a delivered test holds none of: what this runtime does not deliver, each a construct
- * of QTI 3.0.1's test whose rules it would have to keep (§2.8.1 selection and ordering, §2.8.3
+ * of QTI 3.0.1's test whose rules it would have to keep (§2.8.1 selection, §2.8.3
  * pre-conditions and branching, Table 7.19 item session control, Table 5.6 an item ref's template
  * defaults, §2.8.6 a test's rubric blocks, Table 5.157 test feedback, a stylesheet of the test, and
  * a section ref or include whose sections the test does not hold itself).
  */
 const undeliveredKinds = [
   "qti-selection",
-  "qti-ordering",
   "qti-pre-condition",
   "qti-branch-rule",
   "qti-template-default",
@@ -209,8 +214,10 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     ItemSession,
     MaxAttempts,
     MaxTime,
+    MemberPlace,
     Node,
     ResponseSnapshot,
+    SectionShuffle,
     SessionControl,
     SnapshotGiven,
     Presence,
@@ -229,8 +236,11 @@ export const deliveryOf = (ledger: LedgerLevel) => {
   /**
    * The test documents this runtime does not deliver, by their document: one holds an element of
    * {@link undeliveredKinds}, a time limit on a part, section or item ref, a `min-time`, a second
-   * part, a `max-time` past {@link longestMaxTime}, or an item ref to an adaptive item or to one
-   * with template processing.
+   * part, a `max-time` past {@link longestMaxTime}, an item ref to an adaptive item or to one with
+   * template processing, an ordering extended by an element of any namespace or none (§5.98.3: its
+   * character data, comments and instructions extend nothing), or a shuffling section that
+   * holds a section or a fixed item ref (§5.98.1, §5.6.3: a fixed one's place, a section's
+   * visibility and keep-together, which the sitting's ranks do not keep).
    */
   /**
    * The elements a delivered test's time limits may stand on, and the tests that allow late
@@ -422,6 +432,53 @@ export const deliveryOf = (ledger: LedgerLevel) => {
         .match(TestRoot, { package: pkg, path })
         .match(MaxAttempts, { attempts: 0, package: pkg, path, scope })
         .where(r.not(controls.individualRefs, { package: pkg, path, start: scope }))
+        .find({ package: pkg, path });
+    })
+    .rule((r) => {
+      const { package: pkg, path } = v(TestRoot, "undeliveredTest");
+      const { kind } = v(Node, "orderingExtension");
+
+      return r
+        .match(TestRoot, { package: pkg, path })
+        .match(Node, { kind, package: pkg, parentKind: "qti-ordering", path })
+        .where(Logic.not(r.in(kind, nonElementKinds)))
+        .find({ package: pkg, path });
+    })
+    .rule((r) => {
+      const { package: pkg, path } = v(TestRoot, "undeliveredTest");
+      const { section } = v(SectionShuffle, "undeliveredShuffle");
+
+      return r
+        .match(TestRoot, { package: pkg, path })
+        .match(SectionShuffle, { package: pkg, path, section })
+        .match(Node, { kind: "qti-assessment-section", package: pkg, parent: section, path })
+        .find({ package: pkg, path });
+    })
+    .rule((r) => {
+      const { package: pkg, path } = v(TestRoot, "undeliveredTest");
+      const { section } = v(SectionShuffle, "undeliveredShuffle");
+      const { start: ref } = v(Node, "undeliveredFixedRef");
+      const { value } = v(Attribute, "undeliveredFixed");
+
+      return r
+        .match(TestRoot, { package: pkg, path })
+        .match(SectionShuffle, { package: pkg, path, section })
+        .match(Node, {
+          kind: "qti-assessment-item-ref",
+          package: pkg,
+          parent: section,
+          path,
+          start: ref,
+        })
+        .match(Attribute, {
+          kind: "qti-assessment-item-ref",
+          name: "fixed",
+          package: pkg,
+          path,
+          start: ref,
+          value,
+        })
+        .where(r.in(value, booleanTrue))
         .find({ package: pkg, path });
     });
 
@@ -1086,8 +1143,9 @@ export const deliveryOf = (ledger: LedgerLevel) => {
 
   /**
    * Each two presentations of a sitting whose part is linear, earlier earlier, with the place in
-   * the test of each one's item ref: "Once the candidate moves on they are not permitted to return"
-   * (§2.8.2), so the later is never of an item ref before the earlier's.
+   * the sitting's order of each one's member (`MemberPlace`): "Once the candidate moves on they are
+   * not permitted to return" (§2.8.2), so the later is never of a member placed before the
+   * earlier's.
    */
   const LinearPresentations = derived(
     "LinearPresentations",
@@ -1095,8 +1153,8 @@ export const deliveryOf = (ledger: LedgerLevel) => {
       const { child, stage, package: pkg, path } = v(TestSession, "sitting");
       const earlier = v(TestPresented, "earlier");
       const later = v(TestPresented, "later");
-      const from = v(TestMember, "from");
-      const to = v(TestMember, "to");
+      const from = v(MemberPlace, "from");
+      const to = v(MemberPlace, "to");
 
       return r
         .match(TestSession, { child, package: pkg, path, stage })
@@ -1104,24 +1162,24 @@ export const deliveryOf = (ledger: LedgerLevel) => {
         .match(TestPart, { navigation: "linear", package: pkg, path })
         .match(TestPresented, { at: earlier.at, child, package: pkg, path: earlier.path, stage })
         .match(TestPresented, { at: later.at, child, package: pkg, path: later.path, stage })
-        .match(TestMember, { document: earlier.path, package: pkg, path, start: from.start })
-        .match(TestMember, { document: later.path, package: pkg, path, start: to.start })
+        .match(MemberPlace, { child, package: pkg, path: earlier.path, place: from.place, stage })
+        .match(MemberPlace, { child, package: pkg, path: later.path, place: to.place, stage })
         .where(r.lt(earlier.at, later.at))
         .find({
           child,
           earlier: earlier.at,
-          from: from.start,
+          from: from.place,
           later: later.at,
           stage,
-          to: to.start,
+          to: to.place,
         });
     }),
   );
 
   /**
    * A sitting's laws against its test (IMPL-TESTOP): members completely and only, one attempt each,
-   * submitted together, in turn; that no attempt follows its sitting's end is "Inside a candidate
-   * session".
+   * submitted together, in turn, each placed and a shuffling section's members ranked; that no
+   * attempt follows its sitting's end is "Inside a candidate session".
    */
   const testLaws = testLawsOf(ledger);
 
