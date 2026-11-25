@@ -1,8 +1,23 @@
 import path from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { noCoverage } from "@bjornpagen/testing/features";
+import { boolean } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
 import { codePointOrder } from "@qti-pie/crust/charset.ts";
-import { Cause, Effect, Exit, FileSystem, Layer, Option, Schema } from "effect";
+import {
+  Cause,
+  Duration,
+  Effect,
+  Exit,
+  FileSystem,
+  Formatter,
+  Layer,
+  Option,
+  Schema,
+} from "effect";
 import { describe, inject } from "vitest";
 import { TargetNotEmpty } from "#pantry/cli/args.ts";
 import { describeFailure } from "#pantry/cli/errors.ts";
@@ -11,6 +26,7 @@ import { ErrorObject, successEnvelope } from "#pantry/cli/output.ts";
 import { AuthorAppLayer } from "#pantry/db/layer.ts";
 import { localMediaStore } from "#pantry/package/media.ts";
 import { PackageNotFound } from "#pantry/export/package.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { exitCodeOf } from "#pantry/cli/run.ts";
@@ -32,6 +48,19 @@ const root = path.resolve(import.meta.dirname, "..", "..", "work", "cli-export-d
  * database holds no package under it.
  */
 const absentIdentifier = "NO-PACKAGE-HAS-THIS";
+
+/**
+ * Draw a mode of the absent-package box: a real export, which writes, or a dry run, which only
+ * lists.
+ */
+const exportMode: Gen<{ readonly dryRun: boolean }> = (source) => ({
+  dryRun: source.draw(boolean),
+});
+
+/**
+ * How many modes {@link exportMode} draws: the export and its dry run.
+ */
+const EXPORT_MODES = 2;
 
 /**
  * The envelope of `export`, as a reader decodes it from a line of standard output.
@@ -218,35 +247,53 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
       }),
     );
 
-    it.effect.each([
-      { command: [], name: "export" },
-      { command: ["--dry-run"], name: "export --dry-run" },
-    ])(
-      "$name of a name no package has fails as not-found, exit 1, naming it",
-      ({ command, name }) =>
-        Effect.gen(function* absentPackage() {
-          const fs = yield* FileSystem.FileSystem;
-          const folder = yield* fresh(`absent-${name.replace(" ", "-")}`);
-          const target = path.join(folder, "target");
-          const { exit, stderr } = yield* captureCli(
-            qtiExport,
-            [...command, target, absentIdentifier],
-            Option.none(),
-          );
-          const failure = Exit.isFailure(exit) ? Cause.squash(exit.cause) : undefined;
+    it.effect(
+      `export, real or dry, of a name no package has fails as not-found, exit 1, naming it: ${String(EXPORT_MODES)} modes`,
+      (ctx) =>
+        Effect.andThen(
+          boxHolds(exportMode, EXPORT_MODES),
+          searched(
+            ctx,
+            exhaust(
+              {
+                box: "qti-export of a name no package has, real and --dry-run",
+                caseHang: Duration.minutes(1),
+                coverage: noCoverage,
+                generator: exportMode,
+                literal: Formatter.format,
+                oracle: {
+                  kind: "specification",
+                  name: "qti's failure kinds: an export of a name no package has fails as not-found with exit 1, naming the package, before it writes anything, whether the export is real or a dry run",
+                },
+                suite: "pantry/cli/export-absent",
+              },
+              ({ dryRun }) =>
+                Effect.gen(function* absentPackage() {
+                  const fs = yield* FileSystem.FileSystem;
+                  const folder = yield* fresh(`absent-${dryRun ? "dry-run" : "export"}`);
+                  const target = path.join(folder, "target");
+                  const { exit, stderr } = yield* captureCli(
+                    qtiExport,
+                    [...(dryRun ? ["--dry-run"] : []), target, absentIdentifier],
+                    Option.none(),
+                  );
+                  const failure = Exit.isFailure(exit) ? Cause.squash(exit.cause) : undefined;
 
-          assert.strictEqual(exitCodeOf(exit), 1);
-          assert.instanceOf(failure, PackageNotFound);
-          assert.strictEqual(
-            failure instanceof PackageNotFound ? failure.package : "",
-            absentIdentifier,
-          );
-          assert.strictEqual(describeFailure(failure).kind, "not-found");
-          assert.isTrue(stderr.startsWith("error[not-found]:"), stderr);
-          assert.include(stderr, absentIdentifier);
-          assert.notInclude(stderr, "error[internal]");
-          assert.isFalse(yield* fs.exists(target));
-        }),
+                  assert.strictEqual(exitCodeOf(exit), 1);
+                  assert.instanceOf(failure, PackageNotFound);
+                  assert.strictEqual(
+                    failure instanceof PackageNotFound ? failure.package : "",
+                    absentIdentifier,
+                  );
+                  assert.strictEqual(describeFailure(failure).kind, "not-found");
+                  assert.isTrue(stderr.startsWith("error[not-found]:"), stderr);
+                  assert.include(stderr, absentIdentifier);
+                  assert.notInclude(stderr, "error[internal]");
+                  assert.isFalse(yield* fs.exists(target));
+                }),
+            ),
+          ),
+        ),
     );
 
     it.effect("--yes onto a folder holding a file, of a name no package has, keeps it", () =>
