@@ -763,7 +763,9 @@ const LABEL_KINDS = ["element", "text", "cdata", "comment", "pi", "entityRef"] a
  * @returns The root element.
  */
 export const labelled = (tree: PlaneTree): Element => {
-  // The root is node 0, so the first child is node 1.
+  /**
+   * The root is node 0, so the first child is node 1.
+   */
   let number = 1;
   const labelledElement = (node: PlaneTree, at: number, parent: Scope): Element => {
     const declarations: Attribute[] = [];

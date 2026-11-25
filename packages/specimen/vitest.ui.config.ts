@@ -22,8 +22,11 @@ requireHardened();
 export default defineConfig({
   test: {
     execArgv: [...HARDENED_FLAGS],
-    // @bjornpagen/testing's setup draws the run seed every searched() test reads, or replays a given
-    // one (TEST_SEED, TEST_REPLAY), and its reporter tables what each search proved or estimated.
+    /**
+     * @bjornpagen/testing's setup draws the run seed every searched() test reads, or replays a
+     * given one (TEST_SEED, TEST_REPLAY), and its reporter tables what each search proved or
+     * estimated.
+     */
     globalSetup: ["@bjornpagen/testing/vitest/global-setup"],
     hookTimeout: unbounded,
     include: ["src/ui/*.test.ts", "src/alpha/*.test.ts"],

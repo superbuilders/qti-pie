@@ -156,9 +156,7 @@ const opened: Effect.Effect<{
 /**
  * Keep no change: the `onChange` a server render's `<Responses>` is given, which it never calls.
  */
-const keepNothing = (): void => {
-  // A server render runs no event handler.
-};
+const keepNothing = (): void => {};
 
 /**
  * Render the item and parse its page.

@@ -96,11 +96,15 @@ export const graphicAssociate = kind("graphic-associate", {
         ? []
         : [{ answer: "partial", posted: posted(settings, rights.slice(0, half)), score: half }];
 
+    /**
+     * The first area and the last, never a right pair: the pairs run along the picture.
+     */
+    const neverRight: Pair = [0, settings.areas - 1];
+
     return [
       { answer: "right", posted: posted(settings, rights), score: rights.length },
       ...partial,
-      // The first area and the last are never a right pair: the pairs run along the picture.
-      { answer: "wrong", posted: posted(settings, [[0, settings.areas - 1]]), score: 0 },
+      { answer: "wrong", posted: posted(settings, [neverRight]), score: 0 },
       { answer: "empty", posted: {}, score: 0 },
     ];
   },

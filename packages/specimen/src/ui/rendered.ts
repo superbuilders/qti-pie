@@ -14,7 +14,7 @@
  * @see https://www.w3.org/TR/wai-aria-1.2/#namefromcontent
  */
 import { regex } from "arkregex";
-import { Data, Record as Rec } from "effect";
+import { Data, Function, Record as Rec } from "effect";
 import { parseHTML } from "linkedom";
 import { Children, Component, Fragment, Suspense, createElement, isValidElement } from "react";
 import type { JSXElementConstructor, ReactElement, ReactNode } from "react";
@@ -805,9 +805,7 @@ export type Showable =
 /**
  * Keep no change: the `onChange` a server render's `<Responses>` is given, which it never calls.
  */
-const keepNothing = (): void => {
-  // A server render runs no event handler.
-};
+const keepNothing: () => void = Function.constVoid;
 
 /**
  * Render an item as a host renders it: `<Item>` alone in review and solution, and in answering

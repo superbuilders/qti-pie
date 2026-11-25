@@ -161,9 +161,7 @@ type ShowingName = (typeof showings)[number];
 /**
  * Keep no change: the `onChange` a server render's `<Responses>` is given, which it never calls.
  */
-const keepNothing = (): void => {
-  // A server render calls no handler.
-};
+const keepNothing = (): void => {};
 
 /**
  * The catalog supports a showing with the stimulus card's support enables: `linguistic-guidance`.
@@ -294,8 +292,7 @@ describe("plate's UI over the corpus's shared stimuli", () => {
                 const question = page.querySelector('[data-slot="plate-question"]');
                 const articles = [...page.querySelectorAll('[data-slot="plate-stimulus"]')];
 
-                // SP1: the place.
-                assert.lengthOf(articles, 1, "one article for the item's one ref");
+                assert.lengthOf(articles, 1, "SP1, the place: one article for the item's one ref");
 
                 const [article] = articles;
                 assert.isDefined(article);
@@ -320,8 +317,11 @@ describe("plate's UI over the corpus's shared stimuli", () => {
                   assert.isNull(question.querySelector('[data-slot="plate-stimulus"]'));
                 }
 
-                // SP2: the stimulus whole, in its own title, language, text and picture.
-                assert.strictEqual(article.tagName.toLowerCase(), "article");
+                assert.strictEqual(
+                  article.tagName.toLowerCase(),
+                  "article",
+                  "SP2: the stimulus whole, in its own title, language, text and picture",
+                );
                 assert.strictEqual(article.getAttribute("aria-label"), stimulus.title);
                 assert.strictEqual(article.getAttribute("lang"), stimulus.lang);
                 assert.include(
@@ -333,7 +333,9 @@ describe("plate's UI over the corpus's shared stimuli", () => {
                   corpusAddress(stimulus.picture),
                 );
 
-                // SP3: its headings start at the configured level.
+                /**
+                 * SP3: its headings start at the configured level.
+                 */
                 const levels = [...article.querySelectorAll("h1, h2, h3, h4, h5, h6")].map(
                   (heading) => Number(heading.tagName.slice(1)),
                 );
@@ -344,7 +346,9 @@ describe("plate's UI over the corpus's shared stimuli", () => {
                   2,
                 );
 
-                // SP4: its card, dormant until its support is enabled, then inside its article.
+                /**
+                 * SP4: its card, dormant until its support is enabled, then inside its article.
+                 */
                 const enabled = showing.endsWith("linguistic guidance");
                 const card = article.querySelector('[data-support="linguistic-guidance"]');
                 if (enabled) {
@@ -365,7 +369,9 @@ describe("plate's UI over the corpus's shared stimuli", () => {
                   );
                 }
 
-                // SP2: the same markup in every item and showing of the same support.
+                /**
+                 * SP2: the same markup in every item and showing of the same support.
+                 */
                 const key = `${stimulus.title}|${stimulus.picture}|${String(enabled)}`;
                 const markup = unscoped(article);
                 const earlier = firstMarkup.get(key);

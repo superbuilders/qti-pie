@@ -403,6 +403,16 @@ const restoredText = (value: string, names: ReadonlyMap<string, string>): readon
  * elements is refused with a `ReaderRefusal` under rule `element-depth`. The tree is built on a
  * stack of open elements, so a document of any depth within that bound is read without recursion.
  *
+ * The tree takes what `saxes` 6.0.0 guarantees as it comes: an element's attribute record keeps
+ * the order its attributes were written in, namespace declarations included; a text event comes
+ * only for text that is not empty, and only at markup or the text's end, so two text events in one
+ * element have a node between them and each run is put in the tree as it comes (saxes.js:1624-1704
+ * and :1820-1825); the doctype comes only where production [22] allows it, before the root and at
+ * most once (saxes.js:1044-1048), where the prolog's lexer read it, so the doctype placed is the
+ * lexer's text, verbatim, where `saxes` reports it with line ends normalized and no delimiters; and
+ * a document without a root element is refused when the parser closes ("document must contain a
+ * root element."), so a closed parse has one.
+ *
  * @param substituted - The document text with its declared entities substituted.
  * @param prolog - The prolog, for its doctype text, its ATTLIST tables and its XML version.
  * @param sentinels - The stand-in character of each undeclared entity name.
@@ -466,8 +476,6 @@ const parse = (
         const opened = resolved(
           tag.name,
           attributesOf(
-            // The attribute record's insertion order is the order the attributes were written
-            // in, namespace declarations included.
             Object.entries(tag.attributes).map(toAttribute),
             Option.fromUndefinedOr(prolog.attlists.get(tag.name)),
             names,
@@ -511,9 +519,6 @@ const parse = (
           parent.children.push(element);
         }
       });
-      // `saxes` emits a text event only for text that is not empty, and only at markup or the end
-      // of the text, so two text events in one element always have a node between them (saxes
-      // 6.0.0, saxes.js:1624-1704 and :1820-1825): each run is put in the tree as it comes.
       parser.on("text", (value) => {
         const parent = open.at(-1);
         if (parent === undefined) {
@@ -527,9 +532,6 @@ const parse = (
       parser.on("cdata", (value) => {
         open.at(-1)?.children.push({ cdata: true, kind: "text", value });
       });
-      // `saxes` reads the doctype only where production [22] allows it, before the root and at most
-      // once (saxes 6.0.0, saxes.js:1044-1048), which is where the prolog's lexer read it. The text
-      // is the lexer's, verbatim: `saxes` reports it with line ends normalized and no delimiters.
       parser.on("doctype", () => {
         before.push({
           kind: "doctype",
@@ -558,8 +560,6 @@ const parse = (
         throw violation.value;
       }
 
-      // `saxes` refuses a document without a root element when it closes ("document must contain
-      // a root element."), so a closed parse has one.
       return {
         epilog: after,
         prolog: before,

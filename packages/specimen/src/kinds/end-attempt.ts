@@ -40,8 +40,10 @@ interface EndAttemptSettings {
 }
 
 export const endAttempt = kind("end-attempt", {
-  // The button's press ends the attempt with its response `true`; an attempt ended another way
-  // holds it at its start, `false`. No press gives `false`, so there is no wrong response to give.
+  /**
+   * The button's press ends the attempt with its response `true`; an attempt ended another way
+   * holds it at its start, `false`. No press gives `false`, so there is no wrong response to give.
+   */
   answers: () => [
     { answer: "right", posted: responding(response, booleanValue(true)), score: 1 },
     { answer: "empty", posted: {}, score: 0 },

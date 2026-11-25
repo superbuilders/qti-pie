@@ -70,7 +70,9 @@ layer(importer, { excludeTestServices: true })(
                 {
                   caseHang: "120 seconds",
                   concurrency: availableParallelism(),
-                  // The free suites' floor reaches every kind; this search is the rotating sample.
+                  /**
+                   * The free suites' floor reaches every kind; this search is the rotating sample.
+                   */
                   coverage: noCoverage,
                   draw: drawn(everyCase),
                   kept: [],

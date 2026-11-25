@@ -537,6 +537,11 @@ interface Tables {
    * Whether the DOCTYPE names a `SYSTEM` or `PUBLIC` identifier, read before the internal subset.
    */
   externalSubset: boolean;
+  /**
+   * The undeclared references a default holds, each kept until the subset ends, when WFC Entity
+   * Declared's scope is known (section 4.1): a parameter-entity reference after the list still
+   * takes the document out of it.
+   */
   readonly kept: {
     readonly at: Spot;
     readonly name: string;
@@ -1085,8 +1090,6 @@ const expandDefault = (
 
       const replacement = tables.entities.get(entity);
       if (replacement === undefined) {
-        // Kept until the subset ends, when WFC Entity Declared's scope is known (section 4.1): a
-        // parameter-entity reference after the list still takes the document out of it.
         tables.kept.push({ at: spotOf(cursor, where), name: entity, owner });
 
         return [{ kind: "reference", name: entity }];
@@ -1358,8 +1361,10 @@ const findCycle = (entities: ReadonlyMap<string, string>): Option.Option<readonl
       continue;
     }
 
-    // Each entity along the path from `root`, with the references of its replacement text that are
-    // not yet followed; the innermost last.
+    /**
+     * Each entity along the path from `root`, with the references of its replacement text that are
+     * not yet followed; the innermost last.
+     */
     const path: { readonly name: string; readonly references: Iterator<RegExpExecArray> }[] = [
       { name: root, references: text.matchAll(REFERENCE_OR_HIDDEN) },
     ];
@@ -1534,9 +1539,11 @@ const lexMarkup = Effect.fnUntraced(function* lexSubsetMarkup(
     yield* skipInstruction(cursor);
   } else {
     const keyword = yield* readDeclarationKeyword(cursor);
-    // After the subset stopped, an entity or attribute-list declaration is not processed (XML 1.0
-    // section 5.1) but is still held to its production: it is lexed into tables of its own, which
-    // are dropped.
+    /**
+     * After the subset stopped, an entity or attribute-list declaration is not processed (XML 1.0
+     * section 5.1) but is still held to its production: it is lexed into tables of its own, which
+     * are dropped.
+     */
     const into = tables.stopped ? unprocessed(tables) : tables;
     if (keyword.endsWith("ELEMENT")) {
       yield* lexElementNames(cursor);
@@ -1799,7 +1806,9 @@ export const lexProlog = Effect.fnUntraced(function* lexPrologText(
     );
   }
 
-  // Every kept reference now names an entity the subset never declares.
+  /**
+   * Every kept reference now names an entity the subset never declares.
+   */
   const never = Arr.head(tables.kept);
   if (Option.isSome(never) && undeclared._tag === "refused") {
     return yield* undeclaredInDefault(
@@ -1922,10 +1931,12 @@ export const substitute = (text: string, prolog: Prolog): Effect.Effect<string, 
           return Option.isNone(opened.refusal);
         };
 
-        // A run of an attribute value: a literal's own text up to its closing `quote`, written as
-        // it stands, or, with no quote, a whole replacement text, its quotes written as references.
-        // Each reference to a declared entity in it is replaced by its replacement text, expanded
-        // the same way.
+        /**
+         * A run of an attribute value: a literal's own text up to its closing `quote`, written as
+         * it stands, or, with no quote, a whole replacement text, its quotes written as references.
+         * Each reference to a declared entity in it is replaced by its replacement text, expanded
+         * the same way.
+         */
         const expandValue = (
           source: string,
           start: number,

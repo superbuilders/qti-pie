@@ -196,8 +196,6 @@ describe("readXml resolves every namespace as saxes does in its namespace mode",
   it.effect(
     `and reads back the tree, by the generator's namespace model and XML's information set, for swarmed trees of elements, text, CDATA, comments and processing instructions, each within ${CASE_BOUNDS.nodes} nodes, depth ${CASE_BOUNDS.depth} and width ${CASE_BOUNDS.width}: ${CASES} rotating cases a run beside the witnesses`,
     (ctx) =>
-      // Bound: the drawn trees, each with its own swarm over `roundTripFeatures` and bounds within
-      // CASE_BOUNDS; the witnesses reach every situation of `roundTripSituations`.
       searched(
         ctx,
         explore(

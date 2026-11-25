@@ -15,7 +15,9 @@ const unbounded = 0;
 
 export default defineConfig({
   test: {
-    // @bjornpagen/testing's setup draws the run seed, or replays a given one (`TEST_SEED`).
+    /**
+     * @bjornpagen/testing's setup draws the run seed, or replays a given one (`TEST_SEED`).
+     */
     globalSetup: ["@bjornpagen/testing/vitest/global-setup"],
     hookTimeout: unbounded,
     include: ["tools/**/*.test.ts"],

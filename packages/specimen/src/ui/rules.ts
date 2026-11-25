@@ -333,9 +333,11 @@ export const see = (
   clients: ReadonlyMap<unknown, string>,
 ): Seen => {
   const { accepted, configuration } = item;
-  // The suite holds no database: the record a page shows is the take's (`taken`), else one that
-  // holds each outcome the item declares at NULL, as the database's record holds an outcome no
-  // processing set, so a page shows no outcome-driven content and withholds none.
+  /**
+   * The suite holds no database: the record a page shows is the take's (`taken`), else one that
+   * holds each outcome the item declares at NULL, as the database's record holds an outcome no
+   * processing set, so a page shows no outcome-driven content and withholds none.
+   */
   const record = Option.getOrElse(item.taken, () =>
     recordOf({
       outcomes: Object.fromEntries(
@@ -346,8 +348,10 @@ export const see = (
       ),
     }),
   );
-  // Every page shows the item's feedback by that record, as a host whose test states
-  // `show-feedback="true"` shows it.
+  /**
+   * Every page shows the item's feedback by that record, as a host whose test states
+   * `show-feedback="true"` shows it.
+   */
   const shownBy = { record, showFeedback: true } as const;
   const start = startingResponses(accepted, shownBy);
   const correct: Responses = solution(accepted, record);
@@ -430,8 +434,10 @@ export const see = (
 
   switch (showing.mode) {
     case "answering": {
-      // The host's state starts from the attempt's start, every End Attempt among it, with the
-      // responses drawn laid over it, as a host lays a save over its start.
+      /**
+       * The host's state starts from the attempt's start, every End Attempt among it, with the
+       * responses drawn laid over it, as a host lays a save over its start.
+       */
       const responses: Responses = {
         ...start,
         ...Object.fromEntries(drawn.map(({ identifier, value }) => [identifier, value])),
@@ -449,8 +455,10 @@ export const see = (
       };
     }
     case "review": {
-      // The suite holds no database, so nothing grades the drawn response: the record it reviews
-      // is the one the page shows.
+      /**
+       * The suite holds no database, so nothing grades the drawn response: the record it reviews
+       * is the one the page shows.
+       */
       const before = record;
 
       const restored = restore(accepted, attempted(before, values));
@@ -768,8 +776,10 @@ export const rules: Readonly<Record<RuleName, Rule>> = {
 
       return pagesOf(seen).flatMap((page) => [
         ...page.islands.flatMap((island) => {
-          // The props as the page receives them: React serializes an island's props, its server
-          // elements among them, and a name stands in them as a JSON string.
+          /**
+           * The props as the page receives them: React serializes an island's props, its server
+           * elements among them, and a name stands in them as a JSON string.
+           */
           const shipped = JSON.stringify(island.props);
 
           return island.name === replayIsland && seen.kinds.includes("media")

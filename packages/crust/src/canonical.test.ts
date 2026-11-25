@@ -1,3 +1,15 @@
+/**
+ * The oracle: the recursive canonicalizer, `canonical.ts` as it was at 56330e2c, the last commit
+ * before the walks became iterative, kept but for names and comments, and for dropping the doctype
+ * from the prolog, which holds it among the comments and processing instructions. It overflows the
+ * stack within a few thousand levels, so the trees below stay far shallower. What the differential
+ * proves is the walk, the order the iterative canonicalizer visits a tree in and the scope it hands
+ * each element, and with it the escapes and the code point order, which the code under test now
+ * writes another way (`markup.ts`'s escapes, a comparison of code units). Its outermost scope is
+ * empty where the code under test's binds `xml`, which no generated tree declares.
+ *
+ * @module
+ */
 import { availableParallelism } from "node:os";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
@@ -15,15 +27,6 @@ import {
 } from "#crust/test/trees.ts";
 import type { Bounds } from "#crust/test/trees.ts";
 import type { Attribute, Child, Element, Misc, XmlDocument } from "#crust/tree.ts";
-
-// The oracle: the recursive canonicalizer, `canonical.ts` as it was at 56330e2c, the last commit
-// before the walks became iterative, kept but for names and comments, and for dropping the doctype
-// from the prolog, which holds it among the comments and processing instructions. It overflows the
-// stack within a few thousand levels, so the trees below stay far shallower. What the differential
-// proves is the walk, the order the iterative canonicalizer visits a tree in and the scope it hands
-// each element, and with it the escapes and the code point order, which the code under test now
-// writes another way (`markup.ts`'s escapes, a comparison of code units). Its outermost scope is
-// empty where the code under test's binds `xml`, which no generated tree declares.
 
 /**
  * The namespace name every namespace declaration's attribute is in.
@@ -177,8 +180,6 @@ const recursiveCanonicalize = (doc: XmlDocument): Uint8Array => {
   return new TextEncoder().encode(`${prolog}${renderElement(doc.root, new Map())}${epilog}`);
 };
 
-// The tests.
-
 /**
  * The text of canonical bytes, which are UTF-8, so two forms compare as strings.
  *
@@ -200,8 +201,6 @@ describe("canonicalize gives the recursive canonicalizer's bytes", () => {
   it.effect(
     `for swarmed documents, each within ${CASE_BOUNDS.nodes} nodes, depth ${CASE_BOUNDS.depth} and width ${CASE_BOUNDS.width}: ${CASES} rotating cases a run beside the witnesses`,
     (ctx) =>
-      // Bound: the drawn documents, each with its own swarm and bounds within CASE_BOUNDS; the
-      // witnesses reach every situation of `documentSituations`.
       searched(
         ctx,
         explore(

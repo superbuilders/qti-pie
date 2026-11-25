@@ -1,3 +1,16 @@
+/**
+ * The oracle: the recursive writer, `write.ts` as it was at 56330e2c, the last commit before the
+ * walks became iterative, but for names and comments and for the rules the writer has gained since,
+ * which it follows: the doctype written and searched in its place in the prolog, which holds it
+ * among the comments and processing instructions, and a `>` escaped where adjacent text runs make
+ * `]]>`. It overflows the stack from about 2,000 levels, so the trees below stay far shallower. Its
+ * escaping is the code under test's own, so what the differential proves is the walk: the order the
+ * iterative writer visits, renders and searches a tree in, which is the writer's contract. The
+ * bytes an encoder class writes the text in are encode.test.ts's, and the cycle of
+ * decode.detection.test.ts reads them back.
+ *
+ * @module
+ */
 import { availableParallelism } from "node:os";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
@@ -172,7 +185,9 @@ const renderNode = (node: Child, threshold: number): string => {
     return `<${node.qname}${attributes}/>`;
   }
 
-  // A plain text run is escaped knowing the last two characters of the plain run just before it.
+  /**
+   * A plain text run is escaped knowing the last two characters of the plain run just before it.
+   */
   let before = "";
   const children = node.children
     .map((child) => {
@@ -316,8 +331,6 @@ const recursiveWriteXml = (
   return Effect.succeed(`${declaration}${prolog}${renderNode(doc.root, threshold)}${epilog}`);
 };
 
-// The tests.
-
 /**
  * The thresholds the two writers are compared under beside none: ISO-8859-1's and US-ASCII's, the
  * two an encoder class sets, so every reference a writer writes and every construct it refuses is
@@ -357,7 +370,9 @@ const outcomeOf = (effect: Effect.Effect<string, EncodeError>): Effect.Effect<Ou
 /**
  * Check that `writeXmlText`, `writeXml` with no threshold and the recursive writer give the same
  * text for `doc`, and that `writeXml` and the recursive writer give the same outcome under each of
- * {@link THRESHOLDS}.
+ * {@link THRESHOLDS}. The trees hold only characters XML allows (the PLAIN and WILD pools of
+ * test/trees.ts), so a WriteRefusal under a threshold is the writer's defect, never an outcome the
+ * recursive writer shares.
  *
  * @param doc - The document.
  * @param name - What to name the case by in a failure: its seed or its tree.
@@ -369,8 +384,6 @@ const agrees = Effect.fnUntraced(function* agreesWithRecursive(doc: XmlDocument,
   assert.strictEqual(Result.getOrThrow(writeXmlText(doc)), text, `${name}, writeXmlText`);
   assert.strictEqual(yield* writeXml(doc, Option.none()), text, `${name}, no threshold`);
   for (const threshold of THRESHOLDS) {
-    // The trees hold only characters XML allows (the PLAIN and WILD pools of test/trees.ts), so a
-    // WriteRefusal here would be the writer's defect, never an outcome the oracle shares.
     assert.deepStrictEqual(
       yield* outcomeOf(
         writeXml(doc, Option.some(threshold)).pipe(Effect.catchTag("WriteRefusal", Effect.die)),
@@ -430,8 +443,6 @@ describe("writeXml and writeXmlText give the recursive writer's text", () => {
   it.effect(
     `for swarmed documents, each within ${CASE_BOUNDS.nodes} nodes, depth ${CASE_BOUNDS.depth} and width ${CASE_BOUNDS.width}: ${CASES} rotating cases a run beside the witnesses`,
     (ctx) =>
-      // Bound: the drawn documents, each with its own swarm and bounds within CASE_BOUNDS; the
-      // witnesses reach every situation of `documentSituations`.
       searched(
         ctx,
         explore(
@@ -501,9 +512,6 @@ describe("writeXml writes adjacent text runs as the content they hold", () => {
   it.effect(
     `for every stretch of 1 to ${String(MOST_RUNS)} plain and CDATA runs over the halves of ]]>, exhausted: ${String(STRETCHES)} documents`,
     (ctx) =>
-      // Oracle: XML 1.0 section 2.4, as the reader's parser checks it ("]]>" in content with its
-      // ">" unescaped is not well-formed), and the content kept: the text read back is the runs'
-      // text joined. Bound: every sequence of 1 to 4 of the 10 runs.
       Effect.andThen(
         boxHolds(stretch, STRETCHES),
         searched(
@@ -517,7 +525,7 @@ describe("writeXml writes adjacent text runs as the content they hold", () => {
               literal: Formatter.format,
               oracle: {
                 kind: "specification",
-                name: "XML 1.0 section 2.4 as crust's reader checks it, and the text kept",
+                name: 'XML 1.0 section 2.4 as crust\'s reader checks it ("]]>" in content with its ">" unescaped is not well-formed), and the text kept: the text read back is the runs\' text joined',
               },
               suite: "crust/write/adjacent-runs",
             },

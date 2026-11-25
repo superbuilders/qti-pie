@@ -135,8 +135,10 @@ describe(`every walk is iterative: depth ${DEPTH} and width ${WIDTH}`, () => {
       Effect.gen(function* deepFailure() {
         const unwritable: Child = { kind: "comment", text: "é" };
         const failure = { codePoint: 0xe9, threshold: 0x7f, where: "comment" };
-        // Every character of these trees is one XML allows, so the writer's WriteRefusal would be
-        // a defect.
+        /**
+         * Every character of these trees is one XML allows, so the writer's WriteRefusal would be
+         * a defect.
+         */
         const deep = yield* Effect.flip(
           encode(bare(chain(DEPTH, [unwritable])), "US-ASCII").pipe(
             Effect.catchTag("WriteRefusal", Effect.die),
