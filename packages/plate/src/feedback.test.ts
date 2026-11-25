@@ -22,12 +22,18 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { assert, describe, expectTypeOf, it } from "@effect/vitest";
-import { Effect, Option } from "effect";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { requiredInSpace } from "@bjornpagen/testing/features";
+import { array, constant, element, map, oneOf } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
+import { Duration, Effect, Formatter, Option } from "effect";
 import { configure } from "#plate/configuration.ts";
 import type { Configuration } from "#plate/configuration.ts";
 import { qtiNamespace } from "#plate/document/source.ts";
-import type { BodyNode } from "#plate/model/item.ts";
+import type { BodyNode, FeedbackContent } from "#plate/model/item.ts";
 import type { ItemRecord, Showing } from "#plate/model/record.ts";
 import { nullOf } from "#plate/model/values.ts";
 import type { Value } from "#plate/model/values.ts";
@@ -38,15 +44,10 @@ import type { Redacted } from "#plate/redact/walk.ts";
 import { restore } from "#plate/restore.ts";
 import { readCorpusFile, readCorpusPackage } from "#plate/test/corpus.ts";
 import { float, identifier, identifiers, jsonField } from "#plate/test/fixtures.ts";
-import {
-  feedbackHidden,
-  showingOf,
-  shownToCandidate,
-  textOf,
-  underRecord,
-} from "#plate/test/page.ts";
+import { showingOf, shownToCandidate, textOf, underRecord } from "#plate/test/page.ts";
 import { documentDigest, goldenRecords, recordOf } from "#plate/test/records.ts";
 import { admitted } from "#plate/test/admitted.ts";
+import { boxHolds } from "#plate/test/box.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
 import type { Accepted } from "#plate/validate/verdict.ts";
 
@@ -122,6 +123,85 @@ const nodesIn = (nodes: readonly BodyNode[]): readonly BodyNode[] =>
     return node.kind === "choice"
       ? [node, ...nodesIn(node.choices.flatMap((choice) => choice.content))]
       : [node];
+  });
+
+/**
+ * List the model's nodes below some nodes, each before its descendants, through every element's
+ * children, a Choice's choices' content, and template and feedback content whatever its
+ * visibility, which the model holds whatever an attempt's values.
+ *
+ * @param nodes The model's nodes.
+ * @returns Every node they hold.
+ */
+const modelNodesIn = (nodes: readonly BodyNode[]): readonly BodyNode[] =>
+  nodes.flatMap((node): readonly BodyNode[] => {
+    if (node.kind === "element") {
+      return [node, ...modelNodesIn(node.children)];
+    }
+
+    if (node.kind === "choice") {
+      return [node, ...modelNodesIn(node.choices.flatMap((choice) => choice.content))];
+    }
+
+    return node.kind === "template-block" ||
+      node.kind === "template-inline" ||
+      node.kind === "feedback-block" ||
+      node.kind === "feedback-inline"
+      ? [node, ...modelNodesIn(node.content)]
+      : [node];
+  });
+
+/**
+ * List the feedback blocks and inlines below some of the model's nodes, at any depth.
+ *
+ * @param nodes The model's nodes.
+ * @returns Each, in document order.
+ */
+const feedbackIn = (nodes: readonly BodyNode[]): readonly FeedbackContent[] =>
+  modelNodesIn(nodes).flatMap((node) =>
+    node.kind === "feedback-block" || node.kind === "feedback-inline" ? [node] : [],
+  );
+
+/**
+ * Give the text runs below some of the model's nodes, each with its whitespace collapsed as a
+ * page's text is and trimmed, the empty ones left out, the subtrees of `skipped` left out too.
+ *
+ * @param nodes The model's nodes.
+ * @param skipped The nodes whose subtrees are left out.
+ * @returns The runs, in document order.
+ */
+const modelTexts = (
+  nodes: readonly BodyNode[],
+  skipped: ReadonlySet<BodyNode>,
+): readonly string[] =>
+  nodes.flatMap((node): readonly string[] => {
+    if (skipped.has(node)) {
+      return [];
+    }
+
+    if (node.kind === "text") {
+      const text = node.text.replaceAll(regex("\\s+", "gu"), " ").trim();
+
+      return text === "" ? [] : [text];
+    }
+
+    if (node.kind === "element") {
+      return modelTexts(node.children, skipped);
+    }
+
+    if (node.kind === "choice") {
+      return modelTexts(
+        node.choices.flatMap((choice) => choice.content),
+        skipped,
+      );
+    }
+
+    return node.kind === "template-block" ||
+      node.kind === "template-inline" ||
+      node.kind === "feedback-block" ||
+      node.kind === "feedback-inline"
+      ? modelTexts(node.content, skipped)
+      : [];
   });
 
 /**
@@ -339,13 +419,14 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
         const shownWrong = shownBy(accepted, configuration, Option.some(wrong.record)).text;
 
         assert.deepStrictEqual(accepted.item.unsupported, []);
-        for (const before of [
-          shownBy(accepted, configuration, Option.none()).text,
-          shownBy(accepted, configuration, Option.some(yield* begun(accepted))).text,
-        ]) {
-          assert.notInclude(before, "That's");
-          assert.include(before, "True");
-        }
+
+        const unscored = shownBy(accepted, configuration, Option.none()).text;
+        const started = shownBy(accepted, configuration, Option.some(yield* begun(accepted))).text;
+
+        assert.notInclude(unscored, "That's", "no record: no inline feedback");
+        assert.include(unscored, "True", "no record: the choices");
+        assert.notInclude(started, "That's", "the first record: no inline feedback");
+        assert.include(started, "True", "the first record: the choices");
 
         assert.include(shownRight, "That's correct");
         assert.notInclude(shownRight, "That's not correct");
@@ -401,13 +482,16 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
         assert.include(shownRight.text, "Correct");
         assert.notInclude(shownRight.text, "No, that is not the correct answer");
         assert.include(shownWrong.text, "No, that is not the correct answer");
-        for (const scored of [shownRight, shownWrong]) {
-          assert.notInclude(
-            scored.redacted.responses.map((response) => response.identifier),
-            "SOLREQUEST",
-            "the response only the hidden block binds is hidden-only",
-          );
-        }
+        assert.notInclude(
+          shownRight.redacted.responses.map((response) => response.identifier),
+          "SOLREQUEST",
+          "after the right answer, the response only the hidden block binds is hidden-only",
+        );
+        assert.notInclude(
+          shownWrong.redacted.responses.map((response) => response.identifier),
+          "SOLREQUEST",
+          "after a wrong answer, the response only the hidden block binds is hidden-only",
+        );
 
         assert.include(solution.text, "your score for this question will be 0");
         assert.notInclude(solution.text, "Correct");
@@ -435,15 +519,28 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
           "SOLREQUEST",
           "the response the shown asksolution block's End Attempt binds is given",
         );
-        for (const hidden of [
-          "OK",
-          "Not far off",
-          "Incorrect",
-          "here is the solution",
-          "Sine Rule",
-        ]) {
-          assert.notInclude(start.text, hidden);
-        }
+
+        const hidden = new Set<BodyNode>(
+          feedbackIn(accepted.item.body).filter(
+            ({ feedbackVisibility }) =>
+              feedbackVisibility.outcomeIdentifier === "FEEDBACK" &&
+              feedbackVisibility.showHide === "show",
+          ),
+        );
+        const outside = modelTexts(accepted.item.body, hidden).join(" ");
+        const evidence = [...hidden]
+          .flatMap((node) => modelTexts([node], new Set()))
+          .filter((text) => !outside.includes(text) && regex("\\p{L}", "u").test(text));
+
+        assert.isNotEmpty(
+          evidence,
+          "the runs only FEEDBACK's show elements hold, each with a letter, so a run of punctuation alone tells nothing of where it came from",
+        );
+        assert.deepStrictEqual(
+          evidence.filter((text) => start.text.includes(text)),
+          [],
+          "FEEDBACK, declared with no default, is NULL before processing and matches no identifier, so no show element over it shows: none of the text only they hold is on the page",
+        );
       }),
   );
 
@@ -519,23 +616,78 @@ const gridXml = (cardinality: GridCardinality, initial: Option.Option<string>): 
   ].join("");
 
 /**
- * The values the grid sets `FB` to, by its cardinality: NULL, `A`, an identifier that matches no
- * element, and for multiple, `A` among others, and others without `A`.
+ * The cardinalities of the grid's `FB`: single, where a value matches as itself, and multiple,
+ * where it matches as a member (FeedbackBlock `show-hide`, 5.49.3).
  */
-const gridValues: Readonly<Record<GridCardinality, readonly Value[]>> = {
-  multiple: [
-    identifiers(),
-    identifiers("A"),
-    identifiers("B"),
-    identifiers("B", "A"),
-    identifiers("B", "C"),
-  ],
-  single: [
-    { baseType: "identifier", cardinality: "single", values: [] },
-    identifier("A"),
-    identifier("B"),
-  ],
+const GRID_CARDINALITIES = ["single", "multiple"] as const;
+
+/**
+ * The identifiers a value of `FB` holds: `A`, the one every grid element names, and `B` and `C`,
+ * which match none.
+ */
+const GRID_IDENTIFIERS = ["A", "B", "C"] as const;
+
+/**
+ * Draw a value of `FB` of a cardinality: for single, NULL or `A` or `B`; for multiple, a container
+ * of 0 to 2 of {@link GRID_IDENTIFIERS} in any order, the empty one NULL.
+ *
+ * @param cardinality `FB`'s cardinality.
+ * @returns The value's generator.
+ */
+const gridValue = (cardinality: GridCardinality): Gen<Value> =>
+  cardinality === "single"
+    ? oneOf([constant(nullOf("identifier", "single")), map(element(["A", "B"]), identifier)])
+    : map(array(element(GRID_IDENTIFIERS), { max: 2, min: 0 }), (members): Value => ({
+        baseType: "identifier",
+        cardinality: "multiple",
+        values: members.map((value) => ({ baseType: "identifier", value })),
+      }));
+
+/**
+ * A page of the grid box: one with no record; one under a record whose attempt response processing
+ * has not run, `FB` at a start value the database gives; or one after it has run, `FB` set or left
+ * out.
+ */
+type GridPage =
+  | { readonly kind: "no record" }
+  | { readonly kind: "before processing"; readonly value: Value }
+  | { readonly kind: "processed"; readonly value: Option.Option<Value> };
+
+/**
+ * A case of the grid box: `FB`'s cardinality and the page.
+ */
+interface GridCase {
+  readonly cardinality: GridCardinality;
+  readonly page: GridPage;
+}
+
+/**
+ * Draw a case of the grid box: each cardinality, and a page with no record, before processing at
+ * each of its values, or after processing at each of its values or with `FB` left out.
+ */
+const gridCase: Gen<GridCase> = (source) => {
+  const cardinality = source.draw(element(GRID_CARDINALITIES));
+  const value = gridValue(cardinality);
+  const page = source.draw(
+    oneOf([
+      constant<GridPage>({ kind: "no record" }),
+      map(value, (held): GridPage => ({ kind: "before processing", value: held })),
+      map(oneOf([constant(Option.none()), map(value, Option.some)]), (held): GridPage => ({
+        kind: "processed",
+        value: held,
+      })),
+    ]),
+  );
+
+  return { cardinality, page };
 };
+
+/**
+ * How many cases {@link gridCase} draws: single's 3 values and multiple's 1 + 3 + 9, each page
+ * with no record, before processing at each value, and after it at each value or with `FB` left
+ * out.
+ */
+const GRID_CASES = 1 + 3 + (3 + 1) + (1 + 13 + (13 + 1));
 
 /**
  * Decide, as the rule says and never from plate's code, which of the grid's markers the page shows
@@ -559,6 +711,54 @@ const gridExpected = (value: Value, submitted: boolean): readonly string[] => {
 };
 
 /**
+ * The markers a page of the grid box shows where its test shows feedback: none with no record,
+ * which shows no feedback; {@link gridExpected}'s before and after processing; and none where
+ * processing left `FB` out, whose elements are withheld.
+ *
+ * @param page The page.
+ * @returns The markers shown, in {@link gridMarkers}' order.
+ */
+const gridPageExpected = (page: GridPage): readonly string[] => {
+  switch (page.kind) {
+    case "no record": {
+      return [];
+    }
+    case "before processing": {
+      return gridExpected(page.value, false);
+    }
+    case "processed": {
+      return Option.match(page.value, {
+        onNone: () => [],
+        onSome: (value) => gridExpected(value, true),
+      });
+    }
+  }
+};
+
+/**
+ * Give the record a page of the grid box is shown by: none, the database's record of an attempt
+ * not yet processed with `FB` at the value, or the record after processing with `FB` set or left
+ * out.
+ *
+ * @param accepted The grid item.
+ * @param page The page.
+ * @returns The record, none for no record.
+ */
+const gridRecord = Effect.fnUntraced(function* gridRecord(accepted: Accepted, page: GridPage) {
+  switch (page.kind) {
+    case "no record": {
+      return Option.none<ItemRecord>();
+    }
+    case "before processing": {
+      return Option.some(recordOf({ outcomes: { FB: page.value } }));
+    }
+    case "processed": {
+      return Option.some(submittedWith(yield* begun(accepted), "FB", page.value));
+    }
+  }
+});
+
+/**
  * Give the grid's markers a render shows.
  *
  * @param shown The render.
@@ -567,57 +767,60 @@ const gridExpected = (value: Value, submitted: boolean): readonly string[] => {
 const gridShown = (shown: Shown): readonly string[] =>
   gridMarkers.filter((marker) => shown.text.includes(marker));
 
+/**
+ * The pages of the grid box, by their kind, every one of which a search reaches.
+ */
+const gridPageKinds = ["no record", "before processing", "processed"] as const;
+
+/**
+ * A case of the grid box may run this long before it is stopped and reported.
+ */
+const caseHang = Duration.seconds(30);
+
 describe("feedback visibility over a grid of values", () => {
-  for (const cardinality of ["single", "multiple"] as const) {
-    it.effect(
-      `shows each block, inline and modal feedback over a ${cardinality} FB exactly as the rule decides, for every value once processing has run`,
-      () =>
-        Effect.gen(function* gridSubmitted() {
-          const configuration = yield* configure({ seed: "" });
-          const accepted = yield* openXml("items/grid.xml", gridXml(cardinality, Option.none()));
-          const record = yield* begun(accepted);
+  it.effect(
+    `shows each block, inline and modal feedback over FB exactly as the rule decides, at every value before and after processing, with FB left out and with no record: ${String(GRID_CASES)} pages`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(gridCase, GRID_CASES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "FB single, NULL, A or B, or multiple, 0 to 2 of A, B and C; each page with no record, before processing at each value, and after processing at each value or with FB left out",
+              caseHang,
+              coverage: requiredInSpace<GridPage["kind"]>(gridPageKinds),
+              generator: gridCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the information model's show-hide rule (FeedbackBlock 5.49.3, FeedbackInline 5.52.3, ModalFeedback 5.93.2): A matches as the value or a member, show shows exactly on a match and hide exactly on none, modal feedback only after processing (5.93), as gridExpected transcribes it; no feedback with no record, and none of an element whose outcome processing left out",
+              },
+              suite: "plate/feedback/grid-shown",
+            },
+            (drawn, c) =>
+              Effect.gen(function* gridShows() {
+                c.note(drawn.page.kind);
 
-          assert.deepStrictEqual(accepted.item.unsupported, []);
-          for (const value of gridValues[cardinality]) {
-            const shown = shownBy(
-              accepted,
-              configuration,
-              Option.some(submittedWith(record, "FB", Option.some(value))),
-            );
+                const configuration = yield* configure({ seed: "" });
+                const accepted = yield* openXml(
+                  "items/grid.xml",
+                  gridXml(drawn.cardinality, Option.none()),
+                );
 
-            assert.deepStrictEqual(
-              gridShown(shown),
-              gridExpected(value, true),
-              JSON.stringify(value.values),
-            );
-          }
-        }),
-    );
-
-    it.effect(
-      `before processing runs, shows the blocks and inlines a ${cardinality} FB at the database's start value shows, and no modal feedback; on a page that shows no feedback, none`,
-      () =>
-        Effect.gen(function* gridBefore() {
-          const configuration = yield* configure({ seed: "" });
-          const accepted = yield* openXml("items/grid.xml", gridXml(cardinality, Option.none()));
-
-          assert.deepStrictEqual(gridShown(shownBy(accepted, configuration, Option.none())), []);
-          for (const value of gridValues[cardinality]) {
-            assert.deepStrictEqual(
-              gridShown(
-                shownBy(
-                  accepted,
-                  configuration,
-                  Option.some(recordOf({ outcomes: { FB: value } })),
-                ),
-              ),
-              gridExpected(value, false),
-              `attempt none, FB ${JSON.stringify(value.values)}`,
-            );
-          }
-        }),
-    );
-  }
+                assert.deepStrictEqual(accepted.item.unsupported, []);
+                assert.deepStrictEqual(
+                  gridShown(
+                    shownBy(accepted, configuration, yield* gridRecord(accepted, drawn.page)),
+                  ),
+                  gridPageExpected(drawn.page),
+                  Formatter.format(drawn),
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 
   it.effect(
     "withholds a block and an inline whose outcome a submitted record holds no value of as their notices, and a modal feedback as a section holding only its notice",
@@ -659,32 +862,50 @@ describe("a page whose test shows no feedback", () => {
     expectTypeOf<{ readonly showFeedback: false }>().toExtend<Showing>();
   });
 
-  for (const cardinality of ["single", "multiple"] as const) {
-    it.effect(
-      `shows no block, inline or modal feedback over a ${cardinality} FB, and no notice of one, for every value before and after processing, with FB left out, and with no record`,
-      () =>
-        Effect.gen(function* gridHidden() {
-          const configuration = yield* configure({ seed: "" });
-          const accepted = yield* openXml("items/grid.xml", gridXml(cardinality, Option.none()));
-          const record = yield* begun(accepted);
-          const records = [
-            ...gridValues[cardinality].flatMap((value) => [
-              recordOf({ outcomes: { FB: value } }),
-              submittedWith(record, "FB", Option.some(value)),
-            ]),
-            submittedWith(record, "FB", Option.none()),
-          ];
+  it.effect(
+    `shows no block, inline or modal feedback over FB, and no notice of one, at every value before and after processing, with FB left out, and with no record: ${String(GRID_CASES)} pages`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(gridCase, GRID_CASES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "FB single, NULL, A or B, or multiple, 0 to 2 of A, B and C; each page with no record, before processing at each value, and after processing at each value or with FB left out",
+              caseHang,
+              coverage: requiredInSpace<GridPage["kind"]>(gridPageKinds),
+              generator: gridCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "a test that shows no feedback (show-feedback false) shows none of an item's feedback elements whatever the outcomes, so no marker, no notice and no modal section reaches the page",
+              },
+              suite: "plate/feedback/grid-hidden",
+            },
+            (drawn, c) =>
+              Effect.gen(function* gridHidden() {
+                c.note(drawn.page.kind);
 
-          for (const showing of [feedbackHidden, ...records.map(underRecord)]) {
-            const shown = pageShown(accepted, configuration, showing);
+                const configuration = yield* configure({ seed: "" });
+                const accepted = yield* openXml(
+                  "items/grid.xml",
+                  gridXml(drawn.cardinality, Option.none()),
+                );
+                const record = yield* gridRecord(accepted, drawn.page);
+                const shown = pageShown(
+                  accepted,
+                  configuration,
+                  underRecord(Option.getOrUndefined(record)),
+                );
 
-            assert.deepStrictEqual(gridShown(shown), [], JSON.stringify(showing.record?.outcomes));
-            assert.deepStrictEqual(shown.notices, []);
-            assert.deepStrictEqual(shown.redacted.modalFeedback, []);
-          }
-        }),
-    );
-  }
+                assert.deepStrictEqual(gridShown(shown), [], Formatter.format(drawn));
+                assert.deepStrictEqual(shown.notices, []);
+                assert.deepStrictEqual(shown.redacted.modalFeedback, []);
+              }),
+          ),
+        ),
+      ),
+  );
 });
 
 /**
