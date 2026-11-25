@@ -539,11 +539,10 @@ const sameBoxes = (a: Boxes, b: Boxes): boolean =>
  *
  * @param boxes The boxes.
  * @param half A half.
- * @returns Its chip, `null` when it holds none, or undefined when no box of the list has it, as the
- *   empty box a new pair begins in does not.
+ * @returns Its chip, `null` when it holds none: an empty half, and a half of no box of the list, as
+ *   the empty box a new pair begins in is, which every reader takes alike.
  */
-const holderOf = (boxes: Boxes, half: Half): string | null | undefined =>
-  boxes[half.box]?.[half.side];
+const holderOf = (boxes: Boxes, half: Half): string | null => boxes[half.box]?.[half.side] ?? null;
 
 /**
  * Name the half beside a half, in the same box.
@@ -1116,7 +1115,7 @@ const pairRefusal = (
   const box = asked[half.box];
   const partner = holderOf(asked, besideOf(half));
 
-  if (box === undefined || partner === undefined || partner === null) {
+  if (box === undefined || partner === null) {
     return undefined;
   }
 
@@ -1148,7 +1147,7 @@ const pairRefusal = (
 const enterHalf = (arrangement: BoxesArrangement, picked: Picked, to: Half): Step => {
   const { chip, from } = picked;
   const boxes = arrangement.placements;
-  const occupant = holderOf(boxes, to) ?? null;
+  const occupant = holderOf(boxes, to);
   const shown = to.box === boxes.length ? [...boxes, emptyBox] : boxes;
   const asked = write(from.kind === "half" ? write(shown, from, occupant) : shown, to, chip);
   const refusal =
