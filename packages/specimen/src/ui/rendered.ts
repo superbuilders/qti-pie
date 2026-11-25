@@ -19,7 +19,7 @@ import { Children, Component, Fragment, Suspense, createElement, isValidElement 
 import type { JSXElementConstructor, ReactElement, ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { Accepted, Responses as ResponseValues } from "@qti-pie/plate";
-import { Item } from "@qti-pie/plate/ui";
+import { Item, standardRenderers } from "@qti-pie/plate/ui";
 import type { ItemProps } from "@qti-pie/plate/ui";
 import { heldOf, Responses } from "@qti-pie/plate/ui/client";
 
@@ -817,7 +817,10 @@ const keepNothing = (): void => {
  *   and whatever `<Item>` or an island throws while rendering.
  */
 export const render = (showable: Showable, clients: ReadonlyMap<unknown, string>): Page => {
-  const item: ReactElement = createElement(Item, showable.props);
+  const item: ReactElement = createElement(Item, {
+    ...showable.props,
+    renderers: standardRenderers,
+  });
   const islands = islandsIn(item, clients);
   const page =
     showable.mode === "answering"

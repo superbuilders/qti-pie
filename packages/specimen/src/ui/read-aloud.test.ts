@@ -41,7 +41,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { acceptedItem, configure, startingResponses } from "@qti-pie/plate";
 import type { Accepted, Configuration } from "@qti-pie/plate";
 import { admitted } from "@qti-pie/plate/test/admitted";
-import { Item } from "@qti-pie/plate/ui";
+import { Item, standardRenderers } from "@qti-pie/plate/ui";
 import type { ItemProps } from "@qti-pie/plate/ui";
 import { heldOf, Responses } from "@qti-pie/plate/ui/client";
 import { clientExports } from "#specimen/ui/clients.ts";
@@ -181,7 +181,7 @@ const page = (mode: "answering" | "review", supports: Option.Option<Supports>) =
         onSome: (enabled) => ({ supports: enabled }),
       }),
     };
-    const item = createElement(Item, props);
+    const item = createElement(Item, { ...props, renderers: standardRenderers });
     const html = renderToStaticMarkup(
       mode === "answering"
         ? createElement(Responses, {

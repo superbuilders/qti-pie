@@ -138,36 +138,33 @@ export type TextEntryKeypad = (typeof textEntryKeypads)[number];
  * decodes to the whole default configuration. A key it does not name is refused, and so is a value
  * of another type: `"3"` is not a heading level. No item session control setting is plate's: the
  * stage's validate-responses is the QTI database's, whose admission judges an answer by it in the
- * statement that would record it. `headingLevel` is the level the item's shallowest heading
- * takes, every other heading keeping its distance from it, capped at `h6`; it starts at 2 because
- * the host owns `h1`. `hotspotList` and `hotspotPicks` are how every Hotspot of the item shows its
- * list of areas and a picked area, `shown` and `ring` by default; `<Item>` writes them on its root,
- * where the stylesheet reads them, and nothing else reads them, so neither changes the markup, the
+ * statement that would record it. `headingLevel` is the level the item's shallowest heading takes,
+ * every other heading keeping its distance from it, capped at `h6`; it starts at 2 because the host
+ * owns `h1`. `hotspotList` and `hotspotPicks` are how every Hotspot of the item shows its list of
+ * areas and a picked area, `shown` and `ring` by default; `<Item>` writes them on its root, where
+ * the stylesheet reads them, and nothing else reads them, so neither changes the markup, the
  * response or its scoring. Whether an area shows a ring before it is picked is the item's own word,
  * QTI's `qti-unselected-hidden` class, never the host's. `textEntryKeypad` is whether every Text
  * Entry of the item shows an on-screen keypad under its box, `none` by default; the islands read
  * it, and its keys type through the box's own input, so it changes no response or its scoring.
- * `picksInstruction` is whether every Choice of the item writes the line AlphaTest's player wrote
- * under its prompt, "Select your answer:" for one pick, "Select all that apply:" for more, and
- * "Your Answer:" in a review, `false` by default; it is words alone, changing no response.
  * `bankCaption` is whether every Gap Match's and Graphic Gap Match's bank writes the caption
- * AlphaTest's player wrote over it, "DRAG & DROP THE ANSWER", `false` by default; words alone too.
- * `assets` maps each file an item's package URLs may name, by its path from the package root, to
- * its address, the URL `<Item>` writes in its place, or to `null` for a file the host withholds,
- * which `<Item>` writes no URL for and renders the item without: `<Item>` resolves each package URL
- * against the item's location, the path from the package root the host opened it by, so
- * `media/a.png` in `items/q1.xml` names `items/media/a.png`, and it throws `AssetMissing` for a
- * file `assets` holds no entry for, never writing a path relative to the page. It is empty by
- * default, and `configure` reads it as an array of `[path, address]` entries, each path once.
- * `outputBudget` bounds the characters an item's printed variables print, counted as a string's
- * `length` counts them (UTF-16 code units), and is 16,777,216 (16 MiB of ASCII) by default:
- * `redact` stops printing once their text passes it, and `<Item>` then refuses the item with
- * `OutputTooLarge`. Its maximum, 536,870,888, is V8's longest string, the smallest of the engines'
- * limits, so no budget asks an engine for a string it cannot build. `seed` is a string, used as
- * given and required, since every order a page shows is keyed by it: the served item's shuffle seed
- * (`shuffleSeed`), or the key a host's preview states for itself, which keys a shuffled
- * interaction's order with the response, and nothing else. Processing never reads it: the QTI
- * database runs processing under a seed of its own.
+ * AlphaTest's player wrote over it, "DRAG & DROP THE ANSWER", `false` by default; it is words
+ * alone, changing no response. `assets` maps each file an item's package URLs may name, by its path
+ * from the package root, to its address, the URL `<Item>` writes in its place, or to `null` for a
+ * file the host withholds, which `<Item>` writes no URL for and renders the item without: `<Item>`
+ * resolves each package URL against the item's location, the path from the package root the host
+ * opened it by, so `media/a.png` in `items/q1.xml` names `items/media/a.png`, and it throws
+ * `AssetMissing` for a file `assets` holds no entry for, never writing a path relative to the page.
+ * It is empty by default, and `configure` reads it as an array of `[path, address]` entries, each
+ * path once. `outputBudget` bounds the characters an item's printed variables print, counted as a
+ * string's `length` counts them (UTF-16 code units), and is 16,777,216 (16 MiB of ASCII) by
+ * default: `redact` stops printing once their text passes it, and `<Item>` then refuses the item
+ * with `OutputTooLarge`. Its maximum, 536,870,888, is V8's longest string, the smallest of the
+ * engines' limits, so no budget asks an engine for a string it cannot build. `seed` is a string,
+ * used as given and required, since every order a page shows is keyed by it: the served item's
+ * shuffle seed (`shuffleSeed`), or the key a host's preview states for itself, which keys a
+ * shuffled interaction's order with the response, and nothing else. Processing never reads it: the
+ * QTI database runs processing under a seed of its own.
  */
 export const ConfigurationSchema = Schema.Struct({
   assets: Assets.pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
@@ -185,7 +182,6 @@ export const ConfigurationSchema = Schema.Struct({
   outputBudget: Schema.Int.check(
     Schema.isBetween({ maximum: maximumOutputBudget, minimum: 1 }),
   ).pipe(Schema.withDecodingDefaultKey(Effect.succeed(defaultOutputBudget))),
-  picksInstruction: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   seed: Schema.String,
   textEntryKeypad: Schema.Literals(textEntryKeypads).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed("none")),
@@ -225,8 +221,6 @@ const allowedValues: Readonly<Record<Field, string>> = {
   locale: `a supported locale: ${locales.map((locale) => `"${locale}"`).join(", ")}`,
   outputBudget:
     "an integer from 1 to 536,870,888, the most characters an item's printed variables may print",
-  picksInstruction:
-    "true or false, whether every Choice writes the line that tells a child how many to pick",
   seed: 'a string, the served item\'s shuffle seed, such as "7"',
   textEntryKeypad: `how a child types into a Text Entry: ${textEntryKeypads.map((value) => `"${value}"`).join(" or ")}`,
 };

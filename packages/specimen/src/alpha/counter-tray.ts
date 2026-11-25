@@ -54,7 +54,7 @@ import {
 import type { Accepted, Configuration, PciHostFacts, PciInteractionModules } from "@qti-pie/plate";
 import { countPlacements } from "@qti-pie/plate/alpha/pci-modules";
 import { recordOf } from "@qti-pie/plate/test/records";
-import { Item } from "@qti-pie/plate/ui";
+import { Item, standardRenderers } from "@qti-pie/plate/ui";
 import type { ItemProps } from "@qti-pie/plate/ui";
 import { heldOf, Responses } from "@qti-pie/plate/ui/client";
 import { framePage } from "@qti-pie/plate/ui/pci-frame";
@@ -578,7 +578,7 @@ const hostIn = (
       mode: "answering",
       showFeedback: false,
     };
-    const element = createElement(Item, props);
+    const element = createElement(Item, { ...props, renderers: standardRenderers });
     const islands = portableIn(element, clients);
     const [island, ...others] = islands;
 

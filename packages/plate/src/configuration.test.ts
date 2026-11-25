@@ -127,8 +127,8 @@ const neverCompiles = () => [
   configure({ hotspotPicks: "shade", seed: "" }),
   // @ts-expect-error -- hidden is no way a Hotspot shows its list.
   configure({ hotspotList: "hidden", seed: "" }),
-  // @ts-expect-error -- the text of a boolean is no boolean.
-  configure({ picksInstruction: "true", seed: "" }),
+  // @ts-expect-error -- picksInstruction is no field of plate's: Alpha's Choice renderer writes that line.
+  configure({ picksInstruction: true, seed: "" }),
   // @ts-expect-error -- the text of a boolean is no boolean.
   configure({ bankCaption: "true", seed: "" }),
   // @ts-expect-error -- onscreen misspells on-screen.
@@ -150,7 +150,6 @@ describe("configure", () => {
         hotspotPicks: "ring",
         locale: "en",
         outputBudget: 16_777_216,
-        picksInstruction: false,
         seed: "7",
         textEntryKeypad: "none",
       });
@@ -235,7 +234,7 @@ describe("configure", () => {
         const error = yield* Effect.flip(configure(settings));
 
         assert.include(error.message, "has no field showSolutions");
-        assert.include(error.message, "outputBudget, picksInstruction, seed, textEntryKeypad");
+        assert.include(error.message, "outputBudget, seed, textEntryKeypad");
       }),
   );
 

@@ -63,6 +63,7 @@ import {
   stimulusPane,
 } from "#plate/ui/item/stimuli.tsx";
 import type { ShownStimulus, StimulusSetting } from "#plate/ui/item/stimuli.tsx";
+import type { Renderers } from "#plate/ui/registry/contract.ts";
 import type { ItemProps } from "#plate/ui/props.ts";
 import { ReadAloudItem } from "#plate/ui/read-aloud/session.tsx";
 import { carriedClass } from "#plate/vocabulary.ts";
@@ -204,9 +205,9 @@ const classOf = (paired: PairedInteraction): Option.Option<string> => paired.pay
  *   `plate-catalog`, after the body, the listing of every other card the supports the host enabled
  *   keep but a spoken card, which is never drawn on the page
  *   (`#plate/ui/item/contents/catalog.tsx`);
- * - Each interaction, through the interactions' seam: in `answering` its island inside its own
- *   `<Suspense fallback={null}>`, a hydration unit that suspends on nothing; in `review` and
- *   `solution` its server markup, with no boundary;
+ * - Each interaction, through its kind's renderer in `renderers`: in `answering` its island inside
+ *   its own `<Suspense fallback={null}>`, a hydration unit that suspends on nothing; in `review`
+ *   and `solution` its server markup, with no boundary;
  * - `plate-feedback`, feedback the record shows (`feedbackOf` in `#plate/ui/item/content.tsx`): one
  *   `div` in place of each run of adjacent feedback blocks, each block a `plate-feedback-block`,
  *   the item's explanation after its title (`plate-feedback-why`), and one after the body for the
@@ -229,10 +230,15 @@ const classOf = (paired: PairedInteraction): Option.Option<string> => paired.pay
  *     configuration={configuration}
  *     instance="sitting-42.1"
  *     mode="answering"
+ *     renderers={standardRenderers}
  *     showFeedback={false}
  *   />;
  *
- * @param props The item, the configuration, the instance, the mode and the database's results.
+ * @param props The item, the configuration, the instance, the mode and the database's results,
+ *   with `renderers`, the renderer of every interaction kind as the host composed them once at its
+ *   root: plate's `standardRenderers`, or `renderersOf` them with extensions
+ *   (`#plate/ui/registry/compose.ts`). It is required, and has no default, so every host names the
+ *   renderers it draws with.
  * @returns The item's root.
  * @throws {InvalidInstance} When the instance breaks a requirement of `checkInstance`.
  * @throws {OutputTooLarge} When a printed variable on content the page shows printed nothing,
@@ -240,8 +246,8 @@ const classOf = (paired: PairedInteraction): Option.Option<string> => paired.pay
  * @throws {AssetMissing} When a package URL in what the page shows names a file the
  *   configuration's `assets` gives no address.
  */
-export const Item = (props: ItemProps): ReactNode => {
-  const { configuration, instance, item, mode } = props;
+export const Item = (props: ItemProps & { readonly renderers: Renderers }): ReactNode => {
+  const { configuration, instance, item, mode, renderers } = props;
   const supports = props.supports ?? noSupports;
   const { keywordEmphasis } = supports.display;
   const redacted = redact(
@@ -297,7 +303,6 @@ export const Item = (props: ItemProps): ReactNode => {
     content,
     instance,
     locale: configuration.locale,
-    picksInstruction: configuration.picksInstruction,
     shows: showsOf(props),
     stimulus: stimuli.length > 0,
     textEntryKeypad: configuration.textEntryKeypad,
@@ -325,12 +330,12 @@ export const Item = (props: ItemProps): ReactNode => {
   const interaction: InteractionAt = (model: Interaction<RedactedLevel>, key: Key) => {
     const paired = interactionPayload(model, view);
 
-    return renderInteraction(paired, contextOf(paired), mode, key);
+    return renderInteraction(renderers, paired, contextOf(paired), mode, key);
   };
   const answer: InteractionAt = (model: Interaction<RedactedLevel>, key: Key) => {
     const paired = interactionPayload(model, view);
 
-    return renderAnswer(paired, contextOf(paired), mode, key);
+    return renderAnswer(renderers, paired, contextOf(paired), mode, key);
   };
   const outside: Walk = {
     addressing,

@@ -46,17 +46,6 @@ export const picksOf = (binding: {
 };
 
 /**
- * Give the message a picks group's instruction line says (`picksInstruction`): "Select your
- * answer:" where the child picks one, "Select all that apply:" where any number or at most some,
- * as AlphaTest's player chose its line.
- *
- * @param picks The picks.
- * @returns The message's key.
- */
-export const instructionOf = (picks: Picks): "picksInstructionMany" | "picksInstructionOne" =>
-  picks.kind === "one" ? "picksInstructionOne" : "picksInstructionMany";
-
-/**
  * The UI SDK group a picks group is, whose `data-slot` a review writes on its group as the island's
  * own group carries it: a radio group for one pick, else a checkbox group.
  */

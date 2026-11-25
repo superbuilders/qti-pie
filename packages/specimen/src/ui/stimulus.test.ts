@@ -41,7 +41,7 @@ import { parseHTML } from "linkedom";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { solution, startingResponses } from "@qti-pie/plate";
-import { Item } from "@qti-pie/plate/ui";
+import { Item, standardRenderers } from "@qti-pie/plate/ui";
 import type { ItemProps } from "@qti-pie/plate/ui";
 import { heldOf, Responses } from "@qti-pie/plate/ui/client";
 import { corpusItems } from "#specimen/ui/corpus.ts";
@@ -198,7 +198,11 @@ const pageOf = (item: SourceItem, showing: ShowingName): Document => {
   const html = showing.startsWith("answering")
     ? renderToStaticMarkup(
         createElement(Responses, {
-          children: createElement(Item, { ...shown, mode: "answering" }),
+          children: createElement(Item, {
+            ...shown,
+            mode: "answering",
+            renderers: standardRenderers,
+          }),
           onChange: keepNothing,
           value: heldOf(startingResponses(item.accepted, shown)),
         }),
@@ -207,6 +211,7 @@ const pageOf = (item: SourceItem, showing: ShowingName): Document => {
         createElement(Item, {
           ...shown,
           mode: "solution",
+          renderers: standardRenderers,
           values: solution(item.accepted, { correct: {} }),
         }),
       );

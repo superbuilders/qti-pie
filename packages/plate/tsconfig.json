@@ -6,6 +6,8 @@
     "**/work",
     "src/ui/**",
     "src/math-entry/**",
-    "src/alpha/pci-modules/**"
+    "src/alpha/pci-modules/**",
+    "src/alpha/renderers.ts",
+    "src/alpha/choice/**"
   ]
 }

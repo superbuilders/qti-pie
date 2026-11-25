@@ -10,6 +10,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./admission-codes": "./src/admission-codes.ts",
+    "./alpha": "./src/alpha/renderers.ts",
     "./alpha/pci-modules": "./src/alpha/pci-modules.ts",
     "./codec": "./src/codec/values.ts",
     "./math-entry": "./src/math-entry/field.ts",

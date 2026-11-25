@@ -59,7 +59,7 @@ import {
 import type { HostFacts, PciModuleRoute, PciResolution } from "@qti-pie/plate";
 import { buildWithBlocks } from "@qti-pie/plate/alpha/pci-modules";
 import { admitted } from "@qti-pie/plate/test/admitted";
-import { Item } from "@qti-pie/plate/ui";
+import { Item, standardRenderers } from "@qti-pie/plate/ui";
 import type { ItemProps } from "@qti-pie/plate/ui";
 import { heldOf, Responses } from "@qti-pie/plate/ui/client";
 import { framePage } from "@qti-pie/plate/ui/pci-frame";
@@ -344,7 +344,7 @@ export const blocksHosted = Effect.fn("specimen.blocks.hosted")(function* blocks
     mode: "answering",
     showFeedback: false,
   };
-  const shell = createElement(Item, props);
+  const shell = createElement(Item, { ...props, renderers: standardRenderers });
   const islands = islandsWithin(shell, yield* clientExports);
   const island = islands.find(({ name }) => name.endsWith("#PortableCustom"));
 

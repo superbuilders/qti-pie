@@ -140,11 +140,6 @@ export interface IslandContext {
    */
   readonly textEntryKeypad: TextEntryKeypad;
   /**
-   * The configuration's `picksInstruction`: whether a Choice writes the line that tells a child how
-   * many options to pick.
-   */
-  readonly picksInstruction: boolean;
-  /**
    * The configuration's `bankCaption`: whether a Gap Match's and a Graphic Gap Match's bank writes
    * the caption that tells a child to drag a choice into place.
    */

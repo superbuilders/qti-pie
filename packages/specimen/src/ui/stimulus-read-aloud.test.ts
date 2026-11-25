@@ -34,7 +34,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { acceptedItem, acceptedStimulus, configure, startingResponses } from "@qti-pie/plate";
 import { admitted } from "@qti-pie/plate/test/admitted";
-import { Item } from "@qti-pie/plate/ui";
+import { Item, standardRenderers } from "@qti-pie/plate/ui";
 import type { ItemProps } from "@qti-pie/plate/ui";
 import { heldOf, Responses } from "@qti-pie/plate/ui/client";
 import { factsOf } from "#specimen/ui/rendered.ts";
@@ -149,7 +149,7 @@ const passageOf = (mode: "answering" | "review", spoken: boolean) =>
         stimuli: [stimulus],
         supports: supportsOf(spoken),
       };
-      const rendered = createElement(Item, props);
+      const rendered = createElement(Item, { ...props, renderers: standardRenderers });
       const html = renderToStaticMarkup(
         mode === "answering"
           ? createElement(Responses, {
