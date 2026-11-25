@@ -34,7 +34,7 @@ import { availableParallelism } from "node:os";
 import { assert, layer } from "@effect/vitest";
 import { exhaust, explore, drawn } from "@bjornpagen/testing/explore";
 import { noCoverage, requiredInSpace } from "@bjornpagen/testing/features";
-import { array, element, map, oneOf } from "@bjornpagen/testing/gen";
+import { array, element, int, map, oneOf } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { boundedShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
@@ -493,28 +493,37 @@ layer(FieldsLayer, { timeout: Duration.millis(ruleHang) })("plate's math entry",
     (ctx) =>
       Effect.gen(function* fillRule() {
         const { borrow } = yield* Fields;
-        const fillings = templateKeys.flatMap((keycap) =>
-          ["7", "42", "305"].map((fill): Filling => ({
+        const keycaps = Arr.isReadonlyArrayNonEmpty(templateKeys)
+          ? templateKeys
+          : assert.fail("AlphaTest's keyboard has template keys");
+        /**
+         * A template key, every box filled with one numeral of one to three digits, the first
+         * nonzero digits in order (1, 12, 123), so a box that drops or reorders a digit shows it.
+         */
+        const filledKey: Gen<Filling> = (source) => {
+          const keycap = source.draw(element(keycaps));
+          const fill = Array.from({ length: source.draw(int(1, 3)) }, (_, at) =>
+            String(at + 1),
+          ).join("");
+
+          return {
             fills: keycap
               .split("")
               .filter((each) => each === "▢")
               .map(() => fill),
             keycap,
-          })),
-        );
-        const [first, ...rest] = fillings;
-
-        assert.isDefined(first, "AlphaTest's keyboard has template keys");
+          };
+        };
 
         return yield* searched(
           ctx,
           exhaust(
             {
-              box: "each of AlphaTest's nine template keys, every box filled with one, two or three digits",
+              box: "each of AlphaTest's nine template keys, every box filled with a numeral of one, two or three digits",
               caseHang: Duration.minutes(5),
               concurrency: fieldCount,
               coverage: requiredInSpace<"filled">(["filled"]),
-              generator: element([first, ...rest]),
+              generator: filledKey,
               literal: (filling) => JSON.stringify(filling),
               oracle: {
                 kind: "second-implementation",
