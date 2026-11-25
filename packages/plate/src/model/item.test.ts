@@ -1,6 +1,11 @@
 import { assert, describe, it } from "@effect/vitest";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { requiredInSpace } from "@bjornpagen/testing/features";
+import { subset } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
 import { growthFactor } from "@qti-pie/crust/test/growth.ts";
-import { Effect, Option } from "effect";
+import { Duration, Effect, Formatter, Option } from "effect";
 import { readSource } from "#plate/document/read.ts";
 import { xmlNamespace } from "#plate/document/source.ts";
 import type { SourceAttribute, SourceDocument, SourceElement } from "#plate/document/source.ts";
@@ -9,6 +14,7 @@ import type { ExtendedTextInteraction } from "#plate/interactions/extended-text.
 import type { InlineChoiceInteraction } from "#plate/interactions/inline-choice.ts";
 import type { TextEntryInteraction } from "#plate/interactions/text-entry.ts";
 import type { IntegerOrRef } from "#plate/model/integer-ref.ts";
+import { rubricViews } from "#plate/model/item.dictionary.ts";
 import { admittedItem } from "#plate/test/admitted.ts";
 import type {
   AreaMapping,
@@ -19,6 +25,7 @@ import type {
   TemplateVisibility,
 } from "#plate/model/item.ts";
 import type { RecordValue, Value } from "#plate/model/values.ts";
+import { boxHolds } from "#plate/test/box.ts";
 import { float, integer } from "#plate/test/fixtures.ts";
 import {
   bindQuadratically,
@@ -276,6 +283,21 @@ const extendedTextItem = (
   });
 
 /**
+ * How long one case of a search here may run before it is stopped and reported.
+ */
+const caseHang = Duration.seconds(30);
+
+/**
+ * Draw a view list of the rubric box: every nonempty set of {@link rubricViews}, in the XSD's order.
+ */
+const viewSet: Gen<readonly string[]> = subset(rubricViews, { max: 6, min: 1 });
+
+/**
+ * How many view lists {@link viewSet} draws: every nonempty subset of six views.
+ */
+const VIEW_SETS = 2 ** 6 - 1;
+
+/**
  * Read an item written as XML text, at `items/test.xml`.
  *
  * @param xml The document's text.
@@ -504,45 +526,65 @@ describe("buildItem", () => {
     assert.deepStrictEqual(built.unsupported, []);
   });
 
-  it("leaves out a rubric block exactly when its view leaves out candidate, over every view list", () => {
-    const views = ["author", "candidate", "proctor", "scorer", "testConstructor", "tutor"];
-    /**
-     * Every set of the XSD's six views (View.Type), the empty one first. Each nonempty set is
-     * written as a list: the block is the Rubric Block module's content node, holding its content,
-     * when the set holds candidate, and in no node or verdict otherwise.
-     */
-    const sets: (readonly string[])[] = [[]];
-    for (const view of views) {
-      for (const each of sets.map((set) => [...set, view])) {
-        sets.push(each);
-      }
-    }
-    for (const listed of sets.filter((set) => set.length > 0)) {
-      const built = admittedItem(
-        item({
-          body: [
-            el("p", [], [text("Before")]),
-            el(
-              "qti-rubric-block",
-              [attr("use", "ext:criteria"), attr("view", ` ${listed.join("\t")} `)],
-              [el("qti-content-body", [], [el("p", [], [text("Model answer")])])],
-            ),
-            el("p", [], [text("After")]),
-          ],
-          declarations: [],
-        }),
-      );
-      const shown = listed.includes("candidate");
+  it.effect(
+    `leaves out a rubric block exactly when its view leaves out candidate, over every nonempty set of the XSD's ${String(rubricViews.length)} views: ${String(VIEW_SETS)} sets`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(viewSet, VIEW_SETS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every nonempty set of View.Type's six views, in the XSD's order, tab-separated and padded with a space",
+              caseHang,
+              coverage: requiredInSpace<"shown" | "left out">(["shown", "left out"]),
+              generator: viewSet,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the Rubric Block module's reading of view: a block is for the candidate exactly when its view lists candidate, so it is the module's content node, holding its content, then, and in no node, notice or verdict otherwise",
+              },
+              suite: "plate/item/rubric-views",
+            },
+            (listed, c) =>
+              Effect.sync(() => {
+                const built = admittedItem(
+                  item({
+                    body: [
+                      el("p", [], [text("Before")]),
+                      el(
+                        "qti-rubric-block",
+                        [attr("use", "ext:criteria"), attr("view", ` ${listed.join("\t")} `)],
+                        [el("qti-content-body", [], [el("p", [], [text("Model answer")])])],
+                      ),
+                      el("p", [], [text("After")]),
+                    ],
+                    declarations: [],
+                  }),
+                );
+                const shown = listed.includes("candidate");
+                c.note(shown ? "shown" : "left out");
 
-      assert.deepStrictEqual(
-        built.body.map((node) => (node.kind === "content" ? `content:${node.element}` : node.kind)),
-        shown ? ["element", "content:qti-rubric-block", "element"] : ["element", "element"],
-        listed.join(" "),
-      );
-      assert.deepStrictEqual(built.unsupported, [], listed.join(" "));
-      assert.strictEqual(JSON.stringify(built).includes("Model answer"), shown, listed.join(" "));
-    }
-  });
+                assert.deepStrictEqual(
+                  built.body.map((node) =>
+                    node.kind === "content" ? `content:${node.element}` : node.kind,
+                  ),
+                  shown
+                    ? ["element", "content:qti-rubric-block", "element"]
+                    : ["element", "element"],
+                  listed.join(" "),
+                );
+                assert.deepStrictEqual(built.unsupported, [], listed.join(" "));
+                assert.strictEqual(
+                  JSON.stringify(built).includes("Model answer"),
+                  shown,
+                  listed.join(" "),
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 
   it("shows an upload interaction as a notice and keeps the rest of the body", () => {
     const built = admittedItem(
