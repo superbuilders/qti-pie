@@ -27,8 +27,9 @@
  * of the response variable" (QTI 3.0 implementation guide), each repeat counting against the
  * choice's `match-max`; `max-associations` caps the pairs; and a pair stands only where the
  * `match-group` of each side, when it lists any, names the other. A drop on a hotspot that holds
- * its one choice trades places, as a gap's does; a hotspot that holds more refuses once full, since
- * which choice would leave is not the child's to guess.
+ * its one choice trades places, as a half of an associate's box does, where a Gap Match's gap
+ * refuses (`gapBoardOf` in `#plate/placement/gap-board.ts`); a hotspot that holds more refuses once
+ * full, since which choice would leave is not the child's to guess.
  *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info/index.html#Data_GraphicGapMatchInteraction

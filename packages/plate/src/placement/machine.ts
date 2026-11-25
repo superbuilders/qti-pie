@@ -76,8 +76,10 @@ export interface SequenceBoard {
  *   3.0 implementation guide, graphic gap match).
  * - `swap` says whether a drop onto a full target that holds at most one chip trades places with that
  *   chip: a chip from the bank sends the occupant back, and a chip from another target takes the
- *   occupant's place and leaves it its own. Gap match swaps; a match target that holds several
- *   refuses, since which chip would leave is not the child's to guess.
+ *   occupant's place and leaves it its own. A graphic gap match's hotspot that holds one swaps; a
+ *   gap refuses, so the child lifts its gap text out first (`gapBoardOf` in
+ *   `#plate/placement/gap-board.ts`); and a match target that holds several refuses, since which
+ *   chip would leave is not the child's to guess.
  *
  * A pair is allowed only where both sides' `match-group`s allow it. QTI's `match-group` is "a list
  * of the identifiers for the objects that can be matched with this choice" (5.131.5; on a gap,
@@ -117,7 +119,7 @@ export interface PartnerRule {
  * once every box holds a pair and while the total allows one more: boxes grow one at a time, and
  * none is offered at the total (plate's ruling R11). A box whose halves both empty closes up, so no
  * empty box stands among the others. A half holds one chip, and a drop onto a full half trades
- * places with its chip, as a gap's does.
+ * places with its chip, as a graphic gap match's hotspot that holds one does.
  *
  * A pair joins two different choices, as no other box joins them in either order: plate's ruling
  * (after #246), since an associate lets the candidate "create associations between" its choices
@@ -825,8 +827,8 @@ export const chipsIn = (arrangement: Arrangement, spot: Spot): readonly string[]
 
 /**
  * Report whether a spot shows "full" to the child: it holds its capacity and takes no swap, as a
- * match group at its `match-max` does. A filled gap, order position or half still takes a chip, by
- * trading places.
+ * match group at its `match-max` does, or a filled gap. An order position, a half, or a graphic gap
+ * match's hotspot that holds one still takes a chip, by trading places.
  *
  * @param arrangement The arrangement.
  * @param spot A target, a position or a half.

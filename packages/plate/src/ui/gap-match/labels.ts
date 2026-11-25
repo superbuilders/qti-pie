@@ -12,8 +12,9 @@ import { placementKeys } from "#plate/ui/placement/labels.ts";
 /**
  * The catalog's message for every text a Gap Match writes for the child: the placement primitive's,
  * and a gap's name, which fills `{target}` and `{from}` in the primitive's, so `placed` names the
- * gap a chip went into and an empty gap's slot names its gap. A Gap Match's board never refuses
- * with `targetFull`, since a gap holds one gap text and a drop on a filled gap swaps.
+ * gap a chip went into and an empty gap's slot names its gap. A drop on a filled gap is refused
+ * with `targetFull`, "Blank 2 is full. Take one out first.", since a gap holds one gap text and
+ * gives none up to a drop (`gapBoardOf` in `#plate/placement/gap-board.ts`).
  */
 export const gapMatchKeys = {
   ...placementKeys,

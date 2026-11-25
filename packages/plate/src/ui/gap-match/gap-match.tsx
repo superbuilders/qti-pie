@@ -11,13 +11,19 @@
  * text, its MathML and its images ship as HTML and only the gaps are client parts. Each {@link Gap}
  * reads the island's gap texts and labels from its context and the placements from the primitive's.
  *
- * QTI decides the board (QTI 3.0 information model 5.57): the gap texts are the sources and the
- * gaps the targets; "Each gap can have at most one choice associated with it", so a gap holds one
- * gap text; a gap text's `match-max` is how many gaps it may fill, so one gap text can fill several
- * gaps as copies; `max-associations` caps the pairs; and a pair stands only where the
- * `match-group` of each side, when it lists any, names the other.
- * A drop on a filled gap trades places, which QTI leaves open and plate rules: a gap text from the
- * bank sends the one in the gap back, and one from another gap takes its place there.
+ * QTI decides the board (QTI 3.0 information model 5.57; `gapBoardOf` in
+ * `#plate/placement/gap-board.ts`): the gap texts are the sources and the gaps the targets; "Each
+ * gap can have at most one choice associated with it", so a gap holds one gap text; a gap text's
+ * `match-max` is how many gaps it may fill, so one gap text can fill several gaps as copies;
+ * `max-associations` caps the pairs; and a pair stands only where the `match-group` of each side,
+ * when it lists any, names the other. A drop on a filled gap is refused, which QTI leaves open and
+ * plate rules: the child lifts the gap text there out first.
+ *
+ * What a gap shows is what the response sends, by construction: the island keeps no placement of
+ * its own, only the chip the child holds, which stays shown where it was until a step moves it.
+ * Each gap draws every gap text the response pairs with it, and its empty place only where the
+ * response pairs it with none, so no pair is sent that no gap shows, and no gap shows a gap text
+ * that is not sent.
  *
  * @module
  */
@@ -30,9 +36,10 @@ import type { GapMatchLabels } from "#plate/ui/gap-match/labels.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
 import type { Limit } from "#plate/placement/limit.ts";
 import { directedPairsOf, placementsOf } from "#plate/ui/placement/associable.ts";
-import { chipRuleOf } from "#plate/placement/rules.ts";
+import { gapBoardOf } from "#plate/placement/gap-board.ts";
+import type { GapRule } from "#plate/placement/gap-board.ts";
 import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
-import type { Pairs, PairsBoard } from "#plate/placement/machine.ts";
+import type { Pairs } from "#plate/placement/machine.ts";
 import {
   PlacementBank,
   PlacementChip,
@@ -66,13 +73,9 @@ export interface GapMatchProps extends Authored<NameAttributes> {
   readonly children: ReactNode;
   /**
    * The gaps shown, in document order, the order their {@link Gap}s' `index` counts: the targets of
-   * the pairs. `matchGroup` is the gap's `match-group`, the gap texts it may take, empty when the
-   * author wrote none or an empty list, which both mean any (5.55.4). Gaps are never shuffled.
+   * the pairs, each with its `match-group` ({@link GapRule}). Gaps are never shuffled.
    */
-  readonly gaps: readonly {
-    readonly identifier: string;
-    readonly matchGroup: readonly string[];
-  }[];
+  readonly gaps: readonly GapRule[];
   /**
    * The gap texts and gap images shown, in display order: the server's order, shuffled already
    * when the interaction shuffles (5.57.1), each one chip in the bank and in each gap it fills.
@@ -117,38 +120,6 @@ interface GapMatchContextValue {
 const GapMatchContext = createContext<GapMatchContextValue | undefined>(undefined);
 
 /**
- * How many gap texts a gap holds: "Each gap can have at most one choice associated with it"
- * (5.57).
- */
-const oneGapText: Limit = { kind: "at-most", n: 1 };
-
-/**
- * Build a Gap Match's placement board from what the server gave the island.
- *
- * @param gapTexts The gap texts, the chips.
- * @param gaps The gaps, the targets: each holding one gap text, and only one its `match-group`
- *   lists, when it lists any.
- * @param maxAssociations `max-associations`, the total.
- * @returns The board: no pair repeats, and a drop on a filled gap swaps.
- */
-const boardOf = (
-  gapTexts: GapMatchProps["gapTexts"],
-  gaps: GapMatchProps["gaps"],
-  maxAssociations: Limit,
-): PairsBoard => ({
-  chips: gapTexts.map(chipRuleOf),
-  kind: "pairs",
-  repeats: false,
-  swap: true,
-  targets: gaps.map(({ identifier, matchGroup }) => ({
-    capacity: oneGapText,
-    chips: matchGroup,
-    id: identifier,
-  })),
-  total: maxAssociations,
-});
-
-/**
  * Render a Gap Match for the child to answer, holding its response in the item's `<Responses>`.
  *
  * The parts:
@@ -167,8 +138,8 @@ const boardOf = (
  *
  * Every change goes through the primitive's machine, which refuses a move before any state
  * changes: a gap text with no uses left, a pair past `max-associations`, a pair either side's
- * `match-group` leaves out, and a gap text already in that gap. The response is written whole on
- * every change.
+ * `match-group` leaves out, a gap text already in that gap, and any drop on a filled gap. The
+ * response is written whole on every change.
  *
  * @param props The interaction, its response and its labels ({@link GapMatchProps}).
  * @returns The Gap Match, its placements bound to the response.
@@ -188,7 +159,7 @@ export const GapMatch = (props: GapMatchProps) => {
   } = props;
   const [pairs, set] = useResponse(response, directedPairSingles);
   const board = useMemo(
-    () => boardOf(gapTexts, gaps, maxAssociations),
+    () => gapBoardOf(gapTexts, gaps, maxAssociations),
     [gapTexts, gaps, maxAssociations],
   );
   const context = useMemo(
@@ -253,22 +224,23 @@ export interface GapProps {
 
 /**
  * Render one gap of a Gap Match's sentence, where a `qti-gap` stands: a place inline in the line
- * that holds one gap text.
+ * that holds one gap text, drawn from the response alone.
  *
  * The parts:
  *
  * - `plate-gap`, a `span` standing in the line, which grows around it;
  * - `plate-placement-target`, the primitive's target, a `span` and a `group` named by the `gap`
  *   label, "Blank 2", which announcements and refusals read;
- * - `plate-placement-slot`, while the gap is empty: the button that puts the held gap text here,
- *   named by the `slot` label with the gap's name, "Put it in Blank 2", an empty dashed place at
- *   least 64 px tall. It shows no number or letter of plate's own: the author's content around a
- *   gap may hold numerals of its own, a comparison's or a number line's, which a number of plate's
- *   would read as part of, and AlphaTest's player drew the empty place blank, as the K–2 mastery
- *   forms' design does. The gap's number lives in its name alone, which a refusal says just after
- *   the child acted on that gap;
- * - `plate-placement-chip`, while the gap is filled: the gap text it holds, at a chip's full size,
- *   which picks it up again, or, while another is held, trades places with it.
+ * - `plate-placement-slot`, while the response pairs no gap text with the gap: the button that puts
+ *   the held gap text here, named by the `slot` label with the gap's name, "Put it in Blank 2", an
+ *   empty dashed place at least 64 px tall. It shows no number or letter of plate's own: the
+ *   author's content around a gap may hold numerals of its own, a comparison's or a number line's,
+ *   which a number of plate's would read as part of, and AlphaTest's player drew the empty place
+ *   blank, as the K–2 mastery forms' design does. The gap's number lives in its name alone, which a
+ *   refusal says just after the child acted on that gap;
+ * - `plate-placement-chip`, one for each gap text the response pairs with the gap, at a chip's full
+ *   size, which picks it up again. A gap holds one gap text, but the gap draws whatever the
+ *   response pairs with it, so what it shows is what is sent whatever the response holds.
  *
  * The response names only gap texts and gaps the island shows, since the server drops any other
  * pair it restores.
@@ -295,13 +267,19 @@ export const Gap = (props: GapProps) => {
         render={<span />}
         spot={{ id: identifier, kind: "target" }}
       >
-        {({ chips: [chip] }) =>
-          chip === undefined ? (
+        {({ chips }) =>
+          chips.length === 0 ? (
             <PlacementSlot />
           ) : (
-            <PlacementChip key={chip} aria-label={gapMatch.gapTexts.get(chip)?.label} value={chip}>
-              {gapMatch.gapTexts.get(chip)?.content}
-            </PlacementChip>
+            chips.map((chip, at) => (
+              <PlacementChip
+                key={`${chip} ${String(at)}`}
+                aria-label={gapMatch.gapTexts.get(chip)?.label}
+                value={chip}
+              >
+                {gapMatch.gapTexts.get(chip)?.content}
+              </PlacementChip>
+            ))
           )
         }
       </PlacementTarget>
