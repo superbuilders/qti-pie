@@ -12,16 +12,23 @@
  * @module
  */
 import { spawnSync } from "node:child_process";
-import { cpSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { scratchFolder } from "#plate/test/scratch.ts";
 
 /**
- * A bug a property must catch: `original` stands once in `file`, a path from plate's package root,
- * and `replacement` takes its place.
+ * A path from the checkout's root to one of plate's sources, the only form a kill's `file` takes:
+ * a path from plate's own root (`src/…`) is no such path and fails to type.
+ */
+export type PlateSource = `packages/plate/src/${string}`;
+
+/**
+ * A bug a property must catch: `original` stands once in `file`, a path from the checkout's root
+ * (qti-pie's, where the toolchain's mutator and its stale-kill lint read a kill's file), and
+ * `replacement` takes its place.
  */
 export interface Kill {
-  readonly file: string;
+  readonly file: PlateSource;
   readonly original: string;
   readonly replacement: string;
   readonly why: string;
@@ -37,26 +44,65 @@ export interface Ran {
 }
 
 /**
- * The package's root, which a kill's `file` is a path from.
+ * The package's root, whose sources a mutant copies.
  */
 const packageRoot = path.resolve(import.meta.dirname, "..", "..");
 
 /**
- * Run a script in a mutant copy of plate with a kill's bug planted.
- *
- * @param kill The bug.
- * @param script The program, at the copy's root, importing the copy's modules by `#plate/*`.
- * @returns What the program did.
- * @throws {Error} When the kill's `original` does not stand once in its file, so the kill would
- *   plant nothing or the wrong thing.
+ * The checkout's root, qti-pie's, two folders above the package's, which a kill's `file` is a path
+ * from.
  */
-export const runKilled = (kill: Kill, script: string): Ran => {
-  const source = readFileSync(path.join(packageRoot, kill.file), "utf-8");
+const checkoutRoot = path.resolve(packageRoot, "..", "..");
 
-  if (source.split(kill.original).length !== 2) {
-    throw new Error(`${kill.file} does not hold "${kill.original}" exactly once`);
+/**
+ * The text of a kill's file, read from the checkout, where its `original` stands exactly once.
+ *
+ * @param planted The bug.
+ * @returns The file's text, unmutated.
+ * @throws {Error} When the file is no file of the checkout, or `original` does not stand once in
+ *   it, so the kill would plant nothing or the wrong thing.
+ */
+const plantedSource = (planted: Kill): string => {
+  const at = path.join(checkoutRoot, planted.file);
+
+  if (!existsSync(at)) {
+    throw new Error(`kill "${planted.why}": ${planted.file} is no file of the checkout`);
   }
 
+  const source = readFileSync(at, "utf-8");
+
+  if (source.split(planted.original).length !== 2) {
+    throw new Error(
+      `kill "${planted.why}": ${planted.file} does not hold "${planted.original}" exactly once`,
+    );
+  }
+
+  return source;
+};
+
+/**
+ * A kill, checked as its table loads: its file stands in the checkout and holds its `original`
+ * exactly once, so a stale path or original fails at its own entry of the table, never as an
+ * ENOENT inside the test that plants it.
+ *
+ * @param planted The bug.
+ * @returns It, checked.
+ */
+export const kill = (planted: Kill): Kill => {
+  plantedSource(planted);
+
+  return planted;
+};
+
+/**
+ * Run a script in a mutant copy of plate with a kill's bug planted.
+ *
+ * @param planted The bug.
+ * @param script The program, at the copy's root, importing the copy's modules by `#plate/*`.
+ * @returns What the program did.
+ */
+export const runKilled = (planted: Kill, script: string): Ran => {
+  const source = plantedSource(planted);
   const copy = scratchFolder("kill-");
 
   try {
@@ -65,7 +111,10 @@ export const runKilled = (kill: Kill, script: string): Ran => {
       path.join(copy, "package.json"),
       JSON.stringify({ imports: { "#plate/*": "./src/*" }, type: "module" }),
     );
-    writeFileSync(path.join(copy, kill.file), source.replace(kill.original, kill.replacement));
+    writeFileSync(
+      path.join(copy, path.relative(packageRoot, path.join(checkoutRoot, planted.file))),
+      source.replace(planted.original, planted.replacement),
+    );
     writeFileSync(path.join(copy, "run.ts"), script);
 
     const run = spawnSync(process.execPath, [path.join(copy, "run.ts")], { encoding: "utf-8" });

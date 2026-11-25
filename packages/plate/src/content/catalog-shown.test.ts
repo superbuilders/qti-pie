@@ -21,7 +21,7 @@ import {
   shownCatalogsXml,
   walkShownCatalogs,
 } from "#plate/test/catalog-shown.ts";
-import { runKilled } from "#plate/test/kills.ts";
+import { kill, runKilled } from "#plate/test/kills.ts";
 import type { Kill } from "#plate/test/kills.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
 
@@ -31,18 +31,18 @@ import { acceptedItem } from "#plate/validate/verdict.ts";
  * catalog a choice the page is given names is dropped.
  */
 const kills: readonly Kill[] = [
-  {
-    file: "src/content/catalog-info.ts",
+  kill({
+    file: "packages/plate/src/content/catalog-info.ts",
     original: "if (references === 0) {",
     replacement: "if (references < 0) {",
     why: "a catalog no part the page is given names is kept",
-  },
-  {
-    file: "src/redact/walk.ts",
+  }),
+  kill({
+    file: "packages/plate/src/redact/walk.ts",
     original: "...referencingChoicesOf(node).flatMap((choice) => Option.toArray(choice.catalog)),",
     replacement: "",
     why: "a choice the page is given names no catalog",
-  },
+  }),
 ];
 
 /**
@@ -82,12 +82,12 @@ describe("the catalogs a redacted item keeps", () => {
       }),
   );
 
-  for (const kill of kills) {
-    it(`kills ${kill.why}`, () => {
-      const run = runKilled(kill, walkScript);
+  for (const planted of kills) {
+    it(`kills ${planted.why}`, () => {
+      const run = runKilled(planted, walkScript);
 
       assert.strictEqual(run.status, 0, run.stderr);
-      assert.notInclude(run.stdout, '"found":null', `the walk passed with ${kill.file} mutated`);
+      assert.notInclude(run.stdout, '"found":null', `the walk passed with ${planted.file} mutated`);
     });
   }
 });
