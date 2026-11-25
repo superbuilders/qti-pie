@@ -16,13 +16,14 @@
  * the test's `ref1.SCORE`, a variable mapping's source and a `qti-test-variables`) and its template
  * `N` (its template processing, a printed variable and the test's template default), with one of
  * the two declared one, two or three times: each added declaration of the original's codes or of
- * others, all of them before the original or after it. 21 packages, exhausted.
+ * others, all of them before the original or after it. 28 packages, exhausted ({@link caseOf}).
  */
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
-import { element } from "@bjornpagen/testing/gen";
+import { array, boolean, map } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Duration, Effect } from "effect";
 import { grammar } from "#pantry/grammar/install.ts";
@@ -115,26 +116,36 @@ interface Case extends Added {
 }
 
 /**
- * The added declarations of a case that declares a name again: one or two, of each pair of codes.
+ * How many times a name is declared with its added declarations: the original's once more for
+ * each.
+ *
+ * @param codes - The added declarations' codes.
+ * @returns The times.
  */
-const addedSets: readonly Added[] = [
-  { codes: ["same"], times: "declared twice" },
-  { codes: ["other"], times: "declared twice" },
-  { codes: ["same", "same"], times: "declared three times" },
-  { codes: ["same", "other"], times: "declared three times" },
-  { codes: ["other", "other"], times: "declared three times" },
-];
+const timesOf = (codes: readonly Codes[]): Times => {
+  if (codes.length === 0) {
+    return "declared once";
+  }
+
+  return codes.length === 1 ? "declared twice" : "declared three times";
+};
 
 /**
- * Every case, the base first: each name with one or two added declarations, of each pair of codes,
- * before the original or after it.
+ * Draw a case: either declared name (`SCORE` or `N`), up to two added declarations, each of the
+ * original's codes or of others, and whether they stand before the original or after its element.
+ * With none added, the item is the base's, declared once.
  */
-const cases: readonly [Case, ...Case[]] = [
-  { before: false, codes: [], name: score, times: "declared once" },
-  ...[score, template].flatMap((name) =>
-    addedSets.flatMap((added) => [false, true].map((before) => ({ ...added, before, name }))),
-  ),
-];
+const caseOf: Gen<Case> = (source) => {
+  const name = source.draw(boolean) ? template : score;
+  const codes = source.draw(
+    array(
+      map(boolean, (other): Codes => (other ? "other" : "same")),
+      { max: 2, min: 0 },
+    ),
+  );
+
+  return { before: source.draw(boolean), codes, name, times: timesOf(codes) };
+};
 
 /**
  * Name a case.
@@ -223,7 +234,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("a second declaration o
 
           return yield* exhaust(
             {
-              box: "the every-relation package, its item declaring SCORE or N once, twice or three times, each added declaration of the original's codes or others, before the original or after it",
+              box: "the every-relation package, its item declaring SCORE or N once, twice or three times, each added declaration of the original's codes or others, before the original or after it: 2 names, 7 lists of added codes and 2 places, 28 packages",
               caseHang: Duration.minutes(5),
               coverage: requiredInSpace<Situation>([
                 "added declaration first",
@@ -232,7 +243,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("a second declaration o
                 "declared three times",
                 "declared twice",
               ]),
-              generator: element(cases),
+              generator: caseOf,
               literal: caseLiteral,
               oracle: {
                 kind: "second-implementation",
