@@ -3722,21 +3722,63 @@ const repeatedStrings = (value: string, count: number): Value => ({
 });
 
 /**
- * The accepted items whose printed variable's whole text passes 1,000,000 characters, each with the
- * value its template processing sets: 600 integers printed under `%999999i`, and 1,000,000 strings
- * of 400 characters printed in the default form (a string a document writes holds at most the 428
- * bytes a key holds, reading `nothing-valid-refused`'s key-text bound, so the database admits it).
+ * A case of the printing box: a route to a long printed text, integers under `%999999i` or strings
+ * of 400 characters in the default form, and how many members the ordered `S` holds.
  */
-const oversizedPrinting: readonly (readonly [SourceDocument, Value])[] = [
-  [
-    repeatedDocument("integer", "1", 600, [attr("format", "%999999i")]),
-    orderedIntegers(Array.from({ length: 600 }, () => 1n)),
-  ],
-  [
-    repeatedDocument("string", "y".repeat(400), 1_000_000, []),
-    repeatedStrings("y".repeat(400), 1_000_000),
-  ],
-];
+interface PrintingCase {
+  readonly count: number;
+  readonly route: "integers" | "strings";
+}
+
+/**
+ * Draw a case of the printing box: 1 or 2 integers under `%999999i`, either side of the bound, and
+ * 2,493 or 2,494 strings of 400 characters, either side of it too, or 1,000,000 of them, far past
+ * it (a string a document writes holds at most the 428 bytes a key holds, reading
+ * `nothing-valid-refused`'s key-text bound, so the database admits it).
+ */
+const printingCase: Gen<PrintingCase> = oneOf([
+  map(int(1, 2), (count): PrintingCase => ({ count, route: "integers" })),
+  map(oneOf([int(2493, 2494), constant(1_000_000)]), (count): PrintingCase => ({
+    count,
+    route: "strings",
+  })),
+]);
+
+/**
+ * How many cases {@link printingCase} draws.
+ */
+const PRINTING_CASES = 2 + 2 + 1;
+
+/**
+ * The length of the text a case's `S` prints, as the printed variable's rules write it: each
+ * member at its width, 999,999 characters under `%999999i` and a string's own 400 in the default
+ * form, and the delimiter `;`, a printed variable's when it states none, between two members.
+ *
+ * @param printCase The case.
+ * @returns The length, in UTF-16 code units, which is characters here.
+ */
+const printedLength = (printCase: PrintingCase): number =>
+  printCase.count * (printCase.route === "integers" ? 999_999 : 400) + (printCase.count - 1);
+
+/**
+ * The document a case's route opens, the one the admission run admitted for it, and the value of
+ * `S` its record holds, which the page prints whatever the document's template processing would
+ * set: the item of 600 integers under `%999999i`, or of 1,000,000 strings of 400 characters, and
+ * the case's count of members.
+ *
+ * @param printCase The case.
+ * @returns The document and the value.
+ */
+const printingOf = (printCase: PrintingCase): readonly [document: SourceDocument, value: Value] =>
+  printCase.route === "integers"
+    ? [
+        repeatedDocument("integer", "1", 600, [attr("format", "%999999i")]),
+        orderedIntegers(Array.from({ length: printCase.count }, () => 1n)),
+      ]
+    : [
+        repeatedDocument("string", "y".repeat(400), 1_000_000, []),
+        repeatedStrings("y".repeat(400), printCase.count),
+      ];
 
 /**
  * The path of {@link repeatedDocument}'s printed variable, as `checkAdmitted` reads it.
@@ -3745,24 +3787,64 @@ const repeatedPath = `${bodyPath}/p/qti-printed-variable`;
 
 describe("redactItem on a printed variable whose text passes 1,000,000 characters", () => {
   it.effect(
-    "returns with the printed variable's place empty and records it, the bound 1,000,000 and its path, for 600 integers under %999999i and for 1,000,000 strings of 400 characters, so render fails rather than show the blank",
-    () =>
-      Effect.gen(function* recordsOversizedText() {
-        for (const [document, value] of oversizedPrinting) {
-          const accepted = yield* Effect.fromOption(acceptedItem(admittedSource(document)));
-          const emptied = redactItem(
-            accepted.item,
-            shownToCandidate,
-            underRecord(holding({ S: value })),
-          );
+    `returns with the printed variable's place empty and records it, the bound 1,000,000 and its path, exactly when its whole text passes the bound, else prints it in full, so render fails rather than show the blank: ${String(PRINTING_CASES)} items`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(printingCase, PRINTING_CASES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "1 or 2 integers under %999999i; 2,493, 2,494 or 1,000,000 strings of 400 characters in the default form",
+              caseHang,
+              coverage: requiredInSpace<"printed" | "emptied">(["printed", "emptied"]),
+              generator: printingCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the printed variable's rules, transcribed in printedLength: each member at its width and the default delimiter ; between two, and the bound of 1,000,000 characters past which nothing prints and the place is recorded",
+              },
+              suite: "plate/payload/printCase-bound",
+            },
+            (printCase, c) =>
+              Effect.gen(function* printsWithinTheBound() {
+                const [document, value] = printingOf(printCase);
+                const accepted = yield* Effect.fromOption(acceptedItem(admittedSource(document)));
+                const redaction = redactItem(
+                  accepted.item,
+                  shownToCandidate,
+                  underRecord(holding({ S: value })),
+                );
 
-          assert.deepStrictEqual(paragraphOf(emptied), [text("Value: ")]);
-          assert.deepStrictEqual(
-            emptied.unprinted,
-            Option.some({ bound: 1_000_000, identifier: "S", limit: "text", path: repeatedPath }),
-          );
-        }
-      }),
+                if (printedLength(printCase) > 1_000_000) {
+                  c.note("emptied");
+
+                  assert.deepStrictEqual(paragraphOf(redaction), [text("Value: ")]);
+                  assert.deepStrictEqual(
+                    redaction.unprinted,
+                    Option.some({
+                      bound: 1_000_000,
+                      identifier: "S",
+                      limit: "text",
+                      path: repeatedPath,
+                    }),
+                  );
+                  return;
+                }
+
+                c.note("printed");
+
+                assert.deepStrictEqual(redaction.unprinted, Option.none());
+                assert.strictEqual(
+                  paragraphOf(redaction)
+                    .flatMap((node) => (node.kind === "text" ? [node.text] : []))
+                    .join("").length,
+                  "Value: ".length + printedLength(printCase),
+                );
+              }),
+          ),
+        ),
+      ),
   );
 
   it.effect(
