@@ -7,7 +7,12 @@ import { Config, Console, Effect, FileSystem, Match, Schema } from "effect";
 import type { PlatformError } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
 import { fragmentType } from "#pantry/grammar/include.ts";
-import { materialize, materializeCorpus, ownIdentifier } from "#pantry/test/fixtures.ts";
+import {
+  materialize,
+  materializeCorpus,
+  ownIdentifier,
+  simpleIdentifier,
+} from "#pantry/test/fixtures.ts";
 import type { ExamplesError } from "#pantry/test/fixtures.ts";
 
 /**
@@ -468,7 +473,10 @@ const writtenSpecOf = (name: ProcessingFixtureName): ProcessingFixtureSpec => {
 const specOfProcessing = (name: ProcessingFixtureName): ProcessingFixtureSpec => {
   const spec = writtenSpecOf(name);
 
-  return { ...spec, edits: [{ ...ownIdentifier(name), _tag: "replaceText" }, ...spec.edits] };
+  return {
+    ...spec,
+    edits: [{ ...ownIdentifier(name, simpleIdentifier), _tag: "replaceText" }, ...spec.edits],
+  };
 };
 
 /**

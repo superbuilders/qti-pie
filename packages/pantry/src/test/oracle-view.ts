@@ -405,7 +405,7 @@ export const elementsOf = (view: View, node: bigint): readonly Row[] =>
 const chainFrom = (
   view: View,
   start: Row | undefined,
-  met: ReadonlySet<bigint> = new Set(),
+  met: ReadonlySet<bigint>,
 ): readonly Row[] => {
   const chain: Row[] = [];
   const seen = new Set(met);
@@ -429,7 +429,7 @@ const chainFrom = (
  *   first node met twice.
  */
 export const pathOf = (view: View, start: bigint): string =>
-  `/${chainFrom(view, view.byStart.get(start))
+  `/${chainFrom(view, view.byStart.get(start), new Set())
     .filter((at) => at.start > 0n)
     .map((at) => `${at.kind}[${String(at.at)}]`)
     .toReversed()
@@ -459,7 +459,7 @@ export const breachAt = <Law extends string>(
   view: View,
   node: Row,
   law: Law,
-  keys: Readonly<Record<string, string>> = {},
+  keys: Readonly<Record<string, string>>,
 ): LawBreach<Law> => ({
   document: view.path,
   keys: { kind: node.kind, node: pathOf(view, node.start), ...keys },
@@ -485,7 +485,7 @@ export interface ResolvedHref {
  * @returns The bases, the root's first.
  */
 const basesAt = (view: View, node: bigint): readonly string[] =>
-  chainFrom(view, view.byStart.get(node))
+  chainFrom(view, view.byStart.get(node), new Set())
     .toReversed()
     .flatMap(({ start }) => Option.toArray(valueOf(view, start, "xml:base")));
 
@@ -496,18 +496,15 @@ const basesAt = (view: View, node: bigint): readonly string[] =>
  * @param view - The node's document.
  * @param node - The node.
  * @param lexical - The attribute's lexical form.
- * @param read - How the value is read: its type's whitespace class, an `xs:anyURI`'s `collapse`
- *   unless given.
- * @param read.whiteSpace - The class.
+ * @param whiteSpace - The whitespace class of the attribute's type, an `xs:anyURI`'s `collapse`.
  * @returns The href resolved.
  */
 export const resolvedAt = (
   view: View,
   node: bigint,
   lexical: string,
-  read: { readonly whiteSpace?: OracleWhiteSpace } = {},
+  whiteSpace: OracleWhiteSpace,
 ): ResolvedHref => {
-  const whiteSpace = read.whiteSpace ?? "collapse";
   const resolution = resolveAttribute({
     bases: basesAt(view, node),
     document: view.path,
@@ -530,7 +527,7 @@ export const resolvedAt = (
 export const hrefPathOf = (view: View, node: Row): Option.Option<string> =>
   Option.map(
     valueOf(view, node.start, "href"),
-    (lexical) => resolvedAt(view, node.start, lexical).path,
+    (lexical) => resolvedAt(view, node.start, lexical, "collapse").path,
   );
 
 /**

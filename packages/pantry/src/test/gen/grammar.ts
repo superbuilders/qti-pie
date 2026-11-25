@@ -96,16 +96,22 @@ export interface XsdSet {
  * The XSD element children of a schema node.
  *
  * @param node - The node.
- * @param local - Only children of this local name, or every one.
  * @returns The children.
  */
-const xsChildren = (node: Element, local?: string): readonly Element[] =>
+const xsChildren = (node: Element): readonly Element[] =>
   node.children.filter(
-    (child): child is Element =>
-      child.kind === "element" &&
-      child.namespace === xs &&
-      (local === undefined || child.local === local),
+    (child): child is Element => child.kind === "element" && child.namespace === xs,
   );
+
+/**
+ * The XSD element children of a schema node of one local name.
+ *
+ * @param node - The node.
+ * @param local - Their local name.
+ * @returns The children.
+ */
+const xsChildrenNamed = (node: Element, local: string): readonly Element[] =>
+  xsChildren(node).filter((child) => child.local === local);
 
 /**
  * Read an unqualified attribute of a schema node.
@@ -674,8 +680,8 @@ const contentOfType = (set: XsdSet, component: Component, type: string): Content
 
   const mixed = Option.contains(attributeOf(node, "mixed"), "true");
   const derived = Arr.head([
-    ...xsChildren(node, "complexContent"),
-    ...xsChildren(node, "simpleContent"),
+    ...xsChildrenNamed(node, "complexContent"),
+    ...xsChildrenNamed(node, "simpleContent"),
   ]);
   if (Option.isNone(derived)) {
     const own = ownAttributes(set, document, node);
@@ -692,8 +698,8 @@ const contentOfType = (set: XsdSet, component: Component, type: string): Content
 
   const simple = derived.value.local === "simpleContent";
   const derivation = Arr.head([
-    ...xsChildren(derived.value, "extension"),
-    ...xsChildren(derived.value, "restriction"),
+    ...xsChildrenNamed(derived.value, "extension"),
+    ...xsChildrenNamed(derived.value, "restriction"),
   ]);
 
   return Option.match(derivation, {
@@ -769,8 +775,8 @@ const contentOfDeclaration = (set: XsdSet, declaration: Component): Content => {
   if (
     Option.isNone(named) &&
     Option.isSome(head) &&
-    xsChildren(node, "complexType").length === 0 &&
-    xsChildren(node, "simpleType").length === 0
+    xsChildrenNamed(node, "complexType").length === 0 &&
+    xsChildrenNamed(node, "simpleType").length === 0
   ) {
     return contentOfDeclaration(set, head.value);
   }
@@ -792,7 +798,7 @@ const contentOfDeclaration = (set: XsdSet, declaration: Component): Content => {
   }
 
   return Option.match(
-    Arr.head([...xsChildren(node, "complexType"), ...xsChildren(node, "simpleType")]),
+    Arr.head([...xsChildrenNamed(node, "complexType"), ...xsChildrenNamed(node, "simpleType")]),
     {
       onNone: () => ({
         anyAttribute: true,

@@ -492,7 +492,7 @@ const resourceTypesByPath = (
   for (const node of manifest.members) {
     if (node.kind === "cp:resource") {
       for (const lexical of Option.toArray(valueOf(manifest, node.start, "href"))) {
-        const { path } = resolvedAt(manifest, node.start, lexical);
+        const { path } = resolvedAt(manifest, node.start, lexical, "collapse");
         byPath.set(path, [...(byPath.get(path) ?? []), typedOr(manifest, node.start, "type", "")]);
       }
     }
@@ -521,7 +521,7 @@ export const itemRefTargetOf = (
   itemRef: Row,
 ): Option.Option<{ readonly path: string; readonly type: Option.Option<string> }> =>
   valueOf(referrer.rows, itemRef.start, "href").pipe(
-    Option.map((lexical) => resolvedAt(referrer.rows, itemRef.start, lexical)),
+    Option.map((lexical) => resolvedAt(referrer.rows, itemRef.start, lexical, "collapse")),
     Option.filter(({ resolution }) => resolution.scope !== "external"),
     Option.flatMap(({ path }) => {
       const held = resourceTypesByPath(input.manifest).get(path) ?? [];

@@ -1009,7 +1009,7 @@ const bodyRow = "<tbody><tr><td>cell</td></tr></tbody>";
  * @param files - The files the item names that its package does not hold, added before the cut.
  * @returns The spec, named `html-<element>`.
  */
-const htmlItem = (element: string, use: string, files: readonly FileEdit[] = []): FixtureSpec => ({
+const htmlItem = (element: string, use: string, files: readonly FileEdit[]): FixtureSpec => ({
   edits: [
     ...files,
     replaceIn(bgChoiceItem, bgChoiceQuestion, use),
@@ -1023,14 +1023,19 @@ const htmlItem = (element: string, use: string, files: readonly FileEdit[] = [])
  * The 40 hand-written HTML positives, one row per element of {@link htmlElements}.
  */
 const htmlSpecs: Readonly<Record<`html-${(typeof htmlElements)[number]}`, FixtureSpec>> = {
-  "html-abbr": htmlItem("abbr", "<p>This is a True/False question? <abbr>T/F</abbr></p>"),
+  "html-abbr": htmlItem("abbr", "<p>This is a True/False question? <abbr>T/F</abbr></p>", []),
   "html-acronym": htmlItem(
     "acronym",
     "<p>This is a True/False question? <acronym>TF</acronym></p>",
+    [],
   ),
-  "html-address": htmlItem("address", `${bgChoiceQuestion}<address>1 Main Street</address>`),
-  "html-article": htmlItem("article", `${bgChoiceQuestion}<article><p>An article.</p></article>`),
-  "html-aside": htmlItem("aside", `${bgChoiceQuestion}<aside><p>An aside.</p></aside>`),
+  "html-address": htmlItem("address", `${bgChoiceQuestion}<address>1 Main Street</address>`, []),
+  "html-article": htmlItem(
+    "article",
+    `${bgChoiceQuestion}<article><p>An article.</p></article>`,
+    [],
+  ),
+  "html-aside": htmlItem("aside", `${bgChoiceQuestion}<aside><p>An aside.</p></aside>`, []),
   "html-audio": htmlItem(
     "audio",
     `${bgChoiceQuestion}<audio controls="controls"><source src="audio/clip.mp3" type="audio/mpeg"/></audio>`,
@@ -1042,73 +1047,88 @@ const htmlSpecs: Readonly<Record<`html-${(typeof htmlElements)[number]}`, Fixtur
       },
     ],
   ),
-  "html-bdi": htmlItem("bdi", "<p>This is a True/False question? <bdi>isolated</bdi></p>"),
-  "html-big": htmlItem("big", "<p>This is a True/False question? <big>big</big></p>"),
+  "html-bdi": htmlItem("bdi", "<p>This is a True/False question? <bdi>isolated</bdi></p>", []),
+  "html-big": htmlItem("big", "<p>This is a True/False question? <big>big</big></p>", []),
   "html-caption": htmlItem(
     "caption",
     `${bgChoiceQuestion}<table><caption>A caption.</caption>${bodyRow}</table>`,
+    [],
   ),
-  "html-cite": htmlItem("cite", "<p>This is a True/False question? <cite>A title</cite></p>"),
-  "html-code": htmlItem("code", "<p>This is a True/False question? <code>x = 1</code></p>"),
-  "html-col": htmlItem("col", `${bgChoiceQuestion}<table><col/>${bodyRow}</table>`),
+  "html-cite": htmlItem("cite", "<p>This is a True/False question? <cite>A title</cite></p>", []),
+  "html-code": htmlItem("code", "<p>This is a True/False question? <code>x = 1</code></p>", []),
+  "html-col": htmlItem("col", `${bgChoiceQuestion}<table><col/>${bodyRow}</table>`, []),
   "html-colgroup": htmlItem(
     "colgroup",
     `${bgChoiceQuestion}<table><colgroup><col/></colgroup>${bodyRow}</table>`,
+    [],
   ),
-  "html-dd": htmlItem("dd", `${bgChoiceQuestion}<dl><dd>A definition.</dd></dl>`),
+  "html-dd": htmlItem("dd", `${bgChoiceQuestion}<dl><dd>A definition.</dd></dl>`, []),
   "html-details": htmlItem(
     "details",
     `${bgChoiceQuestion}<div><details><summary>Hint</summary><p>A hint.</p></details></div>`,
+    [],
   ),
-  "html-dfn": htmlItem("dfn", "<p>This is a True/False question? <dfn>term</dfn></p>"),
-  "html-dl": htmlItem("dl", `${bgChoiceQuestion}<dl><dt>Term</dt><dd>A definition.</dd></dl>`),
-  "html-dt": htmlItem("dt", `${bgChoiceQuestion}<dl><dt>Term</dt></dl>`),
-  "html-footer": htmlItem("footer", `${bgChoiceQuestion}<footer><p>A footer.</p></footer>`),
-  "html-h4": htmlItem("h4", `${bgChoiceQuestion}<h4>A heading</h4>`),
-  "html-h6": htmlItem("h6", `${bgChoiceQuestion}<h6>A heading</h6>`),
-  "html-header": htmlItem("header", `${bgChoiceQuestion}<header><p>A header.</p></header>`),
-  "html-kbd": htmlItem("kbd", "<p>This is a True/False question? <kbd>Enter</kbd></p>"),
-  "html-label": htmlItem("label", "<p>This is a True/False question? <label>A label</label></p>"),
-  "html-nav": htmlItem("nav", `${bgChoiceQuestion}<nav><p>A nav.</p></nav>`),
-  "html-ol": htmlItem("ol", `${bgChoiceQuestion}<ol><li>One</li></ol>`),
+  "html-dfn": htmlItem("dfn", "<p>This is a True/False question? <dfn>term</dfn></p>", []),
+  "html-dl": htmlItem("dl", `${bgChoiceQuestion}<dl><dt>Term</dt><dd>A definition.</dd></dl>`, []),
+  "html-dt": htmlItem("dt", `${bgChoiceQuestion}<dl><dt>Term</dt></dl>`, []),
+  "html-footer": htmlItem("footer", `${bgChoiceQuestion}<footer><p>A footer.</p></footer>`, []),
+  "html-h4": htmlItem("h4", `${bgChoiceQuestion}<h4>A heading</h4>`, []),
+  "html-h6": htmlItem("h6", `${bgChoiceQuestion}<h6>A heading</h6>`, []),
+  "html-header": htmlItem("header", `${bgChoiceQuestion}<header><p>A header.</p></header>`, []),
+  "html-kbd": htmlItem("kbd", "<p>This is a True/False question? <kbd>Enter</kbd></p>", []),
+  "html-label": htmlItem(
+    "label",
+    "<p>This is a True/False question? <label>A label</label></p>",
+    [],
+  ),
+  "html-nav": htmlItem("nav", `${bgChoiceQuestion}<nav><p>A nav.</p></nav>`, []),
+  "html-ol": htmlItem("ol", `${bgChoiceQuestion}<ol><li>One</li></ol>`, []),
   "html-param": htmlItem(
     "param",
     `<p>This is a True/False question? <object data="images/train.png" type="image/png"><param name="n" value="v" valuetype="DATA"/></object></p>`,
+    [],
   ),
-  "html-pre": htmlItem("pre", `${bgChoiceQuestion}<pre>a  b</pre>`),
-  "html-q": htmlItem("q", "<p>This is a True/False question? <q>quoted</q></p>"),
+  "html-pre": htmlItem("pre", `${bgChoiceQuestion}<pre>a  b</pre>`, []),
+  "html-q": htmlItem("q", "<p>This is a True/False question? <q>quoted</q></p>", []),
   "html-rp": htmlItem(
     "rp",
     "<p>This is a True/False question? <ruby>base<rp>(</rp><rt>top</rt><rp>)</rp></ruby></p>",
+    [],
   ),
   "html-rtc": htmlItem(
     "rtc",
     "<p>This is a True/False question? <ruby>base<rtc><rt>top</rt></rtc></ruby></p>",
+    [],
   ),
-  "html-samp": htmlItem("samp", "<p>This is a True/False question? <samp>output</samp></p>"),
+  "html-samp": htmlItem("samp", "<p>This is a True/False question? <samp>output</samp></p>", []),
   "html-small": htmlItem(
     "small",
     "<p>This is a True/False question? <small>fine print</small></p>",
+    [],
   ),
-  "html-sub": htmlItem("sub", "<p>This is a True/False question? H<sub>2</sub>O</p>"),
+  "html-sub": htmlItem("sub", "<p>This is a True/False question? H<sub>2</sub>O</p>", []),
   "html-summary": htmlItem(
     "summary",
     `${bgChoiceQuestion}<div><details><summary>Hint</summary><p>A hint.</p></details></div>`,
+    [],
   ),
   "html-tfoot": htmlItem(
     "tfoot",
     `${bgChoiceQuestion}<table>${bodyRow}<tfoot><tr><td>total</td></tr></tfoot></table>`,
+    [],
   ),
   "html-th": htmlItem(
     "th",
     `${bgChoiceQuestion}<table><tbody><tr><th>head</th><td>cell</td></tr></tbody></table>`,
+    [],
   ),
   "html-thead": htmlItem(
     "thead",
     `${bgChoiceQuestion}<table><thead><tr><td>head</td></tr></thead>${bodyRow}</table>`,
+    [],
   ),
-  "html-tt": htmlItem("tt", "<p>This is a True/False question? <tt>mono</tt></p>"),
-  "html-var": htmlItem("var", "<p>This is a True/False question? <var>x</var></p>"),
+  "html-tt": htmlItem("tt", "<p>This is a True/False question? <tt>mono</tt></p>", []),
+  "html-var": htmlItem("var", "<p>This is a True/False question? <var>x</var></p>", []),
 };
 
 /**
@@ -1987,7 +2007,7 @@ interface VariantOptions {
  * @param options - How the fixture differs from `variant`, whose defaults are the valid package.
  * @returns The edits as plain data.
  */
-const variantEdits = (options: VariantOptions = {}): readonly Edit[] => {
+const variantEdits = (options: VariantOptions): readonly Edit[] => {
   const {
     beforeFile = false,
     children = drdChildren,
@@ -2135,6 +2155,12 @@ const usageMember = "qtiv3-examples/packaging/usageData/usageData.zip";
 const svgMember = "qtiv3-examples/packaging/svg/svg.zip";
 
 /**
+ * `simple`'s manifest identifier, which 1EdTech's `svg` shares: the one a variant of `simple`
+ * replaces with its own ({@link ownIdentifier}).
+ */
+export const simpleIdentifier = "MANIFEST-85D76736-6D19-9DC0-7C0B-57C31A9FD390";
+
+/**
  * The manifest identifier of each corpus package whose variants the lease imports into one
  * database, by its tarball member: `simple`'s, which 1EdTech's `svg` shares, `sharedMedia`'s and
  * `usageData`'s. A package is keyed by its manifest identifier (`#pantry/qti/package.ts`), so two
@@ -2142,8 +2168,8 @@ const svgMember = "qtiv3-examples/packaging/svg/svg.zip";
  * variant holds its own ({@link variantOf}).
  */
 const copiedIdentifiers: ReadonlyMap<string, string> = new Map([
-  [simpleMember, "MANIFEST-85D76736-6D19-9DC0-7C0B-57C31A9FD390"],
-  [svgMember, "MANIFEST-85D76736-6D19-9DC0-7C0B-57C31A9FD390"],
+  [simpleMember, simpleIdentifier],
+  [svgMember, simpleIdentifier],
   [sharedMediaMember, "MANIFEST-85D76736-6D19-9DC0-7C0B-57C31A9FD391"],
   [usageMember, "usage-TEST-106391"],
 ]);
@@ -2163,13 +2189,12 @@ export const ownIdentifierOf = (name: string): string =>
  * {@link ownIdentifierOf} its name, in place of the package's.
  *
  * @param name - The variant's name.
- * @param identifier - The manifest identifier the package it is copied from holds; `simple`'s by
- *   default.
+ * @param identifier - The manifest identifier the package it is copied from holds.
  * @returns The edit of `imsmanifest.xml`.
  */
 export const ownIdentifier = (
   name: string,
-  identifier = copiedIdentifiers.get(simpleMember) ?? "",
+  identifier: string,
 ): Extract<TextEdit, { readonly _tag: "ReplaceText" }> => ({
   _tag: "ReplaceText",
   file: "imsmanifest.xml",
@@ -2805,8 +2830,8 @@ const addExample = (file: string, member: string): FileEdit => ({
  */
 const stubItem = (
   identifier: string,
-  outcomes: readonly (readonly [string, string])[] = [],
-  scored = true,
+  outcomes: readonly (readonly [string, string])[],
+  scored: boolean,
 ): string =>
   [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -2835,7 +2860,7 @@ const stubItem = (
  * @param extra - Further root attributes, each with its leading space.
  * @returns The test's text.
  */
-const testDocument = (identifier: string, body: readonly string[], extra = ""): string =>
+const testDocument = (identifier: string, body: readonly string[], extra: string): string =>
   [
     '<?xml version="1.0" encoding="UTF-8"?>',
     `<qti-assessment-test ${asiRoot}${extra} identifier="${identifier}" title="${identifier}">`,
@@ -2884,7 +2909,7 @@ const resourceOf = (
   identifier: string,
   type: string,
   href: string,
-  files: readonly string[] = [],
+  files: readonly string[],
 ): ManifestResource => ({ files: [href, ...files], href, identifier, type });
 
 /**
@@ -3115,18 +3140,22 @@ const testMappingEdits: readonly Edit[] = [
  * A hand-written test over `BPIG_22April`'s `template_image.xml`: its `SPEED` template declaration
  * (integer) takes as default `TRIP.SPEEDLIMIT`, an integer outcome of the item ref before it.
  */
-const templateDefaultTest: string = testDocument("TEMPLATE-DEFAULT", [
-  '  <qti-test-part identifier="PART" navigation-mode="linear" submission-mode="individual">',
-  '    <qti-assessment-section identifier="SECTION" title="Section" visible="true">',
-  '      <qti-assessment-item-ref identifier="TRIP" href="items/trip.xml"/>',
-  '      <qti-assessment-item-ref identifier="MICK" href="items/template_image.xml">',
-  '        <qti-template-default template-identifier="SPEED">',
-  '          <qti-variable identifier="TRIP.SPEEDLIMIT"/>',
-  "        </qti-template-default>",
-  "      </qti-assessment-item-ref>",
-  "    </qti-assessment-section>",
-  "  </qti-test-part>",
-]);
+const templateDefaultTest: string = testDocument(
+  "TEMPLATE-DEFAULT",
+  [
+    '  <qti-test-part identifier="PART" navigation-mode="linear" submission-mode="individual">',
+    '    <qti-assessment-section identifier="SECTION" title="Section" visible="true">',
+    '      <qti-assessment-item-ref identifier="TRIP" href="items/trip.xml"/>',
+    '      <qti-assessment-item-ref identifier="MICK" href="items/template_image.xml">',
+    '        <qti-template-default template-identifier="SPEED">',
+    '          <qti-variable identifier="TRIP.SPEEDLIMIT"/>',
+    "        </qti-template-default>",
+    "      </qti-assessment-item-ref>",
+    "    </qti-assessment-section>",
+    "  </qti-test-part>",
+  ],
+  "",
+);
 
 /**
  * The outcomes both tests of `test-section-ref` declare, which the shared section document names
@@ -3153,15 +3182,19 @@ const sectionRefTest = (
   outcomes: readonly string[],
   items: readonly string[],
 ): string =>
-  testDocument(identifier, [
-    ...outcomes,
-    '  <qti-test-part identifier="PART" navigation-mode="linear" submission-mode="individual">',
-    '    <qti-assessment-section identifier="main" title="Main" visible="true">',
-    ...items,
-    '      <qti-assessment-section-ref identifier="S1" href="sections/shared.xml"/>',
-    "    </qti-assessment-section>",
-    "  </qti-test-part>",
-  ]);
+  testDocument(
+    identifier,
+    [
+      ...outcomes,
+      '  <qti-test-part identifier="PART" navigation-mode="linear" submission-mode="individual">',
+      '    <qti-assessment-section identifier="main" title="Main" visible="true">',
+      ...items,
+      '      <qti-assessment-section-ref identifier="S1" href="sections/shared.xml"/>',
+      "    </qti-assessment-section>",
+      "  </qti-test-part>",
+    ],
+    "",
+  );
 
 /**
  * The section document both tests of `test-section-ref` reach: a pre-condition with
@@ -3198,14 +3231,14 @@ const lonelySection: string = sectionDocument("lonely", [
  * items.
  */
 const sectionRefManifest: string = manifestText("SECTION-REF", [
-  resourceOf("test-a", "imsqti_test_xmlv3p0", "rtest01.xml"),
-  resourceOf("test-b", "imsqti_test_xmlv3p0", "test-b.xml"),
-  resourceOf("shared", "imsqti_section_xmlv3p0", "sections/shared.xml"),
-  resourceOf("lonely", "imsqti_section_xmlv3p0", "sections/lonely.xml"),
-  resourceOf("item-a", "imsqti_item_xmlv3p0", "items/a1.xml"),
-  resourceOf("item-b", "imsqti_item_xmlv3p0", "items/b1.xml"),
-  resourceOf("item-i2", "imsqti_item_xmlv3p0", "items/i2.xml"),
-  resourceOf("item-shared", "imsqti_item_xmlv3p0", "items/shared.xml"),
+  resourceOf("test-a", "imsqti_test_xmlv3p0", "rtest01.xml", []),
+  resourceOf("test-b", "imsqti_test_xmlv3p0", "test-b.xml", []),
+  resourceOf("shared", "imsqti_section_xmlv3p0", "sections/shared.xml", []),
+  resourceOf("lonely", "imsqti_section_xmlv3p0", "sections/lonely.xml", []),
+  resourceOf("item-a", "imsqti_item_xmlv3p0", "items/a1.xml", []),
+  resourceOf("item-b", "imsqti_item_xmlv3p0", "items/b1.xml", []),
+  resourceOf("item-i2", "imsqti_item_xmlv3p0", "items/i2.xml", []),
+  resourceOf("item-shared", "imsqti_item_xmlv3p0", "items/shared.xml", []),
 ]);
 
 /**
@@ -3299,19 +3332,23 @@ const testIncludeEdits: readonly Edit[] = [
 /**
  * A hand-written test whose one section selects adaptively, its four refs naming packaged files.
  */
-const adaptiveTest: string = testDocument("ADAPTIVE", [
-  '  <qti-test-part identifier="PART" navigation-mode="nonlinear" submission-mode="individual">',
-  '    <qti-assessment-section identifier="SECTION" title="Section" visible="true">',
-  "      <qti-adaptive-selection>",
-  '        <qti-adaptive-engine-ref identifier="engine" href="adaptive/engine.xml"/>',
-  '        <qti-adaptive-settings-ref identifier="settings" href="adaptive/settings.xml"/>',
-  '        <qti-usagedata-ref identifier="usagedata" href="adaptive/usagedata.xml"/>',
-  '        <qti-metadata-ref identifier="metadata" href="adaptive/metadata.xml"/>',
-  "      </qti-adaptive-selection>",
-  '      <qti-assessment-item-ref identifier="choice" href="choice.xml"/>',
-  "    </qti-assessment-section>",
-  "  </qti-test-part>",
-]);
+const adaptiveTest: string = testDocument(
+  "ADAPTIVE",
+  [
+    '  <qti-test-part identifier="PART" navigation-mode="nonlinear" submission-mode="individual">',
+    '    <qti-assessment-section identifier="SECTION" title="Section" visible="true">',
+    "      <qti-adaptive-selection>",
+    '        <qti-adaptive-engine-ref identifier="engine" href="adaptive/engine.xml"/>',
+    '        <qti-adaptive-settings-ref identifier="settings" href="adaptive/settings.xml"/>',
+    '        <qti-usagedata-ref identifier="usagedata" href="adaptive/usagedata.xml"/>',
+    '        <qti-metadata-ref identifier="metadata" href="adaptive/metadata.xml"/>',
+    "      </qti-adaptive-selection>",
+    '      <qti-assessment-item-ref identifier="choice" href="choice.xml"/>',
+    "    </qti-assessment-section>",
+    "  </qti-test-part>",
+  ],
+  "",
+);
 
 /**
  * The four files `test-adaptive`'s refs name, each a small well-formed document.
@@ -3333,7 +3370,7 @@ const testContentEdits: readonly Edit[] = [
     ["id-692fc07cc3e2/Example05-feedbackBlock-adaptive.xml", "id-692fc07cc3e2"],
     ["id-a360e0fa63e6/Example03-feedbackBlock-solution.xml", "id-a360e0fa63e6"],
     ["id-b0dd9e732083/Example02-feedbackInline.xml", "id-b0dd9e732083"],
-  ].map(([file, identifier]) => addText(file ?? "", stubItem(identifier ?? ""))),
+  ].map(([file, identifier]) => addText(file ?? "", stubItem(identifier ?? "", [], true))),
   addText("styles/test.css", ".qti-test { margin: 0; }\n"),
   replaceIn(
     "assessment.xml",
@@ -3765,13 +3802,17 @@ const stimulus301Edits: readonly Edit[] = [
 /**
  * A hand-written test whose one item ref names the LTI link's file, the resource that holds it.
  */
-const ltiTest: string = testDocument("LTI-TEST", [
-  '  <qti-test-part identifier="PART" navigation-mode="linear" submission-mode="individual">',
-  '    <qti-assessment-section identifier="SECTION" title="Section" visible="true">',
-  '      <qti-assessment-item-ref identifier="video" href="links/streaming_video_experiment101.xml"/>',
-  "    </qti-assessment-section>",
-  "  </qti-test-part>",
-]);
+const ltiTest: string = testDocument(
+  "LTI-TEST",
+  [
+    '  <qti-test-part identifier="PART" navigation-mode="linear" submission-mode="individual">',
+    '    <qti-assessment-section identifier="SECTION" title="Section" visible="true">',
+    '      <qti-assessment-item-ref identifier="video" href="links/streaming_video_experiment101.xml"/>',
+    "    </qti-assessment-section>",
+    "  </qti-test-part>",
+  ],
+  "",
+);
 
 /**
  * The specs of {@link testNames}.
@@ -3828,10 +3869,10 @@ const testSpecs: Readonly<Record<(typeof testNames)[number], FixtureSpec>> = {
     edits: [
       addText("sections/shared.xml", sharedSection),
       addText("sections/lonely.xml", lonelySection),
-      addText("items/a1.xml", stubItem("a1")),
-      addText("items/b1.xml", stubItem("b1")),
-      addText("items/i2.xml", stubItem("i2")),
-      addText("items/shared.xml", stubItem("shared")),
+      addText("items/a1.xml", stubItem("a1", [], true)),
+      addText("items/b1.xml", stubItem("b1", [], true)),
+      addText("items/i2.xml", stubItem("i2", [], true)),
+      addText("items/shared.xml", stubItem("shared", [], true)),
       addText(
         "test-b.xml",
         sectionRefTest("TEST-B", sectionRefOutcomes, [
@@ -3870,7 +3911,7 @@ const testSpecs: Readonly<Record<(typeof testNames)[number], FixtureSpec>> = {
   "test-template-default": {
     edits: [
       addText("template-default-test.xml", templateDefaultTest),
-      addText("items/trip.xml", stubItem("trip", [["SPEEDLIMIT", "integer"]])),
+      addText("items/trip.xml", stubItem("trip", [["SPEEDLIMIT", "integer"]], true)),
       { _tag: "cutTest", test: "template-default-test.xml" },
     ],
     member: bpigMember,
@@ -3898,7 +3939,7 @@ const negativeOver = (
     | (typeof assemblyNames)[number]
     | (typeof weightedNames)[number],
   base: (typeof testNames)[number],
-  edits: readonly Edit[] = [],
+  edits: readonly Edit[],
 ): FixtureSpec => {
   const positive = testSpecs[base];
 
@@ -3928,13 +3969,17 @@ const emptyStimulus: string = [
  * ref identifier" (QTI §4.1.1: "When an Item is referenced using a 'qti-assesasment-item-ref' the
  * values of the two 'identifier' characteristics MUST be the same").
  */
-const stimulusTest: string = testDocument("STIMULUS-TEST", [
-  '  <qti-test-part identifier="PART" navigation-mode="linear" submission-mode="individual">',
-  '    <qti-assessment-section identifier="SECTION" title="Section" visible="true">',
-  '      <qti-assessment-item-ref identifier="Item9" href="exemplar06.xml"/>',
-  "    </qti-assessment-section>",
-  "  </qti-test-part>",
-]);
+const stimulusTest: string = testDocument(
+  "STIMULUS-TEST",
+  [
+    '  <qti-test-part identifier="PART" navigation-mode="linear" submission-mode="individual">',
+    '    <qti-assessment-section identifier="SECTION" title="Section" visible="true">',
+    '      <qti-assessment-item-ref identifier="Item9" href="exemplar06.xml"/>',
+    "    </qti-assessment-section>",
+    "  </qti-test-part>",
+  ],
+  "",
+);
 
 /**
  * Write a manifest resource of one file, with the line that closes the manifest's resources after
@@ -4702,7 +4747,7 @@ const catalogNegativeOver = (
 const simpleCatalogNegative = (
   name: (typeof catalogNegativeNames)[number],
   cards: string,
-  edits: readonly Edit[] = [],
+  edits: readonly Edit[],
 ): FixtureSpec =>
   overSimple(name, [
     ...edits,
@@ -4793,13 +4838,18 @@ const catalogNegativeSpecs: Readonly<Record<(typeof catalogNegativeNames)[number
   "card-file-first": simpleCatalogNegative(
     "card-file-first",
     '<qti-card support="sign-language"><qti-file-href mime-type="image/png">images/sign.png</qti-file-href><qti-html-content>The sign.</qti-html-content></qti-card>',
+    [],
   ),
   "card-file-missing": simpleCatalogNegative(
     "card-file-missing",
     fileCard(' mime-type="image/png"', "images/absent.png"),
     [listFiles(["images/absent.png"])],
   ),
-  "card-file-no-type": simpleCatalogNegative("card-file-no-type", fileCard("", "images/sign.png")),
+  "card-file-no-type": simpleCatalogNegative(
+    "card-file-no-type",
+    fileCard("", "images/sign.png"),
+    [],
+  ),
   "card-file-undescribed": simpleCatalogNegative(
     "card-file-undescribed",
     fileCard(' mime-type="image/png"', "images/unlisted.png"),
@@ -4827,7 +4877,7 @@ const catalogNegativeSpecs: Readonly<Record<(typeof catalogNegativeNames)[number
       '<qti-card support="spoken"><qti-html-content>Read aloud.</qti-html-content><qti-card-entry xml:lang="en"><qti-html-content>Read aloud.</qti-html-content></qti-card-entry></qti-card>',
     ),
   ]),
-  "catalog-empty": simpleCatalogNegative("catalog-empty", ""),
+  "catalog-empty": simpleCatalogNegative("catalog-empty", "", []),
   "catalog-id-twice": catalogNegativeOver("catalog-id-twice", "cut-catalog-supports", [
     replaceIn(
       catalogSupportsItem,
@@ -5061,11 +5111,8 @@ const simpleLanguages = (tags: readonly string[]): readonly TextEdit[] =>
  *   so that `document-lang` has nothing to refuse.
  * @returns The spec.
  */
-const ssmlOverSimple = (
-  name: string,
-  markup: string,
-  languages: readonly string[] = ["en"],
-): FixtureSpec => overSimple(name, [...simpleLanguages(languages), afterOpeningParagraph(markup)]);
+const ssmlOverSimple = (name: string, markup: string, languages: readonly string[]): FixtureSpec =>
+  overSimple(name, [...simpleLanguages(languages), afterOpeningParagraph(markup)]);
 
 /**
  * `simple`'s first choice, which `ssml-hooks` extends with a `speak` in the default namespace.
@@ -5156,10 +5203,12 @@ const ssmlSpecs: Readonly<Record<(typeof ssmlNames)[number], FixtureSpec>> = {
       `<div data-ssml='${dataSsmlValues.percent}'><p>eleven</p></div>`,
       `<qti-rubric-block use="instructions" view="candidate" data-ssml='${dataSsmlValues.break}'><qti-content-body><p>twelve</p></qti-content-body></qti-rubric-block>`,
     ].join(""),
+    ["en"],
   ),
   "data-ssml-custom": ssmlOverSimple(
     "data-ssml-custom",
     '<ul><li data-ssml="anything">one</li><li data-ssml=\'{"not":"data-ssml"}\'>two</li></ul>',
+    ["en"],
   ),
   "ssml-corpus-sub": {
     ...cutItem("ssml-corpus-sub", "sharedStimulus", ssmlCorpusItem),
@@ -5218,6 +5267,7 @@ const ssmlSpecs: Readonly<Record<(typeof ssmlNames)[number], FixtureSpec>> = {
         '<ssml:s xml:space="preserve">  kept  </ssml:s>',
       ].join(""),
     ),
+    ["en"],
   ),
   "ssml-prosody": ssmlOverSimple(
     "ssml-prosody",
@@ -5236,6 +5286,7 @@ const ssmlSpecs: Readonly<Record<(typeof ssmlNames)[number], FixtureSpec>> = {
         '<ssml:phoneme alphabet="ipa" ph="tomato" type="ruby">tomato</ssml:phoneme>',
       ].join(""),
     ),
+    ["en"],
   ),
   "ssml-speak": ssmlOverSimple(
     "ssml-speak",
@@ -5264,6 +5315,7 @@ const ssmlSpecs: Readonly<Record<(typeof ssmlNames)[number], FixtureSpec>> = {
       speakParagraph(' startmark="a"', '<ssml:mark name="a"/>two'),
       speakParagraph(' startmark="a  b"', '<ssml:mark name="a b"/>three'),
     ].join(""),
+    ["en"],
   ),
   "ssml-voice": ssmlOverSimple(
     "ssml-voice",
@@ -5281,6 +5333,7 @@ const ssmlSpecs: Readonly<Record<(typeof ssmlNames)[number], FixtureSpec>> = {
         '<ssml:say-as interpret-as=" date " format=" mdy " detail=" 1 ">h</ssml:say-as>',
       ].join(""),
     ),
+    ["en"],
   ),
 };
 
@@ -5337,7 +5390,7 @@ const overPciSimple = (
   name: (typeof pciNames)[number] | (typeof pciNegativeNames)[number],
   declarations: string,
   body: string,
-  files: Readonly<Record<string, string>> = {},
+  files: Readonly<Record<string, string>>,
 ): FixtureSpec => ({
   edits: [
     {
@@ -5458,7 +5511,7 @@ const withoutData = (
   file: string,
   kept: readonly string[],
   data: readonly string[],
-  replacementKept: readonly string[] = kept,
+  replacementKept: readonly string[],
 ): TextEdit => replaceIn(file, [...kept, ...data].join("\n"), `${replacementKept.join("\n")}>`);
 
 /**
@@ -5557,7 +5610,12 @@ const pciConfigurationsEdits = (configurations: string): readonly Edit[] => [
     '        module="shadingD"',
     configurationsFirstKept[1],
   ]),
-  withoutData("fractions_deps_2.xml", configurationsSecondKept, configurationsSecondData),
+  withoutData(
+    "fractions_deps_2.xml",
+    configurationsSecondKept,
+    configurationsSecondData,
+    configurationsSecondKept,
+  ),
   replaceIn(
     "fractions_deps_2.xml",
     "the primary-configuration URL is deliberately incorrect to \n            demonstrate the use of fallback-configuration -->",
@@ -5595,8 +5653,8 @@ const pciModulesEdits: readonly Edit[] = [
     "modules/lib/eve.js",
     "modules/lib/handlebars.min-latest.js",
   ]),
-  withoutData("fractions_deps.xml", depsFirstKept, depsFirstData),
-  withoutData("fractions_deps.xml", depsSecondKept, depsSecondData),
+  withoutData("fractions_deps.xml", depsFirstKept, depsFirstData, depsFirstKept),
+  withoutData("fractions_deps.xml", depsSecondKept, depsSecondData, depsSecondKept),
   ...validCorrectResponses("fractions_deps.xml"),
 ];
 
@@ -5608,6 +5666,7 @@ const pciSpecs: Readonly<Record<(typeof pciNames)[number], FixtureSpec>> = {
     "custom-3-0-1",
     '<qti-response-declaration identifier="RESPONSE" cardinality="record"/>',
     '<div><qti-custom-interaction response-identifier="RESPONSE"/></div>',
+    {},
   ),
   "pci-3-0-1": overPciSimple(
     "pci-3-0-1",
@@ -5625,6 +5684,7 @@ const pciSpecs: Readonly<Record<(typeof pciNames)[number], FixtureSpec>> = {
       "RESPONSE",
       '<qti-interaction-markup><p data-catalog-idref="tap-help">Tap</p></qti-interaction-markup><qti-catalog-info><qti-catalog id="tap-help"><qti-card support="linguistic-guidance"><qti-html-content><p>To tap is to touch lightly.</p></qti-html-content></qti-card></qti-catalog></qti-catalog-info>',
     ),
+    {},
   ),
   "pci-configurations": {
     edits: pciConfigurationsEdits(pciConfigurationFiles),
@@ -5638,6 +5698,7 @@ const pciSpecs: Readonly<Record<(typeof pciNames)[number], FixtureSpec>> = {
       "RESPONSE",
       '<qti-interaction-markup><p>Tap</p></qti-interaction-markup><qti-context-variable identifier="QTI_CONTEXT"/><qti-context-variable identifier="LEVEL"/>',
     ),
+    {},
   ),
   "pci-markup-content": overPciSimple(
     "pci-markup-content",
@@ -5646,6 +5707,7 @@ const pciSpecs: Readonly<Record<(typeof pciNames)[number], FixtureSpec>> = {
       "RESPONSE",
       '<qti-interaction-markup><p>Score <qti-printed-variable identifier="SCORE"/></p><qti-feedback-block outcome-identifier="FEEDBACK" identifier="fb" show-hide="show"><qti-content-body><p>Shown</p></qti-content-body></qti-feedback-block><p>See <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="fi" show-hide="show">this</qti-feedback-inline></p><qti-template-block template-identifier="T" identifier="tb" show-hide="show"><qti-content-body><p>Block</p></qti-content-body></qti-template-block><p><qti-template-inline template-identifier="T" identifier="ti" show-hide="show">inline</qti-template-inline></p><template/><template/></qti-interaction-markup>',
     ),
+    {},
   ),
   "pci-modules": {
     edits: pciModulesEdits,
@@ -5670,6 +5732,7 @@ const pciSpecs: Readonly<Record<(typeof pciNames)[number], FixtureSpec>> = {
       "RECORD",
       '<qti-prompt><p>Tap</p></qti-prompt><qti-interaction-markup><p>Tap</p></qti-interaction-markup><qti-template-variable template-identifier="T"/><qti-context-variable identifier="CTX"/>',
     )}${pciOf("PICKED", "<qti-interaction-markup><p>Pick</p></qti-interaction-markup>")}`,
+    {},
   ),
   "template-foreign": overPciSimple(
     "template-foreign",
@@ -5678,6 +5741,7 @@ const pciSpecs: Readonly<Record<(typeof pciNames)[number], FixtureSpec>> = {
       "RESPONSE",
       '<qti-interaction-markup><p>Tap</p><template><x:widget xmlns:x="urn:example:widget" size="3"/></template></qti-interaction-markup>',
     ),
+    {},
   ),
 };
 
@@ -5701,6 +5765,7 @@ const pciNegativeSpecs: Readonly<Record<(typeof pciNegativeNames)[number], Fixtu
     "custom-attribute",
     '<qti-response-declaration identifier="RESPONSE" cardinality="record"/>',
     '<div><qti-custom-interaction response-identifier="RESPONSE" mode="draw"/></div>',
+    {},
   ),
   "pci-configuration-missing": {
     edits: pciConfigurationsEdits(
@@ -5713,6 +5778,7 @@ const pciNegativeSpecs: Readonly<Record<(typeof pciNegativeNames)[number], Fixtu
     "pci-context-undeclared",
     pciScored,
     pciOf("RESPONSE", `${pciMarkup}<qti-context-variable identifier="CTX"/>`),
+    {},
   ),
   "pci-context-undeclared-3-0-1": overPciSimple(
     "pci-context-undeclared-3-0-1",
@@ -5721,6 +5787,7 @@ const pciNegativeSpecs: Readonly<Record<(typeof pciNegativeNames)[number], Fixtu
       "RESPONSE",
       `${pciMarkup}<qti-context-variable identifier="QTI_CONTEXT"/><qti-context-variable identifier="LEVEL"/>`,
     ),
+    {},
   ),
   "pci-items-fallback": {
     edits: pciConfigurationsEdits(
@@ -5757,11 +5824,13 @@ const pciNegativeSpecs: Readonly<Record<(typeof pciNegativeNames)[number], Fixtu
     "pci-markup-order",
     `${pciScored}${templateDeclaration}`,
     pciOf("RESPONSE", `<qti-template-variable template-identifier="T"/>${pciMarkup}`),
+    {},
   ),
   "pci-markup-text": overPciSimple(
     "pci-markup-text",
     pciScored,
     pciOf("RESPONSE", "<qti-interaction-markup>Tap</qti-interaction-markup>"),
+    {},
   ),
   "pci-module-id-malformed": overPciSimple(
     "pci-module-id-malformed",
@@ -5770,21 +5839,25 @@ const pciNegativeSpecs: Readonly<Record<(typeof pciNegativeNames)[number], Fixtu
       "RESPONSE",
       `<qti-interaction-modules><qti-interaction-module id="1shading" primary-path="modules/tap.js"/></qti-interaction-modules>${pciMarkup}`,
     ),
+    {},
   ),
   "pci-module-malformed": overPciSimple(
     "pci-module-malformed",
     pciScored,
     pciElement(`response-identifier="RESPONSE" module="1shading" ${pciTypeAttribute}`, pciMarkup),
+    {},
   ),
   "pci-modules-after-markup": overPciSimple(
     "pci-modules-after-markup",
     pciScored,
     pciOf("RESPONSE", `${pciMarkup}${pciModuleTap}`),
+    {},
   ),
   "pci-modules-empty": overPciSimple(
     "pci-modules-empty",
     pciScored,
     pciOf("RESPONSE", `<qti-interaction-modules/>${pciMarkup}`),
+    {},
   ),
   "pci-nested": overPciSimple(
     "pci-nested",
@@ -5793,17 +5866,20 @@ const pciNegativeSpecs: Readonly<Record<(typeof pciNegativeNames)[number], Fixtu
       "RESPONSE",
       `<qti-interaction-markup><qti-feedback-block outcome-identifier="FEEDBACK" identifier="fb" show-hide="show"><qti-content-body>${pciOf("INNER", pciMarkup)}</qti-content-body></qti-feedback-block></qti-interaction-markup>`,
     ),
+    {},
   ),
-  "pci-no-markup": overPciSimple("pci-no-markup", pciScored, pciOf("RESPONSE", "")),
+  "pci-no-markup": overPciSimple("pci-no-markup", pciScored, pciOf("RESPONSE", ""), {}),
   "pci-no-module": overPciSimple(
     "pci-no-module",
     pciScored,
     pciElement(`response-identifier="RESPONSE" ${pciTypeAttribute}`, pciMarkup),
+    {},
   ),
   "pci-no-type": overPciSimple(
     "pci-no-type",
     pciScored,
     pciElement('response-identifier="RESPONSE" module="tap"', pciMarkup),
+    {},
   ),
   "pci-path-malformed": overPciSimple(
     "pci-path-malformed",
@@ -5812,26 +5888,31 @@ const pciNegativeSpecs: Readonly<Record<(typeof pciNegativeNames)[number], Fixtu
       "RESPONSE",
       `<qti-interaction-modules><qti-interaction-module id="tap" primary-path="modules/ta%zzp.js"/></qti-interaction-modules>${pciMarkup}`,
     ),
+    {},
   ),
   "pci-prompt-late": overPciSimple(
     "pci-prompt-late",
     pciScored,
     pciOf("RESPONSE", `${pciMarkup}<qti-prompt><p>Tap</p></qti-prompt>`),
+    {},
   ),
   "pci-template-undeclared": overPciSimple(
     "pci-template-undeclared",
     pciScored,
     pciOf("RESPONSE", `${pciMarkup}<qti-template-variable template-identifier="T"/>`),
+    {},
   ),
   "pci-two-markups": overPciSimple(
     "pci-two-markups",
     pciScored,
     pciOf("RESPONSE", `${pciMarkup}${pciMarkup}`),
+    {},
   ),
   "pci-two-modules": overPciSimple(
     "pci-two-modules",
     pciScored,
     pciOf("RESPONSE", `${pciModuleTap}${pciModuleTap}${pciMarkup}`),
+    {},
   ),
   "pci-type-malformed": overPciSimple(
     "pci-type-malformed",
@@ -5840,11 +5921,13 @@ const pciNegativeSpecs: Readonly<Record<(typeof pciNegativeNames)[number], Fixtu
       'response-identifier="RESPONSE" module="tap" custom-interaction-type-identifier="a%zz"',
       pciMarkup,
     ),
+    {},
   ),
   "template-outside": overPciSimple(
     "template-outside",
     pciScored,
     pciOf("RESPONSE", `${pciMarkup}<template/>`),
+    {},
   ),
 };
 
@@ -6565,7 +6648,7 @@ const writtenSpecs: Readonly<Record<FixtureName, FixtureSpec>> = {
     member: simpleMember,
     name: "utf16",
   },
-  variant: overSimple("variant", variantEdits()),
+  variant: overSimple("variant", variantEdits({})),
   "variant-bad-uri": overSimple(
     "variant-bad-uri",
     variantEdits({ children: drdWith(leaf("drd:hasAdaptation", "a%zz")) }),

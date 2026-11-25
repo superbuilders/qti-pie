@@ -132,11 +132,6 @@ export interface Isolating {
 }
 
 /**
- * No isolation phase.
- */
-const noIsolation: Isolating = { laws: 0, tries: 0 };
-
-/**
  * Read the laws the oracle raises over a judged package.
  *
  * @param judgment - The judgment.
@@ -182,7 +177,7 @@ interface HuntReport {
  * @param sketch - The run.
  * @param isolating - The isolation phase's budget: after breeding, each law raised but never broken
  *   alone has a package that raised it reduced toward it alone, a cut kept only where the law
- *   still breaks and no more laws break beside it; none by default.
+ *   still breaks and no more laws break beside it.
  * @returns The report.
  */
 export const hunt = Effect.fnUntraced(function* hunt(
@@ -192,7 +187,7 @@ export const hunt = Effect.fnUntraced(function* hunt(
   tries: number,
   recorded: readonly Signature[],
   sketch: RunSketch,
-  isolating: Isolating = noIsolation,
+  isolating: Isolating,
 ) {
   const classes: Signature[] = [];
   const classOf = (disagreement: Disagreement): Signature => {

@@ -2308,13 +2308,13 @@ export const judgeDocument = Effect.fn("test.judgeDocument")(function* judgeDocu
  * @param document.path - Its path.
  * @param document.zip - Its zip.
  * @param difference - The difference.
- * @param records - The records it may match, the corpus's by default.
+ * @param records - The records it may match: `recorded` for the corpus's.
  * @returns The first record that matches it, or `undefined`.
  */
 export const recordOf = (
   document: { readonly path: string; readonly zip: string },
   difference: Difference,
-  records: readonly Recorded[] = recorded,
+  records: readonly Recorded[],
 ): Recorded | undefined =>
   records.find(
     (record) =>

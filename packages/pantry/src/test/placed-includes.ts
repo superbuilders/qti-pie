@@ -45,7 +45,7 @@ const readerOf = (rows: PreviewRows<typeof Qti>) => {
   const view: ReadonlyMap<string, readonly HeldRow[]> = new Map(Object.entries(rows));
 
   return {
-    placeOf: (row: HeldRow, start = "start"): string =>
+    placeOf: (row: HeldRow, start: string): string =>
       keyTextOf(String(at(row, "package")), String(at(row, "path")), String(at(row, start))),
     rowsOf: (relation: string): readonly HeldRow[] => view.get(relation) ?? [],
   };
@@ -66,7 +66,7 @@ const placesOf = (rows: PreviewRows<typeof Qti>) => {
         .filter((row) => at(row, "kind") === fallbackKind)
         .map((row) => placeOf(row, "parent")),
     ),
-    targets: new Set(rowsOf("SiteTarget").map((row) => placeOf(row))),
+    targets: new Set(rowsOf("SiteTarget").map((row) => placeOf(row, "start"))),
   };
 };
 
@@ -84,9 +84,9 @@ const entryIncludesOf = (rows: PreviewRows<typeof Qti>) => {
   return rowsOf("SitePath")
     .filter((row) => at(row, "entry") === true && at(row, "kind") === includeKind)
     .map((row) => ({
-      fallback: fallbacks.has(placeOf(row)),
+      fallback: fallbacks.has(placeOf(row, "start")),
       row,
-      targeted: targets.has(placeOf(row)),
+      targeted: targets.has(placeOf(row, "start")),
     }));
 };
 

@@ -807,7 +807,7 @@ const statedLanguage = (form: Option.Option<string>): Option.Option<string> =>
  */
 const entryPathOf = (manifest: View, resource: Row): Option.Option<string> =>
   Option.flatMap(valueOf(manifest, resource.start, "href"), (lexical) => {
-    const { path, resolution } = resolvedAt(manifest, resource.start, lexical);
+    const { path, resolution } = resolvedAt(manifest, resource.start, lexical, "collapse");
 
     return resolution.scope === "entry" ? Option.some(path) : Option.none();
   });

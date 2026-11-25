@@ -2778,7 +2778,7 @@ const attributeBreaches = (
     ];
 
     const found = owned.map(({ attribute, row }, slot): readonly (readonly Breach[])[] => {
-      const breach = (law: LawName, keys: Keys = {}): Breach => ({
+      const breach = (law: LawName, keys: Keys): Breach => ({
         document: view.path,
         keys: {
           ...governsKeys(attribute.governs),
@@ -2801,7 +2801,7 @@ const attributeBreaches = (
         owned.slice(0, slot).some((earlier) => earlier.attribute.name === attribute.name);
 
       return [
-        Option.isSome(admitted) ? [] : [breach("AL1 admission")],
+        Option.isSome(admitted) ? [] : [breach("AL1 admission", {})],
         prefixAgrees(attribute) ? [] : [breach("Attribute prefix", { prefix: attribute.prefix })],
         ownerCopied(attribute, node) && laws.elements.has(node?.kind ?? "document")
           ? []
@@ -2810,7 +2810,7 @@ const attributeBreaches = (
                 ownerKind: node?.kind ?? "",
               }),
             ],
-        repeated ? [breach("AL2 distinct")] : [],
+        repeated ? [breach("AL2 distinct", {})] : [],
         Option.exists(compiled, (held) => !held.regex.test(lexical))
           ? [breach("value domain", { lexical })]
           : [],
@@ -3355,7 +3355,7 @@ const wholeBreaches = (
   assembled: ReadonlySet<string>,
 ): readonly Breach[] => {
   const { rows } = view;
-  const breach = (law: LawName, keys: Keys = {}): Breach => ({
+  const breach = (law: LawName, keys: Keys): Breach => ({
     document: view.path,
     keys: { node: "", ...keys },
     law,
@@ -5040,7 +5040,7 @@ const resourcesOf = (manifest: View, grammar: ComposedGrammar): readonly Resourc
           .filter(({ kind }) => kind === "cp:file")
           .flatMap(({ start }) =>
             Option.toArray(valueOf(manifest, start, "href")).map((lexical) =>
-              resolvedAt(manifest, start, lexical),
+              resolvedAt(manifest, start, lexical, "collapse"),
             ),
           ),
         handle: Option.liftPredicate(type, (value) => grammar.package.resourceType.has(value)),
@@ -5049,7 +5049,9 @@ const resourcesOf = (manifest: View, grammar: ComposedGrammar): readonly Resourc
           Option.getOrElse(valueOf(manifest, node.start, "identifier"), () => ""),
         ),
         node,
-        resolved: href.pipe(Option.map((lexical) => resolvedAt(manifest, node.start, lexical))),
+        resolved: href.pipe(
+          Option.map((lexical) => resolvedAt(manifest, node.start, lexical, "collapse")),
+        ),
         type,
       };
     });
@@ -5214,7 +5216,7 @@ const inclusionCycles = (
           .filter((member) => merges(grammar, member) && !unreadInclude(view, member.start))
           .flatMap(({ start }) =>
             Option.toArray(valueOf(view, start, "href")).flatMap((href) =>
-              Option.toArray(entryPathAt(resolvedAt(view, start, href))),
+              Option.toArray(entryPathAt(resolvedAt(view, start, href, "collapse"))),
             ),
           ),
       ]);
@@ -5310,7 +5312,7 @@ const referenceBreaches = (
             field: "TextReferencePath.target",
             lexical,
             member,
-            resolution: resolvedAt(view, member.start, lexical, { whiteSpace }).resolution,
+            resolution: resolvedAt(view, member.start, lexical, whiteSpace).resolution,
           };
         }),
     );
@@ -5332,7 +5334,7 @@ const referenceBreaches = (
                 resolution:
                   form === "package" || form === "module"
                     ? rootedResolutionOf(form, href, whiteSpace)
-                    : resolvedAt(view, member.start, href, { whiteSpace }).resolution,
+                    : resolvedAt(view, member.start, href, whiteSpace).resolution,
               };
             }),
           ),
@@ -5546,7 +5548,9 @@ const sitesOf = (documents: readonly Listed[], grammar: ComposedGrammar): readon
       .filter((member) => merges(grammar, member) && !unreadInclude(view, member.start))
       .map((node): SiteOf => {
         const href = valueOf(view, node.start, "href");
-        const resolved = href.pipe(Option.map((lexical) => resolvedAt(view, node.start, lexical)));
+        const resolved = href.pipe(
+          Option.map((lexical) => resolvedAt(view, node.start, lexical, "collapse")),
+        );
         const path = resolved.pipe(Option.flatMap(entryPathAt));
 
         return {
@@ -5841,7 +5845,7 @@ const splicedElement = <E extends XdmClosedElement<Composed>>(
   element: E,
   path: string,
   chain: readonly string[],
-  above: readonly string[] = [],
+  above: readonly string[],
 ): E => {
   const bases = [...above, ...Option.toArray(closedValueOf(element, "xml:base"))];
   const spliceChild = (child: XdmChild<Composed>, parent: string): XdmChild<Composed> => {
@@ -5874,10 +5878,14 @@ const splicedElement = <E extends XdmClosedElement<Composed>>(
         !chain.includes(target.path) &&
         standsFor(grammar, parent, target.rootKind)
       ) {
-        return splicedElement(grammar, byPath, target.tree.root, target.path, [
-          ...chain,
+        return splicedElement(
+          grammar,
+          byPath,
+          target.tree.root,
           target.path,
-        ]);
+          [...chain, target.path],
+          [],
+        );
       }
     }
 
@@ -6073,7 +6081,7 @@ const packageBreaches = (
       ? Option.toArray(valueOf(manifest, member.start, "href")).map((href) => ({
           href,
           member,
-          resolved: resolvedAt(manifest, member.start, href),
+          resolved: resolvedAt(manifest, member.start, href, "collapse"),
         }))
       : [],
   );
@@ -6890,7 +6898,7 @@ const locatedTemplateOf = (item: View, read: ReadonlyMap<string, View>): Option.
   }
 
   return valueOf(item, processing.start, "template-location").pipe(
-    Option.map((lexical) => resolvedAt(item, processing.start, lexical).resolution),
+    Option.map((lexical) => resolvedAt(item, processing.start, lexical, "collapse").resolution),
     Option.flatMap((resolution) =>
       resolution.scope === "entry"
         ? Option.fromUndefinedOr(read.get(resolution.path))
@@ -6921,7 +6929,12 @@ const locatedTemplateBreaches = (
 ): readonly Breach[] =>
   [...read.values()].flatMap((item) =>
     Option.toArray(locatedTemplateOf(item, read)).flatMap((template) =>
-      placedBreachesOf(template, grammar, rootScopeOf(item, grammar), true),
+      placedBreachesOf(
+        template,
+        grammar,
+        rootScopeOf(item, grammar, () => Option.none()),
+        true,
+      ),
     ),
   );
 
@@ -6978,7 +6991,7 @@ const inPlaceBreaches = (
 
         const tree: XdmDocument<Composed> = {
           ...listed.tree,
-          root: splicedElement(grammar, byPath, listed.tree.root, listed.path, [listed.path]),
+          root: splicedElement(grammar, byPath, listed.tree.root, listed.path, [listed.path], []),
         };
 
         return [[listed.path, foldedOf(listed.path, tree, foldGrammar, typed)]];

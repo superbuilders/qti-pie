@@ -103,11 +103,11 @@ const either =
  *
  * @param rule - The element.
  * @param min - The least count.
- * @param max - The greatest count, unbounded by default.
+ * @param max - The greatest count; `Number.POSITIVE_INFINITY` for none.
  * @returns The rule.
  */
 const repeat =
-  (rule: Rule, min: number, max = Number.POSITIVE_INFINITY): Rule =>
+  (rule: Rule, min: number, max: number): Rule =>
   (text, at) => {
     const ends = new Set<number>(min === 0 ? [at] : []);
     let frontier: ReadonlySet<number> = new Set([at]);
@@ -173,13 +173,17 @@ const pchar = either(unreserved, pctEncoded, subDelims, quoted(":"), quoted("@")
  */
 const scheme = sequence(
   alpha,
-  repeat(either(alpha, digit, quoted("+"), quoted("-"), quoted(".")), 0),
+  repeat(either(alpha, digit, quoted("+"), quoted("-"), quoted(".")), 0, Number.POSITIVE_INFINITY),
 );
 
 /**
  * `userinfo = *( unreserved / pct-encoded / sub-delims / ":" )`.
  */
-const userinfo = repeat(either(unreserved, pctEncoded, subDelims, quoted(":")), 0);
+const userinfo = repeat(
+  either(unreserved, pctEncoded, subDelims, quoted(":")),
+  0,
+  Number.POSITIVE_INFINITY,
+);
 
 /**
  * `dec-octet = DIGIT / %x31-39 DIGIT / "1" 2DIGIT / "2" %x30-34 DIGIT / "25" %x30-35`.
@@ -245,9 +249,9 @@ const ipv6Address = either(
  */
 const ipvFuture = sequence(
   quoted("v"),
-  repeat(hexdig, 1),
+  repeat(hexdig, 1, Number.POSITIVE_INFINITY),
   quoted("."),
-  repeat(either(unreserved, subDelims, quoted(":")), 1),
+  repeat(either(unreserved, subDelims, quoted(":")), 1, Number.POSITIVE_INFINITY),
 );
 
 /**
@@ -258,7 +262,7 @@ const ipLiteral = sequence(quoted("["), either(ipv6Address, ipvFuture), quoted("
 /**
  * `reg-name = *( unreserved / pct-encoded / sub-delims )`.
  */
-const regName = repeat(either(unreserved, pctEncoded, subDelims), 0);
+const regName = repeat(either(unreserved, pctEncoded, subDelims), 0, Number.POSITIVE_INFINITY);
 
 /**
  * `host = IP-literal / IPv4address / reg-name`.
@@ -268,7 +272,7 @@ const host = either(ipLiteral, ipv4Address, regName);
 /**
  * `port = *DIGIT`.
  */
-const port = repeat(digit, 0);
+const port = repeat(digit, 0, Number.POSITIVE_INFINITY);
 
 /**
  * `authority = [ userinfo "@" ] host [ ":" port ]`.
@@ -278,22 +282,26 @@ const authority = sequence(optional(userinfo, quoted("@")), host, optional(quote
 /**
  * `segment = *pchar`.
  */
-const segment = repeat(pchar, 0);
+const segment = repeat(pchar, 0, Number.POSITIVE_INFINITY);
 
 /**
  * `segment-nz = 1*pchar`.
  */
-const segmentNz = repeat(pchar, 1);
+const segmentNz = repeat(pchar, 1, Number.POSITIVE_INFINITY);
 
 /**
  * `segment-nz-nc = 1*( unreserved / pct-encoded / sub-delims / "@" )`.
  */
-const segmentNzNc = repeat(either(unreserved, pctEncoded, subDelims, quoted("@")), 1);
+const segmentNzNc = repeat(
+  either(unreserved, pctEncoded, subDelims, quoted("@")),
+  1,
+  Number.POSITIVE_INFINITY,
+);
 
 /**
  * `*( "/" segment )`, the tail every path but path-empty ends with.
  */
-const slashSegments = repeat(sequence(quoted("/"), segment), 0);
+const slashSegments = repeat(sequence(quoted("/"), segment), 0, Number.POSITIVE_INFINITY);
 
 /**
  * `path-abempty = *( "/" segment )`.
@@ -323,12 +331,12 @@ const pathEmpty = repeat(pchar, 0, 0);
 /**
  * `query = *( pchar / "/" / "?" )`.
  */
-const query = repeat(either(pchar, quoted("/"), quoted("?")), 0);
+const query = repeat(either(pchar, quoted("/"), quoted("?")), 0, Number.POSITIVE_INFINITY);
 
 /**
  * `fragment = *( pchar / "/" / "?" )`.
  */
-const fragment = repeat(either(pchar, quoted("/"), quoted("?")), 0);
+const fragment = repeat(either(pchar, quoted("/"), quoted("?")), 0, Number.POSITIVE_INFINITY);
 
 /**
  * `hier-part = "//" authority path-abempty / path-absolute / path-rootless / path-empty`.

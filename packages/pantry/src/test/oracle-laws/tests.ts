@@ -313,7 +313,7 @@ const packaged = (rows: View, ref: Row): boolean =>
   ref.kind === testKinds.itemRef &&
   Option.exists(
     valueOf(rows, ref.start, "href"),
-    (lexical) => resolvedAt(rows, ref.start, lexical).resolution.scope !== "external",
+    (lexical) => resolvedAt(rows, ref.start, lexical, "collapse").resolution.scope !== "external",
   );
 
 /**

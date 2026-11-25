@@ -74,11 +74,11 @@ const drawnIn =
  * document.
  *
  * @param declaration - The declaration's text.
- * @param documents - The documents it may be written in, every declaring document by default.
+ * @param documents - The documents it may be written in: `declaring` for every declaring document.
  * @returns The drawn edit of the package.
  */
 const declaredAfterOutcome =
-  (declaration: Gen<string>, documents: readonly string[] = declaring) =>
+  (declaration: Gen<string>, documents: readonly string[]) =>
   (entries: PackageEntries): Gen<PackageEntries> =>
   (source) => {
     const written = source.draw(declaration);
@@ -178,10 +178,12 @@ export const documentMutations = {
       declaredAfterOutcome(
         (source) =>
           `<qti-outcome-declaration identifier="UNTYPED" cardinality="${source.draw(element(["single", "multiple", "ordered"]))}"/>`,
+        declaring,
       ),
       declaredAfterOutcome(
         (source) =>
           `<qti-outcome-declaration identifier="TYPEDRECORD" cardinality="record" base-type="${source.draw(element(["integer", "string", "float"]))}"/>`,
+        declaring,
       ),
     ]),
     over: "package",
@@ -196,6 +198,7 @@ export const documentMutations = {
       declaredAfterOutcome(
         (source) =>
           `<qti-outcome-declaration identifier="${source.draw(element(["completionStatus", "numAttempts", "duration"]))}" cardinality="single" base-type="integer"/>`,
+        declaring,
       ),
     ]),
     over: "package",
@@ -351,6 +354,7 @@ export const documentMutations = {
     mutate: oneOf([
       declaredAfterOutcome(
         () => '<qti-outcome-declaration identifier="QTI_CONTEXT" cardinality="record"/>',
+        declaring,
       ),
     ]),
     over: "package",

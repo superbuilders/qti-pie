@@ -449,7 +449,7 @@ const graft =
     pool: ReadonlyMap<string, readonly { readonly element: Element; readonly seed: string }[]>,
     admitted: boolean,
     label: string,
-    within: (path: string) => boolean = () => true,
+    within: (path: string) => boolean,
   ): Gen<Option.Option<Edited<Genome>>> =>
   (source) => {
     const document = source.draw(oneOf(documentsOf(genome).filter(({ path }) => within(path))));
@@ -716,7 +716,7 @@ const operations: Readonly<
       }
     }
 
-    return source.draw(graft(genome, breeding, donors, true, "crossover"));
+    return source.draw(graft(genome, breeding, donors, true, "crossover", () => true));
   },
   cycle: (genome, _mate, breeding) => (source) => {
     const site = source.draw(
@@ -927,9 +927,9 @@ const operations: Readonly<
     );
   },
   "insert-element": (genome, _mate, breeding) =>
-    graft(genome, breeding, breeding.corpus.donors, true, "insert-element"),
+    graft(genome, breeding, breeding.corpus.donors, true, "insert-element", () => true),
   "misplaced-element": (genome, _mate, breeding) =>
-    graft(genome, breeding, breeding.corpus.donors, false, "misplaced-element"),
+    graft(genome, breeding, breeding.corpus.donors, false, "misplaced-element", () => true),
   "move-element": (genome, _mate, breeding) => (source) => {
     const document = source.draw(oneOf(documentsOf(genome)));
     const moved = source.draw(

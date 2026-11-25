@@ -239,7 +239,7 @@ export interface PlacementScope {
 export const rootScopeOf = (
   rows: View,
   grammar: ComposedGrammar,
-  read: PlacementScope["read"] = () => Option.none(),
+  read: PlacementScope["read"],
 ): PlacementScope => {
   const declarations = new Map<string, Declaration>();
   for (const node of rows.members) {
@@ -465,7 +465,7 @@ const typers: Readonly<Record<ExpressionTyping["typing"], (input: TypingInput) =
 export const typedOf = (
   rows: View,
   grammar: ComposedGrammar,
-  scope: PlacementScope = rootScopeOf(rows, grammar),
+  scope: PlacementScope = rootScopeOf(rows, grammar, () => Option.none()),
 ): Typed => {
   const { rootKind } = scope;
   const builtIns = new Map(
@@ -1023,7 +1023,7 @@ export const placedBreachesOf = (
 export const expressionDocumentBreaches = (
   rows: View,
   grammar: ComposedGrammar,
-  read: PlacementScope["read"] = () => Option.none(),
+  read: PlacementScope["read"],
 ): readonly Breach[] => [
   ...placedBreachesOf(rows, grammar, rootScopeOf(rows, grammar, read), false),
   ...literalBreachesOf(rows, grammar),

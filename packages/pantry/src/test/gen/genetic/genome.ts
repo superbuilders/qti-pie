@@ -273,7 +273,7 @@ export const selfContained = (element: Element): Element => {
  * @param namespace - Its namespace, empty for none.
  * @returns The attribute.
  */
-export const attributeOf = (qname: string, value: string, namespace = ""): Attribute => {
+export const attributeOf = (qname: string, value: string, namespace: string): Attribute => {
   const colon = qname.indexOf(":");
 
   return {
@@ -297,7 +297,7 @@ export const attributeOf = (qname: string, value: string, namespace = ""): Attri
  */
 export const withAttribute = (element: Element, qname: string, value: string): Element => {
   const at = element.attributes.findIndex((attribute) => attribute.qname === qname);
-  const attribute = at === -1 ? attributeOf(qname, value) : element.attributes[at];
+  const attribute = at === -1 ? attributeOf(qname, value, "") : element.attributes[at];
 
   return attribute === undefined
     ? element
