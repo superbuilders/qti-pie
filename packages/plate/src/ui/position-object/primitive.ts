@@ -492,7 +492,7 @@ export const positionObject = definePrimitive({
     ) => {
       const next = withPoints(store.get().placements, object.response.identifier, points);
 
-      if (!change("placements", next, event === undefined ? { reason } : { event, reason })) {
+      if (!change("placements", next, { event, reason })) {
         return;
       }
 

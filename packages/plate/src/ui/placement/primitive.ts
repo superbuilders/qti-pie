@@ -918,13 +918,7 @@ export const placement = definePrimitive({
             ? { at: move.kind === "returned" ? bank : move.target, chip: move.chip }
             : undefined;
 
-        if (
-          !change(
-            "placements",
-            step.arrangement.placements,
-            event === undefined ? { reason } : { event, reason },
-          )
-        ) {
+        if (!change("placements", step.arrangement.placements, { event, reason })) {
           pending = undefined;
 
           return;

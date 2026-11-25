@@ -339,7 +339,7 @@ export const selectPoint = definePrimitive({
         return;
       }
 
-      if (!change("points", step.points, event === undefined ? { reason } : { event, reason })) {
+      if (!change("points", step.points, { event, reason })) {
         return;
       }
 
