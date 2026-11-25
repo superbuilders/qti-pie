@@ -36,48 +36,51 @@ const requiredKeys = [
 layer(NodeServices.layer, { excludeTestServices: true })(
   "test/key-breaches.ts, the keys the import's rows break, judged by the law oracle",
   (it) => {
+    /**
+     * Oracle: the law oracle's breaches of each package. Bound: every packaging fixture the
+     * spec's 4.12 to 4.14 name, positives and hand-broken copies.
+     */
+    const keysAgree = Effect.gen(function* keysAgree() {
+      const read = new Set<string>();
+      for (const name of packagingFixtures) {
+        const dir = yield* materialize(name);
+        const judgment = yield* judge(yield* readEntries(dir), grammar, laws);
+        const program = yield* Effect.result(readProgram(dir, nameOf(dir)));
+        if (Result.isFailure(program)) {
+          assert.strictEqual(judgment._tag, "CodecRefusal", `${name}: the reader refused it`);
+          continue;
+        }
+
+        for (const key of evaluatedKeys(program.success.inputs)) {
+          read.add(`${key.relation}(${key.fields.join(", ")})`);
+        }
+
+        const oracle = new Set<string>(
+          judgment._tag === "Judged" ? judgment.breaches.map(({ law }) => law) : [],
+        );
+
+        assert.deepStrictEqual(
+          keyBreachesOf(program.success.inputs)
+            .filter(({ law }) => !oracle.has(law))
+            .map(
+              ({ fields, key, law, relation }) =>
+                `${law}: ${relation}(${fields.join(", ")}) ${key}`,
+            ),
+          [],
+          `${name}: keys the oracle does not predict`,
+        );
+      }
+
+      assert.deepStrictEqual(
+        requiredKeys.filter((key) => !read.has(key)),
+        [],
+        "keys no fixture let the box read",
+      );
+    });
+
     it.effect(
       "breaks a key only where the oracle breaks the key's law, over every packaging fixture",
-      () =>
-        // Oracle: the law oracle's breaches of each package. Bound: every packaging fixture the
-        // spec's 4.12 to 4.14 name, positives and hand-broken copies.
-        Effect.gen(function* keysAgree() {
-          const read = new Set<string>();
-          for (const name of packagingFixtures) {
-            const dir = yield* materialize(name);
-            const judgment = yield* judge(yield* readEntries(dir), grammar, laws);
-            const program = yield* Effect.result(readProgram(dir, nameOf(dir)));
-            if (Result.isFailure(program)) {
-              assert.strictEqual(judgment._tag, "CodecRefusal", `${name}: the reader refused it`);
-              continue;
-            }
-
-            for (const key of evaluatedKeys(program.success.inputs)) {
-              read.add(`${key.relation}(${key.fields.join(", ")})`);
-            }
-
-            const oracle = new Set<string>(
-              judgment._tag === "Judged" ? judgment.breaches.map(({ law }) => law) : [],
-            );
-
-            assert.deepStrictEqual(
-              keyBreachesOf(program.success.inputs)
-                .filter(({ law }) => !oracle.has(law))
-                .map(
-                  ({ fields, key, law, relation }) =>
-                    `${law}: ${relation}(${fields.join(", ")}) ${key}`,
-                ),
-              [],
-              `${name}: keys the oracle does not predict`,
-            );
-          }
-
-          assert.deepStrictEqual(
-            requiredKeys.filter((key) => !read.has(key)),
-            [],
-            "keys no fixture let the box read",
-          );
-        }),
+      () => keysAgree,
     );
   },
 );

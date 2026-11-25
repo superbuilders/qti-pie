@@ -1602,7 +1602,8 @@ const declarationOf =
 
 /**
  * Draw how many elements a wrap nests a node in: one, a few, or enough to reach and pass the
- * 256 elements a reader holds open by default.
+ * 256 elements a reader holds open by default, which brings the node to 254 to 258 elements deep,
+ * either side of the bound.
  *
  * @param depth - The depth the node stands at.
  * @returns The generator.
@@ -1618,7 +1619,6 @@ const wrapCount =
         return 2 + source.draw(below(6));
       }
       default: {
-        // Bring the node to 254 to 258 elements deep, either side of the bound.
         return Math.max(1, 254 + source.draw(below(5)) - depth);
       }
     }

@@ -234,13 +234,20 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   const host = judge(previewRowsOf(program.inputs), hostLaws);
                   const broken = named(host.broken);
                   const unjudged = named(host.skipped);
+                  /**
+                   * The laws one judge breaks and the other does not. A placed reference's
+                   * resolution in its assembly's declarations is a rule over a query
+                   * (overlay-queries/reference.ts), the database's alone to judge, so the oracle's
+                   * breach of such a law is no disagreement where the host breaks none. An
+                   * unresolved feedback outcome once broke "Feedback outcome type" on the import's
+                   * rows alone, resolved to the nil declaration of base type none; it has no
+                   * declaration row now, so that law judges only a resolved outcome (lane NIL's
+                   * NS2).
+                   */
                   const shown = [
                     ...Iterator.from(broken)
                       .filter((law) => !oracle.has(law))
                       .map((law) => `import-only-law: ${law}`),
-                    // A placed reference's resolution in its assembly's declarations is a rule over
-                    // a query (overlay-queries/reference.ts), the database's alone to judge, so the
-                    // oracle's breach of such a law is no disagreement where the host breaks none.
                     ...Iterator.from(oracle)
                       .filter(
                         (law) =>
@@ -257,9 +264,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                     `${Formatter.format(drawn)}: the oracle breaks ${[...oracle].toSorted().join(", ") || "no law"}`,
                   );
 
-                  // An unresolved feedback outcome once broke "Feedback outcome type" on the import's
-                  // rows alone, resolved to the nil declaration of base type none; it has no
-                  // declaration row now, so that law judges only a resolved outcome (lane NIL's NS2).
                   assert.deepStrictEqual(
                     shown,
                     [],

@@ -734,7 +734,10 @@ const attributeKeyOf = (
 /**
  * Read each element kind's declared type and the named types its `xsi:type` may name
  * from `XsiType`, the type's handle `{namespace}local` read back as its name; a type in no
- * namespace is left out, since its QName would need the default namespace undeclared.
+ * namespace is left out, since its QName would need the default namespace undeclared. A foreign
+ * kind is governed by the built-ins alone: a built-in is in every document's schema set, so it
+ * governs a foreign element wherever one stands (`typeAvailable`), where a type of a vocabulary
+ * does only where its set is the document's, which the generator does not track.
  *
  * @param grammar - The composed grammar.
  * @returns The types by kind.
@@ -747,9 +750,6 @@ const governingOf = (grammar: ComposedGrammar): Index["governing"] => {
     }
   }
 
-  // A built-in is in every document's schema set, so it governs a foreign element wherever one
-  // stands (`typeAvailable`); a type of a vocabulary does only where its set is the
-  // document's, which the generator does not track.
   for (const kind of Object.values(foreignKinds)) {
     for (const typing of Option.toArray(
       typingOf(typeHandle({ local: "anyType", namespace: xsNamespace })),

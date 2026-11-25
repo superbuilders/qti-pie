@@ -485,8 +485,10 @@ const elsewhere = "urn:qti-pie:lawful";
 /**
  * Name the foreign elements a wildcard position holds: the generator's foreign names of its class
  * under its parent, then, in no namespace for the no-namespace class and in {@link elsewhere} for
- * the other, each local name of a kind the parent admits, each name once. A reader that resolves a
- * name without its namespace takes each of the latter for a kind its parent admits. Where the
+ * the other, each local name of a kind the parent admits, each name once. A name stays foreign only
+ * where it resolves to no kind its parent admits, so a local name that resolves there to an
+ * admitted kind is left out. A reader that resolves a name without its namespace takes each of the
+ * latter for a kind its parent admits. Where the
  * position may follow itself the family holds them all side by side, so each stands in one lawful
  * document; else it takes the next of them in turn.
  *
@@ -520,7 +522,6 @@ const foreignNamesOf = (
         ...(blind === undefined
           ? []
           : family.locals.flatMap((local) =>
-              // A name stays foreign where it resolves to no kind its parent admits.
               Option.exists(build.reading.grammar.kinds.resolve(blind, local, parent), (child) =>
                 Option.isSome(build.reading.grammar.admission.lookup({ child, parent })),
               )

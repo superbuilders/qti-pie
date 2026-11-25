@@ -52,7 +52,8 @@ const ruleColumn = (rules: readonly string[]): string => rules.join(ruleSeparato
 
 /**
  * Hold rules to the column's one spelling of a set: each a rule of the roster, each once, in
- * {@link ruleOrder}.
+ * {@link ruleOrder}. No rule holds the separator, so two listings are one exactly when their
+ * columns are.
  *
  * @param where - What the detail points at, such as `row "a.zip"` or `line 3`.
  * @param named - The rules as the row or line names them.
@@ -74,7 +75,6 @@ const rosterRules = (
 
   const listed = Arr.sort(Arr.dedupe(rules), ruleOrder);
 
-  // No rule holds the separator, so two listings are one exactly when their columns are.
   return ruleColumn(listed) === ruleColumn(named)
     ? Effect.succeed(listed)
     : Effect.fail(

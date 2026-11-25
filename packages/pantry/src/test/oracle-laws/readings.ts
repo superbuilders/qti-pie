@@ -336,12 +336,16 @@ const readingsOfReference = (
         const dot = rest.indexOf(".");
         const number = rest.slice(0, dot);
         const numbered = rest.slice(dot + 1);
+        /**
+         * Whether the rest is read as a variable through an item ref that names no item document,
+         * where any variable is read; but a variable's name is an identifier (`IdentifierDType`,
+         * §4.5.1), so `SCOPE.1.VAR` reads no variable `1.VAR` there, only its numbered reading
+         * where a replacement repeats SCOPE.
+         */
+        const readAnywhere = Option.isNone(item) && ncName.test(rest);
 
         return [
-          // Through an item ref that names no item document any variable is read, but a variable's
-          // name is an identifier (`IdentifierDType`, §4.5.1), so `SCOPE.1.VAR` reads no
-          // variable `1.VAR` there, only its numbered reading where a replacement repeats SCOPE.
-          ...(Option.isNone(item) && ncName.test(rest)
+          ...(readAnywhere
             ? [{ declarations: [], item: true, key: keyOf(rest), through: Option.none() }]
             : []),
           ...(Option.isSome(item) && (variables.has(rest) || tables.builtIns.item.has(rest))

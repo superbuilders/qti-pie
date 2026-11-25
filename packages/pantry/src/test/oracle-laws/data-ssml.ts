@@ -19,21 +19,13 @@ import { regex } from "arkregex";
 import { Option } from "effect";
 
 /**
- * What a property's string may be, in the schema's own terms.
+ * What a property's string may be, in the schema's own terms: any string (`"type": "string"`), one
+ * of the schema's `enum` values, or a model primitive NormalizedString (Appendix C), whose decoded
+ * value holds no tab, line feed or carriage return.
  */
 type Allowed =
-  /**
-   * Any string (`"type": "string"`).
-   */
   | { readonly kind: "any" }
-  /**
-   * One of the schema's `enum` values.
-   */
   | { readonly kind: "enum"; readonly values: readonly string[] }
-  /**
-   * A model primitive NormalizedString (Appendix C): the decoded value holds no tab, line feed or
-   * carriage return.
-   */
   | { readonly kind: "normalized" };
 
 /**
@@ -163,7 +155,8 @@ const literalAt = regex("true|false|null", "uy");
 const hexAt = regex("[0-9A-Fa-f]{4}", "uy");
 
 /**
- * Read the string whose opening quote sits at `from`.
+ * Read the string whose opening quote sits at `from`. A `\u` escape is one UTF-16 code unit, so an
+ * escaped surrogate pair joins into one character when the units are joined.
  *
  * @returns The decoded text and the index past the closing quote, or `undefined` when the string
  *   is not one (an unescaped control character, an unknown escape, a bad `\u`, no closing quote).
@@ -208,8 +201,6 @@ const stringAt = (
       return undefined;
     }
 
-    // A `\u` escape is one UTF-16 code unit, so an escaped surrogate pair joins into one
-    // character when the units are joined.
     units.push(String.fromCodePoint(Number.parseInt(digits[0], 16)));
     at += 6;
   }

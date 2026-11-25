@@ -518,7 +518,8 @@ const unresolvedXsiType = regex.as<string, { names: Record<string, string | unde
  * Decide whether a difference is reading 60's class ({@link laxXsiType}): every message `xmllint`
  * gave for it says an `xsi:type` resolves to no type definition, each on an element the law
  * oracle's rows hold as laxly assessed. A padded value is libxml2's ({@link paddedTypeRecord}),
- * since its collapsed QName may name a type.
+ * since its collapsed QName may name a type. xmllint names an element in no namespace by its local
+ * name alone, which the rows write `{}` before.
  *
  * @param difference - The difference.
  * @param laxNames - The document's laxly assessed elements' expanded names.
@@ -530,8 +531,6 @@ export const isLaxXsiType = (difference: Difference, laxNames: ReadonlySet<strin
   difference.detail.split(" | ").every((message) => {
     const name = unresolvedXsiType.exec(message)?.groups?.["name"];
 
-    // xmllint names an element in no namespace by its local name alone, which the rows write `{}`
-    // before.
     return name !== undefined && laxNames.has(name.startsWith("{") ? name : `{}${name}`);
   });
 
@@ -1123,6 +1122,27 @@ const bcp47Tag = [
 ].join("|");
 
 /**
+ * An item's or a stimulus's `xml:lang` outside its domain: a tag, its whitespace collapsed, never
+ * empty.
+ */
+const rootLanguageBreach = String.raw`\S*\/(?:qti-assessment-item|qti-assessment-stimulus)(?:\[\d+\])?: xml:lang: "(?!${bcp47Space}(?:${bcp47Tag})${bcp47Space}")`;
+
+/**
+ * Any other `xml:lang` outside its domain: a tag, its whitespace collapsed, or empty.
+ */
+const languageBreach = String.raw`|\S+: xml:lang: "(?!${bcp47Space}(?:${bcp47Tag})?${bcp47Space}")`;
+
+/**
+ * A track's `srclang` outside its domain: a tag as written, never empty.
+ */
+const srclangBreach = String.raw`|\S*\/track(?:\[\d+\])?: srclang: "(?!(?:${bcp47Tag})")`;
+
+/**
+ * A `lang` outside its domain: a tag as written, or empty.
+ */
+const langBreach = String.raw`|\S+: lang: "(?!(?:${bcp47Tag})?")`;
+
+/**
  * The two messages of xmllint's that reading 2 records on MathML content, each as one `line N
  * {MathML}name: ...` segment: an element whose XSD content type is empty holding text, and a
  * `semantics` where the XSD's content expression, `apply` through `piecewise` and perhaps more
@@ -1260,14 +1280,10 @@ export const generatedRecorded: readonly Recorded[] = [
     detail: regex.as(
       [
         `^value domain at (?:`,
-        // An item's or a stimulus's xml:lang: a tag, its whitespace collapsed, never empty.
-        `\\S*\\/(?:qti-assessment-item|qti-assessment-stimulus)(?:\\[\\d+\\])?: xml:lang: "(?!${bcp47Space}(?:${bcp47Tag})${bcp47Space}")`,
-        // Any other xml:lang: a tag, its whitespace collapsed, or empty.
-        `|\\S+: xml:lang: "(?!${bcp47Space}(?:${bcp47Tag})?${bcp47Space}")`,
-        // A track's srclang: a tag as written, never empty.
-        `|\\S*\\/track(?:\\[\\d+\\])?: srclang: "(?!(?:${bcp47Tag})")`,
-        // A lang: a tag as written, or empty.
-        `|\\S+: lang: "(?!(?:${bcp47Tag})?")`,
+        rootLanguageBreach,
+        languageBreach,
+        srclangBreach,
+        langBreach,
         `)(?:[^"\\\\]|\\\\.)*" is outside \\S+ \\(reading 129\\)(?: \\(\\d+\\))?, whose pattern is `,
       ].join(""),
       "u",
@@ -1371,9 +1387,11 @@ export const generatedRecorded: readonly Recorded[] = [
     },
     rule: "child-set",
   },
-  // The media URLs share one domain, whose handle names the reading that compiled it first.
   {
     class: "attribute-value",
+    /**
+     * The media URLs share one domain, whose handle names the reading that compiled it first.
+     */
     detail: regex.as(
       '^value domain at \\S*\\/(?:(?:audio|source|video)(?:\\[\\d+\\])?: src|video(?:\\[\\d+\\])?: poster|source(?:\\[\\d+\\])?: srcset): "(?:\\\\[tnr]| )*" is outside URLDType \\(reading 12[45]\\)',
       "u",
@@ -2212,7 +2230,11 @@ export const judgeDocument = Effect.fn("test.judgeDocument")(function* judgeDocu
          * allow (cvc-complex-type clause 3), as xmllint's "is not allowed" says. An xsi:type that
          * is no QName in scope, or names no type, is a value its attribute's declaration refuses
          * (cvc-elt clauses 4.1 and 4.2), which xmllint reports on the attribute. A namespace name
-         * behind an entity reference is no schema rule's.
+         * behind an entity reference is no schema rule's. A strictly held element no type assesses
+         * is an element's refusal, never an attribute's, which xmllint reports as "demanded by the
+         * strict wildcard"; so is MathML content outside m:math, which the MathML 3 RelaxNG's start
+         * and anyElement refuse (reading 2), where xmllint assesses the element against its global
+         * declaration.
          */
         const { reason } = failure;
         switch (reason) {
@@ -2228,19 +2250,12 @@ export const judgeDocument = Effect.fn("test.judgeDocument")(function* judgeDocu
           case "prefix-unbound":
           case "type-unknown":
           case "type-unresolved": {
-            // A QName value no binding in scope resolves, or that names no type, is a value its
-            // attribute's declaration refuses, which xmllint reports on the attribute.
             return "attribute-value";
           }
           case "strict-undeclared": {
-            // An element's refusal, never an attribute's: a strictly held element no type
-            // assesses, which xmllint reports as "demanded by the strict wildcard".
             return "content";
           }
           case "mathml-foreign": {
-            // An element's refusal, never an attribute's: MathML content outside m:math, which
-            // the MathML 3 RelaxNG's start and anyElement refuse (reading 2), where xmllint
-            // assesses the element against its global declaration.
             return "content";
           }
           default: {

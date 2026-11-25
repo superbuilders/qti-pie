@@ -490,8 +490,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                 const disagreements = [...judged.disagreements, ...moved];
                 const signature = shownSignature(entry.signature);
                 const shown = disagreements.map(shownDisagreement).join("; ") || "none";
-                // A known class shows as it is keyed; a fixed one must not show again, under its
-                // plain signature or under any stated limit.
                 assert.strictEqual(
                   disagreements.some((disagreement) =>
                     showsClass(entry.signature, shows, disagreement),
@@ -558,92 +556,104 @@ layer(NodeServices.layer, { excludeTestServices: true })(
       ),
     );
 
+    /**
+     * Oracle: the replay's two readings of a signature, `recordsClassOf` as keyed and
+     * `recordsPlainClassOf` by plain class. Bound: a fixed signature keyed by a limit, against
+     * its class under that limit, under another and under none, and against another law.
+     */
+    const plainReplay = Effect.sync(() => {
+      const plain: Signature = { kind: "oracle-only-law", law: "Key text bound" };
+      const keyed: Signature = { ...plain, limit: "an inclusion cycle" };
+
+      assert.isTrue(showsClass(keyed, false, disagreementOf(keyed)), "under its own limit");
+      assert.isTrue(
+        showsClass(keyed, false, disagreementOf({ ...plain, limit: "a forbidden ancestor" })),
+        "under another limit",
+      );
+      assert.isTrue(showsClass(keyed, false, disagreementOf(plain)), "under no limit");
+      assert.isFalse(
+        showsClass(
+          keyed,
+          false,
+          disagreementOf({
+            kind: "oracle-only-law",
+            law: "Record field key",
+            limit: "an inclusion cycle",
+          }),
+        ),
+        "another law under its limit",
+      );
+      assert.isFalse(
+        showsClass(keyed, true, disagreementOf(plain)),
+        "a known entry is keyed by its limit",
+      );
+    });
+
     it.effect(
       "replays a fixed entry by its plain class, whatever stated limit its key carries",
-      () =>
-        // Oracle: the replay's two readings of a signature, `recordsClassOf` as keyed and
-        // `recordsPlainClassOf` by plain class. Bound: a fixed signature keyed by a limit, against
-        // its class under that limit, under another and under none, and against another law.
-        Effect.sync(() => {
-          const plain: Signature = { kind: "oracle-only-law", law: "Key text bound" };
-          const keyed: Signature = { ...plain, limit: "an inclusion cycle" };
-
-          assert.isTrue(showsClass(keyed, false, disagreementOf(keyed)), "under its own limit");
-          assert.isTrue(
-            showsClass(keyed, false, disagreementOf({ ...plain, limit: "a forbidden ancestor" })),
-            "under another limit",
-          );
-          assert.isTrue(showsClass(keyed, false, disagreementOf(plain)), "under no limit");
-          assert.isFalse(
-            showsClass(
-              keyed,
-              false,
-              disagreementOf({
-                kind: "oracle-only-law",
-                law: "Record field key",
-                limit: "an inclusion cycle",
-              }),
-            ),
-            "another law under its limit",
-          );
-          assert.isFalse(
-            showsClass(keyed, true, disagreementOf(plain)),
-            "a known entry is keyed by its limit",
-          );
-        }),
+      () => plainReplay,
     );
 
-    it.effect("replays each known and fixed entry's own class as a class it records", () =>
-      // Oracle: the replay's reading of a signature against the disagreement of that signature
-      // (`disagreementOf`), which an entry must recognize, or its replay can never fail. Bound:
-      // every known and fixed entry.
-      Effect.sync(() => {
-        assert.deepStrictEqual(
-          knownList.flatMap(({ entry, shows }) =>
-            showsClass(entry.signature, shows, disagreementOf(entry.signature))
-              ? []
-              : [shownSignature(entry.signature)],
-          ),
-          [],
-          "the replay does not recognize these entries' own class, so a known entry is always stale and a fixed one guards nothing",
-        );
-      }),
+    /**
+     * Oracle: the replay's reading of a signature against the disagreement of that signature
+     * (`disagreementOf`), which an entry must recognize, or its replay can never fail. Bound:
+     * every known and fixed entry.
+     */
+    const ownClasses = Effect.sync(() => {
+      assert.deepStrictEqual(
+        knownList.flatMap(({ entry, shows }) =>
+          showsClass(entry.signature, shows, disagreementOf(entry.signature))
+            ? []
+            : [shownSignature(entry.signature)],
+        ),
+        [],
+        "the replay does not recognize these entries' own class, so a known entry is always stale and a fixed one guards nothing",
+      );
+    });
+
+    it.effect(
+      "replays each known and fixed entry's own class as a class it records",
+      () => ownClasses,
     );
 
-    it.effect("keys no signature in both the known and the fixed table", () =>
-      // Oracle: the two tables' classes, by sameSignature. Bound: every known and fixed entry's
-      // signature.
-      Effect.sync(() => {
-        assert.deepStrictEqual(
-          known
-            .filter(({ signature }) =>
-              fixed.some((entry) => sameSignature(entry.signature, signature)),
-            )
-            .map(({ signature }) => shownSignature(signature)),
-          [],
-          "these signatures key a known entry and a fixed one, so the known entry hides the fixed cause if it shows again; key the known class by the stated limit it falls under (#pantry/test/gen/genetic/judge.ts limitOf), or move it",
-        );
-      }),
-    );
+    /**
+     * Oracle: the two tables' classes, by sameSignature. Bound: every known and fixed entry's
+     * signature.
+     */
+    const oneTable = Effect.sync(() => {
+      assert.deepStrictEqual(
+        known
+          .filter(({ signature }) =>
+            fixed.some((entry) => sameSignature(entry.signature, signature)),
+          )
+          .map(({ signature }) => shownSignature(signature)),
+        [],
+        "these signatures key a known entry and a fixed one, so the known entry hides the fixed cause if it shows again; key the known class by the stated limit it falls under (#pantry/test/gen/genetic/judge.ts limitOf), or move it",
+      );
+    });
 
-    it.effect("keys every known and fixed entry by a class some package can show", () =>
-      // Oracle: grizzle's sameLaw against the laws the host judges. Bound: every known and fixed
-      // entry's signature, and one unshowable signature of each shape.
-      Effect.sync(() => {
-        assert.deepStrictEqual(
-          unshowable.values().filter(canShow).map(shownSignature).toArray(),
-          [],
-          "the guard admits a signature no package can show",
-        );
-        assert.deepStrictEqual(
-          knownList.flatMap(({ entry }) =>
-            canShow(entry.signature) ? [] : [shownSignature(entry.signature)],
-          ),
-          [],
-          "these signatures key a law the host does not judge, which no statement of Qti states, so they can never show and their entries guard nothing; plant the behaviour each entry's fix removed, judge its package, and rekey it to the signature that shows, or delete it where none can",
-        );
-      }),
-    );
+    it.effect("keys no signature in both the known and the fixed table", () => oneTable);
+
+    /**
+     * Oracle: grizzle's sameLaw against the laws the host judges. Bound: every known and fixed
+     * entry's signature, and one unshowable signature of each shape.
+     */
+    const showable = Effect.sync(() => {
+      assert.deepStrictEqual(
+        unshowable.values().filter(canShow).map(shownSignature).toArray(),
+        [],
+        "the guard admits a signature no package can show",
+      );
+      assert.deepStrictEqual(
+        knownList.flatMap(({ entry }) =>
+          canShow(entry.signature) ? [] : [shownSignature(entry.signature)],
+        ),
+        [],
+        "these signatures key a law the host does not judge, which no statement of Qti states, so they can never show and their entries guard nothing; plant the behaviour each entry's fix removed, judge its package, and rekey it to the signature that shows, or delete it where none can",
+      );
+    });
+
+    it.effect("keys every known and fixed entry by a class some package can show", () => showable);
 
     it.effect(
       "disagrees on each planted value outside its domain's facets exactly while it waits on a fix",

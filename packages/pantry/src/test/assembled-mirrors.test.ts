@@ -75,49 +75,51 @@ const required: readonly (readonly [string, (law: Law) => boolean])[] = [
 layer(NodeServices.layer, { excludeTestServices: true })(
   "every law the host can judge over the every-relation package",
   (it) => {
+    /**
+     * Oracle: the schema's own statements over the rows the import writes, each law as the
+     * database states it, and the law oracle's verdict on the package.
+     * Bound: the every-relation package, every relation of it written, and every containment,
+     * mirrors, key and check of Qti.
+     */
+    const everyLawHolds = Effect.scoped(
+      Effect.gen(function* everyLawHolds() {
+        const dir = yield* scopedPackage(
+          everyRelationPackage({ choices: 2, hotspots: 1, hottexts: 1 }),
+        );
+        const verdict = yield* oracleVerdict(yield* readEntries(dir));
+        const program = yield* readProgram(dir, nameOf(dir));
+        const rows = previewRowsOf(program.inputs);
+        const laws = judgedLaws(Qti);
+        const judgment = judge(rows, laws);
+
+        assert.deepStrictEqual(verdict, { kind: "accepted" });
+        assert.deepStrictEqual(
+          judgment.broken.map(
+            ({ law, rows: breaking }) => `${Formatter.format(law)}: ${Formatter.format(breaking)}`,
+          ),
+          [],
+          "a law the import's rows break",
+        );
+
+        assert.deepStrictEqual(
+          required.flatMap(([label, is]) => (judgment.judged.some(is) ? [] : [label])),
+          [],
+          "a law the test must judge went unjudged",
+        );
+
+        assert.deepStrictEqual(
+          judgment.skipped.map(
+            ({ law, unjudged }) => `${Formatter.format(law)}: ${unjudged.join("; ")}`,
+          ),
+          [],
+          "a law the host cannot judge over the package's rows",
+        );
+      }),
+    );
+
     it.effect(
       "holds every law the host can judge over the every-relation package's rows, and judges every one",
-      () =>
-        // Oracle: the schema's own statements over the rows the import writes, each law as the
-        // database states it, and the law oracle's verdict on the package.
-        // Bound: the every-relation package, every relation of it written, and every containment,
-        // mirrors, key and check of Qti.
-        Effect.scoped(
-          Effect.gen(function* everyLawHolds() {
-            const dir = yield* scopedPackage(
-              everyRelationPackage({ choices: 2, hotspots: 1, hottexts: 1 }),
-            );
-            const verdict = yield* oracleVerdict(yield* readEntries(dir));
-            const program = yield* readProgram(dir, nameOf(dir));
-            const rows = previewRowsOf(program.inputs);
-            const laws = judgedLaws(Qti);
-            const judgment = judge(rows, laws);
-
-            assert.deepStrictEqual(verdict, { kind: "accepted" });
-            assert.deepStrictEqual(
-              judgment.broken.map(
-                ({ law, rows: breaking }) =>
-                  `${Formatter.format(law)}: ${Formatter.format(breaking)}`,
-              ),
-              [],
-              "a law the import's rows break",
-            );
-
-            assert.deepStrictEqual(
-              required.flatMap(([label, is]) => (judgment.judged.some(is) ? [] : [label])),
-              [],
-              "a law the test must judge went unjudged",
-            );
-
-            assert.deepStrictEqual(
-              judgment.skipped.map(
-                ({ law, unjudged }) => `${Formatter.format(law)}: ${unjudged.join("; ")}`,
-              ),
-              [],
-              "a law the host cannot judge over the package's rows",
-            );
-          }),
-        ),
+      () => everyLawHolds,
     );
   },
 );

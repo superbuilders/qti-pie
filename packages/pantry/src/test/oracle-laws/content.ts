@@ -223,6 +223,15 @@ const printable: ReadonlySet<string> = new Set([...outcomes, ...templates]);
 /**
  * Judge one node's content references within a scope.
  *
+ * - An `outcome-identifier` names, by §5.49.1, "an outcome variable that must have a base-type of
+ *   identifier and be of either single or multiple cardinality", a built-in by the type its name
+ *   has (reading 77).
+ * - A `template-identifier` names a single or multiple identifier (decision 432), but on a portable
+ *   custom interaction's `qti-template-variable`, which states no type.
+ * - A printed variable's `base` and `index` are, by §9.3.3, "attributes of integer type that may be
+ *   replaced with the value of a template or outcome variable of base type integer and single
+ *   cardinality", each half where it spells something (spec readings 158 and 159).
+ *
  * @param rows - The node's document.
  * @param node - The node.
  * @param scope - The scope its references resolve in.
@@ -260,8 +269,6 @@ const nodeBreachesOf = (
       }
 
       if (attribute === "outcome-identifier") {
-        // §5.49.1: "an outcome variable that must have a base-type of identifier and be of either
-        // single or multiple cardinality", a built-in by the type its name has (reading 77).
         return Option.match(declarationOf(scope, identifier, outcomes), {
           onNone: () =>
             Option.exists(
@@ -297,8 +304,6 @@ const nodeBreachesOf = (
       }
 
       if (attribute === "template-identifier" && node.kind !== "qti-template-variable") {
-        // Decision 432: a template reference's variable is a single or multiple identifier, but a
-        // portable custom interaction's `qti-template-variable`, which states no type.
         return Option.toArray(declarationOf(scope, identifier, templates)).flatMap((template) =>
           Option.toArray(identifierTypeBreach(scope, template)).map((keys) =>
             breachAt(rows, node, "Template variable type", { ...keys, identifier }),
@@ -307,9 +312,6 @@ const nodeBreachesOf = (
       }
 
       if (node.kind === "qti-printed-variable" && (attribute === "base" || attribute === "index")) {
-        // §9.3.3: "attributes of integer type that may be replaced with the value of a template or
-        // outcome variable of base type integer and single cardinality", each half where it spells
-        // something (spec readings 158 and 159).
         return Option.toArray(declarationOf(scope, identifier, printable)).flatMap(
           (declaration) => {
             const types = [

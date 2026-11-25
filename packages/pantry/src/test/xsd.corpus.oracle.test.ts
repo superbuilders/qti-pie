@@ -511,7 +511,6 @@ const controlled = Effect.fn("test.controlled")(function* controlled(
   );
 });
 
-// Runs at merge time, under QTI_PIE_CORPUS=1, beside the corpus comparison its records classify.
 describe.skipIf(!settings.corpusRequested)(
   "xsd.corpus.oracle.test.ts, the libxml2 classes and reading 6 on their controls, and xmllint on a retyped element",
   () => {
@@ -741,56 +740,64 @@ describe.skipIf(!settings.corpusRequested)(
           }),
       );
 
-      // Two defects the law oracle shares with the grammar and the codec, left unrecorded, so a
-      // generated document that shows one fails the generated test until its owner's fix lands;
-      // this control states xmllint's verdict alone. An element an xsi:type retypes is assessed
-      // against the type it names (XML Schema 1.0 Part 1, 3.3.4, cvc-elt clause 4, as reading 47
-      // has it), so its attributes are that type's, but the grammar's attribute admission is by
-      // kind, so a qti-exit-response typed TrackDType is accepted without TrackDType's required
-      // src. An xsi:type whose prefix no declaration binds is no QName (Part 2, 3.2.18), which its
-      // built-in declaration (Part 1, 3.2.7) refuses wherever the element sits, but the codec
-      // refuses it only on an element a declaration assesses (shred's type-unresolved).
+      /**
+       * Two defects the law oracle shares with the grammar and the codec, left unrecorded, so a
+       * generated document that shows one fails the generated test until its owner's fix lands;
+       * this control states xmllint's verdict alone. An element an xsi:type retypes is assessed
+       * against the type it names (XML Schema 1.0 Part 1, 3.3.4, cvc-elt clause 4, as reading 47
+       * has it), so its attributes are that type's, but the grammar's attribute admission is by
+       * kind, so a qti-exit-response typed TrackDType is accepted without TrackDType's required
+       * src. An xsi:type whose prefix no declaration binds is no QName (Part 2, 3.2.18), which its
+       * built-in declaration (Part 1, 3.2.7) refuses wherever the element sits, but the codec
+       * refuses it only on an element a declaration assesses (shred's type-unresolved).
+       */
+      const retyped = Effect.gen(function* retyped() {
+        const held = yield* controlled("retyped", {
+          "retyped-plain": exitProcessing("<qti-exit-response/>"),
+          "retyped-track": exitProcessing(`<qti-exit-response xsi:type="t:TrackDType"/>`),
+          "unbound-prefix": markedItem(`<widget xmlns="urn:w" xsi:type="zz:t">x</widget>`),
+        });
+
+        assert.deepStrictEqual(
+          held.map(({ comparison }) => comparison.xsdClasses),
+          [[], ["attribute-required"], ["attribute-value", "other"]],
+          "xmllint assesses the retyped element against TrackDType, whose src is required, and refuses the unbound prefix on the xsi:type and, a second time, on its element",
+        );
+      });
+
       it.effect(
         "xmllint refuses a qti-exit-response an xsi:type retypes to TrackDType without src and a foreign element's xsi:type of an unbound prefix, and accepts a plain qti-exit-response",
-        () =>
-          Effect.gen(function* retyped() {
-            const held = yield* controlled("retyped", {
-              "retyped-plain": exitProcessing("<qti-exit-response/>"),
-              "retyped-track": exitProcessing(`<qti-exit-response xsi:type="t:TrackDType"/>`),
-              "unbound-prefix": markedItem(`<widget xmlns="urn:w" xsi:type="zz:t">x</widget>`),
-            });
-
-            assert.deepStrictEqual(
-              held.map(({ comparison }) => comparison.xsdClasses),
-              [[], ["attribute-required"], ["attribute-value", "other"]],
-              "xmllint assesses the retyped element against TrackDType, whose src is required, and refuses the unbound prefix on the xsi:type and, a second time, on its element",
-            );
-          }),
+        () => retyped,
       );
 
-      // The defects three earlier records named, now fixed and so no records: an element in no
-      // namespace under an ##other wildcard, which ##other never admits (XML Schema 1.0 Part 1,
-      // 3.10.1); a foreign element in xi:include, whose includeType is (fallback | any ##other
-      // lax)*; and a simple-content element with no text, whose empty string its type must admit.
-      // Both oracles judge each alike, so a regression shows here as well as in a generated run.
-      it.effect("both oracles judge alike the three defects the earlier records named", () =>
-        Effect.gen(function* fixed() {
-          const held = yield* controlled("fixed", {
-            "empty-schemaversion": `<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="M"><metadata><schema>QTI Package</schema><schemaversion></schemaversion></metadata><organizations/><resources/></manifest>`,
-            "foreign-in-include": `<qti-assessment-test xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xi="http://www.w3.org/2001/XInclude" identifier="T" title="t"><qti-test-part identifier="P" navigation-mode="linear" submission-mode="individual"><qti-assessment-section identifier="S" title="s" visible="true"><xi:include href="s.xml"><widget xmlns="urn:w"/></xi:include></qti-assessment-section></qti-test-part></qti-assessment-test>`,
-            "no-namespace-under-other": `<lom xmlns="http://ltsc.ieee.org/xsd/LOM"><general/><widget xmlns="">x</widget></lom>`,
-          });
+      /**
+       * The defects three earlier records named, now fixed and so no records: an element in no
+       * namespace under an ##other wildcard, which ##other never admits (XML Schema 1.0 Part 1,
+       * 3.10.1); a foreign element in xi:include, whose includeType is (fallback | any ##other
+       * lax)*; and a simple-content element with no text, whose empty string its type must admit.
+       * Both oracles judge each alike, so a regression shows here as well as in a generated run.
+       */
+      const fixed = Effect.gen(function* fixed() {
+        const held = yield* controlled("fixed", {
+          "empty-schemaversion": `<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="M"><metadata><schema>QTI Package</schema><schemaversion></schemaversion></metadata><organizations/><resources/></manifest>`,
+          "foreign-in-include": `<qti-assessment-test xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xi="http://www.w3.org/2001/XInclude" identifier="T" title="t"><qti-test-part identifier="P" navigation-mode="linear" submission-mode="individual"><qti-assessment-section identifier="S" title="s" visible="true"><xi:include href="s.xml"><widget xmlns="urn:w"/></xi:include></qti-assessment-section></qti-test-part></qti-assessment-test>`,
+          "no-namespace-under-other": `<lom xmlns="http://ltsc.ieee.org/xsd/LOM"><general/><widget xmlns="">x</widget></lom>`,
+        });
 
-          assert.deepStrictEqual(
-            held.map(({ comparison }) => [comparison.verdicts, comparison.differences]),
-            [
-              ["refused by both", []],
-              ["accepted by both", []],
-              ["refused by both", []],
-            ],
-            "an empty schemaversion and a no-namespace element under ##other are refused by both, and a foreign element in xi:include is accepted by both",
-          );
-        }),
+        assert.deepStrictEqual(
+          held.map(({ comparison }) => [comparison.verdicts, comparison.differences]),
+          [
+            ["refused by both", []],
+            ["accepted by both", []],
+            ["refused by both", []],
+          ],
+          "an empty schemaversion and a no-namespace element under ##other are refused by both, and a foreign element in xi:include is accepted by both",
+        );
+      });
+
+      it.effect(
+        "both oracles judge alike the three defects the earlier records named",
+        () => fixed,
       );
     });
   },

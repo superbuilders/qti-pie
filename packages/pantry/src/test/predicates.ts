@@ -439,6 +439,13 @@ export const termOf = (stored: StoredTerm): Term => {
     to,
     values,
   } = stored;
+  /**
+   * Read a `guarded` node, a when's branch parameter: grizzle computes, prints and hashes it as its
+   * `arg`, the when's subject, so the host reads it as that.
+   *
+   * @returns Its term.
+   */
+  const guarded = (): Term => (arg === undefined ? unread : termOf(arg));
   const readers = new Map<string, () => Term>([
     ["and", () => ({ args: (stored.args ?? []).map(termOf), kind: "and" })],
     [
@@ -499,9 +506,13 @@ export const termOf = (stored: StoredTerm): Term => {
           return { arg: termOf(arg), kind: "cast", to: "double" };
         }
 
-        // A cast into a text type is total only where its argument's language lies inside the
-        // target's, which grizzle proves when the schema compiles, so it changes no value.
-        if (to?.kind === "text") {
+        /**
+         * Whether the cast is into a text type, which is total only where its argument's language
+         * lies inside the target's, which grizzle proves when the schema compiles, so it changes no
+         * value.
+         */
+        const intoText = to?.kind === "text";
+        if (intoText) {
           return termOf(arg);
         }
 
@@ -564,9 +575,7 @@ export const termOf = (stored: StoredTerm): Term => {
           }),
         ),
     ],
-    // A `guarded` node is a when's branch parameter: grizzle computes, prints and hashes it as its `arg`, the when's
-    // subject, so the host reads it as that.
-    ["guarded", () => (arg === undefined ? unread : termOf(arg))],
+    ["guarded", guarded],
     ["not", () => (arg === undefined ? unread : { arg: termOf(arg), kind: "not" })],
     ["or", () => ({ args: (stored.args ?? []).map(termOf), kind: "or" })],
     [
@@ -1057,6 +1066,32 @@ const translated = ([text = "", from = "", to = ""]: readonly string[]): string 
 };
 
 /**
+ * Fold a text as the database's `Text.lowerAscii` folds: each capital A to Z to its small letter,
+ * as PostgreSQL's pg_ascii_tolower does, and every other character itself, never as
+ * `String.prototype.toLowerCase` folds, which also folds every other cased script.
+ *
+ * @param args - The text.
+ * @returns The folded text, or none for arguments that are not one text.
+ */
+const lowerAscii = (args: readonly Datum[]): Datum | undefined =>
+  ofTexts(args, 1, ([text = ""]) =>
+    text.replaceAll(arkregex("[A-Z]", "gu"), (capital) => capital.toLowerCase()),
+  );
+
+/**
+ * Collapse a text as the database's `Text.collapse` is `btrim(regexp_replace(x, '[ \t\n\r]+', ' ',
+ * 'g'))`: the one space a run leaves at either end is trimmed and nothing else, never as
+ * `String.prototype.trim` trims, which also strips U+00A0 and the other Unicode whitespace.
+ *
+ * @param args - The text.
+ * @returns The collapsed text, or none for arguments that are not one text.
+ */
+const collapse = (args: readonly Datum[]): Datum | undefined =>
+  ofTexts(args, 1, ([text = ""]) =>
+    text.replaceAll(arkregex("[ \t\n\r]+", "gu"), " ").replaceAll(arkregex("^ | $", "gu"), ""),
+  );
+
+/**
  * The scalar functions a predicate reads, by name: grizzle's set algebra over sets of handles
  * (`subset`, `disjoint`, `union`, `difference`, `cardinality`, and `singleton`, the set holding a
  * closed id's one handle), its text terms (`matches`, `startsWith`, `endsWith`, `concat`,
@@ -1089,26 +1124,8 @@ const computers: ReadonlyMap<string, (args: readonly Datum[]) => Datum | undefin
   ["endsWith", (args) => ofTexts(args, 2, ([text = "", tail = ""]) => text.endsWith(tail))],
   ["concat", (args) => ofTexts(args, 2, ([left = "", right = ""]) => left + right)],
   ["translate", (args) => ofTexts(args, 3, translated)],
-  [
-    // As the database's `Text.lowerAscii` folds: each capital A to Z to its small letter, as
-    // PostgreSQL's pg_ascii_tolower does, and every other character itself, never as
-    // `String.prototype.toLowerCase` folds, which also folds every other cased script.
-    "lowerAscii",
-    (args) =>
-      ofTexts(args, 1, ([text = ""]) =>
-        text.replaceAll(arkregex("[A-Z]", "gu"), (capital) => capital.toLowerCase()),
-      ),
-  ],
-  [
-    // As the database's `Text.collapse` is `btrim(regexp_replace(x, '[ \t\n\r]+', ' ', 'g'))`:
-    // the one space a run leaves at either end is trimmed and nothing else, never as
-    // `String.prototype.trim` trims, which also strips U+00A0 and the other Unicode whitespace.
-    "collapse",
-    (args) =>
-      ofTexts(args, 1, ([text = ""]) =>
-        text.replaceAll(arkregex("[ \t\n\r]+", "gu"), " ").replaceAll(arkregex("^ | $", "gu"), ""),
-      ),
-  ],
+  ["lowerAscii", lowerAscii],
+  ["collapse", collapse],
   [
     "add",
     ([left, right]) =>

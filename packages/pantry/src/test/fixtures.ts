@@ -5190,10 +5190,12 @@ const ssmlSpecs: Readonly<Record<(typeof ssmlNames)[number], FixtureSpec>> = {
   ),
   "ssml-corpus-sub": {
     ...cutItem("ssml-corpus-sub", "sharedStimulus", ssmlCorpusItem),
+    /**
+     * The item names a stimulus the cut does not keep, which `file-exists` and
+     * `stimulus-ref-target` refuse, so the reference goes and the item keeps its body and its
+     * catalog, where the corpus's `ssml:sub` stands.
+     */
     edits: [
-      // The item names a stimulus the cut does not keep, which `file-exists` and
-      // `stimulus-ref-target` refuse, so the reference goes and the item keeps its body and its
-      // catalog, where the corpus's `ssml:sub` stands.
       replaceIn(ssmlCorpusItem, ssmlCorpusStimulusRef, ""),
       { _tag: "cut", item: ssmlCorpusItem },
     ],
@@ -7664,8 +7666,9 @@ const timedProcessing = [
  *
  * Each stub is `simple`'s `choice.xml` with its identifier and title set to the item ref's
  * identifier, its picture paragraph removed (a stub names no file) and one further float single
- * outcome declaration for each variable {@link stubsOf} names. A fresh `imsmanifest.xml` of the
- * test's resource and one item resource per stub replaces the package's own.
+ * outcome declaration for each variable {@link stubsOf} names. An unscored stub names no template,
+ * since match_correct sets SCORE (reading 233). A fresh `imsmanifest.xml` of the test's resource
+ * and one item resource per stub replaces the package's own.
  *
  * @param pkg - The extracted package directory, holding the loose test at its root.
  * @param tmp - The temporary directory that holds it.
@@ -7727,7 +7730,6 @@ const packageLooseTest = Effect.fn("fixtures.packageLooseTest")(function* packag
               regex("<qti-response-processing [^>]*/>", "u"),
               stub.timed ? timedProcessing : "$&",
             )
-            // An unscored stub names no template: match_correct sets SCORE (reading 233).
             .replace(
               regex('<qti-response-processing template="[^"]*"/>', "u"),
               stub.scored ? "$&" : "",

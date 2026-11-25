@@ -144,9 +144,13 @@ export const libxml2Class = (stderr: string, exited: number): string => {
   const classes = new Set(
     (lines.length === 0 ? [stderr.split("\n")[0] ?? ""] : lines).map((line) => messageClass(line)),
   );
-  // An entity whose text fails to parse for an undeclared reference in it is its own class: the
-  // reference's WFC holds only where no external subset can declare it (XML 1.0 section 4.1).
-  if (classes.has("Entity '_' failed to parse") && classes.has("Entity '_' not defined")) {
+  /**
+   * Whether an entity's text fails to parse for an undeclared reference in it, its own class: the
+   * reference's WFC holds only where no external subset can declare it (XML 1.0 section 4.1).
+   */
+  const undeclaredInEntity =
+    classes.has("Entity '_' failed to parse") && classes.has("Entity '_' not defined");
+  if (undeclaredInEntity) {
     classes.delete("Entity '_' failed to parse");
     classes.delete("Entity '_' not defined");
     classes.add("Entity '_' not defined in an entity's replacement text");
@@ -1672,7 +1676,9 @@ const referenceDifferential = Effect.fnUntraced(function* referenceDifferential(
  * (XML 1.0 section 4.4.7) and included when the default is normalized (section 4.4.5), so the
  * default's value reaches every reference those replacement texts hold, each entity bound by its
  * first declaration (section 4.2); a reference to an entity the subset declares only after the
- * attribute-list declaration is then one the default holds before its entity's declaration.
+ * attribute-list declaration is then one the default holds before its entity's declaration. Such a
+ * default is crust's refusal by XML 1.0 section 4.1's last sentence, whatever else the document
+ * holds.
  *
  * @param genome - The genome.
  * @returns Whether it does.
@@ -1750,8 +1756,6 @@ const judgeOne = Effect.fnUntraced(function* judgeOne(
       ...judged.disagreements,
       ...references.disagreements.map((held) => classed(held, inputClassOf(bytes, read))),
     ].map((held) =>
-      // A default naming an entity the subset declares after it is crust's refusal by XML 1.0
-      // section 4.1's last sentence, whatever else the document holds.
       defaultBeforeEntity(genome) && Result.isFailure(read) && !isClassed(held)
         ? classed(held, "default names an entity declared after it")
         : held,

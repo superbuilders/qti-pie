@@ -891,36 +891,39 @@ const assemblyLawsOf = (
         test: testPath,
       }),
     );
-  const nameBreaches = [
-    // Within a copy (`AnchoredName`): no two elements of one copy share an identifier, an included
-    // fragment placed twice there among them, as XInclude's merged document holds it twice.
-    ...named(
-      [
-        ...new Map(
-          placed.map((row) => [
-            `${String(row.anchor)} ${String(row.instance)} ${row.document.listed.path} ${String(row.name.node.start)}`,
-            row,
-          ]),
-        ).values(),
-      ],
-      ({ anchor, name }) => `${String(anchor)} ${name.identifier}`,
-    ),
-    // Across the test (`AssembledName`): two copies of one section document hold its elements once
-    // (§7.5.3: "A test may refer to the same section multiple times within a test"), and every
-    // other element is its own (§4.2.1: "The identifier of the section or item reference must be
-    // unique within the test").
-    ...named(
-      [
-        ...new Map(
-          placed.map((row) => [
-            `${row.anchorDocument} ${row.document.listed.path} ${String(row.name.node.start)}`,
-            row,
-          ]),
-        ).values(),
-      ],
-      ({ name }) => name.identifier,
-    ),
-  ];
+  /**
+   * The repeats within a copy (`AnchoredName`): no two elements of one copy share an identifier, an
+   * included fragment placed twice there among them, as XInclude's merged document holds it twice.
+   */
+  const withinCopy = named(
+    [
+      ...new Map(
+        placed.map((row) => [
+          `${String(row.anchor)} ${String(row.instance)} ${row.document.listed.path} ${String(row.name.node.start)}`,
+          row,
+        ]),
+      ).values(),
+    ],
+    ({ anchor, name }) => `${String(anchor)} ${name.identifier}`,
+  );
+  /**
+   * The repeats across the test (`AssembledName`): two copies of one section document hold its
+   * elements once (§7.5.3: "A test may refer to the same section multiple times within a test"),
+   * and every other element is its own (§4.2.1: "The identifier of the section or item reference
+   * must be unique within the test").
+   */
+  const acrossTest = named(
+    [
+      ...new Map(
+        placed.map((row) => [
+          `${row.anchorDocument} ${row.document.listed.path} ${String(row.name.node.start)}`,
+          row,
+        ]),
+      ).values(),
+    ],
+    ({ name }) => name.identifier,
+  );
+  const nameBreaches = [...withinCopy, ...acrossTest];
   const branches = new Map<string, Breach>();
   for (const instance of instances) {
     for (const rule of instance.document.rules) {

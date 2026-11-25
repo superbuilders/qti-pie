@@ -192,11 +192,9 @@ layer(NodeServices.layer, { excludeTestServices: true })("a site at every placem
                   c.note(site.parentKind === "div" ? "a fragment's site" : "an item's site");
                   assert.isTrue(siteCheck(site), placement.name);
 
-                  // The planted wrong kind: an item ref in the include's place, which is no site
-                  // (a section ref is one, wherever it stands, §7.5).
                   assert.isFalse(
                     siteCheck({ ...site, kind: "qti-assessment-item-ref" }),
-                    `${placement.name}: an item ref kept as a site`,
+                    `${placement.name}: an item ref kept as a site, the planted wrong kind in the include's place, which is no site (a section ref is one, wherever it stands, §7.5)`,
                   );
                 }
               }),

@@ -164,7 +164,8 @@ class SpecPublishedRenderingChanged extends Schema.TaggedError<SpecPublishedRend
 type SpecFailure = SpecDownloadFailed | SpecPublishedChanged | SpecPublishedRenderingChanged;
 
 /**
- * Keep a source's failure as a value, so a run attempts every pin before it fails.
+ * Keep a source's failure as a value, so a run attempts every pin before it fails: a source's own
+ * failure is kept and the others go on, where a file system failure ends the run.
  *
  * @param failure - The source's failure.
  * @returns The failure as a failed result, in the success channel.
@@ -279,7 +280,8 @@ type RenderingFailure = SpecRenderingChanged | SpecRenderingUndecodable;
 export type Rendered = "present" | "derived" | "replaced";
 
 /**
- * Keep a rendering's failure as a value, so a run attempts every rendering before it fails.
+ * Keep a rendering's failure as a value, so a run attempts every rendering before it fails: a
+ * rendering's own failure is kept and the others go on, where a file system failure ends the run.
  *
  * @param failure - The rendering's failure.
  * @returns The failure as a failed result, in the success channel.
@@ -585,7 +587,6 @@ const fetchSpecs = Effect.fn("test.specCache.fetchSpecs")(function* fetchSpecs(
     table.sources.map((source, index) =>
       settle(source, paths.join(scratch, String(index)), directory, client).pipe(
         Effect.map((outcome): Result.Result<Settled, SpecFailure> => Result.succeed(outcome)),
-        // A source's own failure is kept and the others go on; a file system failure ends the run.
         Effect.catchTags({ SpecDownloadFailed: keptFailure, SpecPublishedChanged: keptFailure }),
         Effect.map((result) => ({ path: source.path, result })),
       ),
@@ -600,7 +601,6 @@ const fetchSpecs = Effect.fn("test.specCache.fetchSpecs")(function* fetchSpecs(
         client,
       ).pipe(
         Effect.map((outcome): Result.Result<Settled, SpecFailure> => Result.succeed(outcome)),
-        // A source's own failure is kept and the others go on; a file system failure ends the run.
         Effect.catchTags({
           SpecDownloadFailed: keptFailure,
           SpecPublishedRenderingChanged: keptFailure,
@@ -624,7 +624,6 @@ const fetchSpecs = Effect.fn("test.specCache.fetchSpecs")(function* fetchSpecs(
   const derived = yield* Effect.forEach(table.renderings, (rendering, index) =>
     derive(rendering, paths.join(scratch, `rendering-${String(index)}`), directory).pipe(
       Effect.map((outcome): Result.Result<Rendered, RenderingFailure> => Result.succeed(outcome)),
-      // A rendering's own failure is kept and the others go on; a file system failure ends the run.
       Effect.catchTags({
         SpecRenderingChanged: keptRenderingFailure,
         SpecRenderingUndecodable: keptRenderingFailure,
@@ -650,7 +649,6 @@ const fetchSpecs = Effect.fn("test.specCache.fetchSpecs")(function* fetchSpecs(
       ...derived.flatMap(({ path, result }) =>
         Result.isSuccess(result) ? [{ outcome: result.success, path }] : [],
       ),
-      // A render-pinned source's rendering is written with it: present with it, or derived anew.
       ...renderPinned.flatMap(({ rendering, result }) =>
         Result.isSuccess(result)
           ? [{ outcome: renderedWith(result.success), path: rendering }]

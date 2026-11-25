@@ -124,38 +124,38 @@ const excerpt = (text: string, at: number): string =>
 const textOf = (json: string): string => JSON.stringify(Schema.decodeUnknownSync(JsonText)(json));
 
 layer(NodeServices.layer)("the committed served files", (live) => {
-  live.effect("holds a served file for each configured login, and none for another", () =>
-    Effect.gen(function* servedFiles() {
-      const fs = yield* FileSystem.FileSystem;
-      const entries = yield* fs.readDirectory(migrationsDirectory, { recursive: true });
-      const committed = entries
-        .filter((entry) => path.basename(path.dirname(entry)) === "served")
-        .toSorted();
+  live.effect(
+    "holds a served file for each configured login, and none for another, as grizzle lays them out (<schema>/served/<login>.json): every folder named served under migrations/",
+    () =>
+      Effect.gen(function* servedFiles() {
+        const fs = yield* FileSystem.FileSystem;
+        const entries = yield* fs.readDirectory(migrationsDirectory, { recursive: true });
+        const committed = entries
+          .filter((entry) => path.basename(path.dirname(entry)) === "served")
+          .toSorted();
 
-      // Oracle: grizzle's layout, `<schema>/served/<login>.json`, one per configured login.
-      // Bound: every folder named `served` under `migrations/`; residual none.
-      assert.deepStrictEqual(
-        committed,
-        configured
-          .map(({ login, schema }) => path.join(schema, "served", `${login.name}.json`))
-          .toSorted(),
-        `the served files under ${migrationsDirectory} are not one per login of grizzle.config.ts: list a new login in \`configured\` here, or run \`pnpm exec grizzle generate\` in packages/pantry, which removes the file of a login the config no longer lists`,
-      );
-      assert.include(
-        configured.map(({ login, schema }) =>
-          path.join(migrationsDirectory, schema, "served", `${login.name}.json`),
-        ),
-        servedPath,
-        "the file the author login's DbLayer serves is one this witness compiles",
-      );
-    }),
+        assert.deepStrictEqual(
+          committed,
+          configured
+            .map(({ login, schema }) => path.join(schema, "served", `${login.name}.json`))
+            .toSorted(),
+          `the served files under ${migrationsDirectory} are not one per login of grizzle.config.ts: list a new login in \`configured\` here, or run \`pnpm exec grizzle generate\` in packages/pantry, which removes the file of a login the config no longer lists`,
+        );
+        assert.include(
+          configured.map(({ login, schema }) =>
+            path.join(migrationsDirectory, schema, "served", `${login.name}.json`),
+          ),
+          servedPath,
+          "the file the author login's DbLayer serves is one this witness compiles",
+        );
+      }),
   );
 
   for (const { login, schema } of configured) {
     const file = path.join(schema, "served", `${login.name}.json`);
 
     live.effect(
-      `holds ${file} as grizzle generate compiles login ${login.name} under ${schema}/snapshot.json`,
+      `holds ${file} as grizzle generate compiles login ${login.name} under ${schema}/snapshot.json (grizzle's compileServed): the login's whole file, a change that moves snapshot.json alone aside`,
       () =>
         Effect.gen(function* servedMatches() {
           const snapshot = yield* readCommitted(
@@ -167,8 +167,6 @@ layer(NodeServices.layer)("the committed served files", (live) => {
           const compiled = JSON.stringify(yield* compileServed(login, snapshot, login.workload));
           const at = partingOffset(compiled, committed);
 
-          // Oracle: grizzle's `compileServed`, the compile `grizzle generate` writes the file from.
-          // Bound: the login's whole file; residual a change that moves snapshot.json alone.
           assert.isUndefined(
             at,
             at === undefined

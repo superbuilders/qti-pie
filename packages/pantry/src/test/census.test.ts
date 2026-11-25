@@ -183,6 +183,22 @@ const lawOf: Gen<Statement> = (source) => {
  */
 const statementOf: Gen<Statement> = (source) => {
   const name = `${source.draw(element(["declared_", "", "x_"] as const))}${source.draw(element(["title", "node", "lexical", "spelling"] as const))}${source.draw(element(["", "_0", "_1"] as const))}`;
+  /**
+   * A stored derived relation, as grizzle prints one: its table created as its definition with
+   * no data, filled by an insert of the definition's rows, and its upkeep function, whose body,
+   * an escape string constant over several lines, inserts into it too. No INSERT INTO here is a
+   * data step's; the function is an `other` one.
+   */
+  const storedRelation: Gen<Statement> = () => ({
+    form: "stored",
+    name,
+    sql: [
+      `CREATE TABLE "qti_queries"."${name}" ("a", "b") AS\nSELECT 'x'::text AS "a", 'y'::text AS "b"\nWITH NO DATA;`,
+      `INSERT INTO "qti_queries"."${name}" ("a", "b")\nSELECT 'x', 'y';`,
+      `CREATE OR REPLACE FUNCTION "qti"."__upkeep_${name}"() RETURNS "pg_catalog"."void"\nLANGUAGE plpgsql VOLATILE SECURITY DEFINER AS E'\\n'\n'BEGIN\\n'\n'  INSERT INTO "qti_queries"."${name}" ("a", "b") SELECT ''x'', ''it\\'s'';\\n'\n'END\\n';`,
+    ].join("\n\n"),
+  });
+
   const arms: readonly [Gen<Statement>, ...Gen<Statement>[]] = [
     () => ({ form: "enum", name, sql: `CREATE TYPE "qti"."${name}" AS ENUM ('a', 'b');` }),
     (inner) => {
@@ -226,19 +242,7 @@ const statementOf: Gen<Statement> = (source) => {
       };
     },
     () => ({ form: "view", sql: `CREATE VIEW "qti__author"."${name}" AS SELECT 1;`, table: name }),
-    // A stored derived relation, as grizzle prints one: its table created as its definition with
-    // no data, filled by an insert of the definition's rows, and its upkeep function, whose body,
-    // an escape string constant over several lines, inserts into it too. No INSERT INTO here is a
-    // data step's; the function is an `other` one.
-    () => ({
-      form: "stored",
-      name,
-      sql: [
-        `CREATE TABLE "qti_queries"."${name}" ("a", "b") AS\nSELECT 'x'::text AS "a", 'y'::text AS "b"\nWITH NO DATA;`,
-        `INSERT INTO "qti_queries"."${name}" ("a", "b")\nSELECT 'x', 'y';`,
-        `CREATE OR REPLACE FUNCTION "qti"."__upkeep_${name}"() RETURNS "pg_catalog"."void"\nLANGUAGE plpgsql VOLATILE SECURITY DEFINER AS E'\\n'\n'BEGIN\\n'\n'  INSERT INTO "qti_queries"."${name}" ("a", "b") SELECT ''x'', ''it\\'s'';\\n'\n'END\\n';`,
-      ].join("\n\n"),
-    }),
+    storedRelation,
     (inner) => {
       const relation = inner.draw(element(["note", "admission_like"] as const));
       const tuples = inner.draw(array(array(tupleValue, { max: 3, min: 1 }), { max: 4, min: 1 }));

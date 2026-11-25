@@ -685,6 +685,15 @@ const expressionBreachesOf = (typed: Typed): readonly Breach[] =>
         (own.cardinality === "single" || own.cardinality === "unknown")
       );
     const language = typed.languageOf(node);
+    /**
+     * Whether the expression stands only in outcome processing: its kind's typing says so, or it is
+     * a weighted variable, which stands only in a test's outcome processing (§7.47.2: "Weights are
+     * defined only in the test context (and hence only in outcomes processing)"; spec reading 199).
+     */
+    const outcomeOnly =
+      typing.outcomeOnly ||
+      (node.kind === "qti-variable" &&
+        Option.isSome(valueOf(rows, node.start, "weight-identifier")));
 
     return [
       ...(unfit === undefined
@@ -713,12 +722,7 @@ const expressionBreachesOf = (typed: Typed): readonly Breach[] =>
             }),
           ]
         : []),
-      // A weighted variable stands only in a test's outcome processing (§7.47.2: "Weights are
-      // defined only in the test context (and hence only in outcomes processing)"; spec reading 199).
-      ...((typing.outcomeOnly ||
-        (node.kind === "qti-variable" &&
-          Option.isSome(valueOf(rows, node.start, "weight-identifier")))) &&
-      language !== "outcome"
+      ...(outcomeOnly && language !== "outcome"
         ? [breachAt(rows, node, "Outcome only", { language })]
         : []),
     ];
@@ -780,6 +784,13 @@ const fits = (held: Type, wanted: Type): boolean =>
 /**
  * The reference laws, each a predicate that a read breaks (information model §2.5.1.3, §2.5.1.4,
  * §8.24, §8.25, §8.42, §2.8, §2.11.3.29, §2.11.3.30), by the law it breaks.
+ *
+ * - Lookup type: a built-in has no declaration, so it holds no lookup table to look a value up in
+ *   (spec reading 197).
+ * - Reference type: a reference a test reads through a scope names no declaration or built-in of its
+ *   placement's root, so its reading's type is judged by the readings' laws alone.
+ * - Mapped response: a built-in response declares no table, so it holds none (decision 431, reading
+ *   166).
  */
 const referenceLaws: readonly (readonly [ExpressionLaw, (read: Read) => boolean])[] = [
   [
@@ -794,8 +805,6 @@ const referenceLaws: readonly (readonly [ExpressionLaw, (read: Read) => boolean]
     ({ heldType, reference, table }) =>
       reference.attribute === "identifier" &&
       reference.node.kind === lookupKind &&
-      // A built-in has no declaration, so it holds no lookup table to look a value up in (spec
-      // reading 197).
       (reference.resolution === "builtIn" ||
         (reference.resolution === "declared" && Option.isNone(table)) ||
         Option.exists(
@@ -824,8 +833,6 @@ const referenceLaws: readonly (readonly [ExpressionLaw, (read: Read) => boolean]
         (reference.type.base === referenceBase || silent.has(reference.type.base)) &&
         (reference.type.cardinality === "single" || reference.type.cardinality === "unknown");
 
-      // A reference a test reads through a scope names no declaration or built-in of its
-      // placement's root, so its reading's type is judged by the readings' laws alone.
       return (
         reference.attribute !== "identifier" &&
         (reference.resolution === "declared" || reference.resolution === "builtIn") &&
@@ -861,7 +868,6 @@ const referenceLaws: readonly (readonly [ExpressionLaw, (read: Read) => boolean]
       reference.attribute === "identifier" &&
       (reference.node.kind === "qti-map-response" ||
         reference.node.kind === "qti-map-response-point") &&
-      // A built-in response declares no table, so it holds none (decision 431, reading 166).
       (reference.resolution === "declared" ||
         (reference.resolution === "builtIn" &&
           Option.contains(reference.declarationKind, "qti-response-declaration"))) &&

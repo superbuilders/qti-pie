@@ -284,8 +284,11 @@ const judgeAll = Effect.fn("test.geneticXsd.judgeAll")(function* judgeAll(input:
         ...comparison.differences,
         ...elementGrainDifferences(xsd, law, comparison, input.grammar, foreign),
       ];
-      // The classes read the document's names and schema set, which only a difference needs.
       if (differences.length > 0) {
+        /**
+         * The document's foreign names, which the classes read with its schema set, and which
+         * only a difference needs.
+         */
         const names = yield* foreignNamesOf(bytes.value, input.grammar);
         const set = yield* schemaSetOf(root.namespace).pipe(
           Effect.orElseSucceed(() => new Set<string>()),
@@ -728,9 +731,12 @@ describe("genetic-xsd.oracle.test.ts", () => {
               });
             const seedJudgments = yield* judge("seeds", seeds);
             const kept = yield* keptGenomes;
-            // The kept documents run last, so the counts that follow are theirs alone.
             matched.known.clear();
 
+            /**
+             * The kept documents' judgments, run last and after the seeds' counts are cleared, so
+             * the counts that follow are theirs alone.
+             */
             const keptJudgments = yield* judge("kept", kept);
             const reports: string[] = [
               ...(yield* Effect.forEach(seedJudgments.entries(), ([at, { disagreements }]) =>

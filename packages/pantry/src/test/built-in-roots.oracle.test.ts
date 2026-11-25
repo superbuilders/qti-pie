@@ -308,13 +308,10 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   ].toSorted();
                   const unresolved = oracle.has(lawOf[drawn.reference]);
                   c.note(`${drawn.placement}, ${unresolved ? "unresolved" : "resolved"}`);
-                  // A context variable's identifier is also an IDREF of the item's context
-                  // declarations (`ContextUniqueIDRefDType`), so its `QTI_CONTEXT` breaks Idref
-                  // target beside resolving; the reference's own law is the table's alone.
                   assert.strictEqual(
                     unresolved,
                     !resolves(drawn),
-                    `${Formatter.format(drawn)}: the oracle breaks ${[...oracle].toSorted().join(", ") || "no law"}`,
+                    `${Formatter.format(drawn)}: the oracle breaks ${[...oracle].toSorted().join(", ") || "no law"}, where the reference's own law is the table's alone (a context variable's identifier is also an IDREF of the item's context declarations, ContextUniqueIDRefDType, so its QTI_CONTEXT breaks Idref target beside resolving)`,
                   );
                   assert.deepStrictEqual(
                     shown,

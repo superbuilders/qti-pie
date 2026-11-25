@@ -419,95 +419,97 @@ const gapPackageOf = (drawn: GapCase): PackageEntries => {
 
 describe("a gap match interaction's gaps", () => {
   layer(NodeServices.layer, { excludeTestServices: true })("over a one-item package", (it) => {
+    /**
+     * Oracle: two implementations side by side, the law oracle's binding laws and the schema's
+     * laws over the import's rows, and reading 169's verdict written by hand. Bound: a gap
+     * match of one or two gaps bound single or multiple, with max-associations unwritten or 2.
+     */
+    const everyGapCase = Effect.forEach(
+      gapCases,
+      (drawn) =>
+        Effect.scoped(
+          Effect.gen(function* gapCaseHolds() {
+            const label = `${String(drawn.gaps)} gaps bound ${drawn.cardinality}, max-associations ${Option.getOrElse(drawn.most, () => "unwritten")}`;
+            const dir = yield* scopedPackage(gapPackageOf(drawn));
+            const judgment = yield* judge(yield* readEntries(dir), grammar, laws);
+            assert.strictEqual(judgment._tag, "Judged", label);
+
+            const breaches = judgment._tag === "Judged" ? judgment.breaches : [];
+            const oracle = new Set<string>(breaches.map(({ law }) => law));
+            const program = yield* readProgram(dir, nameOf(dir));
+            const host = judgeHost(previewRowsOf(program.inputs), hostLaws);
+            const broken = lawNamesOf(host.broken);
+            const unjudged = lawNamesOf(host.skipped);
+            const shown = [
+              ...Iterator.from(broken)
+                .filter((law) => !oracle.has(law))
+                .map((law) => `import-only-law: ${law}`),
+              ...Iterator.from(oracle)
+                .filter(
+                  (law) =>
+                    !broken.has(law) && !unjudged.has(law) && !databaseJudgedLawNames.has(law),
+                )
+                .map((law) => `oracle-only-law: ${law}`),
+            ].toSorted();
+
+            assert.deepStrictEqual(
+              shown,
+              [],
+              `${label}: the oracle breaks ${[...oracle].toSorted().join(", ") || "no law"}; the import's rows break ${[...broken].toSorted().join(", ") || "no law"}`,
+            );
+            assert.strictEqual(
+              breaches.filter(({ law }) => law === "Binding cardinality").length,
+              drawn.breaks ? 1 : 0,
+              `${label}: the oracle's Binding cardinality breaches`,
+            );
+
+            /**
+             * Binding cardinality reads the gaps and the most through queries the database
+             * alone judges (`SingleResponseGap`, `SingleBindingMost`), so the import's rows are
+             * held to what those queries read of them: a single response's gap match encloses
+             * one gap at most, and its most, where it has one, is 1.
+             */
+            const places = nodePlacesOf(program.inputs);
+            const kindAt = (path: string, start: bigint) => places.get(placeKey(path, start))?.kind;
+            const rowsBreak = [...program.inputs.BoundVariable.values()]
+              .filter(
+                (binding) =>
+                  binding.attribute === "response-identifier" &&
+                  Option.exists(
+                    Option.flatMap(
+                      responseOf(program.inputs, binding.path, binding.identifier),
+                      ({ cardinality }) => cardinality,
+                    ),
+                    (held) => held === "single",
+                  ) &&
+                  kindAt(binding.path, binding.start) === "qti-gap-match-interaction",
+              )
+              .some((binding) => {
+                const gaps = [...program.inputs.ChoiceInteraction.values()].filter(
+                  (owned) =>
+                    owned.interactionPath === binding.path &&
+                    owned.interaction === binding.start &&
+                    kindAt(owned.path, owned.start) === "qti-gap",
+                );
+                const most = [...program.inputs.MostCount.values()].find(
+                  (count) => count.path === binding.path && count.start === binding.start,
+                );
+
+                return gaps.length > 1 || (most !== undefined && most.mostValue !== 1n);
+              });
+            assert.strictEqual(
+              rowsBreak,
+              drawn.breaks,
+              `${label}: the import's rows hold ${rowsBreak ? "" : "no "}single response bound past its gaps or its most`,
+            );
+          }),
+        ),
+      { discard: true },
+    );
+
     it.effect(
       "break Binding cardinality where two or more bind a single response, the law oracle and the import's rows alike",
-      () =>
-        // Oracle: two implementations side by side, the law oracle's binding laws and the schema's
-        // laws over the import's rows, and reading 169's verdict written by hand. Bound: a gap
-        // match of one or two gaps bound single or multiple, with max-associations unwritten or 2.
-        Effect.forEach(
-          gapCases,
-          (drawn) =>
-            Effect.scoped(
-              Effect.gen(function* gapCaseHolds() {
-                const label = `${String(drawn.gaps)} gaps bound ${drawn.cardinality}, max-associations ${Option.getOrElse(drawn.most, () => "unwritten")}`;
-                const dir = yield* scopedPackage(gapPackageOf(drawn));
-                const judgment = yield* judge(yield* readEntries(dir), grammar, laws);
-                assert.strictEqual(judgment._tag, "Judged", label);
-
-                const breaches = judgment._tag === "Judged" ? judgment.breaches : [];
-                const oracle = new Set<string>(breaches.map(({ law }) => law));
-                const program = yield* readProgram(dir, nameOf(dir));
-                const host = judgeHost(previewRowsOf(program.inputs), hostLaws);
-                const broken = lawNamesOf(host.broken);
-                const unjudged = lawNamesOf(host.skipped);
-                const shown = [
-                  ...Iterator.from(broken)
-                    .filter((law) => !oracle.has(law))
-                    .map((law) => `import-only-law: ${law}`),
-                  ...Iterator.from(oracle)
-                    .filter(
-                      (law) =>
-                        !broken.has(law) && !unjudged.has(law) && !databaseJudgedLawNames.has(law),
-                    )
-                    .map((law) => `oracle-only-law: ${law}`),
-                ].toSorted();
-
-                assert.deepStrictEqual(
-                  shown,
-                  [],
-                  `${label}: the oracle breaks ${[...oracle].toSorted().join(", ") || "no law"}; the import's rows break ${[...broken].toSorted().join(", ") || "no law"}`,
-                );
-                assert.strictEqual(
-                  breaches.filter(({ law }) => law === "Binding cardinality").length,
-                  drawn.breaks ? 1 : 0,
-                  `${label}: the oracle's Binding cardinality breaches`,
-                );
-
-                /**
-                 * Binding cardinality reads the gaps and the most through queries the database
-                 * alone judges (`SingleResponseGap`, `SingleBindingMost`), so the import's rows are
-                 * held to what those queries read of them: a single response's gap match encloses
-                 * one gap at most, and its most, where it has one, is 1.
-                 */
-                const places = nodePlacesOf(program.inputs);
-                const kindAt = (path: string, start: bigint) =>
-                  places.get(placeKey(path, start))?.kind;
-                const rowsBreak = [...program.inputs.BoundVariable.values()]
-                  .filter(
-                    (binding) =>
-                      binding.attribute === "response-identifier" &&
-                      Option.exists(
-                        Option.flatMap(
-                          responseOf(program.inputs, binding.path, binding.identifier),
-                          ({ cardinality }) => cardinality,
-                        ),
-                        (held) => held === "single",
-                      ) &&
-                      kindAt(binding.path, binding.start) === "qti-gap-match-interaction",
-                  )
-                  .some((binding) => {
-                    const gaps = [...program.inputs.ChoiceInteraction.values()].filter(
-                      (owned) =>
-                        owned.interactionPath === binding.path &&
-                        owned.interaction === binding.start &&
-                        kindAt(owned.path, owned.start) === "qti-gap",
-                    );
-                    const most = [...program.inputs.MostCount.values()].find(
-                      (count) => count.path === binding.path && count.start === binding.start,
-                    );
-
-                    return gaps.length > 1 || (most !== undefined && most.mostValue !== 1n);
-                  });
-                assert.strictEqual(
-                  rowsBreak,
-                  drawn.breaks,
-                  `${label}: the import's rows hold ${rowsBreak ? "" : "no "}single response bound past its gaps or its most`,
-                );
-              }),
-            ),
-          { discard: true },
-        ),
+      () => everyGapCase,
     );
   });
 });
