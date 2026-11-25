@@ -329,12 +329,15 @@ describe("the module facts of an item's Portable Custom Interactions", () => {
   );
 
   it("route a module from its own locations alone, its configurations giving its waits and never a location", () => {
-    // Oracle: reading `pci-configuration-waits` (docs/spec-readings.md), written by hand: a configuration gives its
-    // loads' waits, the primary configuration's to primary loads and the secondary's to fallback
-    // loads, 0 meaning no timeout, and never a location, so `paths` routes nothing, a module named
-    // by `module` alone has no location (R4), and a configuration that writes no `paths` is valid.
-    // Bound: one PCI whose entry has a fallback alone, a module the primary configuration maps
-    // elsewhere, and a module named only in the configurations.
+    /**
+     * The package's two configurations, each case's PCI resolved against them: one PCI whose entry
+     * has a fallback alone, a module the primary configuration maps elsewhere, and a module named
+     * only in the configurations. The oracle is reading `pci-configuration-waits`
+     * (docs/spec-readings.md), written by hand: a configuration gives its loads' waits, the primary
+     * configuration's to primary loads and the secondary's to fallback loads, 0 meaning no timeout,
+     * and never a location, so `paths` routes nothing, a module named by `module` alone has no
+     * location (R4), and a configuration that writes no `paths` is valid.
+     */
     const files = new Map([
       [
         "modules/module_resolution.js",
