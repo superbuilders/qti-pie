@@ -175,7 +175,7 @@ interface Configuration extends BoundConfiguration {
     interaction: Interaction,
     response: PciJson,
     state: PciJson,
-    status?: string,
+    status: string,
   ) => void;
   readonly onready: (interaction: Interaction, state: PciJson) => void;
 }
@@ -705,27 +705,27 @@ define(["qtiCustomInteractionContext"], (context) => {
       const block = blocks[kind];
 
       for (const [slot, piece] of slots[kind][place].entries()) {
-        if (piece !== null) {
-          const x = corners[place] + spacing.mat + block.x + (slot % block.columns) * extent.across;
-          const y =
-            spacing.mat +
-            block.y +
-            (block.rows - 1 - Math.floor(slot / block.columns)) * extent.down;
-
-          piece.element.setAttribute(
-            "transform",
-            `translate(${String(x * unit)} ${String(y * unit)})`,
-          );
-          piece.element.setAttribute(
-            "aria-label",
-            `${names[kind]} ${place === "tray" ? "in the tray" : "on the mat"}`,
-          );
-          piece.element.setAttribute("tabindex", interacting() ? "0" : "-1");
-          piece.element.setAttribute(
-            "aria-pressed",
-            String(hand.kind === "chosen" && piece === hand.piece),
-          );
+        if (piece === null) {
+          continue;
         }
+
+        const x = corners[place] + spacing.mat + block.x + (slot % block.columns) * extent.across;
+        const y =
+          spacing.mat + block.y + (block.rows - 1 - Math.floor(slot / block.columns)) * extent.down;
+
+        piece.element.setAttribute(
+          "transform",
+          `translate(${String(x * unit)} ${String(y * unit)})`,
+        );
+        piece.element.setAttribute(
+          "aria-label",
+          `${names[kind]} ${place === "tray" ? "in the tray" : "on the mat"}`,
+        );
+        piece.element.setAttribute("tabindex", interacting() ? "0" : "-1");
+        piece.element.setAttribute(
+          "aria-pressed",
+          String(hand.kind === "chosen" && piece === hand.piece),
+        );
       }
     };
 
@@ -923,13 +923,17 @@ define(["qtiCustomInteractionContext"], (context) => {
       point.y >= 0 &&
       point.y <= matHeight * unit;
 
-    svg.addEventListener("pointerdown", (event) => {
+    /**
+     * Begin a press with the primary button or a finger: one press at a time, so a press still open
+     * (a mouse drag when a finger lands) ends first, as a press whose end the frame never heard.
+     *
+     * @param event The pointer event.
+     */
+    const pressDown = (event: PointerEvent): void => {
       if (!interacting() || !event.isPrimary || event.button !== 0) {
         return;
       }
 
-      // One press at a time: a press still open (a mouse drag when a finger lands) ends first, as a
-      // press whose end the frame never heard.
       if (press !== undefined) {
         abandon();
       }
@@ -954,15 +958,21 @@ define(["qtiCustomInteractionContext"], (context) => {
       if (target.kind === "piece") {
         event.preventDefault();
       }
-    });
+    };
 
-    svg.addEventListener("pointermove", (event) => {
+    /**
+     * Carry a press. With no button held, the press ended where the frame could not hear it,
+     * outside the frame or in another window, so it is abandoned. A press that travels is a drag
+     * wherever it began, never a tap: one that began on a piece lifts it, and one that began on a
+     * mat's floor or beside the mats moves nothing.
+     *
+     * @param event The pointer event.
+     */
+    const pressMove = (event: PointerEvent): void => {
       if (press?.id !== event.pointerId) {
         return;
       }
 
-      // No button is held, so the press ended where the frame could not hear it: outside the
-      // frame, or in another window.
       if (event.buttons === 0) {
         abandon();
 
@@ -972,8 +982,6 @@ define(["qtiCustomInteractionContext"], (context) => {
       const point = pointOf(event);
       const away = Math.hypot(event.clientX - press.start.x, event.clientY - press.start.y);
 
-      // A press that travels is a drag wherever it began, never a tap: one that began on a piece
-      // lifts it, and one that began on a mat's floor or beside the mats moves nothing.
       if (!press.dragging && away >= dragDistance) {
         press.dragging = true;
 
@@ -989,8 +997,23 @@ define(["qtiCustomInteractionContext"], (context) => {
         "transform",
         `translate(${String(point.x - press.grab.x)} ${String(point.y - press.grab.y)})`,
       );
-    });
+    };
 
+    /**
+     * Abandon a press whose capture was lost before its release was heard, as when the pointer lets
+     * go outside the frame. A release the frame hears ends the press first, so its own loss of
+     * capture finds none.
+     *
+     * @param event The pointer event.
+     */
+    const captureLost = (event: PointerEvent): void => {
+      if (press?.id === event.pointerId) {
+        abandon();
+      }
+    };
+
+    svg.addEventListener("pointerdown", pressDown);
+    svg.addEventListener("pointermove", pressMove);
     svg.addEventListener("pointerup", (event) => {
       if (press?.id !== event.pointerId) {
         return;
@@ -1014,13 +1037,7 @@ define(["qtiCustomInteractionContext"], (context) => {
       }
     });
 
-    // A capture lost before the release was heard, as when the pointer lets go outside the frame.
-    // A release the frame hears ends the press first, so its own loss of capture finds none.
-    svg.addEventListener("lostpointercapture", (event) => {
-      if (press?.id === event.pointerId) {
-        abandon();
-      }
-    });
+    svg.addEventListener("lostpointercapture", captureLost);
 
     page.defaultView?.addEventListener("blur", () => {
       if (press !== undefined) {

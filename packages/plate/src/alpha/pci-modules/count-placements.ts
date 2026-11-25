@@ -483,9 +483,12 @@ define(["qtiCustomInteractionContext"], (context) => {
     const { mat, supply } = settingsOf(configuration.properties);
     const tenFrame = mat === "double-ten-frame";
 
+    /**
+     * The markup's picture: what every counter shows, never a counter of its own, so it leaves the
+     * markup.
+     */
     const face = faceOf(dom);
 
-    // The markup's picture is what every counter shows, never a counter of its own.
     face.img.remove();
 
     /**
@@ -542,6 +545,11 @@ define(["qtiCustomInteractionContext"], (context) => {
       tray: (count) => rows(count, trayInside),
     };
 
+    /**
+     * The stored answer the host binds, as a count of counters on the mat. When it is unreadable
+     * the mat starts empty while the host still holds that answer, so once the tray has told the
+     * host it is ready, it tells the host the empty mat the child sees.
+     */
     const bound = boundCount(configuration.boundTo[configuration.responseIdentifier], supply);
     let placed = bound.count;
 
@@ -729,7 +737,13 @@ define(["qtiCustomInteractionContext"], (context) => {
     });
 
     ghost.append(counterDrawing(face.src));
-    board.append(matZone, frames, trayZone, arrow, ...counters.mat, ...counters.tray, ghost);
+    board.append(matZone, frames, trayZone, arrow);
+
+    for (const counter of [...counters.mat, ...counters.tray]) {
+      board.append(counter);
+    }
+
+    board.append(ghost);
     dom.append(style, board);
 
     /**
@@ -795,7 +809,7 @@ define(["qtiCustomInteractionContext"], (context) => {
      * pointer.
      */
     const endPress = (): void => {
-      if (press !== undefined && press.pressed.kind === "counter") {
+      if (press?.pressed.kind === "counter") {
         press.pressed.element.removeAttribute("visibility");
         delete press.pressed.element.dataset["dragged"];
         ghost.setAttribute("visibility", "hidden");
@@ -959,41 +973,46 @@ define(["qtiCustomInteractionContext"], (context) => {
       return placeOf(under)?.zone ?? zoneAt(under);
     };
 
-    board.addEventListener(
-      "pointerdown",
-      (event: PointerEvent) => {
-        const pressed = pressedAt(event.target);
+    /**
+     * Begin a press on a counter or a zone with the primary button or a finger. The press under
+     * way's own pointer pressing again proves its release was lost: that press ends with no
+     * gesture, and this one begins.
+     *
+     * @param event The pointer event.
+     */
+    const pressDown = (event: PointerEvent): void => {
+      const pressed = pressedAt(event.target);
 
-        if (
-          pressed === undefined ||
-          event.button !== 0 ||
-          (press !== undefined && event.pointerId !== press.pointer)
-        ) {
-          return;
-        }
+      if (
+        pressed === undefined ||
+        event.button !== 0 ||
+        (press !== undefined && event.pointerId !== press.pointer)
+      ) {
+        return;
+      }
 
-        // The press under way's own pointer pressing again proves its release was lost: that press
-        // ends with no gesture, and this one begins.
-        if (press !== undefined) {
-          endPress();
-        }
+      if (press !== undefined) {
+        endPress();
+      }
 
-        event.preventDefault();
-        board.setPointerCapture(event.pointerId);
-        press = {
-          pointer: event.pointerId,
-          pressed,
-          start: { x: event.clientX, y: event.clientY },
-          travelled: false,
-        };
-      },
-      { signal },
-    );
+      event.preventDefault();
+      board.setPointerCapture(event.pointerId);
+      press = {
+        pointer: event.pointerId,
+        pressed,
+        start: { x: event.clientX, y: event.clientY },
+        travelled: false,
+      };
+    };
+
+    board.addEventListener("pointerdown", pressDown, { signal });
 
     /**
      * End the press under way when its pointer moves with no button held, which means its release
      * was lost (taken by something outside the page before the pointer first moved, when the
-     * board's capture had not yet begun): the press ends with no gesture.
+     * board's capture had not yet begun): the press ends with no gesture. The frame hears such a
+     * move where the board does not, so the document's moves end it too, wherever the pointer
+     * first moves.
      *
      * @param event The pointer event.
      * @returns Whether it ended the press.
@@ -1008,8 +1027,6 @@ define(["qtiCustomInteractionContext"], (context) => {
       return true;
     };
 
-    // The frame hears a move the board does not (its capture had not begun): a lost release ends
-    // there too, wherever the pointer first moves.
     board.ownerDocument.addEventListener(
       "pointermove",
       (event: PointerEvent) => {
@@ -1076,9 +1093,13 @@ define(["qtiCustomInteractionContext"], (context) => {
       { signal },
     );
 
-    // A press ends with no gesture when its pointer is cancelled or loses the board's capture (a
-    // context menu among the causes): its pointer's release may never reach the board, so a press
-    // left standing would take the next release as its own and hold off every other input.
+    /**
+     * End the press with no gesture when its pointer is cancelled or loses the board's capture (a
+     * context menu among the causes): its pointer's release may never reach the board, so a press
+     * left standing would take the next release as its own and hold off every other input.
+     *
+     * @param event The pointer event.
+     */
     const endUnseen = (event: PointerEvent): void => {
       if (press !== undefined && event.pointerId === press.pointer) {
         endPress();
@@ -1088,14 +1109,16 @@ define(["qtiCustomInteractionContext"], (context) => {
     board.addEventListener("pointercancel", endUnseen, { signal });
     board.addEventListener("lostpointercapture", endUnseen, { signal });
 
-    // No context menu takes a press's release from the board.
-    board.addEventListener(
-      "contextmenu",
-      (event: MouseEvent) => {
-        event.preventDefault();
-      },
-      { signal },
-    );
+    /**
+     * Refuse the context menu, so none takes a press's release from the board.
+     *
+     * @param event The mouse event.
+     */
+    const noContextMenu = (event: MouseEvent): void => {
+      event.preventDefault();
+    };
+
+    board.addEventListener("contextmenu", noContextMenu, { signal });
 
     board.addEventListener(
       "keydown",
@@ -1122,7 +1145,6 @@ define(["qtiCustomInteractionContext"], (context) => {
 
     configuration.onready(instance, response());
 
-    // The host still holds the unreadable stored answer: tell it the empty mat the child sees.
     if (bound.unreadable) {
       changed();
     }

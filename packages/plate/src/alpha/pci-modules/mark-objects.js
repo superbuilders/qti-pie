@@ -71,14 +71,11 @@
  */
                                                                   
                                                       
-                                                                                        
+     
+                                                                            
+     
+                                                                              
  
-
-/**
- * The PCI's state, the JSON text `{"ringed":[…]}`: the objects ringed, by their place, ascending,
- * none twice (the delivery engine keeps a PCI's state as an opaque string).
- */
-                               
 
 /**
  * The Appendix C JSON of the response: the number of objects ringed, NULL for none.
@@ -93,7 +90,11 @@
  */
                                
                                                   
-                                            
+     
+                                                                                                    
+                                                                              
+     
+                                  
                                    
  
 
@@ -381,6 +382,38 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   };
 
   /**
+   * The least of some numbers, `Infinity` for none, as `Math.min` gives it.
+   *
+   * @param values The numbers.
+   * @returns The least.
+   */
+  const least = (values                   )         => {
+    let low = Number.POSITIVE_INFINITY;
+
+    for (const value of values) {
+      low = Math.min(low, value);
+    }
+
+    return low;
+  };
+
+  /**
+   * The greatest of some numbers, `-Infinity` for none, as `Math.max` gives it.
+   *
+   * @param values The numbers.
+   * @returns The greatest.
+   */
+  const greatest = (values                   )         => {
+    let high = Number.NEGATIVE_INFINITY;
+
+    for (const value of values) {
+      high = Math.max(high, value);
+    }
+
+    return high;
+  };
+
+  /**
    * Place a scattered set: each object turned the golden angle from the one before, at a distance
    * from the middle growing as the square root of its place (Vogel's sunflower), so the set is
    * evenly spread with no rows or columns to follow; then the whole scaled so that the two closest
@@ -400,8 +433,8 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
         y: distance * Math.sin(place * scatter.turn),
       };
     });
-    const closest = Math.min(
-      ...unit.flatMap((one, place) =>
+    const closest = least(
+      unit.flatMap((one, place) =>
         unit.slice(place + 1).map((other) => Math.hypot(one.x - other.x, one.y - other.y)),
       ),
     );
@@ -409,13 +442,13 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
     const xs = unit.map((centre) => centre.x * scale);
     const ys = unit.map((centre) => centre.y * scale);
     const half = (side * cell) / 2;
-    const left = Math.min(...xs) - half;
-    const top = Math.min(...ys) - half;
+    const left = least(xs) - half;
+    const top = least(ys) - half;
 
     return {
       centres: xs.map((x, place) => ({ x: x - left, y: (ys[place] ?? 0) - top })),
-      height: Math.max(...ys) + half - top,
-      width: Math.max(...xs) + half - left,
+      height: greatest(ys) + half - top,
+      width: greatest(xs) + half - left,
     };
   };
 
@@ -551,13 +584,15 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
     const scale = ()       => {
       const given = root.clientWidth - 2 * Math.max(0, dom.getBoundingClientRect().left);
 
-      if (given !== width) {
-        width = given;
-
-        const zoom = Math.max(Math.min(1, given / natural), pictureSide.least / side);
-
-        set.style.setProperty("zoom", String(zoom));
+      if (given === width) {
+        return;
       }
+
+      width = given;
+
+      const zoom = Math.max(Math.min(1, given / natural), pictureSide.least / side);
+
+      set.style.setProperty("zoom", String(zoom));
     };
 
     scale();
@@ -662,7 +697,11 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
       const box = ownerDocument.createElement("div");
 
       box.dataset["part"] = "scatter";
-      box.append(...objects);
+
+      for (const object of objects) {
+        box.append(object);
+      }
+
       set.append(box);
 
       return;
@@ -674,7 +713,11 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
       const row = ownerDocument.createElement("div");
 
       row.dataset["part"] = "row";
-      row.append(...objects.slice(start, start + perRow));
+
+      for (const object of objects.slice(start, start + perRow)) {
+        row.append(object);
+      }
+
       set.append(row);
     }
   };
@@ -751,7 +794,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
      *
      * @returns The state.
      */
-    const getState = ()                   =>
+    const getState = ()         =>
       JSON.stringify({ ringed: [...ringed].toSorted((left, right) => left - right) });
 
     const instance                      = {

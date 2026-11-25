@@ -620,6 +620,22 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   const radiusOf = (parts        )         => Math.max(circle.radius, sectorRadius(parts));
 
   /**
+   * The greatest of some numbers, `-Infinity` for none, as `Math.max` gives it.
+   *
+   * @param values The numbers.
+   * @returns The greatest.
+   */
+  const greatest = (values                   )         => {
+    let high = Number.NEGATIVE_INFINITY;
+
+    for (const value of values) {
+      high = Math.max(high, value);
+    }
+
+    return high;
+  };
+
+  /**
    * Give the box of a rectangle a model and its shown model share: {@link rectangle}'s along the
    * axis cut into more parts (columns, on a tie) and across the other, each axis grown until its
    * every part is the target wide.
@@ -630,8 +646,8 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   const rectangleBox = (
     partitions                                                                ,
   )      => {
-    const columns = Math.max(...partitions.map((partition) => partition.columns));
-    const rows = Math.max(...partitions.map((partition) => partition.rows));
+    const columns = greatest(partitions.map((partition) => partition.columns));
+    const rows = greatest(partitions.map((partition) => partition.rows));
     const wide = columns >= rows;
 
     return {
@@ -871,7 +887,10 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
     svg.setAttribute("width", String(drawing.width));
     svg.setAttribute("height", String(drawing.height));
     svg.dataset["shade"] = "model";
-    svg.append(...parts);
+
+    for (const part of parts) {
+      svg.append(part);
+    }
 
     return { parts, svg };
   };
@@ -902,16 +921,18 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
     const box = rectangleBox(
       partitions.map((each) => (each.kind === "rectangle" ? each : { columns: 1, rows: 1 })),
     );
-    const radius = Math.max(...partitions.map((each) => radiusOf(partsOf(each))));
+    const radius = greatest(partitions.map((each) => radiusOf(partsOf(each))));
     const document = dom.ownerDocument;
     const member = pictureOf(dom, figure);
     const bound          = configuration.boundTo[responseIdentifier];
     const boundShaded = shadedOfBound(bound, parts);
     const stateShaded =
       state === undefined || state === null ? undefined : shadedOfState(state, parts);
-    // The stored response decides: a state is kept only where it shades as many parts as the
-    // response it is bound to counts (NULL counting none), and decides alone only where no
-    // response is bound at all.
+    /**
+     * The parts shaded. The stored response decides: a state is kept only where it shades as many
+     * parts as the response it is bound to counts (NULL counting none), and decides alone only
+     * where no response is bound at all.
+     */
     const shaded = new Set(
       bound === undefined || stateShaded?.length === boundShaded.length
         ? (stateShaded ?? boundShaded)
@@ -989,6 +1010,30 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
       );
     };
 
+    /**
+     * Toggle a part on Enter or Space pressed with no chord. A held key repeats; it toggles the
+     * part once.
+     *
+     * @param event The key event.
+     * @param element The part's element.
+     * @param index Its place.
+     */
+    const keyToggle = (event               , element            , index        )       => {
+      const chord = event.altKey || event.ctrlKey || event.metaKey;
+
+      if ((event.key !== "Enter" && event.key !== " ") || chord) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (event.repeat) {
+        return;
+      }
+
+      toggle(element, index);
+    };
+
     for (const [index, element] of model.parts.entries()) {
       element.setAttribute("role", "button");
       element.setAttribute("aria-label", `part ${String(index + 1)} of ${String(parts)}`);
@@ -996,16 +1041,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
         toggle(element, index);
       });
       element.addEventListener("keydown", (event) => {
-        const chord = event.altKey || event.ctrlKey || event.metaKey;
-
-        if ((event.key === "Enter" || event.key === " ") && !chord) {
-          event.preventDefault();
-
-          // A held key repeats; it toggles the part once.
-          if (!event.repeat) {
-            toggle(element, index);
-          }
-        }
+        keyToggle(event, element, index);
       });
       show(element, index);
     }
