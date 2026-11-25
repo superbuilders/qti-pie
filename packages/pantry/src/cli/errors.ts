@@ -230,11 +230,6 @@ const databaseRefusalHelp = {
 } as const satisfies Readonly<Record<DatabaseRefusal["witness"], string>>;
 
 /**
- * A tag {@link namedFailureOf} names: one of the import's defects.
- */
-type NamedTag = ImportDefectTag;
-
-/**
  * The help of each named failure, by its tag: every import defect's is {@link importDefectHelp}.
  * It is checked against the import's error union both ways, so a failure it gains fails to compile
  * here until it is named, and one it loses until its row goes. Each such failure's kind is
@@ -243,7 +238,7 @@ type NamedTag = ImportDefectTag;
  */
 const namedHelp = {
   OverlayConflict: importDefectHelp,
-} as const satisfies Readonly<Record<NamedTag, string>>;
+} as const satisfies Readonly<Record<ImportDefectTag, string>>;
 
 /**
  * Test whether a tag is one {@link namedHelp} names.
@@ -251,7 +246,7 @@ const namedHelp = {
  * @param tag - A failure's tag.
  * @returns Whether it is a named failure's.
  */
-const isNamedTag = (tag: string): tag is NamedTag => Object.hasOwn(namedHelp, tag);
+const isNamedTag = (tag: string): tag is ImportDefectTag => Object.hasOwn(namedHelp, tag);
 
 /**
  * A round trip whose export differs from its source in at least one entry.
@@ -349,7 +344,7 @@ const tagOf = (failure: unknown): Option.Option<string> =>
  * @param failure - What a run failed or died with.
  * @returns The failure's tag, or none for any other failure.
  */
-export const namedFailureOf = (failure: unknown): Option.Option<NamedTag> =>
+export const namedFailureOf = (failure: unknown): Option.Option<ImportDefectTag> =>
   Option.filter(tagOf(failure), isNamedTag);
 
 /**
