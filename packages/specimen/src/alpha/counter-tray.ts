@@ -964,12 +964,13 @@ export type Gesture = "back" | "move" | "onto" | "release" | "switch";
 /**
  * What the screen shows: the counters standing on the mat and in the tray; the centres of those on
  * the mat and of the double ten frame's cells as its drawing shows them, in reading order (frame
- * one before frame two, each top row first, left to right; none on an open mat), each in the
- * board's coordinates; every text and accessible name in the frame's body, what the module shows
- * (the document's title is the item's prompt, which plate names the frame by and shows outside it);
- * the CSS width of a counter as the screen draws it, and the pictures the counters show (each
- * `href` once); the drawing of the mat's background and frames, as markup; how many times the
- * module fired `qti-interaction-changed`; and whether a counter is shown following the pointer.
+ * one before frame two, each top row first, left to right; none on an open mat), and of those in
+ * the tray, each in the board's coordinates; every text and accessible name in the frame's body,
+ * what the module shows (the document's title is the item's prompt, which plate names the frame by
+ * and shows outside it); the CSS width of a counter as the screen draws it, and the pictures the
+ * counters show (each `href` once); the drawing of the mat's background and frames, as markup; how
+ * many times the module fired `qti-interaction-changed`; and whether a counter is shown following
+ * the pointer.
  */
 export interface Look {
   /**
@@ -988,6 +989,7 @@ export interface Look {
   readonly rings: number;
   readonly texts: readonly string[];
   readonly tray: number;
+  readonly trayCentres: readonly Point[];
 }
 
 /**
@@ -1028,14 +1030,14 @@ const lookIn = (): Look => {
         y: frame.y + (Math.floor(at / 5) + 0.5) * (frame.height / 2),
       })),
     );
-  const matCentres = [...document.querySelectorAll('[data-zone-of="mat"][display="inline"]')].map(
-    (counter) => {
+  const [matCentres = [], trayCentres = []] = (["mat", "tray"] as const).map((zone) =>
+    [...document.querySelectorAll(`[data-zone-of="${zone}"][display="inline"]`)].map((counter) => {
       const moved = /translate\((?<x>[-\d.]+) (?<y>[-\d.]+)\)/u.exec(
         counter.getAttribute("transform") ?? "",
       );
 
       return { x: Number(moved?.groups?.["x"]), y: Number(moved?.groups?.["y"]) };
-    },
+    }),
   );
 
   const shown = [...document.querySelectorAll('[data-zone-of][display="inline"] image')];
@@ -1058,6 +1060,7 @@ const lookIn = (): Look => {
     ).length,
     texts: [texts.join(""), ...named],
     tray: document.querySelectorAll('[data-zone-of="tray"][display="inline"]').length,
+    trayCentres,
   };
 };
 

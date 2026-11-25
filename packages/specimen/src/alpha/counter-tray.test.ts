@@ -74,6 +74,11 @@
  * - CT15, the board takes every touch: on every item the board's computed `touch-action` is `none`,
  *   so a touch that starts on it is the child's alone (CT1's finger drags and taps), never a pan of
  *   the page or the browser's swipe back.
+ * - CT16, two rows at most: for every supply from 1 to 20, on the open mat and the double ten frame,
+ *   the tray as it starts shows the whole supply in at most two rows, and one of five or fewer in
+ *   one; and the open mat holding the whole supply shows it in at most two rows. So the board is no
+ *   taller for twenty counters than for ten, and a tray under a picture to match stays in a
+ *   laptop's 1366 by 768 window, where a third row fell below it.
  *
  * Every item is opened by plate's admission, its module resolved to its package's file with no
  * notice, and its frame's module registers exactly the identifier the item writes, so plate's
@@ -91,7 +96,8 @@
  * ignored while another finger rests on the screen, a second finger's tap on a counter dropped, a
  * press left standing when its release is lost before it moves, a press left standing when its
  * pointer loses the board's capture, the chosen ring left behind when its counter is dragged, a
- * completion that leaves the tray listening, and one that leaves the drag under way.
+ * completion that leaves the tray listening, one that leaves the drag under way, and the tray laid
+ * five counters a row, whatever its supply.
  *
  * @module
  */
@@ -317,6 +323,11 @@ const kills: readonly Kill[] = [
     why: "a completion that leaves the drag under way",
     write: "choice = undefined; draw(); },",
   },
+  {
+    at: /Math\.max\(leastPerRow, Math\.ceil\(supply \/ supplyRows\)\)/gu,
+    why: "the tray laid five counters a row, whatever its supply",
+    write: "leastPerRow",
+  },
 ];
 
 /**
@@ -408,6 +419,29 @@ const firstCells = (look: Look, where: string): void => {
     look.matCentres.map(pointKey).toSorted(),
     look.cells.slice(0, look.mat).map(pointKey).toSorted(),
     `${where}: CT3, the counters stand in the first cells`,
+  );
+};
+
+/**
+ * The rows counters stand in: their centres' distinct heights.
+ *
+ * @param centres The counters' centres.
+ * @returns How many rows.
+ */
+const rowCount = (centres: readonly Point[]): number =>
+  new Set(centres.map((centre) => centre.y.toFixed(1))).size;
+
+/**
+ * Hold counters to CT16: they stand in at most two rows, and in one when they are five or fewer.
+ *
+ * @param centres The counters' centres.
+ * @param where The item, the zone and the supply, for the message.
+ */
+const twoRows = (centres: readonly Point[], where: string): void => {
+  assert.isAtMost(
+    rowCount(centres),
+    centres.length <= 5 ? 1 : 2,
+    `${where}: CT16, ${String(centres.length)} counters stand in at most ${centres.length <= 5 ? "one row" : "two rows"}`,
   );
 };
 
@@ -731,7 +765,8 @@ const ringGoes = (trays: Trays, played: Played) =>
 /**
  * The rules' checks a kill is held to, on one module file: CT1 and CT2 on `open-mat` by mouse taps
  * to three counters and back to two; CT1 and CT3 on the double ten frame (`ten-frame`) to three and
- * a counter taken back from the middle; CT4's drag let go over its own zone and choice let go,
+ * a counter taken back from the middle, each tray's supply in two rows at most (CT16); CT4's drag
+ * let go over its own zone and choice let go,
  * CT8's drop beside the mat, CT9's drifting taps on a counter and on the mat's background, and
  * CT10's completion mid-drag, by mouse, on `open-mat`; and CT12 to CT14 on `open-mat`.
  *
@@ -751,6 +786,8 @@ const battery = (trays: Trays, module: string) =>
         Effect.gen(function* counted() {
           const tray = yield* running(trays, played, empty);
           const firstLook = yield* Effect.orDie(tray.look);
+
+          twoRows(firstLook.trayCentres, `${played.item.id}'s tray at the start`);
 
           for (const placed of [1, 2, 3]) {
             yield* movedTo(tray, played, taps, "tray", placed, firstLook);
@@ -1615,6 +1652,53 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
 
         yield* ringGoes(trays, yield* playing(trays, "open-mat", trays.module));
         yield* ringGoes(trays, yield* playing(trays, "ten-frame", trays.module));
+      }),
+    ruleHang,
+  );
+
+  it.effect(
+    "CT16: every supply from 1 to 20 stands in at most two rows, in the tray and on the open mat",
+    () =>
+      Effect.gen(function* rowsRule() {
+        const trays = yield* TraysService;
+        const items = [
+          yield* playing(trays, "open-mat", trays.module),
+          yield* playing(trays, "ten-frame", trays.module),
+        ];
+        const cases = items.flatMap((played) =>
+          Array.from({ length: 20 }, (_, at): Played => ({
+            ...played,
+            hosted: {
+              ...played.hosted,
+              properties: { ...played.hosted.properties, supply: String(at + 1) },
+            },
+            supply: at + 1,
+          })),
+        );
+
+        yield* Effect.forEach(
+          cases,
+          (played) =>
+            Effect.scoped(
+              Effect.gen(function* laid() {
+                const where = `${played.item.id} with a supply of ${String(played.supply)}`;
+                const atStart = yield* Effect.orDie((yield* running(trays, played, empty)).look);
+
+                assert.strictEqual(atStart.tray, played.supply, `${where}: the tray starts full`);
+                twoRows(atStart.trayCentres, `${where}, the tray`);
+
+                if (!played.tenFrame) {
+                  const full = yield* Effect.orDie(
+                    (yield* running(trays, played, integer(played.supply))).look,
+                  );
+
+                  assert.strictEqual(full.mat, played.supply, `${where}: the mat holds them all`);
+                  twoRows(full.matCentres, `${where}, the mat`);
+                }
+              }),
+            ),
+          { concurrency: trayCount, discard: true },
+        );
       }),
     ruleHang,
   );

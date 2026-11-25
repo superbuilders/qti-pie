@@ -23,11 +23,13 @@
  * - **The state is a count.** The one fact the tray holds is how many counters stand on the mat, from
  *   none to the whole supply; every counter is the same, so which one moved is no fact. The screen
  *   is drawn from the count alone: the mat shows that many counters and the tray the rest, each in
- *   rows of six, every row centred, the rows centred top to bottom; on the double ten frame the
- *   counters fill the first cells, frame one before frame two, each top row first, left to right. A
- *   gap on the mat, or frame two begun while frame one has an empty cell, cannot be drawn. The
- *   double ten frame holds twenty counters, and a supply is at most twenty, so every counter of the
- *   tray has a cell: no mat is ever full while the tray holds one.
+ *   rows as wide as lay the whole supply in at most two (five at least), every row centred, the
+ *   rows centred top to bottom, so the board is as tall for a supply of twenty as for one of ten
+ *   and stays in a laptop's window under a picture to match; on the double ten frame the counters
+ *   fill the first cells, frame one before frame two, each top row first, left to right. A gap on
+ *   the mat, or frame two begun while frame one has an empty cell, cannot be drawn. The double ten
+ *   frame holds twenty counters, and a supply is at most twenty, so every counter of the tray has a
+ *   cell: no mat is ever full while the tray holds one.
  * - **Moving a counter.** Drag it from the tray and drop it on the mat, or tap it and then tap the
  *   mat; a counter on the mat goes back to the tray the same two ways. Mouse, touch and pen are one
  *   pointer, one gesture at a time (a finger resting off the board takes no part), read by one
@@ -149,14 +151,13 @@ define(["qtiCustomInteractionContext"], (context) => {
 
   /**
    * A zone's border and padding, its corner radius, and its least size, in board units: the open
-   * mat and the tray five counters wide, the open mat two rows high and the tray one, the ten-frame
-   * mat its two frames and a margin.
+   * mat two rows high and the tray one, the ten-frame mat its two frames and a margin. The open mat
+   * and the tray are as wide as their rows ({@link rowWidth}).
    */
   const border = 10;
   const padding = 40;
   const radius = 60;
   const inset = border + padding;
-  const openWidth = 5 * pitch - gap + 2 * inset;
   const openHeight = 2 * pitch - gap + 2 * inset + 24;
   const tenFrameWidth = 1420;
   const tenFrameHeight = 360;
@@ -180,10 +181,32 @@ define(["qtiCustomInteractionContext"], (context) => {
   const tenFrameCells = frameCount * frameCells;
 
   /**
-   * The counters a row of the tray or the open mat holds: as many as fit across the zone's inside
-   * at the counters' pitch, five.
+   * The rows the tray and the open mat lay a supply in, at most, and the counters a row holds at
+   * least. A supply over ten widens every row rather than adding a third, so the board stands no
+   * taller for twenty counters than for ten (a third tray row, under a picture to match, pushed the
+   * tray below a 1366 by 768 window, where the child must scroll to find a counter).
    */
-  const perRow = Math.floor((openWidth - 2 * inset + gap) / pitch);
+  const supplyRows = 2;
+  const leastPerRow = 5;
+
+  /**
+   * The counters a row of the tray or the open mat holds for a supply: as many as lay it in
+   * {@link supplyRows} rows, five at least.
+   *
+   * @param supply The counters in the tray as it starts.
+   * @returns The counters a row holds.
+   */
+  const perRowOf = (supply: number): number =>
+    Math.max(leastPerRow, Math.ceil(supply / supplyRows));
+
+  /**
+   * The width of the tray, and of the open mat, whose rows hold `perRow` counters: the row at the
+   * counters' pitch and the zone's inset either side.
+   *
+   * @param perRow The counters a row holds.
+   * @returns The zone's width, in board units.
+   */
+  const rowWidth = (perRow: number): number => perRow * pitch - gap + 2 * inset;
 
   /**
    * The board's two zones, the one list every zone-wide reading walks.
@@ -413,14 +436,15 @@ define(["qtiCustomInteractionContext"], (context) => {
   };
 
   /**
-   * Lay out counters in a zone's inside as a centred wrap: rows of
-   * {@link perRow}, each row centred across, the rows centred top to bottom.
+   * Lay out counters in a zone's inside as a centred wrap: rows of `perRow`, each row centred
+   * across, the rows centred top to bottom.
    *
    * @param count The counters.
    * @param inside The zone's inside.
+   * @param perRow The counters a row holds.
    * @returns Each counter's centre, in reading order.
    */
-  const rows = (count: number, inside: Inside): readonly Point[] => {
+  const rows = (count: number, inside: Inside, perRow: number): readonly Point[] => {
     const first =
       inside.top +
       (inside.height - (Math.ceil(count / perRow) * pitch - gap)) / 2 +
@@ -501,16 +525,18 @@ define(["qtiCustomInteractionContext"], (context) => {
      */
     const tapTravel = face.side / 2;
 
-    const width = tenFrame ? tenFrameWidth : openWidth;
-    const supplyRows = Math.ceil(supply / perRow);
+    const perRow = perRowOf(supply);
+    const rowZoneWidth = rowWidth(perRow);
+    const width = tenFrame ? Math.max(tenFrameWidth, rowZoneWidth) : rowZoneWidth;
+    const rowsHigh = Math.ceil(supply / perRow);
     const matHeight = tenFrame
       ? tenFrameHeight
-      : Math.max(openHeight, supplyRows * pitch - gap + 2 * inset);
-    const trayZoneHeight = Math.max(trayHeight, supplyRows * pitch - gap + 2 * inset);
+      : Math.max(openHeight, rowsHigh * pitch - gap + 2 * inset);
+    const trayZoneHeight = Math.max(trayHeight, rowsHigh * pitch - gap + 2 * inset);
     const matTop = border / 2;
     const arrowTop = matTop + matHeight + gap;
     const trayTop = arrowTop + arrowLength + gap;
-    const trayLeft = (width - openWidth) / 2;
+    const trayLeft = (width - rowZoneWidth) / 2;
     const height = trayTop + trayZoneHeight + border / 2;
 
     const frameWidth = frameColumns * cell;
@@ -527,13 +553,13 @@ define(["qtiCustomInteractionContext"], (context) => {
       height: matHeight - 2 * inset,
       left: inset,
       top: matTop + inset,
-      width: openWidth - 2 * inset,
+      width: rowZoneWidth - 2 * inset,
     };
     const trayInside: Inside = {
       height: trayZoneHeight - 2 * inset,
       left: trayLeft + inset,
       top: trayTop + inset,
-      width: openWidth - 2 * inset,
+      width: rowZoneWidth - 2 * inset,
     };
 
     /**
@@ -541,8 +567,8 @@ define(["qtiCustomInteractionContext"], (context) => {
      * rows, the tray's in its rows.
      */
     const standing: Record<Zone, (count: number) => readonly Point[]> = {
-      mat: tenFrame ? (count) => cells.slice(0, count) : (count) => rows(count, matInside),
-      tray: (count) => rows(count, trayInside),
+      mat: tenFrame ? (count) => cells.slice(0, count) : (count) => rows(count, matInside, perRow),
+      tray: (count) => rows(count, trayInside, perRow),
     };
 
     /**
@@ -632,7 +658,7 @@ define(["qtiCustomInteractionContext"], (context) => {
       "tray",
       trayLeft + border / 2,
       trayTop,
-      openWidth - border,
+      rowZoneWidth - border,
       trayZoneHeight,
     );
     const frames = svg("g", { "aria-hidden": "true", "pointer-events": "none" });
