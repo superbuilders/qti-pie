@@ -18,7 +18,9 @@
  *
  * @module
  */
+import { Option } from "effect";
 import type Quill from "quill";
+import type { Op } from "quill";
 import { useEffect, useEffectEvent, useLayoutEffect, useRef } from "react";
 import {
   indentLevels,
@@ -110,6 +112,54 @@ const valueOf = (lines: readonly Line[]): string =>
   lines.every((line) => line.runs.length === 0) && lines.length <= 1 ? "" : xhtmlOfLines(lines);
 
 /**
+ * Whether a value is a record: an object, not null and no array.
+ *
+ * @param value The value.
+ * @returns Whether it is.
+ */
+const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * Whether a value has the shape quill-delta's `Op` gives an operation: a record whose `insert`,
+ * where it has one, is text or an embed's record, whose `delete` a number, whose `retain` a number
+ * or a record, and whose `attributes` a record.
+ *
+ * @param value The value.
+ * @returns Whether it is an operation.
+ */
+const isOp = (value: unknown): value is Op =>
+  isRecord(value) &&
+  (value["insert"] === undefined ||
+    typeof value["insert"] === "string" ||
+    isRecord(value["insert"])) &&
+  (value["delete"] === undefined || typeof value["delete"] === "number") &&
+  (value["retain"] === undefined ||
+    typeof value["retain"] === "number" ||
+    isRecord(value["retain"])) &&
+  (value["attributes"] === undefined || isRecord(value["attributes"]));
+
+/**
+ * Read the operations of the document Quill's `getContents` gives. Quill's declarations type the
+ * document as quill-delta's `Delta`, which they import as the default export of a CommonJS module;
+ * under `nodenext` that names the module's exports object, no type, so the document reads as an
+ * error type, which no read may touch. The island takes it as unknown and holds it to quill-delta's
+ * shape, a record whose `ops` are operations.
+ *
+ * @param contents What `getContents` gave.
+ * @returns Its operations; none for anything else, which Quill never gives.
+ */
+const opsOf = (contents: unknown): Option.Option<readonly Op[]> => {
+  if (!isRecord(contents)) {
+    return Option.none();
+  }
+
+  const ops: unknown = contents["ops"];
+
+  return Array.isArray(ops) && ops.every(isOp) ? Option.some(ops) : Option.none();
+};
+
+/**
  * What the island hands the editor it makes, read once Quill's module has loaded: what it opens
  * holding, its names, its placeholder, where its value goes, and where the island keeps the editor
  * so that a value the host gives the response afterwards reaches it.
@@ -181,7 +231,11 @@ const makeEditor = async (
 
   editor.setContents([...opsOfLines(linesOfXhtml(hooks.opened))], "silent");
   editor.on("text-change", () => {
-    hooks.typed(valueOf(linesOfOps(editor.getContents().ops)));
+    const ops = opsOf(editor.getContents());
+
+    if (Option.isSome(ops)) {
+      hooks.typed(valueOf(linesOfOps(ops.value)));
+    }
   });
   hooks.made(editor);
   gone.addEventListener("abort", () => {
