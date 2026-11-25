@@ -4,7 +4,7 @@
  *
  * @module
  */
-import { Array as Arr, Option } from "effect";
+import { Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
 import { identifierValue } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
@@ -64,7 +64,7 @@ const rightOf = (menu: number): number => (menu + 1) % offered;
  */
 const posted = (menus: number, rightMenus: number, rest: "none" | "wrong"): Answered["posted"] =>
   Object.fromEntries(
-    Arr.makeBy(menus, (menu) => menu).flatMap((menu) => {
+    Array.from({ length: menus }, (_, menu) => menu).flatMap((menu) => {
       if (menu < rightMenus) {
         return [
           [responseOf(menu), identifierValue("single", [idOf(menu, rightOf(menu))])] as const,
@@ -113,7 +113,7 @@ export const inlineChoice = kind("inline-choice", {
       values: source.draw(pick("values")),
     }),
   write: (settings: InlineChoiceSettings, context) => {
-    const menus = Arr.makeBy(settings.menus, (menu) => menu);
+    const menus = Array.from({ length: settings.menus }, (_, menu) => menu);
 
     return {
       assets: [],
@@ -125,7 +125,7 @@ export const inlineChoice = kind("inline-choice", {
             element(
               "qti-inline-choice-interaction",
               { "response-identifier": responseOf(menu) },
-              Arr.makeBy(offered, (at) =>
+              Array.from({ length: offered }, (_, at) =>
                 element("qti-inline-choice", { identifier: idOf(menu, at) }, [
                   text(run(settings.values, menu * offered + at)),
                 ]),

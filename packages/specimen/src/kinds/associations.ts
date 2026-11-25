@@ -59,8 +59,14 @@ export const rightPairs = (
 ): Arr.NonEmptyReadonlyArray<Pair> => {
   const all: Arr.NonEmptyReadonlyArray<Pair> =
     joins === 1
-      ? Arr.makeBy(Math.floor(count / 2), (at) => [2 * at, 2 * at + 1] as const)
-      : Arr.makeBy(count - 1, (at) => [at, at + 1] as const);
+      ? [
+          [0, 1],
+          ...Array.from({ length: Math.floor(count / 2) - 1 }, (_, at): Pair => [
+            2 * at + 2,
+            2 * at + 3,
+          ]),
+        ]
+      : [[0, 1], ...Array.from({ length: count - 2 }, (_, at): Pair => [at + 1, at + 2])];
 
   return held === "one" ? [Arr.headNonEmpty(all)] : all;
 };

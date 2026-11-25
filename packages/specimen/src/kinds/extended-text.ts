@@ -4,7 +4,7 @@
  *
  * @module
  */
-import { Array as Arr, Option } from "effect";
+import { Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
 import { responding, stringValue } from "#specimen/posted.ts";
 import { credited, matchesCorrect } from "#specimen/credit.ts";
@@ -85,7 +85,7 @@ const listed = 3;
  * @returns The answers, in order.
  */
 const rightAnswers = (settings: ExtendedTextSettings): readonly string[] =>
-  Arr.makeBy(settings.boxes === "one" ? 1 : 2, (at) => run(settings.length, at));
+  Array.from({ length: settings.boxes === "one" ? 1 : 2 }, (_, at) => run(settings.length, at));
 
 /**
  * The response a set of written answers gives: a string per box that holds one, in the boxes'

@@ -4,7 +4,7 @@
  *
  * @module
  */
-import { Array as Arr, Option } from "effect";
+import { Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
 import { stringValue } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
@@ -58,7 +58,7 @@ const rightOf = (blank: number): string => word(blank);
  */
 const posted = (blanks: number, rightBlanks: number, rest: "none" | "wrong"): Answered["posted"] =>
   Object.fromEntries(
-    Arr.makeBy(blanks, (blank) => blank).flatMap((blank) => {
+    Array.from({ length: blanks }, (_, blank) => blank).flatMap((blank) => {
       if (blank < rightBlanks) {
         return [[responseOf(blank), stringValue("single", [rightOf(blank)])] as const];
       }
@@ -100,7 +100,7 @@ export const textEntry = kind("text-entry", {
       expected: source.draw(pick("expected")),
     }),
   write: (settings: TextEntrySettings, context) => {
-    const blanks = Arr.makeBy(settings.blanks, (blank) => blank);
+    const blanks = Array.from({ length: settings.blanks }, (_, blank) => blank);
 
     return {
       assets: [],

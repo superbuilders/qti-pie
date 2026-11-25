@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { Array as Arr, Option } from "effect";
+import { Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
 import { pairValue, responding } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
@@ -137,7 +137,7 @@ export const associate = kind("associate", {
             onNone: () => [],
             onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
           }),
-          ...Arr.makeBy(settings.choices, (at) =>
+          ...Array.from({ length: settings.choices }, (_, at) =>
             element(
               "qti-simple-associable-choice",
               {

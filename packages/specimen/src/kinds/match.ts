@@ -4,7 +4,7 @@
  *
  * @module
  */
-import { Array as Arr, Option } from "effect";
+import { Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
 import { directedPairValue, responding } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
@@ -72,9 +72,12 @@ const targetOf = (at: number): string => `T${String(at + 1)}`;
  * @returns The pairs, by source.
  */
 const rightPairs = (settings: MatchSettings): readonly (readonly [number, number])[] =>
-  Arr.makeBy(
-    settings.takes === "one" ? Math.min(settings.sources, settings.targets) : settings.sources,
-    (at) => [at, at % settings.targets] as const,
+  Array.from(
+    {
+      length:
+        settings.takes === "one" ? Math.min(settings.sources, settings.targets) : settings.sources,
+    },
+    (_, at) => [at, at % settings.targets] as const,
   );
 
 /**
@@ -149,7 +152,7 @@ export const match = kind("match", {
       element(
         "qti-simple-match-set",
         {},
-        Arr.makeBy(count, (at) =>
+        Array.from({ length: count }, (_, at) =>
           element("qti-simple-associable-choice", { identifier: idOf(at), "match-max": matchMax }, [
             text(run(settings.text, offset + at)),
           ]),

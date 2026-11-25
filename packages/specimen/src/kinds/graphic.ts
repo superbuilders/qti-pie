@@ -280,7 +280,7 @@ export const areasOf = (stage: Stage, count: number): Arr.NonEmptyReadonlyArray<
   const tall = share === 0 ? tinyAcross : cell.height * share;
   const half = Math.min(wide, tall) / 2;
 
-  return Arr.makeBy(count, (at): Area => {
+  const areaAt = (at: number): Area => {
     const held = geometryAt(stage.geometry, at);
     const x = Math.round((((at % columns) + 0.5) * cell.width) / units.x);
     const y = Math.round(((Math.floor(at / columns) + 0.5) * cell.height) / units.y);
@@ -311,7 +311,9 @@ export const areasOf = (stage: Stage, count: number): Arr.NonEmptyReadonlyArray<
         return placedAs([x, y - down, x + across, y + down, x - across, y + down]);
       }
     }
-  });
+  };
+
+  return [areaAt(0), ...Array.from({ length: count - 1 }, (_, at) => areaAt(at + 1))];
 };
 
 /**

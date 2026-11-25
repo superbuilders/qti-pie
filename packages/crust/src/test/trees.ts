@@ -704,7 +704,7 @@ const planeTreeOf =
 export const planeTreeUpTo = (
   most: number,
 ): Gen<{ readonly nodes: number; readonly tree: PlaneTree }> => {
-  const sizes = Arr.makeBy(most, (at) => at + 1);
+  const sizes = Array.from({ length: most }, (_, at) => at + 1);
 
   return (source) => {
     const nodes = source.draw(Arr.isReadonlyArrayNonEmpty(sizes) ? element(sizes) : constant(1));

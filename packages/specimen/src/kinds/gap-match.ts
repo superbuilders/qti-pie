@@ -4,7 +4,7 @@
  *
  * @module
  */
-import { Array as Arr, Option } from "effect";
+import { Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
 import { directedPairValue, responding } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
@@ -98,9 +98,9 @@ const gapOf = (at: number): string => `G${String(at + 1)}`;
 const rightPairs = (settings: GapMatchSettings): readonly (readonly [number, number])[] => {
   const holes = gapCount(settings);
 
-  return Arr.makeBy(
-    settings.reuse === "any" ? holes : Math.min(holes, settings.choices),
-    (gap) => [gap % settings.choices, gap] as const,
+  return Array.from(
+    { length: settings.reuse === "any" ? holes : Math.min(holes, settings.choices) },
+    (_, gap) => [gap % settings.choices, gap] as const,
   );
 };
 
@@ -188,7 +188,7 @@ export const gapMatch = kind("gap-match", {
   write: (settings: GapMatchSettings, context) => {
     const rights = rightPairs(settings).map(lexical);
     const matchMax = settings.reuse === "once" ? 1 : 0;
-    const choices = Arr.makeBy(settings.choices, (at) => {
+    const choiceAt = (at: number) => {
       switch (settings.content.kind) {
         case "text": {
           return {
@@ -209,7 +209,8 @@ export const gapMatch = kind("gap-match", {
           };
         }
       }
-    });
+    };
+    const choices = Array.from({ length: settings.choices }, (_, at) => choiceAt(at));
 
     return {
       assets: choices.flatMap((choice) => choice.files),
@@ -222,7 +223,7 @@ export const gapMatch = kind("gap-match", {
             onSome: (prompt) => [element("qti-prompt", {}, [prompt])],
           }),
           ...choices.map((choice) => choice.markup),
-          ...Arr.makeBy(gapCount(settings), (gap) =>
+          ...Array.from({ length: gapCount(settings) }, (_, gap) =>
             element("p", {}, [
               text(`The ${word(gap)} went to `),
               element("qti-gap", { identifier: gapOf(gap) }, []),

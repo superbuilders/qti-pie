@@ -4,7 +4,7 @@
  *
  * @module
  */
-import { Array as Arr, Option } from "effect";
+import { Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
 import { identifierValue, responding } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
@@ -69,7 +69,10 @@ export interface HotspotSettings {
  * @returns The places.
  */
 const rightPlaces = (settings: HotspotSettings): readonly number[] =>
-  Arr.makeBy(rightCount(settings.picks, settings.areas), (at) => (at + 1) % settings.areas);
+  Array.from(
+    { length: rightCount(settings.picks, settings.areas) },
+    (_, at) => (at + 1) % settings.areas,
+  );
 
 /**
  * A drawn area's identifier.
@@ -94,7 +97,9 @@ export const hotspot = kind("hotspot", {
   answers: (settings: HotspotSettings) => {
     const rights = rightPlaces(settings).map(idOf);
     const wrongs = [
-      ...Arr.makeBy(settings.areas, idOf).filter((identifier) => !rights.includes(identifier)),
+      ...Array.from({ length: settings.areas }, (_, at) => idOf(at)).filter(
+        (identifier) => !rights.includes(identifier),
+      ),
       ...(settings.rest === "rest" ? [rest.identifier] : []),
     ];
     const half = Math.floor(rights.length / 2);

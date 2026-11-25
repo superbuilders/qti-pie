@@ -4,7 +4,7 @@
  *
  * @module
  */
-import { Array as Arr, Option } from "effect";
+import { Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
 import { identifierValue, responding } from "#specimen/posted.ts";
 import { credited } from "#specimen/credit.ts";
@@ -61,7 +61,7 @@ const posted = (places: readonly number[]): Answered["posted"] =>
  */
 export const order = kind("order", {
   answers: (settings: OrderSettings) => {
-    const right = Arr.makeBy(settings.choices, (at) => at);
+    const right = Array.from({ length: settings.choices }, (_, at) => at);
 
     return [
       { answer: "right", posted: posted(right), score: settings.choices },
@@ -93,7 +93,7 @@ export const order = kind("order", {
       text: source.draw(pick("text")),
     }),
   write: (settings: OrderSettings, context) => {
-    const right = Arr.makeBy(settings.choices, (at) => at);
+    const right = Array.from({ length: settings.choices }, (_, at) => at);
 
     return {
       assets: [],

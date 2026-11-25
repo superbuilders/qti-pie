@@ -10,7 +10,8 @@
  *
  * @module
  */
-import { Array as Arr, Option, Result } from "effect";
+import { Option, Result } from "effect";
+import type { Array as Arr } from "effect";
 import { firstBranch, enumerated } from "@bjornpagen/testing/enumerate";
 import type { Branch } from "@bjornpagen/testing/enumerate";
 import { element, map } from "@bjornpagen/testing/gen";
@@ -203,7 +204,7 @@ export const replay = (held: Query, token: string): Option.Option<Specimen> => {
 export const sample = (held: Query, seed: number, count: number): readonly Specimen[] => {
   const stream = floorSeed(`qti-pie/specimen/${String(seed)}`);
 
-  return Arr.makeBy(count, (at) => at).flatMap((at) =>
+  return Array.from({ length: count }, (_, at) => at).flatMap((at) =>
     Option.toArray(drawnWith(held, randomChooser(wordsOf(caseSeed(stream, at))))),
   );
 };

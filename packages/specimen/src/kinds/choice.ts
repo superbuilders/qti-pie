@@ -4,7 +4,7 @@
  *
  * @module
  */
-import { Array as Arr, Option } from "effect";
+import { Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
 import { identifierValue, responding } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
@@ -58,7 +58,10 @@ interface ChoiceSettings {
  * @returns The places, ascending from the second.
  */
 const rightPlaces = (settings: ChoiceSettings): readonly number[] =>
-  Arr.makeBy(rightCount(settings.picks, settings.options), (at) => (at + 1) % settings.options);
+  Array.from(
+    { length: rightCount(settings.picks, settings.options) },
+    (_, at) => (at + 1) % settings.options,
+  );
 
 /**
  * An option's identifier.
@@ -85,7 +88,9 @@ const posted = (settings: ChoiceSettings, places: readonly number[]): Answered["
 export const choice = kind("choice", {
   answers: (settings: ChoiceSettings) => {
     const rights = rightPlaces(settings);
-    const wrongs = Arr.makeBy(settings.options, (at) => at).filter((at) => !rights.includes(at));
+    const wrongs = Array.from({ length: settings.options }, (_, at) => at).filter(
+      (at) => !rights.includes(at),
+    );
     const half = Math.floor(rights.length / 2);
     const partial: readonly Answered[] =
       half === 0
@@ -150,7 +155,7 @@ export const choice = kind("choice", {
     },
   write: (settings: ChoiceSettings, context) => {
     const rights = rightPlaces(settings).map(idOf);
-    const options = Arr.makeBy(settings.options, (at) => {
+    const optionAt = (at: number) => {
       switch (settings.content.kind) {
         case "text": {
           return { files: [], markup: text(run(settings.content.length, at)) };
@@ -161,7 +166,8 @@ export const choice = kind("choice", {
           return { files: [shown.file.asset], markup: shown.markup };
         }
       }
-    });
+    };
+    const options = Array.from({ length: settings.options }, (_, at) => optionAt(at));
     const classes = [
       ...(settings.stacking === "none"
         ? []

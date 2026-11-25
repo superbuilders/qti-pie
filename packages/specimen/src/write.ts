@@ -5,7 +5,7 @@ import type { HostFacts } from "@qti-pie/plate";
  *
  * @module
  */
-import { Array as Arr, Option } from "effect";
+import { Option } from "effect";
 import { float } from "#specimen/credit.ts";
 import type { Content, Description, Layout, Prompt, Stimulus } from "#specimen/description.ts";
 import type { Scoring } from "#specimen/kind.ts";
@@ -79,7 +79,7 @@ const contentOf = (content: Content): Placed => {
 
       return {
         assets: [],
-        markup: Arr.makeBy(count, (at) =>
+        markup: Array.from({ length: count }, (_, at) =>
           element("p", {}, [text(`Once upon a time ${run(content.length, at)}.`)]),
         ).join(""),
       };
@@ -101,7 +101,7 @@ const contentOf = (content: Content): Placed => {
       };
     }
     case "table": {
-      const columns = Arr.makeBy(content.columns, (at) => at);
+      const columns = Array.from({ length: content.columns }, (_, at) => at);
 
       return {
         assets: [],
@@ -118,7 +118,7 @@ const contentOf = (content: Content): Placed => {
           element(
             "tbody",
             {},
-            Arr.makeBy(content.rows, (row) =>
+            Array.from({ length: content.rows }, (_, row) =>
               element(
                 "tr",
                 {},

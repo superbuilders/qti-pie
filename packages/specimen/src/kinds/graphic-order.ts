@@ -4,7 +4,7 @@
  *
  * @module
  */
-import { Array as Arr, Option } from "effect";
+import { Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
 import { identifierValue, responding } from "#specimen/posted.ts";
 import { credited, matchesCorrect } from "#specimen/credit.ts";
@@ -75,7 +75,7 @@ const idOf = (at: number): string => `H${String(at + 1)}`;
  * @returns The areas' identifiers, first to last.
  */
 const rightOrder = (settings: GraphicOrderSettings): readonly string[] =>
-  Arr.makeBy(orderedCount(settings), (at) => idOf(settings.areas - 1 - at));
+  Array.from({ length: orderedCount(settings) }, (_, at) => idOf(settings.areas - 1 - at));
 
 /**
  * The response an order gives: an `ordered` of the areas' identifiers, first to last.

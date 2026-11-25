@@ -100,14 +100,21 @@ export const dimension = <
  * @param high The greatest value, at least `low`.
  * @returns The dimension.
  */
-export const counted = (label: string, low: number, high: number): Dimension<number> => ({
-  label,
-  values: Arr.map(Arr.range(low, high), (value) => ({
-    label: String(value),
-    name: String(value),
-    value,
-  })),
-});
+export const counted = (label: string, low: number, high: number): Dimension<number> => {
+  const counts: Arr.NonEmptyReadonlyArray<number> = [
+    low,
+    ...Array.from({ length: high - low }, (_, at) => low + 1 + at),
+  ];
+
+  return {
+    label,
+    values: mapNonEmpty(counts, (value) => ({
+      label: String(value),
+      name: String(value),
+      value,
+    })),
+  };
+};
 
 /**
  * Draw a dimension's values that a query allows: the one it fixes, or any.

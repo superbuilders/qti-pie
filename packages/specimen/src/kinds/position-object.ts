@@ -93,11 +93,15 @@ const placesOf = (settings: PositionObjectSettings): Places => {
   const areas = areasOf(settings.stage, settings.objects * homesOf(settings) + 1);
   const targets = Arr.tailNonEmpty(areas);
 
+  const homesAt = (at: number): readonly Area[] =>
+    targets.slice(at * homesOf(settings), (at + 1) * homesOf(settings));
+
   return {
     decoy: Arr.headNonEmpty(areas),
-    homes: Arr.makeBy(settings.objects, (at) =>
-      targets.slice(at * homesOf(settings), (at + 1) * homesOf(settings)),
-    ),
+    homes: [
+      homesAt(0),
+      ...Array.from({ length: settings.objects - 1 }, (_, at) => homesAt(at + 1)),
+    ],
   };
 };
 

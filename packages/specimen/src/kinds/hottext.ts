@@ -4,7 +4,7 @@
  *
  * @module
  */
-import { Array as Arr, Option } from "effect";
+import { Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
 import { identifierValue, responding } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
@@ -74,7 +74,10 @@ export interface HottextSettings {
  * @returns The places.
  */
 const rightPlaces = (settings: HottextSettings): readonly number[] =>
-  Arr.makeBy(rightCount(settings.picks, settings.hottexts), (at) => (at + 1) % settings.hottexts);
+  Array.from(
+    { length: rightCount(settings.picks, settings.hottexts) },
+    (_, at) => (at + 1) % settings.hottexts,
+  );
 
 /**
  * A run's identifier.
@@ -119,7 +122,7 @@ const hottextAt = (settings: HottextSettings, at: number): string => {
  * @returns The passage's paragraphs.
  */
 const passageOf = (settings: HottextSettings): readonly string[] => {
-  const runs = Arr.makeBy(settings.hottexts, (at) => hottextAt(settings, at));
+  const runs = Array.from({ length: settings.hottexts }, (_, at) => hottextAt(settings, at));
 
   switch (settings.passage) {
     case "sentence": {
@@ -142,7 +145,9 @@ const passageOf = (settings: HottextSettings): readonly string[] => {
 export const hottext = kind("hottext", {
   answers: (settings: HottextSettings) => {
     const rights = rightPlaces(settings);
-    const wrongs = Arr.makeBy(settings.hottexts, (at) => at).filter((at) => !rights.includes(at));
+    const wrongs = Array.from({ length: settings.hottexts }, (_, at) => at).filter(
+      (at) => !rights.includes(at),
+    );
     const half = Math.floor(rights.length / 2);
     const partial: readonly Answered[] =
       half === 0

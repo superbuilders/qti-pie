@@ -4,7 +4,7 @@
  *
  * @module
  */
-import { Array as Arr, Option } from "effect";
+import { Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
 import { directedPairValue, responding } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
@@ -80,7 +80,10 @@ const areaOf = (at: number): string => `A${String(at + 1)}`;
  * @returns Each pair's identifiers, the chip first.
  */
 const rightPairs = (settings: GraphicGapMatchSettings): readonly (readonly [string, string])[] =>
-  Arr.makeBy(settings.pairs === "one" ? 1 : settings.areas, (at) => [chipOf(at), areaOf(at)]);
+  Array.from({ length: settings.pairs === "one" ? 1 : settings.areas }, (_, at) => [
+    chipOf(at),
+    areaOf(at),
+  ]);
 
 /**
  * The response a set of pairs gives: a `multiple` of directed pairs.
@@ -141,7 +144,7 @@ export const graphicGapMatch = kind("graphic-gap-match", {
       `A picture of ${String(settings.areas)} spots`,
       areas.map((area, at) => ({ area, name: word(at) })),
     );
-    const chips = Arr.makeBy(settings.areas + (settings.extra === "extra" ? 1 : 0), (at) => {
+    const chipAt = (at: number) => {
       switch (settings.chips.kind) {
         case "text": {
           return {
@@ -162,7 +165,11 @@ export const graphicGapMatch = kind("graphic-gap-match", {
           };
         }
       }
-    });
+    };
+    const chips = Array.from(
+      { length: settings.areas + (settings.extra === "extra" ? 1 : 0) },
+      (_, at) => chipAt(at),
+    );
     const most = { any: 0, "at-most": settings.areas, one: 1 }[settings.pairs];
 
     return {
