@@ -30,6 +30,7 @@ import {
   enumerated,
   identifierAttribute,
   identifierOf,
+  inQti,
   isQti,
   nameOf,
   pathOf,
@@ -136,7 +137,7 @@ type Owned = ReadonlySet<string>;
 /**
  * No owned element: what every walk but a module's reads under.
  */
-const noneOwned: Owned = new Set();
+export const noneOwned: Owned = new Set();
 
 /**
  * Read children of a body element, the item body included, that the candidate's view holds
@@ -144,15 +145,16 @@ const noneOwned: Owned = new Set();
  *
  * @param build The build.
  * @param parent The element.
- * @param own The `qti-*` elements the module reading this content owns, none by default.
- * @param children The children to read, all of `parent`'s by default.
+ * @param own The `qti-*` elements the module reading this content owns: {@link noneOwned} where it
+ *   owns none.
+ * @param children The children to read: `parent.children` for all of them.
  * @returns Their body nodes, in document order.
  */
 export const bodyNodes = (
   build: Build,
   parent: SourceElement,
-  own: Owned = noneOwned,
-  children: readonly SourceChild[] = parent.children,
+  own: Owned,
+  children: readonly SourceChild[],
 ): readonly BodyNode[] => {
   const nodes: BodyNode[] = [];
   for (const child of children.filter(inCandidateView)) {
@@ -179,7 +181,7 @@ const firstContent = (
   Option.map(Arr.head(childrenNamed(interaction, local)), (child) => {
     markElement(build, child, true);
 
-    return bodyNodes(build, child);
+    return bodyNodes(build, child, noneOwned, child.children);
   });
 
 /**
@@ -262,7 +264,7 @@ const contentBodyOf = (build: Build, block: SourceElement, own: Owned): readonly
   const parts: (readonly BodyNode[])[] = [];
   for (const part of elementsOf(block)) {
     if (isQti(part, "qti-content-body")) {
-      parts.push(bodyNodes(build, part, own));
+      parts.push(bodyNodes(build, part, own, part.children));
     } else {
       record(build, { feature: nameOf(part), path: pathOf(build, part), shown: "mark" });
       parts.push([]);
@@ -290,7 +292,7 @@ const boundResponses = (element: SourceElement, block: boolean): readonly string
   const pending = roots.flatMap((root) => elementsOf(root)).toReversed();
   const responses = new Set<string>();
   for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
-    const written = isQti(next) ? valueOf(next, "response-identifier") : Option.none();
+    const written = inQti(next) ? valueOf(next, "response-identifier") : Option.none();
     if (Option.isSome(written)) {
       responses.add(identifierOf(written.value));
     }
@@ -328,7 +330,9 @@ const templateContent = (
   const templateIdentifier = identifierAttribute(build, element, "template-identifier");
   const templateVisibility = templateVisibilityOf(build, element, templateIdentifier);
   const content =
-    kind === "template-block" ? contentBodyOf(build, element, own) : bodyNodes(build, element, own);
+    kind === "template-block"
+      ? contentBodyOf(build, element, own)
+      : bodyNodes(build, element, own, element.children);
 
   return {
     content,
@@ -379,7 +383,9 @@ const feedbackContent = (
   const identifier = identifierAttribute(build, element, "identifier");
   const feedbackVisibility = feedbackVisibilityOf(build, element);
   const content =
-    kind === "feedback-block" ? contentBodyOf(build, element, own) : bodyNodes(build, element, own);
+    kind === "feedback-block"
+      ? contentBodyOf(build, element, own)
+      : bodyNodes(build, element, own, element.children);
 
   return {
     content,
@@ -492,7 +498,7 @@ const readerKitOf = (build: Build): ReaderKit => ({
   markElement: (marked) => {
     markElement(build, marked, true);
   },
-  nodes: (parent, options = {}) =>
+  nodes: (parent, options) =>
     bodyNodes(build, parent, new Set(options.own), options.children ?? parent.children),
   templateVisibility: (element) =>
     Option.map(valueOf(element, "template-identifier"), (written) =>
@@ -588,7 +594,7 @@ const moduleNode = (
   element: SourceElement,
   parent: SourceElement,
 ): Option.Option<BodyNode> =>
-  isQti(element)
+  inQti(element)
     ? Option.map(readerFor(element.local), (reader) => {
         const catalogs = {
           catalog: catalogReference(element),
@@ -695,9 +701,9 @@ const contentNode = (build: Build, element: SourceElement): Option.Option<BodyNo
  * @returns Its body node.
  */
 const containerNode = (build: Build, element: SourceElement, own: Owned): Option.Option<BodyNode> =>
-  (isQti(element) ? containerFor(element.local) : Option.none()).pipe(
+  (inQti(element) ? containerFor(element.local) : Option.none()).pipe(
     Option.map((container) =>
-      pipe(bodyNodes(build, element, own), (children) =>
+      pipe(bodyNodes(build, element, own, element.children), (children) =>
         container.parse(element, children, contextOf(build, element)),
       ),
     ),
@@ -852,7 +858,7 @@ const interactionElements: ReadonlySet<string> = new Set(
  * @returns The notice, when the build reads a stimulus body and the element is an interaction's.
  */
 const stimulusInteraction = (build: Build, child: SourceElement): Option.Option<BodyNode> =>
-  build.stimulus && isQti(child) && interactionElements.has(child.local)
+  build.stimulus && inQti(child) && interactionElements.has(child.local)
     ? Option.some(notice(build, child.local, pathOf(build, child)))
     : Option.none();
 
@@ -927,14 +933,14 @@ const bodyNode = (
     return templateContent(build, child, "template-inline", own);
   }
 
-  if (!isQti(child) || (child.local.startsWith("qti-") && !own.has(child.local))) {
+  if (!inQti(child) || (child.local.startsWith("qti-") && !own.has(child.local))) {
     return notice(build, nameOf(child), pathOf(build, child));
   }
 
   return (() => {
     markElement(build, child, true);
 
-    const children = bodyNodes(build, child, own);
+    const children = bodyNodes(build, child, own, child.children);
 
     return {
       attributes: bodyAttributes(child),

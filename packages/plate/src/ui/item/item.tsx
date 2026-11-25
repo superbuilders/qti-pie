@@ -77,11 +77,11 @@ import { carriedClass } from "#plate/vocabulary.ts";
 /**
  * Give a record keyed by identifier as the map a view holds.
  *
- * @param record The record, none when absent.
- * @returns Its entries as a map, empty when absent.
+ * @param record The record, undefined where the props give none.
+ * @returns Its entries as a map, empty where the props give none.
  */
-const mapOf = <A,>(record: Readonly<Record<string, A>> = {}): ReadonlyMap<string, A> =>
-  new Map(Object.entries(record));
+const mapOf = <A,>(record: Readonly<Record<string, A>> | undefined): ReadonlyMap<string, A> =>
+  new Map(record === undefined ? [] : Object.entries(record));
 
 /**
  * Build the view each interaction's payload node is given by from the props: the configuration's
@@ -333,7 +333,7 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
       } satisfies Holding,
     ]),
   );
-  const content = (nodes: readonly RedactedNode[], options: ContentOptions = {}): ReactNode => {
+  const content = (nodes: readonly RedactedNode[], options: ContentOptions): ReactNode => {
     const position = options.position ?? "phrasing";
     const walk: Walk = {
       addressing: { ...addressing, writing: options.writing ?? "original" },
@@ -409,7 +409,7 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
   const verdict = credit.pipe(Option.map((earned) => verdictOf(earned, configuration.locale)));
   const verdictAt = verdict.pipe(
     Option.flatMap((part) =>
-      firstFeedbackIn(redacted.body).pipe(Option.map((at): VerdictAt => ({ at, part }))),
+      firstFeedbackIn(redacted.body, "flow").pipe(Option.map((at): VerdictAt => ({ at, part }))),
     ),
   );
   const setting: StimulusSetting = {

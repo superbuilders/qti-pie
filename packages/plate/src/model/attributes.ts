@@ -97,14 +97,22 @@ export const valueOf = (element: SourceElement, name: string): Option.Option<str
   Option.map(attributeOf(element, name), (attribute) => attribute.value);
 
 /**
- * Report whether an element is in the QTI namespace, optionally with one local name.
+ * Report whether an element is in the QTI namespace, whatever its local name.
  *
  * @param element The element.
- * @param local The local name it must have, any when absent.
+ * @returns Whether `element` is a QTI element.
+ */
+export const inQti = (element: SourceElement): boolean => element.namespace === qtiNamespace;
+
+/**
+ * Report whether an element is the QTI element of one local name.
+ *
+ * @param element The element.
+ * @param local The local name it must have.
  * @returns Whether `element` is that element.
  */
-export const isQti = (element: SourceElement, local?: string): boolean =>
-  element.namespace === qtiNamespace && (local === undefined || element.local === local);
+export const isQti = (element: SourceElement, local: string): boolean =>
+  inQti(element) && element.local === local;
 
 /**
  * Keep an element's element children.

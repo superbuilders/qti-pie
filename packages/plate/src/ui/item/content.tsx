@@ -571,18 +571,12 @@ const tagFor = (tag: string, headingOffset: number): string => {
  * @param feature The feature's key in QTI's own spelling, such as `qti-hottext-interaction`.
  * @param locale The locale of plate's text.
  * @param position Where it stands: a `div` at a flow position, a `span` at a phrasing one.
- * @param key Its key among its siblings, none when it stands alone.
  * @returns The `plate-notice` part.
  */
-export const noticeOf = (
-  feature: string,
-  locale: Locale,
-  position: Position,
-  key?: Key,
-): ReactNode =>
+export const noticeOf = (feature: string, locale: Locale, position: Position): ReactNode =>
   createElement(
     position === "flow" ? "div" : "span",
-    { "data-slot": "plate-notice", key, role: "note" },
+    { "data-slot": "plate-notice", role: "note" },
     message(locale, "notice", { feature }),
   );
 
@@ -625,19 +619,26 @@ interface Placed {
 }
 
 /**
- * Place body nodes at their indices: a table's structure drops whitespace text, which HTML moves
- * out of it.
+ * Place body nodes at their indices, every one: the nodes at the top of a walk, or under a parent
+ * whose whitespace text stands where it is.
  *
  * @param nodes The body nodes.
- * @param parent The parent element's tag, none at the top of a walk.
  * @returns The placed nodes, in order.
  */
-const placed = (nodes: readonly RedactedNode[], parent?: string): readonly Placed[] =>
+const placed = (nodes: readonly RedactedNode[]): readonly Placed[] =>
+  nodes.map((node, index) => ({ index, node }));
+
+/**
+ * Place an element's child nodes at their indices: a table's structure drops whitespace text,
+ * which HTML moves out of it.
+ *
+ * @param nodes The child nodes.
+ * @param parent The parent element's tag.
+ * @returns The placed nodes, in order.
+ */
+const placedIn = (nodes: readonly RedactedNode[], parent: string): readonly Placed[] =>
   nodes.flatMap((node, index) =>
-    parent !== undefined &&
-    textless.has(parent) &&
-    node.kind === "text" &&
-    collapsedText(node.text) === ""
+    textless.has(parent) && node.kind === "text" && collapsedText(node.text) === ""
       ? []
       : [{ index, node }],
   );
@@ -1116,7 +1117,7 @@ const elementOf = (element: BodyElement<RedactedLevel>, key: Key, walk: Walk): R
     ...walk,
     standing: standingBelow(element.tag, walk.standing),
   };
-  const entries = placed(element.children, element.tag);
+  const entries = placedIn(element.children, element.tag);
   const authored = propsOf(element, declared, walk.addressing);
   /**
    * A picture carries the line the stylesheet shows under its words where it fails to load.
@@ -1376,7 +1377,11 @@ const nodeOf = (node: RedactedNode, key: Key, walk: Walk): ReactNode => {
     case "unsupported": {
       return walk.addressing.writing === "copy"
         ? null
-        : noticeOf(node.feature, walk.locale, positionOf(walk.standing), key);
+        : createElement(
+            Fragment,
+            { key },
+            noticeOf(node.feature, walk.locale, positionOf(walk.standing)),
+          );
     }
     case "container": {
       return containerOf(node, key, walk);
@@ -1406,12 +1411,12 @@ export const nodesOf = (nodes: readonly RedactedNode[], walk: Walk): readonly Re
  * that holds it (`verdict` in {@link Scope}'s `body` arm).
  *
  * @param nodes The body nodes.
- * @param standing Where they stand, the body's flow by default.
+ * @param standing Where they stand: `"flow"` for the body's own nodes.
  * @returns The block, or none where the body shows none at a flow position.
  */
 export const firstFeedbackIn = (
   nodes: readonly RedactedNode[],
-  standing: Standing = "flow",
+  standing: Standing,
 ): Option.Option<BodyElement<RedactedLevel>> =>
   Arr.findFirst(nodes, (node): Option.Option<BodyElement<RedactedLevel>> => {
     if (isInteraction(node)) {

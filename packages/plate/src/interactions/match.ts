@@ -263,7 +263,7 @@ const readChoice = (read: ReaderKit, choice: SourceElement): MatchChoice => {
 
   return {
     catalog,
-    content: read.nodes(choice),
+    content: read.nodes(choice, {}),
     fixed: read.xsBoolean(choice, "fixed", false),
     identifier: read.identifierAttribute(choice, "identifier"),
     matchGroup: matchGroupOf(read.valueOf(choice, "match-group")),
@@ -375,6 +375,7 @@ const regionsOf = <L extends Level>(
       ...each,
       [set]: step(each[set]),
     }),
+    Option.none(),
   );
 
 /**

@@ -47,7 +47,7 @@ import type { GraphicArea, ImagePoint } from "#plate/graphic/geometry.ts";
 import type { GraphicLabels } from "#plate/ui/graphic/labels.ts";
 import { floorWidthOf, smallestTargetOf, stageScaleOf } from "#plate/graphic/scale.ts";
 import type { StageScale, TargetFloor } from "#plate/graphic/scale.ts";
-import { sizeOf } from "#plate/ui/graphic/size.ts";
+import { authoredSizeOf } from "#plate/ui/graphic/size.ts";
 import { collapsedText } from "#plate/model/whitespace.ts";
 
 /**
@@ -312,7 +312,7 @@ export const reviewStageOf = (
   authored: AuthoredSize,
   floor: TargetFloor,
 ): ReviewStage => {
-  const size = sizeOf(authored);
+  const size = authoredSizeOf(authored);
 
   return size === undefined
     ? { kind: "unsized" }

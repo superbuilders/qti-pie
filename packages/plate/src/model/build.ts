@@ -16,7 +16,7 @@ import {
   elementsOf,
   identifierOf,
   integerOf,
-  isQti,
+  inQti,
   pathOf,
   valueOf,
   xsBooleanOf,
@@ -193,7 +193,7 @@ export const markElement = (build: Build, element: SourceElement, inBody: boolea
  */
 export const markUnreadWithin = (build: Build, element: SourceElement): void => {
   for (const child of elementsOf(element)) {
-    if (isQti(child) && child.local.startsWith("qti-") && !readElements.has(child.local)) {
+    if (inQti(child) && child.local.startsWith("qti-") && !readElements.has(child.local)) {
       record(build, { feature: child.local, path: pathOf(build, child), shown: "mark" });
     } else {
       markUnreadWithin(build, child);

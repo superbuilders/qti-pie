@@ -259,7 +259,7 @@ const parseOrder = (
 
     choices.push({
       catalog,
-      content: read.nodes(choice),
+      content: read.nodes(choice, {}),
       fixed,
       identifier,
       templateVisibility: Option.none(),
@@ -305,6 +305,7 @@ const regionsOfOrder = <L extends Level>(
       ...each,
       choices: step(each.choices),
     }),
+    Option.none(),
   ),
 ];
 

@@ -129,10 +129,10 @@ export const printedText = (node: PrintedVariable, record: RedactRecord): Option
  * with no record prints no template or outcome value and shows no outcome-driven content. Plate
  * derives no variable's value.
  *
- * @param record The record, if any.
+ * @param record The record, undefined where the showing gives none.
  * @returns The values, or none with no record.
  */
-export const printingOf = (record?: RedactRecord): Option.Option<RedactRecord> =>
+export const printingOf = (record: RedactRecord | undefined): Option.Option<RedactRecord> =>
   Option.fromUndefinedOr(record);
 
 /**

@@ -28,7 +28,7 @@
  * @module
  * @see https://ui-sdk.dev/docs/core/kernel/define-a-primitive
  */
-import { Array as Arr } from "effect";
+import { Array as Arr, Option } from "effect";
 import {
   announce,
   bindDrag,
@@ -84,6 +84,12 @@ import type {
  * `drag` for a pointer drag; `remove-press` for Delete or Backspace on a placed chip.
  */
 export type PlacementReason = "drag" | "item-press" | "remove-press";
+
+/**
+ * What made a drop, and the event behind it: a pointer's release, a key press or a click, or
+ * undefined for a press the UI SDK reports with no event.
+ */
+type PlacementDetails = Readonly<{ event: Event | undefined; reason: PlacementReason }>;
 
 /**
  * What a placement root over a sequence board takes: the board, and its placements, an occupant
@@ -894,11 +900,11 @@ export const placement = definePrimitive({
      * change leaves the chip held.
      *
      * @param step The machine's step.
-     * @param reason What made the move.
-     * @param event The event behind it, if any.
-     * @param on The target part's element the pointer placed the chip on, if any.
+     * @param details What made the move, and the event behind it.
+     * @param on The target part's element the pointer placed the chip on, none for a move the
+     *   pointer did not place on a target.
      */
-    const commit = (step: Step, reason: PlacementReason, event?: Event, on?: Element) => {
+    const commit = (step: Step, details: PlacementDetails, on: Option.Option<Element>) => {
       if (!step.ok) {
         refused(step.refusal);
 
@@ -914,14 +920,14 @@ export const placement = definePrimitive({
         const inside =
           active === doc?.body || (active instanceof Node && root?.contains(active) === true);
 
-        const landing = landingOf(on, move);
+        const landing = landingOf(Option.getOrUndefined(on), move);
 
         pending =
           inside && landing === undefined
             ? { at: move.kind === "returned" ? bank : move.target, chip: move.chip }
             : undefined;
 
-        if (!change("placements", step.arrangement.placements, { event, reason })) {
+        if (!change("placements", step.arrangement.placements, details)) {
           pending = undefined;
 
           return;
@@ -940,13 +946,14 @@ export const placement = definePrimitive({
      * Drop the held chip into a place.
      *
      * @param to A target, a position or the bank.
-     * @param reason What made the move.
-     * @param event The event behind it, if any.
+     * @param details What made the move, and the event behind it.
+     * @param on The target part's element the pointer placed the chip on, none for a drop the
+     *   pointer did not place on a target.
      */
-    const dropAt = (to: Place, reason: PlacementReason, event?: Event, on?: Element) => {
+    const dropAt = (to: Place, details: PlacementDetails, on: Option.Option<Element>) => {
       const current = store.get();
 
-      commit(place(current, pickedOf(current), to), reason, event, on);
+      commit(place(current, pickedOf(current), to), details, on);
     };
 
     /**
@@ -1165,7 +1172,11 @@ export const placement = definePrimitive({
           const lifted = pick(current, chip, at);
 
           event.preventDefault();
-          commit(lifted.ok ? place(current, lifted.picked, bank) : lifted, "remove-press", event);
+          commit(
+            lifted.ok ? place(current, lifted.picked, bank) : lifted,
+            { event, reason: "remove-press" },
+            Option.none(),
+          );
 
           return;
         }
@@ -1237,7 +1248,7 @@ export const placement = definePrimitive({
               const over = areaAt(end.clientX, end.clientY);
 
               if (over !== null) {
-                dropAt(over.place, "drag", end, over.el);
+                dropAt(over.place, { event: end, reason: "drag" }, Option.fromUndefinedOr(over.el));
               }
             },
             onMove: ({ x, y }) => {
@@ -1284,11 +1295,11 @@ export const placement = definePrimitive({
        *
        * @param to The area's place.
        * @param event The click.
-       * @param on The target part's element pressed, where the press was on a target.
+       * @param on The target part's element pressed, none for a press on the bank.
        */
-      pressArea: (to: Place, event: Event, on?: Element) => {
+      pressArea: (to: Place, event: Event, on: Option.Option<Element>) => {
         if (store.get().held !== null && missed(event, buttonParts)) {
-          dropAt(to, "item-press", event, on);
+          dropAt(to, { event, reason: "item-press" }, on);
         }
       },
 
@@ -1300,7 +1311,7 @@ export const placement = definePrimitive({
        * @param at The place it stands in.
        * @param event The click.
        */
-      pressChip: (chip: string, at: Place, event?: Event) => {
+      pressChip: (chip: string, at: Place, event: Event | undefined) => {
         const { held } = store.get();
 
         if (
@@ -1321,7 +1332,7 @@ export const placement = definePrimitive({
         } else if (held.picked.chip === chip && samePlace(held.picked.from, at)) {
           putDown();
         } else {
-          dropAt(at, "item-press", event);
+          dropAt(at, { event, reason: "item-press" }, Option.none());
         }
       },
 
@@ -1342,8 +1353,8 @@ export const placement = definePrimitive({
        * @param to The slot's place.
        * @param event The click.
        */
-      pressSlot: (to: Place, event?: Event) => {
-        dropAt(to, "item-press", event);
+      pressSlot: (to: Place, event: Event | undefined) => {
+        dropAt(to, { event, reason: "item-press" }, Option.none());
       },
 
       recovery,
@@ -1364,7 +1375,7 @@ export const placement = definePrimitive({
       attrs: (state) => ({ "data-over": flag(samePlace(state.over, bank)) }),
       on: {
         click: (event, { api }) => {
-          api.pressArea(bank, event);
+          api.pressArea(bank, event, Option.none());
         },
       },
     }),
@@ -1486,7 +1497,7 @@ export const placement = definePrimitive({
       bind: (_el, part) => part.api.bindNamed(),
       on: {
         click: (event, { api, el, props }) => {
-          api.pressArea(props.spot, event, el);
+          api.pressArea(props.spot, event, Option.fromUndefinedOr(el));
         },
       },
       props: { by: "string", id: "id", spot: "value" },

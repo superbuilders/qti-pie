@@ -379,7 +379,7 @@ const materialsOf = (read: ReaderKit, source: SourceElement): readonly Material[
   pipe(
     read
       .elementsOf(source)
-      .filter((child) => read.isQti(child))
+      .filter((child) => read.inQti(child))
       .map((child) => materialOf(read, child)),
     (materials) => materials.flatMap(Option.toArray),
   );

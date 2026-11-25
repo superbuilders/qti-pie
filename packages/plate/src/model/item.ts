@@ -31,12 +31,18 @@ import {
   childrenNamed,
   elementsOf,
   identifierAttribute,
-  isQti,
+  inQti,
   replaceXmlSpace,
   requiredValue,
   valueOf,
 } from "#plate/model/attributes.ts";
-import { bodyNodes, collectItemPart, itemPart, modalFeedbackOf } from "#plate/model/body.ts";
+import {
+  bodyNodes,
+  collectItemPart,
+  itemPart,
+  modalFeedbackOf,
+  noneOwned,
+} from "#plate/model/body.ts";
 import type { ItemContentBuild } from "#plate/model/body.ts";
 import {
   adaptiveOf,
@@ -905,10 +911,10 @@ export const buildStimulus = (source: AdmittedDocument): Stimulus => {
     "qti-companion-materials-info": [],
   };
 
-  for (const part of elementsOf(root).filter((child) => isQti(child))) {
+  for (const part of elementsOf(root).filter((child) => inQti(child))) {
     if (part.local === "qti-stimulus-body") {
       markElement(build, part, true);
-      for (const each of bodyNodes(build, part)) {
+      for (const each of bodyNodes(build, part, noneOwned, part.children)) {
         body.push(each);
       }
     } else {
@@ -996,10 +1002,10 @@ export const buildItem = (source: AdmittedDocument): Item => {
     }
   };
 
-  for (const part of elementsOf(root).filter((child) => isQti(child))) {
+  for (const part of elementsOf(root).filter((child) => inQti(child))) {
     if (part.local === "qti-item-body") {
       markElement(build, part, true);
-      for (const node of bodyNodes(build, part)) {
+      for (const node of bodyNodes(build, part, noneOwned, part.children)) {
         body.push(node);
       }
     } else if (

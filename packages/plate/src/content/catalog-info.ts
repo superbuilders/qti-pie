@@ -279,7 +279,7 @@ const filesOf = (read: ReaderKit, parent: SourceElement): readonly CatalogFile[]
 const contentOf = (read: ReaderKit, parent: SourceElement): readonly BodyNode[] => {
   const [html] = read.childrenNamed(parent, "qti-html-content");
 
-  return html === undefined ? [] : read.nodes(html);
+  return html === undefined ? [] : read.nodes(html, {});
 };
 
 /**

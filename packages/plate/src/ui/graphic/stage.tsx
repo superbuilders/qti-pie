@@ -67,7 +67,7 @@ import { noPress, pressStep } from "#plate/ui/graphic/press.ts";
 import type { Press, PressEvent, Spot } from "#plate/ui/graphic/press.ts";
 import { floorWidthOf, smallestTargetOf, stageScaleOf } from "#plate/graphic/scale.ts";
 import type { StageScale, TargetFloor } from "#plate/graphic/scale.ts";
-import { sizeOf } from "#plate/ui/graphic/size.ts";
+import { authoredSizeOf, sizeOf } from "#plate/ui/graphic/size.ts";
 import type { NameAttributes } from "#plate/ui/attributes.ts";
 
 /**
@@ -644,7 +644,7 @@ const scaleOf = <A extends StageArea>(targets: StageTargets<A>, size: ImageSize)
  * @returns Whether the region scrolls at 320 CSS px (`scrollsAtReflow`).
  */
 const reflowsOf = <A extends StageArea>(targets: StageTargets<A>, size: AuthoredSize): boolean => {
-  const known = sizeOf(size);
+  const known = authoredSizeOf(size);
   if (known === undefined) {
     return false;
   }

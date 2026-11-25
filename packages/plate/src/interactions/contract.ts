@@ -440,13 +440,14 @@ export interface ReaderKit extends AttributeReaders {
    * shell carry it as an element.
    *
    * @param parent The element whose children are read.
-   * @param options Which children (all of them by default), and the local names of the `qti-*`
-   *   elements the module owns, none by default.
+   * @param options Which children (all of them where it names none), and the local names of the
+   *   `qti-*` elements the module owns (none where it names none); `{}` for every child and no
+   *   owned element.
    * @returns The body nodes, in document order.
    */
   readonly nodes: (
     parent: SourceElement,
-    options?: {
+    options: {
       readonly children?: readonly SourceChild[];
       readonly own?: readonly string[];
     },
@@ -694,7 +695,7 @@ export interface ChoicesShownBy<C> {
  * @template C The choice.
  * @param choices The choices, in document order.
  * @param update Give the node with the list's choices passed through a step.
- * @param shownBy How a template variable shows the list's choices, none when it shows none.
+ * @param shownBy How a template variable shows the list's choices, `Option.none()` when none does.
  * @returns One region per choice.
  */
 export const choiceRegions = <
@@ -704,7 +705,7 @@ export const choiceRegions = <
 >(
   choices: readonly C[],
   update: (interaction: I, step: (choices: readonly C[]) => readonly C[]) => I,
-  shownBy: Option.Option<ChoicesShownBy<C>> = Option.none(),
+  shownBy: Option.Option<ChoicesShownBy<C>>,
 ): readonly OwnRegion<I, N>[] =>
   choices.map((choice) => {
     const { identifier } = choice;

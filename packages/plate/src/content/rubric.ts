@@ -158,7 +158,7 @@ export const rubricModule: BodyContentModule<typeof element, RubricByLevel, Rubr
 
     read.markElement(body);
 
-    const content = read.nodes(body);
+    const content = read.nodes(body, {});
 
     for (const catalog of read.childrenNamed(source, "qti-catalog-info")) {
       read.mark(catalog, read.nameOf(catalog));

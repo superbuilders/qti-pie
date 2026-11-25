@@ -676,12 +676,12 @@ const exOf = (text: string): number => Number(text.replace(regex("ex$", "u"), ""
  * through it, to hold the drawing to it.
  *
  * @param formula The `math` element, as plate writes it.
- * @param sizes Each slot's size, by the `id` it names; none by default.
+ * @param sizes Each slot's size, by the `id` it names; empty for a formula with no slot.
  * @returns MathJax's container: an `mjx-container` holding the `svg`.
  */
 export const typeset = (
   formula: MathElement<unknown>,
-  sizes: ReadonlyMap<string, SlotSize> = new Map(),
+  sizes: ReadonlyMap<string, SlotSize>,
 ): LiteElement => {
   const item = new HTMLMathItem<LiteElement, LiteText, LiteDocument>(
     elementText(formula, sizes),

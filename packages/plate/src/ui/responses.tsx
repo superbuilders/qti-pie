@@ -215,13 +215,13 @@ const valueOf = <V,>(declared: Declared, codec: SingleCodec<V>, values: readonly
  *
  * @param held The state.
  * @param written The values written, by identifier.
- * @param typed The boxes written, by identifier, for a typed response.
+ * @param typed The boxes written, by identifier, for a typed response; `{}` for none.
  * @returns The next state.
  */
 const writtenInto = (
   held: Held,
   written: ResponsesOf,
-  typed: Readonly<Record<string, Typed>> = {},
+  typed: Readonly<Record<string, Typed>>,
 ): Held => ({
   responses: { ...held.responses, ...written },
   typed: { ...held.typed, ...typed },
@@ -251,7 +251,7 @@ export const useResponse = <V,>(
   const values = useMemo(() => valuesIn(value, declared, codec), [value, declared, codec]);
 
   const set = (next: readonly V[]) => {
-    onChange(writtenInto(held, { [declared.identifier]: valueOf(declared, codec, next) }), [
+    onChange(writtenInto(held, { [declared.identifier]: valueOf(declared, codec, next) }, {}), [
       declared.identifier,
     ]);
   };
@@ -322,6 +322,7 @@ export const useResponsesOf = <V,>(
             valueOf(each, codec, next.get(each.identifier) ?? []),
           ]),
         ),
+        {},
       ),
       declared.map((each) => each.identifier),
     );
@@ -346,7 +347,7 @@ export const useResponseValue = (
   const value = heldValue(held, declared.identifier);
 
   const set = (next: ResponseValue) => {
-    onChange(writtenInto(held, { [declared.identifier]: next }), [declared.identifier]);
+    onChange(writtenInto(held, { [declared.identifier]: next }, {}), [declared.identifier]);
   };
 
   return [value, set];

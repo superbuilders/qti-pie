@@ -343,7 +343,7 @@ const readChoice = (read: ReaderKit, choice: SourceElement): GraphicGapMatchChoi
 
   return {
     catalog,
-    content: read.nodes(choice),
+    content: read.nodes(choice, {}),
     identifier: read.identifierAttribute(choice, "identifier"),
     label: read.valueOf(choice, "object-label"),
     matchGroup: matchGroupOf(read.valueOf(choice, "match-group")),
@@ -484,6 +484,7 @@ const ownRegions = <L extends Level>(
   ...choiceRegions<GraphicGapMatchInteraction<L>, BodyNode<L>, GraphicGapMatchChoice<L>>(
     interaction.choices,
     (each, step) => ({ ...each, choices: step(each.choices) }),
+    Option.none(),
   ),
 ];
 

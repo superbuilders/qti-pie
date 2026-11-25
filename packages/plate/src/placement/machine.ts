@@ -651,14 +651,15 @@ const sameBag = (a: Pairs, b: Pairs): boolean =>
  * @param reason Why it was refused.
  * @param chip The chip it concerns, if any.
  * @param target The target it concerns, if any.
- * @param partner The chip a refused pair on a board of boxes would join `chip` with, if any.
+ * @param partner The chip a refused pair on a board of boxes would join `chip` with, `null` for any
+ *   other refusal.
  * @returns The refusal.
  */
 const refuse = (
   reason: RefusalReason,
   chip: string | null,
   target: Spot | null,
-  partner: string | null = null,
+  partner: string | null,
 ): Refused => ({
   ok: false,
   refusal: { chip, partner, reason, target },
@@ -880,18 +881,18 @@ const entryRefusal = (
   const { chip, from } = picked;
 
   if (!inGroup(arrangement, chip, rule.id)) {
-    return refuse("notInGroup", chip, to);
+    return refuse("notInGroup", chip, to, null);
   }
 
   if (from.kind === "bank" && usedUp(arrangement, chip)) {
-    return refuse("chipUsedUp", chip, null);
+    return refuse("chipUsedUp", chip, null, null);
   }
 
   if (
     !arrangement.repeats &&
     matching(arrangement.placements, { chip, target: rule.id }).length > 0
   ) {
-    return refuse("pairMade", chip, to);
+    return refuse("pairMade", chip, to, null);
   }
 
   return undefined;
@@ -922,7 +923,7 @@ const swapPair = (
   const rest = removeOne(left, occupant);
 
   if (source !== null && !inGroup(arrangement, occupant.chip, source.target)) {
-    return refuse("notInGroup", occupant.chip, spotOf(from));
+    return refuse("notInGroup", occupant.chip, spotOf(from), null);
   }
 
   if (
@@ -930,7 +931,7 @@ const swapPair = (
     !arrangement.repeats &&
     matching(rest, { chip: occupant.chip, target: source.target }).length > 0
   ) {
-    return refuse("pairMade", occupant.chip, spotOf(from));
+    return refuse("pairMade", occupant.chip, spotOf(from), null);
   }
 
   const entry: Pair = { chip, target: occupant.target };
@@ -974,7 +975,7 @@ const placePair = (arrangement: PairsArrangement, picked: Picked, to: Place): St
     from.kind === "half" ||
     source === undefined
   ) {
-    return refuse("unknown", chip, spotOf(from));
+    return refuse("unknown", chip, spotOf(from), null);
   }
 
   if (to.kind === "bank") {
@@ -990,7 +991,7 @@ const placePair = (arrangement: PairsArrangement, picked: Picked, to: Place): St
   const rule = to.kind === "target" ? targetRule(arrangement, to.id) : undefined;
 
   if (to.kind !== "target" || rule === undefined) {
-    return refuse("unknown", chip, to);
+    return refuse("unknown", chip, to, null);
   }
 
   if (samePlace(to, from)) {
@@ -1007,7 +1008,7 @@ const placePair = (arrangement: PairsArrangement, picked: Picked, to: Place): St
 
   if (!reached(rule.capacity, held.length)) {
     if (source === null && reached(arrangement.total, placements.length)) {
-      return refuse("totalReached", chip, to);
+      return refuse("totalReached", chip, to, null);
     }
 
     const left = source === null ? placements : removeOne(placements, source);
@@ -1023,7 +1024,7 @@ const placePair = (arrangement: PairsArrangement, picked: Picked, to: Place): St
 
   return arrangement.swap && isOne(rule.capacity) && occupant !== undefined
     ? swapPair(arrangement, picked, source, occupant, to)
-    : refuse("targetFull", chip, to);
+    : refuse("targetFull", chip, to, null);
 };
 
 /**
@@ -1048,7 +1049,7 @@ const placeInSequence = (arrangement: SequenceArrangement, picked: Picked, to: P
     at === undefined ||
     (at !== null && placements[at] !== chip)
   ) {
-    return refuse("unknown", chip, spotOf(from));
+    return refuse("unknown", chip, spotOf(from), null);
   }
 
   if (to.kind === "bank") {
@@ -1065,7 +1066,7 @@ const placeInSequence = (arrangement: SequenceArrangement, picked: Picked, to: P
   const occupant = into === undefined ? undefined : placements[into];
 
   if (into === undefined || occupant === undefined) {
-    return refuse("unknown", chip, to);
+    return refuse("unknown", chip, to, null);
   }
 
   if (into === at) {
@@ -1073,7 +1074,7 @@ const placeInSequence = (arrangement: SequenceArrangement, picked: Picked, to: P
   }
 
   if (at === null && placements.includes(chip)) {
-    return refuse("chipUsedUp", chip, null);
+    return refuse("chipUsedUp", chip, null, null);
   }
 
   const left = at === null ? placements : placements.with(at, occupant);
@@ -1204,7 +1205,7 @@ const placeInBoxes = (arrangement: BoxesArrangement, picked: Picked, to: Place):
     from.kind === "position" ||
     (from.kind === "half" && holderOf(boxes, from) !== chip)
   ) {
-    return refuse("unknown", chip, spotOf(from));
+    return refuse("unknown", chip, spotOf(from), null);
   }
 
   if (to.kind === "bank") {
@@ -1218,7 +1219,7 @@ const placeInBoxes = (arrangement: BoxesArrangement, picked: Picked, to: Place):
   }
 
   if (to.kind !== "half" || !offers(arrangement, to)) {
-    return refuse("unknown", chip, to);
+    return refuse("unknown", chip, to, null);
   }
 
   if (samePlace(to, from)) {
@@ -1226,7 +1227,7 @@ const placeInBoxes = (arrangement: BoxesArrangement, picked: Picked, to: Place):
   }
 
   if (from.kind === "bank" && usedUp(arrangement, chip)) {
-    return refuse("chipUsedUp", chip, null);
+    return refuse("chipUsedUp", chip, null, null);
   }
 
   return enterHalf(arrangement, picked, to);
@@ -1244,17 +1245,17 @@ const pickInBoxes = (arrangement: BoxesArrangement, picked: Picked): Picking => 
   const boxes = arrangement.placements;
 
   if (partnerRule(arrangement, chip) === undefined) {
-    return refuse("unknown", chip, spotOf(from));
+    return refuse("unknown", chip, spotOf(from), null);
   }
 
   if (from.kind !== "bank") {
     return from.kind === "half" && holderOf(boxes, from) === chip
       ? lifted(picked)
-      : refuse("unknown", chip, from);
+      : refuse("unknown", chip, from, null);
   }
 
   if (usedUp(arrangement, chip)) {
-    return refuse("chipUsedUp", chip, null);
+    return refuse("chipUsedUp", chip, null, null);
   }
 
   return reached(arrangement.total, boxes.length) &&
@@ -1263,7 +1264,7 @@ const pickInBoxes = (arrangement: BoxesArrangement, picked: Picked): Picking => 
         !placeInBoxes(arrangement, picked, { box, kind: "half", side: 0 }).ok &&
         !placeInBoxes(arrangement, picked, { box, kind: "half", side: 1 }).ok,
     )
-    ? refuse("totalReached", chip, null)
+    ? refuse("totalReached", chip, null, null)
     : lifted(picked);
 };
 
@@ -1296,7 +1297,7 @@ const pickInBoxes = (arrangement: BoxesArrangement, picked: Picked): Picking => 
  */
 export const place = (arrangement: Arrangement, picked: Picked | null, to: Place): Step => {
   if (picked === null) {
-    return refuse("pickFirst", null, null);
+    return refuse("pickFirst", null, null, null);
   }
 
   if (arrangement.kind === "sequence") {
@@ -1329,16 +1330,16 @@ export const pick = (arrangement: Arrangement, chip: string, from: Place): Picki
     const at = from.kind === "bank" ? null : positionOf(from);
 
     if (!arrangement.chips.includes(chip) || at === undefined) {
-      return refuse("unknown", chip, spotOf(from));
+      return refuse("unknown", chip, spotOf(from), null);
     }
 
     if (at !== null) {
       return arrangement.placements[at] === chip
         ? lifted(picked)
-        : refuse("unknown", chip, spotOf(from));
+        : refuse("unknown", chip, spotOf(from), null);
     }
 
-    return usedUp(arrangement, chip) ? refuse("chipUsedUp", chip, null) : lifted(picked);
+    return usedUp(arrangement, chip) ? refuse("chipUsedUp", chip, null, null) : lifted(picked);
   }
 
   if (arrangement.kind === "boxes") {
@@ -1346,25 +1347,25 @@ export const pick = (arrangement: Arrangement, chip: string, from: Place): Picki
   }
 
   if (chipRule(arrangement, chip) === undefined) {
-    return refuse("unknown", chip, spotOf(from));
+    return refuse("unknown", chip, spotOf(from), null);
   }
 
   if (from.kind !== "bank") {
     return from.kind === "target" &&
       matching(arrangement.placements, { chip, target: from.id }).length > 0
       ? lifted(picked)
-      : refuse("unknown", chip, from);
+      : refuse("unknown", chip, from, null);
   }
 
   if (usedUp(arrangement, chip)) {
-    return refuse("chipUsedUp", chip, null);
+    return refuse("chipUsedUp", chip, null, null);
   }
 
   return reached(arrangement.total, arrangement.placements.length) &&
     arrangement.targets.every(
       (rule) => !placePair(arrangement, picked, { id: rule.id, kind: "target" }).ok,
     )
-    ? refuse("totalReached", chip, null)
+    ? refuse("totalReached", chip, null, null)
     : lifted(picked);
 };
 

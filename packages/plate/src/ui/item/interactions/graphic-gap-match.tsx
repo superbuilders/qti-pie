@@ -44,7 +44,7 @@ import { carriesRendererClass } from "#plate/vocabulary.ts";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
 import { bankCaptionKeyOf, floorOf, plotKindOf } from "#plate/interactions/plot-roles.ts";
 import type { Statistic } from "#plate/interactions/plot-roles.ts";
-import { sizeOf } from "#plate/ui/graphic/size.ts";
+import { authoredSizeOf } from "#plate/ui/graphic/size.ts";
 import { graphicKeys } from "#plate/ui/graphic/labels.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
 import { associableOf, contentOf } from "#plate/ui/item/interactions/answering.tsx";
@@ -170,7 +170,7 @@ const measureOf = (
     return { kind: "text", words: text.split(" ") };
   }
 
-  const size = sizeOf(choice.size);
+  const size = authoredSizeOf(choice.size);
 
   return size === undefined
     ? { kind: "unsized" }

@@ -122,7 +122,7 @@ export interface IslandContext {
    * @param options The elements the interaction owns, and where the content stands.
    * @returns The content.
    */
-  readonly content: (nodes: readonly RedactedNode[], options?: ContentOptions) => ReactNode;
+  readonly content: (nodes: readonly RedactedNode[], options: ContentOptions) => ReactNode;
   /**
    * The instance the host named, which scopes every id and names the entry the item's End Attempts
    * post in.

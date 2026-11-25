@@ -25,6 +25,7 @@ import {
   identifierOf,
   inadmissible,
   integerOf,
+  inQti,
   isQti,
   listed,
   nameOf,
@@ -85,6 +86,7 @@ export interface AttributeReaders {
   readonly identifierOf: typeof identifierOf;
   readonly inadmissible: Bound<typeof inadmissible>;
   readonly integerOf: typeof integerOf;
+  readonly inQti: typeof inQti;
   readonly isQti: typeof isQti;
   /**
    * Read an attribute the element carries against the values the XSD lists for it, as `listed`
@@ -140,6 +142,7 @@ export const readersOf = (walk: ModelWalk): AttributeReaders => ({
   floatOf,
   identifierAttribute: (element, name) => identifierAttribute(walk, element, name),
   identifierOf,
+  inQti,
   inadmissible: (fault, path, detail) => inadmissible(walk, fault, path, detail),
   integerOf,
   isQti,

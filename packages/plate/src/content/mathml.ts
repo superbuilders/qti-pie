@@ -308,7 +308,7 @@ const readChildren = (
       return [
         {
           attributes: attributesOf(child.attributes),
-          content: context.read.nodes(child),
+          content: context.read.nodes(child, {}),
           kind: "annotation-xml",
         },
       ];

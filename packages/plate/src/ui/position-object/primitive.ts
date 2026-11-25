@@ -68,6 +68,12 @@ import type { PositionObjectLabels } from "#plate/ui/position-object/labels.ts";
 type PositionReason = "drag" | "item-press" | "remove-press";
 
 /**
+ * What made a change to the placements, and the event behind it where one is: a tap the stage
+ * reports once it is released there carries none.
+ */
+type PositionDetails = Readonly<{ event: Event | undefined; reason: PositionReason }>;
+
+/**
  * One interaction of the stage as the primitive holds it: the response it binds, and how many
  * copies of its object the child may place. Its object's name is read from the page, from its
  * `object` part, as announcements say it.
@@ -391,7 +397,7 @@ export const positionObject = definePrimitive({
     const say = (
       label: string,
       object: StageObject,
-      values: Readonly<Record<string, number>> = {},
+      values: Readonly<Record<string, number>>,
     ): string => {
       const el = objectElement(object.response.identifier);
 
@@ -418,7 +424,7 @@ export const positionObject = definePrimitive({
         held: { at, dragging, given, index, name: object.response.identifier },
         message: null,
       });
-      announce(say(store.get().labels.picked, object), { priority: "assertive" });
+      announce(say(store.get().labels.picked, object, {}), { priority: "assertive" });
     };
 
     /**
@@ -449,7 +455,7 @@ export const positionObject = definePrimitive({
         return true;
       }
 
-      const text = say(state.labels.full, object);
+      const text = say(state.labels.full, object, {});
 
       store.set({ message: text });
       announce(text, { priority: "assertive" });
@@ -468,7 +474,7 @@ export const positionObject = definePrimitive({
       }
 
       store.set({ held: null, message: null });
-      announce(say(store.get().labels.canceled, objectOf(store.get(), held.name)), {
+      announce(say(store.get().labels.canceled, objectOf(store.get(), held.name), {}), {
         priority: "assertive",
       });
     };
@@ -480,19 +486,17 @@ export const positionObject = definePrimitive({
      * @param object The interaction.
      * @param points Its points now.
      * @param text What happened.
-     * @param reason What made the change.
-     * @param event The event behind it, if any.
+     * @param details What made the change, and the event behind it where one is.
      */
     const commit = (
       object: StageObject,
       points: readonly ImagePoint[],
       text: string,
-      reason: PositionReason,
-      event?: Event,
+      details: PositionDetails,
     ) => {
       const next = withPoints(store.get().placements, object.response.identifier, points);
 
-      if (!change("placements", next, { event, reason })) {
+      if (!change("placements", next, details)) {
         return;
       }
 
@@ -505,10 +509,9 @@ export const positionObject = definePrimitive({
      * there, and one put down where it was is put back.
      *
      * @param point Where, on a whole pixel of the stage.
-     * @param reason What made the move.
-     * @param event The event behind it, if any.
+     * @param details What made the move, and the event behind it where one is.
      */
-    const putAt = (point: ImagePoint, reason: PositionReason, event?: Event) => {
+    const putAt = (point: ImagePoint, details: PositionDetails) => {
       const state = store.get();
       const { held } = state;
 
@@ -524,8 +527,7 @@ export const positionObject = definePrimitive({
           object,
           [...placed, point],
           say(state.labels.placed, object, coordinates(point)),
-          reason,
-          event,
+          details,
         );
 
         return;
@@ -543,8 +545,7 @@ export const positionObject = definePrimitive({
         object,
         placed.map((each, index) => (index === held.index ? point : each)),
         say(state.labels.moved, object, coordinates(point)),
-        reason,
-        event,
+        details,
       );
     };
 
@@ -553,18 +554,16 @@ export const positionObject = definePrimitive({
      *
      * @param object The interaction.
      * @param index The copy's place among its object's.
-     * @param reason What made the change.
-     * @param event The event behind it, if any.
+     * @param details What made the change, and the event behind it where one is.
      */
-    const takeOff = (object: StageObject, index: number, reason: PositionReason, event?: Event) => {
+    const takeOff = (object: StageObject, index: number, details: PositionDetails) => {
       const state = store.get();
 
       commit(
         object,
         placedOf(state, object).filter((_, each) => each !== index),
-        say(state.labels.removed, object),
-        reason,
-        event,
+        say(state.labels.removed, object, {}),
+        details,
       );
     };
 
@@ -691,7 +690,7 @@ export const positionObject = definePrimitive({
                 return;
               }
 
-              putAt(held.at, "drag", end);
+              putAt(held.at, { event: end, reason: "drag" });
             },
             onMove: ({ x, y }) => {
               const { held, size } = store.get();
@@ -773,7 +772,7 @@ export const positionObject = definePrimitive({
                 return;
               }
 
-              putAt(held.at, "drag", end);
+              putAt(held.at, { event: end, reason: "drag" });
             },
             onMove: ({ x, y }) => {
               last = { x, y };
@@ -835,7 +834,7 @@ export const positionObject = definePrimitive({
 
         if ((event.key === "Delete" || event.key === "Backspace") && index !== null) {
           event.preventDefault();
-          takeOff(object, index, "remove-press", event);
+          takeOff(object, index, { event, reason: "remove-press" });
 
           return;
         }
@@ -887,7 +886,7 @@ export const positionObject = definePrimitive({
        * @param index The copy's place among its object's.
        * @param event The click.
        */
-      pressCopy: (name: string, index: number, event?: Event) => {
+      pressCopy: (name: string, index: number, event: Event | undefined) => {
         const state = store.get();
         const { held } = state;
         const object = objectOf(state, name);
@@ -898,7 +897,7 @@ export const positionObject = definePrimitive({
         }
 
         if (held !== null && held.name === name && held.index === index && held.at !== null) {
-          putAt(held.at, "item-press", event);
+          putAt(held.at, { event, reason: "item-press" });
 
           return;
         }
@@ -915,19 +914,19 @@ export const positionObject = definePrimitive({
        * @param name The interaction's response's identifier.
        * @param event The click.
        */
-      pressObject: (name: string, event?: Event) => {
+      pressObject: (name: string, event: Event | undefined) => {
         const state = store.get();
         const { held } = state;
         const object = objectOf(state, name);
 
         if (held !== null && held.name === name && held.given && held.at !== null) {
-          putAt(held.at, "item-press", event);
+          putAt(held.at, { event, reason: "item-press" });
 
           return;
         }
 
         if (held !== null && held.name === name && !held.given && held.index !== null) {
-          takeOff(object, held.index, "item-press", event);
+          takeOff(object, held.index, { event, reason: "item-press" });
 
           return;
         }
@@ -936,14 +935,14 @@ export const positionObject = definePrimitive({
       },
 
       /**
-       * Handle a tap on the stage, at a point of the stage image: put the held copy there.
+       * Handle a tap on the stage, at a point of the stage image, as the stage reports it once it
+       * is released there, with no event of its own: put the held copy there.
        *
        * @param point The point, in the stage image's pixels.
-       * @param event The click, if any.
        */
-      pressStage: (point: ImagePoint, event?: Event) => {
+      pressStage: (point: ImagePoint) => {
         if (store.get().held !== null) {
-          putAt(pointOn(point, store.get().size), "item-press", event);
+          putAt(pointOn(point, store.get().size), { event: undefined, reason: "item-press" });
         }
       },
 

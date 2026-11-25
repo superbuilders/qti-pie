@@ -20,11 +20,14 @@ import type { AuthoredSize, ImageSize } from "#plate/interactions/image-size.ts"
  * write it in full; the server, which reads no image, knows it only where the author wrote both.
  *
  * @param authored The author's size.
- * @param natural The image's natural size, none until it is known and always none on the server.
+ * @param natural The image's natural size, undefined until it is known and always on the server.
  * @returns The size, or none while it is unknown.
  * @see https://html.spec.whatwg.org/multipage/embedded-content-other.html#dimension-attributes
  */
-export const sizeOf = (authored: AuthoredSize, natural?: ImageSize): ImageSize | undefined => {
+export const sizeOf = (
+  authored: AuthoredSize,
+  natural: ImageSize | undefined,
+): ImageSize | undefined => {
   switch (authored.kind) {
     case "both": {
       return authored.size;
@@ -44,3 +47,13 @@ export const sizeOf = (authored: AuthoredSize, natural?: ImageSize): ImageSize |
     }
   }
 };
+
+/**
+ * Give an image's pixel space as the server knows it, which reads no image: the author's size where
+ * both its `width` and `height` are written, none otherwise ({@link sizeOf} with no natural size).
+ *
+ * @param authored The author's size.
+ * @returns The size, or none where the author did not write it in full.
+ */
+export const authoredSizeOf = (authored: AuthoredSize): ImageSize | undefined =>
+  authored.kind === "both" ? authored.size : undefined;

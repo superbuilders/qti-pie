@@ -38,7 +38,7 @@ import { StageFrame } from "#plate/ui/graphic/frame.tsx";
 import { graphicKeys } from "#plate/ui/graphic/labels.ts";
 import { stageScaleOf } from "#plate/graphic/scale.ts";
 import type { StageScale } from "#plate/graphic/scale.ts";
-import { sizeOf } from "#plate/ui/graphic/size.ts";
+import { authoredSizeOf } from "#plate/ui/graphic/size.ts";
 import type { ContainerWalk } from "#plate/ui/item/content.tsx";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
 import { UnrenderedNode } from "#plate/ui/item/errors.ts";
@@ -199,7 +199,7 @@ const hrefOf = (object: readonly RedactedNode[], addressing: Addressing): Option
 const drawingOf = (node: PayloadOf<"position-object">, addressing: Addressing): ObjectDrawing => {
   const image: Option.Option<DrawnImage> = Option.all({
     href: hrefOf(node.object, addressing),
-    size: Option.fromUndefinedOr(sizeOf(node.objectSize)),
+    size: Option.fromUndefinedOr(authoredSizeOf(node.objectSize)),
   });
 
   return Option.match(image, {

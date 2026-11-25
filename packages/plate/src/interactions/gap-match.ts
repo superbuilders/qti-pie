@@ -346,7 +346,7 @@ const readChoice = (read: ReaderKit, choice: SourceElement): GapMatchChoice => {
 
   return {
     catalog,
-    content: read.nodes(choice),
+    content: read.nodes(choice, {}),
     identifier: read.identifierAttribute(choice, "identifier"),
     label: read.valueOf(choice, "object-label"),
     matchGroup: matchGroupOf(read.valueOf(choice, "match-group")),
@@ -447,6 +447,7 @@ const ownRegions = <L extends Level>(
   ...choiceRegions<GapMatchInteraction<L>, BodyNode<L>, GapMatchChoice<L>>(
     interaction.choices,
     (each, step) => ({ ...each, choices: step(each.choices) }),
+    Option.none(),
   ),
   contentRegion<GapMatchInteraction<L>, BodyNode<L>>(interaction.gapped, (each, gapped) => ({
     ...each,

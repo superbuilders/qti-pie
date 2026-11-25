@@ -343,13 +343,13 @@ const childTexts = (element: SourceElement, name: string): ReadonlySet<string> =
  *
  * @param element The element.
  * @param local The attribute's local name.
- * @param namespace The attribute's namespace, none by default.
+ * @param namespace The attribute's namespace, `""` for none.
  * @returns The value, trimmed, none without the attribute.
  */
 const attributeOf = (
   element: SourceElement,
   local: string,
-  namespace = "",
+  namespace: string,
 ): Option.Option<string> =>
   Option.fromNullishOr(
     element.attributes.find(
@@ -583,7 +583,7 @@ const magnificationOf = (element: SourceElement): Option.Option<number> =>
   Option.firstSomeOf(
     ["all-content", "text", "non-text"].map((name) =>
       Option.flatMap(childNamed(element, name), (zoom) =>
-        Option.flatMap(attributeOf(zoom, "zoom-amount"), positiveOf),
+        Option.flatMap(attributeOf(zoom, "zoom-amount", ""), positiveOf),
       ),
     ),
   );
@@ -633,8 +633,8 @@ const supportsOf = (scanned: Scan): PnpSupports => {
   const display: DisplayPreferences = {
     invertDisplayPolarity: features.has("invert-display-polarity"),
     invertedColors: Option.map(firstOf("invert-display-polarity"), (element) => ({
-      background: attributeOf(element, "background"),
-      foreground: attributeOf(element, "foreground"),
+      background: attributeOf(element, "background", ""),
+      foreground: attributeOf(element, "foreground", ""),
     })),
     keywordEmphasis: features.has("keyword-emphasis"),
     languageOfInterface: Option.firstSomeOf(elementsOf("language-of-interface").map(langOf)),
@@ -687,7 +687,7 @@ const supportsOf = (scanned: Scan): PnpSupports => {
     ),
     longDescriptionVisible: Option.getOrElse(
       Option.flatMap(firstOf("long-description"), (element) =>
-        Option.flatMap(attributeOf(element, "hide-visually"), booleanOf),
+        Option.flatMap(attributeOf(element, "hide-visually", ""), booleanOf),
       ).pipe(Option.map((hidden) => !hidden)),
       () => false,
     ),
@@ -699,12 +699,12 @@ const supportsOf = (scanned: Scan): PnpSupports => {
     suppressTts: noPnpSupports.suppressTts,
     toolSettings: {
       calculatorType: Option.flatMap(firstOf("calculator-on-screen"), (element) =>
-        Option.flatMap(attributeOf(element, "calculator-type"), (value) =>
+        Option.flatMap(attributeOf(element, "calculator-type", ""), (value) =>
           extensibleOf(calculatorTypes, value),
         ),
       ),
       highlightColor: Option.flatMap(firstOf("line-reader"), (element) =>
-        attributeOf(element, "highlight-color"),
+        attributeOf(element, "highlight-color", ""),
       ),
     },
     tools: new Set(toolPreferences.filter((tool): tool is ToolPreference => features.has(tool))),

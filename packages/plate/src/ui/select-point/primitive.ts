@@ -74,6 +74,12 @@ import type { Point, Step } from "#plate/ui/select-point/points.ts";
 type SelectPointReason = "drag" | "press" | "remove-press";
 
 /**
+ * Why a step changes the points, and the DOM event behind it where one is: a tap the stage reports
+ * once it is released there carries none.
+ */
+type SelectPointDetails = Readonly<{ event: Event | undefined; reason: SelectPointReason }>;
+
+/**
  * What the Select Point root takes: the points, controlled, which the island derives from the
  * response it holds and writes the response back from `onPointsChange`, so a step the host refuses
  * never shows; how many points the child marks; the image's size, the pixel space the points are
@@ -324,10 +330,9 @@ export const selectPoint = definePrimitive({
      * cancels the change leaves the points as they were.
      *
      * @param step The step.
-     * @param reason Why.
-     * @param event The DOM event behind it, if any.
+     * @param details Why, and the DOM event behind it where one is.
      */
-    const commit = (step: Step, reason: SelectPointReason, event?: Event) => {
+    const commit = (step: Step, details: SelectPointDetails) => {
       const { labels } = store.get();
 
       if (step.kind === "refused") {
@@ -339,7 +344,7 @@ export const selectPoint = definePrimitive({
         return;
       }
 
-      if (!change("points", step.points, { event, reason })) {
+      if (!change("points", step.points, details)) {
         return;
       }
 
@@ -354,10 +359,10 @@ export const selectPoint = definePrimitive({
      *
      * @param key The key, `KeyboardEvent.key`.
      * @param far Whether Shift is held.
-     * @param event The key press, if any.
+     * @param event The key press.
      * @returns Whether the key was the board's, so its default action is stopped.
      */
-    const pressKey = (key: string, far: boolean, event?: Event): boolean => {
+    const pressKey = (key: string, far: boolean, event: Event): boolean => {
       const state = store.get();
       if (state.pressed !== null) {
         return false;
@@ -374,7 +379,7 @@ export const selectPoint = definePrimitive({
       const reach = reachOf(scaleNow());
 
       if (key === "Enter" || key === " ") {
-        commit(pressAt(state.points, state.cross, state.picks, reach), "press", event);
+        commit(pressAt(state.points, state.cross, state.picks, reach), { event, reason: "press" });
 
         return true;
       }
@@ -388,7 +393,7 @@ export const selectPoint = definePrimitive({
         return false;
       }
 
-      commit(remove(state.points, hit), "remove-press", event);
+      commit(remove(state.points, hit), { event, reason: "remove-press" });
 
       return true;
     };
@@ -436,9 +441,9 @@ export const selectPoint = definePrimitive({
      * off it, or where the overlay cannot say, puts it back.
      *
      * @param at Where it lifted, in the image's pixels, none while the overlay is not on the page.
-     * @param event The release, if any.
+     * @param event The release.
      */
-    const releaseMarker = (at: ImagePoint | undefined, event?: Event) => {
+    const releaseMarker = (at: ImagePoint | undefined, event: Event) => {
       const { points, pressed, size } = store.get();
       if (pressed === null) {
         return;
@@ -447,9 +452,9 @@ export const selectPoint = definePrimitive({
       store.set({ pressed: null });
 
       if (!pressed.moved) {
-        commit(remove(points, pressed.index), "remove-press", event);
+        commit(remove(points, pressed.index), { event, reason: "remove-press" });
       } else if (at !== undefined && isOnImage(at, size)) {
-        commit(move(points, pressed.index, pointOn(at, size)), "drag", event);
+        commit(move(points, pressed.index, pointOn(at, size)), { event, reason: "drag" });
       }
     };
 
@@ -544,7 +549,7 @@ export const selectPoint = definePrimitive({
       keydownPoint: (event: KeyboardEvent, el: HTMLElement, index: number) => {
         if (!modified(event) && (event.key === "Delete" || event.key === "Backspace")) {
           event.preventDefault();
-          commit(remove(store.get().points, index), "remove-press", event);
+          commit(remove(store.get().points, index), { event, reason: "remove-press" });
 
           return;
         }
@@ -608,7 +613,7 @@ export const selectPoint = definePrimitive({
       pressImage: (at: ImagePoint) => {
         const { picks, points, size } = store.get();
 
-        commit(mark(points, pointOn(at, size), picks), "press");
+        commit(mark(points, pointOn(at, size), picks), { event: undefined, reason: "press" });
       },
 
       pressKey,
@@ -623,10 +628,10 @@ export const selectPoint = definePrimitive({
        * Remove a point, from its button: a press, or Delete or Backspace on it.
        *
        * @param index The point's index.
-       * @param event The click or the key press, if any.
+       * @param event The click or the key press.
        */
-      removePoint: (index: number, event?: Event) => {
-        commit(remove(store.get().points, index), "remove-press", event);
+      removePoint: (index: number, event: Event | undefined) => {
+        commit(remove(store.get().points, index), { event, reason: "remove-press" });
       },
     };
   },

@@ -220,7 +220,7 @@ const readChoice = (context: ParseContext, choice: SourceElement): AssociateChoi
 
   return {
     catalog,
-    content: read.nodes(choice),
+    content: read.nodes(choice, {}),
     fixed: read.xsBoolean(choice, "fixed", false),
     identifier: read.identifierAttribute(choice, "identifier"),
     matchGroup: matchGroupOf(read.valueOf(choice, "match-group")),
@@ -311,6 +311,7 @@ const ownRegions = <L extends Level>(
   ...choiceRegions<AssociateInteraction<L>, BodyNode<L>, AssociateChoice<L>>(
     interaction.choices,
     (each, step) => ({ ...each, choices: step(each.choices) }),
+    Option.none(),
   ),
 ];
 

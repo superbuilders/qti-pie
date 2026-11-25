@@ -181,7 +181,7 @@ export const simpleChoiceOf = (read: ReaderKit, choice: SourceElement): SimpleCh
 
   return {
     catalog,
-    content: read.nodes(choice),
+    content: read.nodes(choice, {}),
     fixed,
     identifier,
     templateVisibility,
