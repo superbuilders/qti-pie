@@ -1577,6 +1577,62 @@ const shownByRule = (showHide: TemplateVisibility["showHide"], value: Value): bo
   value.values.some((single) => single.baseType === "identifier" && single.value === "X") ===
   (showHide === "show");
 
+/**
+ * The choice a template value governs in the copied-choice item: `A`, shown when `VISIBLE` holds
+ * it.
+ */
+const governedChoice = el(
+  "qti-simple-choice",
+  [attr("identifier", "A"), attr("show-hide", "show"), attr("template-identifier", "VISIBLE")],
+  [sourceText("Ant")],
+);
+
+/**
+ * The value of `VISIBLE` the copied choice is shown under: `A`, and a marker that names no choice.
+ */
+const shownValue = multipleOf("A", "MarkerTemplate");
+
+/**
+ * Give the choices of an item's Choices, from its model, each with its template visibility.
+ *
+ * @param subject The item.
+ * @returns The choices, in document order.
+ */
+const interactionChoices = (subject: Item): readonly SimpleChoice[] =>
+  subject.body.flatMap((node) => (node.kind === "choice" ? node.choices : []));
+
+/**
+ * Give the names and values a choice's template visibility is written and modelled with, none of
+ * which the page may hold: each attribute its source carries but its identifier, each field of
+ * each modelled visibility and the template variable it names, and each member of the variable's
+ * value that names no choice, the choices' own identifiers being the page's.
+ *
+ * @param source The governed choice's source.
+ * @param choices The item's choices, as its model reads them.
+ * @param value The template variable's value.
+ * @returns The names and values.
+ */
+const templateNamesOf = (
+  source: SourceElement,
+  choices: readonly SimpleChoice[],
+  value: Value,
+): readonly string[] => {
+  const identifiers = new Set(choices.map((entry) => entry.identifier));
+
+  return [
+    ...source.attributes.flatMap((attribute) =>
+      attribute.local === "identifier" ? [] : [attribute.local],
+    ),
+    ...choices.flatMap((entry) =>
+      Option.toArray(entry.templateVisibility).flatMap((governing) => [
+        ...Object.keys(governing),
+        governing.templateIdentifier,
+      ]),
+    ),
+    ...value.values.map(format).filter((member) => !identifiers.has(member)),
+  ];
+};
+
 describe("redactItem on template blocks, inlines and choices", () => {
   it.effect(
     "copies a choice its template value shows with no template visibility, and the JSON of the redacted item holds no template-identifier, show-hide or template value",
@@ -1621,15 +1677,7 @@ describe("redactItem on template blocks, inlines and choices", () => {
                           "qti-choice-interaction",
                           [attr("max-choices", "1"), attr("response-identifier", "RESPONSE")],
                           [
-                            el(
-                              "qti-simple-choice",
-                              [
-                                attr("identifier", "A"),
-                                attr("show-hide", "show"),
-                                attr("template-identifier", "VISIBLE"),
-                              ],
-                              [sourceText("Ant")],
-                            ),
+                            governedChoice,
                             el("qti-simple-choice", [attr("identifier", "B")], [sourceText("Bee")]),
                           ],
                         ),
@@ -1644,7 +1692,7 @@ describe("redactItem on template blocks, inlines and choices", () => {
         const shown = redact(
           accepted,
           shownToCandidate,
-          underRecord(holding({ VISIBLE: multipleOf("A", "MarkerTemplate") })),
+          underRecord(holding({ VISIBLE: shownValue })),
         );
         const [interaction] = shown.body;
         const written = json(shown);
@@ -1668,16 +1716,21 @@ describe("redactItem on template blocks, inlines and choices", () => {
             },
           ],
         );
-        for (const hidden of [
-          "templateIdentifier",
-          "template-identifier",
-          "showHide",
-          "show-hide",
-          "VISIBLE",
-          "MarkerTemplate",
-        ]) {
-          assert.notInclude(written, hidden);
-        }
+        const hiddenNames = templateNamesOf(
+          governedChoice,
+          interactionChoices(accepted.item),
+          shownValue,
+        );
+
+        assert.isNotEmpty(
+          hiddenNames,
+          "the names the choice's template visibility is written with",
+        );
+        assert.deepStrictEqual(
+          hiddenNames.filter((name) => written.includes(name)),
+          [],
+          "the template names and values the redacted item holds",
+        );
       }),
   );
 
