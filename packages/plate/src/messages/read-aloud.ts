@@ -13,7 +13,9 @@
  * Match's group, `{n}` its place among the groups, `readAloudRow` and `readAloudColumn` a row's and
  * a column's header of a Match laid out as a table, `{n}` its place, `readAloudArea` an area of a
  * graphic interaction's image, `{n}` its place among the areas, as plate names an area with no name
- * of its own ("Area 2 of 4"), and `readAloudText` any other part of the item. A press whose
+ * of its own ("Area 2 of 4"), `readAloudLabel` an element of an interaction's own content outside
+ * its choices that holds its control after its words, a slot's label ("least"), `{n}` its place
+ * among them, and `readAloudText` any other part of the item. A press whose
  * recording cannot play tells the child so at the control, once, under the title
  * `readAloudFailedTitle`, in the words `readAloudFailed`: AlphaTest's player's
  * (mastery-track-player 941a86a, `src/utils/audio-failure.ts` lines 4–6).
@@ -26,6 +28,7 @@ export const readAloudMessages = {
     "This audio is unavailable right now. Please try again, and tell your teacher if it keeps happening.",
   readAloudFailedTitle: "Audio error",
   readAloudGroup: "Listen to group {n}",
+  readAloudLabel: "Listen to label {n}",
   readAloudPrompt: "Listen to the question",
   readAloudRow: "Listen to row {n}",
   readAloudText: "Listen",

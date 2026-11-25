@@ -32,7 +32,9 @@ import {
   headingOffsetOf,
   missingInNodes,
   noSlots,
+  noSpoken,
   nodesOf,
+  spokenIn,
 } from "#plate/ui/item/content.tsx";
 import type { InteractionAt, VerdictAt, Walk } from "#plate/ui/item/content.tsx";
 import {
@@ -292,6 +294,10 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
       locale: configuration.locale,
       scope: options.own === undefined ? { kind: "plain" } : { kind: "owned", own: options.own },
       slots: noSlots,
+      spoken:
+        options.readAloud === undefined
+          ? noSpoken
+          : spokenIn(nodes, options.readAloud, configuration.locale),
       standing: position === "flow" ? "flow" : "phrasing-only",
     };
 
@@ -344,6 +350,7 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
     locale: configuration.locale,
     scope: { kind: "plain" },
     slots: noSlots,
+    spoken: noSpoken,
     standing: "flow",
   };
   const verdict = credit.pipe(Option.map((earned) => verdictOf(earned, configuration.locale)));

@@ -23,7 +23,7 @@ import type { MathNode } from "#plate/content/mathml.ts";
 import { contentNodes, copyContent } from "#plate/content/modules.ts";
 import type { ContentNode } from "#plate/content/modules.ts";
 import type { ContainerKind } from "#plate/interactions/contract.ts";
-import { message } from "#plate/messages.ts";
+import { message, numeral } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
 import { isInteraction, regionsOf } from "#plate/model/interactions.ts";
 import type {
@@ -33,8 +33,8 @@ import type {
   RedactedLevel,
   RedactedNode,
 } from "#plate/model/item.ts";
-import { spokenBefore } from "#plate/read-aloud/placement.ts";
-import type { SpokenBefore } from "#plate/read-aloud/placement.ts";
+import { spokenBefore, spokenWithin } from "#plate/read-aloud/placement.ts";
+import type { SpokenControl } from "#plate/read-aloud/placement.ts";
 import { feedbackBlockTag } from "#plate/redact/walk.ts";
 import type { Glossary, Glossed } from "#plate/ui/item/contents/catalog.tsx";
 import { content as mathmlContent, missingInMath } from "#plate/ui/item/contents/mathml.tsx";
@@ -51,6 +51,7 @@ import {
   propsOf,
   takesFlow,
   textless,
+  voidElements,
   writtenTag,
 } from "#plate/ui/item/html.ts";
 import type { Addressing } from "#plate/ui/item/html.ts";
@@ -141,6 +142,13 @@ export interface Walk {
    * draws each in its slot (`content` in `#plate/ui/item/contents/mathml.tsx`).
    */
   readonly slots: ReadonlyMap<string, Slotted>;
+  /**
+   * Read-aloud's control each element of the walk holds after its own content, by the element's
+   * path ({@link spokenIn}): none but in a run of an interaction's own content that stands outside
+   * every control of the interaction, whose interaction hands the walk read-aloud
+   * (`ContentOptions.readAloud` in `#plate/ui/item/context.ts`), as gap match's sentence does.
+   */
+  readonly spoken: ReadonlyMap<string, ReactNode>;
   readonly standing: Standing;
 }
 
@@ -158,6 +166,13 @@ export interface Slotted {
  * listing's, a modal feedback's; the walk of each run of content fills its own ({@link nodesOf}).
  */
 export const noSlots: ReadonlyMap<string, Slotted> = new Map();
+
+/**
+ * No control held inside an element, for a walk of the body, which writes its controls before what
+ * they read ({@link readAloudBefore}), and of any content but an interaction's that stands outside
+ * every control.
+ */
+export const noSpoken: ReadonlyMap<string, ReactNode> = new Map();
 
 /**
  * What a walk renders beyond the HTML subset, by what it walks:
@@ -228,19 +243,6 @@ type Standing = Position | "phrasing-only";
 const positionOf = (standing: Standing): Position => (standing === "flow" ? "flow" : "phrasing");
 
 /**
- * The HTML elements of the subset that hold no content, to which React refuses children.
- */
-const voidElements: ReadonlySet<string> = new Set([
-  "br",
-  "col",
-  "hr",
-  "img",
-  "param",
-  "source",
-  "track",
-]);
-
-/**
  * Give an interaction's own content, the nodes it writes through `context.content`: the nodes of
  * its regions (`regionsOf` in `#plate/model/interactions.ts`), its prompt, label, choices and any
  * other content its module holds, in document order.
@@ -262,36 +264,41 @@ const contentBodyOf = (node: ContentNode<RedactedLevel>): readonly RedactedNode[
   contentNodes(copyContent(node));
 
 /**
- * Collect every element among body nodes, at any depth and in document order: below each element,
- * in each interaction's own content ({@link contentOf}), and in the body content a content module's
- * node holds, such as a rubric block's. Below an element the walk does not write ({@link
- * writtenTag}) only when `throughDropped` holds, since the walk drops such an element with its
- * subtree.
+ * Collect every element among body nodes, at any depth and in document order, each with the tags
+ * of the elements it stands inside, outermost first: below each element, in each interaction's own
+ * content ({@link contentOf}), and in the body content a content module's node holds, such as a
+ * rubric block's. Below an element the walk does not write ({@link writtenTag}) only when
+ * `throughDropped` holds, since the walk drops such an element with its subtree.
  *
  * @param nodes The body nodes.
  * @param throughDropped Whether to descend into an element the walk drops.
- * @returns The elements.
+ * @param within The tags of the elements the nodes stand inside.
+ * @returns Each element, with the tags of the elements it stands inside.
  */
-export const elementsIn = (
+const elementsWithin = (
   nodes: readonly RedactedNode[],
   throughDropped: boolean,
-): readonly BodyElement<RedactedLevel>[] =>
-  nodes.flatMap((node): readonly BodyElement<RedactedLevel>[] => {
+  within: readonly string[],
+): readonly (readonly [element: BodyElement<RedactedLevel>, within: readonly string[]])[] =>
+  nodes.flatMap((node): readonly (readonly [BodyElement<RedactedLevel>, readonly string[]])[] => {
     if (isInteraction(node)) {
-      return elementsIn(contentOf(node), throughDropped);
+      return elementsWithin(contentOf(node), throughDropped, within);
     }
 
     switch (node.kind) {
       case "element": {
         return throughDropped || writtenTag(node.tag)
-          ? [node, ...elementsIn(node.children, throughDropped)]
-          : [node];
+          ? [
+              [node, within],
+              ...elementsWithin(node.children, throughDropped, [...within, node.tag]),
+            ]
+          : [[node, within]];
       }
       case "container": {
-        return elementsIn(node.children, throughDropped);
+        return elementsWithin(node.children, throughDropped, within);
       }
       case "content": {
-        return elementsIn(contentBodyOf(node), throughDropped);
+        return elementsWithin(contentBodyOf(node), throughDropped, within);
       }
       case "text":
       case "unsupported": {
@@ -302,6 +309,62 @@ export const elementsIn = (
       }
     }
   });
+
+/**
+ * Collect every element among body nodes, at any depth and in document order, as
+ * {@link elementsWithin} does.
+ *
+ * @param nodes The body nodes.
+ * @param throughDropped Whether to descend into an element the walk drops.
+ * @returns The elements.
+ */
+export const elementsIn = (
+  nodes: readonly RedactedNode[],
+  throughDropped: boolean,
+): readonly BodyElement<RedactedLevel>[] =>
+  elementsWithin(nodes, throughDropped, []).map(([element]) => element);
+
+/**
+ * Give the controls the elements of a run of an interaction's own content hold after their own
+ * content, where the run stands outside every control of the interaction: each element the
+ * placement gives one (`spokenWithin` in `#plate/read-aloud/placement.ts`), by its tag and the
+ * tags of the elements it stands inside, whose catalog keeps a spoken card that gives audio, at
+ * any depth, in document order, named `readAloudLabel` by its
+ * place among them, so two labels' controls ("least", "greatest") are told apart, and keyed
+ * `read-aloud` among the element's children.
+ *
+ * @param nodes The run's body nodes.
+ * @param readAloud The page's read-aloud.
+ * @param locale The locale of plate's own text.
+ * @returns Each control, by its element's path.
+ */
+export const spokenIn = (
+  nodes: readonly RedactedNode[],
+  readAloud: ReadsAloud,
+  locale: Locale,
+): ReadonlyMap<string, ReactNode> => {
+  const held = elementsWithin(nodes, false, []).flatMap(([element, within]) =>
+    Option.toArray(
+      Option.map(spokenWithin(element, within), (spoken) => [element.path, spoken] as const),
+    ),
+  );
+  const [, controls] = Arr.mapAccum(
+    held,
+    1,
+    (n, [path, { catalog, role }]): readonly [number, readonly (readonly [string, ReactNode])[]] =>
+      Option.match(
+        readAloud(
+          catalog,
+          role,
+          message(locale, "readAloudLabel", { n: numeral(locale, n) }),
+          "read-aloud",
+        ),
+        { onNone: () => [n, []], onSome: (control) => [n + 1, [[path, control]]] },
+      ),
+  );
+
+  return new Map(controls.flat());
+};
 
 /**
  * Collect every content module's node among body nodes, at any depth and in document order: below
@@ -827,6 +890,7 @@ const disclosuresAfter = (
     locale: walk.locale,
     scope: { kind: "plain" },
     slots: noSlots,
+    spoken: noSpoken,
     standing: "flow",
   };
 
@@ -849,9 +913,10 @@ const disclosuresAfter = (
  * passage's control: where flow content may stand, a `span` may, so the page stays valid whatever
  * the element is.
  * None in a walk with no read-aloud, a walk of an interaction's own content among them, whose
- * Choice writes its choices' controls itself and whose other parts stand where a control would
- * sit inside another control; and none for an element at a phrasing position, whose parent may
- * admit no control after it (a list item's, a table cell's).
+ * Choice writes its choices' controls itself, and whose other parts stand where a control would
+ * sit inside another control or, in a run outside every control, hold their controls inside them
+ * ({@link spokenIn}); and none for an element at a phrasing position, whose parent may admit no
+ * control after it (a list item's, a table cell's).
  *
  * @param element The element.
  * @param walk The walk where it stands.
@@ -873,7 +938,7 @@ const readAloudBefore = (element: BodyElement<RedactedLevel>, walk: Walk): reado
  * @returns The control, or nothing.
  */
 const spokenAt = (
-  spoken: Option.Option<SpokenBefore>,
+  spoken: Option.Option<SpokenControl>,
   readAloud: ReadsAloud,
   locale: Locale,
 ): readonly ReactNode[] =>
@@ -919,7 +984,9 @@ const termProps = (props: ReturnType<typeof propsOf>, glossed: Glossed) => {
  * walk of the body, an element at a flow position is preceded by its read-aloud control
  * ({@link readAloudBefore}) and followed by the right answers the seam writes apart from the
  * interactions it holds ({@link answersAfter}), then the glossary's disclosure of each term it owns
- * ({@link ownedTerms}), and a term names its disclosure. A picture, in any walk, carries the line
+ * ({@link ownedTerms}), and a term names its disclosure. In a run of an interaction's own content
+ * outside every control, an element holds its read-aloud control after its own children
+ * ({@link spokenIn}). A picture, in any walk, carries the line
  * `data-plate-unloaded`, the catalog's `pictureUnloaded`, which the stylesheet shows under the
  * picture's words where it fails to load.
  *
@@ -965,7 +1032,8 @@ const elementOf = (element: BodyElement<RedactedLevel>, key: Key, walk: Walk): R
   // A stimulus the item places here stands after the element's own children: "the stimulus is
   // injected into" the element that names it (implementation guide §3.7.7).
   const placedHere = walk.scope.kind === "body" ? Option.toArray(walk.scope.stimulus(element)) : [];
-  const children = voidElements.has(element.tag) ? undefined : [...below(), ...placedHere];
+  const held = Option.toArray(Option.fromUndefinedOr(walk.spoken.get(element.path)));
+  const children = voidElements.has(element.tag) ? undefined : [...below(), ...placedHere, ...held];
   const writtenAt = (at: Key): ReactNode => {
     // `satisfies` gives the literal React's `Attributes` as its contextual type, so `key` stays a
     // `Key`: without one, React's experimental types (Next loads them) widen `optimisticKey`'s

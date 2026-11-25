@@ -54,6 +54,7 @@ import {
   headingOffsetOf,
   missingInNodes,
   noSlots,
+  noSpoken,
   nodesOf,
 } from "#plate/ui/item/content.tsx";
 import type { Walk } from "#plate/ui/item/content.tsx";
@@ -260,6 +261,7 @@ export const stimulusArticle = (
     locale: setting.locale,
     scope: { kind: "plain" },
     slots: noSlots,
+    spoken: noSpoken,
     standing: "flow",
   };
 

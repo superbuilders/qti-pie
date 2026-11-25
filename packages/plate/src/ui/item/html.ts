@@ -602,3 +602,144 @@ export const textless: ReadonlySet<string> = new Set([
   "thead",
   "tr",
 ]);
+
+/**
+ * The HTML elements of the subset that hold no content, to which React refuses children.
+ *
+ * @see https://html.spec.whatwg.org/multipage/syntax.html#void-elements
+ */
+export const voidElements: ReadonlySet<string> = new Set([
+  "br",
+  "col",
+  "hr",
+  "img",
+  "param",
+  "source",
+  "track",
+]);
+
+/**
+ * The elements of the subset a control of plate's, a `span` holding a `button` and an `audio`, may
+ * stand in as one of its children, shown and acting as itself: each whose content model admits
+ * phrasing content (flow content admits it too) and lets a `button` stand in it. Every other
+ * element of the subset holds none, by HTML's content models:
+ *
+ * - It holds no content at all: the void elements ({@link voidElements});
+ * - Its children are only its structure: a table's ({@link textless}), a list's (`dl`, `ol`, `ul`)
+ *   and a picture's (its sources and its image);
+ * - Ruby lays out what it holds: in a `ruby` or its parts (`rb`, `rt`, `rtc`, `rp`) a control would
+ *   stand in the base text or over it as an annotation, never after the words;
+ * - A `button` in it breaks it: `a` admits no interactive content; a `label` labels its first
+ *   labelable descendant, the button, so a press on its words would play the recording; a
+ *   `summary`'s press opens its `details`;
+ * - What it holds does not show: `audio`, `video` and `object` show their content only where the
+ *   browser cannot play them, a `details` its content only while open, and a `template` none.
+ *
+ * @see https://html.spec.whatwg.org/multipage/dom.html#phrasing-content
+ * @see https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-a-element
+ * @see https://html.spec.whatwg.org/multipage/forms.html#the-label-element
+ * @see https://html.spec.whatwg.org/multipage/media.html#media-elements
+ */
+const phrasingHosts: ReadonlySet<string> = new Set([
+  "abbr",
+  "acronym",
+  "address",
+  "article",
+  "aside",
+  "b",
+  "bdi",
+  "bdo",
+  "big",
+  "blockquote",
+  "caption",
+  "cite",
+  "code",
+  "dd",
+  "dfn",
+  "div",
+  "dt",
+  "em",
+  "figcaption",
+  "figure",
+  "footer",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "header",
+  "i",
+  "kbd",
+  "li",
+  "nav",
+  "p",
+  "pre",
+  "q",
+  "samp",
+  "section",
+  "small",
+  "span",
+  "strong",
+  "sub",
+  "sup",
+  "td",
+  "th",
+  "tt",
+  "var",
+]);
+
+/**
+ * Tell whether the shell writes an element as itself in which a control of plate's, a `span`, may
+ * stand among its children, shown and acting as itself ({@link phrasingHosts}).
+ *
+ * @param tag The element's local name.
+ * @returns Whether it is one of the {@link htmlSubset} that holds such a control.
+ */
+export const holdsPhrasing = (tag: string): boolean => phrasingHosts.has(tag);
+
+/**
+ * The elements of the subset inside which no control of plate's may stand at any depth, its
+ * children's children included, by HTML's content models: what holds a `button` anywhere below it
+ * breaks or hides it, so the walk never places one below them, where {@link phrasingHosts} judges
+ * an element's own children alone:
+ *
+ * - A `button` below it breaks it: `a` admits no interactive content descendant; a `label` labels its
+ *   first labelable descendant, so a button anywhere in it would take a press on its words; a
+ *   `summary`'s press opens its `details`;
+ * - What it holds does not show: `audio`, `video` and `object` show their content only where the
+ *   browser cannot play them, a `details` its content only while open, and a `template` none;
+ * - Ruby lays out what it holds (`ruby`, `rb`, `rt`, `rtc`, `rp`), so a control would stand in the
+ *   base text or over it as an annotation; and a `picture` holds only its sources and its image.
+ *
+ * A table's or a list's structure is no barrier: its cells and items hold phrasing content.
+ *
+ * @see https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-a-element
+ * @see https://html.spec.whatwg.org/multipage/forms.html#the-label-element
+ * @see https://html.spec.whatwg.org/multipage/media.html#media-elements
+ */
+const controlBarriers: ReadonlySet<string> = new Set([
+  "a",
+  "audio",
+  "details",
+  "label",
+  "object",
+  "picture",
+  "rb",
+  "rp",
+  "rt",
+  "rtc",
+  "ruby",
+  "summary",
+  "template",
+  "video",
+]);
+
+/**
+ * Tell whether no control of plate's may stand anywhere inside an element ({@link
+ * controlBarriers}).
+ *
+ * @param tag The element's local name.
+ * @returns Whether the element bars a control from every element below it.
+ */
+export const barsControls = (tag: string): boolean => controlBarriers.has(tag);

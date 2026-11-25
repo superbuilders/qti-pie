@@ -63,6 +63,16 @@ export interface ContentOptions {
    */
   readonly position?: Position;
   /**
+   * The page's read-aloud ({@link IslandContext.readAloud}), for a run that stands outside every
+   * control of the interaction, such as gap match's sentence: each element of it that references a
+   * catalog keeping a spoken card that gives audio holds that control after its own content, as a
+   * slot's label holds its play icon ("least ▷"; `spokenIn` in `#plate/ui/item/content.tsx`).
+   * Absent for a run inside a control, a choice's content in its chip or a hottext's in its option,
+   * where a control would sit inside another, and for one whose parts the island speaks itself:
+   * none of its elements then holds a control.
+   */
+  readonly readAloud?: ReadsAloud;
+  /**
    * Which writing of the content this is, `original` by default; `copy` for a second writing of
    * content the page shows elsewhere too, which writes none of the author's `id`s
    * (`Addressing.writing` in `#plate/ui/item/html.ts`).
