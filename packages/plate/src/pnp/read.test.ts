@@ -17,10 +17,10 @@ const fewerRepeats = 1250;
  * Read a document, failing the test when the reader refuses it.
  *
  * @param document The document's bytes.
- * @param selector The record to read.
+ * @param selector The record to read: `{}`, neither id, for a file of one record.
  * @returns The supports read.
  */
-const read = (document: Uint8Array, selector?: PnpSelector): Effect.Effect<PnpSupports> =>
+const read = (document: Uint8Array, selector: PnpSelector): Effect.Effect<PnpSupports> =>
   readPnp(document, selector).pipe(Effect.orDie);
 
 describe("readPnp", () => {
@@ -32,7 +32,7 @@ describe("readPnp", () => {
       // as many, where a reader that compared each child with those before it would run about 64
       // times the blocks. Bound: one profile of each size.
       Effect.gen(function* repeated() {
-        const pnp = yield* read(repeatedProfile(fewerRepeats * growthFactor));
+        const pnp = yield* read(repeatedProfile(fewerRepeats * growthFactor), {});
 
         assert.deepStrictEqual(
           pnp.hazards,

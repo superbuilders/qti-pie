@@ -924,7 +924,8 @@ const profileOf = (
  * with neither, a file of one record reads that record, and one of several fails.
  *
  * @param bytes The document's bytes.
- * @param selector Which of its records to read, when it holds more than one.
+ * @param selector Which of its records to read, when it holds more than one: `{}`, neither id, for
+ *   a file of one record.
  * @returns The supports; {@link InvalidPnp} when the bytes are not readable XML (`unreadable`,
  *   naming the reader's own rule), the root is not a PNP root (`not-a-pnp`, naming it), the
  *   selector names several records (`ambiguous-record`), or it names none or the file holds none
@@ -933,7 +934,7 @@ const profileOf = (
  */
 export const readPnp = Effect.fn("plate.readPnp")(function* readPnp(
   bytes: Uint8Array,
-  selector: PnpSelector = {},
+  selector: PnpSelector,
 ): Effect.fn.Return<PnpSupports, InvalidPnp> {
   const source = yield* readSource(location, bytes).pipe(Effect.mapError(unreadable));
   const profile = yield* profileOf(source.root, selector);

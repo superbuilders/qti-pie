@@ -183,7 +183,7 @@ export const subjects = {
     const profile = repeatedProfile(count);
 
     return () => {
-      Effect.runSync(Effect.orDie(readPnp(profile)));
+      Effect.runSync(Effect.orDie(readPnp(profile, {})));
     };
   },
   quadraticBinding: (count: number) => {
