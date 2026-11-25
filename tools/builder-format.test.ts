@@ -251,14 +251,10 @@ const offences = (text: string): readonly string[] => {
  *
  * @param bytes A file's bytes.
  * @param text Its text, empty for a binary file.
- * @param denied The deny-list's digests.
+ * @param denied The deny-list's digests, {@link DENIED} for the tracked files.
  * @returns What it is, if anything.
  */
-const delivered = (
-  bytes: Buffer,
-  text: string,
-  denied: ReadonlySet<string> = DENIED,
-): readonly string[] => {
+const delivered = (bytes: Buffer, text: string, denied: ReadonlySet<string>): readonly string[] => {
   const found = denied.has(digest(bytes)) ? ["a file of the delivery"] : [];
 
   if (!text.includes("base64,")) {
@@ -292,13 +288,10 @@ const flat = (part: string): Buffer => Buffer.from(part.replaceAll(WHITESPACE, "
  * {@link LONGEST_COPY}) or as one of the svg drawings in it.
  *
  * @param text A file's text.
- * @param deniedText The second list's digests.
+ * @param deniedText The second list's digests, {@link DENIED_TEXT} for the tracked files.
  * @returns What it holds, if anything.
  */
-const rewritten = (
-  text: string,
-  deniedText: ReadonlySet<string> = DENIED_TEXT,
-): readonly string[] => {
+const rewritten = (text: string, deniedText: ReadonlySet<string>): readonly string[] => {
   const whole = text.length <= LONGEST_COPY ? flat(text) : Buffer.alloc(0);
   const drawings = regex("<svg\\b", "iu").test(text)
     ? (text.match(regex("<svg\\b[\\s\\S]*?</svg>", "giu")) ?? [])
@@ -518,7 +511,9 @@ const scan = (root: string, file: string, missing: ReadonlySet<string>): readonl
       const linked = readFileSync(at);
 
       found.push(
-        ...delivered(linked, linked.toString("utf-8")).map((what) => `${file}: links to ${what}`),
+        ...delivered(linked, linked.toString("utf-8"), DENIED).map(
+          (what) => `${file}: links to ${what}`,
+        ),
       );
     }
 
@@ -534,12 +529,12 @@ const scan = (root: string, file: string, missing: ReadonlySet<string>): readonl
   const binary = encoding === "utf-8" && bytes.subarray(0, 8000).includes(0);
   const text = binary ? "" : new TextDecoder(encoding).decode(bytes);
 
-  found.push(...delivered(bytes, text).map((what) => `${file}: is ${what}`));
+  found.push(...delivered(bytes, text, DENIED).map((what) => `${file}: is ${what}`));
   if (binary) {
     return found;
   }
 
-  found.push(...rewritten(text).map((what) => `${file}: holds ${what}`));
+  found.push(...rewritten(text, DENIED_TEXT).map((what) => `${file}: holds ${what}`));
 
   const whole = offences(text);
 
