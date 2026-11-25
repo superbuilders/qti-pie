@@ -317,9 +317,10 @@ export interface PositionObjectProps extends Authored<Named> {
  *   keys on to a held copy, with the `role` label as its role description, named by `naming`, with
  *   the author's `data-*` and `class`, `data-full` while it holds as many copies as it may and
  *   `data-picked` while a copy of its object is held;
- * - `plate-position-object-object`, the object's button, a toggle pressed while a new copy of it is
- *   held, with `data-picked`, `data-dragging` while a new copy is dragged from it, and `data-full`.
- *   The stylesheet gives it the K–3 minimum of 64 px and `touch-action: none`;
+ * - `plate-position-object-object`, the object's button, a toggle pressed while it holds the copy it
+ *   gave, a new copy or, where the limit is one, the copy placed, with `data-picked`,
+ *   `data-dragging` while that copy is dragged from it, and `data-full`. The stylesheet gives it
+ *   the K–3 minimum of 64 px and `touch-action: none`;
  * - `plate-position-object-copies`, the list of placed copies, an `ol` that says `role="list"`;
  * - `plate-position-object-copy`, a placed copy's control, a toggle pressed while it is held, with
  *   `data-picked`, numbered in the order the copies were placed and named by the `position` label.

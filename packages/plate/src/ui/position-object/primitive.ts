@@ -6,8 +6,9 @@
  * - **Tap.** A tap on an object picks up a new copy of it, which waits at the middle of the stage; a
  *   tap on the stage puts the held copy there, and does nothing while none is held; a tap on a
  *   placed copy, on the stage or in its object's list, picks it up. A tap on the held copy, or on
- *   its object while a new copy of it is held, puts the copy on the stage where it waits; a tap on
- *   its object while a placed copy of it is held takes that copy off. A tap outside the stage's
+ *   its object while a copy its object gave is held, a new copy or, where the limit is one, the
+ *   copy placed, puts the copy on the stage where it waits; a tap on its object while a placed copy
+ *   picked up from the stage or its list is held takes that copy off. A tap outside the stage's
  *   island, or focus leaving it, puts a held copy back. A tap is a click, so it acts on release, on
  *   the part it was pressed on (WCAG 2.5.2).
  * - **Drag.** A press on an object that moves past a threshold drags a copy of it, raised for fingers
@@ -108,7 +109,7 @@ interface PositionOptions {
 
 /**
  * The copy the child holds: whose object it is, which placed copy, or a new one, where it would
- * land now, and whether a pointer drags it.
+ * land now, whether a pointer drags it, and whether its object gave it.
  */
 export interface HeldCopy {
   /**
@@ -117,6 +118,14 @@ export interface HeldCopy {
    */
   readonly at: ImagePoint | null;
   readonly dragging: boolean;
+  /**
+   * Whether its object's button gave it: a new copy, or, where the limit is one, the copy placed.
+   * A press on that button again puts such a copy down where it waits, as the press that gave it
+   * started, so the key that picked a copy up is the key that puts it down; a press there while a
+   * copy picked up from the stage or its list is held takes that copy off. The button shows it
+   * pressed while it holds the copy it gave.
+   */
+  readonly given: boolean;
   /**
    * The placed copy's place among its object's, none for a new copy.
    */
@@ -394,15 +403,17 @@ export const positionObject = definePrimitive({
      * @param index The placed copy's place, none for a new copy.
      * @param at Where it waits.
      * @param dragging Whether a pointer drags it.
+     * @param given Whether its object's button gave it.
      */
     const pickUp = (
       object: StageObject,
       index: number | null,
       at: ImagePoint | null,
       dragging: boolean,
+      given: boolean,
     ) => {
       store.set({
-        held: { at, dragging, index, name: object.response.identifier },
+        held: { at, dragging, given, index, name: object.response.identifier },
         message: null,
       });
       announce(say(store.get().labels.picked, object), { priority: "assertive" });
@@ -423,7 +434,7 @@ export const positionObject = definePrimitive({
       const placed = placedOf(state, object);
 
       if (!fullOf(state, object)) {
-        pickUp(object, null, dragging ? null : middleOf(state.size), dragging);
+        pickUp(object, null, dragging ? null : middleOf(state.size), dragging, true);
 
         return true;
       }
@@ -431,7 +442,7 @@ export const positionObject = definePrimitive({
       const [only] = placed;
 
       if (object.limit.kind === "at-most" && object.limit.n === 1 && only !== undefined) {
-        pickUp(object, 0, dragging ? null : only, dragging);
+        pickUp(object, 0, dragging ? null : only, dragging, true);
 
         return true;
       }
@@ -695,7 +706,7 @@ export const positionObject = definePrimitive({
             },
             onStart: () => {
               started = true;
-              pickUp(object, index, start, true);
+              pickUp(object, index, start, true, false);
             },
             threshold: event.pointerType === "mouse" ? dragThreshold : touchThreshold,
           }),
@@ -886,12 +897,14 @@ export const positionObject = definePrimitive({
           return;
         }
 
-        pickUp(object, index, point, false);
+        pickUp(object, index, point, false, false);
       },
 
       /**
-       * Handle a press on an object: while a new copy of it is held, put that copy down where it
-       * waits; while a placed copy of it is held, take that copy off; else pick up a new copy.
+       * Handle a press on an object: while a copy it gave is held, a new copy or, where the limit
+       * is one, the copy placed, put that copy down where it waits; while a placed copy of it
+       * picked up from the stage or its list is held, take that copy off; else pick up a new copy,
+       * or, where the limit is one, the copy placed.
        *
        * @param name The interaction's response's identifier.
        * @param event The click.
@@ -901,14 +914,14 @@ export const positionObject = definePrimitive({
         const { held } = state;
         const object = objectOf(state, name);
 
-        if (held !== null && held.name === name && held.index !== null) {
-          takeOff(object, held.index, "item-press", event);
+        if (held !== null && held.name === name && held.given && held.at !== null) {
+          putAt(held.at, "item-press", event);
 
           return;
         }
 
-        if (held !== null && held.name === name && held.at !== null) {
-          putAt(held.at, "item-press", event);
+        if (held !== null && held.name === name && !held.given && held.index !== null) {
+          takeOff(object, held.index, "item-press", event);
 
           return;
         }
@@ -1015,7 +1028,7 @@ export const positionObject = definePrimitive({
       attrs: (state, part) => {
         const { held } = state;
         const { name } = part.props;
-        const picked = holds(held, name, null);
+        const picked = held !== null && held.name === name && held.given;
 
         return {
           "aria-pressed": String(picked),

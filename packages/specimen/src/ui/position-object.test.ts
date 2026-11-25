@@ -37,6 +37,15 @@
  *   of the object tapped, its button alone pressed, and puts nothing on the stage: the copy held
  *   goes back, and no response changes.
  *
+ * And on a stage of two objects or more, each placed once (`max-choices="1"`), the floor's first
+ * such case, its correct response placed:
+ *
+ * - PO8, the keys alone, on the button the child moves a single copy with: Enter on an object's
+ *   button picks up the copy placed, its button alone pressed; an arrow key moves it one pixel of
+ *   the stage image, and Enter on that button puts it down there: that object's response holds its
+ *   one point moved, and every other object's response is unchanged. The key that picked the copy
+ *   up puts it down, as it does a new copy, and never takes it off.
+ *
  * Every page hydrates with no error React reports and none the page throws, and none is reported or
  * thrown after any key or tap a case sends, by the time the page has settled.
  *
@@ -99,11 +108,13 @@ interface FloorStage {
 
 /**
  * What the suite's cases share, made once for the file: the pages, to open an item in, hydrated;
- * 1EdTech's example, solved; and the floor's stage of objects, solved.
+ * 1EdTech's example, solved; and the floor's stages of objects placed any number of times and
+ * placed once, solved.
  */
 interface Shared {
   readonly airports: Answering;
   readonly objects: FloorStage;
+  readonly once: FloorStage;
   readonly open: Effect.Success<typeof hydratedPages>;
 }
 
@@ -162,18 +173,6 @@ const opened = Effect.gen(function* opened() {
 });
 
 /**
- * The specimen floor's first Position Object whose stage holds two objects or more, each placed
- * any number of times (`max-choices="0"`), so a new copy of each can always be picked up.
- */
-const objectsCase = Arr.findFirst(
-  floorCases,
-  ({ description: { interaction } }) =>
-    interaction.kind === "position-object" &&
-    interaction.settings.objects >= 2 &&
-    interaction.settings.placings === "any",
-);
-
-/**
  * The identifiers of the objects' responses, in the stage's order, as the specimen writes them
  * (`#specimen/kinds/position-object.ts`): `OBJECT_1`, `OBJECT_2`, ….
  *
@@ -184,39 +183,52 @@ const objectResponses = (count: number): readonly string[] =>
   Arr.makeBy(count, (index) => `OBJECT_${String(index + 1)}`);
 
 /**
- * The floor's stage of objects in answering, solved, every object's correct copies placed, and its
- * objects' responses' identifiers in the stage's order.
+ * The specimen floor's first Position Object whose stage holds two objects or more, each placed as
+ * `placings` gives, in answering, solved, every object's correct copies placed, and its objects'
+ * responses' identifiers in the stage's order.
+ *
+ * @param placings How many times each object is placed: `any` (`max-choices="0"`), so a new copy
+ *   of each can always be picked up, or `one` (`max-choices="1"`).
+ * @returns The stage.
  */
-const objectsStage = Effect.gen(function* objectsStage() {
-  if (Option.isNone(objectsCase)) {
-    return yield* new HydrationFailure({
-      cause: "no case of two objects placed any number of times",
-      step: "found the stage of objects on the floor",
-    });
-  }
+const floorStage = (placings: "any" | "one") =>
+  Effect.gen(function* floorStageOf() {
+    const found = Arr.findFirst(
+      floorCases,
+      ({ description: { interaction } }) =>
+        interaction.kind === "position-object" &&
+        interaction.settings.objects >= 2 &&
+        interaction.settings.placings === placings,
+    );
 
-  const held = objectsCase.value;
-  const { accepted, configuration } = yield* openedCase(held.item, Option.none());
-  const facts = itemFactsOf(held.item.xml);
-  const source: SourceItem = {
-    accepted,
-    configuration,
-    given: Option.none(),
-    host: held.item.host,
-    kinds: facts.kinds,
-    location: held.item.location,
-    offered: facts.offered,
-    stimuli: [],
-    taken: Option.none(),
-  };
-  const answering: Answering = solved(source);
-  const count =
-    held.description.interaction.kind === "position-object"
-      ? held.description.interaction.settings.objects
-      : 0;
+    if (Option.isNone(found)) {
+      return yield* new HydrationFailure({
+        cause: `no case of two objects or more, placed ${placings}`,
+        step: "found a stage of objects on the floor",
+      });
+    }
 
-  return { answering, identifiers: objectResponses(count) } satisfies FloorStage;
-});
+    const held = found.value;
+    const { accepted, configuration } = yield* openedCase(held.item, Option.none());
+    const facts = itemFactsOf(held.item.xml);
+    const source: SourceItem = {
+      accepted,
+      configuration,
+      given: Option.none(),
+      host: held.item.host,
+      kinds: facts.kinds,
+      location: held.item.location,
+      offered: facts.offered,
+      stimuli: [],
+      taken: Option.none(),
+    };
+    const count =
+      held.description.interaction.kind === "position-object"
+        ? held.description.interaction.settings.objects
+        : 0;
+
+    return { answering: solved(source), identifiers: objectResponses(count) } satisfies FloorStage;
+  });
 
 /**
  * Open the floor's stage of objects, solved, in a page of its own.
@@ -239,9 +251,10 @@ const shared = Layer.effect(
   Effect.gen(function* sharing() {
     const open = yield* hydratedPages;
     const airports = yield* airportsStage;
-    const objects = yield* objectsStage;
+    const objects = yield* floorStage("any");
+    const once = yield* floorStage("one");
 
-    return { airports, objects, open } satisfies Shared;
+    return { airports, objects, once, open } satisfies Shared;
   }),
 );
 
@@ -586,6 +599,45 @@ layer(shared, { excludeTestServices: true, timeout: harnessHang })(
                 identifiers.map((_, each) => each === index),
               );
               assert.deepStrictEqual(yield* hydrated.changes, []);
+            }
+          }),
+        ),
+      caseHang,
+    );
+
+    it.effect(
+      "PO8: Enter on each once-placed object's button picks up its copy, an arrow moves it, and Enter on that button puts it down there, never taking it off",
+      () =>
+        Effect.scoped(
+          Effect.gen(function* oncePlaced() {
+            const {
+              once: { answering, identifiers },
+            } = yield* Pages;
+            const before = yield* everyObject(answering.responses, identifiers);
+
+            assert.isTrue(before.every((points) => points.length === 1));
+
+            for (const index of identifiers.keys()) {
+              const hydrated = yield* openedObjects(answering);
+
+              yield* step("focused the object's button", () =>
+                hydrated.page.locator(objects).nth(index).focus(),
+              );
+              yield* step("pressed Enter", () => hydrated.page.keyboard.press("Enter"));
+              yield* hydrated.settle;
+              assert.deepStrictEqual(
+                yield* objectsPressed(hydrated),
+                identifiers.map((_, each) => each === index),
+              );
+              yield* step("pressed ArrowRight", () => hydrated.page.keyboard.press("ArrowRight"));
+              yield* step("pressed Enter", () => hydrated.page.keyboard.press("Enter"));
+              yield* hydrated.settle;
+              assert.deepStrictEqual(
+                yield* everyObject(yield* lastChange(hydrated), identifiers),
+                before.map((points, each) =>
+                  each === index ? points.map(([x, y]) => [x + 1n, y] as const) : points,
+                ),
+              );
             }
           }),
         ),
