@@ -290,7 +290,9 @@ const isSpaceAt = (character: string | undefined): boolean =>
  * them (HTML Standard, §4.8.4.3.10): skip whitespace and commas; collect the URL, a run of
  * non-whitespace characters, its trailing commas given back to the next candidate's lead, after
  * which it has no descriptors; otherwise collect its descriptors up to the first comma outside
- * parentheses. What follows the last candidate, whitespace and commas, is the `trail`.
+ * parentheses, as the algorithm's descriptor tokenizer reads them: a `(` opens parentheses and the
+ * next `)` closes them, with no nesting, so `1x(a(b),c` ends its descriptors at the comma. What
+ * follows the last candidate, whitespace and commas, is the `trail`.
  *
  * Every piece is a stretch of the value: `lead ‖ url ‖ descriptor` of each candidate in order, then
  * `trail`, is the value, which the database proves (`E1_derived` over `SrcsetForm`). The
@@ -332,12 +334,12 @@ export const srcsetCandidatesOf = (lexical: string): SrcsetSplit => {
     }
 
     const descriptorStart = position;
-    let depth = 0;
-    while (position < lexical.length && (lexical[position] !== "," || depth > 0)) {
+    let inParentheses = false;
+    while (position < lexical.length && (lexical[position] !== "," || inParentheses)) {
       if (lexical[position] === "(") {
-        depth += 1;
-      } else if (lexical[position] === ")" && depth > 0) {
-        depth -= 1;
+        inParentheses = true;
+      } else if (lexical[position] === ")") {
+        inParentheses = false;
       }
 
       position += 1;
