@@ -7,6 +7,7 @@
  * Each projection reads the grammar's closed relations as they are and computes no step of its
  * own, so the importer, the export and every test read a document through the same relations.
  */
+import { regex } from "arkregex";
 import { Option, Result } from "effect";
 import { admissionOf, textDomainOf } from "#pantry/grammar/attributes.ts";
 import type { ComposedGrammar, Kind, Name } from "#pantry/grammar/compose.ts";
@@ -77,10 +78,7 @@ export const shredGrammarOf = (grammar: ComposedGrammar): ShredGrammar<Composed>
     ),
   );
   const heldRoots: ReadonlyMap<string, RegExp> = new Map(
-    grammar.heldRootsUnder.rows.map(({ names, parent }) => [
-      parent,
-      new RegExp(names, patternFlags),
-    ]),
+    grammar.heldRootsUnder.rows.map(({ names, parent }) => [parent, regex.as(names, patternFlags)]),
   );
 
   const named: ReadonlySet<string> = new Set(

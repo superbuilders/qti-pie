@@ -12,6 +12,7 @@
  * breaks a law, so the database refuses the content under the law it breaks (`expressionLaws`); a
  * row this builder gets wrong is refused, never accepted.
  */
+import { regex } from "arkregex";
 import type { Addition } from "@bjornpagen/grizzle";
 import { isNcName } from "@bjornpagen/grizzle-text/regex/xml";
 import { Array as Arr, Option } from "effect";
@@ -168,7 +169,7 @@ type Affix = Addition<typeof VariableRef>["before"];
 /**
  * A float literal that is also a name, which a float-or-reference attribute reads as the literal.
  */
-const floatName = /^[\t\n\r ]*(?:INF|NaN)[\t\n\r ]*$/u;
+const floatName = regex("^[\t\n\r ]*(?:INF|NaN)[\t\n\r ]*$", "u");
 
 /**
  * The names `qti-math-operator` gives an integer result.

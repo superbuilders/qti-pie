@@ -15,6 +15,7 @@
  * Oracle: a second implementation. `xmllint` shares no code with the grammar, and the law oracle
  * (`#pantry/test/oracle.ts`) judges the same bytes by the grammar's laws.
  */
+import { regex } from "arkregex";
 import { Effect, Option, Result } from "effect";
 import type { FileSystem } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
@@ -96,7 +97,7 @@ export interface Recorded {
  */
 const idrefRecord: Recorded = {
   class: "identity",
-  detail: /^Idref target (?!at \S+\/m:share\[\d+\]: src names )/u,
+  detail: regex("^Idref target (?!at \\S+/m:share\\[\\d+\\]: src names )", "u"),
   direction: "oracle-only",
   reason: { _tag: "libxml2", why: "libxml2 never resolves IDREF targets under --schema" },
   rule: "idref-target",
@@ -112,7 +113,7 @@ const idrefRecord: Recorded = {
  */
 export const locationRecord: Recorded = {
   class: "attribute-value",
-  detail: /^value domain at \S+: xsi:(?:noNamespaceSchemaLocation|schemaLocation): /u,
+  detail: regex("^value domain at \\S+: xsi:(?:noNamespaceSchemaLocation|schemaLocation): ", "u"),
   direction: "oracle-only",
   reason: {
     _tag: "libxml2",
@@ -129,8 +130,10 @@ export const locationRecord: Recorded = {
  */
 export const laxNilRecord: Recorded = {
   class: "attribute-value",
-  detail:
-    /^value domain at \S*\/(?:foreign-element|no-namespace-element|own-namespace-element)\[\d+\]: xsi:nil: /u,
+  detail: regex.as(
+    "^value domain at \\S*/(?:foreign-element|no-namespace-element|own-namespace-element)\\[\\d+\\]: xsi:nil: ",
+    "u",
+  ),
   direction: "oracle-only",
   reason: {
     _tag: "libxml2",
@@ -143,8 +146,10 @@ export const laxNilRecord: Recorded = {
  * The codec's refusal of an `xsi:nil` its element does not admit, the attribute and its element
  * captured as written.
  */
-const unadmittedNil =
-  /^codec at \S*: The attribute (?<attribute>[^\s:]+:nil) in (?<element>\S+) is declared by xml\.xsd or XML Schema, so it is read only under its own name, which its element does not admit/u;
+const unadmittedNil = regex.as<string, { names: Record<string, string | undefined> }>(
+  "^codec at \\S*: The attribute (?<attribute>[^\\s:]+:nil) in (?<element>\\S+) is declared by xml\\.xsd or XML Schema, so it is read only under its own name, which its element does not admit",
+  "u",
+);
 
 /**
  * `xsi:nil` that is no `xs:boolean` on an element no declaration makes nillable: libxml2 2.15.2
@@ -171,7 +176,7 @@ export const nilValueRecord: Recorded = {
 /**
  * An `xs:boolean`'s lexical space, its whitespace collapsed (XML Schema Part 2, 3.2.2).
  */
-const booleanLexical = /^[\t\n\r ]*(?:true|false|1|0)[\t\n\r ]*$/u;
+const booleanLexical = regex("^[\t\n\r ]*(?:true|false|1|0)[\t\n\r ]*$", "u");
 
 /**
  * Decide whether a document holds the `xsi:nil` a {@link nilValueRecord} difference names, with a
@@ -204,7 +209,7 @@ export const holdsNilValue = (difference: Difference, root: Element): boolean =>
  */
 export const emptyIdrefsRecord: Recorded = {
   class: "attribute-value",
-  detail: /^value domain at \S+: \S+: "(?:\\[tnr]| )*" is outside xs:IDREFS, /u,
+  detail: regex.as('^value domain at \\S+: \\S+: "(?:\\\\[tnr]| )*" is outside xs:IDREFS, ', "u"),
   direction: "oracle-only",
   reason: {
     _tag: "libxml2",
@@ -221,7 +226,10 @@ export const emptyIdrefsRecord: Recorded = {
  */
 export const blankListRecord: Recorded = {
   class: "text-value",
-  detail: /^TextDomain at \S+: "(?:\\[tnr]| )*" is outside xs:(?:ENTITIES|IDREFS|NMTOKENS), /u,
+  detail: regex.as(
+    '^TextDomain at \\S+: "(?:\\\\[tnr]| )*" is outside xs:(?:ENTITIES|IDREFS|NMTOKENS), ',
+    "u",
+  ),
   direction: "oracle-only",
   reason: {
     _tag: "libxml2",
@@ -238,7 +246,7 @@ export const blankListRecord: Recorded = {
  */
 export const base64Record: Recorded = {
   class: "text-value",
-  detail: /^TextDomain at \S+: "(?:[^"\\]|\\.)*" is outside m:base64, /u,
+  detail: regex.as('^TextDomain at \\S+: "(?:[^"\\\\]|\\\\.)*" is outside m:base64, ', "u"),
   direction: "oracle-only",
   reason: {
     _tag: "libxml2",
@@ -256,8 +264,10 @@ export const base64Record: Recorded = {
  */
 export const absentTypeRecord: Recorded = {
   class: "other",
-  detail:
-    /^line \d+ (?:\{[^}]*\})?\S+: The type definition is absent\.(?: \| line \d+ (?:\{[^}]*\})?\S+: The type definition is absent\.)*$/u,
+  detail: regex.as(
+    "^line \\d+ (?:\\{[^}]*\\})?\\S+: The type definition is absent\\.(?: \\| line \\d+ (?:\\{[^}]*\\})?\\S+: The type definition is absent\\.)*$",
+    "u",
+  ),
   direction: "xsd-only",
   reason: {
     _tag: "libxml2",
@@ -283,7 +293,7 @@ const paddedTypeMessage =
  */
 export const paddedTypeRecord: Recorded = {
   class: "attribute-value",
-  detail: new RegExp(`^(?:${paddedTypeMessage})(?: \\| (?:${paddedTypeMessage}))*$`, "u"),
+  detail: regex.as(`^(?:${paddedTypeMessage})(?: \\| (?:${paddedTypeMessage}))*$`, "u"),
   direction: "xsd-only",
   reason: {
     _tag: "libxml2",
@@ -304,8 +314,10 @@ export const paddedTypeRecord: Recorded = {
  */
 export const widenedOtherRecord: Recorded = {
   class: "attribute-allowed",
-  detail:
-    /^codec at \S*: The attribute [^\s:]+ in (?:[^\s:]+:)?qti-custom-operator is admitted on its element under no name or open class/u,
+  detail: regex.as(
+    "^codec at \\S*: The attribute [^\\s:]+ in (?:[^\\s:]+:)?qti-custom-operator is admitted on its element under no name or open class",
+    "u",
+  ),
   direction: "oracle-only",
   reason: {
     _tag: "libxml2",
@@ -322,8 +334,10 @@ export const widenedOtherRecord: Recorded = {
  */
 const invalidIdRecord: Recorded = {
   class: "identity",
-  detail:
-    /^line \d+: element \S+: validity error : ID (?![\p{L}_][\p{L}\p{N}._-]* already defined)[\s\S]+? already defined/u,
+  detail: regex(
+    "^line \\d+: element \\S+: validity error : ID (?![\\p{L}_][\\p{L}\\p{N}._-]* already defined)[\\s\\S]+? already defined",
+    "u",
+  ),
   direction: "xsd-only",
   reason: {
     _tag: "libxml2",
@@ -335,8 +349,10 @@ const invalidIdRecord: Recorded = {
  * A breach of "DocumentId key" as the comparison writes it: the place of the second element that
  * holds the ID, and of the first. It names the collapsed ID, not the holders' lexical forms.
  */
-const documentKeyDetail =
-  /^DocumentId key at (?<second>\/\S*): a second element purports the id [\s\S]*, which (?<first>\/\S*) already holds$/u;
+const documentKeyDetail = regex.as<string, { names: Record<string, string | undefined> }>(
+  "^DocumentId key at (?<second>/\\S*): a second element purports the id [\\s\\S]*, which (?<first>/\\S*) already holds$",
+  "u",
+);
 
 /**
  * A padded `xml:id` that libxml2 keys apart from its collapsed value: libxml2 2.15.2's parser
@@ -397,7 +413,7 @@ export const holdsPaddedId = (
   xmlIdsKeyed(difference, names.xmlIds)?.some(
     (lexical) =>
       lexical
-        .split(/[\t\n\r ]+/u)
+        .split(regex("[\t\n\r ]+", "u"))
         .filter((part) => part !== "")
         .join(" ") !== lexical,
   ) ?? false;
@@ -422,8 +438,10 @@ export const holdsPaddedId = (
  * ({@link isSkippedContent}, through {@link gateHolds}).
  */
 export const skippedContentRecord: Recorded = {
-  detail:
-    /^.+? at \/\S*?(?:foreign-element|no-namespace-element|own-namespace-element)\[\d+\]\S*: /u,
+  detail: regex(
+    "^.+? at /\\S*?(?:foreign-element|no-namespace-element|own-namespace-element)\\[\\d+\\]\\S*: ",
+    "u",
+  ),
   direction: "oracle-only",
   reason: {
     _tag: "libxml2",
@@ -491,8 +509,10 @@ export const laxXsiType: Recorded = {
  * One of `xmllint`'s messages that an element's `xsi:type` names no type definition, the element's
  * expanded name captured.
  */
-const unresolvedXsiType =
-  /^line \d+ (?<name>(?:\{[^}]*\})?\S+): The QName value '[^'\t\n\r ]*' of the xsi:type attribute does not resolve to a type definition\.$/u;
+const unresolvedXsiType = regex.as<string, { names: Record<string, string | undefined> }>(
+  "^line \\d+ (?<name>(?:\\{[^}]*\\})?\\S+): The QName value '[^'\t\n\r ]*' of the xsi:type attribute does not resolve to a type definition\\.$",
+  "u",
+);
 
 /**
  * Decide whether a difference is reading 60's class ({@link laxXsiType}): every message `xmllint`
@@ -525,7 +545,7 @@ export const isLaxXsiType = (difference: Difference, laxNames: ReadonlySet<strin
  * @returns Whether it is.
  */
 const isMessageOn = (message: string, names: ReadonlySet<string>): boolean => {
-  const name = /^line \d+ (?<name>\S+): /u.exec(message)?.groups?.["name"];
+  const name = regex("^line \\d+ (?<name>\\S+): ", "u").exec(message)?.groups?.["name"];
 
   return name !== undefined && names.has(name.startsWith("{") ? name : `{}${name}`);
 };
@@ -721,7 +741,7 @@ const globalAttributeNamespaces: ReadonlyMap<string, string> = new Map([
 /**
  * A breach as the comparison writes it: its law, the node it is at, and what it says.
  */
-const breachDetail = /^(?<law>.+?) at (?<path>\/\S*): (?<rest>[\s\S]*)$/u;
+const breachDetail = regex("^(?<law>.+?) at (?<path>/\\S*): (?<rest>[\\s\\S]*)$", "u");
 
 /**
  * Reading 6's class from the law oracle's side: a nested root kept as foreign content is judged as
@@ -885,7 +905,7 @@ export const isOutsideSet = (
   const kinds = (groups["path"] ?? "")
     .split("/")
     .slice(1)
-    .map((segment) => segment.replace(/\[\d+\]$/u, ""));
+    .map((segment) => segment.replace(regex("\\[\\d+\\]$", "u"), ""));
   const kind = kinds.at(-1) ?? "";
   const rest = groups["rest"] ?? "";
   const attribute = groups["law"] === "value domain" ? rest.slice(0, rest.indexOf(": ")) : "";
@@ -919,7 +939,7 @@ export const isOutsideSet = (
  */
 const extensionAttribute: Recorded = {
   class: "attribute-allowed",
-  detail: new RegExp(
+  detail: regex.as(
     `^codec at \\S*: The attribute (?!data-|xml:|xsi:)\\S+ in (?:[^\\s:]+:)?(?:${[
       ...new Set(coveredElements.map(({ element: named }) => named.local)),
     ].join("|")}) is admitted on its element under no name or open class`,
@@ -967,7 +987,10 @@ export const recorded: readonly Recorded[] = [
   extensionAttribute,
   {
     class: "beyond",
-    detail: /names completion_status, which nothing declares and no built-in variable is/u,
+    detail: regex.as(
+      "names completion_status, which nothing declares and no built-in variable is",
+      "u",
+    ),
     direction: "beyond",
     reason: {
       _tag: "reading",
@@ -979,9 +1002,9 @@ export const recorded: readonly Recorded[] = [
   },
   {
     class: "beyond",
-    detail: /^Template needs at /u,
+    detail: regex("^Template needs at ", "u"),
     direction: "beyond",
-    document: /^BPIG_22April\/items\/slider-1\.xml$/u,
+    document: regex("^BPIG_22April/items/slider-1\\.xml$", "u"),
     reason: {
       _tag: "specification",
       source:
@@ -1090,7 +1113,10 @@ const bcp47Tag = [
     "zh-min-nan",
     "zh-xiang",
   ].map((tag) =>
-    tag.replaceAll(/[A-Za-z]/gu, (letter) => `[${letter.toLowerCase()}${letter.toUpperCase()}]`),
+    tag.replaceAll(
+      regex("[A-Za-z]", "gu"),
+      (letter) => `[${letter.toLowerCase()}${letter.toUpperCase()}]`,
+    ),
   ),
 ].join("|");
 
@@ -1121,7 +1147,7 @@ const mathmlSegment = (() => {
   return String.raw`line \d+ ${name}(?:\S+: Character content is not allowed, because the content type is empty|semantics: This element is not expected\. Expected is one of \( ${members}(?:, ${name}[\w.-]+)* \))\.`;
 })();
 
-const coveredMessages = new RegExp(String.raw`^${mathmlSegment}(?: \| ${mathmlSegment})*$`, "u");
+const coveredMessages = regex.as(String.raw`^${mathmlSegment}(?: \| ${mathmlSegment})*$`, "u");
 
 /**
  * One message of xmllint's refusing an element at a `##other` wildcard of QTI's namespace, which
@@ -1133,7 +1159,7 @@ const orderingSlotSegment = String.raw`line \d+ (?:\{[^}]*\})?[^\s:]+: This elem
 /**
  * A difference every message of which is {@link orderingSlotSegment}'s.
  */
-const orderingSlotMessages = new RegExp(
+const orderingSlotMessages = regex.as(
   String.raw`^${orderingSlotSegment}(?: \| ${orderingSlotSegment})*$`,
   "u",
 );
@@ -1141,7 +1167,7 @@ const orderingSlotMessages = new RegExp(
 /**
  * One message of reading 2's MathML classes ({@link mathmlSegment}), alone.
  */
-const mathmlMessage = new RegExp(String.raw`^${mathmlSegment}$`, "u");
+const mathmlMessage = regex.as(String.raw`^${mathmlSegment}$`, "u");
 
 /**
  * Two reading classes in one difference: `xmllint` gives one content difference for a document, so
@@ -1214,7 +1240,10 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "attribute-required",
-    detail: /^AL3 required at \S*\/bdo(?:\[\d+\])?: bdo lacks \{dir\}, which Required holds$/u,
+    detail: regex(
+      "^AL3 required at \\S*/bdo(?:\\[\\d+\\])?: bdo lacks \\{dir\\}, which Required holds$",
+      "u",
+    ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1226,7 +1255,7 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "attribute-value",
-    detail: new RegExp(
+    detail: regex.as(
       [
         `^value domain at (?:`,
         // An item's or a stimulus's xml:lang: a tag, its whitespace collapsed, never empty.
@@ -1252,8 +1281,10 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "attribute-value",
-    detail:
-      /^value domain at \S+: (?:mime-type|type): "(?:[^"\\]|\\.)*" is outside MimeTypeDType \(reading 135\)/u,
+    detail: regex.as(
+      '^value domain at \\S+: (?:mime-type|type): "(?:[^"\\\\]|\\\\.)*" is outside MimeTypeDType \\(reading 135\\)',
+      "u",
+    ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1265,8 +1296,10 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "attribute-value",
-    detail:
-      /^value domain at \S*\/ssml:speak\[\d+\]: version: "(?:[^"\\]|\\.)*" is not among the 1 values of ssml:speak@version: 1\.1$/u,
+    detail: regex.as(
+      '^value domain at \\S*\\/ssml:speak\\[\\d+\\]: version: "(?:[^"\\\\]|\\\\.)*" is not among the 1 values of ssml:speak@version: 1\\.1$',
+      "u",
+    ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1278,8 +1311,10 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "content",
-    detail:
-      /^N6 ancestry at \S*\/qti-template-block(?:\.rubric)?\[\d+\]\/\S*: \S+ sits in \{[^}]*\btmpl\b[^}]*\}: Banned holds \{[^}]*\btmpl\b[^}]*\}/u,
+    detail: regex.as(
+      "^N6 ancestry at \\S*/qti-template-block(?:\\.rubric)?\\[\\d+\\]/\\S*: \\S+ sits in \\{[^}]*\\btmpl\\b[^}]*\\}: Banned holds \\{[^}]*\\btmpl\\b[^}]*\\}",
+      "u",
+    ),
     direction: "oracle-only",
     reason: {
       _tag: "specification",
@@ -1291,8 +1326,10 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "content",
-    detail:
-      /^N6 ancestry at \S*\/qti-modal-feedback\[\d+\]\/\S*: \S+ sits in \{[^}]*\bmodal\b[^}]*\}: Banned holds \{[^}]*\bmodal\b[^}]*\}/u,
+    detail: regex.as(
+      "^N6 ancestry at \\S*/qti-modal-feedback\\[\\d+\\]/\\S*: \\S+ sits in \\{[^}]*\\bmodal\\b[^}]*\\}: Banned holds \\{[^}]*\\bmodal\\b[^}]*\\}",
+      "u",
+    ),
     direction: "oracle-only",
     reason: {
       _tag: "specification",
@@ -1304,8 +1341,10 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "content",
-    detail:
-      /^N6 ancestry at \S*\/qti-hottext\[\d+\]\/\S*: \S+ sits in \{[^}]*\bhtx\b[^}]*\}: Banned holds \{[^}]*\bhtx\b[^}]*\}/u,
+    detail: regex.as(
+      "^N6 ancestry at \\S*/qti-hottext\\[\\d+\\]/\\S*: \\S+ sits in \\{[^}]*\\bhtx\\b[^}]*\\}: Banned holds \\{[^}]*\\bhtx\\b[^}]*\\}",
+      "u",
+    ),
     direction: "oracle-only",
     reason: {
       _tag: "specification",
@@ -1317,8 +1356,10 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "content",
-    detail:
-      /^N7 Counted at \S*\/lom:[\w.]+(?:\[\d+\])?: \d+ children at position \d+, which Capped bounds to 0 to 1$/u,
+    detail: regex.as(
+      "^N7 Counted at \\S*/lom:[\\w.]+(?:\\[\\d+\\])?: \\d+ children at position \\d+, which Capped bounds to 0 to 1$",
+      "u",
+    ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1331,8 +1372,10 @@ export const generatedRecorded: readonly Recorded[] = [
   // The media URLs share one domain, whose handle names the reading that compiled it first.
   {
     class: "attribute-value",
-    detail:
-      /^value domain at \S*\/(?:(?:audio|source|video)(?:\[\d+\])?: src|video(?:\[\d+\])?: poster|source(?:\[\d+\])?: srcset): "(?:\\[tnr]| )*" is outside URLDType \(reading 12[45]\)/u,
+    detail: regex.as(
+      '^value domain at \\S*\\/(?:(?:audio|source|video)(?:\\[\\d+\\])?: src|video(?:\\[\\d+\\])?: poster|source(?:\\[\\d+\\])?: srcset): "(?:\\\\[tnr]| )*" is outside URLDType \\(reading 12[45]\\)',
+      "u",
+    ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1344,8 +1387,10 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "attribute-value",
-    detail:
-      /^value domain at \S*\/track(?:\[\d+\])?: src: "(?:\\[tnr]| )*" is outside URLDType \(reading 12[45]\)/u,
+    detail: regex.as(
+      '^value domain at \\S*\\/track(?:\\[\\d+\\])?: src: "(?:\\\\[tnr]| )*" is outside URLDType \\(reading 12[45]\\)',
+      "u",
+    ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1379,8 +1424,10 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "content",
-    detail:
-      /^codec at \/: The element \S+ in \S+ is in the MathML namespace, and its parent admits no MathML element of that name, while MathML content stands only inside an m:math element/u,
+    detail: regex.as(
+      "^codec at /: The element \\S+ in \\S+ is in the MathML namespace, and its parent admits no MathML element of that name, while MathML content stands only inside an m:math element",
+      "u",
+    ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1392,7 +1439,7 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "attribute-value",
-    detail: new RegExp(`^${targetValueMessage}(?: \\| ${targetValueMessage})*$`, "u"),
+    detail: regex.as(`^${targetValueMessage}(?: \\| ${targetValueMessage})*$`, "u"),
     direction: "xsd-only",
     reason: {
       _tag: "reading",
@@ -1403,8 +1450,10 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "content",
-    detail:
-      /^N6 ancestry at \S+: qti-gap sits in \{[^}]*\}: Banned holds \{\} of it, and Needs lacks \{gap\}$/u,
+    detail: regex.as(
+      "^N6 ancestry at \\S+: qti-gap sits in \\{[^}]*\\}: Banned holds \\{\\} of it, and Needs lacks \\{gap\\}$",
+      "u",
+    ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1416,8 +1465,10 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "content",
-    detail:
-      /^N8 nearest at \S+: qti-gap writes its identifier, a choice, and its nearest \S+ is a \S+, no interaction, where every choice lies in one$/u,
+    detail: regex.as(
+      "^N8 nearest at \\S+: qti-gap writes its identifier, a choice, and its nearest \\S+ is a \\S+, no interaction, where every choice lies in one$",
+      "u",
+    ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1429,8 +1480,10 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "identity",
-    detail:
-      /^DocumentId key at \/\S*\/qti-context-declaration\[\d+\]: a second element purports the id [\s\S]*, which \/\S* already holds$/u,
+    detail: regex.as(
+      "^DocumentId key at /\\S*/qti-context-declaration\\[\\d+\\]: a second element purports the id [\\s\\S]*, which /\\S* already holds$",
+      "u",
+    ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1475,8 +1528,10 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "content",
-    detail:
-      /^N5 Follow at \S+: (?:m:\S+ follows state \d+, after which m:\S+'s content model in \S+ admits |no position of m:\S+'s content model that names m:\S+ follows its predecessor in )/u,
+    detail: regex.as(
+      "^N5 Follow at \\S+: (?:m:\\S+ follows state \\d+, after which m:\\S+'s content model in \\S+ admits |no position of m:\\S+'s content model that names m:\\S+ follows its predecessor in )",
+      "u",
+    ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1488,7 +1543,7 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "content",
-    detail: /^N7 Last at \S+: m:(?:bind|mlongdiv|mstack) holds /u,
+    detail: regex("^N7 Last at \\S+: m:(?:bind|mlongdiv|mstack) holds ", "u"),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1500,7 +1555,7 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "content",
-    detail: /^MathML head qualifier at \S+: m:apply applies /u,
+    detail: regex("^MathML head qualifier at \\S+: m:apply applies ", "u"),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1512,7 +1567,7 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "attribute-value",
-    detail: /^MathML cn form at \S+: (?:a cn of type|part \d+ of a cn of type) /u,
+    detail: regex("^MathML cn form at \\S+: (?:a cn of type|part \\d+ of a cn of type) ", "u"),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1524,7 +1579,7 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "content",
-    detail: /^MathML maction selection at \S+: an m:maction /u,
+    detail: regex("^MathML maction selection at \\S+: an m:maction ", "u"),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1536,7 +1591,7 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "content",
-    detail: /^MathML align placement at \S+: an m:maligngroup /u,
+    detail: regex.as("^MathML align placement at \\S+: an m:maligngroup ", "u"),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1548,7 +1603,7 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "content",
-    detail: /^MathML align first at \S+: the table cell at /u,
+    detail: regex("^MathML align first at \\S+: the table cell at ", "u"),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1560,7 +1615,7 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "identity",
-    detail: /^MathML share cycle at \S+: the m:share at /u,
+    detail: regex("^MathML share cycle at \\S+: the m:share at ", "u"),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1572,7 +1627,7 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "identity",
-    detail: /^Idref target at \S+\/m:share\[\d+\]: src names /u,
+    detail: regex("^Idref target at \\S+/m:share\\[\\d+\\]: src names ", "u"),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1584,8 +1639,10 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "content",
-    detail:
-      /^line \d+ \{http:\/\/www\.w3\.org\/1998\/Math\/MathML\}\S+: Character content is not allowed, because the content type is empty\.(?: \| line \d+ \{http:\/\/www\.w3\.org\/1998\/Math\/MathML\}\S+: Character content is not allowed, because the content type is empty\.)*$/u,
+    detail: regex.as(
+      "^line \\d+ \\{http://www\\.w3\\.org/1998/Math/MathML\\}\\S+: Character content is not allowed, because the content type is empty\\.(?: \\| line \\d+ \\{http://www\\.w3\\.org/1998/Math/MathML\\}\\S+: Character content is not allowed, because the content type is empty\\.)*$",
+      "u",
+    ),
     direction: "xsd-only",
     reason: {
       _tag: "reading",
@@ -1611,7 +1668,7 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "beyond",
-    detail: /^SSML (?:lexicon reference|trim mark) /u,
+    detail: regex("^SSML (?:lexicon reference|trim mark) ", "u"),
     direction: "beyond",
     reason: {
       _tag: "reading",
@@ -1667,8 +1724,10 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "attribute-value",
-    detail:
-      /^value domain at \S+: (?:src|poster|srcset): "(?: |\\[nrt])*" is outside URLDType \(reading [^)]*\b12[45]\b/u,
+    detail: regex.as(
+      '^value domain at \\S+: (?:src|poster|srcset): "(?: |\\\\[nrt])*" is outside URLDType \\(reading [^)]*\\b12[45]\\b',
+      "u",
+    ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1680,7 +1739,7 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "attribute-value",
-    detail: /^value domain at \S+: xref: ".*" is outside xs:IDREF\b/u,
+    detail: regex.as('^value domain at \\S+: xref: ".*" is outside xs:IDREF\\b', "u"),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
@@ -1725,7 +1784,7 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "identity",
-    detail: /^Catalog reference /u,
+    detail: regex("^Catalog reference ", "u"),
     direction: "oracle-only",
     reason: {
       _tag: "specification",
@@ -2362,7 +2421,7 @@ const messageName = ({ local, namespace }: { local: string; namespace: string })
  * @returns The kind, empty for the document.
  */
 const kindOfNode = (node: string): string =>
-  (node.split("/").at(-1) ?? "").replace(/\[\d+\]$/u, "");
+  (node.split("/").at(-1) ?? "").replace(regex("\\[\\d+\\]$", "u"), "");
 
 /**
  * Compare the two judgments of a document element by element, in each class both sides refused it
@@ -2407,7 +2466,7 @@ export const elementGrainDifferences = (
   }
 
   const kinds = new Set(grammar.kinds.elementName.rows.map(messageName));
-  const foreignNames = new Set([...foreign].map((name) => name.replace(/^\{\}/u, "")));
+  const foreignNames = new Set([...foreign].map((name) => name.replace(regex("^\\{\\}", "u"), "")));
   // A foreign element's messages and refusals meet under one name no kind has.
   const foreignGroup = "(foreign)";
   const nameOfNode = (node: string): string | undefined =>

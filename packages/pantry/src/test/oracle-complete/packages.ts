@@ -8,6 +8,7 @@
  * several, and a value among several the law refuses. An edit renames nothing another reference
  * names, so no law ahead of its own breaks first.
  */
+import { regex } from "arkregex";
 import { element, int } from "@bjornpagen/testing/gen";
 import { parsedDecimalBytes } from "#pantry/qti/limits.ts";
 import {
@@ -329,7 +330,7 @@ export const packageMutations = {
           source.draw(
             replaceDrawn(
               textOf(entries, manifest),
-              /\n {10}<\/imsmd:general>\n {8}<\/imsmd:lom>/u,
+              regex("\n {10}</imsmd:general>\n {8}</imsmd:lom>", "u"),
               () =>
                 `\n          </imsmd:general>\n          <imsmd:educational><imsmd:learningResourceType><imsmd:source>LOMv1.0</imsmd:source><imsmd:value>${value}</imsmd:value></imsmd:learningResourceType></imsmd:educational>\n        </imsmd:lom>`,
             ),
@@ -425,7 +426,10 @@ export const packageMutations = {
           entries,
           item,
           declared.replace(
-            /(?<open><qti-hottext-interaction response-identifier="HOT" max-choices="1">\n {6}<p>)(?<rest>Pick [^\n]*<\/p>)/u,
+            regex.as<string, { names: Record<string, string | undefined> }>(
+              '(?<open><qti-hottext-interaction response-identifier="HOT" max-choices="1">\n {6}<p>)(?<rest>Pick [^\n]*</p>)',
+              "u",
+            ),
             (_, open: string, rest: string) =>
               placed === "before"
                 ? `${open}<qti-text-entry-interaction response-identifier="TYPED"/> ${rest}`

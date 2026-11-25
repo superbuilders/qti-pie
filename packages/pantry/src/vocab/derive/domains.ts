@@ -20,6 +20,7 @@
  * @see {@link https://www.w3.org/TR/xmlschema-2/#built-in-derived | XML Schema Part 2, Derived datatypes}
  * @see {@link https://www.w3.org/TR/xmlschema-2/#rf-pattern | XML Schema Part 2, pattern}
  */
+import { regex } from "arkregex";
 import { Array as Arr, Match, Option, Result, Schema } from "effect";
 import type { Element } from "@qti-pie/crust/tree.ts";
 import {
@@ -376,7 +377,7 @@ type Lengths = Readonly<Partial<Record<LengthFacet, StatedLength>>>;
  * `xs:nonNegativeInteger`'s lexical space after the `collapse` its `whiteSpace` applies: `+`
  * before any digits and `-` before zero only (spec reading 73).
  */
-const nonNegativeInteger = /^[\t\n\r ]*(?:\+?\d+|-0+)[\t\n\r ]*$/u;
+const nonNegativeInteger = regex("^[\t\n\r ]*(?:\\+?\\d+|-0+)[\t\n\r ]*$", "u");
 
 /**
  * A length rule broken, and the facets that break it, before the type is named.

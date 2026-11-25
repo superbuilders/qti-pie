@@ -35,6 +35,7 @@
  * - A kind declared more than once reads its first declaration's attributes; a kind whose
  *   declarations disagree on them is refused.
  */
+import { regex } from "arkregex";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import {
@@ -895,7 +896,7 @@ const tagsIn = (type: TypeReading): readonly TypeReading["_tag"][] => {
  */
 const camelOf = (name: string): string =>
   name
-    .split(/[^A-Za-z0-9]+/u)
+    .split(regex("[^A-Za-z0-9]+", "u"))
     .filter((part) => part !== "")
     .map((part, index) =>
       index === 0

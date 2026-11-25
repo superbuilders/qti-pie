@@ -19,6 +19,7 @@
  *   row for every text type; `ValueIdentity` derived from the built-in alone; the generator's
  *   refusals as named invalid inputs.
  */
+import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, beforeAll, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
@@ -116,7 +117,7 @@ const domainAt = (kind: string, name: string): Option.Option<ValueDomain> =>
  * @returns Whether it matches.
  */
 const matches = (domain: ValueDomain, raw: string): boolean =>
-  new RegExp(domain.pattern, patternFlags).test(raw);
+  regex.as(domain.pattern, patternFlags).test(raw);
 
 /**
  * Every kind that declares a name, each once.
@@ -258,15 +259,15 @@ const isLanguageTag = (value: string): boolean => {
 
   const subtags = value.split("-");
   const at = (index: number): string => subtags[index] ?? "";
-  if (!subtags.every((subtag) => /^[A-Za-z0-9]{1,8}$/u.test(subtag))) {
+  if (!subtags.every((subtag) => regex("^[A-Za-z0-9]{1,8}$", "u").test(subtag))) {
     return false;
   }
 
-  if (/^[Xx]$/u.test(at(0))) {
+  if (regex("^[Xx]$", "u").test(at(0))) {
     return subtags.length > 1;
   }
 
-  if (!/^[A-Za-z]{2,8}$/u.test(at(0))) {
+  if (!regex("^[A-Za-z]{2,8}$", "u").test(at(0))) {
     return false;
   }
 
@@ -277,19 +278,19 @@ const isLanguageTag = (value: string): boolean => {
 
     return taken;
   };
-  for (let extlangs = 0; at(0).length <= 3 && extlangs < 3 && take(/^[A-Za-z]{3}$/u);) {
+  for (let extlangs = 0; at(0).length <= 3 && extlangs < 3 && take(regex("^[A-Za-z]{3}$", "u"));) {
     extlangs += 1;
   }
 
-  take(/^[A-Za-z]{4}$/u);
-  take(/^(?:[A-Za-z]{2}|[0-9]{3})$/u);
-  while (take(/^(?:[A-Za-z0-9]{5,8}|[0-9][A-Za-z0-9]{3})$/u)) {
+  take(regex("^[A-Za-z]{4}$", "u"));
+  take(regex("^(?:[A-Za-z]{2}|[0-9]{3})$", "u"));
+  while (take(regex("^(?:[A-Za-z0-9]{5,8}|[0-9][A-Za-z0-9]{3})$", "u"))) {
     // Each variant is taken.
   }
 
-  while (take(/^[0-9A-WY-Za-wy-z]$/u)) {
+  while (take(regex("^[0-9A-WY-Za-wy-z]$", "u"))) {
     let held = 0;
-    while (take(/^[A-Za-z0-9]{2,8}$/u)) {
+    while (take(regex("^[A-Za-z0-9]{2,8}$", "u"))) {
       held += 1;
     }
 
@@ -298,7 +299,7 @@ const isLanguageTag = (value: string): boolean => {
     }
   }
 
-  if (take(/^[Xx]$/u)) {
+  if (take(regex("^[Xx]$", "u"))) {
     return next < subtags.length;
   }
 
@@ -540,7 +541,7 @@ const pointFault = (point: string): MediaTypeFault | undefined => {
  * @returns The rule it breaks first: a character's ({@link pointFault}), then the slash's.
  */
 const mediaTypeFault = (raw: string): MediaTypeFault => {
-  const points = Array.from(raw.replaceAll(/[\t\n\r]/gu, " "), String);
+  const points = Array.from(raw.replaceAll(regex("[\t\n\r]", "gu"), " "), String);
   const slash = points.indexOf("/");
   const first = points.map(pointFault).find((fault) => fault !== undefined);
   if (first !== undefined) {
@@ -572,9 +573,9 @@ const mediaTypeFault = (raw: string): MediaTypeFault => {
  */
 const collapseXml = (raw: string): string =>
   raw
-    .replaceAll(/[\t\n\r ]+/gu, " ")
-    .replace(/^ /u, "")
-    .replace(/ $/u, "");
+    .replaceAll(regex("[\t\n\r ]+", "gu"), " ")
+    .replace(regex("^ ", "u"), "")
+    .replace(regex(" $", "u"), "");
 
 /**
  * Every rule of RFC 2045's media type a value breaks, where {@link mediaTypeFault} names the first:
@@ -584,7 +585,7 @@ const collapseXml = (raw: string): string =>
  * @returns The rules, none for a media type.
  */
 const mediaTypeFaultsOf = (raw: string): ReadonlySet<MediaTypeFault> => {
-  const points = Array.from(raw.replaceAll(/[\t\n\r]/gu, " "), String);
+  const points = Array.from(raw.replaceAll(regex("[\t\n\r]", "gu"), " "), String);
   const slashes = points.flatMap((point, at) => (point === "/" ? [at] : []));
   const [slash] = slashes;
 
@@ -870,7 +871,7 @@ const isCoordsToken = (token: string): boolean => {
  * @returns Whether it is.
  */
 const isCoords = (raw: string): boolean => {
-  const tokens = raw.replaceAll(/[\t\n\r]/gu, " ").split(",");
+  const tokens = raw.replaceAll(regex("[\t\n\r]", "gu"), " ").split(",");
   const count = tokens.length;
 
   return (
@@ -1213,7 +1214,9 @@ describe("The spec readings", () => {
     for (const [kind, name] of urls) {
       const domain = Option.getOrThrow(domainAt(kind, name));
       const wrong = values.filter(
-        (value) => matches(domain, value) !== /[^ ]/u.test(value.replaceAll(/[\t\n\r]/gu, " ")),
+        (value) =>
+          matches(domain, value) !==
+          regex("[^ ]", "u").test(value.replaceAll(regex("[\t\n\r]", "gu"), " ")),
       );
 
       assert.deepStrictEqual(wrong, [], `${kind}@${name}`);
@@ -1750,10 +1753,13 @@ const readingNumbersOf = (kind: string, name: string): readonly number[] =>
  * @returns The numbers, ascending.
  */
 const readingsNamed = (handle: string): readonly number[] =>
-  Option.match(Option.fromNullishOr(/ \(reading (?<numbers>[\d, ]+)\)/u.exec(handle)?.groups), {
-    onNone: () => [],
-    onSome: ({ numbers = "" }) => numbers.split(", ").map(Number),
-  }).toSorted((left, right) => left - right);
+  Option.match(
+    Option.fromNullishOr(regex(" \\(reading (?<numbers>[\\d, ]+)\\)", "u").exec(handle)?.groups),
+    {
+      onNone: () => [],
+      onSome: ({ numbers = "" }) => numbers.split(", ").map(Number),
+    },
+  ).toSorted((left, right) => left - right);
 
 describe("The value domains' names", () => {
   it("name the spec readings of an attribute each was compiled for, and only those, every domain of the leaf", () => {
@@ -2176,7 +2182,10 @@ const ariaRulesIn = (text: string): ReadonlyMap<string, string> => {
   return new Map(
     [
       ...body.matchAll(
-        /<sch:rule abstract="false" context="\/\/qti:(?<local>[a-z0-9-]+)">\s*<sch:assert test="(?<test>[^"]*)">/gu,
+        regex(
+          '<sch:rule abstract="false" context="//qti:(?<local>[a-z0-9-]+)">\\s*<sch:assert test="(?<test>[^"]*)">',
+          "gu",
+        ),
       ),
     ].map((found) => [found.groups?.["local"] ?? "", found.groups?.["test"] ?? ""] as const),
   );
@@ -2198,7 +2207,7 @@ describe("The Schematron's ARIA role rules", () => {
         const byHandle = new Map(attributes.domains.map((domain) => [domain.handle, domain]));
         const rules = ariaRulesIn(yield* fs.readFileString(`${directory}/${ariaRuleSource}`));
         const heading = rules.get("h1") ?? "";
-        const allowed = [...heading.matchAll(/@role='(?<role>[a-z]+)'/gu)].map(
+        const allowed = [...heading.matchAll(regex("@role='(?<role>[a-z]+)'", "gu"))].map(
           (found) => found.groups?.["role"] ?? "",
         );
 
@@ -2206,7 +2215,10 @@ describe("The Schematron's ARIA role rules", () => {
         assert.strictEqual(rules.get("source"), "count(@role)=0");
         assert.match(
           heading,
-          /^count\(@role\)=0 or \(count\(@role\)=1 and \(@role='[a-z]+'(?: or @role='[a-z]+')*\)\)$/u,
+          regex(
+            "^count\\(@role\\)=0 or \\(count\\(@role\\)=1 and \\(@role='[a-z]+'(?: or @role='[a-z]+')*\\)\\)$",
+            "u",
+          ),
         );
         assert.isTrue(
           Option.isNone(attributes.admission.lookup({ kind: "source", name: "role" })),

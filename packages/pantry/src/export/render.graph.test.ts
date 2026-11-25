@@ -6,6 +6,7 @@
  * (`#pantry/model/names.ts`), so the graph holds neither the vocabulary inventory nor the grammar's
  * closed relations, whose builders every composition runs.
  */
+import { regex } from "arkregex";
 import { readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { assert, describe, it } from "@effect/vitest";
@@ -169,7 +170,7 @@ const chainTo = (reached: ReadonlyMap<string, Reached>, file: string): string =>
  * the grammar's closed relations, which every composition builds and every module that composes
  * reaches, so no module that reaches them is in the graph either.
  */
-const forbidden = [/^vocab\/inventory\//u, /^grammar\/closed\.ts$/u];
+const forbidden = [regex("^vocab/inventory/", "u"), regex("^grammar/closed\\.ts$", "u")];
 
 /**
  * The bytes of source render.ts may load, crust's included, about 3% above the 177,872 its 17
@@ -242,7 +243,7 @@ describe("render.ts's module graph", () => {
     );
     assert.match(
       caught[1] ?? "",
-      new RegExp(`^loads \\d+ bytes in \\d+ modules, over the budget of ${byteBudget}$`, "u"),
+      regex.as(`^loads \\d+ bytes in \\d+ modules, over the budget of ${byteBudget}$`, "u"),
     );
     assert.deepStrictEqual(
       offences(

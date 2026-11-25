@@ -16,6 +16,7 @@
  * element's expanded name among them ({@link foreignNameBytes}); and the decimal parse's, which a
  * parse guards its own operand by ({@link parsedDecimalBytes}).
  */
+import { regex } from "arkregex";
 import { Array as Arr } from "effect";
 import {
   law,
@@ -484,7 +485,7 @@ export const keyedTemplateUri = (uri: TextTerm) => keyedAs(uri, TemplateUri, tem
  * {@link PackageName}'s pattern as a JavaScript host reads it: with the `u` flag, so its `\u{…}`
  * escapes and supplementary characters read as code points, as PostgreSQL reads them.
  */
-const packageNameForm = new RegExp(`^${ncName}$`, "u");
+const packageNameForm = regex.as(`^${ncName}$`, "u");
 
 /**
  * Decide whether a text is a name a package can be stored under: {@link PackageName}'s language,

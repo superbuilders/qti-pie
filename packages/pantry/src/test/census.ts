@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import path from "node:path";
 import { schemaNameOf } from "@bjornpagen/grizzle";
 import { Array as Arr, Effect, FileSystem } from "effect";
@@ -200,7 +201,7 @@ const installed = `"${RegExp.escape(schemaNameOf(QtiBase))}"`;
  * to back out of, and past about 8.39 million of them it runs out of its backtracking stack
  * (`RangeError: Maximum call stack size exceeded`).
  */
-const tablePattern = new RegExp(
+const tablePattern = regex.as(
   String.raw`^CREATE TABLE ${installed}\."(?<name>[a-z0-9_]+)" \(\n(?<body>[\s\S]*?)\n\);`,
   "gmu",
 );
@@ -208,22 +209,22 @@ const tablePattern = new RegExp(
 /**
  * A column line of a table's body.
  */
-const columnPattern = /^\s+"(?<column>[a-z0-9_]+)" /gmu;
+const columnPattern = regex('^\\s+"(?<column>[a-z0-9_]+)" ', "gmu");
 
 /**
  * A primary key or unique constraint of a table's body, with its column list.
  */
-const uniquePattern = /(?:PRIMARY KEY|UNIQUE) \((?<columns>[^)]*)\)/gu;
+const uniquePattern = regex("(?:PRIMARY KEY|UNIQUE) \\((?<columns>[^)]*)\\)", "gu");
 
 /**
  * A named foreign key, with its referencing column list.
  */
-const foreignKeyPattern = /CONSTRAINT "[^"]+" FOREIGN KEY \((?<columns>[^)]*)\)/gu;
+const foreignKeyPattern = regex('CONSTRAINT "[^"]+" FOREIGN KEY \\((?<columns>[^)]*)\\)', "gu");
 
 /**
  * A foreign key added to a table of `Qti`'s schema, with the table and its referencing column list.
  */
-const addedForeignKeyPattern = new RegExp(
+const addedForeignKeyPattern = regex.as(
   String.raw`^ALTER TABLE ${installed}\."(?<table>[a-z0-9_]+)" ADD CONSTRAINT "[^"]+" FOREIGN KEY \((?<columns>[^)]*)\)`,
   "gmu",
 );
@@ -231,21 +232,21 @@ const addedForeignKeyPattern = new RegExp(
 /**
  * A family's hidden column, which grizzle fills on every write: its axes' keys hold one.
  */
-const familyColumnPattern = /"__(?:pred|copy|index|predecessor|before|after)_/u;
+const familyColumnPattern = regex('"__(?:pred|copy|index|predecessor|before|after)_', "u");
 
 /**
  * The header line grizzle opens each validate file with, naming its law.
  */
-const lawPattern = /^-- Validate law (?<law>__[a-z0-9_]+):/gmu;
+const lawPattern = regex("^-- Validate law (?<law>__[a-z0-9_]+):", "gmu");
 
 /**
  * The name patterns of the law families, tried in order; a law matching none is `other`.
  */
 const lawFamilies: readonly (readonly [LawFamily, RegExp])[] = [
-  ["alternatives", /_alternatives_/u],
-  ["selectedSource", /_in_/u],
-  ["capacity", /capacity|_within_|_count_/u],
-  ["mirror", /mirror/u],
+  ["alternatives", regex("_alternatives_", "u")],
+  ["selectedSource", regex("_in_", "u")],
+  ["capacity", regex("capacity|_within_|_count_", "u")],
+  ["mirror", regex("mirror", "u")],
 ];
 
 /**
@@ -253,7 +254,7 @@ const lawFamilies: readonly (readonly [LawFamily, RegExp])[] = [
  * follows it. A head is read wherever it stands, since a closed relation's constant is created by
  * an `EXECUTE` inside the `DO` block that packs it.
  */
-const functionPattern = new RegExp(
+const functionPattern = regex.as(
   String.raw`(?<![\w"])CREATE (?:OR REPLACE )?FUNCTION ${installed}\."(?<name>[^"]+)"\((?<parameters>[^)]*)\) RETURNS (?<returns>.+?)(?=\s+(?:AS|BEGIN|IMMUTABLE|LANGUAGE|PARALLEL|RETURN|SECURITY|SET|STABLE|STRICT|VOLATILE)\b|$)`,
   "gmu",
 );
@@ -262,7 +263,7 @@ const functionPattern = new RegExp(
  * A function a later migration drops, by name. Its name is a hash of its body, so a changed body is
  * a new function and the old one is dropped; the chain holds the new one only.
  */
-const droppedFunctionPattern = new RegExp(
+const droppedFunctionPattern = regex.as(
   String.raw`^DROP FUNCTION ${installed}\."(?<name>[^"]+)"`,
   "gmu",
 );
@@ -306,7 +307,7 @@ const functionKinds: readonly (readonly [FunctionKind, (head: FunctionHead) => b
 /**
  * A one-line `CREATE DOMAIN` in `Qti`'s schema, with its definition after `AS`.
  */
-const domainPattern = new RegExp(
+const domainPattern = regex.as(
   String.raw`^CREATE DOMAIN ${installed}\."[a-z0-9_]+" AS (?<definition>.*)$`,
   "gmu",
 );
@@ -314,23 +315,23 @@ const domainPattern = new RegExp(
 /**
  * A domain definition's CHECK, which a domain over another domain alone does not hold.
  */
-const checkPattern = /\bCHECK \(/u;
+const checkPattern = regex("\\bCHECK \\(", "u");
 
 /**
  * A `CREATE TYPE … AS ENUM` in `Qti`'s schema.
  */
-const enumPattern = new RegExp(String.raw`^CREATE TYPE ${installed}\."[^"]+" AS ENUM `, "gmu");
+const enumPattern = regex.as(String.raw`^CREATE TYPE ${installed}\."[^"]+" AS ENUM `, "gmu");
 
 /**
  * A `CREATE POLICY` statement, up to its terminating semicolon.
  */
-const policyPattern = /^CREATE POLICY [^;]*;/gmu;
+const policyPattern = regex("^CREATE POLICY [^;]*;", "gmu");
 
 /**
  * A one-line `INSERT … VALUES` into a relation of `Qti`'s schema, with the relation's name and the
  * value list.
  */
-const insertPattern = new RegExp(
+const insertPattern = regex.as(
   String.raw`^INSERT INTO ${installed}\."(?<relation>[a-z0-9_]+)" \([^)]*\) VALUES (?<values>.*);$`,
   "gmu",
 );
@@ -339,7 +340,7 @@ const insertPattern = new RegExp(
  * An `admission` row as the seed prints it, among the others of its value list: parent kind, child
  * kind.
  */
-const admissionPattern = new RegExp(
+const admissionPattern = regex.as(
   String.raw`\('(?<parent>[^']*)'::${installed}\."node_kind", '(?<child>[^']*)'::${installed}\."node_kind"\)`,
   "gu",
 );
@@ -357,14 +358,17 @@ const occurrences = (sql: string, pattern: RegExp): number => [...sql.matchAll(p
  * A dollar-quoted string, `$$…$$` or `$tag$…$tag$`: a function's body, which PostgreSQL stores and
  * runs only when the function is called.
  */
-const dollarQuoted = /\$(?<tag>[A-Za-z_][A-Za-z0-9_]*)?\$[\s\S]*?\$\k<tag>\$/gu;
+const dollarQuoted = regex("\\$(?<tag>[A-Za-z_][A-Za-z0-9_]*)?\\$[\\s\\S]*?\\$\\k<tag>\\$", "gu");
 
 /**
  * A function's body as an escape string constant, `AS E'…'`, each line after it a constant of its
  * own, which PostgreSQL joins to it across the newline between them: the form grizzle writes a
  * body in where a dollar quote cannot hold its text.
  */
-const quotedBody = /\bAS E'(?:[^'\\]|\\[\s\S]|'')*'(?:\n'(?:[^'\\]|\\[\s\S]|'')*')*/gu;
+const quotedBody = regex.as(
+  "\\bAS E'(?:[^'\\\\]|\\\\[\\s\\S]|'')*'(?:\\n'(?:[^'\\\\]|\\\\[\\s\\S]|'')*')*",
+  "gu",
+);
 
 /**
  * A migration's text with every function's body taken out, so what remains is what it runs.
@@ -379,12 +383,18 @@ const outsideBodies = (sql: string): string =>
  * A stored derived relation's table as grizzle creates it, `AS` its definition `WITH NO DATA`, by
  * its schema-qualified name.
  */
-const storedTablePattern = /^CREATE TABLE (?<table>"[a-z0-9_]+"\."[a-z0-9_]+") \([^)]*\) AS$/gmu;
+const storedTablePattern = regex(
+  '^CREATE TABLE (?<table>"[a-z0-9_]+"\\."[a-z0-9_]+") \\([^)]*\\) AS$',
+  "gmu",
+);
 
 /**
  * An `INSERT INTO` a schema-qualified table, by the table.
  */
-const insertIntoPattern = /\bINSERT\s+INTO\s+(?<table>"[a-z0-9_]+"\."[a-z0-9_]+")/giu;
+const insertIntoPattern = regex(
+  '\\bINSERT\\s+INTO\\s+(?<table>"[a-z0-9_]+"\\."[a-z0-9_]+")',
+  "giu",
+);
 
 /**
  * Count the `INSERT INTO`s a migration runs that are no stored derived relation's fill.
@@ -400,7 +410,7 @@ const dataInserts = (sql: string): number => {
     .filter(({ groups }) => stored.has(groups?.["table"]))
     .toArray().length;
 
-  return occurrences(run, /\bINSERT\s+INTO\b/giu) - fills;
+  return occurrences(run, regex("\\bINSERT\\s+INTO\\b", "giu")) - fills;
 };
 
 /**
@@ -443,7 +453,7 @@ const tuplesIn = (values: string): readonly string[] => {
   let quoted = false;
   let start = 0;
 
-  for (const { 0: mark, index } of values.matchAll(/['()]/gu)) {
+  for (const { 0: mark, index } of values.matchAll(regex("['()]", "gu"))) {
     if (mark === "'") {
       quoted = !quoted;
     } else if (!quoted && mark === "(") {
@@ -507,7 +517,9 @@ const countTables = (sql: string): Pick<Census, "tables" | "uniques"> => {
     tables: {
       byColumns: Object.fromEntries([...byColumns].toSorted(([a], [b]) => a - b)),
       declaredMarkers: tables.filter((table) => table.name.startsWith("declared_")).length,
-      lexicalOrSpelling: tables.filter((table) => /(?:lexical|spelling)$/u.test(table.name)).length,
+      lexicalOrSpelling: tables.filter((table) =>
+        regex("(?:lexical|spelling)$", "u").test(table.name),
+      ).length,
       optionalValues: tables.filter(
         (table) => table.columns.length === 2 && table.columns.includes("value"),
       ).length,
@@ -576,7 +588,7 @@ export const census = (files: readonly MigrationFile[]): Census => {
     .map((head) => functionKinds.find(([, test]) => test(head))?.[0] ?? "other")
     .toArray();
   const definitions = [...sql.matchAll(domainPattern)].map(({ groups }) =>
-    (groups?.["definition"] ?? "").replaceAll(/CONSTRAINT "[^"]*"/gu, ""),
+    (groups?.["definition"] ?? "").replaceAll(regex('CONSTRAINT "[^"]*"', "gu"), ""),
   );
   const checked = definitions.filter((definition) => checkPattern.test(definition));
   const firsts = new Set(checked);
@@ -630,13 +642,13 @@ export const census = (files: readonly MigrationFile[]): Census => {
         other: tally(families, "other"),
         selectedSource: tally(families, "selectedSource"),
       },
-      constraintTriggers: occurrences(sql, /^CREATE CONSTRAINT TRIGGER /gmu),
+      constraintTriggers: occurrences(sql, regex("^CREATE CONSTRAINT TRIGGER ", "gmu")),
       total: laws.length,
       validateFiles: files.filter((file) => file.file.endsWith("-validate.sql")).length,
     },
     policies: {
       alwaysTrue: policies.filter((policy) =>
-        /USING \(true\)\s+WITH CHECK \(true\);$/u.test(policy),
+        regex("USING \\(true\\)\\s+WITH CHECK \\(true\\);$", "u").test(policy),
       ).length,
       total: policies.length,
     },
@@ -650,7 +662,7 @@ export const census = (files: readonly MigrationFile[]): Census => {
       ).size,
     },
     ...countTables(sql),
-    views: occurrences(sql, /^CREATE (?:OR REPLACE )?VIEW /gmu),
+    views: occurrences(sql, regex("^CREATE (?:OR REPLACE )?VIEW ", "gmu")),
   };
 };
 

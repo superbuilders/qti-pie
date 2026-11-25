@@ -22,6 +22,7 @@
  * file writes is the run's own, so two runs at once never remove each other's documents under
  * xmllint.
  */
+import { regex } from "arkregex";
 import path from "node:path";
 import { assert, beforeAll, describe, it as unit, layer } from "@effect/vitest";
 import { Console, Effect, FileSystem, Result } from "effect";
@@ -168,7 +169,10 @@ const gatedRecordOf = (
  */
 const tsv = (header: readonly string[], rows: readonly (readonly string[])[]): string =>
   [header, ...rows]
-    .map((row) => `${row.map((field) => field.replaceAll(/[\t\r\n]+/gu, " ")).join("\t")}\n`)
+    .map(
+      (row) =>
+        `${row.map((field) => field.replaceAll(regex("[\t\r\n]+", "gu"), " ")).join("\t")}\n`,
+    )
     .join("");
 
 /**

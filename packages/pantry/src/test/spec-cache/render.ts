@@ -26,6 +26,7 @@
  *
  * @see {@link https://github.com/python/cpython/blob/v3.12.3/Lib/html/__init__.py | CPython's html.unescape}
  */
+import { regex } from "arkregex";
 import { Result, Schema } from "effect";
 
 /**
@@ -60,36 +61,36 @@ const legacyNames: ReadonlySet<string> = new Set(
   ccedil cedil cent copy curren deg divide eacute ecirc egrave eth euml frac12 frac14 frac34 gt
   iacute icirc iexcl igrave iquest iuml laquo lt macr micro middot nbsp not ntilde oacute ocirc
   ograve ordf ordm oslash otilde ouml para plusmn pound quot raquo reg sect shy sup1 sup2 sup3
-  szlig thorn times uacute ucirc ugrave uml uuml yacute yen yuml`.split(/\s+/u),
+  szlig thorn times uacute ucirc ugrave uml uuml yacute yen yuml`.split(regex("\\s+", "u")),
 );
 
 /**
  * A tag.
  */
-const tag = /<[^>]*>/gu;
+const tag = regex("<[^>]*>", "gu");
 
 /**
  * A run of spaces and tabs.
  */
-const blanks = /[ \t]+/gu;
+const blanks = regex("[ \t]+", "gu");
 
 /**
  * A character reference as Python's `html.unescape` finds one: an `&` and a decimal or hex number,
  * or a run of 1 to 32 characters other than tab, line feed, form feed, space, `&`, `#` and `;`,
  * each ended by its `;` when it has one. An ampersand that starts none of them stays as it is.
  */
-const reference = /&(?:#[0-9]+;?|#[xX][0-9a-fA-F]+;?|[^\t\n\f <&#;]{1,32};?)/gu;
+const reference = regex("&(?:#[0-9]+;?|#[xX][0-9a-fA-F]+;?|[^\t\n\f <&#;]{1,32};?)", "gu");
 
 /**
  * The shape of an HTML5 entity name: a letter, then letters and digits.
  */
-const entityName = /^[A-Za-z][A-Za-z0-9]*$/u;
+const entityName = regex("^[A-Za-z][A-Za-z0-9]*$", "u");
 
 /**
  * A tag or a character reference, the tag first, so a reference inside a tag is the tag's and
  * leaves with it, as the strip removes it before the decoding.
  */
-const tagOrReference = new RegExp(`${tag.source}|${reference.source}`, "gu");
+const tagOrReference = regex.as(`${tag.source}|${reference.source}`, "gu");
 
 /**
  * The HTML holds a character reference the renderer does not decode: a named entity or a legacy

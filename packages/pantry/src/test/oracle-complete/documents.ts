@@ -9,6 +9,7 @@
  * after an outcome declaration, so the item's content order holds, under a fresh identifier, so no
  * declaration's key breaks first.
  */
+import { regex } from "arkregex";
 import { element, int } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import type { PackageEntries } from "#pantry/test/gen/every-relation.ts";
@@ -35,7 +36,7 @@ const declaring = ["items/item.xml", "items/item2.xml", "items/item3.xml"] as co
 /**
  * A self-closing outcome declaration, after which a new declaration may be written.
  */
-const outcomeLine = /<qti-outcome-declaration identifier="[^"]+"[^>]*\/>/u;
+const outcomeLine = regex('<qti-outcome-declaration identifier="[^"]+"[^>]*/>', "u");
 
 /**
  * Draw one of a list of edits and apply it to the base.
@@ -119,7 +120,7 @@ const untyped = {
  * @returns The pattern, whose second group is the text.
  */
 const valueOf = (identifier: string): RegExp =>
-  new RegExp(
+  regex.as(
     `(<qti-(?:context|response|outcome)-declaration identifier="${identifier}"[^>]*>\\s*<qti-(?:default-value|correct-response)><qti-value>)([^<]*)(</qti-value>)`,
     "u",
   );
@@ -128,7 +129,10 @@ const valueOf = (identifier: string): RegExp =>
  * The single-valued defaults and correct responses of the every-relation item, each one value
  * closing its set.
  */
-const singleValue = /<qti-value>[^<]*<\/qti-value>(?=<\/qti-(?:default-value|correct-response)>)/u;
+const singleValue = regex(
+  "<qti-value>[^<]*</qti-value>(?=</qti-(?:default-value|correct-response)>)",
+  "u",
+);
 
 /**
  * Each law's mutation, by law.
@@ -197,7 +201,7 @@ export const documentMutations = {
         (text) => (source) =>
           replaceDrawn(
             text,
-            /<dependency identifierref="[^"]+"\/>/u,
+            regex('<dependency identifierref="[^"]+"/>', "u"),
             () =>
               `<dependency identifierref="${source.draw(element(["nothing-res", "item9-res", "test-res-2"]))}"/>`,
           )(source),
@@ -222,7 +226,7 @@ export const documentMutations = {
             replaceOnce(
               text,
               `title="${title}"`,
-              `title="${source.draw(element([`${title} again`, title.toUpperCase(), title.replace(/ |$/u, "  "), "Another"]))}"`,
+              `title="${source.draw(element([`${title} again`, title.toUpperCase(), title.replace(regex(" |$", "u"), "  "), "Another"]))}"`,
             ),
         ),
       ),

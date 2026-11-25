@@ -12,6 +12,7 @@
  * - Every keyed set is a set: a repeat of one row is one row, two rows at one key a conflict.
  * - Nothing is minted: a package placed twice is the same rows.
  */
+import { regex } from "arkregex";
 import type { Addition, Fact, InsertAllRowsOf } from "@bjornpagen/grizzle";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
@@ -1088,7 +1089,9 @@ describe("tokensOf, on an IDREFS form", () => {
           (lexical) =>
             Effect.sync(() => {
               const pieces = tokensOf(lexical);
-              const tokens = lexical.split(/[\t\n\r ]+/u).filter((token) => token.length > 0);
+              const tokens = lexical
+                .split(regex("[\t\n\r ]+", "u"))
+                .filter((token) => token.length > 0);
 
               assert.deepStrictEqual(
                 pieces.map(({ token }) => token),
@@ -1099,7 +1102,7 @@ describe("tokensOf, on an IDREFS form", () => {
                 tokens.length === 0 ? "" : lexical,
               );
               for (const [at, { after, before }] of pieces.entries()) {
-                assert.match(`${before}${after}`, /^[\t\n\r ]*$/u);
+                assert.match(`${before}${after}`, regex("^[\t\n\r ]*$", "u"));
                 assert.isTrue(at === 0 || before.length > 0);
               }
             }),

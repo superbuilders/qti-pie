@@ -15,6 +15,7 @@
  *   production` (XML 1.0's productions over the stored texts), each under the law catalog's name,
  *   whose rule and source it keeps (`#pantry/vocab/laws.ts` `lawTable`).
  */
+import { regex } from "arkregex";
 import { Option } from "effect";
 import { rowOf, step } from "#pantry/grammar/ancestry.ts";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
@@ -117,7 +118,10 @@ const testRootKind = "qti-assessment-test";
  *
  * @see {@link https://www.w3.org/TR/xmlschema-2/#double | XML Schema Part 2, 3.2.5 double}
  */
-const doubleForm = /^(?:[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[Ee][+-]?[0-9]+)?|-?INF|NaN)$/u;
+const doubleForm = regex(
+  "^(?:[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[Ee][+-]?[0-9]+)?|-?INF|NaN)$",
+  "u",
+);
 
 /**
  * Read a scale attribute as a double for an order that sets aside what it cannot read: where its
@@ -617,12 +621,12 @@ const charNoDash =
  * entity's name, an NCName.
  */
 const productions = {
-  char: new RegExp(`^[${xmlChar}]*$`, "u"),
-  comment: new RegExp(`^(?:[${charNoDash}]|-[${charNoDash}])*$`, "u"),
-  doctype: new RegExp(`^<!DOCTYPE[ \\t\\n\\r][${xmlChar}]*>$`, "u"),
-  encoding: /^[A-Za-z][A-Za-z0-9._-]*$/u,
-  piData: new RegExp(`^(?:(?!\\?>)[^\\t\\n\\r ](?:(?!\\?>)[${xmlChar}])*)?$`, "u"),
-  version: /^1\.[0-9]+$/u,
+  char: regex.as(`^[${xmlChar}]*$`, "u"),
+  comment: regex.as(`^(?:[${charNoDash}]|-[${charNoDash}])*$`, "u"),
+  doctype: regex.as(`^<!DOCTYPE[ \\t\\n\\r][${xmlChar}]*>$`, "u"),
+  encoding: regex("^[A-Za-z][A-Za-z0-9._-]*$", "u"),
+  piData: regex.as(`^(?:(?!\\?>)[^\\t\\n\\r ](?:(?!\\?>)[${xmlChar}])*)?$`, "u"),
+  version: regex("^1\\.[0-9]+$", "u"),
 } as const;
 
 /**
@@ -662,7 +666,7 @@ const productionLawsOf = (rows: View): readonly Breach[] => {
       checked(start, "doctype", productions.doctype, value),
     ),
     ...folded.pis.flatMap(({ data, start, target }) => [
-      ...(ncNameForm.test(target) && !/^xml$/iu.test(target)
+      ...(ncNameForm.test(target) && !regex("^xml$", "iu").test(target)
         ? []
         : at(start, "processing instruction target", target)),
       ...checked(start, "processing instruction data", productions.piData, data),
@@ -741,7 +745,7 @@ export const objectRoots: ReadonlySet<string> = new Set(["qti-assessment-item"])
  * @param text - The text.
  * @returns Its value.
  */
-const replaced = (text: string): string => text.replaceAll(/[\t\n\r]/gu, " ");
+const replaced = (text: string): string => text.replaceAll(regex("[\t\n\r]", "gu"), " ");
 
 /**
  * Fold a language tag's ASCII capitals to small letters (RFC 5646 §2.1.1).
@@ -750,7 +754,7 @@ const replaced = (text: string): string => text.replaceAll(/[\t\n\r]/gu, " ");
  * @returns The folded tag.
  */
 const folded = (tag: string): string =>
-  tag.replaceAll(/[A-Z]/gu, (capital) => capital.toLowerCase());
+  tag.replaceAll(regex("[A-Z]", "gu"), (capital) => capital.toLowerCase());
 
 /**
  * Read a language as `lom-title` compares it: its tag folded, or none where it states none. The

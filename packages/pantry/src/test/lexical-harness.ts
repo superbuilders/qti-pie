@@ -14,6 +14,7 @@
  * or to a libxml2 departure from XML Schema that a {@link proofs} case shows, or it is a defect of
  * one of the two sides.
  */
+import { regex as arkregex } from "arkregex";
 import { isNcName } from "@bjornpagen/grizzle-text/regex/xml";
 import { matching } from "@bjornpagen/testing/pattern";
 import { floorSeed } from "@bjornpagen/testing/random";
@@ -188,12 +189,12 @@ const ncNameSource = `[${nameStartChars}][${nameChars}]*`;
 /**
  * One character of XML 1.0 Fifth Edition's `NameStartChar`, the colon excepted.
  */
-const fifthNameStart = new RegExp(`^[${nameStartChars}]$`, "u");
+const fifthNameStart = arkregex.as(`^[${nameStartChars}]$`, "u");
 
 /**
  * A run of XML 1.0 Fifth Edition's `NameChar`s, the colon excepted.
  */
-const fifthNameChars = new RegExp(`^[${nameChars}]+$`, "u");
+const fifthNameChars = arkregex.as(`^[${nameChars}]+$`, "u");
 
 /**
  * Whether a value is names that XML 1.0 Fifth Edition admits and its Second Edition refuses: split
@@ -207,7 +208,7 @@ const fifthNameChars = new RegExp(`^[${nameChars}]+$`, "u");
  * @returns Whether it is.
  */
 const fifthEditionOnly = (value: string): boolean => {
-  const parts = value.split(/[\t\n\r :]+/u).filter((part) => part !== "");
+  const parts = value.split(arkregex("[\t\n\r :]+", "u")).filter((part) => part !== "");
 
   return (
     parts.length > 0 &&
@@ -228,7 +229,7 @@ const fifthEditionOnly = (value: string): boolean => {
 /**
  * A QName written with its whitespace, `prefix:local` or `local`, each part an NCName.
  */
-const paddedQName = new RegExp(
+const paddedQName = arkregex.as(
   `^[\\t\\n\\r ]*(?:${ncNameSource}:)?${ncNameSource}[\\t\\n\\r ]*$`,
   "u",
 );
@@ -241,7 +242,10 @@ const paddedQName = new RegExp(
  * @returns Whether it is.
  */
 const isNumeral = (value: string): boolean =>
-  /^[\t\n\r ]*[+-]?(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]+)?[\t\n\r ]*$/u.test(value);
+  arkregex(
+    "^[\t\n\r ]*[+-]?(?:[0-9]+\\.?[0-9]*|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?[\t\n\r ]*$",
+    "u",
+  ).test(value);
 
 /**
  * Whether a value is an integer numeral, collapsed as `xs:integer` collapses it, outside the
@@ -251,7 +255,9 @@ const isNumeral = (value: string): boolean =>
  * @returns Whether it is.
  */
 const beyondInt64 = (value: string): boolean => {
-  const digits = /^[\t\n\r ]*(?<sign>[+-]?)(?<digits>[0-9]+)[\t\n\r ]*$/u.exec(value)?.groups;
+  const digits = arkregex("^[\t\n\r ]*(?<sign>[+-]?)(?<digits>[0-9]+)[\t\n\r ]*$", "u").exec(
+    value,
+  )?.groups;
   if (digits === undefined) {
     return false;
   }
@@ -266,18 +272,18 @@ const beyondInt64 = (value: string): boolean => {
  */
 export const recorded: readonly Recorded[] = [
   {
-    kind: /^qti-match-table-entry$/u,
+    kind: arkregex("^qti-match-table-entry$", "u"),
     reason: {
       _tag: "reading",
       reading: 8,
       says: "A match table entry's `target-value` is a value of the outcome's base type.",
       why: "the XSD types target-value as the base-type names; the reading makes it a value of the outcome's base type, so the domain admits any normalized string here",
     },
-    subject: /^target-value$/u,
+    subject: arkregex("^target-value$", "u"),
     xsd: "invalid",
   },
   {
-    domain: /\(reading [^)]*\b16\b/u,
+    domain: arkregex("\\(reading [^)]*\\b16\\b", "u"),
     holds: (value) => isNumeral(value) && Number(value) === 0,
     reason: {
       _tag: "reading",
@@ -288,29 +294,29 @@ export const recorded: readonly Recorded[] = [
     xsd: "valid",
   },
   {
-    domain: /\(reading [^)]*\b18\b/u,
+    domain: arkregex("\\(reading [^)]*\\b18\\b", "u"),
     reason: {
       _tag: "reading",
       reading: 18,
       says: "If specified, min-choices must be 1 or greater",
       why: "an order interaction's min-choices is at least 1, so zero is refused however its collapsed form is padded",
     },
-    value: /^[\t\n\r ]*[+-]?0+[\t\n\r ]*$/u,
+    value: arkregex("^[\t\n\r ]*[+-]?0+[\t\n\r ]*$", "u"),
     xsd: "valid",
   },
   {
-    domain: /\(reading [^)]*\b39\b/u,
+    domain: arkregex("\\(reading [^)]*\\b39\\b", "u"),
     reason: {
       _tag: "reading",
       reading: 39,
       says: "An SSML `speak/@version` is `1.1`.",
       why: 'SSML 1.1 says speak\'s version "must have the value "1.1"", where the XSD types it xs:NMTOKEN, so every other NMTOKEN is refused',
     },
-    value: /^(?![\t\n\r ]*1\.1[\t\n\r ]*$)/u,
+    value: arkregex("^(?![\t\n\r ]*1\\.1[\t\n\r ]*$)", "u"),
     xsd: "valid",
   },
   {
-    domain: /\(reading [^)]*\b42\b/u,
+    domain: arkregex("\\(reading [^)]*\\b42\\b", "u"),
     reason: {
       _tag: "reading",
       reading: 42,
@@ -320,7 +326,7 @@ export const recorded: readonly Recorded[] = [
     xsd: "valid",
   },
   {
-    domain: /\(reading [^)]*\b46\b/u,
+    domain: arkregex("\\(reading [^)]*\\b46\\b", "u"),
     holds: (value) => beyondInt64(value),
     reason: {
       _tag: "reading",
@@ -331,40 +337,40 @@ export const recorded: readonly Recorded[] = [
     xsd: "valid",
   },
   {
-    domain: /\(reading [^)]*\b120\b/u,
+    domain: arkregex("\\(reading [^)]*\\b120\\b", "u"),
     reason: {
       _tag: "reading",
       reading: 120,
       says: "A `qti-index`'s `n` is at least 1 where it is a number.",
       why: "the information model says \"'n' must be a positive integer\" (§5.72, Index), where the XSD's xs:int member admits 0 and negatives",
     },
-    value: /^[\t\n\r ]*(?:[+-]?0+|-[0-9]+)[\t\n\r ]*$/u,
+    value: arkregex("^[\t\n\r ]*(?:[+-]?0+|-[0-9]+)[\t\n\r ]*$", "u"),
     xsd: "valid",
   },
   {
-    domain: /\(reading [^)]*\b123\b/u,
+    domain: arkregex("\\(reading [^)]*\\b123\\b", "u"),
     reason: {
       _tag: "reading",
       reading: 123,
       says: "The auto value must not be specified",
       why: 'the information model says of bdo "The auto value must not be specified" (§5.11), which the XSD lists and defaults to',
     },
-    value: /^auto$/u,
+    value: arkregex("^auto$", "u"),
     xsd: "valid",
   },
   {
-    domain: /\(reading [^)]*\b12[45]\b/u,
+    domain: arkregex("\\(reading [^)]*\\b12[45]\\b", "u"),
     reason: {
       _tag: "reading",
       reading: 124,
       says: "The value must be a valid non-empty URL potentially surrounded by spaces",
       why: 'a media URL "must contain a valid non-empty URL potentially surrounded by spaces" (information model §5.9.1, §5.135.1, §5.163.2, §5.166.1, §5.166.9; reading 125 for track), where the XSD\'s URLDType is any xs:normalizedString',
     },
-    value: /^[\t\n\r ]*$/u,
+    value: arkregex("^[\t\n\r ]*$", "u"),
     xsd: "valid",
   },
   {
-    domain: /\(reading [^)]*\b129\b/u,
+    domain: arkregex("\\(reading [^)]*\\b129\\b", "u"),
     reason: {
       _tag: "reading",
       reading: 129,
@@ -374,38 +380,38 @@ export const recorded: readonly Recorded[] = [
     xsd: "valid",
   },
   {
-    domain: /\(reading [^)]*\b9\b/u,
-    kind: /^h1$/u,
+    domain: arkregex("\\(reading [^)]*\\b9\\b", "u"),
+    kind: arkregex("^h1$", "u"),
     reason: {
       _tag: "reading",
       reading: 9,
       says: "The 'h1' tag may have an ARIA role value of 'heading' or 'tab' or 'presentation' only",
       why: "the Schematron's RULE ARIA ROLE 1b says \"The 'h1' tag may have an ARIA role value of 'heading' or 'tab' or 'presentation' only\" (ASI binding §5.3.1, whose section 5 is normative), where the XSD lists 74 ARIA roles for h1's role",
     },
-    subject: /^role$/u,
-    value: /^(?!(?:heading|tab|presentation)$)/u,
+    subject: arkregex("^role$", "u"),
+    value: arkregex("^(?!(?:heading|tab|presentation)$)", "u"),
     xsd: "valid",
   },
   {
-    kind: /^m:cn$/u,
+    kind: arkregex("^m:cn$", "u"),
     reason: {
       _tag: "reading",
       reading: 2,
       says: "is a base 10 positive integer giving the value of base in which the text content of the cn is to be interpreted",
       why: 'MathML 3 says a cn\'s base "is a base 10 positive integer" (§4.2.1.3), the positive-integer notation of §2.1.5.1, where the XSD leaves the attribute untyped',
     },
-    subject: /^base$/u,
+    subject: arkregex("^base$", "u"),
     xsd: "valid",
   },
   {
-    kind: /^m:/u,
+    kind: arkregex("^m:", "u"),
     reason: {
       _tag: "reading",
       reading: 2,
       says: "`xref` names an `id` of its document, an `xs:IDREF`",
       why: "MathML 3's xref names an id of its document (an xs:IDREF, §5.4.2), where QTI's bundled MathML XSD types it xs:anySimpleType, so text that is no IDREF is refused",
     },
-    subject: /^xref$/u,
+    subject: arkregex("^xref$", "u"),
     xsd: "valid",
   },
   {
@@ -415,85 +421,88 @@ export const recorded: readonly Recorded[] = [
       says: "`xsi:type` is valid only when it names the declared type or a type derived from it.",
       why: "an xsi:type's QName is valid only when it names a type, which the codec decides (shred's type-unknown) and no pattern over the value states; its prefix's binding the harness judges as the codec does, with the probe's bindings in scope (resolves)",
     },
-    subject: /^xsi:type$/u,
+    subject: arkregex("^xsi:type$", "u"),
     value: paddedQName,
     xsd: "invalid",
   },
   {
-    builtin: /^(?:double|float)$/u,
+    builtin: arkregex("^(?:double|float)$", "u"),
     reason: {
       _tag: "libxml2",
       proof: "exponent",
       why: "libxml2 accepts a mantissa and an exponent mark with no digits after it (1e, 0E, 1.5e+, and padded, once collapsed) as xs:double, whose lexical space needs digits after the exponent mark (Part 2, 3.2.5.1)",
     },
-    value: /^[\t\n\r ]*[+-]?(?:[0-9]+\.?[0-9]*|\.[0-9]+)[eE][+-]?[\t\n\r ]*$/u,
+    value: arkregex("^[\t\n\r ]*[+-]?(?:[0-9]+\\.?[0-9]*|\\.[0-9]+)[eE][+-]?[\t\n\r ]*$", "u"),
     xsd: "valid",
   },
   {
-    builtin: /^(?:double|float)$/u,
+    builtin: arkregex("^(?:double|float)$", "u"),
     reason: {
       _tag: "libxml2",
       proof: "nan",
       why: "libxml2 accepts NaN, and NaN after whitespace (not before it), under minInclusive 0; NaN is incomparable, so no bound holds of it (Part 2, 3.2.5)",
     },
-    value: /^[\t\n\r ]*NaN$/u,
+    value: arkregex("^[\t\n\r ]*NaN$", "u"),
     xsd: "valid",
   },
   {
-    builtin: /^(?:double|float)$/u,
+    builtin: arkregex("^(?:double|float)$", "u"),
     reason: {
       _tag: "libxml2",
       proof: "specialTrailing",
       why: "libxml2 refuses INF, -INF and NaN followed by whitespace (it skips whitespace before them, and after a numeral), though whiteSpace is collapse, fixed, for xs:double and xs:float (Part 2, 4.3.6), so the value collapses to a literal of 3.2.5.1",
     },
-    value: /^[\t\n\r ]*-?(?:INF|NaN)[\t\n\r ]+$/u,
+    value: arkregex("^[\t\n\r ]*-?(?:INF|NaN)[\t\n\r ]+$", "u"),
     xsd: "invalid",
   },
   {
-    domain: /\(reading [^)]*\b17\b/u,
+    domain: arkregex("\\(reading [^)]*\\b17\\b", "u"),
     reason: {
       _tag: "reading",
       reading: 17,
       says: "A rubric block's `view` list has at least one view; an outcome declaration's may have none.",
       why: "the information model gives a rubric block's view the multiplicity [1] (§5.120.2, §5.160.1), where the XSD admits an empty list",
     },
-    value: /^[\t\n\r ]*$/u,
+    value: arkregex("^[\t\n\r ]*$", "u"),
     xsd: "valid",
   },
   {
-    domain: /\(reading [^)]*\b232\b/u,
+    domain: arkregex("\\(reading [^)]*\\b232\\b", "u"),
     reason: {
       _tag: "reading",
       reading: 232,
       says: "A position object interaction's `center-point` is two integers, its horizontal offset then its vertical.",
       why: "the information model's center-point is an offset 'in horizontal, vertical order' (§5.107.1), two Int values, where the XSD's list of xs:int admits any length",
     },
-    value: /^[\t\n\r ]*(?:[^\t\n\r ]+(?:[\t\n\r ]+[^\t\n\r ]+){2,}|[^\t\n\r ]+)?[\t\n\r ]*$/u,
+    value: arkregex(
+      "^[\t\n\r ]*(?:[^\t\n\r ]+(?:[\t\n\r ]+[^\t\n\r ]+){2,}|[^\t\n\r ]+)?[\t\n\r ]*$",
+      "u",
+    ),
     xsd: "valid",
   },
   {
-    domain: /\(reading [^)]*\b239\b/u,
+    domain: arkregex("\\(reading [^)]*\\b239\\b", "u"),
     reason: {
       _tag: "reading",
       reading: 239,
       says: "A `col`'s and a `colgroup`'s `span` is at least 1.",
       why: "the information model's Col and ColGroup say a span's 'value must be a valid non-negative integer greater than zero' (§5.31, §5.32), where the XSD's xs:int admits 0 and every negative",
     },
-    value: /^[\t\n\r ]*(?:-[0-9]+|\+?0+)[\t\n\r ]*$/u,
+    value: arkregex("^[\t\n\r ]*(?:-[0-9]+|\\+?0+)[\t\n\r ]*$", "u"),
     xsd: "valid",
   },
   {
-    builtin: /^(?:IDREFS|NMTOKENS|ENTITIES|IDREF|NMTOKEN|ENTITY)$/u,
+    builtin: arkregex("^(?:IDREFS|NMTOKENS|ENTITIES|IDREF|NMTOKEN|ENTITY)$", "u"),
     reason: {
       _tag: "libxml2",
       proof: "emptyLists",
       why: "libxml2 accepts an empty or blank xs:IDREFS and xs:NMTOKENS, a list of no item once collapsed, whose minLength is 1 (Part 2, 3.3.10 and 3.3.5)",
     },
-    value: /^[\t\n\r ]*$/u,
+    value: arkregex("^[\t\n\r ]*$", "u"),
     xsd: "valid",
   },
   {
-    builtin: /^base64Binary$/u,
+    builtin: arkregex("^base64Binary$", "u"),
     reason: {
       _tag: "libxml2",
       proof: "base64",
@@ -507,11 +516,11 @@ export const recorded: readonly Recorded[] = [
       proof: "schemaLocation",
       why: "libxml2 never assesses the value of xsi:schemaLocation, a list of xs:anyURI (Part 1, 3.2.7), and accepts a value that is no list of URI references, as xsd.corpus.test.ts's location record says",
     },
-    subject: /^xsi:schemaLocation$/u,
+    subject: arkregex("^xsi:schemaLocation$", "u"),
     xsd: "valid",
   },
   {
-    domain: /\(reading [^)]*\b132\b/u,
+    domain: arkregex("\\(reading [^)]*\\b132\\b", "u"),
     reason: {
       _tag: "reading",
       reading: 132,
@@ -520,12 +529,14 @@ export const recorded: readonly Recorded[] = [
     },
     // The value read from the left as C reads a format: text, `%%` and well-formed specifiers, then a
     // `%` that begins neither, each XML space a flag as normalizedString's replace makes it a space.
-    value:
-      /^(?:[^%]|%%|%[\t\n\r #+\-0]*[0-9]*(?:\.[0-9]*)?[EefGgrRiodXx])*%(?!%|[\t\n\r #+\-0]*[0-9]*(?:\.[0-9]*)?[EefGgrRiodXx])/u,
+    value: arkregex(
+      "^(?:[^%]|%%|%[\t\n\r #+\\-0]*[0-9]*(?:\\.[0-9]*)?[EefGgrRiodXx])*%(?!%|[\t\n\r #+\\-0]*[0-9]*(?:\\.[0-9]*)?[EefGgrRiodXx])",
+      "u",
+    ),
     xsd: "valid",
   },
   {
-    domain: /\(reading [^)]*\b135\b/u,
+    domain: arkregex("\\(reading [^)]*\\b135\\b", "u"),
     reason: {
       _tag: "reading",
       reading: 135,
@@ -555,30 +566,33 @@ export const recorded: readonly Recorded[] = [
     xsd: "invalid",
   },
   {
-    domain: /\(reading [^)]*\b2\b/u,
+    domain: arkregex("\\(reading [^)]*\\b2\\b", "u"),
     reason: {
       _tag: "reading",
       reading: 2,
       says: "An explicit plus sign ('+') is not allowed as part of a numerical value except when it is specifically listed in the syntax",
       why: 'MathML 3 §2.1.5.1 writes unsigned-integer as "a string of decimal-digits", positive-integer as one "not consisting solely of "0"s", integer as "an optional "-" ... followed by a string of decimal digits" and number as "an optional prefix of "-" ... followed by an unsigned number", with no +, which xs:unsignedLong (by reading 73), xs:positiveInteger, xs:integer and xs:decimal admit',
     },
-    value: /^[\t\n\r ]*\+/u,
+    value: arkregex("^[\t\n\r ]*\\+", "u"),
     xsd: "valid",
   },
   {
-    builtin: /^unsignedLong$/u,
-    domain: /\(reading [^)]*\b2\b/u,
+    builtin: arkregex("^unsignedLong$", "u"),
+    domain: arkregex("\\(reading [^)]*\\b2\\b", "u"),
     reason: {
       _tag: "reading",
       reading: 2,
       says: "which admit a `+`, and `-0` for the first (reading 73)",
       why: 'MathML 3 §2.1.5.1 writes unsigned-integer as "a string of decimal-digits", with no sign, where the XSD types it xs:unsignedLong, which admits -0 by reading 73',
     },
-    value: /^[\t\n\r ]*-0+[\t\n\r ]*$/u,
+    value: arkregex("^[\t\n\r ]*-0+[\t\n\r ]*$", "u"),
     xsd: "valid",
   },
   {
-    builtin: /^(?:NCName|ID|IDREF|IDREFS|ENTITY|ENTITIES|NMTOKEN|NMTOKENS|Name|QName)$/u,
+    builtin: arkregex(
+      "^(?:NCName|ID|IDREF|IDREFS|ENTITY|ENTITIES|NMTOKEN|NMTOKENS|Name|QName)$",
+      "u",
+    ),
     holds: fifthEditionOnly,
     reason: {
       _tag: "libxml2",
@@ -594,7 +608,7 @@ export const recorded: readonly Recorded[] = [
       proof: "fifthEditionNames",
       why: "the global attributes the inventory holds no type for are name types too, xml:id an xs:ID (xml.xsd) and xlink:label, xlink:from and xlink:to restrictions of xs:NCName (xlink.xsd), which libxml2 reads by XML 1.0 Fifth Edition's names, as the record above says",
     },
-    subject: /^(?:xml:id|xlink:(?:from|label|to))$/u,
+    subject: arkregex("^(?:xml:id|xlink:(?:from|label|to))$", "u"),
     xsd: "valid",
   },
 ];
@@ -621,9 +635,11 @@ export const normalized = (lexical: string, whiteSpace: string): string => {
     return lexical;
   }
 
-  const replaced = lexical.replaceAll(/[\t\n\r]/gu, " ");
+  const replaced = lexical.replaceAll(arkregex("[\t\n\r]", "gu"), " ");
 
-  return whiteSpace === "replace" ? replaced : replaced.trim().replaceAll(/ +/gu, " ");
+  return whiteSpace === "replace"
+    ? replaced
+    : replaced.trim().replaceAll(arkregex(" +", "gu"), " ");
 };
 
 /**
@@ -799,11 +815,13 @@ const builtinsOf = (domain: Domain): readonly string[] => {
  * @returns The family's key in {@link families}.
  */
 export const familyOf = (local: string): string => {
-  if (/integer|Integer|^int$|long|short|byte/u.test(local)) {
+  if (arkregex("integer|Integer|^int$|long|short|byte", "u").test(local)) {
     return "integer";
   }
 
-  if (/^(?:NCName|ID|IDREF|IDREFS|NMTOKEN|NMTOKENS|Name|QName|ENTITY)$/u.test(local)) {
+  if (
+    arkregex("^(?:NCName|ID|IDREF|IDREFS|NMTOKEN|NMTOKENS|Name|QName|ENTITY)$", "u").test(local)
+  ) {
     return "name";
   }
 
@@ -856,7 +874,9 @@ const boundedPattern = (pattern: string): string => {
     } else if (point === "+") {
       bounded += "{1,3}";
     } else {
-      const open = /^\{(?<least>\d+),\}/u.exec(pattern.slice(at))?.groups?.["least"];
+      const open = arkregex("^\\{(?<least>\\d+),\\}", "u").exec(pattern.slice(at))?.groups?.[
+        "least"
+      ];
       if (point === "{" && open !== undefined) {
         bounded += `{${open},${String(Number(open) + 3)}}`;
         at += open.length + 2;
@@ -887,16 +907,19 @@ const samplesDrawn = { drawn: 64, kept: 12 } as const;
  */
 export const formOf = (value: string): string =>
   value
-    .replaceAll(/\d+/gu, "0")
-    .replaceAll(/\p{Ll}+/gu, "a")
-    .replaceAll(/\p{Lu}+/gu, "A")
-    .replaceAll(/[\t\n\r ]+/gu, "_");
+    .replaceAll(arkregex("\\d+", "gu"), "0")
+    .replaceAll(arkregex("\\p{Ll}+", "gu"), "a")
+    .replaceAll(arkregex("\\p{Lu}+", "gu"), "A")
+    .replaceAll(arkregex("[\t\n\r ]+", "gu"), "_");
 
 /**
  * A string of XML characters only: what a probe can carry, since a batch holding any other is no
  * XML document.
  */
-const xmlCharacters = /^[\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]*$/u;
+const xmlCharacters = arkregex(
+  "^[\t\n\r\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*$",
+  "u",
+);
 
 /**
  * Read a numeric literal as a number: `INF`, `+INF` and `-INF` as the infinities, anything else as
@@ -954,7 +977,7 @@ export const regexOf = (domain: ValueDomain): RegExp => {
     return held;
   }
 
-  const regex = new RegExp(domain.pattern, patternFlags);
+  const regex = arkregex.as(domain.pattern, patternFlags);
   compiled.set(domain.handle, regex);
 
   return regex;
@@ -1023,7 +1046,7 @@ export const drawnOf = (domain: ValueDomain): readonly string[] => {
       [
         ...new Map(
           sample(
-            matching(new RegExp(boundedPattern(domain.pattern), patternFlags)),
+            matching(arkregex.as(boundedPattern(domain.pattern), patternFlags)),
             floorSeed(`lexical ${domain.handle}`),
             samplesDrawn.drawn,
           )
@@ -1173,7 +1196,8 @@ export const outcomeOf = (probe: Probe, messages: readonly XsdMessage[]): Outcom
     (message) =>
       Option.contains(message.element, element) &&
       (Option.isNone(attribute)
-        ? Option.isNone(message.attribute) && /is not a valid value|^\[facet '/u.test(message.text)
+        ? Option.isNone(message.attribute) &&
+          arkregex("is not a valid value|^\\[facet '", "u").test(message.text)
         : Option.isSome(message.attribute) && Option.contains(attribute, message.attribute.value)),
   );
   const said = own.map(({ text }) => text).join(" | ");
@@ -1188,7 +1212,9 @@ export const outcomeOf = (probe: Probe, messages: readonly XsdMessage[]): Outcom
     return { outcome: "unjudged", said: "not expected in its frame" };
   }
 
-  if (own.some(({ text }) => /^The attribute '[^']+' is not allowed\./u.test(text))) {
+  if (
+    own.some(({ text }) => arkregex("^The attribute '[^']+' is not allowed\\.", "u").test(text))
+  ) {
     return { outcome: "undeclared", said };
   }
 
@@ -1326,7 +1352,7 @@ export const targetsOf = Effect.fn("lexical.targetsOf")(function* targetsOf(
     const typed = (global === undefined || named.length > 1 ? named : []).map((type) => {
       const local = type.slice(type.indexOf("}") + 1);
       const namespace = type.slice(1, type.indexOf("}"));
-      const probe = `probe-${String(probes.size)}-${local.replaceAll(/[^\w.-]/gu, "_")}`;
+      const probe = `probe-${String(probes.size)}-${local.replaceAll(arkregex("[^\\w.-]", "gu"), "_")}`;
       const existing = [...probes.values()].find(
         (declared) => declared.type === local && declared.namespace === namespace,
       );
@@ -1656,7 +1682,8 @@ export const judgeProbes = Effect.fn("lexical.judgeProbes")(function* judgeProbe
     .flatMap((verdict) => (verdict._tag === "Valid" ? [] : verdict.messages))
     .filter(
       ({ line, source, text }) =>
-        line === 1 || (source === "parser" && /^\S+ error :/u.test(text) && !isXmlIdCheck(text)),
+        line === 1 ||
+        (source === "parser" && arkregex("^\\S+ error :", "u").test(text) && !isXmlIdCheck(text)),
     );
   if (broken.length > 0) {
     yield* Effect.die(

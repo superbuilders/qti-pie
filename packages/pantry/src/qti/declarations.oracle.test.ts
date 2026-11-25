@@ -4,6 +4,7 @@
  *
  * The views read the scale from the attributes where they stand (`#pantry/qti/names.ts`).
  */
+import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
@@ -97,7 +98,7 @@ const patternOf = (baseType: string): RegExp => {
       : ValueDomainOf.rows.find((row) => row.domain === domain)?.pattern;
   assert.isDefined(pattern, `${baseType} has a pattern`);
 
-  return new RegExp(pattern ?? "", patternFlags);
+  return regex.as(pattern ?? "", patternFlags);
 };
 
 /**

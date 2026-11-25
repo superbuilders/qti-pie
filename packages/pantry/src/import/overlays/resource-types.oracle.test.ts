@@ -14,6 +14,7 @@
  * (a document has one type, so one path under two document types is refused) and 162 (that type is
  * the one its root bears out), and the law oracle's verdict on each case.
  */
+import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Array as Arr, Effect, Formatter, Option, Result } from "effect";
@@ -51,7 +52,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             const dir = yield* materializeSpec({
               ...simple,
               edits: [...simple.edits, ...edits],
-              name: `resource-types-${label.replaceAll(/[^\da-z]+/giu, "-")}`,
+              name: `resource-types-${label.replaceAll(regex("[^\\da-z]+", "giu"), "-")}`,
             });
             const judgment = yield* judge(yield* readEntries(dir), grammar, laws);
             const { documents, inputs } = yield* readProgram(dir, nameOf(dir));

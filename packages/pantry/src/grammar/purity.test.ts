@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { globSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { assert, describe, it } from "@effect/vitest";
@@ -255,7 +256,9 @@ const statementReads = (read: (file: string) => string): readonly string[] =>
  * @returns Whether it may import {@link oracleModule}.
  */
 const mayReachOracle = (file: string): boolean =>
-  file.endsWith(".test.ts") ? /\.oracle(?:\.db)?\.test\.ts$/u.test(file) : file.startsWith("test/");
+  file.endsWith(".test.ts")
+    ? regex("\\.oracle(?:\\.db)?\\.test\\.ts$", "u").test(file)
+    : file.startsWith("test/");
 
 /**
  * Find the pure layers' imports of {@link grizzlePackages} outside {@link install}.

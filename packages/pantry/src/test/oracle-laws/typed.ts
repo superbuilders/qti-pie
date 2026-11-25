@@ -15,6 +15,7 @@
  * - String, file and the null object none: any text (reading 7: a string's whitespace is its
  *   value's).
  */
+import { regex } from "arkregex";
 import { Result } from "effect";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
 import { compile, patternFlags } from "#pantry/grammar/domains.ts";
@@ -82,7 +83,7 @@ const languagesOf = (grammar: ComposedGrammar): ReadonlyMap<string, RegExp> => {
   }
 
   const compiled = new Map<string, RegExp>(
-    [...ownPatterns].map(([baseType, pattern]) => [baseType, new RegExp(pattern, "u")]),
+    [...ownPatterns].map(([baseType, pattern]) => [baseType, regex.as(pattern, "u")]),
   );
   for (const [baseType, handle] of domainOf) {
     const domain = grammar.attributes.domains.find((held) => held.handle === handle);
@@ -92,7 +93,7 @@ const languagesOf = (grammar: ComposedGrammar): ReadonlyMap<string, RegExp> => {
       );
     }
 
-    compiled.set(baseType, new RegExp(domain.pattern, patternFlags));
+    compiled.set(baseType, regex.as(domain.pattern, patternFlags));
   }
 
   languages.set(grammar, compiled);
@@ -118,7 +119,7 @@ export const typedValueHolds = (
  * An NCName, `xs:NCName` as the value domains compile it: the name a bare variable reference
  * spells once collapsed (Namespaces in XML 1.0, §3).
  */
-export const ncNameForm = new RegExp(
+export const ncNameForm = regex.as(
   Result.getOrThrowWith(
     Result.flatMap(builtinDomainOf("NCName"), (domain) => compile(domain, "exact")),
     (unread) => unread,

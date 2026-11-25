@@ -7,6 +7,7 @@
  * A genome renders back to the package's entries through crust's writer, and the law oracle and the
  * import both read those bytes, so the two sides of the differential judge one package.
  */
+import { regex } from "arkregex";
 import { Effect, Option, Result } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import type { Attribute, Child, Element, XmlDocument } from "@qti-pie/crust/tree.ts";
@@ -416,8 +417,8 @@ export const relativeHref = (from: string, to: string): string => {
  *   the package.
  */
 export const resolvedPath = (from: string, href: string): string | undefined => {
-  const bare = href.split(/[?#]/u)[0] ?? "";
-  if (bare === "" || /^[a-z][a-z0-9+.-]*:/iu.test(bare) || bare.startsWith("/")) {
+  const bare = href.split(regex("[?#]", "u"))[0] ?? "";
+  if (bare === "" || regex("^[a-z][a-z0-9+.-]*:", "iu").test(bare) || bare.startsWith("/")) {
     return undefined;
   }
 

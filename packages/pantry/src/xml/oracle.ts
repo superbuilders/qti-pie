@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
 import { Array as Arr, Config, Effect, Option, Schema, Stream, String as Str } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
@@ -179,7 +180,9 @@ export const requireRecordsLibxml2 = Effect.fn("oracle.requireRecordsLibxml2")(
     const executable = yield* Effect.orDie(xmllintPath);
     const run = yield* xmllintRun(["--version"]);
     const said = `${new TextDecoder().decode(run.stdout)}${run.stderr}`;
-    const version = /using libxml version (?<version>\d+)/u.exec(said)?.groups?.["version"];
+    const version = regex("using libxml version (?<version>\\d+)", "u").exec(said)?.groups?.[
+      "version"
+    ];
 
     if (version !== String(recordsLibxml2)) {
       yield* new OracleVersionUnrecorded({
@@ -307,8 +310,10 @@ const partsOf =
  * @see {@link https://gitlab.gnome.org/GNOME/libxml2/-/blob/v2.13.0/error.c#L450-452 | libxml2 2.13.0, error.c, xmlFormatError}
  * @see {@link https://gitlab.gnome.org/GNOME/libxml2/-/blob/v2.12.0/error.c#L289-290 | libxml2 2.12.0, error.c, xmlReportError}
  */
-const schemaMessage =
-  /^(?:element [^:]+: )?Schemas validity (?<level>error|warning) : Element '(?<element>[^']+)'(?:, attribute '(?<attribute>[^']+)')?: (?<text>.*)$/su;
+const schemaMessage = regex(
+  "^(?:element [^:]+: )?Schemas validity (?<level>error|warning) : Element '(?<element>[^']+)'(?:, attribute '(?<attribute>[^']+)')?: (?<text>.*)$",
+  "su",
+);
 
 /**
  * Read a schema message into its parts, {@link schemaMessage}'s groups: its level, its element, the
@@ -330,7 +335,7 @@ const schemaMessageOf = partsOf(
  * A parser message libxml2 writes as a warning: `warning: ` itself, or a domain's warning, as
  * `namespace warning : `, after an optional `element NAME: `.
  */
-const parserWarning = /^(?:element [^:]+: )?(?:warning: |[A-Za-z][\w -]* warning : )/u;
+const parserWarning = regex("^(?:element [^:]+: )?(?:warning: |[A-Za-z][\\w -]* warning : )", "u");
 
 /**
  * The most files one `xmllint` process is given, so its argument list stays far below the
@@ -370,7 +375,7 @@ const messageOf = (line: number, body: string): XsdMessage =>
  * A judged file's message line: the file, the line it names, and what follows. The file is the
  * shortest prefix followed by `:digits: `, so a path must not itself hold `:digits: `.
  */
-const messageLine = /^(?<path>.+?):(?<line>\d+): (?<body>.*)$/su;
+const messageLine = regex("^(?<path>.+?):(?<line>\\d+): (?<body>.*)$", "su");
 
 /**
  * Read a message line into its parts, {@link messageLine}'s groups: the file, the line it names and
@@ -386,7 +391,7 @@ const messageLineOf = partsOf(
 /**
  * A judged file's status line: the file, then whether it validates.
  */
-const statusLine = /^(?<path>.+) (?<status>validates|fails to validate)$/u;
+const statusLine = regex("^(?<path>.+) (?<status>validates|fails to validate)$", "u");
 
 /**
  * Read a status line into its parts, {@link statusLine}'s groups: the file and its status.

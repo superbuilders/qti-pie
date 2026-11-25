@@ -10,6 +10,7 @@
  * - **Toy compositions** ({@link toyVocabulary}): vocabularies that compose through production's
  *   `compose`, so a generated grammar is built the production way.
  */
+import { regex } from "arkregex";
 import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import type { Result } from "effect";
@@ -994,7 +995,7 @@ export interface ProbeDocument {
  * @returns The child's namespace.
  */
 const wildcardNamespace = (namespace: string): string => {
-  const [first = "##any"] = namespace.split(/\s+/u);
+  const [first = "##any"] = namespace.split(regex("\\s+", "u"));
   if (first === "##local") {
     return "";
   }
@@ -1214,7 +1215,7 @@ export const wildcardAdmits = (
   wildcard: Extract<Particle, { readonly _tag: "any" }>,
   namespace: string,
 ): boolean =>
-  wildcard.namespace.split(/\s+/u).some((token) => {
+  wildcard.namespace.split(regex("\\s+", "u")).some((token) => {
     switch (token) {
       case "##any": {
         return true;

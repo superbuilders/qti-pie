@@ -50,6 +50,7 @@
     "@bjornpagen/testing": "workspace:*",
     "@effect/platform-node": "catalog:",
     "@qti-pie/crust": "workspace:*",
+    "arkregex": "catalog:",
     "effect": "catalog:",
     "pg": "catalog:",
     "saxes": "catalog:"

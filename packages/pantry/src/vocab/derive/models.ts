@@ -41,6 +41,7 @@
  * - **Sources.** Every model and particle cites the file and line of the construct it is read from
  *   (`sources.ts`'s lines, joined to the tree by document order).
  */
+import { regex } from "arkregex";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Array as Arr, Console, Effect, Layer, Match, Option, Order, Result } from "effect";
@@ -855,7 +856,7 @@ const derivationMethods: readonly DerivationMethod[] = [
  * @returns The methods.
  */
 const finalOf = (value: string): ReadonlySet<string> =>
-  new Set(value.trim() === "#all" ? derivationMethods : value.trim().split(/\s+/u));
+  new Set(value.trim() === "#all" ? derivationMethods : value.trim().split(regex("\\s+", "u")));
 
 /**
  * The name of `xs:anySimpleType`, the base of every primitive, list and union.
@@ -1331,7 +1332,7 @@ const namespaceNameOf = (namespace: string): Option.Option<string> => {
  */
 const camelOf = (handle: string): string =>
   handle
-    .split(/[^A-Za-z0-9]+/u)
+    .split(regex("[^A-Za-z0-9]+", "u"))
     .filter((part) => part !== "")
     .map((part, index) => (index === 0 ? part : `${part.charAt(0).toUpperCase()}${part.slice(1)}`))
     .join("");
@@ -1612,7 +1613,9 @@ interface SourcesWriter {
  * @returns Its numeral.
  */
 const numeralOf = (value: number): string =>
-  value < 10_000 ? String(value) : String(value).replaceAll(/\B(?=(?:\d{3})+$)/gu, "_");
+  value < 10_000
+    ? String(value)
+    : String(value).replaceAll(regex("\\B(?=(?:\\d{3})+$)", "gu"), "_");
 
 /**
  * Start writing sources into a leaf.
@@ -1792,7 +1795,7 @@ export const renderModels = ({ derivations, models: rows }: ModelsLeaf): string 
   const used = new Set<HelperName>(["model"]);
   const note = (text: string): void => {
     for (const name of helperNames) {
-      if (new RegExp(`\\b${name}\\b`, "u").test(text)) {
+      if (regex.as(`\\b${name}\\b`, "u").test(text)) {
         used.add(name);
       }
     }

@@ -11,6 +11,7 @@
  * queries only the database evaluates, so the database is their judge, as it is the media level's
  * (`policyLaws` of `#pantry/test/oracle-laws.ts`).
  */
+import { regex } from "arkregex";
 import { lawsByStatement } from "@bjornpagen/grizzle/compile";
 import type { CheckVerdict, EvaluatedRow, Unevaluated } from "@bjornpagen/grizzle/compile";
 import { exhaust } from "@bjornpagen/testing/explore";
@@ -277,7 +278,7 @@ interface ReadVcard {
  * @returns What it holds.
  */
 const readVcard = (text: string): ReadVcard => {
-  const lines = text.split(/[\r\n]+/u);
+  const lines = text.split(regex("[\r\n]+", "u"));
   const properties = new Map<string, string[]>();
   for (const line of lines) {
     const colon = line.indexOf(":");
@@ -286,12 +287,16 @@ const readVcard = (text: string): ReadVcard => {
     }
 
     const head = line.slice(0, colon);
-    const name = (head.split(";")[0] ?? "").replace(/^[0-9A-Za-z-]+\./u, "").toUpperCase();
+    const name = (head.split(";")[0] ?? "")
+      .replace(regex("^[0-9A-Za-z-]+\\.", "u"), "")
+      .toUpperCase();
     properties.set(name, [...(properties.get(name) ?? []), line.slice(colon + 1)]);
   }
 
   return {
-    framed: /^BEGIN:VCARD[\r\n]/iu.test(text) && /[\r\n]END:VCARD[\r\n]*$/iu.test(text),
+    framed:
+      regex("^BEGIN:VCARD[\r\n]", "iu").test(text) &&
+      regex("[\r\n]END:VCARD[\r\n]*$", "iu").test(text),
     properties,
   };
 };

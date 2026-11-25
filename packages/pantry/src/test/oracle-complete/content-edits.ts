@@ -9,6 +9,7 @@
  * holds several and with a value drawn among several the law refuses. No edit renames an id,
  * declaration or file another reference names, so no law ahead of its own breaks first.
  */
+import { regex } from "arkregex";
 import { element, int } from "@bjornpagen/testing/gen";
 import {
   changeDrawn,
@@ -58,7 +59,10 @@ const quoted = "    <p>It says <q>read this</q> and stops.</p>";
 /**
  * The item's mappings of one entry, the declarations of LEVER, REAL, PAIRS, LINKS and SPOT.
  */
-const oneEntryMapping = /<qti-mapping default-value="0"><qti-map-entry [^>]*\/><\/qti-mapping>/u;
+const oneEntryMapping = regex.as(
+  '<qti-mapping default-value="0"><qti-map-entry [^>]*/></qti-mapping>',
+  "u",
+);
 
 /**
  * An href's values the resolver reads no entry name from, each inside `xs:anyURI`: a backslash, a
@@ -75,7 +79,7 @@ const unreadHrefs = [
 /**
  * The item's images, in its lead division and its hotspot interaction.
  */
-const image = /<img src="media\/pic\.png"/u;
+const image = regex('<img src="media/pic\\.png"', "u");
 
 /**
  * Namespace names no URI reference spells (RFC 3986 appendix A): a space, a `%` that starts no
@@ -264,7 +268,7 @@ export const contentEdits = {
           source.draw(
             replaceDrawn(
               textOf(entries, item),
-              /<qti-hotspot-choice identifier="S\d"[^>]*\/>/u,
+              regex('<qti-hotspot-choice identifier="S\\d"[^>]*/>', "u"),
               (match) =>
                 `<qti-hotspot-choice identifier="S0" shape="default" coords="0,0,1,1"/>${match[0]}`,
             ),

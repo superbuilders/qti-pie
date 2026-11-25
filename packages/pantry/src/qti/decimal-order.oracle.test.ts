@@ -26,6 +26,7 @@
  * order that holds it; and the oracle's former decimal form, which read `+`, `.`, `-.` and the
  * empty text as zero. The search must catch each.
  */
+import { regex } from "arkregex";
 import { check, Decimal, lexicalForm, Logic, pg, schema, Text, Type } from "@bjornpagen/grizzle";
 import type { EvaluatedRow } from "@bjornpagen/grizzle/compile";
 import { assert, describe, it } from "@effect/vitest";
@@ -111,7 +112,7 @@ const boundsRow = ([min, max]: readonly [string, string]): EvaluatedRow<typeof A
 /**
  * The oracle's former decimal form, which held a sign and digits on neither side of the point.
  */
-const formerOracleForm = /^(?<sign>[+-]?)(?<whole>[0-9]*)(?:\.(?<fraction>[0-9]*))?$/u;
+const formerOracleForm = regex("^(?<sign>[+-]?)(?<whole>[0-9]*)(?:\\.(?<fraction>[0-9]*))?$", "u");
 
 /**
  * The oracle's former order of two collapsed decimal forms, restated as it was: exact, but over
@@ -146,15 +147,15 @@ const formerOracleBelow = (a: string, b: string): boolean => {
  */
 const collapsed = (form: string): string =>
   form
-    .replaceAll(/[\t\n\r ]+/gu, " ")
-    .replace(/^ /u, "")
-    .replace(/ $/u, "");
+    .replaceAll(regex("[\t\n\r ]+", "gu"), " ")
+    .replace(regex("^ ", "u"), "")
+    .replace(regex(" $", "u"), "");
 
 /**
  * `xs:decimal`'s lexical space, the reference's: XML Schema 1.1's regular expression for
  * `decimalLexicalRep` (Part 2 §3.3.3.1).
  */
-const xsDecimal = /^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$/u;
+const xsDecimal = regex("^[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)$", "u");
 
 /**
  * A decimal as its canonical representation writes it: its sign, its integer digits with no
@@ -178,8 +179,11 @@ const canonicalOf = (form: string): Option.Option<Canonical> => {
     return Option.none();
   }
 
-  const [whole = "", fraction = ""] = form.replace(/^[+-]/u, "").split(".");
-  const parts = { fraction: fraction.replace(/0+$/u, ""), whole: whole.replace(/^0+/u, "") };
+  const [whole = "", fraction = ""] = form.replace(regex("^[+-]", "u"), "").split(".");
+  const parts = {
+    fraction: fraction.replace(regex("0+$", "u"), ""),
+    whole: whole.replace(regex("^0+", "u"), ""),
+  };
 
   return Option.some({
     ...parts,
@@ -395,9 +399,9 @@ const valueOf = (units: bigint, scale: number): Value => {
   const digits = (units < 0n ? -units : units).toString().padStart(scale + 1, "0");
 
   return {
-    fraction: digits.slice(digits.length - scale).replace(/0+$/u, ""),
+    fraction: digits.slice(digits.length - scale).replace(regex("0+$", "u"), ""),
     negative: units < 0n,
-    whole: digits.slice(0, digits.length - scale).replace(/^0+/u, ""),
+    whole: digits.slice(0, digits.length - scale).replace(regex("^0+", "u"), ""),
   };
 };
 

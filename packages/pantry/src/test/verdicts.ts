@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import path from "node:path";
 import { Array as Arr, Effect, Schema } from "effect";
 import { ImportRule, ruleOrder } from "#pantry/import/rules.ts";
@@ -38,7 +39,7 @@ const isRule = Schema.is(ImportRule);
 /**
  * Whether `value` holds a character the file's layout reserves: a tab or a line break.
  */
-const hasReserved = (value: string): boolean => /[\t\r\n]/u.test(value);
+const hasReserved = (value: string): boolean => regex("[\t\r\n]", "u").test(value);
 
 /**
  * Write a row's rules as its `rule` column holds them: joined by {@link ruleSeparator}, empty for
@@ -220,5 +221,5 @@ export const verdictsPath = (tarball: string): string =>
   path.resolve(
     import.meta.dirname,
     "../../verdicts",
-    `${path.basename(tarball).replace(/\.tar\.gz$/u, "")}.tsv`,
+    `${path.basename(tarball).replace(regex("\\.tar\\.gz$", "u"), "")}.tsv`,
   );

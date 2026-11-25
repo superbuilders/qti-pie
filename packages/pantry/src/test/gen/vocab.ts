@@ -8,6 +8,7 @@
  * generated from the model it must satisfy, and every mutant is one named edit of a valid word,
  * whose verdict the matcher decides independently of the deriver.
  */
+import { regex } from "arkregex";
 import { Array as Arr, Match, Option } from "effect";
 import type { ProbeWorld } from "#pantry/test/gen/xmllint.ts";
 import type { ContentType, NamespaceConstraint, Particle } from "#pantry/vocab/inventory/types.ts";
@@ -665,4 +666,5 @@ export const spellings: Readonly<
  * @param local - The local name.
  * @returns Whether it is an NCName the probes can write.
  */
-export const writable = (local: string): boolean => /^[\p{L}_][\p{L}\p{N}._-]*$/u.test(local);
+export const writable = (local: string): boolean =>
+  regex("^[\\p{L}_][\\p{L}\\p{N}._-]*$", "u").test(local);

@@ -15,6 +15,7 @@
  *
  * @see {@link https://www.imsglobal.org/sites/default/files/spec/qti/v3/data-ssml_infobind/imsqtiv3p0_datassml_v1p0_InfoBind.html#JSOND | IMS Data-SSML 1.0, 3.4 Description of the JSON Schema}
  */
+import { regex } from "arkregex";
 import { Option } from "effect";
 
 /**
@@ -155,11 +156,11 @@ const isMark = (unit: string): unit is Mark => marks.has(unit);
 /**
  * RFC 8259 section 6's number: `-? (0 | [1-9][0-9]*) (. [0-9]+)? ([eE] [+-]? [0-9]+)?`.
  */
-const numberAt = /-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/uy;
+const numberAt = regex("-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?", "uy");
 
-const literalAt = /true|false|null/uy;
+const literalAt = regex("true|false|null", "uy");
 
-const hexAt = /[0-9A-Fa-f]{4}/uy;
+const hexAt = regex("[0-9A-Fa-f]{4}", "uy");
 
 /**
  * Read the string whose opening quote sits at `from`.
@@ -426,7 +427,7 @@ const admits = (allowed: Allowed, text: string): boolean => {
     return allowed.values.includes(text);
   }
 
-  return allowed.kind === "any" || !/[\t\n\r]/u.test(text);
+  return allowed.kind === "any" || !regex("[\t\n\r]", "u").test(text);
 };
 
 /**

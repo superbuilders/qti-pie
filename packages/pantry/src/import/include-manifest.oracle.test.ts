@@ -19,6 +19,7 @@
  * `items/`, its href each of four spellings that resolve to the manifest (a parent step, a dot
  * step before it, a step down and back, and a percent-encoded dot): 8 cases, exhausted.
  */
+import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
@@ -151,13 +152,13 @@ layer(NodeServices.layer, { excludeTestServices: true })("an include of the mani
                   );
 
                   assert.deepStrictEqual(apart.map(shownDisagreement), [], said);
-                  assert.match(judged.summary.oracle, /\bInclude target\b/u, said);
+                  assert.match(judged.summary.oracle, regex("\\bInclude target\\b", "u"), said);
 
                   const dir = yield* scopedPackage(files);
                   const rows = previewRowsOf((yield* readProgram(dir, nameOf(dir))).inputs);
                   assert.isTrue(breaksIncludeTarget(rows), said);
-                  assert.notMatch(judged.summary.oracle, /\bInclude root\b/u, said);
-                  assert.notMatch(judged.summary.import, /\bInclude root\b/u, said);
+                  assert.notMatch(judged.summary.oracle, regex("\\bInclude root\\b", "u"), said);
+                  assert.notMatch(judged.summary.import, regex("\\bInclude root\\b", "u"), said);
                 }),
               ),
           );

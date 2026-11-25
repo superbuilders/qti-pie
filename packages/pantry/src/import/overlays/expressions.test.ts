@@ -10,6 +10,7 @@
  * (Q5.10). A guard fixture's rule is another slice's law (P5 is AL3, P28 is N7's `Last`, P30 is
  * N5's `Follow`), so the expression laws accept it.
  */
+import { regex } from "arkregex";
 import { readFileSync } from "node:fs";
 import nodePath from "node:path";
 import { assert, describe, it } from "@effect/vitest";
@@ -198,7 +199,7 @@ const spelledBases: ReadonlySet<string> = new Set(
 );
 
 const literalPatterns = new Map(
-  BaseTypePattern.rows.map(({ baseType, pattern }) => [baseType, new RegExp(pattern, "u")]),
+  BaseTypePattern.rows.map(({ baseType, pattern }) => [baseType, regex.as(pattern, "u")]),
 );
 
 const valueCardinalityOf: ReadonlyMap<string, (typeof ValueCardinalityOf.rows)[number]["value"]> =
@@ -673,10 +674,10 @@ const declarationKindOf = (v: Reference, rows: Rows): string | undefined =>
  */
 const spells = (v: Reference): boolean =>
   v.lexical === `${v.before}${v.identifier}${v.after}` &&
-  /^[^\t\n\r {}]+$/u.test(v.identifier) &&
+  regex("^[^\t\n\r {}]+$", "u").test(v.identifier) &&
   (spellings.get(`${v.kind} ${v.attribute}`) === "braced"
     ? v.before === "{" && v.after === "}"
-    : /^[\t\n\r ]*$/u.test(v.before) && /^[\t\n\r ]*$/u.test(v.after));
+    : regex("^[\t\n\r ]*$", "u").test(v.before) && regex("^[\t\n\r ]*$", "u").test(v.after));
 
 /**
  * `E1_derived`'s resolution: the type each resolution gives, a declared one's by the declaration
@@ -1074,7 +1075,7 @@ const textOf = (file: string): string => {
     return text;
   }
 
-  const body = text.replace(/^<\?xml[^>]*\?>\s*/u, "");
+  const body = text.replace(regex("^<\\?xml[^>]*\\?>\\s*", "u"), "");
   const declarations = environment
     .map(
       ([identifier, baseType]) =>

@@ -11,6 +11,7 @@
  * attempted; the run then fails naming each one it could not settle, and a second run requests
  * only those.
  */
+import { regex } from "arkregex";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Console, Effect, FileSystem, Layer, Option, Path, Result, Schema } from "effect";
@@ -70,12 +71,12 @@ type PinFault = typeof PinFaultSchema.Type;
 /**
  * A SHA-256 digest as `Digest.digestHex` writes it.
  */
-const digestForm = /^[\da-f]{64}$/u;
+const digestForm = regex("^[\\da-f]{64}$", "u");
 
 /**
  * One segment of a pinned path.
  */
-const segmentForm = /^[\w.-]+$/u;
+const segmentForm = regex("^[\\w.-]+$", "u");
 
 /**
  * Whether a path keeps the `path` rule of {@link pinRules}.

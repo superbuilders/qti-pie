@@ -33,6 +33,7 @@
  * The run is gated on `QTI_PIE_CORPUS=1` and opens no database. plate is a devDependency of this
  * package only, so plate never depends on pantry.
  */
+import { regex } from "arkregex";
 import path from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
@@ -342,7 +343,7 @@ const compare = (resolver: Resolver, reference: Reference): Compared => {
     return { _tag: "skipped", reason: "unresolved" };
   }
 
-  if (reference.attribute === "srcset" && /[\t\n\r ,]/u.test(reference.lexical.trim())) {
+  if (reference.attribute === "srcset" && regex("[\t\n\r ,]", "u").test(reference.lexical.trim())) {
     return { _tag: "skipped", reason: "srcset" };
   }
 
@@ -395,7 +396,7 @@ const planted: readonly Planted[] = [
   {
     name: "keeps the query and fragment in the path",
     resolver: (location, element, attribute, value) => {
-      const at = value.search(/[?#]/u);
+      const at = value.search(regex("[?#]", "u"));
       const params = at === -1 ? "" : value.slice(at);
 
       return assetPaths(location, element, attribute, value).map((file) => `${file}${params}`);

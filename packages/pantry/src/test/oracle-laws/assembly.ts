@@ -24,6 +24,7 @@
  *   the document there where that resource is an item. An href that resolves outside the package
  *   names nothing a law reads (SV-LAW-02).
  */
+import { regex } from "arkregex";
 import { Option } from "effect";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
 import { booleanOf } from "#pantry/grammar/domains.ts";
@@ -77,7 +78,8 @@ export const itemResourceType = "imsqti_item_xmlv3p0";
  * @param type - The type.
  * @returns Whether it is an LTI link's.
  */
-export const isLinkType = (type: string): boolean => /^ims(?:basic)?ltia?_xmlv/u.test(type);
+export const isLinkType = (type: string): boolean =>
+  regex("^ims(?:basic)?ltia?_xmlv", "u").test(type);
 
 /**
  * The reserved targets every branch rule may name (information model §5.23.1).

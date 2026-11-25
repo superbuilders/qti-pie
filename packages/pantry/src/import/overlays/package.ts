@@ -21,6 +21,7 @@
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-5.2 | RFC 3986, §5.2}
  */
+import { regex } from "arkregex";
 import type { Addition } from "@bjornpagen/grizzle";
 import { resolveWithin } from "@bjornpagen/grizzle-text/uri";
 import { Option, Result } from "effect";
@@ -163,7 +164,7 @@ export const referencePiecesOf = (lexical: string): ReferencePieces => {
  * @returns It, with no tab, line feed, carriage return or space at either end.
  */
 export const hrefTextOf = (value: string): string =>
-  value.replace(/^[\t\n\r ]+/u, "").replace(/[\t\n\r ]+$/u, "");
+  value.replace(regex("^[\t\n\r ]+", "u"), "").replace(regex("[\t\n\r ]+$", "u"), "");
 
 /**
  * Why the importer reads no name from an href, each a stated limit of the representation, refused
@@ -222,18 +223,18 @@ type HrefBase =
  * A URI's scheme at the start of an href (RFC 3986, §3.1): `ALPHA *( ALPHA / DIGIT / "+" / "-" /
  * "." ) ":"`.
  */
-const schemeStart = /^[A-Za-z][A-Za-z0-9+.-]*:/u;
+const schemeStart = regex("^[A-Za-z][A-Za-z0-9+.-]*:", "u");
 
 /**
  * A `%` that starts no percent-encoding, `"%" HEXDIG HEXDIG` (RFC 3986, §2.1).
  */
-const strayPercent = /%(?![0-9A-Fa-f]{2})/u;
+const strayPercent = regex("%(?![0-9A-Fa-f]{2})", "u");
 
 /**
  * A segment made of dots alone, each written as `.` or as its percent-encoding `%2E`, an
  * unreserved character, which RFC 3986, §2.3 and §6.2.2.2, reads as the character itself.
  */
-const dotsOnly = /^(?:\.|%2[Ee])+$/u;
+const dotsOnly = regex("^(?:\\.|%2[Ee])+$", "u");
 
 /**
  * Write an entry path's segment, a name, in the written form a base's segments are held in, a
@@ -269,7 +270,7 @@ export const documentBase = (path: string): HrefBase => ({
  * @returns The segment, its dots decoded where it is made of dots alone.
  */
 const dotsDecodedOf = (segment: string): string =>
-  dotsOnly.test(segment) ? segment.replaceAll(/%2[Ee]/gu, ".") : segment;
+  dotsOnly.test(segment) ? segment.replaceAll(regex("%2[Ee]", "gu"), ".") : segment;
 
 /**
  * The package's root as the absolute URI a reference is resolved against (RFC 3986, §5.1): a scheme
@@ -295,11 +296,11 @@ const writtenLimitOf = (path: string): Limit | undefined => {
     return "backslash";
   }
 
-  if (/[\t\n\r]/u.test(path)) {
+  if (regex("[\t\n\r]", "u").test(path)) {
     return "control";
   }
 
-  return /^[^/]*:/u.test(path) ? "colon" : undefined;
+  return regex("^[^/]*:", "u").test(path) ? "colon" : undefined;
 };
 
 /**
@@ -319,7 +320,7 @@ type Step =
  * @returns Its path.
  */
 export const hrefPathOf = (value: string): string => {
-  const at = value.search(/[?#]/u);
+  const at = value.search(regex("[?#]", "u"));
 
   return at === -1 ? value : value.slice(0, at);
 };
@@ -389,7 +390,7 @@ const encoder = new TextEncoder();
  */
 const decodedSegmentOf = (segment: string): Result.Result<string, Limit> => {
   const octets: number[] = [];
-  for (const [token] of segment.matchAll(/%[0-9A-Fa-f]{2}|./gsu)) {
+  for (const [token] of segment.matchAll(regex("%[0-9A-Fa-f]{2}|.", "gsu"))) {
     octets.push(
       ...(token.startsWith("%") ? [Number.parseInt(token.slice(1), 16)] : encoder.encode(token)),
     );

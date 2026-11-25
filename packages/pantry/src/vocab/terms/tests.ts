@@ -6,6 +6,7 @@
  * function of the grammar's rosters alone, so loading this module builds no relation of the
  * schema.
  */
+import { regex } from "arkregex";
 import type { Kind } from "#pantry/grammar/compose.ts";
 import { includeKind as include } from "#pantry/grammar/include.ts";
 import { grammar, includeParentKinds, NodeKind, ResourceType } from "#pantry/grammar/install.ts";
@@ -180,4 +181,4 @@ export const itemResourceType =
  * roster.
  */
 export const linkResourceTypes: readonly (typeof ResourceType.handles)[number][] =
-  ResourceType.handles.filter((type) => /^ims(?:basic)?ltia?_xmlv/u.test(type));
+  ResourceType.handles.filter((type) => regex("^ims(?:basic)?ltia?_xmlv", "u").test(type));

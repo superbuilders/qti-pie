@@ -5,6 +5,7 @@
  * over generated documents, and its membership checks test the handle of the node's own `Position`
  * field, as the host judge reads them. PostgreSQL judges the laws themselves.
  */
+import { regex } from "arkregex";
 import {
   bits,
   Bits,
@@ -305,7 +306,7 @@ describe("Node's declarations", () => {
     // them), and `endsOf` against `Array.from`, which splits a text into its code points.
     // Bound: the empty text, one and two characters, a line end, a surrogate pair alone, at
     // either end and between two letters.
-    const end = new RegExp(EndCharacter.patterns[0].source, EndCharacter.patterns[0].flags);
+    const end = regex.as(EndCharacter.patterns[0].source, EndCharacter.patterns[0].flags);
     for (const held of ["", "a", "\n", "é", "😀"]) {
       assert.isTrue(end.test(held), JSON.stringify(held));
     }
@@ -663,8 +664,8 @@ const customItem = (children: string): string =>
  * namespaces leave QTI's own out, a type of the content-packaging set (spec reading 81).
  */
 const otherSetType =
-  install.TypeAvailable.rows.find(({ namespaces }) => !new RegExp(namespaces, "u").test(asi))
-    ?.type ?? assert.fail("TypeAvailable holds no type outside QTI's schema set");
+  install.TypeAvailable.rows.find(({ namespaces }) => !regex.as(namespaces, "u").test(asi))?.type ??
+  assert.fail("TypeAvailable holds no type outside QTI's schema set");
 
 /**
  * The laws over foreign elements: the class, the canonical name, simple content, strictness and

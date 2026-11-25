@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, layer } from "@effect/vitest";
 import { Effect } from "effect";
@@ -104,7 +105,7 @@ const dataHeld = (judgment: Judgment): void => {
   if (judgment._tag === "CodecRefusal") {
     assert.notMatch(
       judgment.detail,
-      /\bdata-/u,
+      regex("\\bdata-", "u"),
       `codec refusal ${judgment.rule} in ${judgment.document} names a data-* attribute`,
     );
 

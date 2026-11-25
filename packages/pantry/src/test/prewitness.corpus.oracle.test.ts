@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -83,7 +84,7 @@ const breachLine = (file: string, breach: Breach): string =>
     breach.keys["node"] ?? "",
     explain(breach.law, breach.keys, grammar),
   ]
-    .map((field) => field.replaceAll(/[\t\r\n]+/gu, " "))
+    .map((field) => field.replaceAll(regex("[\t\r\n]+", "gu"), " "))
     .join("\t");
 
 /**
@@ -199,7 +200,7 @@ describe.skipIf(!settings.corpusRequested)("prewitness.corpus.oracle.test.ts, th
                     ? judgment.breaches.map((breach) => breachLine(file, breach))
                     : [
                         [file, "codec", judgment.rule, judgment.document, "", judgment.detail]
-                          .map((field) => field.replaceAll(/[\t\r\n]+/gu, " "))
+                          .map((field) => field.replaceAll(regex("[\t\r\n]+", "gu"), " "))
                           .join("\t"),
                       ],
                 ),

@@ -27,6 +27,7 @@
  * - An element two rules name (the ASI XSD states `qti-rubric-block` and `qti-template-inline` twice)
  *   is one row, sourced to its first rule.
  */
+import { regex } from "arkregex";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Array as Arr, Console, Effect, Layer, Option, Result } from "effect";
@@ -74,7 +75,7 @@ interface CoveredRule {
  * The prefix or the local name of an extension rule's context: a name that starts with a letter or
  * `_`, then letters, digits, `_`, `.` and `-`.
  */
-const contextName = /^[A-Za-z_][\w.-]*$/u;
+const contextName = regex("^[A-Za-z_][\\w.-]*$", "u");
 
 /**
  * The descendant step every extension rule's context opens with.
@@ -276,7 +277,7 @@ const commentOf = (paragraphs: readonly (readonly string[])[]): readonly string[
  * @returns The numeral.
  */
 const numeralOf = (line: number): string =>
-  line < 10_000 ? String(line) : String(line).replaceAll(/\B(?=(?:\d{3})+$)/gu, "_");
+  line < 10_000 ? String(line) : String(line).replaceAll(regex("\\B(?=(?:\\d{3})+$)", "gu"), "_");
 
 /**
  * Name the leaf's constant for a namespace: its vocabulary's name and `Namespace`.

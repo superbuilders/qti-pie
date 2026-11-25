@@ -20,6 +20,7 @@
  * Coverage requires every class to be refused by both readers and accepted by both. Each class is
  * a case of its own over the same seeds.
  */
+import { regex } from "arkregex";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import * as NodePath from "@effect/platform-node/NodePath";
 import { assert, describe, it } from "@effect/vitest";
@@ -136,13 +137,18 @@ interface Seed {
 /**
  * A start tag's name, attributes and close, at the start of the text it is matched against.
  */
-const startTagPattern =
-  /^<(?<name>[^\s/>]+)(?<attributes>(?:\s+[^\s=/>]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*(?<slash>\/?)>/u;
+const startTagPattern = regex(
+  "^<(?<name>[^\\s/>]+)(?<attributes>(?:\\s+[^\\s=/>]+\\s*=\\s*(?:\"[^\"]*\"|'[^']*'))*)\\s*(?<slash>/?)>",
+  "u",
+);
 
 /**
  * One attribute inside a start tag's attribute text.
  */
-const attributePattern = /(?<name>[^\s=/>]+)\s*=\s*(?<quote>["'])(?<value>[^"']*)\k<quote>/gu;
+const attributePattern = regex(
+  "(?<name>[^\\s=/>]+)\\s*=\\s*(?<quote>[\"'])(?<value>[^\"']*)\\k<quote>",
+  "gu",
+);
 
 /**
  * The markup the reading steps over whole, by the text that opens and the text that closes it:
@@ -273,7 +279,11 @@ const seedOf = (
 
       if (delimited.value.kind === "comment") {
         comments.push([at, delimited.value.end]);
-      } else if (delimited.value.kind === "pi" && at === 0 && /^<\?xml\s/u.test(text)) {
+      } else if (
+        delimited.value.kind === "pi" &&
+        at === 0 &&
+        regex("^<\\?xml\\s", "u").test(text)
+      ) {
         declaration = Option.some([0, delimited.value.end]);
       }
 
@@ -927,7 +937,7 @@ const batchSize = 200;
  */
 const judgedAlone = Effect.fnUntraced(function* judgedAlone(file: string) {
   const run = yield* xmllintRun(["--noout", "--nonet", file]).pipe(Effect.orDie);
-  const accepted = run.code === 0 && !/ namespace error : /u.test(run.stderr);
+  const accepted = run.code === 0 && !regex(" namespace error : ", "u").test(run.stderr);
 
   return { accepted, why: accepted ? "" : libxml2Class(run.stderr, run.code) } satisfies Verdict;
 });
@@ -949,8 +959,10 @@ const judgedInBatches = Effect.fnUntraced(function* judgedInBatches(files: reado
     const run = yield* xmllintRun(["--noout", "--nonet", ...batch]).pipe(Effect.orDie);
     const byFile = new Map<string, string[]>();
     let pending: string[] = [];
-    for (const line of run.stderr.split("\n").filter((held) => / error : /u.test(held))) {
-      const file = /^(?<file>\/[^:]+\.xml):/u.exec(line)?.groups?.["file"];
+    for (const line of run.stderr
+      .split("\n")
+      .filter((held) => regex(" error : ", "u").test(held))) {
+      const file = regex("^(?<file>/[^:]+\\.xml):", "u").exec(line)?.groups?.["file"];
       if (file !== undefined && batch.includes(file)) {
         byFile.set(file, [...(byFile.get(file) ?? []), ...pending, line]);
         pending = [];

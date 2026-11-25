@@ -9,6 +9,7 @@
  * never renames an element another reference names, since the reference would break a law of its
  * own first.
  */
+import { regex } from "arkregex";
 import { element, int } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { branchTo, testText } from "#pantry/test/gen/base-test.ts";
@@ -323,7 +324,10 @@ export const testMutations = {
     law: "Stimulus ref key",
     mutate: ({ entries }) =>
       drawnIn("items/item.xml", (text) =>
-        duplicateDrawn(text, /<qti-assessment-stimulus-ref identifier="[^"]+" href="[^"]+"\/>/u),
+        duplicateDrawn(
+          text,
+          regex.as('<qti-assessment-stimulus-ref identifier="[^"]+" href="[^"]+"/>', "u"),
+        ),
       )(entries),
     over: "package",
   },

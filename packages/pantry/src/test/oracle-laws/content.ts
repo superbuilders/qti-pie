@@ -23,6 +23,7 @@
  * decision 432); and `Printed variable type`, a printed variable's `base` or `index` that names a
  * variable names a single integer one (§9.3.3).
  */
+import { regex } from "arkregex";
 import { Option } from "effect";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
 import {
@@ -83,7 +84,7 @@ const referringRoots: ReadonlySet<string> = new Set([testKinds.item, testKinds.t
 /**
  * A braced variable reference: `{identifier}`.
  */
-const braced = /^\{(?<identifier>[^{}]+)\}$/u;
+const braced = regex("^\\{(?<identifier>[^{}]+)\\}$", "u");
 
 /**
  * Read the variable a reference attribute's value names, by the reference's spelling: a bare

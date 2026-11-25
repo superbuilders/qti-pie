@@ -9,6 +9,7 @@
  * `None` for it, and `import/program.oracle.db.test.ts` holds PostgreSQL to the law oracle's
  * verdict on it instead.
  */
+import { regex } from "arkregex";
 import path from "node:path";
 import { Effect, FileSystem, Option, Schema } from "effect";
 
@@ -48,9 +49,8 @@ export const processingVerdicts = Effect.gen(function* processingVerdicts() {
     text.split("\n").slice(1),
     Effect.fnUntraced(function* verdictOfLine(line) {
       const fields = line.split("\t");
-      const name = /^(?:broken|guards)\/(?<name>[^/]+)\.xml$/u.exec(fields[0] ?? "")?.groups?.[
-        "name"
-      ];
+      const name = regex("^(?:broken|guards)/(?<name>[^/]+)\\.xml$", "u").exec(fields[0] ?? "")
+        ?.groups?.["name"];
       if (name === undefined) {
         return [];
       }

@@ -34,6 +34,7 @@
  *   variable whose declaration holds a `qti-mapping`, under its own name or a mapping of the ref's,
  *   and a map response point's one that holds a `qti-area-mapping`; an item built-in holds none.
  */
+import { regex } from "arkregex";
 import { Option } from "effect";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
 import {
@@ -108,7 +109,7 @@ const durationScopes: ReadonlySet<string> = new Set([
  * An instance number: all digits, and at least 1 (reading 88: "its number is all digits and at
  * least 1, the first instance being 1").
  */
-const instanceNumber = /^0*[1-9][0-9]*$/u;
+const instanceNumber = regex("^0*[1-9][0-9]*$", "u");
 
 /**
  * One scope a placed reference may be read through: a name of a document an instance of the test

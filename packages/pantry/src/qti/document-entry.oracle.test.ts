@@ -26,6 +26,7 @@
  * alone, and the second type's href names no document of its type, "Document entry" alone: neither
  * side raises RootOfType for it, and the import's rows break no Idref target the oracle does not.
  */
+import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
@@ -160,9 +161,9 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                 );
 
                 assert.deepStrictEqual(apart.map(shownDisagreement), [], said);
-                assert.match(judged.summary.oracle, /\bDocument entry\b/u, said);
-                assert.notMatch(judged.summary.oracle, /\bRootOfType\b/u, said);
-                assert.notMatch(judged.summary.import, /\bRootOfType\b/u, said);
+                assert.match(judged.summary.oracle, regex("\\bDocument entry\\b", "u"), said);
+                assert.notMatch(judged.summary.oracle, regex("\\bRootOfType\\b", "u"), said);
+                assert.notMatch(judged.summary.import, regex("\\bRootOfType\\b", "u"), said);
               }),
           );
         }).pipe(Effect.scoped),

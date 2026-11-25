@@ -29,6 +29,7 @@
  * cannot outlive its fix. {@link fixed} holds the defects since closed, their documents kept as
  * planted seeds that every oracle must pass.
  */
+import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, layer } from "@effect/vitest";
 import { Console, Effect, Layer, Option } from "effect";
@@ -85,38 +86,49 @@ interface Recorded {
  */
 const recorded: readonly Recorded[] = [
   {
-    signature: /^O1 encoding declared against the bytes: crust refuses, libxml2 accepts$/u,
+    signature: regex.as(
+      "^O1 encoding declared against the bytes: crust refuses, libxml2 accepts$",
+      "u",
+    ),
     source:
       'XML 1.0 (Fifth Edition) section 4.3.3: "it is a fatal error for an entity including an encoding declaration to be presented to the XML processor in an encoding other than that named in the declaration, or for an entity which begins with neither a Byte Order Mark nor an encoding declaration to use an encoding other than UTF-8", and "Entities encoded in UTF-16 MUST ... begin with the Byte Order Mark", the terms "UTF-8" and "UTF-16" not applying "to related character encodings, including but not limited to UTF-16BE, UTF-16LE"; Unicode 16.0 section 3.10, D96 and D97, and RFC 2781 sections 4.1 and 4.2: under UTF-16BE or UTF-16LE an initial FE FF or FF FE is U+FEFF, a character',
     why: 'a document in another encoding than its declaration names, or than UTF-8 where it names none, is refused by crust under encoding-mismatch (decode.ts): a UTF-16 mark under UTF-16LE or UTF-16BE, a UTF-8 mark under another label, an Appendix F UTF-16 pattern with no mark under UTF-16, under UTF-8 or under no label; libxml2 2.15.2 reads a UTF-16 mark or pattern in the encoding its first bytes say, and a UTF-8 mark in UTF-8 under a single-byte label, warning at most that the label "doesn\'t match auto-detected" one',
   },
   {
-    signature: /^O1 crust refused-entity-cycle, libxml2 accepts(?: after an xml:id error)?$/u,
+    signature: regex.as(
+      "^O1 crust refused-entity-cycle, libxml2 accepts(?: after an xml:id error)?$",
+      "u",
+    ),
     source:
       'XML 1.0 (Fifth Edition) section 4.1, WFC No Recursion: "A parsed entity MUST NOT contain a recursive reference to itself, either directly or indirectly"',
     why: 'a ring of internal entities is a well-formedness error whether or not the body references it, as the constraint is on the entity; crust refuses the ring where it is declared (dtd.ts), libxml2 2.15.2 only on expanding it ("Detected an entity reference loop")',
   },
   {
-    signature: /^O1 namespace name holds a reference: crust accepts, libxml2 refuses: .+$/u,
+    signature: regex.as(
+      "^O1 namespace name holds a reference: crust accepts, libxml2 refuses: .+$",
+      "u",
+    ),
     source:
       'XML 1.0 (Fifth Edition) section 4.4.3: a processor that does not include an entity\'s replacement text "MUST inform the application that it recognized, but did not read, the entity"',
     why: "a namespace declaration whose value references an entity only the unread external subset may declare has an unknown namespace name; libxml2 2.15.2 reads the reference as empty text and then refuses an empty prefixed namespace name or a URI it makes of the rest; crust keeps the reference, and shred refuses the declaration under namespace-entity",
   },
   {
-    signature: /^O5 UTF-16 input ends inside a surrogate pair: .+$/u,
+    signature: regex.as("^O5 UTF-16 input ends inside a surrogate pair: .+$", "u"),
     source:
       'XML 1.0 (Fifth Edition) section 4.3.3: "It is a fatal error if an XML entity is determined ... to be in a certain encoding but contains byte sequences that are not legal in that encoding"; section 2.2, [2] Char excludes the surrogate blocks',
     why: "a UTF-16 document whose last code unit is a high surrogate no low one follows, or half a code unit, holds a sequence UTF-16 does not, so what an independent decoder makes of it is the input's fault, not crust's; crust's fatal decoder refuses it (decode.ts), as libxml2 2.15.2 does (\"Invalid bytes in character encoding\"), so O1 agrees but after an xml:id error, which the last record holds",
   },
   {
-    signature: /^O\d default names an entity declared after it: .+$/u,
+    signature: regex.as("^O\\d default names an entity declared after it: .+$", "u"),
     source:
       "XML 1.0 (Fifth Edition) section 4.1: WFC and VC Entity Declared both say \"The declaration of a general entity MUST precede any reference to it which appears in a default value in an attribute-list declaration\"; outside the WFC's scope sections 4.4 and 5.1 leave the default's value undetermined",
     why: "crust refuses a forward reference in a default everywhere: inside the WFC's scope as not well-formed, outside it as an invalid document whose default has no value the specification fixes (the coordinator's ruling 5: refuse where the infoset is undetermined); libxml2 2.15.2 reads such a default as the empty string, its own choice, with a warning that the entity is not defined",
   },
   {
-    signature:
-      /^O1 (?:UTF-16 input ends inside a surrogate pair: )?crust refused-(?:decode|well-formedness \((?:text data outside of root node\.|documents may contain only one root\.)\)), libxml2 accepts after an xml:id error$/u,
+    signature: regex.as(
+      "^O1 (?:UTF-16 input ends inside a surrogate pair: )?crust refused-(?:decode|well-formedness \\((?:text data outside of root node\\.|documents may contain only one root\\.)\\)), libxml2 accepts after an xml:id error$",
+      "u",
+    ),
     source:
       "XML 1.0 (Fifth Edition) section 2.1, [1] document ::= prolog element Misc*, and section 4.3.3, which makes bytes not legal in the entity's encoding a fatal error; xml:id 1.0 section 6: an xml:id error is non-fatal, so it leaves both rules standing",
     why: "after an xml:id that is no NCName, libxml2 2.15.2 never checks the end of the document: the xml:id error (SAX2.c xmlErrId) sets the parser's errNo, and xmlParserCheckEOF returns while errNo holds an error (parserInternals.c:664-669), so content after the root element, a second root and an input that ends inside a character all pass with exit 0; crust refuses each, as the WFC and section 4.3.3 require",
@@ -415,7 +427,7 @@ const reportOf = (run: Searched): readonly string[] => [
       `  residual ${family}: ${String(observed)} features, ${String(singletons)} seen once over ${String(candidates)} candidates, Good-Turing ${estimate.toFixed(4)}`,
   ),
   `  outcomes: ${[...run.evolved.features]
-    .filter(([feature]) => /^(?:o\d|codec) /u.test(feature))
+    .filter(([feature]) => regex("^(?:o\\d|codec) ", "u").test(feature))
     .toSorted(([left], [right]) => (left < right ? -1 : 1))
     .map(([feature, count]) => `${feature} (${String(count)})`)
     .join("; ")}`,

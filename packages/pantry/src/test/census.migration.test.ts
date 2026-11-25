@@ -9,6 +9,7 @@
  * targets. It lands with the migration it reads, so it is a file of its own: the census's parser
  * and its targets are `census.test.ts`'s, which need no migration.
  */
+import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, FileSystem } from "effect";
@@ -42,9 +43,13 @@ describe("the committed migration", () => {
 
         const folders = entries.slice(0, -4);
         assert.isAbove(folders.length, 0, entries.join(", "));
-        assert.match(folders[0] ?? "", /^\d{14}_init$/u);
+        assert.match(folders[0] ?? "", regex("^\\d{14}_init$", "u"));
         for (const folder of folders) {
-          assert.match(folder, /^\d{14}_[a-z0-9]+(?:[_-][a-z0-9]+)*$/u, entries.join(", "));
+          assert.match(
+            folder,
+            regex("^\\d{14}_[a-z0-9]+(?:[_-][a-z0-9]+)*$", "u"),
+            entries.join(", "),
+          );
         }
         assert.deepStrictEqual(entries.slice(-4), [
           "manifest.json",

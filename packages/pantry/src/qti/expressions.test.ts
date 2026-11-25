@@ -5,6 +5,7 @@
  *
  * The fixtures' verdicts are `#pantry/import/overlays/expressions.test.ts`'s.
  */
+import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { Option } from "effect";
 import { stepOf } from "#pantry/grammar/content.ts";
@@ -50,7 +51,7 @@ import {
  * @returns Its pattern, under the `u` flag.
  */
 const patternOf = (baseType: string): RegExp =>
-  new RegExp(
+  regex.as(
     BaseTypePattern.rows.find((row) => row.baseType === baseType)?.pattern ??
       assert.fail(`BaseTypePattern holds no row for ${baseType}`),
     "u",
@@ -132,7 +133,7 @@ describe("qti/expressions.ts, its typing tables", () => {
       referenceDeclarations.map(({ kind }) => kind).toSorted(),
       [...new Set(referring)].toSorted(),
     );
-    assert.isTrue(referenceDeclarations.every(({ source }) => /^§\d/u.test(source)));
+    assert.isTrue(referenceDeclarations.every(({ source }) => regex("^§\\d", "u").test(source)));
     assert.deepStrictEqual(
       [...setterKinds].toSorted(),
       [...setKindHandles, lookupKindHandle].toSorted(),
@@ -227,7 +228,7 @@ qti-integer-divide 2 2|qti-integer-modulus 2 2|qti-integer-to-float 1 1|qti-roun
 qti-truncate 1 1|qti-round-to 1 1|qti-min 1 *|qti-max 1 *|qti-gcd 1 *|qti-lcm 1 *
 qti-math-operator 1 *|qti-stats-operator 1 1|qti-custom-operator 0 *`
   .trim()
-  .split(/[|\n]/u)
+  .split(regex("[|\n]", "u"))
   .map((row) => row.split(" "))
   .map(([kind = "", min = "0", max = "*"]) => ({
     kind,

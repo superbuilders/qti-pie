@@ -21,6 +21,7 @@
  * object), and each of 3 forms of the record's identifier and of its title (absent, the
  * document's, another): 27 cases, exhausted.
  */
+import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
@@ -193,14 +194,14 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   const titleBreaks =
                     of.title !== "absent" && (!of.root.object || of.title !== "the document's");
 
-                  assert.match(judged.summary.import, /^built /u, said);
+                  assert.match(judged.summary.import, regex("^built ", "u"), said);
                   assert.strictEqual(
-                    /\bLomObjectIdentifier\b/u.test(judged.summary.oracle),
+                    regex("\\bLomObjectIdentifier\\b", "u").test(judged.summary.oracle),
                     identifierBreaks,
                     said,
                   );
                   assert.strictEqual(
-                    /\bLomObjectTitle\b/u.test(judged.summary.oracle),
+                    regex("\\bLomObjectTitle\\b", "u").test(judged.summary.oracle),
                     titleBreaks,
                     said,
                   );

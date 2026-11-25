@@ -40,6 +40,7 @@
  *   ({@link mixedOf}). A type with simple content holds text of the base its `simpleContent`
  *   extends, through the simple content of a complex base ({@link textTypeOf}).
  */
+import { regex } from "arkregex";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Array as Arr, Console, Effect, Layer, Match, Option, pipe, Result, Schema } from "effect";
@@ -198,7 +199,7 @@ export const requireAttribute = (
 export const listAttributeOf = (node: Element, name: string): readonly string[] =>
   Option.match(attributeOf(node, name), {
     onNone: () => [],
-    onSome: (value) => value.split(/\s+/u).filter((item) => item !== ""),
+    onSome: (value) => value.split(regex("\\s+", "u")).filter((item) => item !== ""),
   });
 
 /**
@@ -1605,7 +1606,7 @@ const times = (outer: Occurs, inner: Occurs): Occurs => ({
  * @returns The count, or an {@link XsdReadingError} when it is not a non-negative integer.
  */
 const countOf = (particle: Element, value: string): Result.Result<number, XsdReadingError> =>
-  /^\d+$/u.test(value)
+  regex("^\\d+$", "u").test(value)
     ? Result.succeed(Number(value))
     : refuse(`an ${particle.qname} has the occurrence bound ${value}`);
 

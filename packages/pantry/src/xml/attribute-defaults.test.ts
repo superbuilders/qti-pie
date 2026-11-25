@@ -19,6 +19,7 @@
  * subset, which libxml2 without `--valid` reports only as the warning "Entity 'f' not defined".
  * Crust refuses it in every context, as reading 1 refuses content that is not valid.
  */
+import { regex } from "arkregex";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import * as NodePath from "@effect/platform-node/NodePath";
 import { assert, describe, it } from "@effect/vitest";
@@ -218,7 +219,10 @@ const erased = (attribute: Attribute, type: string | undefined): Attribute => {
     value:
       type === undefined || type === "CDATA"
         ? value
-        : value.replaceAll(/ +/gu, " ").replace(/^ /u, "").replace(/ $/u, ""),
+        : value
+            .replaceAll(regex(" +", "gu"), " ")
+            .replace(regex("^ ", "u"), "")
+            .replace(regex(" $", "u"), ""),
   };
 };
 

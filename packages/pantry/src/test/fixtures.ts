@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { Config, Effect, FileSystem, Match, Option, Record as Rec, Schema, Stream } from "effect";
@@ -2155,7 +2156,7 @@ const copiedIdentifiers: ReadonlyMap<string, string> = new Map([
  * @returns Its manifest identifier.
  */
 export const ownIdentifierOf = (name: string): string =>
-  `fixture-${name.replaceAll(/[^\w.-]+/gu, "-")}`;
+  `fixture-${name.replaceAll(regex("[^\\w.-]+", "gu"), "-")}`;
 
 /**
  * The edit that gives a variant of a corpus package a manifest identifier of its own,
@@ -6819,7 +6820,7 @@ const listTarball = Effect.fn("fixtures.listTarball")(function* listTarball(tarb
   }
 
   const entries = (yield* run("tar", ["-tzf", tarball])).split("\n").filter((line) => line !== "");
-  const top = (entries[0] ?? "").replace(/\/$/u, "");
+  const top = (entries[0] ?? "").replace(regex("/$", "u"), "");
   const members = entries
     .filter((entry) => entry.startsWith(`${top}/`))
     .map((entry) => entry.slice(top.length + 1))
@@ -6907,7 +6908,7 @@ const setElementText = (
   text: string,
   edit: Extract<TextEdit, { _tag: "SetElementText" }>,
 ): string => {
-  const named = new RegExp(
+  const named = regex.as(
     `(<(?:[A-Za-z_][\\w.-]*:)?${edit.element}(?:\\s[^>]*)?>)[^<]*(</(?:[A-Za-z_][\\w.-]*:)?${edit.element}\\s*>)`,
     "gu",
   );
@@ -6967,7 +6968,7 @@ const editBytes = (original: Uint8Array, edits: readonly TextEdit[]): Uint8Array
     return Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]);
   }
 
-  if (/[\u{100}-\u{10FFFF}]/u.test(text)) {
+  if (regex("[\\u{100}-\\u{10FFFF}]", "u").test(text)) {
     throw new Error(
       "an edit put a character above U+00FF into a file written as latin1; write it as a character reference, or add an EncodeUtf16 edit",
     );
@@ -7032,7 +7033,7 @@ const applyTextEdits = Effect.fn("fixtures.applyTextEdits")(function* applyTextE
  * A reference that is not a path inside the package: it has a scheme, starts at the root or names
  * only a fragment.
  */
-const externalReference = /^(?:[A-Za-z][A-Za-z0-9+.-]*:|\/|#)/u;
+const externalReference = regex("^(?:[A-Za-z][A-Za-z0-9+.-]*:|/|#)", "u");
 
 /**
  * Make an item's file name an XML `NCName`: every character outside letters, digits, `_`, `.` and
@@ -7044,9 +7045,9 @@ const externalReference = /^(?:[A-Za-z][A-Za-z0-9+.-]*:|\/|#)/u;
 const ncNameOf = (item: string): string => {
   const name = path.posix
     .basename(item, path.posix.extname(item))
-    .replaceAll(/[^A-Za-z0-9_.-]/gu, "_");
+    .replaceAll(regex("[^A-Za-z0-9_.-]", "gu"), "_");
 
-  return /^[A-Za-z_]/u.test(name) ? name : `_${name}`;
+  return regex("^[A-Za-z_]", "u").test(name) ? name : `_${name}`;
 };
 
 /**
@@ -7150,28 +7151,36 @@ const documentRefTypes: ReadonlyMap<string, string> = new Map([
 /**
  * An item, section or stimulus ref start tag, with its attribute text.
  */
-const documentRefPattern =
-  /<(?<tag>qti-assessment-item-ref|qti-assessment-section-ref|qti-assessment-stimulus-ref)\b(?<attrs>[^>]*?)(?<self>\/?)>/gu;
+const documentRefPattern = regex.as<string, { names: Record<string, string | undefined> }>(
+  "<(?<tag>qti-assessment-item-ref|qti-assessment-section-ref|qti-assessment-stimulus-ref)\\b(?<attrs>[^>]*?)(?<self>/?)>",
+  "gu",
+);
 
 /**
  * One `name="value"` or `name='value'` attribute of a start tag.
  */
-const attributePattern =
-  /(?<name>[A-Za-z_][\w:.-]*)\s*=\s*(?:"(?<double>[^"]*)"|'(?<single>[^']*)')/gu;
+const attributePattern = regex(
+  "(?<name>[A-Za-z_][\\w:.-]*)\\s*=\\s*(?:\"(?<double>[^\"]*)\"|'(?<single>[^']*)')",
+  "gu",
+);
 
 /**
  * One `qti-file-href` or `qti-resource-icon` element, whose text may name a file of the package
  * (the companion materials of an item name theirs so).
  */
-const fileElementPattern =
-  /<(?:qti-file-href|qti-resource-icon)(?:\s[^>]*)?>(?<text>[^<]*)<\/(?:qti-file-href|qti-resource-icon)>/gu;
+const fileElementPattern = regex(
+  "<(?:qti-file-href|qti-resource-icon)(?:\\s[^>]*)?>(?<text>[^<]*)</(?:qti-file-href|qti-resource-icon)>",
+  "gu",
+);
 
 /**
  * The attributes whose values may name a file of the package: `src`, `data`, `href`, `poster`,
  * `srcset`, `cite` and `altimg` (an `m:math`'s image fallback).
  */
-const fileAttributePattern =
-  /\s(?<name>src|data|href|poster|srcset|cite|altimg)\s*=\s*(?:"(?<double>[^"]*)"|'(?<single>[^']*)')/gu;
+const fileAttributePattern = regex(
+  "\\s(?<name>src|data|href|poster|srcset|cite|altimg)\\s*=\\s*(?:\"(?<double>[^\"]*)\"|'(?<single>[^']*)')",
+  "gu",
+);
 
 /**
  * Read XML's five predefined entities back out of an attribute value.
@@ -7222,7 +7231,7 @@ const refsOf = (text: string) =>
 /**
  * One `xi:include` start tag, with its attribute text.
  */
-const includePattern = /<xi:include\b(?<attrs>[^>]*?)\/?>/gu;
+const includePattern = regex("<xi:include\\b(?<attrs>[^>]*?)/?>", "gu");
 
 /**
  * The documents a QTI document's `xi:include` elements name, resolved against its folder.
@@ -7237,7 +7246,7 @@ const includesOf = (text: string, documentPath: string): string[] => {
 
   for (const match of text.matchAll(includePattern)) {
     const href = attributesOf(match.groups?.["attrs"] ?? "").get("href") ?? "";
-    const reference = href.replace(/[?#].*$/u, "");
+    const reference = href.replace(regex("[?#].*$", "u"), "");
 
     if (reference !== "" && !externalReference.test(reference)) {
       targets.add(path.posix.join(folder, reference));
@@ -7266,7 +7275,7 @@ const fileReferencesOf = (text: string, documentPath: string): string[] => {
   const paths = new Set<string>();
 
   for (const match of text.matchAll(fileElementPattern)) {
-    const reference = (match.groups?.["text"] ?? "").trim().replace(/[?#].*$/u, "");
+    const reference = (match.groups?.["text"] ?? "").trim().replace(regex("[?#].*$", "u"), "");
 
     if (reference !== "" && !externalReference.test(reference)) {
       paths.add(path.posix.join(folder, reference));
@@ -7277,11 +7286,11 @@ const fileReferencesOf = (text: string, documentPath: string): string[] => {
     const value = unescapeAttribute(match.groups?.["double"] ?? match.groups?.["single"] ?? "");
     const references =
       match.groups?.["name"] === "srcset"
-        ? value.split(",").map((candidate) => candidate.trim().split(/\s+/u)[0] ?? "")
+        ? value.split(",").map((candidate) => candidate.trim().split(regex("\\s+", "u"))[0] ?? "")
         : [value];
 
     for (const raw of references) {
-      const reference = raw.replace(/[?#].*$/u, "");
+      const reference = raw.replace(regex("[?#].*$", "u"), "");
 
       if (reference !== "" && !externalReference.test(reference)) {
         paths.add(path.posix.join(folder, reference));
@@ -7408,7 +7417,7 @@ const cutTestPackage = Effect.fn("fixtures.cutTestPackage")(function* cutTestPac
     const folder = path.posix.dirname(document.path);
 
     for (const ref of refsOf(text)) {
-      const resolved = path.posix.join(folder, ref.href.replace(/[?#].*$/u, ""));
+      const resolved = path.posix.join(folder, ref.href.replace(regex("[?#].*$", "u"), ""));
 
       if (
         !documents.some((known) => known.path === resolved) &&
@@ -7494,7 +7503,7 @@ const stubsOf = (test: string) => {
 
       for (const mapping of test
         .slice(start, end === -1 ? test.length : end)
-        .matchAll(/<qti-variable-mapping\b(?<attrs>[^>]*?)\/?>/gu)) {
+        .matchAll(regex("<qti-variable-mapping\\b(?<attrs>[^>]*?)/?>", "gu"))) {
         const mappingAttributes = attributesOf(mapping.groups?.["attrs"] ?? "");
         const source = mappingAttributes.get("source-identifier");
 
@@ -7549,7 +7558,7 @@ const stubsOf = (test: string) => {
         !identifiers.includes(value) &&
         owner(value) === ref.identifier
       ) {
-        const variable = value.slice(prefix.length).replace(/^\d+\./u, "");
+        const variable = value.slice(prefix.length).replace(regex("^\\d+\\.", "u"), "");
 
         if (variable === "duration") {
           stub.timed = true;
@@ -7640,18 +7649,27 @@ const packageLooseTest = Effect.fn("fixtures.packageLooseTest")(function* packag
               'identifier="choice" title="Unattended Luggage"',
               `identifier="${escapeAttribute(stub.identifier)}" title="${escapeAttribute(stub.identifier)}"`,
             )
-            .replace(/<p>\s*<img [^>]*\/>\s*<\/p>\s*/u, "")
+            .replace(regex("<p>\\s*<img [^>]*/>\\s*</p>\\s*", "u"), "")
             .replace(
-              /[ \t]*<qti-outcome-declaration identifier="SCORE"[\s\S]*?<\/qti-outcome-declaration>\r?\n/u,
+              regex.as(
+                '[ \t]*<qti-outcome-declaration identifier="SCORE"[\\s\\S]*?</qti-outcome-declaration>\r?\n',
+                "u",
+              ),
               stub.scored ? "$&" : "",
             )
             .replace(
               'time-dependent="false"',
               stub.timed ? 'time-dependent="true"' : 'time-dependent="false"',
             )
-            .replace(/<qti-response-processing [^>]*\/>/u, stub.timed ? timedProcessing : "$&")
+            .replace(
+              regex("<qti-response-processing [^>]*/>", "u"),
+              stub.timed ? timedProcessing : "$&",
+            )
             // An unscored stub names no template: match_correct sets SCORE (reading 233).
-            .replace(/<qti-response-processing template="[^"]*"\/>/u, stub.scored ? "$&" : "")
+            .replace(
+              regex('<qti-response-processing template="[^"]*"/>', "u"),
+              stub.scored ? "$&" : "",
+            )
             .replace(
               "    <qti-item-body>",
               [

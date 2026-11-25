@@ -19,6 +19,7 @@
  * It reads no cache: the IR is committed, and its fidelity to the pinned XSDs is the deriver's
  * cache-gated tests'. It writes `work/alignment/rules.tsv`, every rule with its status and owner.
  */
+import { regex } from "arkregex";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -72,7 +73,9 @@ describe("alignment.test.ts, the census", () => {
         const rules = census(grammar);
         const counts = countsOf(rules);
         const numbered = [
-          ...readFileSync(readingsFile, "utf-8").matchAll(/^(?<number>\d+)\. \*\*/gmu),
+          ...readFileSync(readingsFile, "utf-8").matchAll(
+            regex("^(?<number>\\d+)\\. \\*\\*", "gmu"),
+          ),
         ].map((found) => Number(found.groups?.["number"]));
 
         yield* fs.makeDirectory(outputRoot, { recursive: true });
@@ -82,7 +85,7 @@ describe("alignment.test.ts, the census", () => {
             "family\tparent\tsubject\tstatus\towner\tdetail",
             ...rules.map((rule) =>
               [rule.family, rule.parent, rule.subject, rule.status, rule.owner, rule.detail]
-                .map((field) => field.replaceAll(/[\t\r\n]+/gu, " "))
+                .map((field) => field.replaceAll(regex("[\t\r\n]+", "gu"), " "))
                 .join("\t"),
             ),
           ]

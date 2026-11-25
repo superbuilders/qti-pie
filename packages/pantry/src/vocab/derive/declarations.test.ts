@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import path from "node:path";
 import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -143,7 +144,8 @@ const requiredNamesOf = (errors: readonly ValidityError[]): readonly string[] =>
       classOf(reported) === "attribute-required"
         ? Option.toArray(
             Option.fromNullishOr(
-              /The attribute '(?<name>.+)' is required/u.exec(reported.message)?.groups?.["name"],
+              regex("The attribute '(?<name>.+)' is required", "u").exec(reported.message)
+                ?.groups?.["name"],
             ),
           )
         : [],

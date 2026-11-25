@@ -22,6 +22,7 @@
  * information-model citation carries its URL or its line; nor is a line of a text this module does
  * not hold judged, such as Content Packaging 1.2's, whose sections state no normativity.
  */
+import { regex } from "arkregex";
 import { Option } from "effect";
 
 /**
@@ -194,7 +195,7 @@ export interface Sections {
 /**
  * The statement of a section's normativity, as both renderings write it under its heading.
  */
-const markPattern = /This (?:Section|Appendix|section) is (?<not>NOT )?NORMATIVE/u;
+const markPattern = regex("This (?:Section|Appendix|section) is (?<not>NOT )?NORMATIVE", "u");
 
 /**
  * Read a heading's section number from its text: `2.4.1`, a lettered appendix section `A1.2`, or
@@ -204,10 +205,10 @@ const markPattern = /This (?:Section|Appendix|section) is (?<not>NOT )?NORMATIVE
  * @returns The number, or none for a heading that numbers no section.
  */
 const sectionNumberOf = (text: string): Option.Option<string> => {
-  const match =
-    /^\s*(?:Appendix\s+(?<appendix>[A-Z])\b|(?<lettered>[A-Z]\d+(?:\.\d+)*)\.?(?:\s|$)|(?<numbered>\d+(?:\.\d+)*)\.?(?:\s|$))/u.exec(
-      text,
-    );
+  const match = regex(
+    "^\\s*(?:Appendix\\s+(?<appendix>[A-Z])\\b|(?<lettered>[A-Z]\\d+(?:\\.\\d+)*)\\.?(?:\\s|$)|(?<numbered>\\d+(?:\\.\\d+)*)\\.?(?:\\s|$))",
+    "u",
+  ).exec(text);
 
   return Option.fromNullishOr(
     match?.groups?.["appendix"] ?? match?.groups?.["lettered"] ?? match?.groups?.["numbered"],
@@ -226,7 +227,7 @@ const parentOf = (section: string): Option.Option<string> => {
     return Option.some(section.slice(0, section.lastIndexOf(".")));
   }
 
-  return /^[A-Z]\d+$/u.test(section) ? Option.some(section.slice(0, 1)) : Option.none();
+  return regex("^[A-Z]\\d+$", "u").test(section) ? Option.some(section.slice(0, 1)) : Option.none();
 };
 
 /**
@@ -253,8 +254,8 @@ export const normativityOf = (
  */
 const textOfHtml = (html: string): string =>
   html
-    .replaceAll(/<[^>]*>/gu, " ")
-    .replaceAll(/&nbsp;|&#160;/gu, " ")
+    .replaceAll(regex("<[^>]*>", "gu"), " ")
+    .replaceAll(regex("&nbsp;|&#160;", "gu"), " ")
     .replaceAll("&amp;", "&")
     .replaceAll("&quot;", '"');
 
@@ -284,7 +285,7 @@ interface HtmlSections {
  * @param text - The text.
  * @returns It collapsed.
  */
-const collapsed = (text: string): string => text.replaceAll(/\s+/gu, " ").trim();
+const collapsed = (text: string): string => text.replaceAll(regex("\\s+", "gu"), " ").trim();
 
 /**
  * Read a specification's sections from its HTML: every heading `<h1>` to `<h6>`, its section
@@ -296,7 +297,7 @@ const collapsed = (text: string): string => text.replaceAll(/\s+/gu, " ").trim()
  */
 const htmlSections = (html: string): HtmlSections => {
   const headings = [
-    ...html.matchAll(/<h(?<level>[1-6])\b[^>]*>(?<inner>[\s\S]*?)<\/h\k<level>>/giu),
+    ...html.matchAll(regex("<h(?<level>[1-6])\\b[^>]*>(?<inner>[\\s\\S]*?)</h\\k<level>>", "giu")),
   ];
   const numbered = headings.flatMap((heading, at) => {
     const title = collapsed(textOfHtml(heading.groups?.["inner"] ?? ""));
@@ -324,7 +325,9 @@ const htmlSections = (html: string): HtmlSections => {
     ),
   );
   const anchors = new Map<string, number>();
-  for (const anchor of html.matchAll(/<[a-z][a-z0-9]*\s[^>]*?\b(?:name|id)="(?<name>[^"]+)"/giu)) {
+  for (const anchor of html.matchAll(
+    regex('<[a-z][a-z0-9]*\\s[^>]*?\\b(?:name|id)="(?<name>[^"]+)"', "giu"),
+  )) {
     const name = anchor.groups?.["name"] ?? "";
     if (!anchors.has(name)) {
       anchors.set(name, anchor.index);
@@ -461,7 +464,7 @@ interface Citation {
  * @returns The parenthetical, or empty where none opens there.
  */
 const parentheticalAt = (text: string, at: number): string => {
-  const open = at + (/^ */u.exec(text.slice(at))?.[0].length ?? 0);
+  const open = at + (regex("^ *", "u").exec(text.slice(at))?.[0].length ?? 0);
   if (text[open] !== "(") {
     return "";
   }
@@ -504,10 +507,10 @@ interface Cited {
  * @returns The citations, and the unjudgeable URLs.
  */
 const citationsOf = (source: string): Cited => {
-  const urls = [...source.matchAll(/https?:\/\/[^\s'"(),;]+/gu)].map((url) => ({
+  const urls = [...source.matchAll(regex("https?://[^\\s'\"(),;]+", "gu"))].map((url) => ({
     at: url.index,
     end: url.index + url[0].length,
-    url: url[0].replace(/[.:]+$/u, ""),
+    url: url[0].replace(regex("[.:]+$", "u"), ""),
   }));
   const citations = urls.flatMap(({ end, url }) => {
     const document = specDocuments.find(
@@ -518,7 +521,7 @@ const citationsOf = (source: string): Cited => {
     }
 
     const parenthetical = parentheticalAt(source, end);
-    const nested = /https?:\/\//u.exec(parenthetical);
+    const nested = regex("https?://", "u").exec(parenthetical);
     const scope = nested === null ? parenthetical : parenthetical.slice(0, nested.index);
 
     return [
@@ -526,7 +529,7 @@ const citationsOf = (source: string): Cited => {
         anchor: url.includes("#") ? Option.some(url.slice(url.indexOf("#") + 1)) : Option.none(),
         document,
         line: Option.none(),
-        sections: [...scope.matchAll(/§\s?(?<section>[A-Z]?\d+(?:\.\d+)*)/gu)].map(
+        sections: [...scope.matchAll(regex("§\\s?(?<section>[A-Z]?\\d+(?:\\.\\d+)*)", "gu"))].map(
           (section) => section.groups?.["section"] ?? "",
         ),
       },
@@ -534,7 +537,10 @@ const citationsOf = (source: string): Cited => {
   });
   const lined = [
     ...source.matchAll(
-      /(?<file>[\w.-]+\.txt):(?<first>\d+)(?<more>(?:(?:,\s*(?:and\s+)?|\s+and\s+):\d+)*)/gu,
+      regex(
+        "(?<file>[\\w.-]+\\.txt):(?<first>\\d+)(?<more>(?:(?:,\\s*(?:and\\s+)?|\\s+and\\s+):\\d+)*)",
+        "gu",
+      ),
     ),
   ].flatMap(({ groups }) => {
     const document = specDocuments.find(({ text }) => text.endsWith(`/${groups?.["file"] ?? ""}`));
@@ -543,7 +549,7 @@ const citationsOf = (source: string): Cited => {
       ? []
       : [
           groups?.["first"] ?? "",
-          ...[...(groups?.["more"] ?? "").matchAll(/\d+/gu)].map(String),
+          ...[...(groups?.["more"] ?? "").matchAll(regex("\\d+", "gu"))].map(String),
         ].map((line) => ({
           anchor: Option.none(),
           document,

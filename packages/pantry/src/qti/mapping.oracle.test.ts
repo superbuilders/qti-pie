@@ -5,6 +5,7 @@
  *
  * The views the laws read are `#pantry/qti/attribute-views.db.test.ts`'s.
  */
+import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
@@ -215,8 +216,11 @@ describe("qti/mapping.ts, a typed map key read collapsed", () => {
         },
         (text: string, c) =>
           Effect.gen(function* collapsedKey() {
-            const read = text.replaceAll(/ +/gu, " ").replace(/^ /u, "").replace(/ $/u, "");
-            const integer = /^[+-]?[0-9]+$/u.test(read);
+            const read = text
+              .replaceAll(regex(" +", "gu"), " ")
+              .replace(regex("^ ", "u"), "")
+              .replace(regex(" $", "u"), "");
+            const integer = regex("^[+-]?[0-9]+$", "u").test(read);
             const integerNote = read === text ? "bare integer" : "padded integer";
             c.note(integer ? integerNote : "no integer");
 

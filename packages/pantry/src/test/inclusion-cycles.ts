@@ -11,6 +11,7 @@
  * includes the fragment back. And the fragment may include `rtest01-tail.xml` too, a text
  * fragment no other document includes, which hangs off the fragment's cycle where there is one.
  */
+import { regex } from "arkregex";
 import { assert } from "@effect/vitest";
 import type { PackageFile } from "#pantry/package/read.ts";
 
@@ -125,7 +126,7 @@ export const cyclePackageOf = (
 ): readonly PackageFile[] => {
   const edited = base.map((file): PackageFile => {
     const text = new TextDecoder().decode(file.bytes);
-    const set = /rtest01-set0(?<n>[123])\.xml$/u.exec(file.path)?.groups?.["n"];
+    const set = regex("rtest01-set0(?<n>[123])\\.xml$", "u").exec(file.path)?.groups?.["n"];
     const encode = (edit: string): PackageFile => ({
       ...file,
       bytes: new TextEncoder().encode(edit),

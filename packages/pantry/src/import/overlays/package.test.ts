@@ -7,6 +7,7 @@
  * `xml:base` values the walk meets on its way down. The walk shares no code with the builder,
  * which reads the tree's flat rows (`flatten`) and resolves by `resolveIn`.
  */
+import { regex } from "arkregex";
 import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import * as NodePath from "@effect/platform-node/NodePath";
@@ -556,7 +557,10 @@ const situationsOf = (input: ManifestCase): readonly Situation[] => {
       input.resources.some(({ files: listed }) => new Set(listed).size < listed.length),
     ],
     ["shared-file", new Set(files).size < files.length],
-    ["href-params", input.resources.some(({ href }) => href !== undefined && /[?#]/u.test(href))],
+    [
+      "href-params",
+      input.resources.some(({ href }) => href !== undefined && regex("[?#]", "u").test(href)),
+    ],
     [
       "self-dependency",
       input.resources.some(
@@ -567,7 +571,7 @@ const situationsOf = (input: ManifestCase): readonly Situation[] => {
     [
       "href-resolved",
       input.resources.some(({ files: listed, href }) =>
-        [href ?? "", ...listed].some((value) => /\.\/|%| /u.test(value)),
+        [href ?? "", ...listed].some((value) => regex("\\./|%| ", "u").test(value)),
       ),
     ],
     ["manifest-base", input.manifestBase !== undefined || input.resourcesBase !== undefined],
@@ -887,8 +891,10 @@ const lexicals: Gen<string> = (source) =>
  * RFC 3986's own reading of a URI reference (Appendix B): scheme, authority, path, query and
  * fragment, each optional but the path.
  */
-const appendixB =
-  /^(?<scheme>(?:[^:/?#]+):)?(?<authority>\/\/(?:[^/?#]*))?(?<path>[^?#]*)(?<query>\?(?:[^#]*))?(?<fragment>#(?:.*))?$/su;
+const appendixB = regex.as<string, { names: Record<string, string | undefined> }>(
+  "^(?<scheme>(?:[^:/?#]+):)?(?<authority>//(?:[^/?#]*))?(?<path>[^?#]*)(?<query>\\?(?:[^#]*))?(?<fragment>#(?:.*))?$",
+  "su",
+);
 
 /**
  * Split a reference as RFC 3986's Appendix B reads it, after setting aside the XML whitespace
@@ -1274,8 +1280,8 @@ describe("import/overlays/package.ts, hrefs and references", () => {
                 { params: expected.params, path: expected.target },
                 JSON.stringify(core),
               );
-              assert.match(pieces.target, new RegExp(hrefPathPattern.source, "u"));
-              assert.match(pieces.params, new RegExp(hrefParamsPattern, "su"));
+              assert.match(pieces.target, regex.as(hrefPathPattern.source, "u"));
+              assert.match(pieces.params, regex.as(hrefParamsPattern, "su"));
               assert.strictEqual(
                 `${pieces.lead}${pieces.target}${pieces.params}${pieces.trail}`,
                 lexical,

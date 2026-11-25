@@ -4,6 +4,7 @@
  * entries are the same keyed sets from a directory and from its zip, and the entries keep the
  * listing's paths, one entry per path, each a document or media with the digest of its bytes.
  */
+import { regex } from "arkregex";
 import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import * as NodePath from "@effect/platform-node/NodePath";
@@ -176,7 +177,7 @@ const isCandidateUrl = (candidate: string): boolean =>
   candidate !== "" &&
   !candidate.startsWith(",") &&
   !candidate.endsWith(",") &&
-  !/[\t\n\r ]/u.test(candidate);
+  !regex("[\t\n\r ]", "u").test(candidate);
 
 /**
  * The patterns as `package.ts` states them, read as the database reads them (ECMAScript under
@@ -186,24 +187,24 @@ const isCandidateUrl = (candidate: string): boolean =>
  */
 const patternSets = {
   descriptor: {
-    candidate: /^[^\t\n\r ,][^\t\n\r ]*$/u,
-    external: new RegExp(externalHrefPattern.source, "u"),
-    resolved: new RegExp(resolvedPathPattern.source, "u"),
+    candidate: regex("^[^\t\n\r ,][^\t\n\r ]*$", "u"),
+    external: regex.as(externalHrefPattern.source, "u"),
+    resolved: regex.as(resolvedPathPattern.source, "u"),
   },
   noDotDotArm: {
-    candidate: new RegExp(srcsetUrlPattern, "u"),
-    external: new RegExp(externalHrefPattern.source, "u"),
-    resolved: /^(?:(?:[^/.][^/]*|\.[^./][^/]*)(?:\/(?:[^/.][^/]*|\.[^./][^/]*)?)*)?$/u,
+    candidate: regex.as(srcsetUrlPattern, "u"),
+    external: regex.as(externalHrefPattern.source, "u"),
+    resolved: regex("^(?:(?:[^/.][^/]*|\\.[^./][^/]*)(?:/(?:[^/.][^/]*|\\.[^./][^/]*)?)*)?$", "u"),
   },
   noSlash: {
-    candidate: new RegExp(srcsetUrlPattern, "u"),
-    external: /^[A-Za-z][A-Za-z0-9+.-]*:/u,
-    resolved: new RegExp(resolvedPathPattern.source, "u"),
+    candidate: regex.as(srcsetUrlPattern, "u"),
+    external: regex("^[A-Za-z][A-Za-z0-9+.-]*:", "u"),
+    resolved: regex.as(resolvedPathPattern.source, "u"),
   },
   stated: {
-    candidate: new RegExp(srcsetUrlPattern, "u"),
-    external: new RegExp(externalHrefPattern.source, "u"),
-    resolved: new RegExp(resolvedPathPattern.source, "u"),
+    candidate: regex.as(srcsetUrlPattern, "u"),
+    external: regex.as(externalHrefPattern.source, "u"),
+    resolved: regex.as(resolvedPathPattern.source, "u"),
   },
 } as const;
 

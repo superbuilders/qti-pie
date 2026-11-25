@@ -17,6 +17,7 @@
  * (`xsd`), each law the oracle refused by, on each kind (`law`), each pair of verdicts
  * (`verdict`), and each named edit with the verdicts it led to (`edit`).
  */
+import { regex } from "arkregex";
 import { Effect, Option, Result } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import type { Child, Element, XmlDocument } from "@qti-pie/crust/tree.ts";
@@ -605,7 +606,8 @@ export const xsdFamilyOf = (feature: XsdFeature): string => feature.slice(0, fea
  * @param place - The place.
  * @returns The kind, empty for the document.
  */
-const kindAt = (place: string): string => (place.split("/").at(-1) ?? "").replace(/\[\d+\]$/u, "");
+const kindAt = (place: string): string =>
+  (place.split("/").at(-1) ?? "").replace(regex("\\[\\d+\\]$", "u"), "");
 
 /**
  * Fold a document's rows, for its features: none where crust, the codec or a fold refuses it,

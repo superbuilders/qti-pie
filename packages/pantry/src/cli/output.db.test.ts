@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { Effect, Exit, Layer, Schema } from "effect";
@@ -173,7 +174,7 @@ describe.skipIf(!hasLease)("output.db.test.ts, on the lease", () => {
           assert.isTrue(summary.ok);
           assert.strictEqual(summary.data.differing, 0);
           assert.notProperty(summary.data, "entries");
-          assert.match(stderr, /DEBUG/u);
+          assert.match(stderr, regex("DEBUG", "u"));
         }),
     );
   });

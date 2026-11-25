@@ -16,6 +16,7 @@
  * rule stands ahead of the law's in the refusal's precedence (`#pantry/vocab/laws.ts`
  * `precedence`), so the database, which names a refusal by that order, names it by the law's rule.
  */
+import { regex } from "arkregex";
 import { element, int } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { Effect, Option, Order } from "effect";
@@ -150,9 +151,11 @@ export const editText = (
 export const replaceDrawn =
   (text: string, pattern: RegExp, replace: (match: RegExpExecArray) => string): Gen<string> =>
   (source) => {
-    const global = new RegExp(
+    const { flags } = pattern;
+    const unicode = (["v", "u"] as const).find((flag) => flags.includes(flag)) ?? "";
+    const global = regex.as(
       pattern.source,
-      pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`,
+      `${flags.includes("d") ? "d" : ""}g${flags.includes("i") ? "i" : ""}${flags.includes("m") ? "m" : ""}${flags.includes("s") ? "s" : ""}${unicode}${flags.includes("y") ? "y" : ""}`,
     );
     const matches = [...text.matchAll(global)];
     if (matches.length === 0) {
@@ -179,7 +182,7 @@ export const replaceDrawn =
 export const duplicateDrawn = (text: string, pattern: RegExp): Gen<string> =>
   replaceDrawn(text, pattern, (match) => {
     const line = text.lastIndexOf("\n", match.index) + 1;
-    const indent = /^[ \t]*/u.exec(text.slice(line, match.index))?.[0] ?? "";
+    const indent = regex("^[ \t]*", "u").exec(text.slice(line, match.index))?.[0] ?? "";
 
     return `${match[0]}\n${indent}${match[0]}`;
   });

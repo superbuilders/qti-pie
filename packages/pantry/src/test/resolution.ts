@@ -17,6 +17,7 @@
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-5.2 | RFC 3986, §5.2}
  */
+import { regex } from "arkregex";
 
 /**
  * The whitespace class an href's attribute type reads its value under (XML Schema Part 2, §4.3.6).
@@ -45,12 +46,12 @@ const xmlSpace: ReadonlySet<string> = new Set([" ", "\t", "\n", "\r"]);
 /**
  * The runs of XML whitespace inside a value, which `collapse` writes as one space each.
  */
-const xmlSpaceRuns = /[ \t\n\r]+/gu;
+const xmlSpaceRuns = regex("[ \t\n\r]+", "gu");
 
 /**
  * The characters `replace` writes as a space: each XML whitespace character but the space itself.
  */
-const xmlSpaceMarks = /[\t\n\r]/gu;
+const xmlSpaceMarks = regex("[\t\n\r]", "gu");
 
 /**
  * Set aside the XML whitespace at both ends of a value, and only that: a space, a tab, a line feed
@@ -170,7 +171,7 @@ interface Relative {
  * @returns Its authority's presence and its path.
  */
 const relativeOf = (value: string): Relative => {
-  const parts = /^(?<authority>\/\/[^/?#]*)?(?<path>[^?#]*)/su.exec(value)?.groups;
+  const parts = regex("^(?<authority>//[^/?#]*)?(?<path>[^?#]*)", "su").exec(value)?.groups;
 
   return { authority: parts?.["authority"] !== undefined, path: parts?.["path"] ?? "" };
 };
@@ -565,13 +566,13 @@ export const oracleSrcsetOf = (lexical: string): OracleSrcset => {
   let rest = lexical;
   for (;;) {
     const trail = rest;
-    rest = rest.replace(/^[\t\n\r ,]+/u, "");
-    const url = /^[^\t\n\r ]+/u.exec(rest)?.[0];
+    rest = rest.replace(regex("^[\t\n\r ,]+", "u"), "");
+    const url = regex("^[^\t\n\r ]+", "u").exec(rest)?.[0];
     if (url === undefined) {
       return { trail, urls };
     }
 
-    const trimmed = url.replace(/,+$/u, "");
+    const trimmed = url.replace(regex(",+$", "u"), "");
     urls.push(trimmed);
     rest = rest.slice(trimmed.length);
     if (trimmed.length === url.length) {
@@ -601,4 +602,4 @@ export const oracleSrcsetOf = (lexical: string): OracleSrcset => {
  * @returns The path.
  */
 export const comparedPath = (resolution: OracleResolution, value: string): string =>
-  resolution.scope === "entry" ? resolution.path : (/^[^?#]*/su.exec(value)?.[0] ?? "");
+  resolution.scope === "entry" ? resolution.path : (regex("^[^?#]*", "su").exec(value)?.[0] ?? "");

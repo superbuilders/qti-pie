@@ -16,6 +16,7 @@
  * `value_domain` refuses the write that holds it first (spec reading 152), and the host judge
  * names AL1 alone.
  */
+import { regex } from "arkregex";
 import type { PreviewRows } from "@bjornpagen/grizzle";
 import { Option } from "effect";
 import { collapse, namingText } from "#pantry/grammar/domains.ts";
@@ -96,7 +97,7 @@ const placeOf = (row: HeldRow): string => placeKeyOf([row["package"], row["path"
  * A lexical form that names something once collapsed (`namingPattern` of
  * `#pantry/qti/attributes.ts`), as the host reads it.
  */
-const namingForm = new RegExp(namingText, "u");
+const namingForm = regex.as(namingText, "u");
 
 /**
  * The table a placed map response or map response point reads of its declaration, by its kind.
@@ -547,7 +548,7 @@ const typedAttribute = (baseType: string, written: string): boolean => {
 
   return (
     pattern !== undefined &&
-    new RegExp(pattern, "u").test(baseType === "string" ? written : collapse(written))
+    regex.as(pattern, "u").test(baseType === "string" ? written : collapse(written))
   );
 };
 
@@ -664,8 +665,7 @@ const typedText = (baseType: string | undefined, text: unknown): boolean => {
 
   return (
     unjudgedBaseTypes.some((unjudged) => unjudged === baseType) ||
-    (pattern !== undefined &&
-      new RegExp(pattern, "u").test(textOfField("Node", "stringValue", text)))
+    (pattern !== undefined && regex.as(pattern, "u").test(textOfField("Node", "stringValue", text)))
   );
 };
 
@@ -765,7 +765,10 @@ const notReservedHolds = (index: Index): boolean =>
  * Grizzle's `doubleText` as the host reads it: a decimal mantissa with an optional exponent, or
  * `INF`, `-INF` or `NaN`, XML Schema 1.1's `xs:double` lexical space without `+INF`.
  */
-const doubleForm = /^(?:[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[Ee][+-]?[0-9]+)?|-?INF|NaN)$/u;
+const doubleForm = regex(
+  "^(?:[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[Ee][+-]?[0-9]+)?|-?INF|NaN)$",
+  "u",
+);
 
 /**
  * Read an attribute's lexical form as the scale views read it (`attributeDoubles` of

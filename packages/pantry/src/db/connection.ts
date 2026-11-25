@@ -5,6 +5,7 @@
  * no server of its own: a lane takes a database, and an owner role of its own, on the machine's
  * shared server (README, "The database").
  */
+import { regex } from "arkregex";
 import { readFileSync } from "node:fs";
 import net from "node:net";
 import type { AnyLogin, MigrationConnectionConfig } from "@bjornpagen/grizzle";
@@ -208,7 +209,7 @@ export type PasswordCommandError =
 export const leaseNameBytes = 23;
 
 export const DatabaseName = Schema.String.check(
-  Schema.isPattern(/^(?!pg_)(?!.*__)[a-z][a-z0-9_]{0,62}$/u, {
+  Schema.isPattern(regex("^(?!pg_)(?!.*__)[a-z][a-z0-9_]{0,62}$", "u"), {
     message:
       "Use a lowercase letter, then at most 62 lowercase letters, digits or underscores, with no __ and not starting with pg_, so that scripts/db.sh creates the database this connection names and grizzle accepts the name as the installation's role prefix",
   }),

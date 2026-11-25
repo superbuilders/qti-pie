@@ -14,6 +14,7 @@
  * - **The shared syntax.** PostgreSQL's and JavaScript's regular expression grammars, turned into a
  *   checker of the subset both read.
  */
+import { regex as arkregex } from "arkregex";
 import { globSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { assert, describe, it } from "@effect/vitest";
@@ -103,7 +104,7 @@ const leafChoices = Arr.appendAll(leafDomains, syntheticDomains);
  * @returns The regex.
  */
 const regexOf = (domain: Domain, reading: Reading): RegExp =>
-  new RegExp(Result.getOrThrow(compile(domain, reading)).pattern, patternFlags);
+  arkregex.as(Result.getOrThrow(compile(domain, reading)).pattern, patternFlags);
 
 /**
  * The host regexes of each definition, by definition and reading, compiled once.
@@ -154,11 +155,11 @@ const normalized = (raw: string, whiteSpace: string): string => {
     return raw;
   }
 
-  const replaced = raw.replaceAll(/[\t\n\r]/gu, " ");
+  const replaced = raw.replaceAll(arkregex("[\t\n\r]", "gu"), " ");
 
   return whiteSpace === "replace"
     ? replaced
-    : replaced.replaceAll(/ +/gu, " ").replaceAll(/^ | $/gu, "");
+    : replaced.replaceAll(arkregex(" +", "gu"), " ").replaceAll(arkregex("^ | $", "gu"), "");
 };
 
 /**
@@ -291,7 +292,7 @@ const spelled = (value: string): string =>
   JSON.stringify(
     Array.from(value, String)
       .map((point) =>
-        /^[\u0021-\u007E]$/u.test(point)
+        arkregex("^[\\u0021-\\u007E]$", "u").test(point)
           ? point
           : `\\u{${(point.codePointAt(0) ?? 0).toString(16)}}`,
       )
@@ -458,17 +459,18 @@ const escapeAt = (points: readonly string[], at: number, inClass: boolean): Esca
   if (next === "u") {
     return {
       length: 5,
-      problems: /^[0-9A-F]{4}$/u.test(points.slice(at + 2, at + 6).join(""))
+      problems: arkregex("^[0-9A-F]{4}$", "u").test(points.slice(at + 2, at + 6).join(""))
         ? []
         : [`a \\u not of four hex digits at ${at}`],
     };
   }
 
-  const meta = inClass ? /[\\\]^\-[]/u : /[\\^$.|?*+()[\]{}]/u;
+  const meta = inClass ? arkregex("[\\\\\\]^\\-[]", "u") : arkregex("[\\\\^$.|?*+()[\\]{}]", "u");
 
   return {
     length: 1,
-    problems: /[tnr]/u.test(next) || meta.test(next) ? [] : [`the escape \\${next} at ${at}`],
+    problems:
+      arkregex("[tnr]", "u").test(next) || meta.test(next) ? [] : [`the escape \\${next} at ${at}`],
   };
 };
 
@@ -532,7 +534,7 @@ describe("The shared syntax", () => {
     const problems = leafDomains.flatMap(({ domain, where }) =>
       (["xsd", "exact"] as const).flatMap((reading) => {
         const { pattern } = Result.getOrThrow(compile(domain, reading));
-        assert.instanceOf(new RegExp(pattern, patternFlags), RegExp);
+        assert.instanceOf(arkregex.as(pattern, patternFlags), RegExp);
 
         return outsideSharedSyntax(pattern).map((problem) => `${where} (${reading}): ${problem}`);
       }),
@@ -662,7 +664,7 @@ describe("Length facets", () => {
 
               c.note("admitted");
 
-              const regex = new RegExp(pattern, patternFlags);
+              const regex = arkregex.as(pattern, patternFlags);
 
               for (const count of counts) {
                 const value =
@@ -687,9 +689,9 @@ describe("Length facets", () => {
  * reading, and a test may state the specification's as its oracle; no other module spells one.
  */
 const booleanSpellings = [
-  /\(\?:true\|1\)/u,
-  /\["true", "1"\]/u,
-  /[=]== "true"|"true" ===/u,
+  arkregex("\\(\\?:true\\|1\\)", "u"),
+  arkregex('\\["true", "1"\\]', "u"),
+  arkregex('[=]== "true"|"true" ===', "u"),
 ] as const;
 
 describe("xs:boolean", () => {

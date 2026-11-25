@@ -17,6 +17,7 @@
  * Each case also logs how long its apply takes: the author login's `insertWrite` member, compiled
  * once by `grizzle generate` into the login's served file, applied to the package's facts.
  */
+import { regex } from "arkregex";
 import type { Law } from "@bjornpagen/grizzle";
 import type { CallError } from "@bjornpagen/grizzle/runtime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -970,7 +971,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
           const dir = yield* materializeSpec(
             variantOf(
               specOf("simple"),
-              `resource-types-${label.replaceAll(/[^\da-z]+/giu, "-")}`,
+              `resource-types-${label.replaceAll(regex("[^\\da-z]+", "giu"), "-")}`,
               edits,
             ),
           );

@@ -24,6 +24,7 @@
  * Under the union driver a `strict` wildcard would find a declaration no XSD of the document's
  * set imports, as a DRD element under an item's `qti-companion-materials-info`.
  */
+import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Array as Arr, Effect, FileSystem, Option } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
@@ -355,14 +356,16 @@ export type RefusalClass = (typeof refusalClasses)[number];
  * The atomic types whose failures, on a value that is a lexically valid NCName, libxml2 reports
  * for a repeated `xs:ID`: it words a duplicate ID as a value its type refuses.
  */
-const idTypes =
-  /is not a valid value of the atomic type '(?:xs:ID|[^']*UniqueIdentifierDType)'\.$/u;
+const idTypes = regex(
+  "is not a valid value of the atomic type '(?:xs:ID|[^']*UniqueIdentifierDType)'\\.$",
+  "u",
+);
 
 /**
  * An NCName, as near as a duplicate-ID test needs: a letter or `_`, then letters, digits, `.`,
  * `-` and `_`.
  */
-const ncName = /^[\p{L}_][\p{L}\p{N}._-]*$/u;
+const ncName = regex("^[\\p{L}_][\\p{L}\\p{N}._-]*$", "u");
 
 /**
  * Decide whether a parser message is libxml2's own `xml:id` check of a value: the xml:id
@@ -390,7 +393,7 @@ export const isXmlIdCheck = (text: string): boolean =>
  * @returns Its class.
  */
 const parserClassOf = (text: string): Option.Option<RefusalClass> => {
-  if (/^\S+ warning :/u.test(text)) {
+  if (regex("^\\S+ warning :", "u").test(text)) {
     return Option.none();
   }
 
@@ -399,7 +402,9 @@ const parserClassOf = (text: string): Option.Option<RefusalClass> => {
   }
 
   return Option.some(
-    /validity error : ID [\s\S]* already defined/u.test(text) ? "identity" : "well-formed",
+    regex("validity error : ID [\\s\\S]* already defined", "u").test(text)
+      ? "identity"
+      : "well-formed",
   );
 };
 
@@ -408,16 +413,28 @@ const parserClassOf = (text: string): Option.Option<RefusalClass> => {
  * (`undefined` when either may) and its class.
  */
 const structuralClasses: readonly (readonly [RegExp, boolean | undefined, RefusalClass])[] = [
-  [/No matching global declaration available for the validation root/u, undefined, "vocabulary"],
-  [/^The attribute '[^']+' is required but missing\./u, undefined, "attribute-required"],
-  [/^The attribute '[^']+' is not allowed\./u, undefined, "attribute-allowed"],
-  [/^The element is not 'nillable'\./u, undefined, "attribute-allowed"],
-  [/demanded by the strict wildcard/u, true, "attribute-allowed"],
-  [/^This element is not expected\./u, undefined, "content"],
-  [/^Missing child element\(s\)\./u, undefined, "content"],
-  [/^Character content (?:other than whitespace )?is not allowed/u, undefined, "content"],
-  [/^Element content is not allowed/u, undefined, "content"],
-  [/demanded by the strict wildcard/u, false, "content"],
+  [
+    regex.as("No matching global declaration available for the validation root", "u"),
+    undefined,
+    "vocabulary",
+  ],
+  [
+    regex("^The attribute '[^']+' is required but missing\\.", "u"),
+    undefined,
+    "attribute-required",
+  ],
+  [regex("^The attribute '[^']+' is not allowed\\.", "u"), undefined, "attribute-allowed"],
+  [regex("^The element is not 'nillable'\\.", "u"), undefined, "attribute-allowed"],
+  [regex("demanded by the strict wildcard", "u"), true, "attribute-allowed"],
+  [regex("^This element is not expected\\.", "u"), undefined, "content"],
+  [regex("^Missing child element\\(s\\)\\.", "u"), undefined, "content"],
+  [
+    regex("^Character content (?:other than whitespace )?is not allowed", "u"),
+    undefined,
+    "content",
+  ],
+  [regex("^Element content is not allowed", "u"), undefined, "content"],
+  [regex("demanded by the strict wildcard", "u"), false, "content"],
 ];
 
 /**
@@ -444,7 +461,9 @@ export const classOfMessage = (message: XsdMessage): Option.Option<RefusalClass>
   }
 
   if (Option.isSome(attribute)) {
-    const value = /^'(?<value>[^']*)' is not a valid value/u.exec(text)?.groups?.["value"];
+    const value = regex("^'(?<value>[^']*)' is not a valid value", "u").exec(text)?.groups?.[
+      "value"
+    ];
 
     return Option.some(
       value !== undefined && ncName.test(value) && idTypes.test(text)
@@ -453,7 +472,9 @@ export const classOfMessage = (message: XsdMessage): Option.Option<RefusalClass>
     );
   }
 
-  return Option.some(/is not a valid value|^\[facet '/u.test(text) ? "text-value" : "other");
+  return Option.some(
+    regex("is not a valid value|^\\[facet '", "u").test(text) ? "text-value" : "other",
+  );
 };
 
 /**

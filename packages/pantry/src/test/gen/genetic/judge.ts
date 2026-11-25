@@ -20,6 +20,7 @@
  *   text the oracle finds past its bound in a field of a relation the import writes, no field the
  *   database fills, is in that field's rows.
  */
+import { regex } from "arkregex";
 import {
   Array as Arr,
   Cause,
@@ -165,10 +166,10 @@ const isCp = (element: Element, local: string): boolean =>
  */
 const normalHref = (href: string): string =>
   href
-    .replaceAll(/%(?<hex>[0-9A-Fa-f]{2})/gu, (written, hex: string) => {
+    .replaceAll(regex("%(?<hex>[0-9A-Fa-f]{2})", "gu"), (written, hex: string) => {
       const decoded = String.fromCodePoint(Number.parseInt(hex, 16));
 
-      return /^[\w .~-]$/u.test(decoded) ? decoded : written;
+      return regex("^[\\w .~-]$", "u").test(decoded) ? decoded : written;
     })
     .split("/")
     .filter((segment) => segment !== ".")
@@ -244,7 +245,7 @@ export const limitOf = (breaches: readonly Breach[], genome: Genome): Option.Opt
   const names = (from: string, href: string): boolean =>
     genome.some(({ path }) => path === resolvedPath(from, normalHref(href)));
   const unresolvedHref = (resource: Element): boolean => {
-    const href = (attributeValue(resource, "href") ?? "").replace(/[?#].*$/su, "");
+    const href = (attributeValue(resource, "href") ?? "").replace(regex("[?#].*$", "su"), "");
 
     return lomTitled(resource) && normalHref(href) !== href && names(manifestPath, href);
   };
@@ -605,7 +606,7 @@ type ImportSide =
  */
 const placeOf = (breach: Breach, roots: ReadonlyMap<string, string>): string => {
   const steps = (breach.keys["node"] ?? "").split("/").filter((step) => step !== "");
-  const kind = (steps.at(-1) ?? "package").replace(/\[\d+\]$/u, "");
+  const kind = (steps.at(-1) ?? "package").replace(regex("\\[\\d+\\]$", "u"), "");
   const root = breach.document === "" ? "package" : (roots.get(breach.document) ?? "?");
 
   return `${kind} in ${root}`;

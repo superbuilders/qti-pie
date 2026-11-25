@@ -24,6 +24,7 @@
  *   declared`.
  * - **Over each literal:** `Literal lexical`.
  */
+import { regex } from "arkregex";
 import { Array as Arr, Option } from "effect";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
 import {
@@ -280,14 +281,15 @@ export interface Typed {
  */
 const spelledName = (lexical: string, spelling: string, kind: string): Option.Option<string> => {
   if (spelling === "braced") {
-    return Option.fromNullishOr(/^\{(?<name>[^{}]+)\}$/u.exec(lexical)?.groups?.["name"]).pipe(
-      Option.filter((name) => ncName.test(name)),
-    );
+    return Option.fromNullishOr(
+      regex("^\\{(?<name>[^{}]+)\\}$", "u").exec(lexical)?.groups?.["name"],
+    ).pipe(Option.filter((name) => ncName.test(name)));
   }
 
   const name = collapsed(lexical);
 
-  return ncName.test(name) && !(kind === "qti-random-float" && /^(?:INF|NaN)$/u.test(name))
+  return ncName.test(name) &&
+    !(kind === "qti-random-float" && regex("^(?:INF|NaN)$", "u").test(name))
     ? Option.some(name)
     : Option.none();
 };

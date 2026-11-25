@@ -39,6 +39,7 @@
  * @see {@link https://www.w3.org/TR/xmlschema-2/#regexs | XML Schema Part 2, Appendix F, Regular Expressions}
  * @see {@link https://www.postgresql.org/docs/current/functions-matching.html#POSIX-SYNTAX-DETAILS | PostgreSQL, Regular Expression Details}
  */
+import { regex } from "arkregex";
 import { regexMaxRepeat } from "@bjornpagen/grizzle";
 import { collapsed, replaced } from "@bjornpagen/grizzle-text/text";
 import { Array as Arr, Option, Result, Schema } from "effect";
@@ -1221,7 +1222,7 @@ const readBraces = (
 ): Result.Result<{ readonly max: Option.Option<number>; readonly min: number }, UnreadPattern> => {
   const close = cursor.points.indexOf("}", cursor.at);
   const body = close === -1 ? "" : cursor.points.slice(cursor.at, close).join("");
-  if (!/^[0-9]+(?:,[0-9]*)?$/u.test(body)) {
+  if (!regex("^[0-9]+(?:,[0-9]*)?$", "u").test(body)) {
     return unread(cursor, "a { that opens no quantity");
   }
 
@@ -1462,12 +1463,12 @@ export const booleanTruePattern = booleanFormOf(booleanTrue);
 /**
  * {@link booleanTruePattern}, compiled.
  */
-const booleanTrueForm = new RegExp(booleanTruePattern, patternFlags);
+const booleanTrueForm = regex.as(booleanTruePattern, patternFlags);
 
 /**
  * A form as written that is an `xs:boolean`: its collapsed form is one of {@link booleanRep}.
  */
-const booleanForm = new RegExp(booleanFormOf(booleanRep), patternFlags);
+const booleanForm = regex.as(booleanFormOf(booleanRep), patternFlags);
 
 /**
  * Read an `xs:boolean` as written: collapse its whitespace (XSD 1.1 Part 2, §4.3.6), then map the
@@ -1752,8 +1753,8 @@ const digitsIn = (lo: bigint, hi: Option.Option<bigint>): Option.Option<Regex> =
     }
 
     const rest = from.length - 1;
-    const lowFull = /^0*$/u.test(aRest);
-    const highFull = /^9*$/u.test(bRest);
+    const lowFull = regex("^0*$", "u").test(aRest);
+    const highFull = regex("^9*$", "u").test(bRest);
     const midFrom = Number(a) + (lowFull ? 0 : 1);
     const midTo = Number(b) - (highFull ? 0 : 1);
 
@@ -1991,7 +1992,7 @@ export const normalizedIn = (text: string, whiteSpace: WhiteSpaceClass): string 
  * A QName once its whitespace is collapsed: an optional prefix and a colon, then its local name,
  * each with no colon and no whitespace (Namespaces in XML 1.0, section 4).
  */
-const qName = /^(?:[^\s:]+:)?[^\s:]+$/u;
+const qName = regex("^(?:[^\\s:]+:)?[^\\s:]+$", "u");
 
 /**
  * The prefix of an unprefixed QName: the empty prefix, which a default namespace declaration binds
@@ -2266,7 +2267,7 @@ const integerBounds = (
       ["maxExclusive", -1n],
     ] as const) {
       const value = valueOf(facets, name);
-      if (Option.isSome(value) && !/^[+-]?[0-9]+$/u.test(value.value)) {
+      if (Option.isSome(value) && !regex("^[+-]?[0-9]+$", "u").test(value.value)) {
         return yield* refuse(`the integer bound ${name}="${value.value}"`);
       }
 
@@ -2308,13 +2309,16 @@ const boundsOf = (facets: readonly Facet[]): readonly Facet[] =>
  * language spelled as a host pattern, as {@link integerBounds} spells an integer's: what a bound's
  * value is read by before `Number` converts it, since `Number` reads `""` and `" "` as 0.
  */
-const decimalValue = /^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$/u;
+const decimalValue = regex("^[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)$", "u");
 
 /**
  * A finite `xs:double` or `xs:float` facet value (XML Schema Part 2, 3.2.4.1 and 3.2.5.1): a
  * {@link decimalValue} with an optional exponent, the finite words of {@link boundedDoubleLexical}.
  */
-const finiteDoubleValue = /^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[Ee][+-]?[0-9]+)?$/u;
+const finiteDoubleValue = regex(
+  "^[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[Ee][+-]?[0-9]+)?$",
+  "u",
+);
 
 /**
  * The lexical space an atomic definition's primitive and bounds give it: an integer's interval for
@@ -3811,7 +3815,7 @@ const enumerationOf = (
   reachable: (value: string) => boolean,
   rest: Regex,
 ): Result.Result<Regex, UnreadDefinition> => {
-  const host = new RegExp(emitWhole(rest), patternFlags);
+  const host = regex.as(emitWhole(rest), patternFlags);
   const kept = values.filter((value) => reachable(value) && host.test(value));
 
   return kept.length === 0
@@ -3826,7 +3830,7 @@ const enumerationOf = (
  * @param value - The value.
  * @returns Whether collapsing leaves it unchanged.
  */
-const isCollapsed = (value: string): boolean => !/[\t\n\r]|^ | $| {2}/u.test(value);
+const isCollapsed = (value: string): boolean => !regex("[\t\n\r]|^ | $| {2}", "u").test(value);
 
 /**
  * The whitespace context a definition is compiled in: the whole value under the definition's own
@@ -3866,14 +3870,14 @@ const compileAtomic = (
 
       const reachable = (value: string): boolean => {
         if (context._tag === "token") {
-          return value !== "" && !/[ \t\n\r]/u.test(value);
+          return value !== "" && !regex("[ \t\n\r]", "u").test(value);
         }
 
         if (context.exact || whiteSpace === "preserve") {
           return true;
         }
 
-        return whiteSpace === "replace" ? !/[\t\n\r]/u.test(value) : isCollapsed(value);
+        return whiteSpace === "replace" ? !regex("[\t\n\r]", "u").test(value) : isCollapsed(value);
       };
       tree = yield* enumerationOf(values, reachable, tree);
     }
@@ -4190,7 +4194,7 @@ export const enumerationKept = (definition: Domain, pattern: string): readonly s
     return [];
   }
 
-  const matches = new RegExp(pattern, patternFlags);
+  const matches = regex.as(pattern, patternFlags);
 
   return valuesOf(definition.facets, "enumeration").filter((value) => matches.test(value));
 };

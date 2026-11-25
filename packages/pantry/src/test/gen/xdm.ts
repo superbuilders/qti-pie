@@ -26,6 +26,7 @@
  * {@link lawOf} names the law that refuses it. They serve the host's law model now and PostgreSQL's
  * laws at W5.
  */
+import { regex } from "arkregex";
 import { Array as Arr, Duration, Option, pipe } from "effect";
 import type { Types } from "effect";
 import type { Gen } from "@bjornpagen/testing/gen";
@@ -1725,7 +1726,7 @@ const placedCharacter =
     const character = source.draw(characterOf(drawn));
 
     return replaced && (character._tag === "text" || character._tag === "ws")
-      ? { ...character, value: character.value.replaceAll(/[\t\n\r]/gu, " ") }
+      ? { ...character, value: character.value.replaceAll(regex("[\t\n\r]", "gu"), " ") }
       : character;
   };
 

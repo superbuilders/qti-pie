@@ -18,6 +18,7 @@
  *
  * @see {@link https://gnome.pages.gitlab.gnome.org/libxml2/xmllint.html | xmllint}
  */
+import { regex } from "arkregex";
 import { Array as Arr, Effect, FileSystem, Match, Option, Schema } from "effect";
 import { attributeOf, resolve } from "#pantry/vocab/derive/derive.ts";
 import { declarationsIn, handleOf, loadWorld, typeNameOf } from "#pantry/vocab/derive/models.ts";
@@ -179,13 +180,13 @@ type ErrorClass =
  * The messages of each structural class, as libxml2 words them.
  */
 const classes: readonly (readonly [RegExp, ErrorClass])[] = [
-  [/^The attribute '.+' is not allowed\.$/u, "attribute-not-allowed"],
-  [/^The attribute '.+' is required but missing\.$/u, "attribute-required"],
-  [/demanded by the strict wildcard\.$/u, "attribute-strict"],
-  [/^This element is not expected\./u, "element-unexpected"],
-  [/^Missing child element\(s\)\./u, "children-missing"],
-  [/^Character content (?:other than whitespace )?is not allowed/u, "character-content"],
-  [/^Element content is not allowed/u, "character-content"],
+  [regex("^The attribute '.+' is not allowed\\.$", "u"), "attribute-not-allowed"],
+  [regex("^The attribute '.+' is required but missing\\.$", "u"), "attribute-required"],
+  [regex("demanded by the strict wildcard\\.$", "u"), "attribute-strict"],
+  [regex("^This element is not expected\\.", "u"), "element-unexpected"],
+  [regex("^Missing child element\\(s\\)\\.", "u"), "children-missing"],
+  [regex("^Character content (?:other than whitespace )?is not allowed", "u"), "character-content"],
+  [regex("^Element content is not allowed", "u"), "character-content"],
 ];
 
 /**
@@ -212,7 +213,10 @@ export const classOf = (error: ValidityError): ErrorClass => {
  * that domain, then `validity error : ` and the message. A schema validity error the report's
  * reader reads itself (`#pantry/xml/oracle.ts`).
  */
-const identityError = /^element (?<local>[^:]+): validity error : (?<message>[\s\S]*)$/u;
+const identityError = regex(
+  "^element (?<local>[^:]+): validity error : (?<message>[\\s\\S]*)$",
+  "u",
+);
 
 /**
  * Read one message of a batch's report as the validity error it states.

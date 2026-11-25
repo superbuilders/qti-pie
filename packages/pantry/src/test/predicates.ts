@@ -20,6 +20,7 @@
  * The law oracle may read this module because it reads no statement of its own;
  * `src/grammar/purity.test.ts` holds it to that, so it imports nothing of grizzle's but types.
  */
+import { regex as arkregex } from "arkregex";
 import type { AnySchema, LawSide } from "@bjornpagen/grizzle";
 import { Array as Arr, Option, Order, pipe, Predicate, Schema } from "effect";
 
@@ -190,7 +191,7 @@ const DecimalLiteralSchema = Schema.Struct({
 /**
  * A decimal text's parts: its sign, its integer digits and its fraction digits.
  */
-const decimalParts = /^(?<sign>[+-]?)(?<whole>[0-9]*)(?:\.(?<fraction>[0-9]*))?$/u;
+const decimalParts = arkregex("^(?<sign>[+-]?)(?<whole>[0-9]*)(?:\\.(?<fraction>[0-9]*))?$", "u");
 
 /**
  * The exact numeric a text names, as `numeric_in` reads every text of grizzle's `decimalText`, and
@@ -239,7 +240,7 @@ const doubleNamed = (text: string): number => {
 /**
  * An integer text: an optional sign and decimal digits, leading zeros included.
  */
-const integerText = /^[+-]?[0-9]+$/u;
+const integerText = arkregex("^[+-]?[0-9]+$", "u");
 
 /**
  * The bounds of `bigint`, a signed 64-bit integer.
@@ -844,7 +845,7 @@ const compiledPatterns = new Map<string, RegExp>();
 const matches = (text: string, pattern: string): boolean => {
   let regex = compiledPatterns.get(pattern);
   if (regex === undefined) {
-    regex = new RegExp(pattern, "u");
+    regex = arkregex.as(pattern, "u");
     compiledPatterns.set(pattern, regex);
   }
 
@@ -1022,7 +1023,7 @@ const ofTexts = (
  * @param text - The text.
  * @returns Its code points, in order.
  */
-const codePointsOf = (text: string): readonly string[] => text.match(/./gsu) ?? [];
+const codePointsOf = (text: string): readonly string[] => text.match(arkregex(".", "gsu")) ?? [];
 
 /**
  * PostgreSQL's `translate` by code points: each character of a text that `from` holds becomes the
@@ -1084,7 +1085,7 @@ const computers: ReadonlyMap<string, (args: readonly Datum[]) => Datum | undefin
     "lowerAscii",
     (args) =>
       ofTexts(args, 1, ([text = ""]) =>
-        text.replaceAll(/[A-Z]/gu, (capital) => capital.toLowerCase()),
+        text.replaceAll(arkregex("[A-Z]", "gu"), (capital) => capital.toLowerCase()),
       ),
   ],
   [
@@ -1094,7 +1095,7 @@ const computers: ReadonlyMap<string, (args: readonly Datum[]) => Datum | undefin
     "collapse",
     (args) =>
       ofTexts(args, 1, ([text = ""]) =>
-        text.replaceAll(/[ \t\n\r]+/gu, " ").replaceAll(/^ | $/gu, ""),
+        text.replaceAll(arkregex("[ \t\n\r]+", "gu"), " ").replaceAll(arkregex("^ | $", "gu"), ""),
       ),
   ],
   [

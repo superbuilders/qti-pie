@@ -34,6 +34,7 @@
  * message class, the codec's verdict), so the search is steered toward the boundaries where the
  * implementations decide.
  */
+import { regex } from "arkregex";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { Effect, FileSystem, Option, Order, Result } from "effect";
@@ -113,13 +114,13 @@ const xmllint = (args: readonly string[]) => xmllintRun(args).pipe(Effect.orDie)
  */
 const messageClass = (line: string): string =>
   line
-    .replace(/^(?:.*? )?(?:parser|namespace|I\/O) error : /u, "")
-    .replaceAll(/'[^']*'/gu, "'_'")
-    .replaceAll(/%[^\s;%]+;/gu, "%_;")
-    .replaceAll(/"[^"]*"/gu, '"_"')
-    .replaceAll(/\b\d+\b/gu, "N")
+    .replace(regex("^(?:.*? )?(?:parser|namespace|I/O) error : ", "u"), "")
+    .replaceAll(regex("'[^']*'", "gu"), "'_'")
+    .replaceAll(regex("%[^\\s;%]+;", "gu"), "%_;")
+    .replaceAll(regex('"[^"]*"', "gu"), '"_"')
+    .replaceAll(regex("\\b\\d+\\b", "gu"), "N")
     .replaceAll(
-      /\b(?:prefix|on|of|for|tag|element|attribute|entity) \S+/gu,
+      regex("\\b(?:prefix|on|of|for|tag|element|attribute|entity) \\S+", "gu"),
       (match) => `${match.split(" ")[0] ?? ""} _`,
     )
     .trim()
@@ -137,8 +138,9 @@ const messageClass = (line: string): string =>
 export const libxml2Class = (stderr: string, exited: number): string => {
   const errors = stderr
     .split("\n")
-    .filter((held) => / (?:parser|namespace|I\/O) error : /u.test(held));
-  const lines = exited === 0 ? errors.filter((held) => / namespace error : /u.test(held)) : errors;
+    .filter((held) => regex(" (?:parser|namespace|I/O) error : ", "u").test(held));
+  const lines =
+    exited === 0 ? errors.filter((held) => regex(" namespace error : ", "u").test(held)) : errors;
   const classes = new Set(
     (lines.length === 0 ? [stderr.split("\n")[0] ?? ""] : lines).map((line) => messageClass(line)),
   );
@@ -165,9 +167,9 @@ const parserClass = (failure: ReaderRefusal | WellFormednessError): string =>
   failure._tag === "ReaderRefusal"
     ? ""
     : ` (${failure.message
-        .replace(/^\d+:\d+: /u, "")
-        .replaceAll(/"[^"]*"/gu, '"_"')
-        .replaceAll(/\b\d+\b/gu, "N")
+        .replace(regex("^\\d+:\\d+: ", "u"), "")
+        .replaceAll(regex('"[^"]*"', "gu"), '"_"')
+        .replaceAll(regex("\\b\\d+\\b", "gu"), "N")
         .slice(0, 80)})`;
 
 /**
@@ -236,7 +238,8 @@ const declaredLabel = (bytes: Uint8Array, family: Option.Option<string>): Option
   });
 
   return Option.fromUndefinedOr(
-    /^\uFEFF?<\?xml\s[^?]*?encoding\s*=\s*["'](?<label>[^"']*)["']/u.exec(text)?.groups?.["label"],
+    regex("^\uFEFF?<\\?xml\\s[^?]*?encoding\\s*=\\s*[\"'](?<label>[^\"']*)[\"']", "u").exec(text)
+      ?.groups?.["label"],
   );
 };
 
@@ -325,7 +328,9 @@ export const declaredAgainstBytes = (bytes: Uint8Array): Option.Option<string> =
  */
 const hasExternal = (tree: XmlDocument): boolean =>
   tree.prolog.some(
-    (node) => node.kind === "doctype" && /^<!DOCTYPE\s+\S+\s+(?:SYSTEM|PUBLIC)\b/u.test(node.text),
+    (node) =>
+      node.kind === "doctype" &&
+      regex("^<!DOCTYPE\\s+\\S+\\s+(?:SYSTEM|PUBLIC)\\b", "u").test(node.text),
   );
 
 /**
@@ -520,7 +525,9 @@ const constructAt = (before: string): string => {
     return "character data";
   }
 
-  return (before.slice(open).match(/"/gu) ?? []).length % 2 === 1 ? "attribute value" : "tag";
+  return (before.slice(open).match(regex('"', "gu")) ?? []).length % 2 === 1
+    ? "attribute value"
+    : "tag";
 };
 
 /**
@@ -550,8 +557,8 @@ const bytesDifference = (left: Uint8Array, right: Uint8Array): Option.Option<Tre
   // A namespace declaration one side writes and the other does not is its own class.
   const declaration =
     construct === "tag" &&
-    ([a, b].some((text) => /^\s?xmlns/u.test(text.slice(at))) ||
-      /(?:^|\s)xmlns\S*$/u.test(a.slice(0, at)));
+    ([a, b].some((text) => regex("^\\s?xmlns", "u").test(text.slice(at))) ||
+      regex("(?:^|\\s)xmlns\\S*$", "u").test(a.slice(0, at)));
 
   return Option.some({
     detail: `${window(a)} against ${window(b)}`,
@@ -659,12 +666,12 @@ const codecErased = (tree: XmlDocument): XmlDocument => ({
  */
 const valueArm = (value: string): string => {
   const classes: readonly (readonly [RegExp, string])[] = [
-    [/^$/u, "empty"],
-    [/\r/u, "cr"],
-    [/[\t\n]/u, "ws"],
-    [/[&<>"']/u, "markup"],
-    [/[\u{10000}-\u{10FFFF}]/u, "astral"],
-    [/[\u0080-\uFFFF]/u, "nonascii"],
+    [regex("^$", "u"), "empty"],
+    [regex("\r", "u"), "cr"],
+    [regex("[\t\n]", "u"), "ws"],
+    [regex("[&<>\"']", "u"), "markup"],
+    [regex("[\\u{10000}-\\u{10FFFF}]", "u"), "astral"],
+    [regex("[\\u0080-\\uFFFF]", "u"), "nonascii"],
   ];
 
   return classes.find(([pattern]) => pattern.test(value))?.[1] ?? "plain";
@@ -981,7 +988,7 @@ const decodedDisagreements = (tree: XmlDocument, bytes: Uint8Array): Found => {
  * @see {@link https://gitlab.gnome.org/GNOME/libxml2/-/blob/v2.15.2/parserInternals.c#L355-358 | libxml2 2.15.2, parserInternals.c, xmlCtxtVErr}
  * @see {@link https://gitlab.gnome.org/GNOME/libxml2/-/blob/v2.15.2/parserInternals.c#L664-696 | libxml2 2.15.2, parserInternals.c, xmlParserCheckEOF}
  */
-const afterXmlIdError = /^\S+:\d+: parser error : xml:id : attribute value /mu;
+const afterXmlIdError = regex.as("^\\S+:\\d+: parser error : xml:id : attribute value ", "mu");
 
 /**
  * O1: crust's verdict and libxml2's, compared.
@@ -997,7 +1004,8 @@ const wellFormedness = Effect.fnUntraced(function* wellFormedness(
   read: Result.Result<XmlDocument, ReaderRefusal | WellFormednessError>,
 ) {
   const linted = yield* xmllint(["--noout", "--nonet", file]);
-  const libxml2Accepts = linted.code === 0 && !/ namespace error : /mu.test(linted.stderr);
+  const libxml2Accepts =
+    linted.code === 0 && !regex(" namespace error : ", "mu").test(linted.stderr);
   const accepted = `libxml2 accepts${afterXmlIdError.test(linted.stderr) ? " after an xml:id error" : ""}`;
   const crustVerdict = Result.match(read, {
     onFailure: (failure) => `refused-${refusalRule(failure)}`,
@@ -1201,15 +1209,19 @@ const decodedBody = (
  * @returns The text, relabelled.
  */
 const relabelledText = (text: string): string => {
-  const groups = /^(?<head><\?xml\s[^?]*?encoding\s*=\s*)(?<quote>["'])[^"']*\k<quote>/u.exec(
-    text,
-  )?.groups;
+  const groups = regex(
+    "^(?<head><\\?xml\\s[^?]*?encoding\\s*=\\s*)(?<quote>[\"'])[^\"']*\\k<quote>",
+    "u",
+  ).exec(text)?.groups;
   const head = groups?.["head"];
   const quote = groups?.["quote"];
 
   return head === undefined || quote === undefined
     ? text
-    : text.replace(/^<\?xml\s[^?]*?encoding\s*=\s*["'][^"']*["']/u, `${head}${quote}UTF-8${quote}`);
+    : text.replace(
+        regex("^<\\?xml\\s[^?]*?encoding\\s*=\\s*[\"'][^\"']*[\"']", "u"),
+        `${head}${quote}UTF-8${quote}`,
+      );
 };
 
 /**
@@ -1422,9 +1434,12 @@ const inputClassOf = (
  * @returns Whether it does.
  */
 const isClassed = (held: CodecDisagreement): boolean =>
-  /^O\d (?:namespace name holds a reference|encoding declared against the bytes|UTF-16 input ends inside a surrogate pair|default names an entity declared after it): /u.test(
-    held.signature,
-  );
+  regex
+    .as(
+      "^O\\d (?:namespace name holds a reference|encoding declared against the bytes|UTF-16 input ends inside a surrogate pair|default names an entity declared after it): ",
+      "u",
+    )
+    .test(held.signature);
 
 /**
  * Key a disagreement by its input's class, where the tree falls in one: the class follows the
@@ -1442,7 +1457,10 @@ export const classed = (
     ? held
     : {
         ...held,
-        signature: held.signature.replace(/^(?<oracle>O\d) /u, `$<oracle> ${inputClass}: `),
+        signature: held.signature.replace(
+          regex("^(?<oracle>O\\d) ", "u"),
+          `$<oracle> ${inputClass}: `,
+        ),
       };
 
 /**

@@ -16,6 +16,7 @@
  * reads through `Text.matches(text, R.at(field, key…))`. Each pattern matches its finite set of
  * texts and nothing else: its alternatives are literals, anchored at both ends.
  */
+import { regex } from "arkregex";
 import { Array as Arr, Option, Order } from "effect";
 import { closed, idField, valueField } from "#pantry/grammar/closed.ts";
 import type { Closed, IdField, Roster, ValueField } from "#pantry/grammar/closed.ts";
@@ -32,7 +33,7 @@ import type { NamespaceName, NamespaceOfKind } from "#pantry/vocab/namespaces.ts
  * @returns The literal, which matches the text and nothing else.
  */
 export const patternLiteral = (text: string): string =>
-  text.replaceAll(/[\^$\\.*+?()[\]{}|/]/gu, String.raw`\$&`);
+  text.replaceAll(regex("[\\^$\\\\.*+?()[\\]{}|/]", "gu"), String.raw`\$&`);
 
 /**
  * The pattern of a set no text is in that a law matches here: the empty text, which no expanded

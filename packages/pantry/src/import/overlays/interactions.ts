@@ -13,6 +13,7 @@
  * database proves every one of them (`interactionLaws`), so a row this builder gets wrong is
  * refused, never accepted.
  */
+import { regex } from "arkregex";
 import type { Addition } from "@bjornpagen/grizzle";
 import { Array as Arr, Option } from "effect";
 import { booleanOf } from "#pantry/grammar/domains.ts";
@@ -113,7 +114,7 @@ const interactions: ReadonlySet<string> = new Set(interactionKinds);
 /**
  * An `xs:integer` form, split into its sign and its digits (XML Schema 1.1 Part 2 §3.3.13).
  */
-const integerParts = /^(?<sign>[+-]?)(?<digits>[0-9]+)$/u;
+const integerParts = regex("^(?<sign>[+-]?)(?<digits>[0-9]+)$", "u");
 
 /**
  * The largest count a package holds, the signed 64-bit integer's (spec reading 46).

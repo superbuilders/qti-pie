@@ -22,6 +22,7 @@
  * law both owed and mutated fails, and so does a law neither owed nor mutated, so a law that joins
  * the oracle joins this file.
  */
+import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
 import type { Case, Kept } from "@bjornpagen/testing/explore";
@@ -364,7 +365,10 @@ const declarationSites = ["items/item.xml", "items/item2.xml", "items/item3.xml"
     ...new Map(
       [
         ...textOf(absentBase, path).matchAll(
-          /<qti-(?<kind>context|response|outcome|template)-declaration [^>]*cardinality="[^"]*"[^>]*>/gu,
+          regex.as<string, { names: Record<string, string | undefined> }>(
+            '<qti-(?<kind>context|response|outcome|template)-declaration [^>]*cardinality="[^"]*"[^>]*>',
+            "gu",
+          ),
         ),
       ].map((match) => [match.groups?.["kind"], { path, tag: match[0] }] as const),
     ).values(),
@@ -400,7 +404,10 @@ describe("a declaration that writes no cardinality", () => {
             const mutated = withText(
               absentBase,
               path,
-              textOf(absentBase, path).replace(tag, tag.replace(/ cardinality="[^"]*"/u, "")),
+              textOf(absentBase, path).replace(
+                tag,
+                tag.replace(regex(' cardinality="[^"]*"', "u"), ""),
+              ),
             );
             const judgment = yield* judge(filesOf(mutated), grammar, laws);
             const rules =

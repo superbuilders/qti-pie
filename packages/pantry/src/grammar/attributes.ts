@@ -33,6 +33,7 @@
  * A declaration's domain is the leaf's resolution of its XSD type (`Domain`), with a spec reading
  * applied where QTI reads the attribute otherwise ({@link specReadings}).
  */
+import { regex } from "arkregex";
 import { Array as Arr, Option, Result, Schema } from "effect";
 import {
   closed,
@@ -512,7 +513,7 @@ const headingRole = (domain: Domain): Domain => ({
  */
 const caseless = (literal: string): string =>
   Array.from(literal, (character) =>
-    /[A-Za-z]/u.test(character)
+    regex("[A-Za-z]", "u").test(character)
       ? `[${character.toUpperCase()}${character.toLowerCase()}]`
       : character,
   ).join("");

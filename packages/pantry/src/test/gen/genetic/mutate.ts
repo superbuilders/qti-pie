@@ -31,6 +31,7 @@
  * Which operators a run draws, and how often, is its swarm (`@bjornpagen/testing/swarm`): drawn per
  * run, one operator always on, so no run is left with nothing to breed by.
  */
+import { regex } from "arkregex";
 import { swarmChoice } from "@bjornpagen/testing/swarm";
 import type { Swarm } from "@bjornpagen/testing/swarm";
 import type { Source } from "@bjornpagen/testing/source";
@@ -585,7 +586,7 @@ const operations: Readonly<
       .map(({ name }) => name)
       .filter(
         (name) =>
-          /^(?:xml:)?[A-Za-z][\w.-]*$/u.test(name) &&
+          regex("^(?:xml:)?[A-Za-z][\\w.-]*$", "u").test(name) &&
           attributeValue(at.element, name) === undefined,
       );
     const name = source.draw(oneOf(names));
@@ -899,7 +900,10 @@ const operations: Readonly<
     const hosts = (document?.elements ?? []).filter(({ element }) => {
       const kind = breeding.corpus.kindOf(element);
 
-      return kind.startsWith("{") || /custom|markup|annotation|semantics|stylesheet/u.test(kind);
+      return (
+        kind.startsWith("{") ||
+        regex("custom|markup|annotation|semantics|stylesheet", "u").test(kind)
+      );
     });
     const host = source.draw(oneOf(hosts));
     const include = source.draw(oneOf(includes));
@@ -1192,7 +1196,7 @@ const operations: Readonly<
     const variant = source.pick(0, 2);
     if (variant === 2) {
       const encoded = site.value.replace(
-        /[a-z.]/u,
+        regex("[a-z.]", "u"),
         (character) => `%${(character.codePointAt(0) ?? 0).toString(16).toUpperCase()}`,
       );
 

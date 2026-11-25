@@ -8,6 +8,7 @@
  * budgets before any entry is inflated, so an archive that expands past them is refused at the cost
  * of reading its directory.
  */
+import { regex } from "arkregex";
 import { crc32, deflateRawSync, inflateRawSync } from "node:zlib";
 import { Array as Arr, Effect, FileSystem, Option, Schema } from "effect";
 import type { PlatformError } from "effect";
@@ -376,7 +377,7 @@ const decodeName = (bytes: Uint8Array, flags: number): string =>
  * @see {@link https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT | APPNOTE 6.3.10, section 4.4.17.1}
  */
 export const unsafeEntryPath = (name: string): Option.Option<string> => {
-  if (name.startsWith("/") || /^[A-Za-z]:/u.test(name)) {
+  if (name.startsWith("/") || regex("^[A-Za-z]:", "u").test(name)) {
     return Option.some(
       "the name is an absolute path, and a package entry's path is relative to the package root",
     );

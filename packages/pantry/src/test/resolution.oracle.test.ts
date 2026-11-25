@@ -11,6 +11,7 @@
  * small scope exhausted, and planted bugs, each a plausible slip of an importer, that the search
  * must tell apart from the importer.
  */
+import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { required } from "@bjornpagen/testing/features";
@@ -94,7 +95,7 @@ type PlantedName =
  * @returns It, with each ASCII percent-encoding decoded.
  */
 const asciiDecoded = (value: string): string =>
-  value.replaceAll(/%(?<hex>[0-7][0-9A-Fa-f])/gu, (_, hex: string) =>
+  value.replaceAll(regex("%(?<hex>[0-7][0-9A-Fa-f])", "gu"), (_, hex: string) =>
     String.fromCodePoint(Number.parseInt(hex, 16)),
   );
 
@@ -118,7 +119,7 @@ const planted: readonly Planted[] = [
         ? {
             path: resolution.path
               .split("/")
-              .map((segment) => segment.replace(/^\u{FEFF}/u, ""))
+              .map((segment) => segment.replace(regex("^\u{FEFF}", "u"), ""))
               .join("/"),
             scope: "entry",
           }

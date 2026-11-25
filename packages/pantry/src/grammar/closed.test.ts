@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { required } from "@bjornpagen/testing/features";
@@ -371,7 +372,7 @@ const built = (drawnCase: Drawn) => {
   const keyOf = (row: Readonly<Record<string, string>>): Option.Option<string> => {
     const codes = keyFields.map((field, place) => {
       const value = row[`k${place}`];
-      const code = value !== undefined && /^\d+$/u.test(value) ? Number(value) : -1;
+      const code = value !== undefined && regex("^\\d+$", "u").test(value) ? Number(value) : -1;
       const bound =
         field._tag === "id"
           ? field.size
@@ -387,7 +388,10 @@ const built = (drawnCase: Drawn) => {
       const value = row[`p${place}`] ?? "";
       const digits = _tag === "id" ? value : value.slice(1);
 
-      return (_tag === "id" ? /^\d+$/u : /^v\d+$/u).test(value) && Number(digits) < size;
+      return (
+        (_tag === "id" ? regex("^\\d+$", "u") : regex("^v\\d+$", "u")).test(value) &&
+        Number(digits) < size
+      );
     });
   const seen = new Map<string, Readonly<Record<string, string>>>();
   let reason = Option.none<string>();

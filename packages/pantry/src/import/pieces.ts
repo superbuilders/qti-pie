@@ -13,6 +13,7 @@
  * - {@link hrefPiecesOf}: an href's path and its query or fragment;
  * - {@link srcsetCandidatesOf}: a `srcset`'s image candidates, each a URL and its descriptors.
  */
+import { regex } from "arkregex";
 import type { Addition } from "@bjornpagen/grizzle";
 import type { Qti } from "#pantry/qti/schema.ts";
 
@@ -40,7 +41,7 @@ const spaceCharacters: ReadonlySet<string> = new Set(["\t", "\n", "\r", " "]);
  * @param text - The text.
  * @returns Whether every character is a tab, a line feed, a carriage return or a space.
  */
-const isSpace = (text: string): text is Space => /^[\t\n\r ]*$/u.test(text);
+const isSpace = (text: string): text is Space => regex("^[\t\n\r ]*$", "u").test(text);
 
 /**
  * Hold a run a split cut at whitespace to {@link Space}.
@@ -118,7 +119,7 @@ export interface Token {
  * @returns Its tokens, in order; none for a list of whitespace alone.
  */
 export const tokensOf = (text: string): readonly Token[] => {
-  const runs = [...text.matchAll(/[^\t\n\r ]+/gu)];
+  const runs = [...text.matchAll(regex("[^\t\n\r ]+", "gu"))];
 
   return runs.map((run, at): Token => {
     const previous = runs[at - 1];
@@ -175,7 +176,7 @@ const paramsOf = (text: string): Params => {
  * @returns Its pieces.
  */
 export const hrefPiecesOf = (href: string): HrefPieces => {
-  const at = href.search(/[?#]/u);
+  const at = href.search(regex("[?#]", "u"));
 
   return at === -1
     ? { params: "", path: href }
@@ -202,17 +203,17 @@ export interface SrcsetCandidatePieces {
 /**
  * The language of a `srcset`'s lead and trail: whitespace and commas.
  */
-const gapForm = /^[\t\n\r ,]*$/u;
+const gapForm = regex("^[\t\n\r ,]*$", "u");
 
 /**
  * The language of an image candidate's URL: non-whitespace, starting and ending with no comma.
  */
-const urlForm = /^[^\t\n\r ,](?:[^\t\n\r ]*[^\t\n\r ,])?$/u;
+const urlForm = regex("^[^\t\n\r ,](?:[^\t\n\r ]*[^\t\n\r ,])?$", "u");
 
 /**
  * The language of an image candidate's descriptors: empty, or whitespace and any text after it.
  */
-const descriptorForm = /^(?:[\t\n\r ].*)?$/su;
+const descriptorForm = regex("^(?:[\t\n\r ].*)?$", "su");
 
 /**
  * State that a piece of a `srcset` is whitespace and commas, `SrcsetGap`'s language.

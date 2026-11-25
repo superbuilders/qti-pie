@@ -26,6 +26,7 @@
  * syntax and the code points its productions turn on, never an input a known defect needs: the
  * search reaches what it reaches by construction and novelty.
  */
+import { regex } from "arkregex";
 import { Option } from "effect";
 import type { Source } from "@bjornpagen/testing/source";
 import type { Attribute, Child, XmlDocument } from "@qti-pie/crust/tree.ts";
@@ -2431,19 +2432,19 @@ const armOf = (pieces: readonly Piece[]): string => {
     return "empty";
   }
 
-  if (/[\t\n\r]/u.test(text)) {
+  if (regex("[\t\n\r]", "u").test(text)) {
     return "ws";
   }
 
-  if (/[&<>"'%]/u.test(text)) {
+  if (regex("[&<>\"'%]", "u").test(text)) {
     return "markup";
   }
 
-  if (/[\u{10000}-\u{10FFFF}]/u.test(text)) {
+  if (regex("[\\u{10000}-\\u{10FFFF}]", "u").test(text)) {
     return "astral";
   }
 
-  return /[\u0080-\u{10FFFF}]/u.test(text) ? "nonascii" : "plain";
+  return regex("[\\u0080-\\u{10FFFF}]", "u").test(text) ? "nonascii" : "plain";
 };
 
 /**
@@ -2470,7 +2471,7 @@ const nameClass = (name: string): string => {
     return "prefixed";
   }
 
-  return /[\u0080-\u{10FFFF}]/u.test(name) ? "nonascii" : "plain";
+  return regex("[\\u0080-\\u{10FFFF}]", "u").test(name) ? "nonascii" : "plain";
 };
 
 /**

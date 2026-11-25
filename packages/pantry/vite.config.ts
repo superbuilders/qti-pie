@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { globSync, readFileSync } from "node:fs";
 import { defineConfig } from "vitest/config";
 
@@ -9,7 +10,7 @@ import { defineConfig } from "vitest/config";
 const databaseFiles = globSync("src/**/*.test.ts", { cwd: import.meta.dirname })
   .filter(
     (file) =>
-      /\.(?:db|packaging)\.test\.ts$/u.test(file) ||
+      regex("\\.(?:db|packaging)\\.test\\.ts$", "u").test(file) ||
       readFileSync(`${import.meta.dirname}/${file}`, "utf-8").includes("hasLease"),
   )
   .toSorted();

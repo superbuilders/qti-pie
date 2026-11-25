@@ -3,6 +3,7 @@
  * `#pantry/qti/limits.ts`): its directory's or zip's base name, so two fixtures a test reads are
  * two packages, whatever manifest identifier each writes, and the same fixture read twice is one.
  */
+import { regex } from "arkregex";
 import { nameMaxBytes } from "#pantry/qti/limits.ts";
 
 /**
@@ -15,8 +16,8 @@ import { nameMaxBytes } from "#pantry/qti/limits.ts";
  * @returns The name.
  */
 export const nameOf = (path: string): string => {
-  const base = path.replace(/\/+$/u, "").split("/").at(-1) ?? "";
-  const written = base.replaceAll(/[^A-Za-z0-9._-]/gu, "_");
+  const base = path.replace(regex("/+$", "u"), "").split("/").at(-1) ?? "";
+  const written = base.replaceAll(regex("[^A-Za-z0-9._-]", "gu"), "_");
 
-  return (/^[A-Za-z_]/u.test(written) ? written : `_${written}`).slice(0, nameMaxBytes);
+  return (regex("^[A-Za-z_]", "u").test(written) ? written : `_${written}`).slice(0, nameMaxBytes);
 };

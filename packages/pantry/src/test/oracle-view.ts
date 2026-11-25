@@ -11,6 +11,7 @@
  * oracle states over it is a second statement of the law, never a copy of the rows the database
  * reads.
  */
+import { regex } from "arkregex";
 import { Option } from "effect";
 import { openClasses } from "#pantry/grammar/kinds.ts";
 import type { Composed } from "#pantry/model/composed.ts";
@@ -124,7 +125,7 @@ export interface View {
 /**
  * The XML whitespace characters the `collapse` class turns to spaces.
  */
-const xmlWhitespace = /[\t\n\r]/gu;
+const xmlWhitespace = regex("[\t\n\r]", "gu");
 
 /**
  * Collapse a lexical form: XML Schema's `collapse` whitespace class, which every name, number and
@@ -139,9 +140,9 @@ const xmlWhitespace = /[\t\n\r]/gu;
 export const collapsed = (lexical: string): string =>
   lexical
     .replaceAll(xmlWhitespace, " ")
-    .replaceAll(/ +/gu, " ")
-    .replace(/^ /u, "")
-    .replace(/ $/u, "");
+    .replaceAll(regex(" +", "gu"), " ")
+    .replace(regex("^ ", "u"), "")
+    .replace(regex(" $", "u"), "");
 
 /**
  * Key a slot of a family.

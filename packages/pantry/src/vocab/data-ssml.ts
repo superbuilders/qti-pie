@@ -18,6 +18,7 @@
  *
  * @see {@link https://www.imsglobal.org/sites/default/files/spec/qti/v3/data-ssml_infobind/imsqtiv3p0_datassml_v1p0_InfoBind.html#JSOND | IMS Data-SSML 1.0, 3.4 Description of the JSON Schema}
  */
+import { regex } from "arkregex";
 import { Option } from "effect";
 
 /**
@@ -169,7 +170,7 @@ const readString = (text: string, start: number): Step<string> => {
       if (simple !== undefined) {
         pieces.push(simple);
         at += 2;
-      } else if (letter === "u" && /^[0-9A-Fa-f]{4}$/u.test(hex)) {
+      } else if (letter === "u" && regex("^[0-9A-Fa-f]{4}$", "u").test(hex)) {
         pieces.push(String.fromCodePoint(Number.parseInt(hex, 16)));
         at += 6;
       } else {

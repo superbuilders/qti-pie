@@ -32,6 +32,7 @@
  * reported, and kept. It writes the documents under a folder of the run's own,
  * `work/genetic-xsd-*`, removed after the file.
  */
+import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, beforeAll, describe, it as unit, layer } from "@effect/vitest";
 import { Console, Effect, FileSystem, Option, Result } from "effect";
@@ -136,13 +137,15 @@ const signatureOf = (difference: Difference): string =>
     difference.rule,
     [
       ...new Set(
-        difference.detail.split(" | ").map((message) =>
-          message
-            .replaceAll(/line \d+/gu, "line #")
-            .replaceAll(/\[\d+\]/gu, "")
-            .replaceAll(/'[^']*'/gu, "'…'")
-            .replaceAll(/"(?:[^"\\]|\\.)*"/gu, '"…"'),
-        ),
+        difference.detail
+          .split(" | ")
+          .map((message) =>
+            message
+              .replaceAll(regex("line \\d+", "gu"), "line #")
+              .replaceAll(regex("\\[\\d+\\]", "gu"), "")
+              .replaceAll(regex("'[^']*'", "gu"), "'…'")
+              .replaceAll(regex('"(?:[^"\\\\]|\\\\.)*"', "gu"), '"…"'),
+          ),
       ),
     ]
       .toSorted()

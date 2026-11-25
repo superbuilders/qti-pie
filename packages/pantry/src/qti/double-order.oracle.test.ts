@@ -39,6 +39,7 @@
  * which no row of the schema holds since its views parse them (T3), so none is restated. The
  * search must catch each.
  */
+import { regex } from "arkregex";
 import { check, lexicalForm, Logic, pg, schema, Text, Type } from "@bjornpagen/grizzle";
 import type { EvaluatedRow } from "@bjornpagen/grizzle/compile";
 import { assert, describe, it } from "@effect/vitest";
@@ -77,7 +78,7 @@ const formerForm = lexicalForm(pg["double precision"]);
 /**
  * The same, as the host tests it.
  */
-const formerRegex = new RegExp(formerForm.source, "u");
+const formerRegex = regex.as(formerForm.source, "u");
 
 /**
  * The deleted checks, restated as they were, each under a name of its own: each bound cast through
@@ -114,7 +115,10 @@ const evaluatePlants = evaluatorOf(schema.extend([Qti], "DoubleOrderPlants", [],
 /**
  * XML Schema 1.0's `xs:double` lexical space (Part 2 §3.2.5.1), the reference's.
  */
-const xsDouble = /^(?:[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[Ee][+-]?[0-9]+)?|-?INF|NaN)$/u;
+const xsDouble = regex(
+  "^(?:[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[Ee][+-]?[0-9]+)?|-?INF|NaN)$",
+  "u",
+);
 
 /**
  * XML Schema's whiteSpace collapse (Part 2 §4.3.6): each run of XML whitespace one space, and none
@@ -125,9 +129,9 @@ const xsDouble = /^(?:[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[Ee][+-]?[0-9]+)?|
  */
 const collapsed = (form: string): string =>
   form
-    .replaceAll(/[\t\n\r ]+/gu, " ")
-    .replace(/^ /u, "")
-    .replace(/ $/u, "");
+    .replaceAll(regex("[\t\n\r ]+", "gu"), " ")
+    .replace(regex("^ ", "u"), "")
+    .replace(regex(" $", "u"), "");
 
 /**
  * The double a form of `xs:double`'s lexical space names, XML Schema 1.1's doubleLexicalMap:
@@ -227,7 +231,7 @@ const spell = ({ digits, exponent, negative }: Numeral, spelling: Spelling): str
   const whole = padded.slice(0, padded.length - spelling.fraction);
   const fraction = padded.slice(padded.length - spelling.fraction);
   const written = exponent - BigInt(spelling.trail) + BigInt(spelling.fraction);
-  const bareWhole = spelling.bare && /^0+$/u.test(whole) ? "" : whole;
+  const bareWhole = spelling.bare && regex("^0+$", "u").test(whole) ? "" : whole;
   const shown =
     spelling.fraction === 0 ? `${whole}${spelling.point ? "." : ""}` : `${bareWhole}.${fraction}`;
   const letter = spelling.letter === "none" ? "e" : spelling.letter;
@@ -321,7 +325,7 @@ const numerals: Gen<Numeral> = weighted([
   [
     9,
     (source) => {
-      const digits = source.draw(significands).replace(/0+$/u, "");
+      const digits = source.draw(significands).replace(regex("0+$", "u"), "");
 
       return {
         digits,
@@ -569,7 +573,10 @@ const place = { package: "item", path: "item.xml", start: 0n } as const;
  * Grizzle's `doubleText`, the language the scale views parse (`attributeDoubles` of
  * `#pantry/qti/names.ts`): {@link xsDouble} without `+INF`, which XML Schema 1.1 adds.
  */
-const viewedForm = /^(?:[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[Ee][+-]?[0-9]+)?|-?INF|NaN)$/u;
+const viewedForm = regex(
+  "^(?:[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[Ee][+-]?[0-9]+)?|-?INF|NaN)$",
+  "u",
+);
 
 /**
  * Read a scale attribute as its view does: its value collapsed, the double it names where it is in
@@ -769,8 +776,10 @@ type Situation =
 /**
  * A numeral's parts as written: its digits and its exponent.
  */
-const numeralParts =
-  /^[+-]?(?<whole>[0-9]*)(?:\.(?<fraction>[0-9]*))?(?:[Ee](?<power>[+-]?[0-9]+))?$/u;
+const numeralParts = regex(
+  "^[+-]?(?<whole>[0-9]*)(?:\\.(?<fraction>[0-9]*))?(?:[Ee](?<power>[+-]?[0-9]+))?$",
+  "u",
+);
 
 /**
  * Name the edges a form, as the law reads it, sits past.
@@ -789,8 +798,8 @@ const edgesOf = (form: string): readonly Situation[] => {
   }
 
   const digits = `${groups["whole"] ?? ""}${groups["fraction"] ?? ""}`
-    .replace(/^0+/u, "")
-    .replace(/0+$/u, "");
+    .replace(regex("^0+", "u"), "")
+    .replace(regex("0+$", "u"), "");
   const value = doubleNamed(form);
   const situations: readonly (readonly [Situation, boolean])[] = [
     ["past 15 digits", digits.length > 15],
@@ -802,7 +811,7 @@ const edgesOf = (form: string): readonly Situation[] => {
         return magnitude > 293n || magnitude < -293n;
       }),
     ],
-    ["zero run past 255", /0{256}/u.test(form)],
+    ["zero run past 255", regex("0{256}", "u").test(form)],
     ["overflow", !Number.isFinite(value)],
     ["underflow", digits !== "" && value === 0],
   ];

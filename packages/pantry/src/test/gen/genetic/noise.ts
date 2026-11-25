@@ -14,6 +14,7 @@
  * Each is a pure function of the genome and a salt, so a run's noised copies are the same on every
  * replay.
  */
+import { regex } from "arkregex";
 import type { Attribute, Child, Element } from "@qti-pie/crust/tree.ts";
 import { XMLNS_NAMESPACE } from "@qti-pie/crust/tree.ts";
 import {
@@ -190,7 +191,8 @@ const pathRename = (genome: Genome, salt: number): Genome => {
           attributeValue(element, "xml:base") !== undefined ||
           element.attributes.some(
             ({ qname, value }) =>
-              hrefNames.has(qname) && (value.includes("%") || /^[\t\n\r ]|[\t\n\r ]$/u.test(value)),
+              hrefNames.has(qname) &&
+              (value.includes("%") || regex("^[\t\n\r ]|[\t\n\r ]$", "u").test(value)),
           ),
       ),
   );
@@ -209,7 +211,7 @@ const pathRename = (genome: Genome, salt: number): Genome => {
           ? attributeValue(element, attribute.qname)
           : undefined;
         const named = value === undefined ? undefined : resolvedPath(path, value);
-        const suffix = /[?#].*$/su.exec(value ?? "")?.[0] ?? "";
+        const suffix = regex("[?#].*$", "su").exec(value ?? "")?.[0] ?? "";
 
         return named === undefined
           ? attribute

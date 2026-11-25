@@ -32,6 +32,7 @@
  * each pair of the two verdicts. Each family's Good–Turing residual is the search's stopping
  * measure.
  */
+import { regex } from "arkregex";
 import { swarmChoice } from "@bjornpagen/testing/swarm";
 import type { Swarm } from "@bjornpagen/testing/swarm";
 import type { Source } from "@bjornpagen/testing/source";
@@ -228,7 +229,7 @@ const longest = 1200;
 /**
  * Read an `xs:date`-like prefix: its sign, year, month and day.
  */
-const datePrefix = /^(?<sign>-?)(?<year>\d{4,})-(?<month>\d\d)-(?<day>\d\d)/u;
+const datePrefix = regex("^(?<sign>-?)(?<year>\\d{4,})-(?<month>\\d\\d)-(?<day>\\d\\d)", "u");
 
 /**
  * A value's code points: the units every edit cuts at, so no edit splits a surrogate pair.
@@ -236,7 +237,7 @@ const datePrefix = /^(?<sign>-?)(?<year>\d{4,})-(?<month>\d\d)-(?<day>\d\d)/u;
  * @param value - The value.
  * @returns Its code points, in order.
  */
-const pointsOf = (value: string): string[] => value.match(/[\s\S]/gu) ?? [];
+const pointsOf = (value: string): string[] => value.match(regex("[\\s\\S]", "gu")) ?? [];
 
 /**
  * The first name of a list whose test holds, in order.
@@ -307,10 +308,11 @@ const calendarClasses = (
  * @returns The classes.
  */
 const clockClasses = (core: string): readonly string[] => {
-  const time = /T(?<hour>\d\d):(?<minute>\d\d):(?<second>\d\d)(?<fraction>\.\d*)?/u.exec(
-    core,
-  )?.groups;
-  const zone = /(?:Z|(?<sign>[+-])(?<hours>\d\d):(?<minutes>\d\d))$/u.exec(core);
+  const time = regex(
+    "T(?<hour>\\d\\d):(?<minute>\\d\\d):(?<second>\\d\\d)(?<fraction>\\.\\d*)?",
+    "u",
+  ).exec(core)?.groups;
+  const zone = regex("(?:Z|(?<sign>[+-])(?<hours>\\d\\d):(?<minutes>\\d\\d))$", "u").exec(core);
   const hours = Number(zone?.groups?.["hours"] ?? 0);
   const minutes = Number(zone?.groups?.["minutes"] ?? 0);
 
@@ -383,10 +385,10 @@ const rangeClasses = (negative: boolean, digits: string): readonly string[] => {
  * @returns The classes, none for a value that is no decimal numeral.
  */
 const numberClasses = (core: string): readonly string[] => {
-  const numeral =
-    /^(?<sign>[+-]?)(?<mantissa>\d+\.?\d*|\.\d+)(?:(?<mark>[eE])(?<exponent>[+-]?\d*))?$/u.exec(
-      core,
-    )?.groups;
+  const numeral = regex(
+    "^(?<sign>[+-]?)(?<mantissa>\\d+\\.?\\d*|\\.\\d+)(?:(?<mark>[eE])(?<exponent>[+-]?\\d*))?$",
+    "u",
+  ).exec(core)?.groups;
   if (numeral === undefined) {
     return [];
   }
@@ -400,11 +402,11 @@ const numberClasses = (core: string): readonly string[] => {
   return [
     "numeral",
     ...firstOf([
-      ["zero", /^0*\.?0*$/u.test(mantissa) && sign === ""],
-      ["zero-plus", /^0*\.?0*$/u.test(mantissa) && sign === "+"],
-      ["zero-minus", /^0*\.?0*$/u.test(mantissa)],
+      ["zero", regex("^0*\\.?0*$", "u").test(mantissa) && sign === ""],
+      ["zero-plus", regex("^0*\\.?0*$", "u").test(mantissa) && sign === "+"],
+      ["zero-minus", regex("^0*\\.?0*$", "u").test(mantissa)],
     ]),
-    ...firstOf([["leading-zeros", /^0\d/u.test(mantissa)]]),
+    ...firstOf([["leading-zeros", regex("^0\\d", "u").test(mantissa)]]),
     ...firstOf([
       ["leading-point", mantissa.startsWith(".")],
       ["trailing-point", mantissa.endsWith(".")],
@@ -415,7 +417,7 @@ const numberClasses = (core: string): readonly string[] => {
       ["exponent-E", mark === "E"],
     ]),
     ...firstOf([
-      ["exponent-bare", mark !== undefined && !/\d/u.test(exponent ?? "")],
+      ["exponent-bare", mark !== undefined && !regex("\\d", "u").test(exponent ?? "")],
       ["exponent-plus", (exponent ?? "").startsWith("+")],
     ]),
     `digits-${digitBins.find(([most]) => digits <= most)?.[1] ?? "25+"}`,
@@ -437,15 +439,17 @@ const numberClasses = (core: string): readonly string[] => {
  * @returns The classes.
  */
 const spellingClasses = (value: string, core: string): readonly string[] => {
-  const special = /^(?<sign>[+-]?)(?<word>INF|NaN|Infinity|inf|nan|Inf|NAN)$/u.exec(core)?.groups;
-  const hex = /^[0-9a-fA-F]+$/u.test(core) && /[a-fA-F]/u.test(core);
-  const lower = /[a-f]/u.test(core);
-  const upper = /[A-F]/u.test(core);
+  const special = regex("^(?<sign>[+-]?)(?<word>INF|NaN|Infinity|inf|nan|Inf|NAN)$", "u").exec(
+    core,
+  )?.groups;
+  const hex = regex("^[0-9a-fA-F]+$", "u").test(core) && regex("[a-fA-F]", "u").test(core);
+  const lower = regex("[a-f]", "u").test(core);
+  const upper = regex("[A-F]", "u").test(core);
   const points = pointsOf(value);
 
   return [
     ...(special === undefined ? [] : [`special-${special["sign"] ?? ""}${special["word"] ?? ""}`]),
-    ...firstOf([["hex-prefix", /^[+-]?0[xX]/u.test(core)]]),
+    ...firstOf([["hex-prefix", regex("^[+-]?0[xX]", "u").test(core)]]),
     ...firstOf([
       ["hex-mixed", hex && lower && upper],
       ["hex-lower", hex && lower],
@@ -453,18 +457,18 @@ const spellingClasses = (value: string, core: string): readonly string[] => {
     ]),
     ...firstOf([["hex-odd", hex && core.length % 2 === 1]]),
     ...firstOf([
-      ["duration-bare", /^-?PT?$/u.test(core)],
-      ["duration-empty-time", /^-?P/u.test(core) && core.endsWith("T")],
-      ["duration", /^-?P/u.test(core)],
+      ["duration-bare", regex("^-?PT?$", "u").test(core)],
+      ["duration-empty-time", regex("^-?P", "u").test(core) && core.endsWith("T")],
+      ["duration", regex("^-?P", "u").test(core)],
     ]),
-    ...firstOf([["boolean-case", /^(?:TRUE|True|FALSE|False|yes|no)$/u.test(core)]]),
-    ...firstOf([["markup", /[&<>"']/u.test(value)]]),
+    ...firstOf([["boolean-case", regex("^(?:TRUE|True|FALSE|False|yes|no)$", "u").test(core)]]),
+    ...firstOf([["markup", regex("[&<>\"']", "u").test(value)]]),
     ...firstOf([
-      ["percent-bad", /%(?![0-9A-Fa-f]{2})/u.test(value)],
+      ["percent-bad", regex("%(?![0-9A-Fa-f]{2})", "u").test(value)],
       ["percent", value.includes("%")],
     ]),
-    ...firstOf([["hash-twice", /#.*#/u.test(value)]]),
-    ...firstOf([["scheme-or-prefix", /^[A-Za-z][A-Za-z0-9+.-]*:/u.test(core)]]),
+    ...firstOf([["hash-twice", regex("#.*#", "u").test(value)]]),
+    ...firstOf([["scheme-or-prefix", regex("^[A-Za-z][A-Za-z0-9+.-]*:", "u").test(core)]]),
     ...firstOf([
       ["astral", points.some((point) => (point.codePointAt(0) ?? 0) > 0xff_ff)],
       [
@@ -490,7 +494,7 @@ const spellingClasses = (value: string, core: string): readonly string[] => {
  * @returns The classes, each once.
  */
 const edgeClassesOf = (value: string, domain: ValueDomain): readonly string[] => {
-  const core = value.replaceAll(/^[\t\n\r ]+|[\t\n\r ]+$/gu, "");
+  const core = value.replaceAll(regex("^[\t\n\r ]+|[\t\n\r ]+$", "gu"), "");
   if (core === "") {
     return [value === "" ? "empty" : "blank"];
   }
@@ -685,13 +689,14 @@ const valueEdits: Readonly<Record<Exclude<LexicalOperator, "regroup" | "transpla
       }
 
       const field = source.draw(oneOf(calendarFields)) ?? calendarFields[0];
-      const fields = { ...groups, [field.name]: source.draw(oneOf(field.values)) ?? "" };
+      const drawnValue = source.draw(oneOf(field.values)) ?? "";
+      const fields = { ...groups, [field.name]: drawnValue };
       const head = `${groups["sign"] ?? ""}${groups["year"] ?? ""}-${groups["month"] ?? ""}-${groups["day"] ?? ""}`;
-      const rest = value.slice(head.length).replace(/(?:Z|[+-]\d\d:\d\d)$/u, "");
+      const rest = value.slice(head.length).replace(regex("(?:Z|[+-]\\d\\d:\\d\\d)$", "u"), "");
       const zone =
         field.name === "zone"
-          ? (fields["zone"] ?? "")
-          : (/(?:Z|[+-]\d\d:\d\d)$/u.exec(value.slice(head.length))?.[0] ?? "");
+          ? drawnValue
+          : (regex("(?:Z|[+-]\\d\\d:\\d\\d)$", "u").exec(value.slice(head.length))?.[0] ?? "");
 
       return Option.some(
         `${field.name === "year" ? "" : (fields["sign"] ?? "")}${fields["year"] ?? ""}-${fields["month"] ?? ""}-${fields["day"] ?? ""}${rest}${zone}`,
@@ -728,7 +733,7 @@ const valueEdits: Readonly<Record<Exclude<LexicalOperator, "regroup" | "transpla
     },
     digits: (value) => (source) => {
       const points = pointsOf(value);
-      const runs = [...value.matchAll(/\d+/gu)];
+      const runs = [...value.matchAll(regex("\\d+", "gu"))];
       if (runs.length === 0) {
         return Option.none();
       }
@@ -755,7 +760,7 @@ const valueEdits: Readonly<Record<Exclude<LexicalOperator, "regroup" | "transpla
           );
     },
     exponent: (value) => (source) => {
-      const mark = /[eE]/u.exec(value);
+      const mark = regex("[eE]", "u").exec(value);
       if (mark === null) {
         const exponent = source.draw(oneOf(["", "0", "1", "309", "-324", "+5", "-0"])) ?? "1";
         const letter = source.draw(oneOf(["e", "E"])) ?? "e";
@@ -819,7 +824,7 @@ const valueEdits: Readonly<Record<Exclude<LexicalOperator, "regroup" | "transpla
       );
     },
     sign: (value) => (source) => {
-      const mark = /[eE]/u.exec(value);
+      const mark = regex("[eE]", "u").exec(value);
       const at = mark !== null && source.draw(below(2)) === 1 ? mark.index + 1 : 0;
       const held = value[at];
       const rest = held === "+" || held === "-" ? value.slice(at + 1) : value.slice(at);

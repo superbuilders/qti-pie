@@ -28,6 +28,7 @@
  *
  * `unshred` (`src/model/unshred.ts`) is the way back, through the inverse of the same names.
  */
+import { regex } from "arkregex";
 import { Effect, Option, Order, Result, Schema } from "effect";
 import { codePointOrder, exportCharset } from "@qti-pie/crust/charset.ts";
 import type { Attribute, Child, Element, Misc, XmlDocument } from "@qti-pie/crust/tree.ts";
@@ -347,14 +348,14 @@ const prefixOf: ReadonlyMap<string, string> = new Map(
  *
  * @see {@link https://www.w3.org/TR/xml/#NT-VersionNum | XML 1.0, VersionNum}
  */
-const xmlVersionNum = /^1\.[0-9]+$/u;
+const xmlVersionNum = regex("^1\\.[0-9]+$", "u");
 
 /**
  * A run of character data made only of XML whitespace.
  *
  * @see {@link https://www.w3.org/TR/xml/#NT-S | XML 1.0, S}
  */
-const whitespaceRun = /^[ \t\r\n]+$/u;
+const whitespaceRun = regex("^[ \t\r\n]+$", "u");
 
 /**
  * Whether a declaration's version is a `VersionNum`.
@@ -897,7 +898,7 @@ const miscOf = (misc: Misc): XdmMisc =>
 const characterOf = (child: Exclude<Child, Element>, replaced: boolean): XdmCharacter => {
   switch (child.kind) {
     case "text": {
-      const value = replaced ? child.value.replaceAll(/[\t\n\r]/gu, " ") : child.value;
+      const value = replaced ? child.value.replaceAll(regex("[\t\n\r]", "gu"), " ") : child.value;
 
       return whitespaceRun.test(value) ? { _tag: "ws", value } : { _tag: "text", value };
     }

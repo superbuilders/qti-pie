@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";
@@ -814,9 +815,9 @@ describe("the MathML relations", () => {
 
     // PostgreSQL's `~` searches, so the payload is tried as a search, with no anchors of the test's own.
     const search = (form: string, base: string, text: string) =>
-      new RegExp(String(Option.getOrThrow(row("CnPattern", { base, form }))["pattern"]), "u").test(
-        text,
-      );
+      regex
+        .as(String(Option.getOrThrow(row("CnPattern", { base, form }))["pattern"]), "u")
+        .test(text);
     assert.isTrue(search("hexdouble", "10", "7ff8000000000000"));
     assert.isFalse(search("hexdouble", "10", "7F8000000000000000"));
     assert.isFalse(search("integer", "10", "12abc"));

@@ -17,6 +17,7 @@
  * @see {@link https://www.rfc-editor.org/rfc/rfc5234#section-2.3 | RFC 5234, §2.3 Terminal Values}
  * @see {@link https://www.w3.org/TR/xml-names/#ns-decl | Namespaces in XML 1.0, §3}
  */
+import { regex } from "arkregex";
 
 /**
  * A grammar rule: every offset a derivation of it from `at` ends at.
@@ -52,7 +53,7 @@ const range =
  * @returns The text with each of `A` to `Z` as its small letter.
  */
 const asciiLower = (text: string): string =>
-  text.replaceAll(/[A-Z]/gu, (capital) => capital.toLowerCase());
+  text.replaceAll(regex("[A-Z]", "gu"), (capital) => capital.toLowerCase());
 
 /**
  * A quoted string, matched without regard to ASCII case (RFC 5234 §2.3).

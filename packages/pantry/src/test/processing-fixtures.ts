@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
@@ -573,13 +574,20 @@ const terminatorOf = (text: string): string => (text.includes("\r\n") ? "\r\n" :
 const withTerminator = (text: string, terminator: string): string =>
   text.replaceAll("\r\n", "\n").replaceAll("\n", terminator);
 
-const processingElement =
-  /<qti-response-processing(?:\s[^>]*?)?\/>|<qti-response-processing(?:\s[^>]*)?>[\s\S]*?<\/qti-response-processing>/u;
+const processingElement = regex(
+  "<qti-response-processing(?:\\s[^>]*?)?/>|<qti-response-processing(?:\\s[^>]*)?>[\\s\\S]*?</qti-response-processing>",
+  "u",
+);
 
-const templateProcessingElement =
-  /<qti-template-processing(?:\s[^>]*?)?\/>|<qti-template-processing(?:\s[^>]*)?>[\s\S]*?<\/qti-template-processing>/u;
+const templateProcessingElement = regex(
+  "<qti-template-processing(?:\\s[^>]*?)?/>|<qti-template-processing(?:\\s[^>]*)?>[\\s\\S]*?</qti-template-processing>",
+  "u",
+);
 
-const declarationOpening = /<qti-(?<kind>response|outcome|template|context)-declaration\b[^>]*>/gu;
+const declarationOpening = regex(
+  "<qti-(?<kind>response|outcome|template|context)-declaration\\b[^>]*>",
+  "gu",
+);
 
 /**
  * The schema's order of the declaration kinds in an item: context, response, outcome, template.
@@ -617,7 +625,8 @@ const declarationsOf = (text: string): readonly Declaration[] => {
       ? opening.index + opening[0].length
       : text.indexOf(`</qti-${kind}-declaration>`, opening.index) +
         `</qti-${kind}-declaration>`.length;
-    const identifier = /\sidentifier="(?<id>[^"]*)"/u.exec(opening[0])?.groups?.["id"] ?? "";
+    const identifier =
+      regex('\\sidentifier="(?<id>[^"]*)"', "u").exec(opening[0])?.groups?.["id"] ?? "";
 
     found.push({
       end,
@@ -692,7 +701,7 @@ const setAttribute = (
   name: string,
   value: string,
 ): string | undefined => {
-  const attribute = new RegExp(`(\\s${name}=)(?:"[^"]*"|'[^']*')`, "u");
+  const attribute = regex.as(`(\\s${name}=)(?:"[^"]*"|'[^']*')`, "u");
 
   return source !== undefined && attribute.test(source)
     ? source.replace(attribute, (_, head: string) => `${head}"${value}"`)
@@ -709,7 +718,7 @@ const setAttribute = (
  *   attribute.
  */
 const nameItemTag = (text: string, identifier: string, title: string): string | undefined => {
-  const tag = /<qti-assessment-item\b[^>]*>/u.exec(text)?.[0];
+  const tag = regex("<qti-assessment-item\\b[^>]*>", "u").exec(text)?.[0];
   const named = setAttribute(setAttribute(tag, "identifier", identifier), "title", title);
 
   return tag === undefined || named === undefined ? undefined : text.replace(tag, () => named);

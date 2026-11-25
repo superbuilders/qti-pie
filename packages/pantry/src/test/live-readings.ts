@@ -5,6 +5,7 @@
  * where a reading number alone would still resolve (reading 26 kept its number when its rule was
  * withdrawn).
  */
+import { regex } from "arkregex";
 import path from "node:path";
 import { Effect, FileSystem } from "effect";
 
@@ -33,7 +34,7 @@ export const readingsOf = (text: string): ReadonlyMap<number, string> => {
   const readings = new Map<number, string[]>();
   let current: string[] | undefined;
   for (const line of text.split("\n")) {
-    const numbered = /^(?<number>\d+)\. /u.exec(line)?.groups?.["number"];
+    const numbered = regex("^(?<number>\\d+)\\. ", "u").exec(line)?.groups?.["number"];
     if (numbered !== undefined) {
       current = [line];
       readings.set(Number(numbered), current);
@@ -45,7 +46,10 @@ export const readingsOf = (text: string): ReadonlyMap<number, string> => {
   }
 
   return new Map(
-    [...readings].map(([number, lines]) => [number, lines.join(" ").replaceAll(/\s+/gu, " ")]),
+    [...readings].map(([number, lines]) => [
+      number,
+      lines.join(" ").replaceAll(regex("\\s+", "gu"), " "),
+    ]),
   );
 };
 
@@ -73,4 +77,4 @@ export const stillSays = (
   readings: ReadonlyMap<number, string>,
   reading: number,
   says: string,
-): boolean => (readings.get(reading) ?? "").includes(says.replaceAll(/\s+/gu, " "));
+): boolean => (readings.get(reading) ?? "").includes(says.replaceAll(regex("\\s+", "gu"), " "));

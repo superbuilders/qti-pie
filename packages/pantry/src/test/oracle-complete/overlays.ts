@@ -3,6 +3,7 @@
  * stated before lane OL (§1.7) and the package laws (§1.6), each drawn to break exactly its law in
  * an accepted package (`src/test/complete.oracle.test.ts`).
  */
+import { regex } from "arkregex";
 import { duplicateDrawn, editDrawnDocument } from "#pantry/test/oracle-complete/mutation.ts";
 import type { Mutation } from "#pantry/test/oracle-complete/mutation.ts";
 
@@ -14,7 +15,10 @@ const documents = ["items/item.xml", "items/item2.xml", "items/item3.xml"] as co
 /**
  * A declaration of an outcome or template variable written whole on one line.
  */
-const declarationLine = /<qti-(?:outcome|template)-declaration identifier="[^"]+"[^>]*\/>/u;
+const declarationLine = regex(
+  '<qti-(?:outcome|template)-declaration identifier="[^"]+"[^>]*/>',
+  "u",
+);
 
 /**
  * Each law's mutation, by law.

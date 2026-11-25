@@ -2,6 +2,7 @@
  * The identity overlays' free tests: the law oracle's Label tools, DocumentId key and Idref target
  * over typed texts, Document lang and the SSML laws.
  */
+import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
@@ -351,7 +352,8 @@ const documentLangCases: Gen<DocumentLangCase> = (source) => ({
  * @param tag - The tag as written.
  * @returns The folded tag.
  */
-const foldedTag = (tag: string): string => tag.replaceAll(/[A-Z]/gu, (c) => c.toLowerCase());
+const foldedTag = (tag: string): string =>
+  tag.replaceAll(regex("[A-Z]", "gu"), (c) => c.toLowerCase());
 
 /**
  * Read an `xml:lang` form as BCP 47 compares it: its form collapsed (an `xs:language`'s whiteSpace,

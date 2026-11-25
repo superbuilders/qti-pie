@@ -58,6 +58,7 @@
  * `lang-set-copy`, coords by shape, the gap and hottext owners beyond N8, `template-derivation`,
  * the CSM laws, and the typed values a domain derives beyond its regex (G5).
  */
+import { regex as arkregex } from "arkregex";
 import { Array as Arr, Effect, Equal, Option, Order, pipe, Record as Rec, Result } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { xsdPattern } from "@qti-pie/crust/regex.ts";
@@ -406,14 +407,14 @@ const identity: Slot = { elements: 0n, state: 0 };
  * @returns The tag with each of `A` to `Z` as its small letter, every other character as it is.
  */
 const caseFolded = (tag: string): string =>
-  tag.replaceAll(/[A-Z]/gu, (capital) => capital.toLowerCase());
+  tag.replaceAll(arkregex("[A-Z]", "gu"), (capital) => capital.toLowerCase());
 
 /**
  * A well-formed BCP 47 language tag as a whole text, RFC 5646's `Language-Tag` as the grammar reads
  * it (`languageTag`, spec reading 129): the value of an `xml:lang` that states a language. A form
  * whose collapsed value is no tag identifies no language (RFC 5646 §2.1; spec reading 174).
  */
-const languageTagForm = new RegExp(`^(?:${languageTag})$`, patternFlags);
+const languageTagForm = arkregex.as(`^(?:${languageTag})$`, patternFlags);
 
 /**
  * Split a collapsed list form into its tokens.
@@ -680,7 +681,7 @@ export const lawsOf = (grammar: ComposedGrammar): Laws => {
     domains: new Map(
       grammar.attributes.domains.map((domain) => [
         domain.handle,
-        { domain, regex: new RegExp(domain.pattern, patternFlags) },
+        { domain, regex: arkregex.as(domain.pattern, patternFlags) },
       ]),
     ),
     elements: new Set(grammar.kinds.isElement.rows.map(({ kind }) => kind)),
@@ -1031,7 +1032,7 @@ const selectedChildOf = (
 ): Option.Option<bigint> => {
   const rank = Option.match(collapsedValueOf(view, node.start, "selection"), {
     onNone: () => 1,
-    onSome: (text) => (/^[0-9]+$/u.test(text) ? Number(text) : Number.NaN),
+    onSome: (text) => (arkregex("^[0-9]+$", "u").test(text) ? Number(text) : Number.NaN),
   });
 
   return Option.map(
@@ -1243,7 +1244,7 @@ const tableOf = (view: View, node: FoldedNode<Composed>): bigint | undefined =>
  * An NCName, `xs:NCName` as the value domains compile it: the form of a bare variable reference,
  * and of an ID's value, `xs:ID` being a restriction of it.
  */
-const nameForm = new RegExp(
+const nameForm = arkregex.as(
   Result.getOrThrowWith(
     Result.flatMap(builtinDomainOf("NCName"), (domain) => compile(domain, "exact")),
     (unread) => unread,
@@ -1310,7 +1311,7 @@ const heldRoot = (grammar: ComposedGrammar, view: View, node: FoldedNode<Compose
         view.rows.openElementNames.find((row) => row.start === node.start),
       ),
     }),
-    ({ held, name }) => new RegExp(held.names, patternFlags).test(expandedText(name)),
+    ({ held, name }) => arkregex.as(held.names, patternFlags).test(expandedText(name)),
   );
 
 /**
@@ -1999,9 +2000,9 @@ const nodeLaws: readonly NodeLaw[] = [
             Option.map(
               cnPatternOf(
                 forms[index] ?? "real",
-                /^[+-]?[0-9]+$/u.test(base) ? Number(base) : Number.NaN,
+                arkregex("^[+-]?[0-9]+$", "u").test(base) ? Number(base) : Number.NaN,
               ),
-              (pattern) => new RegExp(`^(?:${pattern})$`, patternFlags),
+              (pattern) => arkregex.as(`^(?:${pattern})$`, patternFlags),
             ),
             (form) => !form.test(text),
           ),
@@ -2025,7 +2026,9 @@ const nodeLaws: readonly NodeLaw[] = [
         collapsedValueOf(view, node.start, "selection"),
         () => "1",
       );
-      const out = children === 0 || (/^[0-9]+$/u.test(selection) && Number(selection) > children);
+      const out =
+        children === 0 ||
+        (arkregex("^[0-9]+$", "u").test(selection) && Number(selection) > children);
 
       return out ? Option.some({ children: String(children), selection }) : Option.none();
     },
@@ -2208,7 +2211,10 @@ const numberOf = (form: string): number => {
  *
  * @see {@link https://www.w3.org/TR/xmlschema11-2/#decimal | XML Schema 1.1 Part 2, 3.3.3 decimal}
  */
-const decimalForm = /^(?<sign>[+-]?)(?=\.?[0-9])(?<whole>[0-9]*)(?:\.(?<fraction>[0-9]*))?$/u;
+const decimalForm = arkregex(
+  "^(?<sign>[+-]?)(?=\\.?[0-9])(?<whole>[0-9]*)(?:\\.(?<fraction>[0-9]*))?$",
+  "u",
+);
 
 /**
  * Whether a form is an `xs:decimal` whose collapsed text is past the bytes `Text.parseDecimal`
@@ -2401,9 +2407,8 @@ const memberHolds = (member: Domain, form: string): boolean => {
   const known = memberPatterns.get(member);
   const pattern =
     known ??
-    Option.map(
-      Result.getSuccess(compile(member, "xsd")),
-      ({ pattern: text }) => new RegExp(text, patternFlags),
+    Option.map(Result.getSuccess(compile(member, "xsd")), ({ pattern: text }) =>
+      arkregex.as(text, patternFlags),
     );
   memberPatterns.set(member, pattern);
 
@@ -3004,7 +3009,7 @@ const bindingNames = ["response-identifier", "string-identifier"] as const;
 /**
  * A braced variable reference: `{identifier}`.
  */
-const braced = /^\{(?<identifier>[^{}]+)\}$/u;
+const braced = arkregex("^\\{(?<identifier>[^{}]+)\\}$", "u");
 
 /**
  * Read the variable a reference attribute's value names, by the reference's spelling: a bare
@@ -3013,7 +3018,7 @@ const braced = /^\{(?<identifier>[^{}]+)\}$/u;
  */
 const referenced: Readonly<Record<Spelling, (form: string) => Option.Option<string>>> = {
   bare: (form) => Option.liftPredicate(collapsed(form), (value) => nameForm.test(value)),
-  braced: (form) => Option.fromNullishOr(braced.exec(form)?.groups?.["identifier"]),
+  braced: (form) => Option.fromNullishOr(braced.exec(form)?.groups["identifier"]),
 };
 
 /**
@@ -3693,13 +3698,15 @@ const recordBreach = (
 /**
  * `xs:integer`'s lexical space.
  */
-const xsIntegerForm = /^[+-]?[0-9]+$/u;
+const xsIntegerForm = arkregex("^[+-]?[0-9]+$", "u");
 
 /**
  * `xs:double`'s lexical space, its mantissa and exponent captured.
  */
-const xsDoubleForm =
-  /^(?<mantissa>[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+))(?:[eE](?<exponent>[+-]?[0-9]+))?$/u;
+const xsDoubleForm = arkregex(
+  "^(?<mantissa>[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+))(?:[eE](?<exponent>[+-]?[0-9]+))?$",
+  "u",
+);
 
 /**
  * `xs:double`'s special values as XML Schema 1.0 spells them, reading 71's edition, in which `+INF`
@@ -3751,7 +3758,7 @@ const typedAttributeForms: ReadonlyMap<string, RegExp> = new Map(
     ["point", `${exactBodyOf("integer")}[\\t\\n\\r ]${exactBodyOf("integer")}`],
     ["pair", `${exactBodyOf("NCName")}[\\t\\n\\r ]${exactBodyOf("NCName")}`],
     ["directedPair", `${exactBodyOf("NCName")}[\\t\\n\\r ]${exactBodyOf("NCName")}`],
-  ].map(([baseType = "", body = ""]) => [baseType, new RegExp(`^${body}$`, patternFlags)]),
+  ].map(([baseType = "", body = ""]) => [baseType, arkregex.as(`^${body}$`, patternFlags)]),
 );
 
 /**
@@ -3794,11 +3801,13 @@ const typedAttributeHolds = (baseType: string, text: string): boolean => {
  * @returns Whether it is one.
  */
 export const typedTextHolds = (baseType: string, text: string): boolean => {
-  const trimmed = text.replace(/^[\t\n\r ]+/u, "").replace(/[\t\n\r ]+$/u, "");
+  const trimmed = text
+    .replace(arkregex("^[\t\n\r ]+", "u"), "")
+    .replace(arkregex("[\t\n\r ]+$", "u"), "");
 
   return typedFormHolds(
     baseType,
-    baseType === "uri" ? trimmed.replaceAll(/[\t\n\r ]+/gu, " ") : trimmed,
+    baseType === "uri" ? trimmed.replaceAll(arkregex("[\t\n\r ]+", "gu"), " ") : trimmed,
   );
 };
 
@@ -4004,12 +4013,14 @@ const toleranceSignOf = (value: string): "not positive" | "positive" | "string" 
     return "not positive";
   }
 
-  const mantissa = xsDoubleForm.exec(value)?.groups?.["mantissa"];
+  const mantissa = xsDoubleForm.exec(value)?.groups["mantissa"];
   if (mantissa === undefined) {
     return "string";
   }
 
-  return !mantissa.startsWith("-") && /[1-9]/u.test(mantissa) ? "positive" : "not positive";
+  return !mantissa.startsWith("-") && arkregex("[1-9]", "u").test(mantissa)
+    ? "positive"
+    : "not positive";
 };
 
 /**
@@ -4057,7 +4068,7 @@ const overlayLaws: readonly ((
     // (info §5.140.1), the table its nearest; a cell no table holds takes part in none.
     node.kind === "td" || node.kind === "th"
       ? Option.toArray(valueOf(overlay.view, node.start, "headers")).flatMap((headers) => {
-          const tokens = headers.split(/[\t\n\r ]+/u).filter((token) => token !== "");
+          const tokens = headers.split(arkregex("[\t\n\r ]+", "u")).filter((token) => token !== "");
           const table = tableOf(overlay.view, node);
           const held =
             table === undefined
@@ -4466,7 +4477,9 @@ const overlayLaws: readonly ((
         : [];
     }
 
-    const values = tolerance.value.split(/[\t\n\r ]+/u).filter((value) => value !== "");
+    const values = tolerance.value
+      .split(arkregex("[\t\n\r ]+", "u"))
+      .filter((value) => value !== "");
     const unsigned = values.filter((value) => toleranceSignOf(value) === "not positive");
 
     return values.length >= 1 && values.length <= 2 && unsigned.length === 0
@@ -7157,7 +7170,7 @@ const domainExplained = (
     {
       onNone: () => `${JSON.stringify(form)} is read under no value domain`,
       onSome: (domain) => {
-        if (new RegExp(domain.pattern, patternFlags).test(form)) {
+        if (arkregex.as(domain.pattern, patternFlags).test(form)) {
           return `${JSON.stringify(form)} is outside ${domain.handle}'s ${Option.match(
             boundBroken(domain, form),
             { onNone: () => "", onSome: ({ facet, value }) => `${facet} ${String(value)}` },

@@ -41,6 +41,7 @@
  * kind with their built-in types (spec reading 47). The composition (`src/grammar/compose.ts`)
  * derives those admission rows, since they need every vocabulary's element names.
  */
+import { regex } from "arkregex";
 import { Match, Option, Result, Schema } from "effect";
 import type { Attribute } from "@qti-pie/crust/tree.ts";
 import { XML_NAMESPACE } from "@qti-pie/crust/tree.ts";
@@ -97,7 +98,7 @@ export type OpenName =
  * `docs/spec-readings.md`). A no-namespace name that begins `data-` and breaks it is refused, never
  * read as `no-namespace`.
  */
-export const dataName = /^data-[a-z0-9_.-]+$/u;
+export const dataName = regex("^data-[a-z0-9_.-]+$", "u");
 
 /**
  * The global elements spec reading 6 keeps foreign inside wildcard content, by kind: QTI's

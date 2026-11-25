@@ -37,6 +37,7 @@
  * children's, appending to its lists in place, so a document with one element of many children
  * costs time linear in its nodes (decision 357).
  */
+import { regex } from "arkregex";
 import type { Addition } from "@bjornpagen/grizzle";
 import { Option } from "effect";
 import { foldAt, governorOf, lexicalOf } from "#pantry/import/fold.ts";
@@ -138,7 +139,7 @@ const documentStart = 0n;
  * The lexical space a `selection` is read as an integer in, `xs:integer`'s within the signed 64-bit
  * range.
  */
-const integerSpelling = new RegExp(integerForm.source, "u");
+const integerSpelling = regex.as(integerForm.source, "u");
 
 /**
  * Read a `dir` as a direction: its value, the lexical form normalized in its domain's class under

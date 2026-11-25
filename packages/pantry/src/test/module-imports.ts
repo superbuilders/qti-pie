@@ -4,6 +4,7 @@
  * (`src/import/boundary.test.ts`), the pure layers (`src/grammar/purity.test.ts`), and the modules
  * an install outside this package loads (`src/qti/schema.test.ts`).
  */
+import { regex } from "arkregex";
 import { Predicate } from "effect";
 
 /**
@@ -38,7 +39,7 @@ const formOf = (group: string, text: string): ImportForm => {
     return "dynamic";
   }
 
-  return /^(?:import|export)\s+type\b/u.test(text) ? "type" : "value";
+  return regex("^(?:import|export)\\s+type\\b", "u").test(text) ? "type" : "value";
 };
 
 /**
@@ -53,15 +54,21 @@ const formOf = (group: string, text: string): ImportForm => {
  */
 export const moduleImports = (source: string): readonly ModuleImport[] => {
   const code = source.replaceAll(
-    /(?<literal>"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`)|\/\*[\s\S]*?\*\/|\/\/[^\n]*/gu,
+    regex.as(
+      "(?<literal>\"(?:\\\\.|[^\"\\\\\\n])*\"|'(?:\\\\.|[^'\\\\\\n])*'|`(?:\\\\.|[^`\\\\])*`)|\\/\\*[\\s\\S]*?\\*\\/|\\/\\/[^\\n]*",
+      "gu",
+    ),
     (_text, literal: string | undefined) => literal ?? "",
   );
   const found = code.matchAll(
-    /^[ \t]*(?:import|export)\b(?!\s*\()[^;]*?\bfrom\s*["'](?<from>[^"']+)["']|^[ \t]*import\s*["'](?<bare>[^"']+)["']|\bimport\s*\(\s*["'](?<dynamic>[^"']+)["']/gmu,
+    regex(
+      "^[ \t]*(?:import|export)\\b(?!\\s*\\()[^;]*?\\bfrom\\s*[\"'](?<from>[^\"']+)[\"']|^[ \t]*import\\s*[\"'](?<bare>[^\"']+)[\"']|\\bimport\\s*\\(\\s*[\"'](?<dynamic>[^\"']+)[\"']",
+      "gmu",
+    ),
   );
 
   return [...found].flatMap(({ 0: written, groups }) => {
-    const text = written.trim().replaceAll(/\s+/gu, " ");
+    const text = written.trim().replaceAll(regex("\\s+", "gu"), " ");
 
     return Object.entries(groups ?? {}).flatMap(([group, specifier]) =>
       Predicate.isString(specifier) ? [{ form: formOf(group, text), specifier, text }] : [],

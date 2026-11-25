@@ -23,6 +23,7 @@
  * `qti-template-block`) never roots a fragment (reading 116): {@link fragmentRootsOf} keeps the
  * kind of each name whose handle is its name.
  */
+import { regex } from "arkregex";
 import { closed, idField, indexed, roster } from "#pantry/grammar/closed.ts";
 import type { IdField, Indexed, Roster } from "#pantry/grammar/closed.ts";
 import type { ContentModel, Particle } from "#pantry/vocab/inventory/types.ts";
@@ -163,7 +164,7 @@ export const fragmentRootsOf = (
     [...Map.groupBy(kinds, nameOf).values()].flatMap((sharing) =>
       sharing.length === 1
         ? sharing
-        : sharing.filter((kind) => kind.replace(/^[^:]*:/u, "") === localOf(kind)),
+        : sharing.filter((kind) => kind.replace(regex("^[^:]*:", "u"), "") === localOf(kind)),
     ),
   );
 

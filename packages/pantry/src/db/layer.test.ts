@@ -15,6 +15,7 @@
  * type-only or dynamic import, or a re-export, of a `#migrations/` specifier.
  * `import.meta.resolve` only names a path, and is no import.
  */
+import { regex } from "arkregex";
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -56,7 +57,10 @@ const unusedServer = {
 const migrationImports = (text: string): readonly string[] =>
   [
     ...text.matchAll(
-      /\b(?:from\s*|import\s*\(\s*|^[ \t]*import\s+)["'](?<specifier>#migrations\/[^"']+)["']/gmu,
+      regex(
+        "\\b(?:from\\s*|import\\s*\\(\\s*|^[ \t]*import\\s+)[\"'](?<specifier>#migrations/[^\"']+)[\"']",
+        "gmu",
+      ),
     ),
   ].map(({ groups }) => groups?.["specifier"] ?? "");
 
