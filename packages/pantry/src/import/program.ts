@@ -50,7 +50,9 @@ export interface ImportProgram {
  * one package built twice is one program.
  *
  * A key two builders give two different rows is a defect of the builders, and dies as the
- * `OverlayConflict` that names it.
+ * `OverlayConflict` that names it. A `File` holds its bytes in a Blob, which gives them only as a
+ * promise; one held in memory never rejects. Each file's digest is grizzle's SHA-256 of its bytes,
+ * as PostgreSQL's computes it.
  *
  * @param pkg - The package, as `readPackage` read it.
  * @returns The program.
@@ -68,8 +70,6 @@ export const programOf = Effect.fn("import.programOf")(function* programOf(
     ),
   );
   const documents = new Set([pkg.manifest.path, ...pkg.documents.map(({ path }) => path)]);
-  // A `File` holds its bytes in a Blob, which gives them only as a promise; one held in memory
-  // never rejects. Each file's digest is grizzle's SHA-256 of its bytes, as PostgreSQL's computes it.
   const media = yield* Effect.all(
     [...pkg.files]
       .filter(([path]) => !documents.has(path))

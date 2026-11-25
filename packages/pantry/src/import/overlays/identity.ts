@@ -283,7 +283,9 @@ const documentIdOf = (
 
 /**
  * Build the rows a document's attributes give: each attribute ID's `DocumentId`, and the `LabelUse`
- * of each `label` that asks for its tool.
+ * of each `label` that asks for its tool. An element's ID-typed attributes give it one row; XML
+ * Schema gives it no second, which "DocumentId key"'s key over the ID-typed attributes' element
+ * refuses.
  *
  * @param tree - The document's tree.
  * @returns The rows, each by its key text.
@@ -297,8 +299,6 @@ const attributeRowsOf = (tree: Tree): Pick<IdentityRows, "DocumentId" | "LabelUs
     const element = tree.nodeAt(attribute.start);
     const { name, start } = attribute;
     const at = keyTextOf(place.package, place.path, start);
-    // An element's ID-typed attributes give it one row; XML Schema gives it no second, which
-    // "DocumentId key"'s key over the ID-typed attributes' element refuses.
     if (holdsId(attribute, element)) {
       documentIds.set(at, documentIdOf(tree, element, start));
     }

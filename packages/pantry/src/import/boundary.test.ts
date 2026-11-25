@@ -142,20 +142,27 @@ const unsided: ByStep = [];
  * Every crossing today, `module: specifier`, grouped by the step that removes it at the latest. A
  * step that drops the import sooner drops its entry with it. The list only shrinks: a new crossing
  * fails the test, and so does an entry whose import is gone, until the entry goes too.
+ *
+ * - **S10** takes out of each module the code of the other side, which no export can carry across:
+ *   `ingest` with its login's member (the type of `insertWrite` in `qti/logins.ts`, which type the
+ *   author `Db`'s workload it applies through), retries and refusal report out of
+ *   `import/package.ts`; the row type with its relations out of `import/write.ts` into the schema,
+ *   where the author login's workload reads them, and with it the names of the relations the
+ *   ChangeSet writes (`WrittenName` of `import/roster.ts`), whose complement the login's deletes
+ *   omit; the reader's refusal out of `package/refusal-origin.ts` beside `ruleOfError` in
+ *   `import/rules.ts`, and the database's refusal an error of its own, so `import/refusal.ts` reads
+ *   no `ImportRefused` and the command line gets the database's refusal from `ingest`; the export's
+ *   reads, with the same login and role, out of `export/package.ts`, behind the scan; and crust's
+ *   reader types out of `vocab/open.ts`, with shred's reader. No step places `export/pages.ts`'s
+ *   assembly or `qti/attributes.ts`'s `handlePrefixes` yet: S10 owes each a side.
+ * - **S11** moves the XML side into filling, which then reaches pantry only through its `exports`:
+ *   each read of a schema module other than `qti/schema.ts`, or of a grammar module other than
+ *   `grammar/install.ts`, goes through one of them. S10's split of `grammar/content.ts`,
+ *   `grammar/domains.ts`, `grammar/kinds.ts` and `vocab/open.ts` takes some of them out sooner,
+ *   where only shred's readers were read, and so would a split of `vocab/data-ssml.ts`, whose JSON
+ *   reader only the data-ssml overlay runs beside the schema's table of members.
  */
 const crossings: ByStep = [
-  // S10 takes out of each module the code of the other side, which no export can carry across:
-  // `ingest` with its login's member (the type of `insertWrite` in
-  // `qti/logins.ts`, which type the author `Db`'s workload it applies through), retries and refusal
-  // report out of `import/package.ts`; the row type with its relations out of `import/write.ts` into the
-  // schema, where the author login's workload reads them, and with it the names of the relations
-  // the ChangeSet writes (`WrittenName` of `import/roster.ts`), whose complement the login's
-  // deletes omit; the reader's refusal out of `package/refusal-origin.ts` beside `ruleOfError` in `import/rules.ts`,
-  // and the database's refusal an error of its own, so `import/refusal.ts` reads no
-  // `ImportRefused` and the command line gets the database's refusal from `ingest`; the
-  // export's reads, with the same login and role, out of `export/package.ts`, behind the scan; and
-  // crust's reader types out of `vocab/open.ts`, with shred's reader. No step places
-  // `export/pages.ts`'s assembly or `qti/attributes.ts`'s `handlePrefixes` yet: S10 owes each a side.
   [
     "S10",
     [
@@ -176,12 +183,6 @@ const crossings: ByStep = [
       "vocab/open.ts: @qti-pie/crust/tree.ts",
     ],
   ],
-  // S11 moves the XML side into filling, which then reaches pantry only through its `exports`:
-  // each read of a schema module other than `qti/schema.ts`, or of a grammar module other
-  // than `grammar/install.ts`, goes through one of them. S10's split of `grammar/content.ts`,
-  // `grammar/domains.ts`, `grammar/kinds.ts` and `vocab/open.ts` takes some of them out sooner,
-  // where only shred's readers were read, and so would a split of `vocab/data-ssml.ts`, whose JSON
-  // reader only the data-ssml overlay runs beside the schema's table of members.
   [
     "S11",
     [
@@ -394,12 +395,14 @@ describe("the boundary between the XML side and the PostgreSQL side", () => {
   });
 
   it("finds a planted crossing of every kind, and none where the sides meet at the handoff", () => {
-    // Oracle: the rule of `crosses` on a planted module graph. Live: the XML side importing the
-    // database driver, a PostgreSQL module outside the handoff, and a module on neither side by a
-    // dynamic import; the PostgreSQL side importing the XML side by a type-only import, an XML
-    // reader, and a value of an offline deriver. Stale: the XML side importing the handoff, its
-    // own side, grizzle and crust; the PostgreSQL side importing grizzle, the driver and a
-    // deriver's type, the kept `uriReference`, and a deriver reading crust and saxes.
+    /**
+     * A planted module graph, judged by the rule of `crosses`. Live: the XML side importing the
+     * database driver, a PostgreSQL module outside the handoff, and a module on neither side by a
+     * dynamic import; the PostgreSQL side importing the XML side by a type-only import, an XML
+     * reader, and a value of an offline deriver. Stale: the XML side importing the handoff, its own
+     * side, grizzle and crust; the PostgreSQL side importing grizzle, the driver and a deriver's
+     * type, the kept `uriReference`, and a deriver reading crust and saxes.
+     */
     const planted: Boundary = {
       database: new Set([
         "db/derived.ts",
