@@ -27,11 +27,14 @@
     "./test/catalog-shown": "./src/test/catalog-shown.ts",
     "./test/corpus": "./src/test/corpus.ts",
     "./test/golden": "./src/test/golden.ts",
+    "./test/modules": "./src/test/modules.js",
     "./test/records": "./src/test/records.ts",
     "./words": "./src/words.ts"
   },
   "scripts": {
     "emit:alpha-pci-modules": "node src/alpha/emit-pci-modules.ts",
+    "generate": "node src/test/emit-modules.ts",
+    "generate:check": "node src/test/emit-modules.ts --check",
     "typecheck": "sh -c 'toolchain-typecheck -p src/tsconfig.json \"$@\" & toolchain-typecheck -p tsconfig.json \"$@\"; plate=$?; wait $! && exit $plate' typecheck",
     "test": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" NODE_OPTIONS=\"$NODE_OPTIONS --disable-proto=delete --disable-sigusr1\" vitest run"
   },
