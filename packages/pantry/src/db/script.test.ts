@@ -8,8 +8,16 @@
 import path from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
-import { Effect, FileSystem, Stream } from "effect";
+import { word } from "@bjornpagen/testing/dictionary";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { noCoverage } from "@bjornpagen/testing/features";
+import { boolean } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
+import { Duration, Effect, FileSystem, Formatter, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import { requiredSettings } from "#pantry/db/script.dictionary.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
 
 /**
@@ -62,20 +70,27 @@ const cleared = {
 const migrationRole = "qti_migrator";
 
 /**
- * The settings scripts/db.sh requires, and a subcommand that requires it: every subcommand the
- * host, the port, the CA, the database, the migration identity and, with no password command, its
- * password file and the logins' password folder, and `create` alone the template.
+ * A case of the refusal box: a required setting, a subcommand that requires it, and whether the
+ * case leaves it unset or empty.
  */
-const requiredSettings = [
-  { setting: "QTI_PIE_PG_HOST", subcommand: "check-clear" },
-  { setting: "QTI_PIE_PG_PORT", subcommand: "check-clear" },
-  { setting: "QTI_PIE_PG_CA", subcommand: "check-clear" },
-  { setting: "QTI_PIE_PG_DATABASE", subcommand: "check-clear" },
-  { setting: "QTI_PIE_PG_MIGRATION_ROLE", subcommand: "check-clear" },
-  { setting: "QTI_PIE_PG_MIGRATION_PASSWORD_FILE", subcommand: "check-clear" },
-  { setting: "QTI_PIE_PG_SECRETS", subcommand: "check-clear" },
-  { setting: "QTI_PIE_PG_TEMPLATE", subcommand: "create" },
-] as const;
+interface RefusedCase {
+  readonly setting: string;
+  readonly subcommand: string;
+  readonly text: "" | undefined;
+}
+
+/**
+ * Draw a case of the refusal box: each of {@link requiredSettings}, unset or empty.
+ */
+const refusedCase: Gen<RefusedCase> = (source) => ({
+  ...source.draw(word(requiredSettings)),
+  text: source.draw(boolean) ? "" : undefined,
+});
+
+/**
+ * How many cases {@link refusedCase} draws: 8 settings, each unset and empty.
+ */
+const REFUSED_CASES = 8 * 2;
 
 /**
  * A case's scratch folder, with the stub psql in `bin/`, a CA file that only exists, the migration
@@ -339,34 +354,40 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     );
 
     it.effect(
-      "refuses each required setting left unset or empty with exit 2, naming it, before any psql runs",
-      () =>
-        // Oracle: the script's own rule, every QTI_PIE_PG_* setting required and none defaulted to
-        // a server it would bring up; the stub psql's log shows that no subcommand connected.
-        Effect.gen(function* requiredRefused() {
-          const scratch = yield* scriptScratch;
-          const cases = [
-            ...requiredSettings.map(({ setting, subcommand }) => ({
-              setting,
-              subcommand,
-              text: undefined,
-            })),
-            ...requiredSettings.map(({ setting, subcommand }) => ({
-              setting,
-              subcommand,
-              text: "",
-            })),
-          ];
+      `refuses each required setting left unset or empty with exit 2, naming it, before any psql runs: ${String(REFUSED_CASES)} cases`,
+      (ctx) =>
+        Effect.andThen(
+          boxHolds(refusedCase, REFUSED_CASES),
+          searched(
+            ctx,
+            exhaust(
+              {
+                box: "every setting scripts/db.sh requires, under a subcommand that requires it, unset and empty",
+                caseHang: Duration.seconds(30),
+                coverage: noCoverage,
+                generator: refusedCase,
+                literal: Formatter.format,
+                oracle: {
+                  kind: "specification",
+                  name: "the script's own rule, every QTI_PIE_PG_* setting required and none defaulted to a server it would bring up: one unset or empty is refused with exit 2, named, and the stub psql's log shows that no subcommand connected",
+                },
+                suite: "pantry/db/script-required",
+              },
+              ({ setting, subcommand, text }) =>
+                Effect.gen(function* requiredRefused() {
+                  const scratch = yield* scriptScratch;
+                  const run = yield* runScript(subcommand, {
+                    ...scratch.environment,
+                    [setting]: text,
+                  });
 
-          for (const { setting, subcommand, text } of cases) {
-            const run = yield* runScript(subcommand, { ...scratch.environment, [setting]: text });
-
-            assert.strictEqual(run.code, 2, `${setting}=${String(text)}: ${run.stderr}`);
-            assert.include(run.stderr, `${setting} is unset`, setting);
-          }
-
-          assert.deepStrictEqual(yield* scratch.psqlRuns, []);
-        }),
+                  assert.strictEqual(run.code, 2, `${setting}=${String(text)}: ${run.stderr}`);
+                  assert.include(run.stderr, `${setting} is unset`, setting);
+                  assert.deepStrictEqual(yield* scratch.psqlRuns, [], `${setting}: psql ran`);
+                }),
+            ),
+          ),
+        ),
     );
   },
 );
