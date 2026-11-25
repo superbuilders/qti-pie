@@ -55,6 +55,7 @@
     "oxc-parser": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "typescript": "catalog:",
     "vitest": "catalog:"
   },
   "peerDependencies": {

@@ -36,7 +36,7 @@ import { boxHolds } from "#plate/test/box.ts";
 import { recordOf } from "#plate/test/records.ts";
 import type { ItemRecord, RedactRecord, Showing } from "#plate/model/record.ts";
 import { format, nullOf, nullRecord } from "#plate/model/values.ts";
-import type { Declared, Responses, ResponseValue, Value } from "#plate/model/values.ts";
+import type { Declared, ResponseValue, Value } from "#plate/model/values.ts";
 import { interactionPayload } from "#plate/payload.ts";
 import type { PairedInteraction, View } from "#plate/payload.ts";
 import { redact } from "#plate/redact.ts";
@@ -44,6 +44,7 @@ import { shownResponses, startingResponses } from "#plate/starting.ts";
 import { hiddenOnlyResponses, redactItem, redactStructure } from "#plate/redact/walk.ts";
 import type { Redacted } from "#plate/redact/walk.ts";
 import { jsonField } from "#plate/test/fixtures.ts";
+import { refusedCalls } from "#plate/test/refusals.ts";
 import {
   feedbackHidden,
   pageOf,
@@ -457,16 +458,6 @@ const viewCase: Gen<View> = (source) => ({
   seed: source.draw(seedBox),
   values: source.draw(oneOf([constant<View["values"]>(new Map()), constant(held)])),
 });
-
-/**
- * Hand `startingResponses` a hand-built item, which its type refuses: the type test is the
- * `@ts-expect-error` below, which `tsc` fails on if the call ever type-checks. No test calls it.
- *
- * @returns What `startingResponses` would make of the item.
- */
-const startOfItem = (): Responses =>
-  // @ts-expect-error -- an `Item` is not `Accepted`: only `checkAdmitted` makes one, so a start reads only an admitted item.
-  startingResponses(item, feedbackHidden);
 
 /**
  * Write a value as JSON, with every `Map` and `Set` written as its entries, so nothing it holds is
@@ -2474,9 +2465,26 @@ describe("payload", () => {
     );
   });
 
-  it("refuses a full item in its type", () => {
-    assert.isFunction(startOfItem);
-  });
+  it.effect("refuses a full item in its type", () =>
+    Effect.gen(function* handBuilt() {
+      const call = "startingResponses(item, showing);";
+
+      assert.deepStrictEqual(
+        yield* refusedCalls(
+          [
+            'import type { Item } from "#plate/model/item.ts";',
+            'import type { Showing } from "#plate/model/record.ts";',
+            'import { startingResponses } from "#plate/starting.ts";',
+            "declare const item: Item;",
+            "declare const showing: Showing;",
+          ],
+          [call],
+        ),
+        [{ code: 2345, line: call }],
+        "an Item built by hand is no Accepted: only checkAdmitted makes one, so a start reads only an admitted item",
+      );
+    }),
+  );
 
   it("presents the choices in document order with the Prompt and the binding", () => {
     const capital = choiceFor(pageFor(redacted, answering), "CAPITAL");
