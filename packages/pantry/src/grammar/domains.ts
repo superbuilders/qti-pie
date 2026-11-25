@@ -712,7 +712,9 @@ const nameChar: CodeSet = union([
  *
  * @see {@link https://www.w3.org/TR/xmlschema-2/#nt-IsBlock | XML Schema Part 2, F.1.1 Character class escapes}
  */
-const blocks = new Map<string, CodeSet>([["BasicLatin", [[0x0, 0x7f]]]]);
+const blocks: ReadonlyMap<string, CodeSet> = new Map<string, CodeSet>([
+  ["BasicLatin", [[0x0, 0x7f]]],
+]);
 
 /**
  * A regular language as a tree, the form every lexical space is built and folded in before it is
@@ -960,7 +962,7 @@ const singleEscapes: ReadonlyMap<string, number> = new Map([
  * each read when an escape names it. `\d` and `\w` read Unicode's general categories, which no
  * pinned pattern names, so they are refused as any unlisted escape is.
  */
-const multiEscapes = new Map<string, () => CodeSet>([
+const multiEscapes: ReadonlyMap<string, () => CodeSet> = new Map<string, () => CodeSet>([
   ["c", () => nameChar],
   ["i", () => nameStart],
   ["s", () => whitespace],
@@ -3681,7 +3683,7 @@ const insideMeta: ReadonlySet<string> = new Set("\\]^-[");
 /**
  * The code points both dialects write as a letter escape: tab, line feed and carriage return.
  */
-const pointEscapes = new Map<number, string>([
+const pointEscapes: ReadonlyMap<number, string> = new Map<number, string>([
   [0x9, String.raw`\t`],
   [0xa, String.raw`\n`],
   [0xd, String.raw`\r`],

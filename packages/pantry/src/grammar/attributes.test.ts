@@ -96,7 +96,9 @@ const leafGrammar: AttributeGrammar = Result.getOrThrow(
 /**
  * The domain of an attribute row, by its handle.
  */
-const domainsByHandle = new Map(leafGrammar.domains.map((domain) => [domain.handle, domain]));
+const domainsByHandle: ReadonlyMap<string, ValueDomain> = new Map(
+  leafGrammar.domains.map((domain) => [domain.handle, domain]),
+);
 
 /**
  * The domain a kind's attribute is read under.

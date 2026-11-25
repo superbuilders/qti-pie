@@ -171,7 +171,7 @@ const oracleForbidden = [
   "#pantry/export/",
   "#pantry/db/",
   "#pantry/vocab/",
-];
+] as const;
 
 /**
  * The modules under {@link oracleForbidden}'s prefixes that hold data and no statement, which the

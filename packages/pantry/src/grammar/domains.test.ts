@@ -107,18 +107,19 @@ const regexOf = (domain: Domain, reading: Reading): RegExp =>
   arkregex.as(Result.getOrThrow(compile(domain, reading)).pattern, patternFlags);
 
 /**
- * The host regexes of each definition, by definition and reading, compiled once.
+ * The host regexes a suite has compiled, by definition and reading.
  */
-const regexes = new Map<Domain, Map<Reading, RegExp>>();
+type Regexes = Map<Domain, Map<Reading, RegExp>>;
 
 /**
- * The cached host regex of a definition.
+ * The host regex of a definition, compiled on the suite's first ask and held for the rest.
  *
+ * @param regexes - The suite's compiled regexes.
  * @param domain - The definition.
  * @param reading - How its whitespace is read.
  * @returns The regex.
  */
-const cachedRegex = (domain: Domain, reading: Reading): RegExp => {
+const cachedRegex = (regexes: Regexes, domain: Domain, reading: Reading): RegExp => {
   const byReading = regexes.get(domain) ?? new Map<Reading, RegExp>();
   const known = byReading.get(reading) ?? regexOf(domain, reading);
   byReading.set(reading, known);
@@ -168,14 +169,15 @@ const normalized = (raw: string, whiteSpace: string): string => {
  * and a union's holds it when one member's does (Part 1, 3.14.4, each member normalizing as it
  * reads).
  *
+ * @param regexes - The suite's compiled regexes.
  * @param domain - The definition.
  * @param raw - The form as written.
  * @returns Whether it is valid.
  */
-const xsdAccepts = (domain: Domain, raw: string): boolean =>
+const xsdAccepts = (regexes: Regexes, domain: Domain, raw: string): boolean =>
   domain._tag === "union"
-    ? domain.members.some((member) => xsdAccepts(member, raw))
-    : cachedRegex(domain, "exact").test(normalized(raw, classOf(domain)));
+    ? domain.members.some((member) => xsdAccepts(regexes, member, raw))
+    : cachedRegex(regexes, domain, "exact").test(normalized(raw, classOf(domain)));
 
 /**
  * Draw one character of a set, near the start of one of its runs, where the boundaries are.
@@ -394,6 +396,8 @@ const emptyPattern = Result.getOrThrow(
 ).pattern;
 
 describe("The whitespace fold", () => {
+  const regexes: Regexes = new Map();
+
   it.effect(
     "accepts a raw form exactly when its XSD normalization is in the domain's exact language, over every definition the leaf resolves",
     (ctx) =>
@@ -418,8 +422,8 @@ describe("The whitespace fold", () => {
           },
           (drawnCase, c) =>
             Effect.sync(() => {
-              const expected = xsdAccepts(drawnCase.domain, drawnCase.raw);
-              const verdict = cachedRegex(drawnCase.domain, "xsd").test(drawnCase.raw);
+              const expected = xsdAccepts(regexes, drawnCase.domain, drawnCase.raw);
+              const verdict = cachedRegex(regexes, drawnCase.domain, "xsd").test(drawnCase.raw);
               const group = drawnCase.where.startsWith("synthetic")
                 ? "synthetic"
                 : classOf(drawnCase.domain);
