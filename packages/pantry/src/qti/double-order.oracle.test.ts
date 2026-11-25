@@ -465,7 +465,11 @@ const forms: Gen<string> = weighted([
 
 /**
  * The cases: a numeral spelled twice, a numeral and its neighbour either way round, two forms at
- * the edges, and the adversarial pairs by name, each on a carrier.
+ * the edges, and the adversarial pairs by name, each on a carrier, three in all. A fifth of the
+ * pairs are the 21 adversarial ones, the rest numerals of 1 to 20 significant digits at magnitudes
+ * from 10^-400 to 10^400 and 10^±1e20, zero runs of 0, 1 and 256, one form in ten padded, spelled
+ * twice, beside a 16- to 20-digit neighbour, or beside a special or a form outside the lexical
+ * space.
  */
 const cases: Gen<OrderCase> = (source) => {
   const carrier = source.draw(element(["slider", "floor", "ceiling"] as const));
@@ -1081,13 +1085,6 @@ describe("qti/interactions.ts and qti/declarations.ts, the double orders", () =>
   it.effect(
     "breaks a slider's or a scale's order exactly where the doubles XML Schema 1.1 maps its collapsed forms to are out of order, past grizzle's former bounded form and around outer whitespace, and catches each plant of the former readings",
     (ctx) =>
-      // Oracle: the specification as a checker, the reference above (XML Schema's collapse, 1.0's
-      // lexical space, 1.1's doubleLexicalMap through ECMAScript's Number, exact to 20 significant
-      // digits).
-      // Bound: 1,500 cases on three carriers, a fifth of the pairs the 21 adversarial ones by name,
-      // the rest numerals of 1 to 20 significant digits at magnitudes from 10^-400 to 10^400 and
-      // 10^±1e20, zero runs of 0, 1 and 256, one form in ten padded, spelled twice, beside a 16- to
-      // 20-digit neighbour, or beside a special or a form outside the lexical space.
       searched(
         ctx,
         explore(
@@ -1102,7 +1099,7 @@ describe("qti/interactions.ts and qti/declarations.ts, the double orders", () =>
             literal: Formatter.format,
             oracle: {
               kind: "specification",
-              name: "XML Schema 1.1's doubleLexicalMap through Number, the order broken where both forms have a value",
+              name: "the reference, XML Schema's collapse, 1.0's lexical space and 1.1's doubleLexicalMap through ECMAScript's Number, exact to 20 significant digits, the order broken where both forms have a value",
             },
             runs: 1500,
             shrink: completeShrink,

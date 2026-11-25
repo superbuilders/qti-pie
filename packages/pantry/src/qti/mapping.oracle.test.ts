@@ -80,11 +80,6 @@ describe("qti/mapping.ts, the oracle's mapping laws", () => {
   it.effect(
     "admits a repeated key, as written, in another case or as another spelling of one value, and refuses a typed value no lexical form of its base type spells",
     () =>
-      // Oracle: the specification as a checker: QTI's XSD holds no `xs:unique` or `xs:key` over a
-      // mapping's entries, and the first entry that matches a value gives it (reading 165), so a
-      // repeat is lawful whatever its base type, its case or its `case-sensitive`; readings 7, 8,
-      // 34 and 45 spell each base type's lexical form.
-      // Bound: each named variant, once.
       Effect.gen(function* oracleVariants() {
         const cases = [
           { breaks: [], keys: ["1", "01"], name: "integer repeat", type: "integer" },
@@ -141,7 +136,7 @@ describe("qti/mapping.ts, the oracle's mapping laws", () => {
           assert.deepStrictEqual(
             found.map((breach) => breach.split(" {")[0]),
             [...breaks],
-            `${name}: ${found.join("; ")}`,
+            `${name}: ${found.join("; ")}: QTI's XSD holds no xs:unique or xs:key over a mapping's entries, and the first entry that matches a value gives it (reading 165), so a repeat is lawful whatever its base type; readings 7, 8, 34 and 45 spell each base type's lexical form`,
           );
         }
 
@@ -155,7 +150,7 @@ describe("qti/mapping.ts, the oracle's mapping laws", () => {
           assert.deepStrictEqual(
             yield* mappingBreachesOf(mappedItem("string", keys, "7", caseSensitive)),
             [],
-            label,
+            `${label}: a repeat is lawful whatever its case or its case-sensitive (reading 165)`,
           );
         }
 
@@ -189,16 +184,11 @@ const textsOver = (alphabet: readonly [string, ...string[]]): Gen<string> => {
 
 describe("qti/mapping.ts, a typed map key read collapsed", () => {
   it.effect("admits an integer key exactly where its collapsed text is an integer", (ctx) =>
-    // Oracle: the specification as a checker: XML Schema 1.0 Part 2 §4.3.6, `xs:integer`'s
-    // `whiteSpace` is `collapse`, and §3.3.13's lexical space, an optional sign and digits, so a
-    // key is an integer exactly where its text, its XML whitespace at either end removed and each
-    // inner run one space, is that (reading 7). Bound: every text of at most 4 characters over
-    // 1 - A and space, 341.
     searched(
       ctx,
       exhaust(
         {
-          box: "every map key of at most 4 characters over 1 - A and space, in an integer mapping",
+          box: "every map key of at most 4 characters over 1 - A and space, in an integer mapping, 341",
           caseHang: Duration.seconds(10),
           concurrency: searchWidth,
           coverage: requiredInSpace<"padded integer" | "bare integer" | "no integer">([
@@ -210,7 +200,7 @@ describe("qti/mapping.ts, a typed map key read collapsed", () => {
           literal: (text) => JSON.stringify(text),
           oracle: {
             kind: "specification",
-            name: "XML Schema 1.0 Part 2 §4.3.6 collapse and §3.3.13 xs:integer",
+            name: "XML Schema 1.0 Part 2 §4.3.6, xs:integer's whiteSpace collapse, and §3.3.13's lexical space, an optional sign and digits: a key is an integer exactly where its text, its XML whitespace at either end removed and each inner run one space, is that (reading 7)",
           },
           suite: "qti/mapping-collapsed-key",
         },

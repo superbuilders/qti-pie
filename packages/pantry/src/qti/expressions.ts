@@ -569,11 +569,26 @@ export const builtInResponses = builtIns.filter(
  * law: each overlay's copies and existence; the language chain; the references' resolution; and
  * the P-rules, as the module's header lists them. The laws over an expression's operands are rules
  * over the derived `OperandOf` (`#pantry/qti/overlay-queries/expression.ts`).
+ *
+ * **E1 derived**, by overlay:
+ *
+ * - `Expression`: one for every expression element, at its node. Its kind, parent and parent's kind
+ *   are its node's: the rules that read them are over `ExpressionNode`.
+ * - `Processing`: one for every rule element, at its node; its language chain and the language its
+ *   root opens are rules over `ProcessingNode`.
+ * - `VariableRef`: one for every reference an attribute makes, at that attribute, and its document.
+ *   Every law that reads its element's kind or its attribute's form, its element's language and its
+ *   form's spelling among them, is a rule over the view `VariableRefNode`
+ *   (overlay-queries/reference.ts).
+ * - `PlacedVariableRef` (spec reading 117): each placement's references, its documents', resolved and
+ *   typed in its assembly. Each is exactly a reference of a placed document, a rule over a query
+ *   (overlay-queries/reference.ts), and its root is its assembly's.
+ * - `Literal`: a base value's text, and its code where its `base-type` spells one. The base type a
+ *   typing attribute gives its expression in each placement, and the literal's type there, are
+ *   rules over queries (queries.ts `ExpressionAttribute`, overlay-queries/expression.ts).
  */
 export const expressionLawsByName = {
   "E1 derived": declared("E1 derived", [
-    // Expression: one for every expression element, at its node. Its kind, parent and parent's
-    // kind are its node's: the rules that read them are over `ExpressionNode`.
     contained(
       on(
         select(Node, (n) => n.in(n.kind, expressionKinds)),
@@ -584,8 +599,6 @@ export const expressionLawsByName = {
       on(Expression, "package", "path", "start"),
     ),
     contained(on(Expression, "package", "path", "start"), on(Node, "package", "path", "start")),
-    // Processing: one for every rule element, at its node; its language chain and the language
-    // its root opens are rules over `ProcessingNode`.
     contained(
       on(
         select(Node, (n) => n.in(n.kind, ruleKindHandles)),
@@ -596,10 +609,6 @@ export const expressionLawsByName = {
       on(Processing, "package", "path", "start"),
     ),
     contained(on(Processing, "package", "path", "start"), on(Node, "package", "path", "start")),
-    // VariableRef: one for every reference an attribute makes, at that attribute, and its
-    // document. Every law that reads its element's kind or its attribute's form, its element's
-    // language and its form's spelling among them, is a rule over the view `VariableRefNode`
-    // (overlay-queries/reference.ts).
     contained(
       on(references, "package", "path", "start", "name"),
       on(VariableRef, "package", "path", "start", "attribute"),
@@ -613,17 +622,11 @@ export const expressionLawsByName = {
       on(Document, "package", "path", "rootKind"),
     ),
     check("E1_derived", VariableRef, splitsAName),
-    // PlacedVariableRef (spec reading 117): each placement's references, its documents', resolved
-    // and typed in its assembly. Each is exactly a reference of a placed document, a rule over a
-    // query (overlay-queries/reference.ts), and its root is its assembly's.
     contained(
       on(PlacedVariableRef, "package", "assembly", "rootKind"),
       on(Document, "package", "path", "rootKind"),
     ),
     check("E1_derived", PlacedVariableRef, resolvedType),
-    // Literal: a base value's text, and its code where its `base-type` spells one. The base type a
-    // typing attribute gives its expression in each placement, and the literal's type there, are
-    // rules over queries (queries.ts `ExpressionAttribute`, overlay-queries/expression.ts).
     contained(
       on(
         select(Node, (n) => n.eq(n.kind, "qti-base-value")),

@@ -32,7 +32,8 @@ import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
 
 /**
  * The UTF-8 bytes of each case's correct response: 433, the served item's; one past what a lone
- * B-tree entry holds of a text as itself; and 64 KiB.
+ * B-tree entry holds of a text as itself; and 64 KiB. Each length is its own case, so each imports
+ * one package.
  */
 const lengths = [433, keyTextBytes([]) + 1, 65_536] as const;
 
@@ -161,9 +162,6 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
       it.effect(
         `imports an item whose string correct response is ${String(bytes)} bytes and exports it as it was read`,
         () =>
-          // Oracle: PostgreSQL, every law of the schema over the package, and the exporter's
-          // comparison of the source with an export of the package read back from the database.
-          // Bound: one of the three lengths, each its own case, so each imports one package.
           Effect.gen(function* oneLength() {
             const fs = yield* FileSystem.FileSystem;
             const answer = sentenceOf(bytes);
@@ -172,14 +170,18 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
             const imported = yield* importDir(dir);
 
             assert.strictEqual(utf8Length(answer), bytes);
-            assert.include(["accepted", "unchanged"], imported.outcome, `${bytes} bytes`);
+            assert.include(
+              ["accepted", "unchanged"],
+              imported.outcome,
+              `${bytes} bytes: PostgreSQL holds every law of the schema over the package`,
+            );
             yield* exportPackage(imported.package, target);
             assert.deepStrictEqual(
               (yield* comparePackage(dir, target)).filter(
                 ({ outcome }) => outcome.kind === "differs",
               ),
               [],
-              `${bytes} bytes: the export differs from its source`,
+              `${bytes} bytes: the export differs from its source, by the exporter's comparison of the source with an export of the package read back from the database`,
             );
           }).pipe(Effect.scoped),
       );
@@ -188,9 +190,6 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
     it.effect(
       "imports an item stored at a path of entryPathBytes, the most a key holds of a path, and exports it as it was read, and refuses one a byte longer under key-text-bound",
       () =>
-        // Oracle: PostgreSQL, the domain `EntryPath` declares (`#pantry/qti/limits.ts`), and the
-        // exporter's comparison of the source with an export read back from the database. Bound:
-        // one path at the bound and one a byte past it, 3 folders of 200 bytes and a file name.
         Effect.gen(function* boundedPath() {
           const fs = yield* FileSystem.FileSystem;
           const atBound = pathOf(entryPathBytes);
@@ -199,7 +198,11 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
           const imported = yield* importDir(dir);
 
           assert.strictEqual(utf8Length(atBound), entryPathBytes);
-          assert.include(["accepted", "unchanged"], imported.outcome, atBound);
+          assert.include(
+            ["accepted", "unchanged"],
+            imported.outcome,
+            `${atBound}: a path at the bound, 3 folders of 200 bytes and a file name, within the domain EntryPath declares (#pantry/qti/limits.ts)`,
+          );
           yield* exportPackage(imported.package, target);
           assert.deepStrictEqual(
             (yield* comparePackage(dir, target)).filter(
@@ -220,25 +223,28 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
               : ["_tag" in refused ? refused._tag : refused.kind];
 
           assert.strictEqual(utf8Length(past), entryPathBytes + 1);
-          assert.include(rules, "key-text-bound", "a path a byte past entryPathBytes");
+          assert.include(
+            rules,
+            "key-text-bound",
+            "a path a byte past entryPathBytes, past the domain EntryPath declares",
+          );
         }).pipe(Effect.scoped),
     );
 
     it.effect(
       "imports an item whose prefix, open attribute names and foreign element's local name are each 64 KiB and its namespace name namespaceNameBytes, and exports it as it was read, and refuses one whose namespace name is a byte longer under key-text-bound",
       () =>
-        // Oracle: as above, PostgreSQL and the exporter's comparison: Namespaces in XML 1.0 §4 and
-        // XML 1.0 put no bound on a prefix or a name (reading 94), so a key holds each by its
-        // SHA-256 or holds none, but the namespace name of an element an open attribute is keyed
-        // beside, which the domain `ElementNamespace` declares (`#pantry/qti/limits.ts`) holds to
-        // `namespaceNameBytes`. Bound: one item with every name at its bound, one a byte past it.
         Effect.gen(function* longNames() {
           const fs = yield* FileSystem.FileSystem;
           const dir = yield* scopedPackage(namedPackageOf(longNameBytes));
           const target = yield* fs.makeTempDirectoryScoped();
           const imported = yield* importDir(dir);
 
-          assert.include(["accepted", "unchanged"], imported.outcome, "every name at its bound");
+          assert.include(
+            ["accepted", "unchanged"],
+            imported.outcome,
+            "every name at its bound: Namespaces in XML 1.0 §4 and XML 1.0 put no bound on a prefix or a name (reading 94), so a key holds each by its SHA-256 or holds none",
+          );
           yield* exportPackage(imported.package, target);
           assert.deepStrictEqual(
             (yield* comparePackage(dir, target)).filter(
@@ -263,7 +269,7 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
           assert.include(
             rules,
             "key-text-bound",
-            "a namespace name a byte past namespaceNameBytes",
+            "a namespace name a byte past namespaceNameBytes, to which the domain ElementNamespace declares (#pantry/qti/limits.ts) holds the namespace name of an element an open attribute is keyed beside",
           );
         }).pipe(Effect.scoped),
     );

@@ -1025,24 +1025,18 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     test.effect(
       "breaks each case's law and no other, by the law oracle and by the schema's laws over the import's rows",
       (ctx) =>
-        // Oracle: two implementations side by side, the law oracle's test producers and the
-        // schema's laws over the import's rows (`#pantry/test/host-judge.ts`), held to the law the
-        // information model names for the case by hand (`structureCases`): the oracle breaks it
-        // and no other, and the import's rows break no other.
-        // Bound: every case of the box, one per law of a test's or a section's structure that a
-        // test or a bank of the every-relation package can break, beside a valid twin of each.
         searched(
           ctx,
           exhaust(
             {
-              box: "the every-relation package, its bank as written or rewritten, alone or beside a test that breaks one law of a test's structure, readings or item refs, or none",
+              box: "the every-relation package, its bank as written or rewritten, alone or beside a test that breaks one law of a test's structure, readings or item refs, or none: one case per law of a test's or a section's structure that a test or a bank of the every-relation package can break, beside a valid twin of each",
               caseHang: Duration.seconds(120),
               coverage: requiredInSpace<StructureCase>(caseNames),
               generator: element(caseNames),
               literal: JSON.stringify,
               oracle: {
                 kind: "second-implementation",
-                name: "the law oracle's test producers and the schema's laws over the import's rows, held to the information model by hand",
+                name: "the law oracle's test producers and the schema's laws over the import's rows (#pantry/test/host-judge.ts) side by side, held to the law the information model names for the case by hand (structureCases): the oracle breaks it and no other, and the import's rows break no other",
               },
               suite: "qti/tests-structure",
             },
@@ -1072,13 +1066,10 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                     expected,
                     `${name}: the law oracle breaks ${[...oracle].join(", ") || "no law"}`,
                   );
-                  // The host judges no rule over a query, which only the database evaluates, so
-                  // it breaks a case's law only where a stored relation's statement states it,
-                  // and never one the information model does not name.
                   assert.deepStrictEqual(
                     [...lawNamesOf(host.broken)].filter((law) => !expected.includes(law)),
                     [],
-                    `${name}: the import's rows break ${[...lawNamesOf(host.broken)].join(", ") || "no law"}`,
+                    `${name}: the import's rows break ${[...lawNamesOf(host.broken)].join(", ") || "no law"}, where the host, judging no rule over a query, which only the database evaluates, breaks a case's law only where a stored relation's statement states it, and never one the information model does not name`,
                   );
                 }),
               ),
@@ -1120,7 +1111,8 @@ const extraParts: Readonly<Record<ExtraPart, string>> = {
 
 /**
  * Draw a section: its added part, and a selection of zero to five, its replacement true, false or
- * unwritten.
+ * unwritten. Beside the base test's two item refs, the part is none, the third item or a section
+ * holding it, each required or not.
  */
 const drawnSelection: Gen<DrawnSelection> = (source) => ({
   extra: source.draw(
@@ -1163,13 +1155,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     test.effect(
       "breaks Selection bound exactly where it selects more than its parts without replacement, and Selection required exactly where it selects fewer than its required parts",
       (ctx) =>
-        // Oracle: the information model by hand: §5.129.1, "The number of children to select may
-        // exceed the number of child elements defined only if with-replacement is true", each part
-        // counted once (reading 79); and §4.2.2, "It is an error if a section contains a selection
-        // rule that selects fewer child elements than the number of required elements it
-        // contains". Bound: the base test's two item refs and none, the third item or a section
-        // holding it, each required or not, a select of zero to five, and its replacement true,
-        // false or unwritten; 40 runs.
         searched(
           ctx,
           explore(
@@ -1181,7 +1166,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               literal: shownSelection,
               oracle: {
                 kind: "specification",
-                name: "the information model's selection bounds, by hand, against the law oracle",
+                name: 'the information model\'s selection bounds by hand, against the law oracle: §5.129.1, "The number of children to select may exceed the number of child elements defined only if with-replacement is true", each part counted once (reading 79); and §4.2.2, "It is an error if a section contains a selection rule that selects fewer child elements than the number of required elements it contains"',
               },
               runs: 40,
               shrink: completeShrink,

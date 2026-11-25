@@ -70,15 +70,16 @@ describe("qti/expressions.ts, its typing tables", () => {
   });
 
   it("gives every kind that takes operands the unknown base type, and no operand the any base type", () => {
-    // Oracle: the information model's typing, under which a type no declaration says passes every
-    // rule, and its Null, which no operand bit holds.
     for (const typing of expressionTypings.filter(({ lead }) => lead.length > 0)) {
       const bases = new Set(
         OperandBase.rows.filter(({ kind }) => kind === typing.kind).map(({ base }) => base),
       );
 
-      assert.isTrue(bases.has("unknown"), typing.kind);
-      assert.isFalse(bases.has("any"), typing.kind);
+      assert.isTrue(
+        bases.has("unknown"),
+        `${typing.kind}: the information model's typing, under which a type no declaration says passes every rule`,
+      );
+      assert.isFalse(bases.has("any"), `${typing.kind}: its Null, which no operand bit holds`);
     }
   });
 
@@ -202,15 +203,17 @@ describe("qti/expressions.ts, its typing tables", () => {
   });
 
   it("reads reading 34's boolean and reading 45's integer", () => {
-    // Oracle: spec readings 34 (xs:boolean's true, false, 1 and 0, XML Schema Part 2 §3.2.2.1)
-    // and 45 (no bound on an integer).
     assert.deepStrictEqual(
       ["true", "false", " true ", "1", "0", " 0 ", "TRUE", "2", "yes"].map((form) =>
         patternOf("boolean").test(form),
       ),
       [true, true, true, true, true, true, false, false, false],
+      "reading 34: xs:boolean's true, false, 1 and 0 (XML Schema Part 2 §3.2.2.1)",
     );
-    assert.isTrue(patternOf("integer").test("1000000000000000000000000000001"));
+    assert.isTrue(
+      patternOf("integer").test("1000000000000000000000000000001"),
+      "reading 45: no bound on an integer",
+    );
     assert.deepStrictEqual(
       ["3 4", " 3 4 ", "3", "3 4 5", "a b"].map((form) => patternOf("point").test(form)),
       [true, true, false, false, false],
@@ -281,11 +284,7 @@ const admits = (kind: string, count: number) => {
 
 describe("qti/expressions.ts, arity", () => {
   it("holds exactly at the seeded bounds, at min − 1, min, max and max + 1, for every kind", () => {
-    // Oracle: a second implementation, the deleted seed's arity table, the old deriver's output
-    // over the ASI 3.0 XSD, against `Arity` over the installed `OperatorArity`. Bound: all 64 kinds,
-    // at min − 1 (where min > 0), min, max and max + 1 for a bounded kind, and min + 3 for an
-    // unbounded one.
-    assert.strictEqual(seededArity.length, 64);
+    assert.strictEqual(seededArity.length, 64, "all 64 kinds");
     let judged = 0;
     for (const { kind, max, min } of seededArity) {
       const counts = [
@@ -298,7 +297,7 @@ describe("qti/expressions.ts, arity", () => {
           arityHolds(kind, count),
           count >= min &&
             Option.match(max, { onNone: () => true, onSome: (most) => count <= most }),
-          `${kind} ${count}`,
+          `${kind} ${count}: Arity over the installed OperatorArity against the deleted seed's arity table, the old deriver's output over the ASI 3.0 XSD, at min − 1 (where min > 0), min, max and max + 1 for a bounded kind, and min + 3 for an unbounded one`,
         );
         judged += 1;
       }
@@ -308,14 +307,13 @@ describe("qti/expressions.ts, arity", () => {
   });
 
   it("never refuses a count each kind's content automaton admits within its bounds", () => {
-    // Oracle: each kind's Glushkov automaton (`content.ts`), which admits every operand count in
-    // [min, max]; it admits counts past them too, since a repeated group's bounds are no
-    // automaton's, so `Arity` is the one law over them. Bound: every kind, every count from min to
-    // max or min + 3.
     for (const { kind, min } of OperatorArity.rows) {
       const top = OperatorMax.rows.find((held) => held.kind === kind)?.max ?? min + 3n;
       for (let count = min; count <= top; count += 1n) {
-        assert.isTrue(admits(kind, Number(count)), `${kind} ${count}`);
+        assert.isTrue(
+          admits(kind, Number(count)),
+          `${kind} ${count}: its Glushkov automaton (content.ts) admits every operand count in [min, max]; it admits counts past them too, since a repeated group's bounds are no automaton's, so Arity is the one law over them`,
+        );
       }
     }
   });

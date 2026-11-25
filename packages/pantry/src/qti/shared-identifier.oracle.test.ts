@@ -137,14 +137,12 @@ type Situation = "three items share one identifier" | "two share it once collaps
 
 describe("the schema's keys over items", () => {
   it("key no item by its identifier: no key of Qti is over ObjectIdentifier", () => {
-    // Oracle: info:6346 and info:83233, which make an item's identifier unique nowhere. Bound:
-    // every statement of `Qti`.
     for (const statement of Qti.statements) {
       if (statement.kind === "key") {
         assert.notStrictEqual<unknown>(
           statement.side.source,
           ObjectIdentifier,
-          "Item key is stated",
+          "an Item key is stated, where info:6346 and info:83233 make an item's identifier unique nowhere",
         );
       }
     }

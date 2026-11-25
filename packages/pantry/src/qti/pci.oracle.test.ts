@@ -15,9 +15,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("qti/pci.oracle.test.ts
   it.effect(
     "refuses every PCI negative, under one of the rules its row allows where one is kept",
     () =>
-      // Oracle: the predicted column of the spec's 4.5 table (`pciVerdicts`), against the law
-      // oracle's verdict on each package.
-      // Bound: every negative of `pciNegativeNames`.
       Effect.gen(function* negatives() {
         for (const name of pciNegativeNames) {
           const allowed = pciVerdicts.find(([row]) => row === name)?.[1] ?? [];
@@ -26,7 +23,11 @@ layer(NodeServices.layer, { excludeTestServices: true })("qti/pci.oracle.test.ts
 
           assert.strictEqual(verdict.kind, "refused", `${name}: the oracle accepts it`);
           if (rules.length === 1) {
-            assert.include(allowed, rules[0], `${name}: the oracle's ${rules.join(", ")}`);
+            assert.include(
+              allowed,
+              rules[0],
+              `${name}: the oracle's ${rules.join(", ")}, against the predicted column of the spec's 4.5 table (pciVerdicts)`,
+            );
           }
         }
       }).pipe(Effect.scoped),

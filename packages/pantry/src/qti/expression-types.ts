@@ -13,6 +13,11 @@
  * `qti-null` operand sets no bit; `ValueCardinalityBit.row(c)` is {c}, and ∅ for `unknown`. A key
  * holds no set (C16), so each per-kind operand rule is a set relation keyed (kind, code) and read
  * by `.row(kind)`.
+ *
+ * After the rosters, three sections: the diagonals and mappings (C6, C17), from
+ * {@link ValueBaseBit}; the per-kind typing (C16), from {@link OperandBase}; and the handle lists
+ * (C8), from {@link rootKinds}, whose membership is `Logic.in`, so these sets are lists, never
+ * installed.
  */
 import { closed, closedId, str } from "@bjornpagen/grizzle";
 
@@ -75,8 +80,6 @@ export const Language = closed.ordered("Language", languages);
  * from RG4's per-reference `Resolution` family).
  */
 export const ReferenceResolution = closed.ordered("ReferenceResolution", resolutions);
-
-// Diagonals and mappings (C6, C17).
 
 /**
  * `ValueBaseBit`: the diagonal of `ValueBase` without `any`, so `ValueBaseBit.row(b)` is the
@@ -241,8 +244,6 @@ export const BaseTypePattern = closed.relation(
   BaseType.handles.map((baseType) => ({ baseType, pattern: patternOfBaseType(baseType) })),
 );
 
-// The per-kind typing (C16).
-
 /**
  * `OperandBase`: the set of (kind, base) where an operand of an expression of the kind may be of
  * the base type, `unknown` always among them (P23).
@@ -335,8 +336,6 @@ export const ReferenceBase = closed.relation(
     kind: kindOf(kind),
   })),
 );
-
-// Handle lists (C8): membership is `Logic.in`, so these sets are lists, never installed.
 
 /**
  * The roots alone.

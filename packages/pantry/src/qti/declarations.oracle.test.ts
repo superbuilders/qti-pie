@@ -46,11 +46,11 @@ import { searchWidth } from "#pantry/test/settings.ts";
 
 describe("qti/declarations.ts, reserved names", () => {
   it("reserves exactly the built-in session variables, spelled exactly with no alias (spec reading 72)", () => {
-    // Oracle: the specification as a checker. The information model's tables 4.5.1, 5.115.1 and
-    // 5.151.1 ("They are completionStatus, numAttempts and duration") and §2.2.2.1's one built-in
-    // context variable, QTI_CONTEXT, which may be declared as the record it is; reading 72 adds no
-    // alias, so `completion_status` and `completion-status` name ordinary variables.
-    assert.sameMembers([...sessionVariables], ["completionStatus", "duration", "numAttempts"]);
+    assert.sameMembers(
+      [...sessionVariables],
+      ["completionStatus", "duration", "numAttempts"],
+      'the information model\'s tables 4.5.1, 5.115.1 and 5.151.1: "They are completionStatus, numAttempts and duration"',
+    );
     assert.sameMembers(
       [...BuiltIn.handles],
       [...sessionVariables, contextVariable.identifier],
@@ -60,9 +60,14 @@ describe("qti/declarations.ts, reserved names", () => {
       BuiltInVariable.rows.find(({ variable }) => variable === contextVariable.identifier)
         ?.declaration,
       contextVariable.kind,
+      "§2.2.2.1's one built-in context variable, QTI_CONTEXT, which may be declared as the record it is",
     );
     for (const alias of ["completion_status", "completion-status", "CompletionStatus"]) {
-      assert.notInclude(sessionVariables, alias, alias);
+      assert.notInclude(
+        sessionVariables,
+        alias,
+        `${alias}: reading 72 adds no alias, so it names an ordinary variable`,
+      );
       assert.notInclude(BuiltIn.handles, alias, alias);
     }
   });
@@ -167,15 +172,11 @@ describe("qti/declarations.ts, typed values", () => {
   it.effect(
     "admits a value's text exactly when the specification gives it as a lexical form of its base type",
     (ctx) =>
-      // Oracle: the specification as a checker: each text's base types, constructed from readings
-      // 7, 34 and 45, xs:double's lexical space and §8.13's pairs and points, against the pattern
-      // `Typed_value` reads for the base type, read by a JavaScript host.
-      // Bound: every judged base type but uri (8) against 25 texts, 200 cases.
       searched(
         ctx,
         exhaust(
           {
-            box: "every judged base type but uri against 25 constructed texts",
+            box: "every judged base type but uri (8) against 25 constructed texts, 200 cases",
             caseHang: Duration.seconds(10),
             concurrency: searchWidth,
             coverage: requiredInSpace<TypedSituation>([
@@ -188,7 +189,7 @@ describe("qti/declarations.ts, typed values", () => {
             literal: ({ baseType, text }: TypedCase) => `${baseType} ${JSON.stringify(text)}`,
             oracle: {
               kind: "specification",
-              name: "readings 7, 34 and 45, xs:double, and §8.13's base types",
+              name: "each text's base types, constructed from readings 7, 34 and 45, xs:double's lexical space and §8.13's pairs and points, against the pattern Typed_value reads for the base type, read by a JavaScript host",
             },
             suite: "qti/declarations-typed-value",
           },
@@ -280,19 +281,23 @@ const hostLaws = judgedLaws(Qti);
 
 describe("qti/declarations.ts, Declaration not reserved", () => {
   it("reserves an item's three session variables (reading 168)", () => {
-    // Oracle: the specification as a checker, §2.2.2 by hand: an item's built-ins are numAttempts,
-    // duration and completionStatus.
-    assert.sameMembers([...itemSessionVariables], ["completionStatus", "duration", "numAttempts"]);
+    assert.sameMembers(
+      [...itemSessionVariables],
+      ["completionStatus", "duration", "numAttempts"],
+      "§2.2.2 by hand: an item's built-ins are numAttempts, duration and completionStatus",
+    );
   });
 
   it.effect(
     "refuses an item's declaration of a session variable, the oracle and the import's rows alike",
     () =>
-      // Oracle: two implementations side by side, the law oracle and the schema's laws over the
-      // import's rows, and the specification's table by hand. Bound: an item by the three session
-      // variables, 3 packages.
       Effect.gen(function* byParent() {
         const oracleLaws = lawsOf(grammar);
+        /**
+         * An item by each of the three session variables, 3 packages, each refused as the
+         * specification's table by hand says, by the law oracle and by the schema's laws over the
+         * import's rows side by side.
+         */
         const cases = sessionVariables.map((identifier) => ({ identifier, refused: true }));
 
         for (const drawn of cases) {

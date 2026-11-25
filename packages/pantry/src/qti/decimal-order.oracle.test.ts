@@ -541,7 +541,11 @@ const pairOf =
 
 /**
  * The cases: a value spelled twice, beside its neighbour, its negation or itself moved a place,
- * two forms at the edges, and the adversarial pairs by name.
+ * two forms at the edges, and the adversarial pairs by name. A sixth of the pairs are the 15
+ * adversarial ones, the rest values of 0 to 600 integer and fraction digits, each part at the
+ * former form's bounds and one or two past, zero runs of 0, 1 and 256 either side, spelled twice,
+ * beside a neighbour one unit in the last place either side, its negation or itself moved a place,
+ * or two forms drawn apart, a form outside the lexical space among them.
  */
 const cases: Gen<RangeCase> = weighted<RangeCase>([
   [2, (source) => ({ forms: source.draw(pairOf(() => (value) => value)), name: Option.none() })],
@@ -822,13 +826,6 @@ describe("qti/interactions.ts, the ARIA range's decimal order", () => {
   it.effect(
     "breaks an ARIA range exactly where the decimals XML Schema 1.1 maps its values to are out of order, past grizzle's former bounded form of numeric, and catches each plant of the former reading",
     (ctx) =>
-      // Oracle: the specification as a checker, the reference above (XML Schema 1.1's
-      // decimalLexicalRep, its values ordered by their canonical digits).
-      // Bound: 1,200 cases, a sixth of the pairs the 15 adversarial ones by name, the rest values
-      // of 0 to 600 integer and fraction digits, each part at the former form's bounds and one or
-      // two past, zero runs of 0, 1 and 256 either side, spelled twice, beside a neighbour one unit
-      // in the last place either side, its negation or itself moved a place, or two forms drawn
-      // apart, a form outside the lexical space among them.
       searched(
         ctx,
         explore(
@@ -843,7 +840,7 @@ describe("qti/interactions.ts, the ARIA range's decimal order", () => {
             literal: Formatter.format,
             oracle: {
               kind: "specification",
-              name: "XML Schema 1.1's decimalLexicalRep, its values ordered by their canonical digits",
+              name: "the reference, XML Schema 1.1's decimalLexicalRep, its values ordered by their canonical digits",
             },
             runs: 1200,
             shrink: completeShrink,
