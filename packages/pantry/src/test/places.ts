@@ -87,10 +87,10 @@ export const nodePlacesOf = (inputs: PackageInputs): ReadonlyMap<string, PlacedN
       const { children, kind } = Schema.decodeUnknownSync(TreeRead)(step.node);
       const start = next;
       next += 1n;
-      stack.push(
-        { kind, open: false, parent: step.parent, start },
-        ...children.toReversed().map((node) => ({ node, open: true as const, parent: start })),
-      );
+      stack.push({ kind, open: false, parent: step.parent, start });
+      for (const node of children.toReversed()) {
+        stack.push({ node, open: true, parent: start });
+      }
     }
   }
 

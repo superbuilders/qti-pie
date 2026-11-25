@@ -392,7 +392,9 @@ const substitutable = (set: XsdSet, head: string): readonly string[] => {
   for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
     if (!seen.has(next)) {
       seen.add(next);
-      pending.push(...(set.members.get(next) ?? []));
+      for (const member of set.members.get(next) ?? []) {
+        pending.push(member);
+      }
     }
   }
 
@@ -963,7 +965,9 @@ export const wordOf =
           const drawn: DrawnChild[] = [];
           while (order.length > 0) {
             const [picked] = order.splice(source.choose(0, order.length - 1), 1);
-            drawn.push(...(picked === undefined ? [] : wordOf(picked, spare)(source)));
+            for (const child of picked === undefined ? [] : wordOf(picked, spare)(source)) {
+              drawn.push(child);
+            }
           }
 
           return drawn;

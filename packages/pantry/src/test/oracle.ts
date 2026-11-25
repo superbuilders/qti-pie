@@ -2653,10 +2653,12 @@ const dominatingSharesOf = (view: View, laws: Laws): ReadonlySet<bigint> => {
         seen.add(id);
 
         const at = view.byStart.get(id);
-        pending.push(
-          ...(view.childrenOf.get(id) ?? []).map((child) => child.start),
-          ...(at === undefined ? [] : targetsOf(at)),
-        );
+        for (const child of view.childrenOf.get(id) ?? []) {
+          pending.push(child.start);
+        }
+        for (const target of at === undefined ? [] : targetsOf(at)) {
+          pending.push(target);
+        }
       }
     }
 

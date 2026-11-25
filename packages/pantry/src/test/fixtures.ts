@@ -1175,7 +1175,7 @@ const CRLF = "\r\n";
  * @param children - The child elements, comments and leaves, in order.
  * @returns The lines, the children indented four spaces as the manifest is.
  */
-const element = (name: string, attributes: string, ...children: readonly Lines[]): Lines => [
+const element = (name: string, attributes: string, children: readonly Lines[]): Lines => [
   `<${name}${attributes}>`,
   ...children.flat().map((line) => `    ${line}`),
   `</${name}>`,
@@ -1233,8 +1233,8 @@ const mdLeaf = (name: string, value: string): Lines => leaf(`imsmd:${name}`, val
  * @param children - The children, in order.
  * @returns The container's lines.
  */
-const mdGroup = (name: string, ...children: readonly Lines[]): Lines =>
-  element(`imsmd:${name}`, "", ...children);
+const mdGroup = (name: string, children: readonly Lines[]): Lines =>
+  element(`imsmd:${name}`, "", children);
 
 /**
  * Build an `imsmd:` `LangString`: the element holding one `imsmd:string`.
@@ -1243,7 +1243,7 @@ const mdGroup = (name: string, ...children: readonly Lines[]): Lines =>
  * @param value - The string.
  * @returns The element's lines.
  */
-const mdText = (name: string, value: string): Lines => mdGroup(name, leaf("imsmd:string", value));
+const mdText = (name: string, value: string): Lines => mdGroup(name, [leaf("imsmd:string", value)]);
 
 /**
  * Build an `imsmd:` vocabulary leaf in its `source` and `value` form.
@@ -1253,7 +1253,7 @@ const mdText = (name: string, value: string): Lines => mdGroup(name, leaf("imsmd
  * @returns The element's lines, under source `LOMv1.0`.
  */
 const mdVocabulary = (name: string, value: string): Lines =>
-  mdGroup(name, mdLeaf("source", "LOMv1.0"), mdLeaf("value", value));
+  mdGroup(name, [mdLeaf("source", "LOMv1.0"), mdLeaf("value", value)]);
 
 /**
  * Build a minimal `imsmd:lom` whose `general` holds a title.
@@ -1262,19 +1262,17 @@ const mdVocabulary = (name: string, value: string): Lines =>
  * @returns The `lom`'s lines.
  */
 const titledLom = (title: string): Lines =>
-  mdGroup("lom", mdGroup("general", mdText("title", title)));
+  mdGroup("lom", [mdGroup("general", [mdText("title", title)])]);
 
 /**
  * `simple`'s `qtiMetadata` block, as it stands at lines 53 to 58 of `imsmanifest.xml`.
  */
-const qtiMetadata: Lines = element(
-  "imsqti:qtiMetadata",
-  "",
+const qtiMetadata: Lines = element("imsqti:qtiMetadata", "", [
   leaf("imsqti:timeDependent", "false"),
   leaf("imsqti:interactionType", "choiceInteraction"),
   leaf("imsqti:feedbackType", "none"),
   leaf("imsqti:solutionAvailable", "true"),
-);
+]);
 
 /**
  * The column of the resource `lom`'s children in `simple`'s manifest (line 59 is the `lom`, at 16).
@@ -1299,7 +1297,7 @@ const manifestLomEnd = `</imsmd:rights>${CRLF}        </imsmd:lom>`;
  * @param children - The children, after `rights`.
  * @returns The edit as plain data.
  */
-const endResourceLom = (...children: readonly Lines[]): Edit =>
+const endResourceLom = (children: readonly Lines[]): Edit =>
   replaceIn(
     "imsmanifest.xml",
     resourceLomEnd,
@@ -1309,8 +1307,7 @@ const endResourceLom = (...children: readonly Lines[]): Edit =>
 /**
  * The first `educational` of `lomrest`: every child of the category with its comment.
  */
-const fullEducational: Lines = mdGroup(
-  "educational",
+const fullEducational: Lines = mdGroup("educational", [
   note("every child of educational, as the loose schema lists them"),
   mdVocabulary("interactivityType", "active"),
   mdVocabulary("learningResourceType", "exercise"),
@@ -1320,77 +1317,72 @@ const fullEducational: Lines = mdGroup(
   mdVocabulary("context", "school"),
   mdText("typicalAgeRange", "10-12"),
   mdVocabulary("difficulty", "easy"),
-  mdGroup(
-    "typicalLearningTime",
+  mdGroup("typicalLearningTime", [
     mdLeaf("duration", "PT30M"),
     mdText("description", "Half an hour of work."),
-  ),
+  ]),
   mdText("description", "A short worked example."),
   mdLeaf("language", "en"),
-);
+]);
 
 /**
  * The `classification` of `lomrest`: a purpose, two taxon paths, a description and a keyword.
  */
-const fullClassification: Lines = mdGroup(
-  "classification",
+const fullClassification: Lines = mdGroup("classification", [
   mdVocabulary("purpose", "discipline"),
-  mdGroup(
-    "taxonPath",
+  mdGroup("taxonPath", [
     mdText("source", "Example scheme"),
-    mdGroup("taxon", mdLeaf("id", "M1"), mdText("entry", "Mathematics")),
-  ),
-  mdGroup(
-    "taxonPath",
+    mdGroup("taxon", [mdLeaf("id", "M1"), mdText("entry", "Mathematics")]),
+  ]),
+  mdGroup("taxonPath", [
     mdText("source", "Example scheme"),
-    mdGroup("taxon", mdLeaf("id", "M1.2"), mdText("entry", "Arithmetic")),
-  ),
+    mdGroup("taxon", [mdLeaf("id", "M1.2"), mdText("entry", "Arithmetic")]),
+  ]),
   mdText("description", "Filed under arithmetic."),
   mdText("keyword", "reading"),
-);
+]);
 
 /**
  * The `relation` of `lomrest`: a kind and a related resource with its identifier.
  */
-const fullRelation: Lines = mdGroup(
-  "relation",
+const fullRelation: Lines = mdGroup("relation", [
   mdVocabulary("kind", "precludes"),
-  mdGroup(
-    "resource",
-    mdGroup("identifier", mdLeaf("catalog", "URI"), mdLeaf("entry", "urn:example:other-item")),
+  mdGroup("resource", [
+    mdGroup("identifier", [mdLeaf("catalog", "URI"), mdLeaf("entry", "urn:example:other-item")]),
     mdText("description", "An item this one cannot be set beside."),
-  ),
-);
+  ]),
+]);
 
 /**
  * The `annotation` of `lomrest`: an entity, a date and a description.
  */
-const fullAnnotation: Lines = mdGroup(
-  "annotation",
+const fullAnnotation: Lines = mdGroup("annotation", [
   mdLeaf("entity", "reviewer"),
-  mdGroup("date", mdLeaf("dateTime", "2026-01-15"), mdText("description", "Reviewed in January.")),
+  mdGroup("date", [
+    mdLeaf("dateTime", "2026-01-15"),
+    mdText("description", "Reviewed in January."),
+  ]),
   mdText("description", "Read through and accepted."),
-);
+]);
 
 /**
  * The second `educational` of `lomrest`, which repeats the category.
  */
-const secondEducational: Lines = mdGroup(
-  "educational",
+const secondEducational: Lines = mdGroup("educational", [
   mdText("description", "A second educational category."),
-);
+]);
 
 /**
  * The edits of `lomrest`: the resource `lom` gains the five categories after `rights`.
  */
 const lomrestEdits: readonly Edit[] = [
-  endResourceLom(
+  endResourceLom([
     fullEducational,
     fullClassification,
     fullRelation,
     fullAnnotation,
     secondEducational,
-  ),
+  ]),
 ];
 
 /**
@@ -1435,16 +1427,14 @@ const caseItemUri = (guid: string): string => `http://www.imsglobal.org/caseregi
  * @returns The `labelledGUID`'s lines.
  */
 const labelledGuid = (scope: string, guid: string): Lines =>
-  element(
-    "csmd:labelledGUID",
-    "",
+  element("csmd:labelledGUID", "", [
     leaf(
       "csmd:label",
       `GUID for a top-level Learning Standard Item definition addressed by this ${scope}.`,
     ),
     leaf("csmd:caseItemURI", caseItemUri(guid)),
     leaf("csmd:GUID", guid),
-  );
+  ]);
 
 /**
  * Build a `setOfGUIDs` with a comment and one `labelledGUID` per GUID.
@@ -1455,12 +1445,10 @@ const labelledGuid = (scope: string, guid: string): Lines =>
  * @returns The set's lines.
  */
 const setOfGuids = (region: string, scope: string, guids: readonly string[]): Lines =>
-  element(
-    "csmd:setOfGUIDs",
-    ` region="${region}" version="1.0"`,
+  element("csmd:setOfGUIDs", ` region="${region}" version="1.0"`, [
     note(`identifiers of the ${region} standards`),
     ...guids.map((guid) => labelledGuid(scope, guid)),
-  );
+  ]);
 
 /**
  * The GUIDs of the manifest-level set and of the resource-level set, each as a Texas pair and a
@@ -1497,16 +1485,12 @@ const csmSet = (
   scope: string,
   guids: readonly [readonly string[], readonly string[]],
 ): Lines =>
-  element(
-    "csmd:curriculumStandardsMetadataSet",
-    attributes,
-    element(
-      "csmd:curriculumStandardsMetadata",
-      ' providerId="IMS_CASE_REGISTER"',
+  element("csmd:curriculumStandardsMetadataSet", attributes, [
+    element("csmd:curriculumStandardsMetadata", ' providerId="IMS_CASE_REGISTER"', [
       setOfGuids("Texas", scope, guids[0]),
       setOfGuids("Florida", scope, guids[1]),
-    ),
-  );
+    ]),
+  ]);
 
 /**
  * The set under the manifest `metadata`, which `csm` adds between `schemaversion` and the manifest
@@ -1606,11 +1590,9 @@ const fileMetadataChildren: readonly Lines[] = [
 /**
  * The file `images/sign.png` of `filelom`: its `metadata` closes at column 16 and the file at 12.
  */
-const fileWithMetadata: Lines = element(
-  "file",
-  ' href="images/sign.png"',
-  element("metadata", "", ...fileMetadataChildren),
-);
+const fileWithMetadata: Lines = element("file", ' href="images/sign.png"', [
+  element("metadata", "", fileMetadataChildren),
+]);
 
 /**
  * The end of `filelom`'s file, where the negatives add to its `metadata`.
@@ -1642,7 +1624,7 @@ const recordResource = (identifier: string, attributes: string, files: readonly 
   element(
     "resource",
     ` identifier="${identifier}"${attributes}`,
-    ...files.map((href): Lines => [`<file href="${href}"/>`]),
+    files.map((href): Lines => [`<file href="${href}"/>`]),
   );
 
 /**
@@ -1662,7 +1644,7 @@ const resourcesEnd = `</resource>${CRLF}    </resources>`;
  * @param resources - The resources to add.
  * @returns The edit as plain data.
  */
-const addResources = (...resources: readonly Lines[]): Edit =>
+const addResources = (resources: readonly Lines[]): Edit =>
   replaceIn(
     "imsmanifest.xml",
     resourcesEnd,
@@ -1688,7 +1670,7 @@ const extmetaManifestEdits: readonly Edit[] = [
     '<file href="images/sign.png"/>',
     `<file href="images/sign.png"/>${CRLF}            <dependency identifierref="choice-meta"/>`,
   ),
-  addResources(recordResource("choice-meta", recordAttributes, ["meta/choice.xml"])),
+  addResources([recordResource("choice-meta", recordAttributes, ["meta/choice.xml"])]),
 ];
 
 /**
@@ -2018,9 +2000,11 @@ const variantEdits = (options: VariantOptions): readonly Edit[] => {
   const variant: Lines = element(
     "cpx:variant",
     ` identifier="${identifier}" identifierref="${identifierref}"`,
-    metadata
-      ? element("cpx:metadata", "", element("drd:accessForAllResource", "", ...children))
-      : [],
+    [
+      metadata
+        ? element("cpx:metadata", "", [element("drd:accessForAllResource", "", children)])
+        : [],
+    ],
   );
   const placement: Edit = beforeFile
     ? replaceIn(
@@ -2040,11 +2024,11 @@ const variantEdits = (options: VariantOptions): readonly Edit[] => {
     replaceIn("es/choice.xml", 'src="images/sign.png"', 'src="../images/sign.png"'),
     declareVariantNamespaces,
     placement,
-    addResources(
+    addResources([
       recordResource("choice_es", ' type="imsqti_item_xmlv3p0" href="es/choice.xml"', [
         "es/choice.xml",
       ]),
-    ),
+    ]),
   ];
 };
 
@@ -2067,7 +2051,7 @@ const paddedDrdChildren: readonly Lines[] = [
  * @param between - The children between `adaptationType` and `languageOfAdaptation`.
  * @returns The children, `accessMode` and `adaptationType` first and `languageOfAdaptation` last.
  */
-const drdWith = (...between: readonly Lines[]): readonly Lines[] => [
+const drdWith = (between: readonly Lines[]): readonly Lines[] => [
   leaf("drd:accessMode", "textual"),
   leaf("drd:adaptationType", "ext:stacked_translation"),
   ...between,
@@ -2082,38 +2066,32 @@ const drdWith = (...between: readonly Lines[]): readonly Lines[] => [
 const outcomeResource: Lines = element(
   "resource",
   ' identifier="Outcome_01" type="imsqti_outcomes_xmlv3p0" href="testoutcome01.xml"',
-  element(
-    "metadata",
-    "",
-    element(
-      "csmd:curriculumStandardsMetadataSet",
-      ' resourceLabel="Outcome (QTI 3.0)" resourcePartId="SCORE"',
+  [
+    element("metadata", "", [
       element(
-        "csmd:curriculumStandardsMetadata",
-        ' providerId="IMS_CASE_REGISTER"',
-        element(
-          "csmd:setOfGUIDs",
-          ' region="Texas" version="1.0"',
-          note("UUID v1.0 used in the Texas examples"),
-          ...csmGuids.manifest[0].map((guid) => labelledGuid("Outcome variable", guid)),
-        ),
-        element(
-          "csmd:setOfGUIDs",
-          ' region="Florida" version="1.0"',
-          note("UUID v4.0 used in the Florida examples"),
-          ...csmGuids.manifest[1].map((guid) => labelledGuid("Outcome variable", guid)),
-        ),
+        "csmd:curriculumStandardsMetadataSet",
+        ' resourceLabel="Outcome (QTI 3.0)" resourcePartId="SCORE"',
+        [
+          element("csmd:curriculumStandardsMetadata", ' providerId="IMS_CASE_REGISTER"', [
+            element("csmd:setOfGUIDs", ' region="Texas" version="1.0"', [
+              note("UUID v1.0 used in the Texas examples"),
+              ...csmGuids.manifest[0].map((guid) => labelledGuid("Outcome variable", guid)),
+            ]),
+            element("csmd:setOfGUIDs", ' region="Florida" version="1.0"', [
+              note("UUID v4.0 used in the Florida examples"),
+              ...csmGuids.manifest[1].map((guid) => labelledGuid("Outcome variable", guid)),
+            ]),
+          ]),
+        ],
       ),
-    ),
-    mdGroup(
-      "lom",
-      mdGroup(
-        "general",
-        mdText("title", "Mapping between an Outcome variable for a test and the CSM"),
-      ),
-    ),
-  ),
-  ['<file href="testoutcome01.xml"/>'],
+      mdGroup("lom", [
+        mdGroup("general", [
+          mdText("title", "Mapping between an Outcome variable for a test and the CSM"),
+        ]),
+      ]),
+    ]),
+    ['<file href="testoutcome01.xml"/>'],
+  ],
 );
 
 /**
@@ -2127,7 +2105,7 @@ const outcomeEdits: readonly Edit[] = [
     lastFile,
     `${lastFile}${CRLF}            <dependency identifierref="Outcome_01"/>`,
   ),
-  addResources(outcomeResource),
+  addResources([outcomeResource]),
   {
     _tag: "addFile",
     path: "testoutcome01.xml",
@@ -2344,7 +2322,7 @@ const bytesResources: readonly BytesResource[] = [
  */
 const bytesManifestEdit = (resources: readonly BytesResource[]): Edit =>
   addResources(
-    ...resources.map((resource) =>
+    resources.map((resource) =>
       recordResource(resource.identifier, ` type="${resource.type}" href="${resource.href}"`, [
         resource.href,
       ]),
@@ -2500,9 +2478,9 @@ const matchCorrect: FileSource = {
  * @returns The edits as plain data.
  */
 const resprocEdits = (type: string): readonly Edit[] => [
-  addResources(
+  addResources([
     recordResource("rp1", ` type="${type}" href="rp/match_correct.xml"`, ["rp/match_correct.xml"]),
-  ),
+  ]),
   { _tag: "addFile", path: "rp/match_correct.xml", source: matchCorrect },
 ];
 
@@ -2712,7 +2690,7 @@ const firstMapEntries = [
  * @param edits - The edits after `usage3`'s.
  * @returns The spec.
  */
-const overUsage = (name: string, ...edits: readonly Edit[]): FixtureSpec => ({
+const overUsage = (name: string, edits: readonly Edit[]): FixtureSpec => ({
   edits: [...usage3Edits, ...edits],
   member: usageMember,
   name,
@@ -6287,7 +6265,7 @@ const writtenSpecs: Readonly<Record<FixtureName, FixtureSpec>> = {
   ]),
   "extmeta-two-resources": overSimple("extmeta-two-resources", [
     ...extmetaEdits,
-    addResources(recordResource("choice-meta2", recordAttributes, ["meta/choice.xml"])),
+    addResources([recordResource("choice-meta2", recordAttributes, ["meta/choice.xml"])]),
   ]),
   filelom: overSimple("filelom", filelomEdits),
   "filelom-qmd": overSimple("filelom-qmd", [
@@ -6303,7 +6281,7 @@ const writtenSpecs: Readonly<Record<FixtureName, FixtureSpec>> = {
     replaceIn(
       "imsmanifest.xml",
       fileMetadataEnd,
-      `</metadata>${CRLF}${atColumn(16, element("metadata", "", titledLom("Second metadata")))}${CRLF}            </file>`,
+      `</metadata>${CRLF}${atColumn(16, element("metadata", "", [titledLom("Second metadata")]))}${CRLF}            </file>`,
     ),
   ]),
   "identifier-mismatch": {
@@ -6578,54 +6556,45 @@ const writtenSpecs: Readonly<Record<FixtureName, FixtureSpec>> = {
     member: simpleMember,
     name: "undeclared-response",
   },
-  usage3: overUsage("usage3"),
-  "usage3-bad-context": overUsage(
-    "usage3-bad-context",
+  usage3: overUsage("usage3", []),
+  "usage3-bad-context": overUsage("usage3-bad-context", [
     editFirstStatistic({ context: 'context="a%zz"' }),
-  ),
-  "usage3-bad-month": overUsage(
-    "usage3-bad-month",
+  ]),
+  "usage3-bad-month": overUsage("usage3-bad-month", [
     editFirstStatistic({ lastUpdated: 'lastUpdated="2004-13-04"' }),
-  ),
-  "usage3-bad-name": overUsage("usage3-bad-name", editFirstStatistic({ name: 'name="1a"' })),
-  "usage3-feb-30": overUsage(
-    "usage3-feb-30",
+  ]),
+  "usage3-bad-name": overUsage("usage3-bad-name", [editFirstStatistic({ name: 'name="1a"' })]),
+  "usage3-feb-30": overUsage("usage3-feb-30", [
     editFirstStatistic({ lastUpdated: 'lastUpdated="2004-02-30"' }),
-  ),
+  ]),
   /**
    * `<value baseType="float"> 0.87 </value>`: decision 157 reads the float as 0.87, so the package
    * imports and round-trips byte for byte.
    */
-  "usage3-float-padded": overUsage(
-    "usage3-float-padded",
+  "usage3-float-padded": overUsage("usage3-float-padded", [
     replaceIn("example.xml", "<value>0.87</value>", '<value baseType="float"> 0.87 </value>'),
-  ),
+  ]),
   /**
    * `<value baseType="integer">0.87</value>`, outside a record: a `baseType` is no base type
    * there (reading 105), so the value is untyped text, and the package imports and round-trips.
    */
-  "usage3-integer-float": overUsage(
-    "usage3-integer-float",
+  "usage3-integer-float": overUsage("usage3-integer-float", [
     replaceIn("example.xml", "<value>0.87</value>", '<value baseType="integer">0.87</value>'),
-  ),
-  "usage3-no-map-entry": overUsage(
-    "usage3-no-map-entry",
+  ]),
+  "usage3-no-map-entry": overUsage("usage3-no-map-entry", [
     replaceIn("example.xml", firstMapEntries, ""),
-  ),
-  "usage3-no-target": overUsage(
-    "usage3-no-target",
+  ]),
+  "usage3-no-target": overUsage("usage3-no-target", [
     replaceIn("example.xml", firstTargetAndValue, "<value>0.87</value>"),
-  ),
-  "usage3-ordinary-mapping": overUsage(
-    "usage3-ordinary-mapping",
+  ]),
+  "usage3-ordinary-mapping": overUsage("usage3-ordinary-mapping", [
     replaceIn(
       "example.xml",
       "<value>0.87</value>",
       '<value>0.87</value>\n        <mapping lowerBound="1" upperBound="1" defaultValue="0"><mapEntry mapKey="d1" mappedValue="1"/></mapping>',
     ),
-  ),
-  "usage3-padded": overUsage(
-    "usage3-padded",
+  ]),
+  "usage3-padded": overUsage("usage3-padded", [
     editFirstStatistic({ name: 'name=" AIS "' }),
     replaceIn("example.xml", 'mapKey="d1"', 'mapKey="a&#9;b"'),
     replaceIn(
@@ -6633,16 +6602,15 @@ const writtenSpecs: Readonly<Record<FixtureName, FixtureSpec>> = {
       firstTargetAndValue,
       ['<targetObject identifier=" item1 "/>', "<value> 0.87 </value>"].join("\n        "),
     ),
-  ),
-  "usage3-two-values": overUsage(
-    "usage3-two-values",
+  ]),
+  "usage3-two-values": overUsage("usage3-two-values", [
     replaceIn(
       "example.xml",
       "<value>0.87</value>",
       "<value>0.87</value>\n        <value>0.87</value>",
     ),
-  ),
-  "usage3-typed": overUsage("usage3-typed", ...usageTypedEdits),
+  ]),
+  "usage3-typed": overUsage("usage3-typed", usageTypedEdits),
   utf16: {
     edits: [declareEncoding("UTF-16"), { _tag: "EncodeUtf16", file: "choice.xml" }],
     member: simpleMember,
@@ -6651,7 +6619,7 @@ const writtenSpecs: Readonly<Record<FixtureName, FixtureSpec>> = {
   variant: overSimple("variant", variantEdits({})),
   "variant-bad-uri": overSimple(
     "variant-bad-uri",
-    variantEdits({ children: drdWith(leaf("drd:hasAdaptation", "a%zz")) }),
+    variantEdits({ children: drdWith([leaf("drd:hasAdaptation", "a%zz")]) }),
   ),
   "variant-before-file": overSimple("variant-before-file", variantEdits({ beforeFile: true })),
   "variant-id-clash": overSimple("variant-id-clash", variantEdits({ identifier: "choice_es" })),
@@ -6678,16 +6646,19 @@ const writtenSpecs: Readonly<Record<FixtureName, FixtureSpec>> = {
   "variant-two-atinteroperable": overSimple(
     "variant-two-atinteroperable",
     variantEdits({
-      children: drdWith(leaf("drd:atInteroperable", "true"), leaf("drd:atInteroperable", "false")),
+      children: drdWith([
+        leaf("drd:atInteroperable", "true"),
+        leaf("drd:atInteroperable", "false"),
+      ]),
     }),
   ),
   "variant-two-complexity": overSimple(
     "variant-two-complexity",
     variantEdits({
-      children: drdWith(
+      children: drdWith([
         leaf("drd:educationalComplexityOfAdaptation", "enriched"),
         leaf("drd:educationalComplexityOfAdaptation", "simplified"),
-      ),
+      ]),
     }),
   ),
   "windows-1252": {

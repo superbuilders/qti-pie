@@ -643,7 +643,10 @@ const elementText = (root: ElementNode): string => {
           out.push(`<${next.name}${attributes}/>`);
         } else {
           out.push(`<${next.name}${attributes}>`);
-          stack.push({ _tag: "close", name: next.name }, ...next.children.toReversed());
+          stack.push({ _tag: "close", name: next.name });
+          for (const child of next.children.toReversed()) {
+            stack.push(child);
+          }
         }
 
         break;

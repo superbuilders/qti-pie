@@ -36,7 +36,7 @@ const none: ReadonlySet<number> = new Set();
  * @returns The rule.
  */
 const range =
-  (...ranges: readonly (readonly [number, number])[]): Rule =>
+  (ranges: readonly (readonly [number, number])[]): Rule =>
   (text, at) => {
     const code = text.codePointAt(at) ?? -1;
 
@@ -76,7 +76,7 @@ const quoted =
  * @returns The rule.
  */
 const sequence =
-  (...rules: readonly Rule[]): Rule =>
+  (rules: readonly Rule[]): Rule =>
   (text, at) => {
     let ends: ReadonlySet<number> = new Set([at]);
     for (const rule of rules) {
@@ -93,7 +93,7 @@ const sequence =
  * @returns The rule.
  */
 const either =
-  (...rules: readonly Rule[]): Rule =>
+  (rules: readonly Rule[]): Rule =>
   (text, at) =>
     new Set(rules.flatMap((rule) => [...rule(text, at)]));
 
@@ -130,57 +130,64 @@ const repeat =
  * @param rules - The element's concatenation.
  * @returns The rule.
  */
-const optional = (...rules: readonly Rule[]): Rule => repeat(sequence(...rules), 0, 1);
+const optional = (rules: readonly Rule[]): Rule => repeat(sequence(rules), 0, 1);
 
 /**
  * `ALPHA = %x41-5A / %x61-7A`, RFC 5234 Appendix B.1.
  */
-const alpha = range([0x41, 0x5a], [0x61, 0x7a]);
+const alpha = range([
+  [0x41, 0x5a],
+  [0x61, 0x7a],
+]);
 
 /**
  * `DIGIT = %x30-39`, RFC 5234 Appendix B.1.
  */
-const digit = range([0x30, 0x39]);
+const digit = range([[0x30, 0x39]]);
 
 /**
  * `HEXDIG = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"`, RFC 5234 Appendix B.1, each letter of
  * either case.
  */
-const hexdig = either(digit, ...["A", "B", "C", "D", "E", "F"].map(quoted));
+const hexdig = either([digit, ...["A", "B", "C", "D", "E", "F"].map(quoted)]);
 
 /**
  * `unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"`.
  */
-const unreserved = either(alpha, digit, ...["-", ".", "_", "~"].map(quoted));
+const unreserved = either([alpha, digit, ...["-", ".", "_", "~"].map(quoted)]);
 
 /**
  * `sub-delims = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="`.
  */
-const subDelims = either(...["!", "$", "&", "'", "(", ")", "*", "+", ",", ";", "="].map(quoted));
+const subDelims = either(["!", "$", "&", "'", "(", ")", "*", "+", ",", ";", "="].map(quoted));
 
 /**
  * `pct-encoded = "%" HEXDIG HEXDIG`.
  */
-const pctEncoded = sequence(quoted("%"), hexdig, hexdig);
+const pctEncoded = sequence([quoted("%"), hexdig, hexdig]);
 
 /**
  * `pchar = unreserved / pct-encoded / sub-delims / ":" / "@"`.
  */
-const pchar = either(unreserved, pctEncoded, subDelims, quoted(":"), quoted("@"));
+const pchar = either([unreserved, pctEncoded, subDelims, quoted(":"), quoted("@")]);
 
 /**
  * `scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )`.
  */
-const scheme = sequence(
+const scheme = sequence([
   alpha,
-  repeat(either(alpha, digit, quoted("+"), quoted("-"), quoted(".")), 0, Number.POSITIVE_INFINITY),
-);
+  repeat(
+    either([alpha, digit, quoted("+"), quoted("-"), quoted(".")]),
+    0,
+    Number.POSITIVE_INFINITY,
+  ),
+]);
 
 /**
  * `userinfo = *( unreserved / pct-encoded / sub-delims / ":" )`.
  */
 const userinfo = repeat(
-  either(unreserved, pctEncoded, subDelims, quoted(":")),
+  either([unreserved, pctEncoded, subDelims, quoted(":")]),
   0,
   Number.POSITIVE_INFINITY,
 );
@@ -188,18 +195,18 @@ const userinfo = repeat(
 /**
  * `dec-octet = DIGIT / %x31-39 DIGIT / "1" 2DIGIT / "2" %x30-34 DIGIT / "25" %x30-35`.
  */
-const decOctet = either(
+const decOctet = either([
   digit,
-  sequence(range([0x31, 0x39]), digit),
-  sequence(quoted("1"), digit, digit),
-  sequence(quoted("2"), range([0x30, 0x34]), digit),
-  sequence(quoted("25"), range([0x30, 0x35])),
-);
+  sequence([range([[0x31, 0x39]]), digit]),
+  sequence([quoted("1"), digit, digit]),
+  sequence([quoted("2"), range([[0x30, 0x34]]), digit]),
+  sequence([quoted("25"), range([[0x30, 0x35]])]),
+]);
 
 /**
  * `IPv4address = dec-octet "." dec-octet "." dec-octet "." dec-octet`.
  */
-const ipv4Address = sequence(
+const ipv4Address = sequence([
   decOctet,
   quoted("."),
   decOctet,
@@ -207,7 +214,7 @@ const ipv4Address = sequence(
   decOctet,
   quoted("."),
   decOctet,
-);
+]);
 
 /**
  * `h16 = 1*4HEXDIG`.
@@ -217,12 +224,12 @@ const h16 = repeat(hexdig, 1, 4);
 /**
  * `h16 ":"`, the unit IPv6address repeats.
  */
-const h16Colon = sequence(h16, quoted(":"));
+const h16Colon = sequence([h16, quoted(":")]);
 
 /**
  * `ls32 = ( h16 ":" h16 ) / IPv4address`.
  */
-const ls32 = either(sequence(h16, quoted(":"), h16), ipv4Address);
+const ls32 = either([sequence([h16, quoted(":"), h16]), ipv4Address]);
 
 /**
  * `"::"`, the elision of IPv6address.
@@ -232,42 +239,42 @@ const elided = quoted("::");
 /**
  * `IPv6address, its nine alternatives in the Appendix's order`.
  */
-const ipv6Address = either(
-  sequence(repeat(h16Colon, 6, 6), ls32),
-  sequence(elided, repeat(h16Colon, 5, 5), ls32),
-  sequence(optional(h16), elided, repeat(h16Colon, 4, 4), ls32),
-  sequence(optional(repeat(h16Colon, 0, 1), h16), elided, repeat(h16Colon, 3, 3), ls32),
-  sequence(optional(repeat(h16Colon, 0, 2), h16), elided, repeat(h16Colon, 2, 2), ls32),
-  sequence(optional(repeat(h16Colon, 0, 3), h16), elided, h16, quoted(":"), ls32),
-  sequence(optional(repeat(h16Colon, 0, 4), h16), elided, ls32),
-  sequence(optional(repeat(h16Colon, 0, 5), h16), elided, h16),
-  sequence(optional(repeat(h16Colon, 0, 6), h16), elided),
-);
+const ipv6Address = either([
+  sequence([repeat(h16Colon, 6, 6), ls32]),
+  sequence([elided, repeat(h16Colon, 5, 5), ls32]),
+  sequence([optional([h16]), elided, repeat(h16Colon, 4, 4), ls32]),
+  sequence([optional([repeat(h16Colon, 0, 1), h16]), elided, repeat(h16Colon, 3, 3), ls32]),
+  sequence([optional([repeat(h16Colon, 0, 2), h16]), elided, repeat(h16Colon, 2, 2), ls32]),
+  sequence([optional([repeat(h16Colon, 0, 3), h16]), elided, h16, quoted(":"), ls32]),
+  sequence([optional([repeat(h16Colon, 0, 4), h16]), elided, ls32]),
+  sequence([optional([repeat(h16Colon, 0, 5), h16]), elided, h16]),
+  sequence([optional([repeat(h16Colon, 0, 6), h16]), elided]),
+]);
 
 /**
  * `IPvFuture = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )`.
  */
-const ipvFuture = sequence(
+const ipvFuture = sequence([
   quoted("v"),
   repeat(hexdig, 1, Number.POSITIVE_INFINITY),
   quoted("."),
-  repeat(either(unreserved, subDelims, quoted(":")), 1, Number.POSITIVE_INFINITY),
-);
+  repeat(either([unreserved, subDelims, quoted(":")]), 1, Number.POSITIVE_INFINITY),
+]);
 
 /**
  * `IP-literal = "[" ( IPv6address / IPvFuture ) "]"`.
  */
-const ipLiteral = sequence(quoted("["), either(ipv6Address, ipvFuture), quoted("]"));
+const ipLiteral = sequence([quoted("["), either([ipv6Address, ipvFuture]), quoted("]")]);
 
 /**
  * `reg-name = *( unreserved / pct-encoded / sub-delims )`.
  */
-const regName = repeat(either(unreserved, pctEncoded, subDelims), 0, Number.POSITIVE_INFINITY);
+const regName = repeat(either([unreserved, pctEncoded, subDelims]), 0, Number.POSITIVE_INFINITY);
 
 /**
  * `host = IP-literal / IPv4address / reg-name`.
  */
-const host = either(ipLiteral, ipv4Address, regName);
+const host = either([ipLiteral, ipv4Address, regName]);
 
 /**
  * `port = *DIGIT`.
@@ -277,7 +284,11 @@ const port = repeat(digit, 0, Number.POSITIVE_INFINITY);
 /**
  * `authority = [ userinfo "@" ] host [ ":" port ]`.
  */
-const authority = sequence(optional(userinfo, quoted("@")), host, optional(quoted(":"), port));
+const authority = sequence([
+  optional([userinfo, quoted("@")]),
+  host,
+  optional([quoted(":"), port]),
+]);
 
 /**
  * `segment = *pchar`.
@@ -293,7 +304,7 @@ const segmentNz = repeat(pchar, 1, Number.POSITIVE_INFINITY);
  * `segment-nz-nc = 1*( unreserved / pct-encoded / sub-delims / "@" )`.
  */
 const segmentNzNc = repeat(
-  either(unreserved, pctEncoded, subDelims, quoted("@")),
+  either([unreserved, pctEncoded, subDelims, quoted("@")]),
   1,
   Number.POSITIVE_INFINITY,
 );
@@ -301,7 +312,7 @@ const segmentNzNc = repeat(
 /**
  * `*( "/" segment )`, the tail every path but path-empty ends with.
  */
-const slashSegments = repeat(sequence(quoted("/"), segment), 0, Number.POSITIVE_INFINITY);
+const slashSegments = repeat(sequence([quoted("/"), segment]), 0, Number.POSITIVE_INFINITY);
 
 /**
  * `path-abempty = *( "/" segment )`.
@@ -311,17 +322,17 @@ const pathAbempty = slashSegments;
 /**
  * `path-absolute = "/" [ segment-nz *( "/" segment ) ]`.
  */
-const pathAbsolute = sequence(quoted("/"), optional(segmentNz, slashSegments));
+const pathAbsolute = sequence([quoted("/"), optional([segmentNz, slashSegments])]);
 
 /**
  * `path-noscheme = segment-nz-nc *( "/" segment )`.
  */
-const pathNoscheme = sequence(segmentNzNc, slashSegments);
+const pathNoscheme = sequence([segmentNzNc, slashSegments]);
 
 /**
  * `path-rootless = segment-nz *( "/" segment )`.
  */
-const pathRootless = sequence(segmentNz, slashSegments);
+const pathRootless = sequence([segmentNz, slashSegments]);
 
 /**
  * `path-empty = 0<pchar>`.
@@ -331,57 +342,57 @@ const pathEmpty = repeat(pchar, 0, 0);
 /**
  * `query = *( pchar / "/" / "?" )`.
  */
-const query = repeat(either(pchar, quoted("/"), quoted("?")), 0, Number.POSITIVE_INFINITY);
+const query = repeat(either([pchar, quoted("/"), quoted("?")]), 0, Number.POSITIVE_INFINITY);
 
 /**
  * `fragment = *( pchar / "/" / "?" )`.
  */
-const fragment = repeat(either(pchar, quoted("/"), quoted("?")), 0, Number.POSITIVE_INFINITY);
+const fragment = repeat(either([pchar, quoted("/"), quoted("?")]), 0, Number.POSITIVE_INFINITY);
 
 /**
  * `hier-part = "//" authority path-abempty / path-absolute / path-rootless / path-empty`.
  */
-const hierPart = either(
-  sequence(quoted("//"), authority, pathAbempty),
+const hierPart = either([
+  sequence([quoted("//"), authority, pathAbempty]),
   pathAbsolute,
   pathRootless,
   pathEmpty,
-);
+]);
 
 /**
  * `URI = scheme ":" hier-part [ "?" query ] [ "#" fragment ]`.
  */
-const uri = sequence(
+const uri = sequence([
   scheme,
   quoted(":"),
   hierPart,
-  optional(quoted("?"), query),
-  optional(quoted("#"), fragment),
-);
+  optional([quoted("?"), query]),
+  optional([quoted("#"), fragment]),
+]);
 
 /**
  * `relative-part = "//" authority path-abempty / path-absolute / path-noscheme / path-empty`.
  */
-const relativePart = either(
-  sequence(quoted("//"), authority, pathAbempty),
+const relativePart = either([
+  sequence([quoted("//"), authority, pathAbempty]),
   pathAbsolute,
   pathNoscheme,
   pathEmpty,
-);
+]);
 
 /**
  * `relative-ref = relative-part [ "?" query ] [ "#" fragment ]`.
  */
-const relativeRef = sequence(
+const relativeRef = sequence([
   relativePart,
-  optional(quoted("?"), query),
-  optional(quoted("#"), fragment),
-);
+  optional([quoted("?"), query]),
+  optional([quoted("#"), fragment]),
+]);
 
 /**
  * `URI-reference = URI / relative-ref`.
  */
-const uriReference = either(uri, relativeRef);
+const uriReference = either([uri, relativeRef]);
 
 /**
  * The texts already judged, since a package declares few namespace names many times.

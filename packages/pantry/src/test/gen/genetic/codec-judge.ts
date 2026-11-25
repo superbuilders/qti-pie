@@ -1719,7 +1719,9 @@ const defaultBeforeEntity = (genome: CodecGenome): boolean => {
         return true;
       }
 
-      pending.push(...(included ?? []));
+      for (const part of included ?? []) {
+        pending.push(part);
+      }
     }
 
     return false;
