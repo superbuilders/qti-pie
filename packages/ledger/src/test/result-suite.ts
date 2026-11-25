@@ -30,7 +30,7 @@ import {
   Option,
   Schema,
 } from "effect";
-import { resultDatabaseOf, resultMigrations } from "#ledger/test/result-database.ts";
+import { resultMigrations, resultSettingsOf } from "#ledger/test/result-database.ts";
 import type { ResultSuite } from "#ledger/test/result-level.ts";
 
 /**
@@ -82,10 +82,7 @@ export const suiteLayerOf = (file: ResultFile) =>
       const { loginConnectionOf } = yield* fileConnections(file).pipe(
         Effect.provide(
           ConfigProvider.layer(
-            ConfigProvider.fromUnknown({
-              ...process.env,
-              QTI_PIE_PG_DATABASE: resultDatabaseOf(Option.getOrThrow(lease)),
-            }),
+            ConfigProvider.fromUnknown(resultSettingsOf(process.env, Option.getOrThrow(lease))),
           ),
         ),
       );
