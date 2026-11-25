@@ -14,7 +14,7 @@
  * @module
  */
 import { availableParallelism } from "node:os";
-import { Effect, FileSystem, Option, Path, pipe, Schema, Semaphore } from "effect";
+import { Effect, FileSystem, Option, Path, Schema, Semaphore } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { vocabularyFacets } from "#pantry/grammar/facets.ts";
 import { fragmentType } from "#pantry/grammar/include.ts";
@@ -207,15 +207,12 @@ export const writePackageOf = Effect.fn("admission.packageOf")(function* writePa
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const [first, ...others] = yield* pipe(
-    candidates,
-    Effect.forEach((candidate) =>
-      Effect.map(resourceTypeOf(candidate.bytes), (type): Entry => ({
-        bytes: candidate.bytes,
-        file: candidate.at,
-        type,
-      })),
-    ),
+  const [first, ...others] = yield* Effect.forEach(candidates, (candidate) =>
+    Effect.map(resourceTypeOf(candidate.bytes), (type): Entry => ({
+      bytes: candidate.bytes,
+      file: candidate.at,
+      type,
+    })),
   );
   const folders = candidates.flatMap(({ folder }) => Option.toArray(folder));
   const entryOf = Effect.fnUntraced(function* entryOf(file: string) {
@@ -241,10 +238,7 @@ export const writePackageOf = Effect.fn("admission.packageOf")(function* writePa
       onSome: ({ referenced }): readonly string[] =>
         [...referenced].filter((file) => !listed.has(file)),
     });
-    const added = yield* pipe(
-      missing,
-      Effect.forEach((file) => entryOf(file)),
-    );
+    const added = yield* Effect.forEach(missing, (file) => entryOf(file));
 
     more = added.length > 0;
     for (const entry of added) {
