@@ -3,7 +3,7 @@
  * `@qti-pie/plate/test/catalog-shown`, whose feedback block, feedback inline, template block,
  * template-shown choice and scorer's rubric block each name a catalog of their own, rendered while
  * the candidate answers with no record, so the page shows no feedback and no template content,
- * under each support whose card the page draws or carries and under all four.
+ * under every set of the supports whose card the page draws or carries.
  *
  * - CS1, no card the page is not given: no card of a catalog only such content names stands in the
  *   page's markup or in the props of any island it ships. Feedback's content "is only shown to the
@@ -17,6 +17,11 @@
  * @module
  */
 import { assert, describe, it } from "@effect/vitest";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { noCoverage } from "@bjornpagen/testing/features";
+import { subset } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
 import { Effect, Option } from "effect";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -35,6 +40,7 @@ import type { ItemProps } from "@qti-pie/plate/ui";
 import { heldOf, Responses } from "@qti-pie/plate/ui/client";
 import { clientExports } from "#specimen/ui/clients.ts";
 import { islandsIn } from "#specimen/ui/rendered.ts";
+import { boxHolds } from "#specimen/test/box.ts";
 
 /**
  * The supports a host enables for one candidate, `<Item>`'s `supports`.
@@ -106,12 +112,18 @@ const page = Effect.fnUntraced(function* page(supports: Supports) {
 });
 
 /**
- * The support sets the suite renders under: each support alone, and all four.
+ * Draw a support set of the box: every set of one to all of {@link supportsHeld}, in their order.
  */
-const supportSets: readonly (readonly HeldSupport[])[] = [
-  ...supportsHeld.map((support) => [support]),
-  supportsHeld,
-];
+const supportSets: Gen<readonly HeldSupport[]> = subset(supportsHeld, {
+  max: supportsHeld.length,
+  min: 1,
+});
+
+/**
+ * How many support sets {@link supportSets} draws: every non-empty set of the four, 2 to the 4
+ * less the empty one.
+ */
+const SUPPORT_SETS = 2 ** 4 - 1;
 
 /**
  * The catalogs no part of the answering page names: every catalog the rule does not keep when no
@@ -120,26 +132,47 @@ const supportSets: readonly (readonly HeldSupport[])[] = [
 const notGiven = catalogIds.filter((id) => !keptByRule("hidden").includes(id));
 
 describe("catalogs content the page is not given names", () => {
-  for (const names of supportSets) {
-    it.effect(`CS1-CS2 under ${names.join(" and ")}`, () =>
-      Effect.gen(function* notShown() {
-        const { html, shipped } = yield* page(enabling(names));
+  it.effect(
+    `CS1-CS2 under every set of the supports a catalog holds a card of: ${String(SUPPORT_SETS)} sets`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(supportSets, SUPPORT_SETS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every non-empty set of glossary-on-screen, keyword-translation, linguistic-guidance and spoken",
+              caseHang: "2 minutes",
+              coverage: noCoverage,
+              generator: supportSets,
+              literal: (names) => JSON.stringify(names),
+              oracle: {
+                kind: "specification",
+                name: "QTI 3.0.1 information model §5.53: feedback's content is shown only once its outcome variable matches, so no card of a catalog only feedback, template content or another view's rubric names stands in the answering page's markup or an island's props (CS1); the paragraph's catalog keeps its card under each support the page draws (CS2)",
+              },
+              suite: "plate-ui/catalog-shown",
+            },
+            (names) =>
+              Effect.gen(function* notShown() {
+                const { html, shipped } = yield* page(enabling(names));
 
-        for (const id of notGiven) {
-          for (const support of supportsHeld) {
-            const text = cardText(id, support);
-            assert.notInclude(html, text, `CS1: the markup holds ${text}`);
-            assert.isTrue(
-              shipped.every((props) => !props.includes(text)),
-              `CS1: an island's props hold ${text}`,
-            );
-          }
-        }
+                for (const id of notGiven) {
+                  for (const support of supportsHeld) {
+                    const text = cardText(id, support);
+                    assert.notInclude(html, text, `CS1: the markup holds ${text}`);
+                    assert.isTrue(
+                      shipped.every((props) => !props.includes(text)),
+                      `CS1: an island's props hold ${text}`,
+                    );
+                  }
+                }
 
-        for (const support of names.filter((name) => name !== "spoken")) {
-          assert.include(html, cardText("paragraph", support), `CS2: ${support}`);
-        }
-      }),
-    );
-  }
+                for (const support of names.filter((name) => name !== "spoken")) {
+                  assert.include(html, cardText("paragraph", support), `CS2: ${support}`);
+                }
+              }),
+          ),
+        ),
+      ),
+  );
 });
