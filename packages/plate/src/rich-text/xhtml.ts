@@ -787,6 +787,27 @@ const readStart = (reading: Reading, name: string, written: string): boolean =>
   });
 
 /**
+ * Read one token of a document: its text, an element's end or an element's start.
+ *
+ * @param reading The reading.
+ * @param token The token.
+ * @returns Whether it is plate's.
+ */
+const readToken = (reading: Reading, token: Token): boolean => {
+  switch (token.kind) {
+    case "text": {
+      return readText(reading, token.text);
+    }
+    case "end": {
+      return readEnd(reading, token.name);
+    }
+    case "start": {
+      return readStart(reading, token.name, token.attributes);
+    }
+  }
+};
+
+/**
  * Read plate's XHTML back into lines: the inverse of {@link xhtmlOfLines} on every document it
  * writes; none for a value it did not write.
  *
@@ -803,22 +824,7 @@ const writtenLines = (xhtml: string): Option.Option<readonly Line[]> =>
       list: undefined,
       runs: [],
     };
-    const read = tokens.every((token) => {
-      switch (token.kind) {
-        case "text": {
-          return readText(reading, token.text);
-        }
-        case "end": {
-          return readEnd(reading, token.name);
-        }
-        case "start": {
-          return readStart(reading, token.name, token.attributes);
-        }
-        default: {
-          return token satisfies never;
-        }
-      }
-    });
+    const read = tokens.every((token) => readToken(reading, token));
 
     return read && reading.ends.length === 0 ? Option.some(reading.lines) : Option.none();
   });

@@ -182,9 +182,6 @@ export const prefixesOf = (language: RegexNode): RegexNode => {
       case "end": {
         throw new AssertionInLanguage({ where: `a ${node.kind} anchor` });
       }
-      default: {
-        return node satisfies never;
-      }
     }
   });
 };

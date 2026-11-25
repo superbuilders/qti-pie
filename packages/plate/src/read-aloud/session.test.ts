@@ -785,9 +785,6 @@ describe("late echoes", () => {
 
           break;
         }
-        default: {
-          move satisfies never;
-        }
       }
     };
 

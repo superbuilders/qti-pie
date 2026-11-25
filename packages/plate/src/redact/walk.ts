@@ -310,38 +310,44 @@ const textWithin = (limits: Pick<Configuration, "outputBudget">): Writing => ({
  * @returns The references, one per part that carries one.
  */
 const catalogReferencesIn = (nodes: readonly RedactedNode[]): readonly string[] =>
-  nodes.flatMap((node): readonly string[] => {
-    if (isInteraction(node)) {
+  nodes.flatMap((node) => catalogReferencesAt(node));
+
+/**
+ * Give the `data-catalog-idref` of one node of a redacted body and of the parts within it, as
+ * {@link catalogReferencesIn} gives a body's.
+ *
+ * @param node The node.
+ * @returns The references, one per part that carries one.
+ */
+const catalogReferencesAt = (node: RedactedNode): readonly string[] => {
+  if (isInteraction(node)) {
+    return [
+      ...Option.toArray(node.catalog),
+      ...Option.toArray(node.promptCatalog),
+      ...referencingChoicesOf(node).flatMap((choice) => Option.toArray(choice.catalog)),
+      ...regionsOf<RedactedLevel>(node).flatMap((region) => catalogReferencesIn(region.nodes)),
+    ];
+  }
+
+  switch (node.kind) {
+    case "element": {
       return [
-        ...Option.toArray(node.catalog),
-        ...Option.toArray(node.promptCatalog),
-        ...referencingChoicesOf(node).flatMap((choice) => Option.toArray(choice.catalog)),
-        ...regionsOf<RedactedLevel>(node).flatMap((region) => catalogReferencesIn(region.nodes)),
+        ...(node.catalog === undefined ? [] : [node.catalog]),
+        ...catalogReferencesIn(node.children),
       ];
     }
-
-    switch (node.kind) {
-      case "element": {
-        return [
-          ...(node.catalog === undefined ? [] : [node.catalog]),
-          ...catalogReferencesIn(node.children),
-        ];
-      }
-      case "container": {
-        return catalogReferencesIn(node.children);
-      }
-      case "content": {
-        return catalogReferencesIn(contentNodes(copyContent(node)));
-      }
-      case "text":
-      case "unsupported": {
-        return [];
-      }
-      default: {
-        return node satisfies never;
-      }
+    case "container": {
+      return catalogReferencesIn(node.children);
     }
-  });
+    case "content": {
+      return catalogReferencesIn(contentNodes(copyContent(node)));
+    }
+    case "text":
+    case "unsupported": {
+      return [];
+    }
+  }
+};
 
 /**
  * A redacted body, and the responses only content the page does not see binds.
