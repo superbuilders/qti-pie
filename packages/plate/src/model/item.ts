@@ -826,7 +826,6 @@ const freshBuild = (
   paths: pathsOf(source),
   recorded: new Map(),
   records: new Map(),
-  references: [],
   stimulus,
   unsupported: [],
 });
@@ -883,9 +882,8 @@ export interface Stimulus {
  * Build the model of a valid `qti-assessment-stimulus`, over a fresh build of the document that
  * reads it as {@link buildItem} reads an item: its `qti-stimulus-body`'s children through the body
  * walk, an interaction there the notice keyed by its element ({@link Build.stimulus}); and each
- * other child of the root by its item-placed content module, the `qti-catalog-info`'s catalogs
- * resolved against the body's `data-catalog-idref` references, which the XSD's order has the walk
- * read first, or as the mark keyed by its name, a `qti-stylesheet`'s. The root's own mark, that
+ * other child of the root by its item-placed content module, a `qti-catalog-info`'s catalogs among
+ * them, or as the mark keyed by its name, a `qti-stylesheet`'s. The root's own mark, that
  * plate delivers no stimulus alone, is the verdict's (`#plate/validate/verdict.ts`).
  *
  * @param source A stimulus document the database admitted, secured as an item is.

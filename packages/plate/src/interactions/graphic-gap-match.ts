@@ -555,5 +555,6 @@ export const graphicGapMatchModule: InteractionModule<
    * The regions of the node's own content, in document order: its Prompt, its image, then each
    * choice's content.
    */
+  referencingChoices: (interaction) => [...interaction.choices, ...interaction.hotspots],
   regions: ownRegions,
 };

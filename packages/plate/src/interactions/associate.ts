@@ -360,5 +360,6 @@ export const associateModule: InteractionModule<"associate", AssociateByLevel, A
    * The regions of the node's own content, in document order: its Prompt, then each choice's
    * content.
    */
+  referencingChoices: (interaction) => interaction.choices,
   regions: ownRegions,
 };

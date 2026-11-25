@@ -359,5 +359,6 @@ export const choiceModule: InteractionModule<"choice", ChoiceByLevel, ChoicePayl
   /**
    * The regions of the Choice's own content, in document order: its Prompt, then each choice's.
    */
+  referencingChoices: (interaction) => interaction.choices,
   regions: (interaction) => [...promptRegion(interaction), ...simpleChoiceRegions(interaction)],
 };

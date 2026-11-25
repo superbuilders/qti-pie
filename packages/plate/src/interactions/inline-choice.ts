@@ -265,5 +265,6 @@ export const inlineChoiceModule: InteractionModule<
    * The regions of the Inline Choice's own content, in document order: its Label, then each
    * choice's.
    */
+  referencingChoices: (interaction) => interaction.choices,
   regions: (interaction) => [...labelRegion(interaction), ...simpleChoiceRegions(interaction)],
 };

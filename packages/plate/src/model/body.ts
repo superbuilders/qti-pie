@@ -471,7 +471,7 @@ const boundOf = (build: Build, element: SourceElement): Option.Option<BoundDecla
  */
 const readerKitOf = (build: Build): ReaderKit => ({
   ...readersOf(build),
-  catalog: (element) => catalogReference(build, element),
+  catalog: catalogReference,
   content: (parent, local) => firstContent(build, parent, local),
   controlNotices: (interaction) => {
     for (const feature of controlNotices) {
@@ -590,9 +590,9 @@ const moduleNode = (
   isQti(element)
     ? Option.map(readerFor(element.local), (reader) => {
         const catalogs = {
-          catalog: catalogReference(build, element),
+          catalog: catalogReference(element),
           promptCatalog: Option.flatMap(Arr.head(childrenNamed(element, "qti-prompt")), (prompt) =>
-            catalogReference(build, prompt),
+            catalogReference(prompt),
           ),
         };
 
@@ -729,9 +729,9 @@ const parseItemPart = <K extends ItemContentElement>(
 
 /**
  * Read an item root child the root's walk has no branch of its own for: by its content module's
- * `parse` after its `normalise`, which the element's path, the way to record its mark and the
- * body's catalog references are handed to, when an item-placed module reads it; otherwise as the
- * mark keyed by its name, when the model does not read it.
+ * `parse` after its `normalise`, which the element's path and the way to record its mark are
+ * handed to, when an item-placed module reads it; otherwise as the mark keyed by its name, when
+ * the model does not read it.
  *
  * @param build The build.
  * @param part The child, its own marks recorded.
@@ -752,7 +752,6 @@ export const itemPart = (
     };
 
     return parseItemPart(module.value, module.value.normalise(part), {
-      catalogReferences: build.references,
       mark,
       path,
       read: readerKitOf(build),
@@ -786,39 +785,35 @@ export const collectItemPart = <K extends ItemContentElement>(
 };
 
 /**
- * Read a body element's catalog reference, its `data-catalog-idref`, and record it for the catalog
- * module (`Build.references`).
+ * Read a body element's catalog reference, its `data-catalog-idref`, as the element's `catalog`
+ * field, which the catalog module reads of the redacted body (`ItemRedactKit.catalogReferences` in
+ * `#plate/content/contract.ts`).
  *
- * @param build The build.
  * @param element The element.
  * @returns The element's `catalog` field, holding the idref as written; no field when the element
  *   references no catalog, so an element without one carries no `catalog` key.
  */
-const catalogOf = (build: Build, element: SourceElement): Pick<BodyElement, "catalog"> =>
-  Option.match(catalogReference(build, element), {
+const catalogOf = (element: SourceElement): Pick<BodyElement, "catalog"> =>
+  Option.match(catalogReference(element), {
     onNone: () => ({}),
     onSome: (catalog) => ({ catalog }),
   });
 
 /**
- * Read an element's catalog reference, its `data-catalog-idref`, and record it for the catalog
- * module (`Build.references`): a body element's, a prompt's and a choice's alike.
+ * Read an element's catalog reference, its `data-catalog-idref`: a body element's, a prompt's and a
+ * choice's alike. The node that holds the element keeps it as a field, so the reference stands or
+ * goes with the node, and the catalog module counts only those the redacted body keeps.
  *
- * @param build The build.
  * @param element The element.
  * @returns The idref as written, none when the element references no catalog.
  */
-const catalogReference = (build: Build, element: SourceElement): Option.Option<string> =>
+const catalogReference = (element: SourceElement): Option.Option<string> =>
   Option.map(
     Arr.findFirst(
       element.attributes,
       (attribute) => attribute.namespace === "" && attribute.local === "data-catalog-idref",
     ),
-    (attribute) => {
-      build.references.push({ idref: attribute.value, path: pathOf(build, element) });
-
-      return attribute.value;
-    },
+    (attribute) => attribute.value,
   );
 
 /**
@@ -946,7 +941,7 @@ const bodyNode = (
       kind: "element",
       path: pathOf(build, child),
       tag: child.local,
-      ...catalogOf(build, child),
+      ...catalogOf(child),
       ...stimulusOf(child),
     };
   })();

@@ -45,7 +45,7 @@
  */
 import { Option } from "effect";
 import type { SourceElement } from "#plate/document/source.ts";
-import { contentRegion, promptRegion } from "#plate/interactions/contract.ts";
+import { contentRegion, noReferencingChoices, promptRegion } from "#plate/interactions/contract.ts";
 import type {
   ByLevel,
   InteractionModule,
@@ -282,5 +282,6 @@ export const mediaModule: InteractionModule<"media", MediaByLevel, MediaPayload>
   /**
    * The regions of the node's own content, in document order: its Prompt, then the media element.
    */
+  referencingChoices: noReferencingChoices,
   regions: ownRegions,
 };

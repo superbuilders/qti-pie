@@ -25,6 +25,7 @@ import type {
   CopyOf,
   ItemContentModule,
   ItemNodeOf,
+  ItemRedactKit,
   KeptNodeOf,
   NodeOf,
 } from "#plate/content/contract.ts";
@@ -365,13 +366,13 @@ export const contentNodes = <E extends BodyContentElement>(
  * @template E The element.
  * @param element The element.
  * @param content The item's content.
- * @param kit The redaction's walk and this render's facts.
+ * @param kit The redaction's walk, this render's facts and the redacted body's catalog references.
  * @returns The nodes kept.
  */
 const keptOf = <E extends ItemContentElement>(
   element: E,
   content: { readonly [X in E]: readonly ItemNodeOf<ItemModules[X]>[] },
-  kit: ContentRedactKit,
+  kit: ItemRedactKit,
 ): readonly KeptNodeOf<ItemModules[E]>[] => {
   const module = steppedItem[element];
 
@@ -383,13 +384,10 @@ const keptOf = <E extends ItemContentElement>(
  * through its module's `redact`, in the modules' order and each element's in document order.
  *
  * @param content The item's content.
- * @param kit The redaction's walk and this render's facts.
+ * @param kit The redaction's walk, this render's facts and the redacted body's catalog references.
  * @returns The content kept, by element, every element's list empty where it kept none.
  */
-export const redactItemContent = (
-  content: ItemNodesHeld,
-  kit: ContentRedactKit,
-): ItemNodesKept => ({
+export const redactItemContent = (content: ItemNodesHeld, kit: ItemRedactKit): ItemNodesKept => ({
   "qti-assessment-stimulus-ref": keptOf("qti-assessment-stimulus-ref", content, kit),
   "qti-catalog-info": keptOf("qti-catalog-info", content, kit),
   "qti-companion-materials-info": keptOf("qti-companion-materials-info", content, kit),

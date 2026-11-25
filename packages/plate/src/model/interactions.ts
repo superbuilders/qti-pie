@@ -69,6 +69,7 @@ import type {
   Nodes,
   RedactedLevel,
   RedactedNode,
+  ReferencingChoice,
   Unsupported,
 } from "#plate/model/item.ts";
 import type { ResponseValue, Value } from "#plate/model/values.ts";
@@ -215,6 +216,32 @@ const moduleRegions = <K extends ModuleKind, L extends Level>(
 export const regionsOf = <L extends Level = ModelLevel>(
   interaction: Interaction<L>,
 ): readonly Region<L>[] => moduleRegions<ModuleKind, L>(interaction.kind, interaction);
+
+/**
+ * Give the parts of a redacted module kind's node whose catalog reference its module reads, by its
+ * kind's module.
+ *
+ * @template K The kind.
+ * @param kind The kind.
+ * @param interaction The node, as the redacted body holds it.
+ * @returns Its referencing parts, as its module gives them, in document order.
+ */
+const moduleReferencing = <K extends ModuleKind>(
+  kind: K,
+  interaction: ModelOf<K, RedactedLevel>,
+): readonly ReferencingChoice[] => stepped[kind].referencingChoices(interaction);
+
+/**
+ * Give the parts of a redacted interaction's own content whose catalog reference its module reads
+ * (`InteractionModule.referencingChoices` in `#plate/interactions/contract.ts`): its choices,
+ * hotspots or both, as the redacted body keeps them, a choice the values hide gone with it.
+ *
+ * @param interaction The interaction, as the redacted body holds it.
+ * @returns Its referencing parts, in document order.
+ */
+export const referencingChoicesOf = (
+  interaction: Interaction<RedactedLevel>,
+): readonly ReferencingChoice[] => moduleReferencing<ModuleKind>(interaction.kind, interaction);
 
 /**
  * Rebuild a module kind's model node with the content of each of its regions replaced, at the

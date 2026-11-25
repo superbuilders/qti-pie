@@ -446,5 +446,6 @@ export const matchModule: MatchModule = {
    * The regions of the node's own content, in document order: its Prompt, each source's content,
    * then each target's.
    */
+  referencingChoices: (interaction) => [...interaction.sources, ...interaction.targets],
   regions: ownRegions,
 };

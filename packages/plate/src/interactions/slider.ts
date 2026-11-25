@@ -32,7 +32,7 @@
  */
 import { Option } from "effect";
 import { attributePath } from "#plate/document/source.ts";
-import { boundIn, promptRegion } from "#plate/interactions/contract.ts";
+import { boundIn, noReferencingChoices, promptRegion } from "#plate/interactions/contract.ts";
 import type {
   ByLevel,
   InteractionModule,
@@ -365,5 +365,6 @@ export const sliderModule: InteractionModule<"slider", SliderByLevel, SliderPayl
   /**
    * The Prompt, the one content a Slider holds.
    */
+  referencingChoices: noReferencingChoices,
   regions: promptRegion,
 };

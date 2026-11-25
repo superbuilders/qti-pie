@@ -23,7 +23,12 @@ import { Brand, Option } from "effect";
 import type { Configuration } from "#plate/configuration.ts";
 import { defaultView } from "#plate/content/contract.ts";
 import type { ContentRedactKit } from "#plate/content/contract.ts";
-import { redactContent, redactItemContent } from "#plate/content/modules.ts";
+import {
+  contentNodes,
+  copyContent,
+  redactContent,
+  redactItemContent,
+} from "#plate/content/modules.ts";
 import type { ItemNodesKept } from "#plate/content/modules.ts";
 import { textBound } from "#plate/redact/format.ts";
 import {
@@ -31,6 +36,8 @@ import {
   interactionsIn,
   isInteraction,
   redactRegions,
+  referencingChoicesOf,
+  regionsOf,
 } from "#plate/model/interactions.ts";
 import type { Region } from "#plate/model/interactions.ts";
 import type {
@@ -288,6 +295,52 @@ const textWithin = (limits: Pick<Configuration, "outputBudget">): Writing => ({
   budget: limits.outputBudget,
   kind: "text",
 });
+
+/**
+ * Give the `data-catalog-idref` of every part of a redacted body that carries one, as written: an
+ * element's and those within it, a module's container's children's, those of the body content a
+ * content node gives the page (its module's `copy` and `content`), and an interaction's root's, its
+ * prompt's, each part its module reads one for as the redacted node keeps it
+ * (`referencingChoicesOf`) and those its regions' content holds. It reads the redacted body alone,
+ * so content the redaction withheld names no catalog (`ItemRedactKit.catalogReferences` in
+ * `#plate/content/contract.ts`).
+ *
+ * @param nodes The redacted body's nodes.
+ * @returns The references, one per part that carries one.
+ */
+const catalogReferencesIn = (nodes: readonly RedactedNode[]): readonly string[] =>
+  nodes.flatMap((node): readonly string[] => {
+    if (isInteraction(node)) {
+      return [
+        ...Option.toArray(node.catalog),
+        ...Option.toArray(node.promptCatalog),
+        ...referencingChoicesOf(node).flatMap((choice) => Option.toArray(choice.catalog)),
+        ...regionsOf<RedactedLevel>(node).flatMap((region) => catalogReferencesIn(region.nodes)),
+      ];
+    }
+
+    switch (node.kind) {
+      case "element": {
+        return [
+          ...(node.catalog === undefined ? [] : [node.catalog]),
+          ...catalogReferencesIn(node.children),
+        ];
+      }
+      case "container": {
+        return catalogReferencesIn(node.children);
+      }
+      case "content": {
+        return catalogReferencesIn(contentNodes(copyContent(node)));
+      }
+      case "text":
+      case "unsupported": {
+        return [];
+      }
+      default: {
+        return node satisfies never;
+      }
+    }
+  });
 
 /**
  * A redacted body, and the responses only content the page does not see binds.
@@ -726,7 +779,10 @@ const printBody = (
     });
   });
 
-  const content = redactItemContent(item.content, walk.contentKit(true, root));
+  const content = redactItemContent(item.content, {
+    ...walk.contentKit(true, root),
+    catalogReferences: catalogReferencesIn(body),
+  });
 
   const hiddenOnly = new Set([...unseenBound].filter((response) => !shownBound.has(response)));
 

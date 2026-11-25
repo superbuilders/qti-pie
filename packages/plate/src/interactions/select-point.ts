@@ -34,7 +34,12 @@
  * @see https://html.spec.whatwg.org/multipage/image-maps.html#image-map-processing-model
  */
 import { Option } from "effect";
-import { boundIn, contentRegion, promptRegion } from "#plate/interactions/contract.ts";
+import {
+  boundIn,
+  contentRegion,
+  noReferencingChoices,
+  promptRegion,
+} from "#plate/interactions/contract.ts";
 import type {
   ByLevel,
   InteractionModule,
@@ -328,5 +333,6 @@ export const selectPointModule: InteractionModule<
   /**
    * The Prompt's region, when it has a Prompt, then the image's.
    */
+  referencingChoices: noReferencingChoices,
   regions: ownRegions,
 };

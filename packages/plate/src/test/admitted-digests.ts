@@ -12,12 +12,14 @@
  * laws at that commit. The two synthetic Gap Match items of Alpha's fixtures
  * (`#plate/alpha/fixtures/gap-match/`, the comparison and number line forms), collected alone, were
  * admitted by the same run at qti-pie 525c9c179ba8b4ac2909958a1d2ebe52cd834800's laws: 2 judged, 2
- * admitted; and the five Text Entry documents of specimen's renderer suites
+ * admitted; the five Text Entry documents of specimen's renderer suites
  * (`#specimen/ui/text-entry-items.ts`), collected alone, at qti-pie
- * 85f6e12e27e6a4e8011af4063c873b0f72198f2d's laws: 5 judged, 5 admitted. Do not edit it: run the
- * admission again when a document a suite opens changes, and when a law lands that moves a verdict
- * (follow-up 5's template needs, the normative half of G1, refuse 1EdTech's slider-1, which this
- * set admits).
+ * 85f6e12e27e6a4e8011af4063c873b0f72198f2d's laws: 5 judged, 5 admitted; and the catalog item of
+ * plate's `#plate/test/catalog-shown.ts`, which its property and specimen's catalog suite open,
+ * collected alone, at qti-pie 21197ac0b8f148100bd6132e2e2c29f5301080cc's laws: 1 judged, 1
+ * admitted. Do not edit it: run the admission again when a document a suite opens changes, and
+ * when a law lands that moves a verdict (follow-up 5's template needs, the normative half of G1,
+ * refuse 1EdTech's slider-1, which this set admits).
  *
  * @module
  */
@@ -556,6 +558,20 @@ export const admittedDocuments: ReadonlyMap<
     ],
   ],
   ["625c24b44d95983746f47868060713c5cb0978c8b922ff474bac24ff78fb8dee", []],
+  [
+    "627a9b88f84a7d3c5a7e6ae8747bca20a8dd72b183ab2ec7c9efb7a97de20ce9",
+    [
+      [42, "", "data-reading-type"],
+      [57, "", "data-reading-type"],
+      [72, "", "data-reading-type"],
+      [87, "", "data-reading-type"],
+      [102, "", "data-reading-type"],
+      [117, "", "data-reading-type"],
+      [132, "", "data-reading-type"],
+      [147, "", "data-reading-type"],
+      [162, "", "data-reading-type"],
+    ],
+  ],
   ["634fb6211ee8a01df4ef80c313a2f6497fa7697be804ee4c4383900f1dea9ab7", []],
   ["63cf9cc2e433d900ecaf5b80b68182be88cde82109702fdd6b9581f5cb149dc2", []],
   ["63d9a779e1a9afb8189b1357754ee0a64f45dd05a20672a3633604b07cfa75a7", []],

@@ -38,29 +38,11 @@ import type { OutcomeView } from "#plate/vocabulary.ts";
 export const defaultView: OutcomeView = "candidate";
 
 /**
- * One reference an element of the item body makes to a catalog: its `data-catalog-idref` as
- * written, and the element's path. The catalog module reads them ({@link ItemParseContext}), so
- * the item model gains no field for them.
- */
-export interface CatalogReference {
-  readonly idref: string;
-  readonly path: string;
-}
-
-/**
  * What the item root's walk hands an item-placed module's `parse`: the way to record its element as
  * a mark on the verdict only, as that walk records every `qti-*` element it does not read, since an
- * element outside the body has no place a notice could take, the kit it reads the element with,
- * and the catalog references the body made.
+ * element outside the body has no place a notice could take, and the kit it reads the element with.
  */
 export interface ItemParseContext {
-  /**
-   * Every `data-catalog-idref` an element of the item body carries, in document order. The XSD
-   * places `qti-catalog-info` after `qti-item-body`, so the root's walk has read the body by the
-   * time it reaches the catalog, and the catalog module resolves each reference against its
-   * catalogs here.
-   */
-  readonly catalogReferences: readonly CatalogReference[];
   /**
    * Record the feature as a mark at the element's path.
    *
@@ -134,14 +116,33 @@ export interface ContentRedactKit {
 }
 
 /**
+ * What the redaction hands an item-placed module's `redact`, which runs once the body is redacted:
+ * the kit a body-placed module's `redact` is handed, and the catalogs the body the page is given
+ * references.
+ */
+export interface ItemRedactKit extends ContentRedactKit {
+  /**
+   * The `data-catalog-idref` of every part of the redacted body that carries one, as written: an
+   * element's, an interaction's root's and its prompt's, and each choice's (plate's reading 236).
+   * It is read from the body the redaction gives the page, once it is redacted, so content the page
+   * does not see, a feedback or template block or inline the values hide, a choice they hide or a
+   * rubric block of another view, names no catalog, and neither does a card's own content, which is
+   * no part of the body.
+   */
+  readonly catalogReferences: readonly string[];
+}
+
+/**
  * The members every content module has, whether it sits in the item body or under the item root.
  *
  * @template E The element's local name.
  * @template N The element's model node.
  * @template R The node the redaction keeps of it.
  * @template P The element's payload node.
+ * @template K The kit its `redact` is handed: {@link ContentRedactKit} in the body, which the
+ *   redaction walks, and {@link ItemRedactKit} under the item root, redacted after the body.
  */
-interface ContentModuleBase<E extends string, N, R, P> {
+interface ContentModuleBase<E extends string, N, R, P, K extends ContentRedactKit> {
   /**
    * The body nodes the payload node holds as body content, in document order: what the server
    * shell writes as it writes the body, so its asset check and its heading shift read them as they
@@ -173,7 +174,7 @@ interface ContentModuleBase<E extends string, N, R, P> {
    * the node, pruned of what the page may not see, its content walked through the kit; or none to
    * drop it, the content it held withheld through the kit.
    */
-  readonly redact: (node: N, kit: ContentRedactKit) => Option.Option<R>;
+  readonly redact: (node: N, kit: K) => Option.Option<R>;
 }
 
 /**
@@ -188,7 +189,7 @@ export interface BodyContentModule<
   E extends string,
   F extends ByLevel,
   P,
-> extends ContentModuleBase<E, NodeAt<F>, NodeAt<F, RedactedLevel>, P> {
+> extends ContentModuleBase<E, NodeAt<F>, NodeAt<F, RedactedLevel>, P, ContentRedactKit> {
   /**
    * Read the element into its model node.
    */
@@ -211,7 +212,8 @@ export interface ItemContentModule<E extends string, N, R, P> extends ContentMod
   E,
   N,
   R,
-  P
+  P,
+  ItemRedactKit
 > {
   /**
    * Read the element into its model node, or none once it has recorded the element's mark.

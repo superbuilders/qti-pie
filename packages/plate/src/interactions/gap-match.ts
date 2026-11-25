@@ -506,5 +506,6 @@ export const gapMatchModule: InteractionModule<"gap-match", GapMatchByLevel, Gap
    * The regions of the node's own content, in document order: its Prompt, each choice's content,
    * and the gapped content.
    */
+  referencingChoices: (interaction) => interaction.choices,
   regions: ownRegions,
 };

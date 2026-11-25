@@ -57,7 +57,7 @@
 import { Array as Arr, Option } from "effect";
 import { attributePath } from "#plate/document/source.ts";
 import type { SourceElement } from "#plate/document/source.ts";
-import { boundIn, contentRegion } from "#plate/interactions/contract.ts";
+import { boundIn, contentRegion, noReferencingChoices } from "#plate/interactions/contract.ts";
 import type {
   ByLevel,
   InteractionModule,
@@ -532,5 +532,6 @@ export const positionObjectModule: InteractionModule<
   /**
    * The object's region.
    */
+  referencingChoices: noReferencingChoices,
   regions: ownRegions,
 };

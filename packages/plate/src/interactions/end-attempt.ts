@@ -32,6 +32,7 @@
  */
 
 import type { Option } from "effect";
+import { noReferencingChoices } from "#plate/interactions/contract.ts";
 import type {
   InteractionModule,
   LevelFree,
@@ -186,5 +187,6 @@ export const endAttemptModule: InteractionModule<
   /**
    * No region: End Attempt holds no content.
    */
+  referencingChoices: noReferencingChoices,
   regions: () => [],
 };

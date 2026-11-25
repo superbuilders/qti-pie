@@ -5,13 +5,15 @@
  *
  * A catalog is dormant alternative content outside the body. The item root's walk dispatches the
  * element to {@link catalogInfoModule}'s `parse`, which reads every catalog, card, entry and file
- * href as written, and takes the body's `data-catalog-idref` references from its context, since
- * the body walk collects them and drops the attribute from each element. The resolution is the
- * module's `redact`, a function of the item and the supports alone, in the information model's
+ * href as written. The resolution is the module's `redact`, which runs once the body is redacted,
+ * a function of the redacted body's references and the supports alone, in the information model's
  * steps:
  *
  * 1. Supports: `Supports.catalog` names each enabled support, predefined or `ext:`.
- * 2. Reference: a catalog that no element of the body names by `data-catalog-idref` is dropped.
+ * 2. Reference: a catalog that no part of the redacted body names by `data-catalog-idref`
+ *    (`ItemRedactKit.catalogReferences` in `#plate/content/contract.ts`) is dropped, so a catalog
+ *    named only by content the page is not given, a feedback the values hide among it, never
+ *    reaches the page or the redacted copy, and neither does one named only by a card's content.
  * 3. Card: for each enabled support, the catalog's card with that `support` (one at most; the database
  *    refuses a second).
  * 4. Direct content: a card with no entries gives its `qti-html-content` and its `qti-file-href`s.
@@ -40,11 +42,7 @@
  * @module
  */
 import { Array as Arr, Option, pipe } from "effect";
-import type {
-  CatalogReference,
-  ContentRedactKit,
-  ItemContentModule,
-} from "#plate/content/contract.ts";
+import type { ContentRedactKit, ItemContentModule } from "#plate/content/contract.ts";
 import { qtiNamespace } from "#plate/document/source.ts";
 import type { SourceElement } from "#plate/document/source.ts";
 import type { ReaderKit } from "#plate/interactions/contract.ts";
@@ -124,12 +122,10 @@ interface CatalogNode {
 }
 
 /**
- * The model node of `qti-catalog-info`: the catalogs as read, and the body's references to them
- * as the item root's walk handed them.
+ * The model node of `qti-catalog-info`: the catalogs as read.
  */
 interface CatalogInfoNode {
   readonly catalogs: readonly CatalogNode[];
-  readonly references: readonly CatalogReference[];
 }
 
 /**
@@ -145,25 +141,8 @@ export interface CatalogCard {
 }
 
 /**
- * One catalog the redaction keeps: its `id` and its active cards in document order.
- */
-interface KeptCatalog {
-  readonly cards: readonly CatalogCard[];
-  readonly id: string;
-}
-
-/**
- * What the redaction keeps of `qti-catalog-info`: the catalogs a reference names that keep an
- * active card, each with its active cards alone, and the body's references, which `copy` counts.
- */
-interface KeptCatalogInfo {
-  readonly catalogs: readonly KeptCatalog[];
-  readonly references: readonly CatalogReference[];
-}
-
-/**
- * One kept catalog as the page sees it: its `id`, its active cards in document order, and how many
- * elements of the body referenced it.
+ * One catalog the redaction keeps, as the page sees it: its `id`, its active cards in document
+ * order, and how many parts of the redacted body reference it, at least one.
  */
 export interface CatalogPayload {
   readonly cards: readonly CatalogCard[];
@@ -172,7 +151,8 @@ export interface CatalogPayload {
 }
 
 /**
- * The payload node of `qti-catalog-info`: the kept catalogs as the page sees them.
+ * What the redaction keeps of `qti-catalog-info`, which is the payload node too: the catalogs a
+ * part of the redacted body names that keep an active card, each with its active cards alone.
  */
 export interface CatalogInfoPayload {
   readonly catalogs: readonly CatalogPayload[];
@@ -589,31 +569,28 @@ const activeCard = (card: CatalogCardNode, kit: ContentRedactKit): Option.Option
 };
 
 /**
- * Count the body's references to a catalog: each `data-catalog-idref` whose collapsed token is the
- * catalog's collapsed `id`.
+ * Count the redacted body's references to a catalog: each `data-catalog-idref` whose collapsed
+ * token is the catalog's collapsed `id`.
  *
- * @param node The model node.
+ * @param references Every `data-catalog-idref` of the redacted body, as written.
  * @param catalog The catalog.
  * @returns The count.
  */
-const referencesTo = (
-  node: Pick<CatalogInfoNode, "references">,
-  catalog: Pick<CatalogNode, "id">,
-): number => {
+const referencesTo = (references: readonly string[], catalog: Pick<CatalogNode, "id">): number => {
   const id = collapseXmlSpace(catalog.id);
 
-  return node.references.filter((reference) => collapseXmlSpace(reference.idref) === id).length;
+  return references.filter((idref) => collapseXmlSpace(idref) === id).length;
 };
 
 /**
  * The Catalog Resources module: it reads the item's catalogs and keeps the active cards under the
- * enabled supports, each catalog with the count of body elements that reference it. The resolution
- * steps and plate's defaults where the sources stop are stated at the module's head.
+ * enabled supports, each catalog with the count of the redacted body's parts that reference it. The
+ * resolution steps and plate's defaults where the sources stop are stated at the module's head.
  */
 export const catalogInfoModule: ItemContentModule<
   typeof element,
   CatalogInfoNode,
-  KeptCatalogInfo,
+  CatalogInfoPayload,
   CatalogInfoPayload
 > = {
   /**
@@ -623,43 +600,33 @@ export const catalogInfoModule: ItemContentModule<
   content: (payload) =>
     payload.catalogs.flatMap((catalog) => catalog.cards.flatMap((card) => card.content)),
   /**
-   * Give the kept catalogs for the page: each active card's content, and each catalog's reference
-   * count in place of the references.
+   * Give the kept catalogs for the page, as the redaction kept them.
    */
-  copy: (node) => ({
-    catalogs: node.catalogs.map((catalog) => ({
-      cards: catalog.cards,
-      id: catalog.id,
-      references: referencesTo(node, catalog),
-    })),
-  }),
+  copy: (node) => node,
   element,
   namespace: qtiNamespace,
   normalise: (source) => source,
   /**
-   * Read the element's catalogs as written, and take the body's references from the context. The
-   * references are copied first, so a `data-catalog-idref` inside card content, which the body
-   * walk also collects, counts as no reference of the body.
+   * Read the element's catalogs as written.
    */
-  parse: (source, context) => {
-    const references = [...context.catalogReferences];
-
-    return pipe(
+  parse: (source, context) =>
+    pipe(
       context.read
         .childrenNamed(source, "qti-catalog")
         .map((catalog) => catalogOf(context.read, catalog)),
-      (catalogs) => Option.some({ catalogs, references }),
-    );
-  },
+      (catalogs) => Option.some({ catalogs }),
+    ),
   placement: "item",
   /**
-   * Resolve the catalogs under the kit's supports: per catalog a reference names, the active cards
-   * alone ({@link activeCard}); a catalog no reference names, or that keeps no card, is dropped
-   * with its content withheld; a node that keeps no catalog gives none.
+   * Resolve the catalogs under the kit's supports: per catalog a part of the redacted body names
+   * (`catalogReferences`), the active cards alone ({@link activeCard}) and the count of those
+   * parts; a catalog no such part names, or that keeps no card, is dropped with its content
+   * withheld; a node that keeps no catalog gives none.
    */
   redact: (node, kit) => {
-    const catalogs = node.catalogs.flatMap((catalog) => {
-      if (referencesTo(node, catalog) === 0) {
+    const catalogs = node.catalogs.flatMap((catalog): readonly CatalogPayload[] => {
+      const references = referencesTo(kit.catalogReferences, catalog);
+      if (references === 0) {
         for (const card of catalog.cards) {
           kit.withhold(allContentOf(card));
         }
@@ -669,11 +636,9 @@ export const catalogInfoModule: ItemContentModule<
 
       const cards = catalog.cards.flatMap((card) => Option.toArray(activeCard(card, kit)));
 
-      return cards.length === 0 ? [] : [{ cards, id: catalog.id }];
+      return cards.length === 0 ? [] : [{ cards, id: catalog.id, references }];
     });
 
-    return catalogs.length === 0
-      ? Option.none()
-      : Option.some({ catalogs, references: node.references });
+    return catalogs.length === 0 ? Option.none() : Option.some({ catalogs });
   },
 };

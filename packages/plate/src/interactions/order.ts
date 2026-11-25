@@ -379,5 +379,6 @@ export const orderModule: InteractionModule<"order", OrderByLevel, OrderPayload>
   /**
    * The regions of Order's own content: its Prompt and each choice's content.
    */
+  referencingChoices: (interaction) => interaction.choices,
   regions: regionsOfOrder,
 };

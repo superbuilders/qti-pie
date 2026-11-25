@@ -75,6 +75,7 @@ import type {
   Level,
   ModelLevel,
   RedactedLevel,
+  ReferencingChoice,
   TemplateVisibility,
   Unsupported,
 } from "#plate/model/item.ts";
@@ -372,12 +373,12 @@ export const boundIn = <const B extends BaseType, const C extends Cardinality>(
 export interface ReaderKit extends AttributeReaders {
   /**
    * Read the catalog an element of the module's own content references, its `data-catalog-idref`
-   * as written, and record the reference for the catalog module (`catalogReferences` in
-   * `#plate/content/contract.ts`), as the body walk records an HTML element's, so the catalog it
-   * names is kept: a catalog "is referenced from a specific portion of the content body by a
-   * specific, unique identifier, which matches the catalog's identifier" (information model
-   * §5.28), and "any element within the qti-item-body node" may reference one (implementation
-   * guide §3.7.10.2), a `qti-simple-choice` among them.
+   * as written, which the module keeps on the part it reads it for ({@link ReferencingChoice}) and
+   * gives through its {@link InteractionModule.referencingChoices}, so the catalog it names is kept
+   * while the redacted body keeps the part: a catalog "is referenced from a specific portion of the
+   * content body by a specific, unique identifier, which matches the catalog's identifier"
+   * (information model §5.28), and "any element within the qti-item-body node" may reference one
+   * (implementation guide §3.7.10.2), a `qti-simple-choice` among them.
    *
    * @param element The element, such as a choice.
    * @returns Its `data-catalog-idref` as written, none when it carries none.
@@ -608,6 +609,15 @@ export interface OwnRegion<I, N> {
 }
 
 /**
+ * Give no part whose catalog reference a module reads: the
+ * {@link InteractionModule.referencingChoices} of a kind whose own content references no catalog but
+ * through its regions' body elements.
+ *
+ * @returns No part.
+ */
+export const noReferencingChoices = (): readonly ReferencingChoice[] => [];
+
+/**
  * Give the region of a model node's Prompt, none when it has no Prompt.
  *
  * @template I The model node.
@@ -833,6 +843,17 @@ export interface InteractionModule<
    * sees the `Payload` and none of the view beyond it. It is handed the node of the redacted body.
    */
   readonly redact: (interaction: NodeAt<F, RedactedLevel>, kit: RedactKit) => P;
+  /**
+   * The parts of the node's own content whose catalog reference it reads ({@link
+   * ReaderKit.catalog}), in document order, as the redacted node keeps them: its choices, hotspots
+   * or both, a choice a template variable hides gone with it; none for a kind that reads none. The
+   * redaction reads the catalogs they reference from here, beside the root's, the prompt's and
+   * every body element's of its regions, so a catalog stays only while a part the page is given
+   * names it (`ItemRedactKit.catalogReferences` in `#plate/content/contract.ts`).
+   */
+  readonly referencingChoices: (
+    interaction: NodeAt<F, RedactedLevel>,
+  ) => readonly ReferencingChoice[];
   /**
    * The regions of the model node's own content, in document order, as `regionsOf` gives them:
    * its Prompt and every other content it holds, each with the way it puts its content back and,

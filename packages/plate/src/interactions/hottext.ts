@@ -30,7 +30,12 @@
  * @module
  */
 import { Option } from "effect";
-import { boundIn, contentRegion, promptRegion } from "#plate/interactions/contract.ts";
+import {
+  boundIn,
+  contentRegion,
+  noReferencingChoices,
+  promptRegion,
+} from "#plate/interactions/contract.ts";
 import type {
   ByLevel,
   InteractionModule,
@@ -466,5 +471,6 @@ export const hottextModule: HottextModule = {
     };
   },
   redact,
+  referencingChoices: noReferencingChoices,
   regions,
 };

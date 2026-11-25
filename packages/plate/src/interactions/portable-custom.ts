@@ -38,7 +38,7 @@
  */
 import { Array as Arr, Option } from "effect";
 import type { SourceElement } from "#plate/document/source.ts";
-import { contentRegion, promptRegion } from "#plate/interactions/contract.ts";
+import { contentRegion, noReferencingChoices, promptRegion } from "#plate/interactions/contract.ts";
 import type {
   ByLevel,
   InteractionModule,
@@ -540,5 +540,6 @@ export const portableCustomModule: InteractionModule<
   /**
    * The regions, in document order: the Prompt, the markup, then each template's content.
    */
+  referencingChoices: noReferencingChoices,
   regions: regionsOfPci,
 };

@@ -353,5 +353,6 @@ export const hotspotModule: InteractionModule<"hotspot", HotspotByLevel, Hotspot
    * The regions of the node's own content: its Prompt, its image, then one per hotspot with a
    * template visibility ({@link visibilityRegions}).
    */
+  referencingChoices: (interaction) => interaction.choices,
   regions: ownRegions,
 };

@@ -19,7 +19,7 @@
 import { Option } from "effect";
 import { controlCap, exceedsControlCap } from "#plate/control-cap.ts";
 import type { SourceElement } from "#plate/document/source.ts";
-import { promptRegion } from "#plate/interactions/contract.ts";
+import { noReferencingChoices, promptRegion } from "#plate/interactions/contract.ts";
 import type {
   ByLevel,
   InteractionModule,
@@ -325,5 +325,6 @@ export const extendedTextModule: InteractionModule<
   /**
    * The regions of the Extended Text's own content: its Prompt.
    */
+  referencingChoices: noReferencingChoices,
   regions: promptRegion,
 };

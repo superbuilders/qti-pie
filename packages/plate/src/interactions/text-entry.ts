@@ -14,7 +14,7 @@
  */
 import { Option } from "effect";
 import type { SourceElement } from "#plate/document/source.ts";
-import { boundIn } from "#plate/interactions/contract.ts";
+import { boundIn, noReferencingChoices } from "#plate/interactions/contract.ts";
 import type {
   BoundDeclaration,
   InteractionModule,
@@ -329,5 +329,6 @@ export const textEntryModule: InteractionModule<
   /**
    * No region: a Text Entry holds no content of its own.
    */
+  referencingChoices: noReferencingChoices,
   regions: () => [],
 };

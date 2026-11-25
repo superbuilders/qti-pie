@@ -410,6 +410,7 @@ export const graphicOrderModule: InteractionModule<
   /**
    * The Prompt's region, when it has a Prompt, then the image's.
    */
+  referencingChoices: (interaction) => interaction.hotspots,
   regions: ownRegions,
   /**
    * The value the interaction shows for a stored or correct value ({@link shownValue}).

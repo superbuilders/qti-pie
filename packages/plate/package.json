@@ -23,6 +23,7 @@
     "./styles/base.css": "./src/styles/base.css",
     "./styles/theme.css": "./src/styles/theme.css",
     "./test/admitted": "./src/test/admitted.ts",
+    "./test/catalog-shown": "./src/test/catalog-shown.ts",
     "./test/corpus": "./src/test/corpus.ts",
     "./test/records": "./src/test/records.ts",
     "./words": "./src/words.ts"

@@ -8,7 +8,6 @@
  * @module
  */
 import { Option, Result } from "effect";
-import type { CatalogReference } from "#plate/content/contract.ts";
 import { walk } from "#plate/document/source.ts";
 import type { SourceDocument, SourceElement } from "#plate/document/source.ts";
 import {
@@ -45,11 +44,6 @@ export interface Build extends ModelWalk {
    * {@link record} finds a repeat without scanning the features recorded so far.
    */
   readonly recorded: Map<string, Set<string>>;
-  /**
-   * Every `data-catalog-idref` an element of the item body carries, in document order, which the
-   * item root's walk hands the catalog module (`ItemParseContext.catalogReferences`).
-   */
-  readonly references: CatalogReference[];
   /**
    * The record responses the model holds, keyed by identifier, filled as their declarations are
    * read. The declarations precede the item body, so a text interaction bound to one finds it here.
