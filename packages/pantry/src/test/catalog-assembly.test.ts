@@ -8,18 +8,25 @@
  * query the host judge leaves to the database, by {@link unresolvedReference}'s restatement of them
  * over the same rows; the two verdicts must be one.
  *
- * The cases are the audit's `ccat` inputs (F2), built here, and a fragment two items include whose
- * catalog only one of them holds.
+ * The cases are every package of a box around the audit's `ccat` inputs (F2): one item or two
+ * including a fragment, each holding the catalog or not, the fragment's reference, and the first
+ * item's own, judged by the readings.
  */
 import type { PreviewRows } from "@bjornpagen/grizzle";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
-import { Array as Arr, Effect, Formatter, Option, Predicate } from "effect";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { requiredInSpace } from "@bjornpagen/testing/features";
+import { array, boolean, element } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
+import { Array as Arr, Duration, Effect, Formatter, Option, Predicate } from "effect";
 import { collapse } from "#pantry/grammar/domains.ts";
 import { keyTextOf } from "#pantry/import/key-text.ts";
 import { readProgram } from "#pantry/import/program.ts";
 import { readEntries } from "#pantry/package/read.ts";
 import { Qti } from "#pantry/qti/schema.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import type { PackageEntries } from "#pantry/test/gen/every-relation.ts";
 import { judge, judgedLaws, previewRowsOf } from "#pantry/test/host-judge.ts";
@@ -107,28 +114,106 @@ const entriesOf = (files: Readonly<Record<string, string>>): PackageEntries =>
   new Map(Object.entries(files).map(([path, text]) => [path, new TextEncoder().encode(text)]));
 
 /**
- * A package of one item that includes the fragment.
+ * The references a fragment's paragraph of the catalog box writes: none, a catalog reference to
+ * `C`, the id the catalog of an item that holds one has, a catalog reference to `Z`, which no
+ * catalog has, and an IDREF to `intro`, the id of each item's first paragraph.
+ */
+const FRAGMENT_REFERENCES = ["none", "C", "Z", "intro"] as const;
+
+/**
+ * A reference of {@link FRAGMENT_REFERENCES}.
+ */
+type FragmentReference = (typeof FRAGMENT_REFERENCES)[number];
+
+/**
+ * A case of the catalog box: one or two items that include the fragment, each holding the catalog
+ * `C` or none, the fragment's reference, and whether the first item's body references `C` itself.
+ */
+interface CatalogCase {
+  readonly catalogs: readonly boolean[];
+  readonly fragment: FragmentReference;
+  readonly ownReference: boolean;
+}
+
+/**
+ * Draw a case of the catalog box.
+ */
+const catalogCase: Gen<CatalogCase> = (source) => ({
+  catalogs: source.draw(array(boolean, { max: 2, min: 1 })),
+  fragment: source.draw(element(FRAGMENT_REFERENCES)),
+  ownReference: source.draw(boolean),
+});
+
+/**
+ * How many cases {@link catalogCase} draws: one item or two, each holding the catalog or not (2 +
+ * 4), by 4 fragment references, by the first item's own reference or none.
+ */
+const CATALOG_CASES = (2 + 4) * 4 * 2;
+
+/**
+ * The paragraph attribute a fragment reference writes.
  *
- * @param spec - The package.
- * @param spec.before - Markup the item places before the include.
- * @param spec.catalog - Whether the item holds the catalog.
- * @param spec.fragment - The fragment's paragraph attribute.
+ * @param reference - The reference.
+ * @returns The attribute, as written.
+ */
+const attributeOf = (reference: FragmentReference): string => {
+  switch (reference) {
+    case "none": {
+      return "";
+    }
+    case "C":
+    case "Z": {
+      return `data-catalog-idref="${reference}"`;
+    }
+    case "intro": {
+      return 'aria-labelledby="intro"';
+    }
+  }
+};
+
+/**
+ * A case's package: the fragment, and each item that includes it, the first with its own reference
+ * where the case says, under a manifest that lists them all.
+ *
+ * @param kase - The case.
  * @returns The package's files.
  */
-const onePackage = ({
-  before,
-  catalog,
-  fragment,
-}: {
-  readonly before: string;
-  readonly catalog: boolean;
-  readonly fragment: string;
-}) =>
-  entriesOf({
-    "fragment.xml": fragmentOf(fragment),
-    "imsmanifest.xml": manifestOf(`${itemResourceOf("R", "item.xml")}${fragmentResource}`),
-    "item.xml": itemOf({ before, catalog, identifier: "item" }),
+const filesOf = ({ catalogs, fragment, ownReference }: CatalogCase): PackageEntries => {
+  const items = catalogs.map((catalog, at) => ({
+    before: at === 0 && ownReference ? '<p data-catalog-idref="C">b</p>' : "",
+    catalog,
+    identifier: at === 0 ? "item" : `item${String(at + 1)}`,
+  }));
+
+  return entriesOf({
+    "fragment.xml": fragmentOf(attributeOf(fragment)),
+    "imsmanifest.xml": manifestOf(
+      `${items.map(({ identifier }, at) => itemResourceOf(`R${String(at)}`, `${identifier}.xml`)).join("")}${fragmentResource}`,
+    ),
+    ...Object.fromEntries(items.map((item) => [`${item.identifier}.xml`, itemOf(item)])),
   });
+};
+
+/**
+ * The rule a case breaks by readings `fragment-placement` and R9-a, or `accepted`: a
+ * `data-catalog-idref` names a `qti-catalog` of the document it is judged in, and a fragment is
+ * judged in each item that includes it, so the fragment's catalog reference resolves only where
+ * every item holds a catalog of its id, `C` the one an item can hold; the first item's own
+ * reference to `C` resolves where it holds the catalog; an IDREF to `intro` names each item's
+ * paragraph, and no catalog.
+ *
+ * @param kase - The case.
+ * @returns `idref-target`, "Catalog reference"'s rule, where a reference resolves nowhere, else
+ *   `accepted`.
+ */
+const expectedOf = ({ catalogs, fragment, ownReference }: CatalogCase): string => {
+  const fragmentResolves =
+    (fragment !== "C" && fragment !== "Z") ||
+    catalogs.every((catalog) => catalog && fragment === "C");
+  const ownResolves = !ownReference || catalogs[0] === true;
+
+  return fragmentResolves && ownResolves ? "accepted" : "idref-target";
+};
 
 /**
  * Read a row's field that holds a text or a position, as a key text reads it.
@@ -201,95 +286,63 @@ const unresolvedReference = (rows: PreviewRows<typeof Qti>): boolean => {
     );
 };
 
-/**
- * One case: a package and the rule both judges must give, or `accepted`.
- */
-interface CatalogCase {
-  readonly expected: string;
-  readonly files: PackageEntries;
-  readonly name: string;
-}
-
-const cases: readonly CatalogCase[] = [
-  {
-    expected: "accepted",
-    files: onePackage({ before: "", catalog: true, fragment: 'data-catalog-idref="C"' }),
-    name: "a fragment's reference names its item's catalog",
-  },
-  {
-    expected: "accepted",
-    files: onePackage({
-      before: '<p data-catalog-idref="C">b</p>',
-      catalog: true,
-      fragment: "",
-    }),
-    name: "an item's reference names its own catalog, and its fragment writes none",
-  },
-  {
-    expected: "accepted",
-    files: onePackage({ before: "", catalog: true, fragment: 'aria-labelledby="intro"' }),
-    name: "a fragment's IDREF names its item's id",
-  },
-  {
-    expected: "idref-target",
-    files: onePackage({ before: "", catalog: true, fragment: 'data-catalog-idref="Z"' }),
-    name: "a fragment's reference names no catalog of its item",
-  },
-  {
-    expected: "idref-target",
-    files: entriesOf({
-      "fragment.xml": fragmentOf('data-catalog-idref="C"'),
-      "imsmanifest.xml": manifestOf(
-        `${itemResourceOf("R", "item.xml")}${itemResourceOf("R2", "item2.xml")}${fragmentResource}`,
-      ),
-      "item.xml": itemOf({ before: "", catalog: true, identifier: "item" }),
-      "item2.xml": itemOf({ before: "", catalog: false, identifier: "item2" }),
-    }),
-    name: "a fragment two items include, one holding the catalog and one not",
-  },
-  {
-    expected: "accepted",
-    files: entriesOf({
-      "fragment.xml": fragmentOf('data-catalog-idref="C"'),
-      "imsmanifest.xml": manifestOf(
-        `${itemResourceOf("R", "item.xml")}${itemResourceOf("R2", "item2.xml")}${fragmentResource}`,
-      ),
-      "item.xml": itemOf({ before: "", catalog: true, identifier: "item" }),
-      "item2.xml": itemOf({ before: "", catalog: true, identifier: "item2" }),
-    }),
-    name: "a fragment two items include, both holding the catalog",
-  },
-];
-
 layer(NodeServices.layer, { excludeTestServices: true })(
   "a catalog reference over each assembly",
   (it) => {
     it.effect(
-      "gives the verdict of the law oracle and of the import's rows alike, and the one each case names",
-      () =>
-        Effect.gen(function* everyCase() {
-          for (const { expected, files, name } of cases) {
-            yield* Effect.scoped(
-              Effect.gen(function* oneCase() {
-                const dir = yield* scopedPackage(files);
-                const verdict = yield* oracleVerdict(yield* readEntries(dir));
-                const program = yield* readProgram(dir, nameOf(dir));
-                const rows = previewRowsOf(program.inputs);
-                const { broken } = judge(rows, laws);
-                const [first, ...rest] = broken.map(({ law }) => law);
-                const unresolved = unresolvedReference(rows) ? "idref-target" : "accepted";
-                const rule =
-                  first === undefined
-                    ? unresolved
-                    : Option.getOrElse(Arr.head(rulesOf([first, ...rest])), () => "unnamed");
-                const rules = verdict.kind === "accepted" ? new Set(["accepted"]) : verdict.rules;
-                const shown = `${name}: the import's rows give ${rule} (${broken.map(({ law }) => Formatter.format(law)).join("; ") || "no law"}), the oracle ${Formatter.format([...rules])}`;
-                assert.isTrue(rules.has(rule), shown);
-                assert.strictEqual(rule, expected, shown);
-              }),
-            );
-          }
-        }),
+      `gives the verdict of the law oracle and of the import's rows alike, and the one readings \`fragment-placement\` and R9-a give: ${String(CATALOG_CASES)} packages`,
+      (ctx) =>
+        Effect.andThen(
+          boxHolds(catalogCase, CATALOG_CASES),
+          searched(
+            ctx,
+            exhaust(
+              {
+                box: "one item or two including a fragment, each holding the catalog C or none, the fragment's paragraph referencing nothing, the catalog C, the catalog Z or the id intro, and the first item's body referencing C or not",
+                caseHang: Duration.seconds(30),
+                coverage: requiredInSpace<"accepted" | "idref-target" | "included twice">([
+                  "accepted",
+                  "idref-target",
+                  "included twice",
+                ]),
+                generator: catalogCase,
+                literal: Formatter.format,
+                oracle: {
+                  kind: "specification",
+                  name: "readings `fragment-placement` and R9-a over the case's package (expectedOf): a catalog reference names a catalog of the document it is judged in, a fragment judged in each item that includes it; the law oracle's verdict over the spliced items and the import's rows judged by the schema's laws, Catalog reference restated over them, must both give it",
+                },
+                suite: "pantry/test/catalog-assembly",
+              },
+              (kase, c) =>
+                Effect.scoped(
+                  Effect.gen(function* oneCase() {
+                    const expected = expectedOf(kase);
+                    c.note(expected === "accepted" ? "accepted" : "idref-target");
+                    if (kase.catalogs.length > 1) {
+                      c.note("included twice");
+                    }
+
+                    const dir = yield* scopedPackage(filesOf(kase));
+                    const verdict = yield* oracleVerdict(yield* readEntries(dir));
+                    const program = yield* readProgram(dir, nameOf(dir));
+                    const rows = previewRowsOf(program.inputs);
+                    const { broken } = judge(rows, laws);
+                    const [first, ...rest] = broken.map(({ law }) => law);
+                    const unresolved = unresolvedReference(rows) ? "idref-target" : "accepted";
+                    const rule =
+                      first === undefined
+                        ? unresolved
+                        : Option.getOrElse(Arr.head(rulesOf([first, ...rest])), () => "unnamed");
+                    const rules =
+                      verdict.kind === "accepted" ? new Set(["accepted"]) : verdict.rules;
+                    const shown = `${Formatter.format(kase)}: the import's rows give ${rule} (${broken.map(({ law }) => Formatter.format(law)).join("; ") || "no law"}), the oracle ${Formatter.format([...rules])}`;
+                    assert.isTrue(rules.has(rule), shown);
+                    assert.strictEqual(rule, expected, shown);
+                  }),
+                ),
+            ),
+          ),
+        ),
     );
   },
 );
