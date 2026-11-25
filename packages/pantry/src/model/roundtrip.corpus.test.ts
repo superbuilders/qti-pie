@@ -584,7 +584,7 @@ const entryOutcome = Effect.fnUntraced(function* entryOutcome(
     Effect.catchDefect((defect) =>
       Effect.succeed<Outcome>({
         _tag: "failed",
-        causes: [`defect: ${defect instanceof Error ? defect.message : JSON.stringify(defect)}`],
+        causes: [`defect: ${Error.isError(defect) ? defect.message : JSON.stringify(defect)}`],
       }),
     ),
   );

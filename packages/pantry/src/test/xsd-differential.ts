@@ -2274,7 +2274,7 @@ export const judgeDocument = Effect.fn("test.judgeDocument")(function* judgeDocu
   const breaches = yield* Effect.result(
     Effect.try({
       catch: (error) =>
-        error instanceof Error
+        Error.isError(error)
           ? `${error.message} (${(error.stack ?? "")
               .split("\n")
               .slice(1, 3)

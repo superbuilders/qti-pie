@@ -328,10 +328,7 @@ export const reasonOf = (error: HttpClientError.HttpClientError): string => {
   }
 
   if (reason._tag === "TransportError") {
-    const cause = Option.liftPredicate(
-      reason.cause,
-      (held): held is Error => held instanceof Error,
-    );
+    const cause = Option.liftPredicate(reason.cause, (held): held is Error => Error.isError(held));
     /**
      * The client's own description, else its cause's message; either may be missing.
      */
@@ -340,7 +337,7 @@ export const reasonOf = (error: HttpClientError.HttpClientError): string => {
     );
     const code = cause.pipe(
       Option.flatMap((held) =>
-        held.cause instanceof Error && "code" in held.cause
+        Error.isError(held.cause) && "code" in held.cause
           ? Option.some(String(held.cause.code))
           : Option.none(),
       ),
