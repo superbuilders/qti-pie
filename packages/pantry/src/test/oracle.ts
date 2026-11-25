@@ -3380,6 +3380,48 @@ const wholeBreaches = (
   const documentNodes = rows.nodes.filter(({ start }) => start === 0n).length;
   const ids = new Set([...idsOf(view, laws).map(({ id }) => id), ...assembled]);
 
+  /**
+   * C50: an IDREF or IDREFS element text's tokens name ids of its document, as an attribute's do.
+   */
+  const idrefTexts = rows.nodes.flatMap((node) =>
+    Option.exists(checkedTextOf(laws, node), ({ domain }) => isIdref(domain))
+      ? tokensOf(node.stringValue)
+          .filter((token) => !ids.has(token))
+          .map((token) =>
+            breach("Idref target", {
+              ...governsKeys(node.governs),
+              kind: node.kind,
+              name: `the text of ${node.kind}`,
+              node: pathOf(view, node.start),
+              token,
+            }),
+          )
+      : [],
+  );
+
+  /**
+   * MathML 3 §4.2.7: no element dominates itself through its children and its shares' targets.
+   */
+  const shareCycles = view.members.flatMap((node) =>
+    Option.match(shareFragmentOf(view, node), {
+      onNone: () => [],
+      onSome: (target) =>
+        dominatingSharesOf(view, laws).has(node.start)
+          ? [breach("MathML share cycle", { share: pathOf(view, node.start), target })]
+          : [],
+    }),
+  );
+
+  /**
+   * Reading 131: a namespace declaration's normalized value is an RFC 3986 URI reference
+   * (Namespaces in XML 1.0 §3, §2.1), judged by the oracle's own reading of Appendix A's grammar.
+   */
+  const namespaceNames = rows.namespaces
+    .filter(({ uri }) => !isUriReference(uri))
+    .map(({ prefix, start, uri }) =>
+      breach("Namespace name", { node: pathOf(view, start), prefix, uri }),
+    );
+
   return [
     ...(documentNodes === 1
       ? []
@@ -3542,32 +3584,8 @@ const wholeBreaches = (
             },
           );
     }),
-    // C50: an IDREF or IDREFS element text's tokens name ids of its document, as an attribute's do.
-    ...rows.nodes.flatMap((node) =>
-      Option.exists(checkedTextOf(laws, node), ({ domain }) => isIdref(domain))
-        ? tokensOf(node.stringValue)
-            .filter((token) => !ids.has(token))
-            .map((token) =>
-              breach("Idref target", {
-                ...governsKeys(node.governs),
-                kind: node.kind,
-                name: `the text of ${node.kind}`,
-                node: pathOf(view, node.start),
-                token,
-              }),
-            )
-        : [],
-    ),
-    // MathML 3 §4.2.7: no element dominates itself through its children and its shares' targets.
-    ...view.members.flatMap((node) =>
-      Option.match(shareFragmentOf(view, node), {
-        onNone: () => [],
-        onSome: (target) =>
-          dominatingSharesOf(view, laws).has(node.start)
-            ? [breach("MathML share cycle", { share: pathOf(view, node.start), target })]
-            : [],
-      }),
-    ),
+    ...idrefTexts,
+    ...shareCycles,
     ...keyTexts(view, laws)
       .filter(({ bound, value }) => utf8Length(value) > bound)
       .map(({ bound, field: held, node, value }) =>
@@ -3578,13 +3596,7 @@ const wholeBreaches = (
           node: node === undefined ? "" : pathOf(view, node),
         }),
       ),
-    // Reading 131: a namespace declaration's normalized value is an RFC 3986 URI reference
-    // (Namespaces in XML 1.0 §3, §2.1), judged by the oracle's own reading of Appendix A's grammar.
-    ...rows.namespaces
-      .filter(({ uri }) => !isUriReference(uri))
-      .map(({ prefix, start, uri }) =>
-        breach("Namespace name", { node: pathOf(view, start), prefix, uri }),
-      ),
+    ...namespaceNames,
   ];
 };
 
@@ -4067,6 +4079,360 @@ const readerLabels: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * One overlay law over one node: what it finds broken there.
+ */
+type OverlayLaw = (node: FoldedNode<Composed>, overlay: Overlay) => readonly Finding[];
+
+/**
+ * Reading 126: a cell's headers are "an unordered set of unique space-separated tokens ...,
+ * each of which must have the value of an ID of a 'th' tag taking part in the same table"
+ * (info §5.140.1), the table its nearest; a cell no table holds takes part in none.
+ */
+const cellHeaders: OverlayLaw = (node, overlay) =>
+  node.kind === "td" || node.kind === "th"
+    ? Option.toArray(valueOf(overlay.view, node.start, "headers")).flatMap((headers) => {
+        const tokens = headers.split(arkregex("[\t\n\r ]+", "u")).filter((token) => token !== "");
+        const table = tableOf(overlay.view, node);
+        const held =
+          table === undefined
+            ? new Set<string>()
+            : (tableHeadersOf(overlay.view).get(table) ?? new Set<string>());
+        const unnamed = tokens.filter((token) => !held.has(token));
+        const repeated = tokens.filter((token, at) => tokens.indexOf(token) !== at);
+
+        return unnamed.length === 0 && repeated.length === 0
+          ? []
+          : [
+              {
+                keys: {
+                  repeated: repeated.join(" "),
+                  table: table === undefined ? "" : pathOf(overlay.view, table),
+                  unnamed: unnamed.join(" "),
+                },
+                law: "Table headers",
+              },
+            ];
+      })
+    : [];
+
+/**
+ * Reading 127: "Quotation punctuation (such as quotation marks) that is quoting the contents
+ * of the tag must not appear immediately before, after, or inside q tags" (§5.111), read at
+ * the four characters beside and inside a q, each its neighbour's own, none for a neighbour
+ * that holds no characters.
+ */
+const quotationBesideQ: OverlayLaw = (node, { view }) => {
+  if (node.kind !== "q") {
+    return [];
+  }
+
+  const atSlot = (parent: bigint, at: bigint): readonly string[] =>
+    Array.from(ownCharactersOf(view, view.bySlot.get(slotKey(parent, at))), String);
+  const positions: readonly (readonly [string, string | undefined])[] = [
+    ["before it", node.at > 0n ? atSlot(node.parent, node.at - 1n).at(-1) : undefined],
+    ["after it", atSlot(node.parent, node.at + 1n)[0]],
+    ["at its start", atSlot(node.start, 0n)[0]],
+    ["at its end", node.children > 0n ? atSlot(node.start, node.children - 1n).at(-1) : undefined],
+  ];
+
+  return positions
+    .flatMap(([position, mark]) =>
+      mark !== undefined && quotationMarks.has(mark)
+        ? [{ keys: { mark, position }, law: "Quotation punctuation" as const }]
+        : [],
+    )
+    .slice(0, 1);
+};
+
+/**
+ * Reading 105: a usage value that names its base type holds a lexical form of it, read as
+ * element content is (reading 7), where it forms part of a record, that is, writes a
+ * fieldIdentifier (usage data binding §2.6.5.1); one outside a record is untyped text.
+ */
+const usageValueForm: OverlayLaw = (node, overlay) =>
+  node.kind === "ud:value" && Option.isSome(valueOf(overlay.view, node.start, "fieldIdentifier"))
+    ? Option.toArray(valueOf(overlay.view, node.start, "baseType")).flatMap((baseType) => {
+        const text = stringValueOf(overlay.view, node);
+
+        return typedTextHolds(baseType, text)
+          ? []
+          : [{ keys: { baseType, text }, law: "Usage typed value" }];
+      })
+    : [];
+
+/**
+ * Reading 122: "the LOM-defined values self assessment and exam are forbidden" (QTI 3.0
+ * Metadata §2.7.5.1), of a term of the LOM vocabulary: its source LOMv1.0, or empty, which
+ * the loose binding's default="LOMv1.0" fills, or not written; both compared collapsed. The
+ * first value and the first source stand for the type, as the binding caps each at one (N7).
+ * It reads a type only in a record's document (`recordTypes`, ruling `170356bd`).
+ */
+const forbiddenResourceTypes: OverlayLaw = (node, { laws, view }) => {
+  if (node.kind !== "lom:learningResourceType" || !recordTypes.has(documentTypeOf(view, laws))) {
+    return [];
+  }
+
+  const terms = view.childrenOf.get(node.start) ?? [];
+  const value = terms.find(({ kind }) => kind === "lom:value");
+  const source = terms.find(({ kind }) => kind === "lom:source");
+  const term = value === undefined ? "" : collapsed(stringValueOf(view, value));
+  const vocabulary = source === undefined ? "" : collapsed(stringValueOf(view, source));
+
+  return value !== undefined && lomForbidden.has(term) && lomVocabulary.has(vocabulary)
+    ? [
+        {
+          keys: { source: source === undefined ? "" : vocabulary, value: term },
+          law: "LOM learning resource type",
+        },
+      ]
+    : [];
+};
+
+/**
+ * R10-a: a portable custom interaction names its module by `module`, by a
+ * `qti-interaction-modules` child, or by both; one with neither names none.
+ */
+const customInteractionModule: OverlayLaw = (node, overlay) =>
+  node.kind === "qti-portable-custom-interaction" &&
+  Option.isNone(valueOf(overlay.view, node.start, "module")) &&
+  !(overlay.view.childrenOf.get(node.start) ?? []).some(
+    ({ kind }) => kind === "qti-interaction-modules",
+  )
+    ? [{ keys: {}, law: "PCI module source" }]
+    : [];
+
+/**
+ * Spec reading 242: a math operator's name fixes its count, two sub-expressions for atan2 and
+ * one for every other name (information model §5.91 and §8.25), past the one or more its class
+ * admits.
+ */
+const mathOperatorArity: OverlayLaw = (node, overlay) =>
+  node.kind === "qti-math-operator"
+    ? Option.toArray(valueOf(overlay.view, node.start, "name"))
+        .filter((name) =>
+          name === "atan2" ? node.elementChildren !== 2n : node.elementChildren > 1n,
+        )
+        .map((): Finding => ({ keys: { count: String(node.elementChildren) }, law: "Arity" }))
+    : [];
+
+/**
+ * Reading 78: a mapping maps "a source set of any base-type (except file and duration)" (§5.88)
+ * of a variable that is not a record (§2.11.1.5: "cannot be applied to variables of record
+ * cardinality"). A record has no base type, so it is judged by its cardinality alone, and a
+ * variable is judged by its base type where it has one. Each half reads one attribute, so a
+ * declaration whose cardinality or base type is unwritten or outside its domain is judged by
+ * the other half alone, since its own law refuses the attribute (spec reading 158).
+ */
+const mappingSource: OverlayLaw = (node, overlay) => {
+  if (
+    node.kind !== "qti-response-declaration" ||
+    !(overlay.view.childrenOf.get(node.start) ?? []).some(({ kind }) => kind === "qti-mapping")
+  ) {
+    return [];
+  }
+
+  return [
+    ...recordBreach(overlay, node, "MappableBaseType"),
+    ...Option.toArray(
+      typeBreach(baseTypeOf(overlay, node), (held) =>
+        Option.isSome(indexesOf(overlay.laws.grammar).mappableBaseType.lookup({ baseType: held })),
+      ),
+    ).map((keys): Finding => ({ keys, law: "MappableBaseType" })),
+  ];
+};
+
+/**
+ * Reading 9, the Schematron's 14Ba: "not(@upper-bound < @lower-bound)", each bound collapsed
+ * and read where it is in xs:double's lexical space (reading 71's edition), as the double it
+ * names (reading 144); a bound that is no xs:double has no value, and NaN orders against
+ * nothing.
+ */
+const sliderBounds: OverlayLaw = (node, overlay) => {
+  if (node.kind !== "qti-slider-interaction") {
+    return [];
+  }
+
+  return Option.all([
+    valueOf(overlay.view, node.start, "lower-bound"),
+    valueOf(overlay.view, node.start, "upper-bound"),
+  ]).pipe(
+    Option.map(([lower, upper]) => [collapsed(lower), collapsed(upper)] as const),
+    Option.filter(
+      ([lower, upper]) =>
+        isDoubleForm(lower) && isDoubleForm(upper) && numberOf(upper) < numberOf(lower),
+    ),
+    Option.map(([lower, upper]): Finding => ({ keys: { lower, upper }, law: "Slider bounds" })),
+    Option.toArray,
+  );
+};
+
+/**
+ * Reading 119: "If roundingMode= 'significantFigures', the value of figures must be a
+ * non-zero positive integer. If roundingMode='decimalPlaces', the value of figures must be an
+ * integer greater than or equal to zero" (info §5.47.2, §5.119.2), the mode written or
+ * EqualRounded's default (§5.47.1); a variable's name is read at run time.
+ */
+const roundingFigures: OverlayLaw = (node, overlay) => {
+  if (node.kind !== "qti-equal-rounded" && node.kind !== "qti-round-to") {
+    return [];
+  }
+
+  const mode = Option.getOrElse(valueOf(overlay.view, node.start, "rounding-mode"), () =>
+    node.kind === "qti-equal-rounded" ? "significantFigures" : "",
+  );
+  const least = roundingLeast.get(mode);
+
+  return Option.toArray(
+    Option.flatMap(typedValueOf(overlay.view, node.start, "figures"), figuresInteger),
+  )
+    .filter((figures) => least !== undefined && figures < least)
+    .map((figures): Finding => ({
+      keys: { figures: String(figures), least: String(least ?? 0n), mode },
+      law: "Rounding figures",
+    }));
+};
+
+/**
+ * Reading 121: "If the tolerance mode is absolute or relative then the tolerance must be
+ * specified. The tolerance consists of two positive numbers, t0 and t1, ... If only one value
+ * is given it is used for both" (info §5.46.2), each value a number where it is in
+ * xs:double's lexical space and else a string naming a variable (§9.1.5).
+ */
+const equalTolerance: OverlayLaw = (node, overlay) => {
+  if (node.kind !== "qti-equal") {
+    return [];
+  }
+
+  const mode = Option.getOrElse(valueOf(overlay.view, node.start, "tolerance-mode"), () => "exact");
+  const tolerance = valueOf(overlay.view, node.start, "tolerance");
+  if (Option.isNone(tolerance)) {
+    return mode === "absolute" || mode === "relative"
+      ? [{ keys: { count: "", mode, unsigned: "" }, law: "Equal tolerance" }]
+      : [];
+  }
+
+  const values = tolerance.value.split(arkregex("[\t\n\r ]+", "u")).filter((value) => value !== "");
+  const unsigned = values.filter((value) => toleranceSignOf(value) === "not positive");
+
+  return values.length >= 1 && values.length <= 2 && unsigned.length === 0
+    ? []
+    : [
+        {
+          keys: { count: String(values.length), mode, unsigned: unsigned.join(" ") },
+          law: "Equal tolerance",
+        },
+      ];
+};
+
+/**
+ * An element's `aria-valuemax` below its `aria-valuemin` breaks Aria value range. A bound past the
+ * parse's bytes is refused under "Key text bound" ({@link keyTexts}), and the pair holds this law
+ * by its own arm.
+ */
+const ariaValueBounds: OverlayLaw = (node, overlay) =>
+  Option.all([
+    valueOf(overlay.view, node.start, "aria-valuemin"),
+    valueOf(overlay.view, node.start, "aria-valuemax"),
+  ]).pipe(
+    Option.filter(
+      ([min, max]) => !pastParsedDecimal(min) && !pastParsedDecimal(max) && decimalBelow(max, min),
+    ),
+    Option.map(([min, max]): Finding => ({
+      keys: { max: collapsed(max), min: collapsed(min) },
+      law: "Aria value range",
+    })),
+    Option.toArray,
+  );
+
+/**
+ * §5.162.5, §5.48.4 and §5.104.1: a pattern-mask, and a qti-pattern-match's pattern that names
+ * no variable in braces, is a regular expression of XML Schema 1.0 Part 2's Appendix F, `{`
+ * and `}` metacharacters (reading 58), read by grizzle-text's own grammar of it.
+ */
+const writtenPattern: OverlayLaw = (node, overlay) =>
+  Option.match(writtenPatternOf(overlay.view, node), {
+    onNone: () => [],
+    onSome: (pattern): readonly Finding[] => {
+      const read = xsdPattern(pattern);
+
+      return read.ok
+        ? []
+        : [
+            {
+              keys: { kind: node.kind, offset: String(read.error.offset), pattern },
+              law: "Pattern language",
+            },
+          ];
+    },
+  });
+
+/**
+ * O4's undeclared references: an item's bare reference that names no variable the item declares
+ * and no built-in of its root breaks Variable declared. Reading R15-k: a braced reference, a
+ * string attribute's, that names no variable is a string value (information model §9.3.4), so
+ * nothing is undeclared.
+ */
+const undeclaredVariables: OverlayLaw = (node, overlay) =>
+  overlay.isItem
+    ? namedBy(overlay, node)
+        .filter(
+          ({ identifier, spelling, targets }) =>
+            spelling === "bare" &&
+            targets.size === 0 &&
+            !overlay.declared.has(identifier) &&
+            Option.isNone(
+              indexesOf(overlay.laws.grammar).builtIn.lookup({
+                root: overlay.rootKind,
+                variable: identifier,
+              }),
+            ),
+        )
+        .map(({ identifier }): Finding => ({ keys: { identifier }, law: "Variable declared" }))
+    : [];
+
+/**
+ * §5.5: an area mapping maps "a source set of point values": a record, which has no base type,
+ * is judged by its cardinality alone, and a variable by its base type where it has one, each
+ * half where its attribute has a value (spec reading 158).
+ */
+const areaMappingSource: OverlayLaw = (node, overlay) => {
+  const children = overlay.view.childrenOf.get(node.start) ?? [];
+  const baseType = baseTypeOf(overlay, node);
+  /**
+   * A declaration whose cardinality is unwritten or outside its domain has its tables, but no
+   * cardinality for a law over them to read (the declarations overlay's `typedDeclarationOf`;
+   * spec reading 158), so its own laws refuse it (AL3's required attribute, the value domain)
+   * and neither AreaMapping base type nor Lookup table cardinality does again.
+   */
+  const cardinality = cardinalityOf(overlay, node);
+  const tables = children.filter(
+    ({ kind }) => kind === "qti-match-table" || kind === "qti-interpolation-table",
+  );
+
+  return [
+    ...(node.kind === "qti-response-declaration" &&
+    children.some(({ kind }) => kind === "qti-area-mapping")
+      ? [
+          ...recordBreach(overlay, node, "AreaMapping base type"),
+          ...Option.toArray(typeBreach(baseType, (base) => base === "point")).map(
+            (keys): Finding => ({ keys, law: "AreaMapping base type" }),
+          ),
+        ]
+      : []),
+    ...(node.kind === "qti-outcome-declaration"
+      ? Option.toArray(cardinality)
+          .filter((held) => held !== "single")
+          .flatMap((held) =>
+            tables.map(({ kind }): Finding => ({
+              keys: { cardinality: held, kind },
+              law: "Lookup table cardinality",
+            })),
+          )
+      : []),
+  ];
+};
+
+/**
  * The overlay laws of §1.7 over one node: O3's bindings and choice bounds, O4's arity and
  * undeclared references, O5's mapping base type and O7's selection bound.
  *
@@ -4074,106 +4440,11 @@ const readerLabels: ReadonlySet<string> = new Set([
  * root; a test's processing references are its readings' (`#pantry/test/oracle-laws/readings.ts`),
  * and every document's content references are `#pantry/test/oracle-laws/content.ts`'s.
  */
-const overlayLaws: readonly ((
-  node: FoldedNode<Composed>,
-  overlay: Overlay,
-) => readonly Finding[])[] = [
-  (node, overlay) =>
-    // Reading 126: a cell's headers are "an unordered set of unique space-separated tokens ...,
-    // each of which must have the value of an ID of a 'th' tag taking part in the same table"
-    // (info §5.140.1), the table its nearest; a cell no table holds takes part in none.
-    node.kind === "td" || node.kind === "th"
-      ? Option.toArray(valueOf(overlay.view, node.start, "headers")).flatMap((headers) => {
-          const tokens = headers.split(arkregex("[\t\n\r ]+", "u")).filter((token) => token !== "");
-          const table = tableOf(overlay.view, node);
-          const held =
-            table === undefined
-              ? new Set<string>()
-              : (tableHeadersOf(overlay.view).get(table) ?? new Set<string>());
-          const unnamed = tokens.filter((token) => !held.has(token));
-          const repeated = tokens.filter((token, at) => tokens.indexOf(token) !== at);
-
-          return unnamed.length === 0 && repeated.length === 0
-            ? []
-            : [
-                {
-                  keys: {
-                    repeated: repeated.join(" "),
-                    table: table === undefined ? "" : pathOf(overlay.view, table),
-                    unnamed: unnamed.join(" "),
-                  },
-                  law: "Table headers",
-                },
-              ];
-        })
-      : [],
-  (node, { view }) => {
-    // Reading 127: "Quotation punctuation (such as quotation marks) that is quoting the contents
-    // of the tag must not appear immediately before, after, or inside q tags" (§5.111), read at
-    // the four characters beside and inside a q, each its neighbour's own, none for a neighbour
-    // that holds no characters.
-    if (node.kind !== "q") {
-      return [];
-    }
-
-    const atSlot = (parent: bigint, at: bigint): readonly string[] =>
-      Array.from(ownCharactersOf(view, view.bySlot.get(slotKey(parent, at))), String);
-    const positions: readonly (readonly [string, string | undefined])[] = [
-      ["before it", node.at > 0n ? atSlot(node.parent, node.at - 1n).at(-1) : undefined],
-      ["after it", atSlot(node.parent, node.at + 1n)[0]],
-      ["at its start", atSlot(node.start, 0n)[0]],
-      [
-        "at its end",
-        node.children > 0n ? atSlot(node.start, node.children - 1n).at(-1) : undefined,
-      ],
-    ];
-
-    return positions
-      .flatMap(([position, mark]) =>
-        mark !== undefined && quotationMarks.has(mark)
-          ? [{ keys: { mark, position }, law: "Quotation punctuation" as const }]
-          : [],
-      )
-      .slice(0, 1);
-  },
-  (node, overlay) =>
-    // Reading 105: a usage value that names its base type holds a lexical form of it, read as
-    // element content is (reading 7), where it forms part of a record, that is, writes a
-    // fieldIdentifier (usage data binding §2.6.5.1); one outside a record is untyped text.
-    node.kind === "ud:value" && Option.isSome(valueOf(overlay.view, node.start, "fieldIdentifier"))
-      ? Option.toArray(valueOf(overlay.view, node.start, "baseType")).flatMap((baseType) => {
-          const text = stringValueOf(overlay.view, node);
-
-          return typedTextHolds(baseType, text)
-            ? []
-            : [{ keys: { baseType, text }, law: "Usage typed value" }];
-        })
-      : [],
-  (node, { laws, view }) => {
-    // Reading 122: "the LOM-defined values self assessment and exam are forbidden" (QTI 3.0
-    // Metadata §2.7.5.1), of a term of the LOM vocabulary: its source LOMv1.0, or empty, which
-    // the loose binding's default="LOMv1.0" fills, or not written; both compared collapsed. The
-    // first value and the first source stand for the type, as the binding caps each at one (N7).
-    // It reads a type only in a record's document (`recordTypes`, ruling `170356bd`).
-    if (node.kind !== "lom:learningResourceType" || !recordTypes.has(documentTypeOf(view, laws))) {
-      return [];
-    }
-
-    const terms = view.childrenOf.get(node.start) ?? [];
-    const value = terms.find(({ kind }) => kind === "lom:value");
-    const source = terms.find(({ kind }) => kind === "lom:source");
-    const term = value === undefined ? "" : collapsed(stringValueOf(view, value));
-    const vocabulary = source === undefined ? "" : collapsed(stringValueOf(view, source));
-
-    return value !== undefined && lomForbidden.has(term) && lomVocabulary.has(vocabulary)
-      ? [
-          {
-            keys: { source: source === undefined ? "" : vocabulary, value: term },
-            law: "LOM learning resource type",
-          },
-        ]
-      : [];
-  },
+const overlayLaws: readonly OverlayLaw[] = [
+  cellHeaders,
+  quotationBesideQ,
+  usageValueForm,
+  forbiddenResourceTypes,
   (node, overlay) => {
     const { grammar } = overlay.laws;
     if (!overlay.isItem || Option.isNone(grammar.kinds.interaction.lookup({ kind: node.kind }))) {
@@ -4238,16 +4509,7 @@ const overlayLaws: readonly ((
       }));
     });
   },
-  (node, overlay) =>
-    // R10-a: a portable custom interaction names its module by `module`, by a
-    // `qti-interaction-modules` child, or by both; one with neither names none.
-    node.kind === "qti-portable-custom-interaction" &&
-    Option.isNone(valueOf(overlay.view, node.start, "module")) &&
-    !(overlay.view.childrenOf.get(node.start) ?? []).some(
-      ({ kind }) => kind === "qti-interaction-modules",
-    )
-      ? [{ keys: {}, law: "PCI module source" }]
-      : [],
+  customInteractionModule,
   (node, overlay) => {
     const { choiceBound, choiceCount } = indexesOf(overlay.laws.grammar);
 
@@ -4297,100 +4559,10 @@ const overlayLaws: readonly ((
     Option.toArray(arityOf(overlay.laws.grammar, node.kind))
       .filter((arity) => !withinArity(arity, node.elementChildren))
       .map((): Finding => ({ keys: { count: String(node.elementChildren) }, law: "Arity" })),
-  // Spec reading 242: a math operator's name fixes its count, two sub-expressions for atan2 and
-  // one for every other name (information model §5.91 and §8.25), past the one or more its class
-  // admits.
-  (node, overlay) =>
-    node.kind === "qti-math-operator"
-      ? Option.toArray(valueOf(overlay.view, node.start, "name"))
-          .filter((name) =>
-            name === "atan2" ? node.elementChildren !== 2n : node.elementChildren > 1n,
-          )
-          .map((): Finding => ({ keys: { count: String(node.elementChildren) }, law: "Arity" }))
-      : [],
-  (node, overlay) =>
-    overlay.isItem
-      ? namedBy(overlay, node)
-          .filter(
-            ({ identifier, spelling, targets }) =>
-              // Reading R15-k: a braced reference, a string attribute's, that names no variable is
-              // a string value (information model §9.3.4), so nothing is undeclared.
-              spelling === "bare" &&
-              targets.size === 0 &&
-              !overlay.declared.has(identifier) &&
-              Option.isNone(
-                indexesOf(overlay.laws.grammar).builtIn.lookup({
-                  root: overlay.rootKind,
-                  variable: identifier,
-                }),
-              ),
-          )
-          .map(({ identifier }): Finding => ({ keys: { identifier }, law: "Variable declared" }))
-      : [],
-  (node, overlay) => {
-    // Reading 78: a mapping maps "a source set of any base-type (except file and duration)" (§5.88)
-    // of a variable that is not a record (§2.11.1.5: "cannot be applied to variables of record
-    // cardinality"). A record has no base type, so it is judged by its cardinality alone, and a
-    // variable is judged by its base type where it has one. Each half reads one attribute, so a
-    // declaration whose cardinality or base type is unwritten or outside its domain is judged by
-    // the other half alone, since its own law refuses the attribute (spec reading 158).
-    if (
-      node.kind !== "qti-response-declaration" ||
-      !(overlay.view.childrenOf.get(node.start) ?? []).some(({ kind }) => kind === "qti-mapping")
-    ) {
-      return [];
-    }
-
-    return [
-      ...recordBreach(overlay, node, "MappableBaseType"),
-      ...Option.toArray(
-        typeBreach(baseTypeOf(overlay, node), (held) =>
-          Option.isSome(
-            indexesOf(overlay.laws.grammar).mappableBaseType.lookup({ baseType: held }),
-          ),
-        ),
-      ).map((keys): Finding => ({ keys, law: "MappableBaseType" })),
-    ];
-  },
-  (node, overlay) => {
-    const children = overlay.view.childrenOf.get(node.start) ?? [];
-    const baseType = baseTypeOf(overlay, node);
-    /**
-     * A declaration whose cardinality is unwritten or outside its domain has its tables, but no
-     * cardinality for a law over them to read (the declarations overlay's `typedDeclarationOf`;
-     * spec reading 158), so its own laws refuse it (AL3's required attribute, the value domain)
-     * and neither AreaMapping base type nor Lookup table cardinality does again.
-     */
-    const cardinality = cardinalityOf(overlay, node);
-    const tables = children.filter(
-      ({ kind }) => kind === "qti-match-table" || kind === "qti-interpolation-table",
-    );
-
-    // §5.5: an area mapping maps "a source set of point values": a record, which has no base type,
-    // is judged by its cardinality alone, and a variable by its base type where it has one, each
-    // half where its attribute has a value (spec reading 158).
-    return [
-      ...(node.kind === "qti-response-declaration" &&
-      children.some(({ kind }) => kind === "qti-area-mapping")
-        ? [
-            ...recordBreach(overlay, node, "AreaMapping base type"),
-            ...Option.toArray(typeBreach(baseType, (base) => base === "point")).map(
-              (keys): Finding => ({ keys, law: "AreaMapping base type" }),
-            ),
-          ]
-        : []),
-      ...(node.kind === "qti-outcome-declaration"
-        ? Option.toArray(cardinality)
-            .filter((held) => held !== "single")
-            .flatMap((held) =>
-              tables.map(({ kind }): Finding => ({
-                keys: { cardinality: held, kind },
-                law: "Lookup table cardinality",
-              })),
-            )
-        : []),
-    ];
-  },
+  mathOperatorArity,
+  undeclaredVariables,
+  mappingSource,
+  areaMappingSource,
   (node, overlay) => {
     if (node.kind !== "qti-mapping") {
       return [];
@@ -4436,121 +4608,11 @@ const overlayLaws: readonly ((
       ),
     );
   },
-  (node, overlay) => {
-    if (node.kind !== "qti-slider-interaction") {
-      return [];
-    }
-
-    // Reading 9, the Schematron's 14Ba: "not(@upper-bound < @lower-bound)", each bound collapsed
-    // and read where it is in xs:double's lexical space (reading 71's edition), as the double it
-    // names (reading 144); a bound that is no xs:double has no value, and NaN orders against
-    // nothing.
-    return Option.all([
-      valueOf(overlay.view, node.start, "lower-bound"),
-      valueOf(overlay.view, node.start, "upper-bound"),
-    ]).pipe(
-      Option.map(([lower, upper]) => [collapsed(lower), collapsed(upper)] as const),
-      Option.filter(
-        ([lower, upper]) =>
-          isDoubleForm(lower) && isDoubleForm(upper) && numberOf(upper) < numberOf(lower),
-      ),
-      Option.map(([lower, upper]): Finding => ({ keys: { lower, upper }, law: "Slider bounds" })),
-      Option.toArray,
-    );
-  },
-  (node, overlay) => {
-    // Reading 119: "If roundingMode= 'significantFigures', the value of figures must be a
-    // non-zero positive integer. If roundingMode='decimalPlaces', the value of figures must be an
-    // integer greater than or equal to zero" (info §5.47.2, §5.119.2), the mode written or
-    // EqualRounded's default (§5.47.1); a variable's name is read at run time.
-    if (node.kind !== "qti-equal-rounded" && node.kind !== "qti-round-to") {
-      return [];
-    }
-
-    const mode = Option.getOrElse(valueOf(overlay.view, node.start, "rounding-mode"), () =>
-      node.kind === "qti-equal-rounded" ? "significantFigures" : "",
-    );
-    const least = roundingLeast.get(mode);
-
-    return Option.toArray(
-      Option.flatMap(typedValueOf(overlay.view, node.start, "figures"), figuresInteger),
-    )
-      .filter((figures) => least !== undefined && figures < least)
-      .map((figures): Finding => ({
-        keys: { figures: String(figures), least: String(least ?? 0n), mode },
-        law: "Rounding figures",
-      }));
-  },
-  (node, overlay) => {
-    // Reading 121: "If the tolerance mode is absolute or relative then the tolerance must be
-    // specified. The tolerance consists of two positive numbers, t0 and t1, ... If only one value
-    // is given it is used for both" (info §5.46.2), each value a number where it is in
-    // xs:double's lexical space and else a string naming a variable (§9.1.5).
-    if (node.kind !== "qti-equal") {
-      return [];
-    }
-
-    const mode = Option.getOrElse(
-      valueOf(overlay.view, node.start, "tolerance-mode"),
-      () => "exact",
-    );
-    const tolerance = valueOf(overlay.view, node.start, "tolerance");
-    if (Option.isNone(tolerance)) {
-      return mode === "absolute" || mode === "relative"
-        ? [{ keys: { count: "", mode, unsigned: "" }, law: "Equal tolerance" }]
-        : [];
-    }
-
-    const values = tolerance.value
-      .split(arkregex("[\t\n\r ]+", "u"))
-      .filter((value) => value !== "");
-    const unsigned = values.filter((value) => toleranceSignOf(value) === "not positive");
-
-    return values.length >= 1 && values.length <= 2 && unsigned.length === 0
-      ? []
-      : [
-          {
-            keys: { count: String(values.length), mode, unsigned: unsigned.join(" ") },
-            law: "Equal tolerance",
-          },
-        ];
-  },
-  (node, overlay) =>
-    Option.all([
-      valueOf(overlay.view, node.start, "aria-valuemin"),
-      valueOf(overlay.view, node.start, "aria-valuemax"),
-    ]).pipe(
-      // A bound past the parse's bytes is refused under "Key text bound" ({@link keyTexts}), and
-      // the pair holds this law by its own arm.
-      Option.filter(
-        ([min, max]) =>
-          !pastParsedDecimal(min) && !pastParsedDecimal(max) && decimalBelow(max, min),
-      ),
-      Option.map(([min, max]): Finding => ({
-        keys: { max: collapsed(max), min: collapsed(min) },
-        law: "Aria value range",
-      })),
-      Option.toArray,
-    ),
-  (node, overlay) =>
-    // §5.162.5, §5.48.4 and §5.104.1: a pattern-mask, and a qti-pattern-match's pattern that names
-    // no variable in braces, is a regular expression of XML Schema 1.0 Part 2's Appendix F, `{`
-    // and `}` metacharacters (reading 58), read by grizzle-text's own grammar of it.
-    Option.match(writtenPatternOf(overlay.view, node), {
-      onNone: () => [],
-      onSome: (pattern): readonly Finding[] => {
-        const read = xsdPattern(pattern);
-
-        return read.ok
-          ? []
-          : [
-              {
-                keys: { kind: node.kind, offset: String(read.error.offset), pattern },
-                law: "Pattern language",
-              },
-            ];
-      },
-    }),
+  sliderBounds,
+  roundingFigures,
+  equalTolerance,
+  ariaValueBounds,
+  writtenPattern,
   (node, overlay) => {
     const attribute = cardinalityBounds.get(node.kind);
     const bound = typedValueOf(overlay.view, node.start, "response-identifier");
@@ -4813,19 +4875,39 @@ const overlayBreaches = (
       : undefined;
   };
 
-  return [
-    // Reading 101: an id's binding is the set of elements that purport it, an attribute's element
-    // or an ID-typed text's parent, and cvc-id.2 refuses a binding of more than one member.
-    ...[...ids].flatMap(([id, held]) => {
-      const owners = [...new Set(held.map(({ owner }) => owner))];
+  /**
+   * Reading 101: an id's binding is the set of elements that purport it, an attribute's element
+   * or an ID-typed text's parent, and cvc-id.2 refuses a binding of more than one member.
+   */
+  const idBindings = [...ids].flatMap(([id, held]) => {
+    const owners = [...new Set(held.map(({ owner }) => owner))];
 
-      return owners.slice(1).map((owner) =>
-        at(owner, {
-          keys: { first: pathOf(view, owners[0] ?? owner), id },
-          law: "DocumentId key",
+    return owners.slice(1).map((owner) =>
+      at(owner, {
+        keys: { first: pathOf(view, owners[0] ?? owner), id },
+        law: "DocumentId key",
+      }),
+    );
+  });
+
+  /**
+   * A choice of the four beside another choice of any class breaks the key too, at each member
+   * after the first the per-class grouping has not found.
+   */
+  const sharedChoiceNames = [...sharedNames.values()].flatMap((held) =>
+    (held.some(({ node }) => choiceNouns.has(node.kind)) ? held : [])
+      .slice(1)
+      .filter(({ node }) => !classFound.has(node.start))
+      .map(({ identifier, node }) =>
+        at(node.start, {
+          keys: { first: pathOf(view, held[0]?.node.start ?? node.start), identifier },
+          law: "Choice identifier key",
         }),
-      );
-    }),
+      ),
+  );
+
+  return [
+    ...idBindings,
     ...labelled.map(({ start }) =>
       at(start, { keys: { missing: missingTools.join(" ") }, law: "Label tools" }),
     ),
@@ -4870,19 +4952,7 @@ const overlayBreaches = (
         }),
       ),
     ),
-    // A choice of the four beside another choice of any class breaks the key too, at each member
-    // after the first the per-class grouping has not found.
-    ...[...sharedNames.values()].flatMap((held) =>
-      (held.some(({ node }) => choiceNouns.has(node.kind)) ? held : [])
-        .slice(1)
-        .filter(({ node }) => !classFound.has(node.start))
-        .map(({ identifier, node }) =>
-          at(node.start, {
-            keys: { first: pathOf(view, held[0]?.node.start ?? node.start), identifier },
-            law: "Choice identifier key",
-          }),
-        ),
-    ),
+    ...sharedChoiceNames,
     ...choices.flatMap(({ identifier, node }) =>
       Option.toArray(Option.fromUndefinedOr(variableOf(identifier))).map((variable) =>
         at(node.start, { keys: { identifier, variable }, law: "Choice not variable" }),
@@ -5281,6 +5351,8 @@ const rootedResolutionOf = (
  * the package is held in a key as an entry's path is, of at most `entryPathBytes`, a stated limit
  * of the representation ("Key text bound", the field that holds it).
  *
+ * A `srcset` names a file by each image candidate's URL (spec reading 102).
+ *
  * @param documents - The documents the manifest lists, read.
  * @param entries - The package's entry paths.
  * @param grammar - The composed grammar, whose `ReferenceAttribute` is the census.
@@ -5324,7 +5396,6 @@ const referenceBreaches = (
           Option.toArray(
             grammar.references.referenceAttribute.lookup({ kind: member.kind, name }),
           ).flatMap(({ form }) =>
-            // A `srcset` names a file by each image candidate's URL (spec reading 102).
             (form === "srcset" ? oracleSrcsetOf(lexical).urls : [lexical]).map((href) => {
               const whiteSpace =
                 form === "srcset" ? "preserve" : hrefWhiteSpaceOf(`${member.kind} ${name}`, href);
@@ -5713,6 +5784,11 @@ const holdsFallback = (site: SiteOf): boolean =>
  * - A fragment that sites place under different nearest interactions is admitted, judged under the
  *   first (reading 117), and its other placements are placed nowhere the database judged.
  *
+ * A section ref names a listed document whose root is a section, which it places (§7.5:
+ * "The only documents that can be refered to by qti-assessment-section-ref are XML documents
+ * that contain a single qti-assessment-section as a single root"); one whose href resolves
+ * outside the package is stored as written and never fetched (reading 115).
+ *
  * @param documents - The documents the manifest lists, read.
  * @param grammar - The composed grammar.
  * @param entryPaths - The paths of the package's entries.
@@ -5765,10 +5841,6 @@ const inclusionBreaches = (
         return [];
       }
 
-      // A section ref names a listed document whose root is a section, which it places (§7.5:
-      // "The only documents that can be refered to by qti-assessment-section-ref are XML documents
-      // that contain a single qti-assessment-section as a single root"); one whose href resolves
-      // outside the package is stored as written and never fetched (reading 115).
       if (site.node.kind === "qti-assessment-section-ref") {
         return site.external ||
           Option.exists(site.target, ({ rootKind }) => rootKind === "qti-assessment-section")
@@ -6049,6 +6121,9 @@ const documentLangBreaches = (
  * `document-lang` ({@link documentLangBreaches}). A resource's or a file's target as written is
  * of any length, held in no key.
  *
+ * An unresolved href has no arm to list ("Href form" refuses it alone); every other
+ * scope's is compared with its resource's files of its scope.
+ *
  * @param input - The package.
  * @param input.files - Its entries.
  * @param input.manifest - Its manifest's view.
@@ -6100,19 +6175,90 @@ const packageBreaches = (
     typesAt.set(path, new Set([...(typesAt.get(path) ?? []), resource.type]));
   }
 
-  return [
-    // An entry's path is held in `Entry`'s key and every key of its rows, of at most
-    // `entryPathBytes` (`#pantry/qti/limits.ts`), a stated limit of the representation.
-    ...input.files
-      .filter(({ path }) => utf8Length(path) > entryPathBytes)
-      .map(({ path }) =>
+  /**
+   * An entry's path is held in `Entry`'s key and every key of its rows, of at most
+   * `entryPathBytes` (`#pantry/qti/limits.ts`), a stated limit of the representation.
+   */
+  const entryPathBounds = input.files
+    .filter(({ path }) => utf8Length(path) > entryPathBytes)
+    .map(({ path }) =>
+      breach("Key text bound", {
+        bound: String(entryPathBytes),
+        bytes: String(utf8Length(path)),
+        entry: path,
+        field: "Entry.path",
+      }),
+    );
+
+  /**
+   * A path two types name, the manifest's `manifest` among them, is one document, of the type its
+   * root bears out where one does (readings 93, 146 and 162), so another's href names no document
+   * of its type: "Document entry" alone, and the document is judged once, where its sites place
+   * it.
+   */
+  const doublyTypedPaths = Iterator.from(typesAt)
+    .filter(([, types]) => types.size > 1)
+    .map(([path, types]) =>
+      breach("Document entry", { path, types: spaced([...types].toSorted()) }),
+    );
+
+  /**
+   * A file's or a resource's href that resolves in the package is an entry path, its arm's
+   * `target` (`FilePath`, `ResourceHrefPath`), so one past `entryPathBytes` is a key text past
+   * its bound.
+   */
+  const entryKeyTexts = [
+    ...fileNodes.map(({ member, resolved }) => ({
+      field: "FilePath.target",
+      path: entryPathAt(resolved),
+      start: member.start,
+    })),
+    ...resources.map((resource) => ({
+      field: "ResourceHrefPath.target",
+      path: pipe(resource.resolved, Option.flatMap(entryPathAt)),
+      start: resource.node.start,
+    })),
+  ].flatMap(({ field: held, path, start }) =>
+    Option.toArray(path)
+      .filter((target) => utf8Length(target) > entryPathBytes)
+      .map((target) =>
         breach("Key text bound", {
           bound: String(entryPathBytes),
-          bytes: String(utf8Length(path)),
-          entry: path,
-          field: "Entry.path",
+          bytes: String(utf8Length(target)),
+          field: held,
+          node: pathOf(manifest, start),
         }),
       ),
+  );
+
+  /**
+   * A dependency's `identifierref` (`xs:IDREF`) and its resource's `identifier` (`xs:ID`) are
+   * whiteSpace collapse types, so they compare collapsed: `identifierref=" W"` names `W`
+   * (decision 457 (3); IMS Content Packaging 1.2 §6.11.5 B ii).
+   */
+  const dependencyTargets = manifest.members.flatMap((member) => {
+    const resource = manifest.byStart.get(member.parent);
+    const ref = collapsedValueOf(manifest, member.start, "identifierref");
+    const own =
+      resource === undefined
+        ? Option.none()
+        : collapsedValueOf(manifest, resource.start, "identifier");
+
+    return member.kind === "cp:dependency" &&
+      Option.isSome(ref) &&
+      Option.isSome(own) &&
+      ref.value === own.value
+      ? [
+          breach("Self dependency", {
+            identifier: ref.value,
+            node: pathOf(manifest, member.start),
+          }),
+        ]
+      : [];
+  });
+
+  return [
+    ...entryPathBounds,
     ...fileNodes
       .filter(({ resolved }) => resolved.resolution.scope === "unresolved")
       .map(({ href, member }) =>
@@ -6150,8 +6296,6 @@ const packageBreaches = (
     ...resources.flatMap((resource) =>
       Option.toArray(resource.href)
         .filter(() =>
-          // An unresolved href has no arm to list ("Href form" refuses it alone); every other
-          // scope's is compared with its resource's files of its scope.
           Option.exists(
             resource.resolved,
             (own) =>
@@ -6176,73 +6320,18 @@ const packageBreaches = (
       .flatMap((resource) => Option.toArray(resource.resolved))
       .filter(({ resolution }) => resolution.scope !== "entry")
       .map(({ path }) => breach("Document entry", { path })),
-    // A path two types name, the manifest's `manifest` among them, is one document, of the type its
-    // root bears out where one does (readings 93, 146 and 162), so another's href names no document
-    // of its type: "Document entry" alone, and the document is judged once, where its sites place
-    // it.
-    ...Iterator.from(typesAt)
-      .filter(([, types]) => types.size > 1)
-      .map(([path, types]) =>
-        breach("Document entry", { path, types: spaced([...types].toSorted()) }),
-      ),
+    ...doublyTypedPaths,
     ...fileNodes.flatMap(({ member, resolved }) =>
       Option.toArray(entryPathAt(resolved))
         .filter((path) => !entryPaths.has(path))
         .map((path) => breach("File exists", { from: pathOf(manifest, member.start), path })),
     ),
-    // A file's or a resource's href that resolves in the package is an entry path, its arm's
-    // `target` (`FilePath`, `ResourceHrefPath`), so one past `entryPathBytes` is a key text past
-    // its bound.
-    ...[
-      ...fileNodes.map(({ member, resolved }) => ({
-        field: "FilePath.target",
-        path: entryPathAt(resolved),
-        start: member.start,
-      })),
-      ...resources.map((resource) => ({
-        field: "ResourceHrefPath.target",
-        path: pipe(resource.resolved, Option.flatMap(entryPathAt)),
-        start: resource.node.start,
-      })),
-    ].flatMap(({ field: held, path, start }) =>
-      Option.toArray(path)
-        .filter((target) => utf8Length(target) > entryPathBytes)
-        .map((target) =>
-          breach("Key text bound", {
-            bound: String(entryPathBytes),
-            bytes: String(utf8Length(target)),
-            field: held,
-            node: pathOf(manifest, start),
-          }),
-        ),
-    ),
+    ...entryKeyTexts,
     ...inclusionCycles(input.documents, grammar).map((chain) =>
       breach("Inclusion cycle", { chain: spaced(chain), path: chain[0] ?? "" }),
     ),
     ...inclusionBreaches(input.documents, grammar, entryPaths),
-    // A dependency's `identifierref` (`xs:IDREF`) and its resource's `identifier` (`xs:ID`) are
-    // whiteSpace collapse types, so they compare collapsed: `identifierref=" W"` names `W`
-    // (decision 457 (3); IMS Content Packaging 1.2 §6.11.5 B ii).
-    ...manifest.members.flatMap((member) => {
-      const resource = manifest.byStart.get(member.parent);
-      const ref = collapsedValueOf(manifest, member.start, "identifierref");
-      const own =
-        resource === undefined
-          ? Option.none()
-          : collapsedValueOf(manifest, resource.start, "identifier");
-
-      return member.kind === "cp:dependency" &&
-        Option.isSome(ref) &&
-        Option.isSome(own) &&
-        ref.value === own.value
-        ? [
-            breach("Self dependency", {
-              identifier: ref.value,
-              node: pathOf(manifest, member.start),
-            }),
-          ]
-        : [];
-    }),
+    ...dependencyTargets,
     ...input.documents.flatMap((document): readonly Breach[] => {
       /**
        * The records of each item or test resource that lists the document, whatever type it is
