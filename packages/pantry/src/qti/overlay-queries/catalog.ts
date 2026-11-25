@@ -16,22 +16,24 @@ import { Instance } from "#pantry/qti/tests.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
- * Every token of a `data-catalog-idref`, by its element's place: its `Idref` piece's `token`, the
- * tokens "Idref target" reads. Every typed `data-catalog-idref` is an `xs:IDREF`, so a lawful one
- * holds one token, its value collapsed. One the schema does not check as an IDREF (an open one a
- * wildcard admits) has no piece, and neither has an empty or blank one, which names nothing.
+ * Every token of a `data-catalog-idref`, by its element's place and the token's SHA-256, since an
+ * `xs:IDREF` has no bound and every reader resolves a token by its digest: its `Idref` piece's
+ * `token`, the tokens "Idref target" reads. Every typed `data-catalog-idref` is an `xs:IDREF`, so a
+ * lawful one holds one token, its value collapsed. One the schema does not check as an IDREF (an
+ * open one a wildcard admits) has no piece, and neither has an empty or blank one, which names
+ * nothing.
  */
 const catalogReferences = query(QtiBase).rule((r) => {
   const { package: pkg, path, start, token } = v(Idref, "reference");
 
   return r
     .match(Idref, { name: "data-catalog-idref", package: pkg, path, start, token })
-    .find({ package: pkg, path, start, token });
+    .find({ package: pkg, path, start, tokenDigest: Crypto.sha256(token) });
 });
 
 /**
- * Each token of a document in no assembly, by its document and the token's SHA-256, since an
- * `xs:IDREF` has no bound: a {@link catalogReferences} token of a document whose `assembled` is
+ * Each token of a document in no assembly, by its document and the token's SHA-256: a
+ * {@link catalogReferences} token of a document whose `assembled` is
  * false, which resolves among the document's own catalogs by its digest. A document is assembled
  * exactly where an `Instance` places it, both ways stated laws (`#pantry/qti/tests.ts`,
  * `#pantry/qti/queries.ts`): every instance's document has its
@@ -45,12 +47,12 @@ const catalogReferences = query(QtiBase).rule((r) => {
 const UnassembledReference = derived(
   "UnassembledReference",
   query(QtiBase).rule((r) => {
-    const { package: pkg, path, token } = v(catalogReferences, "reference");
+    const { package: pkg, path, tokenDigest } = v(catalogReferences, "reference");
 
     return r
-      .match(catalogReferences, { package: pkg, path, token })
+      .match(catalogReferences, { package: pkg, path, tokenDigest })
       .match(Document, { assembled: false, package: pkg, path })
-      .find({ package: pkg, path, tokenDigest: Crypto.sha256(token) });
+      .find({ package: pkg, path, tokenDigest });
   }),
 );
 
@@ -66,12 +68,12 @@ const PlacedReference = derived(
   "PlacedReference",
   query(QtiBase).rule((r) => {
     const { assembly, document, package: pkg } = v(Instance, "instance");
-    const { token } = v(catalogReferences, "reference");
+    const { tokenDigest } = v(catalogReferences, "reference");
 
     return r
       .match(Instance, { assembly, document, package: pkg })
-      .match(catalogReferences, { package: pkg, path: document, token })
-      .find({ assembly, package: pkg, tokenDigest: Crypto.sha256(token) });
+      .match(catalogReferences, { package: pkg, path: document, tokenDigest })
+      .find({ assembly, package: pkg, tokenDigest });
   }),
 );
 

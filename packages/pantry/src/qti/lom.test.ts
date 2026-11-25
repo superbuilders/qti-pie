@@ -36,7 +36,7 @@ import {
   QtiLomVocabulary,
   RelationKind,
   TaxonEntry,
-  LomKeyText,
+  LomKeyTextBytes,
 } from "#pantry/qti/lom.ts";
 import { lomTextBytes } from "#pantry/qti/limits.ts";
 import { RecordNode } from "#pantry/qti/names.ts";
@@ -231,17 +231,16 @@ describe("LOM vocabulary", () => {
 
 /**
  * Whether a LOM text of some UTF-8 bytes holds "Key text bound", as the check's rule over the query
- * holds it.
+ * holds the row of its length.
  *
- * @param bytes - The text's bytes, ASCII.
+ * @param bytes - The text's bytes.
  * @returns Whether it holds the check.
  */
 const lomTextHolds = (bytes: number): boolean =>
   heldBy(
     insideDomains(
-      Result.map(
-        evaluate.admit(LomKeyText, { package: "p", text: "t".repeat(bytes) }),
-        (admitted) => evaluate(LomKeyText, admitted),
+      Result.map(evaluate.admit(LomKeyTextBytes, { bytes, package: "p" }), (admitted) =>
+        evaluate(LomKeyTextBytes, admitted),
       ),
       "Key_text_bound",
     ).checks.Key_text_bound,
@@ -378,7 +377,7 @@ const wholeHeadings = new Map<unknown, readonly string[]>([
  * and the LOM texts its views key as written, which "Key text bound" holds to the bound their
  * views' keys hold them to, a stated limit of the representation.
  */
-const judgedRelations = new Set<unknown>([LomTerm, RecordNode, LomKeyText]);
+const judgedRelations = new Set<unknown>([LomTerm, RecordNode, LomKeyTextBytes]);
 
 describe("the LOM level", () => {
   it("states each law of lomLawsByName and no other, each law named by its group's entry", () => {

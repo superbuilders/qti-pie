@@ -3067,7 +3067,7 @@ const lookupEntryKindSet: ReadonlySet<string> = new Set([
  * The identifiers a check holds within a key text's bound where a view keys them, each an
  * attribute's value, collapsed: each declaration's `identifier` (`DeclaredIdentifierText`,
  * `#pantry/qti/names.ts`), and each test's and each variable mapping's `target-identifier`
- * (`TestIdentifierText`, `#pantry/qti/overlay-queries/tests.ts`), each a QTI identifier.
+ * (`TestIdentifierBytes`, `#pantry/qti/overlay-queries/tests.ts`), each a QTI identifier.
  */
 const checkedIdentifiers: readonly {
   readonly bound: number;
@@ -3085,14 +3085,14 @@ const checkedIdentifiers: readonly {
   },
   {
     bound: identifierBytes,
-    field: "TestIdentifierText.text",
+    field: "TestIdentifierBytes.bytes",
     holds: (_laws, kind) => kind === "qti-assessment-test",
     manifest: false,
     name: "identifier",
   },
   {
     bound: identifierBytes,
-    field: "TestIdentifierText.text",
+    field: "TestIdentifierBytes.bytes",
     holds: (_laws, kind) => kind === "qti-variable-mapping",
     manifest: false,
     name: "target-identifier",
@@ -3114,9 +3114,10 @@ const checkedIdentifiers: readonly {
  *   `identifierBytes`), each interaction's binding that names a variable
  *   (`BindingName.identifier`), and each identifier a check holds where a view keys it
  *   ({@link checkedIdentifiers}), an item ref's `category` tokens among them
- *   (`TestIdentifierText.text`);
- * - Each language tag a view keys, case-folded, at `langTextBytes` (`LangKeyText.text`): every
- *   `xml:lang` that states one and every `lom:language` of a `general` category;
+ *   (`TestIdentifierBytes.bytes`);
+ * - Each language tag a view keys, case-folded, at `langTextBytes`: every `xml:lang` that states one
+ *   (`LangValue.value`) and every `lom:language` of a `general` category
+ *   (`RecordNode.stringValue`);
  * - Each regular expression a document writes, at `patternTextBytes` (`PatternKeyText.text`): a
  *   `pattern-mask`, and a pattern match's literal `pattern` ({@link writtenPatternOf});
  * - Each map key and lookup value, as written, at `literalTextBytes` (`TableKeyText.text`): a
@@ -3224,7 +3225,7 @@ const keyTexts = (
               .filter((token) => token !== "")
               .map((token) => ({
                 bound: identifierBytes,
-                field: "TestIdentifierText.text",
+                field: "TestIdentifierBytes.bytes",
                 node: node.start,
                 value: token,
               })),
@@ -3236,7 +3237,7 @@ const keyTexts = (
         ? [
             {
               bound: langTextBytes,
-              field: "LangKeyText.text",
+              field: "LangValue.value",
               node: start,
               value: collapsed(lexical),
             },
@@ -3248,7 +3249,7 @@ const keyTexts = (
         ? [
             {
               bound: langTextBytes,
-              field: "LangKeyText.text",
+              field: "RecordNode.stringValue",
               node: node.start,
               value: contentOf(view, node.start),
             },

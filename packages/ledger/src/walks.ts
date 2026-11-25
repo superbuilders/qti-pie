@@ -45,7 +45,7 @@ import {
 } from "@bjornpagen/grizzle";
 import type { Pattern, Rule } from "@bjornpagen/grizzle";
 import type { AttributeName, NodeKind } from "@qti-pie/pantry/grammar/install.ts";
-import { identifierBytes, keyedIdentifier } from "@qti-pie/pantry/qti/limits.ts";
+import { identifierBytes, keyedIdentifier, keyedPattern } from "@qti-pie/pantry/qti/limits.ts";
 import type { LedgerLevel } from "#ledger/delivery.ts";
 import {
   Area,
@@ -1034,17 +1034,31 @@ export const walksOf = (ledger: LedgerLevel) => {
   );
 
   /**
-   * Each distinct content pattern a package writes: a qti-pattern-match's `pattern` that is an XML
-   * Schema 1.0 pattern (Appendix F), which every one that names no variable in braces is (pantry's
-   * law). A braced name is none. A set, one row a text whatever elements of the package write it.
+   * Each pattern match's `pattern` that is an XML Schema 1.0 pattern (Appendix F), by its element's
+   * place, as a key holds it: pantry's `PatternKey` (`keyedPattern`), within `patternTextBytes`,
+   * which pantry's "Key text bound" holds every literal pattern to, so the cast's guard holds in
+   * every committed state. A braced name is no pattern: it is the run's reader's to resolve, by the
+   * declarations of the document it runs.
    */
-  const patternTexts = query(ledger).rule((r) => {
-    const { package: pkg, value } = v(Attribute, "pattern");
+  const writtenPatterns = query(ledger).rule((r) => {
+    const patterns = written(["qti-pattern-match"], "pattern");
+    const { package: pkg, path, start, value } = v(patterns, "pattern");
 
     return r
-      .match(Attribute, { kind: "qti-pattern-match", name: "pattern", package: pkg, value })
+      .match(patterns, { package: pkg, path, start, value })
       .where(r.eq(Xml.isPattern(value), true))
-      .find({ package: pkg, pattern: value });
+      .find({ package: pkg, path, pattern: keyedPattern(value), start });
+  });
+
+  /**
+   * Each distinct content pattern a package's programs write ({@link writtenPatterns}): a set, one
+   * row a text whatever elements of the package write it, keyed by the package and the text, which
+   * its `PatternKey` bounds.
+   */
+  const patternTexts = query(ledger).rule((r) => {
+    const { package: pkg, pattern } = v(writtenPatterns, "pattern");
+
+    return r.match(writtenPatterns, { package: pkg, pattern }).find({ package: pkg, pattern });
   });
 
   /**
@@ -1068,13 +1082,12 @@ export const walksOf = (ledger: LedgerLevel) => {
   const WalkPattern = derived.stored(
     "WalkPattern",
     query(ledger).rule((r) => {
-      const patterns = written(["qti-pattern-match"], "pattern");
-      const { package: pkg, path, start, value } = v(patterns, "pattern");
+      const { package: pkg, path, pattern, start } = v(writtenPatterns, "pattern");
       const { program } = v(compiledPatterns, "compiled");
 
       return r
-        .match(patterns, { package: pkg, path, start, value })
-        .match(compiledPatterns, { package: pkg, pattern: value, program })
+        .match(writtenPatterns, { package: pkg, path, pattern, start })
+        .match(compiledPatterns, { package: pkg, pattern, program })
         .find({ package: pkg, path, program, start });
     }),
   );

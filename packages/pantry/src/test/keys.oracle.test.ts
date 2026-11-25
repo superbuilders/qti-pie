@@ -385,7 +385,7 @@ describe("the oracle's key-text list", () => {
  * - `item identifier`, `item title`: the item's root's attributes' `value`, `ObjectIdentifier`'s and
  *   `objectTitles`';
  * - `xml:lang`: a paragraph's, whose value `LangValue` reads where it stands, a language tag a view
- *   keys within `langTextBytes` (`LangKeyText`);
+ *   keys within `langTextBytes` ("Key text bound" over `LangValue`);
  * - `response identifier`: the response's declaration and its interaction's `response-identifier`,
  *   each a QTI identifier a key holds (`DeclaredIdentifierText`, `BindingName.identifier`);
  * - `choice identifier`: a choice's, a QTI identifier a key holds (`Choice.identifier`), and the
@@ -522,7 +522,7 @@ const longBytes = [433, entryBytes + 1, 65_536] as const;
  * The bound of the narrowest key text each place's text is held to, where one is: a response
  * declaration's and its interaction's binding's identifier
  * (`DeclaredIdentifierText`, `BindingName.identifier`) and a choice's (`Choice.identifier`), each a
- * QTI identifier's; a paragraph's `xml:lang`, a language tag (`LangKeyText`); and a map entry's
+ * QTI identifier's; a paragraph's `xml:lang`, a language tag (`LangValue`); and a map entry's
  * `map-key`, a lexical form (`TableKeyText`). A place with no bound here writes its text into no
  * key, or into `matchedText` alone: an IDREF token and the manifest's and a resource's
  * `identifier`, each an `xs:ID`, which a key holds by its SHA-256.
@@ -688,9 +688,9 @@ const valueOfAttribute = (
  * derived relation the check is over, each with the texts of an `Attribute` row the check reads:
  * each declaration's `identifier` (`DeclaredIdentifierText`, names.ts) and each test's, each token
  * of an item ref's `category` and each variable mapping's `target-identifier`
- * (`TestIdentifierText`, overlay-queries/tests.ts), each a QTI identifier; each `xml:lang` that
- * states a language (`LangKeyText`, queries.ts); each `pattern-mask` and literal pattern
- * (`PatternKeyText`, overlay-queries/interaction.ts); and each map key and lookup value
+ * (`TestIdentifierBytes`, overlay-queries/tests.ts), each a QTI identifier; each `xml:lang` that
+ * states a language (`LangValue`, names.ts, checked in queries.ts); each `pattern-mask` and literal
+ * pattern (`PatternKeyText`, overlay-queries/interaction.ts); and each map key and lookup value
  * (`TableKeyText`, mapping.ts). Each reads its attribute's `value` as the database generates it, a
  * lookup value its `lexical`.
  */
@@ -706,7 +706,7 @@ const checkedValues: readonly {
   },
   {
     bound: identifierBytes,
-    field: "TestIdentifierText.text",
+    field: "TestIdentifierBytes.bytes",
     texts: (row) => [
       ...valueOfAttribute(row, "identifier", ["qti-assessment-test"]),
       ...valueOfAttribute(row, "target-identifier", ["qti-variable-mapping"]),
@@ -717,7 +717,7 @@ const checkedValues: readonly {
   },
   {
     bound: langTextBytes,
-    field: "LangKeyText.text",
+    field: "LangValue.value",
     texts: (row) =>
       row["name"] === "xml:lang" && Predicate.isString(row["value"]) && row["value"] !== ""
         ? [row["value"]]

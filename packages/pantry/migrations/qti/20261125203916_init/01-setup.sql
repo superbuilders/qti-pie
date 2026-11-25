@@ -1996,8 +1996,6 @@ CREATE DOMAIN "qti"."__text_xey6ryorh5" AS "pg_catalog"."text" COLLATE "pg_catal
 
 CREATE DOMAIN "qti"."__text_lecej62lgl" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR ("pg_catalog"."octet_length"(VALUE) <= 268435453 AND VALUE ~ '\A[\u0009\u000A\u000D -\uFFFD\U00010000-\U0010FFFF]*\Z'::"pg_catalog"."text") IS TRUE);
 
-CREATE DOMAIN "qti"."__text_gkottp5s4n" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR ("pg_catalog"."octet_length"(VALUE) <= 268435454 AND VALUE ~ '\A[\u0009\u000A\u000D -\@\[-\uFFFD\U00010000-\U0010FFFF]*\Z'::"pg_catalog"."text") IS TRUE);
-
 CREATE DOMAIN "qti"."__text_tn2inwix7f" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR ("pg_catalog"."octet_length"(VALUE) <= 790 AND VALUE ~ '\A[\u0001-\.0-\U0010FFFF][\u0001-\U0010FFFF]*\Z'::"pg_catalog"."text") IS TRUE);
 
 CREATE FUNCTION "qti"."__row_wczkl5jgfh"("p1" "qti"."document_type", "p2" "qti"."__text_tn2inwix7f") RETURNS boolean

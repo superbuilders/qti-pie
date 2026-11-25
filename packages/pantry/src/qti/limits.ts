@@ -248,12 +248,12 @@ export const PatternKey = law(entryOf("Key text bound"), str.bytes(patternTextBy
 /**
  * Cast a text a view keys into a bounded key text's type, under grizzle's byte guard (README, "A
  * byte bound is a guard"). The guard's other arm, the empty text, is unreachable in every committed
- * state: each view that keys one states "Key text bound" over the very texts it casts
- * (`DeclaredIdentifierText` of `#pantry/qti/names.ts` for a declaration's identifier,
- * `TestIdentifierText` of `#pantry/qti/overlay-queries/tests.ts` for a test's, `LomKeyText` of
- * `#pantry/qti/lom.ts` for the LOM texts, `LangKeyText` of `#pantry/qti/queries.ts` for language
- * tags, `PatternKeyText` of `#pantry/qti/overlay-queries/interaction.ts` for patterns,
- * `TableKeyText` of `#pantry/qti/mapping.ts` for map keys and lookup values), which
+ * state: each view that keys one states "Key text bound" over the very texts it casts, or their
+ * UTF-8 bytes (`DeclaredIdentifierText` of `#pantry/qti/names.ts` for a declaration's identifier,
+ * `TestIdentifierBytes` of `#pantry/qti/overlay-queries/tests.ts` for a test's, `LomKeyTextBytes`
+ * of `#pantry/qti/lom.ts` for the LOM texts, `LangValue` and `RecordNode` in place for language
+ * tags (`#pantry/qti/queries.ts`), `PatternKeyText` of `#pantry/qti/overlay-queries/interaction.ts`
+ * for patterns, `TableKeyText` of `#pantry/qti/mapping.ts` for map keys and lookup values), which
  * refuses at its import a package that holds one past its bound, by name. A view that keys a text
  * its check does not cover is a defect of that view, never a value of the empty text.
  *

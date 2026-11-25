@@ -188,23 +188,24 @@ const mappingTargets = attributeValues("target-identifier", [mappingKind]);
 const categoryValues = attributeValues("category", [itemRefKind]);
 
 /**
- * Each identifier a test document writes that a test view keys, as written, by its element's
+ * The UTF-8 bytes of each identifier a test document writes that a test view keys, by its element's
  * place: a test's `identifier`, the text {@link testRootRows} keys, each token of an item ref's
  * `category`, the text {@link ItemRefCategory} keys, and each variable mapping's
  * `target-identifier`, the name an item ref's tables and readings key an item variable by
  * (`ItemRefTable`, `PrefixedMapResponse`, `#pantry/qti/overlay-queries/readings.ts`), each a
  * `QtiIdentifier` under grizzle's byte guard, which "Key text bound" holds within
- * `identifierBytes`.
+ * `identifierBytes`. It holds each text's length, the one fact its law reads, never the text, so no
+ * key holds a text of no byte bound: a `category`'s tokens of one length are one row.
  */
-const TestIdentifierText = derived(
-  "TestIdentifierText",
+const TestIdentifierBytes = derived(
+  "TestIdentifierBytes",
   query(QtiBase)
     .rule((r) => {
       const { package: pkg, path, start, value } = v(testRootIdentifiers, "root");
 
       return r
         .match(testRootIdentifiers, { package: pkg, path, start, value })
-        .find({ package: pkg, path, start, text: value });
+        .find({ bytes: Text.octetLength(value), package: pkg, path, start });
     })
     .rule((r) => {
       const { package: pkg, path, start, value } = v(categoryValues, "categories");
@@ -213,14 +214,14 @@ const TestIdentifierText = derived(
       return r
         .match(categoryValues, { package: pkg, path, start, value })
         .match(r.tokens(value), { token })
-        .find({ package: pkg, path, start, text: token });
+        .find({ bytes: Text.octetLength(token), package: pkg, path, start });
     })
     .rule((r) => {
       const { package: pkg, path, start, value } = v(mappingTargets, "target");
 
       return r
         .match(mappingTargets, { package: pkg, path, start, value })
-        .find({ package: pkg, path, start, text: value });
+        .find({ bytes: Text.octetLength(value), package: pkg, path, start });
     }),
 );
 
@@ -305,7 +306,7 @@ export const ItemRefSection = derived("ItemRefSection", itemRefSectionRows);
  * collapsed and split at its spaces (§5.6.6: "Items can optionally be assigned to one or more
  * categories. Categories are used to allow custom sets of item outcomes to be aggregated during
  * outcomes processing"), each a `QtiIdentifier` cast under grizzle's byte guard ("Key text bound"
- * refuses a longer one at import over {@link TestIdentifierText}). An item ref that writes none, or
+ * refuses a longer one at import over {@link TestIdentifierBytes}). An item ref that writes none, or
  * an empty one, has no row.
  */
 export const ItemRefCategory = derived(
@@ -2835,9 +2836,7 @@ export const testOverlayLawsByName = {
     ),
   ]),
   "Key text bound": declared("Key text bound", [
-    check("Key_text_bound", TestIdentifierText, (t) =>
-      t.le(Text.octetLength(t.text), identifierBytes),
-    ),
+    check("Key_text_bound", TestIdentifierBytes, (t) => t.le(t.bytes, identifierBytes)),
   ]),
   "Section identifier target": declared("Section identifier target", [
     contained(
@@ -2915,7 +2914,7 @@ export const testOverlayLawsByName = {
  * The queries of this module, each carrying its own name.
  */
 export const testOverlayRelations = [
-  TestIdentifierText,
+  TestIdentifierBytes,
   DeliverableTest,
   AnchoredName,
   AssembledName,

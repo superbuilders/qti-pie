@@ -506,20 +506,29 @@ const namingGenerals = query(QtiViews).rule((r) => {
 });
 
 /**
- * The entries of the general identifiers of the records that name a document, each with its
- * record, that document and its folded string value (`copiedTextKinds` of `#pantry/qti/node.ts`):
- * a `lom:entry` whose parent is a `lom:identifier` whose parent is the record's general category.
+ * The entries of the general identifiers of the records that name a document, each by its
+ * `lom:entry`'s place, `entry`, with its record, that document and its folded string value
+ * (`copiedTextKinds` of `#pantry/qti/node.ts`): a `lom:entry` whose parent is a `lom:identifier`
+ * whose parent is the record's general category. The entry keys a row, `(package, path, entry)`,
+ * since a node has one parent and one string value, so its text is no key's.
  */
 const generalEntries = query(QtiViews).rule((r) => {
   const { package: pkg, path, start: identifier } = v(Node, "identifier");
-  const { stringValue: text } = v(Node, "entry");
+  const { start: entry, stringValue: text } = v(Node, "entry");
   const { document, general, record } = v(namingGenerals, "general");
 
   return r
     .match(Node, { kind: "lom:identifier", package: pkg, parent: general, path, start: identifier })
-    .match(Node, { kind: "lom:entry", package: pkg, parent: identifier, path, stringValue: text })
+    .match(Node, {
+      kind: "lom:entry",
+      package: pkg,
+      parent: identifier,
+      path,
+      start: entry,
+      stringValue: text,
+    })
     .match(namingGenerals, { document, general, package: pkg, path, record })
-    .find({ document, package: pkg, path, record, text });
+    .find({ document, entry, package: pkg, path, record, text });
 });
 
 /**
@@ -815,43 +824,12 @@ const ListedLang = derived(
 );
 
 /**
- * Each language tag a document states or a record lists, case-folded, by its element's place: every
- * `xml:lang` that states a language ({@link LangValue}) and every `lom:language` of a `general`
- * category, the tags {@link DescribedLang}, {@link DescribedAssembledLang} and {@link ListedLang}
- * key, each a `LangText` under grizzle's byte guard, which "Key text bound" holds within
- * `langTextBytes`.
- */
-const LangKeyText = derived(
-  "LangKeyText",
-  query(QtiViews)
-    .rule((r) => {
-      const { package: pkg, path, start, value } = v(LangValue, "form");
-
-      return r
-        .match(LangValue, { package: pkg, path, start, value })
-        .find({ package: pkg, path, start, text: value });
-    })
-    .rule((r) => {
-      const { package: pkg, path, start, stringValue } = v(RecordNode, "language");
-
-      return r
-        .match(RecordNode, {
-          kind: "lom:language",
-          package: pkg,
-          parentKind: "lom:general",
-          path,
-          start,
-          stringValue,
-        })
-        .find({ package: pkg, path, start, text: Text.lowerAscii(stringValue) });
-    }),
-);
-
-/**
  * The identity overlays' rules over a query, each named by its oracle law: R26 (law "Document
  * lang", QTI 3.0 Metadata §2.7.1.3), each language a document or an item's assembly states is one
  * every general category describing it lists ({@link ListedLang}); and "Key text bound", each
- * language tag those views key within `langTextBytes` ({@link LangKeyText}).
+ * language tag those views key within `langTextBytes`, read where it stands: every `xml:lang` that
+ * states a language ({@link LangValue}'s `value`) and every `lom:language` of a `general` category
+ * (a {@link RecordNode}'s `stringValue`, whose UTF-8 bytes its case-folding keeps).
  */
 const identityQueryLawsByName = {
   "Document lang": declared("Document lang", [
@@ -865,47 +843,39 @@ const identityQueryLawsByName = {
     ),
   ]),
   "Key text bound": declared("Key text bound", [
-    check("Key_text_bound", LangKeyText, (t) => t.le(Text.octetLength(t.text), langTextBytes)),
+    check("Key_text_bound", LangValue, (l) => l.le(Text.octetLength(l.value), langTextBytes)),
+    check("Key_text_bound", RecordNode, (n) =>
+      n.or(
+        n.ne(n.kind, "lom:language"),
+        n.ne(n.parentKind, "lom:general"),
+        n.le(Text.octetLength(n.stringValue), langTextBytes),
+      ),
+    ),
   ]),
 } as const;
 
 /**
- * A learning resource type's term of one kind in a record document ({@link RecordNode}), with its
- * learning resource type's node and the term's folded string value
- * (`copiedTextKinds` of `#pantry/qti/node.ts`), compared collapsed. The binding's Schematron caps
- * each term at one per type (N7, spec reading 130).
- *
- * @param kind - The term: its vocabulary's `lom:source` or its `lom:value`.
- * @returns The terms, each by its type's place.
+ * The learning resource types whose value, collapsed, QTI 3.0 Metadata §2.7.5.1 forbids of the LOM
+ * vocabulary, `exam` and `self assessment` ({@link forbiddenResourceTypes}), each by its node: a
+ * `lom:value` of a learning resource type in a record document ({@link RecordNode}), its folded
+ * string value (`copiedTextKinds` of `#pantry/qti/node.ts`) compared collapsed, which no row
+ * holds. Each needs a source of another vocabulary. The binding's Schematron caps each term at one
+ * per type (N7, spec reading 130).
  */
-const resourceTypeTerms = (kind: "lom:source" | "lom:value") =>
+const ForbiddenResourceType = derived(
+  "ForbiddenResourceType",
   query(QtiViews).rule((r) => {
-    const { package: pkg, parent: type, path, stringValue: text } = v(RecordNode, "term");
+    const { package: pkg, parent: type, path, stringValue: text } = v(RecordNode, "value");
 
     return r
       .match(RecordNode, {
-        kind,
+        kind: "lom:value",
         package: pkg,
         parent: type,
         parentKind: "lom:learningResourceType",
         path,
         stringValue: text,
       })
-      .find({ package: pkg, path, text, type });
-  });
-
-/**
- * The learning resource types whose value, collapsed, QTI 3.0 Metadata §2.7.5.1 forbids of the LOM
- * vocabulary, `exam` and `self assessment` ({@link forbiddenResourceTypes}), each by its node: each
- * needs a source of another vocabulary.
- */
-const ForbiddenResourceType = derived(
-  "ForbiddenResourceType",
-  query(QtiViews).rule((r) => {
-    const { package: pkg, path, text, type } = v(resourceTypeTerms("lom:value"), "value");
-
-    return r
-      .match(resourceTypeTerms("lom:value"), { package: pkg, path, text, type })
       .where(
         r.or(...forbiddenResourceTypes.map((forbidden) => r.eq(Text.collapse(text), forbidden))),
       )
@@ -915,16 +885,25 @@ const ForbiddenResourceType = derived(
 
 /**
  * The learning resource types whose source names another vocabulary than the LOM's, each by its
- * node: a source that collapses to neither `LOMv1.0` nor the empty source the binding's default
- * fills ({@link lomVocabularySources}). A type that writes no source has no row.
+ * node: a `lom:source` of a learning resource type in a record document ({@link RecordNode}) that
+ * collapses to neither `LOMv1.0` nor the empty source the binding's default fills
+ * ({@link lomVocabularySources}), read as {@link ForbiddenResourceType} reads a value. A type that
+ * writes no source has no row.
  */
 const OtherVocabularyType = derived(
   "OtherVocabularyType",
   query(QtiViews).rule((r) => {
-    const { package: pkg, path, text, type } = v(resourceTypeTerms("lom:source"), "source");
+    const { package: pkg, parent: type, path, stringValue: text } = v(RecordNode, "source");
 
     return r
-      .match(resourceTypeTerms("lom:source"), { package: pkg, path, text, type })
+      .match(RecordNode, {
+        kind: "lom:source",
+        package: pkg,
+        parent: type,
+        parentKind: "lom:learningResourceType",
+        path,
+        stringValue: text,
+      })
       .where(r.and(...lomVocabularySources.map((source) => r.ne(Text.collapse(text), source))))
       .find({ package: pkg, path, type });
   }),
@@ -2091,7 +2070,6 @@ export const queryRelations = [
   InstanceDocument,
   InterpolatedLookup,
   ItemRefTarget,
-  LangKeyText,
   ListedIdentifier,
   ListedLang,
   ListedTitle,

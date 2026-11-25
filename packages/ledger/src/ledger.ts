@@ -62,7 +62,6 @@ import {
   ProgramNode,
   processingKinds,
   TableBinding,
-  TableEntry,
 } from "#ledger/grading.ts";
 import { anyText, LearnerId, ScorerId, someText } from "#ledger/keys.ts";
 import { named } from "#ledger/laws.ts";
@@ -112,6 +111,33 @@ export const SessionValueKind = closed.ordered("SessionValueKind", [
  * of them as written. QTI states no order between them.
  */
 export const ExternalScoring = closed.unordered("ExternalScoring", ["externalMachine", "human"]);
+
+/**
+ * The most UTF-8 bytes a registry table's name and a registry word each hold as the machine's text
+ * of it (`RegistryTableName.name`, `RegistryWordText.text`): what one B-tree entry leaves each
+ * beside the other in the key the grader's run inputs over the registry's tables hold them in,
+ * `(identifier, key)` of `table_entry` and `table_value`, stored where their reads are closed and
+ * parameter-free; `(class, identifier, role)` of `table_binding` leaves a name more.
+ *
+ * @limitKind derived
+ * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
+ * @unit UTF-8 bytes
+ * @scope one seed table's name or one seed word, in any key or index grizzle builds over a run input
+ *   of the registry's tables
+ * @constraint the names and words are the roster's own, the registry's seed and a deployment's
+ *   (`registryOf`), each a closed constant, so a longer one is refused where the schema compiles,
+ *   never at a write: the longest are 28 bytes (a table's name) and 19 bytes (a word), of 14 tables
+ *   and 998 words in the registry's seed (`#ledger/registry/seed.ts`, 2026-11-25), 2% of the bound
+ * @derivation grizzle's `keyFits` over `(identifier, key)`, two such texts in one entry: the most
+ *   each can hold, which `(class, identifier, role)` holds too
+ */
+const registryTextBytes = 1341;
+
+/**
+ * A registry table's name or a registry word as the machine's text of it, of at most
+ * {@link registryTextBytes} UTF-8 bytes.
+ */
+const RegistryText = str.bytes(registryTextBytes, anyText);
 
 /**
  * The ledger, `ledger` in PostgreSQL: QTI 3.0.1's session facts, what each learner was served and
@@ -2609,7 +2635,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
    */
   const RegistryTableName = closed.relation(
     "RegistryTableName",
-    { name: TableBinding.fields.identifier, table: closedId(RegistryTable) },
+    { name: RegistryText, table: closedId(RegistryTable) },
     ["table"],
     RegistryTable.handles.map((table) => ({ name: table, table })),
   );
@@ -2619,7 +2645,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
    */
   const RegistryWordText = closed.relation(
     "RegistryWordText",
-    { key: closedId(RegistryWord), text: TableEntry.fields.key },
+    { key: closedId(RegistryWord), text: RegistryText },
     ["key"],
     RegistryWord.handles.map((word) => ({ key: word, text: word })),
   );
