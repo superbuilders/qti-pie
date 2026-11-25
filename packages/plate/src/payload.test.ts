@@ -1,4 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
+import { growthFactor, growthLimit, growthRatio } from "@qti-pie/crust/test/growth.ts";
 import { Effect, Option } from "effect";
 import { configure } from "#plate/configuration.ts";
 import type { SourceAttribute, SourceDocument, SourceElement } from "#plate/document/source.ts";
@@ -37,7 +38,6 @@ import { shownResponses, startingResponses } from "#plate/starting.ts";
 import { hiddenOnlyResponses, redactItem, redactStructure } from "#plate/redact/walk.ts";
 import type { Redacted } from "#plate/redact/walk.ts";
 import { jsonField } from "#plate/test/fixtures.ts";
-import { growthFactor, growthLimit, growthRatio } from "#plate/test/growth.ts";
 import {
   feedbackHidden,
   pageOf,

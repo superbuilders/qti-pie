@@ -481,18 +481,20 @@ const countingScript =
 
 /**
  * Password commands that outlive a 1-second bound, by how they take SIGTERM: each writes its
- * process ID beside it, then waits 30 seconds in a child `sleep`, which shares its process group,
- * before it would print a password.
+ * process ID beside it, then waits 30 seconds in a child `sleep`, which shares its process group
+ * and its disposition of SIGTERM, before it writes a `.slept` file beside it and would print a
+ * password. A run that stopped the command leaves no `.slept` file, and one that waited for it to
+ * end leaves one, whatever the machine's load.
  */
 const lingeringScripts = [
   {
     file: "lingering.sh",
-    text: "#!/bin/sh\necho $$ > \"$0.pid\"\nsleep 30\nprintf 'too late'\n",
+    text: '#!/bin/sh\necho $$ > "$0.pid"\nsleep 30\n: > "$0.slept"\nprintf \'too late\'\n',
     variant: "ends on SIGTERM",
   },
   {
     file: "stubborn.sh",
-    text: "#!/bin/sh\ntrap '' TERM\necho $$ > \"$0.pid\"\nsleep 30\nprintf 'too late'\n",
+    text: "#!/bin/sh\ntrap '' TERM\necho $$ > \"$0.pid\"\nsleep 30\n: > \"$0.slept\"\nprintf 'too late'\n",
     variant: "ignores SIGTERM",
   },
 ] as const;
@@ -1279,7 +1281,8 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             exhaust(
               {
                 box: "a command that ends on SIGTERM at a login's first attempt, and one that ignores it at the build of the runtime's login connection, under a 1-second bound",
-                caseHang: Duration.seconds(20),
+                // Past the commands' 30 seconds, so a run that waits for one is reported by its mark.
+                caseHang: Duration.minutes(1),
                 concurrency: 1,
                 coverage: requiredInSpace<(typeof lingeringScripts)[number]["variant"]>([
                   "ends on SIGTERM",
@@ -1326,8 +1329,14 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                     { role, timeout: "1s" },
                   );
                   assertReported(refusal, command, role);
+                  // The bound is a real second, so its floor is read on the wall clock, which a
+                  // busy machine only lengthens; whether the run waited for the command is read
+                  // from the command's own mark.
                   assert.isAtLeast(elapsed, 1000);
-                  assert.isBelow(elapsed, 10_000, "the run waited for the command's 30 seconds");
+                  assert.isFalse(
+                    yield* fs.exists(`${command}.slept`),
+                    "the run waited for the command's 30 seconds",
+                  );
                   assert.isFalse(
                     yield* groupAlive(group),
                     `process group ${String(group)} lives on`,

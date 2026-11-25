@@ -1,25 +1,19 @@
 /**
  * The reader's cost is linear in the document: reading chains at the reader's depth bound, each
  * element in a namespace, with an attribute that holds an undeclared reference and an ATTLIST
- * default to apply, costs the same time per element at about 10,000, 50,000 and 100,000 elements.
+ * default to apply, takes about {@link growthFactor} times the thread CPU on 8 times the elements.
  *
- * The gate compares times per element, not times, so a machine's steady load scales every size
- * alike and cancels out: each size's time is the best of its runs, the smaller sizes run more
- * often, and a larger size may cost at most {@link FLAT} times the smallest's per element. A cost
- * per element that grows with the document, such as a line and column found from the text's start
- * at each tag, grows the 100,000-element document's time per element by ten times what it adds to
- * the 10,000-element one's.
+ * The gate compares the thread CPU time of two reads (`growthRatio`, `#crust/test/growth.ts`),
+ * which counts the time this thread ran, every step of the regex engine and of the decoder's
+ * builtins among it, and not the time other processes held the CPU, so a busy machine does not
+ * move it the way it moves wall-clock time. A cost per element that grows with the document, such
+ * as a line and column found from the text's start at each tag, grows the time about 64 times on 8
+ * times the elements.
  */
 import { assert, describe, it } from "@effect/vitest";
 import { Effect } from "effect";
 import { readXml } from "#crust/read.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard, never a budget. Measured 2026-11-07: 24 s at a load average of 63 to 73,
- * its slowest test.
- */
-const testTimeoutMs = 180_000;
+import { growthFactor, growthLimit, growthRatio } from "#crust/test/growth.ts";
 
 /**
  * The levels of each chain below the root: with the root, the 256 open elements the reader reads.
@@ -27,22 +21,10 @@ const testTimeoutMs = 180_000;
 const CHAIN = 255;
 
 /**
- * The documents the gate reads, by how many chains the root holds, each with how many times it is
- * read: about 10,000, 50,000 and 100,000 elements.
+ * The chains under the root of the smaller document the gate reads, about 10,000 elements; the
+ * larger holds {@link growthFactor} times as many, about 80,000.
  */
-const SIZES = [
-  { chains: 40, runs: 3 },
-  { chains: 196, runs: 2 },
-  { chains: 392, runs: 2 },
-] as const;
-
-/**
- * The most a larger document's time per element may be, as a multiple of the smallest's. Measured
- * on 2026-11-10 under a load average near 24 on 10 cores, the ratios are 0.6 to 0.9, because the
- * smallest document also pays for warming the code. Finding each start tag's line from the text's
- * start, a backward scan to the last line break before it, ran the gate past ten minutes there.
- */
-const FLAT = 2;
+const FEWER_CHAINS = 40;
 
 /**
  * Write a document of `chains` chains of {@link CHAIN} elements under one root: the root declares a
@@ -60,46 +42,33 @@ const documentOf = (chains: number): Uint8Array =>
   );
 
 /**
- * Read a document and give the best time per element over the runs.
+ * Give one read of a document, run each time it is called.
  *
- * @param size - The chains and the runs.
- * @param size.chains - The chains under the root.
- * @param size.runs - How many times to read it.
- * @returns The fewest microseconds per element any run took.
+ * @param bytes - The document.
+ * @returns The read.
  */
-const perElement = ({ chains, runs }: { readonly chains: number; readonly runs: number }) =>
-  Effect.gen(function* timeDocument() {
-    const bytes = documentOf(chains);
-    const elements = 1 + CHAIN * chains;
-    let best = Number.POSITIVE_INFINITY;
-    for (let run = 0; run < runs; run += 1) {
-      const start = performance.now();
-      const document = yield* readXml(bytes);
-      const took = performance.now() - start;
-
-      assert.strictEqual(document.root.children.length, chains);
-      best = Math.min(best, (took * 1000) / elements);
-    }
-
-    return best;
-  });
+const reading = (bytes: Uint8Array) => () => {
+  Effect.runSync(Effect.orDie(readXml(bytes)));
+};
 
 describe("the reader's cost", () => {
   it.effect(
-    "stays flat per element over 10,000, 50,000 and 100,000 namespaced elements, in chains at the depth bound, with references and an ATTLIST default",
+    "grows linearly from 10,000 to 80,000 namespaced elements, in chains at the depth bound, with references and an ATTLIST default",
     () =>
-      Effect.gen(function* flatCost() {
-        const costs = yield* Effect.all(SIZES.map((size) => perElement(size)));
-        const [smallest, ...larger] = costs;
-        const shown = SIZES.map(
-          ({ chains }, at) =>
-            `${1 + CHAIN * chains}: ${(costs[at] ?? 0).toFixed(1)} µs per element`,
-        ).join(", ");
+      Effect.gen(function* linearCost() {
+        const fewer = documentOf(FEWER_CHAINS);
+        const more = documentOf(FEWER_CHAINS * growthFactor);
+        const read = yield* readXml(more);
 
-        for (const cost of larger) {
-          assert.isAtMost(cost, FLAT * (smallest ?? 0), shown);
-        }
+        assert.strictEqual(read.root.children.length, FEWER_CHAINS * growthFactor);
+
+        const growth = yield* growthRatio(reading(fewer), reading(more));
+
+        assert.isBelow(
+          growth,
+          growthLimit,
+          `8 times the elements took ${growth.toFixed(1)} times the thread CPU`,
+        );
       }),
-    testTimeoutMs,
   );
 });

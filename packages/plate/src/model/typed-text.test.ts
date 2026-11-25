@@ -8,6 +8,7 @@
  * @module
  */
 import { assert, describe, it } from "@effect/vitest";
+import { growthFactor, growthLimit, growthRatio } from "@qti-pie/crust/test/growth.ts";
 import { Effect, Option, Result } from "effect";
 import {
   asTyped,
@@ -18,7 +19,6 @@ import {
 } from "#plate/model/typed-text.ts";
 import type { TypedReading, UnreadReason } from "#plate/model/typed-text.ts";
 import type { RecordField, RecordValue, Single } from "#plate/model/values.ts";
-import { growthFactor, growthLimit, growthRatio } from "#plate/test/growth.ts";
 
 /**
  * Construct a box's reading for a test.

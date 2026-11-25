@@ -9,9 +9,10 @@
  *
  * @module
  */
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import type { SourceDocument, SourceElement } from "#plate/document/source.ts";
 import type { UnsupportedFeature } from "#plate/model/item.ts";
+import { readPnp } from "#plate/pnp/read.ts";
 import { attr, declaration, el, item, paragraph } from "#plate/test/source.ts";
 import { tables } from "#plate/validate/tables.ts";
 import { checkAdmitted, unsupportedFeatures } from "#plate/validate/verdict.ts";
@@ -134,9 +135,37 @@ const building =
   };
 
 /**
+ * The hazards a repeated profile's `hazard-avoidance` children name in turn: three of PNP's own and
+ * an extension, so the profile repeats each many times.
+ */
+const repeatedHazards = ["flashing", "sound", "ext:iowa-reading", "olfactory-hazard"] as const;
+
+/**
+ * An Access for All PNP profile of `count` `hazard-avoidance` children, the four
+ * {@link repeatedHazards} in turn, in QTI 3.0's PNP namespace, as UTF-8 bytes.
+ *
+ * @param count How many children the profile holds.
+ * @returns The profile's bytes.
+ */
+export const repeatedProfile = (count: number): Uint8Array =>
+  new TextEncoder().encode(
+    `<access-for-all-pnp xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imsafa3p0pnp_v1p0">${Array.from(
+      { length: count },
+      (_, at) =>
+        `<hazard-avoidance>${repeatedHazards[at % repeatedHazards.length]}</hazard-avoidance>`,
+    ).join("")}</access-for-all-pnp>`,
+  );
+
+/**
  * The subjects' names, the literals {@link CountingSchema} reads.
  */
-const subjectNames = ["binds", "quadraticBinding", "quadraticDedupe", "records"] as const;
+const subjectNames = [
+  "binds",
+  "pnpRepeats",
+  "quadraticBinding",
+  "quadraticDedupe",
+  "records",
+] as const;
 
 /**
  * The name of a subject.
@@ -149,6 +178,13 @@ export type SubjectName = (typeof subjectNames)[number];
  */
 export const subjects = {
   binds: (count: number) => building(textEntries(count)),
+  pnpRepeats: (count: number) => {
+    const profile = repeatedProfile(count);
+
+    return () => {
+      Effect.runSync(Effect.orDie(readPnp(profile)));
+    };
+  },
   quadraticBinding: (count: number) => {
     const source = textEntries(count);
 

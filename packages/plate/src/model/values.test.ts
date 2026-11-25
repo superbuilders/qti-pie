@@ -1,4 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
+import { growthFactor, growthLimit, growthRatio } from "@qti-pie/crust/test/growth.ts";
 import { Effect, Option, Result } from "effect";
 import {
   format,
@@ -19,7 +20,6 @@ import type {
   Single,
   Value,
 } from "#plate/model/values.ts";
-import { growthFactor, growthLimit, growthRatio } from "#plate/test/growth.ts";
 
 /**
  * Construct a value for a test.

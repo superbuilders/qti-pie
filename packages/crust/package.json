@@ -14,6 +14,7 @@
     "./namespaces.ts": "./src/namespaces.ts",
     "./read.ts": "./src/read.ts",
     "./regex.ts": "./src/regex.ts",
+    "./test/growth.ts": "./src/test/growth.ts",
     "./text.ts": "./src/text.ts",
     "./tree.ts": "./src/tree.ts",
     "./uri.ts": "./src/uri.ts",

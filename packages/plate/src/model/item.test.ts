@@ -1,4 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
+import { growthFactor } from "@qti-pie/crust/test/growth.ts";
 import { Effect, Option } from "effect";
 import { readSource } from "#plate/document/read.ts";
 import { xmlNamespace } from "#plate/document/source.ts";
@@ -25,7 +26,7 @@ import {
   templated,
   textEntries,
 } from "#plate/test/counted.ts";
-import { blockGrowth, blockGrowthLimit, growthFactor } from "#plate/test/growth.ts";
+import { blockGrowth, blockGrowthLimit } from "#plate/test/growth.ts";
 import { attr, declaration, doc, el, item, paragraph, text } from "#plate/test/source.ts";
 
 /**

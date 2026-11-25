@@ -1,10 +1,13 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { assert, describe, it } from "@effect/vitest";
+import { growthFactor } from "@qti-pie/crust/test/growth.ts";
 import { Effect, Option, Result, Schema } from "effect";
 import { readPnp } from "#plate/pnp/read.ts";
 import type { InvalidPnp, PnpSelector } from "#plate/pnp/read.ts";
 import { noSupports, PnpSupportsSchema, SupportsSchema } from "#plate/supports.ts";
 import type { PnpSupports, Supports, TextPreferences } from "#plate/supports.ts";
+import { repeatedProfile } from "#plate/test/counted.ts";
+import { blockGrowth, blockGrowthLimit } from "#plate/test/growth.ts";
 
 /**
  * The schema's namespace, the guide's two, and none: the four every PNP element may be in.
@@ -49,6 +52,12 @@ const profile = (children: string, namespace: string = namespaces[0]): Uint8Arra
   bytes(
     `<access-for-all-pnp${namespace === "" ? "" : ` xmlns="${namespace}"`}>${children}</access-for-all-pnp>`,
   );
+
+/**
+ * The `hazard-avoidance` children the repeated profile's growth check reads first, before it reads
+ * {@link growthFactor} times as many: 10,000.
+ */
+const fewerRepeats = 1250;
 
 /**
  * Fresh documents the set and spelling cases share, written for these tests and copying nothing
@@ -999,25 +1008,31 @@ describe("readPnp", () => {
     }),
   );
 
-  it.effect("a profile that repeats one feature 10,000 times reads in bounded time", () =>
-    Effect.gen(function* repeated() {
-      const hazards = ["flashing", "sound", "ext:iowa-reading", "olfactory-hazard"] as const;
-      const children = Array.from({ length: 2500 }, () => hazards)
-        .flat()
-        .map((hazard) => `<hazard-avoidance>${hazard}</hazard-avoidance>`)
-        .join("");
+  it.effect(
+    "a profile that repeats one feature 10,000 times reads its four hazards, its blocks growing linearly with the children",
+    () =>
+      // Oracle: the work, counted: the blocks of JavaScript one read runs (`blockGrowth`, V8's
+      // block coverage, the same on every run and under any load) on 1,250 children and on 8 times
+      // as many, where a reader that compared each child with those before it would run about 64
+      // times the blocks. Bound: one profile of each size.
+      Effect.gen(function* repeated() {
+        const pnp = yield* read(repeatedProfile(fewerRepeats * growthFactor));
 
-      assert.strictEqual(children.split("<hazard-avoidance>").length - 1, 10_000);
+        assert.deepStrictEqual(
+          pnp.hazards,
+          new Set(["flashing", "sound", "ext:iowa-reading", "olfactory-hazard"]),
+        );
+        assert.deepStrictEqual(pnp.features, new Set(["hazard-avoidance"]));
+        assert.deepStrictEqual(pnp.ignored, []);
 
-      const started = performance.now();
-      const pnp = yield* read(profile(children));
-      const elapsed = performance.now() - started;
+        const growth = yield* blockGrowth("pnpRepeats", fewerRepeats);
 
-      assert.deepStrictEqual(pnp.hazards, new Set(hazards));
-      assert.deepStrictEqual(pnp.features, new Set(["hazard-avoidance"]));
-      assert.deepStrictEqual(pnp.ignored, []);
-      assert.isBelow(elapsed, 1000);
-    }),
+        assert.isBelow(
+          growth,
+          blockGrowthLimit,
+          `8 times the children ran ${growth.toFixed(1)} times the blocks`,
+        );
+      }),
   );
 
   it.effect(
