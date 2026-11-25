@@ -42,41 +42,54 @@ import { regex } from "arkregex";
  * a sample of its own: entries that share a `what` name one kind of artefact.
  */
 const BANNED: readonly { readonly pattern: RegExp; readonly what: string }[] = [
-  { pattern: /data[-_]m[t]b[-_]/iu, what: "a builder data attribute" },
-  { pattern: /\b[Mm][t]b(?:[A-Z_]|\b)/u, what: "a builder identifier, class or sidecar block" },
-  { pattern: /\b[Ss]creen_?(?:[Kk]ind|[Ss]pec)\b/u, what: "a builder sidecar field" },
-  { pattern: /\bitem_type_d[e]clared\b/u, what: "a builder sidecar field" },
-  { pattern: /\bfixed_s[l]ot\b/u, what: "a builder sidecar field" },
-  { pattern: /\bb[l]ueprint_versions?(?:_id)?\b/u, what: "a builder sidecar field" },
-  { pattern: /"kind"\s*:\s*"scatter"\s*,\s*"s[e]ed"/u, what: "a builder sidecar field" },
-  { pattern: /\/b[l]ueprints\/(?:K|[0-9]+)\/forms\//u, what: "a builder URL path" },
-  { pattern: /<!--\s*Audio\s+on\s+req[u]est:/u, what: "a builder comment" },
-  { pattern: /CUSTOM\s+INTERACTION\s+\(a\s+b[u]ild/u, what: "a builder comment" },
-  { pattern: /\b(?:k|g1|g2)item\b/u, what: "the builder renderer's source" },
-  { pattern: /\bFormScreen(?:s|Spec)\b/u, what: "the builder renderer's source" },
-  { pattern: /\bG[12]Screen(?:s|Spec)?\b/u, what: "the builder renderer's source" },
-  { pattern: /\b(?:FORM|G1|G2)_SCREEN/u, what: "the builder renderer's source" },
-  { pattern: /\brenderer-s[o]urce\//u, what: "the builder renderer's source" },
+  { pattern: regex("data[-_]m[t]b[-_]", "iu"), what: "a builder data attribute" },
   {
-    pattern:
-      /<img[^>]{0,2048}\bclass(?:Name)?=["'\\]{0,2}(?:[^"'>]{0,256}\s)?(?:s[t]imulus|o[p]tion)(?=["'\\\s/>])/iu,
+    pattern: regex("\\b[Mm][t]b(?:[A-Z_]|\\b)", "u"),
+    what: "a builder identifier, class or sidecar block",
+  },
+  { pattern: regex("\\b[Ss]creen_?(?:[Kk]ind|[Ss]pec)\\b", "u"), what: "a builder sidecar field" },
+  { pattern: regex("\\bitem_type_d[e]clared\\b", "u"), what: "a builder sidecar field" },
+  { pattern: regex("\\bfixed_s[l]ot\\b", "u"), what: "a builder sidecar field" },
+  { pattern: regex("\\bb[l]ueprint_versions?(?:_id)?\\b", "u"), what: "a builder sidecar field" },
+  {
+    pattern: regex('"kind"\\s*:\\s*"scatter"\\s*,\\s*"s[e]ed"', "u"),
+    what: "a builder sidecar field",
+  },
+  { pattern: regex("/b[l]ueprints/(?:K|[0-9]+)/forms/", "u"), what: "a builder URL path" },
+  { pattern: regex("<!--\\s*Audio\\s+on\\s+req[u]est:", "u"), what: "a builder comment" },
+  { pattern: regex("CUSTOM\\s+INTERACTION\\s+\\(a\\s+b[u]ild", "u"), what: "a builder comment" },
+  { pattern: regex("\\b(?:k|g1|g2)item\\b", "u"), what: "the builder renderer's source" },
+  { pattern: regex("\\bFormScreen(?:s|Spec)\\b", "u"), what: "the builder renderer's source" },
+  { pattern: regex("\\bG[12]Screen(?:s|Spec)?\\b", "u"), what: "the builder renderer's source" },
+  { pattern: regex("\\b(?:FORM|G1|G2)_SCREEN", "u"), what: "the builder renderer's source" },
+  { pattern: regex("\\brenderer-s[o]urce/", "u"), what: "the builder renderer's source" },
+  {
+    pattern: regex.as(
+      "<img[^>]{0,2048}\\bclass(?:Name)?=[\"'\\\\]{0,2}(?:[^\"'>]{0,256}\\s)?(?:s[t]imulus|o[p]tion)(?=[\"'\\\\\\s/>])",
+      "iu",
+    ),
     what: "the builder's picture markup or package path",
   },
   {
-    pattern: /src="[^"]{0,2048}\/(?:p[i]cture|o[p]tion_[0-9]+|s[c]reen|r[e]sponse)\.png"/u,
+    pattern: regex(
+      'src="[^"]{0,2048}/(?:p[i]cture|o[p]tion_[0-9]+|s[c]reen|r[e]sponse)\\.png"',
+      "u",
+    ),
     what: "the builder's picture markup or package path",
   },
   {
-    pattern: /\bimages(?:-grade-(?:K|[0-9]))?\/(?:K|[0-9])\/F[0-9]+\.[0-9]{2}\//u,
+    pattern: regex("\\bimages(?:-grade-(?:K|[0-9]))?/(?:K|[0-9])/F[0-9]+\\.[0-9]{2}/", "u"),
     what: "the builder's picture markup or package path",
   },
   {
-    pattern: /\bimages-g[r]ade-(?:K|[0-9])\b/u,
+    pattern: regex("\\bimages-g[r]ade-(?:K|[0-9])\\b", "u"),
     what: "the builder's picture markup or package path",
   },
   {
-    pattern:
-      /(?<=^|\/)(?:renderer-s[o]urce|package-c[o]de-and-docs|images-g[r]ade-(?:K|[0-9]))(?:\/|$)/mu,
+    pattern: regex(
+      "(?<=^|/)(?:renderer-s[o]urce|package-c[o]de-and-docs|images-g[r]ade-(?:K|[0-9]))(?:/|$)",
+      "mu",
+    ),
     what: "a path of the delivery",
   },
 ];
@@ -85,21 +98,25 @@ const BANNED: readonly { readonly pattern: RegExp; readonly what: string }[] = [
  * Base64 that is not text: subresource-integrity hashes at their exact lengths (lockfiles) and
  * data: URIs, read as blanks.
  */
-const OPAQUE =
-  /\bsha1-[A-Za-z0-9+/]{27}=|\bsha256-[A-Za-z0-9+/]{43}=|\bsha384-[A-Za-z0-9+/]{64}|\bsha512-[A-Za-z0-9+/]{86}==|\bdata:[\w/+.-]*(?:;[\w.+-]+=[^;,"'\s]*)*;base64,[A-Za-z0-9+/]+=*/gu;
+const OPAQUE = regex(
+  "\\bsha1-[A-Za-z0-9+/]{27}=|\\bsha256-[A-Za-z0-9+/]{43}=|\\bsha384-[A-Za-z0-9+/]{64}|\\bsha512-[A-Za-z0-9+/]{86}==|\\bdata:[\\w/+.-]*(?:;[\\w.+-]+=[^;,\"'\\s]*)*;base64,[A-Za-z0-9+/]+=*",
+  "gu",
+);
 
 /**
  * The escapes a copy of the markup may hide behind: JSON's and JavaScript's `\u` and `\x`, HTML's
  * numeric and named entities. A backslash before a quote is not read (generated files hold many);
  * the picture-class pattern allows it.
  */
-const ESCAPE =
-  /\\u(?<unicode>[0-9a-fA-F]{4})|\\x(?<byte>[0-9a-fA-F]{2})|&#[xX](?<hex>[0-9a-fA-F]{1,6});|&#(?<decimal>[0-9]{1,7});|&(?<named>lt|gt|quot|apos|amp);/gu;
+const ESCAPE = regex(
+  "\\\\u(?<unicode>[0-9a-fA-F]{4})|\\\\x(?<byte>[0-9a-fA-F]{2})|&#[xX](?<hex>[0-9a-fA-F]{1,6});|&#(?<decimal>[0-9]{1,7});|&(?<named>lt|gt|quot|apos|amp);",
+  "gu",
+);
 
 /**
  * The characters HTML's named entities stand for.
  */
-const NAMED = new Map([
+const NAMED: ReadonlyMap<string, string> = new Map([
   ["amp", "&"],
   ["apos", "'"],
   ["gt", ">"],
@@ -152,7 +169,7 @@ const unescaped = (text: string): string => {
 /**
  * ASCII whitespace, which a reformatted copy of a text or drawing changes and nothing else does.
  */
-const WHITESPACE = /[ \t\n\r\f\v]+/gu;
+const WHITESPACE = regex("[ \t\n\r\f\v]+", "gu");
 
 /**
  * The longest text a reformatted copy can be: the delivery's longest text has 398,283 bytes
@@ -220,7 +237,7 @@ const holdsDigests = (name: string, list: ReadonlySet<string>, least: number): v
 const offences = (text: string): readonly string[] => {
   const blanked =
     text.includes("sha") || text.includes("base64,") ? text.replaceAll(OPAQUE, " ") : text;
-  const readable = /\\[ux][0-9a-fA-F]|&(?:#|lt;|gt;|quot;|apos;|amp;)/u.test(blanked)
+  const readable = regex("\\\\[ux][0-9a-fA-F]|&(?:#|lt;|gt;|quot;|apos;|amp;)", "u").test(blanked)
     ? unescaped(blanked)
     : blanked;
 
@@ -249,7 +266,10 @@ const delivered = (
   }
 
   const uris = text.matchAll(
-    /\bdata:[\w/+.-]*(?:;[\w.+-]+=[^;,"'\s]*)*;base64,(?<payload>[A-Za-z0-9+/]+=*)/gu,
+    regex(
+      "\\bdata:[\\w/+.-]*(?:;[\\w.+-]+=[^;,\"'\\s]*)*;base64,(?<payload>[A-Za-z0-9+/]+=*)",
+      "gu",
+    ),
   );
 
   return [...uris].some(({ groups }) =>
@@ -280,8 +300,8 @@ const rewritten = (
   deniedText: ReadonlySet<string> = DENIED_TEXT,
 ): readonly string[] => {
   const whole = text.length <= LONGEST_COPY ? flat(text) : Buffer.alloc(0);
-  const drawings = /<svg\b/iu.test(text)
-    ? (text.match(/<svg\b[\s\S]*?<\/svg>/giu) ?? [])
+  const drawings = regex("<svg\\b", "iu").test(text)
+    ? (text.match(regex("<svg\\b[\\s\\S]*?</svg>", "giu")) ?? [])
         .map(flat)
         .filter((drawing) => drawing.length >= 64)
     : [];
