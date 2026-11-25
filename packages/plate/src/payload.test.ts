@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { noCoverage, requiredInSpace } from "@bjornpagen/testing/features";
-import { array, constant, element, int, map, oneOf } from "@bjornpagen/testing/gen";
+import { array, boolean, constant, element, int, map, oneOf } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { growthFactor, growthLimit, growthRatio } from "@qti-pie/crust/test/growth.ts";
@@ -1633,6 +1633,33 @@ const templateNamesOf = (
   ];
 };
 
+/**
+ * Draw a value of `FEEDBACK` the feedback-held End Attempt is shown under: NULL, the block's
+ * identifier `clue`, or another.
+ */
+const clueValue: Gen<Value> = oneOf([
+  constant(nullOf("identifier", "single")),
+  map(element(["clue", "other"]), identifierValue),
+]);
+
+/**
+ * Draw a page of the feedback-held End Attempt box: no record, or a record holding each value of
+ * {@link clueValue}, on a page that shows feedback and on one that does not.
+ */
+const clueShowing: Gen<Showing> = oneOf([
+  constant(feedbackHidden),
+  (source): Showing => {
+    const record: RedactRecord = {
+      attempt: "none",
+      defaults: {},
+      outcomes: { FEEDBACK: source.draw(clueValue) },
+      templates: {},
+    };
+
+    return source.draw(boolean) ? { record, showFeedback: true } : underRecord(record);
+  },
+]);
+
 describe("redactItem on template blocks, inlines and choices", () => {
   it.effect(
     "copies a choice its template value shows with no template visibility, and the JSON of the redacted item holds no template-identifier, show-hide or template value",
@@ -3079,50 +3106,70 @@ describe("startingResponses", () => {
     assert.deepStrictEqual(startingResponses(acceptForTest(shown), feedbackHidden), { HINT: no });
   });
 
-  it("shows an End Attempt inside feedback the record shows only where the page shows feedback, and starts it at false either way (show-feedback, 7.19.2)", () => {
-    const no: Value = {
-      baseType: "boolean",
-      cardinality: "single",
-      values: [{ baseType: "boolean", value: false }],
-    };
-    const clue: Item = {
-      ...item,
-      body: [
-        {
-          content: [
-            endAttempt(
-              "MORE",
-              "qti-assessment-item/qti-item-body/qti-feedback-block/qti-end-attempt-interaction",
-            ),
-          ],
-          feedbackVisibility: { outcomeIdentifier: "FEEDBACK", showHide: "hide" },
-          identifier: "clue",
-          kind: "feedback-block",
-          path: "qti-assessment-item/qti-item-body/qti-feedback-block",
-          responses: ["MORE"],
-        },
-      ],
-      responses: new Map([booleanResponse("MORE", Option.none())]),
-    };
-    const accepted = acceptForTest(clue);
-    /**
-     * FEEDBACK at NULL, as the database's record holds it at the start: the hide block shows.
-     */
-    const start: RedactRecord = {
-      attempt: "none",
-      defaults: {},
-      outcomes: { FEEDBACK: { baseType: "identifier", cardinality: "single", values: [] } },
-      templates: {},
-    };
-    const fed: Showing = { record: start, showFeedback: true };
+  it.effect(
+    "shows an End Attempt inside feedback the record shows only where the page shows feedback, and starts it at false either way (show-feedback, 7.19.2), under no record and FEEDBACK at NULL, the block's identifier or another, feedback shown or not: 7 pages",
+    (ctx) => {
+      const no: Value = {
+        baseType: "boolean",
+        cardinality: "single",
+        values: [{ baseType: "boolean", value: false }],
+      };
+      const clue: Item = {
+        ...item,
+        body: [
+          {
+            content: [
+              endAttempt(
+                "MORE",
+                "qti-assessment-item/qti-item-body/qti-feedback-block/qti-end-attempt-interaction",
+              ),
+            ],
+            feedbackVisibility: { outcomeIdentifier: "FEEDBACK", showHide: "hide" },
+            identifier: "clue",
+            kind: "feedback-block",
+            path: "qti-assessment-item/qti-item-body/qti-feedback-block",
+            responses: ["MORE"],
+          },
+        ],
+        responses: new Map([booleanResponse("MORE", Option.none())]),
+      };
+      const accepted = acceptForTest(clue);
 
-    assert.deepStrictEqual(shownResponses(accepted, fed), ["MORE"]);
-    assert.deepStrictEqual(startingResponses(accepted, fed), { MORE: no });
-    for (const unfed of [underRecord(start), feedbackHidden]) {
-      assert.deepStrictEqual(shownResponses(accepted, unfed), []);
-      assert.deepStrictEqual(startingResponses(accepted, unfed), { MORE: no });
-    }
-  });
+      return Effect.andThen(
+        boxHolds(clueShowing, 7),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "no record, and FEEDBACK at NULL, clue or another identifier, under a page that shows feedback and one that does not",
+              caseHang,
+              coverage: requiredInSpace<"shown" | "not shown">(["shown", "not shown"]),
+              generator: clueShowing,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "show-feedback (ItemSessionControl 7.19.2) and the hide rule (5.49.3): the block shows exactly where the page shows feedback and FEEDBACK does not match clue, NULL matching nothing, its End Attempt with it; an End Attempt starts at false whatever its block (2.4.5)",
+              },
+              suite: "plate/payload/end-attempt-in-feedback",
+            },
+            (showing, c) =>
+              Effect.sync(() => {
+                const shown =
+                  showing.showFeedback &&
+                  !showing.record.outcomes["FEEDBACK"]?.values.some(
+                    (single) => single.baseType === "identifier" && single.value === "clue",
+                  );
+
+                c.note(shown ? "shown" : "not shown");
+
+                assert.deepStrictEqual(shownResponses(accepted, showing), shown ? ["MORE"] : []);
+                assert.deepStrictEqual(startingResponses(accepted, showing), { MORE: no });
+              }),
+          ),
+        ),
+      );
+    },
+  );
 
   it("starts an Inline Choice's response at NULL", () => {
     assert.deepStrictEqual(startingResponses(acceptForTest(riverItem), feedbackHidden), {
