@@ -25,20 +25,19 @@ export const answer = dimension("The child's response", [
 export type Answer = (typeof answer.values)[number]["value"];
 
 /**
- * What the child gave an item, typed as plate holds it: each response the child gave a value, by
- * its identifier, the value in the cardinality and base type the kind's item declares. A response
- * the child left untouched is absent: a host lays these over the attempt's start (plate's
- * `startingResponses`), where it holds NULL, or its interaction's own start, End Attempt's `false`.
- */
-export type Posted = Responses;
-
-/**
  * One response a kind's settings admit: which it is, what the child gave, and the `SCORE` the
  * item's processing gives it.
  */
 export interface Answered {
   readonly answer: Answer;
-  readonly posted: Posted;
+  /**
+   * What the child gave the item, typed as plate holds it: each response the child gave a value, by
+   * its identifier, the value in the cardinality and base type the kind's item declares. A response
+   * the child left untouched is absent: a host lays these over the attempt's start (plate's
+   * `startingResponses`), where it holds NULL, or its interaction's own start, End Attempt's
+   * `false`.
+   */
+  readonly posted: Responses;
   readonly score: number;
 }
 

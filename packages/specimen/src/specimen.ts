@@ -10,6 +10,7 @@
  *
  * @module
  */
+import type { Responses } from "@qti-pie/plate";
 import { Option, Result } from "effect";
 import type { Array as Arr } from "effect";
 import { firstBranch, enumerated } from "@bjornpagen/testing/enumerate";
@@ -21,7 +22,6 @@ import { forcedChooser, generate, randomChooser, recorder } from "@bjornpagen/te
 import type { Chooser } from "@bjornpagen/testing/source";
 import { tokenOf, valuesFromToken } from "@bjornpagen/testing/tape";
 import type { Tape } from "@bjornpagen/testing/tape";
-import type { Posted } from "#specimen/answer.ts";
 import { anyQuery, listed, queryIn, reached } from "#specimen/dimension.ts";
 import type { Listed, Query, Unreadable } from "#specimen/dimension.ts";
 import { described, itemDimensions, unanswered } from "#specimen/description.ts";
@@ -61,11 +61,12 @@ export const queryOf = (
 ): Result.Result<Query, Unreadable> => queryIn(dimensions, pairs);
 
 /**
- * The child's response a case draws: what the child gave, typed, each response the child left
- * untouched absent ({@link Posted}), and the `SCORE` the item's response processing gives it.
+ * The child's response a case draws: what the child gave, typed as plate holds it, each response
+ * the child left untouched absent (a host lays these over the attempt's start), and the `SCORE`
+ * the item's response processing gives it.
  */
 export interface Response {
-  readonly posted: Posted;
+  readonly posted: Responses;
   readonly score: number;
 }
 
