@@ -37,10 +37,12 @@
  * - SP7, the keyboard: each part is a tab stop, and Space or Enter toggles the focused part, once
  *   however long it is held, and not at all with Alt, Control or Meta.
  * - SP8, review: a PCI not interacting takes no tap, and its parts are no tab stops.
- * - SP9, a swipe: the model takes every touch that starts on it as the child's (its `svg`'s computed
- *   `touch-action` is `none`, where the browser reads it, and each part's is too), so a finger's
- *   swipe sideways from a part, either way, shades nothing, changes no response and takes the host
- *   page nowhere: it navigates to no address, and its address and history stand as they were.
+ * - SP9, a swipe: on a rectangle, a circle and an equivalence item, the whole (both models and the
+ *   gap between them) and each model take every touch that starts on them as the child's (their
+ *   computed `touch-action` is `none`, the whole's and each model `svg`'s, where the browser reads
+ *   it; each part's own is too), so a finger's swipe sideways from a part, either way, shades
+ *   nothing, changes no response and takes the host page nowhere: the browser cancels none of the
+ *   frame's pointers, and the page's address and history stand as they were.
  *
  * @module
  */
@@ -944,12 +946,16 @@ layer(ShadeLayer, { timeout: Duration.millis(ruleHang) })("the shade-parts PCI",
     ruleHang,
   );
   it.effect(
-    "SP9: a swipe from a part shades nothing and takes the page nowhere: the model and every part take every touch",
+    "SP9: a swipe from a part shades nothing and takes the page nowhere: the whole, each model and every part take every touch",
     () =>
       Effect.gen(function* swiping() {
         const page = yield* Shade;
 
-        for (const name of ["rectangle-vertical-4", "circle-4"]) {
+        for (const name of [
+          "rectangle-vertical-4",
+          "circle-4",
+          "equivalent-rectangle-fourths-eighths",
+        ]) {
           const golden =
             goldens.find((each) => each.name === name) ?? assert.fail(`${name} is a golden`);
           const item = yield* Effect.orDie(shadeItem(name));
@@ -958,11 +964,16 @@ layer(ShadeLayer, { timeout: Duration.millis(ruleHang) })("the shade-parts PCI",
 
           const before = yield* Effect.orDie(page.drawn);
 
+          assert.strictEqual(before.wholeTouchAction, "none", `${name}'s whole takes every touch`);
           assert.strictEqual(
             before.model?.touchAction,
             "none",
             `${name}'s model takes every touch`,
           );
+          if (before.shown !== undefined) {
+            assert.strictEqual(before.shown.touchAction, "none", `${name}'s shown model too`);
+          }
+
           for (const part of before.parts) {
             assert.strictEqual(part.touchAction, "none", `${name}'s parts take every touch`);
           }
@@ -970,7 +981,7 @@ layer(ShadeLayer, { timeout: Duration.millis(ruleHang) })("the shade-parts PCI",
           for (const by of [240, -240]) {
             const where = yield* Effect.orDie(page.swipe(0, by));
 
-            assert.deepStrictEqual(where.navigations, [], `in ${name}, a swipe navigates nowhere`);
+            assert.strictEqual(where.cancelled, 0, `in ${name}, the browser takes no part of it`);
             assert.deepStrictEqual(where.after, where.before, `in ${name}, the page stays put`);
           }
 

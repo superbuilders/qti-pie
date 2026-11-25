@@ -818,9 +818,10 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
 
   /**
    * Write the PCI's stylesheet into the frame's document, keyed on its `data-shade` parts: the
-   * models stacked and centred, each taking every touch that starts on it as the child's
-   * (`touch-action: none`, on its `svg` where the browser reads it and on each part), so a finger's
-   * swipe never pans the page or takes the browser back, each part a plain tap target that
+   * models stacked and centred in a whole that takes every touch that starts on it as the child's,
+   * the gap between two models included (`touch-action: none` on the whole, on each model's `svg`
+   * where the browser reads it, and on each part), so a finger's swipe never pans the page or takes
+   * the browser back, each part a plain tap target that
    * neither drags nor selects, its fill white or shaded, and a dashed ring on the part a keyboard
    * has focused.
    *
@@ -831,7 +832,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
     const part = (name: string): string => `[data-shade="${name}"]`;
 
     sheet.textContent = [
-      `${part("whole")}{display:inline-flex;flex-direction:column;align-items:center;gap:${String(stack.gap)}px}`,
+      `${part("whole")}{display:inline-flex;flex-direction:column;align-items:center;gap:${String(stack.gap)}px;touch-action:none}`,
       `${part("model")}{display:block;overflow:visible;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}`,
       `${part("part")},${part("shown")}{fill:${look.clear};stroke:${look.outline};stroke-width:${String(look.stroke)}px;stroke-linejoin:round}`,
       `${part("part")}[aria-pressed="true"],${part("shown")}[data-shaded]{fill:${look.shaded}}`,

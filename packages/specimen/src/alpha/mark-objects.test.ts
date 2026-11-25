@@ -68,8 +68,9 @@
  *   picture's `src`, `alt`, `width` and `height` alone.
  * - MO11, a swipe: in rows and in a scatter, the set and every object take every touch that starts on
  *   them as the child's (their computed `touch-action` is `none`), so a finger's swipe sideways
- *   from an object, either way, rings nothing, relays no change and takes the host page nowhere: it
- *   navigates to no address, and its address and history stand as they were.
+ *   from an object, either way, rings nothing, relays no change and takes the host page nowhere:
+ *   the browser cancels none of the frame's pointers (it takes no part of the gesture), and the
+ *   page's address and history stand as they were.
  *
  * @module
  */
@@ -1184,7 +1185,11 @@ layer(RingLayer, { timeout: Duration.millis(ruleHang) })("the mark-objects PCI",
           for (const by of [form.side * 4, -form.side * 4]) {
             const where = yield* Effect.orDie(page.swipe(0, by));
 
-            assert.deepStrictEqual(where.navigations, [], `in ${id}, a swipe navigates nowhere`);
+            assert.strictEqual(
+              where.cancelled,
+              0,
+              `in ${id}, the browser takes no part of the swipe`,
+            );
             assert.deepStrictEqual(
               where.after,
               where.before,

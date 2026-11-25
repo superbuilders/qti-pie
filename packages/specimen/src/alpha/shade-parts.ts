@@ -416,8 +416,9 @@ export interface DrawnPart {
   readonly strokeWidth: string;
   readonly tabIndex: string | null;
   /**
-   * The browser's own gestures a touch that starts on the part may make, as it computes them:
-   * `none` where the PCI takes every touch, so a swipe neither pans nor navigates.
+   * The part's own computed `touch-action`. Chromium reads no SVG child's own value: what decides
+   * for a touch on a part is its model's `svg` and the whole, read on {@link DrawnModel} and
+   * {@link Drawn}.
    */
   readonly touchAction: string;
 }
@@ -490,6 +491,11 @@ export interface Drawn {
   readonly shownFills: readonly string[];
   readonly shownTappable: number;
   readonly text: string;
+  /**
+   * The whole's computed `touch-action`: the element holding both models and the gap between
+   * them, `none` where the PCI takes every touch that starts anywhere on it.
+   */
+  readonly wholeTouchAction: string;
 }
 
 /**
@@ -559,7 +565,8 @@ export interface ShadePage {
    * swipe it sideways by a distance in CSS pixels, then lift it, as a child's swipe does on a touch
    * screen: a devtools session of its own with touch on for the swipe alone. Give where the host
    * page stood before and after (after a navigation that took its document, the address
-   * "navigated away"), and each address it navigated to meanwhile.
+   * "navigated away"), and how many of the frame's pointers the browser cancelled, taking the
+   * gesture for its own.
    */
   readonly swipe: (
     place: number,
@@ -568,7 +575,7 @@ export interface ShadePage {
     {
       readonly after: Whereabouts;
       readonly before: Whereabouts;
-      readonly navigations: readonly string[];
+      readonly cancelled: number;
     },
     ShadePartsFailure
   >;
@@ -789,6 +796,10 @@ const readDrawn = (): Drawn => {
     shownFills: [...(shown?.children ?? [])].map((part) => getComputedStyle(part).fill),
     shownTappable: shown?.querySelectorAll('[role="button"], [tabindex]').length ?? 0,
     text: dom?.textContent ?? "",
+    wholeTouchAction: Array.from(
+      document.querySelectorAll('[data-shade="whole"]'),
+      (whole) => getComputedStyle(whole).touchAction,
+    ).join(" "),
   };
 };
 
@@ -896,40 +907,55 @@ const whereabouts = (page: Page): Effect.Effect<Whereabouts, ShadePartsFailure> 
   );
 
 /**
+ * Start counting, in the frame's document, the pointers the browser cancels: it cancels a touch's
+ * pointer once it takes the gesture for its own (a pan, or the swipe back), and never while the PCI
+ * takes every touch. The count lives on the document's element; its listener is added once.
+ */
+const watchCancels = (): void => {
+  const root = document.documentElement;
+
+  if (root.dataset["cancelsWatched"] === undefined) {
+    root.dataset["cancelsWatched"] = "";
+    document.addEventListener(
+      "pointercancel",
+      () => {
+        root.dataset["cancels"] = String(Number(root.dataset["cancels"] ?? "0") + 1);
+      },
+      { capture: true },
+    );
+  }
+
+  root.dataset["cancels"] = "0";
+};
+
+/**
+ * Read how many pointers the browser cancelled in the frame's document since {@link watchCancels}.
+ *
+ * @returns The count.
+ */
+const cancelsSeen = (): number => Number(document.documentElement.dataset["cancels"] ?? "0");
+
+/**
  * Swipe one finger sideways from a point of the page, on a devtools session of its own that turns
  * touch on for the swipe alone and is detached with it: down, `swipeSteps` equal moves, up, then
- * two of the page's animation frames, which a navigation ends at once. Every address the page's
- * own frame navigates to meanwhile is noted.
+ * two of the page's animation frames. The frame's cancelled pointers are counted meanwhile: none
+ * where the PCI kept the whole swipe, and -1 where the frame went with its page.
  *
  * @param page The page.
+ * @param frame The PCI's frame.
  * @param from Where the finger goes down, in CSS pixels of the page.
  * @param by How far it moves sideways, in CSS pixels, to the right where positive.
- * @returns The addresses the page navigated to, none where it stood.
+ * @returns The pointers the browser cancelled.
  */
 const swiped = (
   page: Page,
+  frame: Frame,
   from: { readonly x: number; readonly y: number },
   by: number,
-): Effect.Effect<readonly string[], ShadePartsFailure> =>
+): Effect.Effect<number, ShadePartsFailure> =>
   Effect.scoped(
     Effect.gen(function* swiping() {
-      const navigations: string[] = [];
-
-      /**
-       * Note a navigation of the page's own frame.
-       *
-       * @param navigated The frame that navigated.
-       */
-      const noted = (navigated: Frame): void => {
-        if (navigated === page.mainFrame()) {
-          navigations.push(navigated.url());
-        }
-      };
-
-      yield* Effect.acquireRelease(
-        Effect.sync(() => page.on("framenavigated", noted)),
-        () => Effect.sync(() => page.off("framenavigated", noted)),
-      );
+      yield* attempt("count the frame's cancelled pointers", () => frame.evaluate(watchCancels));
 
       const session = yield* Effect.acquireRelease(
         attempt("open a touch session", () => page.context().newCDPSession(page)),
@@ -974,7 +1000,9 @@ const swiped = (
         ),
       );
 
-      return [...navigations];
+      return yield* attempt("read the frame's cancelled pointers", () =>
+        frame.evaluate(cancelsSeen),
+      ).pipe(Effect.orElseSucceed(() => -1));
     }),
   );
 
@@ -1098,13 +1126,17 @@ export const shadePage: Effect.Effect<ShadePage, ShadePartsFailure, Scope.Scope>
 
           const at = yield* offset;
           const before = yield* whereabouts(page);
-
-          const navigations = yield* swiped(page, { x: at.x + centre.x, y: at.y + centre.y }, by);
+          const cancelled = yield* swiped(
+            page,
+            frame,
+            { x: at.x + centre.x, y: at.y + centre.y },
+            by,
+          );
           const after = yield* whereabouts(page).pipe(
             Effect.orElseSucceed((): Whereabouts => ({ history: -1, href: "navigated away" })),
           );
 
-          return { after, before, navigations };
+          return { after, before, cancelled };
         }),
       tap: (places) =>
         inner.pipe(

@@ -534,8 +534,8 @@ export interface RingPage {
    * Put a finger down at an object's centre, by its place, and swipe it sideways by a distance in
    * CSS pixels, then lift it, as a child's swipe does on a touch screen: a devtools session of its
    * own with touch on for the swipe alone. Give where the host page stood before and after (after
-   * a navigation that took its document, the address "navigated away"), and each address it
-   * navigated to meanwhile.
+   * a navigation that took its document, the address "navigated away"), and how many of the
+   * frame's pointers the browser cancelled, taking the gesture for its own.
    */
   readonly swipe: (
     place: number,
@@ -544,7 +544,7 @@ export interface RingPage {
     {
       readonly after: Whereabouts;
       readonly before: Whereabouts;
-      readonly navigations: readonly string[];
+      readonly cancelled: number;
     },
     MarkObjectsFailure
   >;
@@ -814,40 +814,55 @@ const whereabouts = (page: Page): Effect.Effect<Whereabouts, MarkObjectsFailure>
   );
 
 /**
+ * Start counting, in the frame's document, the pointers the browser cancels: it cancels a touch's
+ * pointer once it takes the gesture for its own (a pan, or the swipe back), and never while the PCI
+ * takes every touch. The count lives on the document's element; its listener is added once.
+ */
+const watchCancels = (): void => {
+  const root = document.documentElement;
+
+  if (root.dataset["cancelsWatched"] === undefined) {
+    root.dataset["cancelsWatched"] = "";
+    document.addEventListener(
+      "pointercancel",
+      () => {
+        root.dataset["cancels"] = String(Number(root.dataset["cancels"] ?? "0") + 1);
+      },
+      { capture: true },
+    );
+  }
+
+  root.dataset["cancels"] = "0";
+};
+
+/**
+ * Read how many pointers the browser cancelled in the frame's document since {@link watchCancels}.
+ *
+ * @returns The count.
+ */
+const cancelsSeen = (): number => Number(document.documentElement.dataset["cancels"] ?? "0");
+
+/**
  * Swipe one finger sideways from a point of the page, on a devtools session of its own that turns
  * touch on for the swipe alone and is detached with it: down, `swipeSteps` equal moves, up, then
- * two of the page's animation frames, which a navigation ends at once. Every address the page's
- * own frame navigates to meanwhile is noted.
+ * two of the page's animation frames. The frame's cancelled pointers are counted meanwhile: none
+ * where the PCI kept the whole swipe, and -1 where the frame went with its page.
  *
  * @param page The page.
+ * @param frame The PCI's frame.
  * @param from Where the finger goes down, in CSS pixels of the page.
  * @param by How far it moves sideways, in CSS pixels, to the right where positive.
- * @returns The addresses the page navigated to, none where it stood.
+ * @returns The pointers the browser cancelled.
  */
 const swiped = (
   page: Page,
+  frame: Frame,
   from: { readonly x: number; readonly y: number },
   by: number,
-): Effect.Effect<readonly string[], MarkObjectsFailure> =>
+): Effect.Effect<number, MarkObjectsFailure> =>
   Effect.scoped(
     Effect.gen(function* swiping() {
-      const navigations: string[] = [];
-
-      /**
-       * Note a navigation of the page's own frame.
-       *
-       * @param navigated The frame that navigated.
-       */
-      const noted = (navigated: Frame): void => {
-        if (navigated === page.mainFrame()) {
-          navigations.push(navigated.url());
-        }
-      };
-
-      yield* Effect.acquireRelease(
-        Effect.sync(() => page.on("framenavigated", noted)),
-        () => Effect.sync(() => page.off("framenavigated", noted)),
-      );
+      yield* attempt("count the frame's cancelled pointers", () => frame.evaluate(watchCancels));
 
       const session = yield* Effect.acquireRelease(
         attempt("open a touch session", () => page.context().newCDPSession(page)),
@@ -892,7 +907,9 @@ const swiped = (
         ),
       );
 
-      return [...navigations];
+      return yield* attempt("read the frame's cancelled pointers", () =>
+        frame.evaluate(cancelsSeen),
+      ).pipe(Effect.orElseSucceed(() => -1));
     }),
   );
 
@@ -964,10 +981,16 @@ export const ringPage: Effect.Effect<RingPage, MarkObjectsFailure, Scope.Scope> 
             return yield* Effect.fail(new MarkObjectsFailure({ cause: "no box", step }));
           }
 
-          const before = yield* whereabouts(page);
+          const inner = page.frames().find((each) => each !== page.mainFrame());
 
-          const navigations = yield* swiped(
+          if (inner === undefined) {
+            return yield* Effect.fail(new MarkObjectsFailure({ cause: "no frame", step }));
+          }
+
+          const before = yield* whereabouts(page);
+          const cancelled = yield* swiped(
             page,
+            inner,
             { x: box.x + box.width / 2, y: box.y + box.height / 2 },
             by,
           );
@@ -975,7 +998,7 @@ export const ringPage: Effect.Effect<RingPage, MarkObjectsFailure, Scope.Scope> 
             Effect.orElseSucceed((): Whereabouts => ({ history: -1, href: "navigated away" })),
           );
 
-          return { after, before, navigations };
+          return { after, before, cancelled };
         }),
       tap: (places, forced = false) =>
         Effect.forEach(
