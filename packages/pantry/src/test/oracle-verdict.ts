@@ -12,7 +12,6 @@ import { importDir } from "#pantry/test/import-dir.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { readEntries } from "#pantry/package/read.ts";
 import type { PackageFile } from "#pantry/package/read.ts";
-import type { FixtureName } from "#pantry/test/fixtures.ts";
 import { judge, ruleOf } from "#pantry/test/oracle.ts";
 import { ImportRefused } from "#pantry/import/rules.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
@@ -98,75 +97,3 @@ export const importAgreesWithOracle = (dir: string, label: string) =>
 
     return Option.none();
   });
-
-/**
- * The packaging fixtures (the spec's 4.12 to 4.14): the positives and their hand-broken copies,
- * each judged by the oracle's verdict rather than a rule written here.
- */
-export const packagingFixtures = [
-  "lomrest",
-  "lomrest-two-titles",
-  "lomrest-two-purposes",
-  "lomrest-two-kinds",
-  "lomrest-exam",
-  "lomrest-self-assessment",
-  "csm",
-  "csm-no-labelled-guid",
-  "csm-two-guids",
-  "csm-no-guid",
-  "csm-two-sets",
-  "filelom",
-  "filelom-qmd",
-  "filelom-two-metadata",
-  "nestedqmd",
-  "nestedqmd-manifest-lom",
-  "nestedqmd-both",
-  "extmeta",
-  "extmeta-item-root",
-  "extmeta-item-href",
-  "extmeta-two-resources",
-  "extmeta-hrefless",
-  "variant",
-  "variant-padded",
-  "variant-self-ref",
-  "variant-no-resource",
-  "variant-id-clash",
-  "variant-tactile",
-  "variant-bad-uri",
-  "variant-two-atinteroperable",
-  "variant-two-complexity",
-  "variant-no-metadata",
-  "variant-before-file",
-  "outcome",
-  "outcome-title",
-  "lti-link",
-  "lti-basic",
-  "bytes",
-  "bytes-webcontent-item",
-  "resproc",
-  "resproc-webcontent",
-  "rtest01",
-  "rtest01-include-root",
-  "rtest01-include-target",
-  "rtest01-fragment-identifier",
-  "rtest01-fragment-context",
-  "rtest01-cycle",
-  "rtest01-hottext-key",
-  "rtest01-choice-variable",
-  "rtest01-template-reference",
-  "rtest01-fragment-lang",
-  "rtest01-rule-variable",
-  "usage3",
-  "usage3-typed",
-  "usage3-padded",
-  "usage3-integer-float",
-  "usage3-float-padded",
-  "usage3-no-target",
-  "usage3-two-values",
-  "usage3-ordinary-mapping",
-  "usage3-no-map-entry",
-  "usage3-bad-month",
-  "usage3-feb-30",
-  "usage3-bad-context",
-  "usage3-bad-name",
-] as const satisfies readonly FixtureName[];

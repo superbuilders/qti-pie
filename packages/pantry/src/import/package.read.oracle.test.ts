@@ -11,7 +11,8 @@ import { inject } from "vitest";
 import { readProgram } from "#pantry/import/program.ts";
 import { readEntries } from "#pantry/package/read.ts";
 import { materialize, materializePackage } from "#pantry/test/fixtures.ts";
-import { oracleCodecRule, packagingFixtures } from "#pantry/test/oracle-verdict.ts";
+import { oracleCodecRule } from "#pantry/test/oracle-verdict.ts";
+import { packagingFixtures } from "#pantry/test/packaging.dictionary.ts";
 import { ImportRefused } from "#pantry/import/rules.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 

@@ -7,7 +7,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { noCoverage } from "@bjornpagen/testing/features";
-import { int } from "@bjornpagen/testing/gen";
+import { word } from "@bjornpagen/testing/dictionary";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Duration, Effect, Layer } from "effect";
@@ -17,7 +17,8 @@ import { memoryMediaStore } from "#pantry/package/media.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { materialize } from "#pantry/test/fixtures.ts";
-import { importAgreesWithOracle, packagingFixtures } from "#pantry/test/oracle-verdict.ts";
+import { importAgreesWithOracle } from "#pantry/test/oracle-verdict.ts";
+import { packagingFixtures } from "#pantry/test/packaging.dictionary.ts";
 import { danglingIncludeName, materializeProcessing } from "#pantry/test/processing-fixtures.ts";
 import { hasLease } from "#pantry/test/settings.ts";
 import { ImportRefused } from "#pantry/import/rules.ts";
@@ -39,9 +40,9 @@ describe.skipIf(!hasLease)("import/package.packaging.test.ts, on the lease", () 
           {
             caseHang: Duration.seconds(120),
             coverage: noCoverage,
-            draw: drawn(int(0, packagingFixtures.length - 1)),
+            draw: drawn(word(packagingFixtures)),
             kept: [],
-            literal: (at) => packagingFixtures[at] ?? String(at),
+            literal: (name) => name,
             oracle: {
               kind: "second-implementation",
               name: "the law oracle's verdict over the same entries, for 12 of the packaging fixtures a run, drawn from the run's seed, one import each, so the runs between them cover the list",
@@ -51,13 +52,8 @@ describe.skipIf(!hasLease)("import/package.packaging.test.ts, on the lease", () 
             steerEvery: 16,
             suite: "pantry/package-packaging-db",
           },
-          (at) =>
+          (name) =>
             Effect.gen(function* oracleAgrees() {
-              const name = packagingFixtures[at];
-              if (name === undefined) {
-                return;
-              }
-
               yield* importAgreesWithOracle(yield* materialize(name), name);
             }),
         ),

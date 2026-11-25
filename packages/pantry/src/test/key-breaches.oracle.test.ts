@@ -15,7 +15,7 @@ import { readProgram } from "#pantry/import/program.ts";
 import { readEntries } from "#pantry/package/read.ts";
 import { materialize } from "#pantry/test/fixtures.ts";
 import { evaluatedKeys, keyBreachesOf } from "#pantry/test/key-breaches.ts";
-import { packagingFixtures } from "#pantry/test/oracle-verdict.ts";
+import { packagingFixtures } from "#pantry/test/packaging.dictionary.ts";
 import { judge } from "#pantry/test/oracle.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
