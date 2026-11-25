@@ -9,6 +9,7 @@
  * complement and the positive set lies within XML's Char, and no letter after a backslash is an
  * escape grizzle-text reads but the SQL does not know.
  */
+import { regex } from "arkregex";
 import { complement, intersection } from "@bjornpagen/grizzle-text/regex/charset";
 import type { CharSet } from "@bjornpagen/grizzle-text/regex/charset";
 import type { RegexNode } from "@bjornpagen/grizzle-text/regex/ir";
@@ -150,7 +151,7 @@ export const xsdClasses = (): XsdClasses => {
   for (let point = 0x41; point <= 0x7a; point += 1) {
     const letter = String.fromCodePoint(point);
     if (
-      /^[A-Za-z]$/u.test(letter) &&
+      regex("^[A-Za-z]$", "u").test(letter) &&
       !knownLetters.includes(letter) &&
       xsdPattern(`\\${letter}`).ok
     ) {

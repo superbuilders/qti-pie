@@ -3,6 +3,7 @@
  * callee's takes or returns, nor holds as a field nested in one: FNROWS A refuses a body naming a
  * heading outside its reach.
  */
+import { regex } from "arkregex";
 
 /**
  * A generated function: its name, its callees, the headings its signature names and the headings
@@ -24,13 +25,17 @@ interface Generated {
  */
 const headingsOf = (text: string): ReadonlyMap<string, readonly string[]> =>
   new Map(
-    [...text.matchAll(/export const (?<name>\w+) = rows\(\{(?<fields>[\s\S]*?)\n\}\)/gu)].map(
+    [
+      ...text.matchAll(
+        regex("export const (?<name>\\w+) = rows\\(\\{(?<fields>[\\s\\S]*?)\n\\}\\)", "gu"),
+      ),
+    ].map(
       (m) =>
         [
           m.groups?.["name"] ?? "",
-          [...(m.groups?.["fields"] ?? "").matchAll(/\b(?<heading>[A-Z]\w*)\b/gu)].map(
-            (x) => x.groups?.["heading"] ?? "",
-          ),
+          [
+            ...(m.groups?.["fields"] ?? "").matchAll(regex("\\b(?<heading>[A-Z]\\w*)\\b", "gu")),
+          ].map((x) => x.groups?.["heading"] ?? ""),
         ] as const,
     ),
   );
@@ -46,16 +51,21 @@ const headingsOf = (text: string): ReadonlyMap<string, readonly string[]> =>
 const functionsOf = (text: string, heads: ReadonlyMap<string, readonly string[]>): Generated[] =>
   [
     ...text.matchAll(
-      /export const (?<name>\w+) = fn\("\w+", \{(?<descriptor>[\s\S]*?\n\s*body: fn\.body(?<body>`(?:[^`\\]|\\[\s\S])*`)[\s\S]*?)\n\}\)/gu,
+      regex(
+        'export const (?<name>\\w+) = fn\\("\\w+", \\{(?<descriptor>[\\s\\S]*?\n\\s*body: fn\\.body(?<body>`(?:[^`\\\\]|\\\\[\\s\\S])*`)[\\s\\S]*?)\n\\}\\)',
+        "gu",
+      ),
     ),
   ].map((m) => {
     const body = m.groups?.["body"] ?? "";
     const rest = (m.groups?.["descriptor"] ?? "").replace(body, "");
-    const calls = /\bcalls: \[(?<calls>[^\]]*)\]/u.exec(rest)?.groups?.["calls"] ?? "";
-    const args = /\bargs: \{(?<args>[\s\S]*?)\},?\n/u.exec(rest)?.groups?.["args"] ?? "";
+    const calls = regex("\\bcalls: \\[(?<calls>[^\\]]*)\\]", "u").exec(rest)?.groups["calls"] ?? "";
+    const args =
+      regex("\\bargs: \\{(?<args>[\\s\\S]*?)\\},?\n", "u").exec(rest)?.groups["args"] ?? "";
     const returns =
-      /\breturns: (?<returns>[\s\S]*?),?\n\s*(?:volatility|\})/u.exec(rest)?.groups?.["returns"] ??
-      "";
+      regex("\\breturns: (?<returns>[\\s\\S]*?),?\n\\s*(?:volatility|\\})", "u").exec(rest)?.groups[
+        "returns"
+      ] ?? "";
 
     return {
       calls: calls
@@ -65,10 +75,12 @@ const functionsOf = (text: string, heads: ReadonlyMap<string, readonly string[]>
       name: m.groups?.["name"] ?? "",
       named: [
         ...new Set(
-          [...body.matchAll(/\$\{(?<heading>\w+)\}/gu)].map((x) => x.groups?.["heading"] ?? ""),
+          [...body.matchAll(regex("\\$\\{(?<heading>\\w+)\\}", "gu"))].map(
+            (x) => x.groups?.["heading"] ?? "",
+          ),
         ),
       ],
-      sig: [...`${args} ${returns}`.matchAll(/\b(?<heading>[A-Z]\w*)\b/gu)]
+      sig: [...`${args} ${returns}`.matchAll(regex("\\b(?<heading>[A-Z]\\w*)\\b", "gu"))]
         .map((x) => x.groups?.["heading"] ?? "")
         .filter((h) => heads.has(h)),
     };

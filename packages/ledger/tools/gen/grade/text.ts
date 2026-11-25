@@ -2,6 +2,7 @@
  * The string operations the grade.ts generator's stages splice text with: a lookup that misses
  * fails the stage, and a replacement is literal text, never a pattern.
  */
+import { regex } from "arkregex";
 
 /**
  * Fails the stage with `what` unless `holds`.
@@ -94,7 +95,7 @@ export const replaceFirst = (text: string, part: string, by: string): string =>
  * @param text The text.
  * @returns Its lines.
  */
-const linesOf = (text: string): string[] => text.match(/[^\n]*\n|[^\n]+$/gu) ?? [];
+const linesOf = (text: string): string[] => text.match(regex("[^\n]*\n|[^\n]+$", "gu")) ?? [];
 
 /**
  * `text` with every line that holds more than white space indented by `indent`.
@@ -194,14 +195,15 @@ export const depthStep = (c: string, open: string, close: string): number => {
 };
 
 /**
- * The first match of a pattern over `text`, which must exist.
+ * The first match of a pattern over `text`, which must exist. The pattern is no global one, as
+ * every caller's is, so it keeps no place between calls and each call matches from the start.
  *
  * @param text The text.
- * @param pattern The pattern.
+ * @param pattern The pattern, with no `g` flag.
  * @returns The match.
  */
 export const matchOf = (text: string, pattern: RegExp): RegExpExecArray => {
-  const match = new RegExp(pattern.source, pattern.flags.replace("g", "")).exec(text);
+  const match = pattern.exec(text);
   must(match !== null, `no match of /${pattern.source}/ in ${JSON.stringify(text.slice(0, 300))}`);
 
   return match;
