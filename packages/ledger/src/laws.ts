@@ -306,7 +306,11 @@ export const ledgerLaws = {
   },
   "Place of its test session": {
     source:
-      "src/sittings.ts MemberPlace: the place a member takes 'in its sitting's order', of a sitting's test session",
+      "src/sittings.ts MemberPlace: the place a member takes 'in its sitting's order', of a sitting's test session and in its test's package, so every law that reads places beside the sitting's test reads all of them",
+  },
+  "Placed at its item ref": {
+    source:
+      "src/sittings.ts MemberPlace: 'ref and section, its item ref's place in the test and its section's': a sitting's place is of an item ref of its test whose item document is the place's (pantry's ItemRefDocument) and whose section is the place's (pantry's Node), each by its key (src/test-laws.ts PlacedRef)",
   },
   "Placed from the first": {
     source:
@@ -314,10 +318,6 @@ export const ledgerLaws = {
   },
   "Placed in order": {
     source: `${info}#Data_Ordering (§5.98: 'If no ordering rule is given, assume that the elements are to be ordered in the order in which they are defined'; §5.98.1, Ordering's shuffle: 'If 'true' causes the order of the child elements to be randomized'): a member placed after another in its sitting is after it in the test's order, by its item ref's place, but within one shuffling section by its sitting's rank (src/sittings.ts MemberPlace, ShuffleRank; src/test-laws.ts RefSteps, RankSteps)`,
-  },
-  "Placed members only": {
-    source:
-      "src/sittings.ts MemberPlace: a sitting's place is of a member of its test (src/test-laws.ts SittingMember)",
   },
   "Presence moment": {
     source:
@@ -356,7 +356,7 @@ export const ledgerLaws = {
       "src/sittings.ts ShuffleRank: the rank a member takes 'in its sitting's order', of a sitting's test session",
   },
   "Ranked members only": {
-    source: `${info}#Data_Ordering (§5.98: 'If no ordering rule is given, assume that the elements are to be ordered in the order in which they are defined'): a sitting's rank is of a member of a section of its test whose ordering shuffles, every other member presented at its place (src/sittings.ts ShuffleRank; src/test-laws.ts ShuffledMember)`,
+    source: `${info}#Data_Ordering (§5.98: 'If no ordering rule is given, assume that the elements are to be ordered in the order in which they are defined'): a sitting's rank is of a member of a section of its test whose ordering shuffles, every other member presented at its place: its rank's section is its place's (src/sittings.ts ShuffleRank, MemberPlace), and that section shuffles (src/test-laws.ts RankedSection, SectionShuffle), each by its key`,
   },
   "Record declared": {
     source:

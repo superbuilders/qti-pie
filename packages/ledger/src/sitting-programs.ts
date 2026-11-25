@@ -8,11 +8,11 @@
  *   its decision's seed), its test session, and an item session "in the initial state for all items
  *   at the start of the test" (§2.2.1) per member with the seed its processing draws under, the
  *   rank each member of a shuffling section takes in the sitting's order (`ShuffleRank`, §5.98.1)
- *   and every member's place in it (`MemberPlace`), and beside them the template processing of each
- *   and the record it begins with (`#ledger/grade.ts` takeValuesOf), all in one stratum, so `taken`
- *   is read once. The application binds `taken` to its query of what its decision wrote, in the
- *   stratum after it, its guard in that query (`ChangeSet.sequence(appDecide, take.bind({ taken:
- *   appTaken }))`).
+ *   and every member's place in it (`MemberPlace`), each with its item ref and section, and beside
+ *   them the template processing of each and the record it begins with (`#ledger/grade.ts`
+ *   takeValuesOf), all in one stratum, so `taken` is read once. The application binds `taken` to
+ *   its query of what its decision wrote, in the stratum after it, its guard in that query
+ *   (`ChangeSet.sequence(appDecide, take.bind({ taken: appTaken }))`).
  * - `enterTest` { sittings, entries }: the sitting's next candidate session (§1.5, §2.2.1), its `k`
  *   the count of the sessions before it, presenting the member its entry names by its item
  *   document, at the start and on a resumption alike, the application binding `entries` to the
@@ -323,32 +323,33 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
   const takenRanked = query(delivery).rule((r) => {
     const taken = r.relation("taken", takenHeading);
     const { child, stage, package: pkg, path: test, seed: decision } = v(taken, "rankedSitting");
-    const { document, item, section } = v(f.TestMember, "rankedMember");
+    const { document, item, section, start: ref } = v(f.TestMember, "rankedMember");
 
     return r
       .match(taken, { child, package: pkg, path: test, seed: decision, stage })
-      .match(f.TestMember, { document, item, package: pkg, path: test, section })
+      .match(f.TestMember, { document, item, package: pkg, path: test, section, start: ref })
       .match(f.SectionShuffle, { package: pkg, path: test, section })
       .find({
         child,
         package: pkg,
         path: document,
         rank: Fn.call(orderingRank, { decision, identifier: item, package: pkg }),
+        ref,
         section,
         stage,
       });
   });
 
   /**
-   * {@link takenRanked} as `ShuffleRank` holds it.
+   * {@link takenRanked} as `ShuffleRank` holds it, each rank with its item ref and section.
    */
   const takenRanks = query(delivery).rule((r) => {
     const ranked = takenRanked.bind({ taken: r.relation("taken", takenHeading) });
-    const { child, stage, package: pkg, path, rank } = v(ranked, "rank");
+    const { child, stage, package: pkg, path, rank, ref, section } = v(ranked, "rank");
 
     return r
-      .match(ranked, { child, package: pkg, path, rank, stage })
-      .find({ child, package: pkg, path, rank, stage });
+      .match(ranked, { child, package: pkg, path, rank, ref, section, stage })
+      .find({ child, package: pkg, path, rank, ref, section, stage });
   });
   /**
    * Each member of the take's sittings that its sitting presents at or before a member of a
@@ -361,12 +362,12 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const taken = r.relation("taken", takenHeading);
       const { child, stage, package: pkg, path: test } = v(taken, "precededSitting");
-      const { document, section } = v(f.TestMember, "precededMember");
+      const { document, section, start: ref } = v(f.TestMember, "precededMember");
       const before = v(f.TestMember, "beforeSection");
 
       return r
         .match(taken, { child, package: pkg, path: test, stage })
-        .match(f.TestMember, { document, package: pkg, path: test, section })
+        .match(f.TestMember, { document, package: pkg, path: test, section, start: ref })
         .match(f.SectionShuffle, { package: pkg, path: test, section })
         .match(f.TestMember, {
           document: before.document,
@@ -375,18 +376,26 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
           start: before.start,
         })
         .where(r.lt(before.start, section))
-        .find({ child, package: pkg, path: document, predecessor: before.document, stage });
+        .find({
+          child,
+          package: pkg,
+          path: document,
+          predecessor: before.document,
+          ref,
+          section,
+          stage,
+        });
     })
     .rule((r) => {
       const ranked = takenRanked.bind({ taken: r.relation("taken", takenHeading) });
-      const { child, stage, package: pkg, path, rank, section } = v(ranked, "rankedMember");
+      const { child, stage, package: pkg, path, rank, ref, section } = v(ranked, "rankedMember");
       const lower = v(ranked, "lowerMember");
 
       return r
-        .match(ranked, { child, package: pkg, path, rank, section, stage })
+        .match(ranked, { child, package: pkg, path, rank, ref, section, stage })
         .match(ranked, { child, package: pkg, path: lower.path, rank: lower.rank, section, stage })
         .where(r.le(lower.rank, rank))
-        .find({ child, package: pkg, path, predecessor: lower.path, stage });
+        .find({ child, package: pkg, path, predecessor: lower.path, ref, section, stage });
     });
 
   /**
@@ -433,28 +442,45 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
           r.not(f.SectionShuffle, { package: pkg, path: test, section: placed.section }),
           r.le(earlier.start, placed.start),
         )
-        .find({ child, package: pkg, path: placed.document, place: r.count(), stage });
+        .find({
+          child,
+          package: pkg,
+          path: placed.document,
+          place: r.count(),
+          ref: placed.start,
+          section: placed.section,
+          stage,
+        });
     })
     .rule((r) => {
       const predecessors = takenPredecessors.bind({ taken: r.relation("taken", takenHeading) });
-      const { child, stage, package: pkg, path, predecessor } = v(predecessors, "placedShuffled");
+      const {
+        child,
+        stage,
+        package: pkg,
+        path,
+        predecessor,
+        ref,
+        section,
+      } = v(predecessors, "placedShuffled");
 
       // The query's key is not proven at the type level, so the count binds its source's whole heading.
       return r
-        .match(predecessors, { child, package: pkg, path, predecessor, stage })
-        .find({ child, package: pkg, path, place: r.count(), stage });
+        .match(predecessors, { child, package: pkg, path, predecessor, ref, section, stage })
+        .find({ child, package: pkg, path, place: r.count(), ref, section, stage });
     });
 
   /**
-   * {@link takenCounts} as `MemberPlace` holds them, each with the place before it: written once,
-   * beside the ranks, so every reader of the order reads one number by the sitting's key, and a
-   * member's neighbour is one key probe.
+   * {@link takenCounts} as `MemberPlace` holds them, each with the place before it and its item
+   * ref's place and section: written once, beside the ranks, so every reader of the order reads one
+   * number by the sitting's key, a member's neighbour is one key probe, and a law over two
+   * neighbours reads their item refs from their places.
    */
   const takenPlaces = query(delivery).rule((r) => {
     const counts = takenCounts.bind({ taken: r.relation("taken", takenHeading) });
-    const { child, stage, package: pkg, path, place } = v(counts, "counted");
+    const { child, stage, package: pkg, path, place, ref, section } = v(counts, "counted");
 
-    return r.match(counts, { child, package: pkg, path, place, stage }).find({
+    return r.match(counts, { child, package: pkg, path, place, ref, section, stage }).find({
       child,
       package: pkg,
       path,
@@ -466,6 +492,8 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
         (before) => Type.cast(before, pg.bigint),
         -1n,
       ),
+      ref,
+      section,
       stage,
     });
   });

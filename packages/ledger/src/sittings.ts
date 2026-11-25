@@ -208,23 +208,27 @@ export const SittingStanding = closed.ordered("SittingStanding", [
  *   (`#ledger/delivery.ts` ItemDuration).
  * - **SittingFinal** `(child, stage, at)`: the sitting's outcomes are final, at the instant they
  *   became so; one per sitting, and only of an ended one.
- * - **ShuffleRank** `(child, stage, package, path) → rank`: the rank the member whose item document
- *   is `path` takes in its sitting's order, where its section's `qti-ordering` shuffles: "If 'true'
+ * - **ShuffleRank** `(child, stage, package, path) → rank, ref, section`: the rank the member whose
+ *   item document is `path` (its item ref at `ref`) takes in its sitting's order, where its section
+ *   (`section`, the section's place in the test) has a `qti-ordering` that shuffles: "If 'true'
  *   causes the order of the child elements to be randomized" (§5.98.1). Its take draws it once, in
  *   the database, from its decision's seed over the test's package and the item ref's identifier
  *   (the SQL grader's `orderingRank`, plate's keyed digest), and a shuffling section presents its
  *   members in ascending rank, so the order is the sitting's fact from its start: a resumption, a
  *   review and the end read the one it began with, and two sittings of one test are two draws. No
  *   two members of a sitting share a rank, so the order is total.
- * - **MemberPlace** `(child, stage, package, path) → place, prior`: the 1-based place the member
- *   whose item document is `path` takes in its sitting's order: the test's own order, its members'
- *   places ("If no ordering rule is given, assume that the elements are to be ordered in the order
- *   in which they are defined", §5.98), but a shuffling section's members in ascending ShuffleRank
- *   over the places the section's run holds; and `prior`, the place before it. Its take writes it
- *   after the ranks, once, so every reader of the order (the start, a resumption, the member after
- *   one, a review, the linear laws) reads one number by the sitting's key. No two members of a
- *   sitting share a place, nor a prior, so a member's neighbour is one key probe either way: the
- *   member whose place is its `prior`, or whose `prior` is its place.
+ * - **MemberPlace** `(child, stage, package, path) → place, prior, ref, section`: the 1-based place
+ *   the member whose item document is `path` takes in its sitting's order: the test's own order,
+ *   its members' places ("If no ordering rule is given, assume that the elements are to be ordered
+ *   in the order in which they are defined", §5.98), but a shuffling section's members in ascending
+ *   ShuffleRank over the places the section's run holds; `prior`, the place before it; and `ref`
+ *   and `section`, its item ref's place in the test and its section's, which the laws hold to the
+ *   test's own rows by their keys (`#ledger/test-laws.ts` "Placed at its item ref"). Its take
+ *   writes it after the ranks, once, so every reader of the order (the start, a resumption, the
+ *   member after one, a review, the linear laws) reads one number by the sitting's key. No two
+ *   members of a sitting share a place, nor a prior, so a member's neighbour is one key probe
+ *   either way: the member whose place is its `prior`, or whose `prior` is its place; and a law
+ *   over two neighbours reads their item refs from their rows, never a test's members by document.
  *
  * A candidate session is the sitting's next only after the one before it was suspended, so they run
  * gapless from 0 and at most one is open: `pred` of a visit's `k` is a suspension's.
@@ -299,7 +303,14 @@ export const sittingTablesOf = (qti: RegistryLevel) => {
     "One rank a member",
     relation(
       "ShuffleRank",
-      { ...sitting, package: PackageName, path: DocumentPath, rank: sha256 },
+      {
+        ...sitting,
+        package: PackageName,
+        path: DocumentPath,
+        rank: sha256,
+        ref: natural,
+        section: natural,
+      },
       ["child", "stage", "package", "path"],
     ),
   );
@@ -307,7 +318,15 @@ export const sittingTablesOf = (qti: RegistryLevel) => {
     "One place a member",
     relation(
       "MemberPlace",
-      { ...sitting, package: PackageName, path: DocumentPath, place: natural, prior: pg.bigint },
+      {
+        ...sitting,
+        package: PackageName,
+        path: DocumentPath,
+        place: natural,
+        prior: pg.bigint,
+        ref: natural,
+        section: natural,
+      },
       ["child", "stage", "package", "path"],
     ),
   );
@@ -379,8 +398,18 @@ export const sittingTablesOf = (qti: RegistryLevel) => {
     ),
     named("One member a rank", key(on(ShuffleRank, "child", "stage", "rank"))),
     named(
+      "Ranked members only",
+      contained(
+        on(ShuffleRank, "child", "stage", "package", "path", "ref", "section"),
+        on(MemberPlace, "child", "stage", "package", "path", "ref", "section"),
+      ),
+    ),
+    named(
       "Place of its test session",
-      contained(on(MemberPlace, "child", "stage"), on(TestSession, "child", "stage")),
+      contained(
+        on(MemberPlace, "child", "stage", "package"),
+        on(TestSession, "child", "stage", "package"),
+      ),
     ),
     named("One member a place", key(on(MemberPlace, "child", "stage", "place"))),
     named("One member a place", key(on(MemberPlace, "child", "stage", "prior"))),
