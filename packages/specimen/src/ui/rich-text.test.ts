@@ -29,6 +29,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { required } from "@bjornpagen/testing/features";
@@ -333,7 +334,7 @@ const situationsOf = (document: readonly Line[]): readonly Situation[] =>
       ...(format.link === undefined ? [] : ["link" as const]),
       ...(format.script === "sub" ? ["subscript" as const] : []),
       ...(format.script === "super" ? ["superscript" as const] : []),
-      ...(/[&<>"]/u.test(text) ? ["escaped text" as const] : []),
+      ...(regex('[&<>"]', "u").test(text) ? ["escaped text" as const] : []),
     ]),
   ]);
 
@@ -444,7 +445,10 @@ const kills: readonly (readonly [why: string, write: (lines: readonly Line[]) =>
     "underline as HTML's u",
     (lines) =>
       xhtmlOfLines(lines).replaceAll(
-        /<span class="qti-underline">(?<inner>(?:<span class="plate-strike">[^<]*<\/span>)|[^<]*)<\/span>/gu,
+        regex.as(
+          '<span class="qti-underline">(?<inner>(?:<span class="plate-strike">[^<]*</span>)|[^<]*)</span>',
+          "gu",
+        ),
         "<u>$<inner></u>",
       ),
   ],
@@ -460,7 +464,10 @@ const kills: readonly (readonly [why: string, write: (lines: readonly Line[]) =>
   [
     "Quill's indent class",
     (lines) =>
-      xhtmlOfLines(lines).replaceAll(/qti-margin-s-(?<level>[1-5])/gu, "ql-indent-$<level>"),
+      xhtmlOfLines(lines).replaceAll(
+        regex("qti-margin-s-(?<level>[1-5])", "gu"),
+        "ql-indent-$<level>",
+      ),
   ],
 ];
 
@@ -557,7 +564,8 @@ const reviewOf = (xhtml: string) =>
   Effect.map(
     reviewHtml(xhtml),
     (html) =>
-      /data-slot="plate-rich-answer"[^>]*>(?<inner>.*?)<\/div>/su.exec(html)?.groups?.["inner"],
+      regex('data-slot="plate-rich-answer"[^>]*>(?<inner>.*?)</div>', "su").exec(html)?.groups
+        .inner,
   );
 
 /**
@@ -605,7 +613,7 @@ const countWords = { one: "1 word", other: "{n} words" } as const;
  * @returns The count's text, none where the page draws no count.
  */
 const countIn = (html: string): string | undefined =>
-  /data-slot="plate-word-count"[^>]*>(?<count>[^<]*)<\/p>/u.exec(html)?.groups?.["count"];
+  regex('data-slot="plate-word-count"[^>]*>(?<count>[^<]*)</p>', "u").exec(html)?.groups.count;
 
 /**
  * Render an essay's island holding an answer, in a `<Responses>`, and give what its count says.

@@ -27,6 +27,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { createServer } from "node:http";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
@@ -364,7 +365,7 @@ const serve = (request: IncomingMessage, response: ServerResponse): void => {
   const url = new URL(request.url ?? "/", "http://localhost");
   const file = path.join(
     mathliveFolder,
-    path.normalize(url.pathname.replace(/^\/mathlive\//u, "")),
+    path.normalize(url.pathname.replace(regex("^/mathlive/", "u"), "")),
   );
   const served = Option.filter(
     Option.fromNullishOr(mediaTypes.get(path.extname(file))),
