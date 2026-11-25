@@ -94,7 +94,7 @@ const documentOf = (root: XdmClosedElement<Composed>): XdmDocument<Composed> => 
 /**
  * Where every case's document stands in its package: the key its rows hold.
  */
-const ids = { package: "MANIFEST-cn", path: "items/cn.xml" };
+const ids = { package: "MANIFEST-cn", path: "items/cn.xml" } as const;
 
 /**
  * The key fields of a node's row: its document's and its `start`, its number in document order.

@@ -188,7 +188,7 @@ const partFamily = counted(on(CnPartText, "package", "path", "start"), fin(MathC
 export const cnCountLaws = {
   judgedForm: contained(on(CnPartText, "type", "part", "form"), on(CnForm, "type", "part", "form")),
   judgedParts: contained(on(MathCn, "type", "parts"), on(CnParts, "type", "parts")),
-};
+} as const;
 
 /**
  * The statements over {@link MathCn} and {@link CnPartText}, each `check` named by its law:
@@ -238,4 +238,4 @@ export const cnLaws = [
   check("MathML_cn_form", CnPartText, (p) =>
     Text.matches(p.text, CnPattern.at("pattern", p.form, p.base)),
   ),
-];
+] as const;

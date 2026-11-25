@@ -820,7 +820,7 @@ const governingRows = [
   ...openElementClasses.flatMap((kind) =>
     grammar.xsi.typeName.handles.map((type) => governing(kind, type)),
   ),
-];
+] as const;
 
 /**
  * `GoverningOf`: (kind, governs) → governor, what an element of the kind under the named type
@@ -874,7 +874,7 @@ export const attributeRows = [
     position,
     use,
   })),
-];
+] as const;
 
 /**
  * One attribute row of {@link attributeRows}.

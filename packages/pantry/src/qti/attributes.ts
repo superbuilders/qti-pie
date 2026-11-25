@@ -672,7 +672,7 @@ const boundClasses = ["own-namespace", "foreign"] as const;
  * which leaves a name in no namespace (§6.2); `xml`, bound to the XML namespace alone; and `xmlns`,
  * which only declares a binding (Namespaces in XML 1.0, §3).
  */
-const unboundPrefixes = ["", "xml", "xmlns"];
+const unboundPrefixes = ["", "xml", "xmlns"] as const;
 
 /**
  * A `Node` row as a row check reads it.

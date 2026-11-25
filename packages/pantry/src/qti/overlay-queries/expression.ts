@@ -736,7 +736,7 @@ const BinaryMathOperator = derived(
 /**
  * The kinds typed by their operands' one base: the containers, Index and Random.
  */
-const baseTypedKinds = [...containerKinds, ...firstKinds];
+const baseTypedKinds = [...containerKinds, ...firstKinds] as const;
 
 /**
  * Each rounding operator's written `rounding-mode`, by its element's place, with its value, the
