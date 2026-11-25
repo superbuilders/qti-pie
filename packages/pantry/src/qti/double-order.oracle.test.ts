@@ -44,8 +44,8 @@ import { regex } from "arkregex";
 import { check, lexicalForm, Logic, pg, schema, Text, Type } from "@bjornpagen/grizzle";
 import type { EvaluatedRow } from "@bjornpagen/grizzle/compile";
 import { assert, describe, it } from "@effect/vitest";
-import { drawn, explore } from "@bjornpagen/testing/explore";
-import { required } from "@bjornpagen/testing/features";
+import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
+import { noCoverage, required } from "@bjornpagen/testing/features";
 import { boolean, constant, element, int, map, weighted } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { notesOnly } from "@bjornpagen/testing/sense";
@@ -61,6 +61,7 @@ import { MasteryCeiling, MasteryFloor } from "#pantry/qti/overlay-queries/declar
 import { SliderBounds } from "#pantry/qti/overlay-queries/interaction.ts";
 import { documentBreaches, judgedAlone, lawsOf } from "#pantry/test/oracle.ts";
 import { Qti } from "#pantry/qti/schema.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { brokenIn, evaluatorOf, insideDomains } from "#pantry/test/row-evaluation.ts";
 
 /**
@@ -1013,75 +1014,153 @@ const situations: readonly [Situation | AdversarialName, ...(Situation | Adversa
   ...adversarial.map(({ name }) => name),
 ];
 
-describe("qti/interactions.ts and qti/declarations.ts, the double orders", () => {
-  it("evaluates each relation under its installed Slider_bounds or Mastery_range check, and under its former statements beside it", () => {
-    /**
-     * Oracle: the schema's statements, which `Qti` holds once each, and the one restated here.
-     */
-    const slider = { ...place, lower: "0", upper: "1" };
-    const floor = { ...place, masteryValue: 1, normalMinimum: 0 };
-    const ceiling = { ...place, masteryValue: 0, normalMaximum: 1 };
-    assert.deepStrictEqual(
-      namesOf(
+/**
+ * The relations the double orders' checks are stated over, each with a row the schema's domains
+ * admit: a slider's two read bounds (`SliderBounds`), and a scale's mastery value joined to its
+ * stored floor (`MasteryFloor`) or ceiling (`MasteryCeiling`).
+ */
+const ORDER_RELATIONS = ["slider", "floor", "ceiling"] as const;
+
+/**
+ * The levels a row is evaluated under: `Qti`'s installed checks, and the plants' level above it,
+ * which restates the deleted check beside them ({@link former}).
+ */
+const ORDER_LEVELS = ["installed", "plants"] as const;
+
+/**
+ * A case of the check-name box: a relation and the level its row is evaluated under.
+ */
+interface NamedCase {
+  readonly level: (typeof ORDER_LEVELS)[number];
+  readonly relation: (typeof ORDER_RELATIONS)[number];
+}
+
+/**
+ * Draw a case of the check-name box: every relation under every level.
+ */
+const namedCase: Gen<NamedCase> = (source) => ({
+  level: source.draw(element(ORDER_LEVELS)),
+  relation: source.draw(element(ORDER_RELATIONS)),
+});
+
+/**
+ * How many cases {@link namedCase} draws: 3 relations by 2 levels.
+ */
+const NAMED_CASES = 3 * 2;
+
+/**
+ * The checks the schema states over each relation, `Qti` holding each once: Slider bounds over a
+ * slider's bounds, Mastery range over each pair of a scale's mastery value and one of its ends.
+ */
+const installedChecks: Readonly<Record<NamedCase["relation"], readonly string[]>> = {
+  ceiling: ["Mastery_range"],
+  floor: ["Mastery_range"],
+  slider: ["Slider_bounds"],
+};
+
+/**
+ * The checks this suite restates over each relation ({@link former}): the deleted Slider bounds,
+ * over a slider's bounds alone.
+ */
+const restatedChecks: Readonly<Record<NamedCase["relation"], readonly string[]>> = {
+  ceiling: [],
+  floor: [],
+  slider: ["Former_slider_bounds"],
+};
+
+/**
+ * Evaluate a case's row under its level, by the host.
+ *
+ * @param kase - The case.
+ * @returns The names of the checks the evaluation judges the row by, sorted.
+ */
+const evaluatedNames = ({ level, relation }: NamedCase): readonly string[] => {
+  const slider = { ...place, lower: "0", upper: "1" };
+  const floor = { ...place, masteryValue: 1, normalMinimum: 0 };
+  const ceiling = { ...place, masteryValue: 0, normalMaximum: 1 };
+  const label = `a ${relation} under the ${level} checks`;
+  switch (relation) {
+    case "slider": {
+      return namesOf(
         insideDomains(
-          Result.map(evaluateQti.admit(SliderBounds, slider), (admitted) =>
-            evaluateQti(SliderBounds, admitted),
-          ),
-          "a slider",
+          level === "installed"
+            ? Result.map(evaluateQti.admit(SliderBounds, slider), (admitted) =>
+                evaluateQti(SliderBounds, admitted),
+              )
+            : Result.map(evaluatePlants.admit(SliderBounds, slider), (admitted) =>
+                evaluatePlants(SliderBounds, admitted),
+              ),
+          label,
         ),
-      ),
-      ["Slider_bounds"],
-    );
-    assert.deepStrictEqual(
-      namesOf(
-        insideDomains(
-          Result.map(evaluateQti.admit(MasteryFloor, floor), (admitted) =>
-            evaluateQti(MasteryFloor, admitted),
-          ),
-          "a floor",
-        ),
-      ),
-      ["Mastery_range"],
-    );
-    assert.deepStrictEqual(
-      namesOf(
-        insideDomains(
-          Result.map(evaluateQti.admit(MasteryCeiling, ceiling), (admitted) =>
-            evaluateQti(MasteryCeiling, admitted),
-          ),
-          "a ceiling",
-        ),
-      ),
-      ["Mastery_range"],
-    );
-    assert.deepStrictEqual(
-      namesOf(
-        insideDomains(
-          Result.map(evaluatePlants.admit(SliderBounds, slider), (admitted) =>
-            evaluatePlants(SliderBounds, admitted),
-          ),
-          "a slider",
-        ),
-      ),
-      ["Former_slider_bounds", "Slider_bounds"],
-    );
-    for (const evaluation of [
-      insideDomains(
-        Result.map(evaluatePlants.admit(MasteryFloor, floor), (admitted) =>
-          evaluatePlants(MasteryFloor, admitted),
-        ),
-        "a floor",
-      ),
-      insideDomains(
-        Result.map(evaluatePlants.admit(MasteryCeiling, ceiling), (admitted) =>
-          evaluatePlants(MasteryCeiling, admitted),
-        ),
-        "a ceiling",
-      ),
-    ]) {
-      assert.deepStrictEqual(namesOf(evaluation), ["Mastery_range"]);
+      );
     }
-  });
+    case "floor": {
+      return namesOf(
+        insideDomains(
+          level === "installed"
+            ? Result.map(evaluateQti.admit(MasteryFloor, floor), (admitted) =>
+                evaluateQti(MasteryFloor, admitted),
+              )
+            : Result.map(evaluatePlants.admit(MasteryFloor, floor), (admitted) =>
+                evaluatePlants(MasteryFloor, admitted),
+              ),
+          label,
+        ),
+      );
+    }
+    case "ceiling": {
+      return namesOf(
+        insideDomains(
+          level === "installed"
+            ? Result.map(evaluateQti.admit(MasteryCeiling, ceiling), (admitted) =>
+                evaluateQti(MasteryCeiling, admitted),
+              )
+            : Result.map(evaluatePlants.admit(MasteryCeiling, ceiling), (admitted) =>
+                evaluatePlants(MasteryCeiling, admitted),
+              ),
+          label,
+        ),
+      );
+    }
+  }
+};
+
+describe("qti/interactions.ts and qti/declarations.ts, the double orders", () => {
+  it.effect(
+    `evaluates each relation under its installed Slider_bounds or Mastery_range check, and under its former statements beside it: ${String(NAMED_CASES)} relations and levels`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(namedCase, NAMED_CASES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "a slider, a scale's floor and its ceiling, each under Qti's installed checks and under the plants' level",
+              caseHang: Duration.seconds(10),
+              coverage: noCoverage,
+              generator: namedCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the schema's statements, which Qti holds once each, and the one this suite restates: a row is judged by the checks stated over its relation, and under the plants by the restated one beside them",
+              },
+              suite: "pantry/qti/double-order-checks",
+            },
+            (kase) =>
+              Effect.sync(() => {
+                assert.deepStrictEqual(
+                  evaluatedNames(kase),
+                  [
+                    ...installedChecks[kase.relation],
+                    ...(kase.level === "plants" ? restatedChecks[kase.relation] : []),
+                  ].toSorted(),
+                  `a ${kase.relation} under the ${kase.level} checks`,
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 
   it.effect(
     "breaks a slider's or a scale's order exactly where the doubles XML Schema 1.1 maps its collapsed forms to are out of order, past grizzle's former bounded form and around outer whitespace, and catches each plant of the former readings",
