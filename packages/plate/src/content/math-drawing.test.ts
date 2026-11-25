@@ -961,9 +961,29 @@ const renamed = (
 });
 
 /**
- * The drawings the counting mutant has drawn, which it numbers its ids by.
+ * A drawer that numbers its glyph ids by the drawings it has drawn, as MathJax's local font cache
+ * writes them: each drawer it makes counts its own drawings, from 1.
+ *
+ * @returns The counting drawer.
  */
-let drawings = 0;
+const counting = (): Drawer => {
+  let drawings = 0;
+
+  return changing((drawing) => {
+    drawings += 1;
+
+    return {
+      ...drawing,
+      drawing: {
+        ...drawing.drawing,
+        attributes: [
+          ...drawing.drawing.attributes,
+          { name: "id", value: `MJX-${String(drawings)}` },
+        ],
+      },
+    };
+  });
+};
 
 /**
  * The mutants: each a way the drawing could break, the property that refuses it, and its drawer.
@@ -1003,20 +1023,7 @@ const mutants: readonly (readonly [name: string, property: string, drawer: Drawe
   [
     "glyph ids drawn from a counter, as MathJax's local font cache writes them",
     "settled",
-    changing((drawing) => {
-      drawings += 1;
-
-      return {
-        ...drawing,
-        drawing: {
-          ...drawing.drawing,
-          attributes: [
-            ...drawing.drawing.attributes,
-            { name: "id", value: `MJX-${String(drawings)}` },
-          ],
-        },
-      };
-    }),
+    counting(),
   ],
   [
     "a slot placed beside the formula",
