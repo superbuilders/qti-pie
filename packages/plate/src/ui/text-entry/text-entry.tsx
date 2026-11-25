@@ -11,16 +11,13 @@
  *
  * @module
  */
-import { Button } from "@ui-sdk/react/button";
 import { Field, FieldError } from "@ui-sdk/react/field";
 import { Input, createInputController } from "@ui-sdk/react/input";
-import { Option } from "effect";
 import { useCallback, useRef, useState } from "react";
-import type { TextEntryKeypad } from "#plate/configuration.ts";
 import type { Authored, Named } from "#plate/ui/attributes.ts";
 import type { Labels } from "#plate/ui/item/interactions/labels.ts";
 import { digitsOf } from "#plate/ui/text-entry/digits.ts";
-import { faces, keypadOf, pressed } from "#plate/ui/text-entry/keypad.ts";
+import { pressed } from "#plate/ui/text-entry/keypad.ts";
 import type { Key } from "#plate/ui/text-entry/keypad.ts";
 import type { textEntryKeys } from "#plate/ui/text-entry/labels.ts";
 import { asTyped } from "#plate/model/typed-text.ts";
@@ -57,9 +54,12 @@ export interface TextEntryProps extends Authored<Named> {
    */
   readonly expectedLength: number | undefined;
   /**
-   * The configuration's `textEntryKeypad`: whether the box shows an on-screen keypad under it.
+   * Whether a keypad other than the device's keyboard types every text the box takes, plate's keys
+   * after the item's body (`TextEntryKeypad` in `#plate/ui/text-entry/keys.tsx`) or a host's own,
+   * each typing into the box through its typer: the box then asks the device for no keyboard
+   * ({@link inputModeFor}), which would open over the keys and the picture.
    */
-  readonly keypad: TextEntryKeypad;
+  readonly keypadTyped: boolean;
   readonly labels: Labels<typeof textEntryKeys>;
   /**
    * The response the box writes, as its declaration types it: a single `string`, `integer` or
@@ -67,9 +67,11 @@ export interface TextEntryProps extends Authored<Named> {
    */
   readonly response: TypedDeclared;
   /**
-   * `pattern-mask`, undefined when the author wrote none: the XML Schema regular expression a
-   * valid answer matches (5.162.5). It never stops typing; it shows the `pattern` label once the
-   * input loses focus with text that fails it, until the text matches.
+   * `pattern-mask`, undefined when the author wrote none: the XML Schema regular expression a valid
+   * answer matches (5.162.5). An `integer` box refuses a keystroke that would leave a text that
+   * begins no text the mask matches (`typedEntry` in `#plate/model/typed-text.ts`); any box shows
+   * the `pattern` label once the input loses focus with text that fails it, until the text
+   * matches.
    */
   readonly patternMask: string | undefined;
   /**
@@ -85,22 +87,22 @@ export interface TextEntryProps extends Authored<Named> {
 const oneBox: BoxCounts = { most: 1, shown: 1 };
 
 /**
- * Give the keyboard a box asks the device for: none where the host shows a keypad of its own
- * (`textEntryKeypad` `host`), which wins, since its keys are the ones the child types with; the
- * number keyboard for a drill's box (`plate-digits`); else the keyboard its base type reads by
- * (`inputModeOf`).
+ * Give the keyboard a box asks the device for: none where a keypad other than the device's types
+ * every text it takes, which wins, since its keys are the ones the child types with and the
+ * device's keyboard would open over them and the picture; the number keyboard for a drill's box
+ * (`plate-digits`); else the keyboard its base type reads by (`inputModeOf`).
  *
- * @param keypad The host's `textEntryKeypad`.
+ * @param keypadTyped Whether a keypad types every text the box takes.
  * @param digits Whether the box is a drill's.
  * @param reading How the box's text is read.
  * @returns The `inputmode`, undefined for the device's text keyboard.
  */
 const inputModeFor = (
-  keypad: TextEntryKeypad,
+  keypadTyped: boolean,
   digits: boolean,
   reading: TypedReading,
 ): "decimal" | "none" | "numeric" | undefined => {
-  if (keypad === "host") {
+  if (keypadTyped) {
     return "none";
   }
 
@@ -115,33 +117,34 @@ const inputModeFor = (
  * - `plate-text-entry`, the root, a `span`, with the author's `class` and `data-*`;
  * - UI SDK's `field`, rendered as a `span`, which ties the input to its hint;
  * - UI SDK's `input`, a native text input named by `naming`, which the server resolved: `inputmode`
- *   by the base type, numeric for a drill's box, none under a host's own keypad
+ *   by the base type, numeric for a drill's box, none where a keypad types every text the box takes
  *   ({@link inputModeFor}), `expected-length` as its `size`, `placeholder-text` as its
  *   `placeholder`;
  * - UI SDK's `field-error`, rendered as a `span`, holding the `pattern` label from the moment the
  *   input loses focus with text that fails the `pattern-mask` until the text matches, on the
  *   keystroke that makes it match. Meanwhile the field marks the input `aria-invalid`, names the
  *   hint in its `aria-describedby`, and announces the hint as it appears. Nothing shows while the
- *   child is still typing toward an answer;
- * - `plate-text-entry-keypad`, under the field where the host's `textEntryKeypad` is `on-screen` and
- *   the box's response has keys (`keypadOf` in `#plate/ui/text-entry/keypad.ts`), a `span` group
- *   named by the `keypad` label, with `data-keypad-layout` naming its layout, holding a UI SDK
- *   `button` per key, with `data-keypad-key` naming the key, showing its face and named by it, or
- *   by the `delete` label for backspace.
+ *   child is still typing toward an answer.
  *
- * A key types into the input as a keyboard's key does: it replaces the input's selection, or
- * deletes before its caret, through the input's controller, so the change reaches the response by
- * the input's own value change, and the caret stands after it. The keys are native buttons, so Tab
- * reaches them and Enter and Space press them. The keypad is part of the box: the hint waits for
- * the child to leave both, so a tap on a key while typing toward an answer shows nothing.
+ * The island holds no keys: where the host's `textEntryKeypad` is `on-screen` and the box's
+ * response has keys, the server writes plate's keypad after the item's body (`TextEntryKeypad` in
+ * `#plate/ui/text-entry/keys.tsx`), so the keys never split the author's sentence or equation and
+ * stand below everything the child reads, never over it. A key reaches the box through its typer,
+ * as a key of a host's own keypad does (`useTyping` in `#plate/ui/responses.tsx`): it types at the
+ * end of the input's text, or deletes its last character (`pressed`), through the input's
+ * controller, so the change reaches the response by the input's own value change, and the caret
+ * stands at the end.
  *
- * A drill's box keeps the digits of what is typed and drops every other character as it is typed
- * (`digitsOf`), so its response holds digits alone. Every keystroke writes the box's text and the
- * value read from it, and the host paces its saves. An empty input is no answer, NULL, and so is
- * one of XML white space alone, since a Text Entry's text is plain (QTI's `TextFormatEnum`,
- * SV-DESIGN-05). The box shows its text exactly as typed; the value is plate's reading of it, a
- * number trimmed and an `integer` read in `base`. A key of a host's own keypad types into the box
- * as this keypad's do (`useTyping` in `#plate/ui/responses.tsx`).
+ * Every keystroke, a key's or the keyboard's, leaves the box only a text it takes (`typedEntry` in
+ * `#plate/model/typed-text.ts`, which `useBoxes` holds it to): an `integer` box refuses one that
+ * would leave a leading zero, a `+`, a space or a decimal point, or a text that begins no text its
+ * `pattern-mask` matches, a minus or a digit past its most among them, and keeps its
+ * text, so it always shows the very integer its response holds. A drill's box keeps the digits of
+ * what is typed and drops every other character as it is typed (`digitsOf`), so its response holds
+ * digits alone. Every keystroke writes the box's text and the value read from it, and the host
+ * paces its saves. An empty input is no answer, NULL, and so is one of XML white space alone, since
+ * a Text Entry's text is plain (QTI's `TextFormatEnum`, SV-DESIGN-05). The box shows its text as
+ * typed; the value is plate's reading of it, an `integer` read in `base`.
  *
  * The browser offers nothing of its own: no remembered answers, no spelling marks, no
  * correction, and no capital letter at the start, since each would change or judge a child's
@@ -158,7 +161,7 @@ export const TextEntry = (props: TextEntryProps) => {
     baseType,
     digits,
     expectedLength,
-    keypad,
+    keypadTyped,
     labels,
     naming,
     patternMask,
@@ -174,17 +177,11 @@ export const TextEntry = (props: TextEntryProps) => {
       const element = input.current;
 
       if (element !== null) {
-        const typed = pressed(
-          {
-            end: element.selectionEnd ?? element.value.length,
-            start: element.selectionStart ?? element.value.length,
-            text: element.value,
-          },
-          key,
-        );
+        const typed = pressed(element.value, key);
 
-        controller.setValue(typed.text);
-        element.setSelectionRange(typed.caret, typed.caret);
+        if (controller.setValue(typed)) {
+          element.setSelectionRange(typed.length, typed.length);
+        }
       }
     },
     [controller],
@@ -215,15 +212,17 @@ export const TextEntry = (props: TextEntryProps) => {
           autoComplete="off"
           autoCorrect="off"
           controller={controller}
-          inputMode={inputModeFor(keypad, digits, reading)}
+          inputMode={inputModeFor(keypadTyped, digits, reading)}
           placeholder={placeholder}
           ref={input}
           size={expectedLength}
           spellCheck={false}
           type="text"
           value={box.text}
-          onValueChange={(text) => {
-            write(0, digits ? digitsOf(text) : text);
+          onValueChange={(text, details) => {
+            if (!write(0, digits ? digitsOf(text) : text)) {
+              details.cancel();
+            }
           }}
         />
         {box.flagged ? (
@@ -232,31 +231,6 @@ export const TextEntry = (props: TextEntryProps) => {
           </FieldError>
         ) : null}
       </Field>
-      {Option.match(keypadOf(keypad, reading), {
-        onNone: () => null,
-        onSome: (pad) => (
-          <span
-            aria-label={labels.keypad}
-            data-keypad-layout={pad.layout}
-            data-slot="plate-text-entry-keypad"
-            role="group"
-          >
-            {pad.keys.map((key) => (
-              <Button
-                aria-label={key === "backspace" ? labels.delete : undefined}
-                data-keypad-key={key}
-                key={key}
-                type="button"
-                onClick={() => {
-                  press(key);
-                }}
-              >
-                {faces[key]}
-              </Button>
-            ))}
-          </span>
-        ),
-      })}
     </span>
   );
 };

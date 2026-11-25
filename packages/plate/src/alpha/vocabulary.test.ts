@@ -580,9 +580,10 @@ describe("Alpha's renderer vocabulary", () => {
 });
 
 describe("Alpha's sheets", () => {
-  it("hold every rule in @layer plate-alpha, which the base sheet orders after plate", () => {
+  it("hold every rule in @layer plate-alpha, which the base sheet orders after plate, MathLive's fonts imported into it", () => {
     assert.deepStrictEqual(topLevel(alphaSheets.get("alpha/styles/base.css") ?? ""), [
       "@layer ui-sdk, plate, plate-alpha;",
+      '@import "mathlive/fonts.css" layer(plate-alpha);',
       "@layer plate-alpha {",
     ]);
     assert.deepStrictEqual(topLevel(alphaSheets.get("alpha/styles/theme.css") ?? ""), [

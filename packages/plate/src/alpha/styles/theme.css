@@ -98,4 +98,22 @@
       color: MarkText;
     }
   }
+
+  /* == text entry == */
+
+  /*
+   * A math entry's field: AlphaTest's field's look (mastery-track-player 941a86a,
+   * `src/styles/mathlive-styles.css` and `NumericEntry.tsx` lines 1858–1873), its text at 1.25rem in
+   * a rounded edge, on the base sheet's 290 px field. Its scripts' scale and its keyboard's colours
+   * are Alpha's base sheet's tokens, at AlphaTest's values.
+   */
+  :where([data-slot="alpha-math-entry"]) [data-slot="alpha-math-entry-field"] {
+    border-radius: 0.5rem;
+    font-size: 1.25rem;
+    line-height: 1.2;
+  }
+
+  [data-slot="alpha-math-entry-answer"] {
+    font-size: 1.25rem;
+  }
 }

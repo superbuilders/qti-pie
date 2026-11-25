@@ -7,7 +7,7 @@
 
 /**
  * Text Entry's keypad texts, keyed by the role each plays: `textEntryKeypad` names the group of
- * keys under a box, and `textEntryDelete` the key that deletes the character before the caret,
+ * keys after the item's body, and `textEntryDelete` the key that deletes the box's last character,
  * whose face is a glyph a screen reader reads as nothing a child knows.
  */
 export const textEntryMessages = {

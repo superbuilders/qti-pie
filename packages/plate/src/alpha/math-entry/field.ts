@@ -1,6 +1,7 @@
 /**
- * The math entry: a Text Entry whose author marked it with plate's presentation class
- * {@link mathEntryClass} is answered in a MathLive math field, under the virtual keyboard
+ * The math entry, Alpha's extension of plate's Text Entry: a Text Entry whose author marked it with
+ * Alpha's presentation class {@link mathEntryClass} is answered in a MathLive math field, under the
+ * virtual keyboard
  * AlphaTest's player gave its math tests, and its response is the field's LaTeX. The interaction
  * stays a standard `qti-text-entry-interaction`, so any other player shows its plain box, and the
  * class changes how plate presents it, never what its response is: a string, read as the box's is.
@@ -28,8 +29,9 @@
  *   ({@link keyFates});
  * - Its cut of a value longer than 100 characters to its first 100, which can split a LaTeX command;
  * - Its fonts and sounds, which its build served from no address, so its fields drew in fallback
- *   fonts and its keys made no sound. plate's base sheet serves MathLive's fonts, and the field
- *   plays no sound, as AlphaTest's never did, so no click competes with read-aloud;
+ *   fonts and its keys made no sound. Alpha's base sheet (`@qti-pie/plate/alpha/styles/base.css`)
+ *   serves MathLive's fonts, and the field plays no sound, as AlphaTest's never did, so no click
+ *   competes with read-aloud;
  * - Its keys' ids, which MathLive drew at random each time it built the keyboard, so that about one
  *   keyboard in 300 gave two keys one id, and a press on the earlier ran the later's command, such
  *   as a `\geq` that moved the caret left. plate's page counts its keys' ids
@@ -40,7 +42,7 @@
  * digit's do, the layer's `.digit` rule matching no key.
  *
  * The module is data and two self-contained functions, imported by the island and by the field's
- * test support (`#specimen/ui/math-entry.ts` in qti-pie's specimen), which runs
+ * test support (`#specimen/alpha/math-entry.ts` in qti-pie's specimen), which runs
  * {@link setUpField}'s and {@link countKeycaps}'s own source in the page it drives.
  *
  * @module
@@ -54,11 +56,13 @@ import type {
 } from "mathlive";
 
 /**
- * The class an author writes on a `qti-text-entry-interaction` for plate to answer it in a math
- * field. It is in plate's own vocabulary, `plate-*`, as every name plate gives its parts is, and
- * not `qti-*`, the prefix of 1EdTech's shared vocabulary, whose classes any player may read.
+ * The class an author writes on a `qti-text-entry-interaction` for Alpha's renderer to answer it in
+ * a math field. It is in Alpha's vocabulary, `alpha-*`, the item vendor's code a vendor class
+ * carries (BPIG §3.6.1), and not `qti-*`, the prefix of 1EdTech's shared vocabulary, whose classes
+ * any player may read, nor `plate-*`, plate's own: a renderer that knows no Alpha extension shows
+ * the box a plain Text Entry.
  */
-export const mathEntryClass = "plate-math-entry";
+export const mathEntryClass = "alpha-math-entry";
 
 /**
  * The options AlphaTest's player set on each math field, each by the property it assigned, which
@@ -191,7 +195,7 @@ export const alphaTestRows = [
  *
  * The mom test, for each: filling the boxes of a key gives the expression the key shows with what
  * the child filled in, the LaTeX AlphaTest's field posted when the child deleted every square and
- * typed into its place (`#specimen/ui/math-entry.test.ts` holds plate to it). Nine fates, each
+ * typed into its place (`#specimen/alpha/math-entry.test.ts` holds plate to it). Nine fates, each
  * counted once.
  */
 export const keyFates = [
@@ -319,7 +323,7 @@ export const setUpField = (
  * them.
  *
  * The keyboard is the page's, shared by every field in it, so the page counts its keys once, as it
- * loads MathLive (`#plate/math-entry/mathlive.ts`), before the keyboard is first built. The
+ * loads MathLive (`#plate/alpha/math-entry/mathlive.ts`), before the keyboard is first built. The
  * function reads nothing but its argument, so its own source runs where it is written out, as
  * {@link setUpField}'s does.
  *

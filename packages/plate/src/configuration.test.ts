@@ -133,6 +133,8 @@ const neverCompiles = () => [
   configure({ bankCaption: "true", seed: "" }),
   // @ts-expect-error -- onscreen misspells on-screen.
   configure({ seed: "", textEntryKeypad: "onscreen" }),
+  // @ts-expect-error -- a host's own keypad is a renderer the host composes, never a setting.
+  configure({ seed: "", textEntryKeypad: "host" }),
   // @ts-expect-error -- an entry is a path and an address.
   configure({ assets: [["items/a.png"]], seed: "" }),
   // @ts-expect-error -- assets are written as entries, never as a map.
@@ -203,17 +205,6 @@ describe("configure", () => {
       });
 
       assert.strictEqual(textEntryKeypad, "on-screen");
-    }),
-  );
-
-  it.effect('decodes textEntryKeypad "host"', () =>
-    Effect.gen(function* hostKeypad() {
-      const { textEntryKeypad } = yield* configure({
-        seed: "",
-        textEntryKeypad: "host",
-      });
-
-      assert.strictEqual(textEntryKeypad, "host");
     }),
   );
 

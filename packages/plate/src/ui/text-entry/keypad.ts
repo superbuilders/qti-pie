@@ -6,16 +6,19 @@
  * every `string` box offers the operators a mathematical answer is typed with, and none offers
  * letters: a box that asks for a word is typed on the device's own keyboard, which the keypad never
  * replaces. A Text Entry is always bound to a `single` response, so its cardinality chooses
- * nothing, and its `pattern-mask` chooses nothing either: which characters a regular expression's
- * matches may hold has no answer short of reading the expression as a language, and the mask never
- * stops typing.
+ * nothing, and its `pattern-mask` chooses no key either: the keys stay the same from one item to
+ * the next, and a key whose text the box may not hold is refused by the box, as the same key of
+ * the keyboard is (`typedEntry` in `#plate/model/typed-text.ts`).
  *
- * The module is imported by client modules only.
+ * The module is imported by the server shell, which writes a box's keypad after the item's body
+ * (`after` in `#plate/ui/item/interactions/text-entry.tsx`), and by client modules.
  *
  * @module
  */
 import { Array as Arr, Option } from "effect";
 import type { TextEntryKeypad } from "#plate/configuration.ts";
+import { takesTyped } from "#plate/model/typed-text.ts";
+import type { TypedEntry } from "#plate/model/typed-text.ts";
 import type { TypedReading } from "#plate/ui/typed.ts";
 
 /**
@@ -39,11 +42,14 @@ export type Key = (typeof digits)[number] | "*" | "+" | "-" | "." | "/" | "backs
 type Layout = TypedReading["baseType"];
 
 /**
- * A box's keypad: its keys, in the order a child reads them, row by row, and their layout.
+ * A box's keypad: its keys, in the order a child reads them, row by row, their layout, and whether
+ * they type every text the box takes (`whole`), so the box asks the device for no keyboard of its
+ * own, which would open over the keys and the picture.
  */
 export interface Keypad {
   readonly keys: Arr.NonEmptyReadonlyArray<Key>;
   readonly layout: Layout;
+  readonly whole: boolean;
 }
 
 /**
@@ -72,19 +78,25 @@ export const faces: Readonly<Record<Key, string>> = {
 };
 
 /**
- * Give the keys of a box's response read by its base type.
+ * Give the keys of a box's response read by its base type, and whether they type every text the
+ * box takes.
  *
- * An `integer` takes the digits of its base and nothing else, as Becky Allen's kindergarten pad
- * does, 0 under 8; one in a base above 10 takes letters as digits, which no keypad offers, so it
- * has none, as `inputModeOf` (`#plate/ui/typed.ts`) gives it the text keyboard. A `float` adds the
- * decimal point left of 0, as her grade 4 pad does. A `string` adds a fourth column of the fraction
- * bar, the minus sign, the plus sign and the times sign, for a fraction, a negative number or an
- * expression.
+ * An `integer` takes the digits of its base and nothing else, 0 under 8; its keys type every text
+ * the box takes unless the box takes a minus, which no key types, so a box whose `pattern-mask`
+ * admits no negative number is typed on the keys alone (`typedEntry` in
+ * `#plate/model/typed-text.ts`), and one that admits one keeps the device's keyboard for the sign.
+ * One in a base above 10 takes letters as digits, which no keypad offers, so it has none, as
+ * `inputModeOf` (`#plate/ui/typed.ts`) gives it the text keyboard. A `float` adds the decimal point
+ * left of 0. A `string` adds a fourth column of the fraction bar, the minus sign, the plus sign and
+ * the times sign, for a fraction, a negative number or an expression. A `float` box and a `string`
+ * box take every text, a sign, an exponent and a word among them, which no keypad types, so each
+ * keeps the device's keyboard.
  *
  * @param reading How the box's text is read.
+ * @param entry The texts the box takes.
  * @returns The keypad, or none where no keypad types an answer.
  */
-const keysOf = (reading: TypedReading): Option.Option<Keypad> => {
+const keysOf = (reading: TypedReading, entry: TypedEntry): Option.Option<Keypad> => {
   switch (reading.baseType) {
     case "integer": {
       return reading.base <= 10
@@ -94,6 +106,7 @@ const keysOf = (reading: TypedReading): Option.Option<Keypad> => {
               "backspace",
             ),
             layout: "integer",
+            whole: !takesTyped(entry, "-"),
           })
         : Option.none();
     }
@@ -101,6 +114,7 @@ const keysOf = (reading: TypedReading): Option.Option<Keypad> => {
       return Option.some({
         keys: ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "backspace"],
         layout: "float",
+        whole: false,
       });
     }
     case "string": {
@@ -124,6 +138,7 @@ const keysOf = (reading: TypedReading): Option.Option<Keypad> => {
           "*",
         ],
         layout: "string",
+        whole: false,
       });
     }
     default: {
@@ -133,24 +148,25 @@ const keysOf = (reading: TypedReading): Option.Option<Keypad> => {
 };
 
 /**
- * Give the keypad a box shows under the host's setting: none under `none` and under `host`, whose
- * keypad is the host's own, and under `on-screen` the keys its response holds ({@link keysOf}).
+ * Give the keypad a box shows under the host's setting: none under `none`, and under `on-screen`
+ * the keys its response holds ({@link keysOf}).
  *
  * @param setting The configuration's `textEntryKeypad`.
  * @param reading How the box's text is read.
+ * @param entry The texts the box takes.
  * @returns The keypad, or none.
  */
 export const keypadOf = (
   setting: TextEntryKeypad,
   reading: TypedReading,
+  entry: TypedEntry,
 ): Option.Option<Keypad> => {
   switch (setting) {
-    case "host":
     case "none": {
       return Option.none();
     }
     case "on-screen": {
-      return keysOf(reading);
+      return keysOf(reading, entry);
     }
     default: {
       return setting satisfies never;
@@ -164,49 +180,20 @@ export const keypadOf = (
 const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 
 /**
- * A box's text and its selection, from `start` to `end`, `start` at most `end`; a caret is a
- * selection of nothing.
- */
-export interface Selected {
-  readonly end: number;
-  readonly start: number;
-  readonly text: string;
-}
-
-/**
- * A box's text after a key, and its caret.
- */
-export interface Pressed {
-  readonly caret: number;
-  readonly text: string;
-}
-
-/**
- * Press a key on a box's text, as the same key on a keyboard does: a typed key replaces the
- * selection with its text; `backspace` deletes the selection, or the character before a caret, a
- * whole grapheme ({@link graphemes}), so it never leaves half an emoji or a letter without its
- * accent. The caret stands after the change.
+ * Press a key on a box's text, as a calculator's keys press theirs: a typed key puts its text at
+ * the end, and `backspace` deletes the last character, a whole grapheme ({@link graphemes}), so it
+ * never leaves half an emoji or a letter without its accent. Where the caret stands chooses
+ * nothing, so a key never edits the middle of the text, where a box that keeps a whole number would
+ * refuse the edit and the key would seem dead.
  *
- * @param selected The box's text and its selection.
+ * @param text The box's text.
  * @param key The key pressed.
- * @returns The text and the caret.
+ * @returns The text after the key; the caret stands at its end.
  */
-export const pressed = (selected: Selected, key: Key): Pressed => {
-  const { end, start, text } = selected;
-  const after = text.slice(end);
-
-  if (key !== "backspace") {
-    return { caret: start + key.length, text: `${text.slice(0, start)}${key}${after}` };
-  }
-
-  const head = text.slice(0, start);
-  const before =
-    start === end
-      ? Option.match(Arr.last([...graphemes.segment(head)]), {
-          onNone: () => head,
-          onSome: (last) => head.slice(0, last.index),
-        })
-      : head;
-
-  return { caret: before.length, text: `${before}${after}` };
-};
+export const pressed = (text: string, key: Key): string =>
+  key === "backspace"
+    ? Option.match(Arr.last([...graphemes.segment(text)]), {
+        onNone: () => text,
+        onSome: (last) => text.slice(0, last.index),
+      })
+    : `${text}${key}`;

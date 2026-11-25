@@ -117,14 +117,23 @@ describe("plate's serving entries", () => {
 });
 
 describe("the modules a page loads, derived from the islands' closure", () => {
-  it("are plate's modules outside src/ui that an island loads, the placement machine and the area geometry among them, and no UI module", () => {
+  it("are plate's modules outside the UI that an island loads, the placement machine, the area geometry and Alpha's math field among them, and no UI module nor Alpha React module", () => {
     const derived = plateClientModulesOf(modules);
 
     assert.includeMembers(
       [...derived],
-      ["packages/plate/src/placement/machine.ts", "packages/plate/src/graphic/geometry.ts"],
+      [
+        "packages/plate/src/placement/machine.ts",
+        "packages/plate/src/graphic/geometry.ts",
+        "packages/plate/src/alpha/math-entry/field.ts",
+      ],
     );
     assert.isFalse(derived.some((module) => module.startsWith("packages/plate/src/ui/")));
+    assert.isFalse(
+      derived.some(
+        (module) => module.startsWith("packages/plate/src/alpha/") && module.endsWith(".tsx"),
+      ),
+    );
     assert.notInclude([...derived], "packages/plate/src/vocabulary.ts");
   });
 

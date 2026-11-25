@@ -140,7 +140,10 @@ const asXhtml: Written = { read: textOfXhtml, write: xhtmlOfText };
  * Every keystroke writes the boxes' texts as typed and the response read from them: the boxes that
  * hold an answer, in the boxes' order. A box left empty is no answer and leaves the others in their
  * places, and so is one of white space alone in `plain` and `preformatted` text, as QTI reads it,
- * or a blank one bound to a number.
+ * or a blank one bound to a number. A keystroke leaves a box only a text it takes, as a Text
+ * Entry's does (`typedEntry` in `#plate/model/typed-text.ts`): an `integer` box refuses a leading
+ * zero, a `+`, a space or a decimal point, or a text that begins no text its `pattern-mask`
+ * matches, and keeps its text.
  *
  * The browser offers nothing of its own: no remembered answers, no spelling marks, no correction
  * and no capital letters, since each would change or judge the child's own writing.
@@ -206,8 +209,10 @@ export const ExtendedText = (props: ExtendedTextProps) => {
             onBlur={() => {
               leave(index);
             }}
-            onValueChange={(text) => {
-              write(index, text);
+            onValueChange={(text, details) => {
+              if (!write(index, text)) {
+                details.cancel();
+              }
             }}
           />
           {box.flagged ? <FieldError match>{labels.pattern}</FieldError> : null}

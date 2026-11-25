@@ -10,11 +10,13 @@
   "include": [
     "ui/**/*.ts",
     "ui/**/*.tsx",
-    "math-entry/**/*.ts",
+    "alpha/math-entry/**/*.ts",
+    "alpha/math-entry/**/*.tsx",
     "alpha/pci-modules/**/*.ts",
     "alpha/renderers.ts",
     "alpha/choice/**/*.ts",
-    "alpha/choice/**/*.tsx"
+    "alpha/choice/**/*.tsx",
+    "alpha/text-entry/**/*.tsx"
   ],
   "exclude": ["**/node_modules"]
 }

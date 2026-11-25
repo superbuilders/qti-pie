@@ -1,17 +1,18 @@
 /**
- * MathLive as plate's math entry loads it, once a page: a module runs once in a page however many
+ * MathLive as Alpha's math entry loads it, once a page: a module runs once in a page however many
  * fields import it, so what it sets holds for the page's every field from the first, and the
  * virtual keyboard, which every field in the page shares, is set up before it is first built.
  *
- * MathLive is told to load neither fonts nor sounds: its fonts are the page's, from plate's base
- * sheet, which imports MathLive's own (`mathlive/fonts.css`), so the host's build serves them from
- * its own origin; and the field plays no sound, as AlphaTest's never did, so no click competes with
- * read-aloud. The keyboard's keys get counted ids (`countKeycaps`, `#plate/math-entry/field.ts`).
+ * MathLive is told to load neither fonts nor sounds: its fonts are the page's, from Alpha's base
+ * sheet (`@qti-pie/plate/alpha/styles/base.css`), which imports MathLive's own
+ * (`mathlive/fonts.css`), so the host's build serves them from its own origin; and the field plays
+ * no sound, as AlphaTest's never did, so no click competes with read-aloud. The keyboard's keys get
+ * counted ids (`countKeycaps`, `#plate/alpha/math-entry/field.ts`).
  *
  * @module
  */
 import { MathfieldElement } from "mathlive";
-import { countKeycaps } from "#plate/math-entry/field.ts";
+import { countKeycaps } from "#plate/alpha/math-entry/field.ts";
 
 /**
  * Set MathLive up for the page, once: no fonts or sounds of its own, and counted keycap ids.

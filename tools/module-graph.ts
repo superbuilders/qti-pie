@@ -331,15 +331,26 @@ export const plateModules = (): ReadonlyMap<string, string> => {
 };
 
 /**
- * Plate's modules outside `src/ui/` that a `"use client"` module loads, and so a page: what the
+ * Tell whether a module of plate is the UI's own: a module under `src/ui/`, or a React module of
+ * Alpha's renderers, a `.tsx` module under `src/alpha/`, which renders as the UI's do.
+ *
+ * @param module The module's path under the package.
+ * @returns Whether it is the UI's.
+ */
+const isUiModule = (module: string): boolean =>
+  module.startsWith("src/ui/") || (module.startsWith("src/alpha/") && module.endsWith(".tsx"));
+
+/**
+ * Plate's modules outside the UI that a `"use client"` module loads, and so a page: what the
  * islands import from the core, and what that imports in turn, by path from the repository's root
- * ({@link clientModules}, {@link valueClosure}), less the UI's own, in path order.
+ * ({@link clientModules}, {@link valueClosure}), less the UI's own ({@link isUiModule}), in path
+ * order.
  *
  * @param modules Plate's modules, by path under the package ({@link plateModules}).
  * @returns The paths, each `packages/plate/src/<x>`.
  */
 export const plateClientModulesOf = (modules: ReadonlyMap<string, string>): readonly string[] =>
   valueClosure(modules, clientModules(modules))
-    .filter((module) => !module.startsWith("src/ui/"))
+    .filter((module) => !isUiModule(module))
     .map((module) => `packages/plate/${module}`)
     .toSorted();

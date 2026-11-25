@@ -116,14 +116,14 @@ const hotspotPicks = ["ring", "fill"] as const;
 
 /**
  * How a child types into a Text Entry beside the device's own keyboard: `none`, with that keyboard
- * alone; `on-screen`, with child-sized keys under each box, the keys the box's response can hold
- * (`keypadOf` in `#plate/ui/text-entry/keypad.ts`), which type into the box as its keyboard does;
- * or `host`, with a keypad the host shows of its own: plate shows no keys, and each box asks the
- * device for no keyboard (`inputmode="none"`), so the host's keys are the only ones on the screen,
- * as AlphaTest's player asked for none under its own drill keypad (mastery-track-player 941a86a,
- * `FluencyInteraction.tsx` lines 1276–1290).
+ * alone; or `on-screen`, with child-sized keys after the item's body, so they never split a
+ * sentence or stand over it, the keys the box's response can hold (`keypadOf` in
+ * `#plate/ui/text-entry/keypad.ts`), which type into the box as its keyboard does, and where they
+ * type every text the box takes, the box asks the device for no keyboard of its own. A host that
+ * shows a keypad of its own composes a renderer of the kind that says so (`Renderers` in
+ * `#plate/ui/registry/contract.ts`), never a setting here.
  */
-const textEntryKeypads = ["none", "on-screen", "host"] as const;
+const textEntryKeypads = ["none", "on-screen"] as const;
 
 /**
  * How a child types into a Text Entry, as {@link textEntryKeypads} says.
@@ -145,8 +145,8 @@ export type TextEntryKeypad = (typeof textEntryKeypads)[number];
  * the stylesheet reads them, and nothing else reads them, so neither changes the markup, the
  * response or its scoring. Whether an area shows a ring before it is picked is the item's own word,
  * QTI's `qti-unselected-hidden` class, never the host's. `textEntryKeypad` is whether every Text
- * Entry of the item shows an on-screen keypad under its box, `none` by default; the islands read
- * it, and its keys type through the box's own input, so it changes no response or its scoring.
+ * Entry of the item shows an on-screen keypad after the item's body, `none` by default; the islands
+ * read it, and its keys type through the box's own input, so it changes no response or its scoring.
  * `bankCaption` is whether every Gap Match's and Graphic Gap Match's bank writes the caption
  * AlphaTest's player wrote over it, "DRAG & DROP THE ANSWER", `false` by default; it is words
  * alone, changing no response. `assets` maps each file an item's package URLs may name, by its path

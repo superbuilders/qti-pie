@@ -54,15 +54,6 @@
  */
 @layer ui-sdk, plate;
 
-/*
- * MathLive's fonts, for the math entry's field (`#plate/ui/text-entry/math-entry.tsx`): its own
- * sheet's `@font-face` rules, which name its font files beside it, so the host's build serves them
- * from the host's origin. A browser loads a face only once text of the page uses it, so a page with
- * no math entry loads none. The field loads no font itself: the island tells MathLive the fonts are
- * the page's.
- */
-@import "mathlive/fonts.css" layer(plate);
-
 @layer plate {
   /* == tokens == */
 
@@ -114,20 +105,6 @@
     --plate-target-size: 4rem;
     --plate-control-size: 3rem;
     --plate-inline-target-size: 2.75rem;
-
-    /*
-     * A math entry's look a host themes, at AlphaTest's field's values (mastery-track-player
-     * 941a86a): a formula's scripts and a fraction's numerator and denominator at 0.9 of its text
-     * (`NumericEntry.tsx` lines 1076–1091); and its virtual keyboard a light grey board of white keys
-     * with black faces, white on hover (`src/styles/mathlive-styles.css` lines 7–13). MathLive reads
-     * its own properties, which a host's theme does not set: the math entry's rules map each from
-     * one of these.
-     */
-    --plate-math-script-scale: 0.9;
-    --plate-keyboard-background: #f0f0f0;
-    --plate-keycap-background: #fff;
-    --plate-keycap-text: #000;
-    --plate-keycap-text-hover: #fff;
 
     /*
      * A Slider's thumb, half of which overhangs each end of its track, a vertical track's length,
@@ -285,7 +262,8 @@
    * which MathJax sized and laid the formula out around, at the item's line height (the box's is
    * nought): a gap's target, its empty slot and the chip placed in it as well as a Text Entry's
    * input, none held to the size it takes in a sentence, which would spill over the glyphs around.
-   * What it shows past the slot, a keypad or a hint, shows over the text around.
+   * What it shows past the slot, a hint, shows over the text around; a Text Entry's keypad stands
+   * after the item's body.
    */
   [data-slot="plate-math-slots"] {
     display: block;
@@ -658,13 +636,16 @@
   }
 
   /*
-   * A Text Entry's on-screen keypad: its keys on a grid of 64 px cells, read row by row as the
-   * markup holds them, three columns for a number and four for a text, whose fourth holds the
-   * operators. Under an integer's layout 0 stands in the middle column, under 8, as on a phone's
-   * keypad. Each key is a 64 px target, as every target a child presses on its own.
+   * A Text Entry's on-screen keypad, a block of its own after the item's body, so it takes its
+   * place in the flow below everything the child reads and stands over nothing: its keys
+   * on a grid of 64 px cells, read row by row as the markup holds them, three columns for a number
+   * and four for a text, whose fourth holds the operators. Under an integer's layout 0 stands in the
+   * middle column, under 8, as on a phone's keypad. Each key is a 64 px target, as every target a
+   * child presses on its own.
    */
   [data-slot="plate-text-entry-keypad"] {
-    display: inline-grid;
+    display: grid;
+    justify-content: start;
     grid-template-columns: repeat(3, var(--plate-target-size));
     grid-auto-rows: var(--plate-target-size);
   }
@@ -685,53 +666,6 @@
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-  }
-
-  /*
-   * A math entry's field (`plate-math-entry-field`, MathLive's `math-field`), standing in its place
-   * in the sentence: as tall as a control inside a sentence, in an edge at 3:1, in the text's
-   * colour, its scripts and a fraction's parts at `--plate-math-script-scale` of its text. It offers
-   * no menu, as AlphaTest's field offered none: its menu's toggle is not drawn. Its keyboard, which
-   * MathLive draws at the end of the page's body and colours from the page's root, has keys at least
-   * a target's size, AlphaTest's 70 px (`--keycap-height`), in the `--plate-keyboard-background`
-   * and `--plate-keycap-*` tokens, so a host themes it on :root.
-   */
-  [data-slot="plate-math-entry"] {
-    display: inline-flex;
-    vertical-align: middle;
-  }
-
-  :where([data-slot="plate-math-entry"]) [data-slot="plate-math-entry-field"] {
-    min-block-size: var(--plate-control-size);
-    min-inline-size: 6rem;
-    max-inline-size: 100%;
-    border: 2px solid var(--ui-input);
-    font-size: inherit;
-    --math-superscript-font-scale-factor: var(--plate-math-script-scale);
-    --math-subscript-font-scale-factor: var(--plate-math-script-scale);
-    --math-fraction-numerator-font-scale-factor: var(--plate-math-script-scale);
-    --math-fraction-denominator-font-scale-factor: var(--plate-math-script-scale);
-  }
-
-  [data-slot="plate-math-entry-field"]::part(menu-toggle) {
-    display: none;
-  }
-
-  :where(:root) {
-    --keycap-height: max(var(--plate-target-size), 70px);
-    --keyboard-background: var(--plate-keyboard-background);
-    --keycap-background: var(--plate-keycap-background);
-    --keycap-text: var(--plate-keycap-text);
-    --keycap-text-hover: var(--plate-keycap-text-hover);
-  }
-
-  /*
-   * A math entry's answer in a review, the formula as MathML, inside the Control's mark.
-   */
-  [data-slot="plate-math-entry-answer"] {
-    display: inline-flex;
-    align-items: center;
-    min-block-size: var(--plate-control-size);
   }
 
   /* == end attempt == */

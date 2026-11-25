@@ -20,6 +20,7 @@ import { copyItemContent, itemContentNodes } from "#plate/content/modules.ts";
 import type { ItemPayloadsHeld } from "#plate/content/modules.ts";
 import { checkInstance, scopedId } from "#plate/instance.ts";
 import { message } from "#plate/messages.ts";
+import { redactedInteractionsIn } from "#plate/model/interactions.ts";
 import type { Interaction, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
 import { interactionPayload } from "#plate/payload.ts";
 import type { PairedInteraction, View } from "#plate/payload.ts";
@@ -53,6 +54,7 @@ import { AssetMissing, InvalidInstance, OutputTooLarge } from "#plate/ui/item/er
 import { feedbackBlockOf, verdictOf } from "#plate/ui/item/feedback.tsx";
 import type { Addressing } from "#plate/ui/item/html.ts";
 import {
+  renderAfter,
   renderAnswer,
   renderContainer,
   renderInteraction,
@@ -210,6 +212,10 @@ const classOf = (paired: PairedInteraction): Option.Option<string> => paired.pay
  * - Each interaction, through its kind's renderer in `renderers`: in `answering` its island inside
  *   its own `<Suspense fallback={null}>`, a hydration unit that suspends on nothing; in `review`
  *   and `solution` its server markup, with no boundary;
+ * - In `answering`, after the body, the island each interaction's renderer writes there, in the order
+ *   of the interactions (`renderAfter` in `#plate/ui/item/interactions/index.tsx`): plate's Text
+ *   Entry renderer writes its on-screen keypad (`plate-text-entry-keypad`) where the host's
+ *   `textEntryKeypad` is `on-screen` and its response has keys;
  * - `plate-feedback`, feedback the record shows (`feedbackOf` in `#plate/ui/item/content.tsx`): one
  *   `div` in place of each run of adjacent feedback blocks, each block a `plate-feedback-block`,
  *   the item's explanation after its title (`plate-feedback-why`), and one after the body for the
@@ -343,6 +349,18 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
 
     return renderAnswer(renderers, paired, contextOf(paired), mode, key);
   };
+  // What each interaction writes after the body while the child answers, in the order of the
+  // interactions, a Text Entry's on-screen keypad among them: below everything the child reads, so
+  // the keys never split a sentence or an equation, never stand over the box, a line or a picture,
+  // and never come between the box and a line after it. A review and a solution write none.
+  const afterBody =
+    mode === "answering"
+      ? redactedInteractionsIn(redacted.body).map((model, index) => {
+          const paired = interactionPayload(model, view);
+
+          return renderAfter(renderers, paired, contextOf(paired), `after-${String(index)}`);
+        })
+      : [];
   const outside: Walk = {
     addressing,
     credit,
@@ -414,6 +432,7 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
           verdict: verdictAt,
         },
       })}
+      {afterBody}
       {listing(catalogs, redacted.body, (nodes) => nodesOf(nodes, outside), addressing)}
       {after.length === 0 ? null : feedbackOf("div", "feedback", outside, after)}
     </>

@@ -6,9 +6,11 @@
  * `textarea`s. Its text is the child's, exactly as typed, and the state `<Responses>` holds keeps
  * it so (`Typed` in `#plate/held.ts`); the response's value is read from the texts that are
  * answers, in the boxes' order, by plate's one reading of typed text
- * (`#plate/model/typed-text.ts`). A box whose text is no value of its base type, `abc` in a
- * whole-number box, leaves the response unread: its value is NULL, and the host refuses an answer
- * until the child changes it.
+ * (`#plate/model/typed-text.ts`). A box takes only a text on the way to an answer it may post
+ * (`typedEntry`): an `integer` box never holds `abc`, `09` or `9.`, nor a text that begins no text
+ * its `pattern-mask` matches. A box whose text is no value of its base type, a lone `-` in an
+ * integer box or `1e` in a float box, leaves the response unread: its value is NULL, and the host
+ * refuses an answer until the child changes it.
  *
  * The module is imported by client modules only.
  *
@@ -18,7 +20,14 @@ import { Option, Result } from "effect";
 import { useMemo, useState } from "react";
 import { compile, matches } from "#plate/model/regex.ts";
 import type { Matcher } from "#plate/model/regex.ts";
-import { readTyped, typedLexical, typedResponseOf, typedText } from "#plate/model/typed-text.ts";
+import {
+  readTyped,
+  takesTyped,
+  typedEntry,
+  typedLexical,
+  typedResponseOf,
+  typedText,
+} from "#plate/model/typed-text.ts";
 import type { TypedDeclared, TypedReading, Written } from "#plate/model/typed-text.ts";
 import { format, isRecordValue } from "#plate/model/values.ts";
 import type { ResponseValue, Single } from "#plate/model/values.ts";
@@ -204,10 +213,12 @@ const layoutOf = (
  * state holding another `Typed` or value than the one last laid out or written; the same render
  * shows the new layout and stores it, so no frame shows the old text.
  *
- * A box's hint waits for the child to finish: it shows once the box loses focus holding text that
- * fails the `pattern-mask`, so a child typing `12` toward `123` sees nothing after the `1`. It
- * goes as soon as the text matches, on the keystroke that makes it match, and comes back only at
- * the next loss of focus with failing text.
+ * A box takes a keystroke only where it leaves a text the box takes (`typedEntry` in
+ * `#plate/model/typed-text.ts`): `write` refuses any other, and the box keeps its text. A box's
+ * hint waits for the child to finish: it shows once the box loses focus holding text that fails the
+ * `pattern-mask`, so a child typing `12` toward `123` sees nothing after the `1`. It goes as soon
+ * as the text matches, on the keystroke that makes it match, and comes back only at the next loss
+ * of focus with failing text.
  *
  * @param options.counts How many boxes the interaction shows.
  * @param options.declared The response's declaration.
@@ -220,8 +231,9 @@ const layoutOf = (
  * @param options.written How a box's text is written into the response and read back from it: the
  *   text itself for typed text, the XHTML an `xhtml` Extended Text holds ({@link Written}). The
  *   hint judges the text the box shows.
- * @returns The boxes, in order; the setter of one box's text by its index, for its value changes;
- *   and the handler of one box losing focus by its index, for its `blur`.
+ * @returns The boxes, in order; the setter of one box's text by its index, for its value changes,
+ *   which says whether the box took the text; and the handler of one box losing focus by its index,
+ *   for its `blur`.
  * @see https://react.dev/reference/react/useState#storing-information-from-previous-renders
  */
 export const useBoxes = (options: {
@@ -233,15 +245,20 @@ export const useBoxes = (options: {
   readonly written: Written;
 }): readonly [
   boxes: Boxes,
-  write: (index: number, text: string) => void,
+  write: (index: number, text: string) => boolean,
   leave: (index: number) => void,
 ] => {
   const { counts, declared, patternMask, reading, typer, written } = options;
+  const { base, baseType } = reading;
   const [held, set] = useTypedResponse(declared, typer);
   const [layout, setLayout] = useState<Laid>(() => layoutOf(held, counts, reading, written));
   const matcher = useMemo(
     () => Option.fromUndefinedOr(patternMask).pipe(Option.flatMap(compile)),
     [patternMask],
+  );
+  const entry = useMemo(
+    () => typedEntry({ base, baseType }, patternMask),
+    [base, baseType, patternMask],
   );
   const failing = (text: string) =>
     Option.exists(matcher, (compiled) => fails(compiled, text, reading));
@@ -251,7 +268,11 @@ export const useBoxes = (options: {
     setLayout(current);
   }
 
-  const write = (index: number, text: string) => {
+  const write = (index: number, text: string): boolean => {
+    if (!takesTyped(entry, text)) {
+      return false;
+    }
+
     const boxes = withBox(current.boxes, index, (box) => ({
       flagged: box.flagged && failing(text),
       text,
@@ -265,6 +286,8 @@ export const useBoxes = (options: {
 
     setLayout({ boxes, seen: typed });
     set(typed, value);
+
+    return true;
   };
 
   const leave = (index: number) => {

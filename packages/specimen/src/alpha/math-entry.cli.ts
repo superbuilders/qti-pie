@@ -3,18 +3,18 @@
  * for a grader's suite that checks every LaTeX a child can post grades as AlphaTest graded it.
  *
  * ```console
- * $ printf '%s\n' '[{"keycap":"\\frac{▢}{▢}"},{"typed":"3"}]' | node src/ui/math-entry.cli.ts
+ * $ printf '%s\n' '[{"keycap":"\\frac{▢}{▢}"},{"typed":"3"}]' | node src/alpha/math-entry.cli.ts
  * {"keys":[{"keycap":"\\frac{▢}{▢}"},{"typed":"3"}],"latex":"\\frac{▢}{▢}3"}
- * $ node src/ui/math-entry.cli.ts --draw 1000 --seed 7
+ * $ node src/alpha/math-entry.cli.ts --draw 1000 --seed 7
  * ```
  *
  * With no flags it reads standard input, one key sequence per line as JSON (`KeySequenceSchema` in
- * `#specimen/ui/math-entry.ts`: each key `{"keycap": <latex or label>}`, `{"typed": <character>}`
- * or `{"pressed": <key>}`), and writes one line per sequence, in the same order: `{"keys": [...],
- * "latex": "..."}`. With `--draw <count>` it draws that many sequences over every key a child has
- * on the keyboard (`keySequenceOn`), from the stream `--seed <integer>` fixes (0 when absent), and
- * writes the same lines, so a seed reproduces its sequences. It types on one field per core at
- * once.
+ * `#specimen/alpha/math-entry.ts`: each key `{"keycap": <latex or label>}`, `{"typed":
+ * <character>}` or `{"pressed": <key>}`), and writes one line per sequence, in the same order:
+ * `{"keys": [...], "latex": "..."}`. With `--draw <count>` it draws that many sequences over every
+ * key a child has on the keyboard (`keySequenceOn`), from the stream `--seed <integer>` fixes (0
+ * when absent), and writes the same lines, so a seed reproduces its sequences. It types on one
+ * field per core at once.
  *
  * @module
  */
@@ -31,8 +31,8 @@ import {
   mathEntryFields,
   setupOf,
   typedAll,
-} from "#specimen/ui/math-entry.ts";
-import type { MathEntryKey } from "#specimen/ui/math-entry.ts";
+} from "#specimen/alpha/math-entry.ts";
+import type { MathEntryKey } from "#specimen/alpha/math-entry.ts";
 
 /**
  * Decode one line of standard input as a key sequence.

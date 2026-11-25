@@ -1,7 +1,8 @@
 /**
- * Plate's UI suite over a drill's box and the host's keypad: a Text Entry its author marked
- * `plate-digits` takes digits alone and asks for the device's number keyboard, and under a host's
- * own keypad every box asks for no keyboard, each read from what the island renders, against rules
+ * Plate's UI suite over a drill's box and a keypad that types the box: a Text Entry its author
+ * marked `plate-digits` takes digits alone and asks for the device's number keyboard, and where a
+ * keypad types every text the box takes, plate's own or a host's, every box asks for no keyboard,
+ * each read from what the island renders, against rules
  * written here from AlphaTest's player (mastery-track-player 941a86a) and metis's no-regression
  * plan (`~/.cache/metis/NO-REGRESSION/PLAN.md`, R3, H3 and M36), never from plate's code.
  *
@@ -9,10 +10,11 @@
  *   to 9, in order, as AlphaTest's `nextValue.replace(/[^0-9]/g, "")` kept them
  *   (`FluencyInteraction.tsx` lines 1326–1327). The oracle walks the text a code unit at a time.
  * - DG2, the keyboard asked for: a drill's box renders `inputmode="numeric"` under every base type;
- *   under the host's own keypad (`textEntryKeypad` `host`) every box renders `inputmode="none"`, a
- *   drill's box included, since the keys the host shows are the ones the child types with (the
- *   plan's G27: "a shown host keypad wins"); and a box neither marked nor under a host's keypad
- *   asks for what its base type asks, as before.
+ *   where a keypad types every text the box takes (`keypadTyped`, plate's on-screen keys or the
+ *   host's own, which Alpha's host-keypad renderer says) every box renders `inputmode="none"`, a
+ *   drill's box included, since the keys shown are the ones the child types with (the plan's G27:
+ *   "a shown host keypad wins"); and a box neither marked nor typed by a keypad asks for what its
+ *   base type asks, as before.
  *
  * Its kills, each a filter a slip would write in `digitsOf`'s place: one that keeps the decimal
  * point, one that keeps every Unicode digit, and one that keeps everything.
@@ -116,10 +118,10 @@ const kills: readonly (readonly [why: string, filter: (text: string) => string])
  * The props a Text Entry's island takes, as the server shell gives them, but those a rule varies
  * and its response, which follows the base type.
  */
-const boxProps: Omit<TextEntryProps, "baseType" | "digits" | "keypad" | "response"> = {
+const boxProps: Omit<TextEntryProps, "baseType" | "digits" | "keypadTyped" | "response"> = {
   base: 10,
   expectedLength: undefined,
-  labels: { delete: "Delete", keypad: "Keypad", pattern: "Not a valid answer" },
+  labels: { pattern: "Not a valid answer" },
   naming: { "aria-label": "Answer" },
   patternMask: undefined,
   placeholder: undefined,
@@ -129,11 +131,12 @@ const boxProps: Omit<TextEntryProps, "baseType" | "digits" | "keypad" | "respons
 /**
  * Render a Text Entry's island in a `<Responses>` and give its input's `inputmode`.
  *
- * @param props What the rule varies: the base type, whether the box is a drill's, and the keypad.
+ * @param props What the rule varies: the base type, whether the box is a drill's, and whether a
+ *   keypad types it.
  * @returns The input's `inputmode`, none for no attribute.
  */
 const inputModeOf = (
-  props: Pick<TextEntryProps, "baseType" | "digits" | "keypad">,
+  props: Pick<TextEntryProps, "baseType" | "digits" | "keypadTyped">,
 ): string | null => {
   const html = renderToStaticMarkup(
     createElement(Responses, {
@@ -159,33 +162,33 @@ const inputModeOf = (
 };
 
 /**
- * The keyboard a box neither marked nor under a host's keypad asks for, by its base type: the
+ * The keyboard a box neither marked nor typed by a keypad asks for, by its base type: the
  * number keyboard for an integer in base 10, the decimal one for a float, and the device's own for
  * a text, as plate asked before.
  */
 const typedModes = { float: "decimal", integer: "numeric", string: null } as const;
 
 /**
- * Each case of DG2: a base type, whether the box is a drill's, the keypad, and the `inputmode` the
- * rule asks for.
+ * Each case of DG2: a base type, whether the box is a drill's, whether a keypad types it, and the
+ * `inputmode` the rule asks for.
  */
 const keyboardCases = (["integer", "float", "string"] as const).flatMap((baseType) =>
   [false, true].flatMap((digits) =>
-    (["none", "on-screen", "host"] as const).map((keypad) => {
-      if (keypad === "host") {
-        return { baseType, digits, expected: "none", keypad };
+    [false, true].map((keypadTyped) => {
+      if (keypadTyped) {
+        return { baseType, digits, expected: "none", keypadTyped };
       }
 
       if (digits) {
-        return { baseType, digits, expected: "numeric", keypad };
+        return { baseType, digits, expected: "numeric", keypadTyped };
       }
 
-      return { baseType, digits, expected: typedModes[baseType], keypad };
+      return { baseType, digits, expected: typedModes[baseType], keypadTyped };
     }),
   ),
 );
 
-describe("a drill's box and the host's keypad", () => {
+describe("a drill's box and a keypad that types the box", () => {
   it.effect("DG1: a drill's box keeps the ASCII digits of whatever is typed, in order", (ctx) =>
     Effect.gen(function* digitsRule() {
       const [first, ...rest] = [...shortTexts, "1w", "12.5", "-3", "٣4", "12😀34"];
@@ -217,12 +220,12 @@ describe("a drill's box and the host's keypad", () => {
     }),
   );
 
-  it("DG2: a drill's box asks for the number keyboard, and the host's own keypad for none", () => {
-    for (const { baseType, digits, expected, keypad } of keyboardCases) {
+  it("DG2: a drill's box asks for the number keyboard, and a box a keypad types for none", () => {
+    for (const { baseType, digits, expected, keypadTyped } of keyboardCases) {
       assert.strictEqual(
-        inputModeOf({ baseType, digits, keypad }),
+        inputModeOf({ baseType, digits, keypadTyped }),
         expected,
-        `${baseType}, digits ${String(digits)}, keypad ${keypad}`,
+        `${baseType}, digits ${String(digits)}, keypad-typed ${String(keypadTyped)}`,
       );
     }
   });

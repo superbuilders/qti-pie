@@ -405,11 +405,15 @@ export default defineConfig({
       plugins: ["react"],
       rules: reactCompilerRules,
     },
-    // plate's look is its separate stylesheets, plate/src/styles/base.css and theme.css, which a host
-    // imports: its UI writes no class but the author's, at the sites `passthrough` lists, no style,
-    // and imports no stylesheet.
+    // plate's look is its separate stylesheets, plate/src/styles/base.css and theme.css, and Alpha's,
+    // plate/src/alpha/styles/, which a host imports: its UI, Alpha's renderers among it, writes no
+    // class but the author's, at the sites `passthrough` lists, no style, and imports no stylesheet.
     {
-      files: ["packages/plate/src/ui/**/*.ts", "packages/plate/src/ui/**/*.tsx"],
+      files: [
+        "packages/plate/src/ui/**/*.ts",
+        "packages/plate/src/ui/**/*.tsx",
+        "packages/plate/src/alpha/**/*.tsx",
+      ],
       rules: {
         "workspace/classes-live-in-styles": [
           "error",

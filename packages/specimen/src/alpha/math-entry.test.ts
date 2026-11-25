@@ -1,9 +1,9 @@
 /**
- * Plate's math entry held to AlphaTest's: the field a Text Entry marked `plate-math-entry` is
- * answered in (`@qti-pie/plate/math-entry`), driven in headless Google Chrome as a child drives it
- * (`#specimen/ui/math-entry.ts`), against AlphaTest's player (mastery-track-player at 941a86a)
- * written down here by hand from its source, never from plate's code, and against the fates
- * edullm-bd ruled on 2026-11-22.
+ * Alpha's math entry held to AlphaTest's: the field a Text Entry marked `alpha-math-entry` is
+ * answered in (`@qti-pie/plate/alpha/math-entry`), driven in headless Google Chrome as a child
+ * drives it (`#specimen/alpha/math-entry.ts`), against AlphaTest's player (mastery-track-player at
+ * 941a86a) written down here by hand from its source, never from plate's code, and against the
+ * fates edullm-bd ruled on 2026-11-22.
  *
  * The rules:
  *
@@ -45,7 +45,7 @@ import type {
   VirtualKeyboardKeycap,
   VirtualKeyboardLayout,
 } from "mathlive";
-import { keyFates, keyboardLayout, keyboardRows } from "@qti-pie/plate/math-entry";
+import { keyFates, keyboardLayout, keyboardRows } from "@qti-pie/plate/alpha/math-entry";
 import {
   mathEntryFields,
   namesOf,
@@ -53,13 +53,13 @@ import {
   setupOf,
   typedAll,
   typedCharacters,
-} from "#specimen/ui/math-entry.ts";
+} from "#specimen/alpha/math-entry.ts";
 import type {
   MathEntryFailure,
   MathEntryField,
   MathEntryKey,
   Setup,
-} from "#specimen/ui/math-entry.ts";
+} from "#specimen/alpha/math-entry.ts";
 
 /**
  * How long one rule may run before vitest stops it: a hang guard, never a budget. Each rule drives
@@ -574,7 +574,7 @@ const kills: readonly Kill[] = [
 class Fields extends Context.Service<
   Fields,
   { readonly all: Arr.NonEmptyReadonlyArray<MathEntryField>; readonly borrow: Borrow }
->()("specimen/ui/math-entry.test/Fields") {}
+>()("specimen/alpha/math-entry.test/Fields") {}
 
 /**
  * Open {@link Fields}, closed when the file ends.

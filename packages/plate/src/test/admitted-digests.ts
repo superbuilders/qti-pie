@@ -10,11 +10,14 @@
  * Written by the admission run (`packages/qti-pie/packages/pantry/scripts/admit.ts`) at edullm
  * 98d15c69d5d5333721442fccfa57dd126a2fd21e: 1251 documents judged, 1156 admitted, by the schema's
  * laws at that commit. The two synthetic Gap Match items of Alpha's fixtures
- * (`#plate/alpha/fixtures/gap-match/`, the comparison and number line forms), collected alone,
- * were admitted by the same run at qti-pie 525c9c179ba8b4ac2909958a1d2ebe52cd834800's laws: 2
- * judged, 2 admitted. Do not edit it: run the admission again when a document a suite opens
- * changes, and when a law lands that moves a verdict (follow-up 5's template needs, the normative
- * half of G1, refuse 1EdTech's slider-1, which this set admits).
+ * (`#plate/alpha/fixtures/gap-match/`, the comparison and number line forms), collected alone, were
+ * admitted by the same run at qti-pie 525c9c179ba8b4ac2909958a1d2ebe52cd834800's laws: 2 judged, 2
+ * admitted; and the five Text Entry documents of specimen's renderer suites
+ * (`#specimen/ui/text-entry-items.ts`), collected alone, at qti-pie
+ * 85f6e12e27e6a4e8011af4063c873b0f72198f2d's laws: 5 judged, 5 admitted. Do not edit it: run the
+ * admission again when a document a suite opens changes, and when a law lands that moves a verdict
+ * (follow-up 5's template needs, the normative half of G1, refuse 1EdTech's slider-1, which this
+ * set admits).
  *
  * @module
  */
@@ -229,6 +232,7 @@ export const admittedDocuments: ReadonlyMap<
   ["26aeddb12a73b71fac9c8a3304b0547fc692bc581c12a7dadeb64e8ec397fe59", []],
   ["26e14ba3321495c199eb49a6336c06bbef2a0ae3dead4f5af17754687465cd56", []],
   ["277664fbd10bb6ef85f3fc42ea5b5a774ced53d4c9bf2e81f8d401af9cc2d656", []],
+  ["279ba649959fa5f7d34f9dabeafbe9aeec481b9d867d4fa8db33688063d638bf", []],
   ["27c88b62a27c11865d11362e12e8000f7d590b29939dc51d1d6ecff8d4288b2a", []],
   ["282da2945998dbbdf180a442f87ea57144d9a0817864c692d8954f63a5dde476", []],
   [
@@ -469,6 +473,7 @@ export const admittedDocuments: ReadonlyMap<
   ["4faa29294664a20d1fad73871c224263475d068d707c3a5e2994e9ce526deda5", []],
   ["4fed2fbac9e6c5cd2b9e7d0e81f1f4c696dea0c5acde8919dadf0fee5708b290", []],
   ["50384743215ab9d05b26be44db0af09b9ced83187b47ef5100ae401df97053e7", []],
+  ["507e5533a8c778e5d340874602ff5027c29169d5e4d1c99af61e91e783b7d4c3", []],
   ["50f4ab21af77ad9e8dfad207732e57e2ec457b54a018bad2d135491ed534f2f4", []],
   ["510a8dbc012b680a15742c083d383012c097f021baf74fa0296deb7cf413eeb1", []],
   ["512e8cc41f92aa1d7357a4fbbaff7847abaf7726b7d599c9450b45b0a657bc15", []],
@@ -675,6 +680,7 @@ export const admittedDocuments: ReadonlyMap<
   ["74eb8b3dada102369917ce6443d3054d2d7436b61419b0a1b1595471c662e1d0", []],
   ["74f7607fd3a2c17887291b1ea1b5c22dcd2527be2e665d0dc8b6ed4b694cfcaa", []],
   ["751959266389b5cd41fcd823c4ebb3897ea26ed41bcea1ae69147292a1567d6e", []],
+  ["751c2ad5c12029f7a0dad89616a4bc4224af5e91a74e83907aa79bc99fd1d861", []],
   ["76121dc55fadb752b5c72f58ea90163d46892042e952c768b1030f935203faf0", []],
   ["76230d4fe2c24dc0a09fb28d93ff1e3c3d06a2ad624faa99b8a51ed7e6a3651f", []],
   ["765628a28b307fb6caa4740330b6fa4b6ba25978c4b34639423f3164d1983311", []],
@@ -1092,6 +1098,7 @@ export const admittedDocuments: ReadonlyMap<
   ["bc3d36aa18174103e63490058283c0104b92a37604ab27a0d6df8aae1456649d", []],
   ["bcbb2cdea85599e778d952a50b119d1414277a13b3e52416b8c75006206d5b31", []],
   ["bcd50a48352dd7b5dc5af1efbebbb52dadcc195b989366d4be0ec0b9478f1a57", []],
+  ["bd121c55b0e62c1fdbd635f768abf8494af5a5ab90bbd5b8cd9590b867c397be", []],
   ["bd6791e9152d43e4a6aec24e1233cb9f023ca84cbaeb711d4d8a5066ff7f2ebb", []],
   ["bd967d69b0a8eb2f50b2a1776b1d1081ce8d9453c9c8d1dcfcde73137cbdd7d0", []],
   ["bdad6414c87f16c117cd1754ffbbb4865a1876077038f29f6fade7ca8b3f3b43", []],
@@ -1254,6 +1261,7 @@ export const admittedDocuments: ReadonlyMap<
   ["dec247fe059b64c950c6e59b9fcc908854cd1c78a0d66ac0c1757fdda19b7cf1", []],
   ["ded269ff6af9f7f21506aa4d72d34a1bca81c765b9808ccfa0f4053b19012ed0", []],
   ["dee0e3c1fe3c58b708fe95b697a6faeadb592ddf03159021f44cb3d61bc4a6fe", []],
+  ["df49a23b1bb2e89c7037a826691eed6d3db8508a130c36c909b12a94f2ac4b24", []],
   ["dfbac49c00d7f15a2545e0b3f4c449d74916433f0f87c49d146d4a5f7455582e", []],
   ["dfe2ff2555cfc771fbd10cf36a3128068c1d757e292c750ca2cf1f8391c713f4", []],
   ["dfea24351a90ce8a53dfb6ef67140e2058d279997a85c7cbe62e8a7ab7473d98", []],

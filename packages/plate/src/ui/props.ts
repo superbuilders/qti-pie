@@ -4,9 +4,9 @@
  * with the contract that decides what it posts (`#plate/held.ts`), for server code that builds
  * or reads them, such as the ledger's, without loading the UI. No module this entry reaches renders
  * anything: the UI's entries (`@qti-pie/plate/ui`, `@qti-pie/plate/ui/client`) reach every
- * interaction's island, whose browser libraries a server's program resolves to their server builds
- * (MathLive's `node` condition gives no `MathfieldElement`), so a program that imports the UI's
- * entries compiles the islands, and one that imports this entry compiles none of them.
+ * interaction's island, whose browser libraries a server's program resolves to their server builds,
+ * so a program that imports the UI's entries compiles the islands, and one that imports this entry
+ * compiles none of them.
  *
  * `@qti-pie/plate/ui/client` exports the held state and its contract too, for the host that
  * renders.

@@ -11,7 +11,8 @@
  * Media's, which replays its media through its replay island, an island that posts nothing
  * (Bjorn's ruling, 2026-11-18; plate's UI suite's J1). A kind that stands inside the author's
  * sentence and writes a right answer, Text Entry and Inline Choice, has an `answer` too, which the
- * body walk writes after the block that holds it.
+ * body walk writes after the block that holds it; one that writes an island below the body while
+ * the child answers, a Text Entry's on-screen keypad, has an `after`.
  *
  * @module
  */
@@ -101,6 +102,35 @@ export const renderAnswer = <K extends ModuleKind>(
 
   return mode === "answering" || answer === undefined ? null : (
     <Fragment key={key}>{answer(paired, context)}</Fragment>
+  );
+};
+
+/**
+ * Render the island one interaction writes after the item's body while the child answers, such as
+ * a Text Entry's on-screen keypad (`Renderer.after` in `#plate/ui/registry/contract.ts`): its
+ * kind's `after`, inside its own `<Suspense fallback={null}>`, as every island is; nothing for a
+ * kind whose renderer has no `after`, or where it writes none.
+ *
+ * @template K The interaction's kind.
+ * @param renderers The renderer of every kind, as the host composed them.
+ * @param paired The interaction and its payload node.
+ * @param context What the shell knows of the item and the render.
+ * @param key The island's key among those after the body.
+ * @returns The island, or nothing.
+ */
+export const renderAfter = <K extends ModuleKind>(
+  renderers: Renderers,
+  paired: Paired<K>,
+  context: ReviewContext,
+  key: Key,
+): ReactNode => {
+  const { after } = renderers[paired.kind];
+  const island = after === undefined ? null : after(paired, islandContextOf(context));
+
+  return island === null ? null : (
+    <Suspense fallback={null} key={key}>
+      {island}
+    </Suspense>
   );
 };
 

@@ -17,6 +17,15 @@
  */
 @layer ui-sdk, plate, plate-alpha;
 
+/*
+ * MathLive's fonts, for the math entry's field (`#plate/alpha/math-entry/math-entry.tsx`): its own
+ * sheet's `@font-face` rules, which name its font files beside it, so the host's build serves them
+ * from the host's origin. A browser loads a face only once text of the page uses it, so a page with
+ * no math entry loads none. The field loads no font itself: the island tells MathLive the fonts
+ * are the page's.
+ */
+@import "mathlive/fonts.css" layer(plate-alpha);
+
 @layer plate-alpha {
   /* == hot text == */
 
@@ -1337,5 +1346,74 @@
     font-size: 3.5rem;
     font-weight: 700;
     line-height: 1;
+  }
+
+  /* == text entry == */
+
+  /*
+   * A math entry's look a host themes, at AlphaTest's field's values (mastery-track-player
+   * 941a86a): a formula's scripts and a fraction's numerator and denominator at 0.9 of its text
+   * (`NumericEntry.tsx` lines 1076–1091); and its virtual keyboard a light grey board of white keys
+   * with black faces, white on hover (`src/styles/mathlive-styles.css` lines 7–13). MathLive reads
+   * its own properties, which a host's theme does not set: the math entry's rules map each from
+   * one of these.
+   */
+  :where(:root) {
+    --plate-math-script-scale: 0.9;
+    --plate-keyboard-background: #f0f0f0;
+    --plate-keycap-background: #fff;
+    --plate-keycap-text: #000;
+    --plate-keycap-text-hover: #fff;
+  }
+
+  /*
+   * A math entry's field (`alpha-math-entry-field`, MathLive's `math-field`), standing in its place
+   * in the sentence: AlphaTest's field's 290 px, padded half a rem by one (mastery-track-player
+   * 941a86a, `NumericEntry.tsx` lines 1858–1873), as tall as a control inside a sentence, in an
+   * edge at 3:1, in the text's
+   * colour, its scripts and a fraction's parts at `--plate-math-script-scale` of its text. It offers
+   * no menu, as AlphaTest's field offered none: its menu's toggle is not drawn. Its keyboard, which
+   * MathLive draws at the end of the page's body and colours from the page's root, has keys at least
+   * a target's size, AlphaTest's 70 px (`--keycap-height`), in the `--plate-keyboard-background`
+   * and `--plate-keycap-*` tokens, so a host themes it on :root.
+   */
+  [data-slot="alpha-math-entry"] {
+    display: inline-flex;
+    vertical-align: middle;
+  }
+
+  :where([data-slot="alpha-math-entry"]) [data-slot="alpha-math-entry-field"] {
+    inline-size: 18.125rem;
+    min-block-size: var(--plate-control-size);
+    min-inline-size: 6rem;
+    max-inline-size: 100%;
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--ui-input);
+    font-size: inherit;
+    --math-superscript-font-scale-factor: var(--plate-math-script-scale);
+    --math-subscript-font-scale-factor: var(--plate-math-script-scale);
+    --math-fraction-numerator-font-scale-factor: var(--plate-math-script-scale);
+    --math-fraction-denominator-font-scale-factor: var(--plate-math-script-scale);
+  }
+
+  [data-slot="alpha-math-entry-field"]::part(menu-toggle) {
+    display: none;
+  }
+
+  :where(:root) {
+    --keycap-height: max(var(--plate-target-size), 70px);
+    --keyboard-background: var(--plate-keyboard-background);
+    --keycap-background: var(--plate-keycap-background);
+    --keycap-text: var(--plate-keycap-text);
+    --keycap-text-hover: var(--plate-keycap-text-hover);
+  }
+
+  /*
+   * A math entry's answer in a review, the formula as MathML, inside the Control's mark.
+   */
+  [data-slot="alpha-math-entry-answer"] {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--plate-control-size);
   }
 }

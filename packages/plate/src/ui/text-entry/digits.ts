@@ -18,8 +18,8 @@
 
 /**
  * The class an author writes on a `qti-text-entry-interaction` for plate to take digits alone in
- * its box. It is in plate's own vocabulary, `plate-*`, as `plate-math-entry` is, not `qti-*`, the
- * prefix of 1EdTech's shared vocabulary.
+ * its box. It is in plate's own vocabulary, `plate-*`, as every name plate gives its parts is, not
+ * `qti-*`, the prefix of 1EdTech's shared vocabulary.
  */
 export const digitsClass = "plate-digits";
 

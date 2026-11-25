@@ -60,6 +60,20 @@ export interface Renderer<K extends ModuleKind> {
    * @returns The answer, or nothing where the answer shown is right or the render marks nothing.
    */
   readonly answer?: (paired: Paired<K>, context: ReviewContext) => ReactNode;
+  /**
+   * Render the island the kind writes after the item's body while the child answers, below
+   * everything the child reads, such as a Text Entry's on-screen keypad, which inside the author's
+   * sentence split "4 + [ ] = 11" and stood over the box, a line or a picture (`renderAfter` in
+   * `#plate/ui/item/interactions/index.tsx`). Absent for every other kind; a review and a solution
+   * write none.
+   *
+   * Like the island, it is handed the pair and the {@link IslandContext} alone.
+   *
+   * @param paired The redacted model node and its payload node.
+   * @param context What the page may know of the render.
+   * @returns The island, or nothing where the interaction writes none.
+   */
+  readonly after?: (paired: Paired<K>, context: IslandContext) => ReactNode;
 }
 
 /**

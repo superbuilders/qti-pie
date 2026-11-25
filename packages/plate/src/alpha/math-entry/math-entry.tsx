@@ -1,22 +1,23 @@
 "use client";
 
 /**
- * The math entry's client island: a Text Entry whose author marked it with plate's presentation
- * class `plate-math-entry` (`mathEntryClass` in `#plate/math-entry/field.ts`), answered in a
- * MathLive math field under AlphaTest's virtual keyboard, the field's LaTeX its response.
+ * The math entry's client island, Alpha's: a Text Entry whose author marked it with Alpha's
+ * presentation class `alpha-math-entry` (`mathEntryClass` in `#plate/alpha/math-entry/field.ts`),
+ * answered in a MathLive math field under AlphaTest's virtual keyboard, the field's LaTeX its
+ * response. Alpha's Text Entry renderer renders it (`#plate/alpha/text-entry/text-entry.tsx`).
  *
  * The field is MathLive's custom element, made once the island mounts, from MathLive's module
- * loaded then as plate loads it, once a page (`#plate/math-entry/mathlive.ts`): a page with no math
- * entry loads none of it, and the server's markup holds the field's place, an empty span. It is set
- * up by `setUpField` with plate's settings and keyboard, the settings and keys the field's suite
- * holds plate to (`#specimen/ui/math-entry.test.ts` in qti-pie's specimen). Nothing loads from
- * another host.
+ * loaded then as Alpha loads it, once a page (`#plate/alpha/math-entry/mathlive.ts`): a page with
+ * no math entry loads none of it, and the server's markup holds the field's place, an empty span.
+ * It is set up by `setUpField` with plate's settings and keyboard, the settings and keys the
+ * field's suite holds plate to (`#specimen/alpha/math-entry.test.ts` in qti-pie's specimen).
+ * Nothing loads from another host.
  *
  * @module
  */
 import type { MathfieldElement } from "mathlive";
 import { useEffect, useEffectEvent, useRef } from "react";
-import { fieldSettings, keyboardLayout, setUpField } from "#plate/math-entry/field.ts";
+import { fieldSettings, keyboardLayout, setUpField } from "#plate/alpha/math-entry/field.ts";
 import type { Authored, Named } from "#plate/ui/attributes.ts";
 import { asTyped } from "#plate/model/typed-text.ts";
 import { useBoxes } from "#plate/ui/typed.ts";
@@ -76,13 +77,13 @@ const makeField = async (
   hooks: FieldHooks,
   made: (field: MathfieldElement) => void,
 ): Promise<void> => {
-  const { Field } = await import("#plate/math-entry/mathlive.ts");
+  const { Field } = await import("#plate/alpha/math-entry/mathlive.ts");
 
   if (!gone.aborted) {
     const field = new Field();
 
     field.value = hooks.opened;
-    field.dataset["slot"] = "plate-math-entry-field";
+    field.dataset["slot"] = "alpha-math-entry-field";
 
     const { "aria-label": label, "aria-labelledby": labelledBy } = hooks.naming;
 
@@ -115,16 +116,18 @@ const makeField = async (
  *
  * The parts:
  *
- * - `plate-text-entry`, the root, a `span` with the author's `class` (`plate-math-entry` among it)
+ * - `plate-text-entry`, the root, a `span` with the author's `class` (`alpha-math-entry` among it)
  *   and `data-*`, so the Text Entry's look and the shared vocabulary's widths reach it;
- * - `plate-math-entry`, a `span` the field stands in;
- * - `plate-math-entry-field`, MathLive's `math-field`, named as the Text Entry's input is (its
+ * - `alpha-math-entry`, a `span` the field stands in;
+ * - `alpha-math-entry-field`, MathLive's `math-field`, named as the Text Entry's input is (its
  *   `aria-label` or `aria-labelledby`), keyboard-operable, its speech and live region MathLive's
  *   own, with the toggle that shows its virtual keyboard.
  *
  * Every change writes the field's LaTeX, `field.value`, as typed, and the response read from it: an
- * empty field is no answer. A response that changes from outside the field, such as a host's
- * restore, is written into it.
+ * empty field is no answer. A change the box does not take, a LaTeX no integer is written as in an
+ * `integer` field (`typedEntry` in `#plate/model/typed-text.ts`), puts the field back to the text
+ * the response holds, so the field always shows what it posts. A response that changes from
+ * outside the field, such as a host's restore, is written into it.
  *
  * @param props The interaction, its response and its names ({@link MathEntryProps}).
  * @returns The math entry, its field bound to the response.
@@ -149,7 +152,11 @@ export const MathEntry = (props: MathEntryProps) => {
    * @param latex The field's value.
    */
   const typed = useEffectEvent((latex: string) => {
-    write(0, latex);
+    const made = field.current;
+
+    if (!write(0, latex) && made !== null) {
+      made.value = box.text;
+    }
   });
 
   /**
@@ -197,7 +204,7 @@ export const MathEntry = (props: MathEntryProps) => {
 
   return (
     <span {...root} data-slot="plate-text-entry">
-      <span data-slot="plate-math-entry" ref={place} />
+      <span data-slot="alpha-math-entry" ref={place} />
     </span>
   );
 };

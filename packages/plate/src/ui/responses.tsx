@@ -42,7 +42,7 @@ type Typer = (key: Key) => void;
 
 /**
  * What the context carries: the host's state and its setter, and the typers of the boxes mounted,
- * by response, which a host's own keypad types through ({@link useTyping}).
+ * by response, which a keypad types through, plate's own or the host's ({@link useTyping}).
  */
 interface ResponsesValue {
   readonly held: Held;
@@ -407,10 +407,14 @@ export const useTypedResponse = (
 };
 
 /**
- * Type into a response's Text Entry from a keypad of the host's own (`textEntryKeypad` `host`): the
- * key reaches the box as its own keyboard's would, at its caret, so the box shows exactly what the
- * child typed and its response is read from that text. A key pressed while no Text Entry of the
- * response is mounted types nothing: the host shows its keypad beside a Text Entry.
+ * Type into a response's Text Entry from a keypad: plate's own, which the server writes after the
+ * item's body (`textEntryKeypad` `on-screen`, `#plate/ui/text-entry/keys.tsx`), or a host's own,
+ * where the host composed a Text Entry renderer whose box asks the device for no keyboard. The key
+ * types at the end of the box's text, or deletes its last character, as a calculator's keys do
+ * (`pressed` in `#plate/ui/text-entry/keypad.ts`), and the box takes or refuses it as it does a
+ * keystroke, so the box shows exactly what the child typed and its response is read from that text.
+ * A key pressed while no Text Entry of the response is mounted types nothing: a keypad stands
+ * beside a Text Entry.
  *
  * @param identifier The response's identifier.
  * @returns The keypad's press.

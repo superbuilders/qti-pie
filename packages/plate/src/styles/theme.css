@@ -754,19 +754,12 @@
   }
 
   /*
-   * A Text Entry with its on-screen keypad: the box above its keys, both at the top of the line,
-   * so the sentence reads beside the box rather than beside the middle of the keypad. Each key's
-   * face is large and bold, centred in it.
+   * A Text Entry's on-screen keypad, after the item's body, a gap from it and from what follows.
+   * Each key's face is large and bold, centred in it.
    */
-  [data-slot="plate-text-entry"]:has(> [data-slot="plate-text-entry-keypad"]) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--plate-gap);
-    vertical-align: top;
-  }
-
   [data-slot="plate-text-entry-keypad"] {
     gap: var(--plate-gap);
+    margin-block: var(--plate-gap) 1rem;
   }
 
   :where([data-slot="plate-text-entry-keypad"]) [data-slot="button"] {
@@ -846,24 +839,6 @@
   :where([data-slot^="plate-"]) [data-slot="field-error"] {
     margin: 0;
     font-weight: 600;
-  }
-
-  /*
-   * A math entry's field: AlphaTest's field's look (mastery-track-player 941a86a,
-   * `src/styles/mathlive-styles.css` and `NumericEntry.tsx` lines 1858–1873), 290 px wide, its text
-   * at 1.25rem, in a rounded edge padded half a rem by one. Its scripts' scale and its keyboard's
-   * colours are the base sheet's tokens, at AlphaTest's values.
-   */
-  :where([data-slot="plate-math-entry"]) [data-slot="plate-math-entry-field"] {
-    inline-size: 18.125rem;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    font-size: 1.25rem;
-    line-height: 1.2;
-  }
-
-  [data-slot="plate-math-entry-answer"] {
-    font-size: 1.25rem;
   }
 
   /* == end attempt == */

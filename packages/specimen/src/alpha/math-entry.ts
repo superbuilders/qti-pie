@@ -1,9 +1,9 @@
 /**
  * The math entry's field, driven as a child drives it: a page in headless Google Chrome holding
- * one MathLive field set up by plate's own `setUpField` (`@qti-pie/plate/math-entry`), under
+ * one MathLive field set up by plate's own `setUpField` (`@qti-pie/plate/alpha/math-entry`), under
  * AlphaTest's virtual keyboard, which a key sequence is pressed into on a fresh field, and whose
  * LaTeX is read back once the last key has landed. It is the source of truth for what the field
- * emits for what a child presses: plate's UI suite reads it (`#specimen/ui/math-entry.test.ts`),
+ * emits for what a child presses: plate's UI suite reads it (`#specimen/alpha/math-entry.test.ts`),
  * and a grader's suite draws key sequences ({@link keySequence}) and asks it the LaTeX a child
  * would have posted, through {@link mathEntryFields} or its command line (`math-entry.cli.ts`).
  *
@@ -49,8 +49,8 @@ import {
   keyboardKeys,
   keyboardLayout,
   setUpField,
-} from "@qti-pie/plate/math-entry";
-import type { FieldSettings } from "@qti-pie/plate/math-entry";
+} from "@qti-pie/plate/alpha/math-entry";
+import type { FieldSettings } from "@qti-pie/plate/alpha/math-entry";
 import type { MathfieldElement, VirtualKeyboardLayout } from "mathlive";
 
 /**
@@ -327,13 +327,13 @@ const attempt = <A>(step: string, run: () => Promise<A>): Effect.Effect<A, MathE
 const mathliveFolder = path.dirname(fileURLToPath(import.meta.resolve("mathlive")));
 
 /**
- * The page: MathLive's module, its fonts from its own sheet as plate's base sheet gives them, and
- * MathLive set up for the page as plate sets it up once a page (`#plate/math-entry/mathlive.ts`):
- * told to load neither fonts nor sounds itself, and its keyboard's keys given counted ids by
- * `countKeycaps`'s own source. Every setup's field runs in such a page, AlphaTest's player's
- * among them: the ids MathLive draws at random gave two keys one id about one keyboard in 300, a
- * defect AlphaTest's player had and plate does not keep, so ME3 holds plate to AlphaTest's keys
- * without it, and no draw decides a run.
+ * The page: MathLive's module, its fonts from its own sheet as Alpha's base sheet gives them, and
+ * MathLive set up for the page as Alpha sets it up once a page
+ * (`#plate/alpha/math-entry/mathlive.ts`): told to load neither fonts nor sounds itself, and its
+ * keyboard's keys given counted ids by `countKeycaps`'s own source. Every setup's field runs in
+ * such a page, AlphaTest's player's among them: the ids MathLive draws at random gave two keys one
+ * id about one keyboard in 300, a defect AlphaTest's player had and plate does not keep, so ME3
+ * holds plate to AlphaTest's keys without it, and no draw decides a run.
  */
 const pageHtml = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>math entry</title>

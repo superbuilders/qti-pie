@@ -111,7 +111,7 @@ const formulaOf = (latex: string): Option.Option<Element> =>
   );
 
 /**
- * Draw a math entry's answer: the `plate-math-entry-answer` part, a `span` holding the answer's
+ * Draw a math entry's answer: the `alpha-math-entry-answer` part, a `span` holding the answer's
  * `math`, inline in the sentence but in display style, so a fraction stands as tall as the field
  * drew it, or its text where MathLive cannot draw it (the module's rules).
  *
@@ -119,7 +119,7 @@ const formulaOf = (latex: string): Option.Option<Element> =>
  * @returns The part.
  */
 export const MathAnswer = ({ latex }: { readonly latex: string }): ReactNode => (
-  <span data-slot="plate-math-entry-answer">
+  <span data-slot="alpha-math-entry-answer">
     {Option.match(formulaOf(latex), {
       onNone: () => latex,
       onSome: (formula) =>

@@ -3,7 +3,12 @@
  * the value model's lexical rules, QTI's `TextFormatEnum`, the information model's record fields of
  * a string interaction (2.4.2.2, spec reading 191) and the integers a Text Entry's `base` names,
  * every case a value written from the rule: an integer exact at any size and in every base, a float
- * finite, a string's line breaks a textarea's, and a character XML cannot carry unread.
+ * finite, a string's line breaks a textarea's, and a character XML cannot carry unread; and the
+ * texts a whole-number box takes, with no `pattern-mask` against a grammar of how an integer is
+ * written, and under a mask against a brute force over every answer the mask's own matcher admits,
+ * the K–2 forms' entries among the masks (their product spec: whole numbers, "leading zeros
+ * rejected", a lone 0 valid, Kindergarten 0 to 20, Grades 1 and 2 up to three and four digits,
+ * raised where a listed wrong answer is longer).
  *
  * @module
  */
@@ -14,10 +19,13 @@ import {
   asTyped,
   readRecord,
   readTyped,
+  takesTyped,
+  typedEntry,
   typedResponseOf,
   typedText,
 } from "#plate/model/typed-text.ts";
-import type { TypedReading, UnreadReason } from "#plate/model/typed-text.ts";
+import { compile, matches } from "#plate/model/regex.ts";
+import type { TypedEntry, TypedReading, UnreadReason } from "#plate/model/typed-text.ts";
 import type { RecordField, RecordValue, Single } from "#plate/model/values.ts";
 
 /**
@@ -733,5 +741,306 @@ describe("typedResponseOf", () => {
       { texts: ["", "x"], unread: false },
       { baseType: "string", cardinality: "multiple", values: [stringOf("<p>x</p>")] },
     ]);
+  });
+});
+
+/**
+ * The characters a child's keystrokes leave in a whole-number box, by keypad or keyboard: the
+ * digits the keypad holds, and the minus sign, plus sign, space, decimal point and letter a
+ * keyboard types beside them.
+ */
+const keystrokes = ["0", "1", "5", "9", "-", "+", " ", ".", "e"] as const;
+
+/**
+ * Every text of up to `length` characters drawn from `characters`, the empty text first.
+ *
+ * @param characters The characters.
+ * @param length The most characters a text holds.
+ * @returns The texts.
+ */
+const textsOf = (characters: readonly string[], length: number): readonly string[] => {
+  const texts = [""];
+  for (let size = 1; size <= length; size += 1) {
+    for (const shorter of texts.filter((each) => each.length === size - 1)) {
+      texts.push(...characters.map((character) => shorter + character));
+    }
+  }
+
+  return texts;
+};
+
+/**
+ * Each box's entry this suite has built, by its base and mask, so a case builds each entry once, as
+ * a page's box does (`useBoxes` in `#plate/ui/typed.ts`).
+ */
+const entries = new Map<string, TypedEntry>();
+
+/**
+ * Whether a decimal integer box takes a text, under a `pattern-mask` or none.
+ *
+ * @param text The text.
+ * @param mask The mask, none for no mask.
+ * @param base The base the integer is typed in, 10 by default.
+ * @returns Whether the box takes it.
+ */
+const takes = (text: string, mask?: string, base = 10): boolean => {
+  const key = `${String(base)} ${mask ?? ""} ${String(mask === undefined)}`;
+  const entry = entries.get(key) ?? typedEntry({ base, baseType: "integer" }, mask);
+
+  entries.set(key, entry);
+
+  return takesTyped(entry, text);
+};
+
+/**
+ * How a decimal integer is written, written here from the value model rather than from plate's
+ * reading: 0, or an optional minus, then a digit other than 0 followed by any digits.
+ */
+const integerWritten = /^(?:0|-?[1-9][0-9]*)$/u;
+
+/**
+ * Every integer written plainly in at most five characters, the answers a mask of
+ * {@link boundedMasks} may match.
+ */
+const shortIntegers = textsOf(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "-"], 5).filter(
+  (text) => integerWritten.test(text),
+);
+
+/**
+ * The oracle of a box under a mask whose every match is at most five characters long: the box
+ * takes a text exactly where some integer written plainly in at most five characters begins with
+ * it and matches the mask, each match judged by the pattern's own matcher (`compile`). A brute
+ * force over every answer, written apart from the entry's construction.
+ *
+ * @param mask The mask.
+ * @returns Whether the box takes a text.
+ */
+const answerable = (mask: string): ((text: string) => boolean) => {
+  const matcher = Option.getOrThrow(compile(mask));
+  const begun = new Set(
+    shortIntegers
+      .filter((answer) => matches(matcher, answer))
+      .flatMap((answer) =>
+        Array.from({ length: answer.length + 1 }, (_, end) => answer.slice(0, end)),
+      ),
+  );
+
+  return (text) => begun.has(text);
+};
+
+/**
+ * Masks whose every match is an integer written plainly of at most five characters, each with what
+ * it shows: the K–2 forms' Kindergarten entry, 0 to 20, their Grade 1 and Grade 2 entries of up to
+ * three and four digits and an entry raised to five, as where a listed wrong answer is longer; one
+ * of negative numbers alone; one of optional pieces; and one of a repeated range.
+ */
+const integerMasks = [
+  "0|[1-9]|1[0-9]|20",
+  "0|[1-9][0-9]{0,2}",
+  "0|[1-9][0-9]{0,3}",
+  "0|[1-9][0-9]{0,4}",
+  "-[1-9][0-9]?",
+  "(12|3)4?|-?5",
+  "[5-7]{1,3}",
+] as const;
+
+/**
+ * Masks some of whose matches are no integer written plainly, each at most three characters long:
+ * a fixed width, which admits a leading zero; one of a leading zero, `-0` and a plus sign beside an
+ * integer; and one of words alone.
+ */
+const otherMasks = ["[0-9]{2}", "0[0-9]|-0|\\+9|7", "[a-z]{1,3}"] as const;
+
+/**
+ * Every mask the suite holds a box to.
+ */
+const boundedMasks = [...integerMasks, ...otherMasks] as const;
+
+/**
+ * The texts that begin an integer written plainly, the empty text and a lone minus among them.
+ */
+const integerBegun = /^(?:0|-?(?:[1-9][0-9]*)?)$/u;
+
+/**
+ * The oracle of a box under a mask of {@link otherMasks}: it takes a text exactly where the text
+ * begins an integer written plainly and begins a text the mask matches, the mask's matches drawn
+ * from every text of up to three characters over the digits, the signs and four letters and judged
+ * by the pattern's own matcher (`compile`).
+ *
+ * @param mask The mask.
+ * @returns Whether the box takes a text.
+ */
+const begunByBoth = (mask: string): ((text: string) => boolean) => {
+  const matcher = Option.getOrThrow(compile(mask));
+  const begun = new Set(
+    textsOf(["0", "1", "2", "5", "7", "9", "3", "-", "+", "a", "b", "c", "z"], 3)
+      .filter((answer) => matches(matcher, answer))
+      .flatMap((answer) =>
+        Array.from({ length: answer.length + 1 }, (_, end) => answer.slice(0, end)),
+      ),
+  );
+
+  return (text) => integerBegun.test(text) && begun.has(text);
+};
+
+/**
+ * An integer box's entry under a mask of a leading digit and up to a count of digits after it.
+ *
+ * @param count The most digits after the first.
+ * @returns The entry.
+ */
+const entryOf = (count: number): TypedEntry =>
+  typedEntry({ base: 10, baseType: "integer" }, `[1-9][0-9]{0,${String(count)}}`);
+
+describe("typedEntry and takesTyped", () => {
+  it("takes, with no mask, exactly the empty text, a lone minus and an integer written plainly, over every text of up to four keystrokes", () => {
+    const enterable = /^(?:0|-?(?:[1-9][0-9]*)?)$/u;
+    const texts = textsOf(keystrokes, 4);
+    assert.lengthOf(texts, 7381);
+    for (const text of texts) {
+      assert.strictEqual(takes(text), enterable.test(text), JSON.stringify(text));
+    }
+  });
+
+  it("takes, under each mask of integers, exactly the texts some integer the mask matches begins with, over every text of up to four keystrokes", () => {
+    const texts = textsOf(["0", "1", "2", "3", "5", "7", "9", "-", "+", ".", " "], 4);
+    for (const mask of integerMasks) {
+      const oracle = answerable(mask);
+      for (const text of texts) {
+        assert.strictEqual(takes(text, mask), oracle(text), `${mask}: ${JSON.stringify(text)}`);
+      }
+    }
+  });
+
+  it("takes, under a mask some of whose texts are no integer, exactly the texts that begin an integer and begin a match, every text on the way to an answer among them", () => {
+    const texts = textsOf(["0", "1", "2", "5", "7", "9", "-", "+", "a"], 3);
+    for (const mask of otherMasks) {
+      const oracle = begunByBoth(mask);
+      const answers = answerable(mask);
+      for (const text of texts) {
+        assert.strictEqual(takes(text, mask), oracle(text), `${mask}: ${JSON.stringify(text)}`);
+        if (answers(text)) {
+          assert.isTrue(takes(text, mask), `${mask} refuses ${JSON.stringify(text)} on the way`);
+        }
+      }
+    }
+  });
+
+  it.effect(
+    "builds and checks a box's entry under a mask of any count in time linear in the count: [0-9]{1,2047} and eight times its count",
+    () =>
+      Effect.gen(function* linearMask() {
+        const fewer = 2047;
+        const more = fewer * growthFactor;
+        assert.isTrue(takesTyped(entryOf(fewer), "9".repeat(fewer + 1)));
+        assert.isFalse(takesTyped(entryOf(fewer), "9".repeat(fewer + 2)));
+
+        const growth = yield* growthRatio(
+          () => {
+            takesTyped(entryOf(fewer), "9".repeat(fewer + 1));
+          },
+          () => {
+            takesTyped(entryOf(more), "9".repeat(more + 1));
+          },
+        );
+        assert.isBelow(
+          growth,
+          growthLimit,
+          `8 times the count took ${growth.toFixed(1)} times as long`,
+        );
+      }),
+  );
+
+  it("holds a Kindergarten box to 0 to 20: a second 9 after 9, a 1 after 2 and a minus are refused, 20 and a lone 0 taken", () => {
+    const kindergarten = "0|[1-9]|1[0-9]|20";
+    for (const text of ["99", "21", "-", "-9", "09", "00", "200", "100", "+1", " 9", "9."]) {
+      assert.isFalse(takes(text, kindergarten), JSON.stringify(text));
+    }
+    for (const text of ["", "0", "2", "9", "10", "19", "20"]) {
+      assert.isTrue(takes(text, kindergarten), JSON.stringify(text));
+    }
+  });
+
+  it("holds a Grade 1 box to three digits and a raised Grade 2 box to five: a digit past each cap and a minus refused", () => {
+    const threeDigits = "0|[1-9][0-9]{0,2}";
+    for (const text of ["105", "999", "10", "1", "0", ""]) {
+      assert.isTrue(takes(text, threeDigits), JSON.stringify(text));
+    }
+    for (const text of ["1005", "1000", "-", "-1", "01", "1 ", "1.0"]) {
+      assert.isFalse(takes(text, threeDigits), JSON.stringify(text));
+    }
+    const fiveDigits = "0|[1-9][0-9]{0,4}";
+    for (const text of ["30058", "71512", "99999", "1", "0", ""]) {
+      assert.isTrue(takes(text, fiveDigits), JSON.stringify(text));
+    }
+    for (const text of ["100120", "999999", "-", "-1", "01", "1 ", "1.0"]) {
+      assert.isFalse(takes(text, fiveDigits), JSON.stringify(text));
+    }
+  });
+
+  it("refuses 09, -0, +9, a padded 9, 9. and 9.0 with no mask, and takes 9, 0, - and the empty text", () => {
+    for (const text of ["09", "00", "-0", "+9", " 9", "9 ", " 9 ", "9.", "9.0", "1e1"]) {
+      assert.isFalse(takes(text), JSON.stringify(text));
+    }
+    for (const text of ["9", "0", "20", "1000", "-", "-9", ""]) {
+      assert.isTrue(takes(text), JSON.stringify(text));
+    }
+  });
+
+  it("takes every prefix of a text it takes, so typing left to right reaches every answer, and each such integer reads back as itself", () => {
+    for (const mask of [undefined, ...boundedMasks]) {
+      for (const text of textsOf(keystrokes, 4).filter((each) => takes(each, mask))) {
+        for (let end = 0; end < text.length; end += 1) {
+          assert.isTrue(
+            takes(text.slice(0, end), mask),
+            `${String(mask)}: ${JSON.stringify(text)}`,
+          );
+        }
+        const single = Result.getSuccess(readTyped(text, reading("integer")));
+        if (text !== "" && text !== "-") {
+          assert.deepStrictEqual(
+            Option.map(Option.flatten(single), (value) =>
+              value.baseType === "integer" ? typedText(value, 10) : "",
+            ),
+            Option.some(text),
+            `${String(mask)}: ${JSON.stringify(text)}`,
+          );
+        }
+      }
+    }
+  });
+
+  it("takes a base above 10's digits in either case and no digit outside the base, its mask narrowing nothing", () => {
+    for (const mask of [undefined, "[0-9]"]) {
+      assert.isTrue(takes("ff", mask, 16));
+      assert.isTrue(takes("FF", mask, 16));
+      assert.isTrue(takes("-1a", mask, 16));
+      assert.isFalse(takes("0f", mask, 16));
+      assert.isFalse(takes("g", mask, 16));
+      assert.isFalse(takes("12", mask, 2));
+    }
+  });
+
+  it("takes every text in a string or a float box, whose text is the child's as typed, whatever its mask", () => {
+    for (const mask of [undefined, "[0-9]"]) {
+      for (const text of textsOf(keystrokes, 3)) {
+        for (const baseType of ["string", "float"] as const) {
+          assert.isTrue(
+            takesTyped(typedEntry({ base: 10, baseType }, mask), text),
+            `${baseType} ${String(mask)}: ${JSON.stringify(text)}`,
+          );
+        }
+      }
+    }
+  });
+
+  it("takes only the empty text where no integer begins a match of the mask, and every text the integers allow where the mask is outside Appendix F's grammar", () => {
+    assert.isTrue(takes("", "[a-z]+"));
+    for (const text of ["0", "1", "-", "a"]) {
+      assert.isFalse(takes(text, "[a-z]+"), JSON.stringify(text));
+    }
+    for (const text of ["", "0", "12", "-3"]) {
+      assert.isTrue(takes(text, "[0-9"), JSON.stringify(text));
+    }
   });
 });

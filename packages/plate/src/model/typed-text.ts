@@ -5,7 +5,8 @@
  * box's text is the child's, exactly as typed, and the value is a function of it. It renders
  * nothing and loads no browser API, so `@qti-pie/plate` exports it for server code that reads a
  * typed text as a page does: {@link typedResponseOf} a response from its boxes' texts, the islands'
- * own, and {@link readTyped} and {@link readRecord} one box's.
+ * own, {@link readTyped} and {@link readRecord} one box's, and {@link typedEntry} and
+ * {@link takesTyped} which texts a box takes at all.
  *
  * A box writes a `string`, an `integer` in the interaction's `base`, a `float`, or, for a record
  * response, the record QTI gives a string interaction's text (information model 2.4.2.2, spec
@@ -16,7 +17,18 @@
  * @module
  */
 import { Array, Option, Result } from "effect";
+import {
+  empty,
+  literal,
+  never as noText,
+  RegexBuilder,
+  runsOf,
+  seq,
+  set,
+} from "@qti-pie/crust/regex.ts";
 import type { Typed } from "#plate/held.ts";
+import { compileLanguage, languageOf, matches, prefixesOf } from "#plate/model/regex.ts";
+import type { Language, Matcher } from "#plate/model/regex.ts";
 import {
   format,
   isXmlText,
@@ -375,6 +387,117 @@ export const typedText = (
 
   return format(single);
 };
+
+/**
+ * The digits of an integer written in a base from 2 to 36, from `least`, as a class body writes
+ * them: the decimal digits below the base, then for a base above 10 its letters, in either case.
+ *
+ * @param base The number base.
+ * @param least The least digit, `0` for every digit or `1` for every digit but 0.
+ * @returns The digits' runs.
+ */
+const digitRuns = (base: number, least: "0" | "1"): string => {
+  const letters = base - 10;
+
+  return letters > 0
+    ? `${least}-9a-${String.fromCodePoint(0x60 + letters)}A-${String.fromCodePoint(0x40 + letters)}`
+    : `${least}-${String(base - 1)}`;
+};
+
+/**
+ * Give the texts an integer is written as in a base, the texts {@link typedText} writes, a letter
+ * digit in either case: `0`, or an optional minus, a digit other than 0 and any digits after it. In
+ * a base outside 2 to 36 no text is an integer ({@link readTyped}), so the language holds none.
+ *
+ * @param base The number base.
+ * @returns The language, written over the regex IR.
+ */
+const writtenIntegers = (base: number): Language => {
+  if (!Number.isInteger(base) || base < 2 || base > 36) {
+    return noText;
+  }
+
+  const builder = new RegexBuilder();
+
+  return builder.alt([
+    literal("0"),
+    seq([
+      builder.alt([empty, literal("-")]),
+      set(runsOf(digitRuns(base, "1"))),
+      builder.repeat(set(runsOf(digitRuns(base, "0"))), 0, "unbounded"),
+    ]),
+  ]);
+};
+
+/**
+ * The texts a box takes, the text a keystroke would leave in it: those every one of its matchers
+ * matches, or every text where it has none ({@link typedEntry}).
+ */
+export type TypedEntry = Option.Option<Array.NonEmptyReadonlyArray<Matcher>>;
+
+/**
+ * Give the texts a box takes ({@link takesTyped}): for an `integer` box, the texts that begin an
+ * integer it may write and, in base 10, begin a text its `pattern-mask` matches; for a `string` or
+ * a `float` box, every text, its child's own writing, which a `pattern-mask` judges once the child
+ * leaves the box (`useBoxes` in `#plate/ui/typed.ts`).
+ *
+ * An integer box posts the integer written as {@link typedText} writes it, the very text it shows,
+ * so it takes only the prefixes of an integer written plainly: no leading zero, `+`, space or
+ * decimal point ever stands in it. In base 10 that text is the value's lexical form, the text the
+ * database matches the `pattern-mask` against (`fails` in `#plate/ui/typed.ts`), so the box also
+ * takes only the prefixes of the texts the mask matches ({@link languageOf}): under
+ * `0|[1-9]|1[0-9]|20` it takes `2` and `20` and refuses `21`, `99` and a minus, and under
+ * `0|[1-9][0-9]{0,2}` a fourth digit and a minus. Where the mask's every text is an integer written
+ * plainly, as the K–2 forms' caps are, the two together are exactly the prefixes of the integers
+ * the mask matches, so every text the box holds is on the way to an answer; under a mask some of
+ * whose texts are no such integer (a leading zero, a sign), the box may hold a text that begins
+ * both and completes to neither, which the mask judges once the child leaves the box. Each is its
+ * own matcher, built from the language's shape and run once over a text, so no mask, however great
+ * its counts, makes a box's entry costly to build or to check: no automaton of the two is ever
+ * made. In any other base the mask matches the value's decimal digits, no text the box shows, so it
+ * narrows nothing here. A box whose texts include none it may post takes no text at all.
+ *
+ * @param reading How the box's text is read: its base type, and the base an integer is typed in.
+ * @param patternMask The interaction's `pattern-mask`, none where the author wrote none; one outside
+ *   Appendix F's grammar narrows nothing, as it checks nothing.
+ * @returns The box's entry.
+ */
+export const typedEntry = (
+  reading: Pick<TypedReading, "base" | "baseType">,
+  patternMask: string | undefined,
+): TypedEntry => {
+  if (reading.baseType !== "integer") {
+    return Option.none();
+  }
+
+  const integers = compileLanguage(prefixesOf(writtenIntegers(reading.base)));
+  const mask =
+    reading.base === 10
+      ? Option.flatMap(Option.fromUndefinedOr(patternMask), languageOf)
+      : Option.none();
+
+  return Option.some(
+    Option.match(mask, {
+      onNone: () => [integers] as const,
+      onSome: (language) => [integers, compileLanguage(prefixesOf(language))] as const,
+    }),
+  );
+};
+
+/**
+ * Decide whether a box takes the text a keystroke would leave in it, a key of a keypad or of the
+ * keyboard ({@link typedEntry}): where every one of its matchers matches it. A box that does not
+ * take it keeps its text, so what it shows is always a text it may hold.
+ *
+ * @param entry The box's entry.
+ * @param text The text the box would hold.
+ * @returns Whether the box takes it.
+ */
+export const takesTyped = (entry: TypedEntry, text: string): boolean =>
+  Option.match(entry, {
+    onNone: () => true,
+    onSome: (matchers) => matchers.every((matcher) => matches(matcher, text)),
+  });
 
 /**
  * How a box's text stands in its response: `write` makes the text the value holds from the text a
