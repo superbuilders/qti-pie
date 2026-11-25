@@ -257,15 +257,17 @@ export const linesOfOps = (ops: readonly Op[]): readonly Line[] => {
   let runs: readonly Run[] = [];
 
   for (const op of ops) {
-    if (isText(op.insert)) {
-      const [first = "", ...rest] = op.insert.split("\n");
+    if (!isText(op.insert)) {
+      continue;
+    }
 
-      runs = appended(runs, { format: runFormatOf(op.attributes), text: first });
+    const [first = "", ...rest] = op.insert.split("\n");
 
-      for (const piece of rest) {
-        lines.push({ format: lineFormatOf(op.attributes), runs });
-        runs = appended([], { format: runFormatOf(op.attributes), text: piece });
-      }
+    runs = appended(runs, { format: runFormatOf(op.attributes), text: first });
+
+    for (const piece of rest) {
+      lines.push({ format: lineFormatOf(op.attributes), runs });
+      runs = appended([], { format: runFormatOf(op.attributes), text: piece });
     }
   }
 

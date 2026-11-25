@@ -79,36 +79,38 @@ const makeField = async (
 ): Promise<void> => {
   const { Field } = await import("#plate/alpha/math-entry/mathlive.ts");
 
-  if (!gone.aborted) {
-    const field = new Field();
-
-    field.value = hooks.opened;
-    field.dataset["slot"] = "alpha-math-entry-field";
-
-    const { "aria-label": label, "aria-labelledby": labelledBy } = hooks.naming;
-
-    if (label !== undefined) {
-      field.setAttribute("aria-label", label);
-    }
-
-    if (labelledBy !== undefined) {
-      field.setAttribute("aria-labelledby", labelledBy);
-    }
-
-    place.append(field);
-    setUpField(field, window.mathVirtualKeyboard, fieldSettings, keyboardLayout);
-    field.addEventListener(
-      "input",
-      () => {
-        hooks.typed(field.value);
-      },
-      { signal: gone },
-    );
-    gone.addEventListener("abort", () => {
-      field.remove();
-    });
-    made(field);
+  if (gone.aborted) {
+    return;
   }
+
+  const field = new Field();
+
+  field.value = hooks.opened;
+  field.dataset["slot"] = "alpha-math-entry-field";
+
+  const { "aria-label": label, "aria-labelledby": labelledBy } = hooks.naming;
+
+  if (label !== undefined) {
+    field.setAttribute("aria-label", label);
+  }
+
+  if (labelledBy !== undefined) {
+    field.setAttribute("aria-labelledby", labelledBy);
+  }
+
+  place.append(field);
+  setUpField(field, window.mathVirtualKeyboard, fieldSettings, keyboardLayout);
+  field.addEventListener(
+    "input",
+    () => {
+      hooks.typed(field.value);
+    },
+    { signal: gone },
+  );
+  gone.addEventListener("abort", () => {
+    field.remove();
+  });
+  made(field);
 };
 
 /**

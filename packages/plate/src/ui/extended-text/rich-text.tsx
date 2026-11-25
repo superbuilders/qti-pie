@@ -140,51 +140,53 @@ const makeEditor = async (
 ): Promise<void> => {
   const { default: Editor } = await import("quill");
 
-  if (!gone.aborted) {
-    const hooks = hooksNow();
-    const { Attributor } = Editor.import("parchment");
-    const indent = Editor.import("formats/indent");
-
-    // Quill's indent is one attributor for every editor of the page: plate's editors are the
-    // page's, and indent 5 deep at most.
-    if (indent instanceof Attributor) {
-      indent.whitelist = indentLevels.filter((level) => level > 0).map(String);
-    }
-
-    const area = document.createElement("div");
-
-    place.append(area);
-
-    const editor: Quill = new Editor(area, {
-      formats,
-      modules: { history: { userOnly: true }, toolbar },
-      placeholder: hooks.placeholder,
-      theme: "snow",
-    });
-    const { "aria-label": label, "aria-labelledby": labelledBy } = hooks.naming;
-
-    editor.root.setAttribute("role", "textbox");
-    editor.root.setAttribute("aria-multiline", "true");
-
-    if (label !== undefined) {
-      editor.root.setAttribute("aria-label", label);
-    }
-
-    if (labelledBy !== undefined) {
-      editor.root.setAttribute("aria-labelledby", labelledBy);
-    }
-
-    editor.setContents([...opsOfLines(linesOfXhtml(hooks.opened))], "silent");
-    editor.on("text-change", () => {
-      hooks.typed(valueOf(linesOfOps(editor.getContents().ops)));
-    });
-    hooks.made(editor);
-    gone.addEventListener("abort", () => {
-      hooks.made(null);
-      editor.off("text-change");
-      place.replaceChildren();
-    });
+  if (gone.aborted) {
+    return;
   }
+
+  const hooks = hooksNow();
+  const { Attributor } = Editor.import("parchment");
+  const indent = Editor.import("formats/indent");
+
+  // Quill's indent is one attributor for every editor of the page: plate's editors are the
+  // page's, and indent 5 deep at most.
+  if (indent instanceof Attributor) {
+    indent.whitelist = indentLevels.filter((level) => level > 0).map(String);
+  }
+
+  const area = document.createElement("div");
+
+  place.append(area);
+
+  const editor: Quill = new Editor(area, {
+    formats,
+    modules: { history: { userOnly: true }, toolbar },
+    placeholder: hooks.placeholder,
+    theme: "snow",
+  });
+  const { "aria-label": label, "aria-labelledby": labelledBy } = hooks.naming;
+
+  editor.root.setAttribute("role", "textbox");
+  editor.root.setAttribute("aria-multiline", "true");
+
+  if (label !== undefined) {
+    editor.root.setAttribute("aria-label", label);
+  }
+
+  if (labelledBy !== undefined) {
+    editor.root.setAttribute("aria-labelledby", labelledBy);
+  }
+
+  editor.setContents([...opsOfLines(linesOfXhtml(hooks.opened))], "silent");
+  editor.on("text-change", () => {
+    hooks.typed(valueOf(linesOfOps(editor.getContents().ops)));
+  });
+  hooks.made(editor);
+  gone.addEventListener("abort", () => {
+    hooks.made(null);
+    editor.off("text-change");
+    place.replaceChildren();
+  });
 };
 
 /**
