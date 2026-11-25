@@ -138,10 +138,35 @@ const focuses = (focused: CopyKey | null, name: string, index: number | null): b
   focused !== null && focused.name === name && focused.index === index;
 
 /**
+ * Tell whether a placed copy's mark shows keyboard focus: while its control has it, or while its
+ * object's button has it and holds the copy, which it gave (`HeldCopy.given`), so the copy the
+ * arrows move shows the focus wherever the child moves it from.
+ *
+ * @param focused The control with keyboard focus, if any.
+ * @param held The copy held, if any.
+ * @param name The interaction's response's identifier.
+ * @param index The copy's place among its object's.
+ * @returns Whether it shows focus.
+ */
+const showsFocus = (
+  focused: CopyKey | null,
+  held: HeldCopy | null,
+  name: string,
+  index: number,
+): boolean =>
+  focuses(focused, name, index) ||
+  (held !== null &&
+    held.given &&
+    held.name === name &&
+    held.index === index &&
+    focuses(focused, name, null));
+
+/**
  * Draw every placed copy on the stage, inside its overlay: the primitive's `layer`, holding the
  * stage's pointer geometry, and in it a `token` per placed copy, then the new copy held, where it
  * would land. Each copy's mark shows it placed, held, and focused when its control has keyboard
- * focus; the new copy held shows focused while its object's button has.
+ * focus, or its object's button has while that button holds it; the new copy held shows focused
+ * while its object's button has.
  *
  * @param props.focused The control with keyboard focus, if any.
  * @param props.held The copy held, if any.
@@ -172,7 +197,7 @@ const Copies = (props: {
             <ObjectCopy
               drawing={object}
               state={{
-                focusVisible: focuses(focused, identifier, index),
+                focusVisible: showsFocus(focused, held, identifier, index),
                 placed: true,
                 selected: held !== null && held.name === identifier && held.index === index,
               }}

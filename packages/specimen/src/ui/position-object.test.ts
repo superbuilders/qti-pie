@@ -23,6 +23,10 @@
  *   point where it was. A copy's control keeps focus while its copy is held, so the next key a
  *   child presses lands on the copy they picked up.
  * - PO4, a tap on a copy's mark on the stage picks that copy up, as a tap on its control does.
+ * - PO9, the arrow keys on the object's button move only a copy that button gave: a copy picked up by
+ *   Enter on its control stays where it was while focus moves to the object's button and the arrows
+ *   are pressed there, and Enter back on its control puts it down where it was, writing nothing.
+ *   The arrows move a copy only on the control whose Enter puts it down.
  *
  * And on a stage of two objects or more, each its own interaction and response, each placed any
  * number of times, the specimen floor's first such case (`#specimen/floor.ts`), its correct
@@ -45,9 +49,15 @@
  *   the stage image, and Enter on that button puts it down there: that object's response holds its
  *   one point moved, and every other object's response is unchanged. The key that picked the copy
  *   up puts it down, as it does a new copy, and never takes it off.
+ * - PO10, by the pointer, on the same stage: two taps on an object's button put its copy back where
+ *   it was, writing nothing and leaving nothing pressed; a tap on its copy's control in its list
+ *   and then on the button takes the copy off, that object's response NULL and every other's
+ *   unchanged. (The stage's copies are drawn large enough to overlap, so a tap on a mark lands on
+ *   the topmost; PO4 taps marks on a stage whose copies stand apart.)
  *
- * Every page hydrates with no error React reports and none the page throws, and none is reported or
- * thrown after any key or tap a case sends, by the time the page has settled.
+ * Every page hydrates with no error React reports, none the page throws and none its console logs
+ * but a picture's failed load, and none is reported, thrown or logged after any key or tap a case
+ * sends, by the time the page has settled.
  *
  * @module
  */
@@ -637,6 +647,77 @@ layer(shared, { excludeTestServices: true, timeout: harnessHang })(
                 before.map((points, each) =>
                   each === index ? points.map(([x, y]) => [x + 1n, y] as const) : points,
                 ),
+              );
+            }
+          }),
+        ),
+      caseHang,
+    );
+
+    it.effect(
+      "PO9: the arrow keys on the object's button move no copy picked up by its control, and Enter on that control puts it down where it was",
+      () =>
+        Effect.scoped(
+          Effect.gen(function* arrowsOnTheButton() {
+            for (const index of placed.keys()) {
+              const hydrated = yield* opened;
+
+              yield* step("focused the copy's control", () =>
+                hydrated.page.locator(controls).nth(index).focus(),
+              );
+              yield* step("pressed Enter", () => hydrated.page.keyboard.press("Enter"));
+              yield* hydrated.settle;
+              yield* step("focused the object's button", () =>
+                hydrated.page.locator(objects).first().focus(),
+              );
+
+              for (const key of ["ArrowRight", "ArrowDown", "Shift+ArrowLeft"]) {
+                yield* step(`pressed ${key}`, () => hydrated.page.keyboard.press(key));
+              }
+
+              yield* step("focused the copy's control", () =>
+                hydrated.page.locator(controls).nth(index).focus(),
+              );
+              yield* step("pressed Enter", () => hydrated.page.keyboard.press("Enter"));
+              yield* hydrated.settle;
+              assert.deepStrictEqual((yield* shown(hydrated)).pressed, [false, false, false]);
+              assert.deepStrictEqual(yield* hydrated.changes, []);
+            }
+          }),
+        ),
+      caseHang,
+    );
+
+    it.effect(
+      "PO10: two taps on a once-placed object's button put its copy back, and a tap on its copy's control then on the button takes it off",
+      () =>
+        Effect.scoped(
+          Effect.gen(function* oncePlacedByPointer() {
+            const {
+              once: { answering, identifiers },
+            } = yield* Pages;
+            const before = yield* everyObject(answering.responses, identifiers);
+
+            for (const index of identifiers.keys()) {
+              const hydrated = yield* openedObjects(answering);
+              const button = hydrated.page.locator(objects).nth(index);
+
+              yield* step("tapped the object's button", () => button.click());
+              yield* step("tapped the object's button again", () => button.click());
+              yield* hydrated.settle;
+              assert.deepStrictEqual(
+                yield* objectsPressed(hydrated),
+                identifiers.map(() => false),
+              );
+              assert.deepStrictEqual(yield* hydrated.changes, []);
+              yield* step("tapped the copy's control", () =>
+                hydrated.page.locator(groups).nth(index).locator(controls).first().click(),
+              );
+              yield* step("tapped the object's button", () => button.click());
+              yield* hydrated.settle;
+              assert.deepStrictEqual(
+                yield* everyObject(yield* lastChange(hydrated), identifiers),
+                before.map((points, each) => (each === index ? [] : points)),
               );
             }
           }),

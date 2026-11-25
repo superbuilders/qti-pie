@@ -18,9 +18,11 @@
  *   copy over the stage, held to its edges. Escape, or the browser taking the pointer, puts it
  *   back. Every drag has the tap's single-pointer way and the keys' way (WCAG 2.5.7).
  * - **Keys.** Space or Enter presses, as a tap; the arrow keys move a held copy one pixel of the
- *   stage image, ten with Shift, held to the stage; Escape puts it back; Delete or Backspace on a
- *   placed copy's control takes it off. A control with keyboard focus names its copy, whose mark on
- *   the stage shows the focus too ({@link PositionRootState.focused}).
+ *   stage image, ten with Shift, held to the stage, on its own control, or on its object's button
+ *   where that button gave it; Escape puts it back; Delete or Backspace on a placed copy's control
+ *   takes it off. A control with keyboard focus names its copy, whose mark on the stage shows the
+ *   focus too ({@link PositionRootState.focused}), as does the mark of the copy an object's button
+ *   holds while that button has it.
  *
  * Each placement is the point QTI records, where the object's centre point lands on the stage, in
  * the stage image's own pixels and on a whole pixel; it is one `point` value of the response, its x
@@ -805,9 +807,11 @@ export const positionObject = definePrimitive({
 
       /**
        * Handle a key on an object or a placed copy's control: the arrow keys move the held copy, on
-       * an object any copy of it, on a placed copy's control that copy, one pixel or ten with
-       * Shift, held to the stage; Escape puts it back; Delete or Backspace on a placed copy takes
-       * it off.
+       * an object the copy it gave (`HeldCopy.given`), on a placed copy's control that copy, one
+       * pixel or ten with Shift, held to the stage; Escape puts it back; Delete or Backspace on a
+       * placed copy takes it off. So the arrows move a copy only on the control whose Enter puts it
+       * down, never on an object's button while a copy picked up from its list is held, where
+       * Enter takes it off.
        *
        * @param event The key press.
        * @param name The interaction's response's identifier.
@@ -839,7 +843,7 @@ export const positionObject = definePrimitive({
           held === null ||
           held.name !== name ||
           held.at === null ||
-          (index !== null && held.index !== index)
+          (index === null ? !held.given : held.index !== index)
         ) {
           return;
         }

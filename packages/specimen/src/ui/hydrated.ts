@@ -27,7 +27,7 @@ import { inspect } from "node:util";
 import { Config, Data, Effect, Option, Predicate, Schema } from "effect";
 import type { Scope } from "effect";
 import { chromium } from "playwright-core";
-import type { Browser, BrowserContext, Page } from "playwright-core";
+import type { Browser, BrowserContext, ConsoleMessage, Page } from "playwright-core";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import type { Responses as ResponseValues } from "@qti-pie/plate";
@@ -222,7 +222,8 @@ const written = (answering: Answering, clients: ReadonlyMap<unknown, string>): W
 };
 
 /**
- * A page's document: the server's markup in `#hydrated-root`, the data in `#hydrated-data`, its
+ * A page's document, with an empty icon of its own, so the browser asks the server for none: the
+ * server's markup in `#hydrated-root`, the data in `#hydrated-data`, its
  * `</` escaped so no string in it ends the script, and a module script that loads the modules whose
  * islands the tree holds and hands them to the harness's page (`hydrate`). The script imports each
  * module by its address, statically, so the browser loads every one before it runs, and Vite, which
@@ -240,7 +241,7 @@ const documentOf = (page: Written): string => {
   );
 
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>hydrated</title></head>
+<html lang="en"><head><meta charset="utf-8"><title>hydrated</title><link rel="icon" href="data:,"></head>
 <body><div id="hydrated-root">${page.html}</div>
 <script id="hydrated-data" type="application/json">${page.data.replaceAll("</", "<\\/")}</script>
 <script type="module">
@@ -419,10 +420,40 @@ export interface Hydrated {
   /**
    * Wait in the page until it has painted twice since now and run what those frames scheduled, so
    * what an input changed has been rendered and every effect and microtask it started has run; and
-   * fail where React has reported an error since the page opened, or the page has thrown one.
+   * fail where React has reported an error since the page opened, the page has thrown one, or its
+   * console has logged one.
    */
   readonly settle: Effect.Effect<void, HydrationFailure>;
 }
+
+/**
+ * A picture's address: a file whose extension names an image format.
+ */
+const pictureAddress = /\.(?:avif|gif|jpe?g|png|svg|webp)(?:[?#]|$)/iu;
+
+/**
+ * Tell whether a console message reports an error of the page's. React's development build reports
+ * what it does not throw, a hydration mismatch among it, as an error; UI SDK's warns of what it
+ * judges a misuse, two parts that share one key among it, as a warning that names it. A picture
+ * the item names, which the harness does not serve, is no error of the page's: the browser reports
+ * its failed load as an error at the picture's address, which is excepted, and no other.
+ *
+ * @param message The message.
+ * @returns Whether it reports an error.
+ */
+const reportsAnError = (message: ConsoleMessage): boolean => {
+  if (message.type() === "warning") {
+    return message.text().startsWith("[ui-sdk]");
+  }
+
+  return (
+    message.type() === "error" &&
+    !(
+      message.text().startsWith("Failed to load resource") &&
+      pictureAddress.test(message.location().url)
+    )
+  );
+};
 
 /**
  * Wait in the page for two frames and the task after them.
@@ -466,9 +497,25 @@ const openedAt = (
     page.on("pageerror", (cause) => {
       thrown.push(cause.stack ?? cause.message);
     });
+    page.on("console", (message) => {
+      if (reportsAnError(message)) {
+        thrown.push(`console: ${message.text()} (${message.location().url})`);
+      }
+    });
     yield* attempt("loaded the page", () => page.goto(address));
-    yield* attempt("waited for the page to hydrate", () =>
-      page.waitForFunction(() => window.hydrated?.hydrated === true),
+    // The page hydrates, or something it reported ends the wait at once: a module that failed to
+    // load never hydrates it.
+    yield* Effect.raceFirst(
+      attempt("waited for the page to hydrate", () =>
+        page.waitForFunction(() => window.hydrated?.hydrated === true),
+      ),
+      Effect.gen(function* reporting() {
+        while (thrown.length === 0) {
+          yield* Effect.sleep("100 millis");
+        }
+
+        return yield* new HydrationFailure({ cause: thrown, step: "loaded the page" });
+      }),
     );
 
     const kept = Effect.flatMap(
