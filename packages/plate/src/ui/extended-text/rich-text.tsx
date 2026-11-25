@@ -80,10 +80,11 @@ const toolbar = [
   [{ align: [] }],
   ["link"],
   ["clean"],
-];
+] as const;
 
 /**
- * The formats the editor keeps: those the toolbar has.
+ * The formats the editor keeps: those the toolbar has. Quill is handed a copy, as its options type
+ * the list as one it may change.
  */
 const formats = [
   "align",
@@ -96,7 +97,7 @@ const formats = [
   "script",
   "strike",
   "underline",
-];
+] as const;
 
 /**
  * Write the editor's document as the value the essay posts: the XHTML of its lines, or nothing for
@@ -159,7 +160,7 @@ const makeEditor = async (
   place.append(area);
 
   const editor: Quill = new Editor(area, {
-    formats,
+    formats: [...formats],
     modules: { history: { userOnly: true }, toolbar },
     placeholder: hooks.placeholder,
     theme: "snow",

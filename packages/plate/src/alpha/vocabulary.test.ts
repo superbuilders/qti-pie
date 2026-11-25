@@ -16,14 +16,14 @@ const sheetOf = (sheet: string): string =>
 /**
  * Alpha's two sheets, as a host imports them, by path under `src/`.
  */
-const alphaSheets = new Map(
+const alphaSheets: ReadonlyMap<string, string> = new Map(
   ["alpha/styles/base.css", "alpha/styles/theme.css"].map((sheet) => [sheet, sheetOf(sheet)]),
 );
 
 /**
  * Plate's own two sheets, by path under `src/`.
  */
-const coreSheets = new Map(
+const coreSheets: ReadonlyMap<string, string> = new Map(
   ["styles/base.css", "styles/theme.css"].map((sheet) => [sheet, sheetOf(sheet)]),
 );
 

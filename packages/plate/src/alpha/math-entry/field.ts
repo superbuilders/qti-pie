@@ -237,32 +237,40 @@ export const addedRow = [
  * {@link addedRow} above the bottom row. A key AlphaTest had keeps AlphaTest's `latex` as its name,
  * whatever plate's key inserts ({@link keyboardRows}).
  */
-export const keyboardKeys = [...alphaTestRows.slice(0, -1), addedRow, ...alphaTestRows.slice(-1)];
+export const keyboardKeys = [
+  ...alphaTestRows.slice(0, -1),
+  addedRow,
+  ...alphaTestRows.slice(-1),
+] as const;
 
 /**
  * Plate's virtual keyboard's keys, row by row, as its layout writes them: {@link keyboardKeys}, each
  * key whose template held squares writing plate's template in their place ({@link keyFates}).
  */
-export const keyboardRows: Partial<VirtualKeyboardKeycap>[][] = keyboardKeys.map((row) =>
-  row.map((key): Partial<VirtualKeyboardKeycap> =>
-    "latex" in key
-      ? { latex: keyFates.find((fate) => fate.alphaTest === key.latex)?.plate ?? key.latex }
-      : { ...key },
-  ),
-);
+export const keyboardRows: readonly (readonly Partial<VirtualKeyboardKeycap>[])[] =
+  keyboardKeys.map((row) =>
+    row.map((key): Partial<VirtualKeyboardKeycap> =>
+      "latex" in key
+        ? { latex: keyFates.find((fate) => fate.alphaTest === key.latex)?.plate ?? key.latex }
+        : { ...key },
+    ),
+  );
 
 /**
  * A layout of AlphaTest's: its one layout, `calculator`, of one layer, with the layer's `style`
- * (`NumericEntry.tsx` lines 1111–1176), over the keys given.
+ * (`NumericEntry.tsx` lines 1111–1176), over the keys given, copied into the mutable rows
+ * MathLive's `VirtualKeyboardLayer` types.
  *
  * @param rows The keys, row by row.
  * @returns The layout.
  */
-const calculatorOf = (rows: Partial<VirtualKeyboardKeycap>[][]): VirtualKeyboardLayout => ({
+const calculatorOf = (
+  rows: readonly (readonly Partial<VirtualKeyboardKeycap>[])[],
+): VirtualKeyboardLayout => ({
   label: "calculator",
   layers: [
     {
-      rows,
+      rows: rows.map((row) => [...row]),
       style: ".digit { background: var(--keycap-background); color: var(--keycap-text) }",
     },
   ],
@@ -278,9 +286,7 @@ export const keyboardLayout: VirtualKeyboardLayout = calculatorOf(keyboardRows);
  * AlphaTest's virtual keyboard as its player gave it, over {@link alphaTestRows}: what the field's
  * suite holds plate's keys against, and what a grader types AlphaTest's answers on.
  */
-export const alphaTestLayout: VirtualKeyboardLayout = calculatorOf(
-  alphaTestRows.map((row) => [...row]),
-);
+export const alphaTestLayout: VirtualKeyboardLayout = calculatorOf(alphaTestRows);
 
 /**
  * Set a math field up as AlphaTest's player did once the field stood in the page: its options,
