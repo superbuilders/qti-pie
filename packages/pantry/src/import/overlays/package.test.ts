@@ -14,12 +14,12 @@ import * as NodePath from "@effect/platform-node/NodePath";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
 import { required, requiredInSpace } from "@bjornpagen/testing/features";
-import { array, element } from "@bjornpagen/testing/gen";
+import { array, element, oneOf } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Duration, Effect, Formatter, Layer, Option } from "effect";
+import { Array as Arr, Duration, Effect, Formatter, Layer, Option } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import {
   documentTypes,
@@ -48,6 +48,7 @@ import type {
 } from "#pantry/import/overlays/package.ts";
 import type { Place } from "#pantry/qti/schema.ts";
 import type { WhiteSpaceClass } from "#pantry/grammar/domains.ts";
+import { textReferenceKinds } from "#pantry/grammar/references.ts";
 import type { ReferenceForm } from "#pantry/grammar/references.ts";
 import { hrefPiecesOf, srcsetCandidatesOf } from "#pantry/import/pieces.ts";
 import { shredGrammarOf } from "#pantry/model/composed.ts";
@@ -59,8 +60,20 @@ import { readEntries } from "#pantry/package/read.ts";
 import { materialize, materializePackage } from "#pantry/test/fixtures.ts";
 import type { FixtureName, NamedPackage } from "#pantry/test/fixtures.ts";
 import { hrefParamsPattern, hrefPathPattern } from "#pantry/qti/package.ts";
-import { comparedPath, oracleValueOf, resolve, resolveAttribute } from "#pantry/test/resolution.ts";
-import { attributeDeclarations } from "#pantry/vocab/inventory/attributes.ts";
+import {
+  comparedPath,
+  oracleSrcsetOf,
+  oracleValueOf,
+  resolve,
+  resolveAttribute,
+} from "#pantry/test/resolution.ts";
+import type { OracleResolution, OracleWhiteSpace } from "#pantry/test/resolution.ts";
+import {
+  attributeDeclarations,
+  globalAttributes,
+  textTypes,
+} from "#pantry/vocab/inventory/attributes.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
 import { flatDocumentOf, ownViewOf } from "#pantry/import/fold.ts";
 import { searchWidth } from "#pantry/test/settings.ts";
@@ -1164,8 +1177,69 @@ const declaredWhiteSpace = (kind: string, name: string): Option.Option<WhiteSpac
     ({ type }) => (type.whiteSpace === "union" ? Option.none() : Option.some(type.whiteSpace)),
   );
 
+/**
+ * The kinds of the text census, as the tree's element kinds: a card's file, a calculator's or a
+ * digital material's file, and a resource icon. The text-reference box holds them to the census's
+ * own roster (textReferenceKinds) before it runs.
+ */
+const TEXT_KINDS = ["qti-file-href.card", "qti-file-href", "qti-resource-icon"] as const;
+
+/**
+ * The pieces a text of the text-reference box is written with: a space, a letter, a slash, a
+ * percent-encoded space, a fragment's mark and a parent segment.
+ */
+const TEXT_PIECES = [" ", "a", "/", "%20", "#", ".."] as const;
+
+/**
+ * A text of the text census: its kind, the `xml:base` in scope or none, and its string value.
+ */
+interface TextReferenceCase {
+  readonly base: string | undefined;
+  readonly kind: (typeof TEXT_KINDS)[number];
+  readonly value: string;
+}
+
+/**
+ * Draw a text of the text-reference box: a kind of {@link TEXT_KINDS}, no `xml:base` or `x/`, and a
+ * value of up to three of {@link TEXT_PIECES}.
+ */
+const textReferences: Gen<TextReferenceCase> = (source) => ({
+  base: source.draw(element([undefined, "x/"] as const)),
+  kind: source.draw(element(TEXT_KINDS)),
+  value: source.draw(array(element(TEXT_PIECES), { max: 3, min: 0 })).join(""),
+});
+
+/**
+ * How many texts {@link textReferences} draws: 3 kinds by 2 bases by every value of up to three of
+ * the 6 pieces.
+ */
+const TEXT_REFERENCES = 3 * 2 * (1 + 6 + 6 ** 2 + 6 ** 3);
+
+/**
+ * What a text of the box reaches: its value resolved to an entry, to the same document, outside the
+ * package or unresolved, or the empty value.
+ */
+type TextSituation = OracleResolution["scope"] | "empty";
+
+/**
+ * The whitespace class of a text census kind's string value: its text's simple type's in the
+ * inventory (`xs:anyURI` collapses, `URLDType` replaces).
+ *
+ * @param kind - The kind.
+ * @returns The class.
+ */
+const textWhiteSpaceOf = (kind: (typeof TEXT_KINDS)[number]): OracleWhiteSpace => {
+  const declared = textTypes.find((text) => text.kind === kind)?.type.whiteSpace;
+
+  if (declared === undefined || declared === "union") {
+    return assert.fail(`${kind}: the inventory types its text under no one whitespace class`);
+  }
+
+  return declared;
+};
+
 describe("import/overlays/package.ts, hrefs and references", () => {
-  it("reads the grammar's census as ReferenceAttribute's rows hold it, each in its value's whitespace class, and none for an attribute outside it", () => {
+  it("reads the grammar's census as ReferenceAttribute's rows hold it, each in its value's whitespace class", () => {
     assert.isNotEmpty(ReferenceAttribute.rows);
     for (const { form, kind, name } of ReferenceAttribute.rows) {
       assert.deepStrictEqual(
@@ -1195,15 +1269,67 @@ describe("import/overlays/package.ts, hrefs and references", () => {
         );
       }
     }
-
-    for (const [kind, name] of [
-      ["div", "title"],
-      ["cp:file", "href"],
-      ["qti-assessment-item", "xml:base"],
-    ] as const) {
-      assert.isTrue(Option.isNone(referenceCensus(kind, name)), `${kind} ${name}`);
-    }
   });
+
+  it.effect(
+    "reads every attribute a kind declares or admits globally as the census's rows hold it: its form where a row names it, none outside the census",
+    (ctx) =>
+      Effect.gen(function* everyDeclared() {
+        const declarations = attributeDeclarations;
+        const globals = globalAttributes;
+
+        if (!Arr.isReadonlyArrayNonEmpty(declarations) || !Arr.isReadonlyArrayNonEmpty(globals)) {
+          return assert.fail("the inventory declares no attribute on a kind, or no global one");
+        }
+
+        const kinds = Arr.dedupe(declarations.map(({ kind }) => kind));
+
+        if (!Arr.isReadonlyArrayNonEmpty(kinds)) {
+          return assert.fail("the inventory declares no kind");
+        }
+
+        const declared: Gen<readonly [string, string]> = oneOf([
+          (source) => {
+            const { kind, name } = source.draw(element(declarations));
+
+            return [kind, name] as const;
+          },
+          (source) => [source.draw(element(kinds)), source.draw(element(globals)).name] as const,
+        ]);
+        const rows = new Map(
+          ReferenceAttribute.rows.map(({ form, kind, name }) => [`${kind} ${name}`, form]),
+        );
+
+        return yield* searched(
+          ctx,
+          exhaust(
+            {
+              box: "every attribute the inventory declares on its kind, and every global attribute the inventory declares on every kind it declares one on",
+              caseHang: Duration.seconds(10),
+              concurrency: searchWidth,
+              coverage: requiredInSpace<"in the census" | "outside it">([
+                "in the census",
+                "outside it",
+              ]),
+              generator: declared,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the closed relation's own rows (ReferenceAttribute, spec reading `file-references`), which the database's copy into Reference selects by: a declared attribute a row names is read in that row's form, and every other none",
+              },
+              suite: "import/overlays-package/census",
+            },
+            ([kind, name], c) =>
+              Effect.sync(() => {
+                const row = Option.fromUndefinedOr(rows.get(`${kind} ${name}`));
+
+                c.note(Option.isSome(row) ? "in the census" : "outside it");
+                assert.deepStrictEqual(referenceCensus(kind, name), row, `${kind} ${name}`);
+              }),
+          ),
+        );
+      }),
+  );
 
   it("reads an attribute its governor admits not as written, as Attribute.value keeps it", () => {
     assert.deepStrictEqual(
@@ -1345,155 +1471,255 @@ describe("import/overlays/package.ts, hrefs and references", () => {
               const expected = expectedReferences(input, documentIds);
 
               c.noteAll(referenceSituationsOf(input, rows));
-              for (const relation of ["Reference", "ReferencePath"] as const) {
-                assert.deepStrictEqual(
-                  sortedEntries(rows[relation]),
-                  sortedEntries(expected[relation]),
-                  relation,
-                );
-              }
+              assert.deepStrictEqual(
+                {
+                  Reference: sortedEntries(rows.Reference),
+                  ReferencePath: sortedEntries(rows.ReferencePath),
+                },
+                {
+                  Reference: sortedEntries(expected.Reference),
+                  ReferencePath: sortedEntries(expected.ReferencePath),
+                },
+                "the document's Reference and ReferencePath rows",
+              );
             }),
         ),
       ),
   );
 
-  it("writes a TextReference for each card file, calculator's or digital material's file and resource icon, resolved as an attribute is", () => {
-    /**
-     * Oracle: a second implementation, the nodes numbered by hand (the document node 0, the root 1,
-     * then each whitespace node, element and its text in turn), each string value split by RFC
-     * 3986's Appendix B and resolved by the law oracle's own resolver with the xml:base in scope,
-     * under the whitespace class of its text's type (`xs:anyURI` collapses, `URLDType` replaces).
-     * Bound: one card file padded and percent-encoded, one icon under an xml:base, one icon of a
-     * same-document fragment, one file of a digital material (information model §5.80.3, "the URI
-     * for the associated content file", an `xs:anyURI` that collapses), and an empty card file.
-     */
-    const textOf = (
-      kind: "qti-file-href" | "qti-file-href.card" | "qti-resource-icon",
-      value: string,
-      base: string | undefined,
-    ) => [
-      { _tag: "ws", value: "\n" } as const,
-      elementOf(kind, baseAttribute(base), value === "" ? [] : [{ _tag: "text", value }]),
-    ];
-    const cases = [
-      { base: undefined, kind: "qti-file-href.card", value: " my%20clip.mp4 " },
-      { base: "x/", kind: "qti-resource-icon", value: "img/b.svg" },
-      { base: undefined, kind: "qti-resource-icon", value: "#top" },
-      { base: undefined, kind: "qti-file-href", value: "absent.png" },
-      { base: undefined, kind: "qti-file-href.card", value: "" },
-    ] as const;
-    const tree: XdmDocument<Composed> = {
-      ...referenceTreeOf({ base: undefined, elements: [], path: "items/item.xml" }),
-      root: elementOf(
-        "qti-assessment-item",
-        [],
-        cases.flatMap(({ base, kind, value }) => textOf(kind, value, base)),
+  it.effect(
+    `writes a TextReference for each card file, calculator's or digital material's file and resource icon, resolved as an attribute is: ${String(TEXT_REFERENCES)} texts`,
+    (ctx) =>
+      Effect.andThen(
+        Effect.andThen(
+          Effect.sync(() => {
+            assert.deepStrictEqual(
+              new Set(TEXT_KINDS),
+              new Set(textReferenceKinds.map(({ kind }) => kind)),
+              "the box's kinds are the text census's",
+            );
+          }),
+          boxHolds(textReferences, TEXT_REFERENCES),
+        ),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every kind of the text census (a card's file, a calculator's or a digital material's file, a resource icon), under no xml:base or x/, holding every text of up to 3 of a space, a letter, a slash, %20, # and ..",
+              caseHang: Duration.seconds(10),
+              concurrency: searchWidth,
+              coverage: requiredInSpace<TextSituation>(["document", "empty", "entry"]),
+              generator: textReferences,
+              literal: Formatter.format,
+              oracle: {
+                kind: "second-implementation",
+                name: "the nodes numbered by hand (the document node 0, the root 1, the whitespace node 2, the element 3 and its text 4), the string value split by RFC 3986's Appendix B and resolved by the law oracle's own resolver with the xml:base in scope, under the whitespace class of its text's type in the inventory (xs:anyURI collapses, URLDType replaces)",
+              },
+              suite: "import/overlays-package/text-references",
+            },
+            ({ base, kind, value }, c) =>
+              Effect.sync(() => {
+                const documentIds: Place = { ...ids, path: "items/item.xml" };
+                const tree: XdmDocument<Composed> = {
+                  ...referenceTreeOf({ base: undefined, elements: [], path: documentIds.path }),
+                  root: elementOf(
+                    "qti-assessment-item",
+                    [],
+                    [
+                      { _tag: "ws", value: "\n" },
+                      elementOf(
+                        kind,
+                        baseAttribute(base),
+                        value === "" ? [] : [{ _tag: "text", value }],
+                      ),
+                    ],
+                  ),
+                };
+                const rows = referenceRowsOf(ownViewOf(tree), documentIds, census);
+                const start = 3n;
+                const resolution = resolveAttribute({
+                  bases: base === undefined ? [] : [base],
+                  document: documentIds.path,
+                  lexical: value,
+                  whiteSpace: textWhiteSpaceOf(kind),
+                });
+                const at = { package: documentIds.package, path: documentIds.path };
+                const key = keyTextOf(at.package, at.path, start);
+                const shown = Formatter.format({ base, kind, value });
+
+                c.note(value === "" ? "empty" : resolution.scope);
+                assert.deepStrictEqual(
+                  sortedEntries(rows.TextReference),
+                  [
+                    [
+                      key,
+                      { ...at, kind, scope: resolution.scope, start, ...appendixPieces(value) },
+                    ],
+                  ],
+                  shown,
+                );
+                assert.deepStrictEqual(
+                  sortedEntries(rows.TextReferencePath),
+                  resolution.scope === "entry"
+                    ? [[key, { ...at, kind, start, target: resolution.path }]]
+                    : [],
+                  shown,
+                );
+              }),
+          ),
+        ),
       ),
-    };
-    const documentIds: Place = { ...ids, path: "items/item.xml" };
-    const rows = referenceRowsOf(ownViewOf(tree), documentIds, census);
-
-    const expectedTexts = new Map<string, object>();
-    const expectedPaths = new Map<string, object>();
-    let next = 2;
-    for (const { base, kind, value } of cases) {
-      const start = BigInt(next + 1);
-      next += value === "" ? 2 : 3;
-      const resolution = resolveAttribute({
-        bases: base === undefined ? [] : [base],
-        document: documentIds.path,
-        lexical: value,
-        whiteSpace: kind === "qti-resource-icon" ? "replace" : "collapse",
-      });
-      const at = { package: documentIds.package, path: documentIds.path };
-      const key = keyTextOf(at.package, at.path, start);
-      expectedTexts.set(key, {
-        ...at,
-        kind,
-        scope: resolution.scope,
-        start,
-        ...appendixPieces(value),
-      });
-      if (resolution.scope === "entry") {
-        expectedPaths.set(key, { ...at, kind, start, target: resolution.path });
-      }
-    }
-
-    assert.strictEqual(expectedTexts.size, 5);
-    assert.deepStrictEqual(sortedEntries(rows.TextReference), sortedEntries(expectedTexts));
-    assert.deepStrictEqual(sortedEntries(rows.TextReferencePath), sortedEntries(expectedPaths));
-    assert.deepStrictEqual(
-      [...rows.TextReferencePath.values()].map(({ target }) => target),
-      ["items/my clip.mp4", "items/x/img/b.svg", "items/absent.png"],
-    );
-  });
+  );
 });
 
-describe("import/overlays/package.ts, a srcset's image candidates", () => {
-  it("splits a srcset into its image candidates as the HTML Standard parses it, each URL resolved and each in the package its CandidatePath", () => {
-    /**
-     * Oracle: the specification, the HTML Standard's "parse a srcset attribute" (§4.8.4.3.10) on
-     * its own forms: candidates separated by commas, a URL then its descriptors, a URL's trailing
-     * commas ending it with none, a comma inside a URL kept, and whitespace and commas after the
-     * last candidate a trail; each candidate's URL is one reference (spec reading
-     * `href-resolution`). Bound: the named values, each by hand.
-     */
-    const cases = [
-      ["a.png", [["", "a.png", ""]], ""],
-      [
-        "a.png 1x, b.png 2x",
-        [
-          ["", "a.png", " 1x"],
-          [", ", "b.png", " 2x"],
-        ],
-        "",
-      ],
-      ["a.png,b.png", [["", "a.png,b.png", ""]], ""],
-      [
-        "a.png, b.png",
-        [
-          ["", "a.png", ""],
-          [", ", "b.png", ""],
-        ],
-        "",
-      ],
-      [
-        " a.png 480w , b.png 800w ,",
-        [
-          [" ", "a.png", " 480w "],
-          [", ", "b.png", " 800w "],
-        ],
-        ",",
-      ],
-      [
-        "a.png foo(1,2) 2x, b.png",
-        [
-          ["", "a.png", " foo(1,2) 2x"],
-          [", ", "b.png", ""],
-        ],
-        "",
-      ],
-      [" , ", [], " , "],
-    ] as const;
-    for (const [lexical, candidates, trail] of cases) {
-      const split = srcsetCandidatesOf(lexical);
+/**
+ * The characters a srcset of the split box is written with: a letter, a URL's character; the
+ * space and the tab, ASCII whitespace, which ends a URL; the comma, which separates candidates and
+ * ends a URL it trails; and both parentheses, inside which a descriptor's comma separates nothing.
+ */
+const SRCSET_CHARACTERS = ["a", " ", "\t", ",", "(", ")"] as const;
 
-      assert.deepStrictEqual(
-        split.candidates.map(({ descriptor, lead, url }) => [lead, url, descriptor]),
-        candidates.map((candidate) => [...candidate]),
-        lexical,
-      );
-      assert.strictEqual(split.trail, trail, lexical);
-      assert.strictEqual(
-        [
-          ...split.candidates.map(({ descriptor, lead, url }) => lead + url + descriptor),
-          trail,
-        ].join(""),
-        lexical,
-        lexical,
-      );
+/**
+ * Draw a srcset of the split box: every string of up to six of {@link SRCSET_CHARACTERS}.
+ */
+const srcsets: Gen<string> = (source) =>
+  source.draw(array(element(SRCSET_CHARACTERS), { max: 6, min: 0 })).join("");
+
+/**
+ * How many srcsets {@link srcsets} draws.
+ */
+const SRCSETS = 1 + 6 + 6 ** 2 + 6 ** 3 + 6 ** 4 + 6 ** 5 + 6 ** 6;
+
+/**
+ * What a srcset of the split box reaches: no candidate, several, a comma kept in a URL,
+ * descriptors, and parentheses in them.
+ */
+type SrcsetSituation =
+  | "a comma in a URL"
+  | "descriptors"
+  | "no candidate"
+  | "parentheses"
+  | "several candidates";
+
+/**
+ * Name what a srcset's candidates reach.
+ *
+ * @param candidates - The candidates the importer split.
+ * @returns Each situation they reach.
+ */
+const srcsetSituationsOf = (
+  candidates: readonly { readonly descriptor: string; readonly url: string }[],
+): readonly SrcsetSituation[] => [
+  ...(candidates.length === 0 ? ["no candidate" as const] : []),
+  ...(candidates.length > 1 ? ["several candidates" as const] : []),
+  ...(candidates.some(({ url }) => url.includes(",")) ? ["a comma in a URL" as const] : []),
+  ...(candidates.some(({ descriptor }) => descriptor.trim() !== "")
+    ? ["descriptors" as const]
+    : []),
+  ...(candidates.some(({ descriptor }) => descriptor.includes("("))
+    ? ["parentheses" as const]
+    : []),
+];
+
+/**
+ * Whether a text is what the HTML Standard's candidate list collects before a URL: ASCII
+ * whitespace (tab, line feed, form feed, carriage return, space) and commas.
+ *
+ * @param text - The text.
+ * @returns Whether it holds nothing else.
+ */
+const isSeparation = (text: string): boolean =>
+  Array.from(text).every((character) => "\t\n\f\r ,".includes(character));
+
+/**
+ * Whether a candidate's descriptors hold no comma outside parentheses, where the HTML Standard's
+ * descriptor tokenizer ends them: a `(` opens parentheses, which the next `)` closes, and nothing
+ * nests.
+ *
+ * @param descriptor - The descriptors as written.
+ * @returns Whether every comma stands inside parentheses.
+ */
+const holdsNoBareComma = (descriptor: string): boolean => {
+  let inParentheses = false;
+
+  for (const character of descriptor) {
+    if (inParentheses) {
+      inParentheses = character !== ")";
+      continue;
     }
 
+    if (character === ",") {
+      return false;
+    }
+
+    inParentheses = character === "(";
+  }
+
+  return true;
+};
+
+describe("import/overlays/package.ts, a srcset's image candidates", () => {
+  it.effect(
+    `splits every srcset of up to 6 of a letter, a space, a tab, a comma and both parentheses into its image candidates as the HTML Standard parses it: ${String(SRCSETS)} srcsets`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(srcsets, SRCSETS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every srcset of 0 to 6 of a, the space, the tab, the comma, ( and )",
+              caseHang: Duration.seconds(10),
+              concurrency: searchWidth,
+              coverage: requiredInSpace<SrcsetSituation>([
+                "a comma in a URL",
+                "descriptors",
+                "no candidate",
+                "parentheses",
+                "several candidates",
+              ]),
+              generator: srcsets,
+              literal: (lexical) => JSON.stringify(lexical),
+              oracle: {
+                kind: "second-implementation",
+                name: "the law oracle's own reading of the HTML Standard's grammar of a candidate list (§4.8.4.3.10, oracleSrcsetOf), apart from the importer's split: each candidate's URL and the trail; each candidate's lead whitespace and commas, its descriptors holding no comma outside parentheses, and the pieces together the srcset as written; each URL one reference (spec reading `href-resolution`)",
+              },
+              suite: "import/overlays-package/srcset-split",
+            },
+            (lexical, c) =>
+              Effect.sync(() => {
+                const split = srcsetCandidatesOf(lexical);
+                const read = oracleSrcsetOf(lexical);
+
+                c.noteAll(srcsetSituationsOf(split.candidates));
+                assert.deepStrictEqual(
+                  { trail: split.trail, urls: split.candidates.map(({ url }) => url) },
+                  { trail: read.trail, urls: read.urls },
+                  lexical,
+                );
+                assert.isTrue(
+                  split.candidates.every(({ lead }) => isSeparation(lead)),
+                  `${JSON.stringify(lexical)}: a lead holds other than whitespace and commas`,
+                );
+                assert.isTrue(
+                  split.candidates.every(({ descriptor }) => holdsNoBareComma(descriptor)),
+                  `${JSON.stringify(lexical)}: descriptors hold a comma outside parentheses`,
+                );
+                assert.strictEqual(
+                  [
+                    ...split.candidates.map(({ descriptor, lead, url }) => lead + url + descriptor),
+                    split.trail,
+                  ].join(""),
+                  lexical,
+                  lexical,
+                );
+              }),
+          ),
+        ),
+      ),
+  );
+
+  it("resolves each image candidate's URL, and gives each one in the package its CandidatePath", () => {
     const rows = referenceRowsOf(
       ownViewOf(
         referenceTreeOf({
