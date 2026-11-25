@@ -405,9 +405,10 @@ const EXPANSION_REFERENCE_COST = entityReferenceCost;
  * larger of one million characters and five times the document.
  *
  * @param textLength - The length of the whole document text.
- * @param expanded - The characters already counted, when a later stage continues the count.
+ * @param expanded - The characters already counted: 0 for a new count, a later stage's count where it
+ *   continues one.
  */
-const expansionBudget = (textLength: number, expanded = 0): ExpansionBudget => ({
+const expansionBudget = (textLength: number, expanded: number): ExpansionBudget => ({
   expanded,
   limit: Math.max(EXPANSION_ALLOWED, EXPANSION_FACTOR * textLength),
 });
@@ -586,14 +587,12 @@ const placeOf = (cursor: Cursor, offset: number): Position => positionAt(spotOf(
  *
  * @param cursor - The read position, which says whether `offset` is a position in the document.
  * @param message - What the lexer expected and what it found.
- * @param offset - Where the failure lies in `cursor.text`; the read position by default.
+ * @param offset - Where the failure lies in `cursor.text`: `cursor.offset`, the read position, for a
+ *   failure at it.
  * @returns An error with the line and column {@link placeOf} gives.
  */
-const failure = (
-  cursor: Cursor,
-  message: string,
-  offset: number = cursor.offset,
-): WellFormednessError => new WellFormednessError({ ...placeOf(cursor, offset), message });
+const failure = (cursor: Cursor, message: string, offset: number): WellFormednessError =>
+  new WellFormednessError({ ...placeOf(cursor, offset), message });
 
 /**
  * Read `pattern` at the read position and advance past it when it matches.
@@ -653,7 +652,11 @@ const expect = Effect.fnUntraced(function* expectToken(
   context: string,
 ): Effect.fn.Return<void, WellFormednessError> {
   if (!take(cursor, token)) {
-    yield* failure(cursor, `${context}: expected "${token}", found ${found(cursor)}.`);
+    yield* failure(
+      cursor,
+      `${context}: expected "${token}", found ${found(cursor)}.`,
+      cursor.offset,
+    );
   }
 });
 
@@ -669,7 +672,11 @@ const expectSpace = Effect.fnUntraced(function* expectWhiteSpace(
   context: string,
 ): Effect.fn.Return<void, WellFormednessError> {
   if (!skipSpace(cursor)) {
-    yield* failure(cursor, `${context}: expected white space, found ${found(cursor)}.`);
+    yield* failure(
+      cursor,
+      `${context}: expected white space, found ${found(cursor)}.`,
+      cursor.offset,
+    );
   }
 });
 
@@ -690,7 +697,11 @@ const readName = Effect.fnUntraced(function* readXmlName(
   const start = cursor.offset;
   const name = consume(cursor, NAME_AT);
   if (Option.isNone(name)) {
-    return yield* failure(cursor, `${context}: expected a name, found ${found(cursor)}.`);
+    return yield* failure(
+      cursor,
+      `${context}: expected a name, found ${found(cursor)}.`,
+      cursor.offset,
+    );
   }
 
   const violation = productionViolation(name.value, production);
@@ -741,13 +752,21 @@ const readQuoted = Effect.fnUntraced(function* readQuotedLiteral(
 ): Effect.fn.Return<Literal, WellFormednessError> {
   const quote = cursor.text[cursor.offset];
   if (quote !== '"' && quote !== "'") {
-    return yield* failure(cursor, `${context}: expected a quoted literal, found ${found(cursor)}.`);
+    return yield* failure(
+      cursor,
+      `${context}: expected a quoted literal, found ${found(cursor)}.`,
+      cursor.offset,
+    );
   }
 
   const start = cursor.offset + 1;
   const end = cursor.text.indexOf(quote, start);
   if (end === -1) {
-    return yield* failure(cursor, `${context}: the literal that starts here is not closed.`);
+    return yield* failure(
+      cursor,
+      `${context}: the literal that starts here is not closed.`,
+      cursor.offset,
+    );
   }
 
   cursor.offset = end + 1;
@@ -793,7 +812,7 @@ const skipComment = Effect.fnUntraced(function* skipCommentMarkup(
   const start = cursor.offset + "<!--".length;
   const end = cursor.text.indexOf("-->", start);
   if (end === -1) {
-    yield* failure(cursor, "comment: the comment that starts here is not closed.");
+    yield* failure(cursor, "comment: the comment that starts here is not closed.", cursor.offset);
   }
 
   const body = cursor.text.slice(start, end);
@@ -822,6 +841,7 @@ const skipInstruction = Effect.fnUntraced(function* skipProcessingInstruction(
     yield* failure(
       cursor,
       `processing instruction: the target "${target}" is reserved, since a target that spells xml in any case is no PITarget (XML 1.0 section 2.6, [17]). Rename the instruction's target.`,
+      cursor.offset,
     );
   }
 
@@ -832,12 +852,13 @@ const skipInstruction = Effect.fnUntraced(function* skipProcessingInstruction(
     yield* failure(
       cursor,
       `processing instruction: white space or "?>" must follow the target "${target}" (XML 1.0 section 2.6, [16]), found ${found(cursor)}.`,
+      cursor.offset,
     );
   }
 
   const end = cursor.text.indexOf("?>", cursor.offset);
   if (end === -1) {
-    yield* failure(cursor, "processing instruction: the instruction is not closed.");
+    yield* failure(cursor, "processing instruction: the instruction is not closed.", cursor.offset);
   }
 
   cursor.offset = end + "?>".length;
@@ -854,7 +875,11 @@ const readDeclarationRest = Effect.fnUntraced(function* readDeclarationText(
 ): Effect.fn.Return<string, WellFormednessError> {
   const rest = consume(cursor, DECLARATION_REST);
   if (Option.isNone(rest)) {
-    return yield* failure(cursor, "declaration: the declaration that starts here is not closed.");
+    return yield* failure(
+      cursor,
+      "declaration: the declaration that starts here is not closed.",
+      cursor.offset,
+    );
   }
 
   return rest.value;
@@ -1125,6 +1150,7 @@ const skipExternalEntity = Effect.fnUntraced(function* skipExternalEntityDeclara
     yield* failure(
       cursor,
       `${context}: expected a quoted value, "SYSTEM" or "PUBLIC", found ${found(cursor)}.`,
+      cursor.offset,
     );
   }
 
@@ -1212,6 +1238,7 @@ const lexAttributeType = Effect.fnUntraced(function* lexAttributeTypeDeclaration
       return yield* failure(
         cursor,
         `${context}: expected the parenthesized notation names, found ${found(cursor)}.`,
+        cursor.offset,
       );
     }
 
@@ -1246,6 +1273,7 @@ const lexAttributeDefault = Effect.fnUntraced(function* lexAttributeDefaultDecla
     return yield* failure(
       cursor,
       `${context}: expected "#REQUIRED", "#IMPLIED", "#FIXED" or a quoted default value, found ${found(cursor)}.`,
+      cursor.offset,
     );
   }
 
@@ -1286,7 +1314,11 @@ const lexAttlist = Effect.fnUntraced(function* lexAttlistDeclaration(
     }
 
     if (!spaced) {
-      yield* failure(cursor, `${context}: expected white space or ">", found ${found(cursor)}.`);
+      yield* failure(
+        cursor,
+        `${context}: expected white space or ">", found ${found(cursor)}.`,
+        cursor.offset,
+      );
     }
 
     const name = yield* readName(cursor, `${context}, attribute name`, "QName");
@@ -1428,6 +1460,7 @@ const readDeclarationKeyword = Effect.fnUntraced(function* readSubsetDeclaration
     return yield* failure(
       cursor,
       `internal subset: expected a markup declaration, a comment, a processing instruction or a parameter-entity reference, found ${found(cursor)}.`,
+      cursor.offset,
     );
   }
 
@@ -1567,6 +1600,7 @@ const lexSubset: (
             yield* failure(
               inside,
               `parameter-entity reference: the replacement text of "${used.value.name}" has ${found(inside)} where markup was expected.`,
+              inside.offset,
             );
           }
         }
@@ -1633,7 +1667,11 @@ const lexPseudoAttribute = Effect.fnUntraced(function* lexPseudoAttributeDeclara
   }
 
   if (!spaced) {
-    return yield* failure(cursor, `${context}: expected white space before "${name}".`);
+    return yield* failure(
+      cursor,
+      `${context}: expected white space before "${name}".`,
+      cursor.offset,
+    );
   }
 
   cursor.offset += name.length;
@@ -1672,7 +1710,11 @@ const lexDeclaration = Effect.fnUntraced(function* lexXmlDeclaration(
   cursor.offset = "<?xml".length;
   const version = yield* lexPseudoAttribute(cursor, "version");
   if (Option.isNone(version)) {
-    return yield* failure(cursor, `XML declaration: expected version, found ${found(cursor)}.`);
+    return yield* failure(
+      cursor,
+      `XML declaration: expected version, found ${found(cursor)}.`,
+      cursor.offset,
+    );
   }
 
   const encoding = yield* lexPseudoAttribute(cursor, "encoding");
@@ -1731,7 +1773,7 @@ export const lexProlog = Effect.fnUntraced(function* lexPrologText(
   const tables: Tables = {
     attlists: new Map(),
     bound: new Set(),
-    budget: expansionBudget(text.length),
+    budget: expansionBudget(text.length, 0),
     entities: new Map(),
     externalSubset: false,
     kept: [],

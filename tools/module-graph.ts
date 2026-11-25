@@ -188,11 +188,11 @@ const lineOf = (source: string, index: number): number => source.slice(0, index)
  * every `export … from`, `export *` included, each whether written on one line or several.
  *
  * @param source The module's TypeScript source.
- * @param lang How to parse it: `"tsx"` for a module that holds JSX, `"ts"` by default.
+ * @param lang How to parse it: `"tsx"` for a module that holds JSX, `"ts"` for any other.
  * @returns The declarations in source order, and the lines of those it could not classify: the
  *   line of the parser's first error, for a module that does not parse.
  */
-const readImports = (source: string, lang: "ts" | "tsx" = "ts"): ModuleImports => {
+const readImports = (source: string, lang: "ts" | "tsx"): ModuleImports => {
   const { errors, program } = parseSync(`module.${lang}`, source, { lang });
   const [error] = errors;
 

@@ -290,13 +290,14 @@ const findUnwritable = (doc: XmlDocument, threshold: number): EncodeError | unde
     .find((error) => error !== undefined);
 
 /**
- * The recursive `writeXml`.
+ * The recursive `writeXml`, taking its threshold as `writeXml` does: none writes every character as
+ * itself.
  */
 const recursiveWriteXml = (
   doc: XmlDocument,
-  options?: { readonly threshold: number },
+  given: Option.Option<number>,
 ): Effect.Effect<string, EncodeError> => {
-  const threshold = options?.threshold ?? Number.POSITIVE_INFINITY;
+  const threshold = Option.getOrElse(given, () => Number.POSITIVE_INFINITY);
   const failure = findUnwritable(doc, threshold);
 
   if (failure !== undefined) {
@@ -363,7 +364,7 @@ const outcomeOf = (effect: Effect.Effect<string, EncodeError>): Effect.Effect<Ou
  * @returns Nothing; fails the test at the first threshold whose outcomes differ.
  */
 const agrees = Effect.fnUntraced(function* agreesWithRecursive(doc: XmlDocument, name: string) {
-  const text = yield* recursiveWriteXml(doc);
+  const text = yield* recursiveWriteXml(doc, Option.none());
 
   assert.strictEqual(Result.getOrThrow(writeXmlText(doc)), text, `${name}, writeXmlText`);
   assert.strictEqual(yield* writeXml(doc, Option.none()), text, `${name}, no threshold`);
@@ -374,7 +375,7 @@ const agrees = Effect.fnUntraced(function* agreesWithRecursive(doc: XmlDocument,
       yield* outcomeOf(
         writeXml(doc, Option.some(threshold)).pipe(Effect.catchTag("WriteRefusal", Effect.die)),
       ),
-      yield* outcomeOf(recursiveWriteXml(doc, { threshold })),
+      yield* outcomeOf(recursiveWriteXml(doc, Option.some(threshold))),
       `${name}, threshold ${threshold}`,
     );
   }

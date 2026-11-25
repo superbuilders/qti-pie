@@ -430,15 +430,12 @@ interface GeneratedTree {
  * Draw a tree: a swarm over a suite's features, bounds within the suite's, and a root within them.
  *
  * @param most - The suite's bounds.
- * @param features - The features the suite admits, every one by default; a suite that leaves out
- *   a child kind or `reference` draws no such node.
+ * @param features - The features the suite admits: every one, `treeFeatures`, or fewer, where a
+ *   suite that leaves out a child kind or `reference` draws no such node.
  * @returns The generator of the case.
  */
 export const generatedTree =
-  (
-    most: Bounds,
-    features: Arr.NonEmptyReadonlyArray<TreeFeature> = treeFeatures,
-  ): Gen<GeneratedTree> =>
+  (most: Bounds, features: Arr.NonEmptyReadonlyArray<TreeFeature>): Gen<GeneratedTree> =>
   (source) => {
     const drawn = source.draw(swarm(features));
     const bounds = source.draw(boundsWithin(most));
@@ -496,7 +493,7 @@ interface GeneratedDocument {
 export const generatedDocument =
   (most: Bounds): Gen<GeneratedDocument> =>
   (source) => {
-    const tree = source.draw(generatedTree(most));
+    const tree = source.draw(generatedTree(most, treeFeatures));
     const drawn = tree.swarm;
     const leading = source.draw(array(miscOf(drawn), { max: 2, min: 0 }));
     const doctype = source.draw(
