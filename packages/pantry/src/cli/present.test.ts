@@ -136,38 +136,41 @@ layer(NodeServices.layer, { excludeTestServices: true })("the JSON error shape",
     }),
   );
 
+  /**
+   * This holds roundtrip to calling the guard, requireReplaceable, before the import, whose
+   * settings here reach no database.
+   */
+  const earlierExport = Effect.gen(function* earlierExport() {
+    const fs = yield* FileSystem.FileSystem;
+    const env = scratchEnv(scratch);
+    const label = "present-replace-simple";
+    const copy = yield* packageCopy(fixtures.simple, label);
+    const folder = path.resolve("work", "export", label);
+    const file = path.join(folder, "earlier.txt");
+
+    yield* fs.remove(folder, { force: true, recursive: true });
+    yield* fs.makeDirectory(folder, { recursive: true });
+    yield* makeScratch(env);
+    yield* fs.writeFileString(file, "kept");
+
+    const { exit, stderr } = yield* captureCli(
+      qtiRoundtrip,
+      ["--json", copy, label],
+      Option.some(env),
+    );
+
+    assert.strictEqual(errorLine(stderr).kind, "target-not-empty");
+    assert.strictEqual(exitCodeOf(exit), 1);
+    assert.isTrue(
+      Exit.isFailure(exit) && Cause.squash(exit.cause) instanceof TargetNotEmpty,
+      stderr,
+    );
+    assert.strictEqual(yield* fs.readFileString(file), "kept");
+  });
+
   it.effect(
     "a roundtrip onto an earlier export without --yes is target-not-empty, exit 1, before any import, and the export stays",
-    () =>
-      // This holds roundtrip to calling the guard, requireReplaceable, before the import, whose
-      // settings here reach no database.
-      Effect.gen(function* earlierExport() {
-        const fs = yield* FileSystem.FileSystem;
-        const env = scratchEnv(scratch);
-        const label = "present-replace-simple";
-        const copy = yield* packageCopy(fixtures.simple, label);
-        const folder = path.resolve("work", "export", label);
-        const file = path.join(folder, "earlier.txt");
-
-        yield* fs.remove(folder, { force: true, recursive: true });
-        yield* fs.makeDirectory(folder, { recursive: true });
-        yield* makeScratch(env);
-        yield* fs.writeFileString(file, "kept");
-
-        const { exit, stderr } = yield* captureCli(
-          qtiRoundtrip,
-          ["--json", copy, label],
-          Option.some(env),
-        );
-
-        assert.strictEqual(errorLine(stderr).kind, "target-not-empty");
-        assert.strictEqual(exitCodeOf(exit), 1);
-        assert.isTrue(
-          Exit.isFailure(exit) && Cause.squash(exit.cause) instanceof TargetNotEmpty,
-          stderr,
-        );
-        assert.strictEqual(yield* fs.readFileString(file), "kept");
-      }),
+    () => earlierExport,
   );
 
   it.effect("a differing roundtrip prints its envelope on stdout and the error on stderr", () =>

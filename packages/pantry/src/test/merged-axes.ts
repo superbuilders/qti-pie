@@ -35,8 +35,6 @@ export const beginsWith = (side: LawSide, prefix: readonly LawSide["terms"][numb
  */
 const selects = (side: LawSide): boolean => side.selection.conjuncts.length > 0;
 
-// GRIZZLE-PENDING: Q10. The installation map's constraint-to-laws listing replaces this restated
-// riding rule.
 /**
  * Read the axes of every family of a schema, each with the laws its foreign key carries: the
  * family's own law, every containment that rides the axis, and on the predecessor and last axes
@@ -52,6 +50,9 @@ const selects = (side: LawSide): boolean => side.selection.conjuncts.length > 0;
  * takes any selection of a tree's member for the members.
  *
  * An owner's key is its primary key, as `lawsOf` lists it beside the statements' laws.
+ *
+ * GRIZZLE-PENDING: Q10. The installation map's constraint-to-laws listing replaces this restated
+ * riding rule.
  *
  * @param laws - The schema's laws, as grizzle's `lawsOf` lists them, every primary key included.
  * @returns The axes.

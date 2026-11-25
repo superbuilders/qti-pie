@@ -147,7 +147,9 @@ const keysOf = (rows: ReadonlyMap<string, unknown>): string[] => [...rows.keys()
 
 describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
   it("gives a base-40 rational of three parts no MathCn or CnPartText, its digits being application specific", () => {
-    // Nodes: 0 document, 1 math, 2 cn, 3 text, 4 sep, 5 text, 6 sep, 7 text.
+    /**
+     * Nodes: 0 document, 1 math, 2 cn, 3 text, 4 sep, 5 text, 6 sep, 7 text.
+     */
     const rows = rowsOf(
       ownViewOf(
         documentOf(
@@ -168,7 +170,9 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
   });
 
   it("gives a cn with an mglyph part no MathCn, and a cn of a type no form lists none", () => {
-    // Nodes: 0 document, 1 math, 2 cn, 3 mglyph, 4 sep, 5 text; 6 cn, 7 text.
+    /**
+     * Nodes: 0 document, 1 math, 2 cn, 3 mglyph, 4 sep, 5 text; 6 cn, 7 text.
+     */
     const rows = rowsOf(
       ownViewOf(
         documentOf(
@@ -189,8 +193,10 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
   });
 
   it("judges a cn of a listed type only where its base is a radix, a surplus of parts among them", () => {
-    // Nodes: 0 document, 1 math, 2 cn (no base), 3 text; 4 cn (base 37), 5 text; 6 cn (empty
-    // base), 7 text; 8 cn (rational surplus of three), 9 text, 10 sep, 11 text, 12 sep, 13 text.
+    /**
+     * Nodes: 0 document, 1 math, 2 cn (no base), 3 text; 4 cn (base 37), 5 text; 6 cn (empty
+     * base), 7 text; 8 cn (rational surplus of three), 9 text, 10 sep, 11 text, 12 sep, 13 text.
+     */
     const rows = rowsOf(
       ownViewOf(
         documentOf(
@@ -213,7 +219,9 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
   });
 
   it("gives a rational cn one MathCn row and two integer parts, split at its sep", () => {
-    // Nodes: 0 document, 1 math, 2 cn, 3 text, 4 sep, 5 text.
+    /**
+     * Nodes: 0 document, 1 math, 2 cn, 3 text, 4 sep, 5 text.
+     */
     const rows = rowsOf(
       ownViewOf(
         documentOf(
@@ -257,7 +265,9 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
   });
 
   it("gives a cn with no type its real default, one part, and its text collapsed", () => {
-    // Nodes: 0 document, 1 math, 2 cn, 3 text.
+    /**
+     * Nodes: 0 document, 1 math, 2 cn, 3 text.
+     */
     const rows = rowsOf(
       ownViewOf(documentOf(elementOf("m:math", [elementOf("m:cn", [text(" \t3.5\n ")])]))),
       ids,
@@ -282,7 +292,9 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
   });
 
   it("reads the type and the base through the whitespace around them, and keeps their lexical forms", () => {
-    // Nodes: 0 document, 1 math, 2 cn, 3 text.
+    /**
+     * Nodes: 0 document, 1 math, 2 cn, 3 text.
+     */
     const rows = rowsOf(
       ownViewOf(
         documentOf(
@@ -347,8 +359,10 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
   });
 
   it("gives a cn with a part that holds an element or an entity reference no rows, and no row for the part beside it", () => {
-    // Nodes: 0 document, 1 math, 2 cn (an element in a part), 3 mglyph; 4 cn (an entity reference
-    // in a part), 5 text, 6 entityRef, 7 sep, 8 text; 9 cn, whole, 10 text.
+    /**
+     * Nodes: 0 document, 1 math, 2 cn (an element in a part), 3 mglyph; 4 cn (an entity reference
+     * in a part), 5 text, 6 entityRef, 7 sep, 8 text; 9 cn, whole, 10 text.
+     */
     const rows = rowsOf(
       ownViewOf(
         documentOf(
@@ -371,7 +385,9 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
   });
 
   it("splits at every sep, keeps an empty part as empty text, and lets comments and whitespace add nothing", () => {
-    // Nodes: 0 document, 1 math, 2 cn, 3 comment, 4 ws, 5 text, 6 sep, 7 ws, 8 comment.
+    /**
+     * Nodes: 0 document, 1 math, 2 cn, 3 comment, 4 ws, 5 text, 6 sep, 7 ws, 8 comment.
+     */
     const rows = rowsOf(
       ownViewOf(
         documentOf(
@@ -395,9 +411,11 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
   });
 
   it("writes a cn's surplus part at the place no type lists, for the database to refuse", () => {
-    // A real with a sep holds two parts where its type lists one: the second is written under the
-    // form `real`, which CnForm does not list at its place. A rational holds two parts, so a third
-    // is written at the place no type lists (place 2), under `real`, and a fourth has no place.
+    /**
+     * A real with a sep holds two parts where its type lists one: the second is written under the
+     * form `real`, which CnForm does not list at its place. A rational holds two parts, so a third
+     * is written at the place no type lists (place 2), under `real`, and a fourth has no place.
+     */
     const rows = rowsOf(
       ownViewOf(
         documentOf(
@@ -427,18 +445,20 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
       ids,
     );
 
-    // Nodes: 2 cn, 3 text, 4 sep, 5 text; 6 cn, 7 text, 8 sep, 9 text, 10 sep, 11 text;
-    // 12 cn, 13 text, 14 sep, 15 text, 16 sep, 17 text, 18 sep, 19 text.
-    assert.sameMembers(keysOf(rows.CnPartText), [
-      partKey(2, 0),
-      partKey(2, 1),
-      partKey(6, 0),
-      partKey(6, 1),
-      partKey(6, 2),
-      partKey(12, 0),
-      partKey(12, 1),
-      partKey(12, 2),
-    ]);
+    assert.sameMembers(
+      keysOf(rows.CnPartText),
+      [
+        partKey(2, 0),
+        partKey(2, 1),
+        partKey(6, 0),
+        partKey(6, 1),
+        partKey(6, 2),
+        partKey(12, 0),
+        partKey(12, 1),
+        partKey(12, 2),
+      ],
+      "the parts of the cns at 2 (3 text, 4 sep, 5 text), 6 (7 text, 8 sep, 9 text, 10 sep, 11 text) and 12 (13 text, 14 sep, 15 text, 16 sep, 17 text, 18 sep, 19 text), the last cn's fourth part at no place",
+    );
     assert.strictEqual(rows.CnPartText.get(partKey(2, 1))?.form, "real");
     assert.strictEqual(rows.CnPartText.get(partKey(2, 1))?.type, "real");
     assert.strictEqual(rows.CnPartText.get(partKey(6, 2))?.form, "real");
@@ -448,7 +468,9 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
   });
 
   it("finds a cn anywhere in the formula, and gives a document with none no rows", () => {
-    // Nodes: 0 document, 1 math, 2 apply, 3 plus, 4 cn, 5 text, 6 ci.
+    /**
+     * Nodes: 0 document, 1 math, 2 apply, 3 plus, 4 cn, 5 text, 6 ci.
+     */
     const doc = documentOf(
       elementOf("m:math", [
         elementOf("m:apply", [

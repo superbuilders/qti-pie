@@ -1598,23 +1598,39 @@ const operandExpressions = select(ExpressionNode, (e) => e.in(e.parentKind, expr
  * argument where its class takes one and one pair where it takes two, so no count is stored; and
  * "MathML head qualifier" (spec reading R6-head-qualifiers): each head qualifier beside a head
  * operator is a pair its syntax table lists.
+ *
+ * The statements of the laws that take several, in order:
+ *
+ * - **Arity:** at least its least number, an operand of that rank; at most its greatest, no operand
+ *   past it; and a math operator's name fixes its count (spec reading 242), two sub-expressions for
+ *   atan2, one for every other name.
+ * - **E1 derived:** the result type each dependent typing derives from its operands, operand by
+ *   operand: a numeric aggregate is unknown where an operand is, integer only where every operand
+ *   is integer or any; a container's, an Index's or a Random's base is each operand's that is not
+ *   any, else unknown; a Delete's base and cardinality are its later operands' the same way. A
+ *   numeric aggregate that is unknown has an unknown operand, and one that is integer an integer
+ *   operand; one whose every operand is integer or any, one of them integer, is integer. Every
+ *   other numeric aggregate is float because `ResultBase` admits only integer, float and unknown
+ *   for the numeric kinds (`#pantry/grammar/expression.ts`), so these rules and that containment
+ *   together state the numeric typing's three arms. A container, an Index or a Random of a base
+ *   other than any has an operand that is not any, and one that is unknown has two operands of two
+ *   bases, or an unknown one; a Delete the same way over its later operands, and its cardinality
+ *   known where exactly one known cardinality stands among them. A base value is typed as its
+ *   literal in every placement, and one of a base its literal's code. A judged cn's type is the one
+ *   it is counted under, read where its attribute stands.
  */
 const expressionLawsByName = {
   Arity: declared("Arity", [
-    // At least its least number: an operand of that rank.
     contained(
       on(ArityFloor, "package", "path", "start", "min"),
       on(ExpressionOperand, "package", "path", "operator", "rank"),
     ),
-    // At most its greatest: no operand past it.
     check("Arity", ExpressionOperand, (o) =>
       o.or(
         o.not(OperatorMax.has(o.operatorKind)),
         o.le(o.rank, OperatorMax.at("max", o.operatorKind)),
       ),
     ),
-    // A math operator's name fixes its count (spec reading 242): two sub-expressions for atan2,
-    // one for every other name.
     contained(
       on(BinaryMathOperator, "package", "path", "start"),
       on(
@@ -1640,7 +1656,6 @@ const expressionLawsByName = {
     ),
   ]),
   "E1 derived": declared("E1 derived", [
-    // A judged cn's type is the one it is counted under, read where its attribute stands.
     contained(
       on(MathCn, "package", "path", "start", "type"),
       on(CnCount, "package", "path", "start", "type"),
@@ -1675,10 +1690,6 @@ const expressionLawsByName = {
         e.eq(e.language, "none"),
       ),
     ),
-    // The result type each dependent typing derives from its operands, operand by operand: a
-    // numeric aggregate is unknown where an operand is, integer only where every operand is
-    // integer or any; a container's, an Index's or a Random's base is each operand's that is not
-    // any, else unknown; a Delete's base and cardinality are its later operands' the same way.
     check("E1_derived", OperandOf, (o) =>
       o.and(
         o.or(
@@ -1712,11 +1723,6 @@ const expressionLawsByName = {
         ),
       ),
     ),
-    // A numeric aggregate that is unknown has an unknown operand, and one that is integer an
-    // integer operand; one whose every operand is integer or any, one of them integer, is integer.
-    // Every other numeric aggregate is float because `ResultBase` admits only integer, float and
-    // unknown for the numeric kinds (`#pantry/grammar/expression.ts`), so these rules and that
-    // containment together state the numeric typing's three arms.
     contained(
       on(
         select(PlacedExpressionNode, (e) =>
@@ -1758,8 +1764,6 @@ const expressionLawsByName = {
       ),
     ),
     check("E1_derived", IntegerAggregate, (a) => a.eq(a.operatorBase, "integer")),
-    // A container, an Index or a Random of a base other than any has an operand that is not any,
-    // and one that is unknown has two operands of two bases, or an unknown one.
     contained(
       on(
         select(PlacedExpressionNode, (e) =>
@@ -1793,8 +1797,6 @@ const expressionLawsByName = {
       ),
       on(UnknownOperandBase, "package", "assembly", "instance", "path", "operator"),
     ),
-    // A Delete the same way over its later operands, and its cardinality known where exactly one
-    // known cardinality stands among them.
     contained(
       on(
         select(PlacedExpressionNode, (e) =>
@@ -1849,8 +1851,6 @@ const expressionLawsByName = {
       ),
     ),
     check("E1_derived", OneTailCardinality, (t) => t.ne(t.cardinality, "unknown")),
-    // A base value is typed as its literal in every placement, and one of a base its literal's
-    // code.
     contained(
       on(baseValues, "package", "path", "start", "baseType"),
       on(Literal, "package", "path", "start", "baseType"),

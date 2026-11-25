@@ -36,6 +36,23 @@
  *   {@link ValueIdentity} and {@link TextDomain} are read so.
  * - An element's attributes and text are read under its governor ({@link GoverningOf}): its kind, or
  *   the type an `xsi:type` makes govern it (spec readings 60 and 84).
+ *
+ * Its declarations run in sections, in this order:
+ *
+ * - Handle lists (C8): membership is `Logic.in`, so these sets are lists, never installed.
+ * - Rosters, each a generator's in code order. Codes are history: a vocabulary appends.
+ * - The count relations a slot's fin reads.
+ * - The content grammar (N5, N7).
+ * - Ancestry (N6, C7).
+ * - Types (N12).
+ * - Attributes and texts under their governor (AL1 to AL3, text-copy; spec readings 60 and 84).
+ * - Foreign names (C8, C15, C36; `names.ts`).
+ * - Files (spec reading 103).
+ * - Expressions and interactions (O3 to O5).
+ * - The package (P1, P2).
+ * - Includes (spec readings 85 and 114).
+ * - Variables and references (O2 to O7, `references.ts`).
+ * - Lexical forms of coded enumerations (C17).
  */
 import {
   closed,
@@ -149,8 +166,6 @@ const charsForm = new RegExp(charsPattern, "u");
  */
 export const isChars = (text: string): boolean => charsForm.test(text);
 
-// Handle lists (C8): membership is `Logic.in`, so these sets are lists, never installed.
-
 /**
  * The kinds that are no element: the document node, character data, comments, instructions,
  * entity references and the doctype. `¬in(kind, nonElementKinds)` is an element (C8).
@@ -193,8 +208,6 @@ export const toolLabelKinds: readonly Kind[] = toolLabelKindsOf({
   derivations: typeDerivations,
   kinds: grammar.kinds.nodeKind.handles,
 });
-
-// Rosters, each a generator's in code order. Codes are history: a vocabulary appends.
 
 /**
  * The `DocumentType` handle of the package's manifest, the IMS Content Packaging manifest document,
@@ -465,8 +478,6 @@ export const ContentModelOf = closed.relation(
   })),
 );
 
-// The count relations a slot's fin reads.
-
 /**
  * `ModelPositions`: model → positions, the number of content positions of each automaton, its start
  * 0 included, so the model of a family with no model, or an empty one, has 1. `FollowSetOf`'s
@@ -486,8 +497,6 @@ export const ModelPositions = closed.relation(
  * A content position of an automaton, a slot of its model's `ModelPositions` count.
  */
 const familyPosition = slot(closedId(Position), fin(ModelPositions, "positions"));
-
-// The content grammar (N5, N7).
 
 /**
  * `AdmissionIn`: (map, child) → position, each admission map's children at their positions in
@@ -722,8 +731,6 @@ export const StrictlyHeld = closed.relation(
   grammar.content.strictlyHeld.rows.map(({ child, parent }) => ({ child, parent })),
 );
 
-// Ancestry (N6, C7).
-
 /**
  * Read one of the ancestry generator's three sets as grizzle rows.
  *
@@ -764,8 +771,6 @@ export const Needs = closed.relation(
   kindFlags(grammar.ancestry.needs),
 );
 
-// Types (N12).
-
 /**
  * `XsiType`: the set of (kind, type) where an element of the kind may name the type in
  * `xsi:type`, validly derived from its declared type, the declared type among them.
@@ -788,8 +793,6 @@ export const AnonymousType = closed.relation(
   ["kind"],
   grammar.xsi.anonymousType.rows.map(({ kind }) => ({ kind })),
 );
-
-// Attributes and texts under their governor (AL1 to AL3, text-copy; spec readings 60 and 84).
 
 /**
  * A `GoverningOf` row: the pair's governor in the attribute grammar, else the kind itself, which
@@ -893,7 +896,9 @@ const attributeModels = (() => {
   const models: { readonly handle: string; readonly rows: readonly AttributeRow[] }[] = [];
   const bySignature = new Map<string, string>();
   const families = Governor.handles.map((governor) => {
-    // A governor no attribute row names admits the empty set.
+    /**
+     * A governor no attribute row names admits the empty set.
+     */
     const rows = rowsAt(byGovernor, governor).toSorted(
       (left, right) => Number(left.position) - Number(right.position),
     );
@@ -1255,8 +1260,6 @@ export const KindNamespace = closed.relation(
   grammar.kinds.elementName.rows.map(({ kind, namespace }) => ({ kind, namespace })),
 );
 
-// Foreign names (C8, C15, C36; `names.ts`).
-
 /**
  * `KindByNameUnder`: parent → names, for every parent that admits a foreign element: the pattern
  * of the expanded names, `namespace}local` (`expandedText` of `names.ts`), of the element kinds the
@@ -1317,8 +1320,6 @@ export const vocabularyNamespaceNames: readonly string[] = [
   ...new Set(grammar.kinds.elementName.rows.map(({ namespace }) => namespace)),
 ];
 
-// Files (spec reading 103).
-
 /**
  * `ReferenceAttribute`: (kind, name) → form, every attribute by which an element of a kind names a
  * file of its package, and how its value names it: R6's census, IMS Content Packaging 1.2's
@@ -1339,8 +1340,6 @@ export const ReferenceAttribute = closed.relation(
     name,
   })),
 );
-
-// Expressions and interactions (O3 to O5).
 
 /**
  * `OperatorArity`: kind → min, the fewest operands an expression kind admits. The most is
@@ -1581,8 +1580,6 @@ export const MappableBaseType = closed.relation(
   grammar.mappableBaseType.rows.map(({ baseType }) => ({ baseType })),
 );
 
-// The package (P1, P2).
-
 /**
  * `RootOfType`: the set of (type, root), each root element kind the documents a resource type
  * lists may have; a type with no row lists no document. Each type but an included fragment's has
@@ -1597,8 +1594,6 @@ export const RootOfType = closed.relation(
     type,
   })),
 );
-
-// Includes (spec readings 85 and 114).
 
 /**
  * The `IncludeSet` roster: every distinct set of kinds an include stands for, as the include
@@ -1684,8 +1679,6 @@ export const SplitRoot = closed.relation(
  */
 export const includeParentKinds: readonly (typeof NodeKind.handles)[number][] =
   grammar.include.includeParents.map((kind) => kind);
-
-// Variables and references (O2 to O7, `references.ts`).
 
 /**
  * `Declares`: kind → declaration, each declaration kind as a `NodeKind` to itself as a
@@ -1839,8 +1832,6 @@ export const SectionPart = closed.relation(
     kind,
   })),
 );
-
-// Lexical forms of coded enumerations (C17).
 
 /**
  * `BaseTypeLexical`: code → lexical, each base type's lexical form, which proves an overlay's

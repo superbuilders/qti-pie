@@ -27,9 +27,10 @@
  * selection and check is read from the predicate grizzle keeps for it and evaluated on the host in
  * SQL's three-valued logic (`#pantry/test/predicates.ts`, which reads no schema of its own), over
  * the fields the oracle knows of a row ({@link attributeFields}, {@link nodeFields}).
+ *
+ * GRIZZLE-PENDING: Q10. The key copies are read from the statements' kept predicates; the
+ * installation map would list which fields of `matchedText` type each law writes.
  */
-// GRIZZLE-PENDING: Q10. The key copies are read from the statements' kept predicates; the
-// installation map would list which fields of `matchedText` type each law writes.
 import type { Law, LawSide, StatedLaw, Statement } from "@bjornpagen/grizzle";
 import { Array as Arr, Option, Predicate, Result, Schema } from "effect";
 import {

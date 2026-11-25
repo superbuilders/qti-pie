@@ -20,7 +20,8 @@ import { testMemberRows } from "#pantry/qti/overlay-queries/tests.ts";
  * with no selection rule "all elements are to be selected", §5.129), sections and their members
  * alike, since `start` is the item ref's pre-order place in the test document: so `k` is the
  * position a delivery of such a test serves the member at. grizzle has no window function, so the
- * rank is the count it is.
+ * rank is the count it is. The query's key is not proven at the type level, so the count binds
+ * each source's whole heading.
  */
 export const memberPositions = query(QtiBase).rule((r) => {
   const {
@@ -35,7 +36,6 @@ export const memberPositions = query(QtiBase).rule((r) => {
   } = v(testMemberRows, "member");
   const earlier = v(testMemberRows, "earlier");
 
-  // The query's key is not proven at the type level, so the count binds each source's whole heading.
   return r
     .match(testMemberRows, { document, item, package: pkg, part, path, section, start, test })
     .match(testMemberRows, {

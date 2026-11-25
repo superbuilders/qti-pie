@@ -773,8 +773,10 @@ export const attributeLawsByName = {
   "AL5 attribute count": declared("AL5 attribute count", [
     check("AL5_attribute_count", Node, (n) => {
       const model = AttributeModelOf.at("model", n.governor);
-      // attrs ∩ counted, written attrs ∖ (attrs ∖ counted): the same set, in the algebra the host
-      // judge reads (`#pantry/test/key-copies.ts` `computers`), which holds no intersection.
+      /**
+       * `attrs` ∩ counted, written `attrs` ∖ (`attrs` ∖ counted): the same set, in the algebra the
+       * host judge reads (`#pantry/test/key-copies.ts` `computers`), which holds no intersection.
+       */
       const held = Bits.cardinality(
         Bits.difference(n.attrs, Bits.difference(n.attrs, CountedSlot.row(model))),
       );

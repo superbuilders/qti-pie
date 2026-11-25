@@ -187,11 +187,12 @@ export interface Census {
  */
 const installed = `"${RegExp.escape(schemaNameOf(QtiBase))}"`;
 
-// GRIZZLE-PENDING: Q10. The census reads the migration's SQL by pattern; the installation map
-// would give the tables, keys, functions and laws as data.
 /**
  * A `CREATE TABLE` in `Qti`'s schema with a column list: its name and the body between its
  * parentheses, one column or constraint to a line, from the line after `(` to the line `);`.
+ *
+ * GRIZZLE-PENDING: Q10. The census reads the migration's SQL by pattern; the installation map
+ * would give the tables, keys, functions and laws as data.
  *
  * The opening `(` ends its line. That leaves out a `CREATE TABLE … ("secret") AS SELECT …`, the
  * installation's live secret, whose parenthesis is a name list on the statement's one line and
