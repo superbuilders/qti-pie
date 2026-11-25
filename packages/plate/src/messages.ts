@@ -54,6 +54,17 @@ type SharedKeys<List extends readonly object[]> = List extends readonly [
   : never;
 
 /**
+ * What a catalog composed of a list of areas satisfies while no two of them share a key: anything
+ * (`unknown`) while every key has one area; else an object whose `sharedKey` is each key two share,
+ * which no catalog has, so a shared key fails to compile where the catalog is composed, naming it.
+ *
+ * @template List The areas.
+ */
+type Disjoint<List extends readonly object[]> = [SharedKeys<List>] extends [never]
+  ? unknown
+  : { readonly sharedKey: SharedKeys<List> };
+
+/**
  * The catalog's areas, in the order {@link en} spreads them.
  */
 type Areas = [
@@ -85,7 +96,7 @@ type Areas = [
  * to fill with what only it knows, the visible text of a chip a child just placed.
  *
  * A key two areas share would be one text silently spread over the other, so the catalog is checked
- * against {@link SharedKeys} of its {@link Areas}: a shared key fails to compile here, naming it.
+ * against {@link Disjoint} of its {@link Areas}: a shared key fails to compile here, naming it.
  * This catalog is the source of the keys and of each key's placeholders; any other locale's catalog
  * has the same keys and placeholders.
  */
@@ -104,7 +115,7 @@ const en = {
   ...selectPointMessages,
   ...sliderMessages,
   ...textEntryMessages,
-} as const satisfies Readonly<Record<SharedKeys<Areas>, never>>;
+} as const satisfies Disjoint<Areas>;
 
 /**
  * The key of a string the renderer writes.
