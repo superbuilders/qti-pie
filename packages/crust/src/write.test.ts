@@ -5,9 +5,7 @@
  * among the comments and processing instructions, and a `>` escaped where adjacent text runs make
  * `]]>`. It overflows the stack from about 2,000 levels, so the trees below stay far shallower. Its
  * escaping is the code under test's own, so what the differential proves is the walk: the order the
- * iterative writer visits, renders and searches a tree in, which is the writer's contract. The
- * bytes an encoder class writes the text in are encode.test.ts's, and the cycle of
- * decode.detection.test.ts reads them back.
+ * iterative writer visits, renders and searches a tree in, which is the writer's contract.
  *
  * @module
  */
@@ -15,12 +13,12 @@ import { availableParallelism } from "node:os";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
 import { noCoverage, required, requiredInSpace } from "@bjornpagen/testing/features";
-import { array, element } from "@bjornpagen/testing/gen";
+import { array, element, int, map, oneOf } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Effect, Formatter, Option, Result } from "effect";
+import { Array as Arr, Effect, Formatter, Option, Result } from "effect";
 import { EncodeError } from "#crust/errors.ts";
 import type { MiscHolder, WriteRefusal } from "#crust/errors.ts";
 import { canonicalize } from "#crust/canonical.ts";
@@ -39,14 +37,6 @@ import {
 import type { Bounds } from "#crust/test/trees.ts";
 import type { Attribute, Child, Misc, Text, XmlDeclaration, XmlDocument } from "#crust/tree.ts";
 import { writeXml, writeXmlText } from "#crust/write.ts";
-
-// The oracle: the recursive writer, `write.ts` as it was at 56330e2c, the last commit before the
-// walks became iterative, but for names and comments and for the rules the writer has gained since,
-// which it follows: the doctype written and searched in its place in the prolog, which holds it
-// among the comments and processing instructions, and a `>` escaped where adjacent text runs make
-// `]]>`. It overflows the stack from about 2,000 levels, so the trees below stay far shallower. Its
-// escaping is the code under test's own, so what the differential proves is the walk: the order the
-// iterative writer visits, renders and searches a tree in, which is the writer's contract.
 
 /**
  * The characters an attribute value always escapes, with the reference each becomes.
@@ -565,66 +555,63 @@ describe("writeXml writes adjacent text runs as the content they hold", () => {
 });
 
 /**
- * The comments and processing instructions of the prolog the round trip reads, in order, around
- * the doctype.
+ * The kinds of node a prolog of the prolog box holds beside its doctype.
  */
-const PROLOG_MISC: readonly string[] = ["<!--a-->", "<?p d?>", "<!--b-->", "<?q e?>"];
+const PROLOG_KINDS = ["comment", "pi"] as const;
+
+/**
+ * Draw a prolog of the prolog box: up to four comments and instructions, each written on a line of
+ * its own as the writer lays a prolog out and named by its place, and the doctype at any of their
+ * places, first, between two of them or last.
+ */
+const prologOrder: Gen<readonly string[]> = (source) => {
+  const kinds = source.draw(array(element(PROLOG_KINDS), { max: 4, min: 0 }));
+  const nodes = kinds.map((kind, at) =>
+    kind === "comment" ? `<!--c${String(at)}-->` : `<?p${String(at)} d?>`,
+  );
+
+  return nodes.toSpliced(source.draw(int(0, nodes.length)), 0, '<!DOCTYPE r [<!ENTITY e "v">]>');
+};
+
+/**
+ * How many prologs {@link prologOrder} draws: for each length of 0 to 4, every sequence of the two
+ * kinds by every place of the doctype among them.
+ */
+const PROLOG_ORDERS = 1 * 1 + 2 * 2 + 4 * 3 + 8 * 4 + 16 * 5;
 
 describe("readXml then writeXml keeps the prolog's order", () => {
   it.effect(
-    `for the doctype at each of the ${String(PROLOG_MISC.length + 1)} places among a comment, a PI, a comment and a PI`,
-    () =>
-      // Oracle: the input document. XML 1.0 production [22] lets a comment or a PI stand before or
-      // after the doctype, and the Information Set keeps the document's children, the DTD among
-      // them, in document order (section 2.1). The input lays its prolog out as the writer does,
-      // the declaration and each node on a line of its own, so the text written back is the text
-      // read. The doctype first is the control.
-      Effect.gen(function* keepsThePrologOrder() {
-        for (let at = 0; at <= PROLOG_MISC.length; at += 1) {
-          const prolog = PROLOG_MISC.toSpliced(at, 0, '<!DOCTYPE r [<!ENTITY e "v">]>');
-          const text = ['<?xml version="1.0"?>', ...prolog, "<r/>"].join("\n");
-          const read = yield* readXml(new TextEncoder().encode(text));
+    `for every prolog of up to 4 comments and instructions with the doctype at each of their places: ${String(PROLOG_ORDERS)} prologs`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(prologOrder, PROLOG_ORDERS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every prolog of 0 to 4 comments and instructions, the doctype first, between two or last",
+              caseHang,
+              coverage: noCoverage,
+              generator: prologOrder,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the input document: XML 1.0 production [22] lets a comment or an instruction stand before or after the doctype, and the Information Set keeps the document's children, the DTD among them, in document order (section 2.1); the input lays its prolog out as the writer does, so the text written back is the text read",
+              },
+              suite: "crust/write/prolog-order",
+            },
+            (prolog) =>
+              Effect.gen(function* keepsThePrologOrder() {
+                const text = ['<?xml version="1.0"?>', ...prolog, "<r/>"].join("\n");
+                const read = yield* readXml(new TextEncoder().encode(text));
 
-          assert.strictEqual(yield* writeXml(read, Option.none()), text);
-        }
-      }),
+                assert.strictEqual(yield* writeXml(read, Option.none()), text);
+              }),
+          ),
+        ),
+      ),
   );
 });
-
-/**
- * The values UNIFY-EDU's census of the XML writers wrote (out/rf/UNIFY-EDU/scripts/writers.ts),
- * each as an attribute value and as a text run: the ones every character of which XML allows.
- */
-const CENSUS_VALUES = [
-  "plain",
-  "a&b",
-  "a<b",
-  "a>b",
-  'a"b',
-  "a'b",
-  "a]]>b",
-  "a\tb",
-  "a\nb",
-  "a\rb",
-  "a\r\nb",
-  " lead",
-  "trail ",
-  "a  b",
-  " ",
-  "\u00E9\u{10000}",
-  "&amp;",
-  "]]",
-] as const;
-
-/**
- * The census's values that hold a character outside XML 1.0's `Char` (section 2.2), each with that
- * character: a C0 control, U+FFFE, and a lone surrogate.
- */
-const NON_CHARACTER_VALUES = [
-  ["a\u0001b", 0x1],
-  ["a\uFFFEb", 0xff_fe],
-  ["a\uD800b", 0xd8_00],
-] as const;
 
 /**
  * A document of one element `r` whose attribute `a` holds `attribute` and whose content is one text
@@ -664,121 +651,6 @@ const refusalOf = (written: Result.Result<string, WriteRefusal>) =>
     onSuccess: (text) => text,
   });
 
-describe("the writer writes only characters XML 1.0 allows (Char, section 2.2)", () => {
-  it.effect(
-    `reads back each of the census's ${String(CENSUS_VALUES.length)} values as written, in an attribute and in a text run`,
-    () =>
-      // Oracle: crust's reader, over the text written: every character of these values is a Char,
-      // so the reader must give each back as it was, the attribute's tab, line ends and the text's
-      // carriage return included, which the writer writes as references (sections 2.11 and 3.3.3).
-      Effect.gen(function* readsBack() {
-        for (const value of CENSUS_VALUES) {
-          const read = yield* readXml(
-            new TextEncoder().encode(Result.getOrThrow(writeXmlText(holding(value, value)))),
-          );
-
-          assert.deepStrictEqual(
-            [
-              read.root.attributes.map((attribute) => attribute.value),
-              read.root.children
-                .map((child) => (child.kind === "text" ? child.value : ""))
-                .join(""),
-            ],
-            [[value], value],
-            JSON.stringify(value),
-          );
-        }
-      }),
-  );
-
-  it.effect(
-    `refuses each of the census's ${String(NON_CHARACTER_VALUES.length)} characters outside Char, in an attribute and in a text run, naming it and its place`,
-    () =>
-      // Oracle: XML 1.0's Char production (section 2.2), which none of U+0001, U+FFFE and an
-      // unpaired surrogate is in, and the Legal Character constraint (section 4.1), so no reference
-      // writes one either. Every writer refuses alike: the text writer and both thresholds of
-      // writeXml.
-      Effect.gen(function* refuses() {
-        for (const [value, codePoint] of NON_CHARACTER_VALUES) {
-          const rule = { _tag: "Char", codePoint } as const;
-          const inAttribute = { _tag: "attribute", element: "r", name: "a", rule } as const;
-          const inText = { _tag: "text", element: "r", rule } as const;
-
-          assert.deepStrictEqual(refusalOf(writeXmlText(holding(value, "t"))), inAttribute);
-          assert.deepStrictEqual(refusalOf(writeXmlText(holding("v", value))), inText);
-          for (const threshold of [Option.none(), Option.some(0xff)]) {
-            const refused = yield* Effect.flip(writeXml(holding("v", value), threshold));
-
-            assert.strictEqual(refused._tag, "WriteRefusal", JSON.stringify(value));
-          }
-        }
-      }),
-  );
-});
-
-/**
- * The rules a comment may break.
- */
-type CommentRule = Extract<WriteRefusal["at"], { readonly _tag: "comment" }>["rule"];
-
-/**
- * The rules a processing instruction may break.
- */
-type PiRule = Extract<WriteRefusal["at"], { readonly _tag: "pi" }>["rule"];
-
-/**
- * Comments XML 1.0 rules out, each text with the rule it breaks: a character outside `Char`
- * (section 2.2), or `--` within or `-` at its end (Comment, [15]). An instruction breaks `Char`,
- * its data holding `?>` (PI, [16]) or its target being no NCName or `xml` in any case
- * (PITarget, [17]).
- */
-const ILLEGAL_COMMENTS = [
-  ["a--b", { _tag: "Comment" }],
-  ["--", { _tag: "Comment" }],
-  ["a-", { _tag: "Comment" }],
-  ["-", { _tag: "Comment" }],
-  ["a\u0001b", { _tag: "Char", codePoint: 0x1 }],
-  ["a\uFFFEb", { _tag: "Char", codePoint: 0xff_fe }],
-  ["a\uD800b", { _tag: "Char", codePoint: 0xd8_00 }],
-] as const satisfies readonly (readonly [string, CommentRule])[];
-
-/**
- * Processing instructions XML 1.0 rules out, as {@link ILLEGAL_COMMENTS} are: each target and data
- * with the rule they break. A target must be an NCName (Namespaces in XML section 7): an XML Name,
- * so neither empty, nor led by a digit, nor holding a space, and with no colon.
- */
-const ILLEGAL_PIS = [
-  ["p", "a?>b", { _tag: "PI" }],
-  ["p", "?>", { _tag: "PI" }],
-  ["xml", "d", { _tag: "PITarget" }],
-  ["XmL", "", { _tag: "PITarget" }],
-  ["", "d", { _tag: "PITarget" }],
-  ["1a", "d", { _tag: "PITarget" }],
-  ["a b", "d", { _tag: "PITarget" }],
-  ["a:b", "d", { _tag: "PITarget" }],
-  ["p", "a\u0001b", { _tag: "Char", codePoint: 0x1 }],
-  ["p\uFFFE", "d", { _tag: "Char", codePoint: 0xff_fe }],
-] as const satisfies readonly (readonly [string, string, PiRule])[];
-
-/**
- * Every comment and instruction XML 1.0 rules out, each with the refusal the writer gives for it
- * where `holder` says.
- */
-const ILLEGAL_MISCS: readonly (readonly [Misc, (holder: MiscHolder) => WriteRefusal["at"]])[] = [
-  ...ILLEGAL_COMMENTS.map(
-    ([text, rule]): readonly [Misc, (holder: MiscHolder) => WriteRefusal["at"]] => [
-      { kind: "comment", text },
-      (holder) => ({ _tag: "comment", holder, rule }),
-    ],
-  ),
-  ...ILLEGAL_PIS.map(
-    ([target, data, rule]): readonly [Misc, (holder: MiscHolder) => WriteRefusal["at"]] => [
-      { data, kind: "pi", target },
-      (holder) => ({ _tag: "pi", holder, rule, target }),
-    ],
-  ),
-];
-
 /**
  * The places a comment or an instruction stands in, each with the document that holds `misc` there
  * and the holder the writer names.
@@ -802,40 +674,548 @@ const MISC_PLACES = [
   },
 ] as const;
 
+/**
+ * XML 1.0's Char production ([2], section 2.2) as printed, the oracle's own: `#x9 | #xA | #xD |
+ * [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]`, each a range of code points.
+ */
+const CHAR_RANGES = [
+  [0x9, 0x9],
+  [0xa, 0xa],
+  [0xd, 0xd],
+  [0x20, 0xd7_ff],
+  [0xe0_00, 0xff_fd],
+  [0x1_00_00, 0x10_ff_ff],
+] as const;
+
+/**
+ * Whether a document may hold a character ({@link CHAR_RANGES}).
+ *
+ * @param codePoint - A code point, or a lone surrogate's code unit.
+ * @returns Whether it is a Char.
+ */
+const isChar = (codePoint: number): boolean =>
+  CHAR_RANGES.some(([first, last]) => codePoint >= first && codePoint <= last);
+
+/**
+ * The first character of a text outside {@link isChar}, by its code point: a lone surrogate is a
+ * character of its own.
+ *
+ * @param text - The text.
+ * @returns Its code point; `None` when every character is a Char.
+ */
+const firstNonChar = (text: string): Option.Option<number> =>
+  Arr.findFirst(
+    Array.from(text, (character) => character.codePointAt(0) ?? 0),
+    (codePoint) => !isChar(codePoint),
+  );
+
+/**
+ * The characters a value of the Char box is written with: a letter, the space, every character
+ * markup gives a meaning (`&`, `<`, `>`, both quotes, and `]`, of which `]]>` is three), the tab
+ * and both line ends, which an attribute value's normalization reads (section 3.3.3) and a reader's
+ * line-end handling folds (section 2.11), a character above 0x7f and one beyond the Basic
+ * Multilingual Plane.
+ */
+const CHAR_ALPHABET = [
+  "a",
+  " ",
+  "&",
+  "<",
+  ">",
+  '"',
+  "'",
+  "]",
+  "\t",
+  "\n",
+  "\r",
+  "é",
+  "\u{10000}",
+] as const;
+
+/**
+ * Draw a value of the Char box: every string of up to three of {@link CHAR_ALPHABET}.
+ */
+const charValue: Gen<string> = map(
+  array(element(CHAR_ALPHABET), { max: 3, min: 0 }),
+  (characters) => characters.join(""),
+);
+
+/**
+ * How many values {@link charValue} draws.
+ */
+const CHAR_VALUES = 1 + 13 + 13 ** 2 + 13 ** 3;
+
+/**
+ * What a value of the Char box holds that a writer could miswrite.
+ */
+const charSituations = [
+  "]]>",
+  "a CR LF pair",
+  "a lone CR",
+  "an astral character",
+  "the empty value",
+] as const;
+
+/**
+ * A {@link charSituations} member.
+ */
+type CharSituation = (typeof charSituations)[number];
+
+/**
+ * The situations a Char box value reaches.
+ *
+ * @param value - The value.
+ * @returns Each it reaches.
+ */
+const charSituationsOf = (value: string): readonly CharSituation[] => {
+  const characters = Array.from(value);
+  const reached: readonly (readonly [CharSituation, boolean])[] = [
+    ["]]>", value.includes("]]>")],
+    ["a CR LF pair", value.includes("\r\n")],
+    [
+      "a lone CR",
+      characters.some((character, at) => character === "\r" && characters[at + 1] !== "\n"),
+    ],
+    [
+      "an astral character",
+      characters.some((character) => (character.codePointAt(0) ?? 0) > 0xff_ff),
+    ],
+    ["the empty value", value === ""],
+  ];
+
+  return reached.flatMap(([situation, held]) => (held ? [situation] : []));
+};
+
+/**
+ * Draw a code point outside {@link isChar} below 0x10000, every one of them: the C0 controls but the
+ * tab and the line ends, the lone surrogates, and U+FFFE and U+FFFF. Above U+FFFF every code point
+ * up to U+10FFFF is a Char.
+ */
+const nonChar: Gen<number> = oneOf([
+  int(0x0, 0x8),
+  int(0xb, 0xc),
+  int(0xe, 0x1f),
+  int(0xd8_00, 0xdf_ff),
+  int(0xff_fe, 0xff_ff),
+]);
+
+/**
+ * How many code points {@link nonChar} draws.
+ */
+const NON_CHARS = 9 + 2 + 18 + 2048 + 2;
+
+/**
+ * The writer's thresholds a refusal is held under: none, every character as itself, and the
+ * ISO-8859-1 ceiling, which writes the rest as references.
+ */
+const THRESHOLD_FORMS = [Option.none(), Option.some(0xff)] as const;
+
+describe("the writer writes only characters XML 1.0 allows (Char, section 2.2)", () => {
+  it.effect(
+    `reads back every value of up to 3 of ${String(CHAR_ALPHABET.length)} characters as written, in an attribute and in a text run: ${String(CHAR_VALUES)} values`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(charValue, CHAR_VALUES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every value of 0 to 3 characters over a letter, the space, & < > \" ' ], the tab, both line ends, é and U+10000",
+              caseHang,
+              concurrency: availableParallelism(),
+              coverage: requiredInSpace<CharSituation>(charSituations),
+              generator: charValue,
+              literal: (value) => JSON.stringify(value),
+              oracle: {
+                kind: "specification",
+                name: "crust's reader over the text written: every character is a Char (XML 1.0 section 2.2), so each comes back as it was, the attribute's tab and line ends and the text's carriage return among them, which the writer writes as references (sections 2.11 and 3.3.3)",
+              },
+              suite: "crust/write/char-values",
+            },
+            (value, c) =>
+              Effect.gen(function* readsBack() {
+                c.noteAll(charSituationsOf(value));
+
+                const read = yield* readXml(
+                  new TextEncoder().encode(Result.getOrThrow(writeXmlText(holding(value, value)))),
+                );
+
+                assert.deepStrictEqual(
+                  [
+                    read.root.attributes.map((attribute) => attribute.value),
+                    read.root.children
+                      .map((child) => (child.kind === "text" ? child.value : ""))
+                      .join(""),
+                  ],
+                  [[value], value],
+                  JSON.stringify(value),
+                );
+              }),
+          ),
+        ),
+      ),
+  );
+
+  it.effect(
+    `refuses every code point outside Char below U+10000, in an attribute and in a text run, naming it and its place, under every writer: ${String(NON_CHARS)} code points`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(nonChar, NON_CHARS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every code point outside Char below U+10000: the C0 controls but the tab and line ends, the surrogates and U+FFFE and U+FFFF, each between two letters",
+              caseHang,
+              concurrency: availableParallelism(),
+              coverage: noCoverage,
+              generator: nonChar,
+              literal: (codePoint) => `0x${codePoint.toString(16)}`,
+              oracle: {
+                kind: "specification",
+                name: "XML 1.0's Char production (section 2.2) and the Legal Character constraint (section 4.1), so no reference writes one either: the text writer and both thresholds of writeXml refuse alike",
+              },
+              suite: "crust/write/non-chars",
+            },
+            (codePoint) =>
+              Effect.gen(function* refuses() {
+                const value = `a${String.fromCodePoint(codePoint)}b`;
+                const rule = { _tag: "Char", codePoint } as const;
+                const inAttribute = { _tag: "attribute", element: "r", name: "a", rule } as const;
+                const inText = { _tag: "text", element: "r", rule } as const;
+
+                assert.deepStrictEqual(refusalOf(writeXmlText(holding(value, "t"))), inAttribute);
+                assert.deepStrictEqual(refusalOf(writeXmlText(holding("v", value))), inText);
+                for (const threshold of THRESHOLD_FORMS) {
+                  const refused = yield* Effect.flip(writeXml(holding("v", value), threshold));
+
+                  assert.strictEqual(refused._tag, "WriteRefusal", JSON.stringify(value));
+                }
+              }),
+          ),
+        ),
+      ),
+  );
+});
+
+/**
+ * The characters a comment of the comment box is written with: a letter, the hyphen whose pair and
+ * whose place at the end production [15] rules out, the space, `>`, the tab, a character above 0x7f
+ * and one beyond the Basic Multilingual Plane, and three characters outside Char, a C0 control,
+ * U+FFFE and a lone surrogate. No carriage return: every reader turns one into a line feed (section
+ * 2.11), so none reads back as written.
+ */
+const COMMENT_ALPHABET = [
+  "a",
+  "-",
+  " ",
+  ">",
+  "\t",
+  "é",
+  "\u{10000}",
+  "\u0001",
+  "￾",
+  "\uD800",
+] as const;
+
+/**
+ * Draw a comment of the comment box: every text of up to three of {@link COMMENT_ALPHABET}.
+ */
+const boxComment: Gen<Misc> = map(
+  array(element(COMMENT_ALPHABET), { max: 3, min: 0 }),
+  (characters): Misc => ({ kind: "comment", text: characters.join("") }),
+);
+
+/**
+ * How many comments {@link boxComment} draws.
+ */
+const BOX_COMMENTS = 1 + 10 + 10 ** 2 + 10 ** 3;
+
+/**
+ * The characters an instruction's target in the target box is written with: the letters of `xml`,
+ * an upper-case `L` so the reserved name is met in another case and a longer name that starts with
+ * it is met too, a digit, which no name starts with, the colon, which no NCName holds, the space,
+ * which no name holds, and U+FFFE, outside Char.
+ */
+const TARGET_ALPHABET = ["x", "m", "l", "L", "1", ":", " ", "\uFFFE"] as const;
+
+/**
+ * Draw an instruction of the target box: every target of up to four of {@link TARGET_ALPHABET},
+ * its data a letter.
+ */
+const targetPi: Gen<Misc> = map(
+  array(element(TARGET_ALPHABET), { max: 4, min: 0 }),
+  (characters): Misc => ({ data: "d", kind: "pi", target: characters.join("") }),
+);
+
+/**
+ * How many instructions {@link targetPi} draws.
+ */
+const TARGET_PIS = 1 + 8 + 8 ** 2 + 8 ** 3 + 8 ** 4;
+
+/**
+ * The characters an instruction's data in the data box is written with: a letter, `?` and `>`, of
+ * which `?>` closes an instruction, and a C0 control, outside Char. No white space: an
+ * instruction's one space before its data stands for any, so data that leads with white space reads
+ * back without it.
+ */
+const DATA_ALPHABET = ["d", "?", ">", "\u0001"] as const;
+
+/**
+ * Draw an instruction of the data box: target `p`, every data of up to three of
+ * {@link DATA_ALPHABET}.
+ */
+const dataPi: Gen<Misc> = map(
+  array(element(DATA_ALPHABET), { max: 3, min: 0 }),
+  (characters): Misc => ({ data: characters.join(""), kind: "pi", target: "p" }),
+);
+
+/**
+ * How many instructions {@link dataPi} draws.
+ */
+const DATA_PIS = 1 + 4 + 4 ** 2 + 4 ** 3;
+
+/**
+ * XML 1.0's [4] NameStartChar as printed, the colon left out, as Namespaces in XML's NCName leaves
+ * it out: each a range of code points.
+ */
+const NC_NAME_START_RANGES = [
+  [0x41, 0x5a],
+  [0x5f, 0x5f],
+  [0x61, 0x7a],
+  [0xc0, 0xd6],
+  [0xd8, 0xf6],
+  [0xf8, 0x2_ff],
+  [0x3_70, 0x3_7d],
+  [0x3_7f, 0x1f_ff],
+  [0x20_0c, 0x20_0d],
+  [0x20_70, 0x21_8f],
+  [0x2c_00, 0x2f_ef],
+  [0x30_01, 0xd7_ff],
+  [0xf9_00, 0xfd_cf],
+  [0xfd_f0, 0xff_fd],
+  [0x1_00_00, 0xe_ff_ff],
+] as const;
+
+/**
+ * Whether a character starts an NCName ({@link NC_NAME_START_RANGES}).
+ *
+ * @param codePoint - The character's code point.
+ * @returns Whether it does.
+ */
+const isNcNameStart = (codePoint: number): boolean =>
+  NC_NAME_START_RANGES.some(([first, last]) => codePoint >= first && codePoint <= last);
+
+/**
+ * Whether a character continues an XML name (XML 1.0 [4a] NameChar, the colon left out), as
+ * printed.
+ *
+ * @param codePoint - The character's code point.
+ * @returns Whether it does.
+ */
+const isNcNameChar = (codePoint: number): boolean =>
+  isNcNameStart(codePoint) ||
+  codePoint === 0x2d ||
+  codePoint === 0x2e ||
+  (codePoint >= 0x30 && codePoint <= 0x39) ||
+  codePoint === 0xb7 ||
+  (codePoint >= 0x3_00 && codePoint <= 0x3_6f) ||
+  (codePoint >= 0x20_3f && codePoint <= 0x20_40);
+
+/**
+ * Whether a text is an NCName (Namespaces in XML 1.0 [4]: a Name with no colon).
+ *
+ * @param text - The text.
+ * @returns Whether it is.
+ */
+const isNcName = (text: string): boolean => {
+  const codePoints = Array.from(text, (character) => character.codePointAt(0) ?? 0);
+
+  return Option.match(Arr.head(codePoints), {
+    onNone: () => false,
+    onSome: (first) => isNcNameStart(first) && codePoints.slice(1).every(isNcNameChar),
+  });
+};
+
+/**
+ * The refusal the oracle expects for a comment or an instruction where `holder` says, by the rules
+ * in the order the writer states them (`miscRefusal`, `#crust/charset.ts`): a character outside
+ * Char first, then a comment's `--` or its `-` at the end (Comment, [15]), an instruction's target
+ * that is no NCName or is `xml` in any case (PITarget, [17], and Namespaces in XML section 7), or
+ * its data's `?>` (PI, [16]).
+ *
+ * @param misc - The comment or instruction.
+ * @param holder - Where it stands.
+ * @returns The refusal's place and rule; `None` when it breaks none.
+ */
+const expectedAt = (misc: Misc, holder: MiscHolder): Option.Option<WriteRefusal["at"]> => {
+  if (misc.kind === "comment") {
+    return Option.map(
+      Option.orElse(
+        Option.map(firstNonChar(misc.text), (codePoint) => ({ _tag: "Char", codePoint }) as const),
+        () =>
+          misc.text.includes("--") || misc.text.endsWith("-")
+            ? Option.some({ _tag: "Comment" } as const)
+            : Option.none(),
+      ),
+      (rule): WriteRefusal["at"] => ({ _tag: "comment", holder, rule }),
+    );
+  }
+
+  return Option.map(
+    Option.orElse(
+      Option.map(
+        firstNonChar(`${misc.target}${misc.data}`),
+        (codePoint) => ({ _tag: "Char", codePoint }) as const,
+      ),
+      (): Option.Option<{ readonly _tag: "PI" } | { readonly _tag: "PITarget" }> => {
+        if (!isNcName(misc.target) || misc.target.toLowerCase() === "xml") {
+          return Option.some({ _tag: "PITarget" } as const);
+        }
+
+        return misc.data.includes("?>") ? Option.some({ _tag: "PI" } as const) : Option.none();
+      },
+    ),
+    (rule): WriteRefusal["at"] => ({ _tag: "pi", holder, rule, target: misc.target }),
+  );
+};
+
+/**
+ * What a comment or an instruction of the boxes holds that a writer could miswrite or let through.
+ */
+const miscSituations = ["legal", "Char", "Comment", "PI", "PITarget"] as const;
+
+/**
+ * A {@link miscSituations} member.
+ */
+type MiscSituation = (typeof miscSituations)[number];
+
+/**
+ * Hold every writer to the oracle on one comment or instruction, in each of its places: one XML
+ * 1.0 rules out is refused alike by the text writer, both thresholds of writeXml and the
+ * canonicalizer, naming its place and the rule.
+ *
+ * @param misc - The comment or instruction.
+ * @returns The situation it reaches; fails the case at the first writer that differs.
+ */
+const holdsToProductions = (misc: Misc) =>
+  Effect.gen(function* heldToProductions() {
+    for (const { documentOf, holder } of MISC_PLACES) {
+      const doc = documentOf(misc);
+      const name = `${JSON.stringify(misc)} ${holder._tag}`;
+      const expected = expectedAt(misc, holder);
+      if (Option.isNone(expected)) {
+        continue;
+      }
+
+      const at = expected.value;
+
+      assert.deepStrictEqual(refusalOf(writeXmlText(doc)), at, name);
+      assert.deepStrictEqual(
+        Result.match(canonicalize(doc), {
+          onFailure: (refused) => refused.at,
+          onSuccess: () => "written",
+        }),
+        at,
+        name,
+      );
+      for (const threshold of THRESHOLD_FORMS) {
+        const refused = yield* Effect.flip(writeXml(doc, threshold));
+
+        assert.deepStrictEqual(
+          refused._tag === "WriteRefusal" ? refused.at : refused._tag,
+          at,
+          name,
+        );
+      }
+    }
+
+    return Option.match(expectedAt(misc, { _tag: "prolog" }), {
+      onNone: (): MiscSituation => "legal",
+      onSome: (at): MiscSituation =>
+        at._tag === "comment" || at._tag === "pi" ? at.rule._tag : "legal",
+    });
+  });
+
 describe("the writer writes only comments and processing instructions XML 1.0 allows (productions 15 to 17)", () => {
   it.effect(
-    `refuses each of ${String(ILLEGAL_MISCS.length)} comments and instructions XML 1.0 rules out, in the prolog, in content and in the epilog, naming its place and the rule`,
-    () =>
-      // Oracle: XML 1.0's productions 15 (Comment), 16 (PI) and 17 (PITarget), and Char (section
-      // 2.2): each value breaks the rule beside it. Every writer refuses alike: the text writer,
-      // both thresholds of writeXml, and the canonicalizer.
-      Effect.gen(function* refuses() {
-        for (const [misc, refusedAt] of ILLEGAL_MISCS) {
-          for (const { documentOf, holder } of MISC_PLACES) {
-            const at = refusedAt(holder);
-            const doc = documentOf(misc);
-            const name = `${JSON.stringify(misc)} ${holder._tag}`;
+    `writes every comment of up to 3 of ${String(COMMENT_ALPHABET.length)} characters that XML 1.0 allows, and refuses every other naming its rule, in the prolog, in content and in the epilog: ${String(BOX_COMMENTS)} comments`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(boxComment, BOX_COMMENTS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every comment of 0 to 3 characters over a letter, the hyphen, the space, >, the tab, é, U+10000, a C0 control, U+FFFE and a lone surrogate, in 3 places",
+              caseHang,
+              concurrency: availableParallelism(),
+              coverage: requiredInSpace<MiscSituation>(["legal", "Char", "Comment"]),
+              generator: boxComment,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "XML 1.0's production 15 (Comment) and Char (section 2.2), transcribed here: every writer, the text writer, both thresholds of writeXml and the canonicalizer, refuses one it rules out alike",
+              },
+              suite: "crust/write/comments",
+            },
+            (misc, c) => Effect.map(holdsToProductions(misc), (situation) => c.note(situation)),
+          ),
+        ),
+      ),
+  );
 
-            assert.deepStrictEqual(refusalOf(writeXmlText(doc)), at, name);
-            assert.deepStrictEqual(
-              Result.match(canonicalize(doc), {
-                onFailure: (refused) => refused.at,
-                onSuccess: () => "written",
-              }),
-              at,
-              name,
-            );
-            for (const threshold of [Option.none(), Option.some(0xff)]) {
-              const refused = yield* Effect.flip(writeXml(doc, threshold));
+  it.effect(
+    `holds every instruction target of up to 4 of ${String(TARGET_ALPHABET.length)} characters to PITarget and Char, in the prolog, in content and in the epilog: ${String(TARGET_PIS)} instructions`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(targetPi, TARGET_PIS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every instruction whose target is 0 to 4 of x, m, l, L, 1, the colon, the space and U+FFFE, its data a letter, in 3 places",
+              caseHang,
+              concurrency: availableParallelism(),
+              coverage: requiredInSpace<MiscSituation>(["legal", "Char", "PITarget"]),
+              generator: targetPi,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "XML 1.0's production 17 (PITarget), Namespaces in XML 1.0's NCName and section 7, and Char (section 2.2), transcribed here: every writer, the text writer, both thresholds of writeXml and the canonicalizer, refuses one it rules out alike",
+              },
+              suite: "crust/write/instruction-targets",
+            },
+            (misc, c) => Effect.map(holdsToProductions(misc), (situation) => c.note(situation)),
+          ),
+        ),
+      ),
+  );
 
-              assert.deepStrictEqual(
-                refused._tag === "WriteRefusal" ? refused.at : refused._tag,
-                at,
-                name,
-              );
-            }
-          }
-        }
-      }),
+  it.effect(
+    `holds every instruction's data of up to 3 of ${String(DATA_ALPHABET.length)} characters to PI and Char, in the prolog, in content and in the epilog: ${String(DATA_PIS)} instructions`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(dataPi, DATA_PIS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every instruction of target p whose data is 0 to 3 of a letter, ?, > and a C0 control, in 3 places",
+              caseHang,
+              concurrency: availableParallelism(),
+              coverage: requiredInSpace<MiscSituation>(["legal", "Char", "PI"]),
+              generator: dataPi,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "XML 1.0's production 16 (PI) and Char (section 2.2), transcribed here: every writer, the text writer, both thresholds of writeXml and the canonicalizer, refuses one it rules out alike",
+              },
+              suite: "crust/write/instruction-data",
+            },
+            (misc, c) => Effect.map(holdsToProductions(misc), (situation) => c.note(situation)),
+          ),
+        ),
+      ),
   );
 });
