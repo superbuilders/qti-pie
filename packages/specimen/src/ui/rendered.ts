@@ -13,6 +13,7 @@
  * @see https://www.w3.org/TR/html-aam-1.0/#accessible-name-computations-by-html-element
  * @see https://www.w3.org/TR/wai-aria-1.2/#namefromcontent
  */
+import { regex } from "arkregex";
 import { Data, Record as Rec } from "effect";
 import { parseHTML } from "linkedom";
 import { Children, Component, Fragment, Suspense, createElement, isValidElement } from "react";
@@ -254,7 +255,7 @@ const urlReferences = [
 /**
  * A reference by `url(#id)`.
  */
-const urlReference = /^url\(\s*["']?#(?<id>[^"')]+)["']?\s*\)$/u;
+const urlReference = regex("^url\\(\\s*[\"']?#(?<id>[^\"')]+)[\"']?\\s*\\)$", "u");
 
 /**
  * The WAI-ARIA roles whose accessible name may come from their content.
@@ -480,7 +481,7 @@ const contentText = (element: Element): string =>
         : contentText(child);
     })
     .join(" ")
-    .replaceAll(/\s+/gu, " ")
+    .replaceAll(regex("\\s+", "gu"), " ")
     .trim();
 
 /**
@@ -491,7 +492,7 @@ const contentText = (element: Element): string =>
  * @returns The role, or `undefined` for none.
  */
 const roleOf = (element: Element): string | undefined => {
-  const explicit = element.getAttribute("role")?.trim().split(/\s+/u)[0] ?? "";
+  const explicit = element.getAttribute("role")?.trim().split(regex("\\s+", "u"))[0] ?? "";
 
   if (namedRoles.has(explicit) || nameFromContent.has(explicit)) {
     return explicit;
@@ -543,7 +544,7 @@ const byId = (document: Document, id: string): Element | null =>
  */
 const labelledByText = (element: Element): string =>
   (element.getAttribute("aria-labelledby") ?? "")
-    .split(/\s+/u)
+    .split(regex("\\s+", "u"))
     .filter((id) => id !== "")
     .map((id) => {
       const target = byId(element.ownerDocument, id);
@@ -714,12 +715,15 @@ const referencesOf = (
 
   return [
     ...idrefLists.flatMap((attribute) =>
-      referring(attribute, (element.getAttribute(attribute) ?? "").split(/\s+/u)),
+      referring(attribute, (element.getAttribute(attribute) ?? "").split(regex("\\s+", "u"))),
     ),
     ...idrefSingles.flatMap((attribute) =>
       referring(attribute, [element.getAttribute(attribute) ?? ""]),
     ),
-    ...referring("for", element.localName === "output" ? forValue.split(/\s+/u) : [forValue]),
+    ...referring(
+      "for",
+      element.localName === "output" ? forValue.split(regex("\\s+", "u")) : [forValue],
+    ),
     ...["href", "xlink:href"].flatMap((attribute) => {
       const href = element.getAttribute(attribute) ?? "";
 
@@ -727,7 +731,7 @@ const referencesOf = (
     }),
     ...urlReferences.flatMap((attribute) =>
       referring(attribute, [
-        urlReference.exec(element.getAttribute(attribute) ?? "")?.groups?.["id"] ?? "",
+        urlReference.exec(element.getAttribute(attribute) ?? "")?.groups.id ?? "",
       ]),
     ),
   ];
@@ -766,7 +770,7 @@ export const factsOf = (html: string): PageFacts => {
 
       return [
         ...(dataset["mark"] ?? "")
-          .split(/\s+/u)
+          .split(regex("\\s+", "u"))
           .filter((mark) => mark !== "")
           .map((mark): DrawnMark => ({ ...part, mark, on: "answer" })),
         ...(Object.hasOwn(dataset, "missed")

@@ -2,6 +2,7 @@
  * The private use area's code points, where an undeclared entity reference borrows a stand-in
  * character (6,400 of them), and the scan for the ones a text already writes out.
  */
+import { regex } from "arkregex";
 import { codePointOf } from "#crust/charset.ts";
 
 /**
@@ -20,7 +21,7 @@ export const SENTINEL_LAST = 0xf8_ff;
  * lone surrogate nor either half of a surrogate pair matches: the code units the class finds are
  * exactly the range's code points the text holds.
  */
-const SENTINELS = new RegExp(
+const SENTINELS = regex.as(
   `[\\u{${SENTINEL_FIRST.toString(16)}}-\\u{${SENTINEL_LAST.toString(16)}}]`,
   "gu",
 );

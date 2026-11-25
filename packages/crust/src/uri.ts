@@ -16,6 +16,7 @@
  * @see {@link https://www.rfc-editor.org/rfc/rfc3987#section-2.2 | RFC 3987, section 2.2}
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-5.2 | RFC 3986, section 5.2}
  */
+import { regex } from "arkregex";
 import type { NamespacesVersion } from "#crust/namespaces.ts";
 
 export { resolveWithin } from "@bjornpagen/grizzle-text/uri";
@@ -112,8 +113,8 @@ export const uriReference = referenceOf(uriUnreserved, "");
  * reference ... or an empty string", section 3).
  */
 const namespaceNames = {
-  "1.0": new RegExp(`^${uriReference}$`, "u"),
-  "1.1": new RegExp(`^${referenceOf(`${uriUnreserved}${ucschar}`, iprivate)}$`, "u"),
+  "1.0": regex.as(`^${uriReference}$`, "u"),
+  "1.1": regex.as(`^${referenceOf(`${uriUnreserved}${ucschar}`, iprivate)}$`, "u"),
 } as const;
 
 /**

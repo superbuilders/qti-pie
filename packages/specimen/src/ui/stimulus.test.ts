@@ -31,6 +31,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
@@ -323,7 +324,10 @@ describe("plate's UI over the corpus's shared stimuli", () => {
                 assert.strictEqual(article.tagName.toLowerCase(), "article");
                 assert.strictEqual(article.getAttribute("aria-label"), stimulus.title);
                 assert.strictEqual(article.getAttribute("lang"), stimulus.lang);
-                assert.include(article.textContent.replaceAll(/\s+/gu, " "), stimulus.sentence);
+                assert.include(
+                  article.textContent.replaceAll(regex("\\s+", "gu"), " "),
+                  stimulus.sentence,
+                );
                 assert.strictEqual(
                   article.querySelector("img")?.getAttribute("src"),
                   corpusAddress(stimulus.picture),

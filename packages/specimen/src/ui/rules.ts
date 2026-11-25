@@ -59,6 +59,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Option, Result, Schema } from "effect";
 import { format, restore, shownResponses, solution, startingResponses } from "@qti-pie/plate";
 import type {
@@ -721,7 +722,7 @@ export const rules: Readonly<Record<RuleName, Rule>> = {
                   } as const,
                 ]
               : []),
-            ...(id === "" || /\s/u.test(id)
+            ...(id === "" || regex("\\s", "u").test(id)
               ? [
                   {
                     kind: "said",

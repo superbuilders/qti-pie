@@ -7,9 +7,10 @@ This repository is `superbuilders/qti-pie`, a git submodule of edullm at `packag
 metis). Every qti-pie change is committed here and pushed to `main`; edullm then commits its
 `packages/qti-pie` pointer. No qti-pie change is committed in edullm's own tree.
 
-- `crust` (`@qti-pie/crust`) reads and writes XML, bytes to a tree and back. It depends only on `effect`, `saxes` and
-  `@bjornpagen/grizzle-text`, grizzle's dependency-free, browser-safe text package, whose regex engine, text primitives
-  and RFC 3986 resolution it re-exports for plate (`@qti-pie/crust/regex.ts`, `@qti-pie/crust/text.ts`,
+- `crust` (`@qti-pie/crust`) reads and writes XML, bytes to a tree and back. It depends only on `effect`, `saxes`,
+  `arkregex` (the toolchain's one form of a regular expression, `regex()`, a typed `new RegExp` with no runtime of its
+  own) and `@bjornpagen/grizzle-text`, grizzle's dependency-free, browser-safe text package, whose regex engine, text
+  primitives and RFC 3986 resolution it re-exports for plate (`@qti-pie/crust/regex.ts`, `@qti-pie/crust/text.ts`,
   `@qti-pie/crust/uri.ts`), so the rest of grizzle stays out of anything that depends on it.
 - `pantry` (`@qti-pie/pantry`) imports QTI 3.0.1 packages into a strict PostgreSQL model on grizzle, and exports them
   back.

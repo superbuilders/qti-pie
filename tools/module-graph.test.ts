@@ -11,6 +11,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { readFileSync } from "node:fs";
 import { assert, describe, it } from "@effect/vitest";
 import { Schema } from "effect";
@@ -78,7 +79,7 @@ describe("plate's serving entries", () => {
   it("load from the UI's entries, ./ui and ./ui/client, no committed JSON but the tables serving reads", () => {
     const exports = plateExports();
     const roots = ["./ui", "./ui/client"].map(
-      (subpath) => exports[subpath]?.replace(/^\.\//u, "") ?? "",
+      (subpath) => exports[subpath]?.replace(regex("^\\./", "u"), "") ?? "",
     );
 
     assert.deepStrictEqual(roots, ["src/ui/index.ts", "src/ui/client.ts"]);
@@ -94,7 +95,7 @@ describe("plate's serving entries", () => {
   });
 
   it('load from the serving entry, the exports map\'s ".", no committed JSON but the tables serving reads', () => {
-    const entry = plateExports()["."]?.replace(/^\.\//u, "") ?? "";
+    const entry = plateExports()["."]?.replace(regex("^\\./", "u"), "") ?? "";
 
     assert.strictEqual(entry, "src/index.ts");
     assert.deepStrictEqual(unservedTables(modules, [entry]), []);

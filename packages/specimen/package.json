@@ -20,6 +20,7 @@
     "@bjornpagen/testing": "workspace:*",
     "@qti-pie/crust": "workspace:*",
     "@qti-pie/plate": "workspace:*",
+    "arkregex": "catalog:",
     "effect": "catalog:"
   },
   "devDependencies": {

@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { Effect, Option } from "effect";
 import { classify } from "#crust/charset.ts";
 import type { EncoderClass } from "#crust/charset.ts";
@@ -82,8 +83,10 @@ interface Unsupported {
  * The XML declaration up to and including its `encoding` pseudo-attribute, matched at the start of
  * the declaration's text (XML 1.0 sections 2.8 and 4.3.3).
  */
-const declarationPattern =
-  /^<\?xml[ \t\r\n]+version[ \t\r\n]*=[ \t\r\n]*(?:"[^"]*"|'[^']*')[ \t\r\n]+encoding[ \t\r\n]*=[ \t\r\n]*(?<quoted>"[A-Za-z][A-Za-z0-9._-]*"|'[A-Za-z][A-Za-z0-9._-]*')/u;
+const declarationPattern = regex(
+  "^<\\?xml[ \t\r\n]+version[ \t\r\n]*=[ \t\r\n]*(?:\"[^\"]*\"|'[^']*')[ \t\r\n]+encoding[ \t\r\n]*=[ \t\r\n]*(?<quoted>\"[A-Za-z][A-Za-z0-9._-]*\"|'[A-Za-z][A-Za-z0-9._-]*')",
+  "u",
+);
 
 /**
  * The code units of `<?xml`, which every XML declaration opens with.
@@ -160,7 +163,7 @@ const declaredEncoding = (units: Units): Option.Option<string> => {
     end += 1;
   }
 
-  const quoted = declarationPattern.exec(units.text(end + 1))?.groups?.["quoted"];
+  const quoted = declarationPattern.exec(units.text(end + 1))?.groups.quoted;
 
   return Option.map(Option.fromUndefinedOr(quoted), (value) => value.slice(1, -1));
 };

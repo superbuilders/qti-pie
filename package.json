@@ -27,6 +27,7 @@
     "@qti-pie/specimen": "workspace:*",
     "@stylistic/eslint-plugin": "catalog:",
     "@types/node": "catalog:",
+    "arkregex": "catalog:",
     "effect": "catalog:",
     "oxc-parser": "catalog:",
     "oxfmt": "catalog:",

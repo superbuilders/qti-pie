@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import type { Gen } from "@bjornpagen/testing/gen";
 /**
  * The stage the six graphic kinds share (Hotspot, Graphic Associate, Graphic Gap Match, Graphic
@@ -493,7 +494,7 @@ export const pictureOf = (
 ): StagePicture => {
   const size = sizeOf(stage.picture);
   const file = placed(
-    `${label.toLowerCase().replaceAll(/[^a-z0-9]+/gu, "-")}-${stage.picture.aspect}-${stage.picture.scale}.svg`,
+    `${label.toLowerCase().replaceAll(regex("[^a-z0-9]+", "gu"), "-")}-${stage.picture.aspect}-${stage.picture.scale}.svg`,
     svgAddress(
       placeholder(
         size,

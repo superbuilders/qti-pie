@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@bjornpagen/grizzle-text": "workspace:*",
+    "arkregex": "catalog:",
     "effect": "catalog:",
     "saxes": "catalog:"
   },

@@ -1,3 +1,5 @@
+import { regex } from "arkregex";
+
 /**
  * The parts of a parsed syntax node the rule reads.
  */
@@ -97,7 +99,10 @@ const isFactory = (callee: SyntaxNode): boolean =>
  * @returns Whether it names an error.
  */
 const isErrorName = (name: string | undefined): boolean =>
-  name !== undefined && name.length >= 5 && /^[A-Z]/u.test(name) && name.endsWith("Error");
+  name !== undefined &&
+  name.length >= 5 &&
+  regex("^[A-Z]", "u").test(name) &&
+  name.endsWith("Error");
 
 /**
  * Decide whether a call is made by an error's name: an identifier's, or a non-computed member's

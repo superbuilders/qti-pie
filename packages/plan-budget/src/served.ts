@@ -10,6 +10,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { lex } from "@bjornpagen/grizzle-engine/internal/plan/migration.ts";
@@ -380,9 +381,11 @@ const headWord = (sql: string): string => {
 const writtenBy = (statements: readonly SentStatement[]): ReadonlySet<string> =>
   new Set(
     statements.flatMap(({ sql }) =>
-      [...sql.matchAll(/(?:INSERT INTO|UPDATE|DELETE FROM) "[^"]+"\."(?<table>[^"]+)"/gu)].map(
-        (match) => match.groups?.["table"] ?? "",
-      ),
+      [
+        ...sql.matchAll(
+          regex('(?:INSERT INTO|UPDATE|DELETE FROM) "[^"]+"\\."(?<table>[^"]+)"', "gu"),
+        ),
+      ].map((match) => match.groups?.["table"] ?? ""),
     ),
   );
 
@@ -438,13 +441,15 @@ export const judgeBlocksOf = (judge: string, body: string): readonly JudgeBlock[
     const sql = `SELECT ${body.slice(from.start, tokens[end]?.start ?? body.length).trimEnd()}`;
     const tables = new Set(
       [
-        ...sql.matchAll(/__(?:reader|delta)_(?:news|olds)_(?<table>[a-z0-9_]+)_[a-z0-9]{10}"/gu),
+        ...sql.matchAll(
+          regex('__(?:reader|delta)_(?:news|olds)_(?<table>[a-z0-9_]+)_[a-z0-9]{10}"', "gu"),
+        ),
       ].map((match) => match.groups?.["table"] ?? ""),
     );
     const deltas = new Set(
-      [...sql.matchAll(/"pg_temp"\."(?<delta>__delta_(?:news|olds)_[a-z0-9_]+)"/gu)].map(
-        (match) => match.groups?.["delta"] ?? "",
-      ),
+      [
+        ...sql.matchAll(regex('"pg_temp"\\."(?<delta>__delta_(?:news|olds)_[a-z0-9_]+)"', "gu")),
+      ].map((match) => match.groups?.["delta"] ?? ""),
     );
 
     blocks.push({ deltas, name: `${judge}#${String(blocks.length)}`, sql, tables });
@@ -468,7 +473,10 @@ export const deltaTablesOf = (body: string): ReadonlyMap<string, string> =>
   new Map(
     [
       ...body.matchAll(
-        /CREATE TEMPORARY TABLE "pg_temp"\."(?<delta>__delta_(?:news|olds)_[a-z0-9_]+)" \((?<columns>[^;]*?)\)(?<tail> ON COMMIT [A-Z ]+)?;/gu,
+        regex(
+          'CREATE TEMPORARY TABLE "pg_temp"\\."(?<delta>__delta_(?:news|olds)_[a-z0-9_]+)" \\((?<columns>[^;]*?)\\)(?<tail> ON COMMIT [A-Z ]+)?;',
+          "gu",
+        ),
       ),
     ].map((match) => [match.groups?.["delta"] ?? "", match[0]]),
   );

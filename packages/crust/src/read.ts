@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { Effect, Option, Result } from "effect";
 import { SaxesParser } from "saxes";
 import { decode } from "#crust/decode.ts";
@@ -64,7 +65,7 @@ type Built = Pick<XmlDocument, "epilog" | "prolog" | "root">;
  * What the undeclared-reference scan stops at, in document order: the {@link HIDDEN} markup (skipped
  * whole), a character reference (its value group), or a general entity reference (its name group).
  */
-const SCAN = new RegExp(
+const SCAN = regex.as(
   String.raw`${HIDDEN}|&#(?:x(?<hex>[0-9A-Fa-f]+)|(?<decimal>[0-9]+));|&(?<name>${NAME});`,
   "gu",
 );
@@ -232,7 +233,7 @@ const collapsed = (pieces: readonly ValuePiece[]): readonly ValuePiece[] =>
       return [piece];
     }
 
-    const spaced = piece.text.replaceAll(/ +/gu, " ");
+    const spaced = piece.text.replaceAll(regex(" +", "gu"), " ");
     const start = at === 0 && spaced.startsWith(" ") ? 1 : 0;
     const end =
       at === pieces.length - 1 && spaced.endsWith(" ") ? spaced.length - 1 : spaced.length;

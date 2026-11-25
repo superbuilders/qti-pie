@@ -2,6 +2,7 @@
  * The readers the checks rest on, held to what grizzle writes: a judge function's body however it
  * is installed, the delta tables its capture functions create, and the growth slope's bound.
  */
+import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { descentSlope, slopeOf } from "#plan-budget/growth.ts";
 import { assembledText, deltaTablesOf, judgeBlocksOf } from "#plan-budget/served.ts";
@@ -37,7 +38,7 @@ describe("judgeBlocksOf", () => {
     );
     assert.match(
       blocks[0]?.sql ?? "",
-      /^SELECT 1 FROM \(SELECT "r1"\."c1" FROM .*';'\)\) AS "found"$/u,
+      regex.as('^SELECT 1 FROM \\(SELECT "r1"\\."c1" FROM .*\';\'\\)\\) AS "found"$', "u"),
     );
     assert.deepStrictEqual([...(blocks[0]?.tables ?? [])], ["attempt"]);
     assert.deepStrictEqual([...(blocks[0]?.deltas ?? [])], []);

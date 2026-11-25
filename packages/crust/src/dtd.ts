@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { Array as Arr, Effect, Option } from "effect";
 import { isXmlCharacter } from "#crust/charset.ts";
 import { ReaderRefusal, WellFormednessError } from "#crust/errors.ts";
@@ -266,17 +267,17 @@ const declaredAfterDefault = (
 /**
  * White space that XML allows between tokens: space, tab, carriage return and line feed.
  */
-const SPACE = /[ \t\r\n]+/uy;
+const SPACE = regex("[ \t\r\n]+", "uy");
 
 /**
  * One XML name at the read position.
  */
-const NAME_AT = new RegExp(NAME, "uy");
+const NAME_AT = regex.as(NAME, "uy");
 
 /**
  * A parenthesized list of names or name tokens separated by `|` (`Enumeration` and `NotationType`).
  */
-const ENUMERATION = new RegExp(
+const ENUMERATION = regex.as(
   String.raw`\([ \t\r\n]*[${NAME_CHAR}]+(?:[ \t\r\n]*\|[ \t\r\n]*[${NAME_CHAR}]+)*[ \t\r\n]*\)`,
   "uy",
 );
@@ -284,7 +285,7 @@ const ENUMERATION = new RegExp(
 /**
  * The keyword after `<!` of each markup declaration the internal subset may hold.
  */
-const DECLARATION_KEYWORD = new RegExp(
+const DECLARATION_KEYWORD = regex.as(
   String.raw`<!(ENTITY|ATTLIST|ELEMENT|NOTATION)(?![${NAME_CHAR}])`,
   "uy",
 );
@@ -292,14 +293,14 @@ const DECLARATION_KEYWORD = new RegExp(
 /**
  * The rest of a markup declaration through its closing `>`, which a quoted literal can contain.
  */
-const DECLARATION_REST = /(?:[^"'>]|"[^"]*"|'[^']*')*>/uy;
+const DECLARATION_REST = regex("(?:[^\"'>]|\"[^\"]*\"|'[^']*')*>", "uy");
 
 /**
  * Each construct that can appear inside an entity value: a hexadecimal or decimal character
  * reference, a general-entity reference, a parameter-entity reference (which a value refuses), or a
  * bare `&` or `%`.
  */
-const ENTITY_VALUE_TOKEN = new RegExp(
+const ENTITY_VALUE_TOKEN = regex.as(
   String.raw`&#x([0-9A-Fa-f]+);|&#([0-9]+);|&(${NAME});|%(${NAME});|[&%]`,
   "gu",
 );
@@ -308,7 +309,7 @@ const ENTITY_VALUE_TOKEN = new RegExp(
  * Each construct that can appear inside an attribute default that needs work: a character
  * reference, an entity reference, or a bare `&` or `<`.
  */
-const DEFAULT_TOKEN = new RegExp(String.raw`&#x([0-9A-Fa-f]+);|&#([0-9]+);|&(${NAME});|[&<]`, "gu");
+const DEFAULT_TOKEN = regex.as(String.raw`&#x([0-9A-Fa-f]+);|&#([0-9]+);|&(${NAME});|[&<]`, "gu");
 
 /**
  * The markup a reference cannot stand in, as alternatives of a pattern's source: a comment, a
@@ -322,7 +323,7 @@ export const HIDDEN = String.raw`<!--[\s\S]*?-->|<\?[\s\S]*?\?>|<!\[CDATA\[[\s\S
  * Each place in replacement text where a general entity is referenced, the {@link HIDDEN} markup
  * consumed as one match.
  */
-const REFERENCE_OR_HIDDEN = new RegExp(`${HIDDEN}|&(${NAME});`, "gu");
+const REFERENCE_OR_HIDDEN = regex.as(`${HIDDEN}|&(${NAME});`, "gu");
 
 /**
  * The entities every XML processor knows, by name, with their characters (XML 1.0 section 4.6):
@@ -730,7 +731,7 @@ const namesHeldTo = Effect.fnUntraced(function* namesHeldToProduction(
   production: Production,
   context: string,
 ): Effect.fn.Return<void, WellFormednessError> {
-  for (const held of text.matchAll(new RegExp(NAME, "gu"))) {
+  for (const held of text.matchAll(regex.as(NAME, "gu"))) {
     const violation = productionViolation(held[0], production);
     if (Option.isSome(violation)) {
       yield* failure(cursor, `${context}: ${violation.value}.`, start + held.index);
@@ -847,7 +848,7 @@ const skipInstruction = Effect.fnUntraced(function* skipProcessingInstruction(
 
   if (
     !cursor.text.startsWith("?>", cursor.offset) &&
-    !/^[ \t\r\n]/u.test(cursor.text.slice(cursor.offset, cursor.offset + 1))
+    !regex("^[ \t\r\n]", "u").test(cursor.text.slice(cursor.offset, cursor.offset + 1))
   ) {
     yield* failure(
       cursor,
@@ -1052,7 +1053,7 @@ const expandDefault = (
     literal,
     DEFAULT_TOKEN,
     (text): readonly ValuePiece[] => [
-      { kind: "text", text: text.replaceAll(/\r\n|[\t\n\r]/gu, " ") },
+      { kind: "text", text: text.replaceAll(regex("\r\n|[\t\n\r]", "gu"), " ") },
     ],
     Effect.fnUntraced(function* replaceDefaultToken(
       token: RegExpExecArray,
@@ -1703,7 +1704,7 @@ const lexPseudoAttribute = Effect.fnUntraced(function* lexPseudoAttributeDeclara
 const lexDeclaration = Effect.fnUntraced(function* lexXmlDeclaration(
   cursor: Cursor,
 ): Effect.fn.Return<Option.Option<XmlDeclaration>, WellFormednessError> {
-  if (!/^<\?xml[ \t\r\n]/u.test(cursor.text)) {
+  if (!regex("^<\\?xml[ \t\r\n]", "u").test(cursor.text)) {
     return Option.none();
   }
 
@@ -1840,7 +1841,7 @@ const ATTRIBUTE_QUOTES: ReadonlyMap<string, string> = new Map([
 /**
  * A reference to a general entity, `&name;`, sticky.
  */
-const REFERENCE_AT = new RegExp(`&(${NAME});`, "uy");
+const REFERENCE_AT = regex.as(`&(${NAME});`, "uy");
 
 /**
  * Where a markup run that substitution does not touch ends: the end of a comment, a processing
@@ -2010,7 +2011,7 @@ export const substitute = (text: string, prolog: Prolog): Effect.Effect<string, 
                 offset += 1;
               }
             } else {
-              const next = source.slice(offset).search(/[<&]/u);
+              const next = source.slice(offset).search(regex("[<&]", "u"));
               const end = next === -1 ? source.length : offset + next;
               body += source.slice(offset, end);
               offset = end;

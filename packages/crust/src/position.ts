@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { Array as Arr } from "effect";
 
 /**
@@ -13,7 +14,7 @@ export interface Position {
  * The line break forms XML 1.0 section 2.11 folds to one line feed: `\r\n`, a lone `\r` and `\n`,
  * each of which ends a line.
  */
-export const LINE_BREAK = /\r\n|[\n\r]/gu;
+export const LINE_BREAK = regex("\r\n|[\n\r]", "gu");
 
 /**
  * Find the position of `offset` in `source`.

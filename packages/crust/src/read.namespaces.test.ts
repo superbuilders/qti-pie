@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { availableParallelism } from "node:os";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
@@ -29,7 +30,8 @@ type Resolved =
  * @param message - The message.
  * @returns Its position, or the whole message when it opens with none.
  */
-const positionIn = (message: string): string => /^\d+:\d+/u.exec(message)?.[0] ?? message;
+const positionIn = (message: string): string =>
+  regex("^\\d+:\\d+", "u").exec(message)?.[0] ?? message;
 
 /**
  * The oracle: the namespaces `saxes` resolves in its own namespace mode, a second
@@ -152,7 +154,10 @@ const infosetOf = (element: Element): Element => {
         break;
       }
       case "pi": {
-        children.push({ ...child, data: lineFeeds(child.data).replace(/^[ \t\n]+/u, "") });
+        children.push({
+          ...child,
+          data: lineFeeds(child.data).replace(regex("^[ \t\n]+", "u"), ""),
+        });
         break;
       }
       case "element": {

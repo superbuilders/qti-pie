@@ -33,6 +33,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { parseHTML } from "linkedom";
@@ -229,7 +230,8 @@ const sourcesOf = (control: Element): readonly (readonly [string | null, string 
  * @param element The element.
  * @returns Its text.
  */
-const textOf = (element: Element): string => element.textContent.replaceAll(/\s+/gu, " ").trim();
+const textOf = (element: Element): string =>
+  element.textContent.replaceAll(regex("\\s+", "gu"), " ").trim();
 
 describe("read-aloud", () => {
   it.effect("RA1: with no support enabled the catalog stays dormant", () =>

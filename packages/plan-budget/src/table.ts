@@ -7,6 +7,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { readFileSync, writeFileSync } from "node:fs";
 import { Schema } from "effect";
 
@@ -135,7 +136,7 @@ export const writePlanTable = (records: string, out: string): number => {
           "",
           "",
           "",
-          `${stopped.kind}: ${stopped.detail.replaceAll(/\s+/gu, " ").slice(0, 200)}`,
+          `${stopped.kind}: ${stopped.detail.replaceAll(regex("\\s+", "gu"), " ").slice(0, 200)}`,
           load,
         ].join("\t"),
       );

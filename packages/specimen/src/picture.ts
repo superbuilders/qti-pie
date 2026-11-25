@@ -6,6 +6,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { dimension } from "#specimen/dimension.ts";
 import { element, text } from "#specimen/xml.ts";
 
@@ -212,7 +213,7 @@ interface Shown {
 export const image = (picture: Picture, label: string): Shown => {
   const size = sizeOf(picture);
   const file = placed(
-    `${label.toLowerCase().replaceAll(/[^a-z0-9]+/gu, "-")}-${picture.aspect}-${picture.scale}.svg`,
+    `${label.toLowerCase().replaceAll(regex("[^a-z0-9]+", "gu"), "-")}-${picture.aspect}-${picture.scale}.svg`,
     svgAddress(placeholder(size, `${label}, ${picture.aspect}`, [])),
   );
 

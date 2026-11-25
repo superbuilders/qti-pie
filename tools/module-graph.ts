@@ -18,6 +18,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { parseSync } from "oxc-parser";
@@ -290,7 +291,10 @@ export const valueClosure = (
  *
  * @see https://react.dev/reference/rsc/use-client
  */
-const useClient = /^(?:\s|\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)*(?<quote>["'])use client\k<quote>/u;
+const useClient = regex(
+  "^(?:\\s|//[^\n]*\n|/\\*[\\s\\S]*?\\*/)*(?<quote>[\"'])use client\\k<quote>",
+  "u",
+);
 
 /**
  * Select the client modules among some sources: every non-test module whose first statement is the
@@ -301,7 +305,7 @@ const useClient = /^(?:\s|\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)*(?<quote>["'])use clien
  */
 export const clientModules = (sources: ReadonlyMap<string, string>): readonly string[] =>
   [...sources].flatMap(([module, source]) =>
-    !/\.test\.tsx?$/u.test(module) && useClient.test(source) ? [module] : [],
+    !regex("\\.test\\.tsx?$", "u").test(module) && useClient.test(source) ? [module] : [],
   );
 
 /**
@@ -321,7 +325,7 @@ export const plateModules = (): ReadonlyMap<string, string> => {
 
   return new Map(
     readdirSync(root, { encoding: "utf-8", recursive: true })
-      .filter((file) => /\.(?:json|tsx?)$/u.test(file))
+      .filter((file) => regex("\\.(?:json|tsx?)$", "u").test(file))
       .toSorted()
       .map((file) => [
         `src/${file.split(path.sep).join("/")}`,

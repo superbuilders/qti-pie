@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { Option } from "effect";
 
 /**
@@ -20,7 +21,7 @@ export const NAME = String.raw`[${NAME_START}][${NAME_CHAR}]*`;
 /**
  * The first character of a name, as XML 1.0's [4] NameStartChar admits it.
  */
-const nameStart = new RegExp(`^[${NAME_START}]`, "u");
+const nameStart = regex.as(`^[${NAME_START}]`, "u");
 
 /**
  * A name's two parts, by Namespaces in XML 1.0's [7] QName: the prefix, empty for an unprefixed
@@ -108,7 +109,17 @@ export const productionViolation = (name: string, production: Production): Optio
 /**
  * One whole XML name ([5] Name).
  */
-const wholeName = new RegExp(`^${NAME}$`, "u");
+const wholeName = regex.as(`^${NAME}$`, "u");
+
+/**
+ * Whether a text is one whole XML name ([5] Name). It answers a boolean, where the pattern's own
+ * `test` narrows the text it refuses to `never`: the pattern is built at run time, so its type
+ * knows no shape of the names it admits.
+ *
+ * @param text - The text.
+ * @returns Whether the text is a Name.
+ */
+const isWholeName = (text: string): boolean => wholeName.test(text);
 
 /**
  * Judge a whole text as a name of the production it must match where it stands, as the reader
@@ -119,7 +130,7 @@ const wholeName = new RegExp(`^${NAME}$`, "u");
  * @returns The violation's description; `None` when the text is such a name.
  */
 export const nameViolation = (text: string, production: Production): Option.Option<string> =>
-  wholeName.test(text)
+  isWholeName(text)
     ? productionViolation(text, production)
     : Option.some(`"${text}" is no XML name ([5] Name)`);
 
@@ -130,4 +141,4 @@ export const nameViolation = (text: string, production: Production): Option.Opti
  * @param target - The target.
  * @returns Whether it spells `xml`.
  */
-export const isReservedTarget = (target: string): boolean => /^xml$/iu.test(target);
+export const isReservedTarget = (target: string): boolean => regex("^xml$", "iu").test(target);

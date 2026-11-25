@@ -22,6 +22,7 @@
     "@bjornpagen/grizzle": "workspace:*",
     "@bjornpagen/grizzle-engine": "workspace:*",
     "@effect/platform-node": "catalog:",
+    "arkregex": "catalog:",
     "effect": "catalog:",
     "pg": "catalog:"
   },

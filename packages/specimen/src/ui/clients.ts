@@ -9,6 +9,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -17,7 +18,10 @@ import { Effect, Schema } from "effect";
 /**
  * A module's first statement as the `"use client"` directive, after any comments.
  */
-const useClient = /^(?:\s|\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)*(?<quote>["'])use client\k<quote>/u;
+const useClient = regex(
+  "^(?:\\s|//[^\n]*\n|/\\*[\\s\\S]*?\\*/)*(?<quote>[\"'])use client\\k<quote>",
+  "u",
+);
 
 /**
  * A module's exports as a host reads them: a record of values by name.
@@ -40,8 +44,8 @@ export const clientExports: Effect.Effect<ReadonlyMap<unknown, string>> = Effect
   readdirSync(plateSource, { encoding: "utf-8", recursive: true })
     .filter(
       (file) =>
-        /\.tsx?$/u.test(file) &&
-        !/\.test\.tsx?$/u.test(file) &&
+        regex("\\.tsx?$", "u").test(file) &&
+        !regex("\\.test\\.tsx?$", "u").test(file) &&
         useClient.test(readFileSync(path.join(plateSource, file), "utf-8")),
     )
     .toSorted(),

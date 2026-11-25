@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { RuleTester } from "oxlint/plugins-dev";
 import classesLiveInStyles from "#tools/classes-live-in-styles.ts";
 
@@ -39,17 +40,17 @@ const optionsOf = () => [{ passthrough: [passthroughSite] }];
 /**
  * What a refused class says.
  */
-const noClass = /writes no class of its own/u;
+const noClass = regex("writes no class of its own", "u");
 
 /**
  * What a refused style says.
  */
-const noStyle = /writes no style/u;
+const noStyle = regex("writes no style", "u");
 
 /**
  * What a refused stylesheet import says.
  */
-const noStylesheet = /imports no stylesheet/u;
+const noStylesheet = regex("imports no stylesheet", "u");
 
 /**
  * A case of plate's UI the rule admits.
@@ -107,7 +108,7 @@ const cases: Cases = {
     invalid(passthrough, noStylesheet, `import "#plate/styles/theme.css";`),
     {
       code: `export const A = () => <div data-slot="plate-choice" />;`,
-      errors: [{ message: /takes one object option/u }],
+      errors: [{ message: regex("takes one object option", "u") }],
       filename: island,
       options: [{ classes: [] }],
     },
