@@ -2,7 +2,7 @@ import path from "node:path";
 import type { Law, Witness } from "@bjornpagen/grizzle";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
-import { Cause, Effect, Exit, FileSystem, Formatter, Schema } from "effect";
+import { Cause, Effect, Exit, FileSystem, Formatter, Option, Schema } from "effect";
 import { Command } from "effect/cli";
 import { inject } from "vitest";
 import { TargetNotEmpty } from "#pantry/cli/args.ts";
@@ -19,6 +19,9 @@ import { exitCodeOf } from "#pantry/cli/run.ts";
 import type { RefusalLaw, RefusalOf } from "#pantry/import/refusal.ts";
 import { readerOrigin, RefusedKind, WitnessKind } from "#pantry/package/refusal-origin.ts";
 import { lawTable } from "#pantry/vocab/laws.ts";
+import { qti } from "#pantry/cli.ts";
+import { qtiImport } from "#pantry/qti-import.ts";
+import { qtiRoundtrip } from "#pantry/qti-roundtrip.ts";
 import { captureCli, matchesCommitted, packageCopy } from "#pantry/test/cli.ts";
 import { fileScratchDirectory, makeScratch, scratchEnv } from "#pantry/test/scratch.ts";
 
@@ -62,7 +65,7 @@ const differing = Command.make(
 layer(NodeServices.layer, { excludeTestServices: true })("the text error shape", (it) => {
   it.effect("an unknown command prints its usage and the valid commands, not the whole help", () =>
     Effect.gen(function* unknownCommand() {
-      const { stderr, stdout } = yield* captureCli(["frobnicate"]);
+      const { stderr, stdout } = yield* captureCli(qti, ["frobnicate"], Option.none());
 
       assert.isTrue(stderr.startsWith("error[cli-usage]:"));
       assert.include(stderr, "= help:");
@@ -80,7 +83,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("the text error shape",
 layer(NodeServices.layer, { excludeTestServices: true })("the JSON error shape", (it) => {
   it.effect("an unknown command under --json is one error object on stderr", () =>
     Effect.gen(function* unknownJson() {
-      const { stderr, stdout } = yield* captureCli(["--json", "frobnicate"]);
+      const { stderr, stdout } = yield* captureCli(qti, ["--json", "frobnicate"], Option.none());
 
       assert.strictEqual(stdout, "");
       assert.strictEqual(stderr.split("\n").length, 1);
@@ -96,7 +99,11 @@ layer(NodeServices.layer, { excludeTestServices: true })("the JSON error shape",
 
   it.effect("a missing path under --json is cli-path-missing", () =>
     Effect.gen(function* missingJson() {
-      const { stderr, stdout } = yield* captureCli(["--json", "import", "/nonexistent", "simple"]);
+      const { stderr, stdout } = yield* captureCli(
+        qtiImport,
+        ["--json", "/nonexistent", "simple"],
+        Option.none(),
+      );
 
       assert.strictEqual(stdout, "");
 
@@ -114,9 +121,11 @@ layer(NodeServices.layer, { excludeTestServices: true })("the JSON error shape",
 
       yield* makeScratch(env);
 
-      const { stderr } = yield* captureCli(["--json", "import", fixtures.simple, "simple"], {
-        env,
-      });
+      const { stderr } = yield* captureCli(
+        qtiImport,
+        ["--json", fixtures.simple, "simple"],
+        Option.some(env),
+      );
       const error = errorLine(stderr);
 
       assert.strictEqual(error.kind, "config");
@@ -142,7 +151,11 @@ layer(NodeServices.layer, { excludeTestServices: true })("the JSON error shape",
         yield* makeScratch(env);
         yield* fs.writeFileString(file, "kept");
 
-        const { exit, stderr } = yield* captureCli(["--json", "roundtrip", copy, label], { env });
+        const { exit, stderr } = yield* captureCli(
+          qtiRoundtrip,
+          ["--json", copy, label],
+          Option.some(env),
+        );
 
         assert.strictEqual(errorLine(stderr).kind, "target-not-empty");
         assert.strictEqual(exitCodeOf(exit), 1);
@@ -156,7 +169,11 @@ layer(NodeServices.layer, { excludeTestServices: true })("the JSON error shape",
 
   it.effect("a differing roundtrip prints its envelope on stdout and the error on stderr", () =>
     Effect.gen(function* differsJson() {
-      const { exit, stderr, stdout } = yield* captureCli(["--json"], { command: differing });
+      const { exit, stderr, stdout } = yield* captureCli(
+        { command: differing, shownAs: differing.name },
+        ["--json"],
+        Option.none(),
+      );
       const envelope = Schema.decodeUnknownSync(
         Schema.fromJsonString(successEnvelope("roundtrip", RoundtripData)),
       )(stdout);
@@ -335,8 +352,12 @@ layer(NodeServices.layer, { excludeTestServices: true })("every origin of a refu
               ? `${refusal.origin.kind} ${refusal.origin.witness}`
               : "Reader";
           const command = ending("import", () => Promise.resolve(refusal), false);
-          const json = yield* captureCli(["--json"], { command });
-          const text = yield* captureCli([], { command });
+          const json = yield* captureCli(
+            { command, shownAs: command.name },
+            ["--json"],
+            Option.none(),
+          );
+          const text = yield* captureCli({ command, shownAs: command.name }, [], Option.none());
           const error = errorLine(json.stderr);
           const { laws, refused_kind: refusedKind, sources, witness } = error;
 
@@ -386,8 +407,12 @@ layer(NodeServices.layer, { excludeTestServices: true })("a failure qti names", 
           ),
         true,
       );
-      const text = yield* captureCli([], { command: dying });
-      const json = yield* captureCli(["--json"], { command: dying });
+      const text = yield* captureCli({ command: dying, shownAs: dying.name }, [], Option.none());
+      const json = yield* captureCli(
+        { command: dying, shownAs: dying.name },
+        ["--json"],
+        Option.none(),
+      );
       const error = errorLine(json.stderr.split("\n")[0] ?? "");
 
       assert.strictEqual(exitCodeOf(text.exit), 70);

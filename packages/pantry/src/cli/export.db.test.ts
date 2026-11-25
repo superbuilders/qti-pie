@@ -2,7 +2,7 @@ import path from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
 import { codePointOrder } from "@qti-pie/crust/charset.ts";
-import { Cause, Effect, Exit, FileSystem, Layer, Schema } from "effect";
+import { Cause, Effect, Exit, FileSystem, Layer, Option, Schema } from "effect";
 import { describe, inject } from "vitest";
 import { TargetNotEmpty } from "#pantry/cli/args.ts";
 import { describeFailure } from "#pantry/cli/errors.ts";
@@ -13,6 +13,7 @@ import { localMediaStore } from "#pantry/package/media.ts";
 import { PackageNotFound } from "#pantry/export/package.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
 import { exitCodeOf } from "#pantry/cli/run.ts";
+import { qtiExport } from "#pantry/qti-export.ts";
 import { captureCli } from "#pantry/test/cli.ts";
 import { hasLease } from "#pantry/test/settings.ts";
 import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
@@ -90,13 +91,17 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
         const real = path.join(folder, "real");
         const { package: id } = yield* importDir(fixtures.simple);
 
-        const text = yield* captureCli(["export", "--dry-run", absent, id]);
+        const text = yield* captureCli(qtiExport, ["--dry-run", absent, id], Option.none());
 
         assert.isTrue(Exit.isSuccess(text.exit), text.stderr);
         assert.isFalse(yield* fs.exists(absent));
 
-        const json = yield* captureCli(["--json", "export", "--dry-run", absent, id]);
-        const written = yield* captureCli(["export", real, id]);
+        const json = yield* captureCli(
+          qtiExport,
+          ["--json", "--dry-run", absent, id],
+          Option.none(),
+        );
+        const written = yield* captureCli(qtiExport, [real, id], Option.none());
 
         assert.isTrue(Exit.isSuccess(json.exit), json.stderr);
         assert.isTrue(Exit.isSuccess(written.exit), written.stderr);
@@ -120,13 +125,11 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
           const folder = yield* fresh("dry-run-json");
           const absent = path.join(folder, "absent");
           const { package: id } = yield* importDir(fixtures.simple);
-          const { exit, stderr, stdout } = yield* captureCli([
-            "--json",
-            "export",
-            "--dry-run",
-            absent,
-            id,
-          ]);
+          const { exit, stderr, stdout } = yield* captureCli(
+            qtiExport,
+            ["--json", "--dry-run", absent, id],
+            Option.none(),
+          );
 
           assert.isTrue(Exit.isSuccess(exit), stderr);
           assert.strictEqual(stdout.split("\n").length, 1);
@@ -156,7 +159,7 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
 
         yield* fs.writeFileString(file, "kept");
 
-        const { exit } = yield* captureCli(["export", "--dry-run", folder, id]);
+        const { exit } = yield* captureCli(qtiExport, ["--dry-run", folder, id], Option.none());
         const failure = Exit.isFailure(exit) ? Cause.squash(exit.cause) : undefined;
 
         assert.instanceOf(failure, TargetNotEmpty);
@@ -176,14 +179,11 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
 
         yield* fs.writeFileString(file, "kept");
 
-        const { exit, stderr, stdout } = yield* captureCli([
-          "--json",
-          "export",
-          "--yes",
-          "--dry-run",
-          folder,
-          id,
-        ]);
+        const { exit, stderr, stdout } = yield* captureCli(
+          qtiExport,
+          ["--json", "--yes", "--dry-run", folder, id],
+          Option.none(),
+        );
 
         assert.isTrue(Exit.isSuccess(exit), stderr);
 
@@ -207,7 +207,7 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
         yield* fs.writeFileString(path.join(linked, "kept.txt"), "kept");
         yield* fs.symlink(linked, link);
 
-        const { exit, stderr } = yield* captureCli(["export", "--yes", link, id]);
+        const { exit, stderr } = yield* captureCli(qtiExport, ["--yes", link, id], Option.none());
 
         assert.isTrue(Exit.isSuccess(exit), stderr);
         assert.strictEqual((yield* fs.lstat(link)).type, "Directory");
@@ -218,8 +218,8 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
     );
 
     it.effect.each([
-      { command: ["export"], name: "export" },
-      { command: ["export", "--dry-run"], name: "export --dry-run" },
+      { command: [], name: "export" },
+      { command: ["--dry-run"], name: "export --dry-run" },
     ])(
       "$name of a name no package has fails as not-found, exit 1, naming it",
       ({ command, name }) =>
@@ -227,7 +227,11 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
           const fs = yield* FileSystem.FileSystem;
           const folder = yield* fresh(`absent-${name.replace(" ", "-")}`);
           const target = path.join(folder, "target");
-          const { exit, stderr } = yield* captureCli([...command, target, absentIdentifier]);
+          const { exit, stderr } = yield* captureCli(
+            qtiExport,
+            [...command, target, absentIdentifier],
+            Option.none(),
+          );
           const failure = Exit.isFailure(exit) ? Cause.squash(exit.cause) : undefined;
 
           assert.strictEqual(exitCodeOf(exit), 1);
@@ -254,7 +258,11 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
         yield* fs.makeDirectory(target, { recursive: true });
         yield* fs.writeFileString(file, "kept");
 
-        const { exit } = yield* captureCli(["export", "--yes", target, absentIdentifier]);
+        const { exit } = yield* captureCli(
+          qtiExport,
+          ["--yes", target, absentIdentifier],
+          Option.none(),
+        );
         const failure = Exit.isFailure(exit) ? Cause.squash(exit.cause) : undefined;
 
         assert.strictEqual(exitCodeOf(exit), 1);
@@ -268,13 +276,11 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
     it.effect("--json export --dry-run of a name no package has prints one error object", () =>
       Effect.gen(function* absentPackageJson() {
         const folder = yield* fresh("absent-json");
-        const { exit, stderr } = yield* captureCli([
-          "--json",
-          "export",
-          "--dry-run",
-          path.join(folder, "target"),
-          absentIdentifier,
-        ]);
+        const { exit, stderr } = yield* captureCli(
+          qtiExport,
+          ["--json", "--dry-run", path.join(folder, "target"), absentIdentifier],
+          Option.none(),
+        );
 
         assert.strictEqual(exitCodeOf(exit), 1);
         assert.strictEqual(stderr.trimEnd().split("\n").length, 1);

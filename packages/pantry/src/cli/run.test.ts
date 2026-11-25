@@ -11,7 +11,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { CredentialError } from "@bjornpagen/grizzle";
 import { OpenError, TokenRefused } from "@bjornpagen/grizzle/runtime";
-import { Cause, Effect, Exit, PlatformError } from "effect";
+import { Cause, Effect, Exit, Option, PlatformError } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 import { NotADirectory } from "#pantry/cli/args.ts";
 import {
@@ -23,6 +23,9 @@ import {
 } from "#pantry/cli/errors.ts";
 import type { Kind } from "#pantry/cli/errors.ts";
 import { exitCodeOf } from "#pantry/cli/run.ts";
+import { qti } from "#pantry/cli.ts";
+import { qtiExport } from "#pantry/qti-export.ts";
+import { qtiImport } from "#pantry/qti-import.ts";
 import { captureCli, spawnCli } from "#pantry/test/cli.ts";
 
 /**
@@ -109,15 +112,18 @@ describe("describeFailure and exitCodeOf", () => {
 layer(NodeServices.layer, { excludeTestServices: true })("the run's exit code", (live) => {
   live.effect("a mistyped command, a missing argument and a missing path exit 2", () =>
     Effect.gen(function* codes() {
-      for (const args of [
-        ["frobnicate"],
-        ["export", "only-one"],
-        ["import", "/nonexistent", "simple"],
-      ]) {
-        const { exit } = yield* captureCli(args);
+      for (const [line, run] of [
+        ["qti frobnicate", captureCli(qti, ["frobnicate"], Option.none())],
+        ["qti-export only-one", captureCli(qtiExport, ["only-one"], Option.none())],
+        [
+          "qti-import /nonexistent simple",
+          captureCli(qtiImport, ["/nonexistent", "simple"], Option.none()),
+        ],
+      ] as const) {
+        const { exit } = yield* run;
 
-        assert.isTrue(Exit.isFailure(exit), args.join(" "));
-        assert.strictEqual(exitCodeOf(exit), 2, args.join(" "));
+        assert.isTrue(Exit.isFailure(exit), line);
+        assert.strictEqual(exitCodeOf(exit), 2, line);
       }
     }),
   );
@@ -125,7 +131,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("the run's exit code", 
   live.effect("bare qti, with or without --json, exits 0 with its help on stdout alone", () =>
     Effect.gen(function* bare() {
       for (const args of [[], ["--json"]]) {
-        const { exit, stderr, stdout } = yield* captureCli(args);
+        const { exit, stderr, stdout } = yield* captureCli(qti, args, Option.none());
 
         assert.strictEqual(exitCodeOf(exit), 0, args.join(" "));
         assert.include(stdout, "EXAMPLES", args.join(" "));
@@ -137,7 +143,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("the run's exit code", 
   live.effect("a real usage error still exits 2 and says so on stderr", () =>
     Effect.gen(function* usage() {
       for (const args of [["--frobnicate"], ["import"]]) {
-        const { exit, stderr } = yield* captureCli(args);
+        const { exit, stderr } = yield* captureCli(qti, args, Option.none());
 
         assert.strictEqual(exitCodeOf(exit), 2, args.join(" "));
         assert.isTrue(stderr.startsWith("error[cli-usage]:"), args.join(" "));
@@ -147,7 +153,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("the run's exit code", 
 
   live.effect("--help lists no kind that no command can raise", () =>
     Effect.gen(function* help() {
-      const { stdout } = yield* captureCli(["--help"]);
+      const { stdout } = yield* captureCli(qti, ["--help"], Option.none());
 
       assert.notInclude(stdout, "skill-target-outside");
     }),
@@ -157,7 +163,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("the run's exit code", 
     "the process ends with 0 for bare qti, which proves the teardown uses the same code",
     () =>
       Effect.gen(function* spawnedBare() {
-        const { code } = yield* spawnCli([]);
+        const { code } = yield* spawnCli("qti", [], Option.none());
 
         assert.strictEqual(code, ChildProcessSpawner.ExitCode(0));
       }),
@@ -167,7 +173,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("the run's exit code", 
     "the process ends with 2 for a mistyped command, which proves the teardown is wired",
     () =>
       Effect.gen(function* spawned() {
-        const { code } = yield* spawnCli(["frobnicate"]);
+        const { code } = yield* spawnCli("qti", ["frobnicate"], Option.none());
 
         assert.strictEqual(code, ChildProcessSpawner.ExitCode(2));
       }),

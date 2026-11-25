@@ -7,6 +7,7 @@ import {
   FileSystem,
   JsonSchema,
   Layer,
+  Option,
   Schema,
   SchemaRepresentation,
   Stdio,
@@ -15,8 +16,9 @@ import {
 import type { Exit } from "effect";
 import type { Command } from "effect/cli";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { cli } from "#pantry/cli.ts";
+import type { ProgramName } from "#pantry/cli/completions.ts";
 import { runCli } from "#pantry/cli/run.ts";
+import type { Program } from "#pantry/cli/run.ts";
 import { fileScratchDirectory } from "#pantry/test/scratch.ts";
 
 /**
@@ -55,32 +57,31 @@ export const matchesCommitted = (name: string): ((line: string) => boolean) => {
 };
 
 /**
- * Run the command line on `args` in this process, through the same runner as the program, with the
- * console captured in place of the terminal.
+ * Run a program on `args` in this process, through the same runner as the process, with the console
+ * captured in place of the terminal.
  *
- * @param args - The command line after the program name.
- * @param options - The command to run in place of `cli`, and the environment its settings read.
- *   With `env`, the run reads its configuration from those variables alone, in place of the
- *   process environment, so pass every variable the run needs.
+ * @param program - The program to run: `qti` (`#pantry/cli.ts`), one of the programs that run a
+ *   command (`#pantry/qti-import.ts` and the like), or a test's own.
+ * @param args - The command line after the program's name.
+ * @param env - The environment its settings read: with some, the run reads its configuration from
+ *   those variables alone, in place of the process environment, so give every variable the run
+ *   needs; with none, the process environment.
  * @returns How the run ended, and what it wrote with `Console.log` (standard output) and with
  *   `Console.error` (standard error), each joined by line feeds.
  */
 export const captureCli = Effect.fn("test.cli.captureCli")(function* captureCli<
-  C extends Command.Command.Any = typeof cli,
+  C extends Command.Command.Any,
 >(
+  program: Program<C>,
   args: readonly string[],
-  options?: {
-    readonly command?: C;
-    readonly env?: Readonly<Record<string, string>>;
-  },
+  env: Option.Option<Readonly<Record<string, string>>>,
 ) {
   const out: string[] = [];
   const err: string[] = [];
-  const command: Command.Command.Any = options?.command ?? cli;
   // SAFETY: `runCli` cannot infer a command's services from the `Any` bound, which reads them as
   // the command itself. They are the services of `C`, plus the environment `Command.run` adds.
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The invariant is the SAFETY note above.
-  const run = runCli(command, { version: "0.0.0" }) as Effect.Effect<
+  const run = runCli(program, { version: "0.0.0" }) as Effect.Effect<
     void,
     unknown,
     Command.Services<C> | Command.Environment
@@ -88,9 +89,10 @@ export const captureCli = Effect.fn("test.cli.captureCli")(function* captureCli<
   const exit: Exit.Exit<unknown, unknown> = yield* run.pipe(
     Effect.provide(Stdio.layerTest({ args: Effect.succeed(args) })),
     Effect.provide(
-      options?.env === undefined
-        ? Layer.empty
-        : ConfigProvider.layer(ConfigProvider.fromUnknown(options.env)),
+      Option.match(env, {
+        onNone: () => Layer.empty,
+        onSome: (variables) => ConfigProvider.layer(ConfigProvider.fromUnknown(variables)),
+      }),
     ),
     Effect.provideService(
       Console.Console,
@@ -110,16 +112,28 @@ export const captureCli = Effect.fn("test.cli.captureCli")(function* captureCli<
 });
 
 /**
- * Run the program as a child process, as a person's shell would, and collect how it ended.
+ * Each program's entry module, by the program's name, beside `src/`'s own `cli.ts`.
+ */
+const entryOf: Readonly<Record<ProgramName, string>> = {
+  qti: "cli.ts",
+  "qti-export": "qti-export.ts",
+  "qti-import": "qti-import.ts",
+  "qti-roundtrip": "qti-roundtrip.ts",
+};
+
+/**
+ * Run a program as a child process in `packages/pantry`, as a person's shell would, and collect how
+ * it ended.
  *
- * @param args - The command line after the program name.
- * @param options - The folder to run in, which must exist (default `packages/pantry`), and variables
- *   laid over a copy of this process's environment.
+ * @param program - The program's name.
+ * @param args - The command line after the program's name.
+ * @param env - Variables laid over a copy of this process's environment, or none.
  * @returns The exit code, and what the child wrote to standard output and standard error.
  */
 export const spawnCli = Effect.fn("test.cli.spawnCli")(function* spawnCli(
+  program: ProgramName,
   args: readonly string[],
-  options?: { readonly cwd?: string; readonly env?: Readonly<Record<string, string>> },
+  env: Option.Option<Readonly<Record<string, string>>>,
 ) {
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 
@@ -128,10 +142,10 @@ export const spawnCli = Effect.fn("test.cli.spawnCli")(function* spawnCli(
       const handle = yield* spawner.spawn(
         ChildProcess.make(
           process.execPath,
-          [path.resolve(import.meta.dirname, "..", "cli.ts"), ...args],
+          [path.resolve(import.meta.dirname, "..", entryOf[program]), ...args],
           {
-            cwd: options?.cwd ?? packageRoot,
-            env: { ...process.env, ...options?.env },
+            cwd: packageRoot,
+            env: { ...process.env, ...Option.getOrElse(env, () => ({})) },
             stdin: "ignore",
           },
         ),

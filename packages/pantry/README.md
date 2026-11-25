@@ -85,9 +85,9 @@ describes the settings, the owner role and the role prefix.
 $ cd packages/pantry
 $ scripts/db.sh create
 $ scripts/db.sh migrate
-$ node src/cli.ts import ./my-package my-package
-$ node src/cli.ts export ./out my-package
-$ node src/cli.ts roundtrip ./my-package my-package
+$ node src/qti-import.ts ./my-package my-package
+$ node src/qti-export.ts ./out my-package
+$ node src/qti-roundtrip.ts ./my-package my-package
 ```
 
 `import` stores the package under the name it is given, an NCName such as `my-package`, which `export` takes, and its
@@ -97,15 +97,18 @@ manifest identifier are two names.
 
 ## Commands
 
-| Command       | Writes                     | Does                                      |
-| ------------- | -------------------------- | ----------------------------------------- |
-| `import`      | the database, media        | Imports a package and prints its id       |
-| `export`      | files                      | Writes an imported package back out       |
-| `roundtrip`   | the database, media, files | Imports, exports and compares the two     |
-| `schema`      | no                         | Prints the JSON Schema of `--output json` |
-| `completions` | no                         | Prints a shell completion script          |
+Each command that does the work is a program of its own, whose module loads its engine; `qti` (`src/cli.ts`) loads
+none, and prints the help of every command, the completion scripts and the schemas.
 
-Every input is a path. Nothing is read from standard input. `--dry-run` reads and checks without writing. `export`
+| Program                                  | Writes                     | Does                                       |
+| ---------------------------------------- | -------------------------- | ------------------------------------------ |
+| `qti-import` (`src/qti-import.ts`)       | the database, media        | Imports a package and prints its id        |
+| `qti-export` (`src/qti-export.ts`)       | files                      | Writes an imported package back out        |
+| `qti-roundtrip` (`src/qti-roundtrip.ts`) | the database, media, files | Imports, exports and compares the two      |
+| `qti schema`                             | no                         | Prints the JSON Schema of `--output json`  |
+| `qti completions`                        | no                         | Prints a program's shell completion script |
+
+Every input is a path. Nothing is read from standard input. `--dry-run` reads and checks without writing. `qti-export`
 needs `--yes` to replace a directory that already has content. `--output json` prints one JSON value. `--help` is the reference for the flags and the exit codes.
 
 An item ref may name an LTI link instead of an item. pantry accepts it and does not check the variable mappings or the

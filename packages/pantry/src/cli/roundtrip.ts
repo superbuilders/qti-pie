@@ -1,20 +1,7 @@
-import { Effect, Path, Schema } from "effect";
+import { Schema } from "effect";
 import { Argument, Command } from "effect/cli";
-import {
-  databaseNotChecked,
-  dryRunFlag,
-  replaceWith,
-  requireName,
-  requirePackage,
-  requireReplaceable,
-  yesFlag,
-  zipFlag,
-} from "#pantry/cli/args.ts";
-import { withAuthorApp } from "#pantry/cli/engine.ts";
-import { RoundtripDiffers } from "#pantry/cli/errors.ts";
-import { emitSuccess, outputMode } from "#pantry/cli/output.ts";
-import type { OutputMode } from "#pantry/cli/output.ts";
-import type { Outcome, Report } from "#pantry/export/compare.ts";
+import { dryRunFlag, yesFlag, zipFlag } from "#pantry/cli/args.ts";
+import type { Outcome } from "#pantry/export/compare.ts";
 
 /**
  * The kinds of an entry's outcome, a literal list checked against the exporter's `Outcome`: a kind
@@ -42,13 +29,13 @@ const RoundtripOutcome = Schema.Union([
 /**
  * One entry of the comparison: its path and its outcome.
  */
-const RoundtripEntry = Schema.Struct({ outcome: RoundtripOutcome, path: Schema.String });
+export const RoundtripEntry = Schema.Struct({ outcome: RoundtripOutcome, path: Schema.String });
 
 /**
  * What `roundtrip` prints under `--output jsonl` after its entries: everything but them, the
  * package named by its name.
  */
-const RoundtripSummary = Schema.Struct({
+export const RoundtripSummary = Schema.Struct({
   differing: Schema.Int,
   export_dir: Schema.String,
   package: Schema.String,
@@ -84,46 +71,9 @@ const RoundtripPreview = Schema.Struct({
 export const RoundtripData = Schema.Union([RoundtripReport, RoundtripPreview]);
 
 /**
- * Print how the export of a stored package compares with it, then fail with
- * {@link RoundtripDiffers} where an entry differs.
- *
- * @param mode - The output mode the run resolved.
- * @param compared - The comparison and where it was made.
- * @param compared.exportDir - Where the export was written.
- * @param compared.report - The comparison of every entry.
- * @param compared.stored - The stored package's name.
- * @returns Completes once it is printed. Fails with `RoundtripDiffers` where an entry differs.
- */
-const reportRoundtrip = Effect.fnUntraced(function* reportRoundtrip(
-  mode: OutputMode,
-  compared: { readonly exportDir: string; readonly report: Report; readonly stored: string },
-) {
-  const { exportDir, report, stored } = compared;
-  const { renderReport } = yield* Effect.promise(() => import("#pantry/export/compare.ts"));
-  const differing = report.filter(({ outcome }) => outcome.kind === "differs").length;
-
-  yield* emitSuccess(mode, {
-    command: "roundtrip",
-    data: { differing, entries: report, export_dir: exportDir, package: stored },
-    dataSchema: RoundtripData,
-    ok: differing === 0,
-    stream: {
-      lineSchema: RoundtripEntry,
-      lines: report,
-      summary: { differing, export_dir: exportDir, package: stored },
-      summarySchema: RoundtripSummary,
-    },
-    text: renderReport(report),
-  });
-
-  if (differing > 0) {
-    yield* new RoundtripDiffers({ differing, exportDir });
-  }
-});
-
-/**
- * Import the package in `dir` under `name`, export it to `work/export/<name>/` (`<name>.zip` under
- * `--zip`), and print how the export compares with the package the import read.
+ * The definition of `roundtrip`, as the command `commandName`: import the package in `dir` under
+ * `name`, export it to `work/export/<name>/` (`<name>.zip` under `--zip`), and print how the export
+ * compares with the package the import read.
  *
  * The comparison is the exporter's `compareSource`: every entry's bytes as the import read them
  * against the entries the export of the stored package wrote, path by path, so the stored
@@ -144,114 +94,41 @@ const reportRoundtrip = Effect.fnUntraced(function* reportRoundtrip(
  * would replace one, and writes nothing. Every refusal of the real run before its first write is
  * raised too: an earlier export without `--yes`, and a protected target.
  *
- * The engine loads when the handler runs, so `--help` and a usage error never pay for it, and the
- * importer and the exporter load inside the database's pool (`withAuthorApp`), so neither does a
- * run that cannot reach the database. The import, the export and the comparison share that one
- * pool.
+ * The definition holds no handler: `qti-roundtrip` (`#pantry/qti-roundtrip.ts`) runs it on the
+ * engine, the import, the export and the comparison on one pool, and `qti` holds it only for its
+ * help and completions, so `qti` never loads the engine.
+ *
+ * @param commandName - The command's name: `roundtrip` under `qti`, `qti-roundtrip` as its own
+ *   program.
+ * @returns The command, with no handler.
  */
-export const roundtripCommand = Command.make(
-  "roundtrip",
-  {
+export const roundtripDefinition = <Name extends string>(commandName: Name) =>
+  Command.make(commandName, {
     dir: Argument.String("dir"),
     dryRun: dryRunFlag,
     name: Argument.String("name"),
     yes: yesFlag,
     zip: zipFlag,
-  },
-  Effect.fn("cli.roundtrip")(function* roundtripHandler({ dir, dryRun, name, yes, zip }) {
-    const mode = yield* outputMode;
-
-    yield* requirePackage(dir);
-
-    const named = yield* requireName(name);
-    const path = yield* Path.Path;
-    const exportDir = path.join("work", "export", zip ? `${named}.zip` : named);
-
-    const action = yield* requireReplaceable(exportDir, yes);
-
-    if (dryRun) {
-      const { previewPackage } = yield* Effect.promise(() => import("#pantry/import/preview.ts"));
-      const { relations, rows } = yield* previewPackage(dir, named);
-
-      yield* emitSuccess(mode, {
-        command: "roundtrip",
-        data: {
-          database_checked: false,
-          dry_run: true,
-          export_dir: exportDir,
-          export_dir_action: action,
-          package_dir: dir,
-          relations,
-          rows,
-        },
-        dataSchema: RoundtripData,
-        ok: true,
-        text: `would import ${dir}: ${rows} rows in ${relations} relations, then ${action} ${exportDir}; ${databaseNotChecked}`,
-      });
-
-      return;
-    }
-
-    const { report, stored } = yield* withAuthorApp(
-      () =>
-        Promise.all([
-          import("#pantry/db/layer.ts"),
-          import("#pantry/import/read.ts"),
-          import("#pantry/import/package.ts"),
-          import("#pantry/export/package.ts"),
-          import("#pantry/export/compare.ts"),
-        ]),
-      ([
-        { authorDb },
-        { readPackage },
-        { importPackage },
-        { exportPackage },
-        { byPath, compareSource },
-      ]) =>
-        Effect.gen(function* roundtripOnPool() {
-          const db = yield* authorDb;
-          const pkg = yield* readPackage(dir, named);
-          const imported = yield* importPackage(db.workload, pkg);
-          const source = new Map(
-            yield* Effect.forEach([...pkg.files], ([entryPath, file]) =>
-              Effect.map(
-                Effect.promise(() => file.bytes()),
-                (bytes) => [entryPath, bytes] as const,
-              ),
-            ),
-          );
-          const compared = yield* replaceWith(exportDir, (written) =>
-            Effect.flatMap(exportPackage(imported.package, written), (entries) =>
-              compareSource(source, byPath(entries)),
-            ),
-          );
-
-          return { report: compared, stored: imported.package };
-        }),
-    );
-
-    yield* reportRoundtrip(mode, { exportDir, report, stored });
-  }),
-).pipe(
-  Command.withDescription(
-    "Import <dir> under the name <name>, export it to work/export/<name> (<name>.zip under --zip), and compare the export with the package the import read (writes the database, the local media store and work/export/<name>; with --dry-run it reads and checks the package, says whether the export would be created or replaced, and writes nothing, and the database's own checks do not run). An export already at work/export/<name> is replaced only with --yes, and the old one goes once the new export is written",
-  ),
-  Command.withExamples([
-    {
-      command: "qti roundtrip ./my-package my-package",
-      description: "Import a package, export it again and compare the two",
-    },
-    {
-      command: "qti roundtrip --zip ./my-package.zip my-package",
-      description: "Do the same with a zipped package, writing the export as a zip file",
-    },
-    {
-      command: "qti roundtrip --dry-run ./my-package my-package",
-      description: "Read and check a package and say where the export would go, writing nothing",
-    },
-    {
-      command: "qti roundtrip --output jsonl ./my-package my-package",
-      description: "Print one line of JSON per entry, then a summary line",
-    },
-  ]),
-);
+  }).pipe(
+    Command.withDescription(
+      "Import <dir> under the name <name>, export it to work/export/<name> (<name>.zip under --zip), and compare the export with the package the import read (writes the database, the local media store and work/export/<name>; with --dry-run it reads and checks the package, says whether the export would be created or replaced, and writes nothing, and the database's own checks do not run). An export already at work/export/<name> is replaced only with --yes, and the old one goes once the new export is written",
+    ),
+    Command.withExamples([
+      {
+        command: "qti-roundtrip ./my-package my-package",
+        description: "Import a package, export it again and compare the two",
+      },
+      {
+        command: "qti-roundtrip --zip ./my-package.zip my-package",
+        description: "Do the same with a zipped package, writing the export as a zip file",
+      },
+      {
+        command: "qti-roundtrip --dry-run ./my-package my-package",
+        description: "Read and check a package and say where the export would go, writing nothing",
+      },
+      {
+        command: "qti-roundtrip --output jsonl ./my-package my-package",
+        description: "Print one line of JSON per entry, then a summary line",
+      },
+    ]),
+  );

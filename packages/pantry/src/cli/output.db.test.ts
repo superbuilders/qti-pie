@@ -1,7 +1,7 @@
 import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
-import { Effect, Exit, Layer, Schema } from "effect";
+import { Effect, Exit, Layer, Option, Schema } from "effect";
 import { describe, inject } from "vitest";
 import { ImportData } from "#pantry/cli/import.ts";
 import { RoundtripData } from "#pantry/cli/roundtrip.ts";
@@ -11,6 +11,8 @@ import { localMediaStore } from "#pantry/package/media.ts";
 import { byPath, compareSource } from "#pantry/export/compare.ts";
 import { exportEntries } from "#pantry/export/package.ts";
 import { readEntries } from "#pantry/package/read.ts";
+import { qtiImport } from "#pantry/qti-import.ts";
+import { qtiRoundtrip } from "#pantry/qti-roundtrip.ts";
 import { captureCli, packageCopy } from "#pantry/test/cli.ts";
 import { hasLease } from "#pantry/test/settings.ts";
 import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
@@ -87,8 +89,16 @@ describe.skipIf(!hasLease)("output.db.test.ts, on the lease", () => {
       "--json import prints one line, the envelope with the package's name, and the same package again is unchanged under it",
       () =>
         Effect.gen(function* importJson() {
-          const first = yield* captureCli(["--json", "import", fixtures.simple, "simple"]);
-          const again = yield* captureCli(["--json", "import", fixtures.simple, "simple"]);
+          const first = yield* captureCli(
+            qtiImport,
+            ["--json", fixtures.simple, "simple"],
+            Option.none(),
+          );
+          const again = yield* captureCli(
+            qtiImport,
+            ["--json", fixtures.simple, "simple"],
+            Option.none(),
+          );
 
           assert.isTrue(Exit.isSuccess(first.exit), first.stderr);
           assert.isTrue(Exit.isSuccess(again.exit), again.stderr);
@@ -117,13 +127,11 @@ describe.skipIf(!hasLease)("output.db.test.ts, on the lease", () => {
       () =>
         Effect.gen(function* roundtripJson() {
           const copy = yield* packageCopy(fixtures.simple, "copy-output-json-simple");
-          const { exit, stderr, stdout } = yield* captureCli([
-            "--json",
-            "roundtrip",
-            "--yes",
-            copy,
-            "copy-output-json-simple",
-          ]);
+          const { exit, stderr, stdout } = yield* captureCli(
+            qtiRoundtrip,
+            ["--json", "--yes", copy, "copy-output-json-simple"],
+            Option.none(),
+          );
 
           assert.isTrue(Exit.isSuccess(exit), stderr);
           assert.strictEqual(stdout.split("\n").length, 1);
@@ -149,16 +157,19 @@ describe.skipIf(!hasLease)("output.db.test.ts, on the lease", () => {
       () =>
         Effect.gen(function* roundtripJsonl() {
           const copy = yield* packageCopy(fixtures.simple, "copy-output-jsonl-simple");
-          const { exit, stderr, stdout } = yield* captureCli([
-            "--log-level",
-            "debug",
-            "--output",
-            "jsonl",
-            "roundtrip",
-            "--yes",
-            copy,
-            "copy-output-jsonl-simple",
-          ]);
+          const { exit, stderr, stdout } = yield* captureCli(
+            qtiRoundtrip,
+            [
+              "--log-level",
+              "debug",
+              "--output",
+              "jsonl",
+              "--yes",
+              copy,
+              "copy-output-jsonl-simple",
+            ],
+            Option.none(),
+          );
 
           assert.isTrue(Exit.isSuccess(exit), stderr);
 

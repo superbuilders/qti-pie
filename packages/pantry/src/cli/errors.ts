@@ -78,7 +78,7 @@ export const kindHelp: Readonly<Record<Kind, string>> = {
     "This is a defect in qti. Report it with the command you ran and everything it printed.",
   io: "Check that the path exists, is readable or writable, and that the disk has room, then run the command again.",
   "not-found":
-    "Use the name the package was imported under (`qti import <dir> <name>`), in the same database, or import the package first.",
+    "Use the name the package was imported under (`qti-import <dir> <name>`), in the same database, or import the package first.",
   "roundtrip-differs": "Compare the package with its export by hand to see which entries differ.",
   "target-not-empty": "Choose an empty or new target, or pass --yes to replace what is there.",
 };
@@ -94,7 +94,7 @@ export const kindHelp: Readonly<Record<Kind, string>> = {
  */
 const callErrorHelp: Partial<Readonly<Record<CallErrorKind, string>>> = {
   commitUnknown:
-    "The commit got no answer, so the outcome is unknown: it may have committed. Read back what you wrote before running it again: look for the package by its name (`qti export --dry-run <dir> <name>`); the same package imported again under its name is unchanged, never a second copy.",
+    "The commit got no answer, so the outcome is unknown: it may have committed. Read back what you wrote before running it again: look for the package by its name (`qti-export --dry-run <dir> <name>`); the same package imported again under its name is unchanged, never a second copy.",
   transient:
     "The database refused this attempt, which changed nothing: a concurrent transaction's work met it. Run the command again.",
 };

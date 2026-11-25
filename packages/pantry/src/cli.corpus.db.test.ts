@@ -12,6 +12,7 @@ import { comparePackage } from "#pantry/export/compare.ts";
 import { exportPackage } from "#pantry/export/package.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
+import { qtiRoundtrip } from "#pantry/qti-roundtrip.ts";
 import { captureCli, matchesCommitted } from "#pantry/test/cli.ts";
 import { examplesTarball, materializeCorpus } from "#pantry/test/fixtures.ts";
 import { exitCodeOf } from "#pantry/cli/run.ts";
@@ -205,14 +206,11 @@ const judge = Effect.fn("cli.corpus.judge")(function* judge(
   const { direct, report } = importer;
   const refusal = direct._tag === "Failure" ? direct.failure : undefined;
 
-  const [roundtripTime, cli] = yield* captureCli([
-    "--quiet",
-    "--json",
-    "roundtrip",
-    "--yes",
-    path.resolve(entry.dir),
-    nameOf(entry.dir),
-  ]).pipe(Effect.timed);
+  const [roundtripTime, cli] = yield* captureCli(
+    qtiRoundtrip,
+    ["--quiet", "--json", "--yes", path.resolve(entry.dir), nameOf(entry.dir)],
+    Option.none(),
+  ).pipe(Effect.timed);
   const code = exitCodeOf(cli.exit);
 
   if (Duration.toMillis(roundtripTime) > tally.slowestRoundtrip.millis) {

@@ -53,10 +53,11 @@ through the `QTI_PIE_PG_*` settings, as [`AGENTS.md`](AGENTS.md#local-database) 
 $ cd packages/pantry
 $ scripts/db.sh create
 $ scripts/db.sh migrate
-$ node src/cli.ts import ./my-package
+$ node src/qti-import.ts ./my-package my-package
 ```
 
-`node src/cli.ts --help` lists the commands.
+`node src/cli.ts --help` lists the commands, each a program of its own (`src/qti-import.ts`, `src/qti-export.ts`,
+`src/qti-roundtrip.ts`).
 
 ## Stated limits
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased: one program per command
+
+- `import`, `export` and `roundtrip` are programs of their own, each loading its engine statically:
+  `qti-import` (`src/qti-import.ts`), `qti-export` (`src/qti-export.ts`) and `qti-roundtrip`
+  (`src/qti-roundtrip.ts`), with the same arguments, flags, output and exit codes. `qti` (`src/cli.ts`) loads no
+  engine: it prints the help of every command (`qti import --help`), `qti schema` and `qti completions <program>
+  <shell>`, and refuses `qti import`, `qti export` and `qti roundtrip` as a usage error that names the program.
+- The command line holds no dynamic `import()`: `withAuthorApp` (`cli/engine.ts`) takes the effect to run on the pool,
+  `requireName` moves from `cli/args.ts` to `cli/engine.ts`, and `runCli` and `runMain` (`cli/run.ts`) take a
+  `Program`, the command tree and the command its failures are shown as.
+
 ## Unreleased: the operator and usage copies are views
 
 - `RoundingModeFigures` and `ToleranceToken` (`qti/overlay-queries/expression.ts`) and `UsageValueBaseType`

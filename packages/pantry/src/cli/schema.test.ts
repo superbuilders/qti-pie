@@ -3,8 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
-import { Effect, Schema } from "effect";
+import { Effect, Option, Schema } from "effect";
 import { agree, exact, set, structuralHash } from "@bjornpagen/testing/oracle";
+import { qti } from "#pantry/cli.ts";
 import { captureCli } from "#pantry/test/cli.ts";
 import { fileScratchDirectory, scratchEnv } from "#pantry/test/scratch.ts";
 
@@ -33,7 +34,7 @@ const parseObject = (text: string): Readonly<Record<string, Schema.Json>> =>
  * The names `qti schema` lists: the keys of the document it prints with no argument.
  */
 const listedNames = Effect.gen(function* listNames() {
-  const { stdout } = yield* captureCli(["schema"], { env });
+  const { stdout } = yield* captureCli(qti, ["schema"], Option.some(env));
 
   return Object.keys(parseObject(stdout));
 });
@@ -42,7 +43,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("qti schema, database-f
   it.effect("each committed file decodes to what qti schema prints, in draft 2020-12", () =>
     Effect.gen(function* committedFiles() {
       for (const name of yield* listedNames) {
-        const { exit, stdout } = yield* captureCli(["schema", name], { env });
+        const { exit, stdout } = yield* captureCli(qti, ["schema", name], Option.some(env));
         const committed = parseObject(
           fs.readFileSync(path.join(packageRoot, "schema", `${name}.json`), "utf-8"),
         );

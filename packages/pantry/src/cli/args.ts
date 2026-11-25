@@ -118,29 +118,9 @@ export class BadName extends Schema.TaggedError<BadName>()("BadName", {
    * The text and what a package's name is.
    */
   override get message(): string {
-    return `${JSON.stringify(this.name)} is not a package name. A package's name is the key \`qti import\` stores it under: an XML name with no colon and no space (an NCName) of at most 255 bytes, like simple or MANIFEST-1.`;
+    return `${JSON.stringify(this.name)} is not a package name. A package's name is the key \`qti-import\` stores it under: an XML name with no colon and no space (an NCName) of at most 255 bytes, like simple or MANIFEST-1.`;
   }
 }
-
-/**
- * Parse the package name the person gave, once, before anything opens the database: an NCName of
- * at most 255 UTF-8 bytes, `PackageName`'s language (`isPackageName`,
- * `#pantry/qti/limits.ts`), so every text it accepts is one a package can be stored under. The
- * limits load here, as the engine does in the handler, so the command line's static graph reaches
- * none of them.
- *
- * @param name - The name the person gave.
- * @returns The name. Fails with `BadName` when no package can be stored under the text.
- */
-export const requireName = Effect.fn("cli.requireName")(function* requireName(name: string) {
-  const { isPackageName } = yield* Effect.promise(() => import("#pantry/qti/limits.ts"));
-
-  if (!isPackageName(name)) {
-    return yield* new BadName({ name });
-  }
-
-  return name;
-});
 
 /**
  * The folder `target` would be written into, with symlinks in its parents resolved, so a path that

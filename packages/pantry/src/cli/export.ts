@@ -1,15 +1,7 @@
-import { Effect, Schema } from "effect";
+import { Schema } from "effect";
 import { Argument, Command } from "effect/cli";
-import {
-  dryRunFlag,
-  replaceWith,
-  requireName,
-  requireReplaceable,
-  yesFlag,
-  zipFlag,
-} from "#pantry/cli/args.ts";
-import { withAuthorApp } from "#pantry/cli/engine.ts";
-import { emitSuccess, outputMode } from "#pantry/cli/output.ts";
+import { dryRunFlag, yesFlag, zipFlag } from "#pantry/cli/args.ts";
+import { emitSuccess } from "#pantry/cli/output.ts";
 import type { OutputMode } from "#pantry/cli/output.ts";
 import type { ZipEntry } from "#pantry/package/zip.ts";
 
@@ -58,7 +50,7 @@ export const ExportData = Schema.Union([ExportPlanned, ExportWritten]);
  * @param written.target - Where they were written.
  * @returns Completes once it is printed.
  */
-const reportExported = (
+export const reportExported = (
   mode: OutputMode,
   written: {
     readonly entries: readonly ZipEntry[];
@@ -78,94 +70,54 @@ const reportExported = (
   });
 
 /**
- * Write the imported package named `name`, the name `qti import` stored it under, to `dir`, or to
- * a zip file under `--zip`.
+ * The definition of `export`, as the command `commandName`: write the imported package named
+ * `name`, the name `qti-import` stored it under, to `dir`, or to a zip file under `--zip`.
  *
- * A target that already has something in it needs `--yes`, which replaces it, files `qti` did not
- * write included. The name and the target are checked before the database opens. The export
+ * A target that already has something in it needs `--yes`, which replaces it, files `qti-export`
+ * did not write included. The name and the target are checked before the database opens. The export
  * is written beside the target first and takes its place only once it is complete, so an export
  * that fails leaves the old target as it was. A symlink target is replaced, never followed.
  *
- * The engine loads when the handler runs, so `--help` and a usage error never pay for it, and the
- * exporter loads inside the database's pool (`withAuthorApp`), so neither does a run that cannot
- * reach the database. Under `--output json` it lists the entries `exportPackage` wrote, in the
- * order it wrote them, each with its size; text mode prints nothing.
+ * The definition holds no handler: `qti-export` (`#pantry/qti-export.ts`) runs it on the engine,
+ * and `qti` holds it only for its help and completions, so `qti` never loads the engine. Under
+ * `--output json` it lists the entries `exportPackage` wrote, in the order it wrote them, each with
+ * its size; text mode prints nothing.
  *
  * Under `--dry-run` nothing is written and the target is not touched: the entries the export would
  * write are listed with their sizes, and whether the target would be created or replaced. A dry run
  * refuses what the real run would refuse, before it opens the database: a target with something in
  * it without `--yes`, and the folders no export replaces.
+ *
+ * @param commandName - The command's name: `export` under `qti`, `qti-export` as its own program.
+ * @returns The command, with no handler.
  */
-export const exportCommand = Command.make(
-  "export",
-  {
+export const exportDefinition = <Name extends string>(commandName: Name) =>
+  Command.make(commandName, {
     dir: Argument.String("dir"),
     dryRun: dryRunFlag,
     name: Argument.String("name"),
     yes: yesFlag,
     zip: zipFlag,
-  },
-  Effect.fn("cli.export")(function* exportHandler({ dir, dryRun, name, yes, zip }) {
-    const mode = yield* outputMode;
-    const target = zip && !dir.endsWith(".zip") ? `${dir}.zip` : dir;
-
-    const named = yield* requireName(name);
-    const action = yield* requireReplaceable(target, yes);
-
-    if (dryRun) {
-      const planned = yield* withAuthorApp(
-        () => import("#pantry/export/package.ts"),
-        ({ exportEntries }) => exportEntries(named),
-      );
-      const entries = planned.map(({ bytes, path }) => ({ bytes: bytes.byteLength, path }));
-      const lines = entries.map(({ bytes, path }) => `  ${path} (${bytes} bytes)`);
-
-      yield* emitSuccess(mode, {
-        command: "export",
-        data: {
-          dry_run: true,
-          entries,
-          package: named,
-          target,
-          target_action: action,
-        },
-        dataSchema: ExportData,
-        ok: true,
-        text: [`would ${action} ${target} with ${entries.length} files:`, ...lines].join("\n"),
-      });
-
-      return;
-    }
-
-    const written = yield* replaceWith(target, (staged) =>
-      withAuthorApp(
-        () => import("#pantry/export/package.ts"),
-        ({ exportPackage }) => exportPackage(named, staged),
-      ),
-    );
-
-    yield* reportExported(mode, { entries: written, package: named, target });
-  }),
-).pipe(
-  Command.withDescription(
-    "Export the package named <name>, the name `qti import` stored it under, to <dir>, or to the zip file <dir>.zip under --zip (writes files; --dry-run lists them, writes nothing and refuses what the real run would refuse). A <dir> that already has something in it needs --yes, which replaces it, and the old one goes only once the new export is written; a symlink is replaced, never followed",
-  ),
-  Command.withExamples([
-    {
-      command: "qti export ./out simple",
-      description: "Write an imported package to the folder ./out",
-    },
-    {
-      command: "qti export --zip ./out simple",
-      description: "Write it to the zip file ./out.zip",
-    },
-    {
-      command: "qti export --dry-run ./out simple",
-      description: "List the files it would write, and write nothing",
-    },
-    {
-      command: "qti export --output json ./out simple",
-      description: "Print the files written as one line of JSON",
-    },
-  ]),
-);
+  }).pipe(
+    Command.withDescription(
+      "Export the package named <name>, the name `qti-import` stored it under, to <dir>, or to the zip file <dir>.zip under --zip (writes files; --dry-run lists them, writes nothing and refuses what the real run would refuse). A <dir> that already has something in it needs --yes, which replaces it, and the old one goes only once the new export is written; a symlink is replaced, never followed",
+    ),
+    Command.withExamples([
+      {
+        command: "qti-export ./out simple",
+        description: "Write an imported package to the folder ./out",
+      },
+      {
+        command: "qti-export --zip ./out simple",
+        description: "Write it to the zip file ./out.zip",
+      },
+      {
+        command: "qti-export --dry-run ./out simple",
+        description: "List the files it would write, and write nothing",
+      },
+      {
+        command: "qti-export --output json ./out simple",
+        description: "Print the files written as one line of JSON",
+      },
+    ]),
+  );

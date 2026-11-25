@@ -1,10 +1,15 @@
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Cause, Effect, Exit, Option, Stdio } from "effect";
+import { Cause, Effect, Exit, Logger, Option, Stdio } from "effect";
 import { CliConfig, CliError, CliOutput, Command } from "effect/cli";
 import { builtIns } from "#pantry/cli/config.ts";
 import { describeFailure, kindExitCode } from "#pantry/cli/errors.ts";
-import { defaultOutputMode, modeOfArguments, modeOfEnvironment } from "#pantry/cli/output.ts";
+import {
+  defaultOutputMode,
+  modeOfArguments,
+  modeOfEnvironment,
+  outputGlobalFlags,
+} from "#pantry/cli/output.ts";
 import {
   commandOfArguments,
   followsValuedFlag,
@@ -12,6 +17,7 @@ import {
   presenterFor,
   printFailures,
 } from "#pantry/cli/present.ts";
+import { verbosityGlobalFlags, withVerbosity } from "#pantry/cli/verbosity.ts";
 
 /**
  * Read `-v` as `--verbose`. Effect's `--version` built-in claims the alias `v`, and an alias on the
@@ -34,19 +40,58 @@ const rewriteVerbose = (args: readonly string[]): readonly string[] => {
 };
 
 /**
- * Run `command` on the arguments `Stdio` supplies, with this program's presenter and built-in
+ * One of the command line's programs: its command tree, and the command its failures are shown as
+ * where the line names no subcommand of it: `qti` for `qti` itself, and `import`, `export` or
+ * `roundtrip` for the program that runs that command (`qti-import`, `qti-export`, `qti-roundtrip`),
+ * the name its success envelope carries too.
+ */
+export interface Program<C> {
+  readonly command: C;
+  readonly shownAs: string;
+}
+
+/**
+ * Make `command` a program shown as `shownAs`, with the global flags every program of the command
+ * line takes:
+ *
+ * - `--output`, `--json` and `--jsonl` reach every command; a handler reads the mode it prints in.
+ * - `--quiet` and `--verbose` choose the minimum log level the chosen handler runs at.
+ * - Log lines are diagnostics: they go to standard error, so standard output carries only the data
+ *   asked for. A command's handler runs its chosen subcommand's, so the program's `LogToStderr`
+ *   reaches every handler.
+ *
+ * @param command - The program's command tree.
+ * @param shownAs - The command its failures are shown as where the line names no subcommand.
+ * @returns The program.
+ */
+export const asProgram = <Name extends string, Input, ContextInput, E, R>(
+  command: Command.Command<Name, Input, ContextInput, E, R>,
+  shownAs: string,
+) => ({
+  command: command.pipe(
+    Command.withGlobalFlags(outputGlobalFlags),
+    withVerbosity,
+    Command.withGlobalFlags(verbosityGlobalFlags),
+    Command.provideSync(Logger.LogToStderr, true),
+  ),
+  shownAs,
+});
+
+/**
+ * Run a program on the arguments `Stdio` supplies, with this command line's presenter and built-in
  * flags, printing what failed. The process and every in-process test run through here, so both
  * behave as a shell does.
  *
- * @param command - The command line to run.
+ * @param program - The program to run.
  * @param config - The version `--version` prints.
  * @returns The run, which still needs the services the command's handlers use.
  */
 export const runCli = <Name extends string, Input, ContextInput, E, R>(
-  command: Command.Command<Name, Input, ContextInput, E, R>,
+  program: Program<Command.Command<Name, Input, ContextInput, E, R>>,
   config: { readonly version: string },
 ) =>
   Effect.gen(function* runWithMode() {
+    const { command } = program;
     /**
      * The mode is read from the raw arguments before `Command.run` parses them, so a parse error
      * under `--json` is JSON too.
@@ -65,7 +110,7 @@ export const runCli = <Name extends string, Input, ContextInput, E, R>(
       command: commandOfArguments(
         args,
         command.subcommands.flatMap(({ commands }) => commands.map(({ name }) => name)),
-        command.name,
+        program.shownAs,
       ),
       mode,
     } as const;
@@ -123,18 +168,18 @@ const endOnStdoutError = (error: NodeJS.ErrnoException): never => {
 };
 
 /**
- * Run `command` as the program: provide the Node services and end the process with the run's exit
+ * Run a program as this process: provide the Node services and end the process with the run's exit
  * code. A closed standard output ends the run quietly (see
  * {@link endOnStdoutError}).
  *
- * @param command - The command line to run.
+ * @param program - The program to run.
  */
 export const runMain = <Name extends string, Input, ContextInput, E>(
-  command: Command.Command<Name, Input, ContextInput, E, NodeServices.NodeServices>,
+  program: Program<Command.Command<Name, Input, ContextInput, E, NodeServices.NodeServices>>,
 ): void => {
   process.stdout.on("error", endOnStdoutError);
   NodeRuntime.runMain(
-    runCli(command, { version: "0.0.0" }).pipe(Effect.provide(NodeServices.layer)),
+    runCli(program, { version: "0.0.0" }).pipe(Effect.provide(NodeServices.layer)),
     {
       disableErrorReporting: true,
       teardown: (exit, onExit) => {

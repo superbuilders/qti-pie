@@ -1,6 +1,6 @@
 /**
  * The import of a package at a path, as the tests run it: the package read once, then what was
- * read imported, as the command line's `import` runs them (`#pantry/cli/import.ts`).
+ * read imported, as `qti-import` runs them (`#pantry/qti-import.ts`).
  */
 import { Effect } from "effect";
 import { Db } from "@bjornpagen/grizzle/runtime";
