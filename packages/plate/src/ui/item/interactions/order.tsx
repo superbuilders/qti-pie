@@ -242,13 +242,13 @@ export const review = (
             <li
               key={index}
               {...(positions[index]?.by === "aria-label"
-                ? { "aria-label": positions[index]?.name, role: "group" }
+                ? { "aria-label": positions[index].name, role: "group" }
                 : {})}
               data-empty={flag(slot.kind === "empty")}
               data-slot="plate-placement-target"
             >
               {positions[index]?.label === undefined ? null : (
-                <div data-slot="plate-placement-target-label">{positions[index]?.label}</div>
+                <div data-slot="plate-placement-target-label">{positions[index].label}</div>
               )}
               {chipsAt(slot, writings, locale)}
             </li>

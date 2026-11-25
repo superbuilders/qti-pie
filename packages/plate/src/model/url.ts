@@ -1080,8 +1080,8 @@ export const classifyUrl = (context: UrlContext, value: string): ClassifiedUrl =
 };
 
 /**
- * Give the package paths a classified value keeps: the value itself when it is one, and each of a
- * `srcset`'s candidates that is one, in order.
+ * Give the package paths a classified value keeps: the value itself when it is one, and a
+ * `srcset`'s candidates, every one a package path, in order.
  *
  * @param url The classification.
  * @returns The package paths; none for a dropped value, a remote URL and a fragment.
@@ -1093,9 +1093,7 @@ const packageUrlsOf = (url: ClassifiedUrl): readonly PackageUrl[] => {
     }
 
     case "srcset": {
-      return url.candidates.flatMap((candidate) =>
-        candidate.url.kind === "package" ? [candidate.url] : [],
-      );
+      return url.candidates.map((candidate) => candidate.url);
     }
 
     case "dropped":

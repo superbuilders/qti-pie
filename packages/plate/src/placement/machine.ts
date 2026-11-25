@@ -532,7 +532,7 @@ const samePair = (a: Box, b: Box): boolean =>
  */
 const sameBoxes = (a: Boxes, b: Boxes): boolean =>
   a.length === b.length &&
-  a.every((box, index) => box[0] === b[index]?.[0] && box[1] === b[index]?.[1]);
+  a.every((box, index) => box[0] === b[index]?.[0] && box[1] === b[index][1]);
 
 /**
  * Read the chip a half holds.

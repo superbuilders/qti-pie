@@ -213,7 +213,7 @@ const showCaptions = (element: HTMLMediaElement, shown: boolean): void => {
 const describe = (track: TextTrack): void => {
   const text = collapsedText(
     [...(track.activeCues ?? [])]
-      .map((cue) => (cue instanceof VTTCue ? (cue.getCueAsHTML().textContent ?? "") : ""))
+      .map((cue) => (cue instanceof VTTCue ? cue.getCueAsHTML().textContent : ""))
       .join(" "),
   );
 
