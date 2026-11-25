@@ -984,7 +984,9 @@ const situations: readonly [Situation | AdversarialName, ...(Situation | Adversa
 
 describe("qti/interactions.ts and qti/declarations.ts, the double orders", () => {
   it("evaluates each relation under its installed Slider_bounds or Mastery_range check, and under its former statements beside it", () => {
-    // Oracle: the schema's statements, which `Qti` holds once each, and the one restated here.
+    /**
+     * Oracle: the schema's statements, which `Qti` holds once each, and the one restated here.
+     */
     const slider = { ...place, lower: "0", upper: "1" };
     const floor = { ...place, masteryValue: 1, normalMinimum: 0 };
     const ceiling = { ...place, masteryValue: 0, normalMaximum: 1 };

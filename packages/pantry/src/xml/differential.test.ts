@@ -183,7 +183,9 @@ const documentOf: Gen<DocumentSketch> = (source) => {
 
   return {
     charset,
-    // A single-byte document must declare its charset, or it is read as UTF-8.
+    /**
+     * A single-byte document must declare its charset, or it is read as UTF-8.
+     */
     declared: charset === "iso-8859-1" || charset === "windows-1252" || source.draw(boolean),
     doctype,
     epilog: source.draw(array(miscOf, { max: 2, min: 0 })),
@@ -254,7 +256,9 @@ const miscText = (misc: Misc): string =>
     : `<?${misc.target}${misc.data === "" ? "" : ` ${misc.data}`}?>`;
 
 const elementText = (sketch: ElementSketch, charset: Charset): string => {
-  // One child of an element as markup.
+  /**
+   * One child of an element as markup.
+   */
   const contentText = (child: Content): string => {
     if (child.kind === "element") {
       return elementText(child, charset);
@@ -456,9 +460,11 @@ describe("crust's reader as pantry uses it", () => {
                   decoder.decode(yield* xmllintC14n(file)),
                 );
 
-                // The root's attributes in document order, a namespace declaration included, and a
-                // default the internal subset supplies after them (crust's tree promises this order;
-                // canonical form sorts it away).
+                /**
+                 * The root's attributes in document order, a namespace declaration included, and a
+                 * default the internal subset supplies after them (crust's tree promises this
+                 * order; canonical form sorts it away).
+                 */
                 const root = sketch.doctype ? { ...sketch.root, name: "a" } : sketch.root;
                 const written = root.attributes.map(([name]) => name);
 
@@ -473,10 +479,12 @@ describe("crust's reader as pantry uses it", () => {
                   ],
                 );
 
-                // The round trip through crust's encoder under the charset the importer exports
-                // in (the document's own, or UTF-8 for a label crust only decodes), its
-                // declaration naming that charset as encode's contract asks, reads back as the
-                // same tree.
+                /**
+                 * The round trip through crust's encoder under the charset the importer exports
+                 * in (the document's own, or UTF-8 for a label crust only decodes), its
+                 * declaration naming that charset as encode's contract asks, reads back as the
+                 * same tree.
+                 */
                 const label = exportCharset(document.charset, document);
 
                 // crust's contract: a label it only decodes (windows-1252 here) is refused for

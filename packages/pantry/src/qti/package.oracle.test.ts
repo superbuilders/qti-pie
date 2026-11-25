@@ -303,9 +303,12 @@ const sortedByPath = <A extends { readonly path: string }>(rows: Iterable<A>): r
 
 describe("qti/package.ts", () => {
   it("names every check of the package's laws by an oracle law, and the laws compose with the schema's relations", () => {
-    // Oracle: the specification as a checker, the oracle's law names (`src/test/oracle.ts`), each
-    // spelled with underscores for its spaces, since a check's name is an identifier; and grizzle's
-    // own description check, which a scratch schema of the schema's relations and these laws passes.
+    /**
+     * Oracle: the specification as a checker, the oracle's law names (`src/test/oracle.ts`), each
+     * spelled with underscores for its spaces, since a check's name is an identifier; and grizzle's
+     * own description check, which a scratch schema of the schema's relations and these laws
+     * passes.
+     */
     const named = new Set<string>(lawNames);
     const checks = packageLaws.flatMap((law) =>
       law.kind === "check" && Predicate.hasProperty(law, "name") && Predicate.isString(law.name)
@@ -453,8 +456,10 @@ describe("qti/package.ts", () => {
   );
 
   it("types the entries as the inserts of a package, its entries and its media", () => {
-    // Oracle: grizzle's own insert types, `AdditionIn` of the entries' schema: the package is a
-    // fact of `Package` exactly, each entry one of `Entry`, and each media row one of `Media`.
+    /**
+     * Oracle: grizzle's own insert types, `AdditionIn` of the entries' schema: the package is a
+     * fact of `Package` exactly, each entry one of `Entry`, and each media row one of `Media`.
+     */
     const record = packageRecordOf({
       ...splitOf([
         { bytes: new Uint8Array([1, 2]), kind: "manifest", path: "imsmanifest.xml" },

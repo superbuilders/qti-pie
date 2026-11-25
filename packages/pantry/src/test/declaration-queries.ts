@@ -340,7 +340,9 @@ const builtInResponseNames: ReadonlySet<string> = new Set(
  */
 const mappedHolds = (index: Index): boolean =>
   index.all("PlacedVariableRef").every((placed) => {
-    // A reference's element's kind is its node's, as the view `PlacedVariableRefNode` reads it.
+    /**
+     * A reference's element's kind is its node's, as the view `PlacedVariableRefNode` reads it.
+     */
     const referrer = textOfField("Node", "kind", index.kindAt(placeOf(placed)));
     const table = mappedTables.get(referrer);
     const declaration =

@@ -255,8 +255,10 @@ const readingsOf = (
     builtIns: { item: builtInsOf(testKinds.item), test: builtInsOf(testKinds.test) },
     scopes,
     testDeclared: declaredNamesOf(test.listed.rows, grammar),
-    // The variables an item ref names through its item (§7.47, §7.48, reading 107): each the item
-    // declares, and each a mapping of the item ref gives one of the item's declarations.
+    /**
+     * The variables an item ref names through its item (§7.47, §7.48, reading 107): each the item
+     * declares, and each a mapping of the item ref gives one of the item's declarations.
+     */
     variablesOf: ({ instance, item, name }) =>
       Option.match(item, {
         onNone: () => new Map(),
@@ -421,8 +423,10 @@ const testReadingsOf = (
       const table = Option.fromNullishOr(claimedTables.get(node.kind)).pipe(
         Option.filter(() => attribute === "identifier"),
       );
-      // Reading 166: each reading through an item's ref claims the item variable's table, which a
-      // built-in variable never holds.
+      /**
+       * Reading 166: each reading through an item's ref claims the item variable's table, which a
+       * built-in variable never holds.
+       */
       const unmapped = Option.toArray(table).flatMap((claimed) =>
         readings
           .flatMap(({ through }) =>
@@ -595,8 +599,10 @@ export const scopedReadsOf = (
           cardinality: builtIn.cardinality,
         };
   };
-  // An item variable's type through an item ref: the item's declaration of it, else the source
-  // declaration of the ref's first variable mapping that targets it, else an item built-in.
+  /**
+   * An item variable's type through an item ref: the item's declaration of it, else the source
+   * declaration of the ref's first variable mapping that targets it, else an item built-in.
+   */
   const itemTypeOf = (scope: Scope, item: ListedRows, variable: string): Type | undefined => {
     const { rows } = scope.instance.document.listed;
     const source = rows.members

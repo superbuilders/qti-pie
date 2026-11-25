@@ -913,7 +913,9 @@ export const isOutsideSet = (
     return false;
   }
 
-  // An element is read by its parent's wildcard, and an attribute by its own element's.
+  /**
+   * An element is read by its parent's wildcard, and an attribute by its own element's.
+   */
   const readers = attribute === "" ? kinds.slice(0, -1) : kinds;
   const beneathForeign = readers.some((held) => isForeignKind(held));
 
@@ -1653,10 +1655,12 @@ export const generatedRecorded: readonly Recorded[] = [
   },
   {
     class: "content",
-    // Every message is one a reading records: the XSD's empty types refusing whitespace text (the
-    // record above), or its content expression refusing a `semantics` the RelaxNG's `ContExp`
-    // admits, where xmllint expects the members the XSD's group names, `apply` first. Any other
-    // message of the document stands unrecorded and fails it.
+    /**
+     * Every message is one a reading records: the XSD's empty types refusing whitespace text (the
+     * record above), or its content expression refusing a `semantics` the RelaxNG's `ContExp`
+     * admits, where xmllint expects the members the XSD's group names, `apply` first. Any other
+     * message of the document stands unrecorded and fails it.
+     */
     detail: coveredMessages,
     direction: "xsd-only",
     reason: {
@@ -2048,10 +2052,12 @@ export const foreignNamesOf = Effect.fn("test.foreignNamesOf")(function* foreign
     ),
   );
   const typed = rows.nodes.filter((node) => padded.has(node.start));
-  // libxml2 skips an element whose xsi:type its schema set resolves to no type (cvc-type clause 1):
-  // a foreign element the codec left ungoverned, or any element whose QName's prefix binds no
-  // namespace, or one neither XML Schema's nor the set's. It skips the content of an element a
-  // simple type governs that holds an element child (clause 3.1.2).
+  /**
+   * Libxml2 skips an element whose xsi:type its schema set resolves to no type (cvc-type clause 1):
+   * a foreign element the codec left ungoverned, or any element whose QName's prefix binds no
+   * namespace, or one neither XML Schema's nor the set's. It skips the content of an element a
+   * simple type governs that holds an element child (clause 3.1.2).
+   */
   const declared = Map.groupBy(rows.namespaces, ({ start }) => start);
   const boundBy = (node: (typeof rows.nodes)[number], prefix: string): string | undefined => {
     for (
@@ -2093,8 +2099,10 @@ export const foreignNamesOf = Effect.fn("test.foreignNamesOf")(function* foreign
   );
   const below = (anchors: readonly (typeof rows.nodes)[number][]) =>
     rows.nodes.filter((node) => anchors.some((at) => at.start < node.start && node.end <= at.end));
-  // A foreign element's content is held by the ur-type's lax wildcard. A governing type no
-  // attribute governor names is complex (a simple one's is `simpleHeld`'s governor).
+  /**
+   * A foreign element's content is held by the ur-type's lax wildcard. A governing type no
+   * attribute governor names is complex (a simple one's is `simpleHeld`'s governor).
+   */
   const complexTyped = rows.nodes.filter(
     (node) =>
       isForeignKind(node.kind) &&
@@ -2102,7 +2110,9 @@ export const foreignNamesOf = Effect.fn("test.foreignNamesOf")(function* foreign
       Option.isNone(governorOf(grammar.attributes, node)) &&
       isForeignKind(byStart.get(node.parent)?.kind ?? ""),
   );
-  // XInclude ignores an include's children but its fallback, and what they hold (reading 118).
+  /**
+   * XInclude ignores an include's children but its fallback, and what they hold (reading 118).
+   */
   const ignoredChildren = rows.nodes.filter(
     (node) => byStart.get(node.parent)?.kind === includeKind && node.kind !== fallbackKind,
   );
@@ -2195,13 +2205,15 @@ export const judgeDocument = Effect.fn("test.judgeDocument")(function* judgeDocu
 
     const cls = ((): LawClass => {
       if (failure.kind === "attribute") {
-        // An attribute no handle names, one its kind admits under neither its closed handle nor
-        // its open class, an xml: or xsi: attribute its kind does not admit, and a data-* name
-        // outside the data class's language (reading 13) are attributes the element does not
-        // allow (cvc-complex-type clause 3), as xmllint's "is not allowed" says. An xsi:type that
-        // is no QName in scope, or names no type, is a value its attribute's declaration refuses
-        // (cvc-elt clauses 4.1 and 4.2), which xmllint reports on the attribute. A namespace name
-        // behind an entity reference is no schema rule's.
+        /**
+         * An attribute no handle names, one its kind admits under neither its closed handle nor
+         * its open class, an xml: or xsi: attribute its kind does not admit, and a data-* name
+         * outside the data class's language (reading 13) are attributes the element does not
+         * allow (cvc-complex-type clause 3), as xmllint's "is not allowed" says. An xsi:type that
+         * is no QName in scope, or names no type, is a value its attribute's declaration refuses
+         * (cvc-elt clauses 4.1 and 4.2), which xmllint reports on the attribute. A namespace name
+         * behind an entity reference is no schema rule's.
+         */
         const { reason } = failure;
         switch (reason) {
           case "data-name":
@@ -2255,8 +2267,10 @@ export const judgeDocument = Effect.fn("test.judgeDocument")(function* judgeDocu
       : stop("AL1 admission", "attribute-admission", rows.failure.message, "attribute-allowed");
   }
 
-  // A law that throws on rows the folds wrote is the oracle's defect on this document, reported as
-  // such rather than ending the comparison of every other document.
+  /**
+   * A law that throws on rows the folds wrote is the oracle's defect on this document, reported as
+   * such rather than ending the comparison of every other document.
+   */
   const breaches = yield* Effect.result(
     Effect.try({
       catch: (error) =>
@@ -2467,7 +2481,9 @@ export const elementGrainDifferences = (
 
   const kinds = new Set(grammar.kinds.elementName.rows.map(messageName));
   const foreignNames = new Set([...foreign].map((name) => name.replace(regex("^\\{\\}", "u"), "")));
-  // A foreign element's messages and refusals meet under one name no kind has.
+  /**
+   * A foreign element's messages and refusals meet under one name no kind has.
+   */
   const foreignGroup = "(foreign)";
   const nameOfNode = (node: string): string | undefined =>
     isForeignKind(kindOfNode(node))
@@ -2475,8 +2491,10 @@ export const elementGrainDifferences = (
       : Option.getOrUndefined(
           Option.map(grammar.kinds.elementName.lookup({ kind: kindOfNode(node) }), messageName),
         );
-  // The groups a message's element may be in: its kind's, and the foreign elements', both where a
-  // kind's element and a foreign one share its name.
+  /**
+   * The groups a message's element may be in: its kind's, and the foreign elements', both where a
+   * kind's element and a foreign one share its name.
+   */
   const groupsOfMessage = (name: string): readonly string[] => [
     ...(kinds.has(name) ? [name] : []),
     ...(foreignNames.has(name) ? [foreignGroup] : []),
@@ -2512,8 +2530,10 @@ export const elementGrainDifferences = (
     return [
       ...[...said].map(([, held]): Difference => ({
         class: cls,
-        // Each message names its own element, never the group's, so a classifier that reads
-        // where a message stands (reading 6's nested roots, reading 81's sets) still can.
+        /**
+         * Each message names its own element, never the group's, so a classifier that reads
+         * where a message stands (reading 6's nested roots, reading 81's sets) still can.
+         */
         detail: held
           .map(
             ({ message, name }) =>
@@ -2618,8 +2638,10 @@ export const generatedRecordOf = (
   }
 
   const holds = (held: Recorded): boolean => gateHolds(held, difference, names, Option.some(root));
-  // WHY: nilValueRecord's gate is judged after the match, so a difference it matches by detail in a
-  // document that holds no such xsi:nil is matched by no record rather than by a later one.
+  /**
+   * WHY: nilValueRecord's gate is judged after the match, so a difference it matches by detail in a
+   * document that holds no such xsi:nil is matched by no record rather than by a later one.
+   */
   const record = recordOf(
     context.document,
     difference,

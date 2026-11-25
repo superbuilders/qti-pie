@@ -294,8 +294,10 @@ export const resolution = <Kind extends string, Name extends string>(
   kinds: KindRosters<Kind, Name>,
   admits: (parent: string, kind: Kind) => boolean,
 ): Kinds<Kind, Name> => {
-  // Each expanded name's element kinds, by namespace and then local name, in code order. The kind
-  // is `ElementName`'s key, a `NodeKind` handle, so a resolved kind is a `Kind` by its type.
+  /**
+   * Each expanded name's element kinds, by namespace and then local name, in code order. The kind
+   * is `ElementName`'s key, a `NodeKind` handle, so a resolved kind is a `Kind` by its type.
+   */
   const candidates = new Map<string, Map<string, Kind[]>>();
   for (const { kind, local, namespace } of kinds.elementName.rows) {
     candidates

@@ -186,11 +186,13 @@ const listDocuments = Effect.fn("import.listDocuments")(function* listDocuments(
   const named = namedDocuments(
     typedPathsOf(packageRowsOf(manifestView, { package: name }), resourceTypesOf(manifestView)),
   );
-  // A path is one document, of one type (reading 93): the manifest's, `manifest`, read before any
-  // resource names a path (reading 146), else the type its root bears out among those resources
-  // name it under (reading 162). Another type's href, the manifest's path's included, then names
-  // no document of its type, which "Document entry" refuses, and the document is read once and
-  // judged where its sites place it.
+  /**
+   * A path is one document, of one type (reading 93): the manifest's, `manifest`, read before any
+   * resource names a path (reading 146), else the type its root bears out among those resources
+   * name it under (reading 162). Another type's href, the manifest's path's included, then names
+   * no document of its type, which "Document entry" refuses, and the document is read once and
+   * judged where its sites place it.
+   */
   const pairs = [...named.values()];
   const manifest: ListedDocument = {
     documentType: "manifest",

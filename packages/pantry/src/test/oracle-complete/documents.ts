@@ -138,15 +138,19 @@ const singleValue = regex(
  * Each law's mutation, by law.
  */
 export const documentMutations = {
-  // Adaptive feedback (§5.49, §5.52): the non-adaptive item's slider interaction, bound to LEVER,
-  // moved into a feedback block's content body, bare or inside a division.
+  /**
+   * Adaptive feedback (§5.49, §5.52): the non-adaptive item's slider interaction, bound to LEVER,
+   * moved into a feedback block's content body, bare or inside a division.
+   */
   "Adaptive feedback": {
     law: "Adaptive feedback",
     mutate: oneOf([
       drawnIn(item, (text) => (source) => {
         const slider =
           '<qti-slider-interaction response-identifier="LEVER" lower-bound="0" upper-bound="10" step="1"/>';
-        // A feedback block holds its flow content in a content body.
+        /**
+         * A feedback block holds its flow content in a content body.
+         */
         const held = source.draw(element([slider, `<div>${slider}</div>`]));
         const before = source.draw(
           element([
@@ -164,8 +168,10 @@ export const documentMutations = {
     ]),
     over: "package",
   },
-  // Declaration base type (§4.5.3): a variable of single, multiple or ordered cardinality declared
-  // with no base type, or a record declared with one.
+  /**
+   * Declaration base type (§4.5.3): a variable of single, multiple or ordered cardinality declared
+   * with no base type, or a record declared with one.
+   */
   "Declaration base type": {
     law: "Declaration base type",
     mutate: oneOf([
@@ -180,8 +186,10 @@ export const documentMutations = {
     ]),
     over: "package",
   },
-  // Declaration not reserved (readings 72 and 168): a declaration of a built-in session variable
-  // in an item, any of the three.
+  /**
+   * Declaration not reserved (readings 72 and 168): a declaration of a built-in session variable
+   * in an item, any of the three.
+   */
   "Declaration not reserved": {
     law: "Declaration not reserved",
     mutate: oneOf([
@@ -192,7 +200,9 @@ export const documentMutations = {
     ]),
     over: "package",
   },
-  // Dependency target (CP 1.2): a drawn dependency of the manifest naming no resource of it.
+  /**
+   * Dependency target (CP 1.2): a drawn dependency of the manifest naming no resource of it.
+   */
   "Dependency target": {
     law: "Dependency target",
     mutate: oneOf([
@@ -209,8 +219,10 @@ export const documentMutations = {
     ]),
     over: "package",
   },
-  // LomObjectTitle (QTI 3.0 Metadata §2.7.1.2): an item's title changed under its record's title,
-  // by a word, by case, or by a doubled space, which `xs:normalizedString` keeps.
+  /**
+   * LomObjectTitle (QTI 3.0 Metadata §2.7.1.2): an item's title changed under its record's title,
+   * by a word, by case, or by a doubled space, which `xs:normalizedString` keeps.
+   */
   LomObjectTitle: {
     law: "LomObjectTitle",
     mutate: oneOf(
@@ -233,8 +245,10 @@ export const documentMutations = {
     ),
     over: "package",
   },
-  // Mastery range (reading 9): the item's SCORE given a mastery value above its normal maximum or
-  // below its normal minimum, or a normal range that leaves its mastery value out.
+  /**
+   * Mastery range (reading 9): the item's SCORE given a mastery value above its normal maximum or
+   * below its normal minimum, or a normal range that leaves its mastery value out.
+   */
   "Mastery range": {
     law: "Mastery range",
     mutate: oneOf([
@@ -264,8 +278,10 @@ export const documentMutations = {
     ]),
     over: "package",
   },
-  // Max strings required (§5.48.6): an extended text interaction bound to a new multiple or ordered
-  // string response, written with no max-strings.
+  /**
+   * Max strings required (§5.48.6): an extended text interaction bound to a new multiple or ordered
+   * string response, written with no max-strings.
+   */
   "Max strings required": {
     law: "Max strings required",
     mutate: oneOf([
@@ -285,9 +301,11 @@ export const documentMutations = {
     ]),
     over: "package",
   },
-  // Printed variable type (§9.3.3): the first item's printed variable's base, which names the
-  // single integer outcome DIGITS, made a base or an index that names the float outcome SCORE or
-  // the identifier outcome FEEDBACK, each single.
+  /**
+   * Printed variable type (§9.3.3): the first item's printed variable's base, which names the
+   * single integer outcome DIGITS, made a base or an index that names the float outcome SCORE or
+   * the identifier outcome FEEDBACK, each single.
+   */
   "Printed variable type": {
     law: "Printed variable type",
     mutate: oneOf([
@@ -304,7 +322,9 @@ export const documentMutations = {
     ]),
     over: "package",
   },
-  // Record field key (§8.16): the item's SUMMARY record default given two fields of one name.
+  /**
+   * Record field key (§8.16): the item's SUMMARY record default given two fields of one name.
+   */
   "Record field key": {
     law: "Record field key",
     mutate: oneOf([
@@ -322,8 +342,10 @@ export const documentMutations = {
     ]),
     over: "package",
   },
-  // Reserved type (§2.2.2.1, reading 74): QTI_CONTEXT declared as an outcome, where it is built in
-  // as the context record.
+  /**
+   * Reserved type (§2.2.2.1, reading 74): QTI_CONTEXT declared as an outcome, where it is built in
+   * as the context record.
+   */
   "Reserved type": {
     law: "Reserved type",
     mutate: oneOf([
@@ -333,10 +355,12 @@ export const documentMutations = {
     ]),
     over: "package",
   },
-  // Template needs (§4.6.1, §6.9.40, §6.39.4): the templated item's processing, which names
-  // match_correct and holds no rule, renamed to a Common Cartridge template whose published rules
-  // read MAXSCORE, and set FEEDBACKBASIC, neither of which the item declares; it declares RESPONSE,
-  // SCORE and FEEDBACK.
+  /**
+   * Template needs (§4.6.1, §6.9.40, §6.39.4): the templated item's processing, which names
+   * match_correct and holds no rule, renamed to a Common Cartridge template whose published rules
+   * read MAXSCORE, and set FEEDBACKBASIC, neither of which the item declares; it declares RESPONSE,
+   * SCORE and FEEDBACK.
+   */
   "Template needs": {
     law: "Template needs",
     mutate: oneOf([
@@ -359,8 +383,10 @@ export const documentMutations = {
     ]),
     over: "package",
   },
-  // Typed value (§7.46, §8.13): a drawn default or correct value written as a text that is no
-  // lexical form of its base type.
+  /**
+   * Typed value (§7.46, §8.13): a drawn default or correct value written as a text that is no
+   * lexical form of its base type.
+   */
   "Typed value": {
     law: "Typed value",
     mutate:
@@ -380,10 +406,12 @@ export const documentMutations = {
       },
     over: "package",
   },
-  // Value cardinality (§8.16, §7.46): a single variable's default or correct response given a
-  // second value, or the SUMMARY record's value given a value that is no field or a field with no
-  // base-type. A non-record value's own `base-type` or `field-identifier` is no breach: it is read
-  // in its declaration's base type and the two are ignored (§7.46.1-2, SV-LAW-01).
+  /**
+   * Value cardinality (§8.16, §7.46): a single variable's default or correct response given a
+   * second value, or the SUMMARY record's value given a value that is no field or a field with no
+   * base-type. A non-record value's own `base-type` or `field-identifier` is no breach: it is read
+   * in its declaration's base type and the two are ignored (§7.46.1-2, SV-LAW-01).
+   */
   "Value cardinality": {
     law: "Value cardinality",
     mutate: oneOf([
@@ -414,10 +442,12 @@ export const documentMutations = {
     ]),
     over: "package",
   },
-  // XML production (XML 1.0 §2.5, §2.6, §2.8, §4.3.3): one of the stimulus's stored texts written
-  // outside its production, which no text crust reads reaches: a comment with a double hyphen or a
-  // final one, a processing instruction targeted xml or holding ?>, a doctype that is no doctype,
-  // or an encoding or version that is no name of one.
+  /**
+   * XML production (XML 1.0 §2.5, §2.6, §2.8, §4.3.3): one of the stimulus's stored texts written
+   * outside its production, which no text crust reads reaches: a comment with a double hyphen or a
+   * final one, a processing instruction targeted xml or holding ?>, a doctype that is no doctype,
+   * or an encoding or version that is no name of one.
+   */
   "XML production": {
     document: "items/stimulus.xml",
     law: "XML production",

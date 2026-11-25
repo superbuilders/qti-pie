@@ -194,7 +194,9 @@ export const coveredIn = (placed: Placed): Result.Result<readonly CoveredRule[],
       ),
     );
     const patterns = new Set<string>(extensionPatterns);
-    // A data-extension rule is an `sch:rule` child of an `sch:pattern` whose id names a rule set.
+    /**
+     * A data-extension rule is an `sch:rule` child of an `sch:pattern` whose id names a rule set.
+     */
     const rules = lined.filter(
       ([{ node, parent }]) =>
         isSchematron(node, "rule") &&

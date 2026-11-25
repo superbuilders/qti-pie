@@ -137,7 +137,9 @@ describe("qti/interactions.ts, the closed data its laws read", () => {
   });
 
   it("copies only attributes the inventory declares on each kind they are read on", () => {
-    // Oracle: the inventory leaf's attribute declarations.
+    /**
+     * Oracle: the inventory leaf's attribute declarations.
+     */
     const declared = new Set(attributeDeclarations.map(({ kind, name }) => `${kind} ${name}`));
     for (const [name, kinds] of readAttributes) {
       for (const kind of kinds) {

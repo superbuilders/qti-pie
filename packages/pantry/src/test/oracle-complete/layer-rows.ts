@@ -155,9 +155,12 @@ const ownerCopyFields = ["kind"] as const;
  * Each law's mutation, by law.
  */
 export const rowMutations = {
-  // AL1 owner (AL1): an attribute's copy of its owner's kind that is not its owner's, drawn among the attributes whose every such corruption breaks AL1 owner alone
-  // ({@link ownerCopyIsolates}): the context declaration's identifier, an ID a context variable
-  // names, copied as its item's would leave CTX no ID and raise Idref target ahead of it.
+  /**
+   * AL1 owner (AL1): an attribute's copy of its owner's kind that is not its owner's, drawn among
+   * the attributes whose every such corruption breaks AL1 owner alone ({@link ownerCopyIsolates}):
+   * the context declaration's identifier, an ID a context variable names, copied as its item's
+   * would leave CTX no ID and raise Idref target ahead of it.
+   */
   "AL1 owner": {
     document: item,
     law: "AL1 owner",
@@ -182,14 +185,18 @@ export const rowMutations = {
     },
     over: "rows",
   },
-  // AL2 distinct (AL2): an attribute of the lead division given the closed name and the value of
-  // one before it, so no value domain judges it otherwise than the first.
+  /**
+   * AL2 distinct (AL2): an attribute of the lead division given the closed name and the value of
+   * one before it, so no value domain judges it otherwise than the first.
+   */
   "AL2 distinct": {
     document: item,
     law: "AL2 distinct",
     mutate: (rows) => (source) => {
-      // The lead division's optional, unread attributes: renaming one of them drops no attribute
-      // another law reads, as renaming an identifier, a tool name or a bound would.
+      /**
+       * The lead division's optional, unread attributes: renaming one of them drops no attribute
+       * another law reads, as renaming an identifier, a tool name or a bound would.
+       */
       const unread = new Set(["aria-labelledby", "aria-valuemax", "aria-valuemin", "label"]);
       const pairs = rows.attributes.flatMap((attribute, index) =>
         rows.attributes.flatMap((earlier, at) =>
@@ -216,41 +223,53 @@ export const rowMutations = {
     },
     over: "rows",
   },
-  // Foreign attribute class (AL4): an open-class attribute given a class its stored namespace
-  // contradicts.
+  /**
+   * Foreign attribute class (AL4): an open-class attribute given a class its stored namespace
+   * contradicts.
+   */
   "Foreign attribute class": corrupting("Foreign attribute class", item, (rows) => (source) => ({
     _tag: "wrongAttributeClass",
     attribute: source.draw(oneOf(rows.openAttributes.map((_, index) => index))),
   })),
-  // Foreign element class (§1.4): a foreign element given a class its stored namespace
-  // contradicts.
+  /**
+   * Foreign element class (§1.4): a foreign element given a class its stored namespace
+   * contradicts.
+   */
   "Foreign element class": corrupting("Foreign element class", item, (rows) => (source) => ({
     _tag: "wrongClass",
     node: source.draw(oneOf(numbersOf(rows, (node) => isForeignKind(node.kind)))),
   })),
-  // N1 sentinel (N1): the document node's nearest kind that is not its own. Its parentAncestry
-  // also feeds E1's derived ancestry, which ranks ahead, so it is not drawn.
+  /**
+   * N1 sentinel (N1): the document node's nearest kind that is not its own. Its parentAncestry
+   * also feeds E1's derived ancestry, which ranks ahead, so it is not drawn.
+   */
   "N1 sentinel": corrupting("N1 sentinel", item, () => (source) => ({
     _tag: "sentinelCopy",
     field: source.draw(element(["nearestKind"] as const)),
   })),
-  // N5 first slot (N5): a first child copying an accumulator other than its identity.
+  /**
+   * N5 first slot (N5): a first child copying an accumulator other than its identity.
+   */
   "N5 first slot": corrupting("N5 first slot", item, (rows) => (source) => ({
     _tag: "slotZeroAccumulator",
     field: source.draw(element(["was", "elementsWas"] as const)),
     node: source.draw(oneOf(numbersOf(rows, (node, number) => number > 0 && node.at === 0n))),
   })),
-  // N5 fold (N5): the stimulus's doctype moved from its first slot to its last, after the root
-  // element, whose state it never folded from.
+  /**
+   * N5 fold (N5): the stimulus's doctype moved from its first slot to its last, after the root
+   * element, whose state it never folded from.
+   */
   "N5 fold": corrupting("N5 fold", "items/stimulus.xml", (rows) => (source) => ({
     _tag: "doctypeNotFirst",
     node: source.draw(oneOf(numbersOf(rows, (node) => node.kind === "doctype"))),
   })),
-  // T1 document order (T1): a node starting where the node before it starts, drawn among the
-  // childless nodes that own no row but their node row and are not a first child. A document's
-  // rows name a node by its start alone, so a second node at a start lends every row and child it
-  // holds to the node before it, whose attribute, arm and derived laws, ranked ahead, would judge
-  // them as its own; and the node before a first child is its parent.
+  /**
+   * T1 document order (T1): a node starting where the node before it starts, drawn among the
+   * childless nodes that own no row but their node row and are not a first child. A document's
+   * rows name a node by its start alone, so a second node at a start lends every row and child it
+   * holds to the node before it, whose attribute, arm and derived laws, ranked ahead, would judge
+   * them as its own; and the node before a first child is its parent.
+   */
   "T1 document order": corrupting("T1 document order", item, (rows) => (source) => ({
     _tag: "startTaken",
     node: source.draw(
@@ -262,10 +281,12 @@ export const rowMutations = {
       ),
     ),
   })),
-  // T3 first child (T3): a text's or whitespace's copy of its parent's nearest interaction that is
-  // not its parent's, under a parent that is an interaction, where N8 reads the parent itself and
-  // never the copy. An element's copy feeds its attributes' owner copies (AL1), and its other
-  // parent fields the admission, nearest and ancestry laws, each ranked ahead, so none is drawn.
+  /**
+   * T3 first child (T3): a text's or whitespace's copy of its parent's nearest interaction that is
+   * not its parent's, under a parent that is an interaction, where N8 reads the parent itself and
+   * never the copy. An element's copy feeds its attributes' owner copies (AL1), and its other
+   * parent fields the admission, nearest and ancestry laws, each ranked ahead, so none is drawn.
+   */
   "T3 first child": {
     document: item,
     law: "T3 first child",
@@ -286,12 +307,16 @@ export const rowMutations = {
       }),
     over: "rows",
   },
-  // T4 next sibling (T4): a sibling that starts other than where its predecessor ends.
+  /**
+   * T4 next sibling (T4): a sibling that starts other than where its predecessor ends.
+   */
   "T4 next sibling": corrupting("T4 next sibling", item, (rows) => (source) => ({
     _tag: source.draw(element(["overlappingSiblings", "gapBetweenSiblings"] as const)),
     node: source.draw(oneOf(numbersOf(rows, (node, number) => number > 0 && node.at > 0n))),
   })),
-  // T5 last child (T5): a node ending before its last child, which has children, ends.
+  /**
+   * T5 last child (T5): a node ending before its last child, which has children, ends.
+   */
   "T5 last child": corrupting("T5 last child", item, (rows) => (source) => {
     const lastWithChildren = numbersOf(rows, (node, number) => {
       if (number === 0 || node.children === 0n) {
@@ -307,7 +332,9 @@ export const rowMutations = {
 
     return { _tag: "childOutsideParent", node: source.draw(oneOf(lastWithChildren)) };
   }),
-  // T6 nonempty and leaf (T6): a childless node whose interval holds more than itself.
+  /**
+   * T6 nonempty and leaf (T6): a childless node whose interval holds more than itself.
+   */
   "T6 nonempty and leaf": corrupting("T6 nonempty and leaf", item, (rows) => (source) => ({
     _tag: "wrongSize",
     node: source.draw(oneOf(numbersOf(rows, (node, number) => number > 0 && node.children === 0n))),

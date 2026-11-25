@@ -106,7 +106,9 @@ const runThenElement = (rows: Rows): readonly { readonly last: Node; readonly pa
  * Each law's mutation, by law.
  */
 export const nodeEdits = {
-  // E1 derived (E1): a mixed element's string value other than its children's characters.
+  /**
+   * E1 derived (E1): a mixed element's string value other than its children's characters.
+   */
   "E1 derived": editingRows("E1 derived", item, (rows) => (source) => {
     const suffix = source.draw(element(["x", " ", "&amp;"]));
 
@@ -121,7 +123,9 @@ export const nodeEdits = {
       ),
     );
   }),
-  // N1 one document node (N1): one or two more rows of the document node, at its start 0.
+  /**
+   * N1 one document node (N1): one or two more rows of the document node, at its start 0.
+   */
   "N1 one document node": editingRows("N1 one document node", item, (rows) => (source) => {
     const [documentNode] = rows.nodes;
     if (documentNode === undefined) {
@@ -132,8 +136,10 @@ export const nodeEdits = {
 
     return withNodes(rows, [...rows.nodes, ...copies]);
   }),
-  // N2 key (N2): a parent's last element moved onto the slot of the character run before it, the
-  // parent's count of its children one less, so two members hold one slot.
+  /**
+   * N2 key (N2): a parent's last element moved onto the slot of the character run before it, the
+   * parent's count of its children one less, so two members hold one slot.
+   */
   "N2 key": editingRows("N2 key", item, (rows) => (source) => {
     const sites = runThenElement(rows);
     const site = sites[source.draw(int(0, sites.length - 1))];
@@ -152,7 +158,9 @@ export const nodeEdits = {
       }),
     );
   }),
-  // N4 kinds (N4): a character run under a kind none names.
+  /**
+   * N4 kinds (N4): a character run under a kind none names.
+   */
   "N4 kinds": editingRows("N4 kinds", item, (rows) => (source) => {
     const stray = source.draw(element(strayKinds));
 
@@ -169,7 +177,9 @@ export const nodeEdits = {
       ),
     );
   }),
-  // N5 admitted (N5): a text whose parent's kind admits no text.
+  /**
+   * N5 admitted (N5): a text whose parent's kind admits no text.
+   */
   "N5 admitted": editingRows("N5 admitted", item, (rows) => (source) => {
     const parentKind = source.draw(element(unadmittedParents));
 
@@ -184,7 +194,9 @@ export const nodeEdits = {
       ),
     );
   }),
-  // N7 last slot (N7): a mixed element's element count other than its last child's fold.
+  /**
+   * N7 last slot (N7): a mixed element's element count other than its last child's fold.
+   */
   "N7 last slot": editingRows("N7 last slot", item, (rows) => (source) => {
     const delta = BigInt(source.draw(int(1, 3)));
 
@@ -199,7 +211,9 @@ export const nodeEdits = {
       ),
     );
   }),
-  // N8 nearest (N8): an element's nearest interaction other than its parent's: itself.
+  /**
+   * N8 nearest (N8): an element's nearest interaction other than its parent's: itself.
+   */
   "N8 nearest": editingRows(
     "N8 nearest",
     item,
@@ -215,7 +229,9 @@ export const nodeEdits = {
         ),
       ),
   ),
-  // comment arm (§1.4): the item's comment node with no Comment row, or a Comment row for a text.
+  /**
+   * Comment arm (§1.4): the item's comment node with no Comment row, or a Comment row for a text.
+   */
   "comment arm": editingRows("comment arm", item, (rows) => (source) => {
     if (source.draw(element(["drop", "add"] as const)) === "drop") {
       return { ...rows, comments: source.draw(droppedDrawn(rows.comments)) };
@@ -228,8 +244,10 @@ export const nodeEdits = {
 
     return { ...rows, comments: [...rows.comments, { start: text.start, value: "c" }] };
   }),
-  // doctype arm (§1.4): the stimulus's doctype node with no Doctype row, or a Doctype row for its
-  // comment.
+  /**
+   * Doctype arm (§1.4): the stimulus's doctype node with no Doctype row, or a Doctype row for its
+   * comment.
+   */
   "doctype arm": editingRows("doctype arm", stimulus, (rows) => (source) => {
     if (source.draw(element(["drop", "add"] as const)) === "drop") {
       return { ...rows, doctypes: source.draw(droppedDrawn(rows.doctypes)) };
@@ -242,7 +260,9 @@ export const nodeEdits = {
 
     return { ...rows, doctypes: [...rows.doctypes, { start: comment.start, value: "d" }] };
   }),
-  // entityRef arm (§1.4): an EntityRef row for a text, which no entity reference node is.
+  /**
+   * EntityRef arm (§1.4): an EntityRef row for a text, which no entity reference node is.
+   */
   "entityRef arm": editingRows("entityRef arm", item, (rows) => (source) => {
     const text = rows.texts[source.draw(int(0, rows.texts.length - 1))];
     if (text === undefined) {
@@ -253,8 +273,10 @@ export const nodeEdits = {
 
     return { ...rows, entityRefs: [...rows.entityRefs, { name, start: text.start }] };
   }),
-  // pi arm (§1.4): the stimulus's processing instruction with no Pi row, or a Pi row for its
-  // comment.
+  /**
+   * Pi arm (§1.4): the stimulus's processing instruction with no Pi row, or a Pi row for its
+   * comment.
+   */
   "pi arm": editingRows("pi arm", stimulus, (rows) => (source) => {
     if (source.draw(element(["drop", "add"] as const)) === "drop") {
       return { ...rows, pis: source.draw(droppedDrawn(rows.pis)) };
@@ -270,10 +292,12 @@ export const nodeEdits = {
       pis: [...rows.pis, { data: "", start: comment.start, target: "every-relation" }],
     };
   }),
-  // text arm (§1.4): a text node with no Text row, drawn among the texts no m:cn holds. A cn's
-  // text emptied is refused by "MathML cn form" (an empty part is no number of its type, spec
-  // reading 2), a law the oracle raises ahead of text-copy, and that law is not weakened
-  // (decision 355): the arm proves text-copy alone, so it leaves a cn's text to the cn form arm.
+  /**
+   * Text arm (§1.4): a text node with no Text row, drawn among the texts no m:cn holds. A cn's
+   * text emptied is refused by "MathML cn form" (an empty part is no number of its type, spec
+   * reading 2), a law the oracle raises ahead of text-copy, and that law is not weakened
+   * (decision 355): the arm proves text-copy alone, so it leaves a cn's text to the cn form arm.
+   */
   "text arm": editingRows("text arm", item, (rows) => (source) => {
     const kindOf = new Map(rows.nodes.map((node) => [node.start, node] as const));
     const candidates = rows.texts.filter(
@@ -286,7 +310,9 @@ export const nodeEdits = {
       texts: rows.texts.filter((text) => !candidates.includes(text) || dropped.includes(text)),
     };
   }),
-  // ws arm (§1.4): a whitespace node with no Whitespace row.
+  /**
+   * Ws arm (§1.4): a whitespace node with no Whitespace row.
+   */
   "ws arm": editingRows("ws arm", item, (rows) => (source) => ({
     ...rows,
     whitespace: source.draw(droppedDrawn(rows.whitespace)),

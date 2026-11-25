@@ -1352,13 +1352,15 @@ describe("import/overlays/package.ts, hrefs and references", () => {
   );
 
   it("writes a TextReference for each card file, calculator's or digital material's file and resource icon, resolved as an attribute is", () => {
-    // Oracle: a second implementation, the nodes numbered by hand (the document node 0, the root 1,
-    // then each whitespace node, element and its text in turn), each string value split by RFC
-    // 3986's Appendix B and resolved by the law oracle's own resolver with the xml:base in scope,
-    // under the whitespace class of its text's type (`xs:anyURI` collapses, `URLDType` replaces).
-    // Bound: one card file padded and percent-encoded, one icon under an xml:base, one icon of a
-    // same-document fragment, one file of a digital material (information model §5.80.3, "the URI
-    // for the associated content file", an `xs:anyURI` that collapses), and an empty card file.
+    /**
+     * Oracle: a second implementation, the nodes numbered by hand (the document node 0, the root 1,
+     * then each whitespace node, element and its text in turn), each string value split by RFC
+     * 3986's Appendix B and resolved by the law oracle's own resolver with the xml:base in scope,
+     * under the whitespace class of its text's type (`xs:anyURI` collapses, `URLDType` replaces).
+     * Bound: one card file padded and percent-encoded, one icon under an xml:base, one icon of a
+     * same-document fragment, one file of a digital material (information model §5.80.3, "the URI
+     * for the associated content file", an `xs:anyURI` that collapses), and an empty card file.
+     */
     const textOf = (
       kind: "qti-file-href" | "qti-file-href.card" | "qti-resource-icon",
       value: string,
@@ -1423,11 +1425,13 @@ describe("import/overlays/package.ts, hrefs and references", () => {
 
 describe("import/overlays/package.ts, a srcset's image candidates", () => {
   it("splits a srcset into its image candidates as the HTML Standard parses it, each URL resolved and each in the package its CandidatePath", () => {
-    // Oracle: the specification, the HTML Standard's "parse a srcset attribute" (§4.8.4.3.10) on
-    // its own forms: candidates separated by commas, a URL then its descriptors, a URL's trailing
-    // commas ending it with none, a comma inside a URL kept, and whitespace and commas after the
-    // last candidate a trail; each candidate's URL is one reference (spec reading 102).
-    // Bound: the named values, each by hand.
+    /**
+     * Oracle: the specification, the HTML Standard's "parse a srcset attribute" (§4.8.4.3.10) on
+     * its own forms: candidates separated by commas, a URL then its descriptors, a URL's trailing
+     * commas ending it with none, a comma inside a URL kept, and whitespace and commas after the
+     * last candidate a trail; each candidate's URL is one reference (spec reading 102).
+     * Bound: the named values, each by hand.
+     */
     const cases = [
       ["a.png", [["", "a.png", ""]], ""],
       [

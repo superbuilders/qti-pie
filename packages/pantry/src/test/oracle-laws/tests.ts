@@ -266,8 +266,10 @@ const itemRefTargetsOf = (input: PackageRows, listed: ListedRows): readonly Brea
     .flatMap((node): readonly Breach[] =>
       Option.match(itemRefTargetOf(input, listed, node), {
         onNone: () => [],
-        // The href names an LTI link, or an item document the package holds: an item resource's
-        // href whose file is missing, or whose root is no item, names no item (§5.6.5).
+        /**
+         * The href names an LTI link, or an item document the package holds: an item resource's
+         * href whose file is missing, or whose root is no item, names no item (§5.6.5).
+         */
         onSome: ({ path, type }) =>
           Option.exists(type, isLinkType) || Option.isSome(itemRefDocument(input, listed, node))
             ? []
@@ -475,8 +477,10 @@ const itemRefLawsOf = (
       const keys = { itemRef: itemRef(ref), template };
 
       return Option.match(itemOf(ref), {
-        // An item ref whose href lies outside the package, or that writes none, names nothing a
-        // law reads (SV-LAW-02): its template default is stored unchecked.
+        /**
+         * An item ref whose href lies outside the package, or that writes none, names nothing a
+         * law reads (SV-LAW-02): its template default is stored unchecked.
+         */
         onNone: () =>
           packaged(rows, ref) ? [breachAt(rows, node, "Template default target", keys)] : [],
         onSome: (item) =>
@@ -634,7 +638,9 @@ const poolsOf = (
   const sections = [...document.sections.values()].toSorted((left, right) =>
     Number(left.node.start - right.node.start),
   );
-  // Each section's owners: itself where it shuffles, and its parent section's where it mixes in.
+  /**
+   * Each section's owners: itself where it shuffles, and its parent section's where it mixes in.
+   */
   const owners = new Map<bigint, readonly bigint[]>();
   for (const section of sections) {
     owners.set(section.node.start, [
@@ -799,8 +805,10 @@ const branchLawsOf = (
     return [breachAt(rows, rule.node, "Branch target", keys)];
   }
 
-  // The section nearest above a candidate and its source's point, the one with the greatest start,
-  // whose ordering orders the two (§5.98).
+  /**
+   * The section nearest above a candidate and its source's point, the one with the greatest start,
+   * whose ordering orders the two (§5.98).
+   */
   const commons = targeted.flatMap(({ named, point, target }) =>
     [...target.document.sections.values()]
       .filter(
@@ -859,7 +867,9 @@ const assemblyLawsOf = (
   };
   const testPath = test.listed.path;
   const anchors = anchorsOf(instances);
-  // Each name of each instance, with its copy: the anchor that holds it (`instanceAnchors`).
+  /**
+   * Each name of each instance, with its copy: the anchor that holds it (`instanceAnchors`).
+   */
   const placed = instances.flatMap(({ document, start }) =>
     document.names.map((name) => ({
       anchor: anchors[start] ?? 0,

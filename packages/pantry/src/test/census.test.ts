@@ -291,7 +291,9 @@ const modelOf = (statements: readonly Statement[]): Census => {
       (statement): statement is Extract<Statement, { form: F }> => statement.form === form,
     );
   const tables = pick("table");
-  // A domain's definition is its text after AS through the statement's closing semicolon.
+  /**
+   * A domain's definition is its text after AS through the statement's closing semicolon.
+   */
   const definitions = pick("domain").map((domain) => `${domain.definition};`);
   const checked = pick("domain")
     .filter((domain) => domain.checked)
@@ -378,8 +380,10 @@ const modelOf = (statements: readonly Statement[]): Census => {
       total: tables.length,
     },
     uniques: {
-      // A superkey is a key that holds a shorter key of its table: the definition, read off the
-      // generated keys rather than the printed constraints.
+      /**
+       * A superkey is a key that holds a shorter key of its table: the definition, read off the
+       * generated keys rather than the printed constraints.
+       */
       superkeys: tables.reduce(
         (sum, table) =>
           sum +
@@ -414,7 +418,9 @@ const targetsOf = (statements: readonly Statement[]): readonly Target[] => {
       (statement) => statement.form !== "insert",
     ),
     "no two domains with one CHECK": new Set(checked).size === checked.length,
-    // A law is written into a validate file, so a migration holds one exactly when it holds a law.
+    /**
+     * A law is written into a validate file, so a migration holds one exactly when it holds a law.
+     */
     "no validate files, law functions or constraint triggers": statements.every(
       (statement) =>
         statement.form !== "law" && !(statement.form === "function" && statement.kind === "law"),

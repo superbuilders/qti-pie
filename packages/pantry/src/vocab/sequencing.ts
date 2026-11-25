@@ -348,7 +348,9 @@ export type Structure = Pick<Automaton, "ends" | "next">;
  * @returns The automaton's endings and follow sets.
  */
 export const structureOf = (particle: Particle): Structure => {
-  // The start, before any child; then one state per position, the state after a child there.
+  /**
+   * The start, before any child; then one state per position, the state after a child there.
+   */
   const start: State = { follows: new Set() };
   const states: PositionState[] = [];
   const link = (from: ReadonlySet<State>, to: ReadonlySet<PositionState>): void => {

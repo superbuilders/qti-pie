@@ -158,7 +158,9 @@ const unavailableTypes = (grammar: ComposedGrammar, node: Node): readonly string
  * Each law's mutation, by law.
  */
 export const foreignEdits = {
-  // MathML foreign element (reading 6): a foreign element named in MathML's namespace.
+  /**
+   * MathML foreign element (reading 6): a foreign element named in MathML's namespace.
+   */
   "MathML foreign element": editingRows("MathML foreign element", item, (rows) =>
     nameEdited(rows, (name) => (source) => ({
       ...name,
@@ -166,7 +168,9 @@ export const foreignEdits = {
       namespace: mathmlNamespace,
     })),
   ),
-  // OpenElementName (D2): a foreign element with no name row, or a closed element given one.
+  /**
+   * OpenElementName (D2): a foreign element with no name row, or a closed element given one.
+   */
   OpenElementName: editingRows("OpenElementName", item, (rows, grammar) => (source) => {
     if (source.draw(element(["drop", "add"] as const)) === "drop") {
       const dropped = source.draw(oneOf(rows.openElementNames, "foreign element"));
@@ -192,8 +196,10 @@ export const foreignEdits = {
       ],
     };
   }),
-  // OpenElementName canonical (reading 6): a foreign element named as a closed kind its parent
-  // admits.
+  /**
+   * OpenElementName canonical (reading 6): a foreign element named as a closed kind its parent
+   * admits.
+   */
   "OpenElementName canonical": editingRows("OpenElementName canonical", item, (rows, grammar) =>
     nameEdited(rows, (name, node) => (source) => {
       const { local, namespace } = source.draw(
@@ -203,8 +209,10 @@ export const foreignEdits = {
       return { ...name, local, namespace };
     }),
   ),
-  // Strictly held (reading 6): a foreign element with no type under a kind whose wildcard is
-  // strict, its nearest interaction its new parent's.
+  /**
+   * Strictly held (reading 6): a foreign element with no type under a kind whose wildcard is
+   * strict, its nearest interaction its new parent's.
+   */
   "Strictly held": editingRows("Strictly held", item, (rows, grammar) => (source) => {
     const foreign = source.draw(
       oneOf(
@@ -230,16 +238,20 @@ export const foreignEdits = {
       ),
     );
   }),
-  // TextDomain (§1.5): the item's calculator type outside its four tokens, basic, standard,
-  // scientific and graphing (the pinned ASI XSDs), its whitespace preserved: another word, a token
-  // in another case, and two tokens.
+  /**
+   * TextDomain (§1.5): the item's calculator type outside its four tokens, basic, standard,
+   * scientific and graphing (the pinned ASI XSDs), its whitespace preserved: another word, a token
+   * in another case, and two tokens.
+   */
   TextDomain: passageAt("TextDomain", item, "<qti-calculator-type>basic</qti-calculator-type>", [
     "<qti-calculator-type>abacus</qti-calculator-type>",
     "<qti-calculator-type>Basic</qti-calculator-type>",
     "<qti-calculator-type>basic standard</qti-calculator-type>",
   ]),
-  // XsiType available (readings 60 and 81): a foreign element governed by a pinned type of a
-  // namespace no set its parent's documents are assessed against holds.
+  /**
+   * XsiType available (readings 60 and 81): a foreign element governed by a pinned type of a
+   * namespace no set its parent's documents are assessed against holds.
+   */
   "XsiType available": editingRows("XsiType available", item, (rows, grammar) => (source) => {
     const foreign = source.draw(
       oneOf(
@@ -260,8 +272,10 @@ export const foreignEdits = {
       ),
     );
   }),
-  // XsiType derived (XML Schema Part 1 §3.3.4 clause 4.3): the item's typed description given an
-  // atomic type its declared type does not derive.
+  /**
+   * XsiType derived (XML Schema Part 1 §3.3.4 clause 4.3): the item's typed description given an
+   * atomic type its declared type does not derive.
+   */
   "XsiType derived": {
     law: "XsiType derived",
     mutate:

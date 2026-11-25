@@ -696,8 +696,10 @@ const booleanSpellings = [
 
 describe("xs:boolean", () => {
   it("is read in grammar/domains.ts alone: no other module spells a truth of its own", () => {
-    // Oracle: the source text, against the spellings a reading of xs:boolean's truth takes, each
-    // one shown matching the reading it stands for. Bound: every module under src but the tests.
+    /**
+     * Oracle: the source text, against the spellings a reading of xs:boolean's truth takes, each
+     * one shown matching the reading it stands for. Bound: every module under src but the tests.
+     */
     const witnesses = [
       String.raw`const trueForm = /^[\t\n\r ]*(?:true|1)[\t\n\r ]*$/u;`,
       `export const booleanTrue = ["true", "1"] as const;`,

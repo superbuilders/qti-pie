@@ -42,8 +42,10 @@ export const verbosityGlobalFlags = [quietSetting, verboseSetting] as const;
  * Both flags at once fail with a usage error, so a handler fails before it does any work.
  */
 const minimumLogLevel = Effect.gen(function* resolveMinimumLogLevel() {
-  // `Command.run` always provides `--log-level`; reading it as an optional service keeps it out of
-  // the command's requirements, as `Command.make` does for a handler.
+  /**
+   * `Command.run` always provides `--log-level`; reading it as an optional service keeps it out of
+   * the command's requirements, as `Command.make` does for a handler.
+   */
   const given = Option.flatten(yield* Effect.serviceOption(GlobalFlag.LogLevel));
 
   if (Option.isSome(given)) {

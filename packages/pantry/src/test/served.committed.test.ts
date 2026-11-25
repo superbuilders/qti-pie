@@ -182,9 +182,11 @@ layer(NodeServices.layer)("the committed served files", (live) => {
 
 describe("the served file comparison", () => {
   it("finds where planted files part, and nothing where they hold one value", () => {
-    // Oracle: the comparison's rule on the named cases. Live: one canonical text parsed twice,
-    // whose integer keys `JSON.parse` moves ahead of the rest alike. Wild: a changed leaf, a key
-    // the committed side lacks, and a longer array.
+    /**
+     * Oracle: the comparison's rule on the named cases. Live: one canonical text parsed twice,
+     * whose integer keys `JSON.parse` moves ahead of the rest alike. Wild: a changed leaf, a key
+     * the committed side lacks, and a longer array.
+     */
     const file = '{"10":0,"2":0,"a":[1,{"b":"x"}],"c":true}';
 
     assert.strictEqual(textOf(file), '{"2":0,"10":0,"a":[1,{"b":"x"}],"c":true}');

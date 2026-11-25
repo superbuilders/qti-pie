@@ -238,7 +238,9 @@ describe.skipIf(!settings.corpusRequested)("xsd.corpus.oracle.test.ts, the corpu
             path: document.path,
           });
           const comparison = compareJudgments(xsd, law);
-          // The gated classes read the document's rows, which only a difference needs.
+          /**
+           * The gated classes read the document's rows, which only a difference needs.
+           */
           const matches =
             comparison.differences.length === 0
               ? []
@@ -846,13 +848,15 @@ describe("xsd.corpus.oracle.test.ts, reading 6's class", () => {
     "matches the element-grain difference of a nested root's messages, which compares the document's foreign elements as one",
     () =>
       Effect.gen(function* nestedRootGrain() {
-        // Kept from TD-B's run of the XSD search (TEST_SEED=2298271331): a qti-assessment-item in a
-        // foreign element's lax content, its required attributes missing and its text in
-        // element-only content, under a stimulus whose own refusals of those classes stand
-        // elsewhere. The item is a foreign element by the rows, so the element grain groups its
-        // messages under the foreign elements' one name; the difference must still name the item.
-        // The verdict is read from xmllint's own report lines by the oracle's reader, so it has
-        // whatever shape that reader gives a message.
+        /**
+         * Kept from TD-B's run of the XSD search (TEST_SEED=2298271331): a qti-assessment-item in a
+         * foreign element's lax content, its required attributes missing and its text in
+         * element-only content, under a stimulus whose own refusals of those classes stand
+         * elsewhere. The item is a foreign element by the rows, so the element grain groups its
+         * messages under the foreign elements' one name; the difference must still name the item.
+         * The verdict is read from xmllint's own report lines by the oracle's reader, so it has
+         * whatever shape that reader gives a message.
+         */
         const grammar = Result.getOrThrow(composed());
         const item = "{http://www.imsglobal.org/xsd/imsqtiasi_v3p0}qti-assessment-item";
         const stimulus = "{http://www.imsglobal.org/xsd/imsqtiasi_v3p0}qti-assessment-stimulus";
@@ -906,12 +910,14 @@ describe("xsd.corpus.oracle.test.ts, reading 6's class", () => {
     "matches a root's messages by its own refusal where a nested root shares its name",
     () =>
       Effect.gen(function* sharedName() {
-        // Kept from VD's run of the XSD search (TEST_SEED=3143817330, lawful seed #5, no edit): an
-        // item root lacking its required attributes, with an item of the same expanded name
-        // nested in a modal feedback's SSML content, lax, which the rows keep foreign (reading
-        // 6). xmllint names both by that name, and refuses both; the law oracle refuses the root.
-        // The element grain read every message of the name as the foreign element's, so the
-        // root's refusal stood unmatched, oracle-only, though xmllint had refused it too.
+        /**
+         * Kept from VD's run of the XSD search (TEST_SEED=3143817330, lawful seed #5, no edit): an
+         * item root lacking its required attributes, with an item of the same expanded name
+         * nested in a modal feedback's SSML content, lax, which the rows keep foreign (reading
+         * 6). xmllint names both by that name, and refuses both; the law oracle refuses the root.
+         * The element grain read every message of the name as the foreign element's, so the
+         * root's refusal stood unmatched, oracle-only, though xmllint had refused it too.
+         */
         const grammar = Result.getOrThrow(composed());
         const item = "{http://www.imsglobal.org/xsd/imsqtiasi_v3p0}qti-assessment-item";
         const file = "shared.xml";

@@ -209,9 +209,11 @@ const fixed: readonly Fixed[] = [
       "the commit that reads a document's encoding as a row of Appendix F.1, refuses a label the row rules out, and writes UTF-16LE and UTF-16BE with no byte order mark",
     finding:
       "GEN-B/codec N3: a declaration naming another encoding than the one the bytes are in was accepted",
-    // libxml2 2.15.2 reads each in the encoding its first bytes say, the UTF-16BE pattern and the
-    // UTF-8 mark, and accepts it with a warning that "Encoding 'UTF-16LE' doesn't match
-    // auto-detected" one, so each shows the recorded class O1 names a crust refusal by.
+    /**
+     * Libxml2 2.15.2 reads each in the encoding its first bytes say, the UTF-16BE pattern and the
+     * UTF-8 mark, and accepts it with a warning that "Encoding 'UTF-16LE' doesn't match
+     * auto-detected" one, so each shows the recorded class O1 names a crust refusal by.
+     */
     kept: [
       {
         charset: "UTF-16BE",

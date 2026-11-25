@@ -81,8 +81,10 @@ layer(NodeServices.layer)("db/layer.ts, built from the committed served file", (
     // Bound: the one login and its committed served file; residual none.
     Effect.gen(function* layerBuilds() {
       const fs = yield* FileSystem.FileSystem;
-      // A folder of this run's own, so a concurrent run of the suite never rewrites the CA this one
-      // reads.
+      /**
+       * A folder of this run's own, so a concurrent run of the suite never rewrites the CA this one
+       * reads.
+       */
       const scratch = yield* scratchDirectory("layer-served-");
       const secrets = `${scratch}/secrets`;
       const ca = `${scratch}/ca.crt`;

@@ -489,9 +489,11 @@ describe("test/oracle.ts, Document lang (R26) under a catalog (R9-c)", () => {
     "breaks no Document lang for an xml:lang a catalog's cards, entries and HTML content write",
     () =>
       Effect.gen(function* catalogLang() {
-        // Oracle: QTI 3.0 Metadata §2.7.1.3 counts "the associated assessmentItem ... and its
-        // 'bodyElements'", and the information model's §5.28 puts a catalog "outside the content
-        // body node", so es, de and fr, written there, are no language of the item.
+        /**
+         * Oracle: QTI 3.0 Metadata §2.7.1.3 counts "the associated assessmentItem ... and its
+         * 'bodyElements'", and the information model's §5.28 puts a catalog "outside the content
+         * body node", so es, de and fr, written there, are no language of the item.
+         */
         const judgment = yield* judge(catalogLangPackage(Option.none()), grammar, laws);
         const breaches =
           judgment._tag === "Judged"
@@ -509,7 +511,9 @@ describe("test/oracle.ts, Document lang (R26) under a catalog (R9-c)", () => {
     "breaks Document lang once, at the item, for a body xml:lang the resource does not list, though the catalog's alone do not",
     () =>
       Effect.gen(function* bodyLang() {
-        // Oracle: the same sections; the body paragraph is a 'bodyElement', so its es is counted.
+        /**
+         * Oracle: the same sections; the body paragraph is a 'bodyElement', so its es is counted.
+         */
         const judgment = yield* judge(catalogLangPackage(Option.some("es")), grammar, laws);
         const breaches =
           judgment._tag === "Judged"

@@ -187,8 +187,10 @@ describe("vocab/open.ts namespace classes against XML Schema 1.0, 3.10.4", () =>
       Effect.gen(function* classes() {
         const grammar = yield* Effect.fromResult(composed());
         const covered = coveredBy(grammar.kinds);
-        // Q8's case 131: an ASI-namespace element, `{…imsqtiasi_v3p0}widget`, under a `##other`
-        // wildcard of an ASI kind, which xmllint refuses as outside the wildcard.
+        /**
+         * Q8's case 131: an ASI-namespace element, `{…imsqtiasi_v3p0}widget`, under a `##other`
+         * wildcard of an ASI kind, which xmllint refuses as outside the wildcard.
+         */
         const case131 = classCells.filter(
           ({ elements, own }) =>
             own === asiNamespace && elements.some(({ namespace }) => namespace === "##other"),
@@ -234,11 +236,13 @@ describe("vocab/open.ts namespace classes against XML Schema 1.0, 3.10.4", () =>
                     foreignKinds[
                       namespaceClassOf(namespaceNameOf(namespace), namespaceNameOf(own))
                     ];
-                  // Every processing admits an undeclared element its constraint admits; a
-                  // `strict` one only with an xsi:type its document's schema set resolves (spec
-                  // reading 81), so `StrictlyHeld` marks a foreign kind only strict wildcards admit.
-                  // No wildcard admits one in MathML's namespace: MathML content stands only inside
-                  // m:math, and the RelaxNG's anyElement excludes MathML's own (spec reading 2).
+                  /**
+                   * Every processing admits an undeclared element its constraint admits; a `strict`
+                   * one only with an xsi:type its document's schema set resolves (spec reading 81),
+                   * so `StrictlyHeld` marks a foreign kind only strict wildcards admit. No wildcard
+                   * admits one in MathML's namespace: MathML content stands only inside m:math, and
+                   * the RelaxNG's anyElement excludes MathML's own (spec reading 2).
+                   */
                   const admitting = elements.filter(
                     ({ namespace: constraint }) =>
                       namespace !== mathmlNamespace && constraintAdmits(constraint, own, namespace),
@@ -264,11 +268,13 @@ describe("vocab/open.ts namespace classes against XML Schema 1.0, 3.10.4", () =>
                       { foreign: isForeignKind(kind), local: kind, namespace: own },
                     ),
                   )._tag;
-                  // On an element the Schematron's extension rules cover, spec reading 90 admits no
-                  // attribute its XSD does not declare but a `data-` one, whatever its wildcard
-                  // admits, and the drawn name is no `data-` name; but a kind whose class states a
-                  // `NamespaceLax` extension (information model §5.36.1, SV-LAW-05) admits what its
-                  // `##other` wildcard does.
+                  /**
+                   * On an element the Schematron's extension rules cover, spec reading 90 admits no
+                   * attribute its XSD does not declare but a `data-` one, whatever its wildcard
+                   * admits, and the drawn name is no `data-` name; but a kind whose class states a
+                   * `NamespaceLax` extension (information model §5.36.1, SV-LAW-05) admits what its
+                   * `##other` wildcard does.
+                   */
                   const attributeSpecified = covered(kind)
                     ? namespaceLaxKinds.has(kind) && constraintAdmits("##other", own, namespace)
                     : attributes.some(

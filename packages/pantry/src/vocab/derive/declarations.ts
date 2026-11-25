@@ -534,7 +534,9 @@ const governingReadingOf = (
 ): Result.Result<GoverningReading, DomainError> =>
   Result.gen(function* governingReadingOfBody() {
     const derivations = yield* derivationsOf(world, documents);
-    // `derivationsOf` reads a type by its expanded name, `{namespace}local`.
+    /**
+     * `derivationsOf` reads a type by its expanded name, `{namespace}local`.
+     */
     const declared = new Set<string>();
 
     for (const [view, document] of documents) {
@@ -660,7 +662,9 @@ export const rostersOf = (
   reading: Pick<DeclarationsReading, "rosters">,
 ): readonly VocabularyRoster[] =>
   Object.entries(vocabularyNamespaces).map(([name, { namespace }]) => {
-    // A namespace the schemas declare no kind in has an empty roster.
+    /**
+     * A namespace the schemas declare no kind in has an empty roster.
+     */
     const kinds = Option.toArray(Option.fromNullishOr(reading.rosters.get(namespace))).flatMap(
       (roster) => [...roster],
     );
@@ -1085,9 +1089,11 @@ export const renderAttributes = (
   const writer = sourcesWriter();
   const domainNames = new Map<string, string>();
   const domainLines: string[] = [];
-  // A list's item and a union's members are domains of their own, named like any other, so a
-  // domain the leaf states twice, as `xs:anyURI`'s is as an attribute's and as `xsi:schemaLocation`'s
-  // item, is written once.
+  /**
+   * A list's item and a union's members are domains of their own, named like any other, so a domain
+   * the leaf states twice, as `xs:anyURI`'s is as an attribute's and as `xsi:schemaLocation`'s
+   * item, is written once.
+   */
   const domainOfRow = (domain: Domain, stem: string): string => {
     const key = JSON.stringify(domain);
     const known = domainNames.get(key);
@@ -1123,14 +1129,18 @@ export const renderAttributes = (
     const source = writer.expression(row.source);
 
     return Option.match(row.default, {
-      // Each use's attribute with no default has the builder of its use's name.
+      /**
+       * Each use's attribute with no default has the builder of its use's name.
+       */
       onNone: () => `${row.use}(${JSON.stringify(row.name)}, ${type}, ${domain}, ${source})`,
       onSome: (value) =>
         `defaulted(${JSON.stringify(row.name)}, ${type}, ${domain}, ${source}, ${JSON.stringify(value)})`,
     });
   };
 
-  // Each row is written in declaration order, which names the types and domains it states first.
+  /**
+   * Each row is written in declaration order, which names the types and domains it states first.
+   */
   const groups = [
     ...groupedBy(
       declarations.map((row) => ({ row, written: writtenOf(row) })),
@@ -1198,7 +1208,9 @@ export const renderAttributes = (
     ({ domain, kind, type }) =>
       `  text(${JSON.stringify(kind)}, ${typeOf(type, `${kind} text`)}, ${domainOfRow(domain, `${kind} text`)}),`,
   );
-  // A governing type's list is a kind's constant where one states the same rows, else written out.
+  /**
+   * A governing type's list is a kind's constant where one states the same rows, else written out.
+   */
   const typeDeclares = [
     ...groupedBy(
       governing.declarations.map((row) => ({ row, written: writtenOf(row) })),

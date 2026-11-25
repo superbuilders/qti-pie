@@ -886,10 +886,12 @@ const spaced = [" 1", "1 ", "\t1\n"] as const;
 
 describe("The spec readings", () => {
   it("read 7: a typed QTI value a string-typed attribute carries is exact, its outer whitespace kept, and one the XSD types xs:double is collapsed, as the XSD reads it", () => {
-    // Oracle: reading 7 as amended (docs/spec-readings.md): map-key, the two tables'
-    // default-value and an interpolation entry's target-value are string-typed and exact; the
-    // xs:double typed-value attributes read as XML Schema Part 2 §4.3.6 reads xs:double,
-    // whitespace collapsed.
+    /**
+     * Oracle: reading 7 as amended (docs/spec-readings.md): map-key, the two tables'
+     * default-value and an interpolation entry's target-value are string-typed and exact; the
+     * xs:double typed-value attributes read as XML Schema Part 2 §4.3.6 reads xs:double,
+     * whitespace collapsed.
+     */
     const listed = specReadings.filter(({ reading }) => reading === 7);
     assert.isAbove(listed.length, 0);
     for (const reading of listed) {
@@ -955,8 +957,10 @@ describe("The spec readings", () => {
   });
 
   it("read 15: a variable-identifier-ref is an IDREF, as the XSD and the information model type it", () => {
-    // Oracle: the XSD's `UniqueIdentifierRefDType`, an `xs:IDREF` restriction (xsd:24140), and the
-    // information model's §4.5.11 data type, `UniqueIdentifierRef`.
+    /**
+     * Oracle: the XSD's `UniqueIdentifierRefDType`, an `xs:IDREF` restriction (xsd:24140), and the
+     * information model's §4.5.11 data type, `UniqueIdentifierRef`.
+     */
     const ref = Option.getOrThrow(domainAt("qti-outcome-declaration", "variable-identifier-ref"));
 
     assert.deepStrictEqual(ref.identity, Option.some("IDREF"));
@@ -972,10 +976,12 @@ describe("The spec readings", () => {
   });
 
   it("read 17: an item's and a test's rubric block's view lists at least one view, an outcome declaration's may list none, every declaring kind against every list of at most two views and the empty and blank values", () => {
-    // Oracle: the information model's RubricBlock and TestRubricBlock `view`, "A list from an
-    // enumerated value set" of multiplicity [1] (§5.120.2, §5.160.1), and OutcomeDeclaration's of
-    // [0..1] (§4.5.4); a list of n views is one of the six names, n times, between whitespace.
-    // Bound: every list of 0 to 2 of the six views, a blank value and a name outside the six.
+    /**
+     * Oracle: the information model's RubricBlock and TestRubricBlock `view`, "A list from an
+     * enumerated value set" of multiplicity [1] (§5.120.2, §5.160.1), and OutcomeDeclaration's of
+     * [0..1] (§4.5.4); a list of n views is one of the six names, n times, between whitespace.
+     * Bound: every list of 0 to 2 of the six views, a blank value and a name outside the six.
+     */
     const views = ["author", "candidate", "proctor", "scorer", "testConstructor", "tutor"];
     const lists = [
       [],
@@ -998,8 +1004,10 @@ describe("The spec readings", () => {
   });
 
   it("read 18 and 92: an order, graphic-order or position object interaction's min-choices is at least 1, every other kind's at least 0", () => {
-    // Reading 18: "If specified, min-choices must be 1 or greater" of the order interactions
-    // (§5.97.2, §5.61.1); reading 92: the same sentence of the position object (§5.107.2).
+    /**
+     * Reading 18: "If specified, min-choices must be 1 or greater" of the order interactions
+     * (§5.97.2, §5.61.1); reading 92: the same sentence of the position object (§5.107.2).
+     */
     const floored = new Set([
       "qti-order-interaction",
       "qti-graphic-order-interaction",
@@ -1015,10 +1023,12 @@ describe("The spec readings", () => {
   });
 
   it("read 232: a position object interaction's center-point is two xs:int values, its horizontal then its vertical offset, every list of none to four integers and the blank and the out-of-range values", () => {
-    // Oracle: the information model's PositionObjectInteraction `center-point`, an IntegerList "in
-    // horizontal, vertical order" (§5.107.1), so two `Int` values, each in xs:int's lexical space
-    // and range (XML Schema Part 2 §3.3.17), the list's items between whitespace (§4.3.6, collapse).
-    // Bound: every list of 0 to 4 integers drawn from signed, padded and edge forms.
+    /**
+     * Oracle: the information model's PositionObjectInteraction `center-point`, an IntegerList "in
+     * horizontal, vertical order" (§5.107.1), so two `Int` values, each in xs:int's lexical space
+     * and range (XML Schema Part 2 §3.3.17), the list's items between whitespace (§4.3.6,
+     * collapse). Bound: every list of 0 to 4 integers drawn from signed, padded and edge forms.
+     */
     const items = ["0", "1", "-3", "+1", "007", "2147483647", "-2147483648"];
     const lists = [
       [],
@@ -1040,9 +1050,11 @@ describe("The spec readings", () => {
   });
 
   it("read 42, restated: a voice's languages are ranges both SSML's prose and its normative schema admit, so * is refused", () => {
-    // SSML 1.1 §3.2.1 (each token an Extended Language Range, `und` and `zxx` disallowed) beside
-    // Appendix D's `xs:NMTOKENS` (§2.2.2: conformance includes "the constraints expressed in the
-    // Core Schema"); `*` is a range subtag of RFC 4647 §2.2 and no XML name character.
+    /**
+     * SSML 1.1 §3.2.1 (each token an Extended Language Range, `und` and `zxx` disallowed) beside
+     * Appendix D's `xs:NMTOKENS` (§2.2.2: conformance includes "the constraints expressed in the
+     * Core Schema"); `*` is a range subtag of RFC 4647 §2.2 and no XML name character.
+     */
     const domain = Option.getOrThrow(domainAt("ssml:voice", "languages"));
 
     for (const value of ["", "en", "en-US", "en-GB:en-US", "fr ja", "x-klingon"]) {
@@ -1055,9 +1067,11 @@ describe("The spec readings", () => {
   });
 
   it("read 85: an xi:include's parse is the XSD's xml or text, its whitespace collapsed as its token", () => {
-    // The XSD's `xi:parseType` admits `xml` and `text` (`w3/XInclude.xsd` lines 31 to 36); "Values
-    // other than "xml" and "text" are a fatal error" (XInclude 1.0 §3.1). Section 2.12 of the
-    // information model, which would admit `xml` alone, is not normative (§2).
+    /**
+     * The XSD's `xi:parseType` admits `xml` and `text` (`w3/XInclude.xsd` lines 31 to 36); "Values
+     * other than "xml" and "text" are a fatal error" (XInclude 1.0 §3.1). Section 2.12 of the
+     * information model, which would admit `xml` alone, is not normative (§2).
+     */
     const domain = Option.getOrThrow(domainAt("xi:include", "parse"));
 
     assert.isTrue(matches(domain, "xml") && matches(domain, " xml "));
@@ -1128,10 +1142,12 @@ describe("The spec readings", () => {
   });
 
   it("read 2: a MathML number has no explicit +, and a content cn's base is a positive integer", () => {
-    // MathML 3 §2.1.5.1: number is "an optional prefix of "-" (U+002D), followed by an unsigned
-    // number", and "An explicit plus sign ('+') is not allowed as part of a numerical value";
-    // §4.2.1.3: base "is a base 10 positive integer". The XSD types number xs:decimal and leaves
-    // base untyped.
+    /**
+     * MathML 3 §2.1.5.1: number is "an optional prefix of "-" (U+002D), followed by an unsigned
+     * number", and "An explicit plus sign ('+') is not allowed as part of a numerical value";
+     * §4.2.1.3: base "is a base 10 positive integer". The XSD types number xs:decimal and leaves
+     * base untyped.
+     */
     const numbers = declarersOf("scriptsizemultiplier");
     assert.isAbove(numbers.length, 0);
     for (const { kind } of numbers) {
@@ -1158,8 +1174,10 @@ describe("The spec readings", () => {
   });
 
   it("read 120: a qti-index's n is at least 1 where it is a number, any NCName otherwise", () => {
-    // Information model §5.72, Index: "'n' must be a positive integer"; the XSD's xs:int member
-    // admits 0 and negatives, and reading 46 keeps no larger range for it.
+    /**
+     * Information model §5.72, Index: "'n' must be a positive integer"; the XSD's xs:int member
+     * admits 0 and negatives, and reading 46 keeps no larger range for it.
+     */
     const n = Option.getOrThrow(domainAt("qti-index", "n"));
 
     for (const value of ["1", "+1", "01", " 2 ", "2147483647", "N", "i", "INDEX_1"]) {
@@ -1172,10 +1190,12 @@ describe("The spec readings", () => {
   });
 
   it("read 123: a bdo's dir is required and is ltr or rtl, never auto; another kind's dir keeps auto", () => {
-    // Information model §5.11, BDO: "Authors must specify the dir attribute on this tag, with the
-    // value ltr ... or rtl ... The auto value must not be specified". The XSD declares dir
-    // optional, defaulting to auto (`readDeclarations` reads the use; the composed grammar's use
-    // is the XSD uses test's).
+    /**
+     * Information model §5.11, BDO: "Authors must specify the dir attribute on this tag, with the
+     * value ltr ... or rtl ... The auto value must not be specified". The XSD declares dir
+     * optional, defaulting to auto (`readDeclarations` reads the use; the composed grammar's use
+     * is the XSD uses test's).
+     */
     const bdo = attributeDeclarations.filter(({ kind }) => kind === "bdo");
     const read = readDeclarations(bdo);
 
@@ -1198,10 +1218,12 @@ describe("The spec readings", () => {
   });
 
   it("read 124 and 125: each media URL holds something other than spaces, every declaring kind against blank and spaced values", () => {
-    // Information model: audio and video src, video poster, source src and track src "must
-    // contain a valid non-empty URL potentially surrounded by spaces" (§5.9.1, §5.166.1,
-    // §5.166.9, §5.135.1, §5.163.2); HTML: a srcset "must consist of one or more image candidate
-    // strings", each a valid non-empty URL. Oracle: after replace, a character other than a space.
+    /**
+     * Information model: audio and video src, video poster, source src and track src "must
+     * contain a valid non-empty URL potentially surrounded by spaces" (§5.9.1, §5.166.1,
+     * §5.166.9, §5.135.1, §5.163.2); HTML: a srcset "must consist of one or more image candidate
+     * strings", each a valid non-empty URL. Oracle: after replace, a character other than a space.
+     */
     const urls = [
       ["audio", "src"],
       ["source", "src"],
@@ -1224,12 +1246,14 @@ describe("The spec readings", () => {
   });
 
   it("read 129: xml:lang, lang and srclang hold BCP 47 tags, against an independent RFC 5646 recogniser on every tag of up to two subtags and the named longer forms", () => {
-    // Oracle: RFC 5646 §2.1's ABNF walked subtag by subtag (`isLanguageTag`), not the pattern.
-    // Bound: every tag of one or two subtags over `subtagSamples`, the 26 grandfathered tags in
-    // two cases, and the named forms of the plan, which hold the longer tags whose subtags' order
-    // decides them (script before region, extlangs, variants, extensions, a private-use tail); an `xml:lang` or a `lang` may also be empty
-    // (XML 1.0 §2.12; information model §5.15.3), but not on an item or a stimulus (§4.1.4,
-    // §4.3.4) and never a `srclang` (§5.163.3).
+    /**
+     * Oracle: RFC 5646 §2.1's ABNF walked subtag by subtag (`isLanguageTag`), not the pattern.
+     * Bound: every tag of one or two subtags over `subtagSamples`, the 26 grandfathered tags in two
+     * cases, and the named forms of the plan, which hold the longer tags whose subtags' order
+     * decides them (script before region, extlangs, variants, extensions, a private-use tail); an
+     * `xml:lang` or a `lang` may also be empty (XML 1.0 §2.12; information model §5.15.3), but not
+     * on an item or a stimulus (§4.1.4, §4.3.4) and never a `srclang` (§5.163.3).
+     */
     const tags = [
       ...subtagSamples.flatMap((first) => [
         first,
@@ -1289,14 +1313,16 @@ describe("The spec readings", () => {
   });
 
   it("read 132 and 161: a printed variable's format is a printf format string over the listed codes, of any number of conversions, against an independent recogniser on every string of one to four pieces", () => {
-    // Information model §2.3.4: each conversion specifier is "%", flags of "#", "0", "-", " " and
-    // "+", an optional width, an optional precision ("." and zero or more digits), and one of E, e,
-    // f, G, g, r, R, i, o, X or x; the rest of a C format string is text and "%%". Reading 161 sets
-    // aside reading 132's one specifier: QTI bans no second conversion (PR #46, comment
-    // 6701102861), so a format holds any number, none included, and is stored as written.
-    // Oracle: `isPrintfFormat`, a left-to-right walk of the string that reads each specifier, not
-    // the pattern. Bound: every string of one to four pieces (30,940), which reaches each count of
-    // specifiers, none to several, well-formed and malformed.
+    /**
+     * Information model §2.3.4: each conversion specifier is "%", flags of "#", "0", "-", " " and
+     * "+", an optional width, an optional precision ("." and zero or more digits), and one of E, e,
+     * f, G, g, r, R, i, o, X or x; the rest of a C format string is text and "%%". Reading 161 sets
+     * aside reading 132's one specifier: QTI bans no second conversion (PR #46, comment
+     * 6701102861), so a format holds any number, none included, and is stored as written.
+     * Oracle: `isPrintfFormat`, a left-to-right walk of the string that reads each specifier, not
+     * the pattern. Bound: every string of one to four pieces (30,940), which reaches each count of
+     * specifiers, none to several, well-formed and malformed.
+     */
     const pieces = ["%", "%%", "%i", "d", "f", ".", "5", " ", "#", "-", "x", "q", "é"];
     const strings = [
       "",
@@ -1386,10 +1412,12 @@ describe("The spec readings", () => {
   );
 
   it("read 9: an h1's role is heading, tab or presentation, and every other kind's ARIA role keeps each role the XSD lists, every declarer against every listed role and the near misses", () => {
-    // ASI binding §5.3.1, RULE ARIA ROLE 1b: "The 'h1' tag may have an ARIA role value of
-    // 'heading' or 'tab' or 'presentation' only". Oracle: the XSD's enumeration, from the leaf's
-    // own resolution, and the rule's three names restated here; the Schematron's text itself is
-    // the cached suite's below. SSML's `role` is a list of QNames, no enumeration, and is left out.
+    /**
+     * ASI binding §5.3.1, RULE ARIA ROLE 1b: "The 'h1' tag may have an ARIA role value of
+     * 'heading' or 'tab' or 'presentation' only". Oracle: the XSD's enumeration, from the leaf's
+     * own resolution, and the rule's three names restated here; the Schematron's text itself is
+     * the cached suite's below. SSML's `role` is a list of QNames, no enumeration, and is left out.
+     */
     const allowed = new Set(["heading", "tab", "presentation"]);
     const nearMisses = [
       "Heading",
@@ -1427,10 +1455,12 @@ describe("The spec readings", () => {
   });
 
   it("read 9: a source carries no role, and it is the only declaration the readings drop", () => {
-    // ASI binding §5.3.1, RULE ARIA ROLE 1a: "The 'source' tag must not have an ARIA role
-    // attribute", where the XSD declares it; an `xi:include`'s `xpointer`, which the XSD declares,
-    // is kept (reading 85). Oracle: the leaf's declarations, every one, against those
-    // `readDeclarations` keeps.
+    /**
+     * ASI binding §5.3.1, RULE ARIA ROLE 1a: "The 'source' tag must not have an ARIA role
+     * attribute", where the XSD declares it; an `xi:include`'s `xpointer`, which the XSD declares,
+     * is kept (reading 85). Oracle: the leaf's declarations, every one, against those
+     * `readDeclarations` keeps.
+     */
     const kept = new Set(
       readDeclarations(attributeDeclarations).map(({ kind, name }) => `${kind} ${name}`),
     );
@@ -1470,12 +1500,14 @@ describe("The spec readings", () => {
   );
 
   it("read 135: every MIME type is RFC 2045's two tokens and a slash, and each item of the upload's list, against an independent reader on every string of up to four symbols and the named cases", () => {
-    // Information model §7.25, MimeType: "The mime type (type and subtype), as defined by
-    // [RFC 2045]"; §5.1.2 and §5.135.2: "its value must be a valid MIME type". RFC 2045 §5.1:
-    // `type "/" subtype`, each a token, "1*<any (US-ASCII) CHAR except SPACE, CTLs, or
-    // tspecials>". Oracle: `mediaTypeFault`, a code-point walk of the RFC's sentence, not the
-    // pattern. Bound: every string of at most four of `mediaTypeSymbols` (88,741), each declarer,
-    // then the named cases with the verdicts the reading states.
+    /**
+     * Information model §7.25, MimeType: "The mime type (type and subtype), as defined by
+     * [RFC 2045]"; §5.1.2 and §5.135.2: "its value must be a valid MIME type". RFC 2045 §5.1:
+     * `type "/" subtype`, each a token, "1*<any (US-ASCII) CHAR except SPACE, CTLs, or
+     * tspecials>". Oracle: `mediaTypeFault`, a code-point walk of the RFC's sentence, not the
+     * pattern. Bound: every string of at most four of `mediaTypeSymbols` (88,741), each declarer,
+     * then the named cases with the verdicts the reading states.
+     */
     const declarers = attributeDeclarations
       .filter(({ type }) => type.type === "MimeTypeDType")
       .map(({ kind, name }) => `${kind}@${name}`)
@@ -1763,10 +1795,12 @@ const readingsNamed = (handle: string): readonly number[] =>
 
 describe("The value domains' names", () => {
   it("name the spec readings of an attribute each was compiled for, and only those, every domain of the leaf", () => {
-    // Oracle: the specification as a checker, the roster's naming rule: a domain is named after
-    // the type it was first compiled from, a reading's with the reading, so its handle's readings
-    // are exactly those that apply to some attribute it is the domain of, and a handle naming none
-    // is some unread attribute's or text's domain.
+    /**
+     * Oracle: the specification as a checker, the roster's naming rule: a domain is named after
+     * the type it was first compiled from, a reading's with the reading, so its handle's readings
+     * are exactly those that apply to some attribute it is the domain of, and a handle naming none
+     * is some unread attribute's or text's domain.
+     */
     const readingsOfDomain = new Map<string, Set<string>>();
     const add = (domain: string, readings: readonly number[]) => {
       readingsOfDomain.set(
@@ -1923,8 +1957,10 @@ describe("The attribute grammar's refusals", () => {
   const kinds = roster("NodeKind", ["k"]);
 
   it("state a kind that declares a name twice, in two domains, as AttributeGrammar rows grizzle refuses as two facts at one key", () => {
-    // The generator checks no row: grizzle refuses the key when it declares the relation
-    // (`#pantry/test/declared.ts`).
+    /**
+     * The generator checks no row: grizzle refuses the key when it declares the relation
+     * (`#pantry/test/declared.ts`).
+     */
     const result = toyGenerate(
       [toyDeclaration("k", "a", "x"), toyDeclaration("k", "a", "y")],
       kinds,
@@ -2085,10 +2121,12 @@ describe("The document layer", () => {
       Effect.gen(function* layerFollowsTheWildcards() {
         const { attributes, kinds } = yield* Effect.fromResult(composed());
         const byHandle = new Map(attributes.domains.map((domain) => [domain.handle, domain]));
-        // Spec reading 90: on an element the Schematron's extension rules cover, an `xml:` name
-        // the kind does not declare is no `data-` extension, so it is refused there; but on
-        // `qti-custom-interaction`, whose `extension` characteristic is a `NamespaceLax`
-        // (information model §5.36.1), it is one of that characteristic's.
+        /**
+         * Spec reading 90: on an element the Schematron's extension rules cover, an `xml:` name
+         * the kind does not declare is no `data-` extension, so it is refused there; but on
+         * `qti-custom-interaction`, whose `extension` characteristic is a `NamespaceLax`
+         * (information model §5.36.1), it is one of that characteristic's.
+         */
         const covered = new Set(
           coveredElements
             .filter(({ element: covers }) => covers.local !== "qti-custom-interaction")

@@ -388,9 +388,11 @@ const judgedRelations = new Set<unknown>([LomTerm, RecordNode, LomKeyTextBytes])
 
 describe("the LOM level", () => {
   it("states each law of lomLawsByName and no other, each law named by its group's entry", () => {
-    // Oracle: the level's own grouping, and grizzle's laws of each statement as an
-    // `invariant-rejected` outcome names them (`lawsByStatement`), each named by the entry its
-    // group declares. Bound: every statement of the level.
+    /**
+     * Oracle: the level's own grouping, and grizzle's laws of each statement as an
+     * `invariant-rejected` outcome names them (`lawsByStatement`), each named by the entry its
+     * group declares. Bound: every statement of the level.
+     */
     const own = QtiLom.statements.slice(QtiLomVocabulary.statements.length);
     assert.deepStrictEqual(own, Object.values(lomLawsByName).flat());
 
@@ -733,8 +735,10 @@ layer(NodeServices.layer, { excludeTestServices: true })("the producers' manifes
     "folds every LOM leaf a view reads, leaves a description unfolded, and breaks no check",
     () =>
       Effect.gen(function* foldedManifest() {
-        // Oracle: the manifest's own text, each leaf's characters as written, and the producers'
-        // shapes the decisions approve. Bound: one package, every Node row of its manifest.
+        /**
+         * Oracle: the manifest's own text, each leaf's characters as written, and the producers'
+         * shapes the decisions approve. Bound: one package, every Node row of its manifest.
+         */
         const fs = yield* FileSystem.FileSystem;
         const dir = yield* scratchDirectory("lom-");
         yield* fs.writeFileString(`${dir}/imsmanifest.xml`, manifest);

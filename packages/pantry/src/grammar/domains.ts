@@ -1745,7 +1745,9 @@ const digitsIn = (lo: bigint, hi: Option.Option<bigint>): Option.Option<Regex> =
       return empty;
     }
 
-    // The digits are ASCII, so a code unit is a digit.
+    /**
+     * The digits are ASCII, so a code unit is a digit.
+     */
     const [a, aRest] = [from.slice(0, 1), from.slice(1)];
     const [b, bRest] = [to.slice(0, 1), to.slice(1)];
     if (a === b) {
@@ -1776,7 +1778,9 @@ const digitsIn = (lo: bigint, hi: Option.Option<bigint>): Option.Option<Regex> =
   }
 
   const lowLength = String(lo).length;
-  // With no greatest, the lengths run to the least's, and an unbounded arm takes the rest.
+  /**
+   * With no greatest, the lengths run to the least's, and an unbounded arm takes the rest.
+   */
   const top = Option.match(hi, { onNone: () => lowLength, onSome: (most) => String(most).length });
   const arms: Regex[] = [];
   let full: Option.Option<readonly [number, number]> = Option.none();
@@ -1826,7 +1830,9 @@ const digitsIn = (lo: bigint, hi: Option.Option<bigint>): Option.Option<Regex> =
  * @returns The tree, or none for an empty interval.
  */
 const integerIn = (lo: Option.Option<bigint>, hi: Option.Option<bigint>): Option.Option<Regex> => {
-  // A bound that is none bounds nothing: no least is above a value, no greatest below it.
+  /**
+   * A bound that is none bounds nothing: no least is above a value, no greatest below it.
+   */
   const has = (value: bigint) =>
     !Option.exists(lo, (least) => value < least) && !Option.exists(hi, (most) => most < value);
   const zeros = plus(literal("0"));
@@ -2013,7 +2019,9 @@ export const qNamePartsOf = (
     return Option.none();
   }
 
-  // A QName holds at most one colon, which ends its prefix.
+  /**
+   * A QName holds at most one colon, which ends its prefix.
+   */
   const colon = text.indexOf(":");
 
   return Option.some(
@@ -2253,7 +2261,9 @@ const integerBounds = (
   UnreadDefinition
 > =>
   Result.gen(function* integerBoundsBody() {
-    // Each bound facet read as the inclusive end it states: an exclusive one a step inside.
+    /**
+     * Each bound facet read as the inclusive end it states: an exclusive one a step inside.
+     */
     const ends = {
       maxExclusive: Option.none<bigint>(),
       maxInclusive: Option.none<bigint>(),
@@ -3076,7 +3086,9 @@ const closureFrom = (
     );
   }
 
-  // The state itself is the first one reached, so the first row holds the words from it.
+  /**
+   * The state itself is the first one reached, so the first row holds the words from it.
+   */
   const fromState = entryAt(paths, 0);
   const out = new Map<number, Regex>([[state, opt(entryAt(fromState, 0))]]);
   for (const [to, words] of Arr.zip(reached, fromState)) {
@@ -3962,8 +3974,10 @@ const compileIn = (
     const separator = plus(whitespaceChar);
     const more = (least: number) =>
       repeat(seq(separator, item.tree), least, max.pipe(Option.map((most) => most - 1)));
-    // A most of 0 leaves `more` nothing, so `items` is the empty list, and a most below the least
-    // leaves the list nothing (`repeat`).
+    /**
+     * A most of 0 leaves `more` nothing, so `items` is the empty list, and a most below the least
+     * leaves the list nothing (`repeat`).
+     */
     const items = min === 0 ? opt(seq(item.tree, more(0))) : seq(item.tree, more(min - 1));
 
     return {

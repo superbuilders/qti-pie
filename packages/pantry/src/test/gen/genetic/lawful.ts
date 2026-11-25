@@ -555,9 +555,11 @@ const elementOf = (
   const own = step(reading.grammar.ancestry, around, kind);
   const usable = (child: Placed) =>
     admits(reading.grammar.ancestry, own, child) && reading.generator.size.has(child);
-  // The cheapest kind first, then one of the element's own namespace, then the least placed: a
-  // minimal family stays minimal, and an include or a foreign vocabulary stands only where its
-  // position holds nothing as cheap.
+  /**
+   * The cheapest kind first, then one of the element's own namespace, then the least placed: a
+   * minimal family stays minimal, and an include or a foreign vocabulary stands only where its
+   * position holds nothing as cheap.
+   */
   const rank = (child: Placed): readonly number[] => [
     reading.generator.size.get(child) ?? Infinity,
     reading.generator.names.get(child)?.namespace === name.namespace ? 0 : 1,

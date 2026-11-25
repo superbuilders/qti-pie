@@ -334,7 +334,9 @@ class InvalidLengthFacets extends Schema.TaggedError<InvalidLengthFacets>()("Inv
    * The type, the facets and the rule they break, and what to change.
    */
   override get message(): string {
-    // The facets in the order the rule names them: one for a value's rule, two for the others.
+    /**
+     * The facets in the order the rule names them: one for a value's rule, two for the others.
+     */
     const spelled = this.facets.map(spellFacet);
     const stated = ((): string => {
       switch (this.rule) {

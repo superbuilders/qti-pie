@@ -470,8 +470,10 @@ const leadingFirst = (particle: Particle, leading: readonly string[], source: st
   ];
   const once: Occurs = { max: Option.some(1), min: 1 };
   const many: Occurs = { max: Option.none(), min: 0 };
-  // The restated groups and the text position are the reading's; a kind's particle keeps the
-  // XSD's own source, its first particle's in the model.
+  /**
+   * The restated groups and the text position are the reading's; a kind's particle keeps the
+   * XSD's own source, its first particle's in the model.
+   */
   const cited: Source = { _tag: "spec", cite: source };
   const element = (kind: string, held: Source): Particle => ({
     _tag: "element",
@@ -479,7 +481,9 @@ const leadingFirst = (particle: Particle, leading: readonly string[], source: st
     occurs: once,
     source: held,
   });
-  // Every kind restated here is one the model names: a leading kind, or one of the others.
+  /**
+   * Every kind restated here is one the model names: a leading kind, or one of the others.
+   */
   const restated = (kind: string): Particle =>
     element(
       kind,
@@ -702,8 +706,10 @@ const endedBy = (automaton: Automaton, edits: readonly ModelEdit[], kind: string
     return automaton;
   }
 
-  // A state is the position its family's last child stands at; state 0, the empty family, has no
-  // last child, so no position names its kinds and an ending drops it.
+  /**
+   * A state is the position its family's last child stands at; state 0, the empty family, has no
+   * last child, so no position names its kinds and an ending drops it.
+   */
   const listed = (state: number): boolean =>
     automaton.positions.some(
       ({ number: at, symbol }) =>
@@ -1028,8 +1034,10 @@ export const contentOf = (input: {
         .flatMap((facet) => facet.roots)
         .map(({ kinds, namespace }) => [namespace, new Set<string>(kinds)] as const),
     );
-    // A namespace a facet states the roots of admits those kinds alone through a wildcard, and any
-    // other namespace every kind it declares globally.
+    /**
+     * A namespace a facet states the roots of admits those kinds alone through a wildcard, and any
+     * other namespace every kind it declares globally.
+     */
     const rootAdmits = (kind: string): boolean => {
       const namespace = input.namespaceOf(kind);
 
@@ -1039,10 +1047,14 @@ export const contentOf = (input: {
       );
     };
     const installed: Installed[] = [];
-    // Each family's one installed model, by kind, as the models are installed.
+    /**
+     * Each family's one installed model, by kind, as the models are installed.
+     */
     const byFamily = new Map<string, Installed>();
-    // Each distinct outline's follow sets, endings and sorted follows, built once: the models of
-    // many kinds share an outline, and differ only in what their positions name.
+    /**
+     * Each distinct outline's follow sets, endings and sorted follows, built once: the models of
+     * many kinds share an outline, and differ only in what their positions name.
+     */
     const outlined = new Map<string, Structure & { readonly follows: Follows }>();
     for (const model of [...input.models, ...input.facets.flatMap((facet) => facet.models)]) {
       const { content } = model;
@@ -1052,8 +1064,10 @@ export const contentOf = (input: {
         editedBy(tree, edits, model.kind),
       );
       const built = Option.match(particle, {
-        // A model with no element content follows as the empty language does: its start, which
-        // nothing follows.
+        /**
+         * A model with no element content follows as the empty language does: its start, which
+         * nothing follows.
+         */
         onNone: () => ({ automaton: noAutomaton, follows: emptyFollows }),
         onSome: (tree) => {
           const outline = outlineOf(tree);
@@ -1077,10 +1091,12 @@ export const contentOf = (input: {
       const named = new Set(
         automaton.positions.flatMap(({ symbol }) => (symbol._tag === "kinds" ? symbol.kinds : [])),
       );
-      // The global kinds a wildcard of the model may admit, read once for all its wildcards, and
-      // only where one reads global declarations, each by what the kind alone decides: no element
-      // particle of the model names it, reading 6 keeps no foreign root of it, and a namespace a
-      // facet states the roots of admits only those.
+      /**
+       * The global kinds a wildcard of the model may admit, read once for all its wildcards, and
+       * only where one reads global declarations, each by what the kind alone decides: no element
+       * particle of the model names it, reading 6 keeps no foreign root of it, and a namespace a
+       * facet states the roots of admits only those.
+       */
       const globals = automaton.positions.some(
         ({ symbol }) => symbol._tag === "wildcard" && symbol.processing !== "skip",
       )
@@ -1089,11 +1105,15 @@ export const contentOf = (input: {
             .filter((kind) => !named.has(kind) && !input.foreignRoots.has(kind) && rootAdmits(kind))
         : [];
       const symbols = new Map<string, Position[]>();
-      // The processing of each wildcard position that admits a foreign kind.
+      /**
+       * The processing of each wildcard position that admits a foreign kind.
+       */
       const processings = new Map<string, string[]>();
-      // The positions are walked in order and all of one position's kinds are admitted before the
-      // next's, so a kind's positions are held ascending, and a kind one position names twice is
-      // held there once.
+      /**
+       * The positions are walked in order and all of one position's kinds are admitted before the
+       * next's, so a kind's positions are held ascending, and a kind one position names twice is
+       * held there once.
+       */
       const admit = (kind: string, position: Position) => {
         const held = symbols.getOrInsertComputed(kind, () => []);
         if (held.at(-1) !== position) {
@@ -1165,20 +1185,26 @@ export const contentOf = (input: {
       0,
       (most, each) => Math.max(most, each),
     );
-    // Position 0, the start, is every model's, so the roster always holds it.
+    /**
+     * Position 0, the start, is every model's, so the roster always holds it.
+     */
     const positions = roster("Position", Arr.makeBy(widest + 1, String));
     const parentField = idField("parent", input.kinds);
     const installedAt = (family: Family): Option.Option<Installed> =>
       Option.fromNullishOr(byFamily.get(family.parent));
-    // A family no content model holds reads the empty language: its start alone.
+    /**
+     * A family no content model holds reads the empty language: its start alone.
+     */
     const automatonAt = (family: Family): Automaton =>
       Option.match(installedAt(family), {
         onNone: () => emptyLanguage,
         onSome: ({ automaton }) => automaton,
       });
-    // Each child a family's model admits, at its position: the one position its kind names, with
-    // that position's source, or 0 with the model's, for a kind several positions name and for
-    // character data the model gives no position, which carries its predecessor's state.
+    /**
+     * Each child a family's model admits, at its position: the one position its kind names, with
+     * that position's source, or 0 with the model's, for a kind several positions name and for
+     * character data the model gives no position, which carries its predecessor's state.
+     */
     const admittedOf = (entry: Installed): readonly AdmittedRow[] => [
       ...[...entry.symbols].map(([child, held]) => {
         const [only, ...rest] = held;
@@ -1191,16 +1217,22 @@ export const contentOf = (input: {
         .filter((child) => !entry.symbols.has(child))
         .map((child) => ({ child, parent: entry.parent, position: 0, source: entry.source })),
     ];
-    // Each family's kinds that several positions of its model name, with those positions,
-    // ascending as `symbols` holds them.
+    /**
+     * Each family's kinds that several positions of its model name, with those positions,
+     * ascending as `symbols` holds them.
+     */
     const sharedOf = (entry: Installed) =>
       [...entry.symbols].flatMap(([kind, held]) =>
         held.length > 1 ? [{ kind, numbers: held.map(({ number }) => number) }] : [],
       );
-    // Every parent's family, which both models' readings walk.
+    /**
+     * Every parent's family, which both models' readings walk.
+     */
     const families = input.kinds.handles.map((parent): Family => ({ parent }));
-    // The models, read once per family in parent code order: a family's automaton is its
-    // model's whenever an earlier family's has the same positions, follow sets and `Last`.
+    /**
+     * The models, read once per family in parent code order: a family's automaton is its
+     * model's whenever an earlier family's has the same positions, follow sets and `Last`.
+     */
     const contentModels = modelsOf(
       families.map((family) =>
         Option.match(installedAt(family), {
@@ -1247,8 +1279,10 @@ export const contentOf = (input: {
     const modelSizes = new Map(
       contentModels.models.map(({ handle, value }) => [handle, value.follows.length]),
     );
-    // Each model's states' follow sets, each distinct set once (rule 0), numbered in the order of
-    // the first (model, state) that holds it, and the positions each holds.
+    /**
+     * Each model's states' follow sets, each distinct set once (rule 0), numbered in the order of
+     * the first (model, state) that holds it, and the positions each holds.
+     */
     const setOf = new Map<string, string>();
     const members: { readonly set: string; readonly to: string }[] = [];
     const statedSets = contentModels.models.flatMap(({ handle, value }) =>
@@ -1266,9 +1300,11 @@ export const contentOf = (input: {
       })),
     );
     const followSet = idField("set", roster("FollowSet", [...setOf.values()]));
-    // Each shared model's kinds' positions, each distinct set of positions once (rule 0), numbered
-    // in the order of the first (model, kind) that holds it, with the positions each holds,
-    // ascending as `sharedOf` reads them.
+    /**
+     * Each shared model's kinds' positions, each distinct set of positions once (rule 0), numbered
+     * in the order of the first (model, kind) that holds it, with the positions each holds,
+     * ascending as `sharedOf` reads them.
+     */
     const symbolSetByText = new Map<string, string>();
     const symbolMembers: { readonly position: string; readonly set: string }[] = [];
     const symbolRows = sharedModels.models.flatMap(({ handle, value }) =>
@@ -1286,14 +1322,18 @@ export const contentOf = (input: {
       })),
     );
     const symbolSet = idField("set", roster("SymbolSet", [...symbolSetByText.values()]));
-    // The positions each shared model names each of its shared kinds at: none for a kind the model
-    // does not share.
+    /**
+     * The positions each shared model names each of its shared kinds at: none for a kind the model
+     * does not share.
+     */
     const sharedNumbers = new Map(
       sharedModels.models.flatMap(({ handle, value }) =>
         value.map(({ kind, numbers }) => [tupleKey(handle, kind), numbers] as const),
       ),
     );
-    // A family's positions are 0, its start, then its model's own: the dependent sum Σ (P + 1).
+    /**
+     * A family's positions are 0, its start, then its model's own: the dependent sum Σ (P + 1).
+     */
     const position = dependentField(
       "position",
       positions,
@@ -1303,13 +1343,17 @@ export const contentOf = (input: {
       dependentField(name, positions, (prefix) =>
         countOf(modelSizes, prefixHandle(prefix, "model"), "ModelPositions"),
       );
-    // Each installed family with the children its model admits, read once: its admission map's,
-    // and `StrictlyHeld`'s among them.
+    /**
+     * Each installed family with the children its model admits, read once: its admission map's,
+     * and `StrictlyHeld`'s among them.
+     */
     const admittedBy = installed.map((entry) => ({ entry, rows: admittedOf(entry) }));
-    // Each family's admitted children at their positions, the models' and then the triples the
-    // vocabularies state beside them, at 0; then each family's children, by kind, as its
-    // admission map, each distinct map numbered once in the order of the first family, in parent
-    // code order, that holds it (rule 0).
+    /**
+     * Each family's admitted children at their positions, the models' and then the triples the
+     * vocabularies state beside them, at 0; then each family's children, by kind, as its
+     * admission map, each distinct map numbered once in the order of the first family, in parent
+     * code order, that holds it (rule 0).
+     */
     const admittedAt = new Map<string, { readonly child: string; readonly position: string }[]>();
     for (const { entry, rows } of admittedBy) {
       for (const each of rows.map(({ child, position: at }) => ({ child, position: String(at) }))) {
@@ -1350,9 +1394,11 @@ export const contentOf = (input: {
       return { ...family, admission };
     });
     const admissionMap = idField("admission", roster("AdmissionMap", [...mapOf.values()]));
-    // A bound of 2…n the automaton relaxes is the particle's, its greatest count a row of its own
-    // where the particle states one; a cap is its reading's, at most one child where the model's
-    // enclosing group repeats the particle.
+    /**
+     * A bound of 2…n the automaton relaxes is the particle's, its greatest count a row of its own
+     * where the particle states one; a cap is its reading's, at most one child where the model's
+     * enclosing group repeats the particle.
+     */
     const countedRows = installed.flatMap(({ automaton, parent }) =>
       automaton.positions.flatMap(({ number, occurs, source }) =>
         occurs.min >= 2 || Option.exists(occurs.max, (most) => most >= 2)
@@ -1421,8 +1467,10 @@ export const contentOf = (input: {
         rows: familyModels,
       }),
     );
-    // The sources the vocabularies state their triples with, by (parent, child): production
-    // states none.
+    /**
+     * The sources the vocabularies state their triples with, by (parent, child): production
+     * states none.
+     */
     const statedSources = new Map(
       input.stated.map(({ child, parent, source }) => [tupleKey(parent, child), source]),
     );

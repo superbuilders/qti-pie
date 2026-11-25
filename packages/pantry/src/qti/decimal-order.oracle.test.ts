@@ -778,8 +778,10 @@ const situations: readonly [Situation | AdversarialName, ...(Situation | Adversa
 
 describe("qti/interactions.ts, the ARIA range's decimal order", () => {
   it("evaluates AriaBounds under the installed Aria_value_range check, and under its former statement beside it", () => {
-    // Oracle: the schema's statements, which `Qti` holds once each, and the one restated here,
-    // each set read in name order, as the evaluator's checks are keyed in law order.
+    /**
+     * Oracle: the schema's statements, which `Qti` holds once each, and the one restated here,
+     * each set read in name order, as the evaluator's checks are keyed in law order.
+     */
     const row = boundsRow(["0", "1"]);
     assert.deepStrictEqual(
       Object.keys(

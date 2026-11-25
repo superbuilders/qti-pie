@@ -223,9 +223,11 @@ describe("render.ts's module graph", () => {
   });
 
   it("is caught reaching the inventory again through a planted import, and not through a type", () => {
-    // Oracle: the tree as written, with one line planted in model/names.ts, the module whose
-    // 634-entry table the inventory fed. A value import loads the 50 KB roster module; a wholly
-    // type-only import of it loads nothing.
+    /**
+     * Oracle: the tree as written, with one line planted in model/names.ts, the module whose
+     * 634-entry table the inventory fed. A value import loads the 50 KB roster module; a wholly
+     * type-only import of it loads nothing.
+     */
     const names = path.join(pantryRoot, "src", "model", "names.ts");
     const planted = (line: string) => (file: string) =>
       file === names ? `${line}\n${readSource(file)}` : readSource(file);

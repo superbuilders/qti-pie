@@ -477,7 +477,9 @@ const indexDocument = (document: XmlDocument): Result.Result<DocumentIndex, XsdR
         : [],
     );
     const namespaces: ReadonlyMap<string, string> = new Map([["xml", XML], ...declared]);
-    // A document with no `targetNamespace` has an absent `{target namespace}` (§3.15.2).
+    /**
+     * A document with no `targetNamespace` has an absent `{target namespace}` (§3.15.2).
+     */
     const targetNamespace = Option.getOrElse(
       attributeOf(root, "targetNamespace"),
       () => noNamespace,

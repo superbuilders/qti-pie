@@ -235,9 +235,11 @@ const valueSetLawsOf = (
     Option.isSome(valueOf(rows, start, "field-identifier")),
   );
   const baseTyped = values.filter(({ start }) => Option.isSome(valueOf(rows, start, "base-type")));
-  // A record's value is a field, with its field-identifier and its base-type both (§8.16); any
-  // other variable's value may carry either, which names and types nothing there (§7.46.1,
-  // §7.46.2: each is "only used for" a value that forms part of a record).
+  /**
+   * A record's value is a field, with its field-identifier and its base-type both (§8.16); any
+   * other variable's value may carry either, which names and types nothing there (§7.46.1,
+   * §7.46.2: each is "only used for" a value that forms part of a record).
+   */
   const whole = fields.filter(({ start }) => Option.isSome(valueOf(rows, start, "base-type")));
   const record = Option.exists(cardinality, (held) => held === "record");
   const counted = Option.match(cardinality, {
@@ -278,12 +280,14 @@ const valueSetLawsOf = (
         return [];
       }
 
-      // §7.46: "The base-type is defined by the 'base-type' attribute of the declaration except in
-      // the case of variables with record cardinality": a record's value is a field, read in its
-      // own base type, and any other value in its declaration's. A type or a cardinality that is
-      // unwritten, or outside its domain, types nothing: the declaration's own law or that domain
-      // refuses it alone (the ruling of 2026-11-06; lane NIL's audit, B11 and B12; spec reading
-      // 158).
+      /**
+       * §7.46: "The base-type is defined by the 'base-type' attribute of the declaration except in
+       * the case of variables with record cardinality": a record's value is a field, read in its
+       * own base type, and any other value in its declaration's. A type or a cardinality that is
+       * unwritten, or outside its domain, types nothing: the declaration's own law or that domain
+       * refuses it alone (the ruling of 2026-11-06; lane NIL's audit, B11 and B12; spec reading
+       * 158).
+       */
       const typed = cardinality.pipe(
         Option.flatMap((held) =>
           held === "record" ? typedValueOf(rows, value.start, "base-type") : baseType,
@@ -319,13 +323,15 @@ const declarationLawsOf = (
   sessionVariables: ReadonlySet<string>,
   grammar: ComposedGrammar,
 ): readonly Breach[] => {
-  // A declaration whose identifier or cardinality is unwritten, or whose identifier, cardinality
-  // or base type lies outside its value domain, is refused by AL3 ("required-attribute") or that
-  // domain ("attribute-lexical") alone: an absent attribute is no empty one, and the laws that read
-  // the attribute do not read it, while every other law judges the declaration as any other (lane
-  // NIL's audit, B11; spec readings 157 and 158). Each is read as its type reads it, and
-  // `base-type` and `cardinality` enumerate a restriction of `xs:string`, whose whiteSpace is
-  // `preserve`, so a padded form lies outside its domain.
+  /**
+   * A declaration whose identifier or cardinality is unwritten, or whose identifier, cardinality
+   * or base type lies outside its value domain, is refused by AL3 ("required-attribute") or that
+   * domain ("attribute-lexical") alone: an absent attribute is no empty one, and the laws that read
+   * the attribute do not read it, while every other law judges the declaration as any other (lane
+   * NIL's audit, B11; spec readings 157 and 158). Each is read as its type reads it, and
+   * `base-type` and `cardinality` enumerate a restriction of `xs:string`, whose whiteSpace is
+   * `preserve`, so a padded form lies outside its domain.
+   */
   const cardinality = typedValueOf(rows, node.start, "cardinality");
   const baseType = typedValueOf(rows, node.start, "base-type");
   const identifier = typedValueOf(rows, node.start, "identifier");
@@ -334,13 +340,14 @@ const declarationLawsOf = (
     ...Option.match(identifier, { onNone: () => ({}), onSome: (held) => ({ identifier: held }) }),
     ...Option.match(cardinality, { onNone: () => ({}), onSome: (held) => ({ cardinality: held }) }),
   };
-  // QTI_CONTEXT is declared as the context record (reading 74). SCORE, MAXSCORE and PASSED are typed
-  // by no normative rule (§4.5's "needs to be" is no RFC 2119 keyword, §1.3; §2.2.2.3 is NOT
-  // NORMATIVE), so each is admitted of any type (J1). A record has no base type, and every variable
-  // of another cardinality
-  // writes one (tables 4.5.3, 5.34.3, 5.115.3 and 5.151.3): one that writes none is Declaration
-  // base type's (lane NIL's audit, B12), and one that writes a form spelling nothing its value
-  // domain's alone.
+  /**
+   * QTI_CONTEXT is declared as the context record (reading 74). SCORE, MAXSCORE and PASSED are
+   * typed by no normative rule (§4.5's "needs to be" is no RFC 2119 keyword, §1.3; §2.2.2.3 is NOT
+   * NORMATIVE), so each is admitted of any type (J1). A record has no base type, and every variable
+   * of another cardinality writes one (tables 4.5.3, 5.34.3, 5.115.3 and 5.151.3): one that writes
+   * none is Declaration base type's (lane NIL's audit, B12), and one that writes a form spelling
+   * nothing its value domain's alone.
+   */
   const isRecord = cardinality.pipe(Option.map((held) => held === "record"));
   const reservedBroken = Option.exists(
     identifier,
@@ -407,8 +414,10 @@ const interactionLawsOf = (rows: View, grammar: ComposedGrammar): readonly Breac
     return Option.toArray(typedValueOf(rows, node.start, "response-identifier")).flatMap(
       (identifier) => {
         const declaration = declared.get(identifier);
-        // The cardinality as its type reads it, which max-strings judges only where it is a
-        // container (the orchestrator's ruling of 2026-11-06: an absent attribute is no empty one).
+        /**
+         * The cardinality as its type reads it, which max-strings judges only where it is a
+         * container (the orchestrator's ruling of 2026-11-06: an absent attribute is no empty one).
+         */
         const cardinality =
           declaration === undefined
             ? ""
@@ -695,8 +704,10 @@ export const documentDocumentBreaches = (
   rows: View,
   grammar: ComposedGrammar,
 ): readonly Breach[] => {
-  // A declaration may not name a built-in session variable of its document's root (readings 72 and
-  // 168): an item's three in any document but a test, and a test's `duration` alone in a test.
+  /**
+   * A declaration may not name a built-in session variable of its document's root (readings 72 and
+   * 168): an item's three in any document but a test, and a test's `duration` alone in a test.
+   */
   const root = Option.exists(rows.root, ({ kind }) => kind === testRootKind)
     ? testRootKind
     : "qti-assessment-item";
@@ -826,12 +837,14 @@ const lomTitleLawsOf = (input: PackageRows): readonly Breach[] => {
       return [];
     }
 
-    // The object's title and language; a root of no object has neither, and no string names it.
-    // A root that writes no `title` has no value for a string to match (QTI 3.0 Metadata
-    // §2.7.1.2: "The title must have a value that matches the value of the title attribute of the
-    // associated item, test or object bank"), so no string names it either. An `xml:lang` AL1
-    // refuses has no value to read, so it states no language, as an unwritten one states none
-    // (spec reading 151).
+    /**
+     * The object's title and language; a root of no object has neither, and no string names it.
+     * A root that writes no `title` has no value for a string to match (QTI 3.0 Metadata
+     * §2.7.1.2: "The title must have a value that matches the value of the title attribute of the
+     * associated item, test or object bank"), so no string names it either. An `xml:lang` AL1
+     * refuses has no value to read, so it states no language, as an unwritten one states none
+     * (spec reading 151).
+     */
     const object = objectRoots.has(root.kind);
     const title = Option.map(valueOf(document.rows, root.start, "title"), replaced);
     const lang = statedLanguage(typedValueOf(document.rows, root.start, "xml:lang"));

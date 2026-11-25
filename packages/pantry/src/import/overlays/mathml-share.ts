@@ -191,8 +191,10 @@ const ranksOf = <Key>(
         } else if (open.has(next)) {
           frame.at += 1;
         } else {
-          // An element an include splices is entered from the include's parent, and this edge is
-          // met again once that walk is done.
+          /**
+           * An element an include splices is entered from the include's parent, and this edge is
+           * met again once that walk is done.
+           */
           const via = entryOf(next);
           frame.at += via === next ? 1 : 0;
           enter(via, via === next);

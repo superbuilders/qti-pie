@@ -193,16 +193,20 @@ const containmentsOf = (
 
 describe("qti/tests.ts, an external include", () => {
   it("judges Include target and the href's entry path only of a site whose href stays in the package, and proves the mark by the include's href reference", () => {
-    // Oracle: reading 115 and the href scopes of readings 35 and 102: an include whose href
-    // resolves outside the package is stored as written and never fetched, so it names no
-    // document and breaks no law; one in the package names a listed document or is refused
-    // "Include target".
+    /**
+     * Oracle: reading 115 and the href scopes of readings 35 and 102: an include whose href
+     * resolves outside the package is stored as written and never fetched, so it names no
+     * document and breaks no law; one in the package names a listed document or is refused
+     * "Include target".
+     */
     const include = { external: false, kind: "xi:include" };
     const external = { ...include, external: true };
 
-    // A site's href is its SitePath (#46's row of its own): "Include target" is an include's
-    // SitePath, then into its ReferencePath; "Section ref target" holds an in-package section ref
-    // to its own, by a containment of its own sites.
+    /**
+     * A site's href is its SitePath (#46's row of its own): "Include target" is an include's
+     * SitePath, then into its ReferencePath; "Section ref target" holds an in-package section ref
+     * to its own, by a containment of its own sites.
+     */
     const sited = containmentsOf(
       ["Site", "package", "path", "start", "kind"],
       ["SitePath", "package", "path", "start", "kind"],
@@ -457,7 +461,9 @@ const structureCases = {
       ]),
     }),
   },
-  // §4.2.3, §5.6.3: "If a child element is fixed it must never be shuffled".
+  /**
+   * §4.2.3, §5.6.3: "If a child element is fixed it must never be shuffled".
+   */
   "a branch rule backward in a shuffle that fixes nothing": {
     laws: [],
     test: Option.some({
@@ -490,7 +496,9 @@ const structureCases = {
     test: Option.some({ item1: branchTo("part1") }),
   },
   "a branch rule to an exit": { laws: [], test: Option.some({ item1: branchTo("EXIT_TEST") }) },
-  // §2.12 and §7.5: an included fragment's root is a target, standing where its include stands.
+  /**
+   * §2.12 and §7.5: an included fragment's root is a target, standing where its include stands.
+   */
   "a branch rule to an included root after its source": {
     documents: [itemRefFragment],
     laws: [],
@@ -556,9 +564,11 @@ const structureCases = {
     laws: ["Set type"],
     test: Option.some({ processing: setTotal('<qti-variable identifier="s1.duration"/>') }),
   },
-  // §7.47.2: "When applying a weight to the value of a variable with base-type integer the value is
-  // subject to type promotion and the result of the expression has base-type float"; "If the item
-  // variable is of any other type the weight is ignored".
+  /**
+   * §7.47.2: "When applying a weight to the value of a variable with base-type integer the value is
+   * subject to type promotion and the result of the expression has base-type float"; "If the item
+   * variable is of any other type the weight is ignored".
+   */
   "a float outcome set from a sum of weighted integer reads": {
     laws: [],
     test: Option.some({
@@ -576,8 +586,10 @@ const structureCases = {
     laws: [],
     test: Option.some({ parts: fragmentInclude }),
   },
-  // XInclude's merged document holds a fragment included twice twice, so one section holds two
-  // item refs of one identifier (§4.2.1).
+  /**
+   * XInclude's merged document holds a fragment included twice twice, so one section holds two
+   * item refs of one identifier (§4.2.1).
+   */
   "a fragment of an item ref included twice in one section": {
     documents: [itemRefFragment],
     laws: ["Test name key"],
@@ -630,8 +642,10 @@ const structureCases = {
     laws: [],
     test: Option.none(),
   },
-  // A variable's name is an identifier (§4.5.1), so `remote.1.SCORE` reads no variable `1.SCORE`
-  // through the link, only its numbered reading (reading 88).
+  /**
+   * A variable's name is an identifier (§4.5.1), so `remote.1.SCORE` reads no variable `1.SCORE`
+   * through the link, only its numbered reading (reading 88).
+   */
   "a numbered reading through a repeated item ref outside the package": {
     laws: [],
     test: Option.some({
@@ -651,8 +665,10 @@ const structureCases = {
       section: '<qti-selection select="2" with-replacement="true"/>',
     }),
   },
-  // Reading 166, §7.22: a map response "transforms it using the associated mapping, which must have
-  // been declared", through the item ref as in the item.
+  /**
+   * Reading 166, §7.22: a map response "transforms it using the associated mapping, which must have
+   * been declared", through the item ref as in the item.
+   */
   "a prefixed map response of a mapped response": {
     laws: [],
     test: Option.some({ processing: setTotal('<qti-map-response identifier="item1.RESPONSE"/>') }),
@@ -673,7 +689,9 @@ const structureCases = {
       processing: setTotal('<qti-map-response-point identifier="item1.RESPONSE"/>'),
     }),
   },
-  // §6.9.46: a map response point "transforms it using the associated areaMapping".
+  /**
+   * §6.9.46: a map response point "transforms it using the associated areaMapping".
+   */
   "a prefixed map response point of an area-mapped point": {
     laws: [],
     test: Option.some({
@@ -698,8 +716,10 @@ const structureCases = {
         '<qti-outcome-declaration identifier="item1.SCORE" cardinality="single" base-type="float"/>',
     }),
   },
-  // Spec reading 145: a section document a test references resolves its references in the test's
-  // declarations, once per placement.
+  /**
+   * Spec reading 145: a section document a test references resolves its references in the test's
+   * declarations, once per placement.
+   */
   "a referenced section's rubric printing no variable": {
     documents: [sharedSection('>So far: <qti-printed-variable identifier="NOPE"/>')],
     laws: ["Printed variable reference"],
@@ -714,8 +734,10 @@ const structureCases = {
       parts: '<qti-assessment-section-ref identifier="placed" href="shared.xml"/>',
     }),
   },
-  // §7.5.3: "A test may refer to the same section multiple times within a test", so its two copies
-  // hold the section document's ID once.
+  /**
+   * §7.5.3: "A test may refer to the same section multiple times within a test", so its two copies
+   * hold the section document's ID once.
+   */
   "a section document holding an ID, referenced twice": {
     documents: [sharedSection(' id="x">Read.')],
     laws: [],
@@ -724,8 +746,10 @@ const structureCases = {
         '<qti-assessment-section-ref identifier="once" href="shared.xml"/><qti-assessment-section-ref identifier="twice" href="shared.xml"/>',
     }),
   },
-  // Spec reading 117: a section document two tests place is typed in each, by that test's own
-  // declaration of what it reads.
+  /**
+   * Spec reading 117: a section document two tests place is typed in each, by that test's own
+   * declaration of what it reads.
+   */
   "a section document two tests place, its limit a float in each": {
     documents: [limitedSection, limitingTest("float")],
     laws: [],
@@ -742,8 +766,10 @@ const structureCases = {
       parts: '<qti-assessment-section-ref identifier="placed" href="limited.xml"/>',
     }),
   },
-  // Spec reading 167: a section's duration reads the test's duration built-in, typed duration, so
-  // it sets a duration outcome and no float one.
+  /**
+   * Spec reading 167: a section's duration reads the test's duration built-in, typed duration, so
+   * it sets a duration outcome and no float one.
+   */
   "a section's duration": {
     laws: [],
     test: Option.some({
@@ -790,12 +816,16 @@ const structureCases = {
     }),
   },
   "a test": { laws: [], test: Option.some({}) },
-  // §5.157.2: a test feedback's outcome identifier names "an outcome variable" the test declares.
+  /**
+   * §5.157.2: a test feedback's outcome identifier names "an outcome variable" the test declares.
+   */
   "a test feedback naming no outcome": {
     laws: ["Feedback reference"],
     test: Option.some({ feedback: testFeedback("NOPE") }),
   },
-  // §5.49.1, of the feedback's outcome: "base-type of identifier".
+  /**
+   * §5.49.1, of the feedback's outcome: "base-type of identifier".
+   */
   "a test feedback naming the test's float outcome": {
     laws: ["Feedback outcome type"],
     test: Option.some({ feedback: testFeedback("TOTAL") }),
@@ -804,16 +834,20 @@ const structureCases = {
     laws: [],
     test: Option.some({ declarations: verdictDeclaration, feedback: testFeedback("VERDICT") }),
   },
-  // The bank's item refs share the test's identifiers (reading 86), so the test's `item1.SCORE`
-  // reads through two item refs, ambiguous (reading 48).
+  /**
+   * The bank's item refs share the test's identifiers (reading 86), so the test's `item1.SCORE`
+   * reads through two item refs, ambiguous (reading 48).
+   */
   "a test placing the bank by a section ref": {
     laws: ["Prefixed reference", "Test name key"],
     test: Option.some({
       parts: '<qti-assessment-section-ref identifier="placed" href="section.xml"/>',
     }),
   },
-  // §7.30.6: a printed variable names "The outcome variable or template variable [that] must have
-  // been defined".
+  /**
+   * §7.30.6: a printed variable names "The outcome variable or template variable [that] must have
+   * been defined".
+   */
   "a test rubric printing no variable": {
     laws: ["Printed variable reference"],
     test: Option.some({ declarations: printingRubric("NOPE") }),
@@ -854,7 +888,9 @@ const structureCases = {
         '<qti-set-outcome-value identifier="COUNTED"><qti-variable identifier="item1.COUNT" weight-identifier="W"/></qti-set-outcome-value>',
     }),
   },
-  // Spec reading 167: a test types its prefixed references by the readings its assembly gives them.
+  /**
+   * Spec reading 167: a test types its prefixed references by the readings its assembly gives them.
+   */
   "an integer outcome set from an item's float outcome": {
     laws: ["Set type"],
     test: Option.some({
@@ -862,8 +898,10 @@ const structureCases = {
         '<qti-set-outcome-value identifier="COUNTED"><qti-variable identifier="item1.SCORE"/></qti-set-outcome-value>',
     }),
   },
-  // Spec readings 106 and 167: an item's built-in through its item ref is typed as the item's
-  // built-in, `numAttempts` a single integer.
+  /**
+   * Spec readings 106 and 167: an item's built-in through its item ref is typed as the item's
+   * built-in, `numAttempts` a single integer.
+   */
   "an item's built-in through its item ref": {
     laws: [],
     test: Option.some({

@@ -727,9 +727,11 @@ export const compose = <const V extends readonly Vocabulary[]>(
       ),
       vocabularies: list,
     });
-    // Each kind's namespace, read once from its `ElementName` row: the readers below ask it of a
-    // kind once per wildcard position and global kind. A kind outside the roster is read the same
-    // way, uncached.
+    /**
+     * Each kind's namespace, read once from its `ElementName` row: the readers below ask it of a
+     * kind once per wildcard position and global kind. A kind outside the roster is read the same
+     * way, uncached.
+     */
     const kindNamespaces: ReadonlyMap<string, NamespaceOfKind> = new Map(
       base.nodeKind.handles.map((kind) => [kind, namespaceOfKind(base, kind)]),
     );
@@ -751,7 +753,9 @@ export const compose = <const V extends readonly Vocabulary[]>(
       namespaceOf,
       stated: stating,
     });
-    // A parent admits a kind where its family's admission map holds the kind.
+    /**
+     * A parent admits a kind where its family's admission map holds the kind.
+     */
     const { admission } = installed;
     const kinds = resolution(base, (parent, kind) =>
       Option.isSome(admission.lookup({ child: kind, parent })),
@@ -776,7 +780,9 @@ export const compose = <const V extends readonly Vocabulary[]>(
       typeName: xsi.typeName,
       typeTexts: governingTexts,
     });
-    // The namespaces of the vocabularies that write elements, as the patterns spell them.
+    /**
+     * The namespaces of the vocabularies that write elements, as the patterns spell them.
+     */
     const namespaces = [
       ...new Set(
         list.flatMap(({ namespace }) =>

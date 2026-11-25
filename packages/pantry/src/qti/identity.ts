@@ -468,7 +468,11 @@ export const textIdentityOf = (governor: Parameters<typeof TextDomain.at>[1]) =>
  * @param a - The attribute row.
  * @returns The statement.
  */
-// GRIZZLE-PENDING: CLOSEDID2 (follow-up 6): one `eq` per roster kind, not namedOn, until grizzle canonicalizes a one-member `in [v]` as `eq v`, as layer 0's 18 single-kind selections wait; then idTyped reads namedOn.
+/**
+ * GRIZZLE-PENDING: CLOSEDID2 (follow-up 6): one `eq` per roster kind, not namedOn, until grizzle
+ * canonicalizes a one-member `in [v]` as `eq v`, as layer 0's 18 single-kind selections wait; then
+ * idTyped reads namedOn.
+ */
 const idTyped = (a: AttributeRow) =>
   a.or(
     identityIn(a, ["ID"]),

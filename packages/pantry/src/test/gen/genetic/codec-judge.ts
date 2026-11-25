@@ -554,7 +554,9 @@ const bytesDifference = (left: Uint8Array, right: Uint8Array): Option.Option<Tre
     JSON.stringify(text.slice(Math.max(0, at - 40), at + 40));
 
   const construct = constructAt(a.slice(0, at));
-  // A namespace declaration one side writes and the other does not is its own class.
+  /**
+   * A namespace declaration one side writes and the other does not is its own class.
+   */
   const declaration =
     construct === "tag" &&
     ([a, b].some((text) => regex("^\\s?xmlns", "u").test(text.slice(at))) ||
@@ -1059,8 +1061,10 @@ const wellFormedness = Effect.fnUntraced(function* wellFormedness(
  */
 const crustCycle = Effect.fnUntraced(function* crustCycle(tree: XmlDocument) {
   const prefix = "O2";
-  // A tree crust read holds only characters XML allows, so the writer's WriteRefusal would be a
-  // defect.
+  /**
+   * A tree crust read holds only characters XML allows, so the writer's WriteRefusal would be a
+   * defect.
+   */
   const written = yield* Effect.result(
     encode(tree, tree.charset).pipe(Effect.catchTag("WriteRefusal", Effect.die)),
   );
@@ -1331,8 +1335,10 @@ const decodeDifferential = Effect.fnUntraced(function* decodeDifferential(
   }
 
   if (Result.isFailure(read)) {
-    // Both refuse: by one rule, the decoder being the only difference between the two reads.
-    // Where the independent decoder refuses the bytes, crust's rule is decode's.
+    /**
+     * Both refuse: by one rule, the decoder being the only difference between the two reads.
+     * Where the independent decoder refuses the bytes, crust's rule is decode's.
+     */
     const crustRule = refusalRule(read.failure);
     const decodedRule =
       again === undefined || Result.isSuccess(again) ? "decode" : refusalRule(again.failure);
@@ -1492,8 +1498,10 @@ export const judgeBytes = Effect.fnUntraced(function* judgeBytes(
     );
   }
 
-  // A document whose declaration names another encoding than its bytes' is that class first: XML
-  // 1.0 section 4.3.3 makes it a fatal error, so whatever crust makes of it is that defect's.
+  /**
+   * A document whose declaration names another encoding than its bytes' is that class first: XML
+   * 1.0 section 4.3.3 makes it a fatal error, so whatever crust makes of it is that defect's.
+   */
   const inputClass = inputClassOf(bytes, read);
 
   return {

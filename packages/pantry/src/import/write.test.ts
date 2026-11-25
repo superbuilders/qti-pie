@@ -823,11 +823,13 @@ layer(NodeServices.layer, { excludeTestServices: true })(
 
 describe("the written types", () => {
   it("name exactly the fields each caller writes, and no field grizzle draws or fills", () => {
-    // Oracle: the specification as a checker, the W5 contract's written fields (§C and C13), held
-    // by the compiler: each `satisfies` holds the record to every key of its type, `Exact` holds
-    // it to no other key, those a spread brings included, which no excess-property check reads,
-    // and `Unwritten` holds each type to none of a relation's drawn, accumulated or generated
-    // fields but the count fields its sequences nest at.
+    /**
+     * Oracle: the specification as a checker, the W5 contract's written fields (§C and C13), held
+     * by the compiler: each `satisfies` holds the record to every key of its type, `Exact` holds
+     * it to no other key, those a spread brings included, which no excess-property check reads,
+     * and `Unwritten` holds each type to none of a relation's drawn, accumulated or generated
+     * fields but the count fields its sequences nest at.
+     */
     const node = {
       ancestry: true,
       chars: true,

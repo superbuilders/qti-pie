@@ -272,7 +272,9 @@ export const xsiTypesOf = (input: {
         payload: [],
         rows: anonymous,
       }),
-      // A kind no model declares, or declares of an anonymous type, has none.
+      /**
+       * A kind no model declares, or declares of an anonymous type, has none.
+       */
       declaredType: (kind) => Option.fromNullishOr(declared.get(kind)),
       typeName,
       xsiType: sourced({

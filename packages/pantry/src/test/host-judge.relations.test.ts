@@ -125,8 +125,10 @@ const judged = (law: Law): boolean =>
 
 describe("the host judge's laws", () => {
   it("names every law it judges as a refusal names an outcome's law", () => {
-    // Oracle: the refusal's own naming, grizzle's sameLaw against the laws lawsOf states. Bound:
-    // every law of Qti the host judges.
+    /**
+     * Oracle: the refusal's own naming, grizzle's sameLaw against the laws lawsOf states. Bound:
+     * every law of Qti the host judges.
+     */
     const unnamed = judgedLaws(Qti).flatMap(({ law }) =>
       Option.isNone(lawNameOf(law)) ? [Formatter.format(law)] : [],
     );
@@ -135,8 +137,10 @@ describe("the host judge's laws", () => {
   });
 
   it("names every containment a test reads from a relation as a refusal names an outcome's law", () => {
-    // Oracle: the refusal's own naming, as above. Bound: every containment Qti states, read from
-    // each of its relations.
+    /**
+     * Oracle: the refusal's own naming, as above. Bound: every containment Qti states, read from
+     * each of its relations.
+     */
     const unnamed = Object.keys(Qti.relations).flatMap((from) =>
       containmentsOf(Qti, from).flatMap(({ law }) =>
         Option.isNone(lawNameOf(law)) ? [Formatter.format(law)] : [],
@@ -147,9 +151,11 @@ describe("the host judge's laws", () => {
   });
 
   it("judges every containment and key Qti states, in both host judges, whatever statement states it", () => {
-    // Oracle: the laws Qti states, as the refusal names them (`statedLaws`, from grizzle's
-    // `lawsOf`). Bound: every containment and key of every statement of Qti, an alternatives'
-    // among them.
+    /**
+     * Oracle: the laws Qti states, as the refusal names them (`statedLaws`, from grizzle's
+     * `lawsOf`). Bound: every containment and key of every statement of Qti, an alternatives'
+     * among them.
+     */
     const stated = statedLaws().flatMap(([law]) => (judged(law) ? [Formatter.format(law)] : []));
     const judges = [
       ["the host judge", judgedLaws(Qti).map(({ law }) => law)],
@@ -168,10 +174,12 @@ describe("the host judge's laws", () => {
   });
 
   it("decodes no statement over a derived relation, a check, a containment either way or a key", () => {
-    // Oracle: grizzle's own two-level shape (README, "Rules over queries"): a rule over a derived
-    // relation is the database's alone, so the host reads no side over one and no statement with
-    // such a side. Bound: a rule of each kind over the query, a selection of it among them, each
-    // beside its control over stored relations, which the host reads.
+    /**
+     * Oracle: grizzle's own two-level shape (README, "Rules over queries"): a rule over a derived
+     * relation is the database's alone, so the host reads no side over one and no statement with
+     * such a side. Bound: a rule of each kind over the query, a selection of it among them, each
+     * beside its control over stored relations, which the host reads.
+     */
     const { level, queried, stored } = twoLevel;
     const decodes = Schema.is(StatementSchema);
     const side = Schema.is(SideSchema);

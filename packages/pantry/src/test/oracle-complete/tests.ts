@@ -176,8 +176,10 @@ const eachEdit =
  * Each law's mutation, by law.
  */
 export const testMutations = {
-  // Branch forward (§5.23, §2.8.3.2, reading 87): an item ref's rule names itself, or the second
-  // item ref's names the first, which comes before it in every order a delivery draws.
+  /**
+   * Branch forward (§5.23, §2.8.3.2, reading 87): an item ref's rule names itself, or the second
+   * item ref's names the first, which comes before it in every order a delivery draws.
+   */
   "Branch forward": {
     law: "Branch forward",
     mutate: withTest(
@@ -191,13 +193,17 @@ export const testMutations = {
     ),
     over: "package",
   },
-  // Branch target (§5.23, reading 87): an item ref's rule names nothing, or a test part.
+  /**
+   * Branch target (§5.23, reading 87): an item ref's rule names nothing, or a test part.
+   */
   "Branch target": {
     law: "Branch target",
     mutate: withTest(oneEdit([{ item1: branchTo("nowhere") }, { item1: branchTo("part1") }])),
     over: "package",
   },
-  // Item ref identifier (QTI §4.1.1): a bank member under another identifier than its item's.
+  /**
+   * Item ref identifier (QTI §4.1.1): a bank member under another identifier than its item's.
+   */
   "Item ref identifier": {
     law: "Item ref identifier",
     mutate: oneOf(
@@ -211,9 +217,11 @@ export const testMutations = {
     ),
     over: "package",
   },
-  // Item ref target (B2, B3): an item ref whose href names the stimulus, the bank itself, the
-  // usage data, a fragment, or a file no resource's href names; or an item resource's href whose
-  // file the package does not hold, which names no item document (§5.6.5).
+  /**
+   * Item ref target (B2, B3): an item ref whose href names the stimulus, the bank itself, the
+   * usage data, a fragment, or a file no resource's href names; or an item resource's href whose
+   * file the package does not hold, which names no item document (§5.6.5).
+   */
   "Item ref target": {
     law: "Item ref target",
     mutate: oneOf([
@@ -254,7 +262,9 @@ export const testMutations = {
     ]),
     over: "package",
   },
-  // Prefixed reference (reading 48): the test declares the name a prefixed reading also reads.
+  /**
+   * Prefixed reference (reading 48): the test declares the name a prefixed reading also reads.
+   */
   "Prefixed reference": {
     law: "Prefixed reference",
     mutate: withTest(
@@ -267,8 +277,10 @@ export const testMutations = {
     ),
     over: "package",
   },
-  // Section identifier target (§7.27.1, §7.28.1, §7.39.1): a filter names no section the test
-  // places, or an item ref.
+  /**
+   * Section identifier target (§7.27.1, §7.28.1, §7.39.1): a filter names no section the test
+   * places, or an item ref.
+   */
   "Section identifier target": {
     law: "Section identifier target",
     mutate: withTest(
@@ -278,7 +290,9 @@ export const testMutations = {
     ),
     over: "package",
   },
-  // Section ref target (§7.5): a section ref names an item or the stimulus, no section document.
+  /**
+   * Section ref target (§7.5): a section ref names an item or the stimulus, no section document.
+   */
   "Section ref target": {
     law: "Section ref target",
     mutate: withTest(
@@ -288,8 +302,10 @@ export const testMutations = {
     ),
     over: "package",
   },
-  // Selection bound (§5.129.1, reading 79): the section selects more than its two parts, without
-  // replacement.
+  /**
+   * Selection bound (§5.129.1, reading 79): the section selects more than its two parts, without
+   * replacement.
+   */
   "Selection bound": {
     law: "Selection bound",
     mutate: withTest(
@@ -300,7 +316,9 @@ export const testMutations = {
     ),
     over: "package",
   },
-  // Selection required (§4.2.2): the section selects fewer than its required parts.
+  /**
+   * Selection required (§4.2.2): the section selects fewer than its required parts.
+   */
   "Selection required": {
     law: "Selection required",
     mutate: withTest(
@@ -319,7 +337,9 @@ export const testMutations = {
     ),
     over: "package",
   },
-  // Stimulus ref key (§7.6.2): a second stimulus ref of the item's identifier, beside the first.
+  /**
+   * Stimulus ref key (§7.6.2): a second stimulus ref of the item's identifier, beside the first.
+   */
   "Stimulus ref key": {
     law: "Stimulus ref key",
     mutate: ({ entries }) =>
@@ -331,8 +351,10 @@ export const testMutations = {
       )(entries),
     over: "package",
   },
-  // Structure identifier (reading 86): a second item ref of the bank under a member's identifier,
-  // naming that member's item, written after the bank's last item ref.
+  /**
+   * Structure identifier (reading 86): a second item ref of the bank under a member's identifier,
+   * naming that member's item, written after the bank's last item ref.
+   */
   "Structure identifier": {
     law: "Structure identifier",
     mutate: oneOf(
@@ -348,8 +370,10 @@ export const testMutations = {
     ),
     over: "package",
   },
-  // Template default target (§5.152.1, A37): a template default names a name its item declares no
-  // template of.
+  /**
+   * Template default target (§5.152.1, A37): a template default names a name its item declares no
+   * template of.
+   */
   "Template default target": {
     law: "Template default target",
     mutate: withTest(
@@ -359,8 +383,10 @@ export const testMutations = {
     ),
     over: "package",
   },
-  // Test name key (reading 86): the test places the bank by a section ref, whose item refs share
-  // the test's own item refs' identifiers.
+  /**
+   * Test name key (reading 86): the test places the bank by a section ref, whose item refs share
+   * the test's own item refs' identifiers.
+   */
   "Test name key": {
     law: "Test name key",
     mutate: withTest(
@@ -371,7 +397,9 @@ export const testMutations = {
     ),
     over: "package",
   },
-  // Variable mapping source (§7.48, A34): a mapping maps a name its item declares no outcome of.
+  /**
+   * Variable mapping source (§7.48, A34): a mapping maps a name its item declares no outcome of.
+   */
   "Variable mapping source": {
     law: "Variable mapping source",
     mutate: withTest(
@@ -381,8 +409,10 @@ export const testMutations = {
     ),
     over: "package",
   },
-  // Variable mapping target (§7.48, readings 97 and 110): a mapping targets a session variable,
-  // another variable of its item, or another mapping's target.
+  /**
+   * Variable mapping target (§7.48, readings 97 and 110): a mapping targets a session variable,
+   * another variable of its item, or another mapping's target.
+   */
   "Variable mapping target": {
     law: "Variable mapping target",
     mutate: withTest(
@@ -400,7 +430,9 @@ export const testMutations = {
     ),
     over: "package",
   },
-  // Weight key (§7.50.1): two weights of one item ref share an identifier.
+  /**
+   * Weight key (§7.50.1): two weights of one item ref share an identifier.
+   */
   "Weight key": {
     law: "Weight key",
     mutate: withTest(
@@ -410,8 +442,10 @@ export const testMutations = {
     ),
     over: "package",
   },
-  // Weighted base (§7.39.5, reading 167): a weighted test variables writes a base type other than
-  // float.
+  /**
+   * Weighted base (§7.39.5, reading 167): a weighted test variables writes a base type other than
+   * float.
+   */
   "Weighted base": {
     law: "Weighted base",
     mutate: withTest(
@@ -424,10 +458,12 @@ export const testMutations = {
     ),
     over: "package",
   },
-  // Weighted variable (§7.47.2): a weighted variable reads the test's own variable, or a part's
-  // duration, through no item ref.
-  // Each read is set into an outcome of its own type, so no Set type stands ahead: the test's float
-  // TOTAL, and a part's duration, the test's duration built-in (spec reading 167), into a duration.
+  /**
+   * Weighted variable (§7.47.2): a weighted variable reads the test's own variable, or a part's
+   * duration, through no item ref.
+   * Each read is set into an outcome of its own type, so no Set type stands ahead: the test's float
+   * TOTAL, and a part's duration, the test's duration built-in (spec reading 167), into a duration.
+   */
   "Weighted variable": {
     law: "Weighted variable",
     mutate: withTest(

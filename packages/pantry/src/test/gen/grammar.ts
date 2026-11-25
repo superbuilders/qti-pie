@@ -721,8 +721,10 @@ const contentOfType = (set: XsdSet, component: Component, type: string): Content
         onNone: () => [],
         onSome: (found) => found.attributes,
       });
-      // An extension whose explicit content is empty takes its base's content type (XML Schema
-      // Part 1 §3.4.2, complex content, clause 2.1), mixed included.
+      /**
+       * An extension whose explicit content is empty takes its base's content type (XML Schema
+       * Part 1 §3.4.2, complex content, clause 2.1), mixed included.
+       */
       const ownMixed = mixed || Option.contains(attributeOf(derived.value, "mixed"), "true");
       const ownParticleOf = ownParticle(set, document, step);
       const particle = derivedParticle({

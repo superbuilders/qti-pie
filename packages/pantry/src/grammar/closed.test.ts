@@ -211,7 +211,9 @@ const drawnRelation: Gen<Drawn> = (source) => {
     ),
   );
   const [first = [], ...rest] = points;
-  // The digit above an alias's has room to carry: it is below its roster's last code.
+  /**
+   * The digit above an alias's has room to carry: it is below its roster's last code.
+   */
   const carried =
     variant === "alias"
       ? [
@@ -243,7 +245,9 @@ const drawnRelation: Gen<Drawn> = (source) => {
       }
     }
   })();
-  // A beyond-prefix row needs room in the widest roster past its prefix's size.
+  /**
+   * A beyond-prefix row needs room in the widest roster past its prefix's size.
+   */
   const firstPrefix = key
     .slice(0, prefixLength(key))
     .reduce(
@@ -368,7 +372,9 @@ const built = (drawnCase: Drawn) => {
     }
   };
   const rows = variant === "valid" ? stated : [...stated, brokenRow()];
-  // The model: a key point is a tuple of codes, each within its field's space at its prefix.
+  /**
+   * The model: a key point is a tuple of codes, each within its field's space at its prefix.
+   */
   const keyOf = (row: Readonly<Record<string, string>>): Option.Option<string> => {
     const codes = keyFields.map((field, place) => {
       const value = row[`k${place}`];
@@ -413,7 +419,9 @@ const built = (drawnCase: Drawn) => {
   const dependentAt = keyFields.flatMap((field, place) =>
     field._tag === "dependent" ? [place] : [],
   );
-  // The number of keys under the prefix numbered `at`: the product of the sizes after it.
+  /**
+   * The number of keys under the prefix numbered `at`: the product of the sizes after it.
+   */
   const blockSize = (block: number): number =>
     keyFields
       .slice(prefix)
@@ -423,8 +431,10 @@ const built = (drawnCase: Drawn) => {
           (field._tag === "id" ? field.size : Math.min(field.sizes[block] ?? 0, dependentWidth)),
         1,
       );
-  // Every key point the relation's code spaces hold, prefix by prefix: each a key a lookup may
-  // ask for, held by a row or not.
+  /**
+   * Every key point the relation's code spaces hold, prefix by prefix: each a key a lookup may
+   * ask for, held by a row or not.
+   */
   let points: readonly (readonly number[])[] = [[]];
   for (const [place, field] of keyFields.entries()) {
     points = points.flatMap((tuple) => {
@@ -513,9 +523,11 @@ describe("closed relations against a naive tuple-set model", () => {
                 return;
               }
 
-              // Every key point of the code spaces, held or not, each row, each row with its
-              // most significant field one past its roster, and each row with one key field
-              // left out, which no key holds.
+              /**
+               * Every key point of the code spaces, held or not, each row, each row with its
+               * most significant field one past its roster, and each row with one key field
+               * left out, which no key holds.
+               */
               const probes = [
                 ...model.pointRows,
                 ...model.rows,
@@ -537,8 +549,10 @@ describe("closed relations against a naive tuple-set model", () => {
                 c.note("lookup missing a field");
               }
 
-              // Each row's source is its own stated index, so a key that answers another row's
-              // source names the wrong row.
+              /**
+               * Each row's source is its own stated index, so a key that answers another row's
+               * source names the wrong row.
+               */
               const indexOf = new Map(model.rows.map((row, index) => [row, index]));
               const indexedRelation = indexed(relation);
               const withSources = indexedSourced(

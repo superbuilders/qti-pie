@@ -210,9 +210,11 @@ const comparisons: readonly Comparison[] = [
     name: "ModelPositions",
   },
   {
-    // `Last` is no relation of its own: each of its (model, state) rows is the `ends` of that
-    // state's `FollowSetOf` row, and no other state's, so the installed `ends` are exactly the
-    // generator's `Last`.
+    /**
+     * `Last` is no relation of its own: each of its (model, state) rows is the `ends` of that
+     * state's `FollowSetOf` row, and no other state's, so the installed `ends` are exactly the
+     * generator's `Last`.
+     */
     expected: () => {
       const ending = new Set(
         grammar.content.last.rows.map(({ model, position }) => `${model} ${position}`),
@@ -577,12 +579,14 @@ describe("the installed relations", () => {
   });
 
   it("state Admission, ChildGrammar once, as each family's admission map, each distinct map once and held by a family, and read each (parent, child) at its position through its family's map", () => {
-    // Oracle: rule 0, identical facts are one fact, over the content grammar's maps, which
-    // install.ts states one to one (the rows law above): a map minted twice, a map no family holds,
-    // or a child held twice in a map is a fact stated twice or one stated of nothing. And
-    // `Admission.lookup`, the host's reading of the maps that N5's `AdmissionIn` at the family's
-    // map restates, against the maps spelled out (`admittedOf`): every (parent, child)
-    // they state, at its position.
+    /**
+     * Oracle: rule 0, identical facts are one fact, over the content grammar's maps, which
+     * install.ts states one to one (the rows law above): a map minted twice, a map no family holds,
+     * or a child held twice in a map is a fact stated twice or one stated of nothing. And
+     * `Admission.lookup`, the host's reading of the maps that N5's `AdmissionIn` at the family's
+     * map restates, against the maps spelled out (`admittedOf`): every (parent, child)
+     * they state, at its position.
+     */
     const { admissionIn, admissionMaps, contentModelOf } = grammar.content;
     const members = Map.groupBy(admissionIn.rows, ({ map }) => map);
     const spelled = admissionMaps.handles.map((map) =>
@@ -616,12 +620,14 @@ describe("the installed relations", () => {
   });
 
   it("state each shared model's kinds' positions as symbol sets, each distinct set of positions once, held by the pairs it names and by no other", () => {
-    // Oracle: rule 0, identical facts are one fact. The content grammar numbers each distinct set
-    // of positions a shared model names a kind at once (`SymbolSetOf`, `SymbolMember`), and
-    // install.ts states them one to one (the rows law above), so N5's
-    // `SymbolMember.row(SymbolSetOf.at("set", m, k))` reads exactly the positions of the pair. A
-    // set minted twice, a set no pair holds, or a position held twice in a set is a fact stated
-    // twice or one stated of nothing.
+    /**
+     * Oracle: rule 0, identical facts are one fact. The content grammar numbers each distinct set
+     * of positions a shared model names a kind at once (`SymbolSetOf`, `SymbolMember`), and
+     * install.ts states them one to one (the rows law above), so N5's
+     * `SymbolMember.row(SymbolSetOf.at("set", m, k))` reads exactly the positions of the pair. A
+     * set minted twice, a set no pair holds, or a position held twice in a set is a fact stated
+     * twice or one stated of nothing.
+     */
     const { symbolMember, symbolSetOf, symbolSets } = grammar.content;
     const members = Map.groupBy(symbolMember.rows, ({ set }) => set);
     const spelled = symbolSets.handles.map((set) =>
@@ -646,11 +652,13 @@ describe("the installed relations", () => {
   });
 
   it("state each include parent's include alternatives as its include set and each set's kinds, in the grammar and as installed: every (parent, kind), and no other", () => {
-    // Oracle: the include alternatives of the vocabularies' models (`includeAlternativesOf`), the
-    // (include parent, kind) rows an include stands for, against the include grammar's
-    // `IncludeSetOf` and `IncludeMember` and the installed ones, each spelled out
-    // (`includeRowsOf`). "Include root" and `placesAt` read the kinds as the set's members, so they
-    // read the alternatives exactly when these sets do.
+    /**
+     * Oracle: the include alternatives of the vocabularies' models (`includeAlternativesOf`), the
+     * (include parent, kind) rows an include stands for, against the include grammar's
+     * `IncludeSetOf` and `IncludeMember` and the installed ones, each spelled out
+     * (`includeRowsOf`). "Include root" and `placesAt` read the kinds as the set's members, so they
+     * read the alternatives exactly when these sets do.
+     */
     const key = ["parent", "kind"];
     const alternatives = keyedSet(
       "the include alternatives",
@@ -676,11 +684,13 @@ describe("the installed relations", () => {
   });
 
   it("state AttributeGrammar keyed both (model, name) and (model, slot): each name at its slot with its domain and use, and each (model, slot) one attribute's", () => {
-    // Oracle: install.ts's attribute rows of each model's first governor. The laws read
-    // `at("slot", m, name)`, `at("domain", m, name)` and `row(m)`, a name's slot and domain and a
-    // model's names, so AttributeGrammar must hold those rows keyed by (model, name) and keyed by
-    // (model, slot). `keyedSet` refuses a repeated key, so the second also holds (model, slot) to
-    // one attribute, the key `Required` and `CountedSlot` state slots by.
+    /**
+     * Oracle: install.ts's attribute rows of each model's first governor. The laws read
+     * `at("slot", m, name)`, `at("domain", m, name)` and `row(m)`, a name's slot and domain and a
+     * model's names, so AttributeGrammar must hold those rows keyed by (model, name) and keyed by
+     * (model, slot). `keyedSet` refuses a repeated key, so the second also holds (model, slot) to
+     * one attribute, the key `Required` and `CountedSlot` state slots by.
+     */
     const modelOf = new Map(
       install.AttributeModelOf.rows.map(({ governor, model }) => [governor, model]),
     );
@@ -714,10 +724,12 @@ describe("the installed relations", () => {
       new Set(families.map(({ parent }) => tupleText([parent]))),
     );
 
-    // A family whose kinds each name one position has no SharedModelOf row (README, "Closed
-    // relations": a law reads its absence through `SharedModelOf.has`), so the relation holds the
-    // shared families alone. Oracle: the admission maps spelled out, where an element kind at
-    // position 0 is one several positions name.
+    /**
+     * A family whose kinds each name one position has no SharedModelOf row (README, "Closed
+     * relations": a law reads its absence through `SharedModelOf.has`), so the relation holds the
+     * shared families alone. Oracle: the admission maps spelled out, where an element kind at
+     * position 0 is one several positions name.
+     */
     const nonElements: ReadonlySet<string> = new Set(install.nonElementKinds);
     const sharedFamilies = new Set(
       admittedOf(grammar.content.contentModelOf, grammar.content.admissionIn)
@@ -730,10 +742,12 @@ describe("the installed relations", () => {
       sharedFamilies,
     );
 
-    // Oracle: the content grammar's own rows. A cap (spec reading 130) is a set row of Capped,
-    // which a family may hold several of; a count is CountedOf's, its greatest CountedMax's, and
-    // the generators state one counted and one barred position per family, which a function of
-    // the parent needs.
+    /**
+     * Oracle: the content grammar's own rows. A cap (spec reading 130) is a set row of Capped,
+     * which a family may hold several of; a count is CountedOf's, its greatest CountedMax's, and
+     * the generators state one counted and one barred position per family, which a function of
+     * the parent needs.
+     */
     const capped = grammar.content.capped.rows;
     const counted = grammar.content.counted.rows;
     assert.isTrue(oncePerFamily(counted));
@@ -813,7 +827,10 @@ describe("the MathML relations", () => {
       assert.isTrue(String(pattern).startsWith("^(?:") && String(pattern).endsWith(")$"));
     }
 
-    // PostgreSQL's `~` searches, so the payload is tried as a search, with no anchors of the test's own.
+    /**
+     * PostgreSQL's `~` searches, so the payload is tried as a search, with no anchors of the test's
+     * own.
+     */
     const search = (form: string, base: string, text: string) =>
       regex
         .as(String(Option.getOrThrow(row("CnPattern", { base, form }))["pattern"]), "u")

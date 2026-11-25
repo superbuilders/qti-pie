@@ -188,8 +188,10 @@ const standsIn = (namespace: NamespaceOfKind, members: readonly string[]): boole
  */
 const sharesSet = (parent: NamespaceOfKind, child: NamespaceOfKind): boolean =>
   Option.match(vocabularyIn(child), {
-    // A component of no vocabulary's namespace, or of a kind that names no element, is in no
-    // schema set.
+    /**
+     * A component of no vocabulary's namespace, or of a kind that names no element, is in no
+     * schema set.
+     */
     onNone: () => false,
     onSome: (other) =>
       Object.values(schemaSets).some(

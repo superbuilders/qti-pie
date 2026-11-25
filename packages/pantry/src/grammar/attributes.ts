@@ -1773,8 +1773,10 @@ export const generate = (
       handles: new Set(),
       ordered: [],
     };
-    // Every declaration's domain is read before any joins the roster, each distinct definition
-    // compiled once; the loops below add them in the roster's order.
+    /**
+     * Every declaration's domain is read before any joins the roster, each distinct definition
+     * compiled once; the loops below add them in the roster's order.
+     */
     const declarations = input.declarations.map((declared) => ({
       declared,
       read: readDomain(declared),
@@ -1814,8 +1816,10 @@ export const generate = (
       texts.push({ domain: domain.success, kind: text.kind });
     }
 
-    // The governors' domains join the roster after every kind's, so a code the kinds' domains
-    // hold keeps its place.
+    /**
+     * The governors' domains join the roster after every kind's, so a code the kinds' domains
+     * hold keeps its place.
+     */
     const governed: (Admitted & { readonly governor: string })[] = [];
     for (const { declared, read } of governedRead) {
       const domain = domainOf(domains, declared, read, `${declared.governs}@${declared.name}`);
@@ -1849,8 +1853,10 @@ export const generate = (
     );
     const kind = idField("kind", input.kinds);
     const domain = idField("domain", domainRoster);
-    // Each kind and each governor numbers its attributes from 0 in `AttributeName` code order; the
-    // rows keep the order they were read in.
+    /**
+     * Each kind and each governor numbers its attributes from 0 in `AttributeName` code order; the
+     * rows keep the order they were read in.
+     */
     const kindRows = yield* positioned(
       admitted,
       (row) => row.kind,

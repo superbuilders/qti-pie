@@ -944,8 +944,10 @@ const readOf = <V extends XdmVocabulary>(
       prolog: [],
       root: Option.none(),
     };
-    // The nodes the read holds open, innermost last: the document node at the bottom, never closed,
-    // since every row is placed under it.
+    /**
+     * The nodes the read holds open, innermost last: the document node at the bottom, never closed,
+     * since every row is placed under it.
+     */
     const stack: Arr.NonEmptyArray<Open<V>> = [
       { place: (child) => placeInDocument(parsed, child), row: sentinel },
     ];

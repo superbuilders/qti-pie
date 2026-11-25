@@ -65,8 +65,10 @@ const statedByModules = (): ReadonlySet<string> =>
 
 describe("every law of the catalog is stated somewhere", () => {
   it("is named by a module, written by the importer, a part of a stated law, or listed with why grizzle's structure states it", () => {
-    // Oracle: the catalog's own names (`lawTable`), the modules' named statements, and grizzle's
-    // laws of `Qti`. Bound: every law of the catalog.
+    /**
+     * Oracle: the catalog's own names (`lawTable`), the modules' named statements, and grizzle's
+     * laws of `Qti`. Bound: every law of the catalog.
+     */
     const stated = statedByModules();
 
     assert.deepStrictEqual(
@@ -86,8 +88,10 @@ describe("every law of the catalog is stated somewhere", () => {
   });
 
   it("reports a law whose statement is taken away (the AL5 case of decision 441)", () => {
-    // Control for the test above: with the statement of "AL5 attribute count" removed, it is the one law
-    // left unstated.
+    /**
+     * Control for the test above: with the statement of "AL5 attribute count" removed, it is the
+     * one law left unstated.
+     */
     const without = new Set(statedByModules());
     without.delete("AL5 attribute count");
 

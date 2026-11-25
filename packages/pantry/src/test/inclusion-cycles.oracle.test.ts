@@ -169,10 +169,12 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   );
 
                   const read = yield* rowsOfCase(files);
-                  // A cycle no item places is in no assembly, which the rule over the query
-                  // `InstanceDocument` refuses, and the database alone judges a rule over a query:
-                  // the host restates it as the documents no assembly places. A cycle an item places
-                  // breaks the instance tree's count, which the host judges.
+                  /**
+                   * A cycle no item places is in no assembly, which the rule over the query
+                   * `InstanceDocument` refuses, and the database alone judges a rule over a query:
+                   * the host restates it as the documents no assembly places. A cycle an item
+                   * places breaks the instance tree's count, which the host judges.
+                   */
                   const unplacedCycle = cyclic && drawn.includers === 0;
                   assert.deepStrictEqual(
                     read.keys,

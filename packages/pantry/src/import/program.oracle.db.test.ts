@@ -547,10 +547,12 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
         name: "a match table on a multiple-cardinality outcome (lookup-cardinality, Q5.11)",
       },
       {
-        // P2's (resource type, root kind) containment into RootOfType, read from the document's
-        // ResourceDocument, the row its resource type is held in (`qti/package.ts` packageLaws,
-        // spec reading 176): of the statements named RootOfType, the one this edit breaks; the
-        // oracle's one breach; and the rule the import names for it, root-type-reverse.
+        /**
+         * P2's (resource type, root kind) containment into RootOfType, read from the document's
+         * ResourceDocument, the row its resource type is held in (`qti/package.ts` packageLaws,
+         * spec reading 176): of the statements named RootOfType, the one this edit breaks; the
+         * oracle's one breach; and the rule the import names for it, root-type-reverse.
+         */
         apply: () =>
           Effect.flatMap(
             editedSimple("stimulus-root", [
@@ -608,8 +610,10 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
             ]),
             (dir) => applyEdited(dir),
           ),
-        // "Document entry" over the query `TypedPath` (`qti/queries.ts`): the document a typed href
-        // names in the package is one the package lists; and the listed file's own entry.
+        /**
+         * "Document entry" over the query `TypedPath` (`qti/queries.ts`): the document a typed href
+         * names in the package is one the package lists; and the listed file's own entry.
+         */
         laws: [containedIn("TypedPath", "ResourceDocument"), containedIn("FilePath", "Entry")],
         name: "a document href no entry holds (entry-kind, Q5.06)",
       },
@@ -649,9 +653,11 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
                 return assert.fail("no element of the package declares a namespace");
               }
 
-              // The same prefix on the same element again, bound to another name: a second row
-              // at a place past every declaration of the element, under a key text of its own,
-              // so the facts hold both and only the prefix's key, by its SHA-256, is broken.
+              /**
+               * The same prefix on the same element again, bound to another name: a second row
+               * at a place past every declaration of the element, under a key text of its own,
+               * so the facts hold both and only the prefix's key, by its SHA-256, is broken.
+               */
               let after = declared.at + 1n;
               for (const { at, start } of inputs.Namespace.values()) {
                 if (start === declared.start && at >= after) {

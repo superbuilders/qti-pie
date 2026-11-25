@@ -522,10 +522,12 @@ const childrenOf = (grammar: ComposedGrammar): ReadonlyMap<string, readonly Cand
     grammar.content.contentModelOf,
     grammar.content.admissionIn,
   )) {
-    // A foreign element only a strict wildcard holds stands only with an xsi:type its document's
-    // schema set resolves (spec reading 81, `StrictlyHeld`). A foreign element's xsi:type is drawn
-    // with no regard to the wildcard that holds it, a name no schema defines among them, so none
-    // is drawn there.
+    /**
+     * A foreign element only a strict wildcard holds stands only with an xsi:type its document's
+     * schema set resolves (spec reading 81, `StrictlyHeld`). A foreign element's xsi:type is drawn
+     * with no regard to the wildcard that holds it, a name no schema defines among them, so none
+     * is drawn there.
+     */
     const strict = Option.isSome(grammar.content.strictlyHeld.lookup({ child, parent }));
     const kind = grammar.kinds.nodeKind.has(child) && !strict ? Option.some(child) : Option.none();
     for (const drawn of Option.toArray(kind.pipe(Option.flatMap(drawnOf)))) {
@@ -1295,7 +1297,9 @@ const attributesOf =
     const closed = admitted.filter((handle) => !isXsiType(handle));
     const open = context.index.open.get(key) ?? new Set<OpenClass>();
     const spelled = new Set<string>(closed);
-    // Every element admits `xsi:type` (spec reading 47), under its governor as under its kind.
+    /**
+     * Every element admits `xsi:type` (spec reading 47), under its governor as under its kind.
+     */
     const xsiType = Option.fromNullishOr(admitted.find((handle) => isXsiType(handle)));
     for (const [{ name }, handle] of Option.toArray(
       Option.zipWith(typed, xsiType, (typing, admittedName) => [typing, admittedName] as const),
@@ -1323,8 +1327,10 @@ const attributesOf =
       const classes = [...open].map((name) => openNamesOf(name, kind, namespace, spelled));
       const names = classes.flat();
       const most = Math.min(Math.max(2, bound), names.length);
-      // Two names of one class are built where the swarm draws them, never left to chance: a class
-      // that holds two names gives two, which share its one position.
+      /**
+       * Two names of one class are built where the swarm draws them, never left to chance: a class
+       * that holds two names gives two, which share its one position.
+       */
       const sharing = classes.filter((held) => held.length >= 2);
       const repeated =
         Arr.isReadonlyArrayNonEmpty(sharing) &&
@@ -2161,7 +2167,9 @@ export type XdmFamily = `${string} > ${string}`;
 export const familiesOf = (model: readonly Placed[]): ReadonlySet<XdmFamily> =>
   new Set(
     model.flatMap((placed, number): readonly XdmFamily[] => {
-      // Spelled as strings, so the pair is no product of the kind roster with itself.
+      /**
+       * Spelled as strings, so the pair is no product of the kind roster with itself.
+       */
       const parent: string = model[placed.parent]?.kind ?? "";
       const child: string = placed.kind;
 

@@ -128,8 +128,10 @@ const textOf = (key: Key): string => {
 
 describe("qti/schema.ts, its keys", () => {
   it("states no key that another key of its relation holds", () => {
-    // Oracle: implication by selection and terms, the sufficient condition grizzle keys a target
-    // by. Bound: every primary key and key statement of `lawsOf(Qti)`.
+    /**
+     * Oracle: implication by selection and terms, the sufficient condition grizzle keys a target
+     * by. Bound: every primary key and key statement of `lawsOf(Qti)`.
+     */
     const keys = lawsOf(Qti).flatMap(({ law }) => keyOf(law).map((key) => [law, key] as const));
     const held = keys.flatMap(([law, key]) => {
       if (law.kind !== "key") {

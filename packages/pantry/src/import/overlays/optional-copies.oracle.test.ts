@@ -237,8 +237,10 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   );
                   yield* fs.remove(dir, { recursive: true });
 
-                  // Every href of the box names an entry at the package's root, so each has its entry
-                  // arm, whose target, the path it resolves to, is the href as written.
+                  /**
+                   * Every href of the box names an entry at the package's root, so each has its
+                   * entry arm, whose target, the path it resolves to, is the href as written.
+                   */
                   const hrefs = [...inputs.ResourceHref.values()];
                   assert.sameMembers(
                     [...inputs.ResourceHrefPath.values()].map(({ target }) => target),
@@ -258,7 +260,9 @@ layer(NodeServices.layer, { excludeTestServices: true })(
 
                   const hrefPlaces = new Set(hrefs.map(placeOf));
                   const files = [...inputs.FilePath.values()];
-                  // The `webcontent` resources, each by its `identifier`'s element in the manifest.
+                  /**
+                   * The `webcontent` resources, each by its `identifier`'s element in the manifest.
+                   */
                   const webIdentifiers = new Set(of.resources.map(({ identifier }) => identifier));
                   const bare = documents.flatMap(({ ids, view }) =>
                     view.rows.attributes.flatMap(({ lexical, name, start }) => {
@@ -273,8 +277,11 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   );
                   assert.lengthOf(bare, hrefless(of).length, said);
                   for (const resource of bare) {
-                    // A resource's file is its first child, the first file after it in document
-                    // order: the file's resource is its node's parent, which no FilePath row copies.
+                    /**
+                     * A resource's file is its first child, the first file after it in document
+                     * order: the file's resource is its node's parent, which no FilePath row
+                     * copies.
+                     */
                     const file = Arr.head(
                       files
                         .filter(
@@ -287,9 +294,11 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                       continue;
                     }
 
-                    // The href a writer plants is its resource's own file's, in the package, so its
-                    // header beside its entry arm; its typed path is the query `TypedPath`'s,
-                    // which no row stores.
+                    /**
+                     * The href a writer plants is its resource's own file's, in the package, so its
+                     * header beside its entry arm; its typed path is the query `TypedPath`'s,
+                     * which no row stores.
+                     */
                     const { target } = file.value;
                     const head = {
                       package: resource.package,

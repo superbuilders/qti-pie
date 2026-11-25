@@ -473,10 +473,12 @@ export const asi: Facets = {
         source: "HTML, colgroup",
       },
     ],
-    // Spec reading 80: only a hotspot choice's default must appear last. The AssociableHotspot
-    // class and the graphic associate interaction's hotspots (§5.7, §5.59.4) state no such rule, so
-    // a `qti-associable-hotspot` default stands anywhere; the graphic gap match interaction's ban on
-    // any default (§5.60.9) is a law of its own.
+    /**
+     * Spec reading 80: only a hotspot choice's default must appear last. The AssociableHotspot
+     * class and the graphic associate interaction's hotspots (§5.7, §5.59.4) state no such rule, so
+     * a `qti-associable-hotspot` default stands anywhere; the graphic gap match interaction's ban
+     * on any default (§5.60.9) is a law of its own.
+     */
     lastWhere: [
       {
         attribute: "shape",
@@ -501,8 +503,10 @@ export const asi: Facets = {
   expression: {
     arities: aritiesOf(contentModels, expressionsIn(contentModels)),
     recordFits: ["qti-extended-text-interaction", "qti-text-entry-interaction"],
-    // Each interaction's binding sentence (BindingFit's law source). Spec reading 172: the order
-    // interaction's class description (§5.97) states none, so it has no row and binds any type.
+    /**
+     * Each interaction's binding sentence (BindingFit's law source). Spec reading 172: the order
+     * interaction's class description (§5.97) states none, so it has no row and binds any type.
+     */
     typedFits: [
       {
         baseTypes: ["pair"],
@@ -1719,7 +1723,9 @@ export const documentLayer: Facets = {
         },
         kind: "document",
         source: documentSource,
-        // The document node is no element, so it has no declared type.
+        /**
+         * The document node is no element, so it has no declared type.
+         */
         type: Option.none(),
       },
     ],
@@ -1759,7 +1765,9 @@ export const openVocabulary: Facets = {
       },
       kind,
       source: foreignSource,
-      // A foreign element has no declaration: it is assessed laxly, so no declared type binds it.
+      /**
+       * A foreign element has no declaration: it is assessed laxly, so no declared type binds it.
+       */
       type: Option.none(),
     })),
     roots: [],

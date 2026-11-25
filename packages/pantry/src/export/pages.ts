@@ -360,7 +360,10 @@ export interface WindowRows<Row> {
  * @param size - The rows each window asks for, at least 1.
  * @returns The rows of every window, in order; fails with the first window's read error.
  */
-// GRIZZLE-PENDING: Q15 (a stream over an ordered query): grizzle reads an ordered query a window at a time and streams none, so the export reads the windows itself.
+/**
+ * GRIZZLE-PENDING: Q15 (a stream over an ordered query): grizzle reads an ordered query a window at
+ * a time and streams none, so the export reads the windows itself.
+ */
 export const scannedRows = <Row, E, R>(
   window: (window: Window) => Effect.Effect<WindowRows<Row>, E, R>,
   size: number,

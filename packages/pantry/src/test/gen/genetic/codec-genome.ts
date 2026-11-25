@@ -437,8 +437,10 @@ const pieceOf =
       case 0: {
         return {
           _tag: "charref",
-          // Half the references name a whitespace or line-end character, which every writer and
-          // normalizer treats apart, and half any number of the dictionary.
+          /**
+           * Half the references name a whitespace or line-end character, which every writer and
+           * normalizer treats apart, and half any number of the dictionary.
+           */
           code: source.draw(oneOf(source.draw(below(2)) === 0 ? spaces : codes)) ?? 0x41,
           hex: source.draw(below(2)) === 1,
         };
@@ -947,7 +949,9 @@ const replacedAt = (
     return edit(root).find((node): node is ElementNode => node._tag === "element") ?? root;
   }
 
-  // The chain of elements down to the node's parent, so a deep path is rebuilt without recursion.
+  /**
+   * The chain of elements down to the node's parent, so a deep path is rebuilt without recursion.
+   */
   const chain: ElementNode[] = [root];
   for (const step of path.slice(0, -1)) {
     const child = chain.at(-1)?.children[step];
@@ -1218,9 +1222,11 @@ export const genericGenome: Gen<CodecGenome> = (source) => {
     })),
     {
       _tag: "attlist",
-      // A plain name the root may write, so a seed's default is normalized or added in no
-      // namespace as it should be; the edits name defaults with prefixes, which crust's N1 then
-      // claims, and a seed claimed by it from the start would hide every other defect it holds.
+      /**
+       * A plain name the root may write, so a seed's default is normalized or added in no
+       * namespace as it should be; the edits name defaults with prefixes, which crust's N1 then
+       * claims, and a seed claimed by it from the start would hide every other defect it holds.
+       */
       attribute: source.draw(oneOf(["a", "b", "c", "id"] as const)) ?? "a",
       default: { _tag: "value", fixed: false, pieces: pieces(2), quote: '"' },
       element: root.name,
@@ -1228,12 +1234,14 @@ export const genericGenome: Gen<CodecGenome> = (source) => {
     },
   ];
   const withDoctype = source.draw(below(2)) === 1 || entities.length > 0;
-  // A seed is written in any charset; half the time its declaration names it, a quarter of the time
-  // names none, and the rest of the time there is no declaration. Each draws the edge the reader's
-  // first look turns on half the time: a single-byte document's text holds a code point at
-  // ASCII's last byte or either side of it; a declaration that names its label ends near a power
-  // of two; and a document with no declaration starts with a root whose name's first UTF-16 unit
-  // nearly matches Appendix F's patterns.
+  /**
+   * A seed is written in any charset; half the time its declaration names it, a quarter of the time
+   * names none, and the rest of the time there is no declaration. Each draws the edge the reader's
+   * first look turns on half the time: a single-byte document's text holds a code point at
+   * ASCII's last byte or either side of it; a declaration that names its label ends near a power
+   * of two; and a document with no declaration starts with a root whose name's first UTF-16 unit
+   * nearly matches Appendix F's patterns.
+   */
   const charset = source.draw(oneOf(charsets)) ?? "UTF-8";
   const declared = source.draw(below(4));
   const edged = source.draw(below(2)) === 0;
@@ -1823,8 +1831,10 @@ const operations: Readonly<
         );
       }
       case 3: {
-        // End the encoding pseudo-attribute a few characters either side of a power of two, the
-        // sizes a reader's buffers and sniff windows come in.
+        /**
+         * End the encoding pseudo-attribute a few characters either side of a power of two, the
+         * sizes a reader's buffers and sniff windows come in.
+         */
         const label = Option.getOrElse(held.encoding, () => charsetLabel[genome.charset]);
         const edge = source.draw(oneOf(windowEdges)) ?? 1024;
         const written = '<?xml version="1.0" encoding=""'.length + label.length;
@@ -1871,7 +1881,9 @@ const operations: Readonly<
 
     const subset = subsetOf(mate).filter((declaration) => declaration._tag === "entity");
     const root = source.draw(insertedAt(genome.root, path, donor.node));
-    // A grafted subtree brings the mate's general entities, which its references may name.
+    /**
+     * A grafted subtree brings the mate's general entities, which its references may name.
+     */
     const merged =
       subset.length === 0 ? genome : withSubset(genome, [...subsetOf(genome), ...subset]);
 
@@ -2132,8 +2144,10 @@ export const mutationOf =
       Array.from({ length: weights.get(operator) ?? 0 }, () => operator),
     );
     for (let attempt = 0; attempt < attempts; attempt += 1) {
-      // A quarter of the edits ignore the run's weights, so an operator the swarm left off is
-      // still drawn now and then and no run is closed to a whole class of edit.
+      /**
+       * A quarter of the edits ignore the run's weights, so an operator the swarm left off is
+       * still drawn now and then and no run is closed to a whole class of edit.
+       */
       const operator =
         source.draw(oneOf(source.draw(below(4)) === 0 ? operators : weighed)) ?? "edit-pieces";
       const result = source.draw(operations[operator](genome, mate));

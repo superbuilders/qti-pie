@@ -290,9 +290,11 @@ describe("the pure layers", () => {
   });
 
   it("find a pure layer's import of grizzle's builders, engine or driver by package, and none of grizzle-text", () => {
-    // Oracle: the rule above on planted modules. Live: the builders, a subpath of them, the engine
-    // and the driver, each refused. Stale: grizzle-text, at its root and at a subpath, and
-    // `install.ts`, which declares the generators' relations with grizzle.
+    /**
+     * Oracle: the rule above on planted modules. Live: the builders, a subpath of them, the engine
+     * and the driver, each refused. Stale: grizzle-text, at its root and at a subpath, and
+     * `install.ts`, which declares the generators' relations with grizzle.
+     */
     const planted = new Map([
       ["grammar/builder.ts", 'import { select } from "@bjornpagen/grizzle";'],
       ["grammar/install.ts", 'import { relation } from "@bjornpagen/grizzle";'],
@@ -359,11 +361,13 @@ describe("the test helpers", () => {
   });
 
   it("find a law of the oracle that reads a schema statement, and no type import or data module", () => {
-    // Oracle: the rule above on a planted module graph. Live: the oracle's own module, a law module
-    // it reaches and the host predicates it reaches, each reading a schema statement, one of them by
-    // a dynamic import. Stale: a type-only import of a schema module and of grizzle, a read of the
-    // data module, of the law catalog, and of grizzle-text, which builds no statement. Wild: a module the oracle does not reach, which reads a
-    // statement and is no part of it.
+    /**
+     * Oracle: the rule above on a planted module graph. Live: the oracle's own module, a law module
+     * it reaches and the host predicates it reaches, each reading a schema statement, one of them
+     * by a dynamic import. Stale: a type-only import of a schema module and of grizzle, a read of
+     * the data module, of the law catalog, and of grizzle-text, which builds no statement. Wild: a
+     * module the oracle does not reach, which reads a statement and is no part of it.
+     */
     const planted = new Map([
       ["test/elsewhere.ts", 'import { Qti } from "#pantry/qti/schema.ts";'],
       [
@@ -408,10 +412,12 @@ describe("the test helpers", () => {
   });
 
   it("name the rule's every case: an oracle test, its database tier, the support, and what it refuses", () => {
-    // Oracle: the rule as the comment above states it, on the named cases. Live: an oracle test in
-    // either tier and a support module; Stale: a test not named for the oracle, as every importer
-    // was before the rule; Wild: a module outside `src/test/`, a name with `oracle` in another
-    // place, and the packaging tier, which no oracle test is in.
+    /**
+     * Oracle: the rule as the comment above states it, on the named cases. Live: an oracle test in
+     * either tier and a support module; Stale: a test not named for the oracle, as every importer
+     * was before the rule; Wild: a module outside `src/test/`, a name with `oracle` in another
+     * place, and the packaging tier, which no oracle test is in.
+     */
     const cases = [
       ["qti/metadata.oracle.test.ts", true],
       ["import/program.oracle.db.test.ts", true],

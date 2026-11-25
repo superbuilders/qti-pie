@@ -217,8 +217,10 @@ export const includeGrammar = (input: {
   readonly kinds: Roster<string>;
 }): IncludeGrammar => {
   const includeParents = [...new Set(input.alternatives.map(({ parent }) => parent))];
-  // Each include parent's kinds, in the order of its first alternative; then each distinct sorted
-  // set of them numbered once, in the order of the first family that holds it.
+  /**
+   * Each include parent's kinds, in the order of its first alternative; then each distinct sorted
+   * set of them numbered once, in the order of the first family that holds it.
+   */
   const families = new Map<string, { readonly kinds: string[]; readonly parent: string }>();
   for (const { kind, parent: held } of input.alternatives) {
     families.getOrInsertComputed(held, () => ({ kinds: [], parent: held })).kinds.push(kind);

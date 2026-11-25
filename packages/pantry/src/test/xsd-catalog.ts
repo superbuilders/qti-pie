@@ -634,9 +634,11 @@ export const compareJudgments = (xsd: XsdVerdict, law: LawJudgment): Comparison 
           `line ${String(line)}${Option.match(element, { onNone: () => "", onSome: (name) => ` ${name}` })}: ${text}`,
       )
       .join(" | ");
-  // XML Schema assesses no element its parent's content model did not expect (Part 1, 3.4.4,
-  // clause 2.4 and 3.10.4), so below one `xmllint` judges nothing: a law refusal of another class
-  // than content there is masked, as `xmllint`'s classes are when the law oracle stops.
+  /**
+   * XML Schema assesses no element its parent's content model did not expect (Part 1, 3.4.4,
+   * clause 2.4 and 3.10.4), so below one `xmllint` judges nothing: a law refusal of another class
+   * than content there is masked, as `xmllint`'s classes are when the law oracle stops.
+   */
   const xsdStopped = messages.some(({ text }) => text.startsWith("This element is not expected."));
   const differences: Difference[] = [
     ...law.refusals.flatMap((refusal): readonly Difference[] => {

@@ -47,8 +47,10 @@ const matchCorrect = '<qti-correct identifier="RESPONSE"/>';
  * Each law's mutation, by law.
  */
 export const expressionMutations = {
-  // Condition type (P21): a response condition's or the included rule's condition replaced by an
-  // integer, a float or a string.
+  /**
+   * Condition type (P21): a response condition's or the included rule's condition replaced by an
+   * integer, a float or a string.
+   */
   "Condition type": {
     law: "Condition type",
     mutate: replacing([
@@ -71,8 +73,10 @@ export const expressionMutations = {
     ]),
     over: "package",
   },
-  // Literal lexical (§8.13): a base value whose text is no lexical form of its base type, in the
-  // item or its rule.
+  /**
+   * Literal lexical (§8.13): a base value whose text is no lexical form of its base type, in the
+   * item or its rule.
+   */
   "Literal lexical": {
     law: "Literal lexical",
     mutate: replacing([
@@ -94,8 +98,10 @@ export const expressionMutations = {
     ]),
     over: "package",
   },
-  // Lookup type (P22): a lookup whose expression is no single integer, float or duration, or a
-  // float into a match table, or a lookup of an outcome with no table.
+  /**
+   * Lookup type (P22): a lookup whose expression is no single integer, float or duration, or a
+   * float into a match table, or a lookup of an outcome with no table.
+   */
   "Lookup type": {
     law: "Lookup type",
     mutate: replacing([
@@ -121,8 +127,10 @@ export const expressionMutations = {
     ]),
     over: "package",
   },
-  // Mapped response (P27): a map response of a response with no mapping, or a map response
-  // point of one with no area mapping.
+  /**
+   * Mapped response (P27): a map response of a response with no mapping, or a map response
+   * point of one with no area mapping.
+   */
   "Mapped response": {
     law: "Mapped response",
     mutate: replacing([
@@ -146,7 +154,9 @@ export const expressionMutations = {
     ]),
     over: "package",
   },
-  // One base (P23): the item's match given operands of two base types or two cardinalities.
+  /**
+   * One base (P23): the item's match given operands of two base types or two cardinalities.
+   */
   "One base": {
     law: "One base",
     mutate: replacing([
@@ -161,9 +171,11 @@ export const expressionMutations = {
     ]),
     over: "package",
   },
-  // Operand fit (P23): an operand of a base type or cardinality its operator does not take: the
-  // item's sum given a string, a boolean or an identifier; its round a boolean or a container;
-  // the included rule's comparison a string.
+  /**
+   * Operand fit (P23): an operand of a base type or cardinality its operator does not take: the
+   * item's sum given a string, a boolean or an identifier; its round a boolean or a container;
+   * the included rule's comparison a string.
+   */
   "Operand fit": {
     law: "Operand fit",
     mutate: replacing([
@@ -192,8 +204,10 @@ export const expressionMutations = {
     ]),
     over: "package",
   },
-  // Outcome only (P25): a test operator in the item's response processing or its template
-  // processing, neither of them outcome processing.
+  /**
+   * Outcome only (P25): a test operator in the item's response processing or its template
+   * processing, neither of them outcome processing.
+   */
   "Outcome only": {
     law: "Outcome only",
     mutate: replacing([
@@ -210,9 +224,11 @@ export const expressionMutations = {
     ]),
     over: "package",
   },
-  // Reference type (P24): the template processing's random integer bounded by a variable that is
-  // no single integer template or outcome: a template of another base type, a response, a float
-  // outcome, or a built-in.
+  /**
+   * Reference type (P24): the template processing's random integer bounded by a variable that is
+   * no single integer template or outcome: a template of another base type, a response, a float
+   * outcome, or a built-in.
+   */
   "Reference type": {
     law: "Reference type",
     mutate: replacing([
@@ -228,9 +244,11 @@ export const expressionMutations = {
     ]),
     over: "package",
   },
-  // Set type (P20): a setter's expression of another type than its variable's: COUNT, an integer,
-  // set to a string or a container; FEEDBACK, an identifier, to a float; N, an integer template,
-  // to a string.
+  /**
+   * Set type (P20): a setter's expression of another type than its variable's: COUNT, an integer,
+   * set to a string or a container; FEEDBACK, an identifier, to a float; N, an integer template,
+   * to a string.
+   */
   "Set type": {
     law: "Set type",
     mutate: replacing([
@@ -255,8 +273,10 @@ export const expressionMutations = {
     ]),
     over: "package",
   },
-  // Template reads (P26): the template processing reading an outcome, a response or a built-in
-  // but QTI_CONTEXT, each an integer, as N is.
+  /**
+   * Template reads (P26): the template processing reading an outcome, a response or a built-in
+   * but QTI_CONTEXT, each an integer, as N is.
+   */
   "Template reads": {
     law: "Template reads",
     mutate: replacing([
@@ -272,9 +292,11 @@ export const expressionMutations = {
     ]),
     over: "package",
   },
-  // Variable kind (§7.10.1, §6.32.3, ...): a setter or a reader naming a variable of a kind it
-  // does not set or read: FEEDBACK's setter setting the template SHOWN, or the correct value of an
-  // outcome.
+  /**
+   * Variable kind (§7.10.1, §6.32.3, ...): a setter or a reader naming a variable of a kind it
+   * does not set or read: FEEDBACK's setter setting the template SHOWN, or the correct value of an
+   * outcome.
+   */
   "Variable kind": {
     law: "Variable kind",
     mutate: replacing([

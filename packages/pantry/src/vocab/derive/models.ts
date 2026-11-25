@@ -438,7 +438,9 @@ const substitutesOf = (
 ): Result.Result<readonly string[], XsdReadingError> =>
   Result.gen(function* substitutesOfBody() {
     const { schema } = view;
-    // `substitutions` holds every top-level element, its members none when it heads no group.
+    /**
+     * `substitutions` holds every top-level element, its members none when it heads no group.
+     */
     const declared = Option.all([
       Option.fromNullishOr(schema.elements.get(local)),
       Option.fromNullishOr(schema.substitutions.get(local)),

@@ -527,8 +527,11 @@ export const recorded: readonly Recorded[] = [
       says: "The rest of this reading stands: each specifier ends in one of the listed codes, and `%q`, `2f%` and `%` are still refused under `attribute-lexical`; reading 171 adds `d` to the listed codes.",
       why: "the information model's printf grammar (§2.3.4) refuses a `%` that begins neither the escape `%%` nor a conversion specifier over its listed codes, `d` a listed code by reading 171, where the XSD types format xs:normalizedString; a format of any number of well-formed specifiers is admitted (reading 161), so its refusal stays unrecorded",
     },
-    // The value read from the left as C reads a format: text, `%%` and well-formed specifiers, then a
-    // `%` that begins neither, each XML space a flag as normalizedString's replace makes it a space.
+    /**
+     * The value read from the left as C reads a format: text, `%%` and well-formed specifiers, then
+     * a `%` that begins neither, each XML space a flag as normalizedString's replace makes it a
+     * space.
+     */
     value: arkregex(
       "^(?:[^%]|%%|%[\t\n\r #+\\-0]*[0-9]*(?:\\.[0-9]*)?[EefGgrRiodXx])*%(?!%|[\t\n\r #+\\-0]*[0-9]*(?:\\.[0-9]*)?[EefGgrRiodXx])",
       "u",
@@ -1308,9 +1311,11 @@ export const targetsOf = Effect.fn("lexical.targetsOf")(function* targetsOf(
   );
   const globals = new Map<string, XsdName>();
   const contents = new Map<string, { readonly type: string; readonly name: XsdName }[]>();
-  // A global declaration's kind is the one `globalKinds` lists under its name, not one read off
-  // where a wildcard admits it: spec reading 2 lets a wildcard admit MathML's root alone, and
-  // every MathML global still declares its kind's attributes and text.
+  /**
+   * A global declaration's kind is the one `globalKinds` lists under its name, not one read off
+   * where a wildcard admits it: spec reading 2 lets a wildcard admit MathML's root alone, and
+   * every MathML global still declares its kind's attributes and text.
+   */
   const globalKindOf = new Map<string, string>(
     globalKinds.flatMap(({ kind }) =>
       Option.toArray(grammar.kinds.elementName.lookup({ kind })).map(
@@ -1653,8 +1658,10 @@ export const judgeProbes = Effect.fn("lexical.judgeProbes")(function* judgeProbe
       ),
       `${directory}/${file}`,
     );
-  // An `xs:ID` value is unique in its document, so a probe of an ID domain stands alone in a
-  // document of its own: in a shared batch a repeated value would be refused as a duplicate.
+  /**
+   * An `xs:ID` value is unique in its document, so a probe of an ID domain stands alone in a
+   * document of its own: in a shared batch a repeated value would be refused as a duplicate.
+   */
   const isId = (probe: Probe): boolean => Option.contains(probe.domain.identity, "ID");
   const shared = probes.filter((probe) => !isId(probe));
   const alone = probes.filter(isId);
@@ -1676,8 +1683,10 @@ export const judgeProbes = Effect.fn("lexical.judgeProbes")(function* judgeProbe
   const byFile = verdicts.map((verdict) =>
     Map.groupBy(verdict._tag === "Valid" ? [] : verdict.messages, ({ line }) => line),
   );
-  // Any parser error but libxml2's own xml:id check of a value (`isXmlIdCheck`), which judges a
-  // probe's value and not the batch's form, means the batch is not the one written.
+  /**
+   * Any parser error but libxml2's own xml:id check of a value (`isXmlIdCheck`), which judges a
+   * probe's value and not the batch's form, means the batch is not the one written.
+   */
   const broken = verdicts
     .flatMap((verdict) => (verdict._tag === "Valid" ? [] : verdict.messages))
     .filter(

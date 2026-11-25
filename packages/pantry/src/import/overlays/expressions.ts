@@ -868,7 +868,9 @@ const expressionRowsOf = (
   const text = doc.childrenOf(node.start).map(doc.charsOf).join("");
   built.Literal.set(key, { ...at, baseType: type.baseType, text });
 
-  // A literal is typed where its base-type spells a code, the one its type is (7230d050).
+  /**
+   * A literal is typed where its base-type spells a code, the one its type is (7230d050).
+   */
   const typeCode = spelledBaseTypeOf(lexicalOf(doc, node.start, "base-type"));
   if (type.baseType !== "unknown" && Option.isSome(typeCode)) {
     built.LiteralTyped.set(key, { ...at, text, typeCode: typeCode.value });
@@ -899,8 +901,10 @@ export const rowsOf = (view: DocumentView, place: Place): ExpressionRows => {
     }
   }
 
-  // A base value's type is its attributes' alone, the same under every placement, so the typing
-  // with no variable gives the one its `Literal` holds.
+  /**
+   * A base value's type is its attributes' alone, the same under every placement, so the typing
+   * with no variable gives the one its `Literal` holds.
+   */
   const typed = typesOf(doc, () => Option.none());
   for (const node of doc.rows.nodes) {
     if (rules.has(node.kind)) {

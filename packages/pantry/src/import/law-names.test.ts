@@ -15,9 +15,11 @@ import { namedLaws, statementLawsOf } from "#pantry/test/law-namer.ts";
 
 describe("the laws each module names where it states them", () => {
   it("names each group by a law of the table, groups every statement of Qti once, and names each law by its statement's group, so no statement is undeclared", () => {
-    // Oracle: the law table's own names, Qti's statements, and grizzle's laws of each statement
-    // as an `invariant-rejected` outcome names them (`lawsByStatement`). Bound: every statement of
-    // Qti.
+    /**
+     * Oracle: the law table's own names, Qti's statements, and grizzle's laws of each statement
+     * as an `invariant-rejected` outcome names them (`lawsByStatement`). Bound: every statement of
+     * Qti.
+     */
     const known: ReadonlySet<string> = new Set(lawNames);
     const groups = new Map<Statement, readonly LawName[]>();
     for (const byName of namedLaws) {
@@ -32,8 +34,10 @@ describe("the laws each module names where it states them", () => {
       }
     }
 
-    // Every statement of Qti states one law at least: the Package unit too, sealed, whose seal is
-    // its law (grizzle's README, "Units").
+    /**
+     * Every statement of Qti states one law at least: the Package unit too, sealed, whose seal is
+     * its law (grizzle's README, "Units").
+     */
     const [statements, lawless] = Arr.partition(statementLawsOf(Qti), (entry) =>
       Arr.isReadonlyArrayNonEmpty(entry.laws) ? Result.succeed(entry) : Result.fail(entry),
     );

@@ -212,8 +212,10 @@ const assembledDocumentOf = (
         ];
       }),
   );
-  // An element that writes no identifier names nothing (reading 147): the XSD requires it, with no
-  // default, and no identifier is empty, so AL3 alone refuses the element.
+  /**
+   * An element that writes no identifier names nothing (reading 147): the XSD requires it, with no
+   * default, and no identifier is empty, so AL3 alone refuses the element.
+   */
   const names = assembled
     ? rows.members.flatMap((node): readonly Name[] =>
         namedKinds.has(node.kind)

@@ -259,8 +259,10 @@ const judgeAll = Effect.fn("test.geneticXsd.judgeAll")(function* judgeAll(input:
       });
       const comparison = compareJudgments(xsd, law);
       const rows = yield* rowsOf(bytes.value, input.grammar);
-      // The law oracle names a foreign element by its foreign kind; the element grain reads
-      // their expanded names from the rows' OpenElementName.
+      /**
+       * The law oracle names a foreign element by its foreign kind; the element grain reads
+       * their expanded names from the rows' OpenElementName.
+       */
       const foreign = new Set(
         Option.match(rows, {
           onNone: () => [],
@@ -918,8 +920,10 @@ describe("genetic-xsd.oracle.test.ts, reading 129's record", () => {
         record?.detail?.test(
           `value domain at /${place}: ${attribute}: "${value}" is outside qti-assessment-item@xml:lang (reading 129) (2), whose pattern is ^x$`,
         ) ?? false;
-      // RFC 5646 section 2.1's Language-Tag, one of each production; the empty value where the
-      // attribute admits it; and the nearest values the RFC or the reading refuses.
+      /**
+       * RFC 5646 section 2.1's Language-Tag, one of each production; the empty value where the
+       * attribute admits it; and the nearest values the RFC or the reading refuses.
+       */
       const tags = [
         "en",
         "EN-us",

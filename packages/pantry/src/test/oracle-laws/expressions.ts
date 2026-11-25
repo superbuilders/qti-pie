@@ -413,10 +413,12 @@ const typers: Readonly<Record<ExpressionTyping["typing"], (input: TypingInput) =
     cardinality: resultCardinalityOf(typing),
   }),
   container: oneBaseTyped,
-  // A weighted variable's value is its variable's "subject to the type promotion of weighted
-  // outcomes" (information model §7.47): "When applying a weight to the value of a variable with
-  // base-type integer the value is subject to type promotion and the result of the expression has
-  // base-type float" (§7.47.2), every other base kept.
+  /**
+   * A weighted variable's value is its variable's "subject to the type promotion of weighted
+   * outcomes" (information model §7.47): "When applying a weight to the value of a variable with
+   * base-type integer the value is subject to type promotion and the result of the expression has
+   * base-type float" (§7.47.2), every other base kept.
+   */
   declared: ({ declared, node, rows }) =>
     declared.base === "integer" && Option.isSome(valueOf(rows, node.start, "weight-identifier"))
       ? { ...declared, base: "float" }
@@ -497,9 +499,11 @@ export const typedOf = (
                   identifier,
                   node,
                   resolution: "declared",
-                  // A base type or a cardinality outside its domain types nothing, as an unwritten
-                  // one does: its declaration's value domain refuses it alone (the ruling of
-                  // 2026-11-06; lane NIL's audit, B11).
+                  /**
+                   * A base type or a cardinality outside its domain types nothing, as an unwritten
+                   * one does: its declaration's value domain refuses it alone (the ruling of
+                   * 2026-11-06; lane NIL's audit, B11).
+                   */
                   type: {
                     base: valueBaseOf(
                       typedValueOf(declaration.view, declaration.node.start, "base-type"),
@@ -555,8 +559,10 @@ export const typedOf = (
       .map((reference) => [reference.node.start, reference] as const),
   );
   const languages = new Map<bigint, string>();
-  // A language is its root's, carried down through rules and expressions; the walk up stops at a
-  // node it has met, so a cycle of parent links or a second root ends it.
+  /**
+   * A language is its root's, carried down through rules and expressions; the walk up stops at a
+   * node it has met, so a cycle of parent links or a second root ends it.
+   */
   const languageOf = (node: Row): string => {
     const chain: Row[] = [];
     const met = new Set<bigint>();
@@ -596,8 +602,10 @@ export const typedOf = (
   const types = new Map<bigint, Type>();
   const operandsOf = (node: Row): readonly Row[] =>
     elementsOf(rows, node.start).filter(({ kind }) => typings.has(kind));
-  // An expression met again before its type is known stands on a cycle of parent links, which
-  // the tree laws refuse; it is typed unknown, so the typing ends.
+  /**
+   * An expression met again before its type is known stands on a cycle of parent links, which
+   * the tree laws refuse; it is typed unknown, so the typing ends.
+   */
   const typing = new Set<bigint>();
   const typeOf = (node: Row): Type => {
     const known = types.get(node.start);
@@ -804,9 +812,11 @@ const referenceLaws: readonly (readonly [ExpressionLaw, (read: Read) => boolean]
   [
     "Reference type",
     ({ reference, referenceBase }) => {
-      // §9.3.2 IntOrIdentifier names no kind, as §9.3.3's "template or outcome variable" does: an
-      // index's n and a repeat's number-repeats may name any item variable, built-in or declared,
-      // of a single integer (§5.72: "'n' must be a positive integer"; §5.113.1).
+      /**
+       * §9.3.2 IntOrIdentifier names no kind, as §9.3.3's "template or outcome variable" does: an
+       * index's n and a repeat's number-repeats may name any item variable, built-in or declared,
+       * of a single integer (§5.72: "'n' must be a positive integer"; §5.113.1).
+       */
       const anyKind = anyKindSites.some(
         ([kind, attribute]) => reference.node.kind === kind && reference.attribute === attribute,
       );

@@ -663,7 +663,9 @@ export interface Laws {
  */
 export const lawsOf = (grammar: ComposedGrammar): Laws => {
   const counted = Map.groupBy(countBoundsOf(grammar.content), (row) => row.parent);
-  // The content models a family may end in: every model but that of the families no model holds.
+  /**
+   * The content models a family may end in: every model but that of the families no model holds.
+   */
   const ending = new Set(grammar.content.last.rows.map(({ model }) => model));
   const laws: Laws = {
     counted: (kind) =>
@@ -1559,7 +1561,9 @@ const nodeLaws: readonly NodeLaw[] = [
     breaks: (node, view, { grammar }) => {
       const derived = derivationOf(node, grammar);
       const written = stringValueOf(view, node);
-      // Reading 127's ends: the first and last code points of the node's own characters.
+      /**
+       * Reading 127's ends: the first and last code points of the node's own characters.
+       */
       const own = Array.from(ownCharactersOf(view, node), String);
       const first = own[0] ?? "";
       const last = own.at(-1) ?? "";
@@ -1644,7 +1648,9 @@ const nodeLaws: readonly NodeLaw[] = [
     over: "members",
   },
   {
-    // N8's choice clause: a choice that writes its identifier lies in an interaction, its nearest.
+    /**
+     * N8's choice clause: a choice that writes its identifier lies in an interaction, its nearest.
+     */
     breaks: (node, view, { grammar }) =>
       unless(
         !enclosedChoices.has(node.kind) ||
@@ -1674,7 +1680,9 @@ const nodeLaws: readonly NodeLaw[] = [
     over: "nodes",
   },
   {
-    // AL2's fold: `attrs` is the union of its closed attributes' positions, a counted family's end.
+    /**
+     * AL2's fold: `attrs` is the union of its closed attributes' positions, a counted family's end.
+     */
     breaks: (node, view, laws) => {
       const positions: Positions = new Set(
         (view.attributesOf.get(node.start) ?? []).flatMap((attribute) =>
@@ -1870,8 +1878,10 @@ const nodeLaws: readonly NodeLaw[] = [
     over: "members",
   },
   {
-    // Reading 124: "This attribute is required when 'source' is used in 'picture'" (info
-    // §5.135.3).
+    /**
+     * Reading 124: "This attribute is required when 'source' is used in 'picture'" (info
+     * §5.135.3).
+     */
     breaks: (node, view) =>
       unless(
         node.kind !== "source" ||
@@ -1883,8 +1893,10 @@ const nodeLaws: readonly NodeLaw[] = [
     over: "members",
   },
   {
-    // Reading 124: a media element's source names its resource, §5.135.1's "This characteristic
-    // must be present" read where HTML states it, in an audio or a video.
+    /**
+     * Reading 124: a media element's source names its resource, §5.135.1's "This characteristic
+     * must be present" read where HTML states it, in an audio or a video.
+     */
     breaks: (node, view) =>
       unless(
         node.kind !== "source" ||
@@ -1896,8 +1908,10 @@ const nodeLaws: readonly NodeLaw[] = [
     over: "members",
   },
   {
-    // Reading 125: a track in the subtitles state carries srclang (info §5.163.3), a track that
-    // writes no kind being in it, HTML's missing value default.
+    /**
+     * Reading 125: a track in the subtitles state carries srclang (info §5.163.3), a track that
+     * writes no kind being in it, HTML's missing value default.
+     */
     breaks: (node, view) => {
       if (node.kind !== "track") {
         return Option.none();
@@ -4183,9 +4197,11 @@ const overlayLaws: readonly ((
         return [];
       }
 
-      // A string identifier's variable is "of base-type string" (§5.48.2, §5.162.3): a record,
-      // which has no base type, is not, judged by its cardinality alone; another variable is
-      // judged by its base type where it has one.
+      /**
+       * A string identifier's variable is "of base-type string" (§5.48.2, §5.162.3): a record,
+       * which has no base type, is not, judged by its cardinality alone; another variable is
+       * judged by its base type where it has one.
+       */
       const baseType = baseTypeOf(overlay, response);
       if (attribute === "string-identifier") {
         return cardinality.value === "record"
@@ -4235,9 +4251,11 @@ const overlayLaws: readonly ((
 
     return Option.toArray(choiceBound.lookup({ kind: node.kind })).flatMap(
       ({ max, min, zero }): readonly Finding[] => {
-        // Reading 18: a counted bound binds only where its least is written, and then a most of
-        // 0 is a count below it; every other bound reads an unwritten least as its default, or 0,
-        // and a most of 0 as no limit (reading 76).
+        /**
+         * Reading 18: a counted bound binds only where its least is written, and then a most of
+         * 0 is a count below it; every other bound reads an unwritten least as its default, or 0,
+         * and a most of 0 as no limit (reading 76).
+         */
         const written = Option.isSome(valueOf(overlay.view, node.start, min));
         if (zero === "counted" && !written) {
           return [];
@@ -4335,10 +4353,12 @@ const overlayLaws: readonly ((
   (node, overlay) => {
     const children = overlay.view.childrenOf.get(node.start) ?? [];
     const baseType = baseTypeOf(overlay, node);
-    // A declaration whose cardinality is unwritten or outside its domain has its tables, but no
-    // cardinality for a law over them to read (the declarations overlay's `typedDeclarationOf`;
-    // spec reading 158), so its own laws refuse it (AL3's required attribute, the value domain)
-    // and neither AreaMapping base type nor Lookup table cardinality does again.
+    /**
+     * A declaration whose cardinality is unwritten or outside its domain has its tables, but no
+     * cardinality for a law over them to read (the declarations overlay's `typedDeclarationOf`;
+     * spec reading 158), so its own laws refuse it (AL3's required attribute, the value domain)
+     * and neither AreaMapping base type nor Lookup table cardinality does again.
+     */
     const cardinality = cardinalityOf(overlay, node);
     const tables = children.filter(
       ({ kind }) => kind === "qti-match-table" || kind === "qti-interpolation-table",
@@ -4374,10 +4394,12 @@ const overlayLaws: readonly ((
       return [];
     }
 
-    // A mapping of a declaration with no base type, a record's or one whose base type spells
-    // nothing, reads its keys in none: each is its lexical form alone, and no type judges it (lane
-    // NIL's audit, B12; spec reading 158). A key may repeat: the first entry that matches a value
-    // gives it (spec reading 165), so no repeat is a finding.
+    /**
+     * A mapping of a declaration with no base type, a record's or one whose base type spells
+     * nothing, reads its keys in none: each is its lexical form alone, and no type judges it (lane
+     * NIL's audit, B12; spec reading 158). A key may repeat: the first entry that matches a value
+     * gives it (spec reading 165), so no repeat is a finding.
+     */
     const baseType = baseTypeOf(overlay, overlay.view.byStart.get(node.parent));
 
     return (overlay.view.childrenOf.get(node.start) ?? [])
@@ -4558,11 +4580,13 @@ const overlayLaws: readonly ((
       ];
     }
 
-    // Reading 169: "The GapMatchInteraction must be bound to a response variable with base-type
-    // directedPair and either single or multiple cardinality, depending on the number of gaps"
-    // (info §5.57): each gap takes a pair of its own, so two or more gaps take a multiple response.
-    // The gaps are the ones the interaction is nearest to, an included fragment's among them, as
-    // the spliced view holds them, each with its identifier, which a choice is read by.
+    /**
+     * Reading 169: "The GapMatchInteraction must be bound to a response variable with base-type
+     * directedPair and either single or multiple cardinality, depending on the number of gaps"
+     * (info §5.57): each gap takes a pair of its own, so two or more gaps take a multiple response.
+     * The gaps are the ones the interaction is nearest to, an included fragment's among them, as
+     * the spliced view holds them, each with its identifier, which a choice is read by.
+     */
     const gaps =
       node.kind === "qti-gap-match-interaction"
         ? overlay.view.members.filter(
@@ -4606,9 +4630,11 @@ const overlayBreaches = (
   laws: Laws,
   assembledCatalogs: ReadonlySet<string>,
 ): readonly Breach[] => {
-  // A declaration whose identifier is unwritten, or outside its value domain, names no variable:
-  // AL3 or that domain refuses it alone, and it shares no name with another declaration that names
-  // nothing (spec readings 152 and 157). A name is the identifier as its type reads it, collapsed.
+  /**
+   * A declaration whose identifier is unwritten, or outside its value domain, names no variable:
+   * AL3 or that domain refuses it alone, and it shares no name with another declaration that names
+   * nothing (spec readings 152 and 157). A name is the identifier as its type reads it, collapsed.
+   */
   const declarations = view.members.flatMap((node) =>
     laws.grammar.references.declarationKind.has(node.kind)
       ? Option.toArray(typedValueOf(view, node.start, "identifier")).map((name) => ({ name, node }))
@@ -4637,10 +4663,12 @@ const overlayBreaches = (
     law,
   });
   const ids = Map.groupBy(idsOf(view, laws), ({ id }) => id);
-  // Label tools: "If an item uses labels then values for the associated toolName and toolVersion
-  // characteristics must also be provided", of each label whose characteristic's description says
-  // so (reading 128): every element's but the ones of readerLabels, and the item root's own (QTI
-  // 3.0.1's §4.1.3 says it of the item's own label).
+  /**
+   * Label tools: "If an item uses labels then values for the associated toolName and toolVersion
+   * characteristics must also be provided", of each label whose characteristic's description says
+   * so (reading 128): every element's but the ones of readerLabels, and the item root's own (QTI
+   * 3.0.1's §4.1.3 says it of the item's own label).
+   */
   const missingTools =
     overlay.isItem && root !== undefined
       ? ["tool-name", "tool-version"].filter((name) =>
@@ -4655,13 +4683,15 @@ const overlayBreaches = (
             (start === root?.start || !readerLabels.has(kind)) &&
             Option.isSome(valueOf(view, start, "label")),
         );
-  // Reading R9-a: "Use only one card for any particular named support in a catalog" (§5.26.1), a
-  // support compared by its value, and "Only one of the CardEntry instances can have a default
-  // designation" (§5.27.2), an entry designating where its collapsed `default` is true or 1. A
-  // support's value is the form as written: XML Schema Part 2 §4.3.6 normalizes a union's form in
-  // the class of the member that holds it, an `ext:` name's `SupportExtStringDType` (`replace`),
-  // whose pattern admits no whitespace for the class to change, or a listed support's `xs:string`
-  // (`preserve`), and a form neither holds, which AL1 refuses, is no other support's value.
+  /**
+   * Reading R9-a: "Use only one card for any particular named support in a catalog" (§5.26.1), a
+   * support compared by its value, and "Only one of the CardEntry instances can have a default
+   * designation" (§5.27.2), an entry designating where its collapsed `default` is true or 1. A
+   * support's value is the form as written: XML Schema Part 2 §4.3.6 normalizes a union's form in
+   * the class of the member that holds it, an `ext:` name's `SupportExtStringDType` (`replace`),
+   * whose pattern admits no whitespace for the class to change, or a listed support's `xs:string`
+   * (`preserve`), and a form neither holds, which AL1 refuses, is no other support's value.
+   */
   const cards = Map.groupBy(
     view.members.flatMap((node) =>
       node.kind === "qti-card"
@@ -4684,19 +4714,23 @@ const overlayBreaches = (
     ),
     ({ parent }) => parent,
   );
-  // Reading R9-a and 117: a `data-catalog-idref` names a `qti-catalog` of its assembly (§5.28.1,
-  // §5.15.9): its document with every fragment spliced in, and every document its assembly places
-  // whole, as "Idref target" resolves a token. Each IDREF token is judged, as "Idref target" judges
-  // it; an ID of any other element does not serve. Only an attribute with an IDREF token is read,
-  // as "Idref target" reads it: one the schema does not check, or an empty one, names nothing.
+  /**
+   * Reading R9-a and 117: a `data-catalog-idref` names a `qti-catalog` of its assembly (§5.28.1,
+   * §5.15.9): its document with every fragment spliced in, and every document its assembly places
+   * whole, as "Idref target" resolves a token. Each IDREF token is judged, as "Idref target" judges
+   * it; an ID of any other element does not serve. Only an attribute with an IDREF token is read,
+   * as "Idref target" reads it: one the schema does not check, or an empty one, names nothing.
+   */
   const catalogIds = new Set([
     ...[...ids].flatMap(([id, held]) =>
       held.some(({ node }) => view.byStart.get(node)?.kind === "qti-catalog") ? [id] : [],
     ),
     ...assembledCatalogs,
   ]);
-  // Reading 177: a closed `data-ssml` holds one JSON object Data-SSML 1.0 admits, which the database
-  // judges over the rows the importer reads the value into ("Data SSML").
+  /**
+   * Reading 177: a closed `data-ssml` holds one JSON object Data-SSML 1.0 admits, which the
+   * database judges over the rows the importer reads the value into ("Data SSML").
+   */
   const ssmlValues = view.members.flatMap((node) =>
     (view.attributesOf.get(node.start) ?? [])
       .filter((attribute) => attribute.name === "data-ssml")
@@ -4712,12 +4746,14 @@ const overlayBreaches = (
       )
       .filter(({ token }) => !catalogIds.has(token)),
   );
-  // Reading 92: "Each response variable declared may be bound to one and only one interaction",
-  // so in an item no two of the bindings Binding declared reads, each interaction's
-  // `response-identifier` and `string-identifier` whatever the types it binds (readings 75 and
-  // 172), name one response. A string identifier binds "a second response variable" (§5.48.2,
-  // §5.162.3), so one that names its interaction's response binds it twice, as the schema's key
-  // over `BoundVariable` counts it (the old `string-identifier-distinct`).
+  /**
+   * Reading 92: "Each response variable declared may be bound to one and only one interaction",
+   * so in an item no two of the bindings Binding declared reads, each interaction's
+   * `response-identifier` and `string-identifier` whatever the types it binds (readings 75 and
+   * 172), name one response. A string identifier binds "a second response variable" (§5.48.2,
+   * §5.162.3), so one that names its interaction's response binds it twice, as the schema's key
+   * over `BoundVariable` counts it (the old `string-identifier-distinct`).
+   */
   const bindings = overlay.isItem
     ? Map.groupBy(
         view.members.flatMap((node) =>
@@ -4736,10 +4772,12 @@ const overlayBreaches = (
         string,
         readonly { readonly identifier: string; readonly node: FoldedNode<Composed> }[]
       >();
-  // Reading 104 as amended: a choice's identifier names one element of its class in its document,
-  // whichever interactions hold them; one of the four "choice" classes names no other element the
-  // information model calls a choice, of any class; and none names an item variable: no
-  // declaration of its document and, in an item, no built-in variable.
+  /**
+   * Reading 104 as amended: a choice's identifier names one element of its class in its document,
+   * whichever interactions hold them; one of the four "choice" classes names no other element the
+   * information model calls a choice, of any class; and none names an item variable: no
+   * declaration of its document and, in an item, no built-in variable.
+   */
   const choices = view.members.flatMap((node) =>
     choiceClasses.has(node.kind)
       ? Option.toArray(typedValueOf(overlay.view, node.start, "identifier")).map((identifier) => ({
@@ -4752,8 +4790,10 @@ const overlayBreaches = (
   const classFound = new Set(
     [...choiceNames.values()].flatMap((held) => held.slice(1).map(({ node }) => node.start)),
   );
-  // A "choice" bars the other choices that share its name: each group of one name that holds one
-  // of the four, less the elements its sentence does not bar (a gap).
+  /**
+   * A "choice" bars the other choices that share its name: each group of one name that holds one
+   * of the four, less the elements its sentence does not bar (a gap).
+   */
   const sharedNames = Map.groupBy(
     choices.filter(({ node }) => barredByChoice.has(node.kind)),
     ({ identifier }) => identifier,
@@ -6041,8 +6081,10 @@ const packageBreaches = (
     Option.exists(resource.handle, (type) =>
       grammar.package.rootOfType.rows.some((row) => row.type === type),
     );
-  // The types each path is read under: the manifest's own, `manifest` (readings 146 and 176), then
-  // each type a resource names the path under.
+  /**
+   * The types each path is read under: the manifest's own, `manifest` (readings 146 and 176), then
+   * each type a resource names the path under.
+   */
   const typesAt = new Map<string, ReadonlySet<string>>([[manifest.path, new Set(["manifest"])]]);
   for (const { path, resource } of documentsOf(resources, grammar)) {
     typesAt.set(path, new Set([...(typesAt.get(path) ?? []), resource.type]));
@@ -6192,10 +6234,12 @@ const packageBreaches = (
         : [];
     }),
     ...input.documents.flatMap((document): readonly Breach[] => {
-      // The records of each item or test resource that lists the document, whatever type it is
-      // read as (reading 162), each a `lom:lom` of the resource's own `cp:metadata` (spec reading
-      // 62): a `cp:file`'s record describes the file ("The scope of Metadata is the parent
-      // container class only", IMS Content Packaging 1.2 §6.7).
+      /**
+       * The records of each item or test resource that lists the document, whatever type it is
+       * read as (reading 162), each a `lom:lom` of the resource's own `cp:metadata` (spec reading
+       * 62): a `cp:file`'s record describes the file ("The scope of Metadata is the parent
+       * container class only", IMS Content Packaging 1.2 §6.7).
+       */
       const owners = new Set(
         document.resources.flatMap(({ node, type }) => (lomNamedTypes.has(type) ? [node] : [])),
       );
@@ -6209,10 +6253,12 @@ const packageBreaches = (
           owners.has(owner)
         );
       });
-      // The record's object is the document its resource names where its root is an item or a
-      // test, whatever the resource's type, which RootOfType judges on its own (QTI 3.0 Metadata
-      // §2.7.1.1: "the identifier of the associated item, test or object bank"; reading 93); a
-      // document of another root is no object, and no entry matches it.
+      /**
+       * The record's object is the document its resource names where its root is an item or a
+       * test, whatever the resource's type, which RootOfType judges on its own (QTI 3.0 Metadata
+       * §2.7.1.1: "the identifier of the associated item, test or object bank"; reading 93); a
+       * document of another root is no object, and no entry matches it.
+       */
       const identifier = objectRoots.has(document.rootKind) ? document.identifier : Option.none();
 
       return loms.flatMap((lom) => {
@@ -6624,9 +6670,11 @@ const assembliesOf = (
     }
   }
 
-  // Each instance's anchor (`instanceAnchors`): itself where it heads the assembly or a section ref
-  // places it, its parent's where a section's include does, which places its fragment in its
-  // parent's copy.
+  /**
+   * Each instance's anchor (`instanceAnchors`): itself where it heads the assembly or a section ref
+   * places it, its parent's where a section's include does, which places its fragment in its
+   * parent's copy.
+   */
   const instancesOf = (
     path: string,
     chain: readonly string[],
@@ -6667,8 +6715,10 @@ const assembliesOf = (
           },
         ];
   };
-  // Break a key at the first carrier of each group but the first, the groups of one key split by
-  // what makes two carriers one binding: a document's own repeats are its own judgment's.
+  /**
+   * Break a key at the first carrier of each group but the first, the groups of one key split by
+   * what makes two carriers one binding: a document's own repeats are its own judgment's.
+   */
   const repeated = <
     A extends { readonly id: string; readonly owner: bigint; readonly path: string },
   >(
@@ -6706,10 +6756,12 @@ const assembliesOf = (
           path,
         })),
       );
-      // "DocumentId key" over the assembly's copies (cvc-id clause 2, `AnchoredId` and `CopiedId`):
-      // within a copy, every instance holds its document's IDs once more, a fragment a section
-      // includes twice among them; across the copies, two copies of one section document a test
-      // references twice hold its IDs once (information model §7.5.3).
+      /**
+       * "DocumentId key" over the assembly's copies (cvc-id clause 2, `AnchoredId` and `CopiedId`):
+       * within a copy, every instance holds its document's IDs once more, a fragment a section
+       * includes twice among them; across the copies, two copies of one section document a test
+       * references twice hold its IDs once (information model §7.5.3).
+       */
       const breaches = dedupedBreaches([
         ...repeated(
           carriers,
@@ -7020,9 +7072,11 @@ export const judge = Effect.fn("oracle.judge")(function* judge(
     const byPath = new Map(files.map((file) => [file.path, file]));
     const documents: Listed[] = [];
     const missing: string[] = [];
-    // A path is one document (reading 93), of the type its root bears out (reading 162), and the
-    // manifest's is the manifest, read above (reading 146), so a resource naming it reads nothing
-    // more.
+    /**
+     * A path is one document (reading 93), of the type its root bears out (reading 162), and the
+     * manifest's is the manifest, read above (reading 146), so a resource naming it reads nothing
+     * more.
+     */
     const read = new Set<string>([manifestFile.path]);
     for (const [index, { path, resource }] of listing.entries()) {
       const file = byPath.get(path);

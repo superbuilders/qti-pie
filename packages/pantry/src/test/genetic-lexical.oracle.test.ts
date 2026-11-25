@@ -107,7 +107,9 @@ describe("genetic-lexical.oracle.test.ts, bred values against xmllint", () => {
 
           const evolved = yield* evolve(lexicalProblem(breeding), budget, seed);
 
-          // One finding per (site, verdicts), the first the run met, reduced.
+          /**
+           * One finding per (site, verdicts), the first the run met, reduced.
+           */
           const classes = new Map<string, Finding>();
           const lineages = new Map<Finding, readonly string[]>();
           for (const { disagreement: finding, lineage } of evolved.found.values()) {
@@ -133,7 +135,9 @@ describe("genetic-lexical.oracle.test.ts, bred values against xmllint", () => {
           ];
           yield* Console.log(report.join("\n"));
 
-          // Every class is reduced at once, each round of all of them one batch.
+          /**
+           * Every class is reduced at once, each round of all of them one batch.
+           */
           const chosen = [...classes.values()].slice(0, reduced.findings);
           const shared = sharedJudge(breeding, chosen.length);
           const shrunk = yield* Effect.forEach(

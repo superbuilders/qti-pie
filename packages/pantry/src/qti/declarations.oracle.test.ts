@@ -212,8 +212,10 @@ describe("qti/declarations.ts, typed values", () => {
   );
 
   it("admits a uri's text by xs:anyURI's pattern, spec reading 71's", () => {
-    // Oracle: the specification as a checker, RFC 2396 by way of reading 71: an absolute URI and a
-    // relative reference are values, and a percent sign not followed by two hex digits is not.
+    /**
+     * Oracle: the specification as a checker, RFC 2396 by way of reading 71: an absolute URI and a
+     * relative reference are values, and a percent sign not followed by two hex digits is not.
+     */
     const uri = patternOf("uri");
     for (const text of ["http://example.com/a?b#c", "a/b.xml", " urn:x:y "]) {
       assert.isTrue(uri.test(text), text);
@@ -304,8 +306,10 @@ describe("qti/declarations.ts, Declaration not reserved", () => {
                 judgment._tag === "Judged" ? judgment.breaches.map(({ law }) => law) : [],
               );
               const rows = previewRowsOf((yield* readProgram(dir, nameOf(dir))).inputs);
-              // The host judges the stored laws, and the declaration overlays' rules over a query,
-              // "Declaration not reserved" among them, are the database's alone, restated here.
+              /**
+               * The host judges the stored laws, and the declaration overlays' rules over a query,
+               * "Declaration not reserved" among them, are the database's alone, restated here.
+               */
               const broken = new Set([
                 ...lawNamesOf(judgeHost(rows, hostLaws).broken),
                 ...declarationQueryLawsOf(rows),

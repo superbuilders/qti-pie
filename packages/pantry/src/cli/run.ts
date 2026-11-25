@@ -47,11 +47,15 @@ export const runCli = <Name extends string, Input, ContextInput, E, R>(
   config: { readonly version: string },
 ) =>
   Effect.gen(function* runWithMode() {
-    // The mode is read from the raw arguments before `Command.run` parses them, so a parse error
-    // under `--json` is JSON too.
+    /**
+     * The mode is read from the raw arguments before `Command.run` parses them, so a parse error
+     * under `--json` is JSON too.
+     */
     const stdio = yield* Stdio.Stdio;
     const args = rewriteVerbose(yield* stdio.args);
-    // The line's mode, else the environment's, which is read only when the line names none.
+    /**
+     * The line's mode, else the environment's, which is read only when the line names none.
+     */
     const named = modeOfArguments(args);
     const mode = Option.getOrElse(
       Option.isSome(named) ? named : yield* modeOfEnvironment,

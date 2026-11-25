@@ -214,10 +214,12 @@ const written = {
 
 describe("Node's declarations", () => {
   it("build into a schema of the closed relations they read, with stand-ins for the attribute and namespace families, and a role and login over it", () => {
-    // Oracle: grizzle's own admission, which refuses a malformed description, a side over a field
-    // the relation lacks and a statement over a relation the schema does not hold when the schema
-    // is built. The plan's refusals (two sequences, an axis's naming, a leaving copy) are the
-    // compiler's: the scratch `grizzle generate` in the slice report drafts the same schema.
+    /**
+     * Oracle: grizzle's own admission, which refuses a malformed description, a side over a field
+     * the relation lacks and a statement over a relation the schema does not hold when the schema
+     * is built. The plan's refusals (two sequences, an axis's naming, a leaving copy) are the
+     * compiler's: the scratch `grizzle generate` in the slice report drafts the same schema.
+     */
     const built = scratchSchema();
     const author = role(
       built,
@@ -233,8 +235,10 @@ describe("Node's declarations", () => {
   });
 
   it("names every check by an oracle law, each mapped to a rule, and states each law once on each relation", () => {
-    // Oracle: the specification as a checker, the oracle's law list and its rule map
-    // (`#pantry/test/oracle.ts`), which Q5.17's refusals read.
+    /**
+     * Oracle: the specification as a checker, the oracle's law list and its rule map
+     * (`#pantry/test/oracle.ts`), which Q5.17's refusals read.
+     */
     const checks = nodeLaws.flatMap((statement) =>
       statement.kind === "check"
         ? [{ checked: statement.relation.name, law: lawOf(statement.name) }]
@@ -251,11 +255,13 @@ describe("Node's declarations", () => {
   });
 
   it("types a write as the host's fields alone, the root field required on the root and supplied below it, and no field grizzle draws or fills", () => {
-    // Oracle: the specification as a checker, the W5 contract's written fields (§C, with `ancestry`,
-    // `chars`, `first` and `last`, which the host writes and `E1_derived` proves, `first` and
-    // `last` by reading 127; the string value's fold steps `chars` itself), held by the compiler:
-    // `satisfies` holds the written fields to exactly this record, a member written without the
-    // root fields is accepted, and each refusal below is a type error.
+    /**
+     * Oracle: the specification as a checker, the W5 contract's written fields (§C, with
+     * `ancestry`, `chars`, `first` and `last`, which the host writes and `E1_derived` proves,
+     * `first` and `last` by reading 127; the string value's fold steps `chars` itself), held by the
+     * compiler: `satisfies` holds the written fields to exactly this record, a member written
+     * without the root fields is accepted, and each refusal below is a type error.
+     */
     const fields = {
       ancestry: true,
       chars: true,
@@ -301,11 +307,13 @@ describe("Node's declarations", () => {
   });
 
   it("types each end of a node's characters as at most one code point, and writes each as the first or last of its characters", () => {
-    // Oracle: the specification as a checker, reading 127's ends: `EndCharacter`'s pattern read
-    // by JavaScript's engine under grizzle's flags `su` (`.` one code point, a line end among
-    // them), and `endsOf` against `Array.from`, which splits a text into its code points.
-    // Bound: the empty text, one and two characters, a line end, a surrogate pair alone, at
-    // either end and between two letters.
+    /**
+     * Oracle: the specification as a checker, reading 127's ends: `EndCharacter`'s pattern read
+     * by JavaScript's engine under grizzle's flags `su` (`.` one code point, a line end among
+     * them), and `endsOf` against `Array.from`, which splits a text into its code points.
+     * Bound: the empty text, one and two characters, a line end, a surrogate pair alone, at
+     * either end and between two letters.
+     */
     const end = regex.as(EndCharacter.patterns[0].source, EndCharacter.patterns[0].flags);
     for (const held of ["", "a", "\n", "é", "😀"]) {
       assert.isTrue(end.test(held), JSON.stringify(held));

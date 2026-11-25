@@ -326,8 +326,11 @@ type Compared =
  */
 const compare = (resolver: Resolver, reference: Reference): Compared => {
   const importer = importerOf(reference);
-  // Plate's loader gives a module location, collapsed as plate reads an `xs:anyURI`, its `.js` before
-  // the location is resolved, as the served path does (`scriptLocationOf`, `#plate/pci/resolve.ts`).
+  /**
+   * Plate's loader gives a module location, collapsed as plate reads an `xs:anyURI`, its `.js`
+   * before the location is resolved, as the served path does (`scriptLocationOf`,
+   * `#plate/pci/resolve.ts`).
+   */
   const files = resolver(
     reference.document,
     reference.element,

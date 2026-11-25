@@ -32,7 +32,10 @@ import { Qti } from "#pantry/qti/schema.ts";
  * owner in the same stratum as its whole family (the W5 amendment's A, C19): {@link insertWrite}'s
  * inserts.
  */
-// GRIZZLE-PENDING: Q2: the rowless ChangeSet builder declares these inserts by relation name with no rows.
+/**
+ * GRIZZLE-PENDING: Q2: the rowless ChangeSet builder declares these inserts by relation name with
+ * no rows.
+ */
 const packageInserts = writtenFactsOf(
   pipe(
     Struct.pick(Qti.relations, insertableNamesOf(Qti)),

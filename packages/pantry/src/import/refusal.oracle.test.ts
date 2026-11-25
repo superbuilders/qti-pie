@@ -480,7 +480,9 @@ const assertRules = (laws: Arr.NonEmptyReadonlyArray<Law>): void => {
     (a, b) => precedence.indexOf(a) - precedence.indexOf(b),
   );
   const reversed = rulesOf(Arr.reverse(laws));
-  // A repeat is a drawn law again, the same value, so the set keeps each value once.
+  /**
+   * A repeat is a drawn law again, the same value, so the set keeps each value once.
+   */
   const once = rulesOf(Arr.dedupeWith(laws, (a, b) => a === b));
   const [first] = rules;
   if (
@@ -655,8 +657,10 @@ const crossTier = nonEmpty("the cross-tier laws", [
 
 describe("the law table", () => {
   it("ranks every rule a law keeps, each once, and no rule no law keeps", () => {
-    // Oracle: the law table itself, each law's rule. Bound: every law of the table and every rule
-    // the precedence lists, exhausted.
+    /**
+     * Oracle: the law table itself, each law's rule. Bound: every law of the table and every rule
+     * the precedence lists, exhausted.
+     */
     const owned: ReadonlySet<Rule> = new Set(Object.values(lawTable).map(({ rule }) => rule));
 
     assert.strictEqual(new Set(precedence).size, precedence.length, "a rule ranks twice");
@@ -719,8 +723,10 @@ describe("the merged axes and the laws no row states", () => {
   });
 
   it("names no rule for laws no row states, and still carries each law as the outcome names it", () => {
-    // Oracle: the outcome itself, read back field by field: its decision, the law's display text
-    // with no name or rule, no source, the witness's kind, and no rule.
+    /**
+     * Oracle: the outcome itself, read back field by field: its decision, the law's display text
+     * with no name or rule, no source, the witness's kind, and no rule.
+     */
     const law = plantedLaw(
       { from: sideOf("Nowhere", "x"), kind: "contained", to: sideOf("Node", "path", "start") },
       "a containment from a relation Qti does not hold",
@@ -1389,11 +1395,13 @@ describe("the pattern laws, one per field", () => {
   });
 
   it("names two fields of one pattern apart: Node.chars an XML production, OpenElementName.namespace a key text's bound", () => {
-    // Oracle: grizzle's per-field pattern law, its relation and field beside the patterns the
-    // field spells (changeset.ts's Law), and the entries their types declare
-    // (`#pantry/qti/law-entries.ts`): a node's characters and a foreign namespace name are both
-    // `Char*`, but only the name is bounded, so a refusal of the one is crust's production and
-    // of the other the stated limit.
+    /**
+     * Oracle: grizzle's per-field pattern law, its relation and field beside the patterns the
+     * field spells (changeset.ts's Law), and the entries their types declare
+     * (`#pantry/qti/law-entries.ts`): a node's characters and a foreign namespace name are both
+     * `Char*`, but only the name is bounded, so a refusal of the one is crust's production and
+     * of the other the stated limit.
+     */
     const chars = statedPatternLaw("Node", "chars");
     const namespace = statedPatternLaw("OpenElementName", "namespace");
 
@@ -1435,14 +1443,16 @@ describe("the census of the composed Qti schema", () => {
   );
 
   it("refuses a site that names no document by its own law: an include under include-target, a section ref under section-ref-target, an absent file under file-exists", () => {
-    // Oracle: the specification as a checker, reading 115: an include whose path an entry holds
-    // but that names no document the manifest lists, and that holds no xi:fallback (XInclude 1.0
-    // §3.2 replaces one that does by its fallback), or that writes no href that names a path of
-    // the package, breaks "Include target", the oracle's law for includes; a section ref that
-    // does so breaks "Section ref target" (§7.5), its own; and a site whose path no entry holds
-    // breaks "File exists", its SitePath's check, which gates it. Each is a law Qti states, under
-    // its own rule, each containment of a site's kind stated once per kind, so a dangling site is
-    // refused under one rule.
+    /**
+     * Oracle: the specification as a checker, reading 115: an include whose path an entry holds
+     * but that names no document the manifest lists, and that holds no xi:fallback (XInclude 1.0
+     * §3.2 replaces one that does by its fallback), or that writes no href that names a path of
+     * the package, breaks "Include target", the oracle's law for includes; a section ref that
+     * does so breaks "Section ref target" (§7.5), its own; and a site whose path no entry holds
+     * breaks "File exists", its SitePath's check, which gates it. Each is a law Qti states, under
+     * its own rule, each containment of a site's kind stated once per kind, so a dangling site is
+     * refused under one rule.
+     */
     const stated = schemaLawsOf(Qti);
     const kinds: readonly (readonly [LawSide, LawSide, readonly Rule[]])[] = [
       [
@@ -1477,9 +1487,11 @@ describe("the census of the composed Qti schema", () => {
   });
 
   it("names no generated field that declares no entry, so a field Qti gains without one fails the census", () => {
-    // Oracle: grizzle's laws (`lawsOf`) of a schema of one generated field that declares no entry
-    // (`law(entry, generated(...))`): its law is listed, with the entry grizzle derives, and named
-    // none, never another law's name.
+    /**
+     * Oracle: grizzle's laws (`lawsOf`) of a schema of one generated field that declares no entry
+     * (`law(entry, generated(...))`): its law is listed, with the entry grizzle derives, and named
+     * none, never another law's name.
+     */
     const Planted = relation.generated(
       "Planted",
       { form: lexical(pg.bigint), start: natural },

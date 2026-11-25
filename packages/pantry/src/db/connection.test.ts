@@ -1269,7 +1269,10 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             exhaust(
               {
                 box: "a command that ends on SIGTERM at a login's first attempt, and one that ignores it at the build of the runtime's login connection, under a 1-second bound",
-                // Past the commands' 30 seconds, so a run that waits for one is reported by its mark.
+                /**
+                 * Past the commands' 30 seconds, so a run that waits for one is reported by its
+                 * mark.
+                 */
                 caseHang: Duration.minutes(1),
                 coverage: requiredInSpace<(typeof lingeringScripts)[number]["variant"]>([
                   "ends on SIGTERM",

@@ -220,7 +220,9 @@ export const typesAvailable = (input: {
     textsPattern(
       input.vocabularies.filter((parent) => input.available(namespaceNameOf(parent), namespace)),
     );
-  // A type's pattern is its namespace's, so each named namespace's is spelled once.
+  /**
+   * A type's pattern is its namespace's, so each named namespace's is spelled once.
+   */
   const byNamespace = new Map<string, string>();
   const rows = input.types.handles.map((type) => {
     const namespace = input.namespaceOf(type);

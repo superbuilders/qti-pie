@@ -59,7 +59,9 @@ const patternOf = (baseType: string): RegExp =>
 
 describe("qti/expressions.ts, its typing tables", () => {
   it("types exactly OperatorArity's expression kinds, each once", () => {
-    // Oracle: `OperatorArity`, read from the ASI XSD's expression group (`facets.ts`).
+    /**
+     * Oracle: `OperatorArity`, read from the ASI XSD's expression group (`facets.ts`).
+     */
     const kinds = expressionTypings.map(({ kind }) => kind);
 
     assert.strictEqual(new Set(kinds).size, kinds.length);
@@ -81,18 +83,22 @@ describe("qti/expressions.ts, its typing tables", () => {
   });
 
   it("reads each root's built-in variables from the installed BuiltInVariable, as reading 29 types them", () => {
-    // Oracle: a second statement of the same facts, `builtInTypes` (spec reading 29: an item's
-    // and a response processing template's `duration` a float, a test's and a section's a
-    // `duration`; the UP audit's A63), against the installed relation's rows, each declaration
-    // code read through `ValueBaseOf` and `ValueCardinalityOf`. Bound: every row of both.
+    /**
+     * Oracle: a second statement of the same facts, `builtInTypes` (spec reading 29: an item's
+     * and a response processing template's `duration` a float, a test's and a section's a
+     * `duration`; the UP audit's A63), against the installed relation's rows, each declaration
+     * code read through `ValueBaseOf` and `ValueCardinalityOf`. Bound: every row of both.
+     */
     const itemRoots = new Set(["qti-assessment-item", "qti-response-processing"]);
     const testRoots = new Set(["qti-assessment-test", "qti-assessment-section"]);
     const valueOf = new Map(ValueBaseOf.rows.map(({ baseType, value }) => [baseType, value]));
     const cardinalityOf = new Map(
       ValueCardinalityOf.rows.map(({ cardinality, value }) => [cardinality, value]),
     );
-    // A built-in with no base type, the record QTI_CONTEXT, reads `unknown` (`builtInBaseTypes`
-    // holds no row for it).
+    /**
+     * A built-in with no base type, the record QTI_CONTEXT, reads `unknown` (`builtInBaseTypes`
+     * holds no row for it).
+     */
     const installed = BuiltInVariable.rows.map(({ cardinality, root, variable }) => {
       const typed = builtInBaseTypes.find((row) => row.root === root && row.variable === variable);
       const base =
@@ -115,11 +121,13 @@ describe("qti/expressions.ts, its typing tables", () => {
   });
 
   it("states the declaration kinds of every reference by identifier processing makes, each row cited", () => {
-    // Oracle: the information model's definitions of each processing element's `identifier`
-    // (`referenceDeclarations`, each with its section and words), against `VariableReference`'s
-    // rows over the processing kinds: every such reference has a row, and the installed
-    // `ReferenceDeclaration` holds exactly the stated pairs. Bound: every processing reference by
-    // `identifier`, 10 kinds.
+    /**
+     * Oracle: the information model's definitions of each processing element's `identifier`
+     * (`referenceDeclarations`, each with its section and words), against `VariableReference`'s
+     * rows over the processing kinds: every such reference has a row, and the installed
+     * `ReferenceDeclaration` holds exactly the stated pairs. Bound: every processing reference by
+     * `identifier`, 10 kinds.
+     */
     const stated = new Set(
       referenceDeclarations.flatMap(({ declarations, kind }) =>
         declarations.map((declaration) => `${kind} identifier ${declaration}`),
@@ -157,9 +165,11 @@ describe("qti/expressions.ts, its typing tables", () => {
   });
 
   it("gives every base type the pattern Typed value reads it by, one language per base type", () => {
-    // Oracle: a second reading of the same rule, Q5.08's `Typed_value` sources: the installed
-    // `ValueDomainOf` pattern of each domain `domainValues` names, its own boolean, point and pair
-    // patterns, and every text for the unjudged base types. Bound: every `BaseType` handle.
+    /**
+     * Oracle: a second reading of the same rule, Q5.08's `Typed_value` sources: the installed
+     * `ValueDomainOf` pattern of each domain `domainValues` names, its own boolean, point and pair
+     * patterns, and every text for the unjudged base types. Bound: every `BaseType` handle.
+     */
     const installed = new Map(ValueDomainOf.rows.map(({ domain, pattern }) => [domain, pattern]));
     const own = new Map<string, string>([
       ["boolean", booleanValuePattern],

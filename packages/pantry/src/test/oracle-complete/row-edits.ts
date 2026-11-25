@@ -43,8 +43,10 @@ const optional: ReadonlySet<string> = new Set([
  * Each law's mutation, by law.
  */
 export const rowEdits = {
-  // AL1 admission (AL1): an optional attribute of the lead division named by a closed name its
-  // kind admits nowhere.
+  /**
+   * AL1 admission (AL1): an optional attribute of the lead division named by a closed name its
+   * kind admits nowhere.
+   */
   "AL1 admission": editingRows("AL1 admission", item, (rows) => (source) => {
     const name = source.draw(element(["max-choices", "shuffle", "response-identifier"] as const));
 
@@ -59,7 +61,9 @@ export const rowEdits = {
       ),
     };
   }),
-  // AL2 count (AL2): an element's count of its attributes one more or one fewer than its rows.
+  /**
+   * AL2 count (AL2): an element's count of its attributes one more or one fewer than its rows.
+   */
   "AL2 count": editingRows("AL2 count", item, (rows, grammar) => (source) => {
     const delta = source.draw(element([1n, -1n]));
 
@@ -74,8 +78,10 @@ export const rowEdits = {
       ),
     );
   }),
-  // AL2 fold (AL2): an element's names holding a position none of its closed attributes is at, the
-  // end of its counted family's fold.
+  /**
+   * AL2 fold (AL2): an element's names holding a position none of its closed attributes is at, the
+   * end of its counted family's fold.
+   */
   "AL2 fold": editingRows("AL2 fold", item, (rows, grammar) => (source) => {
     const position = 900 + source.draw(int(0, 9));
 
@@ -90,8 +96,10 @@ export const rowEdits = {
       ),
     );
   }),
-  // AL4 data name (AL4): a `data-*` attribute's name outside reading 13's language: an upper-case
-  // letter in it, or nothing after the prefix.
+  /**
+   * AL4 data name (AL4): a `data-*` attribute's name outside reading 13's language: an upper-case
+   * letter in it, or nothing after the prefix.
+   */
   "AL4 data name": editingRows("AL4 data name", item, (rows) => (source) => {
     const names = rows.openAttributes.filter((open) => open.class === "data-*");
     const target = names[source.draw(int(0, names.length - 1))];
@@ -108,8 +116,10 @@ export const rowEdits = {
       ),
     };
   }),
-  // AL4 declared data name (AL4): a `data-*` attribute whose name is one its element declares: the
-  // item's own `data-*` attribute renamed to a declared name of a paragraph's governor.
+  /**
+   * AL4 declared data name (AL4): a `data-*` attribute whose name is one its element declares: the
+   * item's own `data-*` attribute renamed to a declared name of a paragraph's governor.
+   */
   "AL4 declared data name": editingRows("AL4 declared data name", item, (rows) => (source) => {
     const names = rows.openAttributes.filter((open) => open.class === "data-*");
     const target = names[source.draw(int(0, names.length - 1))];
@@ -126,8 +136,11 @@ export const rowEdits = {
       ),
     };
   }),
-  // AL4 open name key (AL4): a second row of an open-class attribute's expanded name on its
-  // element, its `OpenAttribute` key "AL4 open name key" `(package, path, start, uriDigest, local)`.
+  /**
+   * AL4 open name key (AL4): a second row of an open-class attribute's expanded name on its
+   * element, its `OpenAttribute` key "AL4 open name key" `(package, path, start, uriDigest,
+   * local)`.
+   */
   "AL4 open name key": editingRows("AL4 open name key", item, (rows) => (source) => {
     const open = rows.openAttributes[source.draw(int(0, rows.openAttributes.length - 1))];
     if (open === undefined) {
@@ -139,7 +152,9 @@ export const rowEdits = {
       openAttributes: [...rows.openAttributes, { ...open, lexical: `${open.lexical}x` }],
     };
   }),
-  // Attribute prefix (AL1): an optional attribute of no namespace written with a prefix.
+  /**
+   * Attribute prefix (AL1): an optional attribute of no namespace written with a prefix.
+   */
   "Attribute prefix": editingRows("Attribute prefix", item, (rows) => (source) => {
     const prefix = source.draw(element(["x", "aria", "ns1"]));
 
@@ -154,8 +169,10 @@ export const rowEdits = {
       ),
     };
   }),
-  // AttributeEntity owner (§1.4): the stimulus's attribute entity reference owned by no attribute
-  // row: at a position past every node, or under a name its element carries no attribute of.
+  /**
+   * AttributeEntity owner (§1.4): the stimulus's attribute entity reference owned by no attribute
+   * row: at a position past every node, or under a name its element carries no attribute of.
+   */
   "AttributeEntity owner": editingRows("AttributeEntity owner", stimulus, (rows) => (source) => {
     const owner =
       source.draw(element(["position", "name"] as const)) === "position"
@@ -167,7 +184,9 @@ export const rowEdits = {
       attributeEntities: rows.attributeEntities.map((entity) => ({ ...entity, ...owner })),
     };
   }),
-  // N7 empty family (N7): a childless node's end values other than the fold's identity.
+  /**
+   * N7 empty family (N7): a childless node's end values other than the fold's identity.
+   */
   "N7 empty family": editingRows("N7 empty family", item, (rows) => (source) => {
     const field = source.draw(element(["childState", "elementChildren"] as const));
     const value = 1 + source.draw(int(0, 3));
@@ -186,8 +205,10 @@ export const rowEdits = {
       ),
     );
   }),
-  // Namespace family (§1.4): an element's count of its namespace declarations other than its
-  // rows.
+  /**
+   * Namespace family (§1.4): an element's count of its namespace declarations other than its
+   * rows.
+   */
   "Namespace family": editingRows("Namespace family", item, (rows, grammar) => (source) => {
     const delta = source.draw(element([1n, 2n]));
 

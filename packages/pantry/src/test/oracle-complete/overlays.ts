@@ -24,9 +24,11 @@ const declarationLine = regex(
  * Each law's mutation, by law.
  */
 export const overlayMutations = {
-  // Declaration key: a second declaration of a declared identifier, a copy of an outcome or
-  // template declaration written beside it, in a drawn document. A response or context
-  // declaration's identifier is an ID (reading 14), so its copy breaks DocumentId key first.
+  /**
+   * Declaration key: a second declaration of a declared identifier, a copy of an outcome or
+   * template declaration written beside it, in a drawn document. A response or context
+   * declaration's identifier is an ID (reading 14), so its copy breaks DocumentId key first.
+   */
   "Declaration key": {
     law: "Declaration key",
     mutate: ({ entries }) =>

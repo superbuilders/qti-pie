@@ -332,7 +332,9 @@ export const reasonOf = (error: HttpClientError.HttpClientError): string => {
       reason.cause,
       (held): held is Error => held instanceof Error,
     );
-    // The client's own description, else its cause's message; either may be missing.
+    /**
+     * The client's own description, else its cause's message; either may be missing.
+     */
     const detail = Option.orElse(Option.fromNullishOr(reason.description), () =>
       cause.pipe(Option.map(({ message }) => message)),
     );

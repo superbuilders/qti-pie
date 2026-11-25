@@ -376,7 +376,9 @@ const linkScopes = query(QtiViews).rule((r) => {
  */
 const testReadingRows = query(QtiViews)
   .rule((r) => {
-    // Unsplit, declared by the test.
+    /**
+     * Unsplit, declared by the test.
+     */
     const {
       assembly,
       attribute,
@@ -402,7 +404,9 @@ const testReadingRows = query(QtiViews)
       });
   })
   .rule((r) => {
-    // Unsplit, a built-in of the test.
+    /**
+     * Unsplit, a built-in of the test.
+     */
     const {
       assembly,
       attribute,
@@ -428,7 +432,9 @@ const testReadingRows = query(QtiViews)
       });
   })
   .rule((r) => {
-    // Split, a variable an item ref's item declares or a mapping names.
+    /**
+     * Split, a variable an item ref's item declares or a mapping names.
+     */
     const {
       assembly,
       attribute,
@@ -470,7 +476,9 @@ const testReadingRows = query(QtiViews)
       });
   })
   .rule((r) => {
-    // Split, the item built-in numAttempts through its item ref.
+    /**
+     * Split, the item built-in numAttempts through its item ref.
+     */
     const {
       assembly,
       attribute,
@@ -510,7 +518,9 @@ const testReadingRows = query(QtiViews)
       });
   })
   .rule((r) => {
-    // Split, the item built-in duration through its item ref.
+    /**
+     * Split, the item built-in duration through its item ref.
+     */
     const {
       assembly,
       attribute,
@@ -550,7 +560,9 @@ const testReadingRows = query(QtiViews)
       });
   })
   .rule((r) => {
-    // Split, the item built-in completionStatus through its item ref.
+    /**
+     * Split, the item built-in completionStatus through its item ref.
+     */
     const {
       assembly,
       attribute,
@@ -590,7 +602,9 @@ const testReadingRows = query(QtiViews)
       });
   })
   .rule((r) => {
-    // Split, the item built-in QTI_CONTEXT through its item ref.
+    /**
+     * Split, the item built-in QTI_CONTEXT through its item ref.
+     */
     const {
       assembly,
       attribute,
@@ -630,7 +644,9 @@ const testReadingRows = query(QtiViews)
       });
   })
   .rule((r) => {
-    // Split, through an item ref that names no item document, as the importer states it.
+    /**
+     * Split, through an item ref that names no item document, as the importer states it.
+     */
     const {
       assembly,
       attribute,
@@ -668,7 +684,9 @@ const testReadingRows = query(QtiViews)
       });
   })
   .rule((r) => {
-    // Split, a part's, a section's or a section ref's duration.
+    /**
+     * Split, a part's, a section's or a section ref's duration.
+     */
     const {
       assembly,
       attribute,
@@ -710,7 +728,9 @@ const testReadingRows = query(QtiViews)
       });
   })
   .rule((r) => {
-    // Numbered, as the importer states it and the laws below prove it.
+    /**
+     * Numbered, as the importer states it and the laws below prove it.
+     */
     const {
       assembly,
       attribute,

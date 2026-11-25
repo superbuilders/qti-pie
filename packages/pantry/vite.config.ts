@@ -25,7 +25,10 @@ const unbounded = 0;
 
 export default defineConfig({
   test: {
-    // @bjornpagen/testing's setup draws the run seed every searched() test reads, or replays a given one.
+    /**
+     * @bjornpagen/testing's setup draws the run seed every searched() test reads, or replays a
+     * given one.
+     */
     globalSetup: ["@bjornpagen/testing/vitest/global-setup", "./src/test/global-setup.ts"],
     projects: [
       {

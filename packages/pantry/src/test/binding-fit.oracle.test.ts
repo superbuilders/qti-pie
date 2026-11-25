@@ -459,10 +459,12 @@ describe("a gap match interaction's gaps", () => {
                   `${label}: the oracle's Binding cardinality breaches`,
                 );
 
-                // Binding cardinality reads the gaps and the most through queries the database
-                // alone judges (`SingleResponseGap`, `SingleBindingMost`), so the import's rows are
-                // held to what those queries read of them: a single response's gap match encloses
-                // one gap at most, and its most, where it has one, is 1.
+                /**
+                 * Binding cardinality reads the gaps and the most through queries the database
+                 * alone judges (`SingleResponseGap`, `SingleBindingMost`), so the import's rows are
+                 * held to what those queries read of them: a single response's gap match encloses
+                 * one gap at most, and its most, where it has one, is 1.
+                 */
                 const places = nodePlacesOf(program.inputs);
                 const kindAt = (path: string, start: bigint) =>
                   places.get(placeKey(path, start))?.kind;
