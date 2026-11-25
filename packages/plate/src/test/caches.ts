@@ -39,7 +39,7 @@ type Variable = "HOME" | "PLATE_CORPUS_DIR";
 /**
  * How each {@link Variable} relocates its cache, worded as the readers' own errors word it.
  */
-const relocation: Record<Variable, string> = {
+const relocation: Readonly<Record<Variable, string>> = {
   HOME: "or set HOME to the home folder that holds .cache/qti-pie",
   PLATE_CORPUS_DIR: "or set PLATE_CORPUS_DIR to the folder that holds them",
 };

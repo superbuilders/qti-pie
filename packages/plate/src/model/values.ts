@@ -352,7 +352,7 @@ const expected = {
   point: "two integers separated by whitespace, x then y, such as 102 113",
   string: "any text",
   uri: "any text",
-} satisfies Record<ModelledBaseType, string>;
+} as const satisfies Record<ModelledBaseType, string>;
 
 /**
  * The failure of reading text as a value of a base type: the text is outside the base type's
@@ -515,7 +515,7 @@ const readers = {
   point: readPoint,
   string: (lexical: string) => valueIf(true, { baseType: "string", value: lexical }),
   uri: (lexical: string) => valueIf(true, { baseType: "uri", value: lexical }),
-} satisfies Record<ModelledBaseType, (lexical: string) => Option.Option<Single>>;
+} as const satisfies Record<ModelledBaseType, (lexical: string) => Option.Option<Single>>;
 
 /**
  * Read text as a value of a base type, exactly as written.

@@ -290,7 +290,7 @@ export const writtenTag = (tag: string): boolean => htmlSubset.has(tag) || tag =
  *
  * @see https://react.dev/reference/react-dom/components/common#common-props
  */
-const propNames = new Map([
+const propNames: ReadonlyMap<string, string> = new Map([
   ["autoplay", "autoPlay"],
   ["class", "className"],
   ["colspan", "colSpan"],

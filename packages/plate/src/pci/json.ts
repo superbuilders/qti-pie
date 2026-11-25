@@ -686,7 +686,7 @@ const readers = {
     ),
   uri: (payload: unknown, path: string): Read<Option.Option<Single>> =>
     Result.flatMap(readText(payload, path), (value) => found({ baseType: "uri", value })),
-} satisfies Record<
+} as const satisfies Record<
   ModelledBaseType,
   (payload: unknown, path: string) => Read<Option.Option<Single>>
 >;

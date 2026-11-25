@@ -103,7 +103,7 @@ const en = {
   ...selectPointMessages,
   ...sliderMessages,
   ...textEntryMessages,
-} satisfies Readonly<Record<SharedKeys<Areas>, never>>;
+} as const satisfies Readonly<Record<SharedKeys<Areas>, never>>;
 
 /**
  * The key of a string the renderer writes.

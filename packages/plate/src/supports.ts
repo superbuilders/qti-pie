@@ -414,7 +414,7 @@ const supportsFields = {
   keywordTranslationLanguage: written,
   readAloud: Schema.Option(Schema.Literals(readingTypes)),
   signLanguage: written,
-};
+} as const;
 
 /**
  * The checks of a {@link Supports}: every field present, each catalog support predefined or

@@ -61,7 +61,7 @@ const breachesOf = {
   },
   "non-empty": (token: string) =>
     token === "" ? Option.some({ requirement: "non-empty" }) : Option.none(),
-} satisfies {
+} as const satisfies {
   readonly [R in InstanceRequirement]: (
     token: string,
   ) => Option.Option<Extract<InstanceBreach, { readonly requirement: R }>>;

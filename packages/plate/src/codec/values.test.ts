@@ -364,7 +364,7 @@ const malformedRecords = {
       { identifier: "stringValue", value: { baseType: "string", value: "b" } },
     ],
   },
-};
+} as const;
 
 describe("RecordValueSchema", () => {
   it.effect(

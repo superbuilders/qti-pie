@@ -86,7 +86,7 @@ const more = subjects[subject](moreParts);
 
 fewer();
 
-const blocks = { fewer: await blocksOf(fewer), more: await blocksOf(more) };
+const blocks = { fewer: await blocksOf(fewer), more: await blocksOf(more) } as const;
 
 await session.post("Profiler.stopPreciseCoverage");
 

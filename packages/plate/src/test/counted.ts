@@ -201,7 +201,7 @@ export const subjects = {
     };
   },
   records: (count: number) => building(templated(count)),
-} satisfies { readonly [Name in SubjectName]: (count: number) => () => void };
+} as const satisfies { readonly [Name in SubjectName]: (count: number) => () => void };
 
 /**
  * The counting process's arguments, as `blockGrowth` writes them: a subject's name, then the

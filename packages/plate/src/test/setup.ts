@@ -16,7 +16,7 @@ import { caches, requireCache } from "#plate/test/caches.ts";
 /**
  * Each cache's probe by tag, memoized so it runs at most once in this test file.
  */
-const probes = new Map(
+const probes: ReadonlyMap<string, ReturnType<typeof requireCache>> = new Map(
   caches.map((cache) => [cache.tag, Effect.runSync(Effect.cached(requireCache(cache)))] as const),
 );
 
