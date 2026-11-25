@@ -773,7 +773,7 @@ const attributesIn = (
 ): readonly { readonly attribute: AttributeDeclaration; readonly kind: string }[] => {
   const first = new Map<string, AttributeDeclaration>();
   for (const attribute of declarations) {
-    const key = tupleKey(attribute.kind, attribute.name);
+    const key = tupleKey([attribute.kind, attribute.name]);
     if (kinds.has(attribute.kind) && !first.has(key)) {
       first.set(key, attribute);
     }

@@ -267,7 +267,7 @@ export type Name = NameOf<typeof vocabularies>;
  * @returns A key no other pair shares ({@link tupleKey}).
  */
 const attributeKey = (row: { readonly kind: string; readonly name: string }): string =>
-  tupleKey(row.kind, row.name);
+  tupleKey([row.kind, row.name]);
 
 /**
  * Read which element kinds spec reading 90 holds to their declared attributes: those whose element
@@ -286,12 +286,12 @@ export const coveredBy = (
   kinds: Pick<Kinds<string, string>, "elementName">,
 ): ((kind: string) => boolean) => {
   const covered = new Set(
-    coveredElements.map(({ element }) => tupleKey(element.namespace, element.local)),
+    coveredElements.map(({ element }) => tupleKey([element.namespace, element.local])),
   );
 
   return (kind) =>
     Option.exists(kinds.elementName.lookup({ kind }), ({ local, namespace }) =>
-      covered.has(tupleKey(namespace, local)),
+      covered.has(tupleKey([namespace, local])),
     );
 };
 

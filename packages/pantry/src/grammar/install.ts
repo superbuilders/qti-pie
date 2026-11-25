@@ -898,7 +898,7 @@ const attributeModels = (() => {
       (left, right) => Number(left.position) - Number(right.position),
     );
     const signature = tupleKey(
-      ...rows.flatMap(({ domain, name, position, use }) => [position, name, domain, use]),
+      rows.flatMap(({ domain, name, position, use }) => [position, name, domain, use]),
     );
     const model = bySignature.getOrInsertComputed(signature, () => {
       models.push({ handle: governor, rows });
@@ -1238,10 +1238,10 @@ export const CheckedText = closed.relation(
  * type's available namespaces (`XsiType available`), since grizzle matches a pattern in a query
  * only over a text a pattern bounds.
  */
-const kindNamespaceBytes = Math.max(
-  ...grammar.kinds.elementName.rows.map(
-    ({ namespace }) => new TextEncoder().encode(namespace).length,
-  ),
+const kindNamespaceBytes = Arr.reduce(
+  grammar.kinds.elementName.rows.map(({ namespace }) => new TextEncoder().encode(namespace).length),
+  Number.NEGATIVE_INFINITY,
+  (most, each) => Math.max(most, each),
 );
 
 /**
@@ -1387,7 +1387,14 @@ export const CnPartForm = closed.ordered("CnPartForm", cnPartForms);
 export const CnPart = closed.ordered(
   "CnPart",
   pipe(
-    Arr.range(0, Math.max(...[...cnForms.values()].map((forms) => forms.length))),
+    Arr.range(
+      0,
+      Arr.reduce(
+        [...cnForms.values()].map((forms) => forms.length),
+        Number.NEGATIVE_INFINITY,
+        (most, each) => Math.max(most, each),
+      ),
+    ),
     Arr.map(String),
   ),
 );

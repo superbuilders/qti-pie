@@ -464,7 +464,7 @@ const leadingFirst = (particle: Particle, leading: readonly string[], source: st
   const wildcards = [
     ...new Map(
       leaves.flatMap((leaf) =>
-        leaf._tag === "any" ? [[tupleKey(leaf.namespace, leaf.processing), leaf] as const] : [],
+        leaf._tag === "any" ? [[tupleKey([leaf.namespace, leaf.processing]), leaf] as const] : [],
       ),
     ).values(),
   ];
@@ -1267,15 +1267,15 @@ export const contentOf = (input: {
             : [
                 {
                   family,
-                  signature: tupleKey(
+                  signature: tupleKey([
                     entry.parent,
                     String(entry.automaton.next.length),
                     ...shared
                       .flatMap(({ kind, numbers }) =>
-                        numbers.map((number) => tupleKey(kind, String(number))),
+                        numbers.map((number) => tupleKey([kind, String(number)])),
                       )
                       .toSorted(),
-                  ),
+                  ]),
                   value: shared,
                 },
               ];
@@ -1336,7 +1336,7 @@ export const contentOf = (input: {
      */
     const sharedNumbers = new Map(
       sharedModels.models.flatMap(({ handle, value }) =>
-        value.map(({ kind, numbers }) => [tupleKey(handle, kind), numbers] as const),
+        value.map(({ kind, numbers }) => [tupleKey([handle, kind]), numbers] as const),
       ),
     );
     /**
@@ -1384,7 +1384,7 @@ export const contentOf = (input: {
         left.child < right.child ? -1 : 1,
       );
       const admission = mapOf.getOrInsertComputed(
-        tupleKey(...children.flatMap(({ child, position: at }) => [child, at])),
+        tupleKey(children.flatMap(({ child, position: at }) => [child, at])),
         () => {
           const fresh = String(mapOf.size);
           for (const each of children.map(({ child, position: at }) => ({
@@ -1480,7 +1480,7 @@ export const contentOf = (input: {
      * states none.
      */
     const statedSources = new Map(
-      input.stated.map(({ child, parent, source }) => [tupleKey(parent, child), source]),
+      input.stated.map(({ child, parent, source }) => [tupleKey([parent, child]), source]),
     );
     const lookup = (key: AdmissionKey) =>
       Option.flatMap(contentModelOf.lookup(key), ({ admission }) =>
@@ -1493,7 +1493,7 @@ export const contentOf = (input: {
         sourceOf: (key) =>
           Option.flatMap(lookup(key), ({ position: at }) =>
             Option.orElse(
-              Option.fromUndefinedOr(statedSources.get(tupleKey(key.parent, key.child))),
+              Option.fromUndefinedOr(statedSources.get(tupleKey([key.parent, key.child]))),
               () => sourceOf({ parent: key.parent, position: at }),
             ),
           ),
@@ -1570,7 +1570,7 @@ export const contentOf = (input: {
         sharedPositions: ({ kind, parent }) =>
           Option.match(sharedModelOf.lookup({ parent }), {
             onNone: () => [],
-            onSome: ({ model: shared }) => sharedNumbers.get(tupleKey(shared, kind)) ?? [],
+            onSome: ({ model: shared }) => sharedNumbers.get(tupleKey([shared, kind])) ?? [],
           }),
         sourceOf,
         strictlyHeld: indexedSourced(

@@ -291,7 +291,7 @@ export const rowsAt = <K, R>(groups: ReadonlyMap<K, readonly R[]>, key: K): read
  * @param parts - The tuple's texts, in order.
  * @returns The key.
  */
-export const tupleKey = (...parts: readonly string[]): string => JSON.stringify(parts);
+export const tupleKey = (parts: readonly string[]): string => JSON.stringify(parts);
 
 /**
  * The largest `int8`, 2⁶³ − 1: the top of the carrier of a count of children, the bound that bounds

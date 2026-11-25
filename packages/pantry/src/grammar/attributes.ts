@@ -854,7 +854,7 @@ const mathmlNotationReadings: readonly SpecReading[] = Object.values(
           )
         : [],
     ),
-    ({ declaration: { name, type } }) => tupleKey(name, type.type),
+    ({ declaration: { name, type } }) => tupleKey([name, type.type]),
   ),
 ).map(([{ declaration, pattern }, ...rest]) =>
   on(
@@ -1420,13 +1420,13 @@ const normalizationText = (value: ValueNormalization): readonly string[] =>
  * @returns The key.
  */
 const definitionKey = (domain: CompiledDomain): string =>
-  tupleKey(
+  tupleKey([
     domain.primitive,
     domain.pattern,
     ...normalizationText(domain.value),
     boundText(domain),
     ...Option.toArray(domain.identity),
-  );
+  ]);
 
 /**
  * What a declaration's domain is read from: the declaring kind (a named type's owner, for that
@@ -1510,7 +1510,7 @@ const domainText = (domain: Domain): string => {
  * @returns The text.
  */
 export const definitionText = ({ definition, whiteSpace }: ReadDefinition): string =>
-  tupleKey(whiteSpace, domainText(definition));
+  tupleKey([whiteSpace, domainText(definition)]);
 
 /**
  * Read a declaration's definition: its leaf definition with each of its spec readings applied, in
