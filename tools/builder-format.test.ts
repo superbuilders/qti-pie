@@ -503,18 +503,16 @@ const scan = (root: string, file: string, missing: ReadonlySet<string>): readonl
   }
 
   if (stat.isSymbolicLink()) {
-    found.push(
-      ...offences(readlinkSync(at)).map((what) => `${file}: symlink target holds ${what}`),
-    );
+    for (const what of offences(readlinkSync(at))) {
+      found.push(`${file}: symlink target holds ${what}`);
+    }
     // A link that resolves to a file is judged by that file's bytes too.
     if (statSync(at, { throwIfNoEntry: false })?.isFile() === true) {
       const linked = readFileSync(at);
 
-      found.push(
-        ...delivered(linked, linked.toString("utf-8"), DENIED).map(
-          (what) => `${file}: links to ${what}`,
-        ),
-      );
+      for (const what of delivered(linked, linked.toString("utf-8"), DENIED)) {
+        found.push(`${file}: links to ${what}`);
+      }
     }
 
     return found;
@@ -529,12 +527,16 @@ const scan = (root: string, file: string, missing: ReadonlySet<string>): readonl
   const binary = encoding === "utf-8" && bytes.subarray(0, 8000).includes(0);
   const text = binary ? "" : new TextDecoder(encoding).decode(bytes);
 
-  found.push(...delivered(bytes, text, DENIED).map((what) => `${file}: is ${what}`));
+  for (const what of delivered(bytes, text, DENIED)) {
+    found.push(`${file}: is ${what}`);
+  }
   if (binary) {
     return found;
   }
 
-  found.push(...rewritten(text, DENIED_TEXT).map((what) => `${file}: holds ${what}`));
+  for (const what of rewritten(text, DENIED_TEXT)) {
+    found.push(`${file}: holds ${what}`);
+  }
 
   const whole = offences(text);
 
@@ -550,9 +552,11 @@ const scan = (root: string, file: string, missing: ReadonlySet<string>): readonl
       found.push(`${file}:${index + 1}: ${what}`);
     }
   }
-  found.push(
-    ...whole.filter((what) => !byLine.has(what)).map((what) => `${file}: across lines: ${what}`),
-  );
+  for (const what of whole) {
+    if (!byLine.has(what)) {
+      found.push(`${file}: across lines: ${what}`);
+    }
+  }
 
   return found;
 };
