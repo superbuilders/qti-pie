@@ -121,7 +121,7 @@
 import { Sha256 } from "@bjornpagen/grizzle";
 import { factsDecoder } from "@bjornpagen/grizzle/compile";
 import type { BrokenLaws } from "@bjornpagen/grizzle";
-import { Db, DbLayer, LiveSource, served } from "@bjornpagen/grizzle/runtime";
+import { Db } from "@bjornpagen/grizzle/runtime";
 import { drawn as drawnBy, exhaust, explore } from "@bjornpagen/testing/explore";
 import { required, requiredInSpace } from "@bjornpagen/testing/features";
 import type { Gen } from "@bjornpagen/testing/gen";
@@ -139,27 +139,20 @@ import {
 import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
-import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, layer } from "@effect/vitest";
-import { clusterDatabase, loginConnection } from "@qti-pie/pantry/db/connection.ts";
 import { importRowsOf } from "@qti-pie/pantry/import/program.ts";
 import { readPackage } from "@qti-pie/pantry/import/read.ts";
 import {
   Array as Arr,
   Clock,
-  Config,
-  ConfigProvider,
-  Context,
   Duration,
   Effect,
   FileSystem,
   Formatter,
-  Layer,
   Option,
   Order,
   Ref,
   Result,
-  Schema,
 } from "effect";
 import { DeclineReason } from "#ledger/evaluations.ts";
 import { operatorTagPrefix } from "#ledger/registry/operators.ts";
@@ -168,16 +161,10 @@ import type { ReviewShows, SessionControl } from "#ledger/served-item.ts";
 import { judgedOfRows, responseParamsOf, responsesOfRows } from "#ledger/served-values.ts";
 import type { AttemptRows, MarkRows, ValueRows } from "#ledger/served-values.ts";
 import { Reading } from "#ledger/sittings.ts";
-import type { ResultSuite } from "#ledger/test/result-level.ts";
 import { inFlightGraceMicros, presenceGraceMicros } from "#ledger/delivery.ts";
 import type { LedgerLawName } from "#ledger/laws.ts";
-import { resultDatabaseOf, resultMigrations } from "#ledger/test/result-database.ts";
+import { lease, SuiteLogin, suiteLayerOf } from "#ledger/test/result-suite.ts";
 import { grader, ResultLevel, rubricUse } from "#ledger/test/result-level.ts";
-
-/**
- * The lane's lease, where one is named: the suite runs on its result database.
- */
-const lease = Effect.runSync(Config.option(clusterDatabase));
 
 /**
  * How long one case of any search here may run before it is stopped and reported, the suite's one
@@ -1377,53 +1364,6 @@ const drawSituationsOf = (
     ];
   }),
 ];
-
-/**
- * The suite's login as `grizzle generate` compiled it.
- */
-type Logins = Readonly<{
-  suite: ReturnType<typeof served<typeof ResultSuite>>;
-}>;
-
-class SuiteLogin extends Context.Service<SuiteLogin, Logins>()(
-  "@qti-pie/ledger/results.db.test/SuiteLogin",
-) {}
-
-/**
- * One session: the suite's calls run one after another.
- */
-const onePool = { idleTimeoutMs: Duration.toMillis(Duration.minutes(1)), max: 1, min: 0 } as const;
-
-/**
- * The suite's services: its served login, its database layer on the run's database, and Node's
- * platform.
- */
-const SuiteLayer = Layer.unwrap(
-  Effect.gen(function* suiteLayer() {
-    const fs = yield* FileSystem.FileSystem;
-    const text = yield* fs.readFileString(`${resultMigrations}/qti/served/result_suite.json`);
-    const file = yield* Schema.decodeEffect(Schema.fromJsonString(Schema.Unknown))(text);
-    const suite = served<typeof ResultSuite>(file, "result_suite");
-    const connectionOf = yield* loginConnection.pipe(
-      Effect.provide(
-        ConfigProvider.layer(
-          ConfigProvider.fromUnknown({
-            ...process.env,
-            QTI_PIE_PG_DATABASE: resultDatabaseOf(Option.getOrThrow(lease)),
-          }),
-        ),
-      ),
-    );
-    const connection = connectionOf(suite);
-
-    return Layer.mergeAll(
-      Layer.succeed(SuiteLogin, { suite }),
-      DbLayer.make({ ...connection, login: suite, pool: onePool }).pipe(
-        Layer.provide(LiveSource.layer({ ...connection, login: suite })),
-      ),
-    );
-  }),
-).pipe(Layer.provideMerge(NodeServices.layer));
 
 /**
  * The one package, the essay, the templated item, the operators item, the draw item adaptive and
@@ -5840,7 +5780,7 @@ const holdOutcomeBounds = (
 describe.skipIf(Option.isNone(lease))(
   "an AI-graded essay's result relations, a templated item's take and an adaptive item's attempts, on the runner's database",
   () => {
-    layer(SuiteLayer, { excludeTestServices: true, timeout: "300 seconds" })(
+    layer(suiteLayerOf("results"), { excludeTestServices: true, timeout: "300 seconds" })(
       "waiting, grading in the write after which nothing waits, operands, status, values and credit under a composition with rubric-score's grader",
       (it) => {
         it.effect(
