@@ -37,12 +37,6 @@ import { itemFactsOf } from "#specimen/ui/source.ts";
 const caseHang = "30 seconds";
 
 /**
- * How long the search may take: about twelve seconds alone here, and the bound leaves room for a
- * loaded machine without letting a hung run stall the suite.
- */
-const searchTimeoutMs = 600_000;
-
-/**
  * How many rotating draws among the floor's cases a run makes, beside the floor stream's and the
  * steered phase's: as many as the specimen's own suite makes, so a run of the UI suite costs about
  * what that one does.
@@ -100,7 +94,7 @@ const noteSeen = (c: Case<Feature>, held: Specimen, seen: Seen): void => {
   c.note(`class ${seen.itemClass}`);
 };
 
-describe("plate's UI over the specimen", { timeout: searchTimeoutMs }, () => {
+describe("plate's UI over the specimen", () => {
   it.effect(
     `every case of the floor keeps every rule in every showing: ${String(runs)} draws among them a run beside the witnesses`,
     (ctx) =>

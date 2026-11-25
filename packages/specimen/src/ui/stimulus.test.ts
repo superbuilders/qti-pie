@@ -237,7 +237,7 @@ const corpusAddress = (file: string): string =>
  */
 const unscoped = (article: Element): string => article.outerHTML.replaceAll(instance, "");
 
-describe("plate's UI over the corpus's shared stimuli", { timeout: 600_000 }, () => {
+describe("plate's UI over the corpus's shared stimuli", () => {
   it.effect(
     "every item that references a stimulus shows it whole, beside its question or where its body places it, in every showing",
     (ctx) =>

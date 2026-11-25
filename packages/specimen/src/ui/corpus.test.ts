@@ -34,13 +34,6 @@ import type { ResponseClass, Showing } from "#specimen/ui/showing.ts";
 const caseHang = Duration.seconds(10);
 
 /**
- * How long a rule's exhaustion may take: opening the corpus and rendering every case takes about
- * twenty seconds alone, and the bound leaves room for a loaded machine without letting a hung run
- * stall the suite.
- */
-const exhaustionTimeoutMs = 600_000;
-
-/**
  * The corpus as the suite shows it, with plate's client exports, read once per test file.
  */
 const corpus = Effect.runSync(
@@ -296,7 +289,7 @@ const stillBreaks = <A, E, R>(
     ),
   );
 
-describe("plate's UI over the corpus", { timeout: exhaustionTimeoutMs }, () => {
+describe("plate's UI over the corpus", () => {
   for (const name of Rec.keys(rules)) {
     it.effect(`${name}: ${rules[name].says}`, (ctx) =>
       exhaustRule(
