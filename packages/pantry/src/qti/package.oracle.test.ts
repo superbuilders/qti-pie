@@ -19,7 +19,16 @@ import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
 import { createHash } from "node:crypto";
-import { Brand, Duration, Effect, Formatter, Layer, Predicate, Result } from "effect";
+import {
+  Brand,
+  Duration,
+  Effect,
+  Formatter,
+  Layer,
+  Predicate,
+  Record as Rec,
+  Result,
+} from "effect";
 import { readProgram } from "#pantry/import/program.ts";
 import type { PackagePath } from "#pantry/import/read.ts";
 import { packageRecordOf } from "#pantry/import/record.ts";
@@ -180,33 +189,48 @@ const isCandidateUrl = (candidate: string): boolean =>
   !regex("[\t\n\r ]", "u").test(candidate);
 
 /**
- * The patterns as `package.ts` states them, read as the database reads them (ECMAScript under
- * `u`), and three mutants of them, each a plausible slip the box must tell apart: a resolved path
- * without its `..`-prefixed arm, an external pattern without its leading `/`, and a candidate URL
- * pattern that admits a comma at its end.
+ * The three patterns a set judges a path by: a resolved path, an external reference, a candidate
+ * URL.
  */
-const patternSets = {
-  descriptor: {
+interface PathPatterns {
+  readonly candidate: RegExp;
+  readonly external: RegExp;
+  readonly resolved: RegExp;
+}
+
+/**
+ * The patterns as `package.ts` states them, read as the database reads them (ECMAScript under
+ * `u`).
+ */
+const statedPatterns: PathPatterns = {
+  candidate: regex.as(srcsetUrlPattern, "u"),
+  external: regex.as(externalHrefPattern.source, "u"),
+  resolved: regex.as(resolvedPathPattern.source, "u"),
+};
+
+/**
+ * Three mutants of {@link statedPatterns}, each a plausible slip the box must tell apart, by the
+ * situation a case that tells it apart notes: a resolved path without its `..`-prefixed arm, an
+ * external pattern without its leading `/`, and a candidate URL pattern that admits a comma at its
+ * end.
+ */
+const mutantPatterns = {
+  "descriptor killed": {
     candidate: regex("^[^\t\n\r ,][^\t\n\r ]*$", "u"),
     external: regex.as(externalHrefPattern.source, "u"),
     resolved: regex.as(resolvedPathPattern.source, "u"),
   },
-  noDotDotArm: {
+  "no-dot-dot-arm killed": {
     candidate: regex.as(srcsetUrlPattern, "u"),
     external: regex.as(externalHrefPattern.source, "u"),
     resolved: regex("^(?:(?:[^/.][^/]*|\\.[^./][^/]*)(?:/(?:[^/.][^/]*|\\.[^./][^/]*)?)*)?$", "u"),
   },
-  noSlash: {
+  "no-slash killed": {
     candidate: regex.as(srcsetUrlPattern, "u"),
     external: regex("^[A-Za-z][A-Za-z0-9+.-]*:", "u"),
     resolved: regex.as(resolvedPathPattern.source, "u"),
   },
-  stated: {
-    candidate: regex.as(srcsetUrlPattern, "u"),
-    external: regex.as(externalHrefPattern.source, "u"),
-    resolved: regex.as(resolvedPathPattern.source, "u"),
-  },
-} as const;
+} as const satisfies Readonly<Record<string, PathPatterns>>;
 
 /**
  * A situation the path box must reach: each verdict of each pattern, and each mutant told apart.
@@ -227,10 +251,7 @@ type PathSituation =
  * @param patterns - The patterns.
  * @returns The three verdicts.
  */
-const verdictsBy = (
-  candidate: string,
-  patterns: (typeof patternSets)[keyof typeof patternSets],
-): readonly boolean[] => [
+const verdictsBy = (candidate: string, patterns: PathPatterns): readonly boolean[] => [
   patterns.resolved.test(candidate),
   patterns.external.test(candidate),
   patterns.candidate.test(candidate),
@@ -369,21 +390,14 @@ describe("qti/package.ts", () => {
                 c.note("candidate URL");
               }
 
-              assert.deepStrictEqual(
-                verdictsBy(candidate, patternSets.stated),
-                expected,
-                candidate,
+              assert.deepStrictEqual(verdictsBy(candidate, statedPatterns), expected, candidate);
+              c.noteAll(
+                Rec.keys(mutantPatterns).filter((killed) =>
+                  verdictsBy(candidate, mutantPatterns[killed]).some(
+                    (verdict, at) => verdict !== expected[at],
+                  ),
+                ),
               );
-              for (const [mutant, killed] of [
-                ["noDotDotArm", "no-dot-dot-arm killed"],
-                ["noSlash", "no-slash killed"],
-                ["descriptor", "descriptor killed"],
-              ] as const) {
-                const verdicts = verdictsBy(candidate, patternSets[mutant]);
-                if (verdicts.some((verdict, at) => verdict !== expected[at])) {
-                  c.note(killed);
-                }
-              }
             }),
         ),
       ),
@@ -438,9 +452,13 @@ describe("qti/package.ts", () => {
               }
 
               assert.strictEqual(media.size, record.mediaFiles.length);
-              for (const entry of [...record.entries.values(), ...record.media.values()]) {
-                assert.strictEqual(entry.package, recordName, entry.path);
-              }
+              assert.deepStrictEqual(
+                [...record.entries.values(), ...record.media.values()].flatMap((entry) =>
+                  entry.package === recordName ? [] : [entry.path],
+                ),
+                [],
+                "the entries and media rows under another package",
+              );
             }),
         ),
       ),
