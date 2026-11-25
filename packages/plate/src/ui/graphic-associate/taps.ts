@@ -73,7 +73,7 @@ const besideOf = (half: Half): Half => ({ ...half, side: half.side === 0 ? 1 : 0
 export const tapStep = (arrangement: BoxesArrangement, chip: string): Step => {
   const open = openHalf(arrangement);
 
-  if (open !== undefined && open.waiting === chip) {
+  if (open?.waiting === chip) {
     const lifted = pick(arrangement, chip, besideOf(open.half));
 
     return lifted.ok ? place(arrangement, lifted.picked, bank) : lifted;

@@ -309,7 +309,7 @@ const fullOf = (state: State, object: StageObject): boolean =>
  * @returns Whether it is held.
  */
 const holds = (held: HeldCopy | null, name: string, index: number | null): boolean =>
-  held !== null && held.name === name && held.index === index;
+  held?.name === name && held.index === index;
 
 /**
  * Give every placed copy, by its interaction's response's identifier.
@@ -895,7 +895,7 @@ export const positionObject = definePrimitive({
           return;
         }
 
-        if (held !== null && held.name === name && held.index === index && held.at !== null) {
+        if (held?.name === name && held.index === index && held.at !== null) {
           putAt(held.at, { event, reason: "item-press" });
 
           return;
@@ -918,13 +918,13 @@ export const positionObject = definePrimitive({
         const { held } = state;
         const object = objectOf(state, name);
 
-        if (held !== null && held.name === name && held.given && held.at !== null) {
+        if (held?.name === name && held.given && held.at !== null) {
           putAt(held.at, { event, reason: "item-press" });
 
           return;
         }
 
-        if (held !== null && held.name === name && !held.given && held.index !== null) {
+        if (held?.name === name && !held.given && held.index !== null) {
           takeOff(object, held.index, { event, reason: "item-press" });
 
           return;
@@ -1034,11 +1034,11 @@ export const positionObject = definePrimitive({
       attrs: (state, part) => {
         const { held } = state;
         const { name } = part.props;
-        const picked = held !== null && held.name === name && held.given;
+        const picked = held?.name === name && held.given;
 
         return {
           "aria-pressed": String(picked),
-          "data-dragging": flag(picked && held !== null && held.dragging),
+          "data-dragging": flag(picked && held.dragging),
           "data-full": flag(fullOf(state, objectOf(state, name))),
           "data-picked": flag(picked),
           type: "button",
@@ -1079,7 +1079,7 @@ export const positionObject = definePrimitive({
     }),
     root: slot<object, PositionRootState>({
       attrs: (state) => ({
-        "data-dragging": flag(state.held !== null && state.held.dragging),
+        "data-dragging": flag(state.held?.dragging === true),
         "data-picked": flag(state.held !== null),
       }),
       bind: (el, part) => part.api.bindRoot(el),
@@ -1095,7 +1095,7 @@ export const positionObject = definePrimitive({
         const picked = holds(held, part.props.name, part.props.index);
 
         return {
-          "data-dragging": flag(picked && held !== null && held.dragging),
+          "data-dragging": flag(picked && held?.dragging === true),
           "data-picked": flag(picked),
         };
       },

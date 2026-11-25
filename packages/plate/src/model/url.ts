@@ -492,8 +492,7 @@ const packageUrl = ({ below, climbs }: RelativePath): PackageUrl => {
   const plain =
     below !== "" &&
     !URL.canParse(below, opaqueBase) &&
-    reread !== null &&
-    reread.origin === packageOrigin &&
+    reread?.origin === packageOrigin &&
     locationOf(reread) === `${packageRoot}${below}`;
 
   return { kind: "package", path: plain ? below : `./${below}` };

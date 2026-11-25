@@ -124,7 +124,7 @@ const drawnAt = (
   index: number,
   point: ImagePoint,
 ): ImagePoint =>
-  held !== null && held.name === name && held.index === index && held.at !== null ? held.at : point;
+  held?.name === name && held.index === index && held.at !== null ? held.at : point;
 
 /**
  * Tell whether a control with keyboard focus stands for a copy.
@@ -135,7 +135,7 @@ const drawnAt = (
  * @returns Whether it does.
  */
 const focuses = (focused: CopyKey | null, name: string, index: number | null): boolean =>
-  focused !== null && focused.name === name && focused.index === index;
+  focused?.name === name && focused.index === index;
 
 /**
  * Tell whether a placed copy's mark shows keyboard focus: while its control has it, or while its
@@ -199,14 +199,14 @@ const Copies = (props: {
               state={{
                 focusVisible: showsFocus(focused, held, identifier, index),
                 placed: true,
-                selected: held !== null && held.name === identifier && held.index === index,
+                selected: held?.name === identifier && held.index === index,
               }}
             />
           </parts.Token>
         )),
       )}
       {objects.flatMap(({ response: { identifier }, ...object }) =>
-        held !== null && held.name === identifier && held.index === null && held.at !== null
+        held?.name === identifier && held.index === null && held.at !== null
           ? [
               <g
                 key={identifier}

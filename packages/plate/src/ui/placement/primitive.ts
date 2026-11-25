@@ -586,7 +586,7 @@ export const madePairs = (before: Boxes, after: Boxes): readonly (readonly [stri
 const chipState = (state: State, props: ChipProps): PlacementChipState => {
   const { at, value } = props;
   const { held } = state;
-  const picked = held !== null && held.picked.chip === value && samePlace(held.picked.from, at);
+  const picked = held?.picked.chip === value && samePlace(held.picked.from, at);
 
   return {
     copies: at.kind === "bank" && hasCopies(state, value),
@@ -1314,11 +1314,7 @@ export const placement = definePrimitive({
       pressChip: (chip: string, at: Place, event: Event | undefined) => {
         const { held } = store.get();
 
-        if (
-          ignorePress !== undefined &&
-          ignorePress.chip === chip &&
-          samePlace(ignorePress.from, at)
-        ) {
+        if (ignorePress?.chip === chip && samePlace(ignorePress.from, at)) {
           ignorePress = undefined;
 
           return;
@@ -1427,7 +1423,7 @@ export const placement = definePrimitive({
     }),
     root: slot<object, PlacementRootState>({
       attrs: (state) => ({
-        "data-dragging": flag(state.held !== null && state.held.dragging),
+        "data-dragging": flag(state.held?.dragging === true),
         "data-picked": flag(state.held !== null),
       }),
       bind: (el, part) => part.api.bindRoot(el),

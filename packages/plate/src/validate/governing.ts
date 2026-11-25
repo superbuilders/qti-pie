@@ -589,8 +589,7 @@ const strictly = (
 
   const written = element.attributes.find(isInstanceType);
   const urType =
-    written !== undefined &&
-    written.references.length === 0 &&
+    written?.references.length === 0 &&
     Option.exists(
       resolveQName(written.value, element, parents),
       (type) => type.namespace === xsdNamespace && type.local === "anyType",

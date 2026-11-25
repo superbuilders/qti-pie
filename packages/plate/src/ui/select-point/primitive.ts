@@ -647,7 +647,7 @@ export const selectPoint = definePrimitive({
   slots: (slot) => ({
     board: slot<object, SelectPointBoardState>({
       attrs: (state) => ({
-        "data-dragging": flag(state.pressed !== null && state.pressed.moved),
+        "data-dragging": flag(state.pressed?.moved === true),
       }),
       bind: (el, part) => part.api.bindBoard(el),
       on: {
@@ -703,7 +703,7 @@ export const selectPoint = definePrimitive({
     }),
     root: slot({
       attrs: (state) => ({
-        "data-dragging": flag(state.pressed !== null && state.pressed.moved),
+        "data-dragging": flag(state.pressed?.moved === true),
         "data-full": flag(state.picks.kind === "at-most" && state.points.length >= state.picks.n),
       }),
       bind: (el, part) => {
