@@ -16,7 +16,12 @@
  *   own `play` takes nothing here: each player takes the voice itself once it has decided that the
  *   play stands, so a Media's play refused past its limit stops nothing.
  * - **A muted media is no voice.** A media element muted or at volume 0, such as a decorative looping
- *   video, neither takes the voice nor loses it.
+ *   video, neither takes the voice nor loses it; once it is heard while it plays, unmuted or turned
+ *   up, as its native controls let the candidate, it takes the voice as its `volumechange` is heard
+ *   at the document, a player's as any other's, since that change is the candidate's own.
+ * - **The page is its document.** The voice holds the media elements of the players' document tree: a
+ *   host's media outside it, an `Audio()` never placed in the document, or one in a shadow root or
+ *   another frame, is neither paused nor heard.
  *
  * A media element that loses the voice is paused, nothing more: each player hears its own pause,
  * read-aloud's item session resting and a Media keeping the play it counted (spec reading 245).
@@ -71,16 +76,32 @@ const started = (event: Event): void => {
 };
 
 /**
+ * Hear a `volumechange` at the document: a media element of the page that plays and is now heard
+ * takes the voice. A change that leaves it unheard, or that comes while it is paused, takes
+ * nothing.
+ *
+ * @param event The event, as it is captured on the way to its element (it does not bubble).
+ */
+const turnedUp = (event: Event): void => {
+  const { target } = event;
+
+  if (target instanceof HTMLMediaElement && !target.paused) {
+    speak(target);
+  }
+};
+
+/**
  * Join a player's media element to the page's voice while the player is mounted: the page's
- * listener is there from the first player joined to the last one's leaving.
+ * listeners are there from the first player joined to the last one's leaving.
  *
  * @param element The player's media element.
  * @returns The leave, which the player runs as it unmounts: the element is a player's no more, and
- *   the last player's leave takes the page's listener away.
+ *   the last player's leave takes the page's listeners away.
  */
 export const joinVoice = (element: HTMLMediaElement): (() => void) => {
   if (joined.size === 0) {
     element.ownerDocument.addEventListener("play", started, { capture: true });
+    element.ownerDocument.addEventListener("volumechange", turnedUp, { capture: true });
   }
 
   joined.add(element);
@@ -90,6 +111,7 @@ export const joinVoice = (element: HTMLMediaElement): (() => void) => {
 
     if (joined.size === 0) {
       element.ownerDocument.removeEventListener("play", started, { capture: true });
+      element.ownerDocument.removeEventListener("volumechange", turnedUp, { capture: true });
     }
   };
 };

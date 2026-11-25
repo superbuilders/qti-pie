@@ -113,35 +113,32 @@ const ReadAloudItemContext = createContext<ReadAloudItemValue | undefined>(undef
 
 /**
  * Give what hears a control's `play()` rejected: the control's refusal, reported with the cause as
- * the browser gave it, which the machine tells apart (an `AbortError` is no failure), while the
- * control still holds the recording it played. A rejection that settles after the control left,
- * or after it mounted another recording, is none of its own, and is heard of no more.
+ * the browser gave it, which the machine tells apart (an `AbortError` is no failure).
+ *
+ * A rejection is always one of the control's own recording, however late it settles. A rejection
+ * that settles while the control holds its recording is heard at once, in the microtasks of the
+ * media task that settled it, before any later task can unmount the control. The control's unmount
+ * stops its recording first (`stop`, in the island's cleanup). Pausing an element rejects every
+ * `play()` still pending on it with an `AbortError` (HTML's internal pause steps), and a promise
+ * settles once, so any rejection that settles after the unmount, or after a remount under the same
+ * id, is an `AbortError`, which the session reads as no failure.
  *
  * @param control The control played.
- * @param part The recording it played.
- * @param parts The recordings the session's controls hold now, by control.
  * @param hear The session's ear.
  * @returns The rejection's handler.
+ * @see https://html.spec.whatwg.org/multipage/media.html#internal-pause-steps
  */
 const rejectionAt =
-  (
-    control: string,
-    part: ReadAloudPart,
-    parts: ReadonlyMap<string, ReadAloudPart>,
-    hear: (report: Report<string>) => void,
-  ) =>
+  (control: string, hear: (report: Report<string>) => void) =>
   (cause: unknown): void => {
-    if (parts.get(control) === part) {
-      hear({ control, kind: "refused", refusal: { cause, kind: "rejected" } });
-    }
+    hear({ control, kind: "refused", refusal: { cause, kind: "rejected" } });
   };
 
 /**
  * Hold one item's session: the state machine's state, from the session every item opens with, the
  * recordings of the controls mounted, by id, and the listeners each island reads it through. Each
  * report runs one turn of the machine, then its commands in order, then tells every listener; a
- * `play`'s rejection comes back as the control's refusal, while the control still holds the
- * recording it played, which the browser tells apart (an `AbortError` is no failure).
+ * `play`'s rejection comes back as the control's refusal ({@link rejectionAt}).
  *
  * @returns The session's store.
  */
@@ -166,7 +163,7 @@ const sessionOf = (): ReadAloudStore => {
       const part = parts.get(control);
 
       if (part !== undefined && act === "play") {
-        part.play().catch(rejectionAt(control, part, parts, hear));
+        part.play().catch(rejectionAt(control, hear));
       } else if (part !== undefined) {
         part.stop();
       }

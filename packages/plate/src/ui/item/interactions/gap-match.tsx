@@ -101,7 +101,7 @@ export const island = (
       response={node.declared}
       root={rootOf(model, context)}
     >
-      {context.content(node.content, { own, position: "flow", readAloud: context.readAloud })}
+      {context.content(node.content, { own, position: "flow" })}
     </GapMatch>
   );
 };
@@ -191,7 +191,7 @@ export const review = (
             )}
           </div>
         </div>
-        {context.content(node.content, { own, position: "flow", readAloud: context.readAloud })}
+        {context.content(node.content, { own, position: "flow" })}
       </div>
     </div>
   );

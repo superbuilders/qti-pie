@@ -56,7 +56,6 @@ import {
   noSlots,
   noSpoken,
   nodesOf,
-  spokenInCells,
 } from "#plate/ui/item/content.tsx";
 import type { Walk } from "#plate/ui/item/content.tsx";
 import {
@@ -68,6 +67,7 @@ import {
 } from "#plate/ui/item/contents/catalog.tsx";
 import { StimulusMissing, UnrenderedNode } from "#plate/ui/item/errors.ts";
 import { takesFlow } from "#plate/ui/item/html.ts";
+import type { ReadsAloud } from "#plate/ui/item/context.ts";
 import type { Addressing } from "#plate/ui/item/html.ts";
 import type { RenderMode } from "#plate/payload.ts";
 import { PassageTabs } from "#plate/ui/passages/passage-tabs.tsx";
@@ -224,14 +224,53 @@ const noItemPart = (detail: string): never => {
 
 /**
  * What a stimulus is written under beside the stimulus itself: the item's `assets`, the locale,
- * the configured heading level and the mode, which decides whether read-aloud's controls stand.
+ * the configured heading level, the mode, which decides whether read-aloud's controls stand, and
+ * the controls each stimulus's elements hold after their own content, which the item's page
+ * numbers across the passages and the question (`heldControls` in `#plate/ui/item/content.tsx`).
  */
 export interface StimulusSetting {
   readonly assets: Addressing["assets"];
   readonly headingLevel: number;
   readonly locale: Locale;
   readonly mode: RenderMode;
+  /**
+   * Give the controls a stimulus's elements hold after their own content, by their paths.
+   *
+   * @param shown The stimulus.
+   * @returns Its controls.
+   */
+  readonly spoken: (shown: ShownStimulus) => ReadonlyMap<string, ReactNode>;
 }
+
+/**
+ * Give how a stimulus's ids and files are written: under its own document's location, scope of
+ * ids and the item's `assets`, as its original.
+ *
+ * @param shown The stimulus.
+ * @param assets The item's `assets`.
+ * @returns Its addressing.
+ */
+const addressingOf = (shown: ShownStimulus, assets: Addressing["assets"]): Addressing => ({
+  assets,
+  document: shown.redacted.document,
+  instance: shown.instance,
+  writing: "original",
+});
+
+/**
+ * Give a stimulus's read-aloud: its own catalogs', each recording resolved from the stimulus's own
+ * document, while the candidate answers; none in a review or a solution, whose page ships no
+ * island but a Media's replay.
+ *
+ * @param shown The stimulus.
+ * @param setting The item's `assets` and the mode.
+ * @returns Its read-aloud.
+ */
+export const stimulusReadAloud = (
+  shown: ShownStimulus,
+  { assets, mode }: Pick<StimulusSetting, "assets" | "mode">,
+): ReadsAloud =>
+  mode === "answering" ? readAloudOf(shown.catalogs, addressingOf(shown, assets)) : noReadAloud;
 
 /**
  * Write one stimulus: its `plate-stimulus` article, named by its `title` and in its `xml:lang`,
@@ -249,14 +288,8 @@ export const stimulusArticle = (
   key: Key,
 ): ReactNode => {
   const { redacted } = shown;
-  const addressing: Addressing = {
-    assets: setting.assets,
-    document: redacted.document,
-    instance: shown.instance,
-    writing: "original",
-  };
-  const readAloud =
-    setting.mode === "answering" ? readAloudOf(shown.catalogs, addressing) : noReadAloud;
+  const addressing = addressingOf(shown, setting.assets);
+  const readAloud = stimulusReadAloud(shown, setting);
   const outside: Walk = {
     addressing,
     credit: Option.none(),
@@ -288,7 +321,7 @@ export const stimulusArticle = (
         stimulus: () => Option.none(),
         verdict: Option.none(),
       },
-      spoken: spokenInCells(redacted.body, readAloud, setting.locale),
+      spoken: setting.spoken(shown),
     }),
     listing(shown.catalogs, redacted.body, (nodes) => nodesOf(nodes, outside), addressing),
   );

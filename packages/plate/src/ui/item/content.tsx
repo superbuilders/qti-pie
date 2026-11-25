@@ -33,7 +33,7 @@ import type {
   RedactedLevel,
   RedactedNode,
 } from "#plate/model/item.ts";
-import { spokenBefore, spokenInCell, spokenWithin } from "#plate/read-aloud/placement.ts";
+import { heldRun, spokenBefore, spokenInCell, spokenWithin } from "#plate/read-aloud/placement.ts";
 import type { SpokenControl } from "#plate/read-aloud/placement.ts";
 import { feedbackBlockTag } from "#plate/redact/walk.ts";
 import type { Glossary, Glossed } from "#plate/ui/item/contents/catalog.tsx";
@@ -144,11 +144,8 @@ export interface Walk {
   readonly slots: ReadonlyMap<string, Slotted>;
   /**
    * Read-aloud's control each element of the walk holds after its own content, by the element's
-   * path: in the body, each element inside a table cell ({@link spokenInCells}); in a run of an
-   * interaction's own content that stands outside every control of the interaction, whose
-   * interaction hands the walk read-aloud (`ContentOptions.readAloud` in
-   * `#plate/ui/item/context.ts`), as gap match's sentence does, each of its elements
-   * ({@link spokenIn}); none elsewhere.
+   * path, the page's numbering of them ({@link heldControls}): in the body, each element inside a
+   * table cell; in a Gap Match's sentence, each of its elements ({@link heldIn}); none elsewhere.
    */
   readonly spoken: ReadonlyMap<string, ReactNode>;
   readonly standing: Standing;
@@ -327,95 +324,61 @@ export const elementsIn = (
   elementsWithin(nodes, throughDropped, []).map(([element]) => element);
 
 /**
- * Write the controls elements hold after their own content, each element and the control the
- * placement gives it, in document order: each whose catalog keeps a spoken card that gives audio,
- * named `readAloudLabel` by its place among them, so two labels' controls ("least", "greatest")
- * are told apart, and keyed `read-aloud` among the element's children.
- *
- * @param held Each element's path and the control the placement gives it, in document order.
- * @param readAloud The page's read-aloud.
- * @param locale The locale of plate's own text.
- * @returns Each control, by its element's path.
+ * The elements of a document's body that hold their read-aloud control after their own content, in
+ * document order, each by its path with the control the placement gives it.
  */
-const heldControls = (
-  held: readonly (readonly [path: string, spoken: SpokenControl])[],
-  readAloud: ReadsAloud,
-  locale: Locale,
-): ReadonlyMap<string, ReactNode> => {
-  const [, controls] = Arr.mapAccum(
-    held,
-    1,
-    (n, [path, { catalog }]): readonly [number, readonly (readonly [string, ReactNode])[]] =>
-      Option.match(
-        readAloud(
-          catalog,
-          message(locale, "readAloudLabel", { n: numeral(locale, n) }),
-          "read-aloud",
-        ),
-        { onNone: () => [n, []], onSome: (control) => [n + 1, [[path, control]]] },
-      ),
-  );
-
-  return new Map(controls.flat());
-};
+export type Held = readonly (readonly [path: string, spoken: SpokenControl])[];
 
 /**
- * Give the controls the elements of a run of an interaction's own content hold after their own
- * content, where the run stands outside every control of the interaction: each element the
- * placement gives one (`spokenWithin` in `#plate/read-aloud/placement.ts`), by its tag and the
- * tags of the elements it stands inside, at any depth ({@link heldControls}).
+ * Give the elements that hold their controls after their own content in a run of an interaction's
+ * own content that stands outside every control of the interaction: each the placement gives one
+ * (`spokenWithin` in `#plate/read-aloud/placement.ts`), by its tag and the tags of the elements it
+ * stands inside in the run, at any depth.
  *
- * @param nodes The run's body nodes.
- * @param readAloud The page's read-aloud.
- * @param locale The locale of plate's own text.
- * @returns Each control, by its element's path.
+ * @param run The run's nodes.
+ * @returns The elements, in document order.
  */
-export const spokenIn = (
-  nodes: readonly RedactedNode[],
-  readAloud: ReadsAloud,
-  locale: Locale,
-): ReadonlyMap<string, ReactNode> =>
-  heldControls(
-    elementsWithin(nodes, false, []).flatMap(([element, within]) =>
-      Option.toArray(
-        Option.map(spokenWithin(element, within), (spoken) => [element.path, spoken] as const),
-      ),
+const heldInRun = (run: readonly RedactedNode[]): Held =>
+  elementsWithin(run, false, []).flatMap(([element, within]) =>
+    Option.toArray(
+      Option.map(spokenWithin(element, within), (spoken) => [element.path, spoken] as const),
     ),
-    readAloud,
-    locale,
   );
 
 /**
- * Collect every element the body's own walk writes among body nodes, at any depth and in document
- * order, each with the tags of the elements it stands inside, outermost first: below each element
- * the walk writes and in the body content a content module's node holds, never in an
- * interaction's own content, which its interaction's walk writes, nor below an element the walk
+ * Give the elements among body nodes that hold their controls after their own content, at any
+ * depth and in document order: below each element the body's walk writes, and in the body content
+ * a content module's node holds, each inside a table cell the placement gives one (`spokenInCell`
+ * in `#plate/read-aloud/placement.ts`); and in each interaction, the elements of the run of its own
+ * content that stands outside its every control (`heldRun`). Never below an element the body's walk
  * drops.
  *
  * @param nodes The body nodes.
  * @param within The tags of the elements the nodes stand inside.
- * @returns Each element, with the tags of the elements it stands inside.
+ * @returns The elements.
  */
-const bodyElementsWithin = (
-  nodes: readonly RedactedNode[],
-  within: readonly string[],
-): readonly (readonly [element: BodyElement<RedactedLevel>, within: readonly string[]])[] =>
-  nodes.flatMap((node): readonly (readonly [BodyElement<RedactedLevel>, readonly string[]])[] => {
+const heldWithin = (nodes: readonly RedactedNode[], within: readonly string[]): Held =>
+  nodes.flatMap((node): Held => {
     if (isInteraction(node)) {
-      return [];
+      return Option.match(heldRun(node), { onNone: () => [], onSome: heldInRun });
     }
 
     switch (node.kind) {
       case "element": {
         return writtenTag(node.tag)
-          ? [[node, within], ...bodyElementsWithin(node.children, [...within, node.tag])]
+          ? [
+              ...Option.toArray(
+                Option.map(spokenInCell(node, within), (spoken) => [node.path, spoken] as const),
+              ),
+              ...heldWithin(node.children, [...within, node.tag]),
+            ]
           : [];
       }
       case "container": {
-        return bodyElementsWithin(node.children, within);
+        return heldWithin(node.children, within);
       }
       case "content": {
-        return bodyElementsWithin(contentBodyOf(node), within);
+        return heldWithin(contentBodyOf(node), within);
       }
       case "text":
       case "unsupported": {
@@ -428,31 +391,70 @@ const bodyElementsWithin = (
   });
 
 /**
- * Give the controls the elements of an item's body inside a table cell hold after their own
- * content: each element the placement gives one (`spokenInCell` in
- * `#plate/read-aloud/placement.ts`), at any depth below its cell ({@link heldControls}), so a
- * picture graph's category words and a ruler's unit word each hold their play control after their
- * words, in their cell. Such an element takes no control before it ({@link readAloudBefore}).
+ * Give the elements of a document's body, an item's or a stimulus's, that hold their read-aloud
+ * controls after their own content, in document order: each inside a table cell, so a picture
+ * graph's category words and a ruler's unit word each hold their play control after their words, in
+ * their cell; and each of a Gap Match's sentence, as a slot's label holds its play icon ("least
+ * ▷"). Such an element takes no control before it ({@link readAloudBefore}).
  *
- * @param nodes The body's nodes.
- * @param readAloud The page's read-aloud.
- * @param locale The locale of plate's own text.
- * @returns Each control, by its element's path.
+ * @param body The body's nodes.
+ * @returns The elements, by path.
  */
-export const spokenInCells = (
-  nodes: readonly RedactedNode[],
-  readAloud: ReadsAloud,
+export const heldIn = (body: readonly RedactedNode[]): Held => heldWithin(body, []);
+
+/**
+ * One document of an item's page as its held controls are written: the elements of its body that
+ * hold them ({@link heldIn}), and its own read-aloud, which reads its own catalogs.
+ */
+export interface Holding {
+  readonly held: Held;
+  readonly readAloud: ReadsAloud;
+}
+
+/**
+ * Write the controls the elements of an item's page hold after their own content, each document's
+ * by its elements' paths: each element whose catalog keeps a spoken card that gives audio, named
+ * `readAloudLabel` by its place among them all, across the page's documents in the order given and
+ * in document order within each, so no two of the page's labels share a name (WCAG 2.4.6), a
+ * picture graph's labels, a Gap Match's ("least", "greatest") and a passage's among them, and keyed
+ * `read-aloud` among the element's children.
+ *
+ * @template D A document of the page.
+ * @param documents The page's documents, each with its holding, in the order they are named.
+ * @param locale The locale of plate's own text.
+ * @returns Each document's controls, by its elements' paths.
+ */
+export const heldControls = <D,>(
+  documents: readonly (readonly [document: D, holding: Holding])[],
   locale: Locale,
-): ReadonlyMap<string, ReactNode> =>
-  heldControls(
-    bodyElementsWithin(nodes, []).flatMap(([element, within]) =>
-      Option.toArray(
-        Option.map(spokenInCell(element, within), (spoken) => [element.path, spoken] as const),
-      ),
-    ),
-    readAloud,
-    locale,
+): ReadonlyMap<D, ReadonlyMap<string, ReactNode>> => {
+  const [, written] = Arr.mapAccum(
+    documents,
+    1,
+    (
+      from,
+      [document, { held, readAloud }],
+    ): readonly [number, readonly [D, ReadonlyMap<string, ReactNode>]] => {
+      const [next, controls] = Arr.mapAccum(
+        held,
+        from,
+        (n, [path, { catalog }]): readonly [number, readonly (readonly [string, ReactNode])[]] =>
+          Option.match(
+            readAloud(
+              catalog,
+              message(locale, "readAloudLabel", { n: numeral(locale, n) }),
+              "read-aloud",
+            ),
+            { onNone: () => [n, []], onSome: (control) => [n + 1, [[path, control]]] },
+          ),
+      );
+
+      return [next, [document, new Map(controls.flat())]];
+    },
   );
+
+  return new Map(written);
+};
 
 /**
  * Collect every content module's node among body nodes, at any depth and in document order: below
@@ -1003,9 +1005,9 @@ const disclosuresAfter = (
  * None in a walk with no read-aloud, a walk of an interaction's own content among them, whose
  * Choice writes its choices' controls itself, and whose other parts stand where a control would
  * sit inside another control or, in a run outside every control, hold their controls inside them
- * ({@link spokenIn}); none for an element at a phrasing position, whose parent may admit no
- * control after it (a list item's, a paragraph's); and none for an element the walk gives a control
- * to hold after its own content, as one inside a table cell ({@link spokenInCells}).
+ * ({@link heldIn}); none for an element at a phrasing position, whose parent may admit no control
+ * after it (a list item's, a paragraph's); and none for an element the walk gives a control to hold
+ * after its own content, as one inside a table cell ({@link heldIn}).
  *
  * @param element The element.
  * @param walk The walk where it stands.
@@ -1074,7 +1076,7 @@ const termProps = (props: ReturnType<typeof propsOf>, glossed: Glossed) => {
  * interactions it holds ({@link answersAfter}), then the glossary's disclosure of each term it owns
  * ({@link ownedTerms}), and a term names its disclosure. In a run of an interaction's own content
  * outside every control, an element holds its read-aloud control after its own children
- * ({@link spokenIn}). A picture, in any walk, carries the line
+ * ({@link heldIn}). A picture, in any walk, carries the line
  * `data-plate-unloaded`, the catalog's `pictureUnloaded`, which the stylesheet shows under the
  * picture's words where it fails to load.
  *

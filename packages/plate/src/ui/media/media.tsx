@@ -5,7 +5,7 @@
  * `video` as the server rendered it, a large Play control beside it, and the plays the child makes
  * counted into the response, a single `integer` (QTI 3.0 information model 5.92).
  *
- * What counts as a play, and what is refused, is `#plate/ui/media/plays.ts`'s: the island listens
+ * What counts as a play, and what is refused, is `#plate/media/plays.ts`'s: the island listens
  * to the media element and runs its step at each `play`, `playing`, `pause`, `ended` and each
  * `seeking` that brings the position back to the start, so the author's native controls, where the
  * author asked for them, count and refuse exactly as the island's own control does. After each
@@ -85,8 +85,8 @@ import { reached } from "#plate/placement/limit.ts";
 import type { Limit } from "#plate/placement/limit.ts";
 import type { Labels } from "#plate/ui/item/interactions/labels.ts";
 import type { mediaKeys } from "#plate/ui/media/labels.ts";
-import { countIn, rewound, step } from "#plate/ui/media/plays.ts";
-import type { Phase, Plays, Seen } from "#plate/ui/media/plays.ts";
+import { countIn, rewound, step } from "#plate/media/plays.ts";
+import type { Phase, Plays, Seen } from "#plate/media/plays.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import { joinVoice, speak } from "#plate/ui/voice.ts";
 import type { Prompt } from "#plate/ui/prompt.tsx";
@@ -323,9 +323,25 @@ const Player = (props: PlayerProps) => {
   });
 
   /**
+   * Hear a playback begin or resume: step the plays by it, and only where the step lets it stand
+   * take the page's voice, so a play refused past the limit, paused by the step, stops nothing. The
+   * `play` listener and the take-up of a playback already under way both hear a play so.
+   *
+   * @param element The media element.
+   */
+  const begun = useEffectEvent((element: HTMLMediaElement) => {
+    observe("play", element);
+
+    if (!element.paused) {
+      speak(element);
+    }
+  });
+
+  /**
    * Take up a media the island has begun listening to: no loop past the limit; a playback already
-   * under way, which the child began from the native controls before the page hydrated, as begun
-   * at rest, holding the page's voice; and `autostart`, while no play is counted yet.
+   * under way, which the child began from the native controls before the page hydrated, heard as
+   * begun ({@link begun}), so one past the limit is refused before it takes the page's voice; and
+   * `autostart`, while no play is counted yet.
    *
    * @param element The media element.
    */
@@ -335,8 +351,7 @@ const Player = (props: PlayerProps) => {
     }
 
     if (!element.paused) {
-      speak(element);
-      observe("play", element);
+      begun(element);
 
       if (element.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
         observe("playing", element);
@@ -424,16 +439,10 @@ const Player = (props: PlayerProps) => {
     const leave = joinVoice(element);
     let last = element.currentTime;
 
-    // The step refuses a play past the limit by pausing it as it is heard: a play still playing
-    // after the step is one the limit allows, and only it takes the page's voice.
     element.addEventListener(
       "play",
       () => {
-        observe("play", element);
-
-        if (!element.paused) {
-          speak(element);
-        }
+        begun(element);
       },
       { signal },
     );

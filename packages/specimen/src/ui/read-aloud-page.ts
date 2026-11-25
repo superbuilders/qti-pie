@@ -9,10 +9,10 @@
  *   `<Item>` keys its own, holding its controls, each a `<ReadAloud>` with one recording; an item
  *   the host hides is held under a hidden `<Activity>`, as a router keeping a page it left hides
  *   it; a Gap Match, plate's island under its item's `<Responses>`, whose sentence's labels hold
- *   their controls after their words, as `spokenIn` in `#plate/ui/item/content.tsx` places them; a
- *   picture graph whose label row's words hold their controls after them, as `spokenInCells` places
- *   them; and the Media interactions, each a replay island over its own `audio`. A new scene
- *   renders in place of the last, as a host moves from item to item.
+ *   their controls after their words, as `heldIn` in `#plate/ui/item/content.tsx` places them; a
+ *   picture graph whose label row's words hold their controls after them, as `heldIn` places them
+ *   in a table's cells; and the Media interactions, each a replay island over its own `audio`. A
+ *   new scene renders in place of the last, as a host moves from item to item.
  * - **The account.** Every media event of every recording from its entry into the page on, by the
  *   recording's name, its `play` for each play the page started, and every moment two recordings
  *   sounded at once, neither paused nor ended then: a recording sounds from its `playing` to its

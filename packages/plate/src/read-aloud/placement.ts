@@ -7,11 +7,11 @@
  *   put a passage's and a question's control at the top of what it reads and showed a question's
  *   prompt clip however the question carried it ({@link spokenBefore}). The server shell's walk
  *   writes it as the node's previous sibling.
- * - **Within**, in a run of an interaction's own content that stands outside every control of the
- *   interaction, such as gap match's sentence: the control an element of it holds after its own
- *   content ({@link spokenWithin}), as a slot's label holds its play icon ("least ▷"), so the
- *   element keeps its own place in the run's layout, the label's place on a number line. The walk
- *   writes it as the element's last child.
+ * - **Within**, in the run of an interaction's own content that stands outside every control of the
+ *   interaction, a Gap Match's sentence ({@link heldRun}): the control an element of it holds after
+ *   its own content ({@link spokenWithin}), as a slot's label holds its play icon ("least ▷"), so
+ *   the element keeps its own place in the run's layout, the label's place on a number line. The
+ *   walk writes it as the element's last child.
  * - **Within a cell**, in the item's body: the control an element inside a table cell holds after its
  *   own content ({@link spokenInCell}), as a graph's category word or a ruler's unit word holds its
  *   play icon, so the word keeps its place in its cell and its row.
@@ -22,7 +22,7 @@
  * @module
  */
 import { Option } from "effect";
-import type { BodyElement, Interaction, RedactedLevel } from "#plate/model/item.ts";
+import type { BodyElement, Interaction, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
 import { barsControls, holdsPhrasing } from "#plate/ui/item/html.ts";
 
 /**
@@ -90,6 +90,21 @@ export const spokenWithin = (
   within: readonly string[],
 ): Option.Option<SpokenControl> =>
   holdsPhrasing(element.tag) && !within.some(barsControls) ? spokenText(element) : Option.none();
+
+/**
+ * Give the run of an interaction's own content whose elements hold their controls after their own
+ * content ({@link spokenWithin}): a Gap Match's sentence, its gapped content, which stands outside
+ * every control of the Gap Match, the gaps and the bank apart. None for every other kind, whose own
+ * content stands inside its controls (a choice's in its option, a gap text's in its chip) or whose
+ * parts its island speaks itself, beside each choice (spec reading 237).
+ *
+ * @param interaction The interaction.
+ * @returns Its sentence, for a Gap Match; else none.
+ */
+export const heldRun = (
+  interaction: Interaction<RedactedLevel>,
+): Option.Option<readonly RedactedNode[]> =>
+  interaction.kind === "gap-match" ? Option.some(interaction.gapped) : Option.none();
 
 /**
  * Tell whether a tag is a table cell's.

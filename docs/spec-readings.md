@@ -4243,7 +4243,7 @@ C2: the oracle's own reader.)
      of `max-plays` that "it must not be possible for the candidate to play the media object more than max-play times"
      (5.92.3), of `loop` that the media "should play continuously (subject to max-plays)" (5.92.4), and of `autostart`
      that the media "should begin as soon as the candidate starts the attempt" (5.92.1); it never says what one play is.
-     So plate's island (`#plate/ui/media/plays.ts`, `#plate/ui/media/media.tsx`) counts a play when a playback begun at
+     So plate's island (`#plate/media/plays.ts`, `#plate/ui/media/media.tsx`) counts a play when a playback begun at
      rest, before its first playback or once it has ended, first sounds (its first `playing`), wherever the candidate
      moved the position to (upstream #359), a playback paused before it sounded being no play, and when its position
      comes back to the start from past it, a rewind (upstream #452) or a loop's wrap; a paused playback resumed is the
@@ -5222,7 +5222,9 @@ C2: the oracle's own reader.)
      references; after an interaction's prompt; inside an element of a Gap Match's sentence, after its own words, as a
      slot's label holds its play icon; an element that holds its control so may hold phrasing content and stands inside
      no element that bars a control (a link, a label, a media element), and each such control is named by its place
-     among them ("Listen to label 1"); and beside every choice the child picks, moves, orders or fills, each heard from
+     among them all on the item's page, its passages' first, in the order of their refs, as the page writes them before
+     the question, then its own, so no two share a name (WCAG 2.4.6; "Listen to label 1"); and beside every choice the
+     child picks, moves, orders or fills, each heard from
      one place and never inside a control: a Choice's choice in its row, a Hot Text's hottext after it in its line, a
      Match's group and a Graphic Gap Match's hotspot after its name in its target, and beside its chip in the bank an
      Order's, a Gap Match's and a Graphic Gap Match's gap text or gap image, a Match's first set, an Associate's choice,
@@ -5247,7 +5249,10 @@ C2: the oracle's own reader.)
      leave the item at rest. The page has one voice: a press of a control stops whatever recording or media of the page
      sounds and is heard, another item's, a Media interaction's and a host's own, whether it began before any control
      was mounted or not, and a Media's play, or a host's own media, that starts stops a recording read aloud; a Media's
-     play refused past `max-plays` stops nothing, and a muted media is no voice, taking nothing and losing nothing
+     play refused past `max-plays` stops nothing, and a muted media is no voice, taking nothing and losing nothing,
+     until it is heard while it plays, unmuted or turned up, as its native controls let the candidate, when it takes the
+     voice; the page is its document, so a media outside it, in a shadow root or another frame, is neither stopped nor
+     heard
      (reading 245 says what a stop does to a Media's count). A press that cannot play, where every `source` fails,
      `play()` is refused but with an `AbortError` or a `MediaError` but `MEDIA_ERR_ABORTED` arrives, is told so once at
      the control, in an assertive live region, in the words of plate's catalog for the configuration's `locale`. This
@@ -5263,7 +5268,10 @@ C2: the oracle's own reader.)
      day by lane FORM-AUDIO on the reviews: where plate presents a control is stated as it stands since 5e180b7, a Gap
      Match sentence's label, the control before an interaction, and a said word in a table cell, which now holds its
      control after its words, included; the one voice holds what sounded before a control mounted, takes nothing at a
-     refused play and leaves muted media alone; and section 5.1.2.4 is read as it says.)
+     refused play and leaves muted media alone; and section 5.1.2.4 is read as it says. Amended a fourth time the same
+     day by lane FORM-AUDIO on the reviews: a label's control is named by its place among all the page's labels, its
+     passages' and its own, never restarting at a run or a document, and a muted media heard while it plays takes the
+     voice.)
 
 238. **Under `tolerance-mode` absolute or relative, a `qti-equal` compares the exact binary values of its floats, the
      ends of its range computed exactly over them.** The information model gives the range, "In absolute mode the result

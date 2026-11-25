@@ -34,9 +34,9 @@ import {
   missingInNodes,
   noSlots,
   noSpoken,
+  heldControls,
+  heldIn,
   nodesOf,
-  spokenIn,
-  spokenInCells,
 } from "#plate/ui/item/content.tsx";
 import type { InteractionAt, VerdictAt, Walk } from "#plate/ui/item/content.tsx";
 import {
@@ -66,6 +66,7 @@ import {
   shownStimuli,
   stimulusArticle,
   stimulusPane,
+  stimulusReadAloud,
 } from "#plate/ui/item/stimuli.tsx";
 import type { ShownStimulus, StimulusSetting } from "#plate/ui/item/stimuli.tsx";
 import type { Renderers } from "#plate/ui/registry/contract.ts";
@@ -291,6 +292,30 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
     ],
     configuration.headingLevel,
   );
+  const catalogs = itemContent["qti-catalog-info"];
+  // Read-aloud presents a spoken card's recording while the candidate answers alone: a review's and
+  // a solution's page ships no island but a Media's replay.
+  const readAloud = mode === "answering" ? readAloudOf(catalogs, addressing) : noReadAloud;
+  // The controls the page's elements hold after their own content, numbered across the page: each
+  // stimulus's, in the order of its ref, as the page writes the passages before the question, then
+  // the item's own, so no two of the page's labels share a name.
+  const held = heldControls<ShownStimulus | "item">(
+    [
+      ...stimuli.map(
+        (shown) =>
+          [
+            shown,
+            {
+              held: heldIn(shown.redacted.body),
+              readAloud: stimulusReadAloud(shown, { assets: configuration.assets, mode }),
+            },
+          ] as const,
+      ),
+      ["item", { held: heldIn(redacted.body), readAloud }],
+    ],
+    configuration.locale,
+  );
+  const spoken = held.get("item") ?? noSpoken;
   const content = (nodes: readonly RedactedNode[], options: ContentOptions = {}): ReactNode => {
     const position = options.position ?? "phrasing";
     const walk: Walk = {
@@ -300,10 +325,7 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
       locale: configuration.locale,
       scope: options.own === undefined ? { kind: "plain" } : { kind: "owned", own: options.own },
       slots: noSlots,
-      spoken:
-        options.readAloud === undefined
-          ? noSpoken
-          : spokenIn(nodes, options.readAloud, configuration.locale),
+      spoken: options.writing === "copy" ? noSpoken : spoken,
       standing: position === "flow" ? "flow" : "phrasing-only",
     };
 
@@ -320,10 +342,6 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
     textEntryKeypad: configuration.textEntryKeypad,
     values: mapOf(props.values),
   };
-  const catalogs = itemContent["qti-catalog-info"];
-  // Read-aloud presents a spoken card's recording while the candidate answers alone: a review's and
-  // a solution's page ships no island but a Media's replay.
-  const readAloud = mode === "answering" ? readAloudOf(catalogs, addressing) : noReadAloud;
   const contextOf = (paired: PairedInteraction): ReviewContext => ({
     ...shared,
     className: carriedClass(paired.kind, classOf(paired), supports),
@@ -377,6 +395,7 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
     headingLevel: configuration.headingLevel,
     locale: configuration.locale,
     mode,
+    spoken: (shown) => held.get(shown) ?? noSpoken,
   };
   const placements = placementsOf(redacted.body, stimuli);
   const placed = new Set(placements.values());
@@ -426,7 +445,7 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
             ),
           verdict: verdictAt,
         },
-        spoken: spokenInCells(redacted.body, readAloud, configuration.locale),
+        spoken,
       })}
       {afterBody}
       {listing(catalogs, redacted.body, (nodes) => nodesOf(nodes, outside), addressing)}

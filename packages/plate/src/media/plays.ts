@@ -1,7 +1,9 @@
 /**
  * Media's plays (Q-14): what counts as one play of the author's `audio` or `video`, and what the
- * island does at each thing the media element reports, as one pure step that the island runs from
- * its listeners. Safe to import on the server.
+ * island does at each thing the media element reports, as one pure step that the island
+ * (`#plate/ui/media/media.tsx`) runs from its listeners. Pure and apart from the page, so its
+ * rules are checked over every sequence of what a media element reports (`plays.test.ts`). Safe to
+ * import on the server.
  *
  * QTI binds a Media to a single `integer`, the number of times the media object was experienced
  * (information model 5.92), and says of `max-plays` that it must not be possible for the candidate

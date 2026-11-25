@@ -54,6 +54,9 @@
  *   next press; a muted looping media is no voice, never paused and never pausing.
  * - RB23, a picture graph's labels: the control each category word of a graph's table holds after the
  *   word, in its cell, plays only at its own press, one voice with the stem.
+ * - RB24, a muted media heard: a muted media that plays, once unmuted or turned up, takes the voice
+ *   and stops the recording read aloud; a change that leaves it unheard, or comes while it is
+ *   paused, takes nothing.
  *
  * Kills: plate's islands at ywomqvus, the commit before this suite, fail RB8 (two presses in one
  * task restarted the pending recording), RB10 (the control stayed pressed and silent once shown
@@ -68,12 +71,14 @@
  * that tells a refusal no press waits on (RB9), a play that does not go back to the start (RB16), a
  * control not keyed by its recording (RB17), a Media that counts a play as it begins (RB19), a page
  * listener that takes the voice for a player's own play (RB20) or goes at any player's leaving
- * (RB21), and a voice that pauses only players or treats a muted media as one (RB22).
+ * (RB21), a voice that pauses only players or treats a muted media as one (RB22), a Media that
+ * takes the voice for a play before its step hears it (RB20), and a voice that hears no change of
+ * volume, or takes the voice at one that comes while the media is paused (RB24).
  *
  * @module
  */
 import { assert, layer } from "@effect/vitest";
-import { Context, Duration, Effect, Layer } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { readAloudBrowser, recording, settle } from "#specimen/ui/read-aloud-browser.ts";
 import type {
   Account,
@@ -82,12 +87,6 @@ import type {
   ReadAloudBrowserFailure,
 } from "#specimen/ui/read-aloud-browser.ts";
 import type { Scene, SceneItem } from "#specimen/ui/read-aloud-page.ts";
-
-/**
- * How long one rule may run before vitest stops it: a hang guard, never a budget. A rule opens a
- * page twice and waits for each state it drives the page to.
- */
-const ruleHang = 300_000;
 
 /**
  * How long a held-back recording waits on the server before it arrives: the suite's own input,
@@ -249,638 +248,661 @@ const holds = (
     assert.deepStrictEqual(faults, []);
   });
 
-// The rules wait on the wall clock, as a child does between presses and Chrome does for a
-// recording's data: the live clock, never the test clock.
-layer(ChromeLayer, { excludeTestServices: true, timeout: Duration.millis(ruleHang) })(
-  "read-aloud in Chrome",
-  (it) => {
-    it.effect(
-      "RB1: a prompt's press plays it alone, and nothing plays after it ends",
-      () =>
-        holds(
-          sceneOf([
-            item(
-              "i1",
-              ["prompt0", recording("prompt0", 1500)],
-              ["text1", long("text1")],
-              ["choice2", long("choice2")],
-            ),
-          ]),
-          (page) =>
-            Effect.gen(function* alone() {
-              yield* page.press("prompt0");
-              yield* page.saw("prompt0", "ended");
-              yield* settle(1000);
+// The rules wait on the live clock, never the test clock, as a child does between presses and
+// Chrome does for a recording's data; no rule is bounded by it, so a hang is the gate's to see.
+layer(ChromeLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) => {
+  it.effect("RB1: a prompt's press plays it alone, and nothing plays after it ends", () =>
+    holds(
+      sceneOf([
+        item(
+          "i1",
+          ["prompt0", recording("prompt0", 1500)],
+          ["text1", long("text1")],
+          ["choice2", long("choice2")],
+        ),
+      ]),
+      (page) =>
+        Effect.gen(function* alone() {
+          yield* page.press("prompt0");
+          yield* page.saw("prompt0", "ended");
+          yield* settle(1000);
+
+          const account = yield* page.account;
+
+          return [
+            ...(playsIn(account) === "prompt0" ? [] : [`played ${playsIn(account)}`]),
+            ...account.recordings
+              .filter((each) => each.sounding)
+              .map((each) => `${each.label} sounds`),
+          ];
+        }),
+    ),
+  );
+
+  it.effect(
+    "RB2: a press of another control stops the first, and a press of the control playing stops it",
+    () =>
+      holds(sceneOf([item("i1", ["text1", long("text1")], ["choice2", long("choice2")])]), (page) =>
+        Effect.gen(function* oneAtATime() {
+          yield* page.press("text1");
+          yield* page.sounding("text1");
+          yield* page.press("choice2");
+          yield* page.sounding("choice2");
+          yield* page.press("choice2");
+          yield* page.sounding();
+
+          const account = yield* page.account;
+
+          return shownOf(account, "choice2") === `pressed false notice ""`
+            ? []
+            : [`choice2 shows ${shownOf(account, "choice2")}`];
+        }),
+      ),
+  );
+
+  it.effect("RB3: a press in one item stops the recording another item plays", () =>
+    holds(sceneOf([item("i1", ["A1", long("a1")]), item("i2", ["C2", long("c2")])]), (page) =>
+      Effect.gen(function* acrossItems() {
+        yield* page.press("A1");
+        yield* page.sounding("A1");
+        yield* page.press("C2");
+        yield* page.sounding("C2");
+        yield* page.press("A1");
+        yield* page.sounding("A1");
+
+        return [];
+      }),
+    ),
+  );
+
+  it.effect(
+    "RB4: once the host moves to the next item, one naming the same file included, nothing plays",
+    () =>
+      holds(sceneOf([item("i1", ["S", long("same")])]), (page) =>
+        Effect.gen(function* leaving() {
+          yield* page.press("S");
+          yield* page.sounding("S");
+          yield* page.scene(sceneOf([item("i2", ["S", long("same")])]));
+          yield* page.sounding();
+          yield* settle(1000);
+
+          const account = yield* page.account;
+
+          return [
+            ...(playsIn(account) === "S" ? [] : [`played ${playsIn(account)}`]),
+            ...account.recordings
+              .filter((each) => each.sounding)
+              .map((each) => `${each.label} sounds`),
+          ];
+        }),
+      ),
+  );
+
+  it.effect(
+    "RB5: a control unmounted while its recording loads never sounds once its data arrives",
+    () =>
+      holds(sceneOf([item("i1", ["P", slow("p")])]), (page) =>
+        Effect.gen(function* leavingPending() {
+          yield* page.press("P");
+          yield* settle(200);
+          yield* page.scene(sceneOf([]));
+          yield* settle(heldBack + 1500);
+
+          const account = yield* page.account;
+
+          return sounded(account, "P") ? ["P sounded after its control left"] : [];
+        }),
+      ),
+  );
+
+  it.effect(
+    "RB6 and RB7: a press while another's play is pending, in its item or another, leaves the pending recording silent and tells nothing",
+    () =>
+      Effect.gen(function* pendingPress() {
+        for (const scene of [
+          sceneOf([item("i1", ["A", slow("a")], ["B", long("b")])]),
+          sceneOf([item("i1", ["A", slow("a")]), item("i2", ["B", long("b")])]),
+        ]) {
+          yield* holds(scene, (page) =>
+            Effect.gen(function* overtaken() {
+              yield* page.press("A");
+              yield* settle(150);
+              yield* page.press("B");
+              yield* page.sounding("B");
+              yield* settle(heldBack + 1000);
+              yield* page.sounding("B");
 
               const account = yield* page.account;
 
               return [
-                ...(playsIn(account) === "prompt0" ? [] : [`played ${playsIn(account)}`]),
-                ...account.recordings
-                  .filter((each) => each.sounding)
-                  .map((each) => `${each.label} sounds`),
+                ...(sounded(account, "A") ? ["A sounded"] : []),
+                ...(shownOf(account, "A") === `pressed false notice ""`
+                  ? []
+                  : [`A shows ${shownOf(account, "A")}`]),
+                ...(shownOf(account, "B") === `pressed true notice ""`
+                  ? []
+                  : [`B shows ${shownOf(account, "B")}`]),
               ];
             }),
-        ),
-      ruleHang,
-    );
+          );
+        }
+      }),
+  );
 
-    it.effect(
-      "RB2: a press of another control stops the first, and a press of the control playing stops it",
-      () =>
-        holds(
-          sceneOf([item("i1", ["text1", long("text1")], ["choice2", long("choice2")])]),
-          (page) =>
-            Effect.gen(function* oneAtATime() {
-              yield* page.press("text1");
-              yield* page.sounding("text1");
-              yield* page.press("choice2");
-              yield* page.sounding("choice2");
-              yield* page.press("choice2");
-              yield* page.sounding();
-
-              const account = yield* page.account;
-
-              return shownOf(account, "choice2") === `pressed false notice ""`
-                ? []
-                : [`choice2 shows ${shownOf(account, "choice2")}`];
-            }),
-        ),
-      ruleHang,
-    );
-
-    it.effect(
-      "RB3: a press in one item stops the recording another item plays",
-      () =>
-        holds(sceneOf([item("i1", ["A1", long("a1")]), item("i2", ["C2", long("c2")])]), (page) =>
-          Effect.gen(function* acrossItems() {
-            yield* page.press("A1");
-            yield* page.sounding("A1");
-            yield* page.press("C2");
-            yield* page.sounding("C2");
-            yield* page.press("A1");
-            yield* page.sounding("A1");
-
-            return [];
-          }),
-        ),
-      ruleHang,
-    );
-
-    it.effect(
-      "RB4: once the host moves to the next item, one naming the same file included, nothing plays",
-      () =>
-        holds(sceneOf([item("i1", ["S", long("same")])]), (page) =>
-          Effect.gen(function* leaving() {
-            yield* page.press("S");
-            yield* page.sounding("S");
-            yield* page.scene(sceneOf([item("i2", ["S", long("same")])]));
-            yield* page.sounding();
-            yield* settle(1000);
-
-            const account = yield* page.account;
-
-            return [
-              ...(playsIn(account) === "S" ? [] : [`played ${playsIn(account)}`]),
-              ...account.recordings
-                .filter((each) => each.sounding)
-                .map((each) => `${each.label} sounds`),
-            ];
-          }),
-        ),
-      ruleHang,
-    );
-
-    it.effect(
-      "RB5: a control unmounted while its recording loads never sounds once its data arrives",
-      () =>
-        holds(sceneOf([item("i1", ["P", slow("p")])]), (page) =>
-          Effect.gen(function* leavingPending() {
-            yield* page.press("P");
-            yield* settle(200);
-            yield* page.scene(sceneOf([]));
-            yield* settle(heldBack + 1500);
-
-            const account = yield* page.account;
-
-            return sounded(account, "P") ? ["P sounded after its control left"] : [];
-          }),
-        ),
-      ruleHang,
-    );
-
-    it.effect(
-      "RB6 and RB7: a press while another's play is pending, in its item or another, leaves the pending recording silent and tells nothing",
-      () =>
-        Effect.gen(function* pendingPress() {
-          for (const scene of [
-            sceneOf([item("i1", ["A", slow("a")], ["B", long("b")])]),
-            sceneOf([item("i1", ["A", slow("a")]), item("i2", ["B", long("b")])]),
-          ]) {
-            yield* holds(scene, (page) =>
-              Effect.gen(function* overtaken() {
-                yield* page.press("A");
-                yield* settle(150);
-                yield* page.press("B");
-                yield* page.sounding("B");
-                yield* settle(heldBack + 1000);
-                yield* page.sounding("B");
-
-                const account = yield* page.account;
-
-                return [
-                  ...(sounded(account, "A") ? ["A sounded"] : []),
-                  ...(shownOf(account, "A") === `pressed false notice ""`
-                    ? []
-                    : [`A shows ${shownOf(account, "A")}`]),
-                  ...(shownOf(account, "B") === `pressed true notice ""`
-                    ? []
-                    : [`B shows ${shownOf(account, "B")}`]),
-                ];
-              }),
-            );
-          }
-        }),
-      ruleHang,
-    );
-
-    it.effect(
-      "RB8: a second press of a control whose recording is still loading stops it, by the pointer and in the press's own task",
-      () =>
-        Effect.gen(function* secondPress() {
-          for (const twice of [
-            (page: Driven) => Effect.andThen(page.press("A"), page.press("A")),
-            (page: Driven) => page.pressTogether(["A", "A"]),
-          ]) {
-            yield* holds(sceneOf([item("i1", ["A", slow("a")])]), (page) =>
-              Effect.gen(function* stoppedPending() {
-                yield* twice(page);
-                yield* settle(heldBack + 1500);
-
-                const account = yield* page.account;
-
-                return [
-                  ...(sounded(account, "A") ? ["A sounded after its second press"] : []),
-                  ...(shownOf(account, "A") === `pressed false notice ""`
-                    ? []
-                    : [`A shows ${shownOf(account, "A")}`]),
-                ];
-              }),
-            );
-          }
-        }),
-      ruleHang,
-    );
-
-    it.effect(
-      "RB9: a recording that fails after another control was pressed leaves that one playing and tells nothing",
-      () =>
-        holds(
-          sceneOf([
-            item(
-              "i1",
-              ["A", recording("broken", 30_000, { delay: 800, missing: true })],
-              ["B", long("b")],
-            ),
-          ]),
-          (page) =>
-            Effect.gen(function* lateFailure() {
-              yield* page.press("A");
-              yield* settle(100);
-              yield* page.press("B");
-              yield* page.sounding("B");
-              yield* settle(1500);
-              yield* page.sounding("B");
+  it.effect(
+    "RB8: a second press of a control whose recording is still loading stops it, by the pointer and in the press's own task",
+    () =>
+      Effect.gen(function* secondPress() {
+        for (const twice of [
+          (page: Driven) => Effect.andThen(page.press("A"), page.press("A")),
+          (page: Driven) => page.pressTogether(["A", "A"]),
+        ]) {
+          yield* holds(sceneOf([item("i1", ["A", slow("a")])]), (page) =>
+            Effect.gen(function* stoppedPending() {
+              yield* twice(page);
+              yield* settle(heldBack + 1500);
 
               const account = yield* page.account;
 
-              return account.recordings
-                .filter((each) => each.notice !== "")
-                .map((each) => `${each.label} tells ${each.notice}`);
+              return [
+                ...(sounded(account, "A") ? ["A sounded after its second press"] : []),
+                ...(shownOf(account, "A") === `pressed false notice ""`
+                  ? []
+                  : [`A shows ${shownOf(account, "A")}`]),
+              ];
             }),
-        ),
-      ruleHang,
-    );
+          );
+        }
+      }),
+  );
 
-    it.effect(
-      "RB10: a control hidden while it plays falls silent, shows itself unpressed when shown again, and its next press plays it",
-      () =>
-        holds(sceneOf([item("i1", ["A", long("a")])]), (page) =>
-          Effect.gen(function* hidden() {
+  it.effect(
+    "RB9: a recording that fails after another control was pressed leaves that one playing and tells nothing",
+    () =>
+      holds(
+        sceneOf([
+          item(
+            "i1",
+            ["A", recording("broken", 30_000, { delay: 800, missing: true })],
+            ["B", long("b")],
+          ),
+        ]),
+        (page) =>
+          Effect.gen(function* lateFailure() {
             yield* page.press("A");
-            yield* page.sounding("A");
-            yield* page.scene(sceneOf([{ ...item("i1", ["A", long("a")]), hidden: true }]));
-            yield* page.sounding();
-            yield* settle(500);
-            yield* page.scene(sceneOf([item("i1", ["A", long("a")])]));
-            yield* settle(300);
-            yield* page.sounding();
+            yield* settle(100);
+            yield* page.press("B");
+            yield* page.sounding("B");
+            yield* settle(1500);
+            yield* page.sounding("B");
 
-            const shown = shownOf(yield* page.account, "A");
+            const account = yield* page.account;
 
-            yield* page.press("A");
-            yield* page.sounding("A");
-
-            return shown === `pressed false notice ""` ? [] : [`A shows ${shown} once shown again`];
+            return account.recordings
+              .filter((each) => each.notice !== "")
+              .map((each) => `${each.label} tells ${each.notice}`);
           }),
-        ),
-      ruleHang,
-    );
+      ),
+  );
 
-    it.effect(
-      "RB11: rapid presses across items keep one voice, the last press's",
-      () =>
-        holds(
-          sceneOf([item("i1", ["A", long("a")], ["B", long("b")]), item("i2", ["C", long("c")])]),
-          (page) =>
-            Effect.gen(function* rapid() {
-              for (const name of ["A", "B", "C", "A", "B", "C", "B"]) {
-                yield* page.press(name);
-              }
+  it.effect(
+    "RB10: a control hidden while it plays falls silent, shows itself unpressed when shown again, and its next press plays it",
+    () =>
+      holds(sceneOf([item("i1", ["A", long("a")])]), (page) =>
+        Effect.gen(function* hidden() {
+          yield* page.press("A");
+          yield* page.sounding("A");
+          yield* page.scene(sceneOf([{ ...item("i1", ["A", long("a")]), hidden: true }]));
+          yield* page.sounding();
+          yield* settle(500);
+          yield* page.scene(sceneOf([item("i1", ["A", long("a")])]));
+          yield* settle(300);
+          yield* page.sounding();
 
+          const shown = shownOf(yield* page.account, "A");
+
+          yield* page.press("A");
+          yield* page.sounding("A");
+
+          return shown === `pressed false notice ""` ? [] : [`A shows ${shown} once shown again`];
+        }),
+      ),
+  );
+
+  it.effect("RB11: rapid presses across items keep one voice, the last press's", () =>
+    holds(
+      sceneOf([item("i1", ["A", long("a")], ["B", long("b")]), item("i2", ["C", long("c")])]),
+      (page) =>
+        Effect.gen(function* rapid() {
+          for (const name of ["A", "B", "C", "A", "B", "C", "B"]) {
+            yield* page.press(name);
+          }
+
+          yield* page.sounding("B");
+
+          return [];
+        }),
+    ),
+  );
+
+  it.effect(
+    "RB12 and RB14: two presses in one task, across items and in one item, leave the last one sounding",
+    () =>
+      Effect.gen(function* oneTask() {
+        for (const scene of [
+          sceneOf([item("i1", ["A", long("a")]), item("i2", ["B", long("b")])]),
+          sceneOf([item("i1", ["A", long("a")], ["B", long("b")])]),
+        ]) {
+          yield* holds(scene, (page) =>
+            Effect.gen(function* together() {
+              yield* page.pressTogether(["A", "B"]);
+              yield* page.sounding("B");
+              yield* settle(500);
               yield* page.sounding("B");
 
               return [];
             }),
-        ),
-      ruleHang,
-    );
+          );
+        }
+      }),
+  );
 
-    it.effect(
-      "RB12 and RB14: two presses in one task, across items and in one item, leave the last one sounding",
-      () =>
-        Effect.gen(function* oneTask() {
-          for (const scene of [
-            sceneOf([item("i1", ["A", long("a")]), item("i2", ["B", long("b")])]),
-            sceneOf([item("i1", ["A", long("a")], ["B", long("b")])]),
-          ]) {
-            yield* holds(scene, (page) =>
-              Effect.gen(function* together() {
-                yield* page.pressTogether(["A", "B"]);
-                yield* page.sounding("B");
-                yield* settle(500);
-                yield* page.sounding("B");
+  it.effect(
+    "RB13: the old item hidden while the next names the same file is silent, and the next item's control plays alone",
+    () =>
+      holds(sceneOf([item("i1", ["X", long("same")])]), (page) =>
+        Effect.gen(function* hiddenBehind() {
+          yield* page.press("X");
+          yield* page.sounding("X");
+          yield* page.scene(
+            sceneOf([
+              { ...item("i1", ["X", long("same")]), hidden: true },
+              item("i2", ["Y", long("same")]),
+            ]),
+          );
+          yield* page.sounding();
+          yield* page.press("Y");
+          yield* page.sounding("Y");
 
-                return [];
-              }),
-            );
-          }
+          return [];
         }),
-      ruleHang,
-    );
+      ),
+  );
 
-    it.effect(
-      "RB13: the old item hidden while the next names the same file is silent, and the next item's control plays alone",
-      () =>
-        holds(sceneOf([item("i1", ["X", long("same")])]), (page) =>
-          Effect.gen(function* hiddenBehind() {
-            yield* page.press("X");
-            yield* page.sounding("X");
-            yield* page.scene(
-              sceneOf([
-                { ...item("i1", ["X", long("same")]), hidden: true },
-                item("i2", ["Y", long("same")]),
-              ]),
-            );
-            yield* page.sounding();
-            yield* page.press("Y");
-            yield* page.sounding("Y");
+  it.effect(
+    "RB15: a read-aloud press stops a Media and the host's media playing, and a Media's press stops read-aloud",
+    () =>
+      holds(sceneOf([item("i1", ["A", long("a")])], [long("media")]), (page) =>
+        Effect.gen(function* withMedia() {
+          const media = `media ${long("media")}`;
 
-            return [];
-          }),
-        ),
-      ruleHang,
-    );
+          yield* page.press(`Play ${long("media")}`);
+          yield* page.sounding(media);
+          yield* page.press("A");
+          yield* page.sounding("A");
+          yield* page.press(`Play ${long("media")}`);
+          yield* page.sounding(media);
 
-    it.effect(
-      "RB15: a read-aloud press stops a Media and the host's media playing, and a Media's press stops read-aloud",
-      () =>
-        holds(sceneOf([item("i1", ["A", long("a")])], [long("media")]), (page) =>
-          Effect.gen(function* withMedia() {
-            const media = `media ${long("media")}`;
+          const shown = shownOf(yield* page.account, "A");
 
-            yield* page.press(`Play ${long("media")}`);
-            yield* page.sounding(media);
-            yield* page.press("A");
-            yield* page.sounding("A");
-            yield* page.press(`Play ${long("media")}`);
-            yield* page.sounding(media);
+          yield* page.foreign(long("host"));
+          yield* page.sounding("foreign");
+          yield* page.press("A");
+          yield* page.sounding("A");
 
-            const shown = shownOf(yield* page.account, "A");
+          return shown === `pressed false notice ""`
+            ? []
+            : [`A shows ${shown} once the Media plays`];
+        }),
+      ),
+  );
 
-            yield* page.foreign(long("host"));
-            yield* page.sounding("foreign");
-            yield* page.press("A");
-            yield* page.sounding("A");
+  it.effect(
+    "RB16: after the host stops every recording, the control shows itself unpressed and its next press plays it from its start",
+    () =>
+      holds(sceneOf([item("i1", ["A", long("a")], ["B", long("b")])]), (page) =>
+        Effect.gen(function* stopAll() {
+          yield* page.press("A");
+          yield* page.sounding("A");
+          yield* settle(1500);
+          yield* page.inPage(
+            `for (const each of document.querySelectorAll("audio")) each.pause();`,
+          );
+          yield* page.sounding();
 
-            return shown === `pressed false notice ""`
+          const shown = shownOf(yield* page.account, "A");
+
+          yield* page.press("A");
+          yield* page.sounding("A");
+
+          const again = (yield* page.account).recordings.find((each) => each.label === "A");
+
+          return [
+            ...(shown === `pressed false notice ""` ? [] : [`A shows ${shown} once stopped`]),
+            ...(again !== undefined && again.time < 1.5
               ? []
-              : [`A shows ${shown} once the Media plays`];
-          }),
-        ),
-      ruleHang,
-    );
+              : [`A did not start again from its start: ${String(again?.time)}`]),
+          ];
+        }),
+      ),
+  );
 
-    it.effect(
-      "RB16: after the host stops every recording, the control shows itself unpressed and its next press plays it from its start",
-      () =>
-        holds(sceneOf([item("i1", ["A", long("a")], ["B", long("b")])]), (page) =>
-          Effect.gen(function* stopAll() {
-            yield* page.press("A");
-            yield* page.sounding("A");
-            yield* settle(1500);
+  it.effect(
+    "RB17: a host that keeps one instance across items plays nothing of the left item, and the next control's press plays its own file",
+    () =>
+      holds(sceneOf([item("kept", ["A", long("left")])]), (page) =>
+        Effect.gen(function* keptInstance() {
+          yield* page.press("A");
+          yield* page.sounding("A");
+          yield* page.scene(sceneOf([item("kept", ["A", long("next")])]));
+          yield* page.sounding();
+          yield* page.press("A");
+          yield* page.sounding("A");
+
+          const playing = (yield* page.account).recordings.filter((each) => each.sounding);
+
+          return playing.every((each) => each.src.endsWith("/next.wav"))
+            ? []
+            : [`the press played ${playing.map((each) => each.src).join(", ")}`];
+        }),
+      ),
+  );
+
+  it.effect(
+    "RB18: a Gap Match's label control plays its own recording at its own press, one voice with the item's other label and another item's control, and a card's press and placement start and stop nothing",
+    () =>
+      holds(
+        {
+          gapMatch: {
+            instance: "gm",
+            labels: [
+              { label: "least", src: long("least") },
+              { label: "greatest", src: long("greatest") },
+            ],
+          },
+          items: [item("i1", ["stem", long("stem")])],
+          media: [],
+        },
+        (page) =>
+          Effect.gen(function* gapMatchLabel() {
+            yield* page.press("least");
+            yield* page.sounding("least");
+            yield* page.press("greatest");
+            yield* page.sounding("greatest");
+            yield* page.press("stem");
+            yield* page.sounding("stem");
+            yield* page.press("greatest");
+            yield* page.sounding("greatest");
+            yield* page.press("3");
             yield* page.inPage(
-              `for (const each of document.querySelectorAll("audio")) each.pause();`,
+              `document.querySelector("[data-slot=plate-gap] [data-slot=plate-placement-slot]")?.click();`,
             );
-            yield* page.sounding();
+            yield* settle(800);
+            yield* page.sounding("greatest");
 
-            const shown = shownOf(yield* page.account, "A");
-
-            yield* page.press("A");
-            yield* page.sounding("A");
-
-            const again = (yield* page.account).recordings.find((each) => each.label === "A");
+            const placed = yield* page.textOf("[data-slot=plate-gap]");
+            const account = yield* page.account;
 
             return [
-              ...(shown === `pressed false notice ""` ? [] : [`A shows ${shown} once stopped`]),
-              ...(again !== undefined && again.time < 1.5
+              ...(placed.includes("3") ? [] : [`the gap holds "${placed}", not the card 3`]),
+              ...(playsIn(account) === "least greatest stem greatest"
                 ? []
-                : [`A did not start again from its start: ${String(again?.time)}`]),
+                : [`played ${playsIn(account)}`]),
             ];
           }),
-        ),
-      ruleHang,
-    );
+      ),
+  );
 
-    it.effect(
-      "RB17: a host that keeps one instance across items plays nothing of the left item, and the next control's press plays its own file",
-      () =>
-        holds(sceneOf([item("kept", ["A", long("left")])]), (page) =>
-          Effect.gen(function* keptInstance() {
+  it.effect(
+    "RB19: a Media interaction another Media or a read-aloud press stops mid-play keeps its one counted play, and its press resumes that play, spending none, under max-plays 1 and in loop mode alike; one stopped before it sounded counted no play",
+    () =>
+      holds(
+        {
+          counted: [
+            { identifier: "M1", loop: false, maxPlays: 1, src: long("m1") },
+            { identifier: "M2", loop: true, maxPlays: undefined, src: long("m2") },
+            { identifier: "M3", loop: false, maxPlays: 1, src: slow("m3") },
+          ],
+          items: [item("i1", ["A", long("a")])],
+          media: [],
+        },
+        (page) =>
+          Effect.gen(function* interrupted() {
+            const faults: string[] = [];
+            const m1 = `media ${long("m1")}`;
+            const m2 = `media ${long("m2")}`;
+
+            /**
+             * Check the counts the page posts now against those a step expects.
+             *
+             * @param step The step, for the fault.
+             * @param expected Each Media's count, empty for NULL.
+             * @returns The fault, none where the counts are those expected.
+             */
+            const counted = (step: string, expected: Readonly<Record<string, string>>) =>
+              page.posted.pipe(
+                Effect.map((posted) =>
+                  JSON.stringify(posted) === JSON.stringify(expected)
+                    ? []
+                    : [`${step}: posted ${JSON.stringify(posted)}`],
+                ),
+              );
+
+            yield* page.press("Play M1");
+            yield* page.sounding(m1);
+            yield* settle(1000);
+            faults.push(...(yield* counted("M1 plays", { M1: "1", M2: "", M3: "" })));
+            yield* page.press("Play M2");
+            yield* page.sounding(m2);
+            faults.push(...(yield* counted("M2 stops M1 mid-play", { M1: "1", M2: "1", M3: "" })));
+
+            const stopped = (yield* page.account).recordings.find((each) => each.label === m1);
+
+            yield* page.press("Play M1");
+            yield* page.sounding(m1);
+            faults.push(
+              ...(yield* counted("M1 resumed under max-plays 1", { M1: "1", M2: "1", M3: "" })),
+            );
+
+            const resumed = (yield* page.account).recordings.find((each) => each.label === m1);
+
             yield* page.press("A");
             yield* page.sounding("A");
-            yield* page.scene(sceneOf([item("kept", ["A", long("next")])]));
+            faults.push(
+              ...(yield* counted("a read-aloud press stops M1", { M1: "1", M2: "1", M3: "" })),
+            );
+            yield* page.press("Play M2");
+            yield* page.sounding(m2);
+            faults.push(
+              ...(yield* counted("M2 resumed in loop mode", { M1: "1", M2: "1", M3: "" })),
+            );
+            // M3 is pressed while its recording still loads, and a read-aloud press pauses it
+            // before it sounds: no play, so under max-plays 1 its next press plays and counts.
+            yield* page.press("Play M3");
+            yield* page.press("A");
+            yield* page.sounding("A");
+            yield* settle(heldBack + 1000);
+            faults.push(
+              ...(yield* counted("M3 paused before it sounded", { M1: "1", M2: "1", M3: "" })),
+            );
+            yield* page.press("Play M3");
+            yield* page.sounding(`media ${slow("m3")}`);
+            faults.push(...(yield* counted("M3 plays and counts", { M1: "1", M2: "1", M3: "1" })));
+
+            return [
+              ...faults,
+              ...(stopped !== undefined && stopped.paused && !stopped.ended && stopped.time > 0
+                ? []
+                : [`M1 was not paused mid-play by M2: ${JSON.stringify(stopped)}`]),
+              ...(resumed !== undefined && stopped !== undefined && resumed.time >= stopped.time
+                ? []
+                : [`M1 did not resume where it stopped: ${JSON.stringify([stopped, resumed])}`]),
+            ];
+          }),
+      ),
+  );
+
+  it.effect(
+    "RB20: a Media's play refused past max-plays takes no voice: the recording read aloud plays on",
+    () =>
+      holds(
+        {
+          counted: [
+            { identifier: "M1", loop: false, maxPlays: 1, src: recording("m1-short", 1500) },
+          ],
+          items: [item("i1", ["A", long("a")])],
+          media: [],
+        },
+        (page) =>
+          Effect.gen(function* refusedPlay() {
+            yield* page.press("Play M1");
+            yield* page.saw(`media ${recording("m1-short", 1500)}`, "ended");
+            yield* page.press("A");
+            yield* page.sounding("A");
+            // As the native controls play it: the element's own play(), which the island refuses.
+            yield* page.inPage(
+              `document.querySelector("[data-slot=plate-media-player] audio")?.play().catch(() => undefined);`,
+            );
+            yield* settle(800);
+
+            const { recordings } = yield* page.account;
+            const read = recordings.find((each) => each.label === "A");
+            const posted = yield* page.posted;
+
+            return [
+              ...(read?.sounding === true
+                ? []
+                : [`the refusal stopped A: ${JSON.stringify(read)}`]),
+              ...(posted["M1"] === "1" ? [] : [`M1 posted ${JSON.stringify(posted)}`]),
+            ];
+          }),
+      ),
+  );
+
+  it.effect(
+    "RB21: after one of two players unmounts, a host's media that starts still stops the other's recording",
+    () =>
+      holds(sceneOf([item("i1", ["A", long("a")]), item("i2", ["B", long("b")])]), (page) =>
+        Effect.gen(function* oneLeft() {
+          yield* page.scene(sceneOf([item("i1", ["A", long("a")])]));
+          yield* page.press("A");
+          yield* page.sounding("A");
+          yield* page.foreign(long("host"));
+          yield* page.sounding("foreign");
+
+          return [];
+        }),
+      ),
+  );
+
+  it.effect(
+    "RB22: a host's media already playing before any player mounted is stopped by the next press, and a muted looping media neither takes the voice nor loses it",
+    () =>
+      holds(sceneOf([]), (page) =>
+        Effect.gen(function* alreadyPlaying() {
+          yield* page.foreign(long("host"));
+          yield* page.foreign(long("deco"), true);
+          yield* page.sounding("foreign");
+          yield* page.scene(sceneOf([item("i1", ["A", long("a")])]));
+          yield* page.press("A");
+          yield* page.sounding("A");
+          yield* settle(500);
+
+          const muted = (yield* page.account).recordings.find((each) => each.label === "muted");
+
+          return muted !== undefined && !muted.paused
+            ? []
+            : [`the muted media was paused: ${JSON.stringify(muted)}`];
+        }),
+      ),
+  );
+
+  it.effect(
+    "RB23: a picture graph's two category labels, each holding its control after its word in its cell, each play only at their own press, one voice with the stem",
+    () =>
+      holds(
+        {
+          graph: {
+            instance: "graph",
+            labels: [
+              { label: "Listen to label 1", src: long("apples") },
+              { label: "Listen to label 2", src: long("pears") },
+            ],
+            stem: { label: "Listen to the question", src: long("stem") },
+          },
+          items: [],
+          media: [],
+        },
+        (page) =>
+          Effect.gen(function* graphLabels() {
+            yield* page.press("Listen to the question");
+            yield* page.sounding("Listen to the question");
+            yield* page.press("Listen to label 1");
+            yield* page.sounding("Listen to label 1");
+            yield* page.press("Listen to label 2");
+            yield* page.sounding("Listen to label 2");
+            yield* page.press("Listen to label 2");
             yield* page.sounding();
-            yield* page.press("A");
-            yield* page.sounding("A");
+            yield* settle(800);
 
-            const playing = (yield* page.account).recordings.filter((each) => each.sounding);
+            const account = yield* page.account;
+            const expected = "Listen to the question Listen to label 1 Listen to label 2";
 
-            return playing.every((each) => each.src.endsWith("/next.wav"))
-              ? []
-              : [`the press played ${playing.map((each) => each.src).join(", ")}`];
+            return playsIn(account) === expected ? [] : [`played ${playsIn(account)}`];
           }),
-        ),
-      ruleHang,
-    );
+      ),
+  );
 
-    it.effect(
-      "RB18: a Gap Match's label control plays its own recording at its own press, one voice with the item's other label and another item's control, and a card's press and placement start and stop nothing",
-      () =>
-        holds(
-          {
-            gapMatch: {
-              instance: "gm",
-              labels: [
-                { label: "least", src: long("least") },
-                { label: "greatest", src: long("greatest") },
-              ],
-            },
-            items: [item("i1", ["stem", long("stem")])],
-            media: [],
-          },
-          (page) =>
-            Effect.gen(function* gapMatchLabel() {
-              yield* page.press("least");
-              yield* page.sounding("least");
-              yield* page.press("greatest");
-              yield* page.sounding("greatest");
-              yield* page.press("stem");
-              yield* page.sounding("stem");
-              yield* page.press("greatest");
-              yield* page.sounding("greatest");
-              yield* page.press("3");
-              yield* page.inPage(
-                `document.querySelector("[data-slot=plate-gap] [data-slot=plate-placement-slot]")?.click();`,
-              );
-              yield* settle(800);
-              yield* page.sounding("greatest");
+  it.effect(
+    "RB24: a muted media that plays takes the voice once it is heard, unmuted or turned up, and stops the recording read aloud; a change that leaves it unheard, or comes while it is paused, takes nothing",
+    () =>
+      holds(sceneOf([item("i1", ["A", long("a")])]), (page) =>
+        Effect.gen(function* turnedUp() {
+          const faults: string[] = [];
+          // Change the muted media's sound, as its native controls do, and wait until the page
+          // has heard the change.
+          const change = (script: string) =>
+            page.inPage(
+              `new Promise((resolve) => { const deco = document.querySelector('audio[data-label="muted"]'); deco.addEventListener("volumechange", () => { setTimeout(resolve, 0); }, { once: true }); ${script} })`,
+            );
+          const holdsPaused = (step: string, label: string, paused: boolean) =>
+            page.account.pipe(
+              Effect.map(({ recordings }) => {
+                const found = recordings.find((each) => each.label === label)?.paused;
 
-              const placed = yield* page.textOf("[data-slot=plate-gap]");
-              const account = yield* page.account;
+                return found === paused ? [] : [`${step}: ${label} paused ${String(found)}`];
+              }),
+            );
 
-              return [
-                ...(placed.includes("3") ? [] : [`the gap holds "${placed}", not the card 3`]),
-                ...(playsIn(account) === "least greatest stem greatest"
-                  ? []
-                  : [`played ${playsIn(account)}`]),
-              ];
-            }),
-        ),
-      ruleHang,
-    );
+          yield* page.press("A");
+          yield* page.sounding("A");
+          yield* page.foreign(long("deco"), true);
+          yield* change("deco.volume = 0;");
+          yield* change("deco.muted = false;");
+          faults.push(...(yield* holdsPaused("unmuted at volume 0", "A", false)));
+          yield* change("deco.volume = 1;");
+          faults.push(
+            ...(yield* holdsPaused("turned up", "A", true)),
+            ...(yield* holdsPaused("turned up", "muted", false)),
+          );
 
-    it.effect(
-      "RB19: a Media interaction another Media or a read-aloud press stops mid-play keeps its one counted play, and its press resumes that play, spending none, under max-plays 1 and in loop mode alike; one stopped before it sounded counted no play",
-      () =>
-        holds(
-          {
-            counted: [
-              { identifier: "M1", loop: false, maxPlays: 1, src: long("m1") },
-              { identifier: "M2", loop: true, maxPlays: undefined, src: long("m2") },
-              { identifier: "M3", loop: false, maxPlays: 1, src: slow("m3") },
-            ],
-            items: [item("i1", ["A", long("a")])],
-            media: [],
-          },
-          (page) =>
-            Effect.gen(function* interrupted() {
-              const faults: string[] = [];
-              const m1 = `media ${long("m1")}`;
-              const m2 = `media ${long("m2")}`;
+          // A press of A still playing would stop it: the rule ends at its first fault.
+          if (faults.length > 0) {
+            return faults;
+          }
 
-              /**
-               * Check the counts the page posts now against those a step expects.
-               *
-               * @param step The step, for the fault.
-               * @param expected Each Media's count, empty for NULL.
-               * @returns The fault, none where the counts are those expected.
-               */
-              const counted = (step: string, expected: Readonly<Record<string, string>>) =>
-                page.posted.pipe(
-                  Effect.map((posted) =>
-                    JSON.stringify(posted) === JSON.stringify(expected)
-                      ? []
-                      : [`${step}: posted ${JSON.stringify(posted)}`],
-                  ),
-                );
+          yield* page.press("A");
+          yield* page.sounding("A");
+          yield* change("deco.volume = 0.5;");
+          faults.push(...(yield* holdsPaused("turned while paused", "A", false)));
+          yield* change("deco.muted = true;");
+          yield* page.inPage(`document.querySelector('audio[data-label="muted"]').play()`);
+          faults.push(...(yield* holdsPaused("played muted", "A", false)));
+          yield* change("deco.muted = false;");
+          faults.push(...(yield* holdsPaused("unmuted", "A", true)));
 
-              yield* page.press("Play M1");
-              yield* page.sounding(m1);
-              yield* settle(1000);
-              faults.push(...(yield* counted("M1 plays", { M1: "1", M2: "", M3: "" })));
-              yield* page.press("Play M2");
-              yield* page.sounding(m2);
-              faults.push(
-                ...(yield* counted("M2 stops M1 mid-play", { M1: "1", M2: "1", M3: "" })),
-              );
-
-              const stopped = (yield* page.account).recordings.find((each) => each.label === m1);
-
-              yield* page.press("Play M1");
-              yield* page.sounding(m1);
-              faults.push(
-                ...(yield* counted("M1 resumed under max-plays 1", { M1: "1", M2: "1", M3: "" })),
-              );
-
-              const resumed = (yield* page.account).recordings.find((each) => each.label === m1);
-
-              yield* page.press("A");
-              yield* page.sounding("A");
-              faults.push(
-                ...(yield* counted("a read-aloud press stops M1", { M1: "1", M2: "1", M3: "" })),
-              );
-              yield* page.press("Play M2");
-              yield* page.sounding(m2);
-              faults.push(
-                ...(yield* counted("M2 resumed in loop mode", { M1: "1", M2: "1", M3: "" })),
-              );
-              // M3 is pressed while its recording still loads, and a read-aloud press pauses it
-              // before it sounds: no play, so under max-plays 1 its next press plays and counts.
-              yield* page.press("Play M3");
-              yield* page.press("A");
-              yield* page.sounding("A");
-              yield* settle(heldBack + 1000);
-              faults.push(
-                ...(yield* counted("M3 paused before it sounded", { M1: "1", M2: "1", M3: "" })),
-              );
-              yield* page.press("Play M3");
-              yield* page.sounding(`media ${slow("m3")}`);
-              faults.push(
-                ...(yield* counted("M3 plays and counts", { M1: "1", M2: "1", M3: "1" })),
-              );
-
-              return [
-                ...faults,
-                ...(stopped !== undefined && stopped.paused && !stopped.ended && stopped.time > 0
-                  ? []
-                  : [`M1 was not paused mid-play by M2: ${JSON.stringify(stopped)}`]),
-                ...(resumed !== undefined && stopped !== undefined && resumed.time >= stopped.time
-                  ? []
-                  : [`M1 did not resume where it stopped: ${JSON.stringify([stopped, resumed])}`]),
-              ];
-            }),
-        ),
-      ruleHang,
-    );
-
-    it.effect(
-      "RB20: a Media's play refused past max-plays takes no voice: the recording read aloud plays on",
-      () =>
-        holds(
-          {
-            counted: [
-              { identifier: "M1", loop: false, maxPlays: 1, src: recording("m1-short", 1500) },
-            ],
-            items: [item("i1", ["A", long("a")])],
-            media: [],
-          },
-          (page) =>
-            Effect.gen(function* refusedPlay() {
-              yield* page.press("Play M1");
-              yield* page.saw(`media ${recording("m1-short", 1500)}`, "ended");
-              yield* page.press("A");
-              yield* page.sounding("A");
-              // As the native controls play it: the element's own play(), which the island refuses.
-              yield* page.inPage(
-                `document.querySelector("[data-slot=plate-media-player] audio")?.play().catch(() => undefined);`,
-              );
-              yield* settle(800);
-              yield* page.sounding("A");
-
-              const posted = yield* page.posted;
-
-              return posted["M1"] === "1" ? [] : [`M1 posted ${JSON.stringify(posted)}`];
-            }),
-        ),
-      ruleHang,
-    );
-
-    it.effect(
-      "RB21: after one of two players unmounts, a host's media that starts still stops the other's recording",
-      () =>
-        holds(sceneOf([item("i1", ["A", long("a")]), item("i2", ["B", long("b")])]), (page) =>
-          Effect.gen(function* oneLeft() {
-            yield* page.scene(sceneOf([item("i1", ["A", long("a")])]));
-            yield* page.press("A");
-            yield* page.sounding("A");
-            yield* page.foreign(long("host"));
-            yield* page.sounding("foreign");
-
-            return [];
-          }),
-        ),
-      ruleHang,
-    );
-
-    it.effect(
-      "RB22: a host's media already playing before any player mounted is stopped by the next press, and a muted looping media neither takes the voice nor loses it",
-      () =>
-        holds(sceneOf([]), (page) =>
-          Effect.gen(function* alreadyPlaying() {
-            yield* page.foreign(long("host"));
-            yield* page.foreign(long("deco"), true);
-            yield* page.sounding("foreign");
-            yield* page.scene(sceneOf([item("i1", ["A", long("a")])]));
-            yield* page.press("A");
-            yield* page.sounding("A");
-            yield* settle(500);
-
-            const muted = (yield* page.account).recordings.find((each) => each.label === "muted");
-
-            return muted !== undefined && !muted.paused
-              ? []
-              : [`the muted media was paused: ${JSON.stringify(muted)}`];
-          }),
-        ),
-      ruleHang,
-    );
-
-    it.effect(
-      "RB23: a picture graph's two category labels, each holding its control after its word in its cell, each play only at their own press, one voice with the stem",
-      () =>
-        holds(
-          {
-            graph: {
-              instance: "graph",
-              labels: [
-                { label: "Listen to label 1", src: long("apples") },
-                { label: "Listen to label 2", src: long("pears") },
-              ],
-              stem: { label: "Listen to the question", src: long("stem") },
-            },
-            items: [],
-            media: [],
-          },
-          (page) =>
-            Effect.gen(function* graphLabels() {
-              yield* page.press("Listen to the question");
-              yield* page.sounding("Listen to the question");
-              yield* page.press("Listen to label 1");
-              yield* page.sounding("Listen to label 1");
-              yield* page.press("Listen to label 2");
-              yield* page.sounding("Listen to label 2");
-              yield* page.press("Listen to label 2");
-              yield* page.sounding();
-              yield* settle(800);
-
-              const account = yield* page.account;
-              const expected = "Listen to the question Listen to label 1 Listen to label 2";
-
-              return playsIn(account) === expected ? [] : [`played ${playsIn(account)}`];
-            }),
-        ),
-      ruleHang,
-    );
-  },
-);
+          return faults;
+        }),
+      ),
+  );
+});

@@ -447,10 +447,11 @@ export interface Driven {
 }
 
 /**
- * How long a rule waits for the page to come to a state it must reach: a hang guard, never a
- * budget, on a machine that runs many suites at once.
+ * The wait Playwright gives a page to come to a state a rule drives it to: none, `0`, Playwright's
+ * own spelling of no bound, so a page that never comes to it is the gate's to see hung, never a
+ * verdict on how long a loaded machine took.
  */
-const reachWithin = 30_000;
+const unbounded = 0;
 
 /**
  * Wait in the page until exactly the recordings named sound.
@@ -503,7 +504,7 @@ const pageOn = (
     yield* attempt("waited for the page's script", () =>
       page.waitForFunction(() => "readAloudPage" in window, undefined, {
         polling: 50,
-        timeout: reachWithin,
+        timeout: unbounded,
       }),
     );
     yield* attempt("mounted the scene", () =>
@@ -516,7 +517,7 @@ const pageOn = (
     );
     // The page renders its scene into a `main`, an empty scene's too.
     yield* attempt("waited for the scene", () =>
-      page.waitForSelector("main", { state: "attached", timeout: reachWithin }),
+      page.waitForSelector("main", { state: "attached", timeout: unbounded }),
     );
 
     return {
@@ -541,7 +542,7 @@ const pageOn = (
       ),
       press: (name) =>
         attempt(`pressed ${name}`, () =>
-          page.getByRole("button", { exact: true, name }).click({ timeout: reachWithin }),
+          page.getByRole("button", { exact: true, name }).click({ timeout: unbounded }),
         ),
       pressTogether: (names) =>
         attempt(`pressed ${names.join(" and ")} in one task`, () =>
@@ -557,7 +558,7 @@ const pageOn = (
                 .seen()
                 .some((each) => each.label === name && each.event === kind),
             [label, event] as const,
-            { polling: 50, timeout: reachWithin },
+            { polling: 50, timeout: unbounded },
           ),
         ).pipe(Effect.asVoid),
       scene: (next) =>
@@ -572,7 +573,7 @@ const pageOn = (
           () =>
             page.waitForFunction(soundsExactly, names.toSorted(), {
               polling: 50,
-              timeout: reachWithin,
+              timeout: unbounded,
             }),
         ).pipe(Effect.asVoid),
       textOf: (selector) =>

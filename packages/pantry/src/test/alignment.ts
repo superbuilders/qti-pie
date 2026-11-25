@@ -1271,7 +1271,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     188,
     {
       owner:
-        "plate counts a media interaction's plays in its island (`#plate/ui/media/plays.ts`, `#plate/ui/media/media.tsx`) and starts an `autostart` media there once it listens; pantry stores `autostart`, `loop`, `min-plays` and `max-plays` as written and counts no play",
+        "plate counts a media interaction's plays in its island (`#plate/media/plays.ts`, `#plate/ui/media/media.tsx`) and starts an `autostart` media there once it listens; pantry stores `autostart`, `loop`, `min-plays` and `max-plays` as written and counts no play",
       status: "G",
     },
   ],
@@ -1694,7 +1694,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     245,
     {
       owner:
-        "plate's Media island, which counts a play at its first sound and keeps it through a pause by the page's one voice (`#plate/ui/media/plays.ts`, `#plate/ui/voice.ts`), held in Chrome by specimen's RB19 and RB20; pantry stores `autostart`, `loop`, `min-plays` and `max-plays` as written and counts no play",
+        "plate's Media island, which counts a play at its first sound and keeps it through a pause by the page's one voice (`#plate/media/plays.ts`, `#plate/ui/voice.ts`), held in Chrome by specimen's RB19 and RB20; pantry stores `autostart`, `loop`, `min-plays` and `max-plays` as written and counts no play",
       status: "G",
     },
   ],

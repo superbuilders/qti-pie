@@ -14,12 +14,15 @@
  * admitted by the same run at qti-pie 525c9c179ba8b4ac2909958a1d2ebe52cd834800's laws: 2 judged, 2
  * admitted; the five Text Entry documents of specimen's renderer suites
  * (`#specimen/ui/text-entry-items.ts`), collected alone, at qti-pie
- * 85f6e12e27e6a4e8011af4063c873b0f72198f2d's laws: 5 judged, 5 admitted; and the catalog item of
+ * 85f6e12e27e6a4e8011af4063c873b0f72198f2d's laws: 5 judged, 5 admitted; the catalog item of
  * plate's `#plate/test/catalog-shown.ts`, which its property and specimen's catalog suite open,
  * collected alone, at qti-pie 21197ac0b8f148100bd6132e2e2c29f5301080cc's laws: 1 judged, 1
- * admitted. Do not edit it: run the admission again when a document a suite opens changes, and
- * when a law lands that moves a verdict (follow-up 5's template needs, the normative half of G1,
- * refuse 1EdTech's slider-1, which this set admits).
+ * admitted; and the synthetic item and passage of specimen's read-aloud names suite
+ * (`#specimen/ui/read-aloud-names.test.ts`), collected alone, at qti-pie
+ * 45f237da79a0e68eb71f316aea5a7399a848d9c0's laws: 2 judged, 2 admitted. Do not edit it: run the
+ * admission again when a document a suite opens changes, and when a law lands that moves a verdict
+ * (follow-up 5's template needs, the normative half of G1, refuse 1EdTech's slider-1, which this
+ * set admits).
  *
  * @module
  */
@@ -926,6 +929,16 @@ export const admittedDocuments: ReadonlyMap<
   ["9abfe12fb42296769792a03649963ca3322f17b57cf41a4257cbfe2c807e6228", []],
   ["9ac759c3206a9834773033435ac4881d1e70e0627eb13299c5836b07c3005ef1", []],
   ["9ad459af0ffa84d9ce3232c7db450794a828f85cd06d70d0239784ef0e937769", []],
+  [
+    "9b6531e105ae201ec367d612e233706ef20224243133f6edc36de0f40370970c",
+    [
+      [28, "", "data-reading-type"],
+      [32, "", "data-reading-type"],
+      [36, "", "data-reading-type"],
+      [40, "", "data-reading-type"],
+      [44, "", "data-reading-type"],
+    ],
+  ],
   ["9b9bbda9bc5d75c84e51e832bcd43f3d42dbe225c43c41a5b5e3ce8162eff170", []],
   ["9c02aa3d255e9ca975d687d2e37adc9c13fd73cc28c2e3fbeeb430670476f8b9", []],
   ["9c236fde2e6042fe7862be6ed83459fdd9ea52bed61d4f06c6f82e6e8438f792", []],
@@ -994,6 +1007,10 @@ export const admittedDocuments: ReadonlyMap<
   ["a7945f1537e671447fbdbf3ef538d0b39c4ffa2206f4b15ec07124ac9f472ce5", []],
   ["a7b6af359944eef106956814cf12f5edf796b21ae72b92ef65e5755eda75a9fe", []],
   ["a7bd0140d53c2cca25eaf5eedc307973ec08e922660b3e70410296817f31a553", []],
+  [
+    "a7c42e8d7ad835dc865171273697bc98284f037641e5ce718bbac9eaf1d4bf3f",
+    [[13, "", "data-reading-type"]],
+  ],
   ["a7df3fe2995d784e3f0c13f6298ca7d2b3d5b8513dc578e57974436d9270dae0", []],
   ["a7ed514179834e7c7b1e879ae75558fa9bb52635ea40dfa565a384744ad89415", []],
   ["a8012471e08944324f831f213264c04815075437d10259386e3481613b51ed4e", []],

@@ -25,8 +25,8 @@
  * - **below:** an element that stands, at any depth, inside an element that bars every control below
  *   it (a link, a label, a summary, a media element, an object, details, a template, ruby or a
  *   picture) holds none, though it may hold phrasing content itself: a `span` in a `label` too, and
- *   a `span` in an `em` in an `a`, given the tags it stands inside as the walk of a run
- *   (`spokenIn`) hands them over.
+ *   a `span` in an `em` in an `a`, given the tags it stands inside as the walk of a run (`heldIn`
+ *   in `#plate/ui/item/content.tsx`) hands them over.
  *
  * Kills: a placement that holds no control, as plate did before (a label with no play icon), one
  * that puts a control inside a void element or a list, one that puts it inside a link, a label or a
