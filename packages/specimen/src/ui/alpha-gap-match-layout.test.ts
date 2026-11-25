@@ -1,0 +1,774 @@
+/**
+ * Plate's UI suite over Alpha's two Gap Match layouts, measured in headless Google Chrome: plate's
+ * look-alikes of the number line form (`alpha-open-number-line`) and the comparison form
+ * (`qti-choices-bottom alpha-symbol-compare`), server-rendered while the child answers, with cards
+ * placed, and in review, laid out under plate's base sheet, Alpha's base sheet
+ * (`@qti-pie/plate/alpha/styles/base.css`), then a theme, as metis imports them: Alpha's sheet
+ * comes before the theme in the page, so only its layer, never the order of the sheets, can make it
+ * win. Two themes: plate's own, as a host that keeps plate's look imports it, and a theme that
+ * fights each layout as a host's theme may (metis's puts every Gap Match's bank under its sentence
+ * and draws a slot 160 px wide), its selectors heavier than any of Alpha's sheet. Three widths of
+ * the item: 1000 px, 384 px (a 768 px tablet at 200% zoom) and 320 px (a phone).
+ *
+ * Each rule is read from the two forms, never from plate's code:
+ *
+ * - NL1, the cards above the line: the bank's bottom is above the line's top.
+ * - NL2, one row of marked positions: every gap stands on one baseline over the line, the line drawn
+ *   across it (an arrow, `::before`) and a tick under each gap (`::after`).
+ * - NL3, the labels at the ends: the first label's left edge is the line's left, the last label's
+ *   right edge its right, both under the gaps, apart; while the spoken support is on, each label's
+ *   last child is its play control.
+ * - NL4, the positions evenly spaced and inside the line, at every width: the gaps' centres equally
+ *   far apart, each gap between the arrowheads, each at least a target wide, and the page no wider
+ *   than the item.
+ * - NL5, the line in forced colours: the arrow keeps a colour of its own.
+ * - NL6, a placed card shown once: its place in the bank an empty frame, its numeral unpainted.
+ * - SC1, the numerals large: at 1000 px the comparison's sentence at 72 px, bold; its gap at least 96
+ *   px square; a placed symbol at 72 px.
+ * - SC2, the cards below: the bank's top is under the sentence's bottom, each symbol card it shows at
+ *   least 120 px wide, its symbol at 56 px.
+ * - SC3, one line at every width: with four digits either side, the numerals and the gap on one line,
+ *   the gap at least as tall as a numeral, the page no wider than the item.
+ *
+ * And the kills: under the fighting theme without Alpha's sheet, and with Alpha's rules moved into
+ * plate's layer before the theme, NL2 and SC1 each break, so the layouts are Alpha's sheet's, held
+ * by its layer, and no theme's (where the bank stands, NL1 and SC2, is the author's
+ * `qti-choices-*`, which plate's base sheet holds); and where an item of either class leaves its
+ * form's closed structure (a label that is no element, a second paragraph, a fourth gap, a gap
+ * inside a strong), it draws as a plain Gap Match, with no line and no large numerals.
+ *
+ * @module
+ */
+import { readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { assert, describe, it } from "@effect/vitest";
+import { Config, Effect, Option } from "effect";
+import { chromium } from "playwright-core";
+import type { Browser } from "playwright-core";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { acceptedItem, configure, startingResponses } from "@qti-pie/plate";
+import { admitted } from "@qti-pie/plate/test/admitted";
+import { Item, standardRenderers } from "@qti-pie/plate/ui";
+import type { ItemProps } from "@qti-pie/plate/ui";
+import { heldOf, Responses } from "@qti-pie/plate/ui/client";
+
+/**
+ * The supports a host enables for one candidate, `<Item>`'s `supports`.
+ */
+type Supports = NonNullable<ItemProps["supports"]>;
+
+/**
+ * Plate's source folder, whose sheets and Alpha fixtures the suite reads.
+ */
+const plateSource = path.resolve(import.meta.dirname, "../../../plate/src");
+
+/**
+ * The supports of a child who hears content read aloud: the `spoken` catalog support enabled at
+ * `computer-read-aloud`, every other support off.
+ */
+const spoken: Supports = {
+  braille: Option.none(),
+  catalog: new Set(["spoken"]),
+  display: { invertDisplayPolarity: false, keywordEmphasis: false, magnification: Option.none() },
+  keywordTranslationLanguage: Option.none(),
+  readAloud: Option.some("computer-read-aloud"),
+  signLanguage: Option.none(),
+};
+
+/**
+ * A theme that fights both layouts, in plate's layer after the base sheet, each selector heavier
+ * than any of Alpha's sheet (an id's weight, `:not(#fight)`): the line's block a block, every gap
+ * and every slot 160 px wide with room round it, the sentence at the text's size and weight, and
+ * every chip at the text's size; and, at a theme's ordinary weight, every bank under its sentence,
+ * which plate's base sheet keeps to the author's `qti-choices-*`.
+ */
+const fightingTheme = `@layer plate {
+  html body:not(#fight) [data-slot="plate-item"] [data-slot="plate-placement"] { display: flex; flex-direction: column; }
+  html body [data-slot="plate-item"] [data-slot="plate-placement"] > [data-slot="plate-placement-dock"] { order: 1; margin: 2rem 0 0; }
+  html body:not(#fight) [data-slot="plate-item"] [data-slot="plate-placement"] p { display: block; font-size: 1.25rem; font-weight: 400; }
+  html body:not(#fight) [data-slot="plate-item"] [data-slot="plate-gap"] { min-inline-size: 10rem; margin: 0.25rem; }
+  html body:not(#fight) [data-slot="plate-item"] [data-slot="plate-placement-slot"] { min-inline-size: 10rem; }
+  html body:not(#fight) [data-slot="plate-item"] [data-slot="plate-placement-chip"] { font-size: 1.25rem; font-weight: 600; min-inline-size: 4rem; }
+}`;
+
+/**
+ * Alpha's base sheet as a page holds it: `layered`, as qti-pie ships it, its rules in
+ * `plate-alpha`; `plate`, its rules moved into plate's layer, a kill; or `none`, absent, a kill.
+ */
+type Sheet = "layered" | "none" | "plate";
+
+/**
+ * An edit the page makes to the rendered item before it is measured, to lay out content outside the
+ * form's closed structure, or the comparison's widest numerals: `none`; `four-digits`, each numeral
+ * of the comparison 9999; `text-label`, the number line's right label a bare word; `two-p`, a
+ * second paragraph after the gapped one; `five-children`, a copy of a gap after the last;
+ * `strong-gap`, the comparison's gap inside a `strong`; `refusal`, plate's latest refusal shown
+ * under the gapped content as plate shows it (a `p` of its own, `plate-placement-message`), which
+ * must leave either form's layout as it is.
+ */
+type Edit =
+  | "five-children"
+  | "four-digits"
+  | "none"
+  | "refusal"
+  | "strong-gap"
+  | "text-label"
+  | "two-p";
+
+/**
+ * One page the suite lays out: an item's fixture, its mode, the pairs placed (by gap text and gap),
+ * the theme, Alpha's sheet as the page holds it, the item's width, the edit the page makes, and
+ * whether the page shows forced colours.
+ */
+interface Laid {
+  readonly alpha: Sheet;
+  readonly fixture: "comparison" | "number-line";
+  readonly forced?: boolean;
+  readonly mode: "answering" | "review";
+  readonly pairs: readonly (readonly [string, string])[];
+  readonly edit?: Edit;
+  readonly theme: "fighting" | "plate";
+  readonly width: number;
+}
+
+/**
+ * What the suite measures of a laid-out page, each box its rounded viewport rectangle.
+ */
+interface Measured {
+  readonly arrow: string;
+  readonly arrowColour: string;
+  readonly bank: readonly { readonly font: string; readonly width: number }[];
+  readonly block: Box;
+  readonly blockColour: string;
+  readonly blockDisplay: string;
+  readonly blockFont: string;
+  readonly blockWeight: number;
+  readonly dock: Box;
+  readonly gapChips: readonly string[];
+  readonly gaps: readonly Box[];
+  readonly labels: readonly (Box & { readonly lastIsControl: boolean })[];
+  readonly numerals: readonly Box[];
+  readonly overflow: number;
+  readonly ticks: readonly string[];
+  readonly usedColours: readonly string[];
+}
+
+/**
+ * A box: its edges, in viewport pixels.
+ */
+interface Box {
+  readonly bottom: number;
+  readonly height: number;
+  readonly left: number;
+  readonly right: number;
+  readonly top: number;
+  readonly width: number;
+}
+
+/**
+ * The folder Chrome keeps its process singleton's socket in, as the math entry suite chooses it.
+ */
+const runtimeFolder = Config.String("XDG_RUNTIME_DIR").pipe(Config.withDefault(tmpdir()));
+
+/**
+ * The machine's Google Chrome, headless, closed with its scope.
+ */
+const chrome = Effect.acquireRelease(
+  Effect.flatMap(Effect.orDie(runtimeFolder), (temporary) =>
+    Effect.promise(() =>
+      chromium.launch({
+        channel: "chrome",
+        env: { ...process.env, TMPDIR: temporary },
+        headless: true,
+      }),
+    ),
+  ),
+  (browser) => Effect.promise(() => browser.close()),
+);
+
+/**
+ * Read one of plate's files as text.
+ *
+ * @param file Its path under plate's source folder.
+ * @returns Its text.
+ */
+const plateText = (file: string): Effect.Effect<string> =>
+  Effect.promise(() => readFile(path.join(plateSource, file), "utf-8"));
+
+/**
+ * Render a page's item as the server does and wrap it in a page of the sheets it names.
+ *
+ * @param laid The page.
+ * @returns Its HTML.
+ */
+const pageOf = (laid: Laid) =>
+  Effect.gen(function* page() {
+    const location = `gap-match/${laid.fixture}.xml`;
+    const bytes = yield* Effect.promise(() =>
+      readFile(path.join(plateSource, "alpha/fixtures", location)),
+    );
+    const accepted = yield* Effect.orDie(
+      Effect.fromOption(acceptedItem(yield* admitted(location, bytes))),
+    );
+    const configuration = yield* configure({
+      assets: ["prompt", "least", "greatest"].map(
+        (part) => [`gap-match/media/${part}.mp3`, `https://media.example/${part}.mp3`] as const,
+      ),
+      seed: "alpha-layout",
+    });
+    const values = {
+      RESPONSE: {
+        baseType: "directedPair" as const,
+        cardinality: laid.fixture === "comparison" ? ("single" as const) : ("multiple" as const),
+        values: laid.pairs.map((value) => ({ baseType: "directedPair" as const, value })),
+      },
+    };
+    const shown: ItemProps = {
+      configuration,
+      instance: "layout",
+      item: accepted,
+      mode: laid.mode,
+      showFeedback: false,
+      supports: spoken,
+    };
+    const props: ItemProps = laid.mode === "review" ? { ...shown, values } : shown;
+    const item = createElement(Item, { ...props, renderers: standardRenderers });
+    const html = renderToStaticMarkup(
+      laid.mode === "answering"
+        ? createElement(Responses, {
+            children: item,
+            onChange: () => {},
+            value: heldOf({ ...startingResponses(accepted, props), ...values }),
+          })
+        : item,
+    );
+    const base = yield* plateText("styles/base.css");
+    const theme = laid.theme === "plate" ? yield* plateText("styles/theme.css") : fightingTheme;
+    const sheet = yield* plateText("alpha/styles/base.css");
+    const alpha = {
+      layered: sheet,
+      none: "",
+      plate: sheet.replace("@layer plate-alpha {", "@layer plate {"),
+    }[laid.alpha];
+
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><style>${base}</style><style>${alpha}</style><style>${theme}</style></head><body style="margin:0"><main style="box-sizing:border-box;inline-size:${String(laid.width)}px">${html}</main></body></html>`;
+  });
+
+/**
+ * A box's edges as the page reads them: left, top, right and bottom, in viewport pixels.
+ */
+type Edges = readonly [left: number, top: number, right: number, bottom: number];
+
+/**
+ * What the page reads of itself, each box by its edges: what {@link Measured} holds, before the
+ * suite rounds each box.
+ */
+interface Read extends Omit<Measured, "block" | "dock" | "gaps" | "labels" | "numerals"> {
+  readonly block: Edges;
+  readonly dock: Edges;
+  readonly gaps: readonly Edges[];
+  readonly labels: readonly (readonly [edges: Edges, lastIsControl: boolean])[];
+  readonly numerals: readonly Edges[];
+}
+
+/**
+ * Each edit but `none`, made to the rendered item in the page: each run by Chrome, so it holds no
+ * reference outside itself.
+ */
+const edits: Readonly<Record<Exclude<Edit, "none">, () => void>> = {
+  "five-children": () => {
+    const gaps = [...document.querySelectorAll('[data-slot="plate-gap"]')];
+
+    gaps[0]?.closest("p")?.lastElementChild?.before(gaps.at(-1)?.cloneNode(true) ?? "");
+  },
+  "four-digits": () => {
+    const sentence = document.querySelector('[data-slot="plate-gap"]')?.closest("p");
+
+    for (const node of sentence?.childNodes ?? []) {
+      if (node.nodeType === Node.TEXT_NODE && /\d/u.test(node.textContent ?? "")) {
+        node.textContent = (node.textContent ?? "").replace(/\d+/u, "9999");
+      }
+    }
+  },
+  refusal: () => {
+    const message = document.createElement("p");
+
+    message.dataset["slot"] = "plate-placement-message";
+    message.textContent = "Blank 1 is full. Take one out first.";
+    document.querySelector('[data-slot="plate-gap"]')?.closest("p")?.after(message);
+  },
+  "strong-gap": () => {
+    const gap = document.querySelector('[data-slot="plate-gap"]');
+    const strong = document.createElement("strong");
+
+    gap?.replaceWith(strong);
+    strong.append(gap ?? "");
+  },
+  "text-label": () => {
+    document
+      .querySelector('[data-slot="plate-gap"]')
+      ?.closest("p")
+      ?.lastElementChild?.replaceWith(document.createTextNode("greatest"));
+  },
+  "two-p": () => {
+    const other = document.createElement("p");
+
+    other.textContent = "Look at both numbers.";
+    document.querySelector('[data-slot="plate-gap"]')?.closest("p")?.after(other);
+  },
+};
+
+/**
+ * Read the laid-out page, in the page: run by Chrome, so it holds no reference outside itself.
+ *
+ * @returns What the page shows, each box by its edges.
+ */
+const readPage = (): Read => {
+  const gaps = [...document.querySelectorAll('[data-slot="plate-gap"]')];
+  const block = gaps[0]?.closest("p") ?? document.body;
+  const labels = [...block.children].filter((child) => !child.matches('[data-slot="plate-gap"]'));
+  const [blockEdges, dockEdges, ...rest] = [
+    block,
+    document.querySelector('[data-slot="plate-placement-dock"]'),
+    ...gaps,
+    ...labels,
+  ].map((element): Edges => {
+    const box = element?.getBoundingClientRect() ?? new DOMRect();
+
+    return [box.left, box.top, box.right, box.bottom];
+  });
+  const style = getComputedStyle(block);
+  const line = getComputedStyle(block, "::before");
+
+  return {
+    arrow: line.content,
+    arrowColour: line.backgroundColor,
+    bank: [
+      ...document.querySelectorAll(
+        '[data-slot="plate-placement-bank"] > [data-slot="plate-placement-chip"]',
+      ),
+    ].map((chip) => ({
+      font: getComputedStyle(chip).fontSize,
+      width: Math.round(chip.getBoundingClientRect().width),
+    })),
+    block: blockEdges ?? [0, 0, 0, 0],
+    blockColour: style.color,
+    blockDisplay: style.display,
+    blockFont: style.fontSize,
+    blockWeight: Number(style.fontWeight),
+    dock: dockEdges ?? [0, 0, 0, 0],
+    gapChips: gaps.flatMap((gap) =>
+      [...gap.querySelectorAll('[data-slot="plate-placement-chip"]')].map(
+        (chip) => getComputedStyle(chip).fontSize,
+      ),
+    ),
+    gaps: rest.slice(0, gaps.length),
+    labels: labels.map((label, at) => [
+      rest[gaps.length + at] ?? [0, 0, 0, 0],
+      label.lastElementChild?.matches('[data-slot="plate-read-aloud"]') ?? false,
+    ]),
+    numerals: [...block.childNodes]
+      .filter((node) => node.nodeType === Node.TEXT_NODE && /\d/u.test(node.textContent ?? ""))
+      .map((node): Edges => {
+        const range = document.createRange();
+
+        range.selectNodeContents(node);
+
+        const box = range.getBoundingClientRect();
+
+        return [box.left, box.top, box.right, box.bottom];
+      }),
+    overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    ticks: gaps.map((gap) => getComputedStyle(gap, "::after").content),
+    usedColours: [
+      ...document.querySelectorAll(
+        '[data-slot="plate-placement-bank"] > [data-slot="plate-placement-chip"][data-used]',
+      ),
+    ].map((chip) => getComputedStyle(chip).color),
+  };
+};
+
+/**
+ * A box from its edges, each rounded to the pixel.
+ *
+ * @param edges The edges.
+ * @returns The box.
+ */
+const boxOf = ([left, top, right, bottom]: Edges): Box => ({
+  bottom: Math.round(bottom),
+  height: Math.round(bottom - top),
+  left: Math.round(left),
+  right: Math.round(right),
+  top: Math.round(top),
+  width: Math.round(right - left),
+});
+
+/**
+ * Lay a page out in Chrome, make its edit and measure it.
+ *
+ * @param browser The browser.
+ * @param laid The page.
+ * @returns What the page shows.
+ */
+const measured = (browser: Browser, laid: Laid) =>
+  Effect.gen(function* measure() {
+    const html = yield* pageOf(laid);
+    const page = yield* Effect.promise(() =>
+      browser.newPage({ viewport: { height: 900, width: laid.width } }),
+    );
+
+    yield* Effect.promise(() =>
+      page.emulateMedia({ forcedColors: laid.forced === true ? "active" : "none" }),
+    );
+    yield* Effect.promise(() => page.setContent(html));
+
+    const edit = laid.edit ?? "none";
+
+    if (edit !== "none") {
+      const made = edits[edit];
+
+      yield* Effect.promise(() => page.evaluate(made));
+    }
+
+    const read = yield* Effect.promise(() => page.evaluate(readPage));
+
+    yield* Effect.promise(() => page.close());
+
+    return {
+      ...read,
+      block: boxOf(read.block),
+      dock: boxOf(read.dock),
+      gaps: read.gaps.map(boxOf),
+      labels: read.labels.map(([edges, lastIsControl]) => ({ ...boxOf(edges), lastIsControl })),
+      numerals: read.numerals.map(boxOf),
+    } satisfies Measured;
+  });
+
+/**
+ * Name the rules a page breaks, of rules each given as its name and whether the page holds it.
+ *
+ * @param rules The rules.
+ * @returns Each broken rule's name.
+ */
+const brokenOf = (rules: readonly (readonly [name: string, holds: boolean])[]): readonly string[] =>
+  rules.filter(([, holds]) => !holds).map(([name]) => name);
+
+/**
+ * NL3: the labels at the line's two ends, under its gaps and apart, each holding its control last
+ * where it should.
+ *
+ * @param seen What the page shows.
+ * @param answering Whether each label holds its control.
+ * @returns Whether the page holds it.
+ */
+const labelsAtEnds = (seen: Measured, answering: boolean): boolean => {
+  const [first, ...rest] = seen.labels;
+  const last = rest.at(-1);
+  const gapsBottom = Math.max(...seen.gaps.map((gap) => gap.bottom));
+
+  return (
+    first !== undefined &&
+    last !== undefined &&
+    Math.abs(first.left - seen.block.left) <= 1 &&
+    Math.abs(last.right - seen.block.right) <= 1 &&
+    Math.min(first.top, last.top) >= gapsBottom &&
+    first.right <= last.left &&
+    (!answering || (first.lastIsControl && last.lastIsControl))
+  );
+};
+
+/**
+ * NL4: the gaps evenly spaced, each a target wide between the arrowheads, and the page no wider
+ * than the item.
+ *
+ * @param seen What the page shows.
+ * @returns Whether the page holds it.
+ */
+const evenlyInside = (seen: Measured): boolean => {
+  const centres = seen.gaps.map((gap) => (gap.left + gap.right) / 2);
+  const steps = centres.slice(1).map((centre, at) => centre - (centres[at] ?? 0));
+
+  return (
+    steps.length === 2 &&
+    Math.abs((steps[0] ?? 0) - (steps[1] ?? 0)) <= 2 &&
+    seen.gaps.every(
+      (gap) =>
+        gap.left >= seen.block.left + 16 && gap.right <= seen.block.right - 16 && gap.width >= 64,
+    ) &&
+    seen.overflow <= 0
+  );
+};
+
+/**
+ * The rules of the number line a page breaks, each by its name (NL1 to NL4 and NL6 in the header).
+ *
+ * @param seen What the page shows.
+ * @param answering Whether the child answers with the spoken support on, so each label holds its
+ *   control.
+ * @returns Each broken rule's name.
+ */
+const numberLineBroken = (seen: Measured, answering: boolean): readonly string[] =>
+  brokenOf([
+    ["NL1", seen.dock.bottom <= seen.block.top],
+    [
+      "NL2",
+      seen.gaps.length === 3 &&
+        seen.gaps.every((gap) => gap.bottom === seen.gaps[0]?.bottom) &&
+        seen.arrow !== "none" &&
+        seen.ticks.every((tick) => tick !== "none"),
+    ],
+    ["NL3", labelsAtEnds(seen, answering)],
+    ["NL4", evenlyInside(seen)],
+    ["NL6", seen.usedColours.every((colour) => colour === "rgba(0, 0, 0, 0)")],
+  ]);
+
+/**
+ * SC1: the numerals at 72 px, bold, the gap at least 96 px square, a placed symbol at 72 px.
+ *
+ * @param seen What the page shows.
+ * @returns Whether the page holds it.
+ */
+const numeralsLarge = (seen: Measured): boolean => {
+  const [gap] = seen.gaps;
+
+  return (
+    seen.blockFont === "72px" &&
+    seen.blockWeight >= 700 &&
+    gap !== undefined &&
+    gap.width >= 96 &&
+    gap.height >= 96 &&
+    seen.gapChips.every((font) => font === "72px")
+  );
+};
+
+/**
+ * SC3: the numerals and the gap on one line, the gap as tall as a numeral and a target both ways,
+ * the page no wider than the item.
+ *
+ * @param seen What the page shows.
+ * @returns Whether the page holds it.
+ */
+const oneLine = (seen: Measured): boolean => {
+  const [gap] = seen.gaps;
+  const middles = [...seen.numerals, ...(gap === undefined ? [] : [gap])].map(
+    (box) => (box.top + box.bottom) / 2,
+  );
+
+  return (
+    seen.numerals.length === 2 &&
+    gap !== undefined &&
+    Math.max(...middles) - Math.min(...middles) <= 4 &&
+    seen.numerals.every((numeral) => gap.height >= numeral.height) &&
+    gap.width >= 64 &&
+    gap.height >= 64 &&
+    seen.overflow <= 0
+  );
+};
+
+/**
+ * The rules of the comparison a page breaks, each by its name (SC1 to SC3 in the header).
+ *
+ * @param seen What the page shows.
+ * @param wide Whether the item is 1000 px wide, where the numerals stand at their largest.
+ * @returns Each broken rule's name.
+ */
+const comparisonBroken = (seen: Measured, wide: boolean): readonly string[] =>
+  brokenOf([
+    ["SC1", !wide || numeralsLarge(seen)],
+    [
+      "SC2",
+      seen.dock.top >= seen.block.bottom &&
+        seen.bank.some((chip) => chip.width > 0) &&
+        seen.bank.every((chip) => chip.width === 0 || (chip.width >= 120 && chip.font === "56px")),
+    ],
+    ["SC3", oneLine(seen)],
+  ]);
+
+/**
+ * The number line's pages: nothing placed and two cards placed while the child answers, the two
+ * placed with a refusal shown, and the two placed in review.
+ */
+const numberLinePages = [
+  { edit: "none", mode: "answering", pairs: [] },
+  {
+    edit: "none",
+    mode: "answering",
+    pairs: [
+      ["n36", "position-1"],
+      ["n63", "position-2"],
+    ],
+  },
+  {
+    edit: "refusal",
+    mode: "answering",
+    pairs: [
+      ["n36", "position-1"],
+      ["n63", "position-2"],
+    ],
+  },
+  {
+    edit: "none",
+    mode: "review",
+    pairs: [
+      ["n36", "position-1"],
+      ["n63", "position-2"],
+    ],
+  },
+] as const;
+
+/**
+ * The comparison's pages: nothing placed and the key placed while the child answers, and a wrong
+ * symbol in review.
+ */
+const comparisonPages = [
+  { mode: "answering", pairs: [] },
+  { mode: "answering", pairs: [["lt", "relation"]] },
+  { mode: "review", pairs: [["gt", "relation"]] },
+] as const;
+
+/**
+ * The two themes the layouts must hold under.
+ */
+const themes = ["plate", "fighting"] as const;
+
+/**
+ * The item's widths: a laptop's column, a 768 px tablet at 200% zoom, a phone, and a 320 px phone's
+ * item inside metis's card, its padding taken off.
+ */
+const widths = [1000, 384, 320, 288] as const;
+
+describe("Alpha's Gap Match layouts, measured in Chrome", () => {
+  it.live.each(themes)(
+    "NL1-NL4: the number line draws its cards above one row of evenly spaced positions, labelled at its ends, at every width, under %s's theme",
+    (theme) =>
+      Effect.gen(function* numberLine() {
+        const browser = yield* chrome;
+
+        for (const width of widths) {
+          for (const { edit, mode, pairs } of numberLinePages) {
+            const seen = yield* measured(browser, {
+              alpha: "layered",
+              edit,
+              fixture: "number-line",
+              mode,
+              pairs,
+              theme,
+              width,
+            });
+
+            assert.deepStrictEqual(
+              numberLineBroken(seen, mode === "answering"),
+              [],
+              `${theme}, ${String(width)} px, ${mode}, ${edit}, ${String(pairs.length)} placed: ${JSON.stringify(seen)}`,
+            );
+          }
+        }
+      }),
+  );
+
+  it.live("NL5: the number line keeps its arrow in forced colours", () =>
+    Effect.gen(function* forcedColours() {
+      const browser = yield* chrome;
+      const seen = yield* measured(browser, {
+        alpha: "layered",
+        fixture: "number-line",
+        forced: true,
+        mode: "answering",
+        pairs: [],
+        theme: "plate",
+        width: 1000,
+      });
+
+      assert.notStrictEqual(seen.arrow, "none");
+      assert.strictEqual(seen.arrowColour, seen.blockColour);
+    }),
+  );
+
+  it.live.each(
+    themes.flatMap((theme) =>
+      (["none", "four-digits", "refusal"] as const).map((edit) => [theme, edit] as const),
+    ),
+  )(
+    "SC1-SC3: the comparison draws its numerals large on one line and its symbol cards below, at every width, under %s's theme, %s",
+    ([theme, edit]) =>
+      Effect.gen(function* comparison() {
+        const browser = yield* chrome;
+
+        for (const width of widths) {
+          for (const { mode, pairs } of comparisonPages) {
+            const seen = yield* measured(browser, {
+              alpha: "layered",
+              edit,
+              fixture: "comparison",
+              mode,
+              pairs,
+              theme,
+              width,
+            });
+
+            assert.deepStrictEqual(
+              comparisonBroken(seen, width === 1000 && edit === "none"),
+              [],
+              `${theme}, ${String(width)} px, ${mode}, ${edit}, ${String(pairs.length)} placed: ${JSON.stringify(seen)}`,
+            );
+          }
+        }
+      }),
+  );
+
+  it.live.each(["none", "plate"] as const)(
+    "refuses the layouts a theme draws over Alpha's sheet where it is %s (the kills)",
+    (alpha) =>
+      Effect.gen(function* kill() {
+        const browser = yield* chrome;
+        const line = yield* measured(browser, {
+          alpha,
+          fixture: "number-line",
+          mode: "answering",
+          pairs: [],
+          theme: "fighting",
+          width: 320,
+        });
+        const comparison = yield* measured(browser, {
+          alpha,
+          fixture: "comparison",
+          mode: "answering",
+          pairs: [],
+          theme: "fighting",
+          width: 1000,
+        });
+
+        assert.include([...numberLineBroken(line, true)], "NL2");
+        assert.include([...comparisonBroken(comparison, true)], "SC1");
+      }),
+  );
+
+  it.live.each([
+    ["number-line", "text-label"],
+    ["number-line", "two-p"],
+    ["number-line", "five-children"],
+    ["comparison", "two-p"],
+    ["comparison", "strong-gap"],
+  ] as const)(
+    "draws a %s whose content leaves its form (%s) as a plain Gap Match",
+    ([fixture, edit]) =>
+      Effect.gen(function* plain() {
+        const browser = yield* chrome;
+        const seen = yield* measured(browser, {
+          alpha: "layered",
+          edit,
+          fixture,
+          mode: "answering",
+          pairs: [],
+          theme: "plate",
+          width: 1000,
+        });
+
+        assert.strictEqual(seen.arrow, "none");
+        assert.notStrictEqual(seen.blockDisplay, "grid");
+        assert.notStrictEqual(seen.blockFont, "72px");
+      }),
+  );
+});
