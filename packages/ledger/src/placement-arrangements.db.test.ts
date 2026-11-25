@@ -59,6 +59,7 @@ import { acceptedItem, openAdmitted } from "@qti-pie/plate";
 import type { Responses } from "@qti-pie/plate";
 import { Array as Arr, Clock, Duration, Effect, FileSystem, Option, Order, Ref } from "effect";
 import { responseParamsOf, responsesOfRows } from "#ledger/served-values.ts";
+import { BrowserReading } from "#ledger/sittings.ts";
 import { templatePackage, templatePackageDirectory } from "#ledger/template-package.ts";
 import { lease, SuiteLogin, suiteLayerOf } from "#ledger/test/result-suite.ts";
 
@@ -676,7 +677,7 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
 
     const began = Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at;
     const values = yield* responseParamsOf(c.posted);
-    const params = { ...sitting, given: began, item: c.item.ref, ...values };
+    const params = { ...sitting, given: BrowserReading(began), item: c.item.ref, ...values };
     const saved = yield* db.workload.saveTestItem.once({ facts: {}, params });
     assert.strictEqual(saved.kind, "accepted", `${c.name}: the save`);
 

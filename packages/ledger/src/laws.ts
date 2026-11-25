@@ -45,6 +45,10 @@ export const ledgerLaws = {
     source:
       "src/ledger.ts Snapshot<Multiple><Float|Duration>: 'A multiple of float or duration keys each distinct value by its identity image, `bits`, grizzle's `Num.floatBits` of the value (its IEEE 754 bits, every NaN one), which the law BagImage holds it to'",
   },
+  "Browser reading": {
+    source:
+      "src/sittings.ts BrowserReading: 'The browser's reading of the database's clock when the candidate gave a response, in microseconds since the Unix epoch', a type of its own that no law relates to an instant",
+  },
   "Budget chain": {
     source:
       "src/delivery.ts BudgetChain: each later candidate session's budget is what its sitting's previous candidate session left it, charged up to its last sign of presence (src/sittings.ts TestBudget, the time a candidate session begins with; Presence)",
@@ -119,10 +123,6 @@ export const ledgerLaws = {
   "Final settled": {
     source:
       "src/results.ts UnsettledFinal: 'Each final sitting that holds an attempt not final, `settled` false: none may stand'",
-  },
-  "Given before": {
-    source:
-      "src/ledger.ts SnapshotGiven: `given`, the browser's reading of the database's clock when the candidate gave the response, 'at or before the snapshot's own instant'",
   },
   "Given snapshot": {
     source:

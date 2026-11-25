@@ -67,6 +67,7 @@ import { measureActions } from "@qti-pie/plan-budget/run-actions.ts";
 import { Config, Duration, Effect, Layer } from "effect";
 import { Client } from "pg";
 import { responseParamsOf } from "#ledger/served-values.ts";
+import { BrowserReading } from "#ledger/sittings.ts";
 import { resultMigrations } from "#ledger/test/result-database.ts";
 import type { ResultSuite } from "#ledger/test/result-level.ts";
 
@@ -180,7 +181,7 @@ const save = (db: SuiteDb, child: string, item: string, value: string) =>
       "saveTestItem",
       db.workload.saveTestItem.once({
         facts: {},
-        params: { ...sittingOf(child), given: 1n, item, ...given },
+        params: { ...sittingOf(child), given: BrowserReading(1n), item, ...given },
       }),
     ),
   );
@@ -191,7 +192,13 @@ const answer = (db: SuiteDb, child: string, item: string, value: string) =>
       "answerTestItem",
       db.workload.answerTestItem.once({
         facts: {},
-        params: { ...sittingOf(child), given: 1n, item, next: nextOf(item), ...given },
+        params: {
+          ...sittingOf(child),
+          given: BrowserReading(1n),
+          item,
+          next: nextOf(item),
+          ...given,
+        },
       }),
     ),
   );
@@ -241,7 +248,7 @@ const answerPlaced = (
       "answerTestItem",
       db.workload.answerTestItem.once({
         facts: {},
-        params: { ...sittingOf(child), given: 1n, item, next, ...given },
+        params: { ...sittingOf(child), given: BrowserReading(1n), item, next, ...given },
       }),
     ),
   );

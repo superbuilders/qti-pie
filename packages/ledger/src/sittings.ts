@@ -152,6 +152,16 @@ export const Reading = named(
 );
 
 /**
+ * The browser's reading of the database's clock when the candidate gave a response, in
+ * microseconds since the Unix epoch, as the application sends it: the browser's estimate, a sensor
+ * reading of a clock of its own, which may run ahead of the database's or behind it. A type of its
+ * own, so no term compares it with an instant or a {@link Reading} without a cast, and no law
+ * relates it to either: the two clocks share no order, so a reading ahead of the database's stamp
+ * is evidence of skew, never a refusal.
+ */
+export const BrowserReading = named("Browser reading", contract("BrowserReading", pg.bigint));
+
+/**
  * A sitting's standing, in the order a sitting moves through them (§2.2.1, the item session's
  * states as its candidate sessions take them): `unstarted` before its first candidate session,
  * `open` in one, `suspended` between two, `ended` once its part has ended, and `final` once its

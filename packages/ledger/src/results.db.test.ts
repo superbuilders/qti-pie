@@ -74,7 +74,8 @@
  * 3.0.1 §2.2.1); and a save in a timed one arrives, by the database's stamp, within its time and
  * the in-flight grace past it, so one arriving past the grace is refused by "Response in time",
  * unless the test allows late submission (Table 7.40.3, `allow-late-submission`), whatever the
- * browser's reading of when it was given says. Every program reads back its sitting's standing,
+ * browser's reading of when it was given says, a reading a day ahead of the stamp included, which
+ * no law holds to it (`BrowserReading`). Every program reads back its sitting's standing,
  * which the table holds after each move. And the latest save admitted is what the end submits: a
  * save superseding an in-time one 1.5 s past the deadline is submitted, and one 11 s past it is
  * refused, so the in-time one is ({@link supersedeExpectedOf}). And a candidate session is charged
@@ -174,7 +175,7 @@ import { reviewShowsOf, sessionFactsOf } from "#ledger/served-item.ts";
 import type { ReviewShows, SessionControl } from "#ledger/served-item.ts";
 import { judgedOfRows, responseParamsOf, responsesOfRows } from "#ledger/served-values.ts";
 import type { AttemptRows, MarkRows, ValueRows } from "#ledger/served-values.ts";
-import { Reading } from "#ledger/sittings.ts";
+import { BrowserReading, Reading } from "#ledger/sittings.ts";
 import { inFlightGraceMicros, presenceGraceMicros } from "#ledger/delivery.ts";
 import type { LedgerLawName } from "#ledger/laws.ts";
 import { lease, SuiteLogin, suiteLayerOf } from "#ledger/test/result-suite.ts";
@@ -2866,9 +2867,18 @@ type When = "unstarted" | "open" | "suspended" | "ended";
  * (in time), arriving just past a deadline at its beginning (in flight, within the grace), with a
  * browser's reading a microsecond past that deadline (which decides nothing), or arriving twice
  * the grace past a deadline before its beginning; or a microsecond past its deadline where the test
- * allows late submission.
+ * allows late submission; or an untimed sitting's save whose browser reading runs a day ahead of
+ * the database's stamp, a skewed clock, which no law holds to the stamp (`BrowserReading`), so it
+ * is admitted, where the parent's "Given before" refused it.
  */
-type Timing = "untimed" | "inTime" | "inFlight" | "givenLate" | "arrivedLate" | "lateAllowed";
+type Timing =
+  | "untimed"
+  | "inTime"
+  | "inFlight"
+  | "givenLate"
+  | "givenAhead"
+  | "arrivedLate"
+  | "lateAllowed";
 
 type ResponseCase = Readonly<{ name: string; when: When; timing: Timing }>;
 
@@ -2882,6 +2892,7 @@ const timings = {
     remaining: Option.some(-2n * inFlightGraceMicros),
     test: TIMED_TEST,
   },
+  givenAhead: { given: 86_400_000_000n, remaining: Option.none<bigint>(), test: UNTIMED_TEST },
   givenLate: { given: 1n, remaining: Option.some(0n), test: TIMED_TEST },
   inFlight: { given: 0n, remaining: Option.some(0n), test: TIMED_TEST },
   inTime: { given: 0n, remaining: Option.some(3_600_000_000n), test: TIMED_TEST },
@@ -2923,6 +2934,7 @@ const responseCases = [
   openCase("inTime"),
   openCase("inFlight"),
   openCase("givenLate"),
+  openCase("givenAhead"),
   openCase("arrivedLate"),
   openCase("lateAllowed"),
   closedCase("unstarted"),
@@ -2979,6 +2991,7 @@ const responseSituations = [
   "accepted in the open session",
   "accepted past its deadline: late submission allowed",
   "accepted though the browser read it past its deadline: the database's stamp decides",
+  "accepted though the browser's reading runs ahead of the database's stamp: no law relates the two clocks",
   "refused: Inside a candidate session",
   "refused: before the sitting's first candidate session",
   "refused: Response in time",
@@ -3098,7 +3111,7 @@ const holdResponse = (
     }
 
     const values = yield* responseParamsOf({});
-    const given = c.when === "unstarted" ? 1n : began + timing.given;
+    const given = BrowserReading(c.when === "unstarted" ? 1n : began + timing.given);
     const saved = yield* Effect.result(
       db.workload.saveTestItem.once({
         facts: {},
@@ -3134,6 +3147,10 @@ const holdResponse = (
       note("accepted past its deadline: late submission allowed");
     } else if (c.timing === "givenLate") {
       note("accepted though the browser read it past its deadline: the database's stamp decides");
+    } else if (c.timing === "givenAhead") {
+      note(
+        "accepted though the browser's reading runs ahead of the database's stamp: no law relates the two clocks",
+      );
     } else {
       note("accepted in the open session");
     }
@@ -3514,7 +3531,7 @@ const holdControls = (
           },
         } as const;
         const values = yield* responseParamsOf(responses);
-        const params = { ...sitting, given: began, item: move.ref, ...values };
+        const params = { ...sitting, given: BrowserReading(began), item: move.ref, ...values };
         const outcome =
           move.kind === "save"
             ? yield* db.workload.saveTestItem.once({ facts: {}, params })
@@ -3786,7 +3803,7 @@ const holdShown = (c: ShownCase, child: string, note: (situation: ShownSituation
         const outcome = yield* Effect.result(
           db.workload.saveTestItem.once({
             facts: {},
-            params: { ...sitting, given: began, item: HUMAN_REF, ...values },
+            params: { ...sitting, given: BrowserReading(began), item: HUMAN_REF, ...values },
           }),
         );
         if (want === "refused") {
@@ -4233,7 +4250,7 @@ const holdEntry = (c: EntryCase, child: string, note: (situation: EntrySituation
     });
     const saved = yield* db.workload.saveTestItem.once({
       facts: {},
-      params: { ...sitting, given: 0n, item, ...values },
+      params: { ...sitting, given: BrowserReading(0n), item, ...values },
     });
     assert.strictEqual(
       saved.kind,
@@ -4347,7 +4364,7 @@ const holdSupersede = (
         return yield* Effect.result(
           db.workload.saveTestItem.once({
             facts: {},
-            params: { ...sitting, given: began, item: MEMBER, ...values },
+            params: { ...sitting, given: BrowserReading(began), item: MEMBER, ...values },
           }),
         );
       });
@@ -5021,7 +5038,7 @@ const holdShowing = (c: ShowingCase, child: string, note: (situation: ShowingSit
       Effect.gen(function* answered() {
         const outcome = yield* db.workload.answerTestItem.once({
           facts: {},
-          params: { ...sitting, given: began, item, next: [], ...values },
+          params: { ...sitting, given: BrowserReading(began), item, next: [], ...values },
         });
         assert.strictEqual(outcome.kind, "accepted", `${c.name}: the answer of ${item}`);
       });

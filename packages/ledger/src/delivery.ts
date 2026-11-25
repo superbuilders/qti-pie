@@ -128,7 +128,7 @@ export const longestMaxTime = 1e12;
  * by the database's stamp, in microseconds, ten seconds. The database is the clock: what arrives by
  * the deadline and this grace is admitted, the latest save winning, and what arrives after it is
  * refused, so the end submits the latest save admitted (`#ledger/finish.ts`); the browser's reading
- * `given` is a sensor bound ("Given before") and admits nothing. allow-late-submission refuses "a
+ * `given` (`BrowserReading`) is evidence and admits nothing. allow-late-submission refuses "a
  * candidate's response that is beyond the max-time" (Table 7.40.3); a response the candidate made
  * within it and still in flight is no such response, and the grace bounds its flight. AlphaTest
  * stamped a drill's final submit on its server a mean of 1.12 s after the limit, on 24,266

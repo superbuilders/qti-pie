@@ -84,7 +84,7 @@ import {
   sittingStandingOf,
   takenHeading,
 } from "#ledger/sitting-queries.ts";
-import { Moment, Reading } from "#ledger/sittings.ts";
+import { BrowserReading, Moment, Reading } from "#ledger/sittings.ts";
 
 /**
  * The relations the test runtime's programs write of a sitting beside its item sessions, by name
@@ -3811,7 +3811,7 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
 
         return r
           .match(response, { child, n, package: pkg, path })
-          .find({ child, given: r.param("given", pg.bigint), n, package: pkg, path });
+          .find({ child, given: r.param("given", BrowserReading), n, package: pkg, path });
       }),
     )
     .read("snapshot", (delta) =>
@@ -3857,7 +3857,7 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
         return r
           .match(response, { child, n, package: pkg, path })
           .where(r.not(admission.reasonsIn(r), {}))
-          .find({ child, given: r.param("given", pg.bigint), n, package: pkg, path });
+          .find({ child, given: r.param("given", BrowserReading), n, package: pkg, path });
       }),
     )
     .read("snapshot", (delta) =>

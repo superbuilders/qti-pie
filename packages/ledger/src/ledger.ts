@@ -69,7 +69,7 @@ import { named } from "#ledger/laws.ts";
 import type { RegistryLevel } from "#ledger/registry/levels.ts";
 import { customOperators } from "#ledger/registry/operators.ts";
 import { QtiFloat, QtiInteger } from "#ledger/scalars.ts";
-import { SittingStanding, sittingTablesOf } from "#ledger/sittings.ts";
+import { BrowserReading, SittingStanding, sittingTablesOf } from "#ledger/sittings.ts";
 import { templatePackage } from "#ledger/template-package.ts";
 
 /**
@@ -843,15 +843,15 @@ export const ledgerOf = (qti: RegistryLevel) => {
   const Save = named("Snapshot instant", relation("Save", snapshotFields, snapshotKey));
   /**
    * A sitting's response snapshot with `given`, the browser's reading of the database's clock when
-   * the candidate gave it, in microseconds since the Unix epoch, at or before the snapshot's own
-   * instant ("Given before"): a response the candidate gave carries it,
-   * and the end's attempts none (`#sitting-programs.ts`); the database records it beside its own
-   * instant and never orders by it, nor admits a response by it: the database's stamp is the
-   * clock (`#delivery.ts` inFlightGraceMicros). A sensor reading, so a bound, never a clock.
+   * the candidate gave it ({@link BrowserReading}): a response the candidate gave carries it, and
+   * the end's attempts none (`#sitting-programs.ts`). The database records it beside its own
+   * instant as evidence, and never orders by it, admits a response by it nor holds it to any
+   * instant: the database's stamp is the clock (`#delivery.ts` inFlightGraceMicros), and the
+   * browser's reads a clock of its own, which shares no order with it.
    */
   const SnapshotGiven = named(
     "Snapshot instant",
-    relation("SnapshotGiven", { ...snapshotFields, given: pg.bigint }, snapshotKey),
+    relation("SnapshotGiven", { ...snapshotFields, given: BrowserReading }, snapshotKey),
   );
 
   const SnapshotSingleIdentifier = named(
@@ -3444,10 +3444,6 @@ export const ledgerOf = (qti: RegistryLevel) => {
       named(
         "Given snapshot",
         contained(on(SnapshotGiven, ...snapshotKey), on(ResponseSnapshot, ...snapshotKey)),
-      ),
-      named(
-        "Given before",
-        check("Given_before", SnapshotGiven, (g) => g.le(g.given, Type.base(g.at))),
       ),
       named(
         "Processed attempt",
