@@ -934,7 +934,7 @@ const firstChoice =
  * The 19 cut items: `cut-<interaction>` and the source item of spec 3.6's `one source each` line.
  * The picks are revision 2's of the spec, and a later tarball change is a list update here.
  */
-const cutSpecs: Record<(typeof cutNames)[number], FixtureSpec> = {
+const cutSpecs: Readonly<Record<(typeof cutNames)[number], FixtureSpec>> = {
   "cut-associate": cutItem("cut-associate", "BPIG_22April", "items/QTI3-associate.xml"),
   "cut-choice": cutItem("cut-choice", "BPIG_22April", "items/BG007.xml"),
   "cut-drawing": cutItem("cut-drawing", "BPIG_22April", "items/drawing-interaction-1.xml"),
@@ -1022,7 +1022,7 @@ const htmlItem = (element: string, use: string, files: readonly FileEdit[] = [])
 /**
  * The 40 hand-written HTML positives, one row per element of {@link htmlElements}.
  */
-const htmlSpecs: Record<`html-${(typeof htmlElements)[number]}`, FixtureSpec> = {
+const htmlSpecs: Readonly<Record<`html-${(typeof htmlElements)[number]}`, FixtureSpec>> = {
   "html-abbr": htmlItem("abbr", "<p>This is a True/False question? <abbr>T/F</abbr></p>"),
   "html-acronym": htmlItem(
     "acronym",
@@ -1806,7 +1806,7 @@ const feedbackWrapped = (adaptive: string): readonly TextEdit[] => [
  * - `rubric-template-kinds` holds a `qti-rubric-block` with a `qti-template-block.rubric` and a
  *   `qti-template-inline.rubric`, and a `qti-template-inline` in the question.
  */
-const copySpecs: Record<(typeof copyNames)[number], FixtureSpec> = {
+const copySpecs: Readonly<Record<(typeof copyNames)[number], FixtureSpec>> = {
   "adaptive-one-feedback": bgCopy("adaptive-one-feedback", feedbackWrapped("1")),
   "adaptive-zero-feedback": bgCopy("adaptive-zero-feedback", feedbackWrapped("0")),
   "admission-choice-in-feedback": bgCopy("admission-choice-in-feedback", [
@@ -2597,7 +2597,7 @@ const usage3Edits: readonly Edit[] = [
 /**
  * The opening tag of `example.xml`'s first statistic, `AIS`, split at its edited attributes.
  */
-const firstStatistic = {
+const firstStatistic: Readonly<Record<"context" | "lastUpdated" | "name", string>> = {
   context: 'context="http://ntweb.ets.org/itemStats/Context/XVZ2004_J1B"',
   lastUpdated: 'lastUpdated="2004-07-04"',
   name: 'name="AIS"',
@@ -3776,7 +3776,7 @@ const ltiTest: string = testDocument("LTI-TEST", [
 /**
  * The specs of {@link testNames}.
  */
-const testSpecs: Record<(typeof testNames)[number], FixtureSpec> = {
+const testSpecs: Readonly<Record<(typeof testNames)[number], FixtureSpec>> = {
   "stimulus-301": {
     edits: stimulus301Edits,
     member: sharedStimulusMember,
@@ -3976,7 +3976,7 @@ const withBank = (name: (typeof negativeNames)[number], bank: string): FixtureSp
 /**
  * The specs of {@link negativeNames}, in the order of the spec's 4.15 rows within each positive.
  */
-const negativeSpecs: Record<(typeof negativeNames)[number], FixtureSpec> = {
+const negativeSpecs: Readonly<Record<(typeof negativeNames)[number], FixtureSpec>> = {
   "bank-duplicate-identifier": withBank(
     "bank-duplicate-identifier",
     sectionDocument("BANK", [
@@ -4101,7 +4101,7 @@ const scoreOne =
 /**
  * The specs of {@link restoredNames}.
  */
-const restoredSpecs: Record<(typeof restoredNames)[number], FixtureSpec> = {
+const restoredSpecs: Readonly<Record<(typeof restoredNames)[number], FixtureSpec>> = {
   "aria-h1-role-button": overSimple("aria-h1-role-button", [
     replaceIn(
       "choice.xml",
@@ -4180,7 +4180,7 @@ const placeSectionTwice: Edit = replaceIn(
 /**
  * The specs of {@link assemblyNames}.
  */
-const assemblySpecs: Record<(typeof assemblyNames)[number], FixtureSpec> = {
+const assemblySpecs: Readonly<Record<(typeof assemblyNames)[number], FixtureSpec>> = {
   "branch-backward-shuffled": negativeOver("branch-backward-shuffled", "test-linear", [
     replaceIn(
       "rtest13.xml",
@@ -4276,7 +4276,7 @@ const weightedOver = (
 const weightedVariables =
   '<qti-test-variables variable-identifier="SCORE" weight-identifier="WEIGHT"/>';
 
-const weightedSpecs: Record<(typeof weightedNames)[number], FixtureSpec> = {
+const weightedSpecs: Readonly<Record<(typeof weightedNames)[number], FixtureSpec>> = {
   "weighted-sum-float": weightedOver(
     "weighted-sum-float",
     '<qti-outcome-declaration identifier="WSUM" cardinality="single" base-type="float"/>',
@@ -4380,7 +4380,7 @@ const simpleWithCatalog = (reference: string, catalog: string): readonly TextEdi
 /**
  * The specs of {@link catalogNames}.
  */
-const catalogSpecs: Record<(typeof catalogNames)[number], FixtureSpec> = {
+const catalogSpecs: Readonly<Record<(typeof catalogNames)[number], FixtureSpec>> = {
   "card-empty": {
     edits: [
       addCatalogCard('<qti-card support="spoken"/>'),
@@ -4647,7 +4647,7 @@ const companionFullLast =
 /**
  * The specs of {@link companionNames}.
  */
-const companionSpecs: Record<(typeof companionNames)[number], FixtureSpec> = {
+const companionSpecs: Readonly<Record<(typeof companionNames)[number], FixtureSpec>> = {
   "companion-full": {
     edits: [
       companionBefore(companionFullFirst),
@@ -4774,7 +4774,7 @@ const ruleOf = (system: string): string =>
  * - `body-lang` is `catalog-lang` with an `xml:lang="es"` on the item body's first paragraph
  *   (decision 85).
  */
-const catalogNegativeSpecs: Record<(typeof catalogNegativeNames)[number], FixtureSpec> = {
+const catalogNegativeSpecs: Readonly<Record<(typeof catalogNegativeNames)[number], FixtureSpec>> = {
   "body-lang": catalogNegativeOver("body-lang", "catalog-lang", [
     replaceIn(
       "choice.xml",
@@ -4972,7 +4972,7 @@ const testSelectionForeignEdits: readonly Edit[] = [
  *   foreign element in a file's `metadata`, and `qti-ns-under-operator` a `qti-foo` after the
  *   operand.
  */
-const wildcardSpecs: Record<(typeof wildcardNames)[number], FixtureSpec> = {
+const wildcardSpecs: Readonly<Record<(typeof wildcardNames)[number], FixtureSpec>> = {
   "cut-custom-operator": overOperator("cut-custom-operator", []),
   "fallback-3-0-1": {
     ...cutItem("fallback-3-0-1", "BPIG_22April", fallbackItem),
@@ -5139,7 +5139,7 @@ const dataSsmlValues = {
  * - `data-ssml-custom` is `data-ssml="anything"` on a `li`, which does not declare it, so it is a
  *   custom `data-*` attribute with any text.
  */
-const ssmlSpecs: Record<(typeof ssmlNames)[number], FixtureSpec> = {
+const ssmlSpecs: Readonly<Record<(typeof ssmlNames)[number], FixtureSpec>> = {
   "data-ssml": ssmlOverSimple(
     "data-ssml",
     [
@@ -5603,7 +5603,7 @@ const pciModulesEdits: readonly Edit[] = [
 /**
  * The specs of {@link pciNames}.
  */
-const pciSpecs: Record<(typeof pciNames)[number], FixtureSpec> = {
+const pciSpecs: Readonly<Record<(typeof pciNames)[number], FixtureSpec>> = {
   "custom-3-0-1": overPciSimple(
     "custom-3-0-1",
     '<qti-response-declaration identifier="RESPONSE" cardinality="record"/>',
@@ -5696,7 +5696,7 @@ const pciModuleTap =
  * The specs of {@link pciNegativeNames}. Each is a hand-written positive of {@link pciNames} or a
  * cut of `pci_item_examples` with the one defect its name says.
  */
-const pciNegativeSpecs: Record<(typeof pciNegativeNames)[number], FixtureSpec> = {
+const pciNegativeSpecs: Readonly<Record<(typeof pciNegativeNames)[number], FixtureSpec>> = {
   "custom-attribute": overPciSimple(
     "custom-attribute",
     '<qti-response-declaration identifier="RESPONSE" cardinality="record"/>',
@@ -5918,7 +5918,7 @@ const dataTen = `<p ${Array.from({ length: 10 }, (_, index) => `data-k${String(i
  * - `data-uppercase` is `data-Group="g"` on `qti-choice-interaction`, `data-bare-prefix` is
  *   `data-="x"` on a `p`, and `data-item-body` is `data-x="1"` on `qti-item-body`.
  */
-const dataSpecs: Record<(typeof dataNames)[number], FixtureSpec> = {
+const dataSpecs: Readonly<Record<(typeof dataNames)[number], FixtureSpec>> = {
   "cut-data-attributes": {
     ...cutItem("cut-data-attributes", "items", dataAttributesItem),
     edits: [
@@ -6030,7 +6030,7 @@ const dataSpecs: Record<(typeof dataNames)[number], FixtureSpec> = {
  * by a `boolean single` one, `HINT`, and its `map_response` template dropped, which would name a
  * response no longer declared. No corpus item holds an end-attempt interaction (spec 3.6).
  */
-const writtenSpecs: Record<FixtureName, FixtureSpec> = {
+const writtenSpecs: Readonly<Record<FixtureName, FixtureSpec>> = {
   ...cutSpecs,
   ...htmlSpecs,
   ...copySpecs,
@@ -6656,11 +6656,13 @@ export const corpusPackage = (spec: FixtureSpec): FixtureSpec => ({
  * Every fixture's spec over its corpus package ({@link corpusPackage}), each edited one a variant
  * of that package ({@link variantOf}).
  */
-const specs: Record<FixtureName, FixtureSpec> = Rec.map((spec: FixtureSpec) =>
-  spec.edits.length === 0
-    ? corpusPackage(spec)
-    : variantOf(corpusPackage(spec), spec.name, spec.edits),
-)(writtenSpecs);
+const specs: Readonly<Record<FixtureName, FixtureSpec>> = Rec.map(
+  writtenSpecs,
+  (spec: FixtureSpec) =>
+    spec.edits.length === 0
+      ? corpusPackage(spec)
+      : variantOf(corpusPackage(spec), spec.name, spec.edits),
+);
 
 /**
  * Look up the spec a fixture name stands for.
@@ -6688,7 +6690,7 @@ export type NamedPackage = RefusedPackage | "usageData";
 /**
  * The tarball member of each {@link NamedPackage}.
  */
-const refusedMembers: Record<NamedPackage, string> = {
+const refusedMembers: Readonly<Record<NamedPackage, string>> = {
   CAT_Test01_Adaptive_EchoAdapt: "qtiv3-examples/CAT/CAT_Test01_Adaptive_EchoAdapt.zip",
   lti: "qtiv3-examples/packaging/lti/lti.zip",
   metaData: "qtiv3-examples/packaging/metaData/metaData.zip",

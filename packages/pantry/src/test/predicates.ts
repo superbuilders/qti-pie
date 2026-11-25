@@ -243,9 +243,14 @@ const doubleNamed = (text: string): number => {
 const integerText = arkregex("^[+-]?[0-9]+$", "u");
 
 /**
- * The bounds of `bigint`, a signed 64-bit integer.
+ * The least `bigint`, a signed 64-bit integer.
  */
-const [leastBigint, mostBigint] = [-(2n ** 63n), 2n ** 63n - 1n];
+const leastBigint = -(2n ** 63n);
+
+/**
+ * The greatest `bigint`, a signed 64-bit integer.
+ */
+const mostBigint = 2n ** 63n - 1n;
 
 /**
  * The integer a text names, as PostgreSQL's `int8in` reads a text a guard has held to grizzle's
@@ -920,7 +925,10 @@ const ordered = (left: Datum, right: Datum): number | undefined => {
 /**
  * The order comparisons a `compare` term makes, by operator, over {@link ordered}'s sign.
  */
-const orderTests = new Map<string, (order: number) => boolean>([
+const orderTests: ReadonlyMap<string, (order: number) => boolean> = new Map<
+  string,
+  (order: number) => boolean
+>([
   ["ge", (order) => order >= 0],
   ["gt", (order) => order > 0],
   ["le", (order) => order <= 0],
@@ -931,7 +939,10 @@ const orderTests = new Map<string, (order: number) => boolean>([
  * The order comparisons a `compare` term makes of two floats, by operator, over
  * {@link floatOrder}'s sign.
  */
-const floatTests = new Map<string, (left: number, right: number) => boolean>([
+const floatTests: ReadonlyMap<string, (left: number, right: number) => boolean> = new Map<
+  string,
+  (left: number, right: number) => boolean
+>([
   ["ge", (left, right) => floatOrder(left, right) >= 0],
   ["gt", (left, right) => floatOrder(left, right) > 0],
   ["le", (left, right) => floatOrder(left, right) <= 0],
@@ -1116,7 +1127,7 @@ const casts = {
   bigint: integerNamed,
   double: doubleNamed,
   numeric: numericNamed,
-} satisfies Readonly<Record<CastType, (text: string) => Datum | undefined>>;
+} as const satisfies Readonly<Record<CastType, (text: string) => Datum | undefined>>;
 
 /**
  * Cast a text into an integer, a float or an exact numeric, as {@link casts} reads it.

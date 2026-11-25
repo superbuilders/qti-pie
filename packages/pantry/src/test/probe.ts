@@ -85,7 +85,7 @@ export const packageOf = (files: Readonly<Record<string, string>>): readonly Pac
 /**
  * The base package: the manifest and the base item.
  */
-export const base = { "imsmanifest.xml": manifestOf(itemResource), "item.xml": item };
+export const base = { "imsmanifest.xml": manifestOf(itemResource), "item.xml": item } as const;
 
 /**
  * Judge a package built from its files' texts.

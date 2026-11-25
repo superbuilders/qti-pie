@@ -42,11 +42,6 @@ interface Predicted {
 }
 
 /**
- * The verdict of every package the cases judged, in corpus order; the last case writes them.
- */
-const predictions: Predicted[] = [];
-
-/**
  * Render predictions in the verdict file's layout: the header, then one line per zip sorted by
  * `file`, every line ended by a line feed.
  *
@@ -134,17 +129,22 @@ const unread = (document: string, detail: string, rule: CodecRule): Judgment => 
 /**
  * Judge one corpus package and keep its predicted verdict.
  *
+ * @param predictions - The verdict of every package the suite's cases judged, in corpus order,
+ *   which the suite makes and its last case writes.
  * @param entry - The corpus zip: its file, its tarball member and its name.
  * @param entry.dir - The zip file.
  * @param entry.member - Its tarball member.
  * @param entry.name - Its name.
  * @returns Completes once the prediction is kept.
  */
-const predict = Effect.fn("prewitness.predict")(function* predict(entry: {
-  readonly dir: string;
-  readonly member: string;
-  readonly name: string;
-}) {
+const predict = Effect.fn("prewitness.predict")(function* predict(
+  predictions: Predicted[],
+  entry: {
+    readonly dir: string;
+    readonly member: string;
+    readonly name: string;
+  },
+) {
   const judgment = yield* readEntries(entry.dir).pipe(
     Effect.flatMap((files) => judge(files, grammar, laws)),
     Effect.catchTags({
@@ -168,8 +168,10 @@ describe.skipIf(!settings.corpusRequested)("prewitness.corpus.oracle.test.ts, th
   layer(NodeServices.layer, { excludeTestServices: true })(
     "the predicted verdict of every corpus package",
     (it) => {
+      const predictions: Predicted[] = [];
+
       for (const entry of corpus) {
-        it.effect(`${entry.name} is judged by the laws`, () => predict(entry));
+        it.effect(`${entry.name} is judged by the laws`, () => predict(predictions, entry));
       }
 
       it.effect("the predictions, written beside the committed verdicts", () =>

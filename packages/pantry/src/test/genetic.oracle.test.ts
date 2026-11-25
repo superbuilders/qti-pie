@@ -103,7 +103,7 @@ const chosen = {
 const knownList = [
   ...known.map((entry) => ({ entry, shows: true })),
   ...fixed.map((entry) => ({ entry, shows: false })),
-];
+] as const;
 
 /**
  * Whether a disagreement shows an entry's class as the replay below reads it: a known entry's as it
@@ -358,27 +358,47 @@ const unshowable: readonly Signature[] = [
 const recorded: readonly Signature[] = known.map(({ signature }) => signature);
 
 /**
- * Each feature over the rotating runs, with the runs that showed it, for the residual printed after
- * the last run.
+ * What the suite's runs saw, for the report printed after the last: the suite makes one and hands
+ * it to every run.
  */
-const acrossRuns = new Map<Feature, number>();
+interface Tally {
+  /**
+   * Each feature over the rotating runs, with the runs that showed it, for the residual.
+   */
+  readonly acrossRuns: Map<Feature, number>;
+  /**
+   * The rotating runs counted into {@link Tally.acrossRuns}.
+   */
+  rotatingRuns: number;
+  /**
+   * Each law the oracle raised in any run, with the candidates that raised it, whether one raised
+   * it alone, and the laws every candidate that raised it raised beside it.
+   */
+  readonly isolation: {
+    readonly alone: Set<string>;
+    readonly beside: Map<string, ReadonlySet<string>>;
+    readonly raised: Map<string, number>;
+  };
+}
 
 /**
- * The rotating runs counted into {@link acrossRuns}.
+ * A suite's tally before its first run.
+ *
+ * @returns The tally, empty.
  */
-let rotatingRuns = 0;
+const emptyTally = (): Tally => ({
+  acrossRuns: new Map(),
+  isolation: { alone: new Set(), beside: new Map(), raised: new Map() },
+  rotatingRuns: 0,
+});
 
 /**
- * Each law the oracle raised in any run, with the candidates that raised it, whether one raised it
- * alone, and the laws every candidate that raised it raised beside it.
+ * Print what the suite's runs saw, once the last has run: the laws broken alone, raised only
+ * beside others or never raised, and the residual risk over the rotating runs.
+ *
+ * @param tally - The suite's tally.
  */
-const isolation = {
-  alone: new Set<string>(),
-  beside: new Map<string, ReadonlySet<string>>(),
-  raised: new Map<string, number>(),
-};
-
-afterAll(() => {
+const reportTally = ({ acrossRuns, isolation, rotatingRuns }: Tally): void => {
   if (!settings.geneticRequested) {
     return;
   }
@@ -400,11 +420,17 @@ afterAll(() => {
     `genetic differential, laws broken alone: ${String(isolation.alone.size)} of ${String(Object.keys(lawTable).length)} stated\nraised, never alone: ${together.join("; ") || "none"}\nnever raised: ${never.join(", ") || "none"}`,
   );
   console.log(`genetic differential, residual risk over the rotating runs:\n${lines.join("\n")}`);
-});
+};
 
 layer(NodeServices.layer, { excludeTestServices: true })(
   "the genetic differential of the import's host path and the law oracle",
   (it) => {
+    const tally = emptyTally();
+
+    afterAll(() => {
+      reportTally(tally);
+    });
+
     it.effect("still shows every known disagreement, and no fixed one", (ctx) =>
       // Oracle: a second implementation, the law oracle, against readProgram's refusal and the
       // laws its rows hold on the host. Bound: each known and fixed entry's package, judged once,
@@ -718,15 +744,15 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   );
                   c.noteAll(report.evolved.features.keys());
                   for (const law of report.isolation.alone) {
-                    isolation.alone.add(law);
+                    tally.isolation.alone.add(law);
                   }
 
                   for (const [law, count] of report.isolation.raised) {
-                    isolation.raised.set(law, (isolation.raised.get(law) ?? 0) + count);
+                    tally.isolation.raised.set(law, (tally.isolation.raised.get(law) ?? 0) + count);
 
                     const now = report.isolation.beside.get(law) ?? new Set<string>();
-                    const held = isolation.beside.get(law);
-                    isolation.beside.set(
+                    const held = tally.isolation.beside.get(law);
+                    tally.isolation.beside.set(
                       law,
                       new Set(
                         held === undefined ? now : [...now].filter((other) => held.has(other)),
@@ -734,9 +760,9 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                     );
                   }
                   if (rotating) {
-                    rotatingRuns += 1;
+                    tally.rotatingRuns += 1;
                     for (const feature of report.evolved.features.keys()) {
-                      acrossRuns.set(feature, (acrossRuns.get(feature) ?? 0) + 1);
+                      tally.acrossRuns.set(feature, (tally.acrossRuns.get(feature) ?? 0) + 1);
                     }
                   }
 

@@ -153,9 +153,21 @@ const signatureOf = (difference: Difference): string =>
   ].join(" ");
 
 /**
- * Count, by its reason, each record the judged differences matched, for the report.
+ * What a test's judgments matched, for its report: by its reason, each record the judged
+ * differences matched, and by its owner, each known disagreement they matched, which the stale
+ * check reads. Each test makes its own and hands it to every judgment.
  */
-const matchedCounts = new Map<string, number>();
+interface Matched {
+  readonly known: Map<Known, number>;
+  readonly records: Map<string, number>;
+}
+
+/**
+ * A test's matches before its first judgment.
+ *
+ * @returns The counts, empty.
+ */
+const noMatches = (): Matched => ({ known: new Map(), records: new Map() });
 
 /**
  * A known disagreement: a defect a lane owns and whose fix is queued, recorded so main stays green
@@ -194,12 +206,6 @@ const knownOf = (difference: Difference): Known | undefined =>
   );
 
 /**
- * Count, by its owner, each known disagreement the judged differences matched, for the report and
- * the stale check.
- */
-const knownCounts = new Map<Known, number>();
-
-/**
  * Judge documents with both oracles: each written once, `xmllint` run once per root schema set,
  * the law oracle on each document, and every difference classified.
  *
@@ -209,10 +215,12 @@ const knownCounts = new Map<Known, number>();
  * @param input.laws - Its law tables.
  * @param input.oracle - What `writeXsdOracle` wrote.
  * @param input.folder - The folder the documents are written to.
+ * @param input.matched - What the test's judgments matched so far, which this one adds to.
  * @returns One judgment per document, in order.
  */
 const judgeAll = Effect.fn("test.geneticXsd.judgeAll")(function* judgeAll(input: {
   readonly folder: string;
+  readonly matched: Matched;
   readonly genomes: readonly XsdGenome[];
   readonly grammar: ComposedGrammar;
   readonly laws: Laws;
@@ -294,12 +302,12 @@ const judgeAll = Effect.fn("test.geneticXsd.judgeAll")(function* judgeAll(input:
           });
           const known = record === undefined ? knownOf(difference) : undefined;
           if (known !== undefined) {
-            knownCounts.set(known, (knownCounts.get(known) ?? 0) + 1);
+            input.matched.known.set(known, (input.matched.known.get(known) ?? 0) + 1);
           } else if (record === undefined) {
             disagreements.push(difference);
           } else {
             const reason = reasonText(record.reason).slice(0, 60);
-            matchedCounts.set(reason, (matchedCounts.get(reason) ?? 0) + 1);
+            input.matched.records.set(reason, (input.matched.records.get(reason) ?? 0) + 1);
           }
         }
       }
@@ -708,18 +716,20 @@ describe("genetic-xsd.oracle.test.ts", () => {
               fixedDrawn,
             );
             const oracle = yield* writeXsdOracle(oracleRoot);
+            const matched = noMatches();
             const judge = (folder: string, genomes: readonly XsdGenome[]) =>
               judgeAll({
                 folder: `${scratchRoot}/${folder}`,
                 genomes,
                 grammar,
                 laws,
+                matched,
                 oracle,
               });
             const seedJudgments = yield* judge("seeds", seeds);
             const kept = yield* keptGenomes;
             // The kept documents run last, so the counts that follow are theirs alone.
-            knownCounts.clear();
+            matched.known.clear();
 
             const keptJudgments = yield* judge("kept", kept);
             const reports: string[] = [
@@ -745,7 +755,7 @@ describe("genetic-xsd.oracle.test.ts", () => {
                 ),
               ),
               ...knownDisagreements.flatMap((entry) =>
-                (knownCounts.get(entry) ?? 0) === 0
+                (matched.known.get(entry) ?? 0) === 0
                   ? [
                       `known disagreement of ${entry.owner} is stale: no kept document shows it any more, so its fix has landed and the record goes (${entry.why})`,
                     ]
@@ -755,7 +765,7 @@ describe("genetic-xsd.oracle.test.ts", () => {
             yield* Console.log(
               [
                 `genetic-xsd replay: ${String(seeds.length)} seeds (${String(seeds.length - fixedDrawn)} lawful, ${String(fixedDrawn)} drawn of the floor stream) and ${String(kept.length)} kept documents`,
-                `  recorded classes matched: ${[...matchedCounts].map(([reason, count]) => `${reason}… ${String(count)}`).join("; ")}`,
+                `  recorded classes matched: ${[...matched.records].map(([reason, count]) => `${reason}… ${String(count)}`).join("; ")}`,
                 ...reports,
               ].join("\n"),
             );
@@ -794,6 +804,7 @@ describe("genetic-xsd.oracle.test.ts", () => {
             let generation = 0;
             let disagreeing = 0;
             const lawfulVerdicts = new Map<string, number>();
+            const matched = noMatches();
             const judge = (genomes: readonly XsdGenome[]) => {
               generation += 1;
 
@@ -802,6 +813,7 @@ describe("genetic-xsd.oracle.test.ts", () => {
                 genomes,
                 grammar,
                 laws,
+                matched,
                 oracle,
               }).pipe(
                 Effect.tap((judgments) => {
@@ -845,7 +857,7 @@ describe("genetic-xsd.oracle.test.ts", () => {
                 `genetic-xsd: TEST_SEED=${String(run.seed)}, budget ${JSON.stringify(budget)} beside ${String(lawful.size)} lawful seeds, ${String(evolved.evaluated)} documents judged, population ${String(evolved.population)}, ${String(evolved.features.size)} features, ${String(evolved.found.size)} disagreement classes`,
                 `  lawful seeds' verdicts: ${[...lawfulVerdicts].map(([verdict, count]) => `${verdict.slice("verdict:".length)} ${String(count)}`).join("; ")}`,
                 `  residual (Good–Turing f1/n) by family: ${evolved.residual.map(({ candidates, estimate, family, observed, singletons }) => `${family} ${String(singletons)}/${String(candidates)} = ${estimate.toFixed(3)} of ${String(observed)} seen`).join("; ")}`,
-                `  recorded classes matched: ${[...matchedCounts].map(([reason, count]) => `${reason}… ${String(count)}`).join("; ")}`,
+                `  recorded classes matched: ${[...matched.records].map(([reason, count]) => `${reason}… ${String(count)}`).join("; ")}`,
                 ...found.map(([signature]) => `  class: ${signature.slice(0, 300)}`),
               ].join("\n"),
             );

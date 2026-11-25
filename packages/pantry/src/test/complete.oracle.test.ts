@@ -153,50 +153,59 @@ const rankOf = (rule: string): number => {
 };
 
 /**
- * The bases the mutations read, built once per base function and member counts, with whether the
- * oracle accepts each.
+ * What the suite's mutations have built and judged, each once: the bases, by base function and
+ * member counts; what the oracle finds wrong with each base; and the folded rows of each base
+ * document a rows mutation edits, by base and path. The suite makes one and hands it to every case.
  */
-const bases = new Map<string, PackageEntries>();
+interface Bases {
+  readonly entries: Map<string, PackageEntries>;
+  readonly faults: Map<PackageEntries, readonly string[]>;
+  readonly folded: Map<string, FoldedRows<Composed>>;
+}
+
+/**
+ * A suite's bases before its first case.
+ *
+ * @returns The bases, none built.
+ */
+const noBases = (): Bases => ({ entries: new Map(), faults: new Map(), folded: new Map() });
 
 /**
  * Build a mutation's base for member counts, once.
  *
+ * @param bases - What the suite has built.
  * @param build - The base's function of member counts.
  * @param members - The counts.
  * @returns The base's entries.
  */
 const baseOf = (
+  bases: Bases,
   build: (members: MemberCounts) => PackageEntries,
   members: MemberCounts,
 ): PackageEntries => {
   const key = `${build.name} ${JSON.stringify(members)}`;
-  const cached = bases.get(key);
+  const cached = bases.entries.get(key);
   if (cached !== undefined) {
     return cached;
   }
 
   const built = build(members);
-  bases.set(key, built);
+  bases.entries.set(key, built);
 
   return built;
 };
 
 /**
- * What the oracle finds wrong with each base the property has judged: its breaches, shown, or its
- * codec refusal.
- */
-const baseFaults = new Map<PackageEntries, readonly string[]>();
-
-/**
  * Judge a base once, for the precondition that the oracle accepts it.
  *
+ * @param bases - What the suite has built and judged.
  * @param entries - The base.
  * @returns What the oracle finds wrong with it: its breaches, shown, or its codec refusal; none for a
  *   base it accepts.
  */
-const faultsOf = (entries: PackageEntries) =>
+const faultsOf = (bases: Bases, entries: PackageEntries) =>
   Effect.gen(function* judgeBase() {
-    const cached = baseFaults.get(entries);
+    const cached = bases.faults.get(entries);
     if (cached !== undefined) {
       return cached;
     }
@@ -206,15 +215,10 @@ const faultsOf = (entries: PackageEntries) =>
       judgment._tag === "Judged"
         ? judgment.breaches.map((breach) => shownBreach(breach, grammar))
         : [`the codec refuses it under ${judgment.rule}: ${judgment.detail}`];
-    baseFaults.set(entries, faults);
+    bases.faults.set(entries, faults);
 
     return faults;
   });
-
-/**
- * The folded rows of each base document a rows mutation edits, by base and path.
- */
-const foldedBases = new Map<string, FoldedRows<Composed>>();
 
 /**
  * Hold a mutated package's breaches to its law: the oracle raises the law, and no law whose rule
@@ -245,20 +249,22 @@ const holdsTo = (law: LawName, breaches: readonly Breach[], literal: string): vo
 /**
  * Judge one drawn case of a law's mutation.
  *
+ * @param bases - What the suite has built and judged.
  * @param mutation - The mutation, which names the law it breaks.
  * @returns The property over the case's member counts.
  */
-const property = (mutation: Mutation) => (members: MemberCounts, c: Case<string>) =>
+const property = (bases: Bases, mutation: Mutation) => (members: MemberCounts, c: Case<string>) =>
   Effect.gen(function* breaksItsLaw() {
     const { law } = mutation;
     const literal = JSON.stringify(members);
     const entries = baseOf(
+      bases,
       mutation.over === "package" ? (mutation.base ?? everyRelationBase) : everyRelationBase,
       members,
     );
 
     assert.deepStrictEqual(
-      yield* faultsOf(entries),
+      yield* faultsOf(bases, entries),
       [],
       `${law}: the base ${literal} breaks a law before its mutation`,
     );
@@ -281,8 +287,8 @@ const property = (mutation: Mutation) => (members: MemberCounts, c: Case<string>
 
     const key = `${literal} ${mutation.document}`;
     const rows =
-      foldedBases.get(key) ?? (yield* foldedDocument(entries, mutation.document, grammar));
-    foldedBases.set(key, rows);
+      bases.folded.get(key) ?? (yield* foldedDocument(entries, mutation.document, grammar));
+    bases.folded.set(key, rows);
 
     assert.deepStrictEqual(
       documentBreaches(mutation.document, rows, laws).map((breach) => shownBreach(breach, grammar)),
@@ -313,6 +319,8 @@ describe("every law the oracle declares", () => {
     );
   });
 
+  const bases = noBases();
+
   for (const [name, mutation] of Object.entries<Mutation>(mutations)) {
     it.effect(
       `${name}: a package drawn to break ${mutation.law} is refused by it, and by no law ahead of its rule`,
@@ -341,7 +349,7 @@ describe("every law the oracle declares", () => {
               steerEvery: 16,
               suite: `pantry/oracle-complete/${name}`,
             },
-            property(mutation),
+            property(bases, mutation),
           ),
         ),
     );

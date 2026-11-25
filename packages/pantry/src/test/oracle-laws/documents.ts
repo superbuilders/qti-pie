@@ -455,12 +455,16 @@ const templatePrefixes = [
 /**
  * The response every published template reads, as a response variable.
  */
-const responseNeed = { identifier: "RESPONSE", kinds: ["qti-response-declaration"], use: "read" };
+const responseNeed = {
+  identifier: "RESPONSE",
+  kinds: ["qti-response-declaration"],
+  use: "read",
+} as const;
 
 /**
  * The outcome every published template sets.
  */
-const scoreNeed = { identifier: "SCORE", kinds: ["qti-outcome-declaration"], use: "set" };
+const scoreNeed = { identifier: "SCORE", kinds: ["qti-outcome-declaration"], use: "set" } as const;
 
 /**
  * The variable the Common Cartridge templates that set feedback read, of any declared kind.
@@ -469,7 +473,7 @@ const maxScoreNeed = {
   identifier: "MAXSCORE",
   kinds: ["qti-outcome-declaration", "qti-response-declaration", "qti-template-declaration"],
   use: "read",
-};
+} as const;
 
 /**
  * An outcome a template sets.
@@ -490,7 +494,14 @@ const outcomeNeed = (identifier: string) => ({
  * model §6.9.40, §6.9.27, §6.9.47, §6.9.46), an outcome that `qti-set-outcome-value` sets
  * (§6.39.4), and a variable that `qti-variable` reads, of any declared kind (§6.9.40).
  */
-const publishedNeeds = new Map<
+const publishedNeeds: ReadonlyMap<
+  string,
+  readonly {
+    readonly identifier: string;
+    readonly kinds: readonly string[];
+    readonly use: string;
+  }[]
+> = new Map<
   string,
   readonly {
     readonly identifier: string;

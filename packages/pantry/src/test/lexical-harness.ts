@@ -781,7 +781,7 @@ export const families = {
   language: ["en", "en-US", "x-klingon", "i-default", "en_US", "123", "abcdefghi", "a-b-c-d-e-f-g"],
   name: ["a", "a.b", "_a", "a-b", "a1", "1a", "-a", ".a", "a:b", "a b", "é"],
   string: ["a", "a b", "a  b", "é", "ä€𝄞", "a\tb", "a\nb", "<", '"', "&", ":", "%"],
-} satisfies Readonly<Record<string, readonly string[]>>;
+} as const satisfies Readonly<Record<string, readonly string[]>>;
 
 /**
  * {@link families}, looked up by a family name read off a domain.
@@ -1429,14 +1429,15 @@ export const subjectName = (subject: Subject): string =>
 /**
  * The inventory's attribute declarations, by `kind name`.
  */
-const declaredAttributes = new Map(
+const declaredAttributes: ReadonlyMap<string, (typeof attributeDeclarations)[number]> = new Map(
   attributeDeclarations.map((row) => [`${row.kind} ${row.name}`, row] as const),
 );
 
 /**
  * The inventory's text types, by kind.
  */
-const declaredTexts = new Map(textTypes.map((row) => [row.kind, row] as const));
+const declaredTexts: ReadonlyMap<(typeof textTypes)[number]["kind"], (typeof textTypes)[number]> =
+  new Map(textTypes.map((row) => [row.kind, row] as const));
 
 /**
  * Find the inventory's declaration of an attribute of a kind.

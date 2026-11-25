@@ -134,7 +134,7 @@ type Value =
  */
 type Pair = readonly [name: string, value: Value];
 
-const whitespace = new Set([" ", "\t", "\n", "\r"]);
+const whitespace: ReadonlySet<string> = new Set([" ", "\t", "\n", "\r"]);
 
 const escapes: ReadonlyMap<string, string> = new Map([
   ['"', '"'],
