@@ -142,6 +142,28 @@ const declaredProperties = (sheet: string): ReadonlySet<string> =>
   );
 
 /**
+ * Give a rule's declarations, each as `property: value`: its whitespace collapsed, one space after
+ * the property's colon and none before it, and the property in lower case but a custom property,
+ * whose name keeps its case, so every check reads one spelling of each.
+ *
+ * @param body The rule's block, between its braces.
+ * @returns Each declaration.
+ */
+const declarationsIn = (body: string): readonly string[] =>
+  body
+    .split(";")
+    .map((declaration) => declaration.trim().replaceAll(/\s+/gu, " "))
+    .filter((declaration) => declaration !== "")
+    .map((declaration) => {
+      const colon = declaration.indexOf(":");
+      const property = declaration.slice(0, colon).trim();
+
+      return colon === -1
+        ? declaration
+        : `${property.startsWith("--") ? property : property.toLowerCase()}: ${declaration.slice(colon + 1).trim()}`;
+    });
+
+/**
  * Give the declarations of a sheet's one rule whose selector, its whitespace collapsed, ends in
  * the given text.
  *
@@ -158,10 +180,7 @@ const declarationsOf = (sheet: string, selector: string): readonly string[] => {
 
   assert.strictEqual(rules.length, 1, `one rule ends in ${selector}`);
 
-  return (rules[0]?.groups?.["body"] ?? "")
-    .split(";")
-    .map((declaration) => declaration.trim().replaceAll(/\s+/gu, " "))
-    .filter((declaration) => declaration !== "");
+  return declarationsIn(rules[0]?.groups?.["body"] ?? "");
 };
 
 /**
@@ -181,10 +200,7 @@ interface Rule {
  */
 const rulesOf = (sheet: string): readonly Rule[] =>
   [...uncommented(sheet).matchAll(/(?<selector>[^{};]+)\{(?<body>[^{}]*)\}/gu)].map((match) => ({
-    declarations: (match.groups?.["body"] ?? "")
-      .split(";")
-      .map((declaration) => declaration.trim().replaceAll(/\s+/gu, " "))
-      .filter((declaration) => declaration !== ""),
+    declarations: declarationsIn(match.groups?.["body"] ?? ""),
     selector: (match.groups?.["selector"] ?? "").trim().replaceAll(/\s+/gu, " "),
   }));
 
@@ -325,8 +341,33 @@ const presenting =
 const framing = /^(?:content|position|inset|pointer-events)$/u;
 
 /**
- * Give what a sheet declares outside {@link presenting}, or outside {@link framing} too where every
- * selector of the rule is a pseudo-element's.
+ * Tell whether a declaration of a theme moves or grows its part's press: outside
+ * {@link presenting}, a margin that pulls the part over another, or for a pseudo-element's frame,
+ * outside {@link framing} or an inset other than 0.
+ *
+ * @param declaration The declaration, `property: value`.
+ * @param pseudo Whether every selector of its rule is a pseudo-element's.
+ * @returns Whether it does.
+ */
+const movesPress = (declaration: string, pseudo: boolean): boolean => {
+  const colon = declaration.indexOf(":");
+  const property = declaration.slice(0, colon).trim();
+  const value = declaration.slice(colon + 1).trim();
+
+  if (property.startsWith("margin")) {
+    return value.includes("-");
+  }
+
+  if (pseudo && framing.test(property)) {
+    return property === "inset" && value !== "0";
+  }
+
+  return !presenting.test(property);
+};
+
+/**
+ * Give what a sheet declares that {@link movesPress} its part, and each pseudo-element's frame that
+ * takes the press (a position without `pointer-events: none`).
  *
  * @param sheet The sheet.
  * @returns Each such declaration, with its rule's selector.
@@ -334,14 +375,19 @@ const framing = /^(?:content|position|inset|pointer-events)$/u;
 const unpresenting = (sheet: string): readonly string[] =>
   rulesOf(sheet).flatMap(({ declarations, selector }) => {
     const pseudo = subjectsOf(selector).every((compound) => compound.includes("::"));
+    const pressed =
+      pseudo &&
+      declarations.some((declaration) => declaration.startsWith("position:")) &&
+      !declarations.includes("pointer-events: none")
+        ? [`${selector} { pointer-events: none is missing }`]
+        : [];
 
-    return declarations
-      .filter((declaration) => {
-        const property = declaration.split(":")[0]?.trim() ?? "";
-
-        return !presenting.test(property) && !(pseudo && framing.test(property));
-      })
-      .map((declaration) => `${selector} { ${declaration} }`);
+    return [
+      ...declarations
+        .filter((declaration) => movesPress(declaration, pseudo))
+        .map((declaration) => `${selector} { ${declaration} }`),
+      ...pressed,
+    ];
   });
 
 /**
@@ -676,19 +722,29 @@ describe("Alpha's sheets", () => {
     assert.deepStrictEqual(unpresenting(alphaSheets.get("alpha/styles/theme.css") ?? ""), []);
     for (const [sheet, text] of alphaSheets) {
       assert.notInclude(uncommented(text), "&", `${sheet} nests a rule`);
-      assert.notMatch(uncommented(text), /\[class/u, `${sheet} selects a class by attribute`);
+      assert.notMatch(uncommented(text), /\[\s*class/iu, `${sheet} selects a class by attribute`);
     }
     assert.deepStrictEqual(
       unpresenting(
-        ".a { color: red; zoom: 0.5 } .b::after, .b { display: none } .c { translate: 0 -40px; writing-mode: vertical-rl } .d::before { position: absolute; inset: 0 }",
+        ".a { color: red; zoom: 0.5 } .b::after, .b { display: none } .c { translate: 0 -40px; writing-mode: vertical-rl } .d::before { position: absolute; inset: 0; pointer-events: none } .e::after { content: ''; position: absolute; inset: -1000px } .f { margin: 0 0 0.5rem; margin-inline-start: -40px }",
       ),
       [
         ".a { zoom: 0.5 }",
         ".b::after, .b { display: none }",
         ".c { translate: 0 -40px }",
         ".c { writing-mode: vertical-rl }",
+        ".e::after { inset: -1000px }",
+        ".e::after { pointer-events: none is missing }",
+        ".f { margin-inline-start: -40px }",
       ],
       "a theme's rule that lays out, sizes, moves or hides a part is read, a frame is not (the plant)",
+    );
+    assert.deepStrictEqual(
+      rulesOf(".a { --plate-number-strip-room : 0 ; POSITION :absolute }").flatMap(
+        ({ declarations }) => declarations,
+      ),
+      ["--plate-number-strip-room: 0", "position: absolute"],
+      "every declaration is read in one spelling (the plant)",
     );
   });
 
@@ -713,13 +769,16 @@ describe("Alpha's sheets", () => {
       ["forced-color-adjust: none", "background: Mark", "color: MarkText"],
     );
 
-    const rooms = [
-      ...uncommented(theme).matchAll(/--plate-number-strip-room:\s*(?<rem>[0-9.]+)rem/gu),
-    ];
+    const rooms = rulesOf(theme).flatMap(({ declarations }) =>
+      declarations.filter((declaration) => declaration.startsWith("--plate-number-strip-room:")),
+    );
 
     assert.isAbove(rooms.length, 0, "the theme sets the strip's room");
     for (const room of rooms) {
-      assert.isAtLeast(Number(room.groups?.["rem"]), 0.75, "the room holds plate's badge, 0.75rem");
+      const rem = /^--plate-number-strip-room: (?<rem>[0-9]+(?:\.[0-9]+)?)rem$/u.exec(room)
+        ?.groups?.["rem"];
+
+      assert.isAtLeast(Number(rem ?? 0), 0.75, `${room}: the room holds plate's badge, 0.75rem`);
     }
     assert.deepStrictEqual(
       [
