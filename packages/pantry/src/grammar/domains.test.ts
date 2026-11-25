@@ -636,7 +636,7 @@ describe("Length facets", () => {
                       item: Result.getOrThrow(builtinDomainOf("NMTOKEN")),
                       patterns: [],
                     };
-              const counts = [0, 1, 2, 3, 4];
+              const counts = Array.from({ length: 5 }, (_, count) => count);
               const admitted = counts.filter((count) => lengthHolds(lengths, count));
               if (variety === "list") {
                 c.note("list");
