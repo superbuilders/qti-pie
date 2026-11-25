@@ -14,7 +14,12 @@ import { regex } from "arkregex";
 import { readFileSync } from "node:fs";
 import nodePath from "node:path";
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Option } from "effect";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { noCoverage } from "@bjornpagen/testing/features";
+import { boolean } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
+import { Effect, Formatter, Option } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { integerMathOperators, referencedTables, valueBases } from "#pantry/grammar/expression.ts";
 import {
@@ -74,6 +79,7 @@ import {
   rootLanguages,
   ruleKindHandles,
 } from "#pantry/vocab/terms/expression-types.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { builtInTypes } from "#pantry/test/built-in-types.ts";
 
 /**
@@ -1284,65 +1290,107 @@ const declarationsInTree = (tree: XdmDocument<Composed>): ReadonlySet<string> =>
   return declared;
 };
 
-describe("import/overlays/expressions.ts, the claims a reference proves, a test's references read as spec readings `dotted-reference` and `numbered-reference` read them (representation-gaps.md §4)", () => {
-  it("types a test variables that writes no base-type unknown, or float where it is weighted", () => {
-    for (const [written, weighted] of [
-      [false, false],
-      [false, true],
-      [true, false],
-      [true, true],
-    ] as const) {
-      const tree = documentOfRoot(
-        el(
-          "qti-assessment-test",
-          [
-            ["identifier", "T"],
-            ["title", "T"],
-          ],
-          [
-            el(
-              "qti-outcome-processing",
-              [],
-              [
-                el(
-                  "qti-set-outcome-value",
-                  [["identifier", "OUT"]],
-                  [
-                    el(
-                      "qti-sum",
-                      [],
-                      [
-                        el(
-                          "qti-test-variables",
-                          [
-                            ["variable-identifier", "SCORE"],
-                            ...(written ? ([["base-type", "float"]] as const) : []),
-                            ...(weighted ? ([["weight-identifier", "W"]] as const) : []),
-                          ],
-                          [],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-      const rows = rowsOfTree(tree);
-      const variables = [...rows.Expression.values()].find(
-        ({ start }) => nodeAt(rows, start).kind === "qti-test-variables",
-      );
+/**
+ * A form of a test variables: whether it writes a base-type, and whether it writes a weight.
+ */
+interface TestVariablesForm {
+  readonly weighted: boolean;
+  readonly written: boolean;
+}
 
-      assert.strictEqual(
-        variables?.baseType,
-        written || weighted ? "float" : "unknown",
-        `the information model's TestVariables, its base-type ${written ? "" : "un"}written and its weight ${weighted ? "" : "un"}written (§7.39.6: a base-type, where written, selects the variables matched and is the result's; none written, every integer and float one): the expression is float where it writes a base-type of float or a weight (§7.39.5: "When a weighting is specified the result of the expression always has base-type float"), and unknown where it writes neither`,
-      );
-      assert.isFalse(breachesOf(rows).has("E1_derived"), "no row copies an attribute it writes");
-    }
-  });
+/**
+ * Draw a form of a test variables: its base-type written or not, and its weight written or not.
+ */
+const testVariablesForms: Gen<TestVariablesForm> = (source) => ({
+  weighted: source.draw(boolean),
+  written: source.draw(boolean),
+});
+
+/**
+ * How many forms {@link testVariablesForms} draws: each of the two attributes written or not.
+ */
+const TEST_VARIABLES_FORMS = 2 * 2;
+
+describe("import/overlays/expressions.ts, the claims a reference proves, a test's references read as spec readings `dotted-reference` and `numbered-reference` read them (representation-gaps.md §4)", () => {
+  it.effect(
+    `types a test variables that writes no base-type unknown, or float where it is weighted: ${String(TEST_VARIABLES_FORMS)} forms`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(testVariablesForms, TEST_VARIABLES_FORMS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "a test variables with its base-type written as float or not, and its weight written or not",
+              caseHang: "30 seconds",
+              coverage: noCoverage,
+              generator: testVariablesForms,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the information model's TestVariables: a base-type, where written, selects the variables matched and is the result's, none written every integer and float one (§7.39.6), and with a weighting the result always has base-type float (§7.39.5)",
+              },
+              suite: "import/expressions/test-variables",
+            },
+            ({ weighted, written }) =>
+              Effect.sync(() => {
+                const tree = documentOfRoot(
+                  el(
+                    "qti-assessment-test",
+                    [
+                      ["identifier", "T"],
+                      ["title", "T"],
+                    ],
+                    [
+                      el(
+                        "qti-outcome-processing",
+                        [],
+                        [
+                          el(
+                            "qti-set-outcome-value",
+                            [["identifier", "OUT"]],
+                            [
+                              el(
+                                "qti-sum",
+                                [],
+                                [
+                                  el(
+                                    "qti-test-variables",
+                                    [
+                                      ["variable-identifier", "SCORE"],
+                                      ...(written ? ([["base-type", "float"]] as const) : []),
+                                      ...(weighted ? ([["weight-identifier", "W"]] as const) : []),
+                                    ],
+                                    [],
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+                const rows = rowsOfTree(tree);
+                const variables = [...rows.Expression.values()].find(
+                  ({ start }) => nodeAt(rows, start).kind === "qti-test-variables",
+                );
+
+                assert.strictEqual(
+                  variables?.baseType,
+                  written || weighted ? "float" : "unknown",
+                  `the information model's TestVariables, its base-type ${written ? "" : "un"}written and its weight ${weighted ? "" : "un"}written (§7.39.6: a base-type, where written, selects the variables matched and is the result's; none written, every integer and float one): the expression is float where it writes a base-type of float or a weight (§7.39.5: "When a weighting is specified the result of the expression always has base-type float"), and unknown where it writes neither`,
+                );
+                assert.isFalse(
+                  breachesOf(rows).has("E1_derived"),
+                  "no row copies an attribute it writes",
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 
   it.effect(
     "resolves a reference to a declaration exactly where its document declares its name, and types every unwritten unweighted base type unknown",
