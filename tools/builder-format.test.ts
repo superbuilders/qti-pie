@@ -35,6 +35,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { assert, describe, it } from "@effect/vitest";
+import { regex } from "arkregex";
 
 /**
  * The builder's markup that names nothing private, one alternative an entry, so each is held to
@@ -191,6 +192,23 @@ const DENIED_TEXT = listed("builder-format.denied-text.sha256");
  */
 const digest = (bytes: Uint8Array): string =>
   createHash("sha256").update(bytes).digest("hex").slice(0, 16);
+
+/**
+ * Hold a list of digests beside this suite to its shape: at least as many lines as the delivery's
+ * files or texts number, so a truncated list fails, each the first 16 hex digits of a SHA-256, as
+ * {@link digest} writes them.
+ *
+ * @param name The list's name, for the failure.
+ * @param list The list, as {@link listed} reads it.
+ * @param least The fewest lines the list holds.
+ */
+const holdsDigests = (name: string, list: ReadonlySet<string>, least: number): void => {
+  assert.isAtLeast(list.size, least, `the ${name} list is short`);
+  assert.isTrue(
+    [...list].every((entry) => regex("^[0-9a-f]{16}$", "u").test(entry)),
+    `a ${name} line is not 16 hex digits`,
+  );
+};
 
 /**
  * Name what of the builder's markup a text carries. Each alternative runs on its own: V8 scans a
@@ -907,16 +925,9 @@ describe("a private item builder's draft format and its delivery's files are ban
   });
 
   it("catches a file of the delivery by its digest, whole, as a data: URI or reformatted, and nothing else", () => {
-    for (const [name, list, least] of [
-      ["denied-files", DENIED, 3000],
-      ["denied-text", DENIED_TEXT, 2500],
-    ] as const) {
-      assert.isAtLeast(list.size, least, `the ${name} list is short`);
-      assert.isTrue(
-        [...list].every((entry) => /^[0-9a-f]{16}$/u.test(entry)),
-        `a ${name} line is not 16 hex digits`,
-      );
-    }
+    holdsDigests("denied-files", DENIED, 3000);
+    holdsDigests("denied-text", DENIED_TEXT, 2500);
+
     const planted = Buffer.from(
       "a planted file standing in for one of the delivery's, long enough to be listed",
     );
