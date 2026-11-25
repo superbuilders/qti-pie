@@ -1483,32 +1483,75 @@ const hidingP1 = (entry: SimpleChoice): SimpleChoice =>
     : entry;
 
 /**
- * A case of the visibility rule: the `show-hide`, the value `VISIBLE` holds and how a title says
- * it, and whether the part with the identifier `X` is shown.
+ * The identifiers a value of `VISIBLE` holds: `X`, the identifier of every template part here, and
+ * `W` and `Y`, which match none.
+ */
+const VISIBLE_IDENTIFIERS = ["W", "X", "Y"] as const;
+
+/**
+ * Draw a value of `VISIBLE`: a single NULL or one of {@link VISIBLE_IDENTIFIERS}, or a multiple of
+ * 0 to 2 of them in any order, the empty one NULL.
+ */
+const visibleValue: Gen<Value> = oneOf([
+  constant(nullOf("identifier", "single")),
+  map(element(VISIBLE_IDENTIFIERS), identifierValue),
+  map(array(element(VISIBLE_IDENTIFIERS), { max: 2, min: 0 }), (members): Value => ({
+    baseType: "identifier",
+    cardinality: "multiple",
+    values: members.map((value) => ({ baseType: "identifier", value })),
+  })),
+]);
+
+/**
+ * How many values {@link visibleValue} draws: a single NULL and 3 singles, and 1 + 3 + 9
+ * multiples.
+ */
+const VISIBLE_VALUES = 1 + 3 + (1 + 3 + 3 ** 2);
+
+/**
+ * Draw the record a page is shown under, as far as `VISIBLE` goes: none, one holding no value of
+ * it, or one holding each value of {@link visibleValue}.
+ */
+const visibleRecord: Gen<Option.Option<RedactRecord>> = oneOf([
+  constant(Option.none()),
+  constant(Option.some(holding({}))),
+  map(visibleValue, (value) => Option.some(holding({ VISIBLE: value }))),
+]);
+
+/**
+ * How many records {@link visibleRecord} draws.
+ */
+const VISIBLE_RECORDS = 1 + 1 + VISIBLE_VALUES;
+
+/**
+ * A case of the visibility rule: a template part's `show-hide` and the value `VISIBLE` holds.
  */
 interface VisibilityCase {
-  readonly holds: string;
-  readonly shown: boolean;
   readonly showHide: TemplateVisibility["showHide"];
   readonly value: Value;
 }
 
 /**
- * The visibility rule over a single and a multiple variable, under `show` and `hide`, NULL
- * included.
+ * Draw a case of the visibility rule: each `show-hide` under each value of {@link visibleValue}.
  */
-const visibilityCases: readonly VisibilityCase[] = [
-  { holds: "the single X", showHide: "show", shown: true, value: identifierValue("X") },
-  { holds: "the single Y", showHide: "show", shown: false, value: identifierValue("Y") },
-  { holds: "the single X", showHide: "hide", shown: false, value: identifierValue("X") },
-  { holds: "the single Y", showHide: "hide", shown: true, value: identifierValue("Y") },
-  { holds: "W and X", showHide: "show", shown: true, value: multipleOf("W", "X") },
-  { holds: "only W", showHide: "show", shown: false, value: multipleOf("W") },
-  { holds: "W and X", showHide: "hide", shown: false, value: multipleOf("W", "X") },
-  { holds: "only W", showHide: "hide", shown: true, value: multipleOf("W") },
-  { holds: "NULL", showHide: "show", shown: false, value: nullOf("identifier", "single") },
-  { holds: "NULL", showHide: "hide", shown: true, value: nullOf("identifier", "multiple") },
-];
+const visibilityCase: Gen<VisibilityCase> = (source) => ({
+  showHide: source.draw(element(["show", "hide"])),
+  value: source.draw(visibleValue),
+});
+
+/**
+ * Decide, as the information model's rule says and never from plate's code, whether a template
+ * part with the identifier `X` shows: the value matches when it holds `X` as itself or a member,
+ * NULL never; `show` shows the part exactly on a match and `hide` exactly on none (TemplateBlock,
+ * 5.145, TemplateInline, 5.155).
+ *
+ * @param showHide The part's `show-hide`.
+ * @param value `VISIBLE`'s value.
+ * @returns Whether the part shows.
+ */
+const shownByRule = (showHide: TemplateVisibility["showHide"], value: Value): boolean =>
+  value.values.some((single) => single.baseType === "identifier" && single.value === "X") ===
+  (showHide === "show");
 
 describe("redactItem on template blocks, inlines and choices", () => {
   it.effect(
@@ -1614,27 +1657,57 @@ describe("redactItem on template blocks, inlines and choices", () => {
       }),
   );
 
-  for (const { holds, shown, showHide, value } of visibilityCases) {
-    it(`under ${showHide}, with VISIBLE ${holds}, ${shown ? "shows" : "hides"} a template block's and a template inline's content: its content in its place, or nothing`, () => {
-      const parts: Item = {
-        ...visibility,
-        body: [
-          templatePart("template-block", byVisible(showHide), [text("block")], []),
-          inlineParagraph(
-            templatePart("template-inline", byVisible(showHide), [text("inline")], []),
-          ),
-        ],
-        unsupported: [],
-      };
-      const record = holding({ VISIBLE: value });
-      const redaction = redactItem(parts, shownToCandidate, underRecord(record));
+  it.effect(
+    `shows or hides a template block's and a template inline's content as the rule decides, under show and hide and every value of VISIBLE: its content in its place, or nothing: ${String(2 * VISIBLE_VALUES)} cases`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(visibilityCase, 2 * VISIBLE_VALUES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "show and hide, under VISIBLE a single NULL, W, X or Y, or a multiple of 0 to 2 of W, X and Y",
+              caseHang,
+              coverage: requiredInSpace<"shown" | "hidden">(["shown", "hidden"]),
+              generator: visibilityCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the information model's template visibility (TemplateBlock 5.145, TemplateInline 5.155), as shownByRule transcribes it: X matches as the value or a member, show shows exactly on a match and hide exactly on none",
+              },
+              suite: "plate/payload/template-visibility",
+            },
+            ({ showHide, value }, c) =>
+              Effect.sync(() => {
+                const shown = shownByRule(showHide, value);
 
-      assert.deepStrictEqual<readonly BodyNode[]>(
-        redaction.body,
-        shown ? [text("block"), inlineParagraph(text("inline"))] : [inlineParagraph()],
-      );
-    });
-  }
+                c.note(shown ? "shown" : "hidden");
+
+                const parts: Item = {
+                  ...visibility,
+                  body: [
+                    templatePart("template-block", byVisible(showHide), [text("block")], []),
+                    inlineParagraph(
+                      templatePart("template-inline", byVisible(showHide), [text("inline")], []),
+                    ),
+                  ],
+                  unsupported: [],
+                };
+                const redaction = redactItem(
+                  parts,
+                  shownToCandidate,
+                  underRecord(holding({ VISIBLE: value })),
+                );
+
+                assert.deepStrictEqual<readonly BodyNode[]>(
+                  redaction.body,
+                  shown ? [text("block"), inlineParagraph(text("inline"))] : [inlineParagraph()],
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 
   it("shows a choice by its template value, keeps one with no template visibility, and leaves out one its value hides", () => {
     assert.deepStrictEqual(
@@ -1995,37 +2068,92 @@ describe("redactItem on responses only hidden content binds", () => {
     );
   });
 
-  it("passes through the response of a notice outside any template block, with a record and without one", () => {
-    const order = noticeOf("qti-order-interaction", `${bodyPath}/qti-order-interaction`);
-    const loose = bindingOf([order], ["R2"], [order]);
+  it.effect(
+    `passes through the response of a notice outside any template block, under every record of the box and none: ${String(VISIBLE_RECORDS)} records`,
+    (ctx) => {
+      const order = noticeOf("qti-order-interaction", `${bodyPath}/qti-order-interaction`);
+      const loose = bindingOf([order], ["R2"], [order]);
 
-    for (const record of [holding({ VISIBLE: multipleOf("W") }), undefined]) {
-      assert.deepStrictEqual([...hiddenOnlyResponses(loose, underRecord(record))], []);
-      assert.deepStrictEqual(
-        respondedTo(redactItem(loose, shownToCandidate, underRecord(record))),
-        ["R2"],
+      return Effect.andThen(
+        boxHolds(visibleRecord, VISIBLE_RECORDS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "no record, a record holding no VISIBLE, and a record holding VISIBLE at a single NULL, W, X or Y or a multiple of 0 to 2 of W, X and Y",
+              caseHang,
+              coverage: noCoverage,
+              generator: visibleRecord,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the information model hides a response only with the template or feedback content that binds it (5.145, 5.49), so a response a notice outside any binds is posted under every record",
+              },
+              suite: "plate/payload/loose-notice",
+            },
+            (record) =>
+              Effect.sync(() => {
+                const showing = underRecord(Option.getOrUndefined(record));
+
+                assert.deepStrictEqual([...hiddenOnlyResponses(loose, showing)], []);
+                assert.deepStrictEqual(respondedTo(redactItem(loose, shownToCandidate, showing)), [
+                  "R2",
+                ]);
+              }),
+          ),
+        ),
       );
-    }
-  });
+    },
+  );
 
-  it("keeps a response a Choice in a hidden template block binds when a Text Entry the page sees binds it too", () => {
-    const twice = bindingOf(
-      [
-        templatePart("template-block", byVisible("show"), [{ ...choice, response: "R1" }], ["R1"]),
-        textEntry("R1"),
-      ],
-      ["R1"],
-      [],
-    );
-
-    for (const record of [holding({ VISIBLE: multipleOf("W") }), undefined]) {
-      assert.deepStrictEqual([...hiddenOnlyResponses(twice, underRecord(record))], []);
-      assert.deepStrictEqual(
-        respondedTo(redactItem(twice, shownToCandidate, underRecord(record))),
+  it.effect(
+    `keeps a response a Choice in a template block binds when a Text Entry the page sees binds it too, under every record of the box and none: ${String(VISIBLE_RECORDS)} records`,
+    (ctx) => {
+      const twice = bindingOf(
+        [
+          templatePart(
+            "template-block",
+            byVisible("show"),
+            [{ ...choice, response: "R1" }],
+            ["R1"],
+          ),
+          textEntry("R1"),
+        ],
         ["R1"],
+        [],
       );
-    }
-  });
+
+      return Effect.andThen(
+        boxHolds(visibleRecord, VISIBLE_RECORDS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "no record, a record holding no VISIBLE, and a record holding VISIBLE at a single NULL, W, X or Y or a multiple of 0 to 2 of W, X and Y",
+              caseHang,
+              coverage: noCoverage,
+              generator: visibleRecord,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "an interaction the page sees binds its response (5.145: only an interaction inside hidden content is hidden with it), so a response bound both inside a template block and outside one is posted under every record, the block shown or hidden",
+              },
+              suite: "plate/payload/bound-twice",
+            },
+            (record) =>
+              Effect.sync(() => {
+                const showing = underRecord(Option.getOrUndefined(record));
+
+                assert.deepStrictEqual([...hiddenOnlyResponses(twice, showing)], []);
+                assert.deepStrictEqual(respondedTo(redactItem(twice, shownToCandidate, showing)), [
+                  "R1",
+                ]);
+              }),
+          ),
+        ),
+      );
+    },
+  );
 
   it("with no record, names as hidden-only each response of an item whose template processing runs that only a template block or inline binds, and keeps one no interaction binds", () => {
     const inside = bindingOf(
@@ -3593,46 +3721,144 @@ const counted = (value: Value): CountedValue => {
   };
 };
 
-describe("redactStructure", () => {
-  it("decides what redactItem decides over the templated fixtures: the same interactions and choices, responses and hidden-only responses", () => {
-    const answers = acceptedFrom(inlineAnswers);
-    const parameters = acceptedFrom(parameterDocument);
-    const containers = acceptedFrom(containerParameterDocument);
-    const cases: readonly (readonly [string, Item, RedactRecord | undefined])[] = [
-      ["printed variables under a record", templated, drawn],
-      ["printed variables with no record", templated, undefined],
-      ["printed variables of an item without template processing", untemplated, undefined],
-      ...visibilityCases.map(
-        ({ holds, value }) =>
-          [
-            `template visibility, VISIBLE holding ${holds}`,
-            visibility,
-            holding({ VISIBLE: value }),
-          ] as const,
-      ),
-      ["template visibility with no record", visibility, undefined],
-      ["template visibility with no value of VISIBLE", visibility, holding({})],
-      ["answering inlines, T holding A", answers, holding({ T: identifierValue("A") })],
-      ["answering inlines, T holding B", answers, holding({ T: identifierValue("B") })],
-      ["answering inlines with no record", answers, undefined],
-      ["parameters the record expands", parameters, parameterValues],
-      ["parameters the record withholds", parameters, holding({})],
-      ["container parameters", containers, containerParameterValues],
-    ];
+/**
+ * The templated fixtures redactStructure is held to redactItem over: the printed variables' item
+ * with its template processing and without, the visibility item, the answering inlines, and the
+ * items of parameters and of container parameters.
+ */
+const STRUCTURE_SUBJECTS = [
+  "templated",
+  "untemplated",
+  "visibility",
+  "answers",
+  "parameters",
+  "containers",
+] as const;
 
-    for (const [label, subject, record] of cases) {
-      const full = redactItem(subject, shownToCandidate, underRecord(record));
-      const structure = redactStructure(subject, underRecord(record));
+/**
+ * A fixture of {@link STRUCTURE_SUBJECTS}.
+ */
+type StructureSubject = (typeof STRUCTURE_SUBJECTS)[number];
 
-      assert.deepStrictEqual(shownParts(structure.body), shownParts(full.body), label);
-      assert.deepStrictEqual(structure.responses, full.responses, label);
-      assert.deepStrictEqual(
-        [...structure.hiddenOnly],
-        [...hiddenOnlyResponses(subject, underRecord(record))],
-        label,
-      );
+/**
+ * A case of the structure box: a fixture and the record its page is shown under, none for none.
+ */
+interface StructureCase {
+  readonly record: Option.Option<RedactRecord>;
+  readonly subject: StructureSubject;
+}
+
+/**
+ * Draw the records a fixture is shown under: none; for the printed variables', their drawn
+ * values; for the visibility item, every record of {@link visibleRecord}; for the answering
+ * inlines, one holding no `T` and one holding each of `A` and `B`; and for each parameters' item,
+ * one holding none of its values and one holding them all.
+ *
+ * @param subject The fixture.
+ * @returns The records' generator.
+ */
+const structureRecords = (subject: StructureSubject): Gen<Option.Option<RedactRecord>> => {
+  switch (subject) {
+    case "templated": {
+      return oneOf([constant(Option.none()), constant(Option.some(drawn))]);
     }
-  });
+    case "untemplated": {
+      return constant(Option.none());
+    }
+    case "visibility": {
+      return visibleRecord;
+    }
+    case "answers": {
+      return oneOf([
+        constant(Option.none()),
+        constant(Option.some(holding({}))),
+        map(element(["A", "B"]), (chosen) => Option.some(holding({ T: identifierValue(chosen) }))),
+      ]);
+    }
+    case "parameters": {
+      return oneOf([
+        constant(Option.none()),
+        constant(Option.some(holding({}))),
+        constant(Option.some(parameterValues)),
+      ]);
+    }
+    case "containers": {
+      return oneOf([
+        constant(Option.none()),
+        constant(Option.some(holding({}))),
+        constant(Option.some(containerParameterValues)),
+      ]);
+    }
+  }
+};
+
+/**
+ * Draw a case of the structure box: each fixture under each of its records.
+ */
+const structureCase: Gen<StructureCase> = (source) => {
+  const subject = source.draw(element(STRUCTURE_SUBJECTS));
+
+  return { record: source.draw(structureRecords(subject)), subject };
+};
+
+/**
+ * How many cases {@link structureCase} draws: 2 for the printed variables', 1 without template
+ * processing, every record of {@link visibleRecord}, 4 for the answering inlines, and 3 for each
+ * parameters' item.
+ */
+const STRUCTURE_CASES = 2 + 1 + VISIBLE_RECORDS + 4 + 3 + 3;
+
+describe("redactStructure", () => {
+  it.effect(
+    `decides what redactItem decides over the templated fixtures: the same interactions and choices, responses and hidden-only responses, under each fixture's records: ${String(STRUCTURE_CASES)} pages`,
+    (ctx) => {
+      const subjects: Readonly<Record<StructureSubject, Item>> = {
+        answers: acceptedFrom(inlineAnswers),
+        containers: acceptedFrom(containerParameterDocument),
+        parameters: acceptedFrom(parameterDocument),
+        templated,
+        untemplated,
+        visibility,
+      };
+
+      return Effect.andThen(
+        boxHolds(structureCase, STRUCTURE_CASES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "the printed variables' item under its drawn values and none, and without template processing; the visibility item under every record of the VISIBLE box; the answering inlines under none, no T, A and B; each parameters' item under none, none of its values and all of them",
+              caseHang,
+              coverage: requiredInSpace<StructureSubject>(STRUCTURE_SUBJECTS),
+              generator: structureCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "second-implementation",
+                name: "redactItem, the full redaction, and hiddenOnlyResponses: the structure decides the same parts, responses and hidden-only responses",
+              },
+              suite: "plate/payload/structure",
+            },
+            ({ record, subject }, c) =>
+              Effect.sync(() => {
+                c.note(subject);
+
+                const subjectItem = subjects[subject];
+                const showing = underRecord(Option.getOrUndefined(record));
+                const full = redactItem(subjectItem, shownToCandidate, showing);
+                const structure = redactStructure(subjectItem, showing);
+
+                assert.deepStrictEqual(shownParts(structure.body), shownParts(full.body));
+                assert.deepStrictEqual(structure.responses, full.responses);
+                assert.deepStrictEqual(
+                  [...structure.hiddenOnly],
+                  [...hiddenOnlyResponses(subjectItem, showing)],
+                );
+              }),
+          ),
+        ),
+      );
+    },
+  );
 
   it("holds no printed text: a printed variable the record covers leaves nothing in its place, one it does not cover keeps its notice, and a param-variable parameter keeps its value as written", () => {
     const [paragraph] = redactStructure(templated, underRecord(drawn)).body;
