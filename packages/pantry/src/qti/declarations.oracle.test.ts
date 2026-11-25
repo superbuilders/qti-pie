@@ -9,7 +9,9 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
-import { element } from "@bjornpagen/testing/gen";
+import { word } from "@bjornpagen/testing/dictionary";
+import { array, boolean, element } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Array as Arr, Duration, Effect } from "effect";
 import { patternFlags } from "#pantry/grammar/domains.ts";
@@ -34,7 +36,9 @@ import {
   pointValuePattern,
   unjudgedBaseTypes,
 } from "#pantry/qti/expression-types.ts";
+import { sessionVariableNames } from "#pantry/qti/declarations.dictionary.ts";
 import { Qti } from "#pantry/qti/schema.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { declarationQueryLawsOf } from "#pantry/test/declaration-queries.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import type { PackageEntries } from "#pantry/test/gen/every-relation.ts";
@@ -44,11 +48,74 @@ import { judge as judgeOracle, lawsOf } from "#pantry/test/oracle.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { searchWidth } from "#pantry/test/settings.ts";
 
+/**
+ * The separators a spelling of the alias box joins a name's words with: none, as the information
+ * model writes them, and the underscore and the hyphen an author might.
+ */
+const ALIAS_SEPARATORS = ["", "_", "-"] as const;
+
+/**
+ * The cases a spelling of the alias box writes one of a name's words in.
+ */
+const ALIAS_CASES = ["lower", "capitalized", "upper"] as const;
+
+/**
+ * A word of a name in one of {@link ALIAS_CASES}.
+ *
+ * @param part - The word, in small letters.
+ * @param letterCase - The case.
+ * @returns The word in that case.
+ */
+const cased = (part: string, letterCase: (typeof ALIAS_CASES)[number]): string => {
+  switch (letterCase) {
+    case "lower": {
+      return part;
+    }
+    case "capitalized": {
+      return `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`;
+    }
+    case "upper": {
+      return part.toUpperCase();
+    }
+  }
+};
+
+/**
+ * A spelling of the alias box: a built-in session variable's name and one way to write its words.
+ */
+interface AliasCase {
+  readonly name: string;
+  readonly spelling: string;
+}
+
+/**
+ * Draw a spelling of the alias box: one of {@link sessionVariableNames}, its words (split before
+ * each capital, as the information model writes them in camel case) each in one of
+ * {@link ALIAS_CASES}, joined by one of {@link ALIAS_SEPARATORS}, which a one-word name has no
+ * place for.
+ */
+const aliasCase: Gen<AliasCase> = (source) => {
+  const name = source.draw(word(sessionVariableNames));
+  const words = name.split(regex("(?=[A-Z])", "u")).map((part) => part.toLowerCase());
+  const separator = words.length > 1 ? source.draw(element(ALIAS_SEPARATORS)) : "";
+  const spelling = words
+    .map((part) => cased(part, source.draw(element(ALIAS_CASES))))
+    .join(separator);
+
+  return { name, spelling };
+};
+
+/**
+ * How many spellings {@link aliasCase} draws: completionStatus and numAttempts each 3 separators by
+ * 3 cases of each of two words, duration 3 cases of its one.
+ */
+const ALIAS_CASE_COUNT = 2 * 3 * 3 * 3 + 3;
+
 describe("qti/declarations.ts, reserved names", () => {
   it("reserves exactly the built-in session variables, spelled exactly with no alias (spec reading `completion-status-name`)", () => {
     assert.sameMembers(
       [...sessionVariables],
-      ["completionStatus", "duration", "numAttempts"],
+      [...sessionVariableNames],
       'the information model\'s tables 4.5.1, 5.115.1 and 5.151.1: "They are completionStatus, numAttempts and duration"',
     );
     assert.sameMembers(
@@ -62,15 +129,49 @@ describe("qti/declarations.ts, reserved names", () => {
       contextVariable.kind,
       "§2.2.2.1's one built-in context variable, QTI_CONTEXT, which may be declared as the record it is",
     );
-    for (const alias of ["completion_status", "completion-status", "CompletionStatus"]) {
-      assert.notInclude(
-        sessionVariables,
-        alias,
-        `${alias}: reading \`completion-status-name\` adds no alias, so it names an ordinary variable`,
-      );
-      assert.notInclude(BuiltIn.handles, alias, alias);
-    }
   });
+
+  it.effect(
+    `reserves a built-in session variable's name in its one spelling, and no other spelling of its words: ${String(ALIAS_CASE_COUNT)} spellings`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(aliasCase, ALIAS_CASE_COUNT),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every spelling of completionStatus, duration and numAttempts with each word in small letters, capitalized or capitals, joined by nothing, an underscore or a hyphen",
+              caseHang: Duration.seconds(10),
+              concurrency: searchWidth,
+              coverage: requiredInSpace<"reserved" | "ordinary">(["reserved", "ordinary"]),
+              generator: aliasCase,
+              literal: ({ name, spelling }) => `${name} ${JSON.stringify(spelling)}`,
+              oracle: {
+                kind: "specification",
+                name: "spec reading `completion-status-name`: the built-in session variable is the information model's name, spelled exactly, and adds no alias, so every other spelling names an ordinary variable",
+              },
+              suite: "qti/declarations-session-aliases",
+            },
+            ({ name, spelling }, c) =>
+              Effect.sync(() => {
+                const reserved = spelling === name;
+                c.note(reserved ? "reserved" : "ordinary");
+
+                assert.strictEqual(
+                  sessionVariables.some((variable) => variable === spelling),
+                  reserved,
+                  `${spelling}: a session variable`,
+                );
+                assert.strictEqual(
+                  BuiltIn.handles.some((handle) => handle === spelling),
+                  reserved,
+                  `${spelling}: a built-in`,
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 });
 
 /**
@@ -170,6 +271,110 @@ const typedCases = ((): readonly [TypedCase, ...TypedCase[]] => {
  */
 type TypedSituation = "admitted" | "refused" | "boolean 1 admitted" | "long integer admitted";
 
+/**
+ * The path segments of the uri box, each a run of RFC 2396's `pchar`: an unreserved letter, an
+ * escape, and unreserved letters around a mark.
+ */
+const URI_SEGMENTS = ["a", "%41", "b.xml"] as const;
+
+/**
+ * The forms of the uri box's reference before its query, by RFC 2396's Appendix A: `net_path`
+ * (`//` authority, then an `abs_path` or none) and `abs_path` in an `absoluteURI`'s `hier_part`
+ * or a `relativeURI`, a `rel_path` (a `rel_segment`, which holds no colon, then an `abs_path` or
+ * none) in a `relativeURI`, and an `opaque_part` in an `absoluteURI`.
+ */
+const URI_FORMS = ["net", "absolute", "relative", "opaque"] as const;
+
+/**
+ * The queries of the uri box: none, a letter and an escape, each a run of `uric`.
+ */
+const URI_QUERIES = ["", "?b", "?%3D"] as const;
+
+/**
+ * The fragments of the uri box: none, and a letter.
+ */
+const URI_FRAGMENTS = ["", "#c"] as const;
+
+/**
+ * The outer whitespace of the uri box: none, a space each side, and a tab before a line feed after,
+ * which xs:anyURI's `collapse` strips (reading `typed-value-whitespace`).
+ */
+const URI_SPACES = [
+  ["", ""],
+  [" ", " "],
+  ["\t", "\n"],
+] as const;
+
+/**
+ * The endings of the uri box: none, and a percent sign that no two hex digits follow, which
+ * RFC 2396 writes only as `escaped` (section 2.4.1).
+ */
+const URI_BREAKS = ["", "%zz", "%4", "%"] as const;
+
+/**
+ * A text of the uri box, and whether its ending breaks an escape.
+ */
+interface UriCase {
+  readonly broken: boolean;
+  readonly text: string;
+}
+
+/**
+ * Draw an `abs_path` of the uri box: `/` then up to two segments.
+ */
+const absolutePath: Gen<string> = (source) =>
+  `/${source.draw(array(element(URI_SEGMENTS), { max: 2, min: 0 })).join("/")}`;
+
+/**
+ * Draw a reference of the uri box before its query, in one of {@link URI_FORMS}: a net path, with
+ * an absolute path or none, or an absolute path, each under the scheme `http` or none; a relative
+ * path, which has none; or an opaque part under the scheme `urn`.
+ */
+const uriBody: Gen<string> = (source) => {
+  const form = source.draw(element(URI_FORMS));
+  switch (form) {
+    case "net": {
+      const scheme = source.draw(element(["", "http:"] as const));
+      const path = source.draw(boolean) ? source.draw(absolutePath) : "";
+
+      return `${scheme}//example.com${path}`;
+    }
+    case "absolute": {
+      return `${source.draw(element(["", "http:"] as const))}${source.draw(absolutePath)}`;
+    }
+    case "relative": {
+      const first = source.draw(element(URI_SEGMENTS));
+      const rest = source.draw(array(element(URI_SEGMENTS), { max: 1, min: 0 }));
+
+      return [first, ...rest].join("/");
+    }
+    case "opaque": {
+      return `urn:${source.draw(element(["x:y", "%41"] as const))}`;
+    }
+  }
+};
+
+/**
+ * Draw a text of the uri box: a reference ({@link uriBody}), its query and fragment, its outer
+ * whitespace, and one of {@link URI_BREAKS} at its end before that whitespace.
+ */
+const uriCase: Gen<UriCase> = (source) => {
+  const body = source.draw(uriBody);
+  const query = source.draw(element(URI_QUERIES));
+  const fragment = source.draw(element(URI_FRAGMENTS));
+  const [before, after] = source.draw(element(URI_SPACES));
+  const ending = source.draw(element(URI_BREAKS));
+
+  return { broken: ending !== "", text: `${before}${body}${query}${fragment}${ending}${after}` };
+};
+
+/**
+ * How many texts {@link uriCase} draws: 68 references before their query (a net path 2 schemes by
+ * no path or an `abs_path` of up to two of three segments, 1 + 13; an absolute path 2 by 13; a
+ * relative path 3 by 4; an opaque part 2), by 3 queries, 2 fragments, 3 whitespaces and 4 endings.
+ */
+const URI_CASE_COUNT = (2 * 14 + 2 * 13 + 3 * 4 + 2) * 3 * 2 * 3 * 4;
+
 describe("qti/declarations.ts, typed values", () => {
   it.effect(
     "admits a value's text exactly when the specification gives it as a lexical form of its base type",
@@ -214,19 +419,38 @@ describe("qti/declarations.ts, typed values", () => {
       ),
   );
 
-  it("admits a uri's text by xs:anyURI's pattern, spec reading `anyuri-lexical`'s", () => {
-    /**
-     * Oracle: the specification as a checker, RFC 2396 by way of reading `anyuri-lexical`: an
-     * absolute URI and a relative reference are values, and a percent sign not followed by two hex
-     * digits is not.
-     */
-    const uri = patternOf("uri");
-    for (const text of ["http://example.com/a?b#c", "a/b.xml", " urn:x:y "]) {
-      assert.isTrue(uri.test(text), text);
-    }
+  it.effect(
+    `admits every URI reference RFC 2396 derives and refuses one whose percent sign is no escape, by xs:anyURI's pattern, spec reading \`anyuri-lexical\`'s: ${String(URI_CASE_COUNT)} texts`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(uriCase, URI_CASE_COUNT),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every reference of a net path, an absolute path (each with and without a scheme), a relative path or an opaque part over the segments a, %41 and b.xml, with no query, ?b or ?%3D and no fragment or #c, bare or in outer whitespace, then whole or ending in %zz, %4 or %",
+              caseHang: Duration.seconds(10),
+              concurrency: searchWidth,
+              coverage: requiredInSpace<"admitted" | "refused">(["admitted", "refused"]),
+              generator: uriCase,
+              literal: ({ text }) => JSON.stringify(text),
+              oracle: {
+                kind: "specification",
+                name: "RFC 2396's Appendix A by way of reading `anyuri-lexical`: every text the box derives from URI-reference's productions is a value once its outer whitespace collapses (reading `typed-value-whitespace`), and a percent sign stands in no production but escaped, % hex hex (section 2.4.1), so a text holding one that no two hex digits follow is none",
+              },
+              suite: "qti/declarations-uri",
+            },
+            ({ broken, text }, c) =>
+              Effect.sync(() => {
+                const admitted = patternOf("uri").test(text);
+                c.note(admitted ? "admitted" : "refused");
 
-    assert.isFalse(uri.test("%zz"), "%zz");
-  });
+                assert.strictEqual(admitted, !broken, JSON.stringify(text));
+              }),
+          ),
+        ),
+      ),
+  );
 });
 
 /**
