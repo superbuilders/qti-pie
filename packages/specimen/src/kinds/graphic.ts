@@ -85,7 +85,7 @@ export const sizedStageDimensions = {
   "stage-extent": extent,
   "stage-geometry": geometry,
   "stage-scale": scale,
-};
+} as const;
 
 /**
  * The dimensions of a stage whose areas QTI writes as hotspots: a sized stage's, and how the
@@ -95,7 +95,7 @@ export const stageDimensions = {
   ...sizedStageDimensions,
   "stage-coordinates": coordinates,
   "stage-sizing": sizing,
-};
+} as const;
 
 /**
  * The values of the stage's dimensions, by name.
@@ -396,7 +396,12 @@ const bottomOf = (area: Area): number => {
 /**
  * How the placeholder paints an area's outline.
  */
-const paint = { fill: "#ffffff", "fill-opacity": 0.6, stroke: "#1f2937", "stroke-width": 2 };
+const paint = {
+  fill: "#ffffff",
+  "fill-opacity": 0.6,
+  stroke: "#1f2937",
+  "stroke-width": 2,
+} as const;
 
 /**
  * The outline of an area, in the placeholder's pixels.

@@ -53,7 +53,7 @@ const kinds = {
   "select-point": selectPoint,
   slider,
   "text-entry": textEntry,
-};
+} as const;
 
 /**
  * A kind's name.

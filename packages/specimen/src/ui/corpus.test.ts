@@ -115,14 +115,16 @@ const situations: readonly [Feature, ...Feature[]] = [
 ];
 
 /**
- * The case each item index and showing renders, kept once rendered, so every rule's exhaustion
- * reads the same page and renders it once.
+ * The case each item index and showing renders, by the item's index and the showing's name, kept
+ * once rendered, so every rule's exhaustion reads the same page and renders it once: the suite
+ * makes one and hands it to every exhaustion.
  */
-const seenCases = new Map<string, Seen>();
+type SeenCases = Map<string, Seen>;
 
 /**
  * Show a case, or give the showing already seen.
  *
+ * @param seenCases The cases the suite has shown.
  * @param item The item.
  * @param index Its place among the accepted items.
  * @param showing The showing.
@@ -130,6 +132,7 @@ const seenCases = new Map<string, Seen>();
  * @returns What the suite saw.
  */
 const seenOf = (
+  seenCases: SeenCases,
   item: SourceItem,
   index: number,
   showing: Showing,
@@ -189,6 +192,7 @@ const noteSeen = (c: Case<Feature>, seen: Seen): void => {
  * Exhaust one rule over every accepted corpus item in every showing, judging the offences a filter
  * keeps.
  *
+ * @param seenCases The cases the suite has shown.
  * @param name The rule.
  * @param suite The search's name, which its replay token carries.
  * @param judged Whether an offence on a page of a mode is one this search judges.
@@ -197,6 +201,7 @@ const noteSeen = (c: Case<Feature>, seen: Seen): void => {
  *   token.
  */
 const exhaustRule = (
+  seenCases: SeenCases,
   name: RuleName,
   suite: string,
   judged: (offence: Offence, mode: Showing["mode"]) => boolean,
@@ -227,7 +232,7 @@ const exhaustRule = (
           Option.match(Arr.get(items, value.item), {
             onNone: () => Effect.die(`no corpus item at ${String(value.item)}`),
             onSome: (item) => {
-              const seen = seenOf(item, value.item, value.showing, clients);
+              const seen = seenOf(seenCases, item, value.item, value.showing, clients);
 
               noteSeen(c, seen);
 
@@ -290,9 +295,12 @@ const stillBreaks = <A, E, R>(
   );
 
 describe("plate's UI over the corpus", () => {
+  const seenCases: SeenCases = new Map();
+
   for (const name of Rec.keys(rules)) {
     it.effect(`${name}: ${rules[name].says}`, (ctx) =>
       exhaustRule(
+        seenCases,
         name,
         `plate-ui/corpus/${name}`,
         (offence, mode) => !known(name, offence, mode),
@@ -309,6 +317,7 @@ describe("plate's UI over the corpus", () => {
       (ctx) =>
         stillBreaks(
           exhaustRule(
+            seenCases,
             finding.rule,
             suite,
             (offence, mode) => holds(finding, finding.rule, offence, mode),

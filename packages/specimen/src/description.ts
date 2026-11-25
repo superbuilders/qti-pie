@@ -72,7 +72,7 @@ export const itemDimensions = {
   "stimulus.text": length,
   "stimulus.well": yesNo("Stimulus in a qti-well"),
   "validate-responses": yesNo("Session validates responses"),
-};
+} as const;
 
 /**
  * What a stimulus shows.

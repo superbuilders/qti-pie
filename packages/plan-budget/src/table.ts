@@ -77,7 +77,7 @@ const columns = [
   "warm_ms",
   "stopped",
   "load",
-];
+] as const;
 
 /**
  * The table of a run's records, written as tab-separated values.

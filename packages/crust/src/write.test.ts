@@ -559,7 +559,7 @@ describe("writeXml writes adjacent text runs as the content they hold", () => {
  * The comments and processing instructions of the prolog the round trip reads, in order, around
  * the doctype.
  */
-const PROLOG_MISC = ["<!--a-->", "<?p d?>", "<!--b-->", "<?q e?>"];
+const PROLOG_MISC: readonly string[] = ["<!--a-->", "<?p d?>", "<!--b-->", "<?q e?>"];
 
 describe("readXml then writeXml keeps the prolog's order", () => {
   it.effect(

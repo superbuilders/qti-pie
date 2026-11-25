@@ -2,6 +2,19 @@ import { RuleTester } from "oxlint/plugins-dev";
 import classesLiveInStyles from "#tools/classes-live-in-styles.ts";
 
 /**
+ * The cases a rule tester runs, by what its `run` takes.
+ */
+type TestCases = Parameters<RuleTester["run"]>[2];
+
+/**
+ * The rule's cases, kept read-only: the tester is handed copies of the lists.
+ */
+interface Cases {
+  readonly invalid: readonly TestCases["invalid"][number][];
+  readonly valid: readonly TestCases["valid"][number][];
+}
+
+/**
  * A file of plate's UI that passes no author's class through.
  */
 const island = "/qti-pie/packages/plate/src/ui/choice/choice.tsx";
@@ -12,9 +25,16 @@ const island = "/qti-pie/packages/plate/src/ui/choice/choice.tsx";
 const passthrough = "/qti-pie/packages/plate/src/ui/item/item.tsx";
 
 /**
- * The options the cases run under: the one passthrough site, by its path from qti-pie's root.
+ * The one passthrough site the cases' options list, by its path from qti-pie's root.
  */
-const options = [{ passthrough: ["packages/plate/src/ui/item/item.tsx"] }];
+const passthroughSite = "packages/plate/src/ui/item/item.tsx";
+
+/**
+ * The options a case runs under, made for each case: the one passthrough site.
+ *
+ * @returns The options.
+ */
+const optionsOf = () => [{ passthrough: [passthroughSite] }];
 
 /**
  * What a refused class says.
@@ -38,7 +58,7 @@ const noStylesheet = /imports no stylesheet/u;
  * @param code The file's text.
  * @returns The case.
  */
-const valid = (filename: string, code: string) => ({ code, filename, options });
+const valid = (filename: string, code: string) => ({ code, filename, options: optionsOf() });
 
 /**
  * A case of plate's UI the rule refuses once.
@@ -52,7 +72,7 @@ const invalid = (filename: string, message: RegExp, code: string) => ({
   code,
   errors: [{ message }],
   filename,
-  options,
+  options: optionsOf(),
 });
 
 /**
@@ -60,7 +80,7 @@ const invalid = (filename: string, message: RegExp, code: string) => ({
  * or passed through at a listed site, all admitted; a class written anywhere else, any style and
  * any stylesheet import, refused, at a passthrough site too.
  */
-const cases = {
+const cases: Cases = {
   invalid: [
     invalid(island, noClass, `export const A = () => <div className="plate-choice" />;`),
     invalid(island, noClass, `export const A = () => <svg class="plate-stage" />;`),
@@ -120,7 +140,10 @@ RuleTester.it = (_name, run) => {
   run();
 };
 
-new RuleTester().run("classes-live-in-styles", classesLiveInStyles, cases);
+new RuleTester().run("classes-live-in-styles", classesLiveInStyles, {
+  invalid: [...cases.invalid],
+  valid: [...cases.valid],
+});
 
 console.log(
   `classes-live-in-styles: ${cases.valid.length + cases.invalid.length} cases agree with the rule`,

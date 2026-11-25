@@ -127,6 +127,6 @@ const noBareError = {
     schema: [],
     type: "problem",
   },
-};
+} as const;
 
 export default noBareError;

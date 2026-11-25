@@ -173,6 +173,6 @@ const throwNewError = {
     schema: [],
     type: "problem",
   },
-};
+} as const;
 
 export default throwNewError;

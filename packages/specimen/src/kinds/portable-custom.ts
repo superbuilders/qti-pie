@@ -9,6 +9,7 @@
  *
  * @module
  */
+import type { HostFacts } from "@qti-pie/plate";
 import { Option } from "effect";
 import { Base64 } from "effect/encoding";
 import type { Answered } from "#specimen/answer.ts";
@@ -97,7 +98,7 @@ const moduleText = `define(["qtiCustomInteractionContext"], function (context) {
  * its source as a `data:` URL, with the wait plate's resolution gives a module whose
  * configuration names none.
  */
-const host = {
+const host: HostFacts = {
   pci: {
     loader: "/pci/frame.html",
     modules: new Map([

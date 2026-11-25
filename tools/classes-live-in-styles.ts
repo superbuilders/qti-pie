@@ -265,6 +265,6 @@ const classesLiveInStyles = {
     schema: [{ type: "object" }],
     type: "problem",
   },
-} satisfies CreateRule;
+} as const satisfies CreateRule;
 
 export default classesLiveInStyles;
