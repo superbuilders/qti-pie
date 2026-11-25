@@ -122,7 +122,7 @@ const unionOfTwo = (left: CodeSet, right: CodeSet): CodeSet => {
  * @param sets - The sets.
  * @returns Every code point one of them holds.
  */
-const union = (...sets: readonly CodeSet[]): CodeSet => {
+const union = (sets: readonly CodeSet[]): CodeSet => {
   let held: CodeSet = [];
   for (const set of sets) {
     held = unionOfTwo(held, set);
@@ -700,10 +700,10 @@ const nameStart: CodeSet = setOf([...baseChar, ...ideographic, [0x3a, 0x3a], [0x
  * XSD's `\c`: XML 1.0 (Second Edition)'s `NameChar`, `Letter | Digit | '.' | '-' | '_' | ':' |
  * CombiningChar | Extender` (production 4).
  */
-const nameChar: CodeSet = union(
+const nameChar: CodeSet = union([
   nameStart,
   setOf([...xmlDigit, ...combiningChar, ...extender, [0x2d, 0x2e]]),
-);
+]);
 
 /**
  * The Unicode blocks XSD's `\p{Is…}` escapes name that the pinned XSDs use, by XSD's block name:
@@ -777,7 +777,7 @@ const chars = (set: CodeSet): Regex =>
  * @param parts - Its parts.
  * @returns The tree.
  */
-const seq = (...parts: readonly Regex[]): Regex => {
+const seq = (parts: readonly Regex[]): Regex => {
   const flat = parts.flatMap((part) => (part._tag === "seq" ? part.parts : [part]));
   const [only] = flat;
   if (flat.some(isNothing)) {
@@ -795,7 +795,7 @@ const seq = (...parts: readonly Regex[]): Regex => {
  * @param arms - Its arms.
  * @returns The tree.
  */
-const alt = (...arms: readonly Regex[]): Regex => {
+const alt = (arms: readonly Regex[]): Regex => {
   const flat = arms.flatMap((arm) => (arm._tag === "alt" ? arm.arms : [arm]));
   const [only] = flat;
 
@@ -823,7 +823,7 @@ const repeat = (body: Regex, min: number, max: Option.Option<number>): Regex => 
   }
 
   if (Option.contains(max, 0) || isNothing(body)) {
-    return min === 0 ? seq() : nothing;
+    return min === 0 ? seq([]) : nothing;
   }
 
   if (min === 1 && Option.contains(max, 1)) {
@@ -870,7 +870,7 @@ const opt = (body: Regex): Regex => repeat(body, 0, Option.some(1));
 /**
  * The empty string.
  */
-const empty: Regex = seq();
+const empty: Regex = seq([]);
 
 /**
  * A string, character by character.
@@ -879,7 +879,7 @@ const empty: Regex = seq();
  * @returns The tree.
  */
 const literal = (text: string): Regex =>
-  seq(...Array.from(text, (character) => chars(charactersOf(character))));
+  seq(Array.from(text, (character) => chars(charactersOf(character))));
 
 /**
  * One ASCII character of a set written as {@link ascii} reads it.
@@ -1325,7 +1325,7 @@ const readAlternation = (cursor: Cursor): Result.Result<Regex, UnreadPattern> =>
       parts.push(atom);
     }
 
-    arms.push(seq(...parts));
+    arms.push(seq(parts));
     if (peek(cursor) !== "|") {
       break;
     }
@@ -1333,7 +1333,7 @@ const readAlternation = (cursor: Cursor): Result.Result<Regex, UnreadPattern> =>
     cursor.at += 1;
   }
 
-  return Result.succeed(alt(...arms));
+  return Result.succeed(alt(arms));
 };
 
 /**
@@ -1367,10 +1367,13 @@ const sign = opt(chars(charactersOf("+-")));
  * `xs:decimal`'s lexical space: an optional sign, then digits with an optional point and
  * fraction, or a point and a fraction (XML Schema Part 2, 3.2.3.1).
  */
-const decimalLexical = seq(
+const decimalLexical = seq([
   sign,
-  alt(seq(plus(digit), opt(seq(literal("."), star(digit)))), seq(literal("."), plus(digit))),
-);
+  alt([
+    seq([plus(digit), opt(seq([literal("."), star(digit)]))]),
+    seq([literal("."), plus(digit)]),
+  ]),
+]);
 
 /**
  * The lexical space of a bounded double or float: {@link doubleLexical}'s but `NaN`. A datatype's
@@ -1380,32 +1383,32 @@ const decimalLexical = seq(
  * keeps NaN from the typed value, which PostgreSQL would order after every other float and so let
  * meet `>= 0` and `> 0`.
  */
-const boundedDoubleLexical = alt(
-  seq(decimalLexical, opt(seq(cls("Ee"), sign, plus(digit)))),
-  seq(opt(literal("-")), literal("INF")),
-);
+const boundedDoubleLexical = alt([
+  seq([decimalLexical, opt(seq([cls("Ee"), sign, plus(digit)]))]),
+  seq([opt(literal("-")), literal("INF")]),
+]);
 
 /**
  * `xs:double`'s and `xs:float`'s lexical space: a decimal mantissa, an optional exponent, and the
  * special values `INF`, `-INF` and `NaN` (XML Schema Part 2, 3.2.4.1 and 3.2.5.1; `+INF` is XSD
  * 1.1's and not admitted).
  */
-const doubleLexical = alt(boundedDoubleLexical, literal("NaN"));
+const doubleLexical = alt([boundedDoubleLexical, literal("NaN")]);
 
 /**
  * An `NCName`: a name start character other than the colon, then name characters other than the
  * colon (Namespaces in XML, `NCName`).
  */
-const ncName = seq(
+const ncName = seq([
   chars(subtract(nameStart, charactersOf(":"))),
   star(chars(subtract(nameChar, charactersOf(":")))),
-);
+]);
 
 /**
  * `xs:QName`'s lexical space: an NCName, with an NCName prefix and a colon before it or not
  * (XML Schema Part 2, 3.2.18).
  */
-const qNameLexical = seq(opt(seq(ncName, literal(":"))), ncName);
+const qNameLexical = seq([opt(seq([ncName, literal(":")])), ncName]);
 
 /**
  * `xs:boolean`'s literals, in its lexical space's production order: `booleanRep ::= 'true' |
@@ -1432,7 +1435,7 @@ export const booleanFalse = [
 /**
  * `xs:boolean`'s lexical space (XSD 1.1 Part 2, §3.3.2.2).
  */
-const booleanLexical = alt(...booleanRep.map(literal));
+const booleanLexical = alt(booleanRep.map(literal));
 
 /**
  * The flags a compiled pattern is read with by a JavaScript host: `u`, so its `\u` escapes and
@@ -1487,19 +1490,19 @@ export const booleanOf = (lexical: string): Option.Option<boolean> =>
  * `=` (XML Schema Part 2, 3.2.16).
  */
 const base64Lexical = ((): Regex => {
-  const spaced = (set: string): Regex => seq(cls(set), opt(literal(" ")));
+  const spaced = (set: string): Regex => seq([cls(set), opt(literal(" "))]);
   const b64 = "A-Za-z0-9+/";
   const b64s = spaced(b64);
 
   return opt(
-    seq(
-      star(seq(b64s, b64s, b64s, b64s)),
-      alt(
-        seq(b64s, b64s, b64s, cls(b64)),
-        seq(b64s, b64s, spaced("AEIMQUYcgkosw048"), literal("=")),
-        seq(b64s, spaced("AQgw"), literal("="), opt(literal(" ")), literal("=")),
-      ),
-    ),
+    seq([
+      star(seq([b64s, b64s, b64s, b64s])),
+      alt([
+        seq([b64s, b64s, b64s, cls(b64)]),
+        seq([b64s, b64s, spaced("AEIMQUYcgkosw048"), literal("=")]),
+        seq([b64s, spaced("AQgw"), literal("="), opt(literal(" ")), literal("=")]),
+      ]),
+    ]),
   );
 })();
 
@@ -1510,163 +1513,166 @@ const base64Lexical = ((): Regex => {
  * @param second - The second character's class.
  * @returns The tree.
  */
-const twoOf = (first: string, second: string): Regex => seq(cls(first), cls(second));
+const twoOf = (first: string, second: string): Regex => seq([cls(first), cls(second)]);
 
 /**
  * A year of the date and time types' lexical spaces: four or more digits, with no leading zero
  * beyond four, and no year 0000 (XML Schema Part 2, 3.2.7.1 and D.3.2).
  */
-const yearLexical = alt(
-  seq(cls("1-9"), repeat(digit, 3, Option.none())),
-  seq(
+const yearLexical = alt([
+  seq([cls("1-9"), repeat(digit, 3, Option.none())]),
+  seq([
     literal("0"),
-    alt(
-      seq(cls("1-9"), digit, digit),
-      seq(literal("0"), cls("1-9"), digit),
-      seq(literal("00"), cls("1-9")),
-    ),
-  ),
-);
+    alt([
+      seq([cls("1-9"), digit, digit]),
+      seq([literal("0"), cls("1-9"), digit]),
+      seq([literal("00"), cls("1-9")]),
+    ]),
+  ]),
+]);
 
 /**
  * A leap year of {@link yearLexical}'s: divisible by 4 and not by 100, or by 400 (XML Schema Part
  * 2, 3.2.7.1, the Gregorian calendar).
  */
 const leapYearLexical = ((): Regex => {
-  const leapTail = alt(twoOf("0", "48"), twoOf("2468", "048"), twoOf("13579", "26"));
+  const leapTail = alt([twoOf("0", "48"), twoOf("2468", "048"), twoOf("13579", "26")]);
 
-  return alt(
-    seq(alt(seq(cls("1-9"), repeat(digit, 2, Option.none())), seq(digit, digit)), leapTail),
-    seq(leapTail, literal("00")),
-    seq(
+  return alt([
+    seq([alt([seq([cls("1-9"), repeat(digit, 2, Option.none())]), seq([digit, digit])]), leapTail]),
+    seq([leapTail, literal("00")]),
+    seq([
       cls("1-9"),
       star(digit),
-      alt(twoOf("0", "048"), twoOf("2468", "048"), twoOf("13579", "26")),
+      alt([twoOf("0", "048"), twoOf("2468", "048"), twoOf("13579", "26")]),
       literal("00"),
-    ),
-  );
+    ]),
+  ]);
 })();
 
 /**
  * A month, `01` to `12`.
  */
-const monthLexical = alt(twoOf("0", "1-9"), twoOf("1", "0-2"));
+const monthLexical = alt([twoOf("0", "1-9"), twoOf("1", "0-2")]);
 
 /**
  * A month and a day valid for it in every year: 29 February is a leap year's alone, and is left
  * out.
  */
-const monthDayLexical = alt(
-  seq(
-    alt(twoOf("0", "13578"), twoOf("1", "02")),
+const monthDayLexical = alt([
+  seq([
+    alt([twoOf("0", "13578"), twoOf("1", "02")]),
     literal("-"),
-    alt(twoOf("0", "1-9"), twoOf("12", "0-9"), twoOf("3", "01")),
-  ),
-  seq(
-    alt(twoOf("0", "469"), literal("11")),
+    alt([twoOf("0", "1-9"), twoOf("12", "0-9"), twoOf("3", "01")]),
+  ]),
+  seq([
+    alt([twoOf("0", "469"), literal("11")]),
     literal("-"),
-    alt(twoOf("0", "1-9"), twoOf("12", "0-9"), literal("30")),
-  ),
-  seq(literal("02-"), alt(twoOf("0", "1-9"), twoOf("1", "0-9"), twoOf("2", "0-8"))),
-);
+    alt([twoOf("0", "1-9"), twoOf("12", "0-9"), literal("30")]),
+  ]),
+  seq([literal("02-"), alt([twoOf("0", "1-9"), twoOf("1", "0-9"), twoOf("2", "0-8")])]),
+]);
 
 /**
  * A timezone: `Z`, or a sign and `hh:mm` from `-14:00` to `+14:00` (XML Schema Part 2, 3.2.7.3).
  */
-const timezoneLexical = alt(
+const timezoneLexical = alt([
   literal("Z"),
-  seq(
+  seq([
     chars(charactersOf("+-")),
-    alt(
-      seq(alt(twoOf("0", "0-9"), twoOf("1", "0-3")), literal(":"), twoOf("0-5", "0-9")),
+    alt([
+      seq([alt([twoOf("0", "0-9"), twoOf("1", "0-3")]), literal(":"), twoOf("0-5", "0-9")]),
       literal("14:00"),
-    ),
-  ),
-);
+    ]),
+  ]),
+]);
 
 /**
  * A date, a year with a month and a day valid for that month: 29 February only in a leap year.
  */
-const datePart = seq(
+const datePart = seq([
   opt(literal("-")),
-  alt(seq(yearLexical, literal("-"), monthDayLexical), seq(leapYearLexical, literal("-02-29"))),
-);
+  alt([
+    seq([yearLexical, literal("-"), monthDayLexical]),
+    seq([leapYearLexical, literal("-02-29")]),
+  ]),
+]);
 
 /**
  * A time of day, `hh:mm:ss` with an optional fraction of a second: hours `00` to `23`, or
  * `24:00:00` with no fraction or a zero one, the first instant of the next day (XML Schema Part 2,
  * 3.2.7.1).
  */
-const timeOfDay = alt(
-  seq(
-    alt(twoOf("01", "0-9"), twoOf("2", "0-3")),
+const timeOfDay = alt([
+  seq([
+    alt([twoOf("01", "0-9"), twoOf("2", "0-3")]),
     literal(":"),
     twoOf("0-5", "0-9"),
     literal(":"),
     twoOf("0-5", "0-9"),
-    opt(seq(literal("."), plus(digit))),
-  ),
-  seq(literal("24:00:00"), opt(seq(literal("."), plus(literal("0"))))),
-);
+    opt(seq([literal("."), plus(digit)])),
+  ]),
+  seq([literal("24:00:00"), opt(seq([literal("."), plus(literal("0"))]))]),
+]);
 
 /**
  * `xs:date`'s lexical space: a year of four or more digits (no year 0000), a month and a day valid
  * for that month, 29 February only in a leap year, and an optional timezone (XML Schema Part 2,
  * 3.2.9.1 and D.3.2).
  */
-const dateLexical = seq(datePart, opt(timezoneLexical));
+const dateLexical = seq([datePart, opt(timezoneLexical)]);
 
 /**
  * `xs:dateTime`'s lexical space: a date, `T`, a time of day, and an optional timezone (XML Schema
  * Part 2, 3.2.7.1).
  */
-const dateTimeLexical = seq(datePart, literal("T"), timeOfDay, opt(timezoneLexical));
+const dateTimeLexical = seq([datePart, literal("T"), timeOfDay, opt(timezoneLexical)]);
 
 /**
  * `xs:time`'s lexical space: a time of day and an optional timezone (XML Schema Part 2, 3.2.8.1).
  */
-const timeLexical = seq(timeOfDay, opt(timezoneLexical));
+const timeLexical = seq([timeOfDay, opt(timezoneLexical)]);
 
 /**
  * `xs:gYearMonth`'s lexical space: a year and a month (XML Schema Part 2, 3.2.10.1).
  */
-const gYearMonthLexical = seq(
+const gYearMonthLexical = seq([
   opt(literal("-")),
   yearLexical,
   literal("-"),
   monthLexical,
   opt(timezoneLexical),
-);
+]);
 
 /**
  * `xs:gYear`'s lexical space: a year (XML Schema Part 2, 3.2.11.1).
  */
-const gYearLexical = seq(opt(literal("-")), yearLexical, opt(timezoneLexical));
+const gYearLexical = seq([opt(literal("-")), yearLexical, opt(timezoneLexical)]);
 
 /**
  * `xs:gMonthDay`'s lexical space: `--`, a month and a day valid for it in some year, 29 February
  * included (XML Schema Part 2, 3.2.12.1).
  */
-const gMonthDayLexical = seq(
+const gMonthDayLexical = seq([
   literal("--"),
-  alt(monthDayLexical, literal("02-29")),
+  alt([monthDayLexical, literal("02-29")]),
   opt(timezoneLexical),
-);
+]);
 
 /**
  * `xs:gDay`'s lexical space: `---` and a day, `01` to `31` (XML Schema Part 2, 3.2.13.1).
  */
-const gDayLexical = seq(
+const gDayLexical = seq([
   literal("---"),
-  alt(twoOf("0", "1-9"), twoOf("12", "0-9"), twoOf("3", "01")),
+  alt([twoOf("0", "1-9"), twoOf("12", "0-9"), twoOf("3", "01")]),
   opt(timezoneLexical),
-);
+]);
 
 /**
  * `xs:gMonth`'s lexical space: `--` and a month, the Second Edition's form, which corrects the
  * First Edition's `--MM--` (XML Schema Part 2, 3.2.14.1).
  */
-const gMonthLexical = seq(literal("--"), monthLexical, opt(timezoneLexical));
+const gMonthLexical = seq([literal("--"), monthLexical, opt(timezoneLexical)]);
 
 /**
  * `xs:duration`'s lexical space, `PnYnMnDTnHnMnS`: an optional `-`, `P`, then at least one
@@ -1675,22 +1681,22 @@ const gMonthLexical = seq(literal("--"), monthLexical, opt(timezoneLexical));
  */
 const durationLexical = ((): Regex => {
   const count = plus(digit);
-  const seconds = seq(count, opt(seq(literal("."), plus(digit))), literal("S"));
-  const time = seq(
+  const seconds = seq([count, opt(seq([literal("."), plus(digit)])), literal("S")]);
+  const time = seq([
     literal("T"),
-    alt(
-      seq(count, literal("H"), opt(seq(count, literal("M"))), opt(seconds)),
-      seq(count, literal("M"), opt(seconds)),
+    alt([
+      seq([count, literal("H"), opt(seq([count, literal("M")])), opt(seconds)]),
+      seq([count, literal("M"), opt(seconds)]),
       seconds,
-    ),
-  );
-  const date = alt(
-    seq(count, literal("Y"), opt(seq(count, literal("M"))), opt(seq(count, literal("D")))),
-    seq(count, literal("M"), opt(seq(count, literal("D")))),
-    seq(count, literal("D")),
-  );
+    ]),
+  ]);
+  const date = alt([
+    seq([count, literal("Y"), opt(seq([count, literal("M")])), opt(seq([count, literal("D")]))]),
+    seq([count, literal("M"), opt(seq([count, literal("D")]))]),
+    seq([count, literal("D")]),
+  ]);
 
-  return seq(opt(literal("-")), literal("P"), alt(seq(date, opt(time)), time));
+  return seq([opt(literal("-")), literal("P"), alt([seq([date, opt(time)]), time])]);
 })();
 
 /**
@@ -1751,7 +1757,7 @@ const digitsIn = (lo: bigint, hi: Option.Option<bigint>): Option.Option<Regex> =
     const [a, aRest] = [from.slice(0, 1), from.slice(1)];
     const [b, bRest] = [to.slice(0, 1), to.slice(1)];
     if (a === b) {
-      return seq(literal(a), sameLength(aRest, bRest));
+      return seq([literal(a), sameLength(aRest, bRest)]);
     }
 
     const rest = from.length - 1;
@@ -1760,18 +1766,18 @@ const digitsIn = (lo: bigint, hi: Option.Option<bigint>): Option.Option<Regex> =
     const midFrom = Number(a) + (lowFull ? 0 : 1);
     const midTo = Number(b) - (highFull ? 0 : 1);
 
-    return alt(
-      ...(lowFull ? [] : [seq(literal(a), sameLength(aRest, "9".repeat(rest)))]),
+    return alt([
+      ...(lowFull ? [] : [seq([literal(a), sameLength(aRest, "9".repeat(rest))])]),
       ...(midFrom <= midTo
         ? [
-            seq(
+            seq([
               cls(`${midFrom}-${midTo}`),
               ...(rest === 0 ? [] : [repeat(digit, rest, Option.some(rest))]),
-            ),
+            ]),
           ]
         : []),
-      ...(highFull ? [] : [seq(literal(b), sameLength("0".repeat(rest), bRest))]),
-    );
+      ...(highFull ? [] : [seq([literal(b), sameLength("0".repeat(rest), bRest)])]),
+    ]);
   };
   if (Option.exists(hi, (most) => most < lo)) {
     return Option.none();
@@ -1786,7 +1792,7 @@ const digitsIn = (lo: bigint, hi: Option.Option<bigint>): Option.Option<Regex> =
   let full: Option.Option<readonly [number, number]> = Option.none();
   const flush = () => {
     for (const [from, to] of Option.toArray(full)) {
-      arms.push(seq(cls("1-9"), repeat(digit, from - 1, Option.some(to - 1))));
+      arms.push(seq([cls("1-9"), repeat(digit, from - 1, Option.some(to - 1))]));
     }
 
     full = Option.none();
@@ -1813,12 +1819,12 @@ const digitsIn = (lo: bigint, hi: Option.Option<bigint>): Option.Option<Regex> =
   if (Option.isNone(hi)) {
     const first = Option.match(full, { onNone: () => top + 1, onSome: ([held]) => held });
     full = Option.none();
-    arms.push(seq(cls("1-9"), repeat(digit, first - 1, Option.none())));
+    arms.push(seq([cls("1-9"), repeat(digit, first - 1, Option.none())]));
   }
 
   flush();
 
-  return Option.some(alt(...arms));
+  return Option.some(alt(arms));
 };
 
 /**
@@ -1849,35 +1855,38 @@ const integerIn = (lo: Option.Option<bigint>, hi: Option.Option<bigint>): Option
         lo.pipe(Option.map((least) => -least)),
       );
   const arms = [
-    ...(has(0n) ? [seq(sign, zeros)] : []),
+    ...(has(0n) ? [seq([sign, zeros])] : []),
     ...Option.toArray(
-      positive.pipe(Option.map((body) => seq(opt(literal("+")), star(literal("0")), body))),
+      positive.pipe(Option.map((body) => seq([opt(literal("+")), star(literal("0")), body]))),
     ),
     ...Option.toArray(
-      negative.pipe(Option.map((body) => seq(literal("-"), star(literal("0")), body))),
+      negative.pipe(Option.map((body) => seq([literal("-"), star(literal("0")), body]))),
     ),
   ];
 
-  return arms.length === 0 ? Option.none() : Option.some(alt(...arms));
+  return arms.length === 0 ? Option.none() : Option.some(alt(arms));
 };
 
 /**
  * `xs:decimal`'s lexical forms of values of zero or more: an unsigned decimal, or zero after a
  * minus.
  */
-const nonNegativeDecimal = alt(
-  seq(
+const nonNegativeDecimal = alt([
+  seq([
     opt(literal("+")),
-    alt(seq(plus(digit), opt(seq(literal("."), star(digit)))), seq(literal("."), plus(digit))),
-  ),
-  seq(
+    alt([
+      seq([plus(digit), opt(seq([literal("."), star(digit)]))]),
+      seq([literal("."), plus(digit)]),
+    ]),
+  ]),
+  seq([
     literal("-"),
-    alt(
-      seq(plus(literal("0")), opt(seq(literal("."), star(literal("0"))))),
-      seq(literal("."), plus(literal("0"))),
-    ),
-  ),
-);
+    alt([
+      seq([plus(literal("0")), opt(seq([literal("."), star(literal("0"))]))]),
+      seq([literal("."), plus(literal("0"))]),
+    ]),
+  ]),
+]);
 
 /**
  * A lower bound on a double's or a float's value, which no pattern states: a value's literal rounds
@@ -2467,10 +2476,10 @@ const mapSets = (tree: Regex, map: (set: CodeSet) => Regex): Regex => {
       return map(tree.set);
     }
     case "seq": {
-      return seq(...tree.parts.map((part) => mapSets(part, map)));
+      return seq(tree.parts.map((part) => mapSets(part, map)));
     }
     case "alt": {
-      return alt(...tree.arms.map((arm) => mapSets(arm, map)));
+      return alt(tree.arms.map((arm) => mapSets(arm, map)));
     }
     case "repeat": {
       return repeat(mapSets(tree.body, map), tree.min, tree.max);
@@ -2490,10 +2499,10 @@ const alphabetOf = (tree: Regex): CodeSet => {
       return tree.set;
     }
     case "seq": {
-      return union(...tree.parts.map(alphabetOf));
+      return union(tree.parts.map(alphabetOf));
     }
     case "alt": {
-      return union(...tree.arms.map(alphabetOf));
+      return union(tree.arms.map(alphabetOf));
     }
     case "repeat": {
       return alphabetOf(tree.body);
@@ -2516,11 +2525,11 @@ const firstSetOf = (tree: Regex): CodeSet => {
       const reached = tree.parts.findIndex((part) => !part.empty);
 
       return union(
-        ...(reached === -1 ? tree.parts : tree.parts.slice(0, reached + 1)).map(firstSetOf),
+        (reached === -1 ? tree.parts : tree.parts.slice(0, reached + 1)).map(firstSetOf),
       );
     }
     case "alt": {
-      return union(...tree.arms.map(firstSetOf));
+      return union(tree.arms.map(firstSetOf));
     }
     case "repeat": {
       return firstSetOf(tree.body);
@@ -2541,10 +2550,10 @@ const reversed = (tree: Regex): Regex => {
       return tree;
     }
     case "seq": {
-      return seq(...tree.parts.map(reversed).toReversed());
+      return seq(tree.parts.map(reversed).toReversed());
     }
     case "alt": {
-      return alt(...tree.arms.map(reversed));
+      return alt(tree.arms.map(reversed));
     }
     case "repeat": {
       return repeat(reversed(tree.body), tree.min, tree.max);
@@ -2584,18 +2593,18 @@ const firstIn = (tree: Regex, set: CodeSet): Regex => {
         return nothing;
       }
 
-      const tail = seq(...rest);
+      const tail = seq(rest);
 
-      return alt(seq(firstIn(head, set), tail), head.empty ? firstIn(tail, set) : nothing);
+      return alt([seq([firstIn(head, set), tail]), head.empty ? firstIn(tail, set) : nothing]);
     }
     case "alt": {
-      return alt(...tree.arms.map((arm) => firstIn(arm, set)));
+      return alt(tree.arms.map((arm) => firstIn(arm, set)));
     }
     case "repeat": {
-      return seq(
+      return seq([
         firstIn(tree.body, set),
         repeat(tree.body, Math.max(tree.min - 1, 0), tree.max.pipe(Option.map((most) => most - 1))),
-      );
+      ]);
     }
   }
 };
@@ -3018,7 +3027,7 @@ const wordsTo = (reads: Reads, state: number): Regex => reads.get(state) ?? noth
  */
 const joinAt = (into: Map<number, Regex>, state: number, piece: Regex): void => {
   if (!isNothing(piece)) {
-    into.set(state, alt(wordsTo(into, state), piece));
+    into.set(state, alt([wordsTo(into, state), piece]));
   }
 };
 
@@ -3041,7 +3050,7 @@ const sequenceFrom = (
     const next = new Map<number, Regex>();
     for (const [from, before] of reached) {
       for (const [to, piece] of read(part, from)) {
-        joinAt(next, to, seq(before, piece));
+        joinAt(next, to, seq([before, piece]));
       }
     }
 
@@ -3082,7 +3091,7 @@ const closureFrom = (
     const through = entryAt(before, via);
     const loop = star(entryAt(through, via));
     paths = before.map((row) =>
-      row.map((cell, to) => alt(cell, seq(entryAt(row, via), loop, entryAt(through, to)))),
+      row.map((cell, to) => alt([cell, seq([entryAt(row, via), loop, entryAt(through, to)])])),
     );
   }
 
@@ -3182,9 +3191,7 @@ const tracked = (tree: Regex, dfa: Dfa): Regex => {
       });
 
   return alt(
-    ...[...after(tree, 0)].flatMap(([state, words]) =>
-      entryAt(dfa.accepting, state) ? [words] : [],
-    ),
+    [...after(tree, 0)].flatMap(([state, words]) => (entryAt(dfa.accepting, state) ? [words] : [])),
   );
 };
 
@@ -3333,7 +3340,7 @@ const atomicCore = (
       arms.push(arm.success);
     }
 
-    sets.push(alt(...arms));
+    sets.push(alt(arms));
   }
 
   const kept = sets.filter(
@@ -3364,7 +3371,7 @@ const atomicCore = (
  */
 const foldReplace = (tree: Regex): Regex =>
   mapSets(tree, (set) =>
-    chars(holds(set, spacePoint) ? union(set, breaks) : subtract(set, breaks)),
+    chars(holds(set, spacePoint) ? union([set, breaks]) : subtract(set, breaks)),
   );
 
 /**
@@ -3449,18 +3456,18 @@ const spacesToRuns = (tree: Regex, inRun = false): Regex => {
       }
 
       if (inRun) {
-        return chars(union(tree.set, whitespace));
+        return chars(union([tree.set, whitespace]));
       }
 
       const rest = subtract(tree.set, whitespace);
 
-      return rest.length === 0 ? plus(whitespaceChar) : alt(plus(whitespaceChar), chars(rest));
+      return rest.length === 0 ? plus(whitespaceChar) : alt([plus(whitespaceChar), chars(rest)]);
     }
     case "seq": {
-      return seq(...tree.parts.map((part) => spacesToRuns(part)));
+      return seq(tree.parts.map((part) => spacesToRuns(part)));
     }
     case "alt": {
-      return alt(...tree.arms.map((arm) => spacesToRuns(arm, inRun)));
+      return alt(tree.arms.map((arm) => spacesToRuns(arm, inRun)));
     }
     case "repeat": {
       return repeat(
@@ -3623,14 +3630,14 @@ const foldCollapse = (tree: Regex): Result.Result<Regex, UnreadDefinition> => {
   }
 
   if (!spaces.first && !spaces.last) {
-    return Result.succeed(seq(anyWhitespace, spacesToRuns(unbroken), anyWhitespace));
+    return Result.succeed(seq([anyWhitespace, spacesToRuns(unbroken), anyWhitespace]));
   }
 
   const solid = subtract(xmlChar, whitespace);
   const core = firstIn(lastIn(spacesToRuns(unbroken), solid), solid);
 
   return Result.succeed(
-    alt(seq(anyWhitespace, core, anyWhitespace), ...(spaces.nullable ? [anyWhitespace] : [])),
+    alt([seq([anyWhitespace, core, anyWhitespace]), ...(spaces.nullable ? [anyWhitespace] : [])]),
   );
 };
 
@@ -3832,7 +3839,7 @@ const enumerationOf = (
 
   return kept.length === 0
     ? refuse("an enumeration none of whose values the context can reach")
-    : Result.succeed(alt(...kept.map(literal)));
+    : Result.succeed(alt(kept.map(literal)));
 };
 
 /**
@@ -3958,7 +3965,7 @@ const compileIn = (
         arms.push(compiled.tree);
       }
 
-      return { bound: Option.none(), tree: alt(...arms) };
+      return { bound: Option.none(), tree: alt(arms) };
     }
 
     if (context._tag === "token") {
@@ -3973,16 +3980,16 @@ const compileIn = (
     const { max, min } = lengthBounds(domain.facets);
     const separator = plus(whitespaceChar);
     const more = (least: number) =>
-      repeat(seq(separator, item.tree), least, max.pipe(Option.map((most) => most - 1)));
+      repeat(seq([separator, item.tree]), least, max.pipe(Option.map((most) => most - 1)));
     /**
      * A most of 0 leaves `more` nothing, so `items` is the empty list, and a most below the least
      * leaves the list nothing (`repeat`).
      */
-    const items = min === 0 ? opt(seq(item.tree, more(0))) : seq(item.tree, more(min - 1));
+    const items = min === 0 ? opt(seq([item.tree, more(0)])) : seq([item.tree, more(min - 1)]);
 
     return {
       bound: Option.none(),
-      tree: context.exact ? items : seq(anyWhitespace, items, anyWhitespace),
+      tree: context.exact ? items : seq([anyWhitespace, items, anyWhitespace]),
     };
   });
 
@@ -4133,7 +4140,7 @@ const normalizationOf = (
 
     return {
       _tag: "mixed",
-      leading: { pattern: emitWhole(alt(...leading.trees)), whiteSpace: leading.whiteSpace },
+      leading: { pattern: emitWhole(alt(leading.trees)), whiteSpace: leading.whiteSpace },
       rest: after.whiteSpace,
     } as const;
   });

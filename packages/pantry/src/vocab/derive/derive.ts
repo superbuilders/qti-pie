@@ -1177,7 +1177,9 @@ const ownAttributes = (
         yield* requireAttribute(reference, "ref"),
       );
 
-      found.push(...(yield* ownAttributes(schema, group)));
+      for (const each of yield* ownAttributes(schema, group)) {
+        found.push(each);
+      }
     }
 
     return found;
@@ -1249,10 +1251,14 @@ const attributesOf = (
       const base = yield* baseTypeOf(schema, step.value);
 
       if (Option.isSome(base)) {
-        found.push(...(yield* attributesOf(schema, base.value)));
+        for (const each of yield* attributesOf(schema, base.value)) {
+          found.push(each);
+        }
       }
 
-      found.push(...(yield* ownAttributes(schema, step.value)));
+      for (const each of yield* ownAttributes(schema, step.value)) {
+        found.push(each);
+      }
     }
 
     return found;
@@ -1372,7 +1378,9 @@ const attributeGroupsOf = (
         yield* requireAttribute(reference, "ref"),
       );
 
-      found.push(group, ...(yield* attributeGroupsOf(schema, group)));
+      for (const each of [group, ...(yield* attributeGroupsOf(schema, group))]) {
+        found.push(each);
+      }
     }
 
     return found;
@@ -2090,7 +2098,11 @@ export const loadSchemaSet = Effect.fn("vocab.loadSchemaSet")(function* loadSche
     const read = yield* readPlaced(next);
 
     placed.set(next, read);
-    pending.unshift(...(yield* Effect.fromResult(includesOf(next, read.document))));
+    for (const each of [
+      ...(yield* Effect.fromResult(includesOf(next, read.document))),
+    ].toReversed()) {
+      pending.unshift(each);
+    }
   }
 
   const [, ...included] = placed.values();

@@ -1025,7 +1025,7 @@ const mathParticle = (
 const mathGroup = (
   compositor: "choice" | "sequence",
   source: Source,
-  ...particles: readonly Particle[]
+  particles: readonly Particle[],
 ): Particle => ({
   _tag: "group",
   compositor,
@@ -1147,12 +1147,16 @@ const bvarModel = (() => {
   );
   const variable = mathParticle(["m:ci", "m:semantics.ci"], 1, Option.some(1), source);
 
-  return mathGroup(
-    "choice",
-    source,
-    mathGroup("sequence", source, variable, mathParticle(["m:degree"], 0, Option.some(1), source)),
-    mathGroup("sequence", source, mathParticle(["m:degree"], 1, Option.some(1), source), variable),
-  );
+  return mathGroup("choice", source, [
+    mathGroup("sequence", source, [
+      variable,
+      mathParticle(["m:degree"], 0, Option.some(1), source),
+    ]),
+    mathGroup("sequence", source, [
+      mathParticle(["m:degree"], 1, Option.some(1), source),
+      variable,
+    ]),
+  ]);
 })();
 
 /**
@@ -1164,15 +1168,16 @@ const bvarModel = (() => {
 const piecewiseModel = (() => {
   const source = relaxNg("mathml3-content.rnc", 60, "§4.4.1.9 Piecewise declaration");
 
-  return mathGroup("sequence", source, mathParticle(["m:piece"], 0, Option.none(), source), {
-    ...mathGroup(
-      "sequence",
-      source,
-      mathParticle(["m:otherwise"], 1, Option.some(1), source),
-      mathParticle(["m:piece"], 0, Option.none(), source),
-    ),
-    occurs: { max: Option.some(1), min: 0 },
-  });
+  return mathGroup("sequence", source, [
+    mathParticle(["m:piece"], 0, Option.none(), source),
+    {
+      ...mathGroup("sequence", source, [
+        mathParticle(["m:otherwise"], 1, Option.some(1), source),
+        mathParticle(["m:piece"], 0, Option.none(), source),
+      ]),
+      occurs: { max: Option.some(1), min: 0 },
+    },
+  ]);
 })();
 
 /**
@@ -1219,51 +1224,43 @@ const qualified = (
   const run = (kind: string, min: 0 | 1): Particle =>
     mathParticle([kind], min, Option.none(), source);
   const limits = anyNumber(
-    mathGroup(
-      "sequence",
-      source,
+    mathGroup("sequence", source, [
       mathParticle(["m:lowlimit"], 1, once, source),
       mathParticle(["m:uplimit"], 0, once, source),
-    ),
+    ]),
   );
   const intervals = run("m:interval", 0);
   const arguments1 =
     arguments_ === "many"
-      ? anyNumber(mathGroup("sequence", source, other, anyNumber(interval)))
+      ? anyNumber(mathGroup("sequence", source, [other, anyNumber(interval)]))
       : { ...other, occurs: { max: once, min: 0 } };
   const arguments2 =
     arguments_ === "many"
-      ? anyNumber(mathGroup("choice", source, interval, other))
-      : { ...mathGroup("choice", source, interval, other), occurs: { max: once, min: 0 } };
+      ? anyNumber(mathGroup("choice", source, [interval, other]))
+      : { ...mathGroup("choice", source, [interval, other]), occurs: { max: once, min: 0 } };
   const after = (kinds: readonly string[]): Particle =>
-    mathGroup(
-      "choice",
-      source,
+    mathGroup("choice", source, [
       arguments1,
       ...kinds.map((first, at) =>
-        mathGroup(
-          "sequence",
-          source,
+        mathGroup("sequence", source, [
           run(first, 1),
           ...kinds.slice(at + 1).map((kind) => run(kind, 0)),
           arguments2,
-        ),
+        ]),
       ),
-    );
+    ]);
   const bound = (kinds: readonly string[], min: 0 | 1): Particle =>
-    mathGroup(
-      "sequence",
-      source,
+    mathGroup("sequence", source, [
       ...(min === 1 ? [mathParticle(["m:bvar"], 1, Option.none(), source)] : []),
       limits,
       intervals,
       after(kinds),
-    );
+    ]);
   const later = ["m:domainofapplication", ...extra];
 
   return binding === "required"
     ? bound(["m:condition", ...later], 1)
-    : mathGroup("choice", source, bound(["m:condition", ...later], 1), bound(later, 0));
+    : mathGroup("choice", source, [bound(["m:condition", ...later], 1), bound(later, 0)]);
 };
 
 /**
@@ -1284,12 +1281,10 @@ const applyModel = (line: number, binding: "optional" | "required"): Particle =>
     "§4.2.5 Function Application and §4.3.3 Qualifiers",
   );
 
-  return mathGroup(
-    "sequence",
-    source,
+  return mathGroup("sequence", source, [
     mathParticle(contentExpressions, 1, Option.some(1), source),
     qualified(source, ["m:degree", "m:momentabout", "m:logbase"], "many", binding),
-  );
+  ]);
 };
 
 /**
@@ -1302,7 +1297,7 @@ const applyModel = (line: number, binding: "optional" | "required"): Particle =>
 const lambdaModel = (() => {
   const source = relaxNg("mathml3-content.rnc", 103, "§4.4.1.3 Lambda");
 
-  return mathGroup("sequence", source, qualified(source, [], "one", "optional"));
+  return mathGroup("sequence", source, [qualified(source, [], "one", "optional")]);
 })();
 
 /**
@@ -1340,12 +1335,10 @@ const beforeCarries = (parent: string): readonly [string, ...string[]] =>
  * `endedBy` clears `nullable`), and an empty `mstack` is the RelaxNG's.
  */
 const mstackModel = anyNumber(
-  mathGroup(
-    "sequence",
-    cited(mscarriesEnding),
+  mathGroup("sequence", cited(mscarriesEnding), [
     mathParticle(["m:mscarries"], 0, Option.none(), cited(mscarriesEnding)),
     mathParticle(beforeCarries("m:mstack"), 1, Option.some(1), cited(mscarriesEnding)),
-  ),
+  ]),
 );
 
 /**
@@ -1360,7 +1353,7 @@ const mstackModel = anyNumber(
 const constructorModel = (line: number, section: string): Particle => {
   const source = relaxNg("mathml3-content.rnc", line, section);
 
-  return mathGroup("sequence", source, qualified(source, [], "many", "optional"));
+  return mathGroup("sequence", source, [qualified(source, [], "many", "optional")]);
 };
 
 /**
@@ -1387,13 +1380,11 @@ const annotationXmlModel = (() => {
   });
 
   return anyNumber(
-    mathGroup(
-      "choice",
-      source,
+    mathGroup("choice", source, [
       mathParticle(mathExpressions, 1, Option.some(1), source),
       lax("##other"),
       lax("##local"),
-    ),
+    ]),
   );
 })();
 

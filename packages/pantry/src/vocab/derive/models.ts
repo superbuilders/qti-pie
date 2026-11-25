@@ -467,7 +467,9 @@ const substitutesOf = (
 
     for (const member of members) {
       if (!seen.has(member)) {
-        kinds.push(...(yield* substitutesOf(view, member, new Set([...seen, local]))));
+        for (const each of yield* substitutesOf(view, member, new Set([...seen, local]))) {
+          kinds.push(each);
+        }
       }
     }
 
@@ -1754,11 +1756,13 @@ export const renderModels = ({ derivations, models: rows }: ModelsLeaf): string 
 
       taken.add(name);
       hoisted.set(key, name);
-      constants.push(
+      for (const each of [
         ...commentOf([[`A particle that recurs, first held by \`${owner}\`.`]]),
         `const ${name} = ${written};`,
         "",
-      );
+      ]) {
+        constants.push(each);
+      }
 
       return name;
     }

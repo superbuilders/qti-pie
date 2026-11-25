@@ -1185,13 +1185,15 @@ export const renderAttributes = (
 
     taken.add(list);
     listNames.set(key, list);
-    listLines.push(
+    for (const each of [
       ...commentOf([[`The attributes \`${kind}\` declares, which other kinds declare alike.`]]),
       `const ${list} = [`,
       ...rows.map((row) => `  ${row},`),
       "] as const;",
       "",
-    );
+    ]) {
+      listLines.push(each);
+    }
 
     return Option.some(list);
   };

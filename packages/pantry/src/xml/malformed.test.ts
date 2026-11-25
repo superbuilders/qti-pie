@@ -333,6 +333,15 @@ const seedOf = (
 };
 
 /**
+ * The text a span covers.
+ *
+ * @param text - The text.
+ * @param span - The span.
+ * @returns What the span covers.
+ */
+const spanned = (text: string, span: Span): string => text.slice(span[0], span[1]);
+
+/**
  * Replace a span of text.
  *
  * @param text - The text.
@@ -385,7 +394,7 @@ const contentSites = (seed: Seed): readonly number[] =>
  * @returns Them, in the order written.
  */
 const plainOf = (seed: Seed, tag: StartTag): readonly WrittenAttribute[] =>
-  tag.attributes.filter(({ name }) => !seed.text.slice(...name).startsWith("xmlns"));
+  tag.attributes.filter(({ name }) => !spanned(seed.text, name).startsWith("xmlns"));
 
 /**
  * The attributes of a seed that are not namespace declarations.
@@ -403,7 +412,7 @@ const plainAttributes = (seed: Seed): readonly WrittenAttribute[] =>
  * @returns Their start tags, in document order.
  */
 const unprefixed = (seed: Seed): readonly StartTag[] =>
-  seed.starts.filter((tag) => !seed.text.slice(...tag.name).includes(":"));
+  seed.starts.filter((tag) => !spanned(seed.text, tag.name).includes(":"));
 
 /**
  * Rename an element, its start tag and its end tag alike.
@@ -420,7 +429,7 @@ const renamed = (
   name: (current: string) => string,
   added = "",
 ): string => {
-  const current = seed.text.slice(...tag.name);
+  const current = spanned(seed.text, tag.name);
   const ended = Option.match(tag.end, {
     onNone: () => seed.text,
     onSome: ([start, end]) => spliced(seed.text, [start, end], `</${name(current)}>`),
@@ -674,7 +683,7 @@ const faults: readonly Fault[] = [
 
         return second !== undefined &&
           second[0] === first[1] &&
-          seed.text.slice(...first) !== seed.text.slice(...second)
+          spanned(seed.text, first) !== spanned(seed.text, second)
           ? [[first, second] as const]
           : [];
       }),
@@ -682,7 +691,7 @@ const faults: readonly Fault[] = [
       spliced(
         seed.text,
         [first[0], second[1]],
-        seed.text.slice(...second) + seed.text.slice(...first),
+        spanned(seed.text, second) + spanned(seed.text, first),
       ),
     ),
   ),
@@ -737,7 +746,7 @@ const faults: readonly Fault[] = [
         plainOf(seed, tag).map((attribute) => [tag, attribute] as const),
       ),
     ).map(([tag, attribute]) =>
-      inserted(seed.text, tag.close, ` ${seed.text.slice(...attribute.whole)}`),
+      inserted(seed.text, tag.close, ` ${spanned(seed.text, attribute.whole)}`),
     ),
   ),
   inTag("doubled attribute", ' zq="1" zq="2"'),
