@@ -366,9 +366,6 @@ const leafOf =
       case "entityRef": {
         return { kind: "entityRef", name: source.draw(nameOf(drawn)) };
       }
-      default: {
-        return kind satisfies never;
-      }
     }
   };
 
@@ -632,9 +629,6 @@ export const situationsOf = (root: Element): ReadonlySet<TreeSituation> => {
           reached.add("entityRef");
           break;
         }
-        default: {
-          return child satisfies never;
-        }
       }
     }
   }
@@ -748,9 +742,6 @@ const labelledLeaf = (kind: Exclude<ChildKind, "element">, at: number, wild: str
     }
     case "entityRef": {
       return { kind: "entityRef", name: at % 4 === 1 ? `r${at}${wild}` : `r${at}` };
-    }
-    default: {
-      return kind satisfies never;
     }
   }
 };

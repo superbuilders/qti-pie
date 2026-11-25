@@ -153,8 +153,5 @@ export const sourceName = (source: Source): string => {
     case "upstream": {
       return `upstream in ${source.library} (${source.issue})`;
     }
-    default: {
-      return source satisfies never;
-    }
   }
 };

@@ -683,6 +683,7 @@ export default defineConfig({
     "anti-slop/no-array-filter-map": "off",
     // Off, as before ultracite 8: its 10,360 findings span crust, pantry and plate, which other lanes edit.
     "anti-slop/require-readable-spacing": "off",
+    "default-case": "off",
     "devtools/no-variadic-callback": "error",
     // A limit's evidence is its JSDoc's tags (the indefensible-numbers skill), and `@formatConstant` marks a declaration
     // whose numbers are a format's own (a code table, a type's range, an operator's arity), which are no limits.
@@ -723,6 +724,7 @@ export default defineConfig({
     "no-use-before-define": "error",
     "promise/prefer-await-to-then": "error",
     "sort-keys": "error",
+    "typescript/consistent-return": "off",
     // Effect adapters return existing promises without introducing async wrappers.
     // Off, as before ultracite 8: its one finding is plate's catalog proving its areas disjoint, a `{}` it means.
     "typescript/no-generated-empty-object-type": "off",

@@ -204,9 +204,6 @@ const stimulusOf =
       case "video": {
         return shown({ kind: "video" });
       }
-      default: {
-        return drawn satisfies never;
-      }
     }
   };
 
@@ -228,9 +225,6 @@ const promptOf =
       }
       case "picture": {
         return { kind: "picture", picture: source.draw(pictureOf(pick, "prompt")) };
-      }
-      default: {
-        return drawn satisfies never;
       }
     }
   };

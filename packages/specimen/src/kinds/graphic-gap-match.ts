@@ -165,9 +165,6 @@ export const graphicGapMatch = kind("graphic-gap-match", {
             ),
           };
         }
-        default: {
-          return settings.chips satisfies never;
-        }
       }
     });
     const most = { any: 0, "at-most": settings.areas, one: 1 }[settings.pairs];

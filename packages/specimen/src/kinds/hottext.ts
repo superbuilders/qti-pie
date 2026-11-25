@@ -134,9 +134,6 @@ const passageOf = (settings: HottextSettings): readonly string[] => {
         element("p", {}, `${at === 0 ? "First" : "Then"} we saw ${markup}.`),
       );
     }
-    default: {
-      return settings.passage satisfies never;
-    }
   }
 };
 

@@ -42,9 +42,6 @@ export class SpecimenRefused extends Data.TaggedError("SpecimenRefused")<{
       case "accepted": {
         return `plate accepted the specimen as a ${verdict.kind}, not an item`;
       }
-      default: {
-        return verdict satisfies never;
-      }
     }
   }
 }

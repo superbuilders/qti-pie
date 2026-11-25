@@ -470,9 +470,6 @@ export const see = (
         }),
       };
     }
-    default: {
-      return showing satisfies never;
-    }
   }
 };
 

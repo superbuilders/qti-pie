@@ -167,9 +167,6 @@ const playerOf = (settings: MediaSettings, inside: readonly string[]): Player =>
         ),
       };
     }
-    default: {
-      return settings.player satisfies never;
-    }
   }
 };
 

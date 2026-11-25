@@ -158,9 +158,6 @@ const contentOf = (content: Content): Placed => {
         ),
       };
     }
-    default: {
-      return content satisfies never;
-    }
   }
 };
 
@@ -187,9 +184,6 @@ const promptOf = (prompt: Prompt): Option.Option<Placed> => {
         assets: [shown.file.asset],
         markup: `${line}${element("p", {}, shown.markup)}`,
       });
-    }
-    default: {
-      return prompt satisfies never;
     }
   }
 };
@@ -236,9 +230,6 @@ const laidOut = (stimulus: Stimulus, interaction: string): Placed => {
           element("div", { class: `qti-layout-col${String(right)}` }, interaction),
         ),
       };
-    }
-    default: {
-      return stimulus satisfies never;
     }
   }
 };
@@ -343,9 +334,6 @@ const processing = (scoring: Scoring, feedback: boolean): readonly string[] => {
             : []),
         ),
       ];
-    }
-    default: {
-      return scoring satisfies never;
     }
   }
 };

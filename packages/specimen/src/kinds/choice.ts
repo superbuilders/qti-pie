@@ -160,9 +160,6 @@ export const choice = kind("choice", {
 
           return { files: [shown.file.asset], markup: shown.markup };
         }
-        default: {
-          return settings.content satisfies never;
-        }
       }
     });
     const classes = [

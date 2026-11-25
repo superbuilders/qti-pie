@@ -322,9 +322,6 @@ const childRefusal = (child: Child, element: string): Option.Option<WriteRefusal
     case "entityRef": {
       return Option.none();
     }
-    default: {
-      return child satisfies never;
-    }
   }
 };
 

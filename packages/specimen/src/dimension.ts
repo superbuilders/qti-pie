@@ -155,9 +155,6 @@ const keyOf = (owner: Owner, name: string): string => {
     case "interaction": {
       return `${owner.name}.${name}`;
     }
-    default: {
-      return owner satisfies never;
-    }
   }
 };
 

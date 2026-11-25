@@ -78,8 +78,5 @@ export const run = (held: Length, at: number): string => {
     case "long": {
       return `the ${word(at)} ${Arr.getUnsafe(tails, at % tails.length)}`;
     }
-    default: {
-      return held satisfies never;
-    }
   }
 };

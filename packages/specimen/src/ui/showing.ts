@@ -104,9 +104,6 @@ export const showingName = (showing: Showing): string => {
     case "solution": {
       return "solution";
     }
-    default: {
-      return showing satisfies never;
-    }
   }
 };
 
@@ -347,9 +344,6 @@ const otherSingle = (single: Single, offered: readonly string[]): Option.Option<
     case "file": {
       return Option.none();
     }
-    default: {
-      return single satisfies never;
-    }
   }
 };
 
@@ -484,9 +478,6 @@ export const derived = (
       return responses.length > 1
         ? Option.some(each((response, index) => (index === 0 ? response.correct : away(response))))
         : Option.none();
-    }
-    default: {
-      return derivation satisfies never;
     }
   }
 };

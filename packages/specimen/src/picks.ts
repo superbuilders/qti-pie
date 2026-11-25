@@ -61,13 +61,7 @@ export const rightCount = (held: Picks, choices: number): number => {
         case "all-but-one": {
           return choices - 1;
         }
-        default: {
-          return held.right satisfies never;
-        }
       }
-    }
-    default: {
-      return held satisfies never;
     }
   }
 };
@@ -89,9 +83,6 @@ export const maxChoices = (held: Picks, choices: number): number => {
     }
     case "any": {
       return 0;
-    }
-    default: {
-      return held satisfies never;
     }
   }
 };

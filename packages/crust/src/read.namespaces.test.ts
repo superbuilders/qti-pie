@@ -163,9 +163,6 @@ const infosetOf = (element: Element): Element => {
         children.push(child);
         break;
       }
-      default: {
-        return child satisfies never;
-      }
     }
   }
 

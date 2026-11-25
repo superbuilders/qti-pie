@@ -70,9 +70,6 @@ export const sizeOf = (picture: Picture): Size => {
     case "tall": {
       return { height: side, width: shorter };
     }
-    default: {
-      return picture.aspect satisfies never;
-    }
   }
 };
 

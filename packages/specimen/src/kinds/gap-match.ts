@@ -68,9 +68,6 @@ const gapCount = (settings: GapMatchSettings): number => {
     case "more": {
       return settings.choices + 1;
     }
-    default: {
-      return settings.gaps satisfies never;
-    }
   }
 };
 
@@ -214,9 +211,6 @@ export const gapMatch = kind("gap-match", {
               shown.markup,
             ),
           };
-        }
-        default: {
-          return settings.content satisfies never;
         }
       }
     });

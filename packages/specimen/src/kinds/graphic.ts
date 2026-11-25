@@ -227,9 +227,6 @@ const unitsOf = (stage: Stage): Units => {
         y: size.height / 100,
       };
     }
-    default: {
-      return stage.coordinates satisfies never;
-    }
   }
 };
 
@@ -313,9 +310,6 @@ export const areasOf = (stage: Stage, count: number): Arr.NonEmptyReadonlyArray<
 
         return placedAs([x, y - down, x + across, y + down, x - across, y + down]);
       }
-      default: {
-        return held satisfies never;
-      }
     }
   });
 };
@@ -334,9 +328,6 @@ const coordsOf = (stage: Stage, area: Area): string => {
     }
     case "percent": {
       return area.written.map((value) => `${String(value)}%`).join(",");
-    }
-    default: {
-      return stage.coordinates satisfies never;
     }
   }
 };
@@ -393,9 +384,6 @@ const bottomOf = (area: Area): number => {
     case "poly": {
       return Math.max(...area.coords.filter((_, at) => at % 2 === 1));
     }
-    default: {
-      return area.geometry satisfies never;
-    }
   }
 };
 
@@ -431,9 +419,6 @@ const outlineOf = (area: Area): string => {
     }
     case "poly": {
       return element("polygon", { ...paint, points: area.coords.join(",") });
-    }
-    default: {
-      return area.geometry satisfies never;
     }
   }
 };
@@ -524,9 +509,6 @@ export const pictureOf = (
           img,
         ),
       };
-    }
-    default: {
-      return stage.carrier satisfies never;
     }
   }
 };

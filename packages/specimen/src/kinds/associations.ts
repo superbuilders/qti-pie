@@ -83,8 +83,5 @@ export const maxAssociations = (held: Pairs, right: number): number => {
     case "any": {
       return 0;
     }
-    default: {
-      return held satisfies never;
-    }
   }
 };
