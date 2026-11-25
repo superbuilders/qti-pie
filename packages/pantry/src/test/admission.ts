@@ -351,7 +351,7 @@ export const admitPackage = Effect.fn("admission.admit")(function* admitPackage(
 ) {
   yield* Semaphore.withPermit(turnstile)(Effect.void);
 
-  const first = yield* Semaphore.withPermits(lanes, 1)(importOnce(workload, folder, name));
+  const first = yield* Semaphore.withPermit(lanes)(importOnce(workload, folder, name));
 
   return first._tag === "Unjudged"
     ? yield* Semaphore.withPermit(turnstile)(

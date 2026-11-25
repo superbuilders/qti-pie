@@ -188,7 +188,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("the JSON error shape",
       assert.strictEqual(stderr.split("\n").length, 1);
       assert.strictEqual(errorLine(stderr).kind, "roundtrip-differs");
       assert.strictEqual(errorLine(stderr).exit_code, 1);
-      assert.isTrue(Exit.isFailure(exit));
+      assert.strictEqual(exit._tag, "Failure", "a roundtrip whose export differs fails");
       assert.strictEqual(exitCodeOf(exit), 1);
     }),
   );
