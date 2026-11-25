@@ -196,7 +196,9 @@ const treeSizeOf = (roots: Iterable<Nested>): number => {
   const stack = [...roots];
   for (let row = stack.pop(); row !== undefined; row = stack.pop()) {
     size += 1;
-    stack.push(...row.children);
+    for (const child of row.children) {
+      stack.push(child);
+    }
   }
 
   return size;

@@ -710,7 +710,9 @@ const placementsOf = (root: InstanceRoot): readonly Placement[] => {
       instance: BigInt(found.length),
       package: root.package,
     });
-    pending.push(...next.children.toReversed());
+    for (const child of next.children.toReversed()) {
+      pending.push(child);
+    }
   }
 
   return found;
