@@ -30,7 +30,10 @@ export type EncoderClass =
  * encode, grouped by the IANA name they share.
  *
  * Every other label is `decode-only`: the reader admits it when a `TextDecoder` knows it, and the
- * writer never encodes it.
+ * writer never encodes it. XML 1.0 section 4.3.3 lets a processor interpret an IANA-registered name
+ * as the encoding registered for it or treat it as unknown, never as another, so every name IANA
+ * registers for ISO-8859-1 stands here: the registry's Name for it, `ISO_8859-1:1987`, is a label
+ * the WHATWG table a `TextDecoder` reads maps to windows-1252.
  */
 const groups: readonly {
   readonly aliases: readonly string[];
@@ -45,6 +48,7 @@ const groups: readonly {
     aliases: [
       "ISO8859-1",
       "ISO_8859-1",
+      "ISO_8859-1:1987",
       "latin1",
       "l1",
       "IBM819",
