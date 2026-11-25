@@ -224,13 +224,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("a second declaration o
           const bench = { directory, grammar, laws };
           const item = new TextDecoder().decode(base.get(itemPath));
           let index = 0;
-          for (const { original } of [score, template]) {
-            assert.strictEqual(
-              item.split(original).length - 1,
-              1,
-              `the base's item writes ${original} once`,
-            );
-          }
 
           return yield* exhaust(
             {
@@ -253,6 +246,11 @@ layer(NodeServices.layer, { excludeTestServices: true })("a second declaration o
             },
             (kase: Case, c) =>
               Effect.gen(function* duplicateDeclarationCase() {
+                assert.strictEqual(
+                  item.split(kase.name.original).length - 1,
+                  1,
+                  `the base's item writes ${kase.name.original} once, where the case adds its declarations`,
+                );
                 c.note(kase.times);
                 if (kase.codes.includes("other")) {
                   c.note("added declaration of other codes");
