@@ -243,7 +243,8 @@ const doctypeSpan = (text: string, doctype: Option.Option<string>): Option.Optio
 
 /**
  * Read the markup of a well-formed document's text, outside its document type declaration: its
- * tags, comments and declaration.
+ * tags, comments and declaration. Its first element is its root, since a well-formed document's
+ * prolog holds none.
  *
  * @param name - The seed's name.
  * @param charset - The charset its bytes are written in.
@@ -317,7 +318,6 @@ const seedOf = (
     }
   }
 
-  // A well-formed document's first element is its root: the prolog holds none.
   return Option.fromUndefinedOr(starts[0]).pipe(
     Option.map((first) => ({
       charset,

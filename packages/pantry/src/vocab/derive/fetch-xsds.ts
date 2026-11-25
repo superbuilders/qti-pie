@@ -245,7 +245,8 @@ export class XsdPublishedChanged extends Schema.TaggedError<XsdPublishedChanged>
 type PinFailure = XsdDownloadFailed | XsdPublishedChanged;
 
 /**
- * Keep a pin's failure as a value, so a run attempts every pin before it fails.
+ * Keep a pin's failure as a value, so a run attempts every pin before it fails: a pin's own failure
+ * is kept and the other pins go on, where a file system failure ends the run.
  *
  * @param failure - The pin's failure.
  * @returns The failure as a failed result, in the success channel.
@@ -522,7 +523,6 @@ export const fetchPinned = Effect.fn("vocab.fetchPinned")(function* fetchPinned(
   const results = yield* Effect.forEach(Object.entries(pins), ([path, source], index) =>
     settle({ path, scratch: paths.join(scratch, String(index)), source }, directory, client).pipe(
       Effect.map((outcome): Result.Result<Settled, PinFailure> => Result.succeed(outcome)),
-      // A pin's own failure is kept and the other pins go on; a file system failure ends the run.
       Effect.catchTags({ XsdDownloadFailed: keptFailure, XsdPublishedChanged: keptFailure }),
       Effect.map((result) => ({ path, result })),
     ),

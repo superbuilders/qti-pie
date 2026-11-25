@@ -78,8 +78,6 @@ export const nameOf = (name: string): Name => {
   );
 };
 
-// Rosters.
-
 /**
  * Read a declaration code as the expression-typing code spelled the same. Every declaration code
  * the two rosters share is spelled alike, so a code the expression roster does not spell is a

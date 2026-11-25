@@ -483,13 +483,13 @@ describe("crust's reader as pantry uses it", () => {
                  * The round trip through crust's encoder under the charset the importer exports
                  * in (the document's own, or UTF-8 for a label crust only decodes), its
                  * declaration naming that charset as encode's contract asks, reads back as the
-                 * same tree.
+                 * same tree. By crust's contract a label it only decodes (windows-1252 here) is
+                 * refused for writing with an EncodeError naming no code point, and the importer
+                 * exports such a document as UTF-8 instead; a label it writes is its own export
+                 * charset.
                  */
                 const label = exportCharset(document.charset, document);
 
-                // crust's contract: a label it only decodes (windows-1252 here) is refused for
-                // writing with an EncodeError naming no code point, and the importer exports such a
-                // document as UTF-8 instead. A label it writes is its own export charset.
                 if (label === document.charset) {
                   c.note("written-as-read");
                 } else {
@@ -512,9 +512,11 @@ describe("crust's reader as pantry uses it", () => {
                 };
                 const again = yield* readXml(yield* encode(exported, label));
 
-                // A charset label is matched without regard to case, and crust labels a document
-                // by its byte order mark when it has one and by its declaration's spelling when not.
-                assert.strictEqual(again.charset.toLowerCase(), label.toLowerCase());
+                assert.strictEqual(
+                  again.charset.toLowerCase(),
+                  label.toLowerCase(),
+                  "a charset label is matched without regard to case, and crust labels a document by its byte order mark when it has one and by its declaration's spelling when not",
+                );
                 assert.deepStrictEqual(again, { ...exported, charset: again.charset });
               }),
           );

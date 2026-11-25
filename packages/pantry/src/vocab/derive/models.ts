@@ -1034,9 +1034,12 @@ export const derivationsOf = (
 
     for (const view of new Set(world.values())) {
       for (const [local, definition] of [...view.schema.complexTypes, ...view.schema.simpleTypes]) {
-        // A redefinition stands under its own key beside the type it replaces, whose name and base
-        // are the type's.
-        if (local.endsWith(redefinitionKey(""))) {
+        /**
+         * Whether the definition is a redefinition, which stands under its own key beside the type
+         * it replaces, whose name and base are the type's.
+         */
+        const redefinition = local.endsWith(redefinitionKey(""));
+        if (redefinition) {
           continue;
         }
 

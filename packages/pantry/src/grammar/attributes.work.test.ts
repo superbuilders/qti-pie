@@ -49,8 +49,6 @@ interface Work {
  */
 const work: Work = { compiled: [], inputs: [] };
 
-// Wrap the compiler and the attribute grammar's generator before the composition's first module
-// loads, so every compile and every generation the composition makes is seen.
 vi.doMock("#pantry/grammar/domains.ts", async (importOriginal) => {
   const original = await importOriginal<typeof Domains>();
   const compile: typeof original.compile = (definition, whiteSpace) => {
@@ -529,13 +527,11 @@ describe("the attribute grammar's domain work on toy declarations", () => {
   it.effect(
     "compiles each distinct read definition once and reads every declaration as the oracle does, on every list of one or two declarations",
     (ctx) =>
-      // Oracle: each declaration read alone (`oracle`). Bound: every list of one or two of the
-      // 6 pairs x 3 leaves; residual: longer lists, which the search below draws.
       searched(
         ctx,
         exhaust(
           {
-            box: "every list of one or two toy declarations over 6 (kind, attribute) pairs and 3 leaves",
+            box: "every list of one or two toy declarations over 6 (kind, attribute) pairs and 3 leaves; longer lists are the search's below",
             caseHang: Duration.minutes(2),
             coverage: requiredInSpace<ToySituation>([
               "a leaf two declarations share",
@@ -558,9 +554,6 @@ describe("the attribute grammar's domain work on toy declarations", () => {
   it.effect(
     "compiles each distinct read definition once and reads every declaration as the oracle does, searched: lists of up to eight declarations under swarm weights",
     (ctx) =>
-      // Oracle: each declaration read alone (`oracle`). The search must reach each situation in
-      // which a grouping could compile a definition twice or read one declaration under
-      // another's readings.
       searched(
         ctx,
         explore(

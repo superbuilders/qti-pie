@@ -1,3 +1,8 @@
+/**
+ * The declarations deriver's suites. Those over the pinned XSDs are committed-leaf guards, as the
+ * served and verdict files are, with xmllint's reading of the leaves beside them: they run at merge
+ * time, under QTI_PIE_CORPUS=1, beside the corpus witness, and out of the default run.
+ */
 import { regex } from "arkregex";
 import path from "node:path";
 import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
@@ -360,9 +365,6 @@ const disagreementOf = (judged: Judged): Option.Option<string> => {
   }
 };
 
-// Committed-leaf guards, as the served and verdict files are, with xmllint's reading of the leaves
-// beside them: they run at merge time, under QTI_PIE_CORPUS=1, beside the corpus witness, and out
-// of the default run.
 describe.skipIf(!settings.corpusRequested)(
   "vocab/derive/declarations.ts over the pinned XSDs",
   () => {

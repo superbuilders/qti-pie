@@ -545,6 +545,11 @@ const leadingFirst = (particle: Particle, leading: readonly string[], source: st
 /**
  * Apply a spec reading's edit to a particle tree.
  *
+ * A restatement is the reading's whole model: it replaces the XSD's particle, narrowing or widening
+ * its language, and the reading's own recognizer (`#pantry/test/gen/relaxng.ts`, `relaxNgModels`)
+ * is what it is checked against. An ending narrows the automaton and a cap counts beside it, so
+ * neither edits the particle (`contentOf`).
+ *
  * @param particle - The model's particle.
  * @param edit - The edit.
  * @returns The edited particle.
@@ -555,15 +560,10 @@ const edited = (particle: Particle, edit: ModelEdit): Particle => {
       return leadingFirst(particle, edit.kinds, edit.source);
     }
     case "restate": {
-      // A restatement is the reading's whole model: it replaces the XSD's particle, narrowing or
-      // widening its language, and the reading's own recognizer (`#pantry/test/gen/relaxng.ts`,
-      // `relaxNgModels`) is what it is checked against.
       return edit.particle;
     }
     case "ends":
     case "cap": {
-      // An ending narrows the automaton and a cap counts beside it, neither the particle
-      // (`contentOf`).
       return particle;
     }
     case "beside": {
@@ -1104,6 +1104,10 @@ export const contentOf = (input: {
             .globalKinds(model.kind)
             .filter((kind) => !named.has(kind) && !input.foreignRoots.has(kind) && rootAdmits(kind))
         : [];
+      /**
+       * Each kind's positions. `automatonOf` gives no position to a particle that never occurs, or
+       * sits in a group that never does, so every position held is one some family reaches.
+       */
       const symbols = new Map<string, Position[]>();
       /**
        * The processing of each wildcard position that admits a foreign kind.
@@ -1120,8 +1124,6 @@ export const contentOf = (input: {
           held.push(position);
         }
       };
-      // `automatonOf` gives no position to a particle that never occurs, or sits in a group that
-      // never does, so every position is one some family reaches.
       for (const position of automaton.positions) {
         const { symbol } = position;
         if (symbol._tag === "kinds") {
@@ -1137,11 +1139,14 @@ export const contentOf = (input: {
             }
           }
 
-          // An element no declaration names is its namespace class's foreign kind, and the
-          // wildcard admits the classes its constraint does (§3.10.1). Under `strict` such an
-          // element stands only with an `xsi:type` its document's schema set can resolve (§3.3.4,
-          // clause 1.2; spec reading 81), which `StrictlyHeld` marks for the reader.
-          for (const namespaceClass of namespaceClassesUnder[symbol.namespace]) {
+          /**
+           * The namespace classes the wildcard's constraint admits (§3.10.1): an element no
+           * declaration names is its namespace class's foreign kind. Under `strict` such an element
+           * stands only with an `xsi:type` its document's schema set can resolve (§3.3.4, clause
+           * 1.2; spec reading 81), which `StrictlyHeld` marks for the reader.
+           */
+          const namespaceClasses = namespaceClassesUnder[symbol.namespace];
+          for (const namespaceClass of namespaceClasses) {
             admit(foreignKinds[namespaceClass], position);
             processings
               .getOrInsertComputed(foreignKinds[namespaceClass], () => [])

@@ -132,7 +132,7 @@ const union = (sets: readonly CodeSet[]): CodeSet => {
 };
 
 /**
- * The intersection of two sets.
+ * The intersection of two sets. Each set's runs are read in order until either set has no run left.
  *
  * @param left - A set.
  * @param right - A set.
@@ -142,7 +142,6 @@ const intersect = (left: CodeSet, right: CodeSet): CodeSet => {
   const runs: CodeRange[] = [];
   let at = 0;
   let other = 0;
-  // Each set's runs are read in order until either set has no run left.
   for (
     let mine = left[at], theirs = right[other];
     mine !== undefined && theirs !== undefined;
@@ -165,7 +164,9 @@ const intersect = (left: CodeSet, right: CodeSet): CodeSet => {
 };
 
 /**
- * The code points of one set that another does not hold.
+ * The code points of one set that another does not hold. Both sets' runs are read once, in order:
+ * a run taken away that ends before a run of `left` ends is passed for good, since every later run
+ * of `left` starts after it.
  *
  * @param left - The set.
  * @param right - The code points taken away.
@@ -174,8 +175,6 @@ const intersect = (left: CodeSet, right: CodeSet): CodeSet => {
 const subtract = (left: CodeSet, right: CodeSet): CodeSet => {
   const kept: CodeRange[] = [];
   let other = 0;
-  // Both sets' runs are read once, in order: a run taken away that ends before a run of `left`
-  // ends is passed for good, since every later run of `left` starts after it.
   for (const [lo, hi] of left) {
     let from = lo;
     let cut = right[other];
@@ -2647,6 +2646,7 @@ const repeats = (tree: Extract<Regex, { readonly _tag: "repeat" }>): boolean =>
 
 /**
  * The positions of a tree once each counted repetition is written out: what its automaton holds.
+ * `{n,}` is written out as n copies and one starred copy, `{n,m}` as m copies.
  *
  * @param tree - The tree.
  * @returns The count.
@@ -2663,7 +2663,6 @@ const positionsOf = (tree: Regex): number => {
       return tree.arms.reduce((total, arm) => total + positionsOf(arm), 0);
     }
     case "repeat": {
-      // `{n,}` is written out as n copies and one starred copy, `{n,m}` as m copies.
       return (
         positionsOf(tree.body) *
         Option.match(tree.max, { onNone: () => tree.min + 1, onSome: (most) => most })
@@ -2959,6 +2958,11 @@ const minimized = (dfa: Dfa): Dfa => {
  * A tree's minimal deterministic automaton, by the subset construction over its position
  * automaton, or none past {@link automatonPositions} positions or {@link dfaStates} states.
  *
+ * A state's moves are read at the representative points of its candidates' sets: each point's run
+ * ends before the next point, the last's at the code space's end. The points ascend, so a target's
+ * runs do too, and a run that starts where the last ended joins it ({@link pushRun}): each target's
+ * runs are a set as they are written.
+ *
  * @param tree - The tree.
  * @returns The automaton.
  */
@@ -2979,7 +2983,6 @@ const dfaOf = (tree: Regex): Option.Option<Dfa> => {
     const candidates = successorsOf(automaton, state);
     const points = representatives(candidates.map((at) => entryAt(automaton.sets, at)));
     const byTarget = new Map<number, [number, number][]>();
-    // Each point's run ends before the next point, the last's at the code space's end.
     for (const [point, after] of Arr.zip(points, [...points.slice(1), codeSpaceEnd])) {
       const next = candidates.filter((at) => holds(entryAt(automaton.sets, at), point));
       if (next.length > 0) {
@@ -2988,8 +2991,6 @@ const dfaOf = (tree: Regex): Option.Option<Dfa> => {
 
           return states.length - 1;
         });
-        // The points ascend, so a target's runs do too, and a run that starts where the last
-        // ended joins it: each target's runs are a set as they are written.
         pushRun(
           byTarget.getOrInsertComputed(target, () => []),
           [point, after - 1],
@@ -3221,7 +3222,6 @@ const narrowed = (left: Regex, right: Regex): readonly [Regex, Regex] => {
   return narrowed(narrow(left), narrow(right));
 };
 
-// GRIZZLE-PENDING: Q8 (patterns held as data, one row per constraint) deletes this product.
 /**
  * The intersection of two languages, as one tree of their product, exactly or not at all:
  *
@@ -3237,6 +3237,8 @@ const narrowed = (left: Regex, right: Regex): readonly [Regex, Regex] => {
  * be written is grizzle's to say: `str.regex` bounds a pattern in PostgreSQL's own units and
  * refuses one past them when it is admitted (`ResourceBound`), so no bound of pantry's stands
  * before it.
+ *
+ * GRIZZLE-PENDING: Q8 (patterns held as data, one row per constraint) deletes this product.
  *
  * @param left - A tree.
  * @param right - A tree.
@@ -3786,8 +3788,10 @@ const spellRepeat = (body: string, min: number, max: Option.Option<number>): str
 /**
  * Write a tree as a pattern: a set as one character or a bracket expression, a sequence part by
  * part (an alternation among them in a group), an alternation arm by arm, {@link nothing} as the
- * empty set, and a repetition as its body (a group unless it is one set) and a quantifier. No
- * construct of the tree asserts without matching, so the pattern holds no lookaround.
+ * empty set, and a repetition as its body (a group unless it is one set) and a quantifier. No arm
+ * joined by `|` would be the empty word's pattern, so the alternation of none, {@link nothing}, is
+ * written as the set of no character, `[]`, which no text matches. No construct of the tree asserts
+ * without matching, so the pattern holds no lookaround.
  *
  * @param tree - The tree.
  * @returns The pattern.
@@ -3803,8 +3807,6 @@ const emit = (tree: Regex): string => {
         .join("");
     }
     case "alt": {
-      // No arm joined by `|` would be the empty word's pattern, so the alternation of none,
-      // {@link nothing}, is written as the set of no character, `[]`, which no text matches.
       return isNothing(tree) ? spellSet([]) : tree.arms.map(emit).join("|");
     }
     case "repeat": {

@@ -92,15 +92,23 @@ const typedHandles: readonly TypedHandle[] = [
     "lom:source": ["source", "CharacterString.Type"],
     "lom:source.langString": ["source", "LangString.Type"],
   }),
-  // MathML's `semantics` in its three groups: `semantics`, a math expression's, whose first child is
-  // any math expression (`mathml3-common.xsd` line 72); `semantics-ci`, a bound variable's, whose
-  // first child is `ci` or another of its own (`mathml3-strict-content.xsd` line 65); and
-  // `semantics-contexp`, a content expression's, whose first child is a content expression (line
-  // 84, the MathML 3 RelaxNG's `semantics-contexp`, `mathml3-strict-content.rnc` lines 14 and 23,
-  // which spec reading 2 admits wherever a content expression stands).
   ...decided(vocabularyNamespaces.mathml.namespace, {
+    /**
+     * MathML's `semantics` in its group `semantics`, a math expression's, whose first child is any
+     * math expression (`mathml3-common.xsd` line 72).
+     */
     "m:semantics": ["semantics", "anonymous in group semantics"],
+    /**
+     * MathML's `semantics` in its group `semantics-ci`, a bound variable's, whose first child is
+     * `ci` or another of its own (`mathml3-strict-content.xsd` line 65).
+     */
     "m:semantics.ci": ["semantics", "anonymous in group semantics-ci"],
+    /**
+     * MathML's `semantics` in its group `semantics-contexp`, a content expression's, whose first
+     * child is a content expression (`mathml3-strict-content.xsd` line 84, the MathML 3 RelaxNG's
+     * `semantics-contexp`, `mathml3-strict-content.rnc` lines 14 and 23, which spec reading 2
+     * admits wherever a content expression stands).
+     */
     "m:semantics.contexp": ["semantics", "anonymous in group semantics-contexp"],
   }),
 ];

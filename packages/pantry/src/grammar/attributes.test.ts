@@ -156,14 +156,13 @@ describe("The departures from the XSD", () => {
   });
 
   it("are gone: a cell's headers are a plain list of identifiers in the attribute grammar, with no IDREF identity, since reading 126's same-table rule is an overlay's law", () => {
-    // Reading 126's rule, each token unique and the id of a th of the cell's own table, is
-    // `src/qti/overlay-queries/html.ts`'s, `HeaderToken`'s key and `CellToken`'s containment in
-    // `TableHeader`, over the tokens `HeaderToken` splits from the attribute's lexical form; the
-    // grammar reads no reference on them.
     for (const kind of ["td", "th"]) {
       const headers = Option.getOrThrow(domainAt(kind, "headers"));
 
-      assert.isTrue(matches(headers, "a b  c"));
+      assert.isTrue(
+        matches(headers, "a b  c"),
+        `${kind}'s headers are a list of identifiers: reading 126's rule, each token unique and the id of a th of the cell's own table, is src/qti/overlay-queries/html.ts's (HeaderToken's key and CellToken's containment in TableHeader, over the tokens HeaderToken splits from the lexical form), and the grammar reads no reference on them`,
+      );
       assert.deepStrictEqual(headers.identity, Option.none());
     }
   });
@@ -281,23 +280,23 @@ const isLanguageTag = (value: string): boolean => {
 
     return taken;
   };
+  const takeAll = (production: RegExp): number => {
+    let count = 0;
+    while (take(production)) {
+      count += 1;
+    }
+
+    return count;
+  };
   for (let extlangs = 0; at(0).length <= 3 && extlangs < 3 && take(regex("^[A-Za-z]{3}$", "u"));) {
     extlangs += 1;
   }
 
   take(regex("^[A-Za-z]{4}$", "u"));
   take(regex("^(?:[A-Za-z]{2}|[0-9]{3})$", "u"));
-  while (take(regex("^(?:[A-Za-z0-9]{5,8}|[0-9][A-Za-z0-9]{3})$", "u"))) {
-    // Each variant is taken.
-  }
-
+  takeAll(regex("^(?:[A-Za-z0-9]{5,8}|[0-9][A-Za-z0-9]{3})$", "u"));
   while (take(regex("^[0-9A-WY-Za-wy-z]$", "u"))) {
-    let held = 0;
-    while (take(regex("^[A-Za-z0-9]{2,8}$", "u"))) {
-      held += 1;
-    }
-
-    if (held === 0) {
+    if (takeAll(regex("^[A-Za-z0-9]{2,8}$", "u")) === 0) {
       return false;
     }
   }
@@ -366,6 +365,10 @@ const isPrintfFormat = (value: string): boolean => printfSpecifiers(value).every
  * What a generated format is, for the search's coverage: how many specifiers it writes, none, one,
  * two or several, and whether one of them is malformed. A format of none has no specifier to
  * break, so the search must reach the six others, each count well-formed and malformed.
+ *
+ * Reading 161 (PR #46, comment 6701102861): a format with two or more conversions is accepted and
+ * stored as written; reading 132's codes still judge each one. So a domain that refuses a second
+ * conversion, or admits a malformed one beside a well-formed one, fails the search.
  */
 const printfNotes = [
   "none",
@@ -1375,11 +1378,6 @@ describe("The spec readings", () => {
   it.effect(
     "read 161, searched: generated formats of any number of specifiers, swarm-weighted over five kinds of piece, judged as the independent recogniser judges them, each count of specifiers reached well-formed and malformed",
     (ctx) =>
-      // Reading 161 (PR #46, comment 6701102861): a format with two or more conversions is
-      // accepted and stored as written; reading 132's codes still judge each one. The search must
-      // reach each count, none, one, two and several, with every specifier well-formed and with
-      // one malformed (`printfNotes`), so a domain that refuses a second conversion, or admits a
-      // malformed one beside a well-formed one, fails it.
       searched(
         ctx,
         explore(
@@ -1476,33 +1474,36 @@ describe("The spec readings", () => {
     assert.isTrue(kept.has("xi:include xpointer"));
   });
 
+  /**
+   * Oracle: the composed grammar's rows themselves, every governor's and every open class's,
+   * against the rule; spec reading 90 leaves `source`, which the Schematron's extension rules
+   * cover, the `data-*` class alone, so a `role` there is no name it admits.
+   */
+  const sourceHasNoRole = Effect.gen(function* sourceHasNoRole() {
+    const { attributes } = yield* Effect.fromResult(composed());
+    assert.deepStrictEqual(
+      attributes.admission.lookup({ kind: "source", name: "role" }),
+      Option.none(),
+    );
+    assert.deepStrictEqual(
+      openClasses.filter((open) =>
+        Option.isSome(attributes.admission.lookup({ kind: "source", name: open })),
+      ),
+      ["data-*"],
+    );
+    assert.strictEqual(attributes.admission.lookup({ kind: "h1", name: "role" })._tag, "Some");
+
+    assert.deepStrictEqual(
+      attributes.governed.rows.filter(
+        ({ governor, name }) => governor.startsWith("source ") && name === "role",
+      ),
+      [],
+    );
+  });
+
   it.effect(
     "read 9: the composed grammar admits no role on a source, under its kind, any governor or any open class but data-*",
-    () =>
-      // Oracle: the composed grammar's rows themselves, every governor's and every open class's,
-      // against the rule; spec reading 90 leaves `source`, which the Schematron's extension rules
-      // cover, the `data-*` class alone, so a `role` there is no name it admits.
-      Effect.gen(function* sourceHasNoRole() {
-        const { attributes } = yield* Effect.fromResult(composed());
-        assert.deepStrictEqual(
-          attributes.admission.lookup({ kind: "source", name: "role" }),
-          Option.none(),
-        );
-        assert.deepStrictEqual(
-          openClasses.filter((open) =>
-            Option.isSome(attributes.admission.lookup({ kind: "source", name: open })),
-          ),
-          ["data-*"],
-        );
-        assert.strictEqual(attributes.admission.lookup({ kind: "h1", name: "role" })._tag, "Some");
-
-        assert.deepStrictEqual(
-          attributes.governed.rows.filter(
-            ({ governor, name }) => governor.startsWith("source ") && name === "role",
-          ),
-          [],
-        );
-      }),
+    () => sourceHasNoRole,
   );
 
   it("read 135: every MIME type is RFC 2045's two tokens and a slash, and each item of the upload's list, against an independent reader on every string of up to four symbols and the named cases", () => {
@@ -1615,8 +1616,6 @@ describe("The spec readings", () => {
   it.effect(
     "read 135, searched: generated MIME values and lists, swarm-weighted over nine character classes, judged as the independent reader judges them, each rule of the reader reached alone",
     (ctx) =>
-      // The search must reach each rule the reader tells apart broken alone, the inputs nearest a
-      // valid one, of a value (`mediaTypeNotes`) and of a list (`mediaTypeListNotes`).
       searched(
         ctx,
         explore(
@@ -1661,86 +1660,85 @@ describe("The spec readings", () => {
       ),
   );
 
+  /**
+   * Information model §7.9, Coords: "(e) default: no coordinates should be given", a best
+   * practice (§1.3); coords has multiplicity [1] on every class with a shape (§5.7.6,
+   * §5.67.5, §5.75.2, §7.4.2), and "A value of a shape is always accompanied by coordinates"
+   * (§8.29). The grammar reads the XSD's required CoordsDType, by no reading of its own.
+   * Oracle: `isCoords`, the pattern's counts read token by token, and the XSD's use from the
+   * leaf. Bound: every list of one to eight tokens over four samples (87,380), each kind with
+   * a default shape, under its kind and every governor of it.
+   */
+  const defaultAreaCoords = Effect.gen(function* defaultAreaCoords() {
+    const { attributes } = yield* Effect.fromResult(composed());
+    const byHandle = new Map(attributes.domains.map((domain) => [domain.handle, domain]));
+    const areaKinds = attributeDeclarations
+      .filter(({ domain, name }) => name === "shape" && enumerationOf(domain).includes("default"))
+      .map(({ kind }) => kind)
+      .toSorted();
+
+    assert.deepStrictEqual(areaKinds, [
+      "qti-area-map-entry",
+      "qti-associable-hotspot",
+      "qti-hotspot-choice",
+      "qti-inside",
+    ]);
+
+    const samples = ["15", "5%", "", " 1"] as const;
+    const levels: (readonly string[])[] = [samples];
+    for (let length = 2; length <= 8; length += 1) {
+      levels.push(
+        (levels.at(-1) ?? []).flatMap((head) => samples.map((sample) => `${head},${sample}`)),
+      );
+    }
+
+    const lists = [
+      ...levels.flat(),
+      "0 0 1 1",
+      "0,0,1,1,",
+      ",0,0,1",
+      "0,0,1\t",
+      "\t0,0,1",
+      "-1,0,1",
+      "1.5,0,1",
+      "0,0,1%%",
+    ];
+
+    assert.strictEqual(lists.length, 87_380 + 8);
+
+    const rows = [
+      ...attributes.admission.rows.map((row) => ({ ...row, at: row.kind })),
+      ...attributes.governed.rows.map((row) => ({ ...row, at: row.governor })),
+    ].filter(
+      ({ at, name }) =>
+        name === "coords" && areaKinds.some((kind) => at === kind || at.startsWith(`${kind} `)),
+    );
+    const checked = new Map<string, readonly string[]>();
+    for (const { at, domain: handle, use } of rows) {
+      const domain = byHandle.get(handle);
+      const wrong =
+        checked.get(handle) ??
+        lists.filter((value) => domain === undefined || matches(domain, value) !== isCoords(value));
+      checked.set(handle, wrong);
+
+      assert.strictEqual(use, "required", at);
+      assert.strictEqual(handle, "CoordsDType", at);
+      assert.deepStrictEqual(wrong.slice(0, 20), [], at);
+    }
+
+    assert.isAtLeast(rows.length, areaKinds.length);
+    assert.isFalse(specReadings.some(({ name }) => name === "coords" || name === "shape"));
+    assert.strictEqual(
+      Option.getOrThrow(
+        attributes.admission.lookup({ kind: "qti-media-interaction", name: "coords" }),
+      ).use,
+      "optional",
+    );
+  });
+
   it.effect(
     "read 136: a default shape's coords is required and a CoordsDType, as every shape's is, every kind with a default shape in the composed grammar against an independent reader on every list of up to eight tokens",
-    () =>
-      // Information model §7.9, Coords: "(e) default: no coordinates should be given", a best
-      // practice (§1.3); coords has multiplicity [1] on every class with a shape (§5.7.6,
-      // §5.67.5, §5.75.2, §7.4.2), and "A value of a shape is always accompanied by coordinates"
-      // (§8.29). The grammar reads the XSD's required CoordsDType, by no reading of its own.
-      // Oracle: `isCoords`, the pattern's counts read token by token, and the XSD's use from the
-      // leaf. Bound: every list of one to eight tokens over four samples (87,380), each kind with
-      // a default shape, under its kind and every governor of it.
-      Effect.gen(function* defaultAreaCoords() {
-        const { attributes } = yield* Effect.fromResult(composed());
-        const byHandle = new Map(attributes.domains.map((domain) => [domain.handle, domain]));
-        const areaKinds = attributeDeclarations
-          .filter(
-            ({ domain, name }) => name === "shape" && enumerationOf(domain).includes("default"),
-          )
-          .map(({ kind }) => kind)
-          .toSorted();
-
-        assert.deepStrictEqual(areaKinds, [
-          "qti-area-map-entry",
-          "qti-associable-hotspot",
-          "qti-hotspot-choice",
-          "qti-inside",
-        ]);
-
-        const samples = ["15", "5%", "", " 1"] as const;
-        const levels: (readonly string[])[] = [samples];
-        for (let length = 2; length <= 8; length += 1) {
-          levels.push(
-            (levels.at(-1) ?? []).flatMap((head) => samples.map((sample) => `${head},${sample}`)),
-          );
-        }
-
-        const lists = [
-          ...levels.flat(),
-          "0 0 1 1",
-          "0,0,1,1,",
-          ",0,0,1",
-          "0,0,1\t",
-          "\t0,0,1",
-          "-1,0,1",
-          "1.5,0,1",
-          "0,0,1%%",
-        ];
-
-        assert.strictEqual(lists.length, 87_380 + 8);
-
-        const rows = [
-          ...attributes.admission.rows.map((row) => ({ ...row, at: row.kind })),
-          ...attributes.governed.rows.map((row) => ({ ...row, at: row.governor })),
-        ].filter(
-          ({ at, name }) =>
-            name === "coords" && areaKinds.some((kind) => at === kind || at.startsWith(`${kind} `)),
-        );
-        const checked = new Map<string, readonly string[]>();
-        for (const { at, domain: handle, use } of rows) {
-          const domain = byHandle.get(handle);
-          const wrong =
-            checked.get(handle) ??
-            lists.filter(
-              (value) => domain === undefined || matches(domain, value) !== isCoords(value),
-            );
-          checked.set(handle, wrong);
-
-          assert.strictEqual(use, "required", at);
-          assert.strictEqual(handle, "CoordsDType", at);
-          assert.deepStrictEqual(wrong.slice(0, 20), [], at);
-        }
-
-        assert.isAtLeast(rows.length, areaKinds.length);
-        assert.isFalse(specReadings.some(({ name }) => name === "coords" || name === "shape"));
-        assert.strictEqual(
-          Option.getOrThrow(
-            attributes.admission.lookup({ kind: "qti-media-interaction", name: "coords" }),
-          ).use,
-          "optional",
-        );
-      }),
+    () => defaultAreaCoords,
   );
 });
 
@@ -1892,8 +1890,12 @@ describe("The attribute grammar's structure", () => {
 
   it("derives each domain's identity from the built-in its type restricts, and from nothing else", () => {
     for (const declared of attributeDeclarations) {
-      // Reading 2 reads MathML's `xref` as other than its type, an IDREF.
-      if (!(declared.kind.startsWith("m:") && declared.name === "xref")) {
+      /**
+       * Whether reading 2 reads the declaration as other than its type: MathML's `xref`, an
+       * IDREF.
+       */
+      const readAsOther = declared.kind.startsWith("m:") && declared.name === "xref";
+      if (!readAsOther) {
         assert.deepStrictEqual(
           Option.getOrThrow(domainAt(declared.kind, declared.name)).identity,
           identityOf(declared.domain),
@@ -2063,10 +2065,14 @@ describe("The XSD's attribute uses", () => {
               }
             }
 
-            // Spec reading 10: the XSD's `aria-keyshorts` alone, no second spelling beside it;
-            // spec reading 9: a `source` carries no `role` (the Schematron's RULE ARIA ROLE 1a);
-            // spec reading 123: a `bdo` carries `dir` (§5.11).
-            if (kind === "source") {
+            /**
+             * Whether spec reading 9 takes the kind's `role` away: a `source` carries none (the
+             * Schematron's RULE ARIA ROLE 1a). Spec reading 10 keeps the XSD's `aria-keyshorts`
+             * alone, no second spelling beside it, and spec reading 123 makes a `bdo` carry `dir`
+             * (§5.11, `readingUses` below).
+             */
+            const roleless = kind === "source";
+            if (roleless) {
               expected.delete("role");
             }
 
@@ -2149,9 +2155,13 @@ describe("The document layer", () => {
           ({ namespace }) => namespace !== "##local",
         )) {
           for (const global of xmlGlobals) {
-            // XML Schema 1.0 Part 1 §3.4.4 clause 5.2 (spec reading 109): a custom interaction
-            // declares an ID-typed `id`, so its `##other` wildcard admits no wild `xml:id`.
-            if (wildcard.kind === "qti-custom-interaction" && global.name === "xml:id") {
+            /**
+             * Whether XML Schema 1.0 Part 1 §3.4.4 clause 5.2 (spec reading 109) bars the
+             * attribute: a custom interaction declares an ID-typed `id`, so its `##other` wildcard
+             * admits no wild `xml:id`.
+             */
+            const wildId = wildcard.kind === "qti-custom-interaction" && global.name === "xml:id";
+            if (wildId) {
               continue;
             }
 
@@ -2189,9 +2199,13 @@ describe("The document layer", () => {
         assert.isAbove(checked, 1000);
         assert.isAbove(refused, 0);
         assert.deepStrictEqual(missing, []);
-        // Spec reading 129: XML 1.0 §2.12 makes every xml:lang a BCP 47 tag or empty, under a
-        // lax wildcard (LOM's string) and a skip one (MathML's) alike.
-        for (const kind of ["lom:string", "m:mi"]) {
+
+        /**
+         * A lax wildcard's kind (LOM's string) and a skip one's (MathML's): spec reading 129, XML
+         * 1.0 §2.12, makes every xml:lang a BCP 47 tag or empty under both alike.
+         */
+        const wildcardKinds = ["lom:string", "m:mi"];
+        for (const kind of wildcardKinds) {
           const lang = Option.getOrThrow(attributes.admission.lookup({ kind, name: "xml:lang" }));
           const domain = byHandle.get(lang.domain);
 
@@ -2238,56 +2252,57 @@ const ariaRulesIn = (text: string): ReadonlyMap<string, string> => {
 describe("The Schematron's ARIA role rules", () => {
   beforeAll(xsdCachePresent);
 
+  /**
+   * Oracle: the pinned XSDs as text, read by regular expressions and no XML reader (spec
+   * reading 9): RULE ARIA ROLE 1a's test, `count(@role)=0` on `//qti:source`, and RULE ARIA
+   * ROLE 1b's, `count(@role)=0 or (count(@role)=1 and (@role='…' or …))` on `//qti:h1`.
+   */
+  const ariaRolesFromTheText = Effect.gen(function* ariaRolesFromTheText() {
+    const fs = yield* FileSystem.FileSystem;
+    const directory = yield* xsdDirectory;
+    const { attributes } = yield* Effect.fromResult(composed());
+    const byHandle = new Map(attributes.domains.map((domain) => [domain.handle, domain]));
+    const rules = ariaRulesIn(yield* fs.readFileString(`${directory}/${ariaRuleSource}`));
+    const heading = rules.get("h1") ?? "";
+    const allowed = [...heading.matchAll(regex("@role='(?<role>[a-z]+)'", "gu"))].map(
+      (found) => found.groups?.["role"] ?? "",
+    );
+
+    yield* agree(
+      [
+        ["RULE ARIA ROLE 1a's and 1b's elements", ["source", "h1"]],
+        ["the rules read", [...rules.keys()]],
+      ],
+      setOf(structuralHash, exact),
+    );
+    assert.strictEqual(rules.get("source"), "count(@role)=0");
+    assert.match(
+      heading,
+      regex.as(
+        "^count\\(@role\\)=0 or \\(count\\(@role\\)=1 and \\(@role='[a-z]+'(?: or @role='[a-z]+')*\\)\\)$",
+        "u",
+      ),
+    );
+    assert.isTrue(
+      Option.isNone(attributes.admission.lookup({ kind: "source", name: "role" })),
+      "RULE ARIA ROLE 1a",
+    );
+
+    const row = Option.getOrThrow(attributes.admission.lookup({ kind: "h1", name: "role" }));
+    const domain = byHandle.get(row.domain);
+    const listed = attributeDeclarations.find(({ kind, name }) => kind === "h1" && name === "role");
+    const roles = listed === undefined ? [] : enumerationOf(listed.domain);
+    const wrong = roles.filter(
+      (role) => domain === undefined || matches(domain, role) !== allowed.includes(role),
+    );
+
+    assert.isAbove(roles.length, 70);
+    assert.deepStrictEqual(allowed.toSorted(), ["heading", "presentation", "tab"]);
+    assert.deepStrictEqual(wrong, [], "RULE ARIA ROLE 1b");
+  }).pipe(Effect.provide(NodeServices.layer));
+
   it.effect(
     "are what the composed grammar reads, from the ASI XSD's own text: no role on a source, and an h1's role the values the rule's test names, of those the XSD lists",
-    () =>
-      // Oracle: the pinned XSDs as text, read by regular expressions and no XML reader (spec
-      // reading 9): RULE ARIA ROLE 1a's test, `count(@role)=0` on `//qti:source`, and RULE ARIA
-      // ROLE 1b's, `count(@role)=0 or (count(@role)=1 and (@role='…' or …))` on `//qti:h1`.
-      Effect.gen(function* ariaRolesFromTheText() {
-        const fs = yield* FileSystem.FileSystem;
-        const directory = yield* xsdDirectory;
-        const { attributes } = yield* Effect.fromResult(composed());
-        const byHandle = new Map(attributes.domains.map((domain) => [domain.handle, domain]));
-        const rules = ariaRulesIn(yield* fs.readFileString(`${directory}/${ariaRuleSource}`));
-        const heading = rules.get("h1") ?? "";
-        const allowed = [...heading.matchAll(regex("@role='(?<role>[a-z]+)'", "gu"))].map(
-          (found) => found.groups?.["role"] ?? "",
-        );
-
-        yield* agree(
-          [
-            ["RULE ARIA ROLE 1a's and 1b's elements", ["source", "h1"]],
-            ["the rules read", [...rules.keys()]],
-          ],
-          setOf(structuralHash, exact),
-        );
-        assert.strictEqual(rules.get("source"), "count(@role)=0");
-        assert.match(
-          heading,
-          regex(
-            "^count\\(@role\\)=0 or \\(count\\(@role\\)=1 and \\(@role='[a-z]+'(?: or @role='[a-z]+')*\\)\\)$",
-            "u",
-          ),
-        );
-        assert.isTrue(
-          Option.isNone(attributes.admission.lookup({ kind: "source", name: "role" })),
-          "RULE ARIA ROLE 1a",
-        );
-
-        const row = Option.getOrThrow(attributes.admission.lookup({ kind: "h1", name: "role" }));
-        const domain = byHandle.get(row.domain);
-        const listed = attributeDeclarations.find(
-          ({ kind, name }) => kind === "h1" && name === "role",
-        );
-        const roles = listed === undefined ? [] : enumerationOf(listed.domain);
-        const wrong = roles.filter(
-          (role) => domain === undefined || matches(domain, role) !== allowed.includes(role),
-        );
-
-        assert.isAbove(roles.length, 70);
-        assert.deepStrictEqual(allowed.toSorted(), ["heading", "presentation", "tab"]);
-        assert.deepStrictEqual(wrong, [], "RULE ARIA ROLE 1b");
-      }).pipe(Effect.provide(NodeServices.layer)),
+    () => ariaRolesFromTheText,
   );
 });

@@ -1,3 +1,8 @@
+/**
+ * The models deriver over the pinned XSDs, a committed-leaf guard, as the served and verdict files
+ * are: it runs at merge time, under QTI_PIE_CORPUS=1, beside the corpus witness, and out of the
+ * default run.
+ */
 import path from "node:path";
 import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -29,8 +34,6 @@ const SuiteLayer = Layer.mergeAll(
   NodeChildProcessSpawner.layer.pipe(Layer.provide(NodeServices.layer)),
 );
 
-// A committed-leaf guard, as the served and verdict files are: it runs at merge time, under
-// QTI_PIE_CORPUS=1, beside the corpus witness, and out of the default run.
 describe.skipIf(!settings.corpusRequested)("vocab/derive/models.ts over the pinned XSDs", () => {
   beforeAll(xsdCachePresent);
 

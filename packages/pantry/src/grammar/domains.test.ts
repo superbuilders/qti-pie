@@ -7,10 +7,14 @@
  *   from each definition's own language and perturbed by named whitespace variants.
  * - **The translation of XSD regular expressions.** `xmllint`, the XSD's own validator, judges every
  *   pattern facet the pinned XSDs state, each as the one facet of an `xs:string` restriction, on
- *   words of the pattern and their mutants.
+ *   words of the pattern and their mutants. xmllint is found as the oracle finds it, `XMLLINT` or
+ *   `PATH` (`#pantry/xml/oracle.ts`), and the test is never skipped: a machine without it fails as
+ *   `OracleUnavailable`, which says how to supply one.
  * - **Integer intervals.** `bigint` comparison, over every interval of a small box, exhausted.
  * - **`xs:date`.** A naive calendar: the Gregorian month lengths and leap rule.
- * - **The name tables.** XML 1.0 (Second Edition)'s Appendix B, read from the cached specification.
+ * - **The name tables.** XML 1.0 (Second Edition)'s Appendix B, read from the spec cache
+ *   (`xmlSecondEdition`). The test is never skipped: a machine without it fails as
+ *   `SpecFileMissing`, which says how to fetch it.
  * - **The shared syntax.** PostgreSQL's and JavaScript's regular expression grammars, turned into a
  *   checker of the subset both read.
  */
@@ -576,10 +580,6 @@ describe("Length facets", () => {
   it.effect(
     "admit exactly the values of a length every length facet admits, and none where no length is admitted, never writing a quantifier whose least passes its most: every combination of length, minLength and maxLength, each absent or 0 to 3, on a string and on a list of NMTOKENs, exhausted",
     (ctx) =>
-      // Beside the oracle, JavaScript's regular expression compiler refuses a quantifier such as
-      // `{3,2}`, as PostgreSQL's does. The cases need not satisfy 4.3.1.4 or 4.3.2.4: the deriver
-      // refuses those, and the compiler must read the facets it is given as the language they
-      // state, an empty one included.
       searched(
         ctx,
         exhaust(
@@ -608,7 +608,7 @@ describe("Length facets", () => {
             literal: Formatter.format,
             oracle: {
               kind: "specification",
-              name: "XML Schema Part 2 4.3.1.3 to 4.3.3.3, each length facet a condition on a value's length (lengthHolds)",
+              name: "XML Schema Part 2 4.3.1.3 to 4.3.3.3, each length facet a condition on a value's length (lengthHolds), and beside it JavaScript's regular expression compiler, which refuses a quantifier such as {3,2} as PostgreSQL's does; the cases need not satisfy 4.3.1.4 or 4.3.2.4, which the deriver refuses, since the compiler must read the facets it is given as the language they state, an empty one included",
             },
             suite: "grammar/domains/lengths",
           },

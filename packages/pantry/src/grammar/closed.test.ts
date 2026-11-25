@@ -484,12 +484,8 @@ const built = (drawnCase: Drawn) => {
 
 describe("closed relations against a naive tuple-set model", () => {
   it.effect(
-    "look every point of a relation whose rows lie in their code spaces, one row per key, up as the model does",
+    "look every point of a relation whose rows lie in their code spaces, one row per key, up as the model does: up to 4 key fields of up to 3 handles, dependent ones anywhere after the first, 3 payload fields, 5 rows and one variant a case",
     (ctx) =>
-      // Bound: up to 4 key fields of up to 3 handles, dependent ones anywhere after the first, 3
-      // payload fields, 5 rows and one variant a case. `closed` checks no row: grizzle does when it
-      // declares a relation (`#pantry/test/declared.ts`), so a relation with a broken row is a
-      // case the model judges no lookup of.
       searched(
         ctx,
         explore(
@@ -502,7 +498,7 @@ describe("closed relations against a naive tuple-set model", () => {
             draw: drawn(drawnRelation),
             oracle: {
               kind: "second-implementation",
-              name: "a naive tuple-set model of the relation (built)",
+              name: "a naive tuple-set model of the relation (built), which judges no lookup of a relation with a broken row: closed checks no row, grizzle does when it declares the relation (#pantry/test/declared.ts)",
             },
             runs: 600,
             suite: "grammar/closed/model",
@@ -648,9 +644,8 @@ const byCodeUnits = (left: string, right: string): number => {
 
 describe("rosters and value fields", () => {
   it.effect(
-    "code each handle by its position, hold exactly its handles, and meet grizzle's refusal of a handle listed twice",
+    "code each handle by its position, hold exactly its handles, and meet grizzle's refusal of a handle listed twice: up to 5 handles over 4",
     (ctx) =>
-      // Bound: up to 5 handles over 4.
       searched(
         ctx,
         explore(
@@ -681,9 +676,11 @@ describe("rosters and value fields", () => {
                 c.note(distinct ? "distinct" : "repeated");
               }
 
-              // A roster checks nothing when it is built; grizzle refuses a repeated handle when it
-              // declares the roster (`#pantry/test/declared.ts`).
-              assert.strictEqual(Result.isSuccess(declaredRoster(result)), distinct);
+              assert.strictEqual(
+                Result.isSuccess(declaredRoster(result)),
+                distinct,
+                "a roster checks nothing when it is built; grizzle refuses a repeated handle when it declares the roster (#pantry/test/declared.ts)",
+              );
               if (distinct) {
                 const absent = ["a", "b", "c", "d", "z", ""].filter(
                   (value) => !handles.some((handle) => handle === value),
@@ -707,10 +704,8 @@ describe("rosters and value fields", () => {
   );
 
   it.effect(
-    "number the codes of numerals(n) 0 to n − 1 as numerals, and hold no other string",
+    "number the codes of numerals(n) 0 to n − 1 as numerals, and hold no other string: n from 0 to 6, each probed at every code, one past the last, and three spellings of no code",
     (ctx) =>
-      // Bound: n from 0 to 6, each probed at every code, one past the last, and three spellings of
-      // no code.
       searched(
         ctx,
         explore(
@@ -750,79 +745,80 @@ describe("rosters and value fields", () => {
       ),
   );
 
-  it.effect("hold a column's distinct values in value order, for each primitive type", (ctx) =>
-    // Bound: up to 8 values of one of four types.
-    searched(
-      ctx,
-      explore(
-        {
-          ...budget,
-          coverage: required<
-            "empty" | "repeats" | "out of order" | "bigint" | "boolean" | "number" | "string"
-          >(["empty", "repeats", "out of order", "bigint", "boolean", "number", "string"], {
-            cases: 300,
-            sense: notesOnly,
-          }),
-          draw: drawn(columns),
-          oracle: {
-            kind: "second-implementation",
-            name: "a set of the column sorted by each type's own order: subtraction for numbers, Number() for booleans, code units for strings, bigints by sign of the difference",
+  it.effect(
+    "hold a column's distinct values in value order, for each primitive type: up to 8 values of one of four types",
+    (ctx) =>
+      searched(
+        ctx,
+        explore(
+          {
+            ...budget,
+            coverage: required<
+              "empty" | "repeats" | "out of order" | "bigint" | "boolean" | "number" | "string"
+            >(["empty", "repeats", "out of order", "bigint", "boolean", "number", "string"], {
+              cases: 300,
+              sense: notesOnly,
+            }),
+            draw: drawn(columns),
+            oracle: {
+              kind: "second-implementation",
+              name: "a set of the column sorted by each type's own order: subtraction for numbers, Number() for booleans, code units for strings, bigints by sign of the difference",
+            },
+            runs: 300,
+            suite: "grammar/closed/value-field",
           },
-          runs: 300,
-          suite: "grammar/closed/value-field",
-        },
-        (drawnColumn, c) =>
-          Effect.sync(() => {
-            const { column } = drawnColumn;
-            c.note(drawnColumn._tag);
+          (drawnColumn, c) =>
+            Effect.sync(() => {
+              const { column } = drawnColumn;
+              c.note(drawnColumn._tag);
 
-            if (column.length === 0) {
-              c.note("empty");
-            }
-
-            if (new Set<unknown>(column).size < column.length) {
-              c.note("repeats");
-            }
-
-            const [actual, expected] = ((): readonly [readonly unknown[], readonly unknown[]] => {
-              switch (drawnColumn._tag) {
-                case "bigint": {
-                  return [
-                    valueField("v", drawnColumn.column).values,
-                    [...new Set(drawnColumn.column)].toSorted((left, right) =>
-                      Number(left - right),
-                    ),
-                  ];
-                }
-                case "boolean": {
-                  return [
-                    valueField("v", drawnColumn.column).values,
-                    [...new Set(drawnColumn.column)].toSorted(
-                      (left, right) => Number(left) - Number(right),
-                    ),
-                  ];
-                }
-                case "number": {
-                  return [
-                    valueField("v", drawnColumn.column).values,
-                    [...new Set(drawnColumn.column)].toSorted((left, right) => left - right),
-                  ];
-                }
-                case "string": {
-                  return [
-                    valueField("v", drawnColumn.column).values,
-                    [...new Set(drawnColumn.column)].toSorted(byCodeUnits),
-                  ];
-                }
+              if (column.length === 0) {
+                c.note("empty");
               }
-            })();
-            if (expected.some((value, at) => value !== [...new Set<unknown>(column)][at])) {
-              c.note("out of order");
-            }
 
-            assert.deepStrictEqual(actual, expected);
-          }),
+              if (new Set<unknown>(column).size < column.length) {
+                c.note("repeats");
+              }
+
+              const [actual, expected] = ((): readonly [readonly unknown[], readonly unknown[]] => {
+                switch (drawnColumn._tag) {
+                  case "bigint": {
+                    return [
+                      valueField("v", drawnColumn.column).values,
+                      [...new Set(drawnColumn.column)].toSorted((left, right) =>
+                        Number(left - right),
+                      ),
+                    ];
+                  }
+                  case "boolean": {
+                    return [
+                      valueField("v", drawnColumn.column).values,
+                      [...new Set(drawnColumn.column)].toSorted(
+                        (left, right) => Number(left) - Number(right),
+                      ),
+                    ];
+                  }
+                  case "number": {
+                    return [
+                      valueField("v", drawnColumn.column).values,
+                      [...new Set(drawnColumn.column)].toSorted((left, right) => left - right),
+                    ];
+                  }
+                  case "string": {
+                    return [
+                      valueField("v", drawnColumn.column).values,
+                      [...new Set(drawnColumn.column)].toSorted(byCodeUnits),
+                    ];
+                  }
+                }
+              })();
+              if (expected.some((value, at) => value !== [...new Set<unknown>(column)][at])) {
+                c.note("out of order");
+              }
+
+              assert.deepStrictEqual(actual, expected);
+            }),
+        ),
       ),
-    ),
   );
 });

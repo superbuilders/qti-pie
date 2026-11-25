@@ -252,6 +252,12 @@ const statementReads = (read: (file: string) => string): readonly string[] =>
  * Decide whether a module may import the law oracle: a test named for it, `*.oracle.test.ts` or
  * `*.oracle.db.test.ts`, or a module of the test support under `src/test/`.
  *
+ * The law oracle is a test's judge, so a test that judges by it says so in its name, the database
+ * tier's as well. The support may import it too: the XDM generator names its laws, so a renamed law
+ * breaks the build, and `test/oracle-verdict.ts` predicts the verdict an import test holds the
+ * database's to. It is a rule over names, not a list of files, so a lane that adds an oracle test
+ * names it and edits nothing here.
+ *
  * @param file - The module's path relative to `src`.
  * @returns Whether it may import {@link oracleModule}.
  */
@@ -339,12 +345,6 @@ describe("the test helpers", () => {
     assert.deepStrictEqual(offences(files, ["#pantry/test/"]), pending);
   });
 
-  // The law oracle is a test's judge, so a test that judges by it says so in its name: it is named
-  // `*.oracle.test.ts`, or `*.oracle.db.test.ts` in the database tier. The support under `src/test/`
-  // may import it as well: the XDM generator names its laws, so a renamed law breaks the build, and
-  // `test/oracle-verdict.ts` predicts the verdict an import test holds the database's to.
-  // A rule over names, not a list of files, so a lane that adds an oracle test names it and edits
-  // nothing here.
   it("reach the law oracle only from tests named for it and from the test support", () => {
     const files = globSync("**/*.ts", { cwd: sourceRoot }).toSorted();
 

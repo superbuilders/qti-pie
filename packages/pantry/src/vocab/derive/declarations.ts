@@ -560,9 +560,13 @@ const governingReadingOf = (
         );
       }
 
-      // A built-in derived from a declared type is a simple type, which governs no attributes.
       for (const name of derivation.value.derived.slice(1)) {
-        if (name.namespace === xsNamespace) {
+        /**
+         * Whether the type is a built-in: one derived from a declared type is a simple type, which
+         * governs no attributes.
+         */
+        const builtIn = name.namespace === xsNamespace;
+        if (builtIn) {
           continue;
         }
 
@@ -575,9 +579,12 @@ const governingReadingOf = (
         }
 
         const owner = typeHandle(name);
+        /**
+         * The type's complex definition, none for a named simple type, which governs text alone
+         * (`simple` below reads it).
+         */
         const definition = complexTypeIn(view.value, name.local);
 
-        // A named simple type governs text alone, which `simple` below reads.
         if (Option.isSome(definition) && !governors.has(owner)) {
           governors.set(owner, yield* complexReadingOf(world, view.value, owner, definition.value));
         } else if (Option.isNone(definition) && !view.value.schema.simpleTypes.has(name.local)) {

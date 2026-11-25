@@ -767,16 +767,15 @@ export const cnPatternOf = (form: CnForm, base: number): Option.Option<string> =
   );
 };
 
-// Expression typing (O4, plan §1.7; the W5 amendment's C6, C16 and C17; Q5.10).
-
 /**
  * The base types an expression's value is typed with, in code order: the `ValueBase` roster's
- * handles. These are expression-typing codes, not QTI's declaration codes: QTI's eleven base types,
- * spelled as `BaseType` spells them, then `any`, the type of `qti-null`, whose value "is treated as
- * if it is of any desired base-type" (information model §2.11.1.4, Null), and `unknown`, the type
- * of a value no declaration of its document types: a response processing template's parameter, a
- * test's item variable, a record's field, a custom operator's result. `ValueBaseOf` maps `BaseType`
- * onto it, `none` (a record's base type) onto `unknown`.
+ * handles, the first of expression typing's tables (O4, plan §1.7; the W5 amendment's C6, C16 and
+ * C17; Q5.10). These are expression-typing codes, not QTI's declaration codes: QTI's eleven base
+ * types, spelled as `BaseType` spells them, then `any`, the type of `qti-null`, whose value "is
+ * treated as if it is of any desired base-type" (information model §2.11.1.4, Null), and `unknown`,
+ * the type of a value no declaration of its document types: a response processing template's
+ * parameter, a test's item variable, a record's field, a custom operator's result. `ValueBaseOf`
+ * maps `BaseType` onto it, `none` (a record's base type) onto `unknown`.
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#ExprNull | QTI 3.0 information model, Null}
  */
@@ -1039,6 +1038,13 @@ const leaf = (
 const predicate = fixed("boolean", "single");
 
 /**
+ * The outcome bounds, `qti-outcome-maximum` and `qti-outcome-minimum`: tables 6.9.64 and 6.9.65
+ * (normative), "the result has cardinality multiple and base-type float", NULL where an item
+ * declares no maximum.
+ */
+const outcomeBounds = ["qti-outcome-maximum", "qti-outcome-minimum"] as const;
+
+/**
  * The typing of every QTI expression kind, read against the information model's normative class
  * tables (§6.9 and §6.30, each kind's "sub-expressions" and "result" sentences; §2.11 says the
  * same, and is not normative) and the old checker's P23 table (`docs/goals/qti/phase-3.md` 4.10),
@@ -1187,11 +1193,7 @@ export const expressionTypings: readonly ExpressionTyping[] = [
     "qti-number-responded",
     "qti-number-selected",
   ].map((kind) => leaf(kind, "integer", "single", true)),
-  // Tables 6.9.64 and 6.9.65 (normative): "the result has cardinality multiple and
-  // base-type float", NULL where an item declares no maximum.
-  ...["qti-outcome-maximum", "qti-outcome-minimum"].map((kind) =>
-    leaf(kind, "float", "multiple", true),
-  ),
+  ...outcomeBounds.map((kind) => leaf(kind, "float", "multiple", true)),
   ...["qti-pattern-match", "qti-string-match", "qti-substring"].map((kind) =>
     operator(kind, ["string"], ["single"], predicate, sharingNothing),
   ),

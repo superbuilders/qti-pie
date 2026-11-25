@@ -190,13 +190,13 @@ const governed: ReadonlyMap<string, { readonly governs: string; readonly kind: s
 
 /**
  * The relations stated one to one with a generator's, or as the rulings restate them over the
- * generator's rows: each the second implementation of its declaration.
+ * generator's rows: each the second implementation of its declaration. The content grammar is keyed
+ * by automaton where it is generated, so each of its relations is its generator's rows one to one,
+ * and nothing regroups families into models here; each family's admission map's rows are held to
+ * rule 0 by the admission test below.
  */
 const comparisons: readonly Comparison[] = [
   { expected: () => grammar.content.strictlyHeld.rows, name: "StrictlyHeld" },
-  // The content grammar is keyed by automaton where it is generated, so each relation is its
-  // generator's rows one to one, and nothing regroups families into models here.
-  // Each family's admission map's rows are held to rule 0 by the admission test below.
   { expected: () => grammar.content.contentModelOf.rows, name: "ContentModelOf" },
   { expected: () => grammar.content.admissionIn.rows, name: "AdmissionIn" },
   { expected: () => grammar.content.symbolSetOf.rows, name: "SymbolSetOf" },
@@ -776,9 +776,11 @@ describe("the installed relations", () => {
       ),
       new Set(capped.map(({ parent, position }) => tupleText([parent, position]))),
     );
-    // The loose LOM binding's 82 capped (parent, kind) pairs, and a figure's caption (spec reading
-    // 252).
-    assert.strictEqual(capped.length, 83);
+    assert.strictEqual(
+      capped.length,
+      83,
+      "the loose LOM binding's 82 capped (parent, kind) pairs, and a figure's caption (spec reading 252)",
+    );
     assert.deepStrictEqual(
       new Set(
         relationNamed("BarredOf").rows.map(({ parent, position, slot }) =>
@@ -849,9 +851,11 @@ describe("the MathML relations", () => {
 
 describe("the rosters", () => {
   it("number production's value domains as the ValueDomain roster states them: every domain it names, in the roster's order, and no other", () => {
-    // Oracle: the ValueDomain roster as stated (value-domain-roster.ts), the codes an installation
-    // holds; a reorder is refused by grizzle generate, so the grammar's roster is the stated one.
-    assert.deepStrictEqual([...install.ValueDomain.handles], [...valueDomainRoster]);
+    assert.deepStrictEqual(
+      [...install.ValueDomain.handles],
+      [...valueDomainRoster],
+      "the ValueDomain roster as stated (value-domain-roster.ts) is the codes an installation holds: grizzle generate refuses a reorder, so the grammar's roster is the stated one",
+    );
   });
 
   it("hold every generator's handles in the generator's order, and no handle that stands for an absent value", () => {
@@ -879,10 +883,11 @@ describe("the rosters", () => {
     assert.deepStrictEqual(handlesOf("ContentModel"), grammar.content.models.handles);
     assert.deepStrictEqual(handlesOf("SharedModel"), grammar.content.sharedModels.handles);
     assert.notInclude(handlesOf("SharedModel"), "none");
-    // Spec reading 118's include model is a model of its own, and names the ignored elements'
-    // wildcards at two positions; spec reading 22's template branches, restated without a
-    // `qti-template-constraint`, are one more.
-    assert.lengthOf(handlesOf("SharedModel"), 25);
+    assert.lengthOf(
+      handlesOf("SharedModel"),
+      25,
+      "spec reading 118's include model is a model of its own, and names the ignored elements' wildcards at two positions; spec reading 22's template branches, restated without a qti-template-constraint, are one more",
+    );
     assert.lengthOf(handlesOf("ContentModel"), 114);
   });
 
