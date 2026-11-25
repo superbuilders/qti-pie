@@ -17,8 +17,8 @@
  * Judgment: for every faulted document, crust accepts it exactly when libxml2 does. libxml2's
  * verdicts are taken in batches of files, each error line attributed by the path it starts with.
  * A document the batch judges against crust is judged again alone, and that run's verdict stands.
- * Coverage requires every class to be refused by both readers and accepted by both. Each class is
- * a case of its own over the same seeds.
+ * Coverage requires every class to be refused by both readers and accepted by both. Every class's
+ * faults are one box over the same seeds.
  */
 import { regex } from "arkregex";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
@@ -1088,22 +1088,20 @@ const seedsOnce = Effect.runSync(
 );
 
 /**
- * Search one class's faults at the last site of every seed: write each faulted document, judge
+ * Search every class's faults at the last site of every seed: write each faulted document, judge
  * them with `xmllint` in batches, and hold crust's reader to each verdict.
  *
- * @param faultClass - The class.
- * @returns The search's report. Fails as a case disagrees, or as the class misses a reach.
+ * @returns The search's report. Fails as a case disagrees, or as a class misses a reach.
  */
-const searchClass = Effect.fnUntraced(function* searchClass(faultClass: FaultClass) {
+const searchFaults = Effect.fnUntraced(function* searchFaults() {
   const fs = yield* FileSystem.FileSystem;
   const directory = yield* scratchDirectory("malformed-");
   const seeds = yield* seedsOnce;
 
   assert.isAtLeast(seeds.length, fewestSeeds, "the seeds both readers accept");
 
-  const ofClass = faults.filter((fault) => fault.faultClass === faultClass);
   const cases: readonly FaultCase[] = seeds.flatMap((seed) =>
-    ofClass.flatMap((fault) => fault.of(seed).map((bytes) => ({ bytes, fault, seed: seed.name }))),
+    faults.flatMap((fault) => fault.of(seed).map((bytes) => ({ bytes, fault, seed: seed.name }))),
   );
   const files = cases.map((_, at) => `${directory}/case-${String(at)}.xml`);
   yield* Effect.forEach(cases, ({ bytes }, at) => fs.writeFile(files[at] ?? "", bytes), {
@@ -1114,19 +1112,21 @@ const searchClass = Effect.fnUntraced(function* searchClass(faultClass: FaultCla
 
   return yield* exhaust(
     {
-      box: `every one of ${String(ofClass.length)} ${faultClass} faults at the last site of each of ${String(seeds.length)} seeds: ${String(cases.length)} documents`,
+      box: `every one of ${String(faults.length)} faults of ${String(faultClasses.length)} classes at the last site of each of ${String(seeds.length)} seeds: ${String(cases.length)} documents`,
       caseHang: Duration.seconds(30),
-      coverage: requiredInSpace<Reached>([
-        `${faultClass}: refused by both`,
-        `${faultClass}: accepted by both`,
-      ]),
+      coverage: requiredInSpace<Reached>(
+        Arr.flatMap(faultClasses, (faultClass): readonly [Reached, Reached] => [
+          `${faultClass}: refused by both`,
+          `${faultClass}: accepted by both`,
+        ]),
+      ),
       generator: int(0, cases.length - 1),
       literal: (at) => `${cases[at]?.fault.name ?? ""} on ${cases[at]?.seed ?? ""}`,
       oracle: {
         kind: "second-implementation",
         name: "libxml2's xmllint --noout --nonet, its namespace errors refusals (XML 1.0, Namespaces in XML 1.0)",
       },
-      suite: `pantry/xml/malformed-against-xmllint/${faultClass.replaceAll(" ", "-")}`,
+      suite: "pantry/xml/malformed-against-xmllint",
     },
     (at, c) =>
       Effect.gen(function* agrees() {
@@ -1162,9 +1162,8 @@ const searchClass = Effect.fnUntraced(function* searchClass(faultClass: FaultCla
 });
 
 describe("crust's reader on malformed documents agrees with xmllint on whether each faulted document is well formed, every fault at the last site of each seed, exhausted", () => {
-  for (const faultClass of faultClasses) {
-    it.effect(faultClass, (ctx) =>
-      searched(ctx, searchClass(faultClass).pipe(Effect.scoped, Effect.provide(TestLayer))),
-    );
-  }
+  it.effect(
+    `for every fault of each of the ${String(faultClasses.length)} classes, each class refused by both readers and accepted by both`,
+    (ctx) => searched(ctx, searchFaults().pipe(Effect.scoped, Effect.provide(TestLayer))),
+  );
 });
