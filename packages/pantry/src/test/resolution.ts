@@ -557,8 +557,9 @@ export interface OracleSrcset {
  * A `srcset`'s image candidates, read apart from the importer's split by the HTML Standard's
  * grammar of a candidate list (§4.8.4.3.10): each candidate is whitespace and commas, then its URL,
  * a run of non-whitespace characters whose trailing commas end it, then, where it ends at
- * whitespace, its descriptors up to a comma outside parentheses; what follows the last candidate,
- * whitespace and commas, is its trail.
+ * whitespace, its descriptors up to a comma outside parentheses, where a `(` opens them and the
+ * next `)` closes them, the descriptor tokenizer's two states with no nesting; what follows the
+ * last candidate, whitespace and commas, is its trail.
  *
  * @param lexical - The `srcset` as written.
  * @returns Each candidate's URL, in order, and the trail.
@@ -578,13 +579,13 @@ export const oracleSrcsetOf = (lexical: string): OracleSrcset => {
     urls.push(trimmed);
     rest = rest.slice(trimmed.length);
     if (trimmed.length === url.length) {
-      let depth = 0;
+      let inParentheses = false;
       let at = 0;
-      while (at < rest.length && (rest.charAt(at) !== "," || depth > 0)) {
+      while (at < rest.length && (rest.charAt(at) !== "," || inParentheses)) {
         if (rest.charAt(at) === "(") {
-          depth += 1;
-        } else if (rest.charAt(at) === ")" && depth > 0) {
-          depth -= 1;
+          inParentheses = true;
+        } else if (rest.charAt(at) === ")") {
+          inParentheses = false;
         }
 
         at += 1;
