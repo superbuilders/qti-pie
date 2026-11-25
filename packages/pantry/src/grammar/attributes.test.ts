@@ -51,6 +51,7 @@ import type { AttributeGrammar, Declared, ValueDomain } from "#pantry/grammar/at
 import { roster } from "#pantry/grammar/closed.ts";
 import { declaredRelation, rowFaultOf } from "#pantry/test/declared.ts";
 import {
+  documentSchemas,
   mediaUrls,
   minChoicesFloored,
   mglyphOptional,
@@ -58,6 +59,7 @@ import {
   readingFortySixFigures,
   readingFourteenReferences,
   readingSevenDoubles,
+  xsdUseSchemas,
 } from "#pantry/grammar/attributes.dictionary.ts";
 import { boxHolds } from "#pantry/test/box.ts";
 import { searchWidth } from "#pantry/test/settings.ts";
@@ -956,8 +958,9 @@ const mediaTypeClassNames = [
 ] as const satisfies readonly MediaTypeClass[];
 
 /**
- * Draw one part of a MIME value, a type or subtype or a third: up to eight characters, each from a
- * class the swarm turns on, at its weight.
+ * Draw one part of a MIME value, a type or subtype or a third: up to eight characters seven times
+ * in eight, else 200 to 300, since a token has no greatest length, each from a class the swarm
+ * turns on, at its weight.
  *
  * @param mix - The case's swarm.
  * @returns The generator.
@@ -965,7 +968,12 @@ const mediaTypeClassNames = [
 const mediaTypePart =
   (mix: Swarm<MediaTypeClass>): Gen<string> =>
   (source) => {
-    const length = source.draw(int(0, 8));
+    const length = source.draw(
+      weighted<number>([
+        [7, int(0, 8)],
+        [1, int(200, 300)],
+      ]),
+    );
     let part = "";
     for (let at = 0; at < length; at += 1) {
       part += source.draw(
@@ -1597,15 +1605,15 @@ describe("The spec readings", () => {
       "en-x",
     ];
     const roots = new Set(["qti-assessment-item", "qti-assessment-stimulus"]);
-    const attributes = [
-      ...declarersOf("xml:lang").map((at) => ({
+    const attributes = Arr.flatten([
+      declarersOf("xml:lang").map((at) => ({
         ...at,
         empty: !roots.has(at.kind),
         name: "xml:lang",
       })),
-      ...declarersOf("lang").map((at) => ({ ...at, empty: true, name: "lang" })),
-      ...declarersOf("srclang").map((at) => ({ ...at, empty: false, name: "srclang" })),
-    ];
+      declarersOf("lang").map((at) => ({ ...at, empty: true, name: "lang" })),
+      declarersOf("srclang").map((at) => ({ ...at, empty: false, name: "srclang" })),
+    ]);
     const checked = new Map<string, readonly string[]>();
 
     assert.isAbove(tags.length, 500);
@@ -1815,14 +1823,14 @@ describe("The spec readings", () => {
     () => sourceHasNoRole,
   );
 
-  it("read 135: every MIME type is RFC 2045's two tokens and a slash, and each item of the upload's list, against an independent reader on every string of up to four symbols and the named cases", () => {
+  it("read 135: every MIME type is RFC 2045's two tokens and a slash, and each item of the upload's list, against an independent reader on every string of up to four symbols", () => {
     /**
      * Information model §7.25, MimeType: "The mime type (type and subtype), as defined by
      * [RFC 2045]"; §5.1.2 and §5.135.2: "its value must be a valid MIME type". RFC 2045 §5.1:
      * `type "/" subtype`, each a token, "1*<any (US-ASCII) CHAR except SPACE, CTLs, or
      * tspecials>". Oracle: `mediaTypeFault`, a code-point walk of the RFC's sentence, not the
-     * pattern. Bound: every string of at most four of `mediaTypeSymbols` (88,741), each declarer,
-     * then the named cases with the verdicts the reading states.
+     * pattern. Bound: every string of at most four of `mediaTypeSymbols` (88,741), each declarer;
+     * the searched test below draws longer values and lists over every class of character.
      */
     const declarers = attributeDeclarations
       .filter(({ type }) => type.type === "MimeTypeDType")
@@ -1840,43 +1848,6 @@ describe("The spec readings", () => {
       "source@type",
     ]);
 
-    const named: readonly (readonly [string, boolean])[] = [
-      ["image/png", true],
-      ["IMAGE/PNG", true],
-      ["image/svg+xml", true],
-      ["application/vnd.ms-excel", true],
-      ["x-world/x-vrml", true],
-      ["*/*", true],
-      ["text/x-{a}~|`'!#$%&^_.", true],
-      [`${"a".repeat(200)}/${"b".repeat(300)}`, true],
-      [" image/png", false],
-      ["image/png ", false],
-      ["image /png", false],
-      ["image/ png", false],
-      ["a b/c", false],
-      ["image/png\t", false],
-      ["\nimage/png", false],
-      ["image/png\r", false],
-      ["image/png\u007F", false],
-      ["image", false],
-      ["/png", false],
-      ["image/", false],
-      ["/", false],
-      ["", false],
-      ["a/b/c", false],
-      ["a//b", false],
-      ["text/html;charset=utf-8", false],
-      ["text/html; charset=utf-8", false],
-      ["é/x", false],
-      ["a(b)/c", false],
-      ["a@b/c", false],
-      ["[a]/b", false],
-      ["a/b=c", false],
-      ['a/"b"', false],
-      ["\u00A0", false],
-      ["image/png\u00A0", false],
-      ["\uFEFFimage/png", false],
-    ];
     const checked = new Map<string, readonly string[]>();
     for (const at of declarers) {
       const [kind = "", name = ""] = at.split("@");
@@ -1893,20 +1864,11 @@ describe("The spec readings", () => {
       checked.set(domain.handle, wrong);
 
       assert.deepStrictEqual(wrong.slice(0, 20), [], at);
-      for (const [value, valid] of named) {
-        assert.strictEqual(matches(domain, value), valid, `${at} ${JSON.stringify(value)}`);
-        assert.strictEqual(
-          mediaTypeFault(value) === "valid",
-          valid,
-          `the reader on ${JSON.stringify(value)}`,
-        );
-      }
     }
 
     const upload = Option.getOrThrow(domainAt("qti-upload-interaction", "type"));
     const lists = [
       ...mediaTypeScope,
-      ...named.flatMap(([first]) => named.map(([second]) => `${first} ${second}`)),
       " image/png  text/plain ",
       "image/png\ttext/plain\n",
       "\u00A0",
@@ -2181,22 +2143,11 @@ describe("The attribute grammar's structure", () => {
     assert.deepStrictEqual([...admitted.symmetricDifference(stated)], []);
   });
 
-  it("gives every simple-content kind of the leaf its text's domain (A9)", () => {
+  it("gives the leaf's text types, and only them, a text domain each (A9)", () => {
     const stated = new Set(textTypes.map(({ kind }) => kind));
     const held = new Set(leafGrammar.text.rows.map(({ kind }) => kind));
 
     assert.deepStrictEqual([...held.symmetricDifference(stated)], []);
-    for (const kind of [
-      "cp:schema",
-      "cp:schemaversion",
-      "qmd:toolName",
-      "qmd:interactionType",
-      "drd:hazard",
-      "lom:string",
-      "ud:value",
-    ]) {
-      assert.isTrue(Option.isSome(leafGrammar.text.lookup({ kind })), kind);
-    }
   });
 
   it("derives each domain's identity from the built-in its type restricts, and from nothing else", () => {
@@ -2329,14 +2280,6 @@ describe("The attribute grammar's refusals", () => {
 });
 
 /**
- * The pinned schema sets the XSD reading walks.
- */
-const schemas: readonly SourcePath[] = [
-  "imsqti_asiv3p0p1_v1p0.xsd",
-  "imsqtiv3p0p1_imscpv1p2_v1p0.xsd",
-];
-
-/**
  * The open classes, the `AttributeName` handles of names no declaration states, from their owner's
  * roster, so a class the roster gains is set aside here too.
  */
@@ -2361,7 +2304,7 @@ describe("The XSD's attribute uses", () => {
         const { attributes, kinds } = yield* Effect.fromResult(composed());
         const differences: string[] = [];
         let compared = 0;
-        for (const root of schemas) {
+        for (const root of xsdUseSchemas) {
           const { set } = yield* loadXsd(root);
           const { contents } = xsdContents(set, (namespace, local, parent) =>
             kinds.nodeKind.has(parent) ? kinds.resolve(namespace, local, parent) : Option.none(),
@@ -2429,6 +2372,33 @@ describe("The XSD's attribute uses", () => {
 
         assert.isAbove(compared, 5000);
         assert.deepStrictEqual(differences, []);
+      }).pipe(Effect.provide(XsdOracleLayer)),
+  );
+
+  it.effect(
+    "give every kind the pinned schema sets type with simple content a text domain (A9), each kind of every set a document is assessed against",
+    () =>
+      Effect.gen(function* simpleContentIsText() {
+        const { attributes, kinds } = yield* Effect.fromResult(composed());
+        const untexted: string[] = [];
+        let simple = 0;
+        for (const root of documentSchemas) {
+          const { set } = yield* loadXsd(root);
+          const { contents } = xsdContents(set, (namespace, local, parent) =>
+            kinds.nodeKind.has(parent) ? kinds.resolve(namespace, local, parent) : Option.none(),
+          );
+          for (const [kind, models] of contents) {
+            if (models.some((model) => model.simple)) {
+              simple += 1;
+              if (Option.isNone(attributes.text.lookup({ kind }))) {
+                untexted.push(`${root}: ${kind}`);
+              }
+            }
+          }
+        }
+
+        assert.isAbove(simple, 0, "the kinds the sets type with simple content");
+        assert.deepStrictEqual(untexted, []);
       }).pipe(Effect.provide(XsdOracleLayer)),
   );
 });
@@ -2515,12 +2485,28 @@ describe("The document layer", () => {
         assert.deepStrictEqual(missing, []);
 
         /**
-         * A lax wildcard's kind (LOM's string) and a skip one's (MathML's): spec reading
+         * Every kind whose wildcard admits an undeclared xml:lang, lax or skip: spec reading
          * `language-tags`, XML 1.0 §2.12, makes every xml:lang a BCP 47 tag or empty under both
-         * alike.
+         * processings alike.
          */
-        const wildcardKinds = ["lom:string", "m:mi"];
-        for (const kind of wildcardKinds) {
+        const wildLangs = nonEmpty(
+          attributeWildcards.filter(
+            ({ kind, namespace }) =>
+              namespace !== "##local" &&
+              !attributeDeclarations.some(
+                (declared) => declared.kind === kind && declared.name === "xml:lang",
+              ) &&
+              Option.isSome(attributes.admission.lookup({ kind, name: "xml:lang" })),
+          ),
+          "the kinds whose wildcard admits xml:lang",
+        );
+
+        assert.includeMembers(
+          wildLangs.map(({ processing }) => processing),
+          ["lax", "skip"],
+          "the processings the wildcards that admit xml:lang state",
+        );
+        for (const { kind } of wildLangs) {
           const lang = Option.getOrThrow(attributes.admission.lookup({ kind, name: "xml:lang" }));
           const domain = byHandle.get(lang.domain);
 

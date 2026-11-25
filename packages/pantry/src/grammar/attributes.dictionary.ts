@@ -6,6 +6,7 @@
  * @module
  */
 import { dictionary } from "@bjornpagen/testing/dictionary";
+import type { SourcePath } from "#pantry/vocab/derive/sources.ts";
 
 /**
  * The typed-value attributes the XSD types `xs:double`, as reading `typed-value-whitespace` lists
@@ -86,4 +87,25 @@ export const mediaUrls = dictionary<{ readonly kind: string; readonly name: stri
   { kind: "track", name: "src" },
   { kind: "video", name: "poster" },
   { kind: "video", name: "src" },
+]);
+
+/**
+ * The pinned schema sets the XSD reading of attribute uses walks: the ASI and content-packaging
+ * XSDs.
+ */
+export const xsdUseSchemas = dictionary<SourcePath>([
+  "imsqti_asiv3p0p1_v1p0.xsd",
+  "imsqtiv3p0p1_imscpv1p2_v1p0.xsd",
+]);
+
+/**
+ * Every pinned schema set a document is assessed against (spec reading
+ * `wildcard-global-declarations`): the ASI, content-packaging, metadata and usage-data XSDs, whose
+ * simple-content kinds A9 gives text.
+ */
+export const documentSchemas = dictionary<SourcePath>([
+  "imsqti_asiv3p0p1_v1p0.xsd",
+  "imsqtiv3p0p1_imscpv1p2_v1p0.xsd",
+  "imsqti_metadatav3p0_v1p0.xsd",
+  "usagedata/imsqti_usagedatav3p0_v1p0.xsd",
 ]);
