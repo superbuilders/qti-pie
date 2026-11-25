@@ -524,7 +524,8 @@ export const mathArities: ReadonlyMap<string, MathArity> = new Map(
     ),
     ...binaryOrUnary.map(([name, section]) => [`m:${name}`, { max: 2, min: 1, section }] as const),
     ...unboundedOperators.map(
-      ([name, min, section]) => [`m:${name}`, { max: Infinity, min, section }] as const,
+      ([name, min, section]) =>
+        [`m:${name}`, { max: Number.POSITIVE_INFINITY, min, section }] as const,
     ),
     [`m:${partialdiff[0]}`, { max: 2, min: 2, section: partialdiff[1] }] as const,
   ].map(([kind, arity]): readonly [string, MathArity] => [

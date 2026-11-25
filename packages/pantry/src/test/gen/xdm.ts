@@ -486,7 +486,7 @@ const finishOf = (
           ? (automaton.shared.get(kindOfDrawn(candidate)) ?? [])
           : [candidate.position];
       for (const position of positions) {
-        step.set(position, Math.min(step.get(position) ?? Infinity, cost));
+        step.set(position, Math.min(step.get(position) ?? Number.POSITIVE_INFINITY, cost));
       }
     }
   }
@@ -499,9 +499,11 @@ const finishOf = (
   }
 
   for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
-    const through = (automaton.finish.get(next) ?? Infinity) + (step.get(next) ?? Infinity);
+    const through =
+      (automaton.finish.get(next) ?? Number.POSITIVE_INFINITY) +
+      (step.get(next) ?? Number.POSITIVE_INFINITY);
     for (const from of automaton.into.get(next) ?? []) {
-      if (through < (automaton.finish.get(from) ?? Infinity)) {
+      if (through < (automaton.finish.get(from) ?? Number.POSITIVE_INFINITY)) {
         automaton.finish.set(from, through);
         queue.push(from);
       }
@@ -562,8 +564,12 @@ const sizesOf = (
     for (const [parent, automaton] of automata) {
       finishOf(automaton, children.get(parent) ?? [], costOf);
 
-      const own = (automaton.finish.get(0) ?? Infinity) + 1;
-      if (Number.isFinite(own) && own < (size.get(parent) ?? Infinity) && parent !== "document") {
+      const own = (automaton.finish.get(0) ?? Number.POSITIVE_INFINITY) + 1;
+      if (
+        Number.isFinite(own) &&
+        own < (size.get(parent) ?? Number.POSITIVE_INFINITY) &&
+        parent !== "document"
+      ) {
         size.set(parent, own);
         changed = true;
       }
@@ -1640,15 +1646,15 @@ const familyOf =
     let previous: Option.Option<ChildClass> = Option.none();
     for (let at = 0; ; at += 1) {
       const finishing = completing || at >= count || context.budget.left <= 0;
-      const left = automaton.finish.get(state) ?? Infinity;
+      const left = automaton.finish.get(state) ?? Number.POSITIVE_INFINITY;
       if (finishing && automaton.last.has(state)) {
         break;
       }
 
       const moves = movesFrom(automaton, candidates.filter(valid), state);
       const cost = ({ candidate, next }: Move): number =>
-        (context.index.size.get(kindOfDrawn(candidate)) ?? Infinity) +
-        (automaton.finish.get(next) ?? Infinity);
+        (context.index.size.get(kindOfDrawn(candidate)) ?? Number.POSITIVE_INFINITY) +
+        (automaton.finish.get(next) ?? Number.POSITIVE_INFINITY);
       const open = finishing
         ? moves.filter(
             (move) =>

@@ -198,8 +198,8 @@ const costsOf = (
   const costs = new Map<number, number>();
   for (const [position, kinds] of family.kindsAt) {
     for (const kind of kinds.filter(usable)) {
-      const cost = reading.generator.size.get(kind) ?? Infinity;
-      costs.set(position, Math.min(costs.get(position) ?? Infinity, cost));
+      const cost = reading.generator.size.get(kind) ?? Number.POSITIVE_INFINITY;
+      costs.set(position, Math.min(costs.get(position) ?? Number.POSITIVE_INFINITY, cost));
     }
   }
 
@@ -228,11 +228,11 @@ const cheapestPath = (
   const settled = new Set<number>();
   while (open.size > 0) {
     let state = from;
-    let least = Infinity;
+    let least = Number.POSITIVE_INFINITY;
     for (const held of open) {
-      if ((best.get(held) ?? Infinity) < least) {
+      if ((best.get(held) ?? Number.POSITIVE_INFINITY) < least) {
         state = held;
-        least = best.get(held) ?? Infinity;
+        least = best.get(held) ?? Number.POSITIVE_INFINITY;
       }
     }
 
@@ -248,9 +248,13 @@ const cheapestPath = (
     }
 
     for (const next of automaton.follow.get(state) ?? []) {
-      const through = least + (costs.get(next) ?? Infinity);
+      const through = least + (costs.get(next) ?? Number.POSITIVE_INFINITY);
       if (
-        !(!settled.has(next) && Number.isFinite(through) && through < (best.get(next) ?? Infinity))
+        !(
+          !settled.has(next) &&
+          Number.isFinite(through) &&
+          through < (best.get(next) ?? Number.POSITIVE_INFINITY)
+        )
       ) {
         continue;
       }
@@ -561,7 +565,7 @@ const elementOf = (
    * position holds nothing as cheap.
    */
   const rank = (child: Placed): readonly number[] => [
-    reading.generator.size.get(child) ?? Infinity,
+    reading.generator.size.get(child) ?? Number.POSITIVE_INFINITY,
     reading.generator.names.get(child)?.namespace === name.namespace ? 0 : 1,
     build.used.get(child) ?? 0,
   ];
