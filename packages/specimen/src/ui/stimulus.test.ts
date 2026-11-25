@@ -268,7 +268,6 @@ describe("plate's UI over the corpus's shared stimuli", () => {
             {
               box: "every corpus item that references a stimulus, in answering and in the solution, with no support and with the stimulus card's",
               caseHang: Duration.seconds(30),
-              concurrency: 1,
               coverage: requiredInSpace<"pane" | "placed">(["pane", "placed"]),
               generator: element([first, ...rest]),
               literal: ({ item, showing }) => `${item.location}, ${showing}`,

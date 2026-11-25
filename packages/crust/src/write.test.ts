@@ -411,7 +411,6 @@ describe("writeXml and writeXmlText give the recursive writer's text", () => {
             {
               box: "every plane tree of 1 to 7 nodes, labelled, under every threshold: 197 trees",
               caseHang,
-              concurrency: 1,
               coverage: noCoverage,
               generator: planeTrees,
               literal: Formatter.format,
@@ -512,7 +511,6 @@ describe("writeXml writes adjacent text runs as the content they hold", () => {
             {
               box: "every stretch of 1 to 4 of 10 runs: the empty run, ], ]], > and a letter, plain and CDATA",
               caseHang,
-              concurrency: 1,
               coverage: requiredInSpace<"across" | "none">(["across", "none"]),
               generator: stretch,
               literal: Formatter.format,
