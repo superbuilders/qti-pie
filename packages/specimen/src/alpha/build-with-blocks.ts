@@ -613,6 +613,21 @@ export interface BlocksFrame {
    */
   readonly touchTapMat: (place: Place) => Effect.Effect<void, BlocksFailure>;
   /**
+   * Tap twice with a finger at a point of the screen, at once, as a child's double tap does.
+   */
+  readonly touchDoubleTapAt: (point: Point) => Effect.Effect<void, BlocksFailure>;
+  /**
+   * Hold a mouse drag of the first piece of one kind in the tray open, drag the first piece of
+   * another kind in the tray onto the mat with a finger meanwhile, and let the mouse go over the
+   * mat once the finger is up: two presses at once, as a child's two hands make them.
+   *
+   * @returns What was drawn while both were down: copies following a pointer, pieces lifted.
+   */
+  readonly twoPresses: (
+    mouse: Kind,
+    touch: Kind,
+  ) => Effect.Effect<{ readonly copies: number; readonly lifted: number }, BlocksFailure>;
+  /**
    * Count what a drag leaves drawn: the pieces faded as lifted, the copies following the pointer,
    * and the mats ringed as a drop's destination.
    */
@@ -954,6 +969,13 @@ const openOn = (
       text: attempt("read the PCI's text", () =>
         frame.locator("[data-pci-dom]").evaluate((dom) => dom.textContent),
       ),
+      touchDoubleTapAt: (point) =>
+        Effect.gen(function* touchDoubleTapAt() {
+          yield* finger("touchStart", [point]);
+          yield* finger("touchEnd", []);
+          yield* finger("touchStart", [point]);
+          yield* finger("touchEnd", []);
+        }),
       touchDrag: (kind, from) =>
         Effect.gen(function* touchDrag() {
           const start = centreOf(yield* boxOf(frame, piecesOf(kind, from)));
@@ -981,6 +1003,42 @@ const openOn = (
 
           yield* finger("touchStart", [point]);
           yield* finger("touchEnd", []);
+        }),
+      twoPresses: (mouse, touch) =>
+        Effect.gen(function* twoPresses() {
+          const held = centreOf(yield* boxOf(frame, piecesOf(mouse, "tray")));
+          const start = centreOf(yield* boxOf(frame, piecesOf(touch, "tray")));
+          const end = matPointOf(yield* matOf("mat"));
+
+          yield* press(held);
+          yield* attempt("moved the mouse", () =>
+            page.mouse.move(held.x + 40, held.y + 10, { steps: 4 }),
+          );
+          yield* finger("touchStart", [start]);
+
+          for (const step of [1, 2, 3, 4, 5, 6]) {
+            yield* finger("touchMove", [
+              {
+                x: start.x + ((end.x - start.x) * step) / 6,
+                y: start.y + ((end.y - start.y) * step) / 6,
+              },
+            ]);
+          }
+
+          const drawn = yield* attempt("counted what two presses drew", () =>
+            frame.locator("svg").evaluate((svg) => ({
+              copies: svg.querySelectorAll('[aria-hidden="true"] > g').length,
+              lifted: svg.querySelectorAll("[data-lifted]").length,
+            })),
+          );
+
+          yield* finger("touchEnd", []);
+          yield* attempt("moved the mouse to the mat", () =>
+            page.mouse.move(end.x, end.y, { steps: 4 }),
+          );
+          yield* lift;
+
+          return drawn;
         }),
     } satisfies BlocksFrame;
   });

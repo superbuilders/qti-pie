@@ -25,7 +25,8 @@
  * - B4, resume: a frame bound to the correct response opens with the key's pieces on the mat, relays
  *   nothing and completes with that response; a bound value the PCI could not have posted, one past
  *   the supply (the number in cubes alone) or every count zero (an empty mat it posts as NULL), is
- *   no interaction, and the frame fails rather than show it.
+ *   no interaction, and the frame fails rather than show it; an empty list is NULL, as plate reads
+ *   it, and opens an empty mat.
  * - B5, the drawing: the frame holds nothing before the module draws (the island's markup is empty),
  *   and the PCI's element holds no text at all, so no count and no numeral, before and after the
  *   build; a rod is ten cubes long and a flat ten cubes square, on the screen; the pieces on the
@@ -45,8 +46,9 @@
  *   tray or from the mat, stays where it lay, drawn whole, with no copy following the pointer and
  *   no mat ringed, and the response is what the mats show.
  * - B9, a finger (a touch screen, as Chrome's emulation sends it): tap then tap places a piece, a
- *   double tap is one tap, a finger drags a piece onto the mat and back, and a sideways swipe on
- *   the tray's floor moves nothing and never takes the page anywhere.
+ *   double tap is one tap, also where its second tap lands on the piece its first set down, a
+ *   finger drags a piece onto the mat and back, and a sideways swipe on the tray's floor moves
+ *   nothing and never takes the page anywhere.
  * - B10, a drag that starts on a mat's floor moves nothing, whatever is chosen and wherever it ends:
  *   with a tray piece chosen, a swipe from the mat's floor into the tray; with a mat piece chosen,
  *   a swipe from the tray's floor onto the mat.
@@ -55,6 +57,9 @@
  *   declares on the element (`data-catalog-idref`, `data-qti-suppress-tts`) are passed over; any
  *   other property, a required one missing, or a count out of its range or written another way is
  *   no interaction, and the frame fails rather than draw a supply it was not given.
+ * - B12, one press at a time: a finger that drags a piece while a mouse drag is open ends the mouse's
+ *   drag, so one copy follows one pointer and one piece is lifted; the finger's piece goes onto the
+ *   mat, and the mouse's release moves nothing.
  *
  * @module
  */
@@ -524,6 +529,15 @@ layer(Layer.effect(Pages, blocksPages), { excludeTestServices: true, timeout: ca
               const empty = yield* open(hosted, { list: { integer: zeros } });
 
               assert.strictEqual(empty.started, "failed");
+
+              const none = yield* opened(hosted, { list: { integer: [] } });
+
+              assert.deepStrictEqual(
+                yield* countsIn(none, row.supply, "mat"),
+                Object.fromEntries(
+                  kinds.filter((kind) => row.supply[kind] !== undefined).map((kind) => [kind, 0]),
+                ),
+              );
             }),
           ),
       );
@@ -701,12 +715,32 @@ layer(Layer.effect(Pages, blocksPages), { excludeTestServices: true, timeout: ca
               yield* frame.relayed(posted(row.supply, { cubes: 1, rods: 2 }));
               yield* frame.touchDrag("cubes", "mat");
               yield* frame.relayed(posted(row.supply, { rods: 2 }));
+
+              // Where a chosen cube lands: put it down, note where, drag it back, choose it again and
+              // double-tap there, so the second tap lands on the cube the first set down.
+              yield* frame.touchTapPiece("cubes", "tray");
+              yield* frame.touchTapMat("mat");
+              yield* frame.relayed(posted(row.supply, { cubes: 1, rods: 2 }));
+
+              const [landing] = yield* frame.boxes("cubes", "mat");
+
+              assert.ok(landing !== undefined, "the cube is on the mat");
+              yield* frame.touchDrag("cubes", "mat");
+              yield* frame.relayed(posted(row.supply, { rods: 2 }));
+              yield* frame.touchTapPiece("cubes", "tray");
+              yield* frame.touchDoubleTapAt(centreOf(landing));
+              yield* frame.relayed(posted(row.supply, { cubes: 1, rods: 2 }));
+              assert.strictEqual(yield* frame.count("cubes", "mat"), 1);
+              assert.strictEqual(yield* frame.chosen("cubes", "mat"), 0);
               assert.deepStrictEqual(yield* frame.leftovers, { copies: 0, lifted: 0, ready: 0 });
               yield* frame.touchSwipe("tray");
               assert.strictEqual(yield* frame.address, address);
               assert.strictEqual(yield* frame.count("rods", "mat"), 2);
-              assert.strictEqual(yield* frame.count("cubes", "mat"), 0);
-              assert.deepStrictEqual(yield* frame.complete, posted(row.supply, { rods: 2 }));
+              assert.strictEqual(yield* frame.count("cubes", "mat"), 1);
+              assert.deepStrictEqual(
+                yield* frame.complete,
+                posted(row.supply, { cubes: 1, rods: 2 }),
+              );
             }),
           ),
       );
@@ -778,6 +812,28 @@ layer(Layer.effect(Pages, blocksPages), { excludeTestServices: true, timeout: ca
               );
 
               assert.deepStrictEqual(yield* countsIn(spoken, row.supply, "tray"), row.supply);
+            }),
+          ),
+      );
+
+      it.effect(
+        `${item.id}: B12, one press at a time: a finger's drag during a mouse drag moves the finger's piece alone`,
+        () =>
+          Effect.scoped(
+            Effect.gen(function* twoHands() {
+              const { hosted } = yield* hostedItem;
+              const row = rowOf(item);
+              const frame = yield* opened(hosted, { list: null });
+
+              assert.deepStrictEqual(yield* frame.twoPresses("rods", "cubes"), {
+                copies: 1,
+                lifted: 1,
+              });
+              yield* frame.relayed(posted(row.supply, { cubes: 1 }));
+              assert.strictEqual(yield* frame.count("rods", "mat"), 0);
+              assert.strictEqual(yield* frame.count("cubes", "mat"), 1);
+              assert.deepStrictEqual(yield* frame.leftovers, { copies: 0, lifted: 0, ready: 0 });
+              assert.deepStrictEqual(yield* frame.complete, posted(row.supply, { cubes: 1 }));
             }),
           ),
       );

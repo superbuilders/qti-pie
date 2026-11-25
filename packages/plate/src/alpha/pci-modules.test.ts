@@ -31,7 +31,7 @@ import type { AlphaPciModuleId } from "#plate/alpha/pci-modules.ts";
  * `emit:alpha-pci-modules` prints the new pin of a file it changes.
  */
 const pinned: Readonly<Record<AlphaPciModuleId, string>> = {
-  "build-with-blocks": "sha256-6stn3fsywlNDVJDGsQTZKuWc0qXbmnWihgKVGHCsyr8=",
+  "build-with-blocks": "sha256-iwpfw50UicgA621rkNh0/Xo/b10WR6/42y49ZgqqTLg=",
   "count-placements": "sha256-omMGN+ZL1HPJMvrSGaX/2dqJIYg35jt6UqMo2amNwPo=",
   "mark-objects": "sha256-5GuQnSNOdyKn8oAETqfSPnwlvjINW0J6oWyXQmFNh8s=",
   "shade-parts": "sha256-l9pNK84xVVTWSsazfk3MnfVkCHih420UEmzo+KzcQBQ=",

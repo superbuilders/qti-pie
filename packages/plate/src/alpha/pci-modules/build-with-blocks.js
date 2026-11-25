@@ -355,10 +355,12 @@ define(["qtiCustomInteractionContext"], (context) => {
   };
 
   /**
-   * Read the counts on the mat from a response's Appendix C JSON: nothing bound, or NULL in any of
-   * its forms, is an empty mat, and an `ordered` list of integers is the count of each kind of the
+   * Read the counts on the mat from a response's Appendix C JSON, as plate reads an `ordered`
+   * integer response (`#plate/pci/json.ts`, J4 and J6): nothing bound, a `list` of `null` or an
+   * empty `integer` list is NULL, an empty mat; a list of integers is the count of each kind of the
    * supply, in place order, none past its kind's supply, and not every one zero, since the PCI
-   * posts an empty mat as NULL: a value it could not have posted is none.
+   * posts an empty mat as NULL. Any other JSON, a NULL form of another cardinality among it, is a
+   * value the PCI could not have posted: none.
    *
    * @param bound The JSON, as the host binds the response or gives the state.
    * @param supply The supply.
@@ -378,19 +380,19 @@ define(["qtiCustomInteractionContext"], (context) => {
       return undefined;
     }
 
-    const forms = Object.keys(bound);
+    const list = Object.keys(bound).length === 1 ? bound["list"] : undefined;
 
-    if (
-      forms.length === 1 &&
-      ["base", "list", "record"].includes(forms[0] ?? "") &&
-      bound[forms[0] ?? ""] === null
-    ) {
+    if (list === null) {
       return empty;
     }
 
-    const list = forms.length === 1 ? bound["list"] : undefined;
     const members = isRecord(list) && Object.keys(list).length === 1 ? list["integer"] : undefined;
     const counts                     = Array.isArray(members) ? members : [];
+
+    if (Array.isArray(members) && counts.length === 0) {
+      return empty;
+    }
+
     const placed = new Map(
       [...supply].flatMap(([kind, most], index) => {
         const count = counts[index];
