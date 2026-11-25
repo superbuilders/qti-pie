@@ -24,6 +24,7 @@
  *
  * The rows restate what the tree says and nothing else.
  */
+import { regex } from "arkregex";
 import type { Addition } from "@bjornpagen/grizzle";
 import { Option } from "effect";
 import { CnPart } from "#pantry/grammar/install.ts";
@@ -73,7 +74,9 @@ const places: ReadonlySet<string> = new Set(CnPart.handles);
  */
 const radixOf = (lexical: string): string | undefined => {
   const digits = collapse(lexical);
-  const numeral = /^[0-9]+$/u.test(digits) ? digits.replace(/^0+(?=[0-9])/u, "") : "";
+  const numeral = regex("^[0-9]+$", "u").test(digits)
+    ? digits.replace(regex("^0+(?=[0-9])", "u"), "")
+    : "";
 
   return radixes.has(numeral) ? numeral : undefined;
 };

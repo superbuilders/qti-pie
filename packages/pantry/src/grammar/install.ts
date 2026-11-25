@@ -54,6 +54,7 @@
  * - Variables and references (O2 to O7, `references.ts`).
  * - Lexical forms of coded enumerations (C17).
  */
+import { regex } from "arkregex";
 import {
   closed,
   closedId,
@@ -156,7 +157,7 @@ export const Chars = law(entryOf("XML production"), str.regex(charsPattern));
 /**
  * {@link Chars}' pattern as a JavaScript host reads it, under `u`.
  */
-const charsForm = new RegExp(charsPattern, "u");
+const charsForm = regex.as(charsPattern, "u");
 
 /**
  * Whether a text is a run of XML `Char`s, a text of {@link Chars}, as a host reads it.
