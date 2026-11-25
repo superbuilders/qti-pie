@@ -22,11 +22,17 @@ import type { Law } from "@bjornpagen/grizzle";
 import type { CallError } from "@bjornpagen/grizzle/runtime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
-import { Effect, Formatter, Layer, Option, Result } from "effect";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { requiredInSpace } from "@bjornpagen/testing/features";
+import { boolean } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
+import { Duration, Effect, Formatter, Layer, Option, Result } from "effect";
 import { describe, inject } from "vitest";
 import { composed } from "#pantry/grammar/compose.ts";
 
 import { WrapApply } from "#pantry/import/package.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 
@@ -133,6 +139,52 @@ const afterResponse = (markup: string): TextEdit => ({
   replacement: `</qti-response-declaration>${markup}`,
   search: "</qti-response-declaration>",
 });
+
+/**
+ * The places of simple's item a label of the label box may stand on: three that ask for no tool, a
+ * calculator info's and a digital material's, each an ItemFileInfo (§5.80.2), and a printed
+ * variable (§7.30.4), and a paragraph (§5.16.5), which asks for one.
+ */
+const labelSiteNames = ["calculator", "material", "printed", "paragraph"] as const;
+
+/**
+ * Which places of simple's item carry a label.
+ */
+type LabelSites = Readonly<Record<(typeof labelSiteNames)[number], boolean>>;
+
+/**
+ * Draw a case of the label box: each place of {@link labelSiteNames} carrying a label or none.
+ */
+const labelSites: Gen<LabelSites> = (source) => ({
+  calculator: source.draw(boolean),
+  material: source.draw(boolean),
+  paragraph: source.draw(boolean),
+  printed: source.draw(boolean),
+});
+
+/**
+ * How many cases {@link labelSites} draws: each of 4 places with a label or none.
+ */
+const LABEL_SITE_CASES = 2 ** 4;
+
+/**
+ * A `label` attribute where `carried` says, none elsewhere.
+ *
+ * @param carried - Whether the place carries a label.
+ * @param label - The label.
+ * @returns The attribute's text, with its leading space, or nothing.
+ */
+const labelled = (carried: boolean, label: string): string => (carried ? ` label="${label}"` : "");
+
+/**
+ * Simple's item body led by companion materials, a calculator info and a digital material, with a
+ * printed variable after a paragraph, each carrying a label where `sites` says.
+ *
+ * @param sites - The places that carry a label.
+ * @returns The text that replaces the body's start tag.
+ */
+const labelledBody = (sites: LabelSites): string =>
+  `<qti-companion-materials-info><qti-calculator><qti-calculator-type>basic</qti-calculator-type><qti-description>A calculator</qti-description><qti-calculator-info${labelled(sites.calculator, "calculator")}><qti-file-href>https://example.org/calculator.html</qti-file-href></qti-calculator-info></qti-calculator><qti-digital-material${labelled(sites.material, "table")}><qti-file-href>https://example.org/table.html</qti-file-href></qti-digital-material></qti-companion-materials-info><qti-item-body><p${labelled(sites.paragraph, "paragraph")}>Labelled</p><p>Score: <qti-printed-variable identifier="SCORE"${labelled(sites.printed, "score")}/></p>`;
 
 /**
  * Insert declarations into `simple`'s item after its outcome declaration.
@@ -473,52 +525,71 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
     }
 
     it.effect(
-      "accepts an item whose digital material, calculator info and printed variable carry labels and whose root names no tool, and refuses it once a paragraph carries one, as the law oracle judges both (label-tool, reading `label-tool`)",
-      () =>
-        Effect.gen(function* labelCharacteristics() {
-          const grammar = Result.getOrThrow(composed());
-          const laws = lawsOf(grammar);
-          /**
-           * Simple's item body with the three labels that ask for no tool: a calculator info's and
-           * a digital material's, each an ItemFileInfo's (§5.80.2), and a printed variable's
-           * (§7.30.4); a labelled paragraph (§5.16.5) beside them asks for one.
-           */
-          const readers = `<qti-companion-materials-info><qti-calculator><qti-calculator-type>basic</qti-calculator-type><qti-description>A calculator</qti-description><qti-calculator-info label="calculator"><qti-file-href>https://example.org/calculator.html</qti-file-href></qti-calculator-info></qti-calculator><qti-digital-material label="table"><qti-file-href>https://example.org/table.html</qti-file-href></qti-digital-material></qti-companion-materials-info><qti-item-body><p>Score: <qti-printed-variable identifier="SCORE" label="score"/></p>`;
-          for (const [name, body, accepted] of [
-            ["label-readers", readers, true],
-            ["label-readers-body", `${readers}<p label="paragraph">Labelled</p>`, false],
-          ] as const) {
-            const dir = yield* editedSimple(name, [
-              {
-                _tag: "ReplaceText",
-                file: "choice.xml",
-                replacement: body,
-                search: "<qti-item-body>",
-              },
-            ]);
-            const judgment = yield* judge(yield* readEntries(dir), grammar, laws);
-            const { outcome } = yield* applyEdited(dir, asRead);
+      `accepts an item whose root names no tool exactly when no paragraph carries a label, whichever of its calculator info, digital material and printed variable carry one, as the law oracle judges it (label-tool, reading \`label-tool\`): ${String(LABEL_SITE_CASES)} items`,
+      (ctx) =>
+        searched(
+          ctx,
+          Effect.gen(function* labelCharacteristics() {
+            yield* boxHolds(labelSites, LABEL_SITE_CASES);
+            const grammar = Result.getOrThrow(composed());
+            const laws = lawsOf(grammar);
 
-            assert.strictEqual(
-              judgment._tag === "Judged" && judgment.breaches.length === 0,
-              accepted,
-              `${name}: the law oracle's verdict on the same package (judge), from the information model's label characteristics`,
+            return yield* exhaust(
+              {
+                box: "simple's item, its root naming no tool, with each of a calculator info, a digital material, a printed variable and a paragraph carrying a label or none",
+                caseHang: Duration.minutes(2),
+                coverage: requiredInSpace<"accepted" | "refused">(["accepted", "refused"]),
+                generator: labelSites,
+                literal: Formatter.format,
+                oracle: {
+                  kind: "specification",
+                  name: "the information model's label characteristics (reading `label-tool`): a calculator info's and a digital material's label, each an ItemFileInfo's (§5.80.2), and a printed variable's (§7.30.4) ask for no tool, and a paragraph's (§5.16.5) asks for one, which a root naming no tool refuses; the law oracle's verdict on the same package, and PostgreSQL's through LabelUse's containments",
+                },
+                suite: "pantry/import/label-tools",
+              },
+              (sites, c) =>
+                Effect.gen(function* labelCase() {
+                  const name = `label-${labelSiteNames.filter((site) => sites[site]).join("-") || "none"}`;
+                  const accepted = !sites.paragraph;
+                  c.note(accepted ? "accepted" : "refused");
+
+                  const dir = yield* editedSimple(name, [
+                    {
+                      _tag: "ReplaceText",
+                      file: "choice.xml",
+                      replacement: labelledBody(sites),
+                      search: "<qti-item-body>",
+                    },
+                  ]);
+                  const judgment = yield* judge(yield* readEntries(dir), grammar, laws);
+                  const { outcome } = yield* applyEdited(dir, asRead);
+
+                  assert.strictEqual(
+                    judgment._tag === "Judged" && judgment.breaches.length === 0,
+                    accepted,
+                    `${name}: the law oracle's verdict on the same package (judge)`,
+                  );
+                  if (accepted) {
+                    assert.strictEqual(
+                      outcome.kind,
+                      "accepted",
+                      `${name}: ${Formatter.format(outcome)}`,
+                    );
+                  } else {
+                    assert.isTrue(
+                      judgment._tag === "Judged" &&
+                        judgment.breaches.every(({ law }) => law === "Label tools"),
+                      `${name}: the oracle's breaches are Label tools'`,
+                    );
+                    assert.isTrue(
+                      rejectedBy(outcome, [containedIn("LabelUse", "Attribute")]),
+                      `${name}: PostgreSQL judges the labels through LabelUse's two containments with the selected labels and Label tools' containment of an item's labels in its root's tool-name: ${Formatter.format(outcome)}`,
+                    );
+                  }
+                }),
             );
-            if (accepted) {
-              assert.strictEqual(outcome.kind, "accepted", `${name}: ${Formatter.format(outcome)}`);
-            } else {
-              assert.isTrue(
-                judgment._tag === "Judged" &&
-                  judgment.breaches.every(({ law }) => law === "Label tools"),
-                `${name}: the oracle's breaches are Label tools'`,
-              );
-              assert.isTrue(
-                rejectedBy(outcome, [containedIn("LabelUse", "Attribute")]),
-                `${name}: PostgreSQL judges the labels through LabelUse's two containments with the selected labels and Label tools' containment of an item's labels in its root's tool-name: ${Formatter.format(outcome)}`,
-              );
-            }
-          }
-        }),
+          }),
+        ),
     );
 
     const cases = [
