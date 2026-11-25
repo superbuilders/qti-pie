@@ -50,6 +50,15 @@ import {
 import type { AttributeGrammar, Declared, ValueDomain } from "#pantry/grammar/attributes.ts";
 import { roster } from "#pantry/grammar/closed.ts";
 import { declaredRelation, rowFaultOf } from "#pantry/test/declared.ts";
+import {
+  mediaUrls,
+  minChoicesFloored,
+  mglyphOptional,
+  readingFortySixCounts,
+  readingFortySixFigures,
+  readingFourteenReferences,
+  readingSevenDoubles,
+} from "#pantry/grammar/attributes.dictionary.ts";
 import { boxHolds } from "#pantry/test/box.ts";
 import { searchWidth } from "#pantry/test/settings.ts";
 import type { Roster } from "#pantry/grammar/closed.ts";
@@ -1039,74 +1048,223 @@ const isCoords = (raw: string): boolean => {
 };
 
 /**
- * A word every domain of a numeric type accepts, and the same word with outer whitespace.
+ * The pieces the typed-value boxes write their forms with: a digit, a letter, and the whitespace a
+ * string keeps and `collapse` removes.
  */
-const spaced = [" 1", "1 ", "\t1\n"] as const;
+const typedValuePieces = ["1", "a", " ", "\t", "\n"] as const;
+
+/**
+ * The pieces reading `match-table-target-value`'s box writes its forms with: a decimal, a boolean,
+ * two words, an identifier, the space and the tab.
+ */
+const anyValuePieces = ["0.5", "true", "a b", "identifier", " ", "\t"] as const;
+
+/**
+ * Whether the leaf's inventory declares a target.
+ *
+ * @param target - The target.
+ * @returns Whether its kind declares its name.
+ */
+const isDeclared = ({ kind, name }: Target): boolean =>
+  declarersOf(name).some((declarer) => declarer.kind === kind);
+
+/**
+ * The pieces reading `ssml-voice-languages`'s box writes a voice's languages with: a language and a
+ * region subtag, the two values SSML disallows (one in upper case), the hyphen and the colon that
+ * join subtags and a language to its accent, the `*` subtag, the space that parts the list, and a
+ * digit.
+ */
+const languagePieces = ["en", "US", "und", "ZXX", "-", ":", "*", " ", "1"] as const;
+
+/**
+ * An Extended Language Range of RFC 4647 §2.2, as printed, but for the `*` subtag, which no
+ * NMTOKEN holds (XML 1.0's NameChar).
+ */
+const nameRange = regex("^[A-Za-z]{1,8}(?:-[A-Za-z0-9]{1,8})*$", "u");
+
+/**
+ * Whether a value is a voice's languages, by SSML 1.1 §3.2.1 and Appendix D: the empty string, as
+ * written (the schema's emptystring member, an `xs:string` of length 0), or a list whose collapsed
+ * items are each a language or a language and an accent parted by a colon, each an Extended
+ * Language Range ({@link nameRange}) that is not `und` or `zxx`, without regard to case.
+ *
+ * @param raw - The value as written.
+ * @returns Whether it is.
+ */
+const isSsmlLanguages = (raw: string): boolean => {
+  const collapsed = collapseXml(raw);
+  const isRange = (part: string) =>
+    nameRange.test(part) && part.toLowerCase() !== "und" && part.toLowerCase() !== "zxx";
+
+  return (
+    raw === "" ||
+    (collapsed !== "" &&
+      collapsed.split(" ").every((item) => {
+        const parts = item.split(":");
+
+        return parts.length <= 2 && parts.every(isRange);
+      }))
+  );
+};
+
+/**
+ * The signed 64-bit range's greatest value.
+ */
+const int64Max = 9_223_372_036_854_775_807n;
+
+/**
+ * The signed 64-bit range's least value.
+ */
+const int64Min = -9_223_372_036_854_775_808n;
+
+/**
+ * Xs:int's greatest value (XML Schema Part 2 §3.3.17).
+ */
+const int32Max = 2_147_483_647n;
+
+/**
+ * XML Schema Part 2 §3.3.13's integer lexical representation, as printed: decimal digits with an
+ * optional leading sign.
+ */
+const integerLexical = regex("^[+-]?[0-9]+$", "u");
+
+/**
+ * Whether a collapsed form is an integer from `lo` to `hi`, read exactly.
+ *
+ * @param collapsed - The form, collapsed.
+ * @param lo - The least value.
+ * @param hi - The greatest value.
+ * @returns Whether it is.
+ */
+const isIntegerIn = (collapsed: string, lo: bigint, hi: bigint): boolean =>
+  integerLexical.test(collapsed) && BigInt(collapsed) >= lo && BigInt(collapsed) <= hi;
+
+/**
+ * An NCName of the boxes' ASCII pieces (Namespaces in XML 1.0 §3): a letter or an underscore, then
+ * letters, digits, points, hyphens and underscores.
+ */
+const ncName = regex("^[A-Za-z_][A-Za-z0-9._-]*$", "u");
+
+/**
+ * The pieces a count's box writes its forms with: 0 and 1, the signed 64-bit range's greatest
+ * value and the next, both signs and the space.
+ */
+const int64Pieces = [
+  "0",
+  "1",
+  "9223372036854775807",
+  "9223372036854775808",
+  "+",
+  "-",
+  " ",
+] as const;
+
+/**
+ * The pieces figures' box writes its forms with: {@link int64Pieces} and the letter and underscore
+ * an identifier starts with.
+ */
+const figuresPieces = [...int64Pieces, "F", "_"] as const;
+
+/**
+ * MathML 3 §2.1.5.1's number, as printed: an optional `-`, then digits with at most one decimal
+ * point, which may lead or end them.
+ */
+const mathNumber = regex("^-?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)$", "u");
+
+/**
+ * The pieces a MathML number's box writes its forms with: two digits, the point, both signs, an
+ * exponent's e and the space.
+ */
+const mathNumberPieces = ["0", "7", ".", "-", "+", "e", " "] as const;
+
+/**
+ * A base 10 positive integer's digits (MathML 3 §4.2.1.3): digits, one of them not 0, unsigned.
+ */
+const positiveDigits = regex("^[0-9]*[1-9][0-9]*$", "u");
+
+/**
+ * The pieces a cn's base box writes its forms with: three digits, both signs, the point, a letter
+ * and the space.
+ */
+const basePieces = ["0", "1", "6", "+", "-", ".", "t", " "] as const;
+
+/**
+ * The pieces a qti-index's n box writes its forms with: 0 and 1, xs:int's greatest value and the
+ * next, both signs, the point, a letter, the underscore and the space.
+ */
+const indexPieces = ["0", "1", "2147483647", "2147483648", "+", "-", ".", "N", "_", " "] as const;
+
+/**
+ * The pieces a media URL's box writes its forms with: the four XML whitespace characters, a letter
+ * and the percent sign an escape starts with.
+ */
+const urlPieces = [" ", "\t", "\n", "\r", "a", "%"] as const;
+
+/**
+ * A character other than a space, anywhere.
+ */
+const nonSpace = regex("[^ ]", "u");
 
 describe("The spec readings", () => {
-  it("read 7: a typed QTI value a string-typed attribute carries is exact, its outer whitespace kept, and one the XSD types xs:double is collapsed, as the XSD reads it", () => {
-    /**
-     * Oracle: reading `typed-value-whitespace` as amended (docs/spec-readings.md): map-key, the two
-     * tables' default-value and an interpolation entry's target-value are string-typed and exact;
-     * the xs:double typed-value attributes read as XML Schema Part 2 §4.3.6 reads xs:double,
-     * whitespace collapsed.
-     */
-    const listed = specReadings.filter(({ reading }) => reading === "typed-value-whitespace");
-    assert.isAbove(listed.length, 0);
-    for (const reading of listed) {
-      for (const kind of Option.getOrElse(reading.kinds, () => [])) {
-        if (!declarersOf(reading.name).some((declarer) => declarer.kind === kind)) {
-          continue;
-        }
+  it.effect(
+    `read 7: a typed QTI value a string-typed attribute carries is exact, its outer whitespace kept, and one the XSD types xs:double is collapsed, as the XSD reads it, on every form of up to 3 of ${String(typedValuePieces.length)} pieces`,
+    (ctx) => {
+      const strings = specReadings
+        .filter(({ reading }) => reading === "typed-value-whitespace")
+        .flatMap((reading) =>
+          Option.getOrElse(reading.kinds, () => []).map((kind) => ({ kind, name: reading.name })),
+        )
+        .filter(isDeclared);
+      const doubles = nonEmpty(
+        readingSevenDoubles.filter(isDeclared),
+        "the xs:double attributes reading `typed-value-whitespace` lists that the leaf declares",
+      );
+      const stringTargets = new Set(strings.map(({ kind, name }) => `${kind}@${name}`));
 
-        const domain = Option.getOrThrow(domainAt(kind, reading.name));
-        assert.include(["string", "anySimpleType"], domain.primitive, `${kind}@${reading.name}`);
-        for (const value of spaced) {
-          assert.isTrue(matches(domain, value), `${kind}@${reading.name} ${JSON.stringify(value)}`);
-        }
-      }
-    }
+      return Effect.andThen(
+        Effect.sync(() => {
+          for (const { kind, name } of strings) {
+            assert.include(
+              ["string", "anySimpleType"],
+              Option.getOrThrow(domainAt(kind, name)).primitive,
+              `${kind}@${name}`,
+            );
+          }
+        }),
+        exhaustLexical(ctx, {
+          accepts: ({ kind, name }, form) =>
+            stringTargets.has(`${kind}@${name}`) || xsDouble.test(collapseXml(form)),
+          box: "every form of up to 3 of a digit, a letter, the space, the tab and a line feed, on every attribute reading `typed-value-whitespace` names that the leaf declares",
+          forms: formsOf(typedValuePieces, 3),
+          formsPerTarget: formCount(typedValuePieces.length, 3),
+          oracle:
+            "reading `typed-value-whitespace` as amended: map-key, the two tables' default-value and an interpolation entry's target-value are string-typed and exact, so every string of characters is a value of them; the xs:double typed-value attributes it lists are read as XML Schema Part 2 §4.3.6 collapses xs:double, then by 1.0's lexical space (§3.2.5.1)",
+          reaches: ["accepted", "refused"],
+          suite: "grammar/attributes/reading-7",
+          targets: Arr.appendAll(doubles, strings),
+        }),
+      );
+    },
+  );
 
-    const doubles = [
-      ["qti-map-entry", "mapped-value"],
-      ["qti-area-map-entry", "mapped-value"],
-      ["qti-mapping", "lower-bound"],
-      ["qti-mapping", "upper-bound"],
-      ["qti-mapping", "default-value"],
-      ["qti-area-mapping", "lower-bound"],
-      ["qti-area-mapping", "upper-bound"],
-      ["qti-area-mapping", "default-value"],
-      ["qti-interpolation-table-entry", "source-value"],
-      ["ud:mapping", "defaultValue"],
-      ["ud:mapping", "lowerBound"],
-      ["ud:mapping", "upperBound"],
-      ["ud:mapEntry", "mappedValue"],
-    ] as const;
-    let judged = 0;
-    for (const [kind, name] of doubles) {
-      if (!declarersOf(name).some((declarer) => declarer.kind === kind)) {
-        continue;
-      }
-
-      const domain = Option.getOrThrow(domainAt(kind, name));
-      judged += 1;
-      for (const value of spaced) {
-        assert.isTrue(matches(domain, value), `${kind}@${name} ${JSON.stringify(value)}`);
-      }
-    }
-
-    assert.isAbove(judged, 0);
-  });
-
-  it("read 8: a match table entry's target-value is any value, read by the overlay as the outcome's base type", () => {
-    const target = Option.getOrThrow(domainAt("qti-match-table-entry", "target-value"));
-    for (const value of ["0.5", "true", "a b", "", "identifier"]) {
-      assert.isTrue(matches(target, value), value);
-    }
-  });
+  it.effect(
+    `read 8: a match table entry's target-value is any value, read by the overlay as the outcome's base type, on every form of up to 3 of ${String(anyValuePieces.length)} pieces`,
+    (ctx) =>
+      exhaustLexical(ctx, {
+        accepts: () => true,
+        box: "every form of up to 3 of a decimal, a boolean, two words, an identifier, the space and the tab, on a match table entry's target-value",
+        forms: formsOf(anyValuePieces, 3),
+        formsPerTarget: formCount(anyValuePieces.length, 3),
+        oracle:
+          "xs:string's lexical space, every string of characters (XML Schema Part 2 §3.2.1): reading `match-table-target-value` reads the value as the outcome's base type in an overlay, never in the grammar",
+        reaches: ["accepted"],
+        suite: "grammar/attributes/reading-8",
+        targets: [{ kind: "qti-match-table-entry", name: "target-value" }],
+      }),
+  );
 
   it("read 14, restated: a text-entry interaction's response-identifier and string-identifier are IDREFs, as the XSD types them", () => {
-    for (const name of ["response-identifier", "string-identifier"]) {
+    for (const name of readingFourteenReferences) {
       assert.deepStrictEqual(
         Option.getOrThrow(domainAt("qti-text-entry-interaction", name)).identity,
         Option.some("IDREF"),
@@ -1168,11 +1326,7 @@ describe("The spec readings", () => {
      * interactions (§5.97.2, §5.61.1); reading `binding-and-count-sentences`: the same sentence of
      * the position object (§5.107.2).
      */
-    const floored = new Set([
-      "qti-order-interaction",
-      "qti-graphic-order-interaction",
-      "qti-position-object-interaction",
-    ]);
+    const floored = new Set<string>(minChoicesFloored);
     for (const { kind } of declarersOf("min-choices")) {
       const domain = Option.getOrThrow(domainAt(kind, "min-choices"));
 
@@ -1209,22 +1363,21 @@ describe("The spec readings", () => {
     assert.deepStrictEqual(wrong, []);
   });
 
-  it("read 42, restated: a voice's languages are ranges both SSML's prose and its normative schema admit, so * is refused", () => {
-    /**
-     * SSML 1.1 §3.2.1 (each token an Extended Language Range, `und` and `zxx` disallowed) beside
-     * Appendix D's `xs:NMTOKENS` (§2.2.2: conformance includes "the constraints expressed in the
-     * Core Schema"); `*` is a range subtag of RFC 4647 §2.2 and no XML name character.
-     */
-    const domain = Option.getOrThrow(domainAt("ssml:voice", "languages"));
-
-    for (const value of ["", "en", "en-US", "en-GB:en-US", "fr ja", "x-klingon"]) {
-      assert.isTrue(matches(domain, value), value);
-    }
-
-    for (const value of ["*", "en-*", "*-US", "en:*", "und", "ZXX", "en und"]) {
-      assert.isFalse(matches(domain, value), value);
-    }
-  });
+  it.effect(
+    `read 42, restated: a voice's languages are ranges both SSML's prose and its normative schema admit, so * is refused, on every form of up to 3 of ${String(languagePieces.length)} pieces`,
+    (ctx) =>
+      exhaustLexical(ctx, {
+        accepts: (_, form) => isSsmlLanguages(form),
+        box: "every form of up to 3 of en, US, und, ZXX, the hyphen, the colon, *, the space and a digit, on a voice's languages",
+        forms: formsOf(languagePieces, 3),
+        formsPerTarget: formCount(languagePieces.length, 3),
+        oracle:
+          "SSML 1.1 §3.2.1, each token a language or language:accent, each an Extended Language Range (RFC 4647 §2.2), und and zxx disallowed without regard to case, beside Appendix D's union of xs:NMTOKENS and the empty string (§2.2.2), whose NMTOKEN holds no *: isSsmlLanguages",
+        reaches: ["accepted", "refused"],
+        suite: "grammar/attributes/reading-42",
+        targets: [{ kind: "ssml:voice", name: "languages" }],
+      }),
+  );
 
   it("read 85: an xi:include's parse is the XSD's xml or text, its whitespace collapsed as its token", () => {
     /**
@@ -1255,7 +1408,7 @@ describe("The spec readings", () => {
 
   it("read 2, decision 327: an mglyph's alt, src and index are each optional and attributeCounts counts none of them, so a bare mglyph is accepted", () => {
     assert.isFalse(attributeCounts.some(({ kind }) => kind === "m:mglyph"));
-    for (const name of ["alt", "src", "index"]) {
+    for (const name of mglyphOptional) {
       const declarers = declarersOf(name).filter(({ kind }) => kind === "m:mglyph");
       assert.isAbove(declarers.length, 0, name);
       for (const { kind } of declarers) {
@@ -1268,86 +1421,98 @@ describe("The spec readings", () => {
     }
   });
 
-  it("read 46: every count, and figures, holds a signed 64-bit integer exactly", () => {
-    for (const name of [
-      "max-choices",
-      "min-choices",
-      "max-associations",
-      "min-associations",
-      "match-max",
-      "match-min",
-      "max-plays",
-      "min-plays",
-    ]) {
-      const declarers = declarersOf(name);
-      assert.isAbove(declarers.length, 0, name);
-      for (const { kind } of declarers) {
-        const domain = Option.getOrThrow(domainAt(kind, name));
+  it.effect(
+    `read 46: every count holds a non-negative signed 64-bit integer exactly, on every form of up to 3 of ${String(int64Pieces.length)} pieces`,
+    (ctx) =>
+      exhaustLexical(ctx, {
+        accepts: ({ kind, name }, form) =>
+          isIntegerIn(
+            collapseXml(form),
+            name === "min-choices" && Arr.contains(minChoicesFloored, kind) ? 1n : 0n,
+            int64Max,
+          ),
+        box: "every form of up to 3 of 0, 1, 2^63 − 1, 2^63, both signs and the space, on every count attribute reading `count-range` lists, on each kind that declares it",
+        forms: formsOf(int64Pieces, 3),
+        formsPerTarget: formCount(int64Pieces.length, 3),
+        oracle:
+          "reading `count-range`: a count, xs:nonNegativeInteger by the XSD, held to the signed 64-bit range read exactly: XML Schema Part 2 §4.3.6's collapse, then §3.3.13's integer lexical representation and a value from 0 to 2^63 − 1, or from 1 for the min-choices of a kind readings `order-min-choices` and `binding-and-count-sentences` floor",
+        reaches: ["accepted", "refused"],
+        suite: "grammar/attributes/reading-46-counts",
+        targets: nonEmpty(
+          readingFortySixCounts.flatMap(targetsOf),
+          "reading `count-range`'s counts",
+        ),
+      }),
+  );
 
-        assert.isTrue(matches(domain, "9223372036854775807"), `${kind}@${name}`);
-        assert.isTrue(matches(domain, " +09223372036854775807 "), `${kind}@${name}`);
-        assert.isFalse(matches(domain, "9223372036854775808"), `${kind}@${name}`);
-        assert.isFalse(matches(domain, "-1"), `${kind}@${name}`);
-      }
-    }
+  it.effect(
+    `read 46: figures holds a signed 64-bit integer exactly, or a variable's identifier, on every form of up to 3 of ${String(figuresPieces.length)} pieces`,
+    (ctx) =>
+      exhaustLexical(ctx, {
+        accepts: (_, form) =>
+          isIntegerIn(collapseXml(form), int64Min, int64Max) || ncName.test(form),
+        box: "every form of up to 3 of 0, 1, 2^63 − 1, 2^63, both signs, the space, F and the underscore, on figures of each kind reading `count-range` names",
+        forms: formsOf(figuresPieces, 3),
+        formsPerTarget: formCount(figuresPieces.length, 3),
+        oracle:
+          "reading `count-range`: figures, xs:integer by the XSD, held to the signed 64-bit range read exactly (§4.3.6's collapse, then §3.3.13's integer lexical representation from −2^63 to 2^63 − 1), beside the XSD's union member, a variable's identifier, an NCName as written",
+        reaches: ["accepted", "refused"],
+        suite: "grammar/attributes/reading-46-figures",
+        targets: Arr.map(readingFortySixFigures, (kind) => ({ kind, name: "figures" })),
+      }),
+  );
 
-    for (const kind of ["qti-round-to", "qti-equal-rounded"]) {
-      const figures = Option.getOrThrow(domainAt(kind, "figures"));
+  it.effect(
+    `read 2: a MathML number has no explicit +, on every form of up to 4 of ${String(mathNumberPieces.length)} pieces`,
+    (ctx) =>
+      exhaustLexical(ctx, {
+        accepts: (_, form) => mathNumber.test(collapseXml(form)),
+        box: "every form of up to 4 of 0, 7, the point, both signs, e and the space, on every kind that declares scriptsizemultiplier",
+        forms: formsOf(mathNumberPieces, 4),
+        formsPerTarget: formCount(mathNumberPieces.length, 4),
+        oracle:
+          "MathML 3 §2.1.5.1: a number is an optional prefix of - followed by an unsigned number, digits with at most one decimal point, which may lead or end them, and \"An explicit plus sign ('+') is not allowed\"; collapsed as the XSD's xs:decimal",
+        reaches: ["accepted", "refused"],
+        suite: "grammar/attributes/reading-2-number",
+        targets: targetsOf("scriptsizemultiplier"),
+      }),
+  );
 
-      assert.isTrue(matches(figures, "-9223372036854775808"), kind);
-      assert.isFalse(matches(figures, "-9223372036854775809"), kind);
-      assert.isFalse(matches(figures, "9223372036854775808"), kind);
-      assert.isTrue(matches(figures, "FIGURES"), kind);
-    }
-  });
+  it.effect(
+    `read 2: a content cn's base is a positive integer, on every form of up to 3 of ${String(basePieces.length)} pieces`,
+    (ctx) =>
+      exhaustLexical(ctx, {
+        accepts: (_, form) => positiveDigits.test(collapseXml(form)),
+        box: "every form of up to 3 of 0, 1, 6, both signs, the point, a letter and the space, on a cn's base",
+        forms: formsOf(basePieces, 3),
+        formsPerTarget: formCount(basePieces.length, 3),
+        oracle:
+          'MathML 3 §4.2.1.3: base "is a base 10 positive integer", digits holding one other than 0, with no explicit + (§2.1.5.1), collapsed',
+        reaches: ["accepted", "refused"],
+        suite: "grammar/attributes/reading-2-base",
+        targets: [{ kind: "m:cn", name: "base" }],
+      }),
+  );
 
-  it("read 2: a MathML number has no explicit +, and a content cn's base is a positive integer", () => {
-    /**
-     * MathML 3 §2.1.5.1: number is "an optional prefix of "-" (U+002D), followed by an unsigned
-     * number", and "An explicit plus sign ('+') is not allowed as part of a numerical value";
-     * §4.2.1.3: base "is a base 10 positive integer". The XSD types number xs:decimal and leaves
-     * base untyped.
-     */
-    const numbers = declarersOf("scriptsizemultiplier");
-    assert.isAbove(numbers.length, 0);
-    for (const { kind } of numbers) {
-      const domain = Option.getOrThrow(domainAt(kind, "scriptsizemultiplier"));
+  it.effect(
+    `read 120: a qti-index's n is at least 1 where it is a number, any NCName otherwise, on every form of up to 3 of ${String(indexPieces.length)} pieces`,
+    (ctx) =>
+      exhaustLexical(ctx, {
+        accepts: (_, form) => {
+          const collapsed = collapseXml(form);
 
-      for (const value of ["0.71", "-0.5", ".5", "5.", "2", " 0.6 "]) {
-        assert.isTrue(matches(domain, value), `${kind} ${value}`);
-      }
-
-      for (const value of ["+0.5", "+.5", "+2", ".", "-", "1e2", ""]) {
-        assert.isFalse(matches(domain, value), `${kind} ${value}`);
-      }
-    }
-
-    const base = Option.getOrThrow(domainAt("m:cn", "base"));
-
-    for (const value of ["16", "2", " 2 ", "010"]) {
-      assert.isTrue(matches(base, value), value);
-    }
-
-    for (const value of ["+10", "0", "000", "-2", "1.0", "ten", ""]) {
-      assert.isFalse(matches(base, value), value);
-    }
-  });
-
-  it("read 120: a qti-index's n is at least 1 where it is a number, any NCName otherwise", () => {
-    /**
-     * Information model §5.72, Index: "'n' must be a positive integer"; the XSD's xs:int member
-     * admits 0 and negatives, and reading `count-range` keeps no larger range for it.
-     */
-    const n = Option.getOrThrow(domainAt("qti-index", "n"));
-
-    for (const value of ["1", "+1", "01", " 2 ", "2147483647", "N", "i", "INDEX_1"]) {
-      assert.isTrue(matches(n, value), value);
-    }
-
-    for (const value of ["0", "-0", "+0", "00", "-1", "2147483648", "1.5", ""]) {
-      assert.isFalse(matches(n, value), value);
-    }
-  });
+          return isIntegerIn(collapsed, 1n, int32Max) || ncName.test(collapsed);
+        },
+        box: "every form of up to 3 of 0, 1, 2^31 − 1, 2^31, both signs, the point, N, the underscore and the space, on a qti-index's n",
+        forms: formsOf(indexPieces, 3),
+        formsPerTarget: formCount(indexPieces.length, 3),
+        oracle:
+          "the information model §5.72, Index: \"'n' must be a positive integer\", within the XSD's xs:int member (XML Schema Part 2 §3.3.17), or its NCName member, each collapsed",
+        reaches: ["accepted", "refused"],
+        suite: "grammar/attributes/reading-120",
+        targets: [{ kind: "qti-index", name: "n" }],
+      }),
+  );
 
   it("read 123: a bdo's dir is required and is ltr or rtl, never auto; another kind's dir keeps auto", () => {
     /**
@@ -1377,33 +1542,21 @@ describe("The spec readings", () => {
     assert.isTrue(matches(span, "auto"));
   });
 
-  it("read 124 and 125: each media URL holds something other than spaces, every declaring kind against blank and spaced values", () => {
-    /**
-     * Information model: audio and video src, video poster, source src and track src "must
-     * contain a valid non-empty URL potentially surrounded by spaces" (§5.9.1, §5.166.1,
-     * §5.166.9, §5.135.1, §5.163.2); HTML: a srcset "must consist of one or more image candidate
-     * strings", each a valid non-empty URL. Oracle: after replace, a character other than a space.
-     */
-    const urls = [
-      ["audio", "src"],
-      ["source", "src"],
-      ["source", "srcset"],
-      ["track", "src"],
-      ["video", "poster"],
-      ["video", "src"],
-    ] as const;
-    const values = ["", " ", "\t", " \n ", "\r\n", "a", " a ", "\ta", "a b.png 2x", "%20"];
-    for (const [kind, name] of urls) {
-      const domain = Option.getOrThrow(domainAt(kind, name));
-      const wrong = values.filter(
-        (value) =>
-          matches(domain, value) !==
-          regex("[^ ]", "u").test(value.replaceAll(regex("[\t\n\r]", "gu"), " ")),
-      );
-
-      assert.deepStrictEqual(wrong, [], `${kind}@${name}`);
-    }
-  });
+  it.effect(
+    `read 124 and 125: each media URL holds something other than spaces, every kind and name the readings list against every form of up to 3 of ${String(urlPieces.length)} pieces`,
+    (ctx) =>
+      exhaustLexical(ctx, {
+        accepts: (_, form) => nonSpace.test(form.replaceAll(regex("[\t\n\r]", "gu"), " ")),
+        box: "every form of up to 3 of the space, the tab, a line feed, a carriage return, a letter and the percent sign, on every media URL readings `source-attributes` and `track-srclang` list",
+        forms: formsOf(urlPieces, 3),
+        formsPerTarget: formCount(urlPieces.length, 3),
+        oracle:
+          "the information model's \"must contain a valid non-empty URL potentially surrounded by spaces\" (§5.9.1, §5.166.1, §5.166.9, §5.135.1, §5.163.2) and HTML's srcset, one or more image candidate strings, each a valid non-empty URL: after the type's replace (XML Schema Part 2 §4.3.6), a character other than a space",
+        reaches: ["accepted", "refused"],
+        suite: "grammar/attributes/readings-124-125",
+        targets: mediaUrls,
+      }),
+  );
 
   it("read 129: xml:lang, lang and srclang hold BCP 47 tags, against an independent RFC 5646 recogniser on every tag of up to two subtags and the named longer forms", () => {
     /**
