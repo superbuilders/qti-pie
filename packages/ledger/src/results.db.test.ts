@@ -8,10 +8,10 @@
  * `AttemptCredit`), and the laws that hold a machine's reply and a person's value to the
  * application's maximum ("Reply within maximum", "Human within maximum"). An application's own
  * suite proves the rest of the result seam on its own installation (edullm's `results.db.test.ts`,
- * whose composition registers no grader, so its essays are never evaluated). It runs only where a
- * database is handed to it (`QTI_PIE_RESULT_MIGRATIONS` and pantry's `QTI_PIE_PG_*`, by its runner,
- * which migrates `grizzle.result.config.ts` into a database of its own on the shared PostgreSQL
- * server), and is skipped elsewhere.
+ * whose composition registers no grader, so its essays are never evaluated). It runs wherever a
+ * lane names its lease (pantry's `QTI_PIE_PG_*`), on the lease's result database, where the
+ * ledger's global setup generates and installs the composition (`#ledger/test/result-install.ts`),
+ * and is skipped elsewhere, as every database suite is.
  *
  * Every fact is written through a program, as an application writes it: the item session with its
  * seed and the attempt's snapshot with its response, as host rows through the suite's login
@@ -141,13 +141,14 @@ import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, layer } from "@effect/vitest";
-import { loginConnection } from "@qti-pie/pantry/db/connection.ts";
+import { clusterDatabase, loginConnection } from "@qti-pie/pantry/db/connection.ts";
 import { importRowsOf } from "@qti-pie/pantry/import/program.ts";
 import { readPackage } from "@qti-pie/pantry/import/read.ts";
 import {
   Array as Arr,
   Clock,
   Config,
+  ConfigProvider,
   Context,
   Duration,
   Effect,
@@ -170,13 +171,13 @@ import { Reading } from "#ledger/sittings.ts";
 import type { ResultSuite } from "#ledger/test/result-level.ts";
 import { inFlightGraceMicros, presenceGraceMicros } from "#ledger/delivery.ts";
 import type { LedgerLawName } from "#ledger/laws.ts";
+import { resultDatabaseOf, resultMigrations } from "#ledger/test/result-database.ts";
 import { grader, ResultLevel, rubricUse } from "#ledger/test/result-level.ts";
 
 /**
- * The run's migrations folder, where `grizzle generate` wrote the suite's served login; none
- * outside the runner.
+ * The lane's lease, where one is named: the suite runs on its result database.
  */
-const migrations = Effect.runSync(Config.option(Config.String("QTI_PIE_RESULT_MIGRATIONS")));
+const lease = Effect.runSync(Config.option(clusterDatabase));
 
 const asi = "http://www.imsglobal.org/xsd/imsqtiasi_v3p0";
 
@@ -1381,11 +1382,19 @@ const onePool = { idleTimeoutMs: Duration.toMillis(Duration.minutes(1)), max: 1,
 const SuiteLayer = Layer.unwrap(
   Effect.gen(function* suiteLayer() {
     const fs = yield* FileSystem.FileSystem;
-    const folder = Option.getOrThrow(migrations);
-    const text = yield* fs.readFileString(`${folder}/qti/served/result_suite.json`);
+    const text = yield* fs.readFileString(`${resultMigrations}/qti/served/result_suite.json`);
     const file = yield* Schema.decodeEffect(Schema.fromJsonString(Schema.Unknown))(text);
     const suite = served<typeof ResultSuite>(file, "result_suite");
-    const connectionOf = yield* loginConnection;
+    const connectionOf = yield* loginConnection.pipe(
+      Effect.provide(
+        ConfigProvider.layer(
+          ConfigProvider.fromUnknown({
+            ...process.env,
+            QTI_PIE_PG_DATABASE: resultDatabaseOf(Option.getOrThrow(lease)),
+          }),
+        ),
+      ),
+    );
     const connection = connectionOf(suite);
 
     return Layer.mergeAll(
@@ -5809,7 +5818,7 @@ const holdOutcomeBounds = (
     );
   });
 
-describe.skipIf(Option.isNone(migrations))(
+describe.skipIf(Option.isNone(lease))(
   "an AI-graded essay's result relations, a templated item's take and an adaptive item's attempts, on the runner's database",
   () => {
     layer(SuiteLayer, { excludeTestServices: true, timeout: "300 seconds" })(

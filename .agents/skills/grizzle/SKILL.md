@@ -13,9 +13,10 @@ no submodule). Take every API spelling from there; this file holds the recipes a
 
 - pantry: `packages/pantry/grizzle.config.ts`, installation `Qti`, login `AuthorApp`, migrations in
   `packages/pantry/migrations/qti/`. From `packages/pantry`: `pnpm grizzle <command> grizzle.config.ts`.
-- ledger: `packages/ledger/grizzle.result.config.ts` is the installation of `src/results.db.test.ts` alone. Its runner
-  generates it from nothing into `$QTI_PIE_RESULT_MIGRATIONS` and migrates it into a database of the run's own;
-  without those settings the suite is skipped. Nothing commits its migrations.
+- ledger: `packages/ledger/grizzle.result.config.ts` is the installation of `src/results.db.test.ts` alone, test-only
+  and never deployed, so nothing commits it: the ledger's vitest global setup generates it from nothing into
+  `packages/ledger/work/result-migrations/` (`pnpm run result:generate`) and installs it in the lease's result
+  database, the lease's name with `_r` after it, wherever a lease is named.
 - The database: AGENTS.md, "Local database". Migrate through `scripts/db.sh migrate`, which exports the settings and
   the owner's password, then gives each login its password. psql is grizzle's pinned build
   (`$GRIZZLE_PG_PREFIX/bin` from `vendor/grizzle/scripts/pg/pin.env`).

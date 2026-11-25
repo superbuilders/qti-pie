@@ -1,5 +1,5 @@
 import { defineConfig } from "@bjornpagen/grizzle";
-import { migrationConnectionNow } from "#pantry/db/connection.ts";
+import { leaseNameBytes, migrationConnectionNow } from "#pantry/db/connection.ts";
 import { AuthorApp } from "#pantry/qti/logins.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 
@@ -14,10 +14,9 @@ export default defineConfig({
   logins: [AuthorApp],
   migrations: "migrations",
   /**
-   * The longest role prefix an installation of this config runs under: a test lane's database name,
-   * pantry's rule (src/db/connection.ts), the longest in use edullm_keydigest_pantry. grizzle
-   * refuses a longer one at connect.
+   * The longest role prefix an installation of this config runs under: a lane's lease name
+   * (`leaseNameBytes`, src/db/connection.ts).
    */
-  rolePrefixBytes: 23,
+  rolePrefixBytes: leaseNameBytes,
   schemas: [Qti],
 });

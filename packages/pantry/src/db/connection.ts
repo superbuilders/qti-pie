@@ -200,6 +200,13 @@ export type PasswordCommandError =
  * @see https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
  * @see https://www.postgresql.org/docs/current/sql-createrole.html
  */
+/**
+ * The longest database name a lane leases, which is its installation's role prefix: the longest in
+ * use, edullm_keydigest_pantry. A config's `rolePrefixBytes` states it (grizzle.config.ts), and
+ * grizzle refuses a longer prefix at connect.
+ */
+export const leaseNameBytes = 23;
+
 export const DatabaseName = Schema.String.check(
   Schema.isPattern(/^(?!pg_)(?!.*__)[a-z][a-z0-9_]{0,62}$/u, {
     message:

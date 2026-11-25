@@ -24,8 +24,9 @@
  *
  * Run from this package: `node budget/plan-budget.ts --scales <scale,…> --repeats <n> --out
  * <records.jsonl>`, with pantry's `QTI_PIE_PG_*` settings naming the scratch cluster and its
- * database, `PLAN_BUDGET_SOCKET` the cluster's socket folder, which its superuser reaches, and
- * `QTI_PIE_RESULT_MIGRATIONS` the generated result composition's folder, each required.
+ * database, where the generated result composition is installed
+ * (`#ledger/test/result-database.ts`), and `PLAN_BUDGET_SOCKET` the cluster's socket folder, which
+ * its superuser reaches, each required.
  *
  * @module
  */
@@ -55,6 +56,7 @@ import { measureActions } from "@qti-pie/plan-budget/run-actions.ts";
 import { Config, Duration, Effect, Layer } from "effect";
 import { Client } from "pg";
 import { responseParamsOf } from "#ledger/served-values.ts";
+import { resultMigrations } from "#ledger/test/result-database.ts";
 import type { ResultSuite } from "#ledger/test/result-level.ts";
 
 const { values } = parseArgs({
@@ -67,13 +69,8 @@ const { values } = parseArgs({
   },
 });
 
-/**
- * The generated result composition's folder, which `grizzle.result.config.ts` generates into.
- */
-const migrations = Effect.runSync(Config.String("QTI_PIE_RESULT_MIGRATIONS"));
-
 const suite = served<typeof ResultSuite>(
-  JSON.parse(readFileSync(path.join(migrations, "qti/served/result_suite.json"), "utf-8")),
+  JSON.parse(readFileSync(path.join(resultMigrations, "qti/served/result_suite.json"), "utf-8")),
   "result_suite",
 );
 

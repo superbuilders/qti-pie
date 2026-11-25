@@ -17,6 +17,7 @@
     "test": "vitest run",
     "generate": "node tools/gen/main.ts",
     "generate:check": "node tools/gen/main.ts --check",
+    "result:generate": "rm -rf work/result-migrations && grizzle generate grizzle.result.config.ts --name init",
     "plan-budget": "node --disable-proto=delete --disable-sigusr1 budget/plan-budget.ts"
   },
   "dependencies": {

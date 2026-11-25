@@ -63,7 +63,7 @@ export interface Installation {
   readonly grizzle: string;
   readonly config: string;
   /**
-   * Settings the config reads besides the installation's own (`QTI_PIE_RESULT_MIGRATIONS`, …).
+   * Settings the config reads besides the installation's own.
    */
   readonly env: Readonly<Record<string, string>>;
   /**
