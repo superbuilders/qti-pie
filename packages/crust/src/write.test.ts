@@ -810,6 +810,20 @@ const NON_CHARS = 9 + 2 + 18 + 2048 + 2;
  */
 const THRESHOLD_FORMS = [Option.none(), Option.some(0xff)] as const;
 
+/**
+ * A case of the refusal box: a code point outside Char and the threshold writeXml writes under.
+ */
+type UnderThreshold = { readonly codePoint: number; readonly threshold: Option.Option<number> };
+
+/**
+ * Draw a case of the refusal box: every code point {@link nonChar} draws under each of
+ * {@link THRESHOLD_FORMS}.
+ */
+const nonCharUnderThreshold: Gen<UnderThreshold> = (source) => ({
+  codePoint: source.draw(nonChar),
+  threshold: source.draw(element(THRESHOLD_FORMS)),
+});
+
 describe("the writer writes only characters XML 1.0 allows (Char, section 2.2)", () => {
   it.effect(
     `reads back every value of up to 3 of ${String(CHAR_ALPHABET.length)} characters as written, in an attribute and in a text run: ${String(CHAR_VALUES)} values`,
@@ -857,27 +871,28 @@ describe("the writer writes only characters XML 1.0 allows (Char, section 2.2)",
   );
 
   it.effect(
-    `refuses every code point outside Char below U+10000, in an attribute and in a text run, naming it and its place, under every writer: ${String(NON_CHARS)} code points`,
+    `refuses every code point outside Char below U+10000, in an attribute and in a text run, naming it and its place, under every writer: ${String(NON_CHARS)} code points under ${String(THRESHOLD_FORMS.length)} thresholds`,
     (ctx) =>
       Effect.andThen(
-        boxHolds(nonChar, NON_CHARS),
+        boxHolds(nonCharUnderThreshold, NON_CHARS * THRESHOLD_FORMS.length),
         searched(
           ctx,
           exhaust(
             {
-              box: "every code point outside Char below U+10000: the C0 controls but the tab and line ends, the surrogates and U+FFFE and U+FFFF, each between two letters",
+              box: "every code point outside Char below U+10000: the C0 controls but the tab and line ends, the surrogates and U+FFFE and U+FFFF, each between two letters, under writeXml's two thresholds",
               caseHang,
               concurrency: availableParallelism(),
               coverage: noCoverage,
-              generator: nonChar,
-              literal: (codePoint) => `0x${codePoint.toString(16)}`,
+              generator: nonCharUnderThreshold,
+              literal: ({ codePoint, threshold }) =>
+                `{ codePoint: 0x${codePoint.toString(16)}, threshold: ${Formatter.format(threshold)} }`,
               oracle: {
                 kind: "specification",
                 name: "XML 1.0's Char production (section 2.2) and the Legal Character constraint (section 4.1), so no reference writes one either: the text writer and both thresholds of writeXml refuse alike",
               },
               suite: "crust/write/non-chars",
             },
-            (codePoint) =>
+            ({ codePoint, threshold }) =>
               Effect.gen(function* refuses() {
                 const value = `a${String.fromCodePoint(codePoint)}b`;
                 const rule = { _tag: "Char", codePoint } as const;
@@ -886,11 +901,10 @@ describe("the writer writes only characters XML 1.0 allows (Char, section 2.2)",
 
                 assert.deepStrictEqual(refusalOf(writeXmlText(holding(value, "t"))), inAttribute);
                 assert.deepStrictEqual(refusalOf(writeXmlText(holding("v", value))), inText);
-                for (const threshold of THRESHOLD_FORMS) {
-                  const refused = yield* Effect.flip(writeXml(holding("v", value), threshold));
 
-                  assert.strictEqual(refused._tag, "WriteRefusal", JSON.stringify(value));
-                }
+                const refused = yield* Effect.flip(writeXml(holding("v", value), threshold));
+
+                assert.strictEqual(refused._tag, "WriteRefusal", JSON.stringify(value));
               }),
           ),
         ),
