@@ -33,7 +33,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
-import { array, element, map, oneOf } from "@bjornpagen/testing/gen";
+import { array, element, map, weighted } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { Array as Arr, Data, Effect, Option, Schema } from "effect";
 import type { Result, Scope } from "effect";
@@ -262,13 +262,10 @@ export { namesOf };
  * @returns The draw.
  */
 const keyOf = (names: Arr.NonEmptyReadonlyArray<string>): Gen<MathEntryKey> =>
-  oneOf([
-    map(element(names), (keycap): MathEntryKey => ({ keycap })),
-    map(element(names), (keycap): MathEntryKey => ({ keycap })),
-    map(element(names), (keycap): MathEntryKey => ({ keycap })),
-    map(element(typedCharacters), (typed): MathEntryKey => ({ typed })),
-    map(element(typedCharacters), (typed): MathEntryKey => ({ typed })),
-    map(element(pressedKeys), (pressed): MathEntryKey => ({ pressed })),
+  weighted([
+    [3, map(element(names), (keycap): MathEntryKey => ({ keycap }))],
+    [2, map(element(typedCharacters), (typed): MathEntryKey => ({ typed }))],
+    [1, map(element(pressedKeys), (pressed): MathEntryKey => ({ pressed }))],
   ]);
 
 /**
