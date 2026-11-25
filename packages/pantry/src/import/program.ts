@@ -32,19 +32,13 @@ import { documentRowsOf, nodeIdsOf, rootInsertOf, writtenFactsOf } from "#pantry
 import type { NodeRoot, PackageInputs, PlacedDocument } from "#pantry/import/write.ts";
 
 /**
- * One document of the package as the import writes it: as listed, where it stands in its package,
- * and its view.
- */
-export type ProgramDocument = PlacedDocument;
-
-/**
- * Everything one import writes, before the database: the package's documents, each where it stands
- * in its package, every input of its ChangeSet, the media files whose bytes the content-addressed
- * store takes under the digests the `Media` rows state, and the package's name, the key every row
- * holds.
+ * Everything one import writes, before the database: the package's documents, each as listed,
+ * where it stands in its package, and its view, every input of its ChangeSet, the media files whose
+ * bytes the content-addressed store takes under the digests the `Media` rows state, and the
+ * package's name, the key every row holds.
  */
 export interface ImportProgram {
-  readonly documents: readonly ProgramDocument[];
+  readonly documents: readonly PlacedDocument[];
   readonly inputs: PackageInputs;
   readonly media: readonly MediaFile[];
   readonly package: QtiPackage["name"];
