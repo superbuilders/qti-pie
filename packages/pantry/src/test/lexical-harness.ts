@@ -961,10 +961,11 @@ const boundHolds = (bound: Option.Option<DoubleBound>, raw: string): boolean =>
   });
 
 /**
- * The compiled regex of each domain's pattern, by handle: a pattern that spells the XML name
- * classes runs to thousands of characters, so each is compiled once.
+ * The compiled regex of each domain's pattern, by the domain: a pattern that spells the XML name
+ * classes runs to thousands of characters, so each is compiled once. The composed grammar's domains
+ * are one object each for the process, and an entry lives as long as its domain does.
  */
-const compiled = new Map<string, RegExp>();
+const compiled = new WeakMap<ValueDomain, RegExp>();
 
 /**
  * Compile a domain's pattern once.
@@ -973,13 +974,13 @@ const compiled = new Map<string, RegExp>();
  * @returns Its regex, with the flags a JavaScript host reads it with.
  */
 export const regexOf = (domain: ValueDomain): RegExp => {
-  const held = compiled.get(domain.handle);
+  const held = compiled.get(domain);
   if (held !== undefined) {
     return held;
   }
 
   const regex = arkregex.as(domain.pattern, patternFlags);
-  compiled.set(domain.handle, regex);
+  compiled.set(domain, regex);
 
   return regex;
 };
@@ -1017,10 +1018,10 @@ export const flipped = (value: string): string =>
   value === value.toUpperCase() ? value.toLowerCase() : value.toUpperCase();
 
 /**
- * The samples drawn from each domain's pattern, by handle: many groups share one domain, which is
- * drawn from once.
+ * The samples drawn from each domain's pattern, by the domain: many groups share one domain, which
+ * is drawn from once, and an entry lives as long as its domain does.
  */
-const drawnSamples = new Map<string, readonly string[]>();
+const drawnSamples = new WeakMap<ValueDomain, readonly string[]>();
 
 /**
  * Draw samples of a domain's pattern from a stream seeded by its handle, once per domain, the first
@@ -1037,7 +1038,7 @@ const drawnSamples = new Map<string, readonly string[]>();
  * @returns The samples.
  */
 export const drawnOf = (domain: ValueDomain): readonly string[] => {
-  const held = drawnSamples.get(domain.handle);
+  const held = drawnSamples.get(domain);
   if (held !== undefined) {
     return held;
   }
@@ -1061,7 +1062,7 @@ export const drawnOf = (domain: ValueDomain): readonly string[] => {
     ),
     () => [],
   );
-  drawnSamples.set(domain.handle, drawn);
+  drawnSamples.set(domain, drawn);
 
   return drawn;
 };
