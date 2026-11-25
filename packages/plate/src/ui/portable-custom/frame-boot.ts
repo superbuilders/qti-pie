@@ -66,16 +66,19 @@ interface PciInstance {
 }
 
 /**
+ * What a PCI hands `ondone`, as the PCI contract lets it: the interaction, its response and its
+ * state, and its status where it gives one.
+ */
+type DoneArguments =
+  | readonly [interaction: PciInstance, response: unknown, state: unknown]
+  | readonly [interaction: PciInstance, response: unknown, state: unknown, status: string];
+
+/**
  * The configuration the bridge hands `getInstance`: the island's, with the bridge's own `onready`
  * and `ondone`.
  */
 interface GivenConfiguration extends BoundConfiguration {
-  readonly ondone: (
-    interaction: PciInstance,
-    response: unknown,
-    state: unknown,
-    status?: string,
-  ) => void;
+  readonly ondone: (...given: DoneArguments) => void;
   readonly onready: (interaction: PciInstance, state: unknown) => void;
 }
 
@@ -107,11 +110,35 @@ interface Bridge {
 }
 
 /**
- * The AMD `define`: `(factory)`, `(dependencies, factory)`, `(id, factory)` or `(id,
- * dependencies, factory)`, with `define.amd` present so a module knows an AMD loader is here.
+ * What a module hands the AMD `define`, as it wrote it: `(factory)`, `(dependencies, factory)`,
+ * `(id, factory)` or `(id, dependencies, factory)`, which the loader decodes once into a
+ * {@link Definition}.
+ */
+type DefineArguments =
+  | readonly [factory: unknown]
+  | readonly [first: unknown, factory: unknown]
+  | readonly [id: unknown, dependencies: unknown, factory: unknown];
+
+/**
+ * A `define` decoded: named by its id, or anonymous, which belongs to the route whose script is
+ * loading; its dependencies, none where it lists none; and its factory, as the module gave it.
+ */
+type Definition = Readonly<
+  | { kind: "named"; id: string; dependencies: readonly string[]; factory: unknown }
+  | { kind: "anonymous"; dependencies: readonly string[]; factory: unknown }
+>;
+
+/**
+ * What a module hands the AMD `require`, as it wrote it: `(id)` for one module's value, or
+ * `(ids, callback)` to run the callback with theirs.
+ */
+type RequireArguments = readonly [ids: unknown] | readonly [ids: unknown, onResolved: unknown];
+
+/**
+ * The AMD `define`, with `define.amd` present so a module knows an AMD loader is here.
  */
 interface AmdDefine {
-  (first: unknown, second?: unknown, third?: unknown): void;
+  (...given: DefineArguments): void;
   readonly amd: Readonly<Record<string, never>>;
 }
 
@@ -378,7 +405,7 @@ export const bootFrame = (): void => {
    * @param onResolved The function a list of ids is given to.
    * @returns The one module's value, or `undefined` for a list or a module no route defined.
    */
-  const requireModule = (ids: unknown, onResolved?: unknown): unknown => {
+  const requireModule = (...[ids, onResolved]: RequireArguments): unknown => {
     const valueOf = (id: string): unknown => {
       const resolved = resolveModule(id, []);
 
@@ -397,25 +424,42 @@ export const bootFrame = (): void => {
   };
 
   /**
+   * Decode what a module handed `define`, once: an id first names it; a list of strings after the
+   * id, or first, lists its dependencies; and the argument after them is its factory. A factory
+   * with parameters and no dependency list gets `require`, `exports` and `module`.
+   *
+   * @param given The arguments, as the module wrote them: the first, the second and the third, each
+   *   where it gave one.
+   * @returns The definition.
+   */
+  const definitionOf = ([first, second, third]: DefineArguments): Definition => {
+    const named = isString(first);
+    const afterId = named ? second : first;
+    const last = named ? third : second;
+    const listed = isStringList(afterId);
+    const factory = listed ? last : afterId;
+    const wrapped = isCallable(factory) && factory.length > 0;
+    const written = listed ? afterId : [];
+    const dependencies = written.length === 0 && wrapped ? commonJsNames : written;
+
+    return named
+      ? { dependencies, factory, id: first, kind: "named" }
+      : { dependencies, factory, kind: "anonymous" };
+  };
+
+  /**
    * The AMD `define` of this frame. An anonymous define belongs to the route whose script is
-   * loading; one outside any load has no id to be known by and is dropped. A factory with
-   * parameters and no dependency list gets `require`, `exports` and `module`.
+   * loading; one outside any load has no id to be known by and is dropped.
    */
   const define: AmdDefine = Object.assign(
-    (first: unknown, second?: unknown, third?: unknown): void => {
-      const named = isString(first);
-      const id = named ? first : loading?.id;
-      const afterId = named ? second : first;
-      const last = named ? third : second;
-      const listed = isStringList(afterId);
-      const factory = listed ? last : afterId;
-      const wrapped = isCallable(factory) && factory.length > 0;
-      const dependencies = listed ? afterId : [];
+    (...given: DefineArguments): void => {
+      const definition = definitionOf(given);
+      const id = definition.kind === "named" ? definition.id : loading?.id;
 
       if (id !== undefined) {
         definitions.set(id, {
-          dependencies: dependencies.length === 0 && wrapped ? commonJsNames : dependencies,
-          factory,
+          dependencies: definition.dependencies,
+          factory: definition.factory,
         });
       }
     },
@@ -709,7 +753,7 @@ export const bootFrame = (): void => {
 
     const configuration: GivenConfiguration = {
       ...message.configuration,
-      ondone: (_interaction, response, state, status) => {
+      ondone: (...[, response, state, status]) => {
         post({ kind: "done", nonce, response, state, status });
       },
       onready: (_interaction, state) => {
