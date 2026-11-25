@@ -1378,30 +1378,25 @@ const decodeDifferential = Effect.fnUntraced(function* decodeDifferential(
 });
 
 /**
- * The class of input a tree crust read can fall in whose every disagreement has one cause,
- * `namespace name holds a reference`: a namespace declaration's value keeps an unexpanded
- * reference, whose namespace name no reader knows (XML 1.0 section 4.4.3: the processor reports
- * the reference it did not read).
- */
-type TreeClass = "namespace name holds a reference";
-
-/**
- * A class of input whose every disagreement has one cause: a {@link TreeClass}, or a document
- * whose declaration names another encoding than its bytes are in.
+ * A class of input whose every disagreement has one cause: a tree crust read whose namespace
+ * declaration's value keeps an unexpanded reference ({@link treeClassOf}), or a document whose
+ * declaration names another encoding than its bytes are in.
  */
 type InputClass =
-  | TreeClass
+  | "namespace name holds a reference"
   | "UTF-16 input ends inside a surrogate pair"
   | "default names an entity declared after it"
   | "encoding declared against the bytes";
 
 /**
- * Find the class of input a tree crust read falls in, if any.
+ * Find the class of input a tree crust read falls in, if any: `namespace name holds a reference`,
+ * where a namespace declaration's value keeps an unexpanded reference, whose namespace name no
+ * reader knows (XML 1.0 section 4.4.3: the processor reports the reference it did not read).
  *
  * @param tree - The tree.
  * @returns The class, undefined for none.
  */
-const treeClassOf = (tree: XmlDocument): TreeClass | undefined => {
+const treeClassOf = (tree: XmlDocument): "namespace name holds a reference" | undefined => {
   const attributes = elementsIn(tree.root).flatMap((element) => element.attributes);
 
   return attributes.some((attribute) => isDeclaration(attribute) && attribute.references.length > 0)
