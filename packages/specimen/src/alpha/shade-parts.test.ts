@@ -284,6 +284,11 @@ const holdsShown = (golden: Golden, drawn: Drawn): void => {
 
   assert.isDefined(shown, `${name} shows a model above`);
   assert.strictEqual(shown?.role, "img", `${name}'s shown model is a picture`);
+  assert.strictEqual(
+    shown?.label,
+    `a ${golden.figure.kind} in ${String(golden.shown.parts)} equal parts, ${String(golden.shown.shaded)} shaded`,
+    `${name}'s shown model is named for its parts and those shaded`,
+  );
   assert.strictEqual(drawn.shownTappable, 0, `${name}'s shown model has no tappable part`);
   assert.deepStrictEqual(
     drawn.shownFills,

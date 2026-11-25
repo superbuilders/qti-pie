@@ -195,7 +195,9 @@ export const shadeItem = Effect.fn("shadeItem")(function* shadeItem(name: string
       secondaryConfiguration:
         modules?.getAttribute("secondary-configuration") ?? "modules/fallback_module_resolution.js",
     },
-    prompt: pci.querySelector("qti-prompt")?.textContent.trim() ?? "",
+    // The stem: the paragraph of the body before the interaction (the shade form writes no
+    // qti-prompt).
+    prompt: pci.previousElementSibling?.textContent.trim() ?? "",
     properties: Object.fromEntries(
       [...pci.attributes]
         .filter((each) => each.name.startsWith("data-"))
@@ -207,6 +209,21 @@ export const shadeItem = Effect.fn("shadeItem")(function* shadeItem(name: string
     ),
   } satisfies ShadeItem;
 });
+
+/**
+ * Name the element that has focus in the frame's document: its accessible name, or its tag where it
+ * has none, or nothing.
+ *
+ * @param frame The frame.
+ * @returns The name.
+ */
+const focusOf = (frame: Frame): Promise<string | null> =>
+  frame.evaluate(
+    () =>
+      document.activeElement?.getAttribute("aria-label") ??
+      document.activeElement?.localName ??
+      null,
+  );
 
 /**
  * Press a key as the page's keyboard does, or hold it down (`down:<key>`, each further one a
@@ -505,7 +522,10 @@ export interface ShadePage {
    */
   readonly drawn: Effect.Effect<Drawn, ShadePartsFailure>;
   /**
-   * Press keys in the frame, in order, each as Playwright names it (`Tab`, `Space`, `Enter`).
+   * Press keys in the frame, in order, each as Playwright names it (`Tab`, `Space`, `Enter`). A
+   * `Tab` or `Shift+Tab` returns once focus has moved, or after a bounded wait where it cannot:
+   * focus crosses into the frame's document after the key, so a key pressed at once could reach the
+   * page.
    */
   readonly press: (keys: readonly string[]) => Effect.Effect<void, ShadePartsFailure>;
   /**
@@ -896,7 +916,31 @@ export const shadePage: Effect.Effect<ShadePage, ShadePartsFailure, Scope.Scope>
       press: (keys) =>
         pipe(
           keys,
-          Effect.forEach((key) => attempt(`press ${key}`, () => keyed(page, key))),
+          Effect.forEach((key) =>
+            inner.pipe(
+              Effect.flatMap((frame) =>
+                attempt("read the focus", () => focusOf(frame)).pipe(
+                  Effect.tap(() => attempt(`press ${key}`, () => keyed(page, key))),
+                  // Focus lands in the frame's document after a Tab; a Tab that moves none (a
+                  // broken part) ends the wait at its bound, and the rule's own checks then fail.
+                  Effect.flatMap((before) =>
+                    key === "Tab" || key === "Shift+Tab"
+                      ? attempt("wait for the focus to move", () =>
+                          frame.waitForFunction(
+                            (was) =>
+                              (document.activeElement?.getAttribute("aria-label") ??
+                                document.activeElement?.localName ??
+                                null) !== was,
+                            before,
+                            { polling: 10, timeout: 1000 },
+                          ),
+                        ).pipe(Effect.ignore)
+                      : Effect.void,
+                  ),
+                ),
+              ),
+            ),
+          ),
           Effect.asVoid,
         ),
       start: (item, start) =>
