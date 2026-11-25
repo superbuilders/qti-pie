@@ -37,7 +37,7 @@ const optionsOf = ({ format, index, ...rest }: Written): PrintOptions => ({
  * @param written The printed variable's resolved attributes.
  * @returns The text; the test fails when the formatter prints none (a value past a bound).
  */
-const printed = (value: Value, written: Written = {}): string =>
+const printed = (value: Value, written: Written): string =>
   Option.getOrThrow(formatPrinted(value, optionsOf(written), textBound));
 
 describe("formatPrinted: a float's exact value rounds to the nearest, a tie to the even digit, as C's printf does (reading 209)", () => {

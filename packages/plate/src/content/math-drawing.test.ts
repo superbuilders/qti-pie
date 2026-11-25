@@ -900,10 +900,7 @@ const sizesOf = (formula: Formula): ReadonlyMap<string, SlotSize> =>
  * @param names The properties to check.
  * @returns Each broken property's name, with the first formula it broke on and what broke.
  */
-const broken = (
-  drawer: Drawer,
-  names: readonly string[] = [...properties.keys()],
-): ReadonlyMap<string, string> => {
+const broken = (drawer: Drawer, names: readonly string[]): ReadonlyMap<string, string> => {
   const breaks = new Map<string, string>();
 
   for (const [index, formula] of formulas.entries()) {
@@ -1042,7 +1039,7 @@ const mutants: readonly (readonly [name: string, property: string, drawer: Drawe
 
 describe("a formula as plate draws it", () => {
   it("holds every property on the corpus's shapes, 300 drawn formulas and 60 holding slots", () => {
-    assert.deepStrictEqual(Object.fromEntries(broken(draw)), {});
+    assert.deepStrictEqual(Object.fromEntries(broken(draw, [...properties.keys()])), {});
   });
 
   it.each(mutants)("refuses a mutant: %s (%s)", (_name, property, drawer) => {

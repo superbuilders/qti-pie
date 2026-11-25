@@ -27,7 +27,7 @@ import {
   textEntries,
 } from "#plate/test/counted.ts";
 import { blockGrowth, blockGrowthLimit } from "#plate/test/growth.ts";
-import { attr, declaration, doc, el, item, paragraph, text } from "#plate/test/source.ts";
+import { attr, attrIn, declaration, doc, el, item, paragraph, text } from "#plate/test/source.ts";
 
 /**
  * The path of the item root, which every path in these tests starts with.
@@ -62,11 +62,11 @@ const values = (local: string, ...texts: readonly string[]): SourceElement =>
  * @returns The entry element.
  */
 const areaEntry = (shape: string, coords: string, mappedValue: string): SourceElement =>
-  el("qti-area-map-entry", [
-    attr("coords", coords),
-    attr("mapped-value", mappedValue),
-    attr("shape", shape),
-  ]);
+  el(
+    "qti-area-map-entry",
+    [attr("coords", coords), attr("mapped-value", mappedValue), attr("shape", shape)],
+    [],
+  );
 
 /**
  * Construct a `qti-area-mapping` of the circle `102,113,16`, mapped to 1, and then a rect whose
@@ -99,9 +99,11 @@ const choice = (identifier: string, label: string): SourceElement =>
  * @returns The processing element.
  */
 const template = (name: string): SourceElement =>
-  el("qti-response-processing", [
-    attr("template", `https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/${name}`),
-  ]);
+  el(
+    "qti-response-processing",
+    [attr("template", `https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/${name}`)],
+    [],
+  );
 
 /**
  * Construct a `qti-set-outcome-value` of `SCORE` to a float base value.
@@ -138,8 +140,8 @@ const matchCorrectBlock = (): SourceElement =>
                 "qti-match",
                 [],
                 [
-                  el("qti-variable", [attr("identifier", "RESPONSE")]),
-                  el("qti-correct", [attr("identifier", "RESPONSE")]),
+                  el("qti-variable", [attr("identifier", "RESPONSE")], []),
+                  el("qti-correct", [attr("identifier", "RESPONSE")], []),
                 ],
               ),
               setScore("1"),
@@ -167,7 +169,7 @@ const bg007 = (processing: SourceElement): SourceDocument =>
         attr("identifier", "beginnersguide007"),
         attr("time-dependent", "false"),
         attr("title", "BG true false example "),
-        attr("lang", "en-US", xmlNamespace),
+        attrIn(xmlNamespace, "lang", "en-US"),
       ],
       [
         declaration("qti-response-declaration", "RESPONSE", "identifier", "single", [
@@ -224,7 +226,7 @@ const choiceItem = (attributes: readonly SourceAttribute[]): SourceDocument =>
       ),
       el("p", [attr("id", "intro")], [text("Pick one.")]),
     ],
-    declarations: [declaration("qti-response-declaration", "RESPONSE", "identifier", "single")],
+    declarations: [declaration("qti-response-declaration", "RESPONSE", "identifier", "single", [])],
   });
 
 /**
@@ -240,14 +242,15 @@ const textEntryItem = (attributes: readonly SourceAttribute[]): SourceDocument =
         "p",
         [],
         [
-          el("qti-text-entry-interaction", [
-            ...attributes,
-            attr("response-identifier", "RESPONSE"),
-          ]),
+          el(
+            "qti-text-entry-interaction",
+            [...attributes, attr("response-identifier", "RESPONSE")],
+            [],
+          ),
         ],
       ),
     ],
-    declarations: [declaration("qti-response-declaration", "RESPONSE", "integer", "single")],
+    declarations: [declaration("qti-response-declaration", "RESPONSE", "integer", "single", [])],
   });
 
 /**
@@ -263,9 +266,13 @@ const extendedTextItem = (
 ): SourceDocument =>
   item({
     body: [
-      el("qti-extended-text-interaction", [...attributes, attr("response-identifier", "RESPONSE")]),
+      el(
+        "qti-extended-text-interaction",
+        [...attributes, attr("response-identifier", "RESPONSE")],
+        [],
+      ),
     ],
-    declarations: [declaration("qti-response-declaration", "RESPONSE", "string", cardinality)],
+    declarations: [declaration("qti-response-declaration", "RESPONSE", "string", cardinality, [])],
   });
 
 /**
@@ -385,7 +392,7 @@ describe("buildItem", () => {
             el(
               "qti-mapping",
               [],
-              [el("qti-map-entry", [attr("map-key", "York"), attr("mapped-value", " 1 ")])],
+              [el("qti-map-entry", [attr("map-key", "York"), attr("mapped-value", " 1 ")], [])],
             ),
           ]),
           declaration("qti-response-declaration", "POINT", "point", "single", [
@@ -396,10 +403,11 @@ describe("buildItem", () => {
               "qti-interpolation-table",
               [],
               [
-                el("qti-interpolation-table-entry", [
-                  attr("source-value", " 2.5 "),
-                  attr("target-value", "HIGH"),
-                ]),
+                el(
+                  "qti-interpolation-table-entry",
+                  [attr("source-value", " 2.5 "), attr("target-value", "HIGH")],
+                  [],
+                ),
               ],
             ),
           ]),
@@ -442,8 +450,8 @@ describe("buildItem", () => {
           declaration("qti-response-declaration", "RESPONSE", "point", "single", [
             areaMapping([], "50"),
           ]),
-          declaration("qti-response-declaration", "OTHER", "identifier", "single"),
-          declaration("qti-outcome-declaration", "SCORE", "float", "single"),
+          declaration("qti-response-declaration", "OTHER", "identifier", "single", []),
+          declaration("qti-outcome-declaration", "SCORE", "float", "single", []),
         ],
       }),
     );
@@ -544,7 +552,7 @@ describe("buildItem", () => {
           ),
           el("p", [], [text("After")]),
         ],
-        declarations: [declaration("qti-response-declaration", "RESPONSE", "file", "single")],
+        declarations: [declaration("qti-response-declaration", "RESPONSE", "file", "single", [])],
       }),
     );
     const path = `${body}/qti-upload-interaction`;
@@ -575,7 +583,7 @@ describe("buildItem", () => {
           ),
         ],
         declarations: [
-          declaration("qti-response-declaration", "RESPONSE", "identifier", "multiple"),
+          declaration("qti-response-declaration", "RESPONSE", "identifier", "multiple", []),
         ],
       }),
     );
@@ -618,7 +626,9 @@ describe("buildItem", () => {
             ],
           ),
         ],
-        declarations: [declaration("qti-response-declaration", "RESPONSE", "identifier", "single")],
+        declarations: [
+          declaration("qti-response-declaration", "RESPONSE", "identifier", "single", []),
+        ],
       }),
     );
 
@@ -656,7 +666,7 @@ describe("buildItem", () => {
             ),
           ],
           declarations: [
-            declaration("qti-response-declaration", "RESPONSE", "identifier", "single"),
+            declaration("qti-response-declaration", "RESPONSE", "identifier", "single", []),
           ],
         }),
       );
@@ -830,15 +840,19 @@ describe("buildItem", () => {
             [],
             [
               text("Capital: "),
-              el("qti-text-entry-interaction", [
-                attr("expected-length", " 12 "),
-                attr("placeholder-text", "a city"),
-                attr("response-identifier", "RESPONSE"),
-              ]),
+              el(
+                "qti-text-entry-interaction",
+                [
+                  attr("expected-length", " 12 "),
+                  attr("placeholder-text", "a city"),
+                  attr("response-identifier", "RESPONSE"),
+                ],
+                [],
+              ),
             ],
           ),
         ],
-        declarations: [declaration("qti-response-declaration", "RESPONSE", "string", "single")],
+        declarations: [declaration("qti-response-declaration", "RESPONSE", "string", "single", [])],
       }),
     );
     const expected: TextEntryInteraction = {
@@ -893,13 +907,17 @@ describe("buildItem", () => {
     const built = admittedItem(
       item({
         body: [
-          el("qti-extended-text-interaction", [
-            attr("format", "xhtml"),
-            attr("pattern-mask", "[^<>]*"),
-            attr("response-identifier", "RESPONSE"),
-          ]),
+          el(
+            "qti-extended-text-interaction",
+            [
+              attr("format", "xhtml"),
+              attr("pattern-mask", "[^<>]*"),
+              attr("response-identifier", "RESPONSE"),
+            ],
+            [],
+          ),
         ],
-        declarations: [declaration("qti-response-declaration", "RESPONSE", "string", "single")],
+        declarations: [declaration("qti-response-declaration", "RESPONSE", "string", "single", [])],
       }),
     );
     const [node] = built.body;
@@ -926,7 +944,7 @@ describe("buildItem", () => {
             [el("qti-prompt", [], [text("Write a poem.")])],
           ),
         ],
-        declarations: [declaration("qti-response-declaration", "RESPONSE", "string", "single")],
+        declarations: [declaration("qti-response-declaration", "RESPONSE", "string", "single", [])],
       }),
     );
     const [node] = built.body;
@@ -1023,7 +1041,7 @@ describe("buildItem", () => {
             ],
           ),
         ],
-        declarations: [declaration("qti-response-declaration", "RESPONSE", "file", "single")],
+        declarations: [declaration("qti-response-declaration", "RESPONSE", "file", "single", [])],
       }),
     );
 
@@ -1044,22 +1062,26 @@ describe("buildItem", () => {
             [],
             [
               text("Score: "),
-              el("qti-printed-variable", [
-                attr("base", "B"),
-                attr("delimiter", ", "),
-                attr("field", "x"),
-                attr("format", "%.1f"),
-                attr("identifier", " SCORE "),
-                attr("index", "2"),
-                attr("mapping-indicator", ":"),
-                attr("power-form", "true"),
-              ]),
+              el(
+                "qti-printed-variable",
+                [
+                  attr("base", "B"),
+                  attr("delimiter", ", "),
+                  attr("field", "x"),
+                  attr("format", "%.1f"),
+                  attr("identifier", " SCORE "),
+                  attr("index", "2"),
+                  attr("mapping-indicator", ":"),
+                  attr("power-form", "true"),
+                ],
+                [],
+              ),
             ],
           ),
         ],
         declarations: [
-          declaration("qti-outcome-declaration", "B", "integer", "single"),
-          declaration("qti-outcome-declaration", "SCORE", "float", "single"),
+          declaration("qti-outcome-declaration", "B", "integer", "single", []),
+          declaration("qti-outcome-declaration", "SCORE", "float", "single", []),
         ],
       }),
     );
@@ -1093,8 +1115,8 @@ describe("buildItem", () => {
   it("holds a qti-printed-variable that carries only its identifier at the attributes' defaults: base 10, the delimiter ;, the mapping indicator =, no power form, and no format, field or index", () => {
     const built = admittedItem(
       item({
-        body: [el("p", [], [el("qti-printed-variable", [attr("identifier", "SCORE")])])],
-        declarations: [declaration("qti-outcome-declaration", "SCORE", "float", "single")],
+        body: [el("p", [], [el("qti-printed-variable", [attr("identifier", "SCORE")], [])])],
+        declarations: [declaration("qti-outcome-declaration", "SCORE", "float", "single", [])],
       }),
     );
 
@@ -1147,22 +1169,30 @@ describe("buildItem", () => {
               attr("template-identifier", "SHOWN"),
             ],
             [
-              el("qti-stylesheet", [attr("href", "block.css"), attr("type", "text/css")]),
+              el("qti-stylesheet", [attr("href", "block.css"), attr("type", "text/css")], []),
               el("qti-content-body", [], [el("p", [], [text("Worked solution")])]),
             ],
           ),
         ],
         declarations: [
-          el("qti-template-declaration", [
-            attr("base-type", "identifier"),
-            attr("cardinality", "single"),
-            attr("identifier", "SHOWN"),
-          ]),
-          el("qti-template-declaration", [
-            attr("base-type", "identifier"),
-            attr("cardinality", "single"),
-            attr("identifier", "TRANSPORT"),
-          ]),
+          el(
+            "qti-template-declaration",
+            [
+              attr("base-type", "identifier"),
+              attr("cardinality", "single"),
+              attr("identifier", "SHOWN"),
+            ],
+            [],
+          ),
+          el(
+            "qti-template-declaration",
+            [
+              attr("base-type", "identifier"),
+              attr("cardinality", "single"),
+              attr("identifier", "TRANSPORT"),
+            ],
+            [],
+          ),
         ],
       }),
     );
@@ -1268,18 +1298,26 @@ describe("buildItem", () => {
           ),
         ],
         declarations: [
-          el("qti-template-declaration", [
-            attr("base-type", "identifier"),
-            attr("cardinality", "single"),
-            attr("identifier", "HIDDEN"),
-          ]),
-          el("qti-template-declaration", [
-            attr("base-type", "identifier"),
-            attr("cardinality", "single"),
-            attr("identifier", "SHOWN"),
-          ]),
-          declaration("qti-response-declaration", "RESPONSE", "identifier", "single"),
-          declaration("qti-response-declaration", "COLOUR", "identifier", "single"),
+          el(
+            "qti-template-declaration",
+            [
+              attr("base-type", "identifier"),
+              attr("cardinality", "single"),
+              attr("identifier", "HIDDEN"),
+            ],
+            [],
+          ),
+          el(
+            "qti-template-declaration",
+            [
+              attr("base-type", "identifier"),
+              attr("cardinality", "single"),
+              attr("identifier", "SHOWN"),
+            ],
+            [],
+          ),
+          declaration("qti-response-declaration", "RESPONSE", "identifier", "single", []),
+          declaration("qti-response-declaration", "COLOUR", "identifier", "single", []),
         ],
       }),
     );
@@ -1315,21 +1353,21 @@ describe("buildItem", () => {
           el(
             "p",
             [
-              attr("base", "images/", xmlNamespace),
-              attr("lang", "fr", xmlNamespace),
+              attrIn(xmlNamespace, "base", "images/"),
+              attrIn(xmlNamespace, "lang", "fr"),
               attr("class", "lead"),
             ],
             [text("Bonjour")],
           ),
         ],
         declarations: [
-          declaration("qti-response-declaration", "POINT", "point", "single"),
-          declaration("qti-outcome-declaration", "FEEDBACK", "identifier", "single"),
-          el("qti-template-declaration", [
-            attr("base-type", "integer"),
-            attr("cardinality", "single"),
-            attr("identifier", "T"),
-          ]),
+          declaration("qti-response-declaration", "POINT", "point", "single", []),
+          declaration("qti-outcome-declaration", "FEEDBACK", "identifier", "single", []),
+          el(
+            "qti-template-declaration",
+            [attr("base-type", "integer"), attr("cardinality", "single"), attr("identifier", "T")],
+            [],
+          ),
         ],
       }),
     );
@@ -1369,13 +1407,17 @@ describe("buildItem", () => {
             "p",
             [],
             [
-              el("qti-text-entry-interaction", [
-                attr("base", "16"),
-                attr("expected-length", "8"),
-                attr("pattern-mask", "[0-9]+"),
-                attr("placeholder-text", "a number"),
-                attr("response-identifier", "NUMBER"),
-              ]),
+              el(
+                "qti-text-entry-interaction",
+                [
+                  attr("base", "16"),
+                  attr("expected-length", "8"),
+                  attr("pattern-mask", "[0-9]+"),
+                  attr("placeholder-text", "a number"),
+                  attr("response-identifier", "NUMBER"),
+                ],
+                [],
+              ),
             ],
           ),
           el(
@@ -1390,14 +1432,16 @@ describe("buildItem", () => {
           ),
         ],
         declarations: [
-          el("qti-response-declaration", [
-            attr("cardinality", "record"),
-            attr("identifier", "NUMBER"),
-          ]),
-          el("qti-response-declaration", [
-            attr("cardinality", "record"),
-            attr("identifier", "WORKING"),
-          ]),
+          el(
+            "qti-response-declaration",
+            [attr("cardinality", "record"), attr("identifier", "NUMBER")],
+            [],
+          ),
+          el(
+            "qti-response-declaration",
+            [attr("cardinality", "record"), attr("identifier", "WORKING")],
+            [],
+          ),
         ],
       }),
     );
@@ -1455,7 +1499,11 @@ describe("buildItem", () => {
     const built = admittedItem(
       item({
         body: [
-          el("p", [], [el("qti-text-entry-interaction", [attr("response-identifier", "UPLOAD")])]),
+          el(
+            "p",
+            [],
+            [el("qti-text-entry-interaction", [attr("response-identifier", "UPLOAD")], [])],
+          ),
         ],
         declarations: [
           el(
@@ -1508,7 +1556,7 @@ describe("buildItem", () => {
           declaration("qti-response-declaration", "WITH", "integer", "single", [
             values("qti-default-value", " 7 "),
           ]),
-          declaration("qti-response-declaration", "WITHOUT", "integer", "single"),
+          declaration("qti-response-declaration", "WITHOUT", "integer", "single", []),
         ],
       }),
     );
@@ -1556,10 +1604,11 @@ describe("buildItem", () => {
               "qti-mapping",
               [],
               [
-                el("qti-map-entry", [
-                  attr("map-key", "-1000000000000000000000000000000"),
-                  attr("mapped-value", "1"),
-                ]),
+                el(
+                  "qti-map-entry",
+                  [attr("map-key", "-1000000000000000000000000000000"), attr("mapped-value", "1")],
+                  [],
+                ),
               ],
             ),
           ]),
@@ -1601,7 +1650,7 @@ describe("buildItem", () => {
             declaration("qti-outcome-declaration", "TIME", "duration", "single", [
               values("qti-default-value", written),
             ]),
-            declaration("qti-outcome-declaration", "UPLOAD", "file", "single"),
+            declaration("qti-outcome-declaration", "UPLOAD", "file", "single", []),
           ],
         }),
       );
@@ -1647,17 +1696,21 @@ describe("buildItem", () => {
             ],
             [values("qti-default-value", "a", "b")],
           ),
-          el("qti-template-declaration", [
-            attr("base-type", "duration"),
-            attr("cardinality", "single"),
-            attr("identifier", "D"),
-          ]),
-          el("qti-template-declaration", [attr("cardinality", "record"), attr("identifier", "R")]),
-          el("qti-template-declaration", [
-            attr("base-type", "float"),
-            attr("cardinality", "single"),
-            attr("identifier", "P"),
-          ]),
+          el(
+            "qti-template-declaration",
+            [attr("base-type", "duration"), attr("cardinality", "single"), attr("identifier", "D")],
+            [],
+          ),
+          el(
+            "qti-template-declaration",
+            [attr("cardinality", "record"), attr("identifier", "R")],
+            [],
+          ),
+          el(
+            "qti-template-declaration",
+            [attr("base-type", "float"), attr("cardinality", "single"), attr("identifier", "P")],
+            [],
+          ),
         ],
       }),
     );
@@ -1720,18 +1773,22 @@ describe("buildItem", () => {
       item({
         body: [paragraph],
         declarations: [
-          el("qti-outcome-declaration", [
-            attr("base-type", "float"),
-            attr("cardinality", "single"),
-            attr("identifier", "SCORE"),
-            attr("view", " candidate\n\ttutor  scorer "),
-            attr("interpretation", " Points, out of 10 "),
-            attr("long-interpretation", " https://example.org/scales/points\n"),
-            attr("normal-maximum", " 10 "),
-            attr("normal-minimum", "-1.5"),
-            attr("mastery-value", "5"),
-          ]),
-          declaration("qti-outcome-declaration", "MAXSCORE", "float", "single"),
+          el(
+            "qti-outcome-declaration",
+            [
+              attr("base-type", "float"),
+              attr("cardinality", "single"),
+              attr("identifier", "SCORE"),
+              attr("view", " candidate\n\ttutor  scorer "),
+              attr("interpretation", " Points, out of 10 "),
+              attr("long-interpretation", " https://example.org/scales/points\n"),
+              attr("normal-maximum", " 10 "),
+              attr("normal-minimum", "-1.5"),
+              attr("mastery-value", "5"),
+            ],
+            [],
+          ),
+          declaration("qti-outcome-declaration", "MAXSCORE", "float", "single", []),
         ],
       }),
     );
@@ -1770,14 +1827,16 @@ describe("buildItem", () => {
               "qti-match-table",
               [attr("default-value", "0")],
               [
-                el("qti-match-table-entry", [
-                  attr("source-value", "1"),
-                  attr("target-value", "0.5"),
-                ]),
-                el("qti-match-table-entry", [
-                  attr("source-value", " -2 "),
-                  attr("target-value", "1e1"),
-                ]),
+                el(
+                  "qti-match-table-entry",
+                  [attr("source-value", "1"), attr("target-value", "0.5")],
+                  [],
+                ),
+                el(
+                  "qti-match-table-entry",
+                  [attr("source-value", " -2 "), attr("target-value", "1e1")],
+                  [],
+                ),
               ],
             ),
           ]),
@@ -1808,20 +1867,29 @@ describe("buildItem", () => {
               "qti-interpolation-table",
               [],
               [
-                el("qti-interpolation-table-entry", [
-                  attr("source-value", "7.5"),
-                  attr("target-value", "HIGH"),
-                ]),
-                el("qti-interpolation-table-entry", [
-                  attr("include-boundary", "false"),
-                  attr("source-value", "2"),
-                  attr("target-value", "MID"),
-                ]),
-                el("qti-interpolation-table-entry", [
-                  attr("include-boundary", "true"),
-                  attr("source-value", "0"),
-                  attr("target-value", "LOW"),
-                ]),
+                el(
+                  "qti-interpolation-table-entry",
+                  [attr("source-value", "7.5"), attr("target-value", "HIGH")],
+                  [],
+                ),
+                el(
+                  "qti-interpolation-table-entry",
+                  [
+                    attr("include-boundary", "false"),
+                    attr("source-value", "2"),
+                    attr("target-value", "MID"),
+                  ],
+                  [],
+                ),
+                el(
+                  "qti-interpolation-table-entry",
+                  [
+                    attr("include-boundary", "true"),
+                    attr("source-value", "0"),
+                    attr("target-value", "LOW"),
+                  ],
+                  [],
+                ),
               ],
             ),
           ]),
@@ -1865,7 +1933,13 @@ describe("buildItem", () => {
             el(
               "qti-match-table",
               [attr("default-value", "F")],
-              [el("qti-match-table-entry", [attr("source-value", "1"), attr("target-value", "A")])],
+              [
+                el(
+                  "qti-match-table-entry",
+                  [attr("source-value", "1"), attr("target-value", "A")],
+                  [],
+                ),
+              ],
             ),
           ]),
           declaration("qti-outcome-declaration", "BAND", "float", "single", [
@@ -1873,10 +1947,11 @@ describe("buildItem", () => {
               "qti-interpolation-table",
               [attr("default-value", "0")],
               [
-                el("qti-interpolation-table-entry", [
-                  attr("source-value", "1"),
-                  attr("target-value", "1"),
-                ]),
+                el(
+                  "qti-interpolation-table-entry",
+                  [attr("source-value", "1"), attr("target-value", "1")],
+                  [],
+                ),
               ],
             ),
           ]),
@@ -1905,12 +1980,16 @@ describe("buildItem", () => {
     const extended = admittedItem(
       item({
         body: [
-          el("qti-extended-text-interaction", [
-            attr("expected-lines", "1000000000000000000000000000000"),
-            attr("response-identifier", "RESPONSE"),
-          ]),
+          el(
+            "qti-extended-text-interaction",
+            [
+              attr("expected-lines", "1000000000000000000000000000000"),
+              attr("response-identifier", "RESPONSE"),
+            ],
+            [],
+          ),
         ],
-        declarations: [declaration("qti-response-declaration", "RESPONSE", "string", "single")],
+        declarations: [declaration("qti-response-declaration", "RESPONSE", "string", "single", [])],
       }),
     );
     const [node] = childrenOf(entry.body[0]);
@@ -1936,7 +2015,9 @@ describe("buildItem", () => {
             [choice("A", "Ant"), choice("B", "Bee")],
           ),
         ],
-        declarations: [declaration("qti-response-declaration", "RESPONSE", "identifier", "single")],
+        declarations: [
+          declaration("qti-response-declaration", "RESPONSE", "identifier", "single", []),
+        ],
       }),
     );
 
@@ -1954,7 +2035,7 @@ describe("buildItem", () => {
           ),
         ],
         declarations: [
-          declaration("qti-response-declaration", "\tRESPONSE\n", "identifier", "single"),
+          declaration("qti-response-declaration", "\tRESPONSE\n", "identifier", "single", []),
         ],
       }),
     );
@@ -1974,7 +2055,9 @@ describe("buildItem", () => {
             [choice(" A ", "Ant"), choice("B", "Bee")],
           ),
         ],
-        declarations: [declaration("qti-response-declaration", "RESPONSE", "identifier", "single")],
+        declarations: [
+          declaration("qti-response-declaration", "RESPONSE", "identifier", "single", []),
+        ],
       }),
     );
 

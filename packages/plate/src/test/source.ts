@@ -25,36 +25,71 @@ import type {
 export const doc = (location: string, root: SourceElement): SourceDocument => ({ location, root });
 
 /**
- * Construct a source element, in the QTI namespace unless another is given.
+ * Construct a source element in another namespace than QTI's.
+ *
+ * @param namespace The element's namespace.
+ * @param local The element's local name.
+ * @param attributes The element's attributes.
+ * @param children The element's children.
+ * @returns The element holding exactly the given name, attributes and children.
+ */
+export const elIn = (
+  namespace: string,
+  local: string,
+  attributes: readonly SourceAttribute[],
+  children: readonly SourceChild[],
+): SourceElement => ({ attributes, children, kind: "element", local, namespace });
+
+/**
+ * Construct a source element in the QTI namespace.
  *
  * @param local The element's local name.
- * @param attributes The element's attributes, none by default.
- * @param children The element's children, none by default.
- * @param namespace The element's namespace, QTI's by default.
+ * @param attributes The element's attributes.
+ * @param children The element's children.
  * @returns The element holding exactly the given name, attributes and children.
  */
 export const el = (
   local: string,
-  attributes: readonly SourceAttribute[] = [],
-  children: readonly SourceChild[] = [],
-  namespace: string = qtiNamespace,
-): SourceElement => ({ attributes, children, kind: "element", local, namespace });
+  attributes: readonly SourceAttribute[],
+  children: readonly SourceChild[],
+): SourceElement => elIn(qtiNamespace, local, attributes, children);
 
 /**
- * Construct a source attribute, in no namespace unless another is given.
+ * Construct a source attribute.
  *
  * @param local The attribute's local name.
  * @param value The value in its source spelling.
- * @param namespace The attribute's namespace, none by default.
- * @param references The entity references the value holds unexpanded, none by default.
+ * @param namespace The attribute's namespace, `""` for none.
+ * @param references The entity references the value holds unexpanded.
  * @returns The attribute holding exactly the given name, value and references.
  */
-export const attr = (
+export const sourceAttribute = (
   local: string,
   value: string,
-  namespace = "",
-  references: readonly string[] = [],
+  namespace: string,
+  references: readonly string[],
 ): SourceAttribute => ({ local, namespace, references, value });
+
+/**
+ * Construct a source attribute in a namespace, its value holding no entity reference.
+ *
+ * @param namespace The attribute's namespace.
+ * @param local The attribute's local name.
+ * @param value The value in its source spelling.
+ * @returns The attribute holding exactly the given name and value.
+ */
+export const attrIn = (namespace: string, local: string, value: string): SourceAttribute =>
+  sourceAttribute(local, value, namespace, []);
+
+/**
+ * Construct a source attribute in no namespace, its value holding no entity reference.
+ *
+ * @param local The attribute's local name.
+ * @param value The value in its source spelling.
+ * @returns The attribute holding exactly the given name and value.
+ */
+export const attr = (local: string, value: string): SourceAttribute =>
+  sourceAttribute(local, value, "", []);
 
 /**
  * Construct a run of character data.
@@ -85,7 +120,7 @@ export const paragraph: SourceElement = el("p", [], [text("Read.")]);
  * @param identifier The declared identifier.
  * @param baseType The `base-type` value.
  * @param cardinality The `cardinality` value.
- * @param children The declaration's children, none by default.
+ * @param children The declaration's children.
  * @returns The declaration element.
  */
 export const declaration = (
@@ -93,7 +128,7 @@ export const declaration = (
   identifier: string,
   baseType: string,
   cardinality: string,
-  children: readonly SourceChild[] = [],
+  children: readonly SourceChild[],
 ): SourceElement =>
   el(
     local,

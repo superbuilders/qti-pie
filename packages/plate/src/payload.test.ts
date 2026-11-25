@@ -938,11 +938,15 @@ describe("redactItem on printed variables", () => {
             attr("title", "Printing"),
           ],
           [
-            el("qti-outcome-declaration", [
-              attr("base-type", "float"),
-              attr("cardinality", "single"),
-              attr("identifier", "SCORE"),
-            ]),
+            el(
+              "qti-outcome-declaration",
+              [
+                attr("base-type", "float"),
+                attr("cardinality", "single"),
+                attr("identifier", "SCORE"),
+              ],
+              [],
+            ),
             el(
               "qti-item-body",
               [],
@@ -954,7 +958,7 @@ describe("redactItem on printed variables", () => {
                     el(
                       "a",
                       [attr("href", scriptUrl)],
-                      [el("qti-printed-variable", [attr("identifier", "SCORE")])],
+                      [el("qti-printed-variable", [attr("identifier", "SCORE")], [])],
                     ),
                     sourceText("."),
                   ],
@@ -1122,7 +1126,7 @@ const untemplated: Item = { ...templated, templated: false };
  * and `SCORE` 2.675.
  */
 const drawn: ItemRecord = {
-  ...recordOf(),
+  ...recordOf({}),
   attempt: "submitted",
   outcomes: { SCORE: floatValue(2.675) },
   templates: {
@@ -1298,7 +1302,7 @@ const templatePart = (
   kind: TemplateContent["kind"],
   visibility: TemplateVisibility,
   content: readonly BodyNode[],
-  responses: readonly string[] = [],
+  responses: readonly string[],
 ): TemplateContent => ({
   content,
   identifier: "X",
@@ -1366,8 +1370,8 @@ const visibleDeclaration = templateOf("VISIBLE", multipleOf("X"));
 const visibility: Item = {
   ...item,
   body: [
-    templatePart("template-block", byVisible("show"), [text("block")]),
-    inlineParagraph(templatePart("template-inline", byVisible("hide"), [text("inline")])),
+    templatePart("template-block", byVisible("show"), [text("block")], []),
+    inlineParagraph(templatePart("template-inline", byVisible("hide"), [text("inline")], [])),
     visibleChoice,
     noticeOf("qti-feedback-block", `${bodyPath}/qti-feedback-block`),
   ],
@@ -1462,16 +1466,24 @@ describe("redactItem on template blocks, inlines and choices", () => {
                     attr("title", "Visibility"),
                   ],
                   [
-                    el("qti-response-declaration", [
-                      attr("base-type", "identifier"),
-                      attr("cardinality", "single"),
-                      attr("identifier", "RESPONSE"),
-                    ]),
-                    el("qti-template-declaration", [
-                      attr("base-type", "identifier"),
-                      attr("cardinality", "multiple"),
-                      attr("identifier", "VISIBLE"),
-                    ]),
+                    el(
+                      "qti-response-declaration",
+                      [
+                        attr("base-type", "identifier"),
+                        attr("cardinality", "single"),
+                        attr("identifier", "RESPONSE"),
+                      ],
+                      [],
+                    ),
+                    el(
+                      "qti-template-declaration",
+                      [
+                        attr("base-type", "identifier"),
+                        attr("cardinality", "multiple"),
+                        attr("identifier", "VISIBLE"),
+                      ],
+                      [],
+                    ),
                     el(
                       "qti-item-body",
                       [],
@@ -1545,8 +1557,10 @@ describe("redactItem on template blocks, inlines and choices", () => {
       const parts: Item = {
         ...visibility,
         body: [
-          templatePart("template-block", byVisible(showHide), [text("block")]),
-          inlineParagraph(templatePart("template-inline", byVisible(showHide), [text("inline")])),
+          templatePart("template-block", byVisible(showHide), [text("block")], []),
+          inlineParagraph(
+            templatePart("template-inline", byVisible(showHide), [text("inline")], []),
+          ),
         ],
         unsupported: [],
       };
@@ -1663,9 +1677,12 @@ describe("redactItem on template blocks, inlines and choices", () => {
     const holdingNotice: Item = {
       ...visibility,
       body: [
-        templatePart("template-block", byVisible("show"), [
-          noticeOf("qti-upload-interaction", upload),
-        ]),
+        templatePart(
+          "template-block",
+          byVisible("show"),
+          [noticeOf("qti-upload-interaction", upload)],
+          [],
+        ),
         noticeOf("qti-feedback-block", `${bodyPath}/qti-feedback-block`),
       ],
       unsupported: [
@@ -1732,7 +1749,7 @@ const answeringInline = (identifier: string, response: string): SourceElement =>
           el(
             "span",
             [],
-            [el("qti-text-entry-interaction", [attr("response-identifier", response)])],
+            [el("qti-text-entry-interaction", [attr("response-identifier", response)], [])],
           ),
         ],
       ),
@@ -1749,21 +1766,29 @@ const inlineAnswers: SourceDocument = doc(
     "qti-assessment-item",
     [attr("identifier", "answers"), attr("time-dependent", "false"), attr("title", "Answers")],
     [
-      el("qti-response-declaration", [
-        attr("base-type", "string"),
-        attr("cardinality", "single"),
-        attr("identifier", "SHOWN_ANSWER"),
-      ]),
-      el("qti-response-declaration", [
-        attr("base-type", "float"),
-        attr("cardinality", "single"),
-        attr("identifier", "HIDDEN_ANSWER"),
-      ]),
-      el("qti-template-declaration", [
-        attr("base-type", "identifier"),
-        attr("cardinality", "single"),
-        attr("identifier", "T"),
-      ]),
+      el(
+        "qti-response-declaration",
+        [
+          attr("base-type", "string"),
+          attr("cardinality", "single"),
+          attr("identifier", "SHOWN_ANSWER"),
+        ],
+        [],
+      ),
+      el(
+        "qti-response-declaration",
+        [
+          attr("base-type", "float"),
+          attr("cardinality", "single"),
+          attr("identifier", "HIDDEN_ANSWER"),
+        ],
+        [],
+      ),
+      el(
+        "qti-template-declaration",
+        [attr("base-type", "identifier"), attr("cardinality", "single"), attr("identifier", "T")],
+        [],
+      ),
       el(
         "qti-item-body",
         [],
@@ -1803,7 +1828,7 @@ const declaredString = (identifier: string): ResponseDeclaration => ({
 const bindingOf = (
   body: readonly BodyNode[],
   responses: readonly string[],
-  notices: readonly Unsupported[] = [],
+  notices: readonly Unsupported[],
 ): Item => ({
   ...visibility,
   body,
@@ -1900,6 +1925,7 @@ describe("redactItem on responses only hidden content binds", () => {
         textEntry("R1"),
       ],
       ["R1"],
+      [],
     );
 
     for (const record of [holding({ VISIBLE: multipleOf("W") }), undefined]) {
@@ -1921,6 +1947,7 @@ describe("redactItem on responses only hidden content binds", () => {
         textEntry("R2"),
       ],
       ["R1", "R2", "R3", "R4"],
+      [],
     );
 
     assert.deepStrictEqual([...hiddenOnlyResponses(inside, feedbackHidden)], ["R1", "R3"]);
@@ -2749,11 +2776,11 @@ const parameterDocument = doc(
                 [attr("data", "applet.html"), attr("type", "text/html")],
                 [
                   ...writtenParameters.map(([name, value]) =>
-                    el("param", [
-                      attr("name", name),
-                      attr("value", value),
-                      attr("valuetype", "DATA"),
-                    ]),
+                    el(
+                      "param",
+                      [attr("name", name), attr("value", value), attr("valuetype", "DATA")],
+                      [],
+                    ),
                   ),
                   sourceText("Applet"),
                 ],
@@ -2854,12 +2881,16 @@ const parameterNoticeAt = (node: BodyNode | undefined): Unsupported =>
  * @returns The element.
  */
 const unsetParameterDeclaration = (identifier: string, baseType: string, cardinality: string) =>
-  el("qti-template-declaration", [
-    attr("base-type", baseType),
-    attr("cardinality", cardinality),
-    attr("identifier", identifier),
-    attr("param-variable", "true"),
-  ]);
+  el(
+    "qti-template-declaration",
+    [
+      attr("base-type", baseType),
+      attr("cardinality", cardinality),
+      attr("identifier", identifier),
+      attr("param-variable", "true"),
+    ],
+    [],
+  );
 
 /**
  * Construct a `qti-base-value` for each lexical value of one base type.
@@ -2906,7 +2937,7 @@ const containerParameterDocument = doc(
             [attr("identifier", "SET")],
             [el("qti-multiple", [], baseValues("identifier", ["A", "B"]))],
           ),
-          el("qti-set-template-value", [attr("identifier", "NONE")], [el("qti-null", [])]),
+          el("qti-set-template-value", [attr("identifier", "NONE")], [el("qti-null", [], [])]),
         ],
       ),
       el(
@@ -2928,11 +2959,11 @@ const containerParameterDocument = doc(
                       ["none", "NONE"],
                     ] as const
                   ).map(([name, value]) =>
-                    el("param", [
-                      attr("name", name),
-                      attr("value", value),
-                      attr("valuetype", "DATA"),
-                    ]),
+                    el(
+                      "param",
+                      [attr("name", name), attr("value", value), attr("valuetype", "DATA")],
+                      [],
+                    ),
                   ),
                   sourceText("Applet"),
                 ],
@@ -3084,11 +3115,11 @@ const repeatedDocument = (
       "qti-assessment-item",
       [attr("identifier", "repeated"), attr("time-dependent", "false"), attr("title", "Repeated")],
       [
-        el("qti-template-declaration", [
-          attr("base-type", baseType),
-          attr("cardinality", "ordered"),
-          attr("identifier", "S"),
-        ]),
+        el(
+          "qti-template-declaration",
+          [attr("base-type", baseType), attr("cardinality", "ordered"), attr("identifier", "S")],
+          [],
+        ),
         el(
           "qti-template-processing",
           [],
@@ -3115,7 +3146,7 @@ const repeatedDocument = (
               [],
               [
                 sourceText("Value: "),
-                el("qti-printed-variable", [attr("identifier", "S"), ...printedAttributes]),
+                el("qti-printed-variable", [attr("identifier", "S"), ...printedAttributes], []),
               ],
             ),
           ],
@@ -3430,9 +3461,12 @@ describe("redactItem records the first text past its bound on content the page s
     const hidden: Item = {
       ...visibility,
       body: [
-        templatePart("template-block", byVisible("show"), [
-          printed("S", `${blockPath}/qti-printed-variable`),
-        ]),
+        templatePart(
+          "template-block",
+          byVisible("show"),
+          [printed("S", `${blockPath}/qti-printed-variable`)],
+          [],
+        ),
       ],
     };
     const redaction = redactItem(
@@ -3544,7 +3578,7 @@ describe("redactItem under an output budget", () => {
     const value = counted(one({ baseType: "string", value: slotText }));
     const hidden: Item = {
       ...visibility,
-      body: [templatePart("template-block", byVisible("show"), [slots(4500)]), slots(50)],
+      body: [templatePart("template-block", byVisible("show"), [slots(4500)], []), slots(50)],
     };
     const redaction = redactItem(
       hidden,
@@ -3678,11 +3712,16 @@ const recordBound: SourceDocument = doc(
     "qti-assessment-item",
     [attr("identifier", "record-bound"), attr("time-dependent", "false"), attr("title", "Number")],
     [
-      el("qti-response-declaration", [attr("cardinality", "record"), attr("identifier", "NUMBER")]),
-      el("qti-response-declaration", [
-        attr("cardinality", "record"),
-        attr("identifier", "WORKING"),
-      ]),
+      el(
+        "qti-response-declaration",
+        [attr("cardinality", "record"), attr("identifier", "NUMBER")],
+        [],
+      ),
+      el(
+        "qti-response-declaration",
+        [attr("cardinality", "record"), attr("identifier", "WORKING")],
+        [],
+      ),
       el(
         "qti-item-body",
         [],
@@ -3692,14 +3731,18 @@ const recordBound: SourceDocument = doc(
             [],
             [
               sourceText("Your number: "),
-              el("qti-text-entry-interaction", [attr("response-identifier", "NUMBER")]),
+              el("qti-text-entry-interaction", [attr("response-identifier", "NUMBER")], []),
             ],
           ),
-          el("qti-extended-text-interaction", [
-            attr("max-strings", "4"),
-            attr("min-strings", "1"),
-            attr("response-identifier", "WORKING"),
-          ]),
+          el(
+            "qti-extended-text-interaction",
+            [
+              attr("max-strings", "4"),
+              attr("min-strings", "1"),
+              attr("response-identifier", "WORKING"),
+            ],
+            [],
+          ),
         ],
       ),
     ],
@@ -3739,22 +3782,30 @@ const authorDataItem = doc(
     "qti-assessment-item",
     [attr("identifier", "author-data"), attr("time-dependent", "false"), attr("title", "Data")],
     [
-      el("qti-response-declaration", [
-        attr("base-type", "integer"),
-        attr("cardinality", "single"),
-        attr("identifier", "RESPONSE"),
-      ]),
+      el(
+        "qti-response-declaration",
+        [
+          attr("base-type", "integer"),
+          attr("cardinality", "single"),
+          attr("identifier", "RESPONSE"),
+        ],
+        [],
+      ),
       el(
         "qti-item-body",
         [],
         [
-          el("qti-slider-interaction", [
-            attr("data-shade", "warm"),
-            attr("data-slot", "author"),
-            attr("lower-bound", "0"),
-            attr("response-identifier", "RESPONSE"),
-            attr("upper-bound", "10"),
-          ]),
+          el(
+            "qti-slider-interaction",
+            [
+              attr("data-shade", "warm"),
+              attr("data-slot", "author"),
+              attr("lower-bound", "0"),
+              attr("response-identifier", "RESPONSE"),
+              attr("upper-bound", "10"),
+            ],
+            [],
+          ),
         ],
       ),
     ],

@@ -390,7 +390,7 @@ const fixtureFiles: Effect.Effect<ReadonlyMap<string, Uint8Array>, CounterTrayFa
  * @returns The target, none where the correct response is no single integer.
  */
 const targetOf = (accepted: Accepted, response: string): Option.Option<number> => {
-  const correct = solution(accepted, recordOf())[response];
+  const correct = solution(accepted, recordOf({}))[response];
   const [single] = correct !== undefined && "values" in correct ? correct.values : [];
 
   return single?.baseType === "integer" ? Option.some(Number(single.value)) : Option.none();

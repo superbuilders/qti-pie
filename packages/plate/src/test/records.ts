@@ -40,7 +40,7 @@ export type RecordValues = Partial<
  * @param values The values.
  * @returns The record.
  */
-export const recordOf = (values: RecordValues = {}): ItemRecord => ({
+export const recordOf = (values: RecordValues): ItemRecord => ({
   attempt: "none",
   correct: {},
   defaults: {},

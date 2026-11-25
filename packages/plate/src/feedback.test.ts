@@ -167,8 +167,11 @@ const pageShown = (accepted: Accepted, configuration: Configuration, showing: Sh
  *   has no record.
  * @returns What the page shows.
  */
-const shownBy = (accepted: Accepted, configuration: Configuration, record?: ItemRecord): Shown =>
-  pageShown(accepted, configuration, showingOf(Option.fromUndefinedOr(record)));
+const shownBy = (
+  accepted: Accepted,
+  configuration: Configuration,
+  record: Option.Option<ItemRecord>,
+): Shown => pageShown(accepted, configuration, showingOf(record));
 
 /**
  * Give an item's record before its first attempt, as the database's take returns it, and restore
@@ -184,7 +187,7 @@ const begun = Effect.fnUntraced(function* begun(accepted: Accepted) {
   const bytes = yield* Effect.option(readCorpusFile(accepted.item.document));
   const golden = yield* goldenRecords;
   const start = Option.match(bytes, {
-    onNone: () => recordOf(),
+    onNone: () => recordOf({}),
     onSome: (read) =>
       Option.getOrElse(Option.fromUndefinedOr(golden.get(documentDigest(read))?.[0]), () =>
         assert.fail(`the golden recording holds no record of ${accepted.item.document}`),
@@ -271,10 +274,17 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
         );
 
         assert.deepStrictEqual(accepted.item.unsupported, []);
-        assert.deepStrictEqual(shownBy(accepted, configuration, right.record).modal, ["correct"]);
-        assert.deepStrictEqual(shownBy(accepted, configuration, wrong.record).modal, ["incorrect"]);
-        assert.deepStrictEqual(shownBy(accepted, configuration, yield* begun(accepted)).modal, []);
-        assert.deepStrictEqual(shownBy(accepted, configuration).modal, []);
+        assert.deepStrictEqual(shownBy(accepted, configuration, Option.some(right.record)).modal, [
+          "correct",
+        ]);
+        assert.deepStrictEqual(shownBy(accepted, configuration, Option.some(wrong.record)).modal, [
+          "incorrect",
+        ]);
+        assert.deepStrictEqual(
+          shownBy(accepted, configuration, Option.some(yield* begun(accepted))).modal,
+          [],
+        );
+        assert.deepStrictEqual(shownBy(accepted, configuration, Option.none()).modal, []);
       }),
   );
 
@@ -295,7 +305,7 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
           { record: right.record, showFeedback: true },
         );
         const answering = redacted;
-        const reviewed = shownBy(accepted, configuration, right.record);
+        const reviewed = shownBy(accepted, configuration, Option.some(right.record));
 
         assert.deepStrictEqual(
           answering.modalFeedback.map((feedback) => textOf(feedback.content)),
@@ -325,13 +335,13 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
           { RESPONSE: identifier("false") },
           { FEEDBACK: identifier("false") },
         );
-        const shownRight = shownBy(accepted, configuration, right.record).text;
-        const shownWrong = shownBy(accepted, configuration, wrong.record).text;
+        const shownRight = shownBy(accepted, configuration, Option.some(right.record)).text;
+        const shownWrong = shownBy(accepted, configuration, Option.some(wrong.record)).text;
 
         assert.deepStrictEqual(accepted.item.unsupported, []);
         for (const before of [
-          shownBy(accepted, configuration).text,
-          shownBy(accepted, configuration, yield* begun(accepted)).text,
+          shownBy(accepted, configuration, Option.none()).text,
+          shownBy(accepted, configuration, Option.some(yield* begun(accepted))).text,
         ]) {
           assert.notInclude(before, "That's");
           assert.include(before, "True");
@@ -350,7 +360,7 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
       Effect.gen(function* solutionExample() {
         const configuration = yield* configure({ seed: "" });
         const accepted = yield* openCorpusItem(bpig.solution);
-        const start = shownBy(accepted, configuration, yield* begun(accepted));
+        const start = shownBy(accepted, configuration, Option.some(yield* begun(accepted)));
         const ended = {
           ASKSOLUTION: identifier("null"),
           completionStatus: identifier("completed"),
@@ -365,15 +375,17 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
           { RESPONSE: float(1) },
           { ...ended, FEEDBACK: identifiers("INCORRECT"), SCORE: float(0) },
         );
-        const shownRight = shownBy(accepted, configuration, right.record);
-        const shownWrong = shownBy(accepted, configuration, wrong.record);
+        const shownRight = shownBy(accepted, configuration, Option.some(right.record));
+        const shownWrong = shownBy(accepted, configuration, Option.some(wrong.record));
         const solution = shownBy(
           accepted,
           configuration,
-          submittedWith(
-            right.record,
-            "FEEDBACK",
-            Option.some(identifiers("SOLUTION", "SEEN-SOLUTION")),
+          Option.some(
+            submittedWith(
+              right.record,
+              "FEEDBACK",
+              Option.some(identifiers("SOLUTION", "SEEN-SOLUTION")),
+            ),
           ),
         );
 
@@ -410,8 +422,8 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
       Effect.gen(function* templateBlockExample() {
         const configuration = yield* configure({ seed: "" });
         const accepted = yield* openCorpusItem(bpig.templateBlock);
-        const unshown = shownBy(accepted, configuration);
-        const start = shownBy(accepted, configuration, yield* begun(accepted));
+        const unshown = shownBy(accepted, configuration, Option.none());
+        const start = shownBy(accepted, configuration, Option.some(yield* begun(accepted)));
 
         assert.notInclude(unshown.text, "Incorrect");
         assert.deepStrictEqual(
@@ -450,7 +462,7 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
         );
         const posted = (record: ItemRecord): readonly string[] =>
           shownResponses(accepted, { record, showFeedback: true });
-        const second = shownBy(accepted, configuration, chosen.record).text;
+        const second = shownBy(accepted, configuration, Option.some(chosen.record)).text;
 
         assert.deepStrictEqual(posted(start), ["RESPONSE1"]);
         assert.deepStrictEqual(posted(chosen.record), ["RESPONSE22", "RESPONSE23", "RESPONSE24"]);
@@ -571,7 +583,7 @@ describe("feedback visibility over a grid of values", () => {
             const shown = shownBy(
               accepted,
               configuration,
-              submittedWith(record, "FB", Option.some(value)),
+              Option.some(submittedWith(record, "FB", Option.some(value))),
             );
 
             assert.deepStrictEqual(
@@ -590,10 +602,16 @@ describe("feedback visibility over a grid of values", () => {
           const configuration = yield* configure({ seed: "" });
           const accepted = yield* openXml("items/grid.xml", gridXml(cardinality, Option.none()));
 
-          assert.deepStrictEqual(gridShown(shownBy(accepted, configuration)), []);
+          assert.deepStrictEqual(gridShown(shownBy(accepted, configuration, Option.none())), []);
           for (const value of gridValues[cardinality]) {
             assert.deepStrictEqual(
-              gridShown(shownBy(accepted, configuration, recordOf({ outcomes: { FB: value } }))),
+              gridShown(
+                shownBy(
+                  accepted,
+                  configuration,
+                  Option.some(recordOf({ outcomes: { FB: value } })),
+                ),
+              ),
               gridExpected(value, false),
               `attempt none, FB ${JSON.stringify(value.values)}`,
             );
@@ -611,7 +629,7 @@ describe("feedback visibility over a grid of values", () => {
         const shown = shownBy(
           accepted,
           configuration,
-          submittedWith(yield* begun(accepted), "FB", Option.none()),
+          Option.some(submittedWith(yield* begun(accepted), "FB", Option.none())),
         );
         assert.deepStrictEqual(gridShown(shown), []);
         assert.deepStrictEqual(
@@ -752,8 +770,8 @@ describe("feedback in its place", () => {
           accepted,
           recordOf({ defaults: { FB: identifier("B") }, outcomes: { FB: identifier("B") } }),
         );
-        const started = shownBy(accepted, configuration, record);
-        const unrecorded = shownBy(accepted, configuration);
+        const started = shownBy(accepted, configuration, Option.some(record));
+        const unrecorded = shownBy(accepted, configuration, Option.none());
 
         assert.include(started.text, "SHOWS-B");
         assert.notInclude(started.text, "SHOWS-A");
@@ -777,18 +795,19 @@ describe("feedback in its place", () => {
         const innerOnly = submittedWith(both, "OUTER", Option.some(identifier("X")));
         const templateOff: ItemRecord = { ...both, templates: { T: identifier("off") } };
 
-        assert.deepStrictEqual(nestedShown(shownBy(accepted, configuration, both)), [
+        assert.deepStrictEqual(nestedShown(shownBy(accepted, configuration, Option.some(both))), [
           "OUTER-TEXT",
           "INNER-TEXT",
           "TEMPLATED-TEXT",
         ]);
-        assert.deepStrictEqual(nestedShown(shownBy(accepted, configuration, innerOnly)), [
-          "TEMPLATED-TEXT",
-        ]);
-        assert.deepStrictEqual(nestedShown(shownBy(accepted, configuration, templateOff)), [
-          "OUTER-TEXT",
-          "INNER-TEXT",
-        ]);
+        assert.deepStrictEqual(
+          nestedShown(shownBy(accepted, configuration, Option.some(innerOnly))),
+          ["TEMPLATED-TEXT"],
+        );
+        assert.deepStrictEqual(
+          nestedShown(shownBy(accepted, configuration, Option.some(templateOff))),
+          ["OUTER-TEXT", "INNER-TEXT"],
+        );
       }),
   );
 
@@ -802,12 +821,12 @@ describe("feedback in its place", () => {
         const shown = shownBy(
           accepted,
           configuration,
-          submittedWith(record, "OUTER", Option.some(identifier("O"))),
+          Option.some(submittedWith(record, "OUTER", Option.some(identifier("O")))),
         );
         const hidden = shownBy(
           accepted,
           configuration,
-          submittedWith(record, "OUTER", Option.some(identifier("X"))),
+          Option.some(submittedWith(record, "OUTER", Option.some(identifier("X")))),
         );
 
         assert.include(responsesOf(shown.redacted), "WORK");
@@ -825,12 +844,12 @@ describe("feedback in its place", () => {
         const shown = shownBy(
           accepted,
           configuration,
-          submittedWith(record, "OUTER", Option.some(identifier("O"))),
+          Option.some(submittedWith(record, "OUTER", Option.some(identifier("O")))),
         );
         const hidden = shownBy(
           accepted,
           configuration,
-          submittedWith(record, "OUTER", Option.some(identifier("X"))),
+          Option.some(submittedWith(record, "OUTER", Option.some(identifier("X")))),
         );
         const json = JSON.stringify(hidden.redacted, jsonField);
 
@@ -882,11 +901,11 @@ describe("feedback in its place", () => {
         const after = shownBy(
           accepted,
           configuration,
-          submittedWith(record, "FB", Option.some(identifier("other"))),
+          Option.some(submittedWith(record, "FB", Option.some(identifier("other")))),
         );
 
-        assert.deepStrictEqual(shownBy(accepted, configuration).modal, []);
-        assert.deepStrictEqual(shownBy(accepted, configuration, record).modal, []);
+        assert.deepStrictEqual(shownBy(accepted, configuration, Option.none()).modal, []);
+        assert.deepStrictEqual(shownBy(accepted, configuration, Option.some(record)).modal, []);
         assert.deepStrictEqual(after.modal, ["KEEP GOING"]);
         assert.deepStrictEqual(
           after.redacted.modalFeedback.map((feedback) => feedback.title),
@@ -915,11 +934,11 @@ describe("feedback in its place", () => {
           ].join(""),
         );
         const record = yield* begun(accepted);
-        const before = shownBy(accepted, configuration, record);
+        const before = shownBy(accepted, configuration, Option.some(record));
         const after = shownBy(
           accepted,
           configuration,
-          submittedWith(record, "FB", Option.some(identifier("a"))),
+          Option.some(submittedWith(record, "FB", Option.some(identifier("a")))),
         );
 
         assert.deepStrictEqual(accepted.item.unsupported, []);

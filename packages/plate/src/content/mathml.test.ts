@@ -1,4 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
+import { Option } from "effect";
 import type { MathChild, MathNode } from "#plate/content/mathml.ts";
 import { mathmlNamespace } from "#plate/document/source.ts";
 import type { SourceChild, SourceElement } from "#plate/document/source.ts";
@@ -8,7 +9,7 @@ import { redactItem } from "#plate/redact/walk.ts";
 import { integer } from "#plate/test/fixtures.ts";
 import { shownToCandidate, underRecord } from "#plate/test/page.ts";
 import { recordOf } from "#plate/test/records.ts";
-import { attr, doc, el, text } from "#plate/test/source.ts";
+import { attr, doc, el, elIn, text } from "#plate/test/source.ts";
 
 /**
  * Construct a MathML element.
@@ -17,25 +18,32 @@ import { attr, doc, el, text } from "#plate/test/source.ts";
  * @param children Its children, none by default.
  * @returns The element, in the MathML namespace.
  */
-const math = (local: string, children: readonly SourceChild[] = []): SourceElement =>
-  el(local, [], children, mathmlNamespace);
+const math = (local: string, children: readonly SourceChild[]): SourceElement =>
+  elIn(mathmlNamespace, local, [], children);
 
 /**
  * Construct a template declaration of a single integer whose default is given.
  *
  * @param identifier Its identifier.
  * @param value Its default, as written.
- * @param mathVariable Its `math-variable`, absent unless given.
+ * @param mathVariable Its `math-variable`, none for an absent one.
  * @returns The declaration.
  */
-const template = (identifier: string, value: string, mathVariable?: string): SourceElement =>
+const template = (
+  identifier: string,
+  value: string,
+  mathVariable: Option.Option<string>,
+): SourceElement =>
   el(
     "qti-template-declaration",
     [
       attr("base-type", "integer"),
       attr("cardinality", "single"),
       attr("identifier", identifier),
-      ...(mathVariable === undefined ? [] : [attr("math-variable", mathVariable)]),
+      ...Option.match(mathVariable, {
+        onNone: () => [],
+        onSome: (variable) => [attr("math-variable", variable)],
+      }),
     ],
     [el("qti-default-value", [], [el("qti-value", [], [text(value)])])],
   );
@@ -84,8 +92,8 @@ describe("MathML's template variables", () => {
           "qti-assessment-item",
           [attr("identifier", "calc"), attr("time-dependent", "false"), attr("title", "Calc")],
           [
-            template("CALC0", "7", "true"),
-            template("PLAIN", "3"),
+            template("CALC0", "7", Option.some("true")),
+            template("PLAIN", "3", Option.none()),
             el(
               "qti-item-body",
               [],
@@ -101,7 +109,7 @@ describe("MathML's template variables", () => {
                     ]),
                     math("math", [
                       math("apply", [
-                        math("plus"),
+                        math("plus", []),
                         math("ci", [text("CALC0")]),
                         math("cn", [text("1")]),
                       ]),

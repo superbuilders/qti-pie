@@ -500,9 +500,9 @@ const leakProblems = (
  *   redacted with no record and its location named alone.
  * @returns None when the member is not an accepted item; otherwise the subject.
  */
-const subjectOf = (member: Member, state?: RecordState): Option.Option<Subject> => {
-  const { name, record } = state ?? noRecord;
-  const location = state === undefined ? member.location : `${member.location} (${name})`;
+const subjectOf = (member: Member, state: Option.Option<RecordState>): Option.Option<Subject> => {
+  const { name, record } = Option.getOrElse(state, () => noRecord);
+  const location = Option.isNone(state) ? member.location : `${member.location} (${name})`;
 
   return Option.map(acceptedOf(member), (accepted: Accepted) => ({
     bodySource: bodySourceOf(member.bytes),
@@ -567,7 +567,7 @@ describe("the template sweep over the corpus", () => {
           ),
         };
         const subjects = [taken, noRecord].map((state) =>
-          Option.getOrElse(subjectOf(member, state), () =>
+          Option.getOrElse(subjectOf(member, Option.some(state)), () =>
             assert.fail(`the template control is not accepted under ${state.name}`),
           ),
         );

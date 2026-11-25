@@ -150,7 +150,7 @@ const echoings: readonly Echoes[] = ["now", "late", "never"];
  * @param echoes When a recording the session stops fires its `pause`.
  * @returns The room.
  */
-const opened = (item: readonly Spot[], echoes: Echoes = "now"): Room => ({
+const opened = (item: readonly Spot[], echoes: Echoes): Room => ({
   commands: [],
   echoes,
   faults: [],
@@ -397,7 +397,7 @@ describe("a press", () => {
   it("plays its own control alone, a prompt's as any other's, as the item's first press: nothing plays after its recording ends", () => {
     const wrong = itemsUpTo(5).flatMap((item) =>
       item.flatMap((control) => {
-        const room = opened(item);
+        const room = opened(item, "now");
 
         press(room, control);
         finish(room);
@@ -425,7 +425,7 @@ describe("a press", () => {
       item.flatMap((first) =>
         item.flatMap((second) =>
           [true, false].flatMap((waits) => {
-            const room = opened(item);
+            const room = opened(item, "now");
 
             press(room, first);
 
@@ -617,7 +617,7 @@ describe("nothing plays next", () => {
     const wrong = itemsUpTo(4).flatMap((item) =>
       item.flatMap((current) =>
         orders(item).flatMap((order) => {
-          const room = opened(item);
+          const room = opened(item, "now");
 
           press(room, current);
 
@@ -661,7 +661,7 @@ describe("the control playing", () => {
 
         return [
           ...reports.flatMap(([name, report]) => {
-            const room = opened(item);
+            const room = opened(item, "now");
 
             press(room, current);
             hear(room, report);
@@ -678,7 +678,7 @@ describe("the control playing", () => {
               : [{ current: current.name, name, played: playedIn(room), told: toldIn(room) }];
           }),
           ...idle.flatMap((spot) => {
-            const room = opened(item);
+            const room = opened(item, "now");
 
             press(room, current);
             unmount(room, spot);
@@ -836,7 +836,7 @@ describe("a press that cannot play", () => {
       item.flatMap((first) =>
         item.flatMap((control) =>
           failures.flatMap((refusal) => {
-            const room = opened(item);
+            const room = opened(item, "now");
 
             press(room, first);
             finish(room);
@@ -868,7 +868,7 @@ describe("a press that cannot play", () => {
     const wrong = itemsUpTo(3).flatMap((item) =>
       item.flatMap((first) =>
         failures.flatMap((refusal) => {
-          const room = opened(item);
+          const room = opened(item, "now");
           const faults: string[] = [];
 
           press(room, first);
@@ -923,7 +923,7 @@ describe("a press that cannot play", () => {
     const wrong = itemsUpTo(3).flatMap((item) =>
       item.flatMap((first) =>
         interruptions.flatMap((refusal) => {
-          const room = opened(item);
+          const room = opened(item, "now");
 
           press(room, first);
           hear(room, { control: first, kind: "refused", refusal });
@@ -950,7 +950,7 @@ describe("a press that cannot play", () => {
       item.flatMap((first) =>
         item.flatMap((other) =>
           failures.flatMap((refusal) => {
-            const room = opened(item);
+            const room = opened(item, "now");
 
             hear(room, { control: other, kind: "refused", refusal });
             press(room, first);

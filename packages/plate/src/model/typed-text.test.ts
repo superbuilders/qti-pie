@@ -29,8 +29,8 @@ import type { RecordField, RecordValue, Single } from "#plate/model/values.ts";
  */
 const reading = (
   baseType: TypedReading["baseType"],
-  base = 10,
-  blankIsEmpty = false,
+  base: number,
+  blankIsEmpty: boolean,
 ): TypedReading => ({ base, baseType, blankIsEmpty });
 
 /**
@@ -213,7 +213,7 @@ describe("readTyped", () => {
           fields: [],
         });
         assert.deepStrictEqual(
-          yield* read(blank, reading("string")),
+          yield* read(blank, reading("string", 10, false)),
           Option.some(stringOf(" \t\n ")),
         );
       }),
@@ -221,7 +221,11 @@ describe("readTyped", () => {
 
   it("leaves abc, INF, -INF, NaN and a decimal beyond the largest double, an infinity, unread as a float", () => {
     for (const text of ["abc", "INF", "-INF", "NaN", "1E999", "-1E999"]) {
-      assert.deepStrictEqual(unreadOf(text, reading("float")), Option.some("number"), text);
+      assert.deepStrictEqual(
+        unreadOf(text, reading("float", 10, false)),
+        Option.some("number"),
+        text,
+      );
     }
   });
 
@@ -234,12 +238,12 @@ describe("readTyped", () => {
         assert.strictEqual(spelling.length, 100_000);
 
         assert.deepStrictEqual(
-          yield* read(spelling, reading("integer", 36)),
+          yield* read(spelling, reading("integer", 36, false)),
           Option.some(integer(exact)),
         );
 
         const growth = yield* digitGrowth(spelling, (digits) => {
-          readTyped(digits, reading("integer", 36));
+          readTyped(digits, reading("integer", 36, false));
         });
         assert.isBelow(
           growth,

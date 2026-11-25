@@ -4,7 +4,7 @@ import { Effect, Result } from "effect";
 import { readSource } from "#plate/document/read.ts";
 import { xmlnsNamespace, xsiNamespace } from "#plate/document/source.ts";
 import { writeDocument } from "#plate/document/write.ts";
-import { attr, el, text } from "#plate/test/source.ts";
+import { attr, attrIn, elIn, text } from "#plate/test/source.ts";
 
 /**
  * The Results Reporting namespace the hand-built document's elements are in.
@@ -26,8 +26,8 @@ const schemaLocation = `${resultNamespace} imsqti_resultv3p0_v1p0.xsd`;
  */
 const element = (
   local: string,
-  attributes: readonly Attribute[] = [],
-  children: readonly Child[] = [],
+  attributes: readonly Attribute[],
+  children: readonly Child[],
 ): Element => ({
   attributes,
   children,
@@ -46,7 +46,7 @@ const element = (
  * @param namespace Its namespace, none by default.
  * @returns The attribute whose local name and prefix split `qname` at its colon.
  */
-const attribute = (qname: string, value: string, namespace = ""): Attribute => {
+const attribute = (qname: string, value: string, namespace: string): Attribute => {
   const [prefix, local] = qname.includes(":") ? qname.split(":") : ["", qname];
 
   return { local: local ?? qname, namespace, prefix: prefix ?? "", qname, references: [], value };
@@ -64,22 +64,22 @@ const tree: Element = element(
     attribute("xsi:schemaLocation", schemaLocation, xsiNamespace),
   ],
   [
-    element("context", [attribute("sourcedId", "s-1")]),
+    element("context", [attribute("sourcedId", "s-1", "")], []),
     element(
       "itemResult",
       [
-        attribute("identifier", "I1"),
-        attribute("sequenceIndex", "1"),
-        attribute("datestamp", "2026-11-05T10:00:00Z"),
-        attribute("sessionStatus", "final"),
+        attribute("identifier", "I1", ""),
+        attribute("sequenceIndex", "1", ""),
+        attribute("datestamp", "2026-11-05T10:00:00Z", ""),
+        attribute("sessionStatus", "final", ""),
       ],
       [
         element(
           "responseVariable",
           [
-            attribute("identifier", "RESPONSE"),
-            attribute("cardinality", "single"),
-            attribute("baseType", "string"),
+            attribute("identifier", "RESPONSE", ""),
+            attribute("cardinality", "single", ""),
+            attribute("baseType", "string", ""),
           ],
           [
             element(
@@ -104,16 +104,18 @@ describe("document/write.ts", () => {
 
       assert.deepStrictEqual(
         source.root,
-        el(
+        elIn(
+          resultNamespace,
           "assessmentResult",
           [
-            attr("xmlns", resultNamespace, xmlnsNamespace),
-            attr("xsi", xsiNamespace, xmlnsNamespace),
-            attr("schemaLocation", schemaLocation, xsiNamespace),
+            attrIn(xmlnsNamespace, "xmlns", resultNamespace),
+            attrIn(xmlnsNamespace, "xsi", xsiNamespace),
+            attrIn(xsiNamespace, "schemaLocation", schemaLocation),
           ],
           [
-            el("context", [attr("sourcedId", "s-1")], [], resultNamespace),
-            el(
+            elIn(resultNamespace, "context", [attr("sourcedId", "s-1")], []),
+            elIn(
+              resultNamespace,
               "itemResult",
               [
                 attr("identifier", "I1"),
@@ -122,7 +124,8 @@ describe("document/write.ts", () => {
                 attr("sessionStatus", "final"),
               ],
               [
-                el(
+                elIn(
+                  resultNamespace,
                   "responseVariable",
                   [
                     attr("identifier", "RESPONSE"),
@@ -130,20 +133,17 @@ describe("document/write.ts", () => {
                     attr("baseType", "string"),
                   ],
                   [
-                    el(
+                    elIn(
+                      resultNamespace,
                       "candidateResponse",
                       [],
-                      [el("value", [], [text('x < y & "z"')], resultNamespace)],
-                      resultNamespace,
+                      [elIn(resultNamespace, "value", [], [text('x < y & "z"')])],
                     ),
                   ],
-                  resultNamespace,
                 ),
               ],
-              resultNamespace,
             ),
           ],
-          resultNamespace,
         ),
       );
     }),

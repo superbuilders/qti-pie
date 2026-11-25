@@ -29,10 +29,11 @@ export const templated = (count: number): SourceDocument =>
   item({
     body: [paragraph],
     declarations: Array.from({ length: count }, (_, index) =>
-      el("qti-template-declaration", [
-        attr("cardinality", "record"),
-        attr("identifier", `T${index}`),
-      ]),
+      el(
+        "qti-template-declaration",
+        [attr("cardinality", "record"), attr("identifier", `T${index}`)],
+        [],
+      ),
     ),
   });
 
@@ -50,12 +51,12 @@ export const textEntries = (count: number): SourceDocument =>
         "p",
         [],
         Array.from({ length: count }, (_, index) =>
-          el("qti-text-entry-interaction", [attr("response-identifier", `R${index}`)]),
+          el("qti-text-entry-interaction", [attr("response-identifier", `R${index}`)], []),
         ),
       ),
     ],
     declarations: Array.from({ length: count }, (_, index) =>
-      declaration("qti-response-declaration", `R${index}`, "string", "single"),
+      declaration("qti-response-declaration", `R${index}`, "string", "single", []),
     ),
   });
 
