@@ -550,7 +550,6 @@ describe("the law oracle's reading 62, generated packages", () => {
         explore(
           {
             caseHang,
-            concurrency: 1,
             coverage: reached,
             draw: drawn(sketches),
             kept: [],
