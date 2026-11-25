@@ -1142,37 +1142,40 @@ export const deliveryOf = (ledger: LedgerLevel) => {
   );
 
   /**
-   * Each two presentations of a sitting whose part is linear, earlier earlier, with the place in
-   * the sitting's order of each one's member (`MemberPlace`): "Once the candidate moves on they are
-   * not permitted to return" (§2.8.2), so the later is never of a member placed before the
-   * earlier's.
+   * Each presentation of a member of a sitting whose part is linear beside each presentation of the
+   * member its sitting places next (`MemberPlace`, the next one's prior its place): "Once the
+   * candidate moves on they are not permitted to return" (§2.8.2), so every presentation of a
+   * member comes before every presentation of the member after it. With "Linear in order" (each
+   * presented member's predecessor presented) that is every later presentation never of a member
+   * before the earlier's: a later presentation of a member behind an earlier one's has, between the
+   * two, the member after it presented no later than the earlier one, its predecessors all
+   * presented by then. So one key probe a presentation, each way, states the law, where every
+   * earlier presentation of the sitting would be read.
    */
   const LinearPresentations = derived(
     "LinearPresentations",
     query(ledger).rule((r) => {
       const { child, stage, package: pkg, path } = v(TestSession, "sitting");
-      const earlier = v(TestPresented, "earlier");
-      const later = v(TestPresented, "later");
-      const from = v(MemberPlace, "from");
-      const to = v(MemberPlace, "to");
+      const member = v(TestPresented, "member");
+      const after = v(TestPresented, "after");
+      const { place } = v(MemberPlace, "memberPlace");
+      const { prior } = v(MemberPlace, "afterPlace");
 
-      return r
-        .match(TestSession, { child, package: pkg, path, stage })
-        .match(TestRoot, { package: pkg, path })
-        .match(TestPart, { navigation: "linear", package: pkg, path })
-        .match(TestPresented, { at: earlier.at, child, package: pkg, path: earlier.path, stage })
-        .match(TestPresented, { at: later.at, child, package: pkg, path: later.path, stage })
-        .match(MemberPlace, { child, package: pkg, path: earlier.path, place: from.place, stage })
-        .match(MemberPlace, { child, package: pkg, path: later.path, place: to.place, stage })
-        .where(r.lt(earlier.at, later.at))
-        .find({
-          child,
-          earlier: earlier.at,
-          from: from.place,
-          later: later.at,
-          stage,
-          to: to.place,
-        });
+      return (
+        r
+          .match(TestSession, { child, package: pkg, path, stage })
+          .match(TestRoot, { package: pkg, path })
+          .match(TestPart, { navigation: "linear", package: pkg, path })
+          // Both places before either presentation: from either presentation a judge reads its
+          // member's place by its path, the other member's by place and prior, and the other's
+          // presentations by that member's path, never the sitting's every presentation.
+          .match(MemberPlace, { child, package: pkg, path: member.path, place, stage })
+          .match(MemberPlace, { child, package: pkg, path: after.path, prior, stage })
+          .match(TestPresented, { at: member.at, child, package: pkg, path: member.path, stage })
+          .match(TestPresented, { at: after.at, child, package: pkg, path: after.path, stage })
+          .where(r.eq(prior, Type.base(place)))
+          .find({ after: after.at, child, member: member.at, stage })
+      );
     }),
   );
 
@@ -1265,7 +1268,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     ),
     named(
       "Linear never back",
-      check("Linear_never_back", LinearPresentations, (p) => p.le(p.from, p.to)),
+      check("Linear_never_back", LinearPresentations, (p) => p.lt(p.member, p.after)),
     ),
     /**
      * Inside a candidate session: every response snapshot of a sitting lies inside one of its

@@ -190,7 +190,7 @@ export const ledgerLaws = {
     source: `${info}#DataCharacteristic_TestPart.Attr_navigation-mode (Table 5.159.4: 'A testPart in linear mode restricts the candidate to attempt each item in turn'): in a linear part every member before a presented member was presented, so presentations run in member order from the first, a skip being a presentation submitted with no response (Table 7.19.6); member order is the sitting's (src/sittings.ts MemberPlace): TestMember's place, but among a shuffling section's members their sitting's ranks (§5.98.1, ShuffleRank), sound while a delivered test holds no qti-selection, qti-pre-condition or qti-branch-rule and shuffles only sections of item refs none of which is fixed (src/delivery.ts undeliveredKinds; §2.8.3, §5.23, §5.98) (src/test-laws.ts LinearPreceding: each presented member's predecessor in its part presented, which is every member before it in turn)`,
   },
   "Linear never back": {
-    source: `${info}#Main2p8p2 (§2.8.2: 'Once the candidate moves on they are not permitted to return'): a linear part's later presentation is never of a member before the earlier's in its sitting's order (src/sittings.ts MemberPlace; src/delivery.ts LinearPresentations)`,
+    source: `${info}#Main2p8p2 (§2.8.2: 'Once the candidate moves on they are not permitted to return'): a linear part's later presentation is never of a member before the earlier's in its sitting's order, stated with Linear in order as every presentation of a member before every presentation of the member its sitting places next (src/sittings.ts MemberPlace; src/delivery.ts LinearPresentations)`,
   },
   "Maximum of a demand": {
     source:

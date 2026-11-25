@@ -5588,6 +5588,7 @@ const shuffleSituations = [
   "a shuffled member ahead of its section's first is refused",
   "a member after a shuffling section waits for all of it",
   "a member before a shuffling section is never returned to",
+  "a member several places back is never returned to",
   "a mixed sitting walks its members, then each section in rank order",
   "a nonlinear sitting is placed in its order and moves freely",
   "an ordering of whitespace and a comment, over refs fixed false, is delivered",
@@ -5794,6 +5795,15 @@ const holdShuffle = (run: ShuffleRun, child: string, note: (situation: ShuffleSi
         `${run.first}: mixed member ${String(i + 1)} of its order`,
       );
     }
+
+    const farBack = yield* linear.present(mixedAt(2).ref);
+    assert.isTrue(
+      Result.isFailure(farBack) &&
+        farBack.failure.kind === "refused" &&
+        refusedBy(farBack.failure.refused, "Linear never back"),
+      `${run.first}: the third member after the sixth, three places back, refused by "Linear never back", got ${Formatter.format(farBack)}`,
+    );
+    note("a member several places back is never returned to");
     assert.deepStrictEqual<unknown>(
       Arr.fromIterable(
         yield* db.workload.presentationsOf.once({ facts: {}, params: { child: `${child}c` } }),
