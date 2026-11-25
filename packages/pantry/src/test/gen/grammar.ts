@@ -975,7 +975,7 @@ export const wordOf =
       }
     };
 
-    return Arr.makeBy(times, once).flat();
+    return Array.from({ length: times }, once).flat();
   };
 
 /**
