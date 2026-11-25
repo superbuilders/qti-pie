@@ -16,6 +16,7 @@
  * @see https://www.imsglobal.org/spec/qti/v3p0/info/index.html#Root_PositionObjectInteraction
  * @see https://www.w3.org/TR/WCAG22/#target-size-minimum
  */
+import { Array as Arr } from "effect";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
 
 /**
@@ -83,7 +84,9 @@ const targetOf = (drawing: ObjectDrawing): number => {
  * @returns The smallest diameter, in the stage image's pixels; infinite for no object.
  */
 export const smallestCopyOf = (drawings: readonly ObjectDrawing[]): number =>
-  Math.min(...drawings.map(targetOf), Number.POSITIVE_INFINITY);
+  Arr.reduce(drawings, Number.POSITIVE_INFINITY, (least, drawing) =>
+    Math.min(least, targetOf(drawing)),
+  );
 
 /**
  * Draw a copy of an object at the origin of the copy it stands for, which its caller translates to

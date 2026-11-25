@@ -95,7 +95,7 @@ const integerField = (name: string, value: bigint): RecordField => field(name, i
  * @param fields Its fields, in order.
  * @returns The record.
  */
-const record = (...fields: readonly RecordField[]): RecordValue => ({
+const record = (fields: readonly RecordField[]): RecordValue => ({
   cardinality: "record",
   fields,
 });
@@ -120,7 +120,7 @@ const numberRecord = (
     readonly exponent?: bigint;
   },
 ): RecordValue =>
-  record(
+  record([
     field("stringValue", stringOf(text)),
     field("floatValue", { baseType: "float", value: counts.floatValue }),
     ...(counts.integerValue === undefined
@@ -131,7 +131,7 @@ const numberRecord = (
     integerField("ndp", counts.ndp),
     integerField("nsf", counts.nsf),
     ...(counts.exponent === undefined ? [] : [integerField("exponent", counts.exponent)]),
-  );
+  ]);
 
 /**
  * Give a record's field of an identifier.

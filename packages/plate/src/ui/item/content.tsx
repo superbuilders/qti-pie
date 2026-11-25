@@ -524,7 +524,10 @@ export const headingOffsetOf = (nodes: readonly RedactedNode[], headingLevel: nu
     return level === undefined ? [] : [level];
   });
 
-  return levels.length === 0 ? 0 : headingLevel - Math.min(...levels);
+  return levels.length === 0
+    ? 0
+    : headingLevel -
+        Arr.reduce(levels, Number.POSITIVE_INFINITY, (least, each) => Math.min(least, each));
 };
 
 /**
@@ -684,7 +687,9 @@ const runsOf = (entries: readonly Placed[]): readonly Run[] => {
       runs.push({ blocks, kind: "feedback" });
     }
 
-    runs.push(...between.map((entry): Run => ({ entry, kind: "node" })));
+    for (const each of between.map((entry): Run => ({ entry, kind: "node" }))) {
+      runs.push(each);
+    }
     blocks = [];
     between = [];
   };
@@ -797,7 +802,9 @@ const tableChildren = (entries: readonly Placed[], walk: Walk): readonly ReactNo
 
     if (row === undefined) {
       close();
-      result.push(...renderedOf([entry], walk));
+      for (const each of renderedOf([entry], walk)) {
+        result.push(each);
+      }
     } else {
       const [, around] = row;
 

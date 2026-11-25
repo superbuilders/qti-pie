@@ -11,7 +11,7 @@
  *
  * @module
  */
-import { Function, Option, Record as Rec } from "effect";
+import { Array as Arr, Function, Option, Record as Rec } from "effect";
 import { format } from "#plate/model/values.ts";
 import type { Single } from "#plate/model/values.ts";
 import type { Reveals, ReviewContext } from "#plate/ui/item/context.ts";
@@ -306,7 +306,9 @@ export const slotsOf = (
       ),
       (part) => format(part.value),
     );
-  const length = Math.max(positions, given.length, ...parts.map((part) => part.place + 1));
+  const length = Arr.reduce(parts, Math.max(positions, given.length), (most, part) =>
+    Math.max(most, part.place + 1),
+  );
 
   return Array.from({ length }, (_, index): Slot => {
     const chip = given[index];

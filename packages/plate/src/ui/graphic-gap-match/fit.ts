@@ -28,6 +28,7 @@
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Data_GraphicGapMatchInteraction
  */
+import { Array as Arr } from "effect";
 import { regex } from "arkregex";
 
 /**
@@ -152,7 +153,7 @@ const textCard = (words: readonly number[], across: number, wrap: number): Card 
 
   return {
     height: Math.max(1, lines.length) * cardMetrics.line + chrome.y,
-    width: Math.max(0, ...lines) + across,
+    width: Arr.reduce(lines, 0, (most, each) => Math.max(most, each)) + across,
   };
 };
 
@@ -235,7 +236,11 @@ const flowOf = (measured: readonly Measured[], wrap: number): Card => {
     height:
       rows.reduce((total, row) => total + row.height, 0) +
       cardMetrics.gap * Math.max(0, rows.length - 1),
-    width: Math.max(0, ...rows.map((row) => row.width)),
+    width: Arr.reduce(
+      rows.map((row) => row.width),
+      0,
+      (most, each) => Math.max(most, each),
+    ),
   };
 };
 

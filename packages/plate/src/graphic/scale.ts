@@ -23,6 +23,7 @@
  * @see https://www.w3.org/TR/WCAG22/#target-size-enhanced
  * @see https://www.w3.org/TR/WCAG22/#target-size-minimum
  */
+import { Array as Arr } from "effect";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
 import { tapDiameterOf } from "#plate/graphic/geometry.ts";
 import type { GraphicArea } from "#plate/graphic/geometry.ts";
@@ -85,9 +86,8 @@ export const smallestTargetOf = (areas: readonly GraphicArea[], size: ImageSize)
     return known;
   }
 
-  const smallest = Math.min(
-    ...areas.map((_, index) => tapDiameterOf(areas, index, size) ?? Number.POSITIVE_INFINITY),
-    Number.POSITIVE_INFINITY,
+  const smallest = Arr.reduce(areas, Number.POSITIVE_INFINITY, (least, _, index) =>
+    Math.min(least, tapDiameterOf(areas, index, size) ?? Number.POSITIVE_INFINITY),
   );
   const sizes = measured.get(areas) ?? new Map<string, number>();
 

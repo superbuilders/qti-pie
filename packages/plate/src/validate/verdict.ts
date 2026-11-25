@@ -568,7 +568,9 @@ const placeNodes = (
     const lifted: Unsupported[] = [];
     const rebuilt = mapChildNodes(node, (children) => {
       const inner = placeNodes(children, drops, placed, inMedia);
-      lifted.push(...inner.lifted);
+      for (const each of inner.lifted) {
+        lifted.push(each);
+      }
 
       return inner.nodes;
     });
@@ -706,7 +708,9 @@ const uncheckedReasons = (visits: readonly Visit[]): readonly UncheckedReason[] 
       element.namespace === namespace &&
       !Option.exists(parent, (container) => container.namespace === namespace);
     if (element.namespace !== qtiNamespace && island(element.namespace)) {
-      reasons.push(...checkIsland(element, path));
+      for (const each of checkIsland(element, path)) {
+        reasons.push(each);
+      }
     }
 
     if (island(xincludeNamespace)) {

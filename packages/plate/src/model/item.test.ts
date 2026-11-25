@@ -513,7 +513,9 @@ describe("buildItem", () => {
      */
     const sets: (readonly string[])[] = [[]];
     for (const view of views) {
-      sets.push(...sets.map((set) => [...set, view]));
+      for (const each of sets.map((set) => [...set, view])) {
+        sets.push(each);
+      }
     }
     for (const listed of sets.filter((set) => set.length > 0)) {
       const built = admittedItem(

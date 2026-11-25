@@ -28,6 +28,7 @@
  * @module
  * @see https://ui-sdk.dev/docs/core/kernel/define-a-primitive
  */
+import { Array as Arr } from "effect";
 import {
   announce,
   bindDrag,
@@ -490,13 +491,15 @@ const labelId = (id: string, spot: Spot): string => {
 const distanceTo = (el: Element, x: number, y: number): number => {
   const boxes = [...el.getClientRects()];
 
-  return Math.min(
-    ...(boxes.length === 0 ? [el.getBoundingClientRect()] : boxes).map((box) =>
+  return Arr.reduce(
+    (boxes.length === 0 ? [el.getBoundingClientRect()] : boxes).map((box) =>
       Math.hypot(
         Math.max(box.left - x, 0, x - box.right),
         Math.max(box.top - y, 0, y - box.bottom),
       ),
     ),
+    Number.POSITIVE_INFINITY,
+    (least, each) => Math.min(least, each),
   );
 };
 

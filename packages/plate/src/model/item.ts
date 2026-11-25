@@ -908,7 +908,9 @@ export const buildStimulus = (source: AdmittedDocument): Stimulus => {
   for (const part of elementsOf(root).filter((child) => isQti(child))) {
     if (part.local === "qti-stimulus-body") {
       markElement(build, part, true);
-      body.push(...bodyNodes(build, part));
+      for (const each of bodyNodes(build, part)) {
+        body.push(each);
+      }
     } else {
       markElement(build, part, false);
       collectItemPart(content, itemPart(build, part));

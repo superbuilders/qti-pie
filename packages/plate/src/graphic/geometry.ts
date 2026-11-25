@@ -433,10 +433,10 @@ const boxOfVertices = (vertices: readonly Vertex[]): Box => {
   const ys = vertices.map(([, y]) => y);
 
   return {
-    bottom: Math.max(...ys),
-    left: Math.min(...xs),
-    right: Math.max(...xs),
-    top: Math.min(...ys),
+    bottom: Arr.reduce(ys, Number.NEGATIVE_INFINITY, (most, each) => Math.max(most, each)),
+    left: Arr.reduce(xs, Number.POSITIVE_INFINITY, (least, each) => Math.min(least, each)),
+    right: Arr.reduce(xs, Number.NEGATIVE_INFINITY, (most, each) => Math.max(most, each)),
+    top: Arr.reduce(ys, Number.POSITIVE_INFINITY, (least, each) => Math.min(least, each)),
   };
 };
 
@@ -871,10 +871,8 @@ export const tapDiameterOf = (
 
   const found = deepestBy(
     (x, y) =>
-      Math.min(
-        regionDepth(own, x, y),
-        boxDepth(image, x, y),
-        ...hiding.map((region) => -regionDepth(region, x, y)),
+      Arr.reduce(hiding, Math.min(regionDepth(own, x, y), boxDepth(image, x, y)), (least, region) =>
+        Math.min(least, -regionDepth(region, x, y)),
       ),
     box,
   );

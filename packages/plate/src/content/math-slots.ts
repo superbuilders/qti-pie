@@ -32,7 +32,7 @@
  *
  * @module
  */
-import { Option } from "effect";
+import { Array as Arr, Option } from "effect";
 import type { MathElement } from "#plate/content/mathml.ts";
 import type { BodyElement, Interaction, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
 import { isInteraction } from "#plate/model/interactions.ts";
@@ -199,7 +199,11 @@ export const slotTargets = (
       }
 
       if (node.kind === "inline-choice") {
-        const longest = Math.max(0, ...node.choices.map(({ content }) => textLengthOf(content)));
+        const longest = Arr.reduce(
+          node.choices.map(({ content }) => textLengthOf(content)),
+          0,
+          (most, each) => Math.max(most, each),
+        );
 
         return [[node.id.value, { kind: "interaction", node, size: inlineChoiceSlot(longest) }]];
       }

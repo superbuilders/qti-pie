@@ -524,7 +524,12 @@ describe("resolution against the item's location, by RFC 3986", () => {
       paths = paths.flatMap((path) =>
         segments.map((segment) => (path === "" ? segment : `${path}/${segment}`)),
       );
-      references.push(...paths, ...paths.map((path) => `/${path}`));
+      for (const path of paths) {
+        references.push(path);
+      }
+      for (const path of paths) {
+        references.push(`/${path}`);
+      }
     }
 
     const disagreements = locations.flatMap((location) =>

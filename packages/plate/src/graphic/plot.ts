@@ -12,6 +12,7 @@
  *
  * @module
  */
+import { Array as Arr } from "effect";
 import type {
   PlotKind,
   PointStyle,
@@ -150,10 +151,26 @@ const plotBoxOf = (stands: readonly Stand[]): Box | undefined =>
   stands.length === 0
     ? undefined
     : {
-        bottom: Math.max(...stands.map((stand) => stand.box.bottom)),
-        left: Math.min(...stands.map((stand) => stand.box.left)),
-        right: Math.max(...stands.map((stand) => stand.box.right)),
-        top: Math.min(...stands.map((stand) => stand.box.top)),
+        bottom: Arr.reduce(
+          stands.map((stand) => stand.box.bottom),
+          Number.NEGATIVE_INFINITY,
+          (most, each) => Math.max(most, each),
+        ),
+        left: Arr.reduce(
+          stands.map((stand) => stand.box.left),
+          Number.POSITIVE_INFINITY,
+          (least, each) => Math.min(least, each),
+        ),
+        right: Arr.reduce(
+          stands.map((stand) => stand.box.right),
+          Number.NEGATIVE_INFINITY,
+          (most, each) => Math.max(most, each),
+        ),
+        top: Arr.reduce(
+          stands.map((stand) => stand.box.top),
+          Number.POSITIVE_INFINITY,
+          (least, each) => Math.min(least, each),
+        ),
       };
 
 /**
