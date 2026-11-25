@@ -7,7 +7,12 @@
 import type { Law } from "@bjornpagen/grizzle";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Option, Result } from "effect";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { noCoverage, requiredInSpace } from "@bjornpagen/testing/features";
+import { array, boolean, element } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
+import { Duration, Effect, Formatter, Option, Result } from "effect";
 import { inject } from "vitest";
 import {
   ChoiceBound,
@@ -21,6 +26,7 @@ import { readEntries } from "#pantry/package/read.ts";
 import type { PackageFile } from "#pantry/package/read.ts";
 import { readProgram } from "#pantry/import/program.ts";
 import { viewedDeclarationsOf } from "#pantry/test/declaration-queries.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import { previewOf, judge as judgeRows, judgedLaws } from "#pantry/test/host-judge.ts";
 import type { PackageInputs } from "#pantry/import/write.ts";
@@ -172,195 +178,259 @@ describe("qti/interactions.ts, the closed data its laws read", () => {
 const simpleItem = "choice.xml";
 
 /**
- * A second choice interaction, bound to a declared response of its own, whose one simple choice is
- * named as given: the item-wide scope's case and its control.
- *
- * @param identifier - The simple choice's identifier.
- * @returns The interaction's markup.
+ * The classes of element the name box adds, each with the noun its identifier's sentence names
+ * (reading `choice-identifier-scope`): a simple choice, an inline choice and a hotspot choice,
+ * three of the four whose noun is "choice"; a hottext and a gap text, choices of another noun; and
+ * a gap, which is no choice.
  */
-const secondInteraction = (identifier: string): string =>
-  `<qti-choice-interaction response-identifier="RESPONSE2" max-choices="1"><qti-simple-choice identifier="${identifier}">x</qti-simple-choice></qti-choice-interaction>`;
+const NAMED_KINDS = ["simple", "inline", "hotspot", "hottext", "gapText", "gap"] as const;
 
 /**
- * The second interaction's response declaration.
+ * A class of {@link NAMED_KINDS}.
  */
-const secondDeclaration =
-  '<qti-response-declaration identifier="RESPONSE2" cardinality="single" base-type="identifier"/>';
+type NamedKind = (typeof NAMED_KINDS)[number];
 
 /**
- * A declaration of a single response of a base type, named as given, for a case's added
- * interaction.
- *
- * @param identifier - The response's identifier.
- * @param baseType - Its base type.
- * @returns The declaration's markup.
+ * The classes whose sentence bars "any other choice": a simple choice, an inline choice and a
+ * hotspot choice (§5.132.1, §5.73.1, §5.67.1).
  */
-const responseDeclaration = (identifier: string, baseType: string): string =>
-  `<qti-response-declaration identifier="${identifier}" cardinality="single" base-type="${baseType}"/>`;
+const FOUR_KINDS: ReadonlySet<NamedKind> = new Set(["simple", "inline", "hotspot"]);
 
 /**
- * A gap match interaction bound to `RESPONSE2`, its one gap text and its one gap named as given:
- * reading `choice-identifier-scope`'s gap and gap text of one interaction, and their control.
- *
- * @param text - The gap text's identifier.
- * @param gap - The gap's identifier.
- * @returns The interaction's markup.
+ * The classes the information model calls a choice: the four's, a hottext (§5.65.1) and a gap
+ * text (§6.17). A gap is none.
  */
-const gapMatch = (text: string, gap: string): string =>
-  `<qti-gap-match-interaction response-identifier="RESPONSE2" max-associations="1"><qti-gap-text identifier="${text}" match-max="1">x</qti-gap-text><p>Fill <qti-gap identifier="${gap}"/>.</p></qti-gap-match-interaction>`;
+const CHOICE_KINDS: ReadonlySet<NamedKind> = new Set([...FOUR_KINDS, "hottext", "gapText"]);
 
 /**
- * The reading-104 cases over the `simple` fixture's item: each edit, written as search and
- * replacement pairs applied in order, and the laws of the two it must break, read off its edit by
- * reading `choice-identifier-scope` as amended (§5.132.1, §5.55.1, §5.58.1, §5.65.1, §5.67.1,
- * §5.73.1, §6.17, §7.16, §2.2.2): each class's sentence bars its own noun, so two elements of one
- * class never share a name in a document, and the four whose noun is "choice" share theirs with no
- * other choice of any class, a gap being none; and no choice names an item variable, declared or
- * built in.
- *
- * The fixture as it is and 15 edits of its item: a choice named as a declared outcome, a declared
- * response padded and a built-in, two choices of one interaction and of two named alike, two
- * interactions' choices named apart, a hottext, an inline choice beside a simple choice of one
- * name, a gap and a gap text of one gap match named alike and apart, a gap and a gap text each
- * beside a simple choice of its name, a gap text beside a hottext of one name, two gap texts of one
- * name, and a hotspot choice beside a hottext of one name.
+ * The names an added element of the name box bears: one of the item's own simple choices', and
+ * another.
  */
-const choiceNameCases: readonly {
-  readonly breaks: readonly ("Choice identifier key" | "Choice not variable")[];
-  readonly edits: readonly (readonly [string, string])[];
+const ADDED_NAMES = ["ChoiceA", "H"] as const;
+
+/**
+ * An element of a case: its class and its identifier.
+ */
+interface Named {
+  readonly kind: NamedKind;
   readonly name: string;
-}[] = [
-  { breaks: [], edits: [], name: "the item as it is" },
-  {
-    breaks: ["Choice not variable"],
-    edits: [['identifier="ChoiceA"', 'identifier="SCORE"']],
-    name: "a choice named as the declared SCORE",
-  },
-  {
-    breaks: ["Choice not variable"],
-    edits: [['identifier="ChoiceA"', 'identifier=" RESPONSE "']],
-    name: "a choice named as the declared RESPONSE, padded",
-  },
-  {
-    breaks: ["Choice not variable"],
-    edits: [['identifier="ChoiceA"', 'identifier="numAttempts"']],
-    name: "a choice named as the built-in numAttempts",
-  },
-  {
-    breaks: ["Choice identifier key"],
-    edits: [['identifier="ChoiceB"', 'identifier="ChoiceA"']],
-    name: "two choices of one interaction named ChoiceA",
-  },
-  {
-    breaks: ["Choice identifier key"],
-    edits: [
-      ["</qti-choice-interaction>", `</qti-choice-interaction>${secondInteraction("ChoiceA")}`],
-      ["<qti-item-body>", `${secondDeclaration}<qti-item-body>`],
-    ],
-    name: "choices of two interactions named ChoiceA",
-  },
-  {
-    breaks: [],
-    edits: [
-      ["</qti-choice-interaction>", `</qti-choice-interaction>${secondInteraction("ChoiceZ")}`],
-      ["<qti-item-body>", `${secondDeclaration}<qti-item-body>`],
-    ],
-    name: "choices of two interactions named apart",
-  },
-  {
-    breaks: ["Choice identifier key"],
-    edits: [
-      [
-        "</qti-choice-interaction>",
-        '</qti-choice-interaction><qti-hottext-interaction response-identifier="RESPONSE2" max-choices="1"><p><qti-hottext identifier="ChoiceA">x</qti-hottext></p></qti-hottext-interaction>',
-      ],
-      ["<qti-item-body>", `${secondDeclaration}<qti-item-body>`],
-    ],
-    name: "a hottext and a simple choice named ChoiceA, two classes",
-  },
-  {
-    breaks: ["Choice identifier key"],
-    edits: [
-      [
-        "</qti-choice-interaction>",
-        '</qti-choice-interaction><p>Pick <qti-inline-choice-interaction response-identifier="RESPONSE2"><qti-inline-choice identifier="ChoiceA">x</qti-inline-choice></qti-inline-choice-interaction>.</p>',
-      ],
-      ["<qti-item-body>", `${secondDeclaration}<qti-item-body>`],
-    ],
-    name: "an inline choice and a simple choice named ChoiceA, two classes",
-  },
-  {
-    breaks: [],
-    edits: [
-      ["</qti-choice-interaction>", `</qti-choice-interaction>${gapMatch("G", "G")}`],
-      ["<qti-item-body>", `${responseDeclaration("RESPONSE2", "directedPair")}<qti-item-body>`],
-    ],
-    name: "a gap and a gap text of one gap match named G, each its own noun",
-  },
-  {
-    breaks: [],
-    edits: [
-      ["</qti-choice-interaction>", `</qti-choice-interaction>${gapMatch("T", "ChoiceA")}`],
-      ["<qti-item-body>", `${responseDeclaration("RESPONSE2", "directedPair")}<qti-item-body>`],
-    ],
-    name: "a gap and a simple choice named ChoiceA, a gap no choice",
-  },
-  {
-    breaks: ["Choice identifier key"],
-    edits: [
-      ["</qti-choice-interaction>", `</qti-choice-interaction>${gapMatch("ChoiceA", "G")}`],
-      ["<qti-item-body>", `${responseDeclaration("RESPONSE2", "directedPair")}<qti-item-body>`],
-    ],
-    name: "a gap text and a simple choice named ChoiceA, a gap text a choice",
-  },
-  {
-    breaks: [],
-    edits: [
-      [
-        "</qti-choice-interaction>",
-        `</qti-choice-interaction>${gapMatch("H", "G")}<qti-hottext-interaction response-identifier="RESPONSE3" max-choices="1"><p><qti-hottext identifier="H">x</qti-hottext></p></qti-hottext-interaction>`,
-      ],
-      [
-        "<qti-item-body>",
-        `${responseDeclaration("RESPONSE2", "directedPair")}${responseDeclaration("RESPONSE3", "identifier")}<qti-item-body>`,
-      ],
-    ],
-    name: "a gap text and a hottext named H, neither's noun the other's",
-  },
-  {
-    breaks: ["Choice identifier key"],
-    edits: [
-      [
-        "</qti-choice-interaction>",
-        `</qti-choice-interaction><qti-gap-match-interaction response-identifier="RESPONSE2" max-associations="1"><qti-gap-text identifier="T" match-max="1">x</qti-gap-text><qti-gap-text identifier="T" match-max="1">y</qti-gap-text><p>Fill <qti-gap identifier="G"/>.</p></qti-gap-match-interaction>`,
-      ],
-      ["<qti-item-body>", `${responseDeclaration("RESPONSE2", "directedPair")}<qti-item-body>`],
-    ],
-    name: "two gap texts of one gap match named T, one class",
-  },
-  {
-    breaks: [],
-    edits: [
-      ["</qti-choice-interaction>", `</qti-choice-interaction>${gapMatch("T", "G")}`],
-      ["<qti-item-body>", `${responseDeclaration("RESPONSE2", "directedPair")}<qti-item-body>`],
-    ],
-    name: "a gap and a gap text of one gap match named apart",
-  },
-  {
-    breaks: ["Choice identifier key"],
-    edits: [
-      [
-        "</qti-choice-interaction>",
-        '</qti-choice-interaction><qti-hotspot-interaction response-identifier="RESPONSE2" max-choices="1"><img src="images/sign.png" alt="Sign" width="100" height="100"/><qti-hotspot-choice identifier="H" shape="circle" coords="50,50,10"/></qti-hotspot-interaction><qti-hottext-interaction response-identifier="RESPONSE3" max-choices="1"><p><qti-hottext identifier="H">x</qti-hottext></p></qti-hottext-interaction>',
-      ],
-      [
-        "<qti-item-body>",
-        `${secondDeclaration}${responseDeclaration("RESPONSE3", "identifier")}<qti-item-body>`,
-      ],
-    ],
-    name: "a hotspot choice and a hottext named H, two classes",
-  },
+}
+
+/**
+ * Draw a case of the name box: up to two elements, each of every class and every name, added to
+ * `simple`'s item, each in an interaction of its own.
+ */
+const addedElements: Gen<readonly Named[]> = array(
+  (source) => ({
+    kind: source.draw(element(NAMED_KINDS)),
+    name: source.draw(element(ADDED_NAMES)),
+  }),
+  { max: 2, min: 0 },
+);
+
+/**
+ * How many cases {@link addedElements} draws: none, one of 6 classes by 2 names, or two.
+ */
+const ADDED_CASES = 1 + 12 + 12 ** 2;
+
+/**
+ * The elements of `simple`'s item before any is added: its three simple choices.
+ */
+const baseChoices: readonly Named[] = [
+  { kind: "simple", name: "ChoiceA" },
+  { kind: "simple", name: "ChoiceB" },
+  { kind: "simple", name: "ChoiceC" },
 ];
+
+/**
+ * The name of a filler a gap or a gap text's interaction holds beside it, which no other element of
+ * a case bears.
+ *
+ * @param at - The added element's place.
+ * @returns The name.
+ */
+const fillerOf = (at: number): string => `F${String(at)}`;
+
+/**
+ * The interaction an added element stands in, bound to a response of its own, and that response's
+ * declaration; a gap stands beside a filler gap text and a gap text beside a filler gap.
+ *
+ * @param added - The element.
+ * @param at - Its place, which names its response and its filler.
+ * @returns The interaction's markup and the declaration's.
+ */
+const interactionOf = ({ kind, name }: Named, at: number) => {
+  const response = `RESPONSE${String(at + 2)}`;
+  const declaration = (baseType: string) =>
+    `<qti-response-declaration identifier="${response}" cardinality="single" base-type="${baseType}"/>`;
+  const gapMatch = (text: string, gap: string) =>
+    `<qti-gap-match-interaction response-identifier="${response}" max-associations="1"><qti-gap-text identifier="${text}" match-max="1">x</qti-gap-text><p>Fill <qti-gap identifier="${gap}"/>.</p></qti-gap-match-interaction>`;
+  switch (kind) {
+    case "simple": {
+      return {
+        declaration: declaration("identifier"),
+        interaction: `<qti-choice-interaction response-identifier="${response}" max-choices="1"><qti-simple-choice identifier="${name}">x</qti-simple-choice></qti-choice-interaction>`,
+      };
+    }
+    case "inline": {
+      return {
+        declaration: declaration("identifier"),
+        interaction: `<p>Pick <qti-inline-choice-interaction response-identifier="${response}"><qti-inline-choice identifier="${name}">x</qti-inline-choice></qti-inline-choice-interaction>.</p>`,
+      };
+    }
+    case "hotspot": {
+      return {
+        declaration: declaration("identifier"),
+        interaction: `<qti-hotspot-interaction response-identifier="${response}" max-choices="1"><img src="images/sign.png" alt="Sign" width="100" height="100"/><qti-hotspot-choice identifier="${name}" shape="circle" coords="50,50,10"/></qti-hotspot-interaction>`,
+      };
+    }
+    case "hottext": {
+      return {
+        declaration: declaration("identifier"),
+        interaction: `<qti-hottext-interaction response-identifier="${response}" max-choices="1"><p><qti-hottext identifier="${name}">x</qti-hottext></p></qti-hottext-interaction>`,
+      };
+    }
+    case "gapText": {
+      return {
+        declaration: declaration("directedPair"),
+        interaction: gapMatch(name, fillerOf(at)),
+      };
+    }
+    case "gap": {
+      return {
+        declaration: declaration("directedPair"),
+        interaction: gapMatch(fillerOf(at), name),
+      };
+    }
+  }
+};
+
+/**
+ * The edits that add a case's elements to `simple`'s item: their interactions after its choice
+ * interaction, their responses' declarations before its body.
+ *
+ * @param added - The elements.
+ * @returns The search and replacement pairs, none for no element.
+ */
+const additionsOf = (added: readonly Named[]): readonly (readonly [string, string])[] => {
+  const parts = added.map(interactionOf);
+
+  return added.length === 0
+    ? []
+    : [
+        [
+          "</qti-choice-interaction>",
+          `</qti-choice-interaction>${parts.map(({ interaction }) => interaction).join("")}`,
+        ],
+        [
+          "<qti-item-body>",
+          `${parts.map(({ declaration }) => declaration).join("")}<qti-item-body>`,
+        ],
+      ];
+};
+
+/**
+ * An added element and the filler a gap or a gap text stands beside.
+ *
+ * @param named - The added element.
+ * @param at - Its place, which names its filler.
+ * @returns The element, and its filler where it has one.
+ */
+const withFiller = (named: Named, at: number): readonly Named[] => {
+  switch (named.kind) {
+    case "gapText": {
+      return [named, { kind: "gap", name: fillerOf(at) }];
+    }
+    case "gap": {
+      return [named, { kind: "gapText", name: fillerOf(at) }];
+    }
+    case "simple":
+    case "inline":
+    case "hotspot":
+    case "hottext": {
+      return [named];
+    }
+  }
+};
+
+/**
+ * The elements a case's item holds: its own simple choices, each added element, and the filler a
+ * gap or a gap text stands beside.
+ *
+ * @param added - The added elements.
+ * @returns Every element of the nine classes the item holds.
+ */
+const elementsOf = (added: readonly Named[]): readonly Named[] => [
+  ...baseChoices,
+  ...added.flatMap(withFiller),
+];
+
+/**
+ * Whether reading `choice-identifier-scope` bars two elements from sharing an identifier: each
+ * class's sentence bars its own noun, so two of one class, and the four's "any other choice" bars
+ * an element of the four and any choice of any class; a gap's sentence bars only gaps.
+ *
+ * @param left - One element.
+ * @param right - The other.
+ * @returns Whether one name for both breaks "Choice identifier key".
+ */
+const barredPair = (left: Named, right: Named): boolean =>
+  left.kind === right.kind ||
+  (FOUR_KINDS.has(left.kind) && CHOICE_KINDS.has(right.kind)) ||
+  (FOUR_KINDS.has(right.kind) && CHOICE_KINDS.has(left.kind));
+
+/**
+ * The reading-104 laws an item of these elements breaks by its names: "Choice identifier key"
+ * where two of them that {@link barredPair} bars share an identifier, in the one document whichever
+ * interactions hold them.
+ *
+ * @param elements - The item's elements.
+ * @returns The laws broken.
+ */
+const keyLawsOf = (elements: readonly Named[]): readonly string[] =>
+  elements.some((left, at) =>
+    elements.some(
+      (right, other) => other > at && left.name === right.name && barredPair(left, right),
+    ),
+  )
+    ? ["Choice identifier key"]
+    : [];
+
+/**
+ * The names a simple choice of the variable box takes in place of `ChoiceA`: each item variable of
+ * `simple`, its declared response and outcome, each built-in variable an item declares implicitly
+ * (§2.2.2, §2.2.2.1), and a name no variable has.
+ */
+const VARIABLE_NAMES = [
+  "RESPONSE",
+  "SCORE",
+  "completionStatus",
+  "numAttempts",
+  "duration",
+  "QTI_CONTEXT",
+  "Z",
+] as const;
+
+/**
+ * A case of the variable box: the name `ChoiceA` takes, and whether it is written padded.
+ */
+interface VariableCase {
+  readonly name: (typeof VARIABLE_NAMES)[number];
+  readonly padded: boolean;
+}
+
+/**
+ * Draw a case of the variable box: every name of {@link VARIABLE_NAMES}, bare and padded.
+ */
+const variableCase: Gen<VariableCase> = (source) => ({
+  name: source.draw(element(VARIABLE_NAMES)),
+  padded: source.draw(boolean),
+});
+
+/**
+ * How many cases {@link variableCase} draws: 7 names, bare and padded.
+ */
+const VARIABLE_CASES = 7 * 2;
 
 /**
  * Apply a reading-104 case's edits to the `simple` fixture's item, each search the item must hold.
@@ -546,69 +616,134 @@ const queryNameLawsOf = (inputs: PackageInputs): readonly string[] => {
   ];
 };
 
-describe("qti/interactions.ts, reading `choice-identifier-scope` by the law oracle", () => {
-  it.effect(
-    "breaks Choice not variable and Choice identifier key exactly where reading `choice-identifier-scope` says, over edits of simple's item",
-    () =>
-      Effect.gen(function* choiceNames() {
-        const files = yield* readEntries(fixtures.simple);
-        for (const { breaks, edits, name } of choiceNameCases) {
-          const edited = editedItem(files, edits, name);
-          const judgment = yield* judge(edited, grammar, oracleLaws);
-          assert.strictEqual(judgment._tag, "Judged", name);
+/**
+ * Judge a case's edits of `simple`'s item by the law oracle and by the schema's laws over the
+ * import's rows, and hold both to the reading-104 laws the case breaks.
+ *
+ * @param files - The fixture's files.
+ * @param edits - The case's search and replacement pairs.
+ * @param expected - The laws reading `choice-identifier-scope` says the case breaks.
+ * @param name - The case, for a failure's words.
+ * @returns Nothing; fails the case where either judge differs.
+ */
+const choiceNamesHold = (
+  files: readonly PackageFile[],
+  edits: readonly (readonly [string, string])[],
+  expected: readonly string[],
+  name: string,
+) =>
+  Effect.scoped(
+    Effect.gen(function* choiceNamesJudged() {
+      const edited = editedItem(files, edits, name);
+      const judgment = yield* judge(edited, grammar, oracleLaws);
+      assert.strictEqual(judgment._tag, "Judged", name);
 
-          const found = judgment._tag === "Judged" ? judgment.breaches.map(({ law }) => law) : [];
-          assert.sameMembers(
-            [
-              ...new Set(
-                found.filter(
-                  (law) => law === "Choice identifier key" || law === "Choice not variable",
-                ),
-              ),
-            ],
-            [...breaks],
-            `${name}: reading \`choice-identifier-scope\`, by the law oracle`,
-          );
-        }
-      }).pipe(Effect.provide(NodeServices.layer)),
+      const oracle = [
+        ...new Set(
+          (judgment._tag === "Judged" ? judgment.breaches : [])
+            .map(({ law }) => law)
+            .filter((law) => choiceNameLaws.has(law)),
+        ),
+      ];
+      const dir = yield* scopedPackage(new Map(edited.map((file) => [file.path, file.bytes])));
+      const program = yield* readProgram(dir, nameOf(dir));
+      assert.sameMembers(
+        oracle,
+        [...expected],
+        `${name}: reading \`choice-identifier-scope\`, by the law oracle`,
+      );
+      assert.sameMembers(
+        [
+          ...new Set([
+            ...hostChoiceNameLawsOf(program.inputs, name),
+            ...queryNameLawsOf(program.inputs),
+          ]),
+        ],
+        [...expected],
+        `${name}: the schema's laws over the import's rows (#pantry/test/host-judge.ts), the per-class keys and the two rules over queries restated on the host (queryNameLawsOf), which the host judge reads none of`,
+      );
+    }),
+  );
+
+describe("qti/interactions.ts, reading `choice-identifier-scope` by the law oracle and the import's rows", () => {
+  it.effect(
+    `breaks Choice identifier key exactly where reading \`choice-identifier-scope\` bars two elements' shared name, over simple's item with up to two elements added: ${String(ADDED_CASES)} items`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(addedElements, ADDED_CASES),
+        searched(
+          ctx,
+          Effect.gen(function* choiceNames() {
+            const files = yield* readEntries(fixtures.simple);
+
+            return yield* exhaust(
+              {
+                box: "simple's item with up to two elements added, each a simple choice, an inline choice, a hotspot choice, a hottext, a gap text or a gap, named ChoiceA, one of its own simple choices' names, or H, each in an interaction of its own",
+                caseHang: Duration.seconds(30),
+                coverage: requiredInSpace<"broken" | "held">(["broken", "held"]),
+                generator: addedElements,
+                literal: Formatter.format,
+                oracle: {
+                  kind: "specification",
+                  name: "reading `choice-identifier-scope` as amended (§5.132.1, §5.55.1, §5.58.1, §5.65.1, §5.67.1, §5.73.1, §6.17, §7.16): each class's sentence bars its own noun, so two elements of one class never share a name in a document, the four whose noun is choice share theirs with no other choice of any class, and a gap is no choice (keyLawsOf); the law oracle and the schema's laws over the import's rows must both give it",
+                },
+                suite: "qti/interactions-choice-names",
+              },
+              (added, c) => {
+                const expected = keyLawsOf(elementsOf(added));
+                c.note(expected.length > 0 ? "broken" : "held");
+
+                return choiceNamesHold(
+                  files,
+                  additionsOf(added),
+                  expected,
+                  Formatter.format(added),
+                );
+              },
+            );
+          }),
+        ),
+      ).pipe(Effect.provide(NodeServices.layer)),
   );
 
   it.effect(
-    "breaks the same reading-104 laws by the schema's laws over the import's rows as by the law oracle",
-    () =>
-      Effect.gen(function* choiceNamesByRows() {
-        const files = yield* readEntries(fixtures.simple);
-        for (const { breaks, edits, name } of choiceNameCases) {
-          const edited = editedItem(files, edits, name);
-          const judgment = yield* judge(edited, grammar, oracleLaws);
-          assert.strictEqual(judgment._tag, "Judged", name);
+    `breaks Choice not variable exactly where a choice bears an item variable's name, compared collapsed: ${String(VARIABLE_CASES)} items`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(variableCase, VARIABLE_CASES),
+        searched(
+          ctx,
+          Effect.gen(function* choiceVariables() {
+            const files = yield* readEntries(fixtures.simple);
 
-          const oracle = [
-            ...new Set(
-              (judgment._tag === "Judged" ? judgment.breaches : [])
-                .map(({ law }) => law)
-                .filter((law) => choiceNameLaws.has(law)),
-            ),
-          ];
-          const dir = yield* scopedPackage(new Map(edited.map((file) => [file.path, file.bytes])));
-          const program = yield* readProgram(dir, nameOf(dir));
-          assert.sameMembers(
-            oracle,
-            [...breaks],
-            `${name}: the law oracle's choice names, which group the document's choices by class and by identifier alone`,
-          );
-          assert.sameMembers(
-            [
-              ...new Set([
-                ...hostChoiceNameLawsOf(program.inputs, name),
-                ...queryNameLawsOf(program.inputs),
-              ]),
-            ],
-            [...breaks],
-            `${name}: the schema's laws over the import's rows (#pantry/test/host-judge.ts), the per-class keys and the two rules over queries restated on the host (queryNameLawsOf), which the host judge reads none of`,
-          );
-        }
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
+            return yield* exhaust(
+              {
+                box: "simple's item with its choice ChoiceA named RESPONSE, SCORE, each built-in variable or Z, bare and padded with a space each side",
+                caseHang: Duration.seconds(30),
+                coverage: requiredInSpace<"broken" | "held">(["broken", "held"]),
+                generator: variableCase,
+                literal: Formatter.format,
+                oracle: {
+                  kind: "specification",
+                  name: "reading `choice-identifier-scope`: no choice of an item bears the identifier of a declaration of its document or of a built-in variable, completionStatus, numAttempts, duration and QTI_CONTEXT (§2.2.2, §2.2.2.1), identifiers compared collapsed (reading `typed-value-whitespace`); the law oracle and the schema's laws over the import's rows must both give it",
+                },
+                suite: "qti/interactions-choice-variables",
+              },
+              ({ name, padded }, c) => {
+                const expected = name === "Z" ? [] : ["Choice not variable"];
+                c.note(expected.length > 0 ? "broken" : "held");
+
+                return choiceNamesHold(
+                  files,
+                  [['identifier="ChoiceA"', `identifier="${padded ? ` ${name} ` : name}"`]],
+                  expected,
+                  `ChoiceA named ${JSON.stringify(padded ? ` ${name} ` : name)}`,
+                );
+              },
+            );
+          }),
+        ),
+      ).pipe(Effect.provide(NodeServices.layer)),
   );
 });
 
@@ -646,8 +781,8 @@ interface ModuleForms {
  * @param content - What follows its module element, as written: by default its empty markup.
  * @returns The interaction's text.
  */
-const pciOf = ({ attribute, element }: ModuleForms, content: string) =>
-  `<qti-portable-custom-interaction response-identifier="RESPONSE"${attribute ? ` module="m"` : ""} custom-interaction-type-identifier="t">${element ? moduleElement : ""}${content}</qti-portable-custom-interaction>`;
+const pciOf = (forms: ModuleForms, content: string) =>
+  `<qti-portable-custom-interaction response-identifier="RESPONSE"${forms.attribute ? ` module="m"` : ""} custom-interaction-type-identifier="t">${forms.element ? moduleElement : ""}${content}</qti-portable-custom-interaction>`;
 
 /**
  * The base item with its choice interaction replaced.
@@ -679,26 +814,54 @@ const pciBreachesOf = (forms: ModuleForms) =>
     breachesOfLaw("PCI module source"),
   );
 
+/**
+ * Draw a case of the module box: a PCI that writes `module` or not, and `qti-interaction-modules`
+ * or not.
+ */
+const moduleForms: Gen<ModuleForms> = (source) => ({
+  attribute: source.draw(boolean),
+  element: source.draw(boolean),
+});
+
+/**
+ * How many cases {@link moduleForms} draws: each form written or not.
+ */
+const MODULE_FORMS = 2 * 2;
+
 describe("qti/interactions.ts, PCI module source", () => {
   it.effect(
-    "is broken once by a PCI with neither module form, and by none that writes `module`, `qti-interaction-modules` or both",
-    () =>
-      Effect.gen(function* moduleSource() {
-        const neither = yield* pciBreachesOf({ attribute: false, element: false });
-        assert.lengthOf(
-          neither,
-          1,
-          `${shown(neither)}: the information model's §5.106.2, "If this characteristic is provided the qti-interaction-modules child attribute is not required, if omitted then the modules child element is mandatory" (R10-a), read as a count of the forms each PCI writes`,
-        );
-        for (const forms of [
-          { attribute: true, element: false },
-          { attribute: false, element: true },
-          { attribute: true, element: true },
-        ]) {
-          const held = yield* pciBreachesOf(forms);
-          assert.lengthOf(held, 0, shown(held));
-        }
-      }),
+    `is broken once by a PCI with neither module form, and by none that writes \`module\`, \`qti-interaction-modules\` or both: ${String(MODULE_FORMS)} PCIs`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(moduleForms, MODULE_FORMS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "a PCI of the base item writing module or not and qti-interaction-modules or not",
+              caseHang: Duration.seconds(30),
+              coverage: noCoverage,
+              generator: moduleForms,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: 'the information model\'s §5.106.2, "If this characteristic is provided the qti-interaction-modules child attribute is not required, if omitted then the modules child element is mandatory" (R10-a), read as a count of the forms each PCI writes: PCI module source breaks once where it writes neither',
+              },
+              suite: "qti/interactions-pci-module",
+            },
+            (forms) =>
+              Effect.gen(function* moduleSource() {
+                const breaches = yield* pciBreachesOf(forms);
+
+                assert.lengthOf(
+                  breaches,
+                  forms.attribute || forms.element ? 0 : 1,
+                  `${Formatter.format(forms)}: ${shown(breaches)}`,
+                );
+              }),
+          ),
+        ),
+      ),
   );
 });
 
