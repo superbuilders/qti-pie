@@ -57,28 +57,39 @@ const committedError = matchesCommitted("error");
 const errorObjectOf = Schema.decodeUnknownOption(Schema.fromJsonString(ErrorObject));
 
 /**
- * The packages the importer refused, with the rules each was refused under, as the verdict file
- * writes them.
+ * What a suite's cases so far found: vitest runs a file's cases in order, and the last case reads
+ * it. The suite makes one ({@link emptyTally}) and hands it to its cases.
  */
-const refusals: { readonly name: string; readonly rule: string }[] = [];
+interface Tally {
+  accepted: number;
+  equalEntries: number;
+  /**
+   * The packages the importer refused, with the rules each was refused under, as the verdict file
+   * writes them.
+   */
+  readonly refused: { readonly name: string; readonly rule: string }[];
+  slowestImport: { readonly millis: number; readonly name: string };
+  slowestRoundtrip: { readonly millis: number; readonly name: string };
+  /**
+   * The verdict of every package the cases judged, keyed to the tarball member it came from; the
+   * last case renders them as the verdict file.
+   */
+  readonly verdicts: VerdictRow[];
+}
 
 /**
- * The verdict of every package the cases judged, keyed to the tarball member it came from; the last
- * case renders them as the verdict file.
+ * A suite's tally before its first case.
+ *
+ * @returns The tally, empty.
  */
-const verdicts: VerdictRow[] = [];
-
-/**
- * What the cases so far found, kept in the file's scope: vitest runs a file's cases in order, and
- * the last case reads this.
- */
-const tally = {
+const emptyTally = (): Tally => ({
   accepted: 0,
   equalEntries: 0,
-  refused: refusals,
+  refused: [],
   slowestImport: { millis: 0, name: "" },
   slowestRoundtrip: { millis: 0, name: "" },
-};
+  verdicts: [],
+});
 
 /**
  * The lines of standard error that decode as an {@link ErrorObject}; any other line is not counted.
@@ -98,6 +109,7 @@ const texts = (facts: readonly { readonly text: string }[]): readonly string[] =
  * (`nameOf`), and, where it is accepted, export the stored package and compare the export with its
  * source.
  *
+ * @param tally - The suite's tally, whose slowest import the run may be.
  * @param entry - The corpus package: its zip, its tarball member and its name.
  * @param entry.dir - The zip.
  * @param entry.member - Its tarball member.
@@ -105,11 +117,14 @@ const texts = (facts: readonly { readonly text: string }[]): readonly string[] =
  * @returns The import's outcome, a success or the refusal, and the comparison's report, empty for a
  *   refused package.
  */
-const importerRun = Effect.fn("cli.corpus.importerRun")(function* importerRun(entry: {
-  readonly dir: string;
-  readonly member: string;
-  readonly name: string;
-}) {
+const importerRun = Effect.fn("cli.corpus.importerRun")(function* importerRun(
+  tally: Tally,
+  entry: {
+    readonly dir: string;
+    readonly member: string;
+    readonly name: string;
+  },
+) {
   const fs = yield* FileSystem.FileSystem;
   const cwd = path.join(scratchRoot, entry.member);
   const directTarget = path.join(cwd, "direct");
@@ -147,12 +162,6 @@ const importerRun = Effect.fn("cli.corpus.importerRun")(function* importerRun(en
 type ImporterRun = Effect.Success<ReturnType<typeof importerRun>>;
 
 /**
- * Each corpus package's importer run, by its tarball member: its importer case records it, and its
- * CLI case, which vitest runs after it, reads it.
- */
-const importerRuns = new Map<string, ImporterRun>();
-
-/**
  * Run one corpus package through the CLI, and assert the CLI lands it where the importer did: the
  * same package, entry for entry, or the same rules and the laws the database named.
  *
@@ -166,6 +175,9 @@ const importerRuns = new Map<string, ImporterRun>();
  * Content Packaging makes unique within one manifest alone, so each is stored under its own name
  * and no case meets the package of another.
  *
+ * @param tally - The suite's tally, which the judgment adds the package's verdict to.
+ * @param importerRuns - Each corpus package's importer run, by its tarball member, as its importer
+ *   case recorded it.
  * @param entry - The corpus package: its zip, its tarball member and its name.
  * @param entry.dir - The zip.
  * @param entry.member - Its tarball member.
@@ -173,11 +185,15 @@ const importerRuns = new Map<string, ImporterRun>();
  * @returns Nothing; fails where the CLI lands the package elsewhere, or where its importer case
  *   recorded no run.
  */
-const judge = Effect.fn("cli.corpus.judge")(function* judge(entry: {
-  readonly dir: string;
-  readonly member: string;
-  readonly name: string;
-}) {
+const judge = Effect.fn("cli.corpus.judge")(function* judge(
+  tally: Tally,
+  importerRuns: ReadonlyMap<string, ImporterRun>,
+  entry: {
+    readonly dir: string;
+    readonly member: string;
+    readonly name: string;
+  },
+) {
   const importer = importerRuns.get(entry.member);
 
   assert.isDefined(importer, `${entry.name}: its importer case recorded no run`);
@@ -242,7 +258,7 @@ const judge = Effect.fn("cli.corpus.judge")(function* judge(entry: {
       assert.strictEqual(errors[0]?.kind, "roundtrip-differs", `${entry.name}: the CLI's kind`);
     }
 
-    verdicts.push({ file: entry.member, rules: [], verdict: "accepted" });
+    tally.verdicts.push({ file: entry.member, rules: [], verdict: "accepted" });
     tally.accepted += 1;
     tally.equalEntries += report.length - differing;
   } else {
@@ -272,7 +288,7 @@ const judge = Effect.fn("cli.corpus.judge")(function* judge(entry: {
       Option.isNone(laws),
       `${entry.name}: the CLI gives sources exactly when the database refused the package`,
     );
-    verdicts.push({ file: entry.member, rules, verdict: "refused" });
+    tally.verdicts.push({ file: entry.member, rules, verdict: "refused" });
     tally.refused.push({ name: entry.name, rule: rules.join("|") });
   }
 });
@@ -292,16 +308,23 @@ describe.skipIf(!hasLease)("cli.corpus.db.test.ts, on the lease", () => {
       excludeTestServices: true,
     },
   )("the CLI against the importer over the corpus", (it) => {
+    const tally = emptyTally();
+    /**
+     * Each corpus package's importer run, by its tarball member: its importer case records it, and
+     * its CLI case, which vitest runs after it, reads it.
+     */
+    const importerRuns = new Map<string, ImporterRun>();
+
     // Each package is two cases, the two halves of its judgment: the importer's run, then the
     // CLI's, which reads what the importer's recorded.
     for (const entry of corpus) {
       it.effect(`${entry.name} through the importer`, () =>
         Effect.gen(function* importerCase() {
-          importerRuns.set(entry.member, yield* importerRun(entry));
+          importerRuns.set(entry.member, yield* importerRun(tally, entry));
         }),
       );
       it.effect(`${entry.name} lands through the CLI as it does through the importer`, () =>
-        judge(entry),
+        judge(tally, importerRuns, entry),
       );
     }
 
@@ -332,7 +355,7 @@ describe.skipIf(!hasLease)("cli.corpus.db.test.ts, on the lease", () => {
 
         yield* fs.makeDirectory(path.dirname(fresh), { recursive: true });
 
-        const rendered = yield* renderVerdicts(verdicts);
+        const rendered = yield* renderVerdicts(tally.verdicts);
 
         yield* fs.writeFileString(fresh, rendered);
 

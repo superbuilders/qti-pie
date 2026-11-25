@@ -122,7 +122,7 @@ const dataSsmlAttributes = select(Attribute, (a) => a.eq(a.name, "data-ssml"));
 /**
  * Every member Data-SSML 1.0 lists.
  */
-const memberNames = [...dataSsmlMembers.keys()];
+const memberNames = [...dataSsmlMembers.keys()] as const;
 
 /**
  * Every (member, property) pair the schema lists.

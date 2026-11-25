@@ -178,15 +178,19 @@ const resultBases = byKind(ResultBase.rows, ({ base }) => base);
 
 const resultCardinalities = byKind(ResultCardinality.rows, ({ cardinality }) => cardinality);
 
-const arities = new Map(OperatorArity.rows.map((row) => [row.kind, row] as const));
+const arities: ReadonlyMap<string, (typeof OperatorArity.rows)[number]> = new Map(
+  OperatorArity.rows.map((row) => [row.kind, row] as const),
+);
 
-const maxima = new Map(OperatorMax.rows.map((row) => [row.kind, row.max] as const));
+const maxima: ReadonlyMap<string, (typeof OperatorMax.rows)[number]["max"]> = new Map(
+  OperatorMax.rows.map((row) => [row.kind, row.max] as const),
+);
 
-const spellings = new Map(
+const spellings: ReadonlyMap<string, (typeof VariableReference.rows)[number]["spelling"]> = new Map(
   VariableReference.rows.map(({ attribute, kind, spelling }) => [`${kind} ${attribute}`, spelling]),
 );
 
-const referenceBases = new Map(
+const referenceBases: ReadonlyMap<string, (typeof ReferenceBase.rows)[number]["base"]> = new Map(
   ReferenceBase.rows.map(({ attribute, base, kind }) => [`${kind} ${attribute}`, base]),
 );
 
@@ -198,7 +202,7 @@ const spelledBases: ReadonlySet<string> = new Set(
   valueBases.filter((base) => base !== "any" && base !== "unknown"),
 );
 
-const literalPatterns = new Map(
+const literalPatterns: ReadonlyMap<string, RegExp> = new Map(
   BaseTypePattern.rows.map(({ baseType, pattern }) => [baseType, regex.as(pattern, "u")]),
 );
 

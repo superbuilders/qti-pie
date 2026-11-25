@@ -55,7 +55,9 @@ const base = everyRelationPackage({ choices: 2, hotspots: 1, hottexts: 1 });
 /**
  * Each resource type `RootOfType` maps, once, in the grammar's order.
  */
-const documentTypes = [...new Set(grammar.package.rootOfType.rows.map(({ type }) => type))];
+const documentTypes = [
+  ...new Set(grammar.package.rootOfType.rows.map(({ type }) => type)),
+] as const;
 
 /**
  * One case: the type of the resource added, and the href it and its one file write.

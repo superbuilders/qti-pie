@@ -286,4 +286,4 @@ export const shareLaws = [
     on(PlacedShareTarget, "package", "assembly", "targetInstance", "targetStart"),
     on(PlacedMathRank, "package", "assembly", "instance", "start"),
   ),
-];
+] as const;

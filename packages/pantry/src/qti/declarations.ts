@@ -90,7 +90,7 @@ export const sessionVariables = [
       .filter(({ declaration }) => declaration !== "qti-context-declaration")
       .map(({ variable }) => variable),
   ),
-];
+] as const;
 
 /**
  * The session variables an item's declaration may not name: the three of an item, `numAttempts`,

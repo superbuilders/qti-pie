@@ -367,4 +367,4 @@ export const alignLaws = [
   leafFamily,
   leafStartFold,
   check("E1_derived", CellLeaf, (l) => l.gt(l.start, l.startWas)),
-];
+] as const;

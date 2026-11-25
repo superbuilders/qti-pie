@@ -22,7 +22,7 @@ export const mathmlRelations = [...cnRelations, ...alignRelations, ...shareRelat
  * The statements of the three MathML families, in the order cn, align, share, before
  * {@link mathmlLawsByName} gives each its law's entry.
  */
-const mathmlStatements = [...cnLaws, ...alignLaws, ...shareLaws];
+const mathmlStatements = [...cnLaws, ...alignLaws, ...shareLaws] as const;
 
 /**
  * The checks of {@link mathmlStatements} that one name names.
@@ -69,7 +69,7 @@ export const mathmlLawsByName = {
     ...Object.values(cnCountLaws),
     ...checksNamed("MathML_cn_form"),
   ]),
-};
+} as const;
 
 /**
  * The laws of the three MathML families, each with its entry: {@link mathmlLawsByName}'s groups,
@@ -83,4 +83,4 @@ export const mathmlLaws = [
       statement.name !== "E1_derived" &&
       statement.name !== "MathML_cn_form",
   ),
-];
+] as const;

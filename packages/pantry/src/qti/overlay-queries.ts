@@ -125,4 +125,4 @@ export const overlayQueryLaws = [
   ...readingLaws,
   ...referenceOverlayLaws,
   ...testOverlayLaws,
-];
+] as const;

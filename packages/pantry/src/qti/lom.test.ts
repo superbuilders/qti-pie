@@ -198,7 +198,7 @@ const writtenValues = [
     " author",
     "replaces",
   ]),
-];
+] as const;
 
 /**
  * Whether a node's parent is a term of a vocabulary LOM vocabulary reads.
@@ -363,7 +363,7 @@ describe("LOM vCard", () => {
  * The typed views of what a package may state: its classifications (its grades and subjects among
  * them) with their taxa's names, its credits and its relations (its sources among them).
  */
-const statedViews = new Set<unknown>([
+const statedViews: ReadonlySet<unknown> = new Set([
   PackageClassification,
   TaxonEntry,
   PackageCredit,
@@ -374,7 +374,7 @@ const statedViews = new Set<unknown>([
  * The whole heading of each term view a key of the level orders, written apart from the views:
  * a classification's purpose, taxon path source and taxon id, and a taxon's names, each by package.
  */
-const wholeHeadings = new Map<unknown, readonly string[]>([
+const wholeHeadings: ReadonlyMap<unknown, readonly string[]> = new Map<unknown, readonly string[]>([
   [PackageClassification, ["id", "package", "purpose", "source"]],
   [TaxonEntry, ["entry", "id", "package", "source"]],
 ]);
@@ -384,7 +384,7 @@ const wholeHeadings = new Map<unknown, readonly string[]>([
  * and the LOM texts its views key as written, which "Key text bound" holds to the bound their
  * views' keys hold them to, a stated limit of the representation.
  */
-const judgedRelations = new Set<unknown>([LomTerm, RecordNode, LomKeyTextBytes]);
+const judgedRelations: ReadonlySet<unknown> = new Set([LomTerm, RecordNode, LomKeyTextBytes]);
 
 describe("the LOM level", () => {
   it("states each law of lomLawsByName and no other, each law named by its group's entry", () => {

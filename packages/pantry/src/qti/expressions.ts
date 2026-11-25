@@ -379,12 +379,12 @@ const floatName = Text.pattern("^[\\t\\n\\r ]*(?:INF|NaN)[\\t\\n\\r ]*$");
  */
 const floatReferenceKinds = [
   ...new Set(ReferenceBase.rows.flatMap(({ base, kind }) => (base === "float" ? [kind] : []))),
-];
+] as const;
 
 /**
  * The processing kinds that make variable references.
  */
-const referringKinds = [...new Set(processingReferences.map(({ kind }) => kind))];
+const referringKinds = [...new Set(processingReferences.map(({ kind }) => kind))] as const;
 
 /**
  * The attributes processing names variables by, on the kinds that make them, each of which has its

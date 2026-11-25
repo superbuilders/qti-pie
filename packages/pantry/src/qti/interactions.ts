@@ -755,7 +755,7 @@ const referenceFields = {
   package: PackageName,
   path: EntryPath,
   start: natural,
-};
+} as const;
 
 /**
  * A feedback element's outcome, keyed by its element's place and `outcome-identifier` (reading
@@ -811,7 +811,7 @@ const fragmentNameFields = {
   package: PackageName,
   path: EntryPath,
   start: natural,
-};
+} as const;
 
 /**
  * An included fragment's feedback outcome reference, a feedback element's `outcome-identifier`,
@@ -951,7 +951,7 @@ const fragmentReferenceFields = {
   package: PackageName,
   path: EntryPath,
   start: natural,
-};
+} as const;
 
 /**
  * A fragment's feedback reference resolved under one placement, keyed by the placement's
@@ -1267,7 +1267,7 @@ const referenceSources = {
     v.and(v.in(v.rootKind, referringRoots), printedReference(v)),
   ),
   template: referenceReadOf(references.template.attributes, references.template.kinds),
-};
+} as const;
 
 /**
  * Select the read attributes a fragment's references of one class are: the class's attributes on
@@ -1301,7 +1301,7 @@ const fragmentSources = {
     v.and(v.not(v.in(v.rootKind, referringRoots)), printedReference(v)),
   ),
   template: fragmentReferenceOf(references.template),
-};
+} as const;
 
 /**
  * The placements `FragmentScope` holds: every instance of an assembly whose root's references

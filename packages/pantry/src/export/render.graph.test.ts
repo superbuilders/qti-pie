@@ -170,7 +170,7 @@ const chainTo = (reached: ReadonlyMap<string, Reached>, file: string): string =>
  * the grammar's closed relations, which every composition builds and every module that composes
  * reaches, so no module that reaches them is in the graph either.
  */
-const forbidden = [regex("^vocab/inventory/", "u"), regex("^grammar/closed\\.ts$", "u")];
+const forbidden = [regex("^vocab/inventory/", "u"), regex("^grammar/closed\\.ts$", "u")] as const;
 
 /**
  * The bytes of source render.ts may load, crust's included, about 3% above the 177,872 its 17
