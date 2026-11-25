@@ -91,7 +91,7 @@ import type { HeldRootsUnder, NamesUnder, TypesAvailable } from "#pantry/grammar
 import { packageGrammar } from "#pantry/grammar/package.ts";
 import { references } from "#pantry/grammar/references.ts";
 import { expandedNameOf, xsiTypesOf } from "#pantry/grammar/xsi.ts";
-import type { XsiTypeError, XsiTypes } from "#pantry/grammar/xsi.ts";
+import type { UnderivedType, XsiTypes } from "#pantry/grammar/xsi.ts";
 import type { References } from "#pantry/grammar/references.ts";
 import type { PackageGrammar } from "#pantry/grammar/package.ts";
 import {
@@ -109,6 +109,7 @@ import type {
   AttributeWildcard,
   ContentModel,
   Domain,
+  GlobalAttributeDeclaration,
   Source,
   TypeText,
 } from "#pantry/vocab/inventory/types.ts";
@@ -375,7 +376,7 @@ const wildAttributesOf = (
     wildcard: Pick<AttributeWildcard, "namespace" | "processing">,
     kind: string,
     declaresId: boolean,
-  ): readonly open.GlobalAttribute[] =>
+  ): readonly GlobalAttributeDeclaration[] =>
     open
       .attributesUnder(wildcard, namespaceOf(kind))
       .filter(
@@ -393,7 +394,7 @@ const wildAttributesOf = (
  * @param kind - The element's kind.
  * @returns The attributes.
  */
-const xsiAttributesOn = (kind: string): readonly open.GlobalAttribute[] =>
+const xsiAttributesOn = (kind: string): readonly GlobalAttributeDeclaration[] =>
   open.xsiAttributes.filter(({ name }) => name !== "xsi:nil" || isForeignKind(kind));
 
 /**
@@ -684,7 +685,7 @@ export type ComposedGrammar = Grammar<Kind, Name>;
 /**
  * The ways a composition has no grammar: a generator's refusal of its rows.
  */
-export type ComposeError = AttributeGrammarError | ChildError | ContentError | XsiTypeError;
+export type ComposeError = AttributeGrammarError | ChildError | ContentError | UnderivedType;
 
 /**
  * Read a `TypeName` handle's namespace.

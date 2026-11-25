@@ -169,7 +169,7 @@ export interface XsiTypes<K extends string = string> {
 
 /**
  * A model declares a type that no derivation lists, so the types validly derived from it are not
- * known.
+ * known: the one way the `xsi:type` relations are not generated.
  */
 export class UnderivedType extends Schema.TaggedError<UnderivedType>()("UnderivedType", {
   kind: Schema.String,
@@ -182,11 +182,6 @@ export class UnderivedType extends Schema.TaggedError<UnderivedType>()("Underive
     return `${this.kind} declares the type ${this.type}, which no type derivation lists, so the types its xsi:type may name are unknown. Derive the type's derivations.`;
   }
 }
-
-/**
- * The ways the `xsi:type` relations are not generated: a declared type no derivation lists.
- */
-export type XsiTypeError = UnderivedType;
 
 /**
  * The derivations read for lookup: each type's derived names, by the type's handle, and the
@@ -233,7 +228,7 @@ export const xsiTypesOf = (input: {
   readonly derivations: readonly TypeDerivation[];
   readonly kinds: Roster<string>;
   readonly models: readonly (ContentModel & { readonly namespace: NamespaceOfKind })[];
-}): Result.Result<XsiTypes, XsiTypeError> =>
+}): Result.Result<XsiTypes, UnderivedType> =>
   Result.gen(function* generateXsiTypes() {
     const { derivedFrom, names } = derivationIndexOf(input.derivations);
     const rows: XsiTypeRow[] = [];

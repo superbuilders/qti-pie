@@ -240,12 +240,6 @@ export const typeAvailable = (parent: NamespaceOfKind, type: NamespaceName): boo
   (type._tag === "in" && type.uri === xsNamespace) || sharesSet(parent, type);
 
 /**
- * One attribute a schema declares globally, which a kind admits under its closed handle: its
- * handle, its value type and that type's domain, as the derived leaf states them.
- */
-export type GlobalAttribute = GlobalAttributeDeclaration;
-
-/**
  * The XML-namespace attributes `w3/xml.xsd` declares globally, as it declares them (fin.md, D2's
  * refinement). A `lax` or `strict` wildcard validates each against its declaration, so these are
  * the types a kind under either admits them with ({@link xmlAttributesUnder}).
@@ -255,8 +249,8 @@ export type GlobalAttribute = GlobalAttributeDeclaration;
  * (`cpext/imsqtiv3p0p1_cpextv1p2_v1p0.xsd` line 10), {@link xlinkAttributes}; and XML Schema
  * itself declares the four `xsi:` names, {@link xsiAttributes}.
  */
-export const xmlAttributes: readonly GlobalAttribute[] = globalAttributes.filter(({ name }) =>
-  name.startsWith("xml:"),
+export const xmlAttributes: readonly GlobalAttributeDeclaration[] = globalAttributes.filter(
+  ({ name }) => name.startsWith("xml:"),
 );
 
 /**
@@ -267,8 +261,8 @@ export const xmlAttributes: readonly GlobalAttribute[] = globalAttributes.filter
  * their closed handles only where its documents are assessed against that set (C30 of
  * `docs/research/up.md`).
  */
-export const xlinkAttributes: readonly GlobalAttribute[] = globalAttributes.filter(({ name }) =>
-  name.startsWith("xlink:"),
+export const xlinkAttributes: readonly GlobalAttributeDeclaration[] = globalAttributes.filter(
+  ({ name }) => name.startsWith("xlink:"),
 );
 
 /**
@@ -314,7 +308,9 @@ export const holdsGlobals = (
  * @param declared - The global attributes.
  * @returns Them, each under the open type.
  */
-const unvalidated = (declared: readonly GlobalAttribute[]): readonly GlobalAttribute[] =>
+const unvalidated = (
+  declared: readonly GlobalAttributeDeclaration[],
+): readonly GlobalAttributeDeclaration[] =>
   declared.map(({ name }) => ({ ...openAttribute, name }));
 
 /**
@@ -328,7 +324,7 @@ const unvalidated = (declared: readonly GlobalAttribute[]): readonly GlobalAttri
  *
  * @see {@link https://www.w3.org/TR/xmlschema-1/#Wildcard_details | XML Schema 1.0, The Wildcard Schema Component}
  */
-const xmlAttributesUnder: Readonly<Record<Processing, readonly GlobalAttribute[]>> = {
+const xmlAttributesUnder: Readonly<Record<Processing, readonly GlobalAttributeDeclaration[]>> = {
   lax: xmlAttributes,
   skip: unvalidated(xmlAttributes),
   strict: xmlAttributes,
@@ -338,7 +334,7 @@ const xmlAttributesUnder: Readonly<Record<Processing, readonly GlobalAttribute[]
  * XLink's attributes a kind admits under an attribute wildcard that admits XLink's namespace, by
  * the wildcard's processing, as {@link xmlAttributesUnder} reads `xml.xsd`'s.
  */
-const xlinkAttributesUnder: Readonly<Record<Processing, readonly GlobalAttribute[]>> = {
+const xlinkAttributesUnder: Readonly<Record<Processing, readonly GlobalAttributeDeclaration[]>> = {
   lax: xlinkAttributes,
   skip: unvalidated(xlinkAttributes),
   strict: xlinkAttributes,
@@ -355,8 +351,8 @@ const xlinkAttributesUnder: Readonly<Record<Processing, readonly GlobalAttribute
  *
  * @see {@link https://www.w3.org/TR/xmlschema-1/#xsi_type | XML Schema 1.0, 2.6 Schema-Related Markup in Documents Being Validated}
  */
-export const xsiAttributes: readonly GlobalAttribute[] = globalAttributes.filter(({ name }) =>
-  name.startsWith("xsi:"),
+export const xsiAttributes: readonly GlobalAttributeDeclaration[] = globalAttributes.filter(
+  ({ name }) => name.startsWith("xsi:"),
 );
 
 /**
@@ -365,7 +361,7 @@ export const xsiAttributes: readonly GlobalAttribute[] = globalAttributes.filter
  * @param declared - The attributes, each named `<prefix>:<local>`.
  * @returns Their local names.
  */
-const localsOf = (declared: readonly GlobalAttribute[]): ReadonlySet<string> =>
+const localsOf = (declared: readonly GlobalAttributeDeclaration[]): ReadonlySet<string> =>
   new Set(declared.map(({ name }) => name.slice(name.indexOf(":") + 1)));
 
 /**
@@ -517,7 +513,7 @@ const openClassesIn: Readonly<Record<NamespaceClass, readonly OpenClass[]>> = {
  * @param name - The class's handle.
  * @returns Its admission.
  */
-const openAs = (name: OpenClass): GlobalAttribute => ({ ...openAttribute, name });
+const openAs = (name: OpenClass): GlobalAttributeDeclaration => ({ ...openAttribute, name });
 
 /**
  * The attributes an attribute wildcard adds to the kinds of the element that holds it, beside those
@@ -543,7 +539,7 @@ const openAs = (name: OpenClass): GlobalAttribute => ({ ...openAttribute, name }
 export const attributesUnder = (
   { namespace, processing }: Pick<AttributeWildcard, "namespace" | "processing">,
   host: NamespaceOfKind,
-): readonly GlobalAttribute[] => {
+): readonly GlobalAttributeDeclaration[] => {
   const classes = namespaceClassesUnder[namespace];
   const other = classes.includes("other");
   const xml = other && holdsGlobals(host, "xml") ? xmlAttributesUnder[processing] : [];
@@ -573,7 +569,7 @@ const anyTypeWildcard = { namespace: "##any", processing: "lax" } as const satis
  * foreign element stands in documents of every schema set, and admits `xml.xsd`'s and XLink's
  * names with their types ({@link holdsGlobals}).
  */
-export const foreignAttributes: readonly GlobalAttribute[] = attributesUnder(
+export const foreignAttributes: readonly GlobalAttributeDeclaration[] = attributesUnder(
   anyTypeWildcard,
   nameless,
 ).filter(({ name }) => name !== "data-*");
