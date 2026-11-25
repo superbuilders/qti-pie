@@ -5,24 +5,12 @@
  * over generated documents, and its membership checks test the handle of the node's own `Position`
  * field, as the host judge reads them. PostgreSQL judges the laws themselves.
  */
+import nodePath from "node:path";
 import { regex } from "arkregex";
-import {
-  bits,
-  Bits,
-  ChangeSet,
-  counted,
-  fin,
-  fold as foldOf,
-  login,
-  Monoid,
-  natural,
-  on,
-  relation,
-  role,
-  schema,
-} from "@bjornpagen/grizzle";
+import { ChangeSet, login, role } from "@bjornpagen/grizzle";
 import type { Addition, RelationOf } from "@bjornpagen/grizzle";
 import type { RowSource } from "@bjornpagen/grizzle/compile";
+import { nativeSession, openProject } from "@bjornpagen/devtools/native-api";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { drawn as drawnCase, exhaust, explore } from "@bjornpagen/testing/explore";
@@ -42,8 +30,7 @@ import { endsOf, fold } from "#pantry/model/folds.ts";
 import type { FoldedNode, FoldedRows } from "#pantry/model/folds.ts";
 import { shred } from "#pantry/model/shred.ts";
 import type { XdmDocument } from "#pantry/model/xdm.ts";
-import { ElementType, EndCharacter, Node, nodeLaws } from "#pantry/qti/node.ts";
-import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
+import { EndCharacter, Node, nodeLaws } from "#pantry/qti/node.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import { anyRoot, caseHang, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
@@ -62,6 +49,7 @@ import {
 } from "#pantry/test/oracle.ts";
 import type { LawName } from "#pantry/test/oracle.ts";
 import { asi, edit, item, itemResource, manifestOf, packageOf } from "#pantry/test/probe.ts";
+import { Scratch, scratchSchema, StandInAttribute, written } from "#pantry/test/node-scratch.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { searchWidth } from "#pantry/test/settings.ts";
 
@@ -69,109 +57,6 @@ import { searchWidth } from "#pantry/test/settings.ts";
  * The composed grammar `install.ts` declares its relations from, read once when it loads.
  */
 const { grammar } = install;
-
-/**
- * The key fields of a stand-in member: its element's `(package, path, start)` and its own `name`.
- */
-const standInKey = {
-  name: natural,
-  package: PackageName,
-  path: EntryPath,
-  start: natural,
-} as const;
-
-/**
- * A stand-in for the closed attribute family (Q5.05's), so `Node`'s `attributes` and `attrs` are
- * named by a family and a fold as the composed schema names them: a counted family under `Node`,
- * its or fold ending at `attrs`.
- */
-const StandInAttribute = relation(
-  "StandInAttribute",
-  { ...standInKey, slot: bits(install.AttributeSlot) },
-  ["package", "path", "start", "name"],
-);
-
-/**
- * A stand-in for the open attribute family, so `Node`'s `openAttributes` is named by a family.
- */
-const StandInOpenAttribute = relation("StandInOpenAttribute", standInKey, [
-  "package",
-  "path",
-  "start",
-  "name",
-]);
-
-/**
- * The stand-in attribute family.
- */
-const standInAttributes = counted(
-  on(StandInAttribute, "package", "path", "start"),
-  fin(Node, "attributes"),
-);
-
-/**
- * Build a schema of `Node`, the closed relations its statements read, and the two stand-in
- * families, with `nodeLaws` and the families' statements.
- *
- * @returns The schema; building it throws grizzle's `CompileError` for a statement it refuses.
- */
-const scratchSchema = () =>
-  schema(
-    "NodeScratch",
-    [
-      install.AdmissionIn,
-      install.AdmissionMap,
-      install.AnonymousType,
-      install.AttributeSlot,
-      install.Banned,
-      install.BarredOf,
-      install.Capped,
-      install.ContentModel,
-      install.ContentModelOf,
-      install.CountedOf,
-      ElementType,
-      install.Enters,
-      install.Flag,
-      install.FollowMember,
-      install.FollowSet,
-      install.FollowSetOf,
-      install.GoverningOf,
-      install.Governor,
-      install.KindGovernor,
-      install.ModelPositions,
-      install.Needs,
-      Node,
-      install.NodeKind,
-      install.Position,
-      install.SharedModel,
-      install.SharedModelOf,
-      StandInAttribute,
-      StandInOpenAttribute,
-      install.SymbolMember,
-      install.SymbolSet,
-      install.SymbolSetOf,
-      install.TextDomain,
-      install.TypeName,
-      install.ValueDomain,
-      install.XsiType,
-    ],
-    [
-      ...nodeLaws,
-      standInAttributes,
-      foldOf(
-        standInAttributes,
-        Monoid.or,
-        on(StandInAttribute, "package", "path", "start", "slot"),
-        on(Node, "package", "path", "start", "attrs"),
-      ),
-      counted(on(StandInOpenAttribute, "package", "path", "start"), fin(Node, "openAttributes")),
-    ],
-  );
-
-/**
- * The scratch schema, built once for the write type's ChangeSets.
- */
-const Scratch = scratchSchema();
 
 /**
  * Spell a check's name as the oracle law it states: its underscores as spaces, the one change a
@@ -202,22 +87,98 @@ const checkedLaws: readonly LawName[] = [
 ];
 
 /**
- * The fields the host writes on every node but the root fields: a lawful element's values, enough
- * to type a row.
+ * The package folder, `packages/pantry`, where the compiler starts.
  */
-const written = {
-  ancestry: Bits.of(install.Flag, []),
-  chars: "",
-  first: "",
-  governor: "qti-assessment-item",
-  kind: "qti-assessment-item",
-  last: "",
-  nearest: 0n,
-  nearestKind: "document",
-  nearestPath: "item.xml",
-  prefix: "",
-  state: "3",
-} as const;
+const packageRoot = nodePath.resolve(import.meta.dirname, "..", "..");
+
+/**
+ * The module of refused writes, held in memory beside `node.ts`: it is never written to disk.
+ */
+const refusedWritesFile = nodePath.join(import.meta.dirname, "node.refused-writes.ts");
+
+/**
+ * The lines of the module of refused writes before its writes: its imports, `leaf`, the fields the
+ * host writes with no root fields, and `root`, the root fields.
+ */
+const refusedWritesHead = [
+  'import { ChangeSet } from "@bjornpagen/grizzle";',
+  'import { Node } from "#pantry/qti/node.ts";',
+  'import { Scratch, written } from "#pantry/test/node-scratch.ts";',
+  "const leaf = { ...written, children: [] } as const;",
+  'const root = { package: "M", path: "item.xml" } as const;',
+] as const;
+
+/**
+ * A write of `Node` its write type refuses: why, and the rows it inserts, written over `leaf` and
+ * `root` ({@link refusedWritesHead}).
+ */
+interface RefusedWrite {
+  readonly reason: string;
+  readonly rows: string;
+}
+
+/**
+ * The writes `Node`'s write type refuses, one to a line of the module of refused writes: a root
+ * without its root fields, a member that names them, and each field grizzle draws, fills or derives
+ * rather than the host.
+ */
+const refusedWrites: readonly RefusedWrite[] = [
+  { reason: "The root names the root fields: its package and path.", rows: "[{ ...leaf }]" },
+  {
+    reason: "A member takes its root's package and path; it names neither.",
+    rows: "[{ ...leaf, ...root, children: [{ ...leaf, ...root }] }]",
+  },
+  {
+    reason: "A slot is drawn by grizzle from the nesting.",
+    rows: "[{ ...leaf, ...root, at: 0n }]",
+  },
+  {
+    reason: "A position is drawn by grizzle from the nesting.",
+    rows: "[{ ...leaf, ...root, start: 0n }]",
+  },
+  {
+    reason: "The predecessor's state is filled by grizzle along its axis.",
+    rows: '[{ ...leaf, ...root, was: "0" }]',
+  },
+  {
+    reason: "The parent is the nesting's, never the caller's.",
+    rows: "[{ ...leaf, ...root, parent: 0n }]",
+  },
+  {
+    reason: "No field copies a node's characters; the fold steps `chars`.",
+    rows: '[{ ...leaf, ...root, stringPiece: "x" }]',
+  },
+];
+
+/**
+ * TypeScript's error 2345: an argument is not assignable to its parameter's type, here the rows
+ * `insert` takes.
+ */
+const notAssignable = 2345;
+
+/**
+ * Type a module of pantry's held in memory, as `pnpm typecheck` types pantry: the native compiler
+ * opens pantry's project with the module laid over the package's own files at `file`, and finds the
+ * errors of its syntax and types.
+ *
+ * @param file - Where the module stands, a path in `src/` no file holds.
+ * @param text - The module's text.
+ * @returns The module's diagnostics, each by its code and its zero-based line.
+ */
+const compiledDiagnostics = Effect.fn("test.node.compiledDiagnostics")(
+  function* compiledDiagnostics(file: string, text: string) {
+    const api = yield* nativeSession({ cwd: packageRoot });
+    const { program } = yield* openProject({
+      api,
+      config: nodePath.join(packageRoot, "tsconfig.json"),
+      fileSystem: { files: { [file]: text }, kind: "layer" },
+    });
+
+    return [...program.getSyntacticDiagnostics(file), ...program.getSemanticDiagnostics(file)].map(
+      (diagnostic) => ({ code: diagnostic.code, line: diagnostic.startPosition?.line ?? -1 }),
+    );
+  },
+);
 
 describe("Node's declarations", () => {
   it("build into a schema of the closed relations they read, with stand-ins for the attribute and namespace families, and a role and login over it", () => {
@@ -261,14 +222,16 @@ describe("Node's declarations", () => {
     }
   });
 
-  it("types a write as the host's fields alone, the root field required on the root and supplied below it, and no field grizzle draws or fills", () => {
-    /**
-     * Oracle: the specification as a checker, the W5 contract's written fields (§C, with
-     * `ancestry`, `chars`, `first` and `last`, which the host writes and `E1_derived` proves,
-     * `first` and `last` by reading 127; the string value's fold steps `chars` itself), held by the
-     * compiler: `satisfies` holds the written fields to exactly this record, a member written
-     * without the root fields is accepted, and each refusal below is a type error.
-     */
+  /**
+   * Oracle: the specification as a checker, the W5 contract's written fields (§C, with
+   * `ancestry`, `chars`, `first` and `last`, which the host writes and `E1_derived` proves,
+   * `first` and `last` by reading 127; the string value's fold steps `chars` itself), held by the
+   * compiler: `satisfies` holds the written fields to exactly this record, a member written
+   * without the root fields is accepted, and each refused write ({@link refusedWrites}) is one
+   * type error at its own line of a module the native compiler types as pantry's own
+   * ({@link compiledDiagnostics}).
+   */
+  const writeType = Effect.gen(function* writeType() {
     const fields = {
       ancestry: true,
       chars: true,
@@ -289,29 +252,32 @@ describe("Node's declarations", () => {
     const accepted = ChangeSet.empty(Scratch).insert(Node, [
       { ...leaf, ...root, children: [leaf], kind: "document", state: "0" },
     ]);
-    const refused = () => [
-      // @ts-expect-error -- The root names the root fields: its package and path.
-      ChangeSet.empty(Scratch).insert(Node, [{ ...leaf }]),
-      // @ts-expect-error -- A member takes its root's package and path; it names neither.
-      ChangeSet.empty(Scratch).insert(Node, [
-        { ...leaf, ...root, children: [{ ...leaf, ...root }] },
-      ]),
-      // @ts-expect-error -- A slot is drawn by grizzle from the nesting.
-      ChangeSet.empty(Scratch).insert(Node, [{ ...leaf, ...root, at: 0n }]),
-      // @ts-expect-error -- A position is drawn by grizzle from the nesting.
-      ChangeSet.empty(Scratch).insert(Node, [{ ...leaf, ...root, start: 0n }]),
-      // @ts-expect-error -- The predecessor's state is filled by grizzle along its axis.
-      ChangeSet.empty(Scratch).insert(Node, [{ ...leaf, ...root, was: "0" }]),
-      // @ts-expect-error -- The parent is the nesting's, never the caller's.
-      ChangeSet.empty(Scratch).insert(Node, [{ ...leaf, ...root, parent: 0n }]),
-      // @ts-expect-error -- No field copies a node's characters; the fold steps `chars`.
-      ChangeSet.empty(Scratch).insert(Node, [{ ...leaf, ...root, stringPiece: "x" }]),
-    ];
+    const diagnostics = yield* compiledDiagnostics(
+      refusedWritesFile,
+      [
+        ...refusedWritesHead,
+        ...refusedWrites.map(({ rows }) => `ChangeSet.empty(Scratch).insert(Node, ${rows});`),
+      ].join("\n"),
+    );
 
     assert.lengthOf(Object.keys(fields), 13);
     assert.isDefined(accepted);
-    assert.isFunction(refused);
+    assert.deepStrictEqual(
+      diagnostics.map(({ code, line }) => ({
+        code,
+        reason:
+          refusedWrites[line - refusedWritesHead.length]?.reason ??
+          `line ${line}: no refused write`,
+      })),
+      refusedWrites.map(({ reason }) => ({ code: notAssignable, reason })),
+      "each refused write is one error, TS2345, its rows not assignable to Node's write type, at its own line, and no other line of the module fails",
+    );
   });
+
+  it.effect(
+    "types a write as the host's fields alone, the root field required on the root and supplied below it, and no field grizzle draws or fills",
+    () => writeType,
+  );
 
   it("types each end of a node's characters as at most one code point, and writes each as the first or last of its characters", () => {
     /**
