@@ -157,20 +157,17 @@ describe("the host judge's laws", () => {
      * among them.
      */
     const stated = statedLaws().flatMap(([law]) => (judged(law) ? [Formatter.format(law)] : []));
-    const judges = [
-      ["the host judge", judgedLaws(Qti).map(({ law }) => law)],
-      ["the genetic search", evaluatedLaws],
-    ] as const;
+    const hostJudge = new Set(judgedLaws(Qti).map(({ law }) => Formatter.format(law)));
+    const geneticSearch = new Set(evaluatedLaws.map((law) => Formatter.format(law)));
 
-    for (const [label, laws] of judges) {
-      const held = new Set(laws.map((law) => Formatter.format(law)));
-
-      assert.deepStrictEqual(
-        stated.filter((law) => !held.has(law)),
-        [],
-        `laws Qti states that ${label} judges not`,
-      );
-    }
+    assert.deepStrictEqual(
+      stated.flatMap((law) => [
+        ...(hostJudge.has(law) ? [] : [`${law}: the host judge`]),
+        ...(geneticSearch.has(law) ? [] : [`${law}: the genetic search`]),
+      ]),
+      [],
+      "laws Qti states that a host judge judges not, each with the judge",
+    );
   });
 
   it("decodes no statement over a derived relation, a check, a containment either way or a key", () => {
