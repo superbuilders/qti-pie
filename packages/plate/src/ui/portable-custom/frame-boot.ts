@@ -876,7 +876,14 @@ export const bootFrame = (): void => {
   window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
     const cause: unknown = event.reason;
 
-    fail(cause instanceof Error ? cause.message : "A promise in the frame was rejected.");
+    fail(
+      typeof cause === "object" &&
+        cause !== null &&
+        "message" in cause &&
+        typeof cause.message === "string"
+        ? cause.message
+        : "A promise in the frame was rejected.",
+    );
   });
   window.addEventListener("message", onMessage);
   window.addEventListener("pagehide", (event: PageTransitionEvent) => {
