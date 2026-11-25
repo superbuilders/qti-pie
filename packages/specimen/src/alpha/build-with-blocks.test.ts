@@ -61,6 +61,9 @@
  * - B12, one press at a time: a finger that drags a piece while a mouse drag is open ends the mouse's
  *   drag, so one copy follows one pointer and one piece is lifted; the finger's piece goes onto the
  *   mat, and the mouse's release moves nothing.
+ * - B13, the drawing takes every touch: its computed `touch-action` is `none`, so a touch that starts
+ *   on it is the child's alone (B9's taps, drags and floor swipe), never a pan of the page or the
+ *   browser's swipe back.
  *
  * @module
  */
@@ -841,6 +844,17 @@ layer(Layer.effect(Pages, blocksPages), { excludeTestServices: true, timeout: ca
               assert.deepStrictEqual(yield* frame.complete, posted(row.supply, { cubes: 1 }));
             }),
           ),
+      );
+
+      it.effect(`${item.id}: B13, the drawing takes every touch that starts on it`, () =>
+        Effect.scoped(
+          Effect.gen(function* touch() {
+            const { hosted } = yield* hostedItem;
+            const frame = yield* opened(hosted, { list: null });
+
+            assert.strictEqual(yield* frame.touchAction, "none", "touch-action none");
+          }),
+        ),
       );
     }
   },

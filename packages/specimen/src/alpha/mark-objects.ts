@@ -446,6 +446,11 @@ export interface DrawnObject {
   }[];
   readonly pressed: string | null;
   readonly rings: readonly DrawnRing[];
+  /**
+   * The browser's own gestures a touch that starts on the object may make, as it computes them:
+   * `none` where the PCI takes every touch, so a swipe neither pans nor navigates.
+   */
+  readonly touchAction: string;
 }
 
 /**
@@ -457,7 +462,20 @@ export interface DrawnObject {
 export interface Drawn {
   readonly objects: readonly DrawnObject[];
   readonly scatter: DrawnBox | null;
+  /**
+   * The set's own computed `touch-action`: the gestures the browser may make for a touch that
+   * starts on the set between its objects.
+   */
+  readonly setTouchAction: string;
   readonly text: string;
+}
+
+/**
+ * Where the host page stands: its address and how long its history is, each as the page reads it.
+ */
+export interface Whereabouts {
+  readonly history: number;
+  readonly href: string;
 }
 
 /**
@@ -512,6 +530,24 @@ export interface RingPage {
    * Make a fresh frame for the item and settle on its `ready` or `failed`.
    */
   readonly start: (item: MarkItem, start: Start) => Effect.Effect<FrameMessage, MarkObjectsFailure>;
+  /**
+   * Put a finger down at an object's centre, by its place, and swipe it sideways by a distance in
+   * CSS pixels, then lift it, as a child's swipe does on a touch screen: a devtools session of its
+   * own with touch on for the swipe alone. Give where the host page stood before and after (after
+   * a navigation that took its document, the address "navigated away"), and each address it
+   * navigated to meanwhile.
+   */
+  readonly swipe: (
+    place: number,
+    by: number,
+  ) => Effect.Effect<
+    {
+      readonly after: Whereabouts;
+      readonly before: Whereabouts;
+      readonly navigations: readonly string[];
+    },
+    MarkObjectsFailure
+  >;
   /**
    * Give the frame a width, in CSS pixels, as a host's layout would: the harness's frame is 1000
    * wide until this changes it.
@@ -659,12 +695,17 @@ const readDrawn = async (): Promise<Drawn> => {
         })),
         pressed: object.getAttribute("aria-pressed"),
         rings: ringsOf(object, Number(look.opacity)),
+        touchAction: look.touchAction,
       };
     }),
     scatter:
       scatter === undefined
         ? null
         : { height: scatter.height, width: scatter.width, x: scatter.x, y: scatter.y },
+    setTouchAction: Array.from(
+      document.querySelectorAll(part("set")),
+      (set) => getComputedStyle(set).touchAction,
+    ).join(" "),
     text: document.querySelector("[data-pci-dom]")?.textContent ?? "",
   };
 };
@@ -757,6 +798,105 @@ const startHeld = async (
 };
 
 /**
+ * How many moves a swipe makes on its way, each an equal part of its distance.
+ */
+const swipeSteps = 10;
+
+/**
+ * Read where the host page stands.
+ *
+ * @param page The page.
+ * @returns Its address and its history's length.
+ */
+const whereabouts = (page: Page): Effect.Effect<Whereabouts, MarkObjectsFailure> =>
+  attempt("read where the page stands", () =>
+    page.evaluate((): Whereabouts => ({ history: history.length, href: location.href })),
+  );
+
+/**
+ * Swipe one finger sideways from a point of the page, on a devtools session of its own that turns
+ * touch on for the swipe alone and is detached with it: down, `swipeSteps` equal moves, up, then
+ * two of the page's animation frames, which a navigation ends at once. Every address the page's
+ * own frame navigates to meanwhile is noted.
+ *
+ * @param page The page.
+ * @param from Where the finger goes down, in CSS pixels of the page.
+ * @param by How far it moves sideways, in CSS pixels, to the right where positive.
+ * @returns The addresses the page navigated to, none where it stood.
+ */
+const swiped = (
+  page: Page,
+  from: { readonly x: number; readonly y: number },
+  by: number,
+): Effect.Effect<readonly string[], MarkObjectsFailure> =>
+  Effect.scoped(
+    Effect.gen(function* swiping() {
+      const navigations: string[] = [];
+
+      /**
+       * Note a navigation of the page's own frame.
+       *
+       * @param navigated The frame that navigated.
+       */
+      const noted = (navigated: Frame): void => {
+        if (navigated === page.mainFrame()) {
+          navigations.push(navigated.url());
+        }
+      };
+
+      yield* Effect.acquireRelease(
+        Effect.sync(() => page.on("framenavigated", noted)),
+        () => Effect.sync(() => page.off("framenavigated", noted)),
+      );
+
+      const session = yield* Effect.acquireRelease(
+        attempt("open a touch session", () => page.context().newCDPSession(page)),
+        (opened) => Effect.promise(() => opened.detach()),
+      );
+
+      yield* attempt("turn touch on", () =>
+        session.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 }),
+      );
+      yield* attempt("put a finger down", () =>
+        session.send("Input.dispatchTouchEvent", { touchPoints: [from], type: "touchStart" }),
+      );
+      yield* Effect.forEach(
+        Array.from({ length: swipeSteps }, (_unused, step) => step + 1),
+        (step) =>
+          attempt("move the finger", () =>
+            session.send("Input.dispatchTouchEvent", {
+              touchPoints: [{ x: from.x + (by * step) / swipeSteps, y: from.y }],
+              type: "touchMove",
+            }),
+          ),
+        { discard: true },
+      );
+      yield* attempt("lift the finger", () =>
+        session.send("Input.dispatchTouchEvent", { touchPoints: [], type: "touchEnd" }),
+      );
+      yield* attempt("turn touch off", () =>
+        session.send("Emulation.setTouchEmulationEnabled", { enabled: false }),
+      );
+      yield* Effect.ignore(
+        attempt("let the page settle", () =>
+          page.evaluate(async () => {
+            const frames = Promise.withResolvers<number>();
+
+            requestAnimationFrame(() => {
+              requestAnimationFrame((time) => {
+                frames.resolve(time);
+              });
+            });
+            await frames.promise;
+          }),
+        ),
+      );
+
+      return [...navigations];
+    }),
+  );
+
+/**
  * Open a page of the harness in Chrome, on its server.
  *
  * @returns The page, closed with its scope.
@@ -812,6 +952,30 @@ export const ringPage: Effect.Effect<RingPage, MarkObjectsFailure, Scope.Scope> 
           thrown.length = 0;
 
           return page.evaluate<FrameMessage>(startScript(origin, item, start));
+        }),
+      swipe: (place, by) =>
+        Effect.gen(function* swipe() {
+          const step = `find object ${String(place)}`;
+          const box = yield* attempt(step, () =>
+            frame.locator('[data-part="object"]').nth(place).boundingBox(),
+          );
+
+          if (box === null) {
+            return yield* Effect.fail(new MarkObjectsFailure({ cause: "no box", step }));
+          }
+
+          const before = yield* whereabouts(page);
+
+          const navigations = yield* swiped(
+            page,
+            { x: box.x + box.width / 2, y: box.y + box.height / 2 },
+            by,
+          );
+          const after = yield* whereabouts(page).pipe(
+            Effect.orElseSucceed((): Whereabouts => ({ history: -1, href: "navigated away" })),
+          );
+
+          return { after, before, navigations };
         }),
       tap: (places, forced = false) =>
         Effect.forEach(

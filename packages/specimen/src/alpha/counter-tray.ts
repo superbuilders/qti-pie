@@ -968,6 +968,11 @@ export type Gesture = "back" | "move" | "onto" | "release" | "switch";
  * module fired `qti-interaction-changed`; and whether a counter is shown following the pointer.
  */
 export interface Look {
+  /**
+   * The board's computed `touch-action`: the browser's own gestures a touch that starts on it may
+   * make, `none` where the PCI takes every touch as the child's.
+   */
+  readonly boardTouchAction: string;
   readonly carried: boolean;
   readonly cells: readonly Point[];
   readonly counterSide: number;
@@ -1032,6 +1037,7 @@ const lookIn = (): Look => {
   const shown = [...document.querySelectorAll('[data-zone-of][display="inline"] image')];
 
   return {
+    boardTouchAction: board === null ? "" : getComputedStyle(board).touchAction,
     carried: board?.querySelector('g[aria-hidden="true"][visibility="visible"]') !== null,
     cells,
     counterSide: shown[0]?.getBoundingClientRect().width ?? 0,

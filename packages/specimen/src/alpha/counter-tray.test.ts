@@ -71,6 +71,9 @@
  *   following the pointer and no press standing: the keyboard then moves a counter, and a click on
  *   the mat with nothing chosen moves nothing.
  * - CT14, the ring goes with its counter: a chosen counter dragged halfway leaves no ring behind.
+ * - CT15, the board takes every touch: on every item the board's computed `touch-action` is `none`,
+ *   so a touch that starts on it is the child's alone (CT1's finger drags and taps), never a pan of
+ *   the page or the browser's swipe back.
  *
  * Every item is opened by plate's admission, its module resolved to its package's file with no
  * notice, and its frame's module registers exactly the identifier the item writes, so plate's
@@ -1634,6 +1637,34 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
         );
 
         assert.deepStrictEqual(survivors.flat(), [], "every slip is caught");
+      }),
+    ruleHang,
+  );
+  it.effect(
+    "CT15: on every item the board takes every touch that starts on it: touch-action none",
+    () =>
+      Effect.gen(function* touchRule() {
+        const trays = yield* TraysService;
+        const played = yield* Effect.all(
+          trays.items.map((item) => playedOf(trays, item, trays.module)),
+        );
+
+        yield* Effect.forEach(
+          played,
+          (each) =>
+            Effect.scoped(
+              Effect.gen(function* touched() {
+                const tray = yield* running(trays, each, empty);
+
+                assert.strictEqual(
+                  (yield* Effect.orDie(tray.look)).boardTouchAction,
+                  "none",
+                  `${each.item.id}: the board takes every touch`,
+                );
+              }),
+            ),
+          { concurrency: trayCount, discard: true },
+        );
       }),
     ruleHang,
   );

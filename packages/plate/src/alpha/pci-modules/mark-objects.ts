@@ -625,10 +625,12 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   };
 
   /**
-   * Write the PCI's stylesheet into the frame's document, keyed on its `data-part` parts: the
-   * set, its rows of cells, each object a cell that is its whole tap target and neither drags nor
-   * selects, its picture at its own size in the middle, its ring over it taking no tap, its focus a
-   * dashed square, and for a scattered set its box and each cell's place in it.
+   * Write the PCI's stylesheet into the frame's document, keyed on its `data-part` parts: the set,
+   * which takes every touch that starts on it as the child's (`touch-action: none`), so a finger's
+   * swipe never pans the page or takes the browser back, its rows of cells, each object a cell that
+   * is its whole tap target and neither drags nor selects, its picture at its own size in the
+   * middle, its ring over it taking no tap, its focus a dashed square, and for a scattered set its
+   * box and each cell's place in it.
    *
    * @param document The frame's document.
    * @param count The objects.
@@ -643,9 +645,9 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
     const placed = layout.kind === "scatter" ? placedScattered(part, count, side) : [];
 
     sheet.textContent = [
-      `${part("set")}{display:inline-flex;flex-direction:column}`,
+      `${part("set")}{display:inline-flex;flex-direction:column;touch-action:none}`,
       `${part("row")}{display:flex}`,
-      `${part("object")}{position:relative;flex:none;display:grid;place-items:center;inline-size:${String(box)}px;block-size:${String(box)}px;padding:0;border:0;margin:0;background:none;cursor:pointer;line-height:0;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}`,
+      `${part("object")}{position:relative;flex:none;display:grid;place-items:center;inline-size:${String(box)}px;block-size:${String(box)}px;padding:0;border:0;margin:0;background:none;cursor:pointer;line-height:0;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}`,
       `${part("object")}>*{display:block;pointer-events:none;-webkit-user-drag:none}`,
       `${part("object")}>img{inline-size:${String(size.width)}px;block-size:${String(size.height)}px}`,
       `${part("object")}:focus{outline:none}`,

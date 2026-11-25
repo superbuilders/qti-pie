@@ -818,8 +818,11 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
 
   /**
    * Write the PCI's stylesheet into the frame's document, keyed on its `data-shade` parts: the
-   * models stacked and centred, each part a plain tap target that neither drags nor selects, its
-   * fill white or shaded, and a dashed ring on the part a keyboard has focused.
+   * models stacked and centred, each taking every touch that starts on it as the child's
+   * (`touch-action: none`, on its `svg` where the browser reads it and on each part), so a finger's
+   * swipe never pans the page or takes the browser back, each part a plain tap target that
+   * neither drags nor selects, its fill white or shaded, and a dashed ring on the part a keyboard
+   * has focused.
    *
    * @param document The frame's document.
    */
@@ -829,10 +832,10 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
 
     sheet.textContent = [
       `${part("whole")}{display:inline-flex;flex-direction:column;align-items:center;gap:${String(stack.gap)}px}`,
-      `${part("model")}{display:block;overflow:visible;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}`,
+      `${part("model")}{display:block;overflow:visible;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}`,
       `${part("part")},${part("shown")}{fill:${look.clear};stroke:${look.outline};stroke-width:${String(look.stroke)}px;stroke-linejoin:round}`,
       `${part("part")}[aria-pressed="true"],${part("shown")}[data-shaded]{fill:${look.shaded}}`,
-      `${part("part")}{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;outline:none}`,
+      `${part("part")}{cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;outline:none}`,
       `${part("part")}[aria-disabled="true"]{cursor:default}`,
       `${part("part")}:focus-visible{outline:3px dashed #555;outline-offset:-8px}`,
     ].join("\n");

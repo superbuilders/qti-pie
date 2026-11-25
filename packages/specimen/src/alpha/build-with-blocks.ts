@@ -674,6 +674,11 @@ export interface BlocksFrame {
    * Give the text the PCI's element holds.
    */
   readonly text: Effect.Effect<string, BlocksFailure>;
+  /**
+   * Give the drawing's computed `touch-action`, its `svg`'s, which the browser reads for a touch
+   * that starts anywhere on it: `none` where the PCI takes every touch as the child's.
+   */
+  readonly touchAction: Effect.Effect<string, BlocksFailure>;
 }
 
 /**
@@ -974,6 +979,12 @@ const openOn = (
         }),
       text: attempt("read the PCI's text", () =>
         frame.locator("[data-pci-dom]").evaluate((dom) => dom.textContent),
+      ),
+      touchAction: attempt("read the drawing's touch action", () =>
+        frame
+          .locator("[data-pci-dom] svg")
+          .first()
+          .evaluate((svg) => getComputedStyle(svg).touchAction),
       ),
       touchDoubleTapAt: (point) =>
         Effect.gen(function* touchDoubleTapAt() {

@@ -66,6 +66,10 @@
  *   that is no count of the set rings none: a saved answer never stops the PCI. A picture the host
  *   marked with attributes of its own still draws, each object's picture carrying the markup
  *   picture's `src`, `alt`, `width` and `height` alone.
+ * - MO11, a swipe: in rows and in a scatter, the set and every object take every touch that starts on
+ *   them as the child's (their computed `touch-action` is `none`), so a finger's swipe sideways
+ *   from an object, either way, rings nothing, relays no change and takes the host page nowhere: it
+ *   navigates to no address, and its address and history stand as they were.
  *
  * @module
  */
@@ -1148,6 +1152,64 @@ layer(RingLayer, { timeout: Duration.millis(ruleHang) })("the mark-objects PCI",
             object.pictures.map((picture) => picture.attributes),
             [["alt", "draggable", "height", "src", "width"]],
             "each object's picture carries the markup picture's src, alt, width and height alone",
+          );
+        }
+      }),
+    ruleHang,
+  );
+  it.effect(
+    "MO11: a swipe from an object rings nothing and takes the page nowhere: the set and every object take every touch",
+    () =>
+      Effect.gen(function* swiping() {
+        const page = yield* Ring;
+
+        for (const id of ["alpha-mark-objects-rows", "alpha-mark-objects-scatter"]) {
+          const golden =
+            goldens.find((each) => each.id === id) ?? assert.fail(`${id} is among the goldens`);
+          const item = yield* Effect.orDie(markItem(golden.id));
+
+          yield* started(page, item, {});
+
+          const before = yield* Effect.orDie(page.drawn);
+
+          assert.strictEqual(before.setTouchAction, "none", `${id}'s set takes every touch on it`);
+          for (const object of before.objects) {
+            assert.strictEqual(
+              object.touchAction,
+              "none",
+              `${id}'s objects take every touch on them`,
+            );
+          }
+
+          for (const by of [form.side * 4, -form.side * 4]) {
+            const where = yield* Effect.orDie(page.swipe(0, by));
+
+            assert.deepStrictEqual(where.navigations, [], `in ${id}, a swipe navigates nowhere`);
+            assert.deepStrictEqual(
+              where.after,
+              where.before,
+              `in ${id}, the page stays where it was`,
+            );
+          }
+
+          holdsRings(golden, yield* Effect.orDie(page.drawn), new Set());
+          // The frame relays the PCI's response after any input it sees, when it differs from the
+          // last it relayed, the first time included: a swipe may relay the empty response, never
+          // another.
+          for (const message of yield* Effect.orDie(page.messages)) {
+            if (message.kind === "changed") {
+              assert.deepStrictEqual(
+                message.value,
+                responseOf(),
+                `in ${id}, a swipe changes no response`,
+              );
+            }
+          }
+
+          assert.deepStrictEqual(
+            (yield* finished(page)).response,
+            responseOf(),
+            `in ${id}, nothing is ringed`,
           );
         }
       }),

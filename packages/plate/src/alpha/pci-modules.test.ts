@@ -33,8 +33,8 @@ import type { AlphaPciModuleId } from "#plate/alpha/pci-modules.ts";
 const pinned: Readonly<Record<AlphaPciModuleId, string>> = {
   "build-with-blocks": "sha256-wk1EmZxZlJvlPGATx3a7nTCwlGRBMN7IritiWbN1j6E=",
   "count-placements": "sha256-Q42f45NqFRC0A/rpSt5ZJDsilGWUeKR1Ccjn+quQzUI=",
-  "mark-objects": "sha256-ZadGZsWAdedXLOkb9QIdschvh5rqiIuQmkKsLQecwzA=",
-  "shade-parts": "sha256-fCAuV2aM6a2O1qpXD47gQEr76WFvTHRsOo6aOKVOScs=",
+  "mark-objects": "sha256-lE1seKkfwyaAQcvyDmkEJlGmPQtvSiNtVbwohD4d1/I=",
+  "shade-parts": "sha256-ExNyva97fbWHqf7JE3Ag8vsotiYdyFO/E5FwZZ4PY38=",
 };
 
 /**
