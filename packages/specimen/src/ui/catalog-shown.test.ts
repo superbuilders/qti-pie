@@ -49,9 +49,7 @@ type HeldSupport = (typeof supportsHeld)[number];
 /**
  * Keep no change: the `onChange` a server render's `<Responses>` is given, which it never calls.
  */
-const keepNothing = (): void => {
-  // A server render runs no event handler.
-};
+const keepNothing = (): void => {};
 
 /**
  * The supports of a candidate who enables catalog supports and nothing else.
@@ -98,8 +96,10 @@ const page = Effect.fnUntraced(function* page(supports: Supports) {
       value: heldOf(startingResponses(accepted, props)),
     }),
   );
-  // The props as the page receives them: React serializes an island's props, its server elements
-  // among them, and a card's text stands in them as a JSON string.
+  /**
+   * The props as the page receives them: React serializes an island's props, its server elements
+   * among them, and a card's text stands in them as a JSON string.
+   */
   const shipped = islandsIn(item, clients).map((island) => JSON.stringify(island.props));
 
   return { html, shipped };

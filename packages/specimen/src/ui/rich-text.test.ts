@@ -548,6 +548,7 @@ const reviewHtml = (xhtml: string) =>
 
 /**
  * Render the essay's review of an answer and give its answer part's markup, as React writes it.
+ * The answer part holds no div, so its markup runs to the first `</div>` after its start tag.
  *
  * @param xhtml The answer.
  * @returns The answer part's markup, none where the review draws no answer part.
@@ -555,7 +556,6 @@ const reviewHtml = (xhtml: string) =>
 const reviewOf = (xhtml: string) =>
   Effect.map(
     reviewHtml(xhtml),
-    // The answer part holds no div, so its markup runs to the first `</div>` after its start tag.
     (html) =>
       /data-slot="plate-rich-answer"[^>]*>(?<inner>.*?)<\/div>/su.exec(html)?.groups?.["inner"],
   );
@@ -580,9 +580,7 @@ const counts: readonly (readonly [answer: string, xhtml: string, count: string])
 /**
  * Keep no change: the `onChange` a server render's `<Responses>` is given, which it never calls.
  */
-const keepNothing = (): void => {
-  // A server render runs no event handler.
-};
+const keepNothing = (): void => {};
 
 /**
  * RT5's plain table: a plain answer, and what the count under its textarea says of it, by hand.
