@@ -72,6 +72,7 @@ import {
   mirrors,
   on,
   relation,
+  sealed,
   select,
   sha256,
   str,
@@ -136,9 +137,15 @@ export const Package = law(
  * it holds that package alone, exclusively; a call that reads a package it does not write holds it
  * shared; and calls of different packages never meet. A package's rows are one index range of each
  * relation, and every law over them stays inside one package (spec reading 115: an include that
- * resolves outside the package is stored as written and never fetched).
+ * resolves outside the package is stored as written and never fetched). It is sealed at founding: a
+ * package's rows are inserted by the one transaction that founds it and never written after, so
+ * grizzle stores every derived relation over a package's content. Its seal is the law "Package
+ * sealed", which {@link packageLawsByName} states with the module's other laws.
  */
-export const PackageUnit = unit("Package", { package: PackageName });
+export const PackageUnit = law(
+  entryOf("Package sealed"),
+  sealed(unit("Package", { package: PackageName })),
+);
 
 /**
  * What an entry is: a `document`, which the import shreds and the database holds as its tree alone
@@ -926,6 +933,7 @@ export const packageLawsByName = {
     ),
     contained(on(fileHrefs, "package", "path", "start"), on(File, "package", "path", "start")),
   ]),
+  "Package sealed": [PackageUnit],
   "Reference overlay": declared("Reference overlay", [
     contained(
       on(censusAttributes, "package", "path", "start", "name", "kind"),

@@ -4,9 +4,9 @@
  * `qti-outcome-processing` subtree, and each parameter the SQL grader reads of it, parsed into its
  * typed relation, by the document that holds it (`package`, `path`) and the element's place
  * (`start`). Each is a function of its package's own rows, so it is known once the package is
- * published, and stored (grizzle's `derived.stored`, kept at COMMIT at every package a transaction
- * writes): a grade, a take and a test's outcome processing read a run's walk by key, and nothing
- * rebuilds it per run.
+ * published, and grizzle stores it (its definition unit-local in the sealed Package unit, written
+ * at the COMMIT of the write that founds the package): a grade, a take and a test's outcome
+ * processing read a run's walk by key, and nothing rebuilds it per run.
  *
  * A walk is its document's, not an item's: the readers find the document a run walks, the item's
  * own, the published template it names or the template document it locates (`ResponseProgram`), or
@@ -225,7 +225,7 @@ export const walksOf = (ledger: LedgerLevel) => {
    * The program's elements of a processing kind, by the machine's token (the closed
    * `ProgramNodeKind`): the walk's nodes.
    */
-  const WalkNode = derived.stored(
+  const WalkNode = derived(
     "WalkNode",
     query(ledger).rule((r) => {
       const { end, kind, package: pkg, parent, path, start } = v(programNodes, "node");
@@ -368,7 +368,7 @@ export const walksOf = (ledger: LedgerLevel) => {
    * Each equal's tolerance mode and whether each bound is inside (default true), information model
    * §5.46.
    */
-  const WalkEqual = derived.stored(
+  const WalkEqual = derived(
     "WalkEqual",
     query(ledger).rule((r) => {
       const lowers = flag(["qti-equal"], "include-lower-bound", true);
@@ -389,7 +389,7 @@ export const walksOf = (ledger: LedgerLevel) => {
    * Each rounding's mode, the machine's token (default `significantFigures`), information model
    * §5.47 and §5.119.
    */
-  const WalkRound = derived.stored(
+  const WalkRound = derived(
     "WalkRound",
     query(ledger)
       .rule((r) => {
@@ -441,7 +441,7 @@ export const walksOf = (ledger: LedgerLevel) => {
    * Whether a string match's or a substring's comparison is case sensitive (default true), and
    * whether a string match compares a substring (default false; a substring's never does).
    */
-  const WalkText = derived.stored(
+  const WalkText = derived(
     "WalkText",
     query(ledger).rule((r) => {
       const sensitive = flag(["qti-string-match", "qti-substring"], "case-sensitive", true);
@@ -491,7 +491,7 @@ export const walksOf = (ledger: LedgerLevel) => {
    * The variable each element reads or sets, by the attribute its kind names it by
    * ({@link identifiedBy}).
    */
-  const WalkIdent = derived.stored(
+  const WalkIdent = derived(
     "WalkIdent",
     query(ledger)
       .rule(identifiedBy("identifier"))
@@ -525,7 +525,7 @@ export const walksOf = (ledger: LedgerLevel) => {
    * Each one-word parameter an element writes, by which it is (the machine's roster,
    * `DocWalkName.field`).
    */
-  const WalkName = derived.stored(
+  const WalkName = derived(
     "WalkName",
     query(ledger)
       .rule(named("base", ["qti-test-variables"], "base-type"))
@@ -547,7 +547,7 @@ export const walksOf = (ledger: LedgerLevel) => {
    * Each category filter a test expression writes, `include` or `exclude`: one that lists no
    * category is a filter all the same.
    */
-  const WalkFilter = derived.stored(
+  const WalkFilter = derived(
     "WalkFilter",
     query(ledger)
       .rule((r) => {
@@ -605,7 +605,7 @@ export const walksOf = (ledger: LedgerLevel) => {
   /**
    * Each category a test expression's filters list ({@link listed}).
    */
-  const WalkCategory = derived.stored(
+  const WalkCategory = derived(
     "WalkCategory",
     query(ledger)
       .rule(listed("include", "include-category"))
@@ -626,7 +626,7 @@ export const walksOf = (ledger: LedgerLevel) => {
    * Each inside's area's kind (`area_kind_of`): its shape's, `everywhere` for a default, or
    * `nowhere` where its coordinates hold no point.
    */
-  const WalkArea = derived.stored(
+  const WalkArea = derived(
     "WalkArea",
     query(ledger)
       .rule((r) => {
@@ -662,7 +662,7 @@ export const walksOf = (ledger: LedgerLevel) => {
    * Each coordinate of an inside's area as written (`coords_of`), by its place from 1: none of a
    * default shape's, which reads none.
    */
-  const WalkAreaCoord = derived.stored(
+  const WalkAreaCoord = derived(
     "WalkAreaCoord",
     query(ledger).rule((r) => {
       const { package: pkg, path, start, value: outline } = v(outlines, "outline");
@@ -842,7 +842,7 @@ export const walksOf = (ledger: LedgerLevel) => {
    * Each integer parameter that is a literal, by its field, and QTI's defaults: a random integer's
    * `min` 0 and `step` 1 (information model §5.110).
    */
-  const WalkInteger = derived.stored(
+  const WalkInteger = derived(
     "WalkInteger",
     query(ledger)
       .rule(integerLiteral(anyMax))
@@ -907,7 +907,7 @@ export const walksOf = (ledger: LedgerLevel) => {
    * Each float parameter that is a literal, by its field, and QTI's default: a random float's
    * `min` 0 (information model §5.109).
    */
-  const WalkFloat = derived.stored(
+  const WalkFloat = derived(
     "WalkFloat",
     query(ledger)
       .rule(floatLiteral(frangeHi))
@@ -999,7 +999,7 @@ export const walksOf = (ledger: LedgerLevel) => {
    * Each number-or-variable parameter that is no literal, by its field: the variable's name it
    * gives (information model §9.3.1, §9.3.3).
    */
-  const WalkRef = derived.stored(
+  const WalkRef = derived(
     "WalkRef",
     query(ledger)
       .rule(reference(anyMax, integerText))
@@ -1079,7 +1079,7 @@ export const walksOf = (ledger: LedgerLevel) => {
    * matches by, no grade compiling it. A pattern that names a variable in braces is the run's
    * reader's to resolve, by the declarations of the document it runs.
    */
-  const WalkPattern = derived.stored(
+  const WalkPattern = derived(
     "WalkPattern",
     query(ledger).rule((r) => {
       const { package: pkg, path, pattern, start } = v(writtenPatterns, "pattern");
@@ -1110,7 +1110,7 @@ export const walksOf = (ledger: LedgerLevel) => {
    * Schema's whiteSpace collapse, as every atomic type but string reads it) and a string's as
    * written; an empty one is NULL (information model, isNull), and has no row.
    */
-  const WalkLiteralText = derived.stored(
+  const WalkLiteralText = derived(
     "WalkLiteralText",
     query(ledger)
       .rule((r) => {
@@ -1160,7 +1160,7 @@ export const walksOf = (ledger: LedgerLevel) => {
   /**
    * Each integer base value, collapsed, as QTI's integer.
    */
-  const WalkLiteralInteger = derived.stored(
+  const WalkLiteralInteger = derived(
     "WalkLiteralInteger",
     query(ledger).rule((r) => {
       const { package: pkg, path, start, text } = v(baseValues, "integer");
@@ -1228,7 +1228,7 @@ export const walksOf = (ledger: LedgerLevel) => {
   /**
    * Each float and duration base value, by its base.
    */
-  const WalkLiteralFloat = derived.stored(
+  const WalkLiteralFloat = derived(
     "WalkLiteralFloat",
     query(ledger).rule(doubleOf("float")).rule(doubleOf("duration")),
   );
@@ -1236,7 +1236,7 @@ export const walksOf = (ledger: LedgerLevel) => {
   /**
    * Each boolean base value: true where it reads `true` or `1` collapsed, else false.
    */
-  const WalkLiteralBoolean = derived.stored(
+  const WalkLiteralBoolean = derived(
     "WalkLiteralBoolean",
     query(ledger).rule((r) => {
       const { package: pkg, path, start, text } = v(baseValues, "boolean");
@@ -1258,7 +1258,7 @@ export const walksOf = (ledger: LedgerLevel) => {
    * Each pair base value's two identifiers, its first two tokens, least and greatest: a pair is
    * unordered.
    */
-  const WalkLiteralPair = derived.stored(
+  const WalkLiteralPair = derived(
     "WalkLiteralPair",
     query(ledger).rule((r) => {
       const { package: pkg, path, start, text } = v(baseValues, "pair");
@@ -1282,7 +1282,7 @@ export const walksOf = (ledger: LedgerLevel) => {
   /**
    * Each directed pair base value's source and target, its first two tokens.
    */
-  const WalkLiteralDirectedPair = derived.stored(
+  const WalkLiteralDirectedPair = derived(
     "WalkLiteralDirectedPair",
     query(ledger).rule((r) => {
       const { package: pkg, path, start, text } = v(baseValues, "directedPair");
@@ -1300,7 +1300,7 @@ export const walksOf = (ledger: LedgerLevel) => {
   /**
    * Each point base value's coordinates, its first two tokens, each an integer.
    */
-  const WalkLiteralPoint = derived.stored(
+  const WalkLiteralPoint = derived(
     "WalkLiteralPoint",
     query(ledger).rule((r) => {
       const { package: pkg, path, start, text } = v(baseValues, "point");

@@ -217,6 +217,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     MaxAttempts,
     MaxTime,
     MemberPlace,
+    NavigationMode,
     Node,
     ResponseSnapshot,
     SectionShuffle,
@@ -1167,7 +1168,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
         r
           .match(TestSession, { child, package: pkg, path, stage })
           .match(TestRoot, { package: pkg, path })
-          .match(TestPart, { navigation: "linear", package: pkg, path })
+          .match(TestPart, { navigation: NavigationMode.handle("linear"), package: pkg, path })
           // Both places before either presentation: from either presentation a judge reads its
           // member's place by its path, the other member's by place and prior, and the other's
           // presentations by that member's path, never the sitting's every presentation.

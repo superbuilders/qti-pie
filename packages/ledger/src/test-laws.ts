@@ -68,9 +68,11 @@ export const testLawsOf = (ledger: LedgerLevel) => {
     Attempt,
     ItemSession,
     MemberPlace,
+    NavigationMode,
     Save,
     SectionShuffle,
     ShuffleRank,
+    SubmissionMode,
     TestEnd,
     TestMember,
     TestPart,
@@ -214,7 +216,12 @@ export const testLawsOf = (ledger: LedgerLevel) => {
     return r
       .match(testAttempts, { child, package: pkg, path, stage })
       .match(sittingMembers, { child, package: pkg, part, path, stage, test })
-      .match(TestPart, { package: pkg, path: test, start: part, submission: "simultaneous" })
+      .match(TestPart, {
+        package: pkg,
+        path: test,
+        start: part,
+        submission: SubmissionMode.handle("simultaneous"),
+      })
       .find({ child, stage });
   });
   const SimultaneousAttempt = derived("SimultaneousAttempt", simultaneousAttempts);
@@ -230,7 +237,12 @@ export const testLawsOf = (ledger: LedgerLevel) => {
       .match(TestPresented, { child, package: pkg, path, stage })
       .match(TestEnd, { child, stage })
       .match(sittingMembers, { child, package: pkg, part, path, stage, test })
-      .match(TestPart, { package: pkg, path: test, start: part, submission: "simultaneous" })
+      .match(TestPart, {
+        package: pkg,
+        path: test,
+        start: part,
+        submission: SubmissionMode.handle("simultaneous"),
+      })
       .find({ child, package: pkg, path, stage });
   });
   const EndedPresentation = derived("EndedPresentation", endedPresentations);
@@ -258,11 +270,11 @@ export const testLawsOf = (ledger: LedgerLevel) => {
       .where(r.or(r.ne(pkg, later.package), r.ne(path, later.path)))
       .match(sittingMembers, { child, package: pkg, part, path, stage, test })
       .match(TestPart, {
-        navigation: "linear",
+        navigation: NavigationMode.handle("linear"),
         package: pkg,
         path: test,
         start: part,
-        submission: "individual",
+        submission: SubmissionMode.handle("individual"),
       })
       .find({ child, package: pkg, path, stage });
   });
@@ -286,7 +298,12 @@ export const testLawsOf = (ledger: LedgerLevel) => {
       .match(TestPresented, { child, package: pkg, path, stage })
       .match(TestSession, { child, package: pkg, path: test, stage })
       .match(TestMember, { document: path, package: pkg, part, path: test })
-      .match(TestPart, { navigation: "linear", package: pkg, path: test, start: part })
+      .match(TestPart, {
+        navigation: NavigationMode.handle("linear"),
+        package: pkg,
+        path: test,
+        start: part,
+      })
       .match(MemberPlace, { child, package: pkg, path, prior, stage })
       .match(MemberPlace, { child, package: pkg, path: before.path, place: before.place, stage })
       .match(TestMember, { document: before.path, package: pkg, part, path: test })

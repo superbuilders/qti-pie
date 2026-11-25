@@ -51,7 +51,6 @@ const composedLaws: readonly (readonly [string, readonly Statement[]])[] = [
   ["src/qti/chardata.ts chardataLaws", chardataLaws],
   ["src/qti/attributes.ts attributeLaws", attributeLaws],
   ["src/qti/package.ts packageLaws", packageLaws],
-  ["src/qti/package.ts PackageUnit, the unit every package's rows sit under", [pkg.PackageUnit]],
   ["src/qti/identity.ts identityLaws", identityLaws],
   ["src/qti/tests.ts testLaws", testLaws],
   ["src/qti/interactions.ts interactionLaws", interactionLaws],
@@ -106,16 +105,16 @@ const memberKinds: ReadonlySet<unknown> = new Set([
 ]);
 
 /**
- * Whether the author role holds a member of `Qti` whole: a stored relation, a roster, and a stored
- * derived relation, a table grizzle keeps equal to its definition; never a closed relation, whose
- * rows the role reads inline, nor a derived one that stores nothing, which a role reads through
- * the tables its definition reads (grizzle's README, "Derived tables").
+ * Whether the author role holds a member of `Qti` whole: a stored relation and a roster; never a
+ * closed relation, whose rows the role reads inline, nor a derived one, stored or not, which no
+ * role holds as an entry: a role reads a stored one's table through its whole view, since it holds
+ * every relation the definition reads whole (grizzle's README, "Derived tables").
  *
  * @param member - A member of `Qti`.
  * @returns Whether the role holds it whole.
  */
 const heldWhole = (member: (typeof Qti.relations)[keyof typeof Qti.relations]): boolean =>
-  member.kind === "derived" ? member.storage === "stored" : member.kind !== "closedRelation";
+  member.kind !== "derived" && member.kind !== "closedRelation";
 
 describe("qti/schema.ts, composed", () => {
   it("holds every roster, closed relation and relation each composed module exports, under its own name", () => {
@@ -162,7 +161,7 @@ describe("qti/schema.ts, composed", () => {
 });
 
 describe("qti/roles.ts, the author role", () => {
-  it("holds every stored relation, roster and stored derived relation of Qti whole, and no closed relation or derived one that stores nothing", () => {
+  it("holds every stored relation and roster of Qti whole, and no closed or derived relation", () => {
     for (const [name, member] of Object.entries(Qti.relations)) {
       const entry: unknown = Object.getOwnPropertyDescriptor(Author.relations, name)?.value;
 

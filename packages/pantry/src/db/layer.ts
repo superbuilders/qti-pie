@@ -23,42 +23,23 @@ import type { AuthorAppLogin } from "#pantry/qti/logins.ts";
 const pgPoolMaxDefault = 10;
 
 /**
- * How long a session past the pool's kept minimum stays open after its last use: node-postgres's
- * own default, so a process between calls holds the one session it keeps.
- *
- * @limitKind published
- * @owner pg-pool 3.14.0 (node-postgres's Pool, which grizzle's session pool is)
- * @unit milliseconds
- * @scope each idle session of one pool past its minimum, pg-pool's default where its caller gives none
- * @constraint configurable default
- * @source https://github.com/brianc/node-postgres/blob/pg-pool%403.14.0/packages/pg-pool/index.js#L99
- * @quote this.options.idleTimeoutMillis = 10000
- * @verified 2026-11-16
- */
-const pgPoolIdleTimeoutDefaultMs = 10_000;
-
-/**
  * The author application's session pool: at most node-postgres's default of 10 sessions
- * ({@link pgPoolMaxDefault}), 1 kept open once opened, and the others closed after
- * node-postgres's default of 10,000 ms since their last use ({@link pgPoolIdleTimeoutDefaultMs}).
+ * ({@link pgPoolMaxDefault}), each kept open once opened for the layer's life, since grizzle closes
+ * no session for being idle.
  *
- * Grizzle chooses no size and no timeout: `DbLayer.make` takes the caller's `PoolBounds`, and
- * pantry takes node-postgres's own. Pantry's calls on a `Db` run one after another: the import
+ * Grizzle chooses no size: `DbLayer.make` takes the caller's `PoolBounds`, and pantry takes
+ * node-postgres's own. Pantry's calls on a `Db` run one after another: the import
  * opens one `Db` and applies one ChangeSet, the export reads its documents' pages in order, and
  * each database test file, in a worker process of its own with its own pool, imports one package at
  * a time, so the pool never needs a second session, and no measurement asks for numbers of pantry's
- * own. The session kept open serves a process's next call, such as a test file's next import
- * through the same layer, without a new connection attempt, so a process between calls holds one
- * session of the server.
+ * own. A call takes the idle session released last, so the one session serves a process's next
+ * call, such as a test file's next import through the same layer, without a new connection
+ * attempt, and a process between calls holds one session of the server.
  *
- * @see https://github.com/bjornpagen/grizzle/blob/eb56d58bb3191b6645f1334dc55f63c7a73c2dc4/packages/grizzle/src/adapter/types/layer.ts#L90-L108
- * @see https://github.com/bjornpagen/grizzle/blob/eb56d58bb3191b6645f1334dc55f63c7a73c2dc4/README.md#connecting
+ * @see https://github.com/bjornpagen/grizzle/blob/fd4d93011825d9a9e00f99791bea52c131371212/packages/grizzle/src/adapter/types/layer.ts#L104-L107
+ * @see https://github.com/bjornpagen/grizzle/blob/fd4d93011825d9a9e00f99791bea52c131371212/README.md#connecting
  */
-const authorAppPool: PoolBounds = {
-  idleTimeoutMs: pgPoolIdleTimeoutDefaultMs,
-  max: pgPoolMaxDefault,
-  min: 1,
-};
+const authorAppPool: PoolBounds = { max: pgPoolMaxDefault };
 
 /**
  * The author application's pool on the server its `QTI_PIE_PG_*` settings name: the login's

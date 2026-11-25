@@ -64,7 +64,7 @@ import {
 } from "@qti-pie/plan-budget/content.ts";
 import { copyUnits } from "@qti-pie/plan-budget/population.ts";
 import { measureActions } from "@qti-pie/plan-budget/run-actions.ts";
-import { Config, Duration, Effect, Layer } from "effect";
+import { Config, Effect, Layer } from "effect";
 import { Client } from "pg";
 import { responseParamsOf } from "#ledger/served-values.ts";
 import { BrowserReading } from "#ledger/sittings.ts";
@@ -127,7 +127,7 @@ const layerOf = Effect.gen(function* layerOfSuite() {
     DbLayer.make({
       ...connection,
       login: suite,
-      pool: { idleTimeoutMs: Duration.toMillis(Duration.minutes(10)), max: 1, min: 0 },
+      pool: { max: 1 },
     }).pipe(Layer.provide(LiveSource.layer({ ...connection, login: suite })));
 });
 

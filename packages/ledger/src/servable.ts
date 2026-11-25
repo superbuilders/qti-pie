@@ -1,11 +1,11 @@
 /**
  * Which items this deployment serves for credit: the delivery level's verdict, where what the
  * grader runs meets what the registry admits and what the package holds. Every relation here is
- * derived, `Servable` stored (grizzle's `derived.stored`: its rows are its definition's at every
- * package a transaction writes, kept at COMMIT, since its definition reads the item's own package's
- * rows and closed facts alone), and pantry admits every valid item: an item outside the verdict is
- * stored as written and never served, which the one law here holds ("Served for credit": every item
- * session is of a servable item).
+ * derived, `Servable` stored (grizzle stores it, since its definition reads the item's own
+ * package's rows and closed facts alone, unit-local in the sealed Package unit, and writes its rows
+ * at the COMMIT of the write that founds the package), and pantry admits every valid item: an item
+ * outside the verdict is stored as written and never served, which the one law here holds ("Served
+ * for credit": every item session is of a servable item).
  *
  * QTI 3.0 Conformance and Certification §3: "All QTI 3.0 certified applications must be able to
  * operate without failure when features beyond the minimum required features are included in the
@@ -335,7 +335,7 @@ export const servableOf = (ledger: LedgerLevel) => {
    * The items served for credit ({@link servableItems}), by their document: what the delivery
    * serves and grades.
    */
-  const Servable = derived.stored("Servable", servableItems);
+  const Servable = derived("Servable", servableItems);
 
   /**
    * Served for credit: every item session is of an item served for credit, so an item outside the

@@ -84,6 +84,7 @@ import {
   IncludeSetOf,
   NodeKind,
   SplitRoot,
+  anyText,
   includeParentKinds,
   natural,
 } from "#pantry/grammar/install.ts";
@@ -484,10 +485,55 @@ export const UnplacedCause = closed.ordered("UnplacedCause", [
 ]);
 
 /**
+ * The `NavigationMode` roster, whose order means nothing: the modes a test part's `navigation-mode`
+ * takes, QTI 3.0.1's `NavigationModeEnum`, an `xs:string` enumeration (Table 5.159.4: "A testPart
+ * in linear mode restricts the candidate to attempt each item in turn. Once the candidate moves on
+ * they are not permitted to return"; in nonlinear mode the candidate may attempt them in any
+ * order).
+ */
+export const NavigationMode = closed.unordered("NavigationMode", ["linear", "nonlinear"]);
+
+/**
+ * `NavigationModeLexical`: code → lexical, each {@link NavigationMode}'s lexical form (C17), which a
+ * `navigation-mode`'s `value` spells as written (`whiteSpace` preserve), as `TestPart` reads it
+ * (`#pantry/qti/overlay-queries/tests.ts`).
+ */
+export const NavigationModeLexical = closed.relation(
+  "NavigationModeLexical",
+  { code: closedId(NavigationMode), lexical: anyText },
+  ["code"],
+  NavigationMode.handles.map((code) => ({ code, lexical: code })),
+);
+
+/**
+ * The `SubmissionMode` roster, whose order means nothing: the modes a test part's `submission-mode`
+ * takes, QTI 3.0.1's `SubmissionModeEnum`, an `xs:string` enumeration (Table 5.159.5: "A testPart
+ * in individual mode requires the candidate to submit their responses on an item-by-item basis. In
+ * simultaneous mode the candidate's responses are all submitted together at the end of the
+ * testPart").
+ */
+export const SubmissionMode = closed.unordered("SubmissionMode", ["individual", "simultaneous"]);
+
+/**
+ * `SubmissionModeLexical`: code → lexical, each {@link SubmissionMode}'s lexical form (C17), which a
+ * `submission-mode`'s `value` spells as written (`whiteSpace` preserve), as `TestPart` reads it.
+ */
+export const SubmissionModeLexical = closed.relation(
+  "SubmissionModeLexical",
+  { code: closedId(SubmissionMode), lexical: anyText },
+  ["code"],
+  SubmissionMode.handles.map((code) => ({ code, lexical: code })),
+);
+
+/**
  * This module's relations, in one list, as `#pantry/qti/schema.ts` composes them.
  */
 export const testRelations = [
   UnplacedCause,
+  NavigationMode,
+  NavigationModeLexical,
+  SubmissionMode,
+  SubmissionModeLexical,
   Inclusion,
   Instance,
   ItemRefDocument,

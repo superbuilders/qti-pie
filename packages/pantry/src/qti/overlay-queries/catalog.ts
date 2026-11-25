@@ -83,7 +83,7 @@ const PlacedReference = derived(
  * catalog of a fragment two items include is bound in each item's assembly, and a catalog placed
  * twice in one assembly is one binding. Its `idDigest` is the catalog's.
  */
-export const AssembledCatalog = derived.stored(
+export const AssembledCatalog = derived(
   "AssembledCatalog",
   query(QtiViews).rule((r) => {
     const { assembly, owner, package: pkg, path } = v(PlacedId, "placed");

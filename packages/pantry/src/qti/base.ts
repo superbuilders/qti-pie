@@ -21,7 +21,7 @@ import { expressionLaws, expressionRelations } from "#pantry/qti/expressions.ts"
 import { nodeLaws, nodeRelations } from "#pantry/qti/node.ts";
 import { mathmlLaws, mathmlRelations } from "#pantry/qti/mathml.ts";
 import { operatorLaws } from "#pantry/qti/operators.ts";
-import { packageLaws, packageRelations, PackageUnit } from "#pantry/qti/package.ts";
+import { packageLaws, packageRelations } from "#pantry/qti/package.ts";
 import { testLaws, testRelations } from "#pantry/qti/tests.ts";
 
 /**
@@ -85,9 +85,9 @@ export const qtiRelations = [
 ] as const;
 
 /**
- * The stored level of the QTI 3.0 schema: the relations, the package unit every package's rows
- * sit under, the lowest level its members stand at, and every module's laws. Its name, `Qti`,
+ * The stored level of the QTI 3.0 schema: the relations and every module's laws, the package
+ * module's sealed Package unit among them, which every package's rows sit under. Its name, `Qti`,
  * names the installation: its PostgreSQL schema, which holds every table, and its migrations
  * folder, `migrations/qti/`.
  */
-export const QtiBase = schema("Qti", qtiRelations, [PackageUnit, ...moduleLaws.flat()]);
+export const QtiBase = schema("Qti", qtiRelations, moduleLaws.flat());

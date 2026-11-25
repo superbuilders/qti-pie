@@ -32,14 +32,14 @@ describe("the laws each module names where it states them", () => {
       }
     }
 
-    // A unit states no law, only the key its rows sit under (grizzle's README, "Units"), so no
-    // group names it; every other statement of Qti states one at least.
+    // Every statement of Qti states one law at least: the Package unit too, sealed, whose seal is
+    // its law (grizzle's README, "Units").
     const [statements, lawless] = Arr.partition(statementLawsOf(Qti), (entry) =>
       Arr.isReadonlyArrayNonEmpty(entry.laws) ? Result.succeed(entry) : Result.fail(entry),
     );
     assert.deepStrictEqual(
       lawless.map(({ statement }) => statement.kind),
-      ["unit"],
+      [],
       "the statements of Qti that state no law",
     );
     assert.strictEqual(groups.size, statements.length, "a group holds a statement Qti does not");

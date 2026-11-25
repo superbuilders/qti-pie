@@ -243,6 +243,8 @@ export const hostlessLaws = {
     "its rows (ResourceHref, File, each beside the arm its scope names: ResourceHrefPath and FilePath in the package, ResourceHrefOutside and FileOutside outside it) are each href's resolution, at its element's node, and the manifest's identifier is its attribute's value, the query manifestIdentifiers (plan §1.6, C18); the host writes no such row, and a package's text can make no row disagree with the attributes it stands at",
   "Package key":
     "its one row per package is keyed by the name its importer's caller gives it, which every row of the package holds; no package's text states it, so no package text can repeat or omit it, and an import of another package under a stored name is refused on the rows the two packages share, whatever their text",
+  "Package sealed":
+    "it holds of the transactions that write a package's rows, never of the rows: the one import that founds a package writes all of them in its one ChangeSet, so no package's text can break it, and only a second write of a founded package's rows, which no import makes, is refused",
   "Reference overlay":
     "its rows (DocumentDirectory, XmlBase, Reference, ReferencePath) are each document's directory and each reference's split, which the importer writes and resolves from the tree (CP 1.2 (b) and (d), reading 102); the host writes no such row, and the laws a package can break over its references are the oracle's Href form, File exists and Stimulus ref target",
   "Test overlay":

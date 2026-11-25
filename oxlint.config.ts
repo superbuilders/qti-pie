@@ -235,7 +235,11 @@ export default defineConfig({
     "packages/plate/fixtures/**",
     "packages/plate/src/alpha/pci-modules/*.js",
   ],
-  jsPlugins: ["./tools/lint-plugin.ts", "@stylistic/eslint-plugin"],
+  jsPlugins: [
+    "./tools/lint-plugin.ts",
+    "@stylistic/eslint-plugin",
+    "./vendor/toolchain/packages/devtools/src/oxlint-plugin.ts",
+  ],
   // Keep source imports stable when files move: each package maps `#<package>/*` to its `src/` in package.json
   // `imports`, which Node resolves at run time and TypeScript resolves under nodenext.
   // The resolver already refuses an unlisted subpath and another package's alias; lint refuses what it allows:
@@ -694,6 +698,7 @@ export default defineConfig({
     "anti-slop/no-array-filter-map": "off",
     // Off, as before ultracite 8: its 10,360 findings span crust, pantry and plate, which other lanes edit.
     "anti-slop/require-readable-spacing": "off",
+    "devtools/no-variadic-callback": "error",
     // A limit's evidence is its JSDoc's tags (the indefensible-numbers skill), and `@formatConstant` marks a declaration
     // whose numbers are a format's own (a code table, a type's range, an operator's arity), which are no limits.
     "jsdoc/check-tag-names": [

@@ -30,8 +30,9 @@ import type { LawName, RefusalLaw } from "#pantry/import/refusal.ts";
 
 /**
  * The relation each side of a law reads, in the order the law names its sides: the part of a law
- * {@link bucketOf} files it under beside its kind. A contract reads no relation, and a law of a
- * level above the schema reads its own law's relations: `Qti` is one level, which no level extends,
+ * {@link bucketOf} files it under beside its kind. A contract reads no relation, a unit's seal is
+ * filed under its unit's name, every relation of the unit its side, and a law of a level above the
+ * schema reads its own law's relations: `Qti` is one level, which no level extends,
  * so no outcome names one (grizzle `999facc6`'s `above`), and none is in the table.
  *
  * @param law - A law as grizzle names it.
@@ -51,6 +52,7 @@ export const relationsOf = (law: Law): readonly string[] =>
       key: ({ side }) => [side.relation],
       pattern: ({ relation }) => [relation],
       primaryKey: ({ relation }) => [relation],
+      sealed: ({ unit }) => [unit],
       tree: ({ member, slots }) => [member.relation, slots.owner],
     }),
   );

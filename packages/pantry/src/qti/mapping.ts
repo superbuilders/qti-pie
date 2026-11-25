@@ -88,7 +88,7 @@ const mapKeys = query(QtiBase).rule((r) => {
  * empty text, never stands in a committed state ("Key text bound" refuses a longer one at import
  * over {@link TableKeyText}).
  */
-export const MapKey = derived.stored(
+export const MapKey = derived(
   "MapKey",
   query(QtiBase).rule((r) => {
     const { key, package: pkg, path, start } = v(mapKeys, "key");
@@ -128,7 +128,7 @@ const lookupValues = query(QtiBase).rule((r) => {
  * arm, the empty text, never stands in a committed state ("Key text bound" refuses a longer one at
  * import over {@link TableKeyText}).
  */
-export const LookupValue = derived.stored(
+export const LookupValue = derived(
   "LookupValue",
   query(QtiBase).rule((r) => {
     const { name, package: pkg, path, start, value } = v(lookupValues, "value");

@@ -721,6 +721,11 @@ export const lawTable = {
     source:
       "plan §1.6 and imscp_infov1p2pd2.txt §6.11.4 (IMS Content Packaging 1.2, the manifest's identifier: 'unique within the Manifest', and its version, which 'is used to distinguish between manifests with the same identifier'): one Package row per name, the name the importer's caller gives it and the key every row of the package holds, never the manifest's identifier, which two packages may share; an import only inserts, so the same package again under its name is unchanged and another package under a stored name is refused on the keys the two share, a name one revision forever, since no relation of the package is ever changed or deleted (logins.ts insertWrite)",
   },
+  "Package sealed": {
+    rule: "reachability",
+    source:
+      "plan §1.6 and grizzle's sealed unit (package.ts PackageUnit): a package's rows are inserted by the one transaction that founds it, the import's one ChangeSet (logins.ts insertWrite), and never written after, so no later write adds a row under a stored package name, and a name is one revision forever",
+  },
   "Pattern language": {
     rule: "pattern-language",
     source:

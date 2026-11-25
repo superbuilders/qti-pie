@@ -36,8 +36,8 @@
  * ID-typed attribute's `value` or its text collapsed, which every rule that reads an ID matches.
  * Its language view, {@link LangValue}, is the one statement of the language an `xml:lang` states
  * and of its compared value, which every rule that reads a language matches.
- * Its stored views of an attribute and the tree, which grizzle keeps equal to their definitions
- * (`derived.stored`, every relation they read closed): each catalog's `id` ({@link CatalogId}),
+ * Its stored views of an attribute and the tree, which grizzle stores, each definition unit-local
+ * in the sealed Package unit, and keeps equal to it: each catalog's `id` ({@link CatalogId}),
  * each table cell's `headers` tokens ({@link HeaderToken}) and its nearest table
  * ({@link CellTable}), and, from `#pantry/qti/mapping.ts`, each map entry's key and each lookup
  * table's typed values (`MapKey`, `LookupValue`); each is read where the tree states it, so no row
@@ -880,7 +880,7 @@ export const LocatedTemplate = derived(
  * (`#pantry/qti/overlay-queries/catalog.ts`), since XML Schema bounds no `xs:ID`. AL1 holds the
  * form to an NCName once collapsed where it is written (spec readings 152 and 156).
  */
-export const CatalogId = derived.stored(
+export const CatalogId = derived(
   "CatalogId",
   query(QtiBase).rule((r) => {
     const { package: pkg, path, start, value, valueDigest } = v(Attribute, "attribute");
@@ -908,7 +908,7 @@ export const CatalogId = derived.stored(
  * resolves each among its table's headers (`#pantry/qti/overlay-queries/html.ts`), since a token
  * is of any length. A form of whitespace alone has no token.
  */
-export const HeaderToken = derived.stored(
+export const HeaderToken = derived(
   "HeaderToken",
   query(QtiBase).rule((r) => {
     const { kind, lexical, package: pkg, path, start } = v(Attribute, "attribute");
@@ -963,7 +963,7 @@ const tableWalk = query(QtiBase).recursive("TableWalk", {
  * so a cell no `table` holds takes part in no table. "Table headers" reads it
  * (`#pantry/qti/overlay-queries/html.ts`).
  */
-export const CellTable = derived.stored(
+export const CellTable = derived(
   "CellTable",
   query(QtiBase)
     .rule((r) => {

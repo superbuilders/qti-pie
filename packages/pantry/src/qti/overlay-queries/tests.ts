@@ -62,10 +62,12 @@ import {
   ItemRefDocument,
   ItemRefHref,
   Named,
+  NavigationModeLexical,
   Site,
   SitePath,
   SiteTarget,
   StimulusRef,
+  SubmissionModeLexical,
   UnplacedCause,
 } from "#pantry/qti/tests.ts";
 import {
@@ -323,37 +325,44 @@ export const ItemRefCategory = derived(
 );
 
 /**
- * Each test part's `navigation-mode`, by its place: its `value`, `linear` or `nonlinear`
+ * Each test part's `navigation-mode`, by its place: its `value`, `linear` or `nonlinear` as written
  * (`NavigationModeEnum`, an `xs:string` enumeration, `whiteSpace` preserve).
  */
 const navigationModes = attributeValues("navigation-mode", [partKind]);
 
 /**
- * Each test part's `submission-mode`, by its place: its `value`, `individual` or `simultaneous`.
+ * Each test part's `submission-mode`, by its place: its `value`, `individual` or `simultaneous` as
+ * written (`SubmissionModeEnum`, an `xs:string` enumeration, `whiteSpace` preserve).
  */
 const submissionModes = attributeValues("submission-mode", [partKind]);
 
 /**
  * Each test part of a test, by its place: its test, its identifier, `part`, and the two modes it
- * writes, `navigation` and `submission` (§5.159.4: "A testPart in linear mode restricts the
- * candidate to attempt each item in turn. Once the candidate moves on they are not permitted to
- * return"; §5.159.5: "A testPart in individual mode requires the candidate to submit their
- * responses on an item-by-item basis. In simultaneous mode the candidate's responses are all
- * submitted together at the end of the testPart"). Both are required, with no default
+ * writes, `navigation` a `NavigationMode` and `submission` a `SubmissionMode`
+ * (`#pantry/qti/tests.ts`), each the mode its attribute's value spells (`NavigationModeLexical`,
+ * `SubmissionModeLexical`), so a reader binds a mode by its code (§5.159.4: "A testPart in linear
+ * mode restricts the candidate to attempt each item in turn. Once the candidate moves on they are
+ * not permitted to return"; §5.159.5: "A testPart in individual mode requires the candidate to
+ * submit their responses on an item-by-item basis. In simultaneous mode the candidate's responses
+ * are all submitted together at the end of the testPart"). Both are required, with no default
  * (`TestPartDType`), so a part that omits one has no row, and AL3 refuses it; a value outside its
  * enumeration is its value domain's to refuse.
  */
 const testPartRows = query(QtiBase).rule((r) => {
   const { package: pkg, path, test } = v(testRootRows, "test");
   const { identifier: part, start } = v(structureNodeRows, "part");
-  const { value: navigation } = v(navigationModes, "navigation");
-  const { value: submission } = v(submissionModes, "submission");
+  const { value: navigationValue } = v(navigationModes, "navigationValue");
+  const { value: submissionValue } = v(submissionModes, "submissionValue");
+  const { code: navigation } = v(NavigationModeLexical, "navigation");
+  const { code: submission } = v(SubmissionModeLexical, "submission");
 
   return r
     .match(testRootRows, { package: pkg, path, test })
     .match(structureNodeRows, { identifier: part, kind: partKind, package: pkg, path, start })
-    .match(navigationModes, { package: pkg, path, start, value: navigation })
-    .match(submissionModes, { package: pkg, path, start, value: submission })
+    .match(navigationModes, { package: pkg, path, start, value: navigationValue })
+    .match(submissionModes, { package: pkg, path, start, value: submissionValue })
+    .match(NavigationModeLexical, { code: navigation, lexical: navigationValue })
+    .match(SubmissionModeLexical, { code: submission, lexical: submissionValue })
     .find({ navigation, package: pkg, part, path, start, submission, test });
 });
 

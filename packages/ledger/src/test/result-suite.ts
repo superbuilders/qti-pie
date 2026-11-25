@@ -19,17 +19,7 @@ import { DbLayer, LiveSource, served } from "@bjornpagen/grizzle/runtime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { clusterDatabase } from "@qti-pie/pantry/db/connection.ts";
 import { fileConnections } from "@qti-pie/pantry/test/file-database.ts";
-import {
-  Config,
-  ConfigProvider,
-  Context,
-  Duration,
-  Effect,
-  FileSystem,
-  Layer,
-  Option,
-  Schema,
-} from "effect";
+import { Config, ConfigProvider, Context, Effect, FileSystem, Layer, Option, Schema } from "effect";
 import { resultMigrations, resultSettingsOf } from "#ledger/test/result-database.ts";
 import type { ResultSuite } from "#ledger/test/result-level.ts";
 
@@ -62,7 +52,7 @@ export class SuiteLogin extends Context.Service<SuiteLogin, Logins>()(
 /**
  * One session: the suite's calls run one after another.
  */
-const onePool = { idleTimeoutMs: Duration.toMillis(Duration.minutes(1)), max: 1, min: 0 } as const;
+const onePool = { max: 1 } as const;
 
 /**
  * A file's services: its served login, its database layer on its own copy of the lease's result

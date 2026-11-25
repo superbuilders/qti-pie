@@ -18,7 +18,7 @@ import { declared } from "#pantry/qti/law-entries.ts";
  * no `xs:ID`. AL1 holds the form to an NCName once collapsed where it is written (spec readings 152
  * and 156). A `th` no `table` holds is a header of no table, which no token can name.
  */
-export const TableHeader = derived.stored(
+export const TableHeader = derived(
   "TableHeader",
   query(QtiViews).rule((r) => {
     const { package: pkg, path, start, value, valueDigest } = v(Attribute, "attribute");

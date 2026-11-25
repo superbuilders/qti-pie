@@ -1088,7 +1088,7 @@ const cnParts = query(QtiBase)
  * count of its parts ({@link cnParts}). No row copies either (C18): the database reads both where
  * the tree states them, and "MathML cn form" holds the count to its type's.
  */
-export const CnCount = derived.stored(
+export const CnCount = derived(
   "CnCount",
   query(QtiBase).rule((r) => {
     const { package: pkg, path, start, type } = v(cnTypes, "cn");

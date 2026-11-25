@@ -47,7 +47,8 @@ import type { LedgerLevel } from "#ledger/delivery.ts";
  *   item ref's place, `start`, with its identifier, `item`.
  */
 export const memberControlsOf = (ledger: LedgerLevel) => {
-  const { ItemRefSection, MaxAttempts, SessionControl, TestMember, TestPart } = ledger.relations;
+  const { ItemRefSection, MaxAttempts, SessionControl, SubmissionMode, TestMember, TestPart } =
+    ledger.relations;
 
   /**
    * Each scope of an item ref, by the ref's place and the scope's: the ref itself, each section
@@ -221,7 +222,12 @@ export const memberControlsOf = (ledger: LedgerLevel) => {
 
     return r
       .match(TestMember, { item, package: pkg, part, path, start })
-      .match(TestPart, { package: pkg, path, start: part, submission: "individual" })
+      .match(TestPart, {
+        package: pkg,
+        path,
+        start: part,
+        submission: SubmissionMode.handle("individual"),
+      })
       .find({ item, package: pkg, path, start });
   });
 

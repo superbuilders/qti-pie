@@ -332,7 +332,7 @@ const migrationsDirectory = path.resolve(import.meta.dirname, "..", "..", "migra
 /**
  * One session: the file's reads run one after another.
  */
-const onePool = { idleTimeoutMs: 60_000, max: 1, min: 0 } as const;
+const onePool = { max: 1 } as const;
 
 /**
  * The reader's `DbLayer` and its served login: its reads compiled under the committed snapshot,

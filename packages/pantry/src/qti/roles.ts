@@ -8,11 +8,12 @@ import { role, wholeEntriesOf, wholeWritesOf } from "@bjornpagen/grizzle";
 import { Qti } from "#pantry/qti/schema.ts";
 
 /**
- * The author role over `Qti`: a full role, holding every stored relation, every roster and every
- * stored derived relation whole and writing every stored relation. Its entries are grizzle's
- * `wholeEntriesOf`, which leaves out the closed relations, no role's entries: every law that reads
- * one is the schema's, and holds whoever writes. A roster has no view, and every query reads its
- * handles as codes. A stored derived relation is a table grizzle keeps, which no role writes. Its
+ * The author role over `Qti`: a full role, holding every stored relation and every roster whole
+ * and writing every stored relation. Its entries are grizzle's `wholeEntriesOf`, which leaves out
+ * the closed relations and the derived ones, no role's entries: every law that reads a closed one
+ * is the schema's, and holds whoever writes, and the role reads a stored derived relation's table,
+ * which grizzle keeps and no role writes, through its whole view, since it holds every relation the
+ * definition reads whole. A roster has no view, and every query reads its handles as codes. Its
  * writes are `wholeWritesOf`, each stored relation under the mode `Qti` declares it in: every one
  * is closed, so its insert list names them all, and the role holds SELECT and INSERT on them and no
  * UPDATE or DELETE: a direct UPDATE or DELETE through the role is 42501.

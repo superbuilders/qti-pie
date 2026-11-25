@@ -373,7 +373,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
       .find({ baseType, cardinality, declarationKind, identifier, package: pkg, path });
   });
 
-  const ItemVariable = derived.stored("ItemVariable", declaredVariables);
+  const ItemVariable = derived("ItemVariable", declaredVariables);
 
   /**
    * An item's built-in session variable, by its name among QTI's (pantry's `BuiltIn` roster), as a
@@ -422,7 +422,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
     .rule(builtInVariable("numAttempts", "integer"))
     .rule(builtInVariable("duration", "float"))
     .rule(builtInVariable("completionStatus", "identifier"));
-  const ItemSessionVariable = derived.stored("ItemSessionVariable", sessionVariables);
+  const ItemSessionVariable = derived("ItemSessionVariable", sessionVariables);
 
   /**
    * QTI's record variables: every variable an item declares of cardinality `record`, which has no
@@ -446,7 +446,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
       })
       .find({ declarationKind, identifier, package: pkg, path });
   });
-  const ItemRecordVariable = derived.stored("ItemRecordVariable", recordVariables);
+  const ItemRecordVariable = derived("ItemRecordVariable", recordVariables);
 
   /**
    * Every variable an item's session holds, by its package, the item's `identifier` and the
@@ -454,7 +454,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
    * ({@link ItemSessionVariable}'s rows) and a record ({@link ItemRecordVariable}'s). What a
    * session's start record is made of (`StartVariable`), a record's among them.
    */
-  const SessionVariableName = derived.stored(
+  const SessionVariableName = derived(
     "SessionVariableName",
     query(qti)
       .rule((r) => {
@@ -516,7 +516,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
    * learner part's judge reads at every timed response's COMMIT ("Response in time", "Suspended in
    * time"), so it reads the table, never the timing scopes again.
    */
-  const LateTest = derived.stored("LateTest", lateTests);
+  const LateTest = derived("LateTest", lateTests);
 
   /**
    * QTI's outcome declarations a candidate sees, by the document's place `(package, path)` and the

@@ -626,7 +626,7 @@ const shownHeldOf = (delivery: DeliveryLevel, shownSave: ShownSaves) => {
  * note of `#ledger/finish.ts`).
  */
 const partsOf = (delivery: DeliveryLevel) => {
-  const { TestPart } = delivery.relations;
+  const { NavigationMode, SubmissionMode, TestPart } = delivery.relations;
 
   return {
     linear: query(delivery).rule((r) => {
@@ -634,11 +634,11 @@ const partsOf = (delivery: DeliveryLevel) => {
 
       return r
         .match(TestPart, {
-          navigation: "linear",
+          navigation: NavigationMode.handle("linear"),
           package: pkg,
           path,
           start,
-          submission: "individual",
+          submission: SubmissionMode.handle("individual"),
         })
         .find({ package: pkg, path, start });
     }),
@@ -648,11 +648,11 @@ const partsOf = (delivery: DeliveryLevel) => {
 
         return r
           .match(TestPart, {
-            navigation: "nonlinear",
+            navigation: NavigationMode.handle("nonlinear"),
             package: pkg,
             path,
             start,
-            submission: "individual",
+            submission: SubmissionMode.handle("individual"),
           })
           .find({ package: pkg, path, start });
       })
@@ -660,7 +660,12 @@ const partsOf = (delivery: DeliveryLevel) => {
         const { package: pkg, path, start } = v(TestPart, "simultaneousPart");
 
         return r
-          .match(TestPart, { package: pkg, path, start, submission: "simultaneous" })
+          .match(TestPart, {
+            package: pkg,
+            path,
+            start,
+            submission: SubmissionMode.handle("simultaneous"),
+          })
           .find({ package: pkg, path, start });
       }),
   } as const;

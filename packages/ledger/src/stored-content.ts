@@ -1,9 +1,10 @@
 /**
  * The content of a package's documents the grader and response admission read, stored at its
  * publication: each relation a function of its package's own rows and the closed facts alone,
- * stored (grizzle's `derived.stored`, kept at COMMIT at every package a transaction writes, under
- * pantry's `Package` unit, every key leading with `package`), so an answer's admission, a take and
- * a grade read it by the document's key, as tables, and nothing rebuilds it per call.
+ * stored (grizzle stores each, its definition unit-local in pantry's sealed `Package` unit, every
+ * key leading with `package`, written at the COMMIT of the write that founds the package), so an
+ * answer's admission, a take and a grade read it by the document's key, as tables, and nothing
+ * rebuilds it per call.
  *
  * - **What admission reads of an item's body**: `ItemBodyElement`, each element node of its
  *   `qti-item-body`, the body among them, its kind by its name (`BodyNodeKind`), and
@@ -123,7 +124,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
   /**
    * The item body's element nodes, its `qti-item-body` among them, each kind by its name.
    */
-  const ItemBodyElement = derived.stored(
+  const ItemBodyElement = derived(
     "ItemBodyElement",
     query(ledger).rule((r) => {
       const { end: last, package: pkg, path, start: first } = v(Node, "itemBody");
@@ -150,7 +151,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
    * The attributes of the body's elements admission reads, as pantry's Attribute holds their
    * values.
    */
-  const ItemBodyAttribute = derived.stored(
+  const ItemBodyAttribute = derived(
     "ItemBodyAttribute",
     query(ledger).rule((r) => {
       const { end: last, package: pkg, path, start: first } = v(Node, "itemBody");
@@ -176,7 +177,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
   /**
    * Each node of a document's declarations of a kind the machine reads, by the machine's token.
    */
-  const DeclarationElement = derived.stored(
+  const DeclarationElement = derived(
     "DeclarationElement",
     query(ledger).rule((r) => {
       const { end, kind, package: pkg, parent, path, start } = v(Node, "node");
@@ -192,7 +193,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
   /**
    * Their attributes the machine reads, as pantry's Attribute holds their values.
    */
-  const DeclarationAttribute = derived.stored(
+  const DeclarationAttribute = derived(
     "DeclarationAttribute",
     query(ledger).rule((r) => {
       const { kind, package: pkg, path, start } = v(Node, "node");
@@ -211,7 +212,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
   /**
    * Each `qti-value`'s string value.
    */
-  const DeclarationValueText = derived.stored(
+  const DeclarationValueText = derived(
     "DeclarationValueText",
     query(ledger).rule((r) => {
       const { package: pkg, path, start, stringValue } = v(Node, "value");
@@ -464,15 +465,15 @@ export const storedContentOf = (ledger: LedgerLevel) => {
         .find({ dflt, identifier, lower, package: pkg, path, start, upper });
     });
 
-  const DeclaredMapping = derived.stored("DeclaredMapping", mappingOf("qti-mapping"));
+  const DeclaredMapping = derived("DeclaredMapping", mappingOf("qti-mapping"));
 
-  const DeclaredAreaMapping = derived.stored("DeclaredAreaMapping", mappingOf("qti-area-mapping"));
+  const DeclaredAreaMapping = derived("DeclaredAreaMapping", mappingOf("qti-area-mapping"));
 
   /**
    * Each map entry's case sensitivity (default false, information model §5.89.3) and mapped
    * value, by its place and its response.
    */
-  const DeclaredMapEntry = derived.stored(
+  const DeclaredMapEntry = derived(
     "DeclaredMapEntry",
     query(ledger).rule((r) => {
       const sensitive = flag(["qti-map-entry"], "case-sensitive", false);
@@ -509,7 +510,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
    * or `nowhere` where its coordinates hold no point; and its mapped value, by its place and its
    * response.
    */
-  const DeclaredAreaEntry = derived.stored(
+  const DeclaredAreaEntry = derived(
     "DeclaredAreaEntry",
     query(ledger)
       .rule((r) => {
@@ -557,7 +558,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
    * Each coordinate of an area map entry's area as written (`coords_of`), by its place from 1: none
    * of a default shape's, which reads none.
    */
-  const DeclaredAreaCoord = derived.stored(
+  const DeclaredAreaCoord = derived(
     "DeclaredAreaCoord",
     query(ledger).rule((r) => {
       const { package: pkg, path, start, value: outline } = v(outlines, "outline");
@@ -602,7 +603,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
   /**
    * Each lookup table's kind (information model §4.5.13), by its place and its outcome.
    */
-  const DeclaredLookup = derived.stored(
+  const DeclaredLookup = derived(
     "DeclaredLookup",
     query(ledger).rule(lookupOf(lookupKinds[0])).rule(lookupOf(lookupKinds[1])),
   );
@@ -611,7 +612,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
    * Each match table entry's source (information model §5.84.1), an integer, by its place and its
    * outcome.
    */
-  const DeclaredMatchEntry = derived.stored(
+  const DeclaredMatchEntry = derived(
     "DeclaredMatchEntry",
     query(ledger).rule((r) => {
       const sources = written(["qti-match-table-entry"], "source-value");
@@ -679,7 +680,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
    * Each interpolation table entry's source (information model §5.68.1), a float, and whether it
    * includes the boundary (default true, §5.68.3), by its place and its outcome.
    */
-  const DeclaredInterpolationEntry = derived.stored(
+  const DeclaredInterpolationEntry = derived(
     "DeclaredInterpolationEntry",
     query(ledger).rule((r) => {
       const boundaries = flag(["qti-interpolation-table-entry"], "include-boundary", true);
@@ -770,7 +771,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
       });
   };
 
-  const DeclaredValueText = derived.stored(
+  const DeclaredValueText = derived(
     "DeclaredValueText",
     query(ledger).rule(textOf("identifier")).rule(textOf("uri")).rule(textOf("string")),
   );
@@ -778,7 +779,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
   /**
    * Each integer value, collapsed, as QTI's integer.
    */
-  const DeclaredValueInteger = derived.stored(
+  const DeclaredValueInteger = derived(
     "DeclaredValueInteger",
     query(ledger).rule((r) => {
       const { package: pkg, path, start, text } = v(values, "integer");
@@ -879,7 +880,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
       });
   };
 
-  const DeclaredValueFloat = derived.stored(
+  const DeclaredValueFloat = derived(
     "DeclaredValueFloat",
     query(ledger).rule(floatOf("float")).rule(floatOf("duration")),
   );
@@ -887,7 +888,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
   /**
    * Each boolean value: true where it reads `true` or `1` collapsed, else false.
    */
-  const DeclaredValueBoolean = derived.stored(
+  const DeclaredValueBoolean = derived(
     "DeclaredValueBoolean",
     query(ledger).rule((r) => {
       const { package: pkg, path, start, text } = v(values, "boolean");
@@ -909,7 +910,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
    * Each pair value's two identifiers, its first two tokens, least and greatest: a pair is
    * unordered.
    */
-  const DeclaredValuePair = derived.stored(
+  const DeclaredValuePair = derived(
     "DeclaredValuePair",
     query(ledger).rule((r) => {
       const { package: pkg, path, start, text } = v(values, "pair");
@@ -933,7 +934,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
   /**
    * Each directed pair value's source and target, its first two tokens.
    */
-  const DeclaredValueDirectedPair = derived.stored(
+  const DeclaredValueDirectedPair = derived(
     "DeclaredValueDirectedPair",
     query(ledger).rule((r) => {
       const { package: pkg, path, start, text } = v(values, "directedPair");
@@ -951,7 +952,7 @@ export const storedContentOf = (ledger: LedgerLevel) => {
   /**
    * Each point value's coordinates, its first two tokens, each an integer.
    */
-  const DeclaredValuePoint = derived.stored(
+  const DeclaredValuePoint = derived(
     "DeclaredValuePoint",
     query(ledger).rule((r) => {
       const { package: pkg, path, start, text } = v(values, "point");

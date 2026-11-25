@@ -3,7 +3,8 @@
  * Delivery level over the ledger: what the SQL grader reads by the item's key, and what the items
  * served for credit are judged by (`#ledger/servable.ts`). Each is a function of the item's own
  * package's rows and the closed facts alone, so it is known once the package is published, and
- * stored (grizzle's `derived.stored`, kept at COMMIT at every package a transaction writes).
+ * grizzle stores it (its definition unit-local in the sealed Package unit), written at the COMMIT
+ * of the write that founds the package.
  *
  * - **ResponseProgram**: the document whose `qti-response-processing` subtree the item runs, by the
  *   item's document (`package`, `path`): the item's own (`source`, `document` the item) where its
@@ -67,7 +68,7 @@ export const templatedProgramsOf = (ledger: LedgerLevel) => {
 export const responseProgramsOf = (ledger: LedgerLevel) => {
   const { Document, LocatedTemplate, Node } = ledger.relations;
 
-  const ResponseProgram = derived.stored(
+  const ResponseProgram = derived(
     "ResponseProgram",
     query(ledger)
       .rule((r) => {

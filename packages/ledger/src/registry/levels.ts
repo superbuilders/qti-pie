@@ -63,9 +63,9 @@ const formKinds = [
  *   the primitives read, each entry with its place, and which table each class reads in each role;
  *   and why an element is outside the profile.
  * - **`Registry`** (`registry`): views over pantry's content, refusing nothing, `BoundOperator`,
- *   `RecordedApplication`, `RubricApplication` and `ApplicationDefault` stored (grizzle's
- *   `derived.stored`, kept at COMMIT at every package a transaction writes, so the grader and the
- *   learner part's judge read their tables):
+ *   `RecordedApplication`, `RubricApplication` and `ApplicationDefault` stored (grizzle stores
+ *   each, its definition unit-local in the sealed Package unit, written at the COMMIT of the write
+ *   that founds the package, so the grader and the learner part's judge read their tables):
  *
  *   - `OutsideProfile`: each element that puts its document outside this deployment's profile, with
  *     why, which the grader's gradable relation reads, so an item is served for credit only within
@@ -1021,14 +1021,14 @@ export const registryOf = (qti: typeof QtiLom, roster: Roster) => {
    * document outside the profile is bound too; the grader serves no such item for credit ({@link
    * OutsideProfile}).
    */
-  const BoundOperator = derived.stored("BoundOperator", boundOperators);
+  const BoundOperator = derived("BoundOperator", boundOperators);
 
   /**
    * Each application of a recorded class in an item, by its package, its item's document (`path`,
    * the identity the ledger keys an attempt by, SPEC-AUDIT SV-KEY-01) and the operator's place in
    * that document: what a ledger fact of an attempt names.
    */
-  const RecordedApplication = derived.stored(
+  const RecordedApplication = derived(
     "RecordedApplication",
     query(RegistryRoster).rule((r) => {
       const { class: operatorClass, package: pkg, path, start } = v(boundOperators, "bound");
@@ -1078,7 +1078,7 @@ export const registryOf = (qti: typeof QtiLom, roster: Roster) => {
    * name one rubric are one group, the group a person's value answers (the ledger's
    * `HumanOperatorValue`) when every application of it declined.
    */
-  const RubricApplication = derived.stored(
+  const RubricApplication = derived(
     "RubricApplication",
     query(RegistryRoster).rule((r) => {
       const { operator, package: pkg, path, rubric } = v(rubricOperands, "rubric");
@@ -1125,7 +1125,7 @@ export const registryOf = (qti: typeof QtiLom, roster: Roster) => {
    * (a {@link defaultOperands} operand's `qti-default`, its conditions never restated): what an
    * evaluator's request reads as the operand's value, the outcome's default in force.
    */
-  const ApplicationDefault = derived.stored(
+  const ApplicationDefault = derived(
     "ApplicationDefault",
     query(RegistryRoster).rule((r) => {
       const { operator, package: pkg, path, rank } = v(defaultOperands, "default");
