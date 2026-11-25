@@ -248,8 +248,12 @@ export const addRow = <V extends XdmVocabulary>(scan: Scan<V>, row: ScanRow<V>):
     scan.documents.push({ charset, exportCharset });
     for (const { encoding, standalone, version: declared } of Option.toArray(declaration)) {
       scan.xmlDecls.push({ version: declared });
-      scan.encodingDecls.push(...Option.toArray(encoding));
-      scan.sdDecls.push(...Option.toArray(standalone));
+      for (const each of Option.toArray(encoding)) {
+        scan.encodingDecls.push(each);
+      }
+      for (const each of Option.toArray(standalone)) {
+        scan.sdDecls.push(each);
+      }
     }
   }
 

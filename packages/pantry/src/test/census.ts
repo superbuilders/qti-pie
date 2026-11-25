@@ -1,6 +1,6 @@
 import path from "node:path";
 import { schemaNameOf } from "@bjornpagen/grizzle";
-import { Effect, FileSystem } from "effect";
+import { Array as Arr, Effect, FileSystem } from "effect";
 import { QtiBase } from "#pantry/qti/base.ts";
 
 /**
@@ -611,7 +611,7 @@ export const census = (files: readonly MigrationFile[]): Census => {
       byTable: tallyBy(added.map(({ table }) => table)),
       composite: keys.filter((columns) => columns > 1).length,
       total: keys.length,
-      widest: Math.max(0, ...keys),
+      widest: Arr.reduce(keys, 0, (most, each) => Math.max(most, each)),
     },
     functions: {
       constant: tally(kinds, "constant"),

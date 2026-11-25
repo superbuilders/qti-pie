@@ -566,7 +566,9 @@ const candidatesOf = (
       break;
     }
 
-    found.push(...named(ancestor, site));
+    for (const each of named(ancestor, site)) {
+      found.push(each);
+    }
     via = ancestor;
   }
 
@@ -654,13 +656,13 @@ const poolsOf = (
       const pool = pools.get(owner) ?? { blocks: [], replacing: false, sections: [] };
       pool.sections.push(section.node.start);
       pool.replacing ||= section.replacing;
-      pool.blocks.push(
-        ...elementsOf(document.listed.rows, section.node.start).filter(
-          (child) =>
-            partKinds.has(child.kind) &&
-            !Option.exists(Option.fromUndefinedOr(document.sections.get(child.start)), mixedIn),
-        ),
-      );
+      for (const each of elementsOf(document.listed.rows, section.node.start).filter(
+        (child) =>
+          partKinds.has(child.kind) &&
+          !Option.exists(Option.fromUndefinedOr(document.sections.get(child.start)), mixedIn),
+      )) {
+        pool.blocks.push(each);
+      }
       pools.set(owner, pool);
     }
   }

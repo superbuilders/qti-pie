@@ -448,12 +448,16 @@ const particleCost = (particle: Particle, costs: ReadonlyMap<string, number>): n
   const once = Match.valueTags(particle, {
     any: () => 1,
     element: ({ kinds }) =>
-      Math.min(...kinds.map((kind) => costs.get(kind) ?? Number.POSITIVE_INFINITY)),
+      Arr.reduce(
+        kinds.map((kind) => costs.get(kind) ?? Number.POSITIVE_INFINITY),
+        Number.POSITIVE_INFINITY,
+        (least, each) => Math.min(least, each),
+      ),
     group: ({ compositor, particles }) => {
       const inner = particles.map((member) => particleCost(member, costs));
 
       return compositor === "choice"
-        ? Math.min(Number.POSITIVE_INFINITY, ...inner)
+        ? Arr.reduce(inner, Number.POSITIVE_INFINITY, (least, each) => Math.min(least, each))
         : inner.reduce((sum, cost) => sum + cost, 0);
     },
   });

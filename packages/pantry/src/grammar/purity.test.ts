@@ -147,7 +147,9 @@ const oracleModules = (read: (file: string) => string): readonly string[] => {
     const file = (unread.pop() ?? oracleModule).slice("#pantry/".length);
     if (!seen.has(file)) {
       seen.add(file);
-      unread.push(...specifiers(read(file)).filter((next) => next.startsWith(oraclePrefix)));
+      for (const each of specifiers(read(file)).filter((next) => next.startsWith(oraclePrefix))) {
+        unread.push(each);
+      }
     }
   }
 

@@ -1200,7 +1200,9 @@ const readClass = (cursor: Cursor): Result.Result<CodeSet, UnreadPattern> => {
       return item;
     }
 
-    runs.push(...item.success);
+    for (const each of item.success) {
+      runs.push(each);
+    }
   }
 
   const group = intersect(setOf(runs), xmlChar);
@@ -2428,8 +2430,12 @@ const lengthBounds = (facets: readonly Facet[]): LengthBounds => {
   const most = [...Option.toArray(exact), ...Option.toArray(read("maxLength"))];
 
   return {
-    max: Arr.isReadonlyArrayNonEmpty(most) ? Option.some(Math.min(...most)) : Option.none(),
-    min: Math.max(0, ...least),
+    max: Arr.isReadonlyArrayNonEmpty(most)
+      ? Option.some(
+          Arr.reduce(most, Number.POSITIVE_INFINITY, (lowest, each) => Math.min(lowest, each)),
+        )
+      : Option.none(),
+    min: Arr.reduce(least, 0, (highest, each) => Math.max(highest, each)),
     stated: least.length > 0 || most.length > 0,
   };
 };

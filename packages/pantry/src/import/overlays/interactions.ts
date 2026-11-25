@@ -850,7 +850,9 @@ const instancesOf = (root: InstanceRoot): readonly Placement[] => {
       package: root.package,
       start: BigInt(found.length),
     });
-    stack.push(...next.children.toReversed());
+    for (const each of next.children.toReversed()) {
+      stack.push(each);
+    }
   }
 
   return found;

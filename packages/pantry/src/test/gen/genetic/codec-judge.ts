@@ -339,9 +339,11 @@ const elementsIn = (root: Element): readonly Element[] => {
   const stack: Element[] = [root];
   for (let next = stack.pop(); next !== undefined; next = stack.pop()) {
     out.push(next);
-    stack.push(
-      ...next.children.filter((child): child is Element => child.kind === "element").toReversed(),
-    );
+    for (const each of next.children
+      .filter((child): child is Element => child.kind === "element")
+      .toReversed()) {
+      stack.push(each);
+    }
   }
 
   return out;
@@ -497,7 +499,9 @@ const treeDifferences = (left: XmlDocument, right: XmlDocument): readonly TreeDi
 
   const stack: (readonly [Element, Element])[] = [[left.root, right.root]];
   for (let next = stack.pop(); next !== undefined; next = stack.pop()) {
-    stack.push(...elementDifferences(next[0], next[1], add).toReversed());
+    for (const each of elementDifferences(next[0], next[1], add).toReversed()) {
+      stack.push(each);
+    }
   }
 
   return [...found].map(([what, detail]) => ({ detail, what }));

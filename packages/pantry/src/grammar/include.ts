@@ -229,7 +229,9 @@ export const includeGrammar = (input: {
     const sorted = kinds.toSorted();
     const set = setOf.getOrInsertComputed(sorted.join(" "), () => {
       const fresh = String(setOf.size);
-      members.push(...sorted.map((kind) => ({ kind, set: fresh })));
+      for (const each of sorted.map((kind) => ({ kind, set: fresh }))) {
+        members.push(each);
+      }
 
       return fresh;
     });

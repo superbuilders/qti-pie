@@ -1081,7 +1081,9 @@ export const derivationsOf = (
           level.flatMap((held) => held.children),
           Order.mapInput(byName, (held: TypeNode) => held.name),
         );
-        derived.push(...level.map((held) => held.name));
+        for (const each of level.map((held) => held.name)) {
+          derived.push(each);
+        }
       }
 
       derivations.set(node.key, { derived: [node.name, ...derived], type: node.name });
@@ -1199,7 +1201,9 @@ const worldOf = (
 
       views.set(schema.targetNamespace, view);
       entries.push([schema.targetNamespace, source]);
-      documents.push(...[...placed.values()].map(({ document }) => [view, document] as const));
+      for (const each of [...placed.values()].map(({ document }) => [view, document] as const)) {
+        documents.push(each);
+      }
     }
 
     const [base, core] = read.ssml;

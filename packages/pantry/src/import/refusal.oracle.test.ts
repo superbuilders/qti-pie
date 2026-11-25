@@ -488,7 +488,10 @@ const assertRules = (laws: Arr.NonEmptyReadonlyArray<Law>): void => {
     listed(rules) === listed(expected) &&
     listed(reversed) === listed(rules) &&
     listed(once) === listed(rules) &&
-    tierOf(first) === Math.min(...rules.map(tierOf))
+    tierOf(first) ===
+      Arr.reduce(rules.map(tierOf), Number.POSITIVE_INFINITY, (least, each) =>
+        Math.min(least, each),
+      )
   ) {
     return;
   }
@@ -499,7 +502,13 @@ const assertRules = (laws: Arr.NonEmptyReadonlyArray<Law>): void => {
   assert.deepStrictEqual(reversed, rules, identities);
   assert.deepStrictEqual(once, rules, identities);
   if (first !== undefined) {
-    assert.strictEqual(tierOf(first), Math.min(...rules.map(tierOf)), identities);
+    assert.strictEqual(
+      tierOf(first),
+      Arr.reduce(rules.map(tierOf), Number.POSITIVE_INFINITY, (least, each) =>
+        Math.min(least, each),
+      ),
+      identities,
+    );
   }
 };
 

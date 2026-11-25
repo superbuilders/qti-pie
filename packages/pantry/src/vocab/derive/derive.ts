@@ -1858,9 +1858,13 @@ const eitherOf = (counts: readonly Occurs[]): Occurs =>
     ? none
     : {
         max: Option.map(Option.all(counts.map((count) => count.max)), (maxes) =>
-          Math.max(...maxes),
+          Arr.reduce(maxes, Number.NEGATIVE_INFINITY, (most, each) => Math.max(most, each)),
         ),
-        min: Math.min(...counts.map((count) => count.min)),
+        min: Arr.reduce(
+          counts.map((count) => count.min),
+          Number.POSITIVE_INFINITY,
+          (least, each) => Math.min(least, each),
+        ),
       };
 
 /**

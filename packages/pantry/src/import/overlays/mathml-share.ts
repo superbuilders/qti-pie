@@ -349,7 +349,9 @@ const seatsOf = (root: InstanceRoot, sites: ReadonlyMap<string, IncludeSite>): r
         ? { document, includer: { node: included.parent, seat: next.parent }, instance }
         : { document, instance };
     seats.push(seat);
-    stack.push(...children.toReversed().map((child) => ({ instance: child, parent: seat })));
+    for (const each of children.toReversed().map((child) => ({ instance: child, parent: seat }))) {
+      stack.push(each);
+    }
   }
 
   return seats;

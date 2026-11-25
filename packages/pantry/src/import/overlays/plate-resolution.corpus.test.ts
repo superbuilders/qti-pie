@@ -259,7 +259,9 @@ const corpus: Effect.Effect<Corpus> = Effect.runSync(
           }
 
           const found = referencesIn(read.value.root, { document: file.path, package: name });
-          references.push(...found.references);
+          for (const each of found.references) {
+            references.push(each);
+          }
           for (const each of found.uncensused) {
             uncensused.add(each);
           }

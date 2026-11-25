@@ -1864,7 +1864,11 @@ export const generate = (
     );
     const positions = numerals(
       "AttributePosition",
-      Math.max(0, ...[...kindRows, ...governorRows].map(({ position: at }) => at + 1)),
+      Arr.reduce(
+        [...kindRows, ...governorRows].map(({ position: at }) => at + 1),
+        0,
+        (most, each) => Math.max(most, each),
+      ),
     );
     const use = idField("use", roster("Use", uses));
     const position = idField("position", positions);

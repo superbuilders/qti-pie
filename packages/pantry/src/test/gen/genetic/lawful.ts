@@ -771,7 +771,9 @@ export const lawfulDocuments = (
       }
     }
 
-    covering.push(...coveringOf(reading, root));
+    for (const each of coveringOf(reading, root)) {
+      covering.push(each);
+    }
   }
 
   const seen = new Set<string>();

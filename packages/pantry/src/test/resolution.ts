@@ -404,7 +404,9 @@ const decodedOf = (
       octets.push(Number.parseInt(`${characters[at + 1] ?? ""}${characters[at + 2] ?? ""}`, 16));
       at += 2;
     } else {
-      octets.push(...new TextEncoder().encode(c));
+      for (const each of new TextEncoder().encode(c)) {
+        octets.push(each);
+      }
     }
   }
 

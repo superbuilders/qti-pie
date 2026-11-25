@@ -132,7 +132,9 @@ export const elementsOf = (root: Element): readonly Placed[] => {
       }
     }
 
-    stack.push(...below.toReversed());
+    for (const each of below.toReversed()) {
+      stack.push(each);
+    }
   }
 
   return placed;

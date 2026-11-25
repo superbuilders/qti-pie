@@ -491,7 +491,9 @@ const outsideSharedSyntax = (pattern: string): readonly string[] => {
     const point = points[at] ?? "";
     if (point === "\\") {
       const escape = escapeAt(points, at, inClass);
-      problems.push(...escape.problems);
+      for (const each of escape.problems) {
+        problems.push(each);
+      }
       at += escape.length;
     } else if (inClass) {
       inClass = point !== "]";

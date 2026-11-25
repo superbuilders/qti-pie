@@ -2123,7 +2123,9 @@ export const featuresOf = (document: XdmDocument<Composed>): ReadonlySet<XdmFeat
           found.add("repeatedOpenClass");
         }
 
-        stack.push(...node.children);
+        for (const each of node.children) {
+          stack.push(each);
+        }
         break;
       }
       case "text":
@@ -3180,7 +3182,9 @@ const sizeOf = (node: XdmChild<Composed>): number => {
   for (let next = stack.pop(); next !== undefined; next = stack.pop()) {
     size += 1;
     if ("children" in next) {
-      stack.push(...next.children);
+      for (const each of next.children) {
+        stack.push(each);
+      }
     }
   }
 

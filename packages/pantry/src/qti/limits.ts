@@ -16,6 +16,7 @@
  * element's expanded name among them ({@link foreignNameBytes}); and the decimal parse's, which a
  * parse guards its own operand by ({@link parsedDecimalBytes}).
  */
+import { Array as Arr } from "effect";
 import {
   law,
   lexicalForm,
@@ -456,7 +457,11 @@ export const isLomText = (text: string): boolean =>
  * spellings that name one (`urisOf` of `#pantry/qti/templates.ts`, spec reading 51), the only
  * `template` values `TemplateProcessing` holds (`#pantry/qti/queries.ts`).
  */
-const templateUriBytes = Math.max(...urisOf(publishedTemplates).map(utf8Length));
+const templateUriBytes = Arr.reduce(
+  urisOf(publishedTemplates).map(utf8Length),
+  Number.NEGATIVE_INFINITY,
+  (most, each) => Math.max(most, each),
+);
 
 /**
  * A published response processing template's URI as a key holds it, of at most

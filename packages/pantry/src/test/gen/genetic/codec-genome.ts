@@ -916,11 +916,11 @@ export const nodesOf = (
     out.push(next);
     if (next.node._tag === "element") {
       const { path } = next;
-      stack.push(
-        ...next.node.children
-          .map((child, at) => ({ node: child, path: [...path, at] }))
-          .toReversed(),
-      );
+      for (const each of next.node.children
+        .map((child, at) => ({ node: child, path: [...path, at] }))
+        .toReversed()) {
+        stack.push(each);
+      }
     }
   }
 
@@ -2529,14 +2529,16 @@ const subsetFeatures = (
       );
 
       const pieces = declaration.default._tag === "value" ? declaration.default.pieces : [];
-      found.push(...pieces.map((piece) => `dtd default ${useOf(piece, seen, all)}`));
+      for (const each of pieces.map((piece) => `dtd default ${useOf(piece, seen, all)}`)) {
+        found.push(each);
+      }
     } else if (declaration._tag === "entity") {
-      found.push(
-        ...declaration.pieces.map(
-          (piece) =>
-            `dtd ${declaration.parameter ? "parameter" : "entity"} ${useOf(piece, seen, all)}`,
-        ),
-      );
+      for (const each of declaration.pieces.map(
+        (piece) =>
+          `dtd ${declaration.parameter ? "parameter" : "entity"} ${useOf(piece, seen, all)}`,
+      )) {
+        found.push(each);
+      }
       if (!declaration.parameter && seen.has(declaration.name)) {
         found.push("dtd entity redeclared");
       }
@@ -2786,14 +2788,18 @@ const treeFeatures = (
     const { node, scope } = next;
     if (node._tag === "element") {
       const inner = scopeOf(node, scope);
-      found.push(...elementFeatures(node, inner, attlists, all));
-      stack.push(...node.children.map((child) => ({ node: child, scope: inner })));
+      for (const each of elementFeatures(node, inner, attlists, all)) {
+        found.push(each);
+      }
+      for (const each of node.children.map((child) => ({ node: child, scope: inner }))) {
+        stack.push(each);
+      }
     } else if (node._tag === "text") {
-      found.push(
-        ...node.pieces.map(
-          (piece) => `node text ${armOf(node.pieces)} ${scope} ${useOf(piece, all, all)}`,
-        ),
-      );
+      for (const each of node.pieces.map(
+        (piece) => `node text ${armOf(node.pieces)} ${scope} ${useOf(piece, all, all)}`,
+      )) {
+        found.push(each);
+      }
     } else {
       found.push(
         node._tag === "cdata"

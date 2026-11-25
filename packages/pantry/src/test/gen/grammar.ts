@@ -584,7 +584,9 @@ const ownAttributes = (set: XsdSet, document: SchemaDocument, node: Element): Ow
       );
       if (Option.isSome(group)) {
         const inner = ownAttributes(set, group.value.document, group.value.node);
-        uses.push(...inner.uses);
+        for (const each of inner.uses) {
+          uses.push(each);
+        }
         any ||= inner.any;
       }
     } else if (child.local === "anyAttribute") {

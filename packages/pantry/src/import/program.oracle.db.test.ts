@@ -294,7 +294,9 @@ const placeOf = (
       }
 
       start += 1n;
-      stack.push(...node.children.toReversed());
+      for (const each of node.children.toReversed()) {
+        stack.push(each);
+      }
     }
   }
 

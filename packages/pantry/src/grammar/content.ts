@@ -1160,7 +1160,11 @@ export const contentOf = (input: {
       installed.push(entry);
     }
 
-    const widest = Math.max(0, ...installed.map(({ automaton }) => automaton.positions.length));
+    const widest = Arr.reduce(
+      installed.map(({ automaton }) => automaton.positions.length),
+      0,
+      (most, each) => Math.max(most, each),
+    );
     // Position 0, the start, is every model's, so the roster always holds it.
     const positions = roster("Position", Arr.makeBy(widest + 1, String));
     const parentField = idField("parent", input.kinds);
@@ -1253,7 +1257,9 @@ export const contentOf = (input: {
         model: handle,
         set: setOf.getOrInsertComputed(held.join(" "), () => {
           const fresh = String(setOf.size);
-          members.push(...held.map((to) => ({ set: fresh, to: String(to) })));
+          for (const each of held.map((to) => ({ set: fresh, to: String(to) }))) {
+            members.push(each);
+          }
 
           return fresh;
         }),
@@ -1271,9 +1277,9 @@ export const contentOf = (input: {
         model: handle,
         set: symbolSetByText.getOrInsertComputed(numbers.join(" "), () => {
           const fresh = String(symbolSetByText.size);
-          symbolMembers.push(
-            ...numbers.map((number) => ({ position: String(number), set: fresh })),
-          );
+          for (const each of numbers.map((number) => ({ position: String(number), set: fresh }))) {
+            symbolMembers.push(each);
+          }
 
           return fresh;
         }),
@@ -1306,9 +1312,9 @@ export const contentOf = (input: {
     // code order, that holds it (rule 0).
     const admittedAt = new Map<string, { readonly child: string; readonly position: string }[]>();
     for (const { entry, rows } of admittedBy) {
-      admittedAt
-        .getOrInsertComputed(entry.parent, () => [])
-        .push(...rows.map(({ child, position: at }) => ({ child, position: String(at) })));
+      for (const each of rows.map(({ child, position: at }) => ({ child, position: String(at) }))) {
+        admittedAt.getOrInsertComputed(entry.parent, () => []).push(each);
+      }
     }
 
     for (const { child, parent } of input.stated) {
@@ -1329,9 +1335,13 @@ export const contentOf = (input: {
         tupleKey(...children.flatMap(({ child, position: at }) => [child, at])),
         () => {
           const fresh = String(mapOf.size);
-          mapMembers.push(
-            ...children.map(({ child, position: at }) => ({ child, map: fresh, position: at })),
-          );
+          for (const each of children.map(({ child, position: at }) => ({
+            child,
+            map: fresh,
+            position: at,
+          }))) {
+            mapMembers.push(each);
+          }
 
           return fresh;
         },

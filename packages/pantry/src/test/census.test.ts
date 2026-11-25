@@ -6,7 +6,7 @@ import type { Gen } from "@bjornpagen/testing/gen";
 import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Duration, Effect, Formatter } from "effect";
+import { Array as Arr, Duration, Effect, Formatter } from "effect";
 import { census } from "#pantry/test/census.ts";
 import type { Census, FunctionKind, LawFamily, MigrationFile } from "#pantry/test/census.ts";
 
@@ -331,7 +331,7 @@ const modelOf = (statements: readonly Statement[]): Census => {
       byTable: tallied(pick("foreignKey").map((key) => key.table)),
       composite: countOf(keys, (width) => width > 1),
       total: keys.length,
-      widest: Math.max(0, ...keys),
+      widest: Arr.reduce(keys, 0, (most, each) => Math.max(most, each)),
     },
     functions: {
       constant: countOf(functions, (f) => f.kind === "constant"),

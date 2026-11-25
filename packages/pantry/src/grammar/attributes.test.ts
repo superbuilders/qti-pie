@@ -30,7 +30,7 @@ import { completeShrink } from "@bjornpagen/testing/shrink";
 import { swarm, swarmChoice } from "@bjornpagen/testing/swarm";
 import type { Swarm } from "@bjornpagen/testing/swarm";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Duration, Effect, FileSystem, Formatter, Option, Result } from "effect";
+import { Array as Arr, Duration, Effect, FileSystem, Formatter, Option, Result } from "effect";
 import { XML_NAMESPACE } from "@qti-pie/crust/tree.ts";
 import {
   attributeCounts,
@@ -717,7 +717,9 @@ const mediaTypeScope: readonly string[] = (() => {
   let level: readonly string[] = [""];
   for (let length = 1; length <= 4; length += 1) {
     level = level.flatMap((head) => mediaTypeSymbols.map((symbol) => `${head}${symbol}`));
-    strings.push(...level);
+    for (const each of level) {
+      strings.push(each);
+    }
   }
 
   return strings;
@@ -1309,7 +1311,9 @@ describe("The spec readings", () => {
     let level: readonly string[] = [""];
     for (let length = 1; length <= 4; length += 1) {
       level = level.flatMap((head) => pieces.map((piece) => `${head}${piece}`));
-      strings.push(...level);
+      for (const each of level) {
+        strings.push(each);
+      }
     }
 
     assert.deepStrictEqual(
@@ -1803,7 +1807,11 @@ describe("The attribute grammar's structure", () => {
 
     assert.strictEqual(
       leafGrammar.positions.handles.length,
-      Math.max(...[...byKind.values()].map((rows) => rows.length)),
+      Arr.reduce(
+        [...byKind.values()].map((rows) => rows.length),
+        Number.NEGATIVE_INFINITY,
+        (most, each) => Math.max(most, each),
+      ),
     );
   });
 

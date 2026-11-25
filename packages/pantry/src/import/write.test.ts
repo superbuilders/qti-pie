@@ -386,7 +386,9 @@ const nodesOf = (root: NodeRoot): readonly NodeMember[] => {
   const stack: NodeMember[] = [root];
   for (let node = stack.pop(); node !== undefined; node = stack.pop()) {
     found.push(node);
-    stack.push(...node.children.toReversed());
+    for (const each of node.children.toReversed()) {
+      stack.push(each);
+    }
   }
 
   return found;
@@ -740,10 +742,16 @@ const unwrittenIn = (program: ImportProgram): readonly string[] => {
   }[] = [...instances.values()].map((instance) => ({ instance, nested: false }));
   const instanceFields: string[] = [];
   for (let next = instanceStack.pop(); next !== undefined; next = instanceStack.pop()) {
-    instanceFields.push(
-      ...unwrittenOf("Instance", Object.keys(next.instance), next.nested ? "member" : "flat"),
-    );
-    instanceStack.push(...next.instance.children.map((instance) => ({ instance, nested: true })));
+    for (const each of unwrittenOf(
+      "Instance",
+      Object.keys(next.instance),
+      next.nested ? "member" : "flat",
+    )) {
+      instanceFields.push(each);
+    }
+    for (const each of next.instance.children.map((instance) => ({ instance, nested: true }))) {
+      instanceStack.push(each);
+    }
   }
 
   return [

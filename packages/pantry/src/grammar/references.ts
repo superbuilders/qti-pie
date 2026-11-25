@@ -915,7 +915,9 @@ const reachedFrom = (
   const children = new Map<string, string[]>();
   for (const { content, kind } of models) {
     for (const particle of Option.toArray(contentParticle(content))) {
-      children.getOrInsertComputed(kind, () => []).push(...kindsWithin(particle));
+      for (const each of kindsWithin(particle)) {
+        children.getOrInsertComputed(kind, () => []).push(each);
+      }
     }
   }
 
@@ -924,7 +926,9 @@ const reachedFrom = (
   for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
     if (!reached.has(next)) {
       reached.add(next);
-      pending.push(...rowsAt(children, next));
+      for (const each of rowsAt(children, next)) {
+        pending.push(each);
+      }
     }
   }
 

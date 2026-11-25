@@ -251,15 +251,15 @@ export const xsiTypesOf = (input: {
           return yield* Result.fail(new UnderivedType({ kind, type: handle }));
         }
 
-        rows.push(
-          ...derived
-            .filter((held) => {
-              const name = namespaceNameOf(held.namespace);
+        for (const each of derived
+          .filter((held) => {
+            const name = namespaceNameOf(held.namespace);
 
-              return inNamespaceOf(name, namespace) || typeAvailable(namespace, name);
-            })
-            .map((held) => ({ row: { kind, type: typeHandle(held) }, source })),
-        );
+            return inNamespaceOf(name, namespace) || typeAvailable(namespace, name);
+          })
+          .map((held) => ({ row: { kind, type: typeHandle(held) }, source }))) {
+          rows.push(each);
+        }
       }
     }
 

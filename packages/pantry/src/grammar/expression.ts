@@ -150,8 +150,16 @@ const childBoundsOf = (particle: Particle): ChildBounds => {
         return parts.length === 0
           ? { max: 0, min: 0 }
           : {
-              max: Math.max(...parts.map(({ max }) => max)),
-              min: Math.min(...parts.map(({ min }) => min)),
+              max: Arr.reduce(
+                parts.map(({ max }) => max),
+                Number.NEGATIVE_INFINITY,
+                (most, each) => Math.max(most, each),
+              ),
+              min: Arr.reduce(
+                parts.map(({ min }) => min),
+                Number.POSITIVE_INFINITY,
+                (least, each) => Math.min(least, each),
+              ),
             };
       }
     }
