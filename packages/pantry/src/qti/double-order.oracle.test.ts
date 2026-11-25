@@ -45,7 +45,7 @@ import type { EvaluatedRow } from "@bjornpagen/grizzle/compile";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { required } from "@bjornpagen/testing/features";
-import { boolean, element, int, map, weighted } from "@bjornpagen/testing/gen";
+import { boolean, constant, element, int, map, weighted } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
@@ -343,9 +343,29 @@ const numerals: Gen<Numeral> = weighted([
 const spellings: Gen<Spelling> = (source) => ({
   bare: source.draw(boolean),
   expPlus: source.draw(boolean),
-  expZeros: source.draw(element([0, 0, 1, 256] as const)),
-  fraction: source.draw(element([0, 0, 1, 3, 17, 30] as const)),
-  lead: source.draw(element([0, 0, 1, 256] as const)),
+  expZeros: source.draw(
+    weighted([
+      [2, constant(0)],
+      [1, constant(1)],
+      [1, constant(256)],
+    ]),
+  ),
+  fraction: source.draw(
+    weighted([
+      [2, constant(0)],
+      [1, constant(1)],
+      [1, constant(3)],
+      [1, constant(17)],
+      [1, constant(30)],
+    ]),
+  ),
+  lead: source.draw(
+    weighted([
+      [2, constant(0)],
+      [1, constant(1)],
+      [1, constant(256)],
+    ]),
+  ),
   letter: source.draw(element(["e", "E", "none"] as const)),
   padded: source.draw(
     weighted([
@@ -355,7 +375,13 @@ const spellings: Gen<Spelling> = (source) => ({
   ),
   plus: source.draw(boolean),
   point: source.draw(boolean),
-  trail: source.draw(element([0, 0, 1, 256] as const)),
+  trail: source.draw(
+    weighted([
+      [2, constant(0)],
+      [1, constant(1)],
+      [1, constant(256)],
+    ]),
+  ),
 });
 
 /**

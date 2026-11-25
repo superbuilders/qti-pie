@@ -32,7 +32,7 @@ import type { EvaluatedRow } from "@bjornpagen/grizzle/compile";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { required } from "@bjornpagen/testing/features";
-import { boolean, element, weighted } from "@bjornpagen/testing/gen";
+import { boolean, constant, element, weighted } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
@@ -364,7 +364,13 @@ const values: Gen<Value> = weighted([
  */
 const spellings: Gen<Spelling> = (source) => ({
   bare: source.draw(boolean),
-  lead: source.draw(element([0, 0, 1, 256] as const)),
+  lead: source.draw(
+    weighted([
+      [2, constant(0)],
+      [1, constant(1)],
+      [1, constant(256)],
+    ]),
+  ),
   padded: source.draw(
     weighted([
       [9, element([false] as const)],
@@ -373,7 +379,13 @@ const spellings: Gen<Spelling> = (source) => ({
   ),
   plus: source.draw(boolean),
   point: source.draw(boolean),
-  trail: source.draw(element([0, 0, 1, 256] as const)),
+  trail: source.draw(
+    weighted([
+      [2, constant(0)],
+      [1, constant(1)],
+      [1, constant(256)],
+    ]),
+  ),
 });
 
 /**
