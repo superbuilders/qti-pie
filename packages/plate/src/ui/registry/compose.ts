@@ -60,7 +60,7 @@ export class RendererKindUnknown extends Data.TaggedError("RendererKindUnknown")
  */
 export const renderersOf = (
   base: Renderers,
-  ...extensions: readonly RendererExtension[]
+  extensions: readonly RendererExtension[],
 ): Renderers => {
   const rendererOf = <K extends ModuleKind>(kind: K): Renderer<K> => {
     const named = extensions.flatMap((extension) => {

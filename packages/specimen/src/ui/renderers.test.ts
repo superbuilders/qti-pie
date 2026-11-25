@@ -90,15 +90,15 @@ describe("renderersOf", () => {
     assert.notStrictEqual(expected.choice, standardRenderers.choice);
     assert.notStrictEqual(expected.slider, standardRenderers.slider);
     assert.deepStrictEqual(
-      differing(renderersOf(standardRenderers, choiceOwn, sliderOwn), expected),
+      differing(renderersOf(standardRenderers, [choiceOwn, sliderOwn]), expected),
       [],
     );
     assert.deepStrictEqual(
-      differing(renderersOf(standardRenderers, sliderOwn, choiceOwn), expected),
+      differing(renderersOf(standardRenderers, [sliderOwn, choiceOwn]), expected),
       [],
     );
     assert.deepStrictEqual(
-      differing(renderersOf(standardRenderers, new ChoiceByGetter(), sliderOwn), expected),
+      differing(renderersOf(standardRenderers, [new ChoiceByGetter(), sliderOwn]), expected),
       [],
     );
   });
@@ -115,7 +115,7 @@ describe("renderersOf", () => {
   ] as const)("refuses a kind named twice, naming it: %s", (_name, kind, extensions) => {
     assert.throws(
       () => {
-        renderersOf(standardRenderers, ...extensions);
+        renderersOf(standardRenderers, extensions);
       },
       RendererClaimedTwice,
       `a renderer for ${JSON.stringify(kind)};`,
@@ -127,7 +127,7 @@ describe("renderersOf", () => {
 
     assert.throws(
       () => {
-        renderersOf(standardRenderers, misspelt);
+        renderersOf(standardRenderers, [misspelt]);
       },
       RendererKindUnknown,
       `a renderer for "chioce",`,
