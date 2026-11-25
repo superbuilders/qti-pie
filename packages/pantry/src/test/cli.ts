@@ -70,23 +70,19 @@ export const matchesCommitted = (name: string): ((line: string) => boolean) => {
  *   `Console.error` (standard error), each joined by line feeds.
  */
 export const captureCli = Effect.fn("test.cli.captureCli")(function* captureCli<
-  C extends Command.Command.Any,
+  Name extends string,
+  Input,
+  ContextInput,
+  E,
+  R,
 >(
-  program: Program<C>,
+  program: Program<Command.Command<Name, Input, ContextInput, E, R>>,
   args: readonly string[],
   env: Option.Option<Readonly<Record<string, string>>>,
 ) {
   const out: string[] = [];
   const err: string[] = [];
-  // SAFETY: `runCli` cannot infer a command's services from the `Any` bound, which reads them as
-  // the command itself. They are the services of `C`, plus the environment `Command.run` adds.
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The invariant is the SAFETY note above.
-  const run = runCli(program, { version: "0.0.0" }) as Effect.Effect<
-    void,
-    unknown,
-    Command.Services<C> | Command.Environment
-  >;
-  const exit: Exit.Exit<unknown, unknown> = yield* run.pipe(
+  const exit: Exit.Exit<unknown, unknown> = yield* runCli(program, { version: "0.0.0" }).pipe(
     Effect.provide(Stdio.layerTest({ args: Effect.succeed(args) })),
     Effect.provide(
       Option.match(env, {

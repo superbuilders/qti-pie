@@ -453,7 +453,7 @@ const breachInMember = (name: string, definition: Definition, value: Value): str
 export const dataSsmlBreachOf = (text: string): Option.Option<string> => {
   const tokens = tokenize(text);
   const root = tokens === undefined ? undefined : valueOf(tokens);
-  if (root === undefined || root.kind !== "object") {
+  if (root?.kind !== "object") {
     return Option.some("$");
   }
 

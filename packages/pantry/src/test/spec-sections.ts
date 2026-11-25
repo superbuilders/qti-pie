@@ -358,7 +358,7 @@ export const textMarks = (text: string): ReadonlyMap<string, boolean> => {
   return new Map(
     lines.flatMap((line, at) => {
       const mark = markPattern.exec(line.trim());
-      if (mark === null || mark.index !== 0) {
+      if (mark?.index !== 0) {
         return [];
       }
 

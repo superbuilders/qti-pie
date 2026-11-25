@@ -7111,7 +7111,7 @@ const ncNameOf = (item: string): string => {
     .basename(item, path.posix.extname(item))
     .replaceAll(regex("[^A-Za-z0-9_.-]", "gu"), "_");
 
-  return regex("^[A-Za-z_]", "u").test(name) ? name : `_${name}`;
+  return regex("^[A-Za-z_]", "u").exec(name) === null ? `_${name}` : name;
 };
 
 /**
