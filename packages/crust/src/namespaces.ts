@@ -164,15 +164,17 @@ const declared = (
   let next = scope;
   for (const attribute of attributes) {
     const prefix = declaredPrefix(attribute.qname);
-    if (Option.isSome(prefix)) {
-      const { value } = attribute;
-      const violation = bindingViolation(prefix.value, attribute, namespaces);
-      if (Option.isSome(violation)) {
-        return Result.fail(violation.value);
-      }
-
-      next = bound(next, prefix.value, value);
+    if (Option.isNone(prefix)) {
+      continue;
     }
+
+    const { value } = attribute;
+    const violation = bindingViolation(prefix.value, attribute, namespaces);
+    if (Option.isSome(violation)) {
+      return Result.fail(violation.value);
+    }
+
+    next = bound(next, prefix.value, value);
   }
 
   return Result.succeed(next);

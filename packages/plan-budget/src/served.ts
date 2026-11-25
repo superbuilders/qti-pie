@@ -140,8 +140,7 @@ type ServedNode =
   | number
   | readonly ServedNode[]
   | string
-  | null
-  | undefined;
+  | null;
 
 /**
  * Whether a program is a value the walk reads: every program of a decoded served file is, a record
@@ -308,9 +307,7 @@ const statementsIn = (member: ServedMember): readonly SentStatement[] => {
   const found = new Map<string, SentStatement>();
   const stack: ServedNode[] = isNode(member) ? [member] : [];
 
-  while (stack.length > 0) {
-    const value = stack.pop();
-
+  for (let value = stack.pop(); value !== undefined; value = stack.pop()) {
     if (isCollection(value)) {
       for (const each of [...value.values()].toReversed()) {
         stack.push(each);
@@ -410,44 +407,48 @@ export const judgeBlocksOf = (judge: string, body: string): readonly JudgeBlock[
     const keyword = tokens[at + 2];
 
     if (
-      head?.kind === "word" &&
-      head.upper === "PERFORM" &&
-      from?.kind === "number" &&
-      keyword?.kind === "word" &&
-      keyword.upper === "FROM"
+      !(
+        head?.kind === "word" &&
+        head.upper === "PERFORM" &&
+        from?.kind === "number" &&
+        keyword?.kind === "word" &&
+        keyword.upper === "FROM"
+      )
     ) {
-      let depth = 0;
-      let end = at + 1;
+      continue;
+    }
 
-      for (
-        let next = tokens[end];
-        next !== undefined && !(depth === 0 && next.kind === "punct" && next.text === ";");
-        next = tokens[end]
-      ) {
-        if (next.kind === "punct" && next.text === "(") {
-          depth += 1;
-        } else if (next.kind === "punct" && next.text === ")") {
-          depth -= 1;
-        }
+    let depth = 0;
+    let end = at + 1;
 
-        end += 1;
+    for (
+      let next = tokens[end];
+      next !== undefined && !(depth === 0 && next.kind === "punct" && next.text === ";");
+      next = tokens[end]
+    ) {
+      if (next.kind === "punct" && next.text === "(") {
+        depth += 1;
+      } else if (next.kind === "punct" && next.text === ")") {
+        depth -= 1;
       }
 
-      const sql = `SELECT ${body.slice(from.start, tokens[end]?.start ?? body.length).trimEnd()}`;
-      const tables = new Set(
-        [
-          ...sql.matchAll(/__(?:reader|delta)_(?:news|olds)_(?<table>[a-z0-9_]+)_[a-z0-9]{10}"/gu),
-        ].map((match) => match.groups?.["table"] ?? ""),
-      );
-      const deltas = new Set(
-        [...sql.matchAll(/"pg_temp"\."(?<delta>__delta_(?:news|olds)_[a-z0-9_]+)"/gu)].map(
-          (match) => match.groups?.["delta"] ?? "",
-        ),
-      );
-
-      blocks.push({ deltas, name: `${judge}#${String(blocks.length)}`, sql, tables });
-      at = end;
+      end += 1;
     }
+
+    const sql = `SELECT ${body.slice(from.start, tokens[end]?.start ?? body.length).trimEnd()}`;
+    const tables = new Set(
+      [
+        ...sql.matchAll(/__(?:reader|delta)_(?:news|olds)_(?<table>[a-z0-9_]+)_[a-z0-9]{10}"/gu),
+      ].map((match) => match.groups?.["table"] ?? ""),
+    );
+    const deltas = new Set(
+      [...sql.matchAll(/"pg_temp"\."(?<delta>__delta_(?:news|olds)_[a-z0-9_]+)"/gu)].map(
+        (match) => match.groups?.["delta"] ?? "",
+      ),
+    );
+
+    blocks.push({ deltas, name: `${judge}#${String(blocks.length)}`, sql, tables });
+    at = end;
   }
 
   return blocks;

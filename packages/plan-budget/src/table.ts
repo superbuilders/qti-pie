@@ -90,53 +90,55 @@ export const writePlanTable = (records: string, out: string): number => {
   const rows = [columns.join("\t")];
 
   for (const line of readFileSync(records, "utf-8").split("\n")) {
-    if (line.trim() !== "") {
-      const record = recordOf(line);
-      const load = record.load.toFixed(0);
+    if (line.trim() === "") {
+      continue;
+    }
 
-      for (const [at, plan] of record.measured.plans.entries()) {
-        rows.push(
-          [
-            record.action,
-            record.verdict,
-            String(at),
-            plan.source,
-            plan.name,
-            String(plan.bytes),
-            (plan.cold.usedKb / kbPerMb).toFixed(3),
-            plan.cold.cpuMs.toFixed(2),
-            plan.cold.ms.toFixed(2),
-            (plan.warm.usedKb / kbPerMb).toFixed(3),
-            plan.warm.cpuMs.toFixed(2),
-            plan.warm.ms.toFixed(2),
-            "",
-            load,
-          ].join("\t"),
-        );
-      }
+    const record = recordOf(line);
+    const load = record.load.toFixed(0);
 
-      const { stopped } = record.measured;
+    for (const [at, plan] of record.measured.plans.entries()) {
+      rows.push(
+        [
+          record.action,
+          record.verdict,
+          String(at),
+          plan.source,
+          plan.name,
+          String(plan.bytes),
+          (plan.cold.usedKb / kbPerMb).toFixed(3),
+          plan.cold.cpuMs.toFixed(2),
+          plan.cold.ms.toFixed(2),
+          (plan.warm.usedKb / kbPerMb).toFixed(3),
+          plan.warm.cpuMs.toFixed(2),
+          plan.warm.ms.toFixed(2),
+          "",
+          load,
+        ].join("\t"),
+      );
+    }
 
-      if (stopped !== undefined) {
-        rows.push(
-          [
-            record.action,
-            record.verdict,
-            `stop at ${String(stopped.step)}`,
-            stopped.source,
-            stopped.name,
-            String(stopped.bytes),
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            `${stopped.kind}: ${stopped.detail.replaceAll(/\s+/gu, " ").slice(0, 200)}`,
-            load,
-          ].join("\t"),
-        );
-      }
+    const { stopped } = record.measured;
+
+    if (stopped !== undefined) {
+      rows.push(
+        [
+          record.action,
+          record.verdict,
+          `stop at ${String(stopped.step)}`,
+          stopped.source,
+          stopped.name,
+          String(stopped.bytes),
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          `${stopped.kind}: ${stopped.detail.replaceAll(/\s+/gu, " ").slice(0, 200)}`,
+          load,
+        ].join("\t"),
+      );
     }
   }
 
