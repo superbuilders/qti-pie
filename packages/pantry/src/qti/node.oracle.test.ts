@@ -14,12 +14,13 @@ import { nativeSession, openProject } from "@bjornpagen/devtools/native-api";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { drawn as drawnCase, exhaust, explore } from "@bjornpagen/testing/explore";
-import { required, requiredInSpace } from "@bjornpagen/testing/features";
-import { element as elementOf, int } from "@bjornpagen/testing/gen";
+import { noCoverage, required, requiredInSpace } from "@bjornpagen/testing/features";
+import { array, boolean, element as elementOf, int } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
 import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Array as Arr, Effect, Equal, Formatter, Option, Result } from "effect";
+import { Array as Arr, Effect, Equal, Formatter, Option, Record as Rec, Result } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { followPairsOf, stepOf } from "#pantry/grammar/content.ts";
 import * as install from "#pantry/grammar/install.ts";
@@ -32,6 +33,7 @@ import { shred } from "#pantry/model/shred.ts";
 import type { XdmDocument } from "#pantry/model/xdm.ts";
 import { EndCharacter, Node, nodeLaws } from "#pantry/qti/node.ts";
 import { Qti } from "#pantry/qti/schema.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import { anyRoot, caseHang, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { XdmFeature } from "#pantry/test/gen/xdm.ts";
@@ -180,6 +182,24 @@ const compiledDiagnostics = Effect.fn("test.node.compiledDiagnostics")(
   },
 );
 
+/**
+ * The characters a text of the ends box is written with: a letter, one above 0x7f, one beyond the
+ * Basic Multilingual Plane (a surrogate pair), the tab, the space, both line ends, and the two
+ * characters of a reference's ends.
+ */
+const END_ALPHABET = ["a", "é", "😀", "\t", " ", "\n", "\r", "&", ";"] as const;
+
+/**
+ * Draw a text of the ends box: every text of up to three of {@link END_ALPHABET}.
+ */
+const endText: Gen<string> = (source) =>
+  source.draw(array(elementOf(END_ALPHABET), { max: 3, min: 0 })).join("");
+
+/**
+ * How many texts {@link endText} draws.
+ */
+const END_TEXTS = 1 + 9 + 9 ** 2 + 9 ** 3;
+
 describe("Node's declarations", () => {
   it("build into a schema of the closed relations they read, with stand-ins for the attribute and namespace families, and a role and login over it", () => {
     /**
@@ -216,10 +236,16 @@ describe("Node's declarations", () => {
 
     assert.sameMembers([...new Set(checks.map(({ law }) => law))], [...checkedLaws]);
     assert.strictEqual(new Set(placed).size, placed.length);
-    for (const law of checkedLaws) {
-      assert.include(lawNames, law);
-      assert.include(oracleRules, ruleOf(law));
-    }
+    assert.deepStrictEqual(
+      checkedLaws.filter((law) => !lawNames.includes(law)),
+      [],
+      "checked laws the oracle's law list leaves out",
+    );
+    assert.deepStrictEqual(
+      checkedLaws.filter((law) => !oracleRules.includes(ruleOf(law))),
+      [],
+      "checked laws whose rule the oracle's rule map leaves out",
+    );
   });
 
   /**
@@ -279,33 +305,47 @@ describe("Node's declarations", () => {
     () => writeType,
   );
 
-  it("types each end of a node's characters as at most one code point, and writes each as the first or last of its characters", () => {
-    /**
-     * Oracle: the specification as a checker, reading `quotation-around-q`'s ends: `EndCharacter`'s
-     * pattern read by JavaScript's engine under grizzle's flags `su` (`.` one code point, a line
-     * end among them), and `endsOf` against `Array.from`, which splits a text into its code points.
-     * Bound: the empty text, one and two characters, a line end, a surrogate pair alone, at either
-     * end and between two letters.
-     */
-    const end = regex.as(EndCharacter.patterns[0].source, EndCharacter.patterns[0].flags);
-    for (const held of ["", "a", "\n", "é", "😀"]) {
-      assert.isTrue(end.test(held), JSON.stringify(held));
-    }
+  it.effect(
+    `types each end of a node's characters as at most one code point, and writes each as the first or last of its characters: ${String(END_TEXTS)} texts`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(endText, END_TEXTS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every text of up to three of a, é, U+1F600, the tab, the space, a line feed, a carriage return, & and ;",
+              caseHang,
+              concurrency: searchWidth,
+              coverage: requiredInSpace<"one end" | "no end">(["one end", "no end"]),
+              generator: endText,
+              literal: (text) => JSON.stringify(text),
+              oracle: {
+                kind: "specification",
+                name: "reading `quotation-around-q`'s ends: EndCharacter's pattern read by JavaScript's engine under grizzle's flags su (`.` one code point, a line end among them) admits a text exactly when Array.from splits it into at most one code point, and endsOf gives its first and last code points, the empty text for none",
+              },
+              suite: "qti/node-ends",
+            },
+            (chars, c) =>
+              Effect.sync(() => {
+                const end = regex.as(
+                  EndCharacter.patterns[0].source,
+                  EndCharacter.patterns[0].flags,
+                );
+                const points = Array.from(chars, String);
+                c.note(points.length <= 1 ? "one end" : "no end");
 
-    for (const refusedText of ["ab", "\r\n", "😀a", "a😀"]) {
-      assert.isFalse(end.test(refusedText), JSON.stringify(refusedText));
-    }
-
-    for (const chars of ["", "a", "ab", "😀", "😀a", "a😀", "x😀y", "\t \n", "&e;"]) {
-      const points = Array.from(chars, String);
-
-      assert.deepStrictEqual(
-        endsOf(chars),
-        { first: points[0] ?? "", last: points.at(-1) ?? "" },
-        JSON.stringify(chars),
-      );
-    }
-  });
+                assert.strictEqual(end.test(chars), points.length <= 1, JSON.stringify(chars));
+                assert.deepStrictEqual(
+                  endsOf(chars),
+                  { first: points[0] ?? "", last: points.at(-1) ?? "" },
+                  JSON.stringify(chars),
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 });
 
 /**
@@ -641,18 +681,6 @@ const otherSetType =
   assert.fail("TypeAvailable holds no type outside QTI's schema set");
 
 /**
- * The laws over foreign elements: the class, the canonical name, simple content, strictness and
- * the available type.
- */
-const foreignLaws: ReadonlySet<LawName> = new Set([
-  "Foreign element class",
-  "Foreign simple content",
-  "OpenElementName canonical",
-  "Strictly held",
-  "XsiType available",
-]);
-
-/**
  * Edit the one foreign element of a kind in a document's folded rows, and its name row.
  *
  * @param rows - The rows.
@@ -680,67 +708,107 @@ const editedForeign = (
 };
 
 /**
- * Each foreign law's case: a lawful document, and the corruption of it that breaks the law, a
+ * A foreign law's witness: a lawful document, and the corruption of it that breaks the law, a
  * second document or an edit of its rows.
  */
-const foreignCases: readonly {
+interface ForeignWitness {
   readonly corrupt:
     | { readonly _tag: "document"; readonly xml: string }
     | {
         readonly _tag: "edit";
         readonly edit: (rows: FoldedRows<Composed>) => FoldedRows<Composed>;
       };
-  readonly law: LawName;
   readonly lawful: string;
-}[] = [
-  {
+}
+
+/**
+ * Each law over foreign elements, the class, the canonical name, simple content, strictness and the
+ * available type, with its witness: each corruption breaks its law by the clause the law states
+ * (XML Schema 1.0 Part 1 §3.3.4 clause 3.1.2, §3.10.4 clause 2, §3.3.4 clauses 1.1.1 and 1.2, and
+ * Namespaces in XML 1.0 §5 and §6.2).
+ */
+const foreignWitnesses = {
+  "Foreign element class": {
+    corrupt: {
+      _tag: "edit",
+      edit: (rows) => editedForeign(rows, "no-namespace-element", { prefix: "p" }, {}),
+    },
+    lawful: customItem(`<foo xmlns=""/><qti-variable/>`),
+  },
+  "Foreign simple content": {
     corrupt: {
       _tag: "document",
       xml: sectionTest(
         `<qti-selection select="1"><f:x xsi:type="xs:string">a<f:y/></f:x></qti-selection>`,
       ),
     },
-    law: "Foreign simple content",
     lawful: sectionTest(
       `<qti-selection select="1"><f:x xsi:type="xs:string">a</f:x></qti-selection>`,
     ),
   },
-  {
-    corrupt: {
-      _tag: "edit",
-      edit: (rows) => editedForeign(rows, "foreign-element", { governs: Option.none() }, {}),
-    },
-    law: "Strictly held",
-    lawful: `<qti-assessment-item xmlns="${asi}" xmlns:f="urn:f" xmlns:xsi="${xsiNamespace}" xmlns:xs="${xsNamespace}" identifier="item" title="Item" time-dependent="false" adaptive="false"><qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/><qti-companion-materials-info><f:x xsi:type="xs:string"/></qti-companion-materials-info><qti-item-body><p>x</p></qti-item-body></qti-assessment-item>`,
-  },
-  {
-    corrupt: {
-      _tag: "edit",
-      edit: (rows) => editedForeign(rows, "no-namespace-element", { prefix: "p" }, {}),
-    },
-    law: "Foreign element class",
-    lawful: customItem(`<foo xmlns=""/><qti-variable/>`),
-  },
-  {
+  "OpenElementName canonical": {
     corrupt: {
       _tag: "edit",
       edit: (rows) => editedForeign(rows, "own-namespace-element", {}, { local: "div" }),
     },
-    law: "OpenElementName canonical",
     lawful: customItem(`<foo xmlns=""/><qti-variable/>`),
   },
-  {
+  "Strictly held": {
+    corrupt: {
+      _tag: "edit",
+      edit: (rows) => editedForeign(rows, "foreign-element", { governs: Option.none() }, {}),
+    },
+    lawful: `<qti-assessment-item xmlns="${asi}" xmlns:f="urn:f" xmlns:xsi="${xsiNamespace}" xmlns:xs="${xsNamespace}" identifier="item" title="Item" time-dependent="false" adaptive="false"><qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/><qti-companion-materials-info><f:x xsi:type="xs:string"/></qti-companion-materials-info><qti-item-body><p>x</p></qti-item-body></qti-assessment-item>`,
+  },
+  "XsiType available": {
     corrupt: {
       _tag: "edit",
       edit: (rows) =>
         editedForeign(rows, "foreign-element", { governs: Option.some(otherSetType) }, {}),
     },
-    law: "XsiType available",
     lawful: sectionTest(
       `<qti-selection select="1"><f:x xmlns:q="${asi}" xsi:type="q:IdentifierDType">a1</f:x></qti-selection>`,
     ),
   },
-];
+} as const satisfies Readonly<Partial<Record<LawName, ForeignWitness>>>;
+
+/**
+ * The laws {@link foreignWitnesses} witnesses, as its keys list them.
+ */
+const witnessedLaws = Rec.keys(foreignWitnesses);
+
+/**
+ * The laws over foreign elements, every one {@link foreignWitnesses} witnesses.
+ */
+const foreignLawNames = Arr.isReadonlyArrayNonEmpty(witnessedLaws)
+  ? witnessedLaws
+  : assert.fail("no foreign law is witnessed");
+
+/**
+ * The same, as a set.
+ */
+const foreignLaws: ReadonlySet<string> = new Set(foreignLawNames);
+
+/**
+ * A case of the witness box: a foreign law, and whether its witness is taken corrupted.
+ */
+interface ForeignCase {
+  readonly corrupted: boolean;
+  readonly law: (typeof foreignLawNames)[number];
+}
+
+/**
+ * Draw a case of the witness box: every foreign law's lawful document and its corruption.
+ */
+const foreignCase: Gen<ForeignCase> = (source) => ({
+  corrupted: source.draw(boolean),
+  law: source.draw(elementOf(foreignLawNames)),
+});
+
+/**
+ * How many cases {@link foreignCase} draws: 5 laws, lawful and corrupted.
+ */
+const FOREIGN_CASES = 5 * 2;
 
 /**
  * Shred and fold a document in 3.0.1.
@@ -758,29 +826,50 @@ const foldedOf = (xml: string) =>
 
 describe("the foreign element laws, by the host oracle", () => {
   it.effect(
-    "finds no foreign law broken in each lawful document, and exactly the case's law in its corruption",
-    () =>
-      Effect.gen(function* foreign() {
-        for (const { corrupt, law, lawful } of foreignCases) {
-          const rows = yield* foldedOf(lawful);
-          const broken =
-            corrupt._tag === "document" ? yield* foldedOf(corrupt.xml) : corrupt.edit(rows);
-          const foreignBreaches = (held: FoldedRows<Composed>) => [
-            ...new Set(
-              documentBreaches("case.xml", held, oracleLaws, judgedAlone)
-                .map((breach) => breach.law)
-                .filter((name) => foreignLaws.has(name)),
-            ),
-          ];
+    `finds no foreign law broken in each lawful document, and exactly the case's law in its corruption: ${String(FOREIGN_CASES)} documents`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(foreignCase, FOREIGN_CASES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every law over foreign elements, its witness's lawful document and its corruption",
+              caseHang,
+              coverage: noCoverage,
+              generator: foreignCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "each witness's construction by the clause its law states (XML Schema 1.0 Part 1 §3.3.4 clause 3.1.2, §3.10.4 clause 2, §3.3.4 clauses 1.1.1 and 1.2, Namespaces in XML 1.0 §5 and §6.2): a lawful document breaks no foreign law, and its corruption its own law alone, by the host law model (documentBreaches of #pantry/test/oracle.ts), which predicts PostgreSQL's refusals of node.ts's and chardata.ts's checks",
+              },
+              suite: "qti/node-foreign-laws",
+            },
+            ({ corrupted, law }) =>
+              Effect.gen(function* foreign() {
+                const { corrupt, lawful } = foreignWitnesses[law];
+                const rows = yield* foldedOf(lawful);
+                const judged = corrupted
+                  ? corrupt._tag === "document"
+                    ? yield* foldedOf(corrupt.xml)
+                    : corrupt.edit(rows)
+                  : rows;
 
-          assert.deepStrictEqual(foreignBreaches(rows), [], `${law}: its lawful document`);
-          assert.deepStrictEqual(
-            foreignBreaches(broken),
-            [law],
-            `${law}: its corruption, by the host law model (documentBreaches of #pantry/test/oracle.ts), which predicts PostgreSQL's refusals of node.ts's and chardata.ts's checks: XML Schema 1.0 Part 1 §3.3.4 clause 3.1.2, §3.10.4 clause 2, §3.3.4 clauses 1.1.1 and 1.2, and Namespaces in XML 1.0 §5 and §6.2`,
-          );
-        }
-      }),
+                const found = documentBreaches("case.xml", judged, oracleLaws, judgedAlone)
+                  .map((breach) => breach.law)
+                  .filter((name) => foreignLaws.has(name));
+                const shown = `${law}: its ${corrupted ? "corruption" : "lawful document"}, breaking ${found.join(", ") || "none"}`;
+
+                assert.strictEqual(found.includes(law), corrupted, shown);
+                assert.deepStrictEqual(
+                  found.filter((name) => name !== law),
+                  [],
+                  shown,
+                );
+              }),
+          ),
+        ),
+      ),
   );
 });
 
