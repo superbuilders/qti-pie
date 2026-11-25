@@ -208,7 +208,7 @@ const valueIn = (responses: Responses, identifier: string): Option.Option<Respon
  * @returns Its message, or its text.
  */
 const reasonOf = (cause: unknown): string =>
-  cause instanceof Error ? `${cause.name}: ${cause.message}` : String(cause);
+  Error.isError(cause) ? `${cause.name}: ${cause.message}` : String(cause);
 
 /**
  * Give the features an item may show a notice for: each the verdict says plate shows as a notice,

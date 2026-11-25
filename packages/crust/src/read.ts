@@ -434,7 +434,7 @@ const parse = (
         : new WellFormednessError({
             column: parser.column,
             line: parser.line,
-            message: error instanceof Error ? error.message : String(error),
+            message: Error.isError(error) ? error.message : String(error),
           }),
     try: () => {
       const open: OpenElement[] = [];

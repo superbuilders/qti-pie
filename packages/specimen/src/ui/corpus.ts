@@ -107,7 +107,7 @@ class CorpusUnpinned extends Data.TaggedError("CorpusUnpinned")<{
  * @returns Its message, or its text.
  */
 const causeText = (cause: unknown): string =>
-  cause instanceof Error ? cause.message : String(cause);
+  Error.isError(cause) ? cause.message : String(cause);
 
 /**
  * Write a path's address under a root, each segment percent-encoded.
