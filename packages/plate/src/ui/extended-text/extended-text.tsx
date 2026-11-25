@@ -223,7 +223,7 @@ export const ExtendedText = (props: ExtendedTextProps) => {
           {box.flagged ? <FieldError match>{labels.pattern}</FieldError> : null}
         </Field>
       ))}
-      {only !== undefined && others.length === 0 && baseType === "string" ? (
+      {others.length === 0 && baseType === "string" ? (
         <WordCount
           labels={{ one: labels.wordOne, other: labels.words }}
           read="plain"

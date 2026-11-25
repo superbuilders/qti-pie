@@ -554,7 +554,7 @@ const readDuration = (payload: unknown, path: string): Read<Option.Option<Single
     return refuse("malformed", path);
   }
 
-  const seconds = writtenSeconds.exec(payload)?.groups["seconds"];
+  const seconds = writtenSeconds.exec(payload)?.groups.seconds;
 
   if (seconds !== undefined) {
     return parseLexical("duration", seconds).pipe(

@@ -591,7 +591,7 @@ export const coordsOf = (
   const coords: (readonly [number, boolean])[] = [];
 
   for (const written of attribute.value.split(",")) {
-    const digits = coordinate.exec(written)?.groups["digits"];
+    const digits = coordinate.exec(written)?.groups.digits;
     if (digits === undefined) {
       return inadmissible(build, "attribute-type", path, {
         attribute: "coords",
