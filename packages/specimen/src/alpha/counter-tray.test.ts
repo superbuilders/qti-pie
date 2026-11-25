@@ -229,7 +229,7 @@ const kills: readonly Kill[] = [
   {
     at: /const draw = \(\)\s*=> \{/gu,
     why: "the mat drawn differently once it holds three counters",
-    write: 'const draw = () => { matZone.setAttribute("stroke", placed >= 3 ? "#2e9e5b" : "#333");',
+    write: 'const draw = () => { matZone.setAttribute("stroke", placed >= 3 ? "#16a34a" : "#333");',
   },
   {
     at: /const tapCounter = \(tapped\s*\)\s*=> \{/gu,
