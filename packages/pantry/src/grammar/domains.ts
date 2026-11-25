@@ -40,7 +40,7 @@
  * @see {@link https://www.postgresql.org/docs/current/functions-matching.html#POSIX-SYNTAX-DETAILS | PostgreSQL, Regular Expression Details}
  */
 import { regex } from "arkregex";
-import { regexMaxRepeat } from "@bjornpagen/grizzle";
+import { regexMaxRepeat } from "@bjornpagen/grizzle-text/regex/parse";
 import { collapsed, replaced } from "@bjornpagen/grizzle-text/text";
 import { Array as Arr, Option, Result, Schema } from "effect";
 import type { Domain, Facet, FacetName, Primitive } from "#pantry/vocab/inventory/types.ts";
