@@ -810,9 +810,15 @@ describe("the MathML relations", () => {
       row("MathArity", { kind: "m:selector" }),
       Option.some({ kind: "m:selector", min: 1n }),
     );
-    assert.isTrue(Option.isNone(row("MathMax", { kind: "m:selector" })));
-    assert.isTrue(Option.isSome(row("HeadQualifier", { head: "m:log", qualifier: "m:logbase" })));
-    assert.isTrue(Option.isNone(row("HeadQualifier", { head: "m:sin", qualifier: "m:logbase" })));
+    assert.deepStrictEqual(row("MathMax", { kind: "m:selector" }), Option.none());
+    assert.strictEqual(
+      row("HeadQualifier", { head: "m:log", qualifier: "m:logbase" })._tag,
+      "Some",
+    );
+    assert.deepStrictEqual(
+      row("HeadQualifier", { head: "m:sin", qualifier: "m:logbase" }),
+      Option.none(),
+    );
     assert.lengthOf(
       relationNamed("CnForm").rows.filter(({ type }) => type === "rational"),
       2,

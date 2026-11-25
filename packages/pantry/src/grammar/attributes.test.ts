@@ -161,7 +161,7 @@ describe("The departures from the XSD", () => {
       const headers = Option.getOrThrow(domainAt(kind, "headers"));
 
       assert.isTrue(matches(headers, "a b  c"));
-      assert.isTrue(Option.isNone(headers.identity));
+      assert.deepStrictEqual(headers.identity, Option.none());
     }
   });
 
@@ -1481,14 +1481,17 @@ describe("The spec readings", () => {
       // cover, the `data-*` class alone, so a `role` there is no name it admits.
       Effect.gen(function* sourceHasNoRole() {
         const { attributes } = yield* Effect.fromResult(composed());
-        assert.isTrue(Option.isNone(attributes.admission.lookup({ kind: "source", name: "role" })));
+        assert.deepStrictEqual(
+          attributes.admission.lookup({ kind: "source", name: "role" }),
+          Option.none(),
+        );
         assert.deepStrictEqual(
           openClasses.filter((open) =>
             Option.isSome(attributes.admission.lookup({ kind: "source", name: open })),
           ),
           ["data-*"],
         );
-        assert.isTrue(Option.isSome(attributes.admission.lookup({ kind: "h1", name: "role" })));
+        assert.strictEqual(attributes.admission.lookup({ kind: "h1", name: "role" })._tag, "Some");
 
         assert.deepStrictEqual(
           attributes.governed.rows.filter(
