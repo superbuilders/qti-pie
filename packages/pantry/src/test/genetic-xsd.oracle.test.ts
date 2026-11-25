@@ -35,7 +35,7 @@
 import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, beforeAll, describe, it as unit, layer } from "@effect/vitest";
-import { Console, Effect, FileSystem, Option, Result } from "effect";
+import { Console, Effect, FileSystem, Layer, Option, Result } from "effect";
 import { encode } from "@qti-pie/crust/encode.ts";
 import { readXml } from "@qti-pie/crust/read.ts";
 import type { Element } from "@qti-pie/crust/tree.ts";
@@ -74,6 +74,7 @@ import { settings } from "#pantry/test/settings.ts";
 import { XsdOracleLayer } from "#pantry/test/gen/grammar.ts";
 import {
   compareJudgments,
+  SchemaSets,
   schemaSetOf,
   writeXsdOracle,
   xsdCachePresent,
@@ -702,7 +703,7 @@ const seedsOf = (grammar: ComposedGrammar, stream: Stream, count: number): Seeds
 describe("genetic-xsd.oracle.test.ts", () => {
   beforeAll(xsdCachePresent);
 
-  layer(XsdOracleLayer, { excludeTestServices: true })(
+  layer(Layer.merge(XsdOracleLayer, SchemaSets.layer), { excludeTestServices: true })(
     "the grammar against xmllint, bred",
     (it) => {
       it.effect(

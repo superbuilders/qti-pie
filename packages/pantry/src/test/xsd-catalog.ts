@@ -26,7 +26,7 @@
  */
 import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Array as Arr, Effect, FileSystem, Option } from "effect";
+import { Array as Arr, Context, Effect, FileSystem, Layer, Option, Ref } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import {
   checkCache,
@@ -248,23 +248,36 @@ const sourceByUrl: ReadonlyMap<string, SourcePath> = new Map(
 );
 
 /**
- * The schema sets read so far, by namespace: a set depends on the pins alone, and the root XSDs it
- * parses are large, so each is read once per run.
+ * The schema sets a run has read so far, by namespace: a set depends on the pins alone, and the
+ * root XSDs it parses are large, so a run reads each once. A suite that reads sets provides
+ * {@link SchemaSets.layer}, and the sets it read live as long as the layer does.
  */
-const readSets = new Map<string, ReadonlySet<string>>();
+export class SchemaSets extends Context.Service<
+  SchemaSets,
+  Ref.Ref<ReadonlyMap<string, ReadonlySet<string>>>
+>()("pantry/test/xsd-catalog/SchemaSets") {
+  /**
+   * A run's schema sets, none read yet.
+   */
+  static readonly layer = Layer.effect(
+    SchemaSets,
+    Ref.make<ReadonlyMap<string, ReadonlySet<string>>>(new Map()),
+  );
+}
 
 /**
  * Read a document's schema set from the pinned XSDs (spec reading 81): the XSD that declares a
  * namespace, and every XSD it imports, includes or redefines, transitively, each `schemaLocation`
  * resolved against the URL of the XSD that names it and read from its pin. The set is the target
- * namespaces of those XSDs, read once per namespace a run asks for.
+ * namespaces of those XSDs, read once per namespace a run asks for ({@link SchemaSets}).
  *
  * @param namespace - The root's namespace.
  * @returns The namespaces of the set, none for a namespace no pin declares; dies
  *   when an XSD names a location no pin holds, which the catalog would refuse too.
  */
 export const schemaSetOf = Effect.fn("test.schemaSetOf")(function* schemaSetOf(namespace: string) {
-  const known = readSets.get(namespace);
+  const sets = yield* SchemaSets;
+  const known = (yield* Ref.get(sets)).get(namespace);
   if (known !== undefined) {
     return known;
   }
@@ -314,7 +327,7 @@ export const schemaSetOf = Effect.fn("test.schemaSetOf")(function* schemaSetOf(n
     }
   }
 
-  readSets.set(namespace, namespaces);
+  yield* Ref.update(sets, (read) => new Map([...read, [namespace, namespaces]]));
 
   return namespaces satisfies ReadonlySet<string>;
 });

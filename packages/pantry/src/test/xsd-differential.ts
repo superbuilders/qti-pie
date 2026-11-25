@@ -40,6 +40,7 @@ import type {
   LawClass,
   LawJudgment,
   RefusalClass,
+  SchemaSets,
   XsdOracle,
 } from "#pantry/test/xsd-catalog.ts";
 import { coveredElements } from "#pantry/vocab/inventory/extensions.ts";
@@ -2011,7 +2012,7 @@ const writtenName = ({ local, namespace }: { local: string; namespace: string })
 export const foreignNamesOf = Effect.fn("test.foreignNamesOf")(function* foreignNamesOf(
   bytes: Uint8Array,
   grammar: ComposedGrammar,
-): Effect.fn.Return<ForeignNames, never, FileSystem.FileSystem> {
+): Effect.fn.Return<ForeignNames, never, FileSystem.FileSystem | SchemaSets> {
   const tree = yield* Effect.result(
     readXml(bytes).pipe(Effect.flatMap((xml) => shred(xml, shredGrammarOf(grammar)))),
   );

@@ -25,7 +25,7 @@
 import { regex } from "arkregex";
 import path from "node:path";
 import { assert, beforeAll, describe, it as unit, layer } from "@effect/vitest";
-import { Console, Effect, FileSystem, Result } from "effect";
+import { Console, Effect, FileSystem, Layer, Result } from "effect";
 import type { Option } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import type { Element } from "@qti-pie/crust/tree.ts";
@@ -39,6 +39,7 @@ import { settings } from "#pantry/test/settings.ts";
 import { XsdOracleLayer } from "#pantry/test/gen/grammar.ts";
 import {
   compareJudgments,
+  SchemaSets,
   schemaSetOf,
   writeXsdOracle,
   xsdCachePresent,
@@ -208,125 +209,128 @@ const corpusDocuments = Effect.fn("xsd.corpusDocuments")(function* corpusDocumen
 describe.skipIf(!settings.corpusRequested)("xsd.corpus.oracle.test.ts, the corpus", () => {
   beforeAll(xsdCachePresent);
 
-  layer(XsdOracleLayer, { excludeTestServices: true })("xmllint against the law oracle", (it) => {
-    it.effect("every corpus document's two verdicts, per class, differ only as recorded", () =>
-      Effect.gen(function* compareCorpus() {
-        yield* requireRecordsLibxml2();
+  layer(Layer.merge(XsdOracleLayer, SchemaSets.layer), { excludeTestServices: true })(
+    "xmllint against the law oracle",
+    (it) => {
+      it.effect("every corpus document's two verdicts, per class, differ only as recorded", () =>
+        Effect.gen(function* compareCorpus() {
+          yield* requireRecordsLibxml2();
 
-        const fs = yield* FileSystem.FileSystem;
-        const grammar = yield* Effect.fromResult(composed()).pipe(Effect.orDie);
-        const laws = lawsOf(grammar);
+          const fs = yield* FileSystem.FileSystem;
+          const grammar = yield* Effect.fromResult(composed()).pipe(Effect.orDie);
+          const laws = lawsOf(grammar);
 
-        yield* fs.remove(outputRoot, { force: true, recursive: true });
+          yield* fs.remove(outputRoot, { force: true, recursive: true });
 
-        const documents = yield* corpusDocuments();
-        const oracle = yield* writeXsdOracle(oracleRoot, []);
-        const judged: Judged[] = [];
-        const records = [...recorded, ...libxml2Records];
+          const documents = yield* corpusDocuments();
+          const oracle = yield* writeXsdOracle(oracleRoot, []);
+          const judged: Judged[] = [];
+          const records = [...recorded, ...libxml2Records];
 
-        const verdicts = yield* validated(oracle, documents);
+          const verdicts = yield* validated(oracle, documents);
 
-        for (const [at, document] of documents.entries()) {
-          const xsd =
-            verdicts[at] ??
-            (yield* Effect.die(new Error(`xmllint gave no verdict for ${document.file}`)));
+          for (const [at, document] of documents.entries()) {
+            const xsd =
+              verdicts[at] ??
+              (yield* Effect.die(new Error(`xmllint gave no verdict for ${document.file}`)));
 
-          const law = yield* judgeDocument({
-            bytes: document.bytes,
-            grammar,
-            laws,
-            path: document.path,
-          });
-          const comparison = compareJudgments(xsd, law);
-          /**
-           * The gated classes read the document's rows, which only a difference needs.
-           */
-          const matches =
-            comparison.differences.length === 0
-              ? []
-              : yield* Effect.map(documentRowsOf(document.bytes, grammar), (rows) =>
-                  comparison.differences.map((difference) =>
-                    gatedRecordOf(document, difference, records, rows),
-                  ),
-                );
+            const law = yield* judgeDocument({
+              bytes: document.bytes,
+              grammar,
+              laws,
+              path: document.path,
+            });
+            const comparison = compareJudgments(xsd, law);
+            /**
+             * The gated classes read the document's rows, which only a difference needs.
+             */
+            const matches =
+              comparison.differences.length === 0
+                ? []
+                : yield* Effect.map(documentRowsOf(document.bytes, grammar), (rows) =>
+                    comparison.differences.map((difference) =>
+                      gatedRecordOf(document, difference, records, rows),
+                    ),
+                  );
 
-          judged.push({ comparison, document, matches });
-        }
+            judged.push({ comparison, document, matches });
+          }
 
-        yield* fs.writeFileString(
-          `${outputRoot}/agreement.tsv`,
-          tsv(
-            ["zip", "document", "verdicts", "xmllint", "laws", "masked", "differences"],
-            judged.map(({ comparison, document }) => [
-              document.zip,
-              document.path,
-              comparison.verdicts,
-              comparison.xsdClasses.join(" "),
-              comparison.lawClasses.join(" "),
-              comparison.masked.join(" "),
-              String(comparison.differences.length),
-            ]),
-          ),
-        );
-        yield* fs.writeFileString(
-          `${outputRoot}/differences.tsv`,
-          tsv(
-            ["zip", "document", "direction", "class", "rule", "record", "detail"],
-            judged.flatMap(({ comparison, document, matches }) =>
-              comparison.differences.map((difference, at) => {
-                const match = matches[at];
-
-                return [
-                  document.zip,
-                  document.path,
-                  difference.direction,
-                  difference.class,
-                  difference.rule,
-                  match === undefined ? "UNRECORDED" : reasonText(match.reason),
-                  difference.detail.slice(0, 600),
-                ];
-              }),
+          yield* fs.writeFileString(
+            `${outputRoot}/agreement.tsv`,
+            tsv(
+              ["zip", "document", "verdicts", "xmllint", "laws", "masked", "differences"],
+              judged.map(({ comparison, document }) => [
+                document.zip,
+                document.path,
+                comparison.verdicts,
+                comparison.xsdClasses.join(" "),
+                comparison.lawClasses.join(" "),
+                comparison.masked.join(" "),
+                String(comparison.differences.length),
+              ]),
             ),
-          ),
-        );
+          );
+          yield* fs.writeFileString(
+            `${outputRoot}/differences.tsv`,
+            tsv(
+              ["zip", "document", "direction", "class", "rule", "record", "detail"],
+              judged.flatMap(({ comparison, document, matches }) =>
+                comparison.differences.map((difference, at) => {
+                  const match = matches[at];
 
-        const tally = (pair: Comparison["verdicts"]) =>
-          judged.filter(({ comparison }) => comparison.verdicts === pair).length;
-        const unrecorded = judged.flatMap(({ comparison, document, matches }) =>
-          comparison.differences.flatMap((difference, at) =>
-            matches[at] === undefined
-              ? [
-                  `${document.zip}/${document.path} ${difference.direction} ${difference.class} ${difference.rule}: ${difference.detail.slice(0, 300)}`,
-                ]
-              : [],
-          ),
-        );
-        const used = new Set(judged.flatMap(({ matches }) => matches));
-        const stale = recorded.filter((record) => !used.has(record));
+                  return [
+                    document.zip,
+                    document.path,
+                    difference.direction,
+                    difference.class,
+                    difference.rule,
+                    match === undefined ? "UNRECORDED" : reasonText(match.reason),
+                    difference.detail.slice(0, 600),
+                  ];
+                }),
+              ),
+            ),
+          );
 
-        yield* Console.log(
-          [
-            `xsd.corpus: ${String(documents.length)} documents judged`,
-            `  accepted by both ${String(tally("accepted by both"))}, refused by both ${String(tally("refused by both"))}, xmllint only ${String(tally("xmllint only"))}, laws only ${String(tally("laws only"))}`,
-            `  differences ${String(judged.reduce((sum, { comparison }) => sum + comparison.differences.length, 0))}, unrecorded ${String(unrecorded.length)}, stale records ${String(stale.length)}, libxml2 ${String(libxml2Count(judged.flatMap(({ matches }) => matches)))} (${libxml2Records.map(({ reason }) => reasonText(reason)).join("; ")})`,
-          ].join("\n"),
-        );
+          const tally = (pair: Comparison["verdicts"]) =>
+            judged.filter(({ comparison }) => comparison.verdicts === pair).length;
+          const unrecorded = judged.flatMap(({ comparison, document, matches }) =>
+            comparison.differences.flatMap((difference, at) =>
+              matches[at] === undefined
+                ? [
+                    `${document.zip}/${document.path} ${difference.direction} ${difference.class} ${difference.rule}: ${difference.detail.slice(0, 300)}`,
+                  ]
+                : [],
+            ),
+          );
+          const used = new Set(judged.flatMap(({ matches }) => matches));
+          const stale = recorded.filter((record) => !used.has(record));
 
-        assert.deepStrictEqual(
-          unrecorded,
-          [],
-          "every difference between the two oracles is recorded",
-        );
-        assert.deepStrictEqual(
-          stale.map(
-            ({ class: cls, direction, reason }) => `${direction} ${cls}: ${reasonText(reason)}`,
-          ),
-          [],
-          "every record still matches a difference",
-        );
-      }),
-    );
-  });
+          yield* Console.log(
+            [
+              `xsd.corpus: ${String(documents.length)} documents judged`,
+              `  accepted by both ${String(tally("accepted by both"))}, refused by both ${String(tally("refused by both"))}, xmllint only ${String(tally("xmllint only"))}, laws only ${String(tally("laws only"))}`,
+              `  differences ${String(judged.reduce((sum, { comparison }) => sum + comparison.differences.length, 0))}, unrecorded ${String(unrecorded.length)}, stale records ${String(stale.length)}, libxml2 ${String(libxml2Count(judged.flatMap(({ matches }) => matches)))} (${libxml2Records.map(({ reason }) => reasonText(reason)).join("; ")})`,
+            ].join("\n"),
+          );
+
+          assert.deepStrictEqual(
+            unrecorded,
+            [],
+            "every difference between the two oracles is recorded",
+          );
+          assert.deepStrictEqual(
+            stale.map(
+              ({ class: cls, direction, reason }) => `${direction} ${cls}: ${reasonText(reason)}`,
+            ),
+            [],
+            "every record still matches a difference",
+          );
+        }),
+      );
+    },
+  );
 });
 
 /**
@@ -516,290 +520,293 @@ describe.skipIf(!settings.corpusRequested)(
   () => {
     beforeAll(xsdCachePresent);
 
-    layer(XsdOracleLayer, { excludeTestServices: true })("the control", (it) => {
-      it.effect(
-        "libxml2 refuses a repeated ID in item-body content and under ssml:mark/figcaption, and accepts a dangling IDREF in both",
-        () =>
-          Effect.gen(function* control() {
-            yield* requireRecordsLibxml2();
+    layer(Layer.merge(XsdOracleLayer, SchemaSets.layer), { excludeTestServices: true })(
+      "the control",
+      (it) => {
+        it.effect(
+          "libxml2 refuses a repeated ID in item-body content and under ssml:mark/figcaption, and accepts a dangling IDREF in both",
+          () =>
+            Effect.gen(function* control() {
+              yield* requireRecordsLibxml2();
 
-            const fs = yield* FileSystem.FileSystem;
-            const documents = {
-              "body-dangling-idref": controlItem("", `<p aria-errormessage="nowhere">x</p>`),
-              "body-repeated-id": controlItem("", `<p id="d1">x</p><p id="d1">y</p>`),
-              "mark-dangling-idref": controlItem(
-                underMark(`aria-errormessage="nowhere"`),
-                "<p>x</p>",
-              ),
-              "mark-repeated-id": controlItem(underMark(`id="d1"`, `id="d1"`), "<p>x</p>"),
-            };
+              const fs = yield* FileSystem.FileSystem;
+              const documents = {
+                "body-dangling-idref": controlItem("", `<p aria-errormessage="nowhere">x</p>`),
+                "body-repeated-id": controlItem("", `<p id="d1">x</p><p id="d1">y</p>`),
+                "mark-dangling-idref": controlItem(
+                  underMark(`aria-errormessage="nowhere"`),
+                  "<p>x</p>",
+                ),
+                "mark-repeated-id": controlItem(underMark(`id="d1"`, `id="d1"`), "<p>x</p>"),
+              };
 
-            yield* fs.remove(controlRoot, { force: true, recursive: true });
-            yield* fs.makeDirectory(controlRoot, { recursive: true });
+              yield* fs.remove(controlRoot, { force: true, recursive: true });
+              yield* fs.makeDirectory(controlRoot, { recursive: true });
 
-            const files = Object.keys(documents).map((name) => `${controlRoot}/${name}.xml`);
-            for (const [name, text] of Object.entries(documents)) {
-              yield* fs.writeFileString(`${controlRoot}/${name}.xml`, text);
-            }
+              const files = Object.keys(documents).map((name) => `${controlRoot}/${name}.xml`);
+              for (const [name, text] of Object.entries(documents)) {
+                yield* fs.writeFileString(`${controlRoot}/${name}.xml`, text);
+              }
 
-            const oracle = yield* writeXsdOracle(oracleRoot, []);
-            const verdicts = yield* xmllintValidate({
-              catalog: oracle.catalog,
-              paths: files,
-              schema: oracle.driver,
-            });
+              const oracle = yield* writeXsdOracle(oracleRoot, []);
+              const verdicts = yield* xmllintValidate({
+                catalog: oracle.catalog,
+                paths: files,
+                schema: oracle.driver,
+              });
 
-            assert.deepStrictEqual(
-              verdicts.map(({ _tag }) => _tag),
-              ["Valid", "Invalid", "Valid", "Invalid"],
-              "a dangling IDREF validates and a repeated ID does not, in item-body content and under the lax wildcard alike",
-            );
-          }),
-      );
-
-      it.effect(
-        "each document root's schema set, read from the XSDs' own imports, is reading 81's",
-        () =>
-          Effect.gen(function* schemaSets() {
-            const asi = "http://www.imsglobal.org/xsd/imsqtiasi_v3p0";
-            const cp = "http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1";
-            const lom = "http://ltsc.ieee.org/xsd/LOM";
-            const usage = "http://www.imsglobal.org/xsd/imsqti_usagedata_v3p0";
-            const xml = "http://www.w3.org/XML/1998/namespace";
-            const sets = yield* Effect.forEach([asi, cp, lom, usage], (root) =>
-              Effect.map(schemaSetOf(root), (set) => [...set].toSorted()),
-            );
-            const expected = [
-              [
-                asi,
-                "http://www.w3.org/1998/Math/MathML",
-                "http://www.w3.org/2001/10/synthesis",
-                "http://www.w3.org/2001/XInclude",
-                xml,
-              ],
-              [
-                lom,
-                "http://www.imsglobal.org/xsd/imsqti_metadata_v3p0",
-                "http://www.imsglobal.org/xsd/qti/qtiv3p0/imsafa3p0drd_v1p0",
-                "http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_extensionv1p2",
-                cp,
-                "http://www.imsglobal.org/xsd/qti/qtiv3p0/imscsmd_v1p1",
-                "http://www.w3.org/1999/xlink",
-                xml,
-              ],
-              [lom],
-              [usage],
-            ].map((set) => set.toSorted());
-
-            assert.deepStrictEqual(
-              sets,
-              expected,
-              "an item's set is the ASI XSD with xml, XInclude, MathML and SSML; a manifest's the CP XSD with xml, LOM, the curriculum standards and QTI metadata, and the CP extension with XLink and the DRD; a LOM file's and a usage data file's their XSD alone",
-            );
-          }),
-      );
-
-      it.effect(
-        "each libxml2 record matches its control's difference, and the nearest value both oracles refuse makes none",
-        () =>
-          Effect.gen(function* libxml2Controls() {
-            yield* requireRecordsLibxml2();
-
-            const bytes = (value: string) =>
-              controlItem(
-                "",
-                `<p><math xmlns="http://www.w3.org/1998/Math/MathML"><cbytes>${value}</cbytes></math></p>`,
+              assert.deepStrictEqual(
+                verdicts.map(({ _tag }) => _tag),
+                ["Valid", "Invalid", "Valid", "Invalid"],
+                "a dangling IDREF validates and a repeated ID does not, in item-body content and under the lax wildcard alike",
               );
-            const held = yield* controlled("libxml2", {
-              "base64-short": bytes("zz"),
-              "base64-stray": bytes("QUFh&lt;"),
-              "id-padded": markedItem(
-                `<widget xmlns="urn:w" xml:id="v"/><widget xmlns="urn:w" xml:id="&#x9;v "/>`,
-              ),
-              "id-plain": markedItem(
-                `<widget xmlns="urn:w" xml:id="v"/><widget xmlns="urn:w" xml:id="v"/>`,
-              ),
-              "id-skipped": skippedUnder(`<p><span id="d"/><span id="d"/></p>`),
-              "idrefs-empty": controlItem("", `<p id="a" aria-labelledby="">x</p>`),
-              "idrefs-whole": controlItem("", `<p id="a" aria-labelledby="a">x</p>`),
-              "list-blank": markedItem(
-                `<widget xmlns="urn:w" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:NMTOKENS"> </widget>`,
-              ),
-              "list-blank-entities": markedItem(
-                `<widget xmlns="urn:w" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:ENTITIES"/>`,
-              ),
-              "list-whole": markedItem(
-                `<widget xmlns="urn:w" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:NMTOKENS">a b</widget>`,
-              ),
-              "location-base": selectedTest(`xml:base="a]b"`),
-              "location-no-namespace": locatedTest(`xsi:noNamespaceSchemaLocation="a]b"`),
-              "location-pairs": locatedTest(`xsi:schemaLocation="urn:a a]b"`),
-              "nil-lax": markedItem(`<widget xmlns="urn:w" xsi:nil="v">x</widget>`),
-              "nil-lax-true": markedItem(`<widget xmlns="urn:w" xsi:nil="true">x</widget>`),
-              "nil-skipped": skippedUnder(`<div xsi:nil="false"/>`),
-              "nil-value": stimulusDivision(`xsi:nil=""`),
-              "nil-value-false": stimulusDivision(`xsi:nil="false"`),
-              "skipped-content": skippedUnder(`<h2 aria-level="x"/>`),
-              "skipped-untyped": untypedUnder(`<h2 aria-level="x"/>`),
-              "type-padded": exitProcessing(
-                `<qti-exit-response xsi:type=" t:EmptyPrimitiveTypeDType&#x9;"/>`,
-              ),
-              "type-unknown": markedItem(
-                `<widget xmlns="urn:w" xmlns:x="urn:x" xsi:type="x:v">x</widget>`,
-              ),
-              "type-unpadded": exitProcessing(
-                `<qti-exit-response xsi:type="t:EmptyPrimitiveTypeDType"/>`,
-              ),
-            });
+            }),
+        );
 
-            assert.deepStrictEqual(
-              held.map(({ comparison }) => comparison.verdicts),
-              [
-                "refused by both",
-                "laws only",
-                "laws only",
-                "refused by both",
-                "refused by both",
-                "laws only",
-                "accepted by both",
-                "laws only",
-                "laws only",
-                "accepted by both",
-                "refused by both",
-                "laws only",
-                "laws only",
-                "laws only",
-                "accepted by both",
-                "refused by both",
-                "refused by both",
-                "refused by both",
-                "refused by both",
-                "refused by both",
-                "xmllint only",
-                "xmllint only",
-                "accepted by both",
-              ],
-              "xmllint refuses a base64 value of two letters, an xml:id twice and xml:base's value, as the law oracle does, and accepts a stray character in base64, an xml:id beside its padded form, an empty IDREFS, a blank NMTOKENS element, an empty ENTITIES element, the two xsi: locations' values and a lax xsi:nil's, which the law oracle refuses; it refuses a padded xsi:type, whose QName collapses to one it accepts unpadded, and an xsi:type naming no type on a lax element, which the law oracle accepts (reading 60); it refuses an xs:ENTITIES element holding an element, an xsi:nil on a division and an untyped element's aria-level, as the law oracle does, and assesses nothing within the first",
-            );
-            assert.deepStrictEqual(
-              held.map(({ records }) => records),
-              [
-                [],
-                [base64Record],
-                [paddedIdRecord],
-                [],
-                [blankListRecord, skippedContentRecord],
-                [emptyIdrefsRecord],
-                [],
-                [blankListRecord],
-                [blankListRecord],
-                [],
-                [],
-                [locationRecord],
-                [locationRecord],
-                [laxNilRecord],
-                [],
-                [undefined],
-                [nilValueRecord],
-                [],
-                [skippedContentRecord, blankListRecord],
-                [],
-                [paddedTypeRecord],
-                [laxXsiType, absentTypeRecord],
-                [],
-              ],
-              "each libxml2 record matches exactly its control's differences, and reading 60's the unresolved xsi:type's; a gated record matches only where the document holds its shape, so a repeated id that is no xml:id is the skipped content's and not a padded xml:id's, and a false xsi:nil is no unchecked value",
-            );
-          }),
-      );
+        it.effect(
+          "each document root's schema set, read from the XSDs' own imports, is reading 81's",
+          () =>
+            Effect.gen(function* schemaSets() {
+              const asi = "http://www.imsglobal.org/xsd/imsqtiasi_v3p0";
+              const cp = "http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1";
+              const lom = "http://ltsc.ieee.org/xsd/LOM";
+              const usage = "http://www.imsglobal.org/xsd/imsqti_usagedata_v3p0";
+              const xml = "http://www.w3.org/XML/1998/namespace";
+              const sets = yield* Effect.forEach([asi, cp, lom, usage], (root) =>
+                Effect.map(schemaSetOf(root), (set) => [...set].toSorted()),
+              );
+              const expected = [
+                [
+                  asi,
+                  "http://www.w3.org/1998/Math/MathML",
+                  "http://www.w3.org/2001/10/synthesis",
+                  "http://www.w3.org/2001/XInclude",
+                  xml,
+                ],
+                [
+                  lom,
+                  "http://www.imsglobal.org/xsd/imsqti_metadata_v3p0",
+                  "http://www.imsglobal.org/xsd/qti/qtiv3p0/imsafa3p0drd_v1p0",
+                  "http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_extensionv1p2",
+                  cp,
+                  "http://www.imsglobal.org/xsd/qti/qtiv3p0/imscsmd_v1p1",
+                  "http://www.w3.org/1999/xlink",
+                  xml,
+                ],
+                [lom],
+                [usage],
+              ].map((set) => set.toSorted());
 
-      it.effect(
-        "a QTI root nested in an item's lax wildcard content: xmllint assesses it, and the law oracle keeps it foreign (reading 6)",
-        () =>
-          Effect.gen(function* nested() {
-            const held = yield* controlled("nested", {
-              "nested-bare": markedItem("<qti-assessment-item>x</qti-assessment-item>"),
-              "nested-whole": markedItem(
-                `<qti-assessment-item identifier="i" title="t" time-dependent="false"/>`,
-              ),
-            });
+              assert.deepStrictEqual(
+                sets,
+                expected,
+                "an item's set is the ASI XSD with xml, XInclude, MathML and SSML; a manifest's the CP XSD with xml, LOM, the curriculum standards and QTI metadata, and the CP extension with XLink and the DRD; a LOM file's and a usage data file's their XSD alone",
+              );
+            }),
+        );
 
-            assert.deepStrictEqual(
-              held.map(({ comparison }) => [comparison.verdicts, comparison.xsdClasses]),
-              [
-                ["xmllint only", ["attribute-required", "content"]],
-                ["accepted by both", []],
-              ],
-              "xmllint refuses the bare nested item's missing attributes and its text, and accepts the whole one",
-            );
-            assert.deepStrictEqual(
-              held.map(({ records }) => records),
-              [[nestedRoot, nestedRoot], []],
-              "reading 6's class matches every difference the nested item makes",
-            );
-          }),
-      );
+        it.effect(
+          "each libxml2 record matches its control's difference, and the nearest value both oracles refuse makes none",
+          () =>
+            Effect.gen(function* libxml2Controls() {
+              yield* requireRecordsLibxml2();
 
-      /**
-       * Two defects the law oracle shares with the grammar and the codec, left unrecorded, so a
-       * generated document that shows one fails the generated test until its owner's fix lands;
-       * this control states xmllint's verdict alone. An element an xsi:type retypes is assessed
-       * against the type it names (XML Schema 1.0 Part 1, 3.3.4, cvc-elt clause 4, as reading 47
-       * has it), so its attributes are that type's, but the grammar's attribute admission is by
-       * kind, so a qti-exit-response typed TrackDType is accepted without TrackDType's required
-       * src. An xsi:type whose prefix no declaration binds is no QName (Part 2, 3.2.18), which its
-       * built-in declaration (Part 1, 3.2.7) refuses wherever the element sits, but the codec
-       * refuses it only on an element a declaration assesses (shred's type-unresolved).
-       */
-      const retyped = Effect.gen(function* retyped() {
-        const held = yield* controlled("retyped", {
-          "retyped-plain": exitProcessing("<qti-exit-response/>"),
-          "retyped-track": exitProcessing(`<qti-exit-response xsi:type="t:TrackDType"/>`),
-          "unbound-prefix": markedItem(`<widget xmlns="urn:w" xsi:type="zz:t">x</widget>`),
+              const bytes = (value: string) =>
+                controlItem(
+                  "",
+                  `<p><math xmlns="http://www.w3.org/1998/Math/MathML"><cbytes>${value}</cbytes></math></p>`,
+                );
+              const held = yield* controlled("libxml2", {
+                "base64-short": bytes("zz"),
+                "base64-stray": bytes("QUFh&lt;"),
+                "id-padded": markedItem(
+                  `<widget xmlns="urn:w" xml:id="v"/><widget xmlns="urn:w" xml:id="&#x9;v "/>`,
+                ),
+                "id-plain": markedItem(
+                  `<widget xmlns="urn:w" xml:id="v"/><widget xmlns="urn:w" xml:id="v"/>`,
+                ),
+                "id-skipped": skippedUnder(`<p><span id="d"/><span id="d"/></p>`),
+                "idrefs-empty": controlItem("", `<p id="a" aria-labelledby="">x</p>`),
+                "idrefs-whole": controlItem("", `<p id="a" aria-labelledby="a">x</p>`),
+                "list-blank": markedItem(
+                  `<widget xmlns="urn:w" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:NMTOKENS"> </widget>`,
+                ),
+                "list-blank-entities": markedItem(
+                  `<widget xmlns="urn:w" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:ENTITIES"/>`,
+                ),
+                "list-whole": markedItem(
+                  `<widget xmlns="urn:w" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:NMTOKENS">a b</widget>`,
+                ),
+                "location-base": selectedTest(`xml:base="a]b"`),
+                "location-no-namespace": locatedTest(`xsi:noNamespaceSchemaLocation="a]b"`),
+                "location-pairs": locatedTest(`xsi:schemaLocation="urn:a a]b"`),
+                "nil-lax": markedItem(`<widget xmlns="urn:w" xsi:nil="v">x</widget>`),
+                "nil-lax-true": markedItem(`<widget xmlns="urn:w" xsi:nil="true">x</widget>`),
+                "nil-skipped": skippedUnder(`<div xsi:nil="false"/>`),
+                "nil-value": stimulusDivision(`xsi:nil=""`),
+                "nil-value-false": stimulusDivision(`xsi:nil="false"`),
+                "skipped-content": skippedUnder(`<h2 aria-level="x"/>`),
+                "skipped-untyped": untypedUnder(`<h2 aria-level="x"/>`),
+                "type-padded": exitProcessing(
+                  `<qti-exit-response xsi:type=" t:EmptyPrimitiveTypeDType&#x9;"/>`,
+                ),
+                "type-unknown": markedItem(
+                  `<widget xmlns="urn:w" xmlns:x="urn:x" xsi:type="x:v">x</widget>`,
+                ),
+                "type-unpadded": exitProcessing(
+                  `<qti-exit-response xsi:type="t:EmptyPrimitiveTypeDType"/>`,
+                ),
+              });
+
+              assert.deepStrictEqual(
+                held.map(({ comparison }) => comparison.verdicts),
+                [
+                  "refused by both",
+                  "laws only",
+                  "laws only",
+                  "refused by both",
+                  "refused by both",
+                  "laws only",
+                  "accepted by both",
+                  "laws only",
+                  "laws only",
+                  "accepted by both",
+                  "refused by both",
+                  "laws only",
+                  "laws only",
+                  "laws only",
+                  "accepted by both",
+                  "refused by both",
+                  "refused by both",
+                  "refused by both",
+                  "refused by both",
+                  "refused by both",
+                  "xmllint only",
+                  "xmllint only",
+                  "accepted by both",
+                ],
+                "xmllint refuses a base64 value of two letters, an xml:id twice and xml:base's value, as the law oracle does, and accepts a stray character in base64, an xml:id beside its padded form, an empty IDREFS, a blank NMTOKENS element, an empty ENTITIES element, the two xsi: locations' values and a lax xsi:nil's, which the law oracle refuses; it refuses a padded xsi:type, whose QName collapses to one it accepts unpadded, and an xsi:type naming no type on a lax element, which the law oracle accepts (reading 60); it refuses an xs:ENTITIES element holding an element, an xsi:nil on a division and an untyped element's aria-level, as the law oracle does, and assesses nothing within the first",
+              );
+              assert.deepStrictEqual(
+                held.map(({ records }) => records),
+                [
+                  [],
+                  [base64Record],
+                  [paddedIdRecord],
+                  [],
+                  [blankListRecord, skippedContentRecord],
+                  [emptyIdrefsRecord],
+                  [],
+                  [blankListRecord],
+                  [blankListRecord],
+                  [],
+                  [],
+                  [locationRecord],
+                  [locationRecord],
+                  [laxNilRecord],
+                  [],
+                  [undefined],
+                  [nilValueRecord],
+                  [],
+                  [skippedContentRecord, blankListRecord],
+                  [],
+                  [paddedTypeRecord],
+                  [laxXsiType, absentTypeRecord],
+                  [],
+                ],
+                "each libxml2 record matches exactly its control's differences, and reading 60's the unresolved xsi:type's; a gated record matches only where the document holds its shape, so a repeated id that is no xml:id is the skipped content's and not a padded xml:id's, and a false xsi:nil is no unchecked value",
+              );
+            }),
+        );
+
+        it.effect(
+          "a QTI root nested in an item's lax wildcard content: xmllint assesses it, and the law oracle keeps it foreign (reading 6)",
+          () =>
+            Effect.gen(function* nested() {
+              const held = yield* controlled("nested", {
+                "nested-bare": markedItem("<qti-assessment-item>x</qti-assessment-item>"),
+                "nested-whole": markedItem(
+                  `<qti-assessment-item identifier="i" title="t" time-dependent="false"/>`,
+                ),
+              });
+
+              assert.deepStrictEqual(
+                held.map(({ comparison }) => [comparison.verdicts, comparison.xsdClasses]),
+                [
+                  ["xmllint only", ["attribute-required", "content"]],
+                  ["accepted by both", []],
+                ],
+                "xmllint refuses the bare nested item's missing attributes and its text, and accepts the whole one",
+              );
+              assert.deepStrictEqual(
+                held.map(({ records }) => records),
+                [[nestedRoot, nestedRoot], []],
+                "reading 6's class matches every difference the nested item makes",
+              );
+            }),
+        );
+
+        /**
+         * Two defects the law oracle shares with the grammar and the codec, left unrecorded, so a
+         * generated document that shows one fails the generated test until its owner's fix lands;
+         * this control states xmllint's verdict alone. An element an xsi:type retypes is assessed
+         * against the type it names (XML Schema 1.0 Part 1, 3.3.4, cvc-elt clause 4, as reading 47
+         * has it), so its attributes are that type's, but the grammar's attribute admission is by
+         * kind, so a qti-exit-response typed TrackDType is accepted without TrackDType's required
+         * src. An xsi:type whose prefix no declaration binds is no QName (Part 2, 3.2.18), which
+         * its built-in declaration (Part 1, 3.2.7) refuses wherever the element sits, but the codec
+         * refuses it only on an element a declaration assesses (shred's type-unresolved).
+         */
+        const retyped = Effect.gen(function* retyped() {
+          const held = yield* controlled("retyped", {
+            "retyped-plain": exitProcessing("<qti-exit-response/>"),
+            "retyped-track": exitProcessing(`<qti-exit-response xsi:type="t:TrackDType"/>`),
+            "unbound-prefix": markedItem(`<widget xmlns="urn:w" xsi:type="zz:t">x</widget>`),
+          });
+
+          assert.deepStrictEqual(
+            held.map(({ comparison }) => comparison.xsdClasses),
+            [[], ["attribute-required"], ["attribute-value", "other"]],
+            "xmllint assesses the retyped element against TrackDType, whose src is required, and refuses the unbound prefix on the xsi:type and, a second time, on its element",
+          );
         });
 
-        assert.deepStrictEqual(
-          held.map(({ comparison }) => comparison.xsdClasses),
-          [[], ["attribute-required"], ["attribute-value", "other"]],
-          "xmllint assesses the retyped element against TrackDType, whose src is required, and refuses the unbound prefix on the xsi:type and, a second time, on its element",
+        it.effect(
+          "xmllint refuses a qti-exit-response an xsi:type retypes to TrackDType without src and a foreign element's xsi:type of an unbound prefix, and accepts a plain qti-exit-response",
+          () => retyped,
         );
-      });
 
-      it.effect(
-        "xmllint refuses a qti-exit-response an xsi:type retypes to TrackDType without src and a foreign element's xsi:type of an unbound prefix, and accepts a plain qti-exit-response",
-        () => retyped,
-      );
+        /**
+         * The defects three earlier records named, now fixed and so no records: an element in no
+         * namespace under an ##other wildcard, which ##other never admits (XML Schema 1.0 Part 1,
+         * 3.10.1); a foreign element in xi:include, whose includeType is (fallback | any ##other
+         * lax)*; and a simple-content element with no text, whose empty string its type must admit.
+         * Both oracles judge each alike, so a regression shows here as well as in a generated run.
+         */
+        const fixed = Effect.gen(function* fixed() {
+          const held = yield* controlled("fixed", {
+            "empty-schemaversion": `<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="M"><metadata><schema>QTI Package</schema><schemaversion></schemaversion></metadata><organizations/><resources/></manifest>`,
+            "foreign-in-include": `<qti-assessment-test xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xi="http://www.w3.org/2001/XInclude" identifier="T" title="t"><qti-test-part identifier="P" navigation-mode="linear" submission-mode="individual"><qti-assessment-section identifier="S" title="s" visible="true"><xi:include href="s.xml"><widget xmlns="urn:w"/></xi:include></qti-assessment-section></qti-test-part></qti-assessment-test>`,
+            "no-namespace-under-other": `<lom xmlns="http://ltsc.ieee.org/xsd/LOM"><general/><widget xmlns="">x</widget></lom>`,
+          });
 
-      /**
-       * The defects three earlier records named, now fixed and so no records: an element in no
-       * namespace under an ##other wildcard, which ##other never admits (XML Schema 1.0 Part 1,
-       * 3.10.1); a foreign element in xi:include, whose includeType is (fallback | any ##other
-       * lax)*; and a simple-content element with no text, whose empty string its type must admit.
-       * Both oracles judge each alike, so a regression shows here as well as in a generated run.
-       */
-      const fixed = Effect.gen(function* fixed() {
-        const held = yield* controlled("fixed", {
-          "empty-schemaversion": `<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="M"><metadata><schema>QTI Package</schema><schemaversion></schemaversion></metadata><organizations/><resources/></manifest>`,
-          "foreign-in-include": `<qti-assessment-test xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xi="http://www.w3.org/2001/XInclude" identifier="T" title="t"><qti-test-part identifier="P" navigation-mode="linear" submission-mode="individual"><qti-assessment-section identifier="S" title="s" visible="true"><xi:include href="s.xml"><widget xmlns="urn:w"/></xi:include></qti-assessment-section></qti-test-part></qti-assessment-test>`,
-          "no-namespace-under-other": `<lom xmlns="http://ltsc.ieee.org/xsd/LOM"><general/><widget xmlns="">x</widget></lom>`,
+          assert.deepStrictEqual(
+            held.map(({ comparison }) => [comparison.verdicts, comparison.differences]),
+            [
+              ["refused by both", []],
+              ["accepted by both", []],
+              ["refused by both", []],
+            ],
+            "an empty schemaversion and a no-namespace element under ##other are refused by both, and a foreign element in xi:include is accepted by both",
+          );
         });
 
-        assert.deepStrictEqual(
-          held.map(({ comparison }) => [comparison.verdicts, comparison.differences]),
-          [
-            ["refused by both", []],
-            ["accepted by both", []],
-            ["refused by both", []],
-          ],
-          "an empty schemaversion and a no-namespace element under ##other are refused by both, and a foreign element in xi:include is accepted by both",
+        it.effect(
+          "both oracles judge alike the three defects the earlier records named",
+          () => fixed,
         );
-      });
-
-      it.effect(
-        "both oracles judge alike the three defects the earlier records named",
-        () => fixed,
-      );
-    });
+      },
+    );
   },
 );
 
