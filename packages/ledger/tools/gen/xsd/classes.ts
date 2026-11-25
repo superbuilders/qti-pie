@@ -79,9 +79,13 @@ const classOf = (pattern: string): CharSet => {
     if (node.kind === "set") {
       sets.push(node.set);
     } else if (node.kind === "seq") {
-      pending.push(...node.items);
+      for (const each of node.items) {
+        pending.push(each);
+      }
     } else if (node.kind === "alt") {
-      pending.push(...node.arms);
+      for (const each of node.arms) {
+        pending.push(each);
+      }
     } else if (node.kind === "repeat") {
       pending.push(node.body);
     }

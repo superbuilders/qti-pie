@@ -2,6 +2,7 @@
  * The string operations the grade.ts generator's stages splice text with: a lookup that misses
  * fails the stage, and a replacement is literal text, never a pattern.
  */
+import { Array as Arr } from "effect";
 import { regex } from "arkregex";
 
 /**
@@ -274,5 +275,8 @@ export const readerOf = (block: string, head: string): string => {
     .filter((stop) => stop >= 0);
   must(stops.length > 0, `a member after ${head.trim()}`);
 
-  return block.slice(at, Math.min(...stops));
+  return block.slice(
+    at,
+    Arr.reduce(stops, Number.POSITIVE_INFINITY, (least, each) => Math.min(least, each)),
+  );
 };
