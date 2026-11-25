@@ -860,7 +860,11 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
                   assert.deepStrictEqual(loginPassword, Result.succeed(secretsPassword));
                 } else {
                   c.note("login refused");
-                  assert.isTrue(Result.isFailure(loginPassword));
+                  assert.strictEqual(
+                    loginPassword._tag,
+                    "Failure",
+                    "the login's password is refused",
+                  );
                   assert.strictEqual(
                     Result.isFailure(loginPassword) ? loginPassword.failure._tag : undefined,
                     "CredentialError",

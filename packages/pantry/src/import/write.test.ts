@@ -1038,14 +1038,14 @@ describe("unionOf", () => {
             const union = unionOf("Case", sets);
             Option.match(conflict, {
               onNone: () => {
-                assert.isTrue(Result.isSuccess(union));
+                assert.strictEqual(union._tag, "Success", "the sets union with no conflict");
                 assert.deepStrictEqual(
                   Result.isSuccess(union) ? [...union.success].map(([key, { v }]) => [key, v]) : [],
                   [...first],
                 );
               },
               onSome: (key) => {
-                assert.isTrue(Result.isFailure(union));
+                assert.strictEqual(union._tag, "Failure", `the sets conflict at ${key}`);
                 assert.strictEqual(Result.isFailure(union) ? union.failure.key : undefined, key);
               },
             });

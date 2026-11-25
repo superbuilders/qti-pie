@@ -747,7 +747,7 @@ describe("the merged axes and the laws no row states", () => {
       ),
       refused.message,
     );
-    assert.isTrue(Option.isNone(ruleOfLaw(law)));
+    assert.deepStrictEqual(ruleOfLaw(law), Option.none());
   });
 });
 

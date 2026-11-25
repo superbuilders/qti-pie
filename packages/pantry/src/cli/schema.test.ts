@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
-import { Effect, Exit, Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { captureCli } from "#pantry/test/cli.ts";
 import { fileScratchDirectory, scratchEnv } from "#pantry/test/scratch.ts";
 
@@ -45,7 +45,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("qti schema, database-f
           fs.readFileSync(path.join(packageRoot, "schema", `${name}.json`), "utf-8"),
         );
 
-        assert.isTrue(Exit.isSuccess(exit));
+        assert.strictEqual(exit._tag, "Success", `${name}: the schema command exits with success`);
         assert.deepStrictEqual(committed, parseObject(stdout));
         assert.strictEqual(
           parseObject(stdout)["$schema"],
