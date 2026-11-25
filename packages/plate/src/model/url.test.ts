@@ -1,6 +1,12 @@
+import { availableParallelism } from "node:os";
 import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
-import { Option, Result } from "effect";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { requiredInSpace } from "@bjornpagen/testing/features";
+import { array, element as member, map } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
+import { Array as Arr, Duration, Effect, Formatter, Option, Result } from "effect";
 import { mathmlNamespace, qtiNamespace } from "#plate/document/source.ts";
 import {
   addressUrl,
@@ -11,6 +17,7 @@ import {
   isPackagePath,
   urlContextOf,
 } from "#plate/model/url.ts";
+import { boxHolds } from "#plate/test/box.ts";
 import { assetsOf } from "#plate/test/fixtures.ts";
 import type { KeptUrl, UrlContext } from "#plate/model/url.ts";
 
@@ -75,6 +82,201 @@ const name = (namespace: string, local: string) => ({ local, namespace });
 const contextAt = (namespace: string, element: string, attribute: string) =>
   urlContextOf(name(namespace, element), name("", attribute));
 
+/**
+ * How long one case of a search here may run before it is stopped and reported.
+ */
+const caseHang = Duration.seconds(30);
+
+/**
+ * A context that holds one URL.
+ */
+type SingleContext = (typeof singleContexts)[number];
+
+/**
+ * A case of a box of values held in each single context.
+ */
+interface ContextCase {
+  readonly context: SingleContext;
+  readonly value: string;
+}
+
+/**
+ * Draw a case of the rooted box: one or two of the slash and the backslash, then a path of one or
+ * two of `a` and `x`, in each single context.
+ */
+const rootedCase: Gen<ContextCase> = (source) => {
+  const slashes = source.draw(array(member(["/", "\\"] as const), { max: 2, min: 1 }));
+  const path = source.draw(array(member(["a", "x"] as const), { max: 2, min: 1 }));
+
+  return {
+    context: source.draw(member(singleContexts)),
+    value: `${slashes.join("")}${path.join("/")}`,
+  };
+};
+
+/**
+ * How many cases {@link rootedCase} draws.
+ */
+const ROOTED_CASES = (2 + 4) * (2 + 4) * 3;
+
+/**
+ * The segments a path of the walked box passes through: a name, and dot segments written every
+ * way the URL Standard reads one.
+ */
+const DOT_PIECES = ["a", ".", "..", "%2e", "%2E%2e", ".%2e"] as const;
+
+/**
+ * Draw a case of the walked box: up to three of {@link DOT_PIECES} and a last segment of `x`, `.`
+ * or `..`, separated by slashes or by backslashes, bare or after `https:`, in each single context.
+ */
+const walkedCase: Gen<ContextCase> = (source) => {
+  const prefix = source.draw(member(["", "https:"] as const));
+  const separator = source.draw(member(["/", "\\"] as const));
+  const middle = source.draw(array(member(DOT_PIECES), { max: 3, min: 0 }));
+  const last = source.draw(member(["x", ".", ".."] as const));
+
+  return {
+    context: source.draw(member(singleContexts)),
+    value: `${prefix}${[...middle, last].join(separator)}`,
+  };
+};
+
+/**
+ * How many cases {@link walkedCase} draws.
+ */
+const WALKED_CASES = 2 * 2 * (1 + 6 + 6 ** 2 + 6 ** 3) * 3 * 3;
+
+/**
+ * What a walk reaches that a classifier could write wrong.
+ */
+const walkSituations = ["climbs above", "stays below", "a directory"] as const;
+
+/**
+ * A {@link walkSituations} member.
+ */
+type WalkSituation = (typeof walkSituations)[number];
+
+/**
+ * Whether a segment is a single-dot segment as the URL Standard reads one: `.`, or `%2e` in any
+ * case.
+ *
+ * @param segment The segment.
+ * @returns Whether it is.
+ */
+const isSingleDot = (segment: string): boolean =>
+  segment === "." || segment.toLowerCase() === "%2e";
+
+/**
+ * Whether a segment is a double-dot segment as the URL Standard reads one: `..`, `.%2e`, `%2e.`
+ * or `%2e%2e`, in any case.
+ *
+ * @param segment The segment.
+ * @returns Whether it is.
+ */
+const isDoubleDot = (segment: string): boolean => {
+  const lower = segment.toLowerCase();
+
+  return lower === ".." || lower === ".%2e" || lower === "%2e." || lower === "%2e%2e";
+};
+
+/**
+ * A relative path's walk from the item's directory: how many directories above it the walk
+ * climbs, and the segments it keeps below.
+ */
+interface Walked {
+  readonly climbs: number;
+  readonly kept: readonly string[];
+}
+
+/**
+ * A relative path's walk from the item's directory, as the classifier writes it.
+ */
+interface Walk {
+  readonly path: string;
+  readonly situations: readonly WalkSituation[];
+}
+
+/**
+ * Walk a relative path from the item's directory as the URL Standard's path state does (section
+ * 4.4): a backslash is a slash in a special URL, a single-dot segment is dropped, a double-dot one
+ * drops the segment before it or, with none, climbs one directory above. The package path the
+ * classifier writes for it below the item's directory is one `../` for each directory climbed,
+ * then the segments kept, a `/` after them where the path ends in a dot segment and so names a
+ * directory, and `./` for the directory itself.
+ *
+ * @param relative The path, with no scheme.
+ * @returns Its package path and the situations it reaches.
+ */
+const walkOf = (relative: string): Walk => {
+  const segments = relative.replaceAll("\\", "/").split("/");
+  const start: Walked = { climbs: 0, kept: [] };
+  const { climbs, kept } = Arr.reduce(segments, start, (walk, segment): Walked => {
+    if (isSingleDot(segment)) {
+      return walk;
+    }
+
+    if (isDoubleDot(segment)) {
+      return Arr.isReadonlyArrayNonEmpty(walk.kept)
+        ? { climbs: walk.climbs, kept: walk.kept.slice(0, -1) }
+        : { climbs: walk.climbs + 1, kept: walk.kept };
+    }
+
+    return { climbs: walk.climbs, kept: [...walk.kept, segment] };
+  });
+  const last = segments.at(-1) ?? "";
+  const directory = isSingleDot(last) || isDoubleDot(last);
+  const path = `${"../".repeat(climbs)}${kept.join("/")}${directory && kept.length > 0 ? "/" : ""}`;
+  const situations: readonly (readonly [WalkSituation, boolean])[] = [
+    ["climbs above", climbs > 0],
+    ["stays below", climbs === 0],
+    ["a directory", directory],
+  ];
+
+  return {
+    path: path === "" ? "./" : path,
+    situations: situations.flatMap(([situation, held]) => (held ? [situation] : [])),
+  };
+};
+
+/**
+ * The segments a path of the package-path box is made of: a name, the empty segment, both dot
+ * segments, a percent-encoded letter, a space, and a name with two points inside it.
+ */
+const PATH_PIECES = ["a", "", ".", "..", "%41", " ", "a..b"] as const;
+
+/**
+ * Draw a path of the package-path box: every path of one to four of {@link PATH_PIECES}, joined by
+ * slashes.
+ */
+const packagePath: Gen<string> = map(array(member(PATH_PIECES), { max: 4, min: 1 }), (segments) =>
+  segments.join("/"),
+);
+
+/**
+ * How many paths {@link packagePath} draws.
+ */
+const PACKAGE_PATHS = 7 + 7 ** 2 + 7 ** 3 + 7 ** 4;
+
+/**
+ * The segments a reference of the reference box passes through before its file: a name, both dot
+ * segments, `..` percent-encoded, a segment that looks like an authority, one that looks like a
+ * port, and a name with a space.
+ */
+const REFERENCE_PIECES = ["media", ".", "..", "%2e%2e", "@evil.com", ":8080", "a b"] as const;
+
+/**
+ * Draw a reference of the reference box: up to two of {@link REFERENCE_PIECES}, then `a.png`.
+ */
+const referenceValue: Gen<string> = map(
+  array(member(REFERENCE_PIECES), { max: 2, min: 0 }),
+  (segments) => [...segments, "a.png"].join("/"),
+);
+
+/**
+ * How many references {@link referenceValue} draws.
+ */
+const REFERENCES = 1 + 7 + 7 ** 2;
+
 describe("urlContextOf", () => {
   it("names each body attribute's context, and none for param@value or an undeclared pair", () => {
     assert.deepStrictEqual(
@@ -123,56 +325,119 @@ describe("urlContextOf", () => {
 });
 
 describe("classifyUrl", () => {
-  for (const value of ["//host/x", "\\\\host\\x", "/x", "/a/x", "/root/x"]) {
-    it(`drops ${JSON.stringify(value)} as url-outside-package in every context`, () => {
-      for (const context of singleContexts) {
-        assert.deepStrictEqual(
-          classifyUrl(context, value),
-          dropped(outsidePackageFeature),
-          context,
-        );
-      }
-    });
-  }
+  it.effect(
+    `drops every value that starts with a slash or a backslash as url-outside-package in every context: ${String(ROOTED_CASES)} cases`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(rootedCase, ROOTED_CASES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every value of one or two of the slash and the backslash before a path of one or two of a and x, in the link, resource and embed contexts",
+              caseHang,
+              coverage: requiredInSpace<"rooted" | "a host">(["rooted", "a host"]),
+              generator: rootedCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the URL Standard's relative states (section 4.4): a value with no scheme is read against the item's directory, a slash or a backslash, the separator a special URL reads for it, first starts the path at the root, and two start a host, so either names a file outside the package, url-outside-package, in every context, the link context's remote URLs being only values that are absolute by themselves",
+              },
+              suite: "plate/url/rooted",
+            },
+            ({ context, value }, c) =>
+              Effect.sync(() => {
+                const second = value.charAt(1);
+                c.note(second === "/" || second === "\\" ? "a host" : "rooted");
 
-  it("keeps a path that climbs above the item's directory, one ../ for each directory it climbs", () => {
-    const cases = [
-      ["../x", "../x"],
-      ["images/../../x", "../x"],
-      ["../../images/a b.png?v=1#t", "../../images/a%20b.png?v=1#t"],
-      ["..\\..\\x", "../../x"],
-      ["%2e%2e/x", "../x"],
-      ["..", "../"],
-      ["../a/../..", "../../"],
-      ["https:../x", "../x"],
-    ] as const;
-    for (const [value, path] of cases) {
-      for (const context of singleContexts) {
-        assert.deepStrictEqual(
-          classifyUrl(context, value),
-          inPackage(path),
-          `${value} in ${context}`,
-        );
-      }
-    }
-  });
+                assert.deepStrictEqual(
+                  classifyUrl(context, value),
+                  dropped(outsidePackageFeature),
+                  `${JSON.stringify(value)} in ${context}`,
+                );
+              }),
+          ),
+        ),
+      ),
+  );
+
+  it.effect(
+    `keeps every relative path of dot segments as the package path its walk names, one ../ for each directory it climbs above the item's: ${String(WALKED_CASES)} cases`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(walkedCase, WALKED_CASES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every path of up to three of a, ., .., %2e, %2E%2e and .%2e and a last segment of x, . or .., separated by slashes or by backslashes, bare or after https:, in the link, resource and embed contexts",
+              caseHang,
+              concurrency: availableParallelism(),
+              coverage: requiredInSpace<WalkSituation>(walkSituations),
+              generator: walkedCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the URL Standard's path state (section 4.4), transcribed here: a special URL reads a backslash as a slash, https: before a path of a base of that scheme is a relative reference, a single-dot segment (., %2e) is dropped and a double-dot one (.., .%2e, %2e., %2e%2e) drops the segment before it; the classifier writes the package path below the item's directory, one ../ for each directory the walk climbs above it, a path ending in a dot segment a directory, ./ the directory itself",
+              },
+              suite: "plate/url/walked",
+            },
+            ({ context, value }, c) =>
+              Effect.sync(() => {
+                const walked = walkOf(value.startsWith("https:") ? value.slice(6) : value);
+                c.noteAll(walked.situations);
+
+                assert.deepStrictEqual(
+                  classifyUrl(context, value),
+                  inPackage(walked.path),
+                  `${JSON.stringify(value)} in ${context}`,
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 });
 
 describe("isPackagePath", () => {
-  it("holds for a path from the package root, a space, a % or an empty interior segment in it included", () => {
-    // RFC 3986 section 3.3: `path-rootless = segment-nz *( "/" segment )` and `segment = *pchar`,
-    // so a path's first segment has a character and a later one may have none.
-    for (const path of [
-      "a.png",
-      "items/media/a b.png",
-      "items/%41.png",
-      "items/a..b/c.png",
-      "media//a.png",
-      "a///b.png",
-    ]) {
-      assert.isTrue(isPackagePath(path), path);
-    }
-  });
+  it.effect(
+    `holds exactly for a path from the package root to a file, a space, a % or an empty interior segment in it included, over every path of up to four segments: ${String(PACKAGE_PATHS)} paths`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(packagePath, PACKAGE_PATHS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every path of 1 to 4 segments, each a, empty, ., .., %41, a space or a..b, joined by slashes",
+              caseHang,
+              coverage: requiredInSpace<"a package path" | "no package path">([
+                "a package path",
+                "no package path",
+              ]),
+              generator: packagePath,
+              literal: (path) => JSON.stringify(path),
+              oracle: {
+                kind: "specification",
+                name: "RFC 3986 section 3.3: path-rootless = segment-nz *( \"/\" segment ) and segment = *pchar, so a path's first segment has a character and a later one may have none; a file's path ends in a segment of its own, and names it with no dot segment",
+              },
+              suite: "plate/url/package-paths",
+            },
+            (path, c) =>
+              Effect.sync(() => {
+                const segments = path.split("/");
+                const holds =
+                  segments[0] !== "" &&
+                  segments.at(-1) !== "" &&
+                  segments.every((segment) => segment !== "." && segment !== "..");
+                c.note(holds ? "a package path" : "no package path");
+
+                assert.strictEqual(isPackagePath(path), holds, JSON.stringify(path));
+              }),
+          ),
+        ),
+      ),
+  );
 
   it("fails for an empty path, a rooted one, a directory, and one with a . or .. segment", () => {
     for (const path of [
@@ -243,30 +508,48 @@ describe("resolution against the item's location", () => {
     }
   });
 
-  it("resolves the value check writes for a reference to the file the reference names", () => {
-    const cases = [
-      ["media/a b.png", "items/media/a b.png"],
-      ["./media/./a.png", "items/media/a.png"],
-      ["media/sub/../a.png", "items/media/a.png"],
-      ["media/%2e%2e/a.png", "items/a.png"],
-      ["@evil.com/x", "items/@evil.com/x"],
-      [":8080/x", "items/:8080/x"],
-      ["https:evil.com/x", "items/evil.com/x"],
-      ["../images/a.png", "images/a.png"],
-      ["media/../../images/a.png", "images/a.png"],
-    ] as const;
-    for (const [value, file] of cases) {
-      const kept = classifyUrl("resource", value);
-      assert.strictEqual(kept.kind, "package", value);
-      if (kept.kind === "package") {
-        assert.deepStrictEqual(
-          assetPaths("items/q1.xml", "img", "src", formatUrl(kept)),
-          [file],
-          value,
-        );
-      }
-    }
-  });
+  it.effect(
+    `resolves the value check writes for a reference to the file the reference names, over every reference of up to two segments before a file: ${String(REFERENCES)} references`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(referenceValue, REFERENCES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every reference in items/q1.xml of up to two of media, ., .., %2e%2e, @evil.com, :8080 and a b, then a.png",
+              caseHang,
+              coverage: requiredInSpace<"in the package" | "above its root">([
+                "in the package",
+                "above its root",
+              ]),
+              generator: referenceValue,
+              literal: (value) => JSON.stringify(value),
+              oracle: {
+                kind: "specification",
+                name: "RFC 3986, by the suite's transcription (fileByRfc3986): the reference's percent-encoded unreserved characters normalized (section 6.2.2.2, so %2e is a .), resolved against the item's location (section 5.2), each segment percent-decoded (section 2.1); a segment that looks like an authority or a port is a name like any other, and a path that climbs above the package root names no file of it (reading `href-resolution`)",
+              },
+              suite: "plate/url/check-written",
+            },
+            (value, c) =>
+              Effect.sync(() => {
+                const files = fileByRfc3986("items/q1.xml", value);
+                c.note(files.length === 0 ? "above its root" : "in the package");
+
+                const kept = classifyUrl("resource", value);
+
+                assert.deepStrictEqual(
+                  kept.kind === "package"
+                    ? assetPaths("items/q1.xml", "img", "src", formatUrl(kept))
+                    : kept,
+                  files,
+                  JSON.stringify(value),
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 });
 
 describe("addressUrl", () => {
