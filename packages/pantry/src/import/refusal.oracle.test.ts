@@ -36,7 +36,8 @@ import type { Law, LawSide, RegexText, StatedLaw } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
-import { array, element } from "@bjornpagen/testing/gen";
+import { word } from "@bjornpagen/testing/dictionary";
+import { array, constant, element, oneOf } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Array as Arr, Duration, Effect, Formatter, Option, pipe, Schema, Struct } from "effect";
@@ -55,6 +56,8 @@ import { ImportRefused, ImportRule, limitRules, ruleOfError } from "#pantry/impo
 import type { ReadRefusal, Rule } from "#pantry/import/rules.ts";
 import { plantedLaw, refusedOf, schemaLawsOf, statedLaws } from "#pantry/test/law-namer.ts";
 import { searchWidth } from "#pantry/test/settings.ts";
+import { boxHolds } from "#pantry/test/box.ts";
+import { readerRules } from "#pantry/import/refusal.dictionary.ts";
 
 /**
  * A scratch schema of the shapes whose axes grizzle merges, built with grizzle's own constructors:
@@ -1277,49 +1280,139 @@ describe("the rules of the laws one native object carries, in the precedence's o
   );
 });
 
+/**
+ * An error of the read-refusals box: one the reader, the container or the codec raised, none the
+ * importer raised itself.
+ */
+type ReadError = Exclude<ReadRefusal, ImportRefused>;
+
+/**
+ * The tag of a {@link ReadError}, what a case of the box reaches.
+ */
+type ReadRefusalTag = ReadError["_tag"];
+
+/**
+ * Draw an error of the read-refusals box: shred's UnmodeledVocabulary of an element or an
+ * attribute under each of its reasons, a PackageReadError and a ZipRefusal under each rule its
+ * schema names, crust's ReaderRefusal under each of its rules, a WellFormednessError and an
+ * XmlVersionRefused.
+ */
+const readRefusals: Gen<ReadError> = oneOf<ReadError>([
+  (source) =>
+    new UnmodeledVocabulary({
+      kind: source.draw(element(["element", "attribute"] as const)),
+      name: "x",
+      parent: Option.none(),
+      reason: source.draw(element(unmodeledReasons)),
+    }),
+  (source) =>
+    new PackageReadError({
+      dir: "d",
+      path: "p",
+      rule: source.draw(element(PackageReadError.fields.rule.literals)),
+    }),
+  (source) =>
+    new ZipRefusal({
+      entry: "e",
+      feature: "f",
+      rule: source.draw(element(ZipRefusal.fields.rule.literals)),
+    }),
+  (source) =>
+    new ReaderRefusal({
+      detail: "d",
+      position: Option.none(),
+      rule: source.draw(word(readerRules)),
+    }),
+  constant(new WellFormednessError({ column: 1, line: 1, message: "m" })),
+  constant(new XmlVersionRefused({ found: "2.0" })),
+]);
+
+/**
+ * How many errors {@link readRefusals} draws: an UnmodeledVocabulary of each of 2 kinds under each
+ * reason, a PackageReadError under each of its 2 rules, a ZipRefusal under each of its 3, a
+ * ReaderRefusal under each of crust's rules, and 1 each of the other two.
+ */
+const READ_REFUSALS = 2 * unmodeledReasons.length + 2 + 3 + readerRules.length + 1 + 1;
+
+/**
+ * The rule ruleOfError's reading gives an error the reader, the container or the codec raised:
+ * shred's UnmodeledVocabulary attribute-admission for an attribute its element admits under no
+ * name or open class (reason `unadmitted`, AL1's rule) and unmodeled-vocabulary for every other
+ * name it cannot represent; a PackageReadError manifest-root for a missing manifest and href-path
+ * for an entry outside the package; a ZipRefusal its own rule; a ReaderRefusal reader-refusal; a
+ * WellFormednessError well-formedness; and an XmlVersionRefused xml-version.
+ *
+ * @param error - The error.
+ * @returns Its rule.
+ */
+const ruleStated = (error: ReadError): Rule => {
+  switch (error._tag) {
+    case "UnmodeledVocabulary": {
+      return error.reason === "unadmitted" ? "attribute-admission" : "unmodeled-vocabulary";
+    }
+    case "PackageReadError": {
+      return error.rule === "manifest-root" ? "manifest-root" : "href-path";
+    }
+    case "ZipRefusal": {
+      return error.rule;
+    }
+    case "ReaderRefusal": {
+      return "reader-refusal";
+    }
+    case "WellFormednessError": {
+      return "well-formedness";
+    }
+    case "XmlVersionRefused": {
+      return "xml-version";
+    }
+  }
+};
+
 describe("the refusals made before the database", () => {
-  it("names each reader, container and codec refusal by the rule the law oracle states for it", () => {
-    const cases: readonly (readonly [ReadRefusal, Rule])[] = [
-      ...(["element", "attribute"] as const).flatMap((kind) =>
-        unmodeledReasons.map(
-          (reason) =>
-            [
-              new UnmodeledVocabulary({ kind, name: "x", parent: Option.none(), reason }),
-              reason === "unadmitted" ? "attribute-admission" : "unmodeled-vocabulary",
-            ] as const,
+  it.effect(
+    `names each reader, container and codec refusal by the rule ruleOfError states for it, for every form of each: ${String(READ_REFUSALS)} refusals`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(readRefusals, READ_REFUSALS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "shred's UnmodeledVocabulary of an element and of an attribute under every reason, PackageReadError, ZipRefusal and ReaderRefusal under every rule each names, a WellFormednessError and an XmlVersionRefused",
+              caseHang: Duration.seconds(10),
+              coverage: requiredInSpace<ReadRefusalTag>([
+                "PackageReadError",
+                "ReaderRefusal",
+                "UnmodeledVocabulary",
+                "WellFormednessError",
+                "XmlVersionRefused",
+                "ZipRefusal",
+              ]),
+              generator: readRefusals,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "ruleOfError's stated reading: an unadmitted attribute attribute-admission (AL1's rule) and every other name shred cannot represent unmodeled-vocabulary; a missing manifest manifest-root and an entry outside the package href-path; a ZipRefusal its own rule; a ReaderRefusal reader-refusal, a WellFormednessError well-formedness and an XML version xml-version",
+              },
+              suite: "import/refusal/read-refusals",
+            },
+            (error, c) =>
+              Effect.sync(() => {
+                c.note(error._tag);
+                assert.deepStrictEqual(
+                  ruleOfError(error).rules,
+                  [ruleStated(error)],
+                  Formatter.format(error),
+                );
+              }),
+          ),
         ),
       ),
-      [new XmlVersionRefused({ found: "2.0" }), "xml-version"],
-      [new PackageReadError({ dir: "d", path: "p", rule: "manifest-root" }), "manifest-root"],
-      [new PackageReadError({ dir: "d", path: "p", rule: "entry-path" }), "href-path"],
-      ...(["manifest-root", "href-path", "zip-format"] as const).map(
-        (rule) => [new ZipRefusal({ entry: "e", feature: "f", rule }), rule] as const,
-      ),
-      ...(
-        [
-          "decode",
-          "unsupported-encoding",
-          "encoding-mismatch",
-          "nul",
-          "undeclared-entity",
-          "entity-cycle",
-          "entity-expansion",
-        ] as const
-      ).map(
-        (rule) =>
-          [
-            new ReaderRefusal({ detail: "d", position: Option.none(), rule }),
-            "reader-refusal",
-          ] as const,
-      ),
-      [new WellFormednessError({ column: 1, line: 1, message: "m" }), "well-formedness"],
-    ];
+  );
 
-    for (const [error, rule] of cases) {
-      assert.deepStrictEqual(ruleOfError(error).rules, [rule], error._tag);
-    }
-
+  it("hands an ImportRefused the importer raised back as it is", () => {
     const refused = new ImportRefused({ detail: "x", origin: readerOrigin, rules: ["admission"] });
+
     assert.strictEqual(ruleOfError(refused), refused);
   });
 
@@ -1439,6 +1532,105 @@ describe("the pattern laws, one per field", () => {
   });
 });
 
+/**
+ * The rules a law over a dangling site names, reading `include-target`'s.
+ */
+const danglingRules = ["file-exists", "include-target", "section-ref-target"] as const;
+
+/**
+ * A {@link danglingRules} member.
+ */
+type DanglingRule = (typeof danglingRules)[number];
+
+/**
+ * Whether a rule is one a law over a dangling site names.
+ *
+ * @param rule - The rule.
+ * @returns Whether it is.
+ */
+const isDanglingRule = (rule: Rule): rule is DanglingRule =>
+  danglingRules.some((dangling) => dangling === rule);
+
+/**
+ * The laws of one pair of sides, by relation and terms: the rules they name, in order.
+ */
+interface DanglingGroup {
+  readonly from: LawSide;
+  readonly rules: readonly Rule[];
+  readonly to: LawSide;
+}
+
+/**
+ * Whether a containment checks a dangling site: into a site's target by its place, into a site's
+ * path by its place and kind, or into a package's entry from a path's target.
+ *
+ * @param from - The containment's from side.
+ * @param to - Its to side.
+ * @returns Whether it does.
+ */
+const checksDanglingSite = (from: LawSide, to: LawSide): boolean =>
+  readsAs(to, sideOf("SiteTarget", "package", "path", "start")) ||
+  readsAs(to, sideOf("SitePath", "package", "path", "start", "kind")) ||
+  (readsAs(to, sideOf("Entry", "package", "path")) &&
+    readsAs(from, sideOf(from.relation, "package", "target")));
+
+/**
+ * Group the containments a schema states over a dangling site by their pair of sides, by relation
+ * and terms, as an outcome names a law.
+ *
+ * @param laws - The schema's laws.
+ * @returns Each pair's laws' rules, sorted.
+ */
+const danglingGroupsOf = (laws: readonly Law[]): readonly DanglingGroup[] => {
+  const groups = new Map<string, DanglingGroup>();
+
+  for (const stated of laws) {
+    if (stated.kind !== "contained" || !checksDanglingSite(stated.from, stated.to)) {
+      continue;
+    }
+
+    const pair = Formatter.format([
+      stated.from.relation,
+      stated.from.terms,
+      stated.to.relation,
+      stated.to.terms,
+    ]);
+    const held = groups.get(pair);
+    const rules = [...(held === undefined ? [] : held.rules), ...Option.toArray(ruleOfLaw(stated))];
+
+    groups.set(pair, { from: stated.from, rules: rules.toSorted(), to: stated.to });
+  }
+
+  return [...groups.values()];
+};
+
+/**
+ * The rules reading `include-target` gives the laws of a pair of sides over a dangling site: an
+ * include's place checked against its target include-target, a section ref's section-ref-target, a
+ * site's path checked against its place and kind one law per site kind, each its kind's, and a
+ * path's target checked against the package's entries file-exists; none for any other pair, so a
+ * law Qti gains over a dangling site is held here once its reading is stated.
+ *
+ * @param from - The pair's from side.
+ * @param to - Its to side.
+ * @returns The rules, sorted.
+ */
+const danglingRulesOf = (from: LawSide, to: LawSide): readonly Rule[] => {
+  if (to.relation === "Entry") {
+    return ["file-exists"];
+  }
+
+  if (to.relation === "SitePath") {
+    return ["include-target", "section-ref-target"];
+  }
+
+  if (from.relation === "PlacedIncludePath") {
+    return ["include-target"];
+  }
+
+  return from.relation === "SitePath" ? ["section-ref-target"] : [];
+};
+
 describe("the census of the composed Qti schema", () => {
   it.effect(
     "names every law Qti states, and lists every merged axis's rules each once, most specific first",
@@ -1469,49 +1661,48 @@ describe("the census of the composed Qti schema", () => {
       }),
   );
 
-  it("refuses a site that names no document by its own law: an include under include-target, a section ref under section-ref-target, an absent file under file-exists", () => {
-    /**
-     * Oracle: the specification as a checker, reading `include-target`: an include whose path an
-     * entry holds but that names no document the manifest lists, and that holds no xi:fallback
-     * (XInclude 1.0 §3.2 replaces one that does by its fallback), or that writes no href that names
-     * a path of the package, breaks "Include target", the oracle's law for includes; a section ref
-     * that does so breaks "Section ref target" (§7.5), its own; and a site whose path no entry
-     * holds breaks "File exists", its SitePath's check, which gates it. Each is a law Qti states,
-     * under its own rule, each containment of a site's kind stated once per kind, so a dangling
-     * site is refused under one rule.
-     */
-    const stated = schemaLawsOf(Qti);
-    const kinds: readonly (readonly [LawSide, LawSide, readonly Rule[]])[] = [
-      [
-        sideOf("PlacedIncludePath", "package", "path", "start"),
-        sideOf("SiteTarget", "package", "path", "start"),
-        ["include-target"],
-      ],
-      [
-        sideOf("Site", "package", "path", "start", "kind"),
-        sideOf("SitePath", "package", "path", "start", "kind"),
-        ["include-target", "section-ref-target"],
-      ],
-      [
-        sideOf("SitePath", "package", "target"),
-        sideOf("Entry", "package", "path"),
-        ["file-exists"],
-      ],
-    ];
+  it.effect(
+    "refuses a site that names no document by its own law: an include under include-target, a section ref under section-ref-target, an absent file under file-exists, for every law Qti states over a dangling site",
+    (ctx) =>
+      Effect.gen(function* danglingSites() {
+        const groups = danglingGroupsOf(schemaLawsOf(Qti));
 
-    for (const [from, to, rules] of kinds) {
-      const shown = Formatter.format({ from, to });
-      const laws = stated.filter(
-        (law) => law.kind === "contained" && readsAs(law.from, from) && readsAs(law.to, to),
-      );
+        if (!Arr.isReadonlyArrayNonEmpty(groups)) {
+          return assert.fail("Qti states no law over a dangling site");
+        }
 
-      assert.deepStrictEqual(
-        laws.flatMap((law) => Option.toArray(ruleOfLaw(law))).toSorted(),
-        [...rules],
-        shown,
-      );
-    }
-  });
+        return yield* searched(
+          ctx,
+          exhaust(
+            {
+              box: "every pair of sides, by relation and terms, of the containments Qti states into a site's target by its place, into a site's path by its place and kind, or into a package's entry from a path's target",
+              caseHang: Duration.seconds(10),
+              coverage: requiredInSpace<DanglingRule>([
+                "file-exists",
+                "include-target",
+                "section-ref-target",
+              ]),
+              generator: element(groups),
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the specification as a checker, reading `include-target`: an include whose path an entry holds but that names no document the manifest lists, and holds no xi:fallback (XInclude 1.0 §3.2), or names no path of the package, breaks Include target; a section ref that does so breaks Section ref target (§7.5), its own; a site whose path no entry holds breaks File exists, its path's check; each site kind's containment is stated once per kind, so a dangling site is refused under one rule",
+              },
+              suite: "import/refusal/dangling-sites",
+            },
+            ({ from, rules, to }, c) =>
+              Effect.sync(() => {
+                c.noteAll(rules.filter(isDanglingRule));
+                assert.deepStrictEqual(
+                  rules,
+                  danglingRulesOf(from, to),
+                  Formatter.format({ from, to }),
+                );
+              }),
+          ),
+        );
+      }),
+  );
 
   it("names no generated field that declares no entry, so a field Qti gains without one fails the census", () => {
     /**

@@ -50,6 +50,7 @@ const xmlSide = [
   "import/program.ts",
   "import/read.ts",
   "import/record.ts",
+  "import/refusal.dictionary.ts",
   "import/roster.ts",
   "import/rules.ts",
   "import/write.ts",
