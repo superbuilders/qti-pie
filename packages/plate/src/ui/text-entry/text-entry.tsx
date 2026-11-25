@@ -176,12 +176,14 @@ export const TextEntry = (props: TextEntryProps) => {
     (key: Key) => {
       const element = input.current;
 
-      if (element !== null) {
-        const typed = pressed(element.value, key);
+      if (element === null) {
+        return;
+      }
 
-        if (controller.setValue(typed)) {
-          element.setSelectionRange(typed.length, typed.length);
-        }
+      const typed = pressed(element.value, key);
+
+      if (controller.setValue(typed)) {
+        element.setSelectionRange(typed.length, typed.length);
       }
     },
     [controller],

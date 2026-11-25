@@ -108,12 +108,14 @@ const ownNameOf = (element: ReactElement<NamedProps>): string => {
  */
 const imageNameOf = (node: ReactNode): string | undefined => {
   for (const child of Children.toArray(node)) {
-    if (isValidElement<NamedProps>(child) && child.props["aria-hidden"] !== "true") {
-      const own = ownNameOf(child);
-      const found = own === "" ? imageNameOf(child.props.children) : own;
-      if (found !== undefined) {
-        return found;
-      }
+    if (!(isValidElement<NamedProps>(child) && child.props["aria-hidden"] !== "true")) {
+      continue;
+    }
+
+    const own = ownNameOf(child);
+    const found = own === "" ? imageNameOf(child.props.children) : own;
+    if (found !== undefined) {
+      return found;
     }
   }
 

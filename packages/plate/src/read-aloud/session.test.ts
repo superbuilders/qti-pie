@@ -287,12 +287,14 @@ const press = (room: Room, control: Spot): void => {
  * @param room The room.
  */
 const end = (room: Room): void => {
-  if (Option.isSome(room.playing)) {
-    const control = room.playing.value;
-
-    room.playing = Option.none();
-    hear(room, { control, kind: "stopped" });
+  if (Option.isNone(room.playing)) {
+    return;
   }
+
+  const control = room.playing.value;
+
+  room.playing = Option.none();
+  hear(room, { control, kind: "stopped" });
 };
 
 /**

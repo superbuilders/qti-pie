@@ -160,19 +160,21 @@ const showsText = (nodes: readonly RedactedNode[], locale: Locale): boolean =>
  */
 export const imageText = (nodes: readonly RedactedNode[]): string | undefined => {
   for (const node of nodes) {
-    if (node.kind === "element" && !hidden(node.attributes)) {
-      const alt =
-        node.tag === "img"
-          ? Option.match(bodyAttributeOf(node.attributes, "alt"), {
-              onNone: () => "",
-              onSome: collapsedText,
-            })
-          : "";
-      const found = alt === "" ? imageText(node.children) : alt;
+    if (!(node.kind === "element" && !hidden(node.attributes))) {
+      continue;
+    }
 
-      if (found !== undefined) {
-        return found;
-      }
+    const alt =
+      node.tag === "img"
+        ? Option.match(bodyAttributeOf(node.attributes, "alt"), {
+            onNone: () => "",
+            onSome: collapsedText,
+          })
+        : "";
+    const found = alt === "" ? imageText(node.children) : alt;
+
+    if (found !== undefined) {
+      return found;
     }
   }
 
@@ -188,16 +190,18 @@ export const imageText = (nodes: readonly RedactedNode[]): string | undefined =>
  */
 const labelText = (nodes: readonly RedactedNode[]): string | undefined => {
   for (const node of nodes) {
-    if (node.kind === "element" && !hidden(node.attributes)) {
-      const label = Option.match(bodyAttributeOf(node.attributes, "aria-label"), {
-        onNone: () => "",
-        onSome: collapsedText,
-      });
-      const found = label === "" ? labelText(node.children) : label;
+    if (!(node.kind === "element" && !hidden(node.attributes))) {
+      continue;
+    }
 
-      if (found !== undefined) {
-        return found;
-      }
+    const label = Option.match(bodyAttributeOf(node.attributes, "aria-label"), {
+      onNone: () => "",
+      onSome: collapsedText,
+    });
+    const found = label === "" ? labelText(node.children) : label;
+
+    if (found !== undefined) {
+      return found;
     }
   }
 

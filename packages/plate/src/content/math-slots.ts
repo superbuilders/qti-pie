@@ -137,15 +137,17 @@ export const slotNames = (
   const named = new Map<string, number>();
   const visit = (element: MathElement<unknown>): void => {
     for (const child of element.children) {
-      if (child.kind === "element") {
-        const xref = child.attributes.find(({ name }) => name === "xref")?.value;
-
-        if (child.local === "mspace" && xref !== undefined) {
-          named.set(xref, (named.get(xref) ?? 0) + 1);
-        }
-
-        visit(child);
+      if (child.kind !== "element") {
+        continue;
       }
+
+      const xref = child.attributes.find(({ name }) => name === "xref")?.value;
+
+      if (child.local === "mspace" && xref !== undefined) {
+        named.set(xref, (named.get(xref) ?? 0) + 1);
+      }
+
+      visit(child);
     }
   };
 

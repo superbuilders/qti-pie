@@ -108,11 +108,13 @@ export const markedAttributes: ReadonlySet<string> = new Set(
  */
 export const record = (build: Build, entry: UnsupportedFeature): void => {
   const paths = build.recorded.get(entry.feature) ?? new Set<string>();
-  if (!paths.has(entry.path)) {
-    paths.add(entry.path);
-    build.recorded.set(entry.feature, paths);
-    build.unsupported.push(entry);
+  if (paths.has(entry.path)) {
+    return;
   }
+
+  paths.add(entry.path);
+  build.recorded.set(entry.feature, paths);
+  build.unsupported.push(entry);
 };
 
 /**
