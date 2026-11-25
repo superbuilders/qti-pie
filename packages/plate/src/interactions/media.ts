@@ -43,6 +43,7 @@
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Root_MediaInteraction
  * @see https://www.w3.org/WAI/WCAG22/Understanding/audio-control.html
  */
+import { regex } from "arkregex";
 import { Option } from "effect";
 import type { SourceElement } from "#plate/document/source.ts";
 import { contentRegion, noReferencingChoices, promptRegion } from "#plate/interactions/contract.ts";
@@ -171,7 +172,7 @@ interface MediaPayload {
  */
 const countOf = (candidates: readonly string[]): Option.Option<string> =>
   Option.fromUndefinedOr(
-    candidates.map(trimXmlSpace).find((candidate) => /^[0-9]+$/u.test(candidate)),
+    candidates.map(trimXmlSpace).find((candidate) => regex("^[0-9]+$", "u").test(candidate)),
   ).pipe(Option.map((digits) => String(BigInt(digits))));
 
 /**

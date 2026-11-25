@@ -5,6 +5,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Array, Option } from "effect";
 
 /**
@@ -39,7 +40,7 @@ export type InstanceBreach =
  * A character an instance token is not made of: anything but an ASCII letter, a digit, `_`, `.`,
  * `:` and `-`.
  */
-const outsideCharacter = /[^\w.:-]/u;
+const outsideCharacter = regex("[^\\w.:-]", "u");
 
 /**
  * How a token breaks each requirement, one check per requirement, none where it meets it.

@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { Option, Result } from "effect";
 import { mathmlNamespace, qtiNamespace } from "#plate/document/source.ts";
@@ -376,9 +377,10 @@ const componentsOf = (reference: string): Components => {
     path = "",
     query,
     scheme,
-  } = /^(?:(?<scheme>[^#/:?]+):)?(?:\/\/(?<authority>[^#/?]*))?(?<path>[^#?]*)(?:\?(?<query>[^#]*))?(?:#(?<fragment>.*))?/u.exec(
-    reference,
-  )?.groups ?? {};
+  } = regex(
+    "^(?:(?<scheme>[^#/:?]+):)?(?://(?<authority>[^#/?]*))?(?<path>[^#?]*)(?:\\?(?<query>[^#]*))?(?:#(?<fragment>.*))?",
+    "u",
+  ).exec(reference)?.groups ?? {};
 
   return { authority, fragment, path, query, scheme };
 };
@@ -495,11 +497,14 @@ const oracleRoot = "http://host/package-root/";
  * @returns The file's path from the package root, or none when it leaves the package.
  */
 const fileByRfc3986 = (location: string, reference: string): readonly string[] => {
-  const unreserved = reference.replaceAll(/%(?<hex>[\dA-Fa-f]{2})/gu, (escape, hex: string) => {
-    const character = String.fromCodePoint(Number.parseInt(hex, 16));
+  const unreserved = reference.replaceAll(
+    regex("%(?<hex>[\\dA-Fa-f]{2})", "gu"),
+    (escape, hex: string) => {
+      const character = String.fromCodePoint(Number.parseInt(hex, 16));
 
-    return /^[\w.~-]$/u.test(character) ? character : escape;
-  });
+      return regex("^[\\w.~-]$", "u").test(character) ? character : escape;
+    },
+  );
   const target = resolveReference(`${oracleRoot}${location}`, unreserved);
 
   return target.startsWith(oracleRoot)
@@ -546,7 +551,7 @@ describe("resolution against the item's location, by RFC 3986", () => {
  * @param value The value.
  * @returns It replaced.
  */
-const replacedSpace = (value: string): string => value.replaceAll(/[\t\n\r]/gu, " ");
+const replacedSpace = (value: string): string => value.replaceAll(regex("[\t\n\r]", "gu"), " ");
 
 describe("a URL attribute's value, read by its type's whiteSpace facet", () => {
   it("names, for every URL attribute of the ASI XSD and every run of whitespace around and inside a name, the file the attribute's value names", () => {

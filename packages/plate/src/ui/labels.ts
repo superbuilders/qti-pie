@@ -5,11 +5,12 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 
 /**
  * A `{name}` placeholder, as plate's message catalog writes them.
  */
-const placeholder = /\{(?<name>[A-Za-z]+)\}/gu;
+const placeholder = regex("\\{(?<name>[A-Za-z]+)\\}", "gu");
 
 /**
  * Fill a label's placeholders, leaving any the values do not name as written.

@@ -11,6 +11,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Array as Arr, Data, Option, Result } from "effect";
 import { attributePath, qtiNamespace, xmlNamespace } from "#plate/document/source.ts";
 import type { SourceAttribute, SourceDocument, SourceElement } from "#plate/document/source.ts";
@@ -341,7 +342,7 @@ export const identifierOf = (written: string): string => trimXmlSpace(written);
  * A run of XML whitespace, which separates the tokens of an XSD list and which a collapsed value
  * reads as one space. It is global, as `replaceAll` requires; `split` ignores the flag.
  */
-export const xmlWhitespaceRun = /[\t\n\r ]+/gu;
+export const xmlWhitespaceRun = regex("[\t\n\r ]+", "gu");
 
 /**
  * Collapse a value's XML whitespace, as XSD's `whiteSpace="collapse"` facet reads it: the XML
@@ -562,7 +563,7 @@ export const floatAttribute = (
 /**
  * One coordinate as `CoordsDType` writes it: decimal digits, then `%` or nothing.
  */
-const coordinate = /^(?<digits>[0-9]+)%?$/u;
+const coordinate = regex("^(?<digits>[0-9]+)%?$", "u");
 
 /**
  * Read the required `coords` of a `qti-area-map-entry` or a `qti-inside`, each coordinate's digits
@@ -582,7 +583,7 @@ export const coordsOf = (
   const coords: (readonly [number, boolean])[] = [];
 
   for (const written of attribute.value.split(",")) {
-    const digits = coordinate.exec(written)?.groups?.["digits"];
+    const digits = coordinate.exec(written)?.groups["digits"];
     if (digits === undefined) {
       return inadmissible(build, "attribute-type", path, {
         attribute: "coords",

@@ -25,6 +25,7 @@
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Derived_PrintedVariable
  */
+import { regex } from "arkregex";
 import { Option, pipe } from "effect";
 import { format as lexicalForm } from "#plate/model/values.ts";
 import type { ModelledBaseType, Single, Value } from "#plate/model/values.ts";
@@ -191,8 +192,10 @@ interface Decimal {
  * 2.3.4 writes one, `%`, flags, a width, a precision of `.` and zero or more digits, and one
  * conversion letter, or C's `d`. A `%` that starts neither is text.
  */
-const conversionPattern =
-  /%%|%(?<flags>[#0 +-]*)(?<width>[0-9]*)(?:\.(?<precision>[0-9]*))?(?<code>[EefGgrRidoXx])/gu;
+const conversionPattern = regex(
+  "%%|%(?<flags>[#0 +-]*)(?<width>[0-9]*)(?:\\.(?<precision>[0-9]*))?(?<code>[EefGgrRidoXx])",
+  "gu",
+);
 
 /**
  * The longest text the formatter writes for one value, 1,000,000 characters (UTF-16 code units, as
@@ -240,8 +243,8 @@ const decimalOf = (text: string): Decimal => {
   const [mantissa = "", exponent = "0"] = text.split("e");
   const [whole = "", fraction = ""] = mantissa.split(".");
   const all = `${whole}${fraction}`;
-  const significant = all.replace(/^0+/u, "");
-  const digits = significant.replace(/0+$/u, "");
+  const significant = all.replace(regex("^0+", "u"), "");
+  const digits = significant.replace(regex("0+$", "u"), "");
 
   return digits === ""
     ? zero
@@ -270,7 +273,7 @@ const exactDecimal = (x: number): Decimal => {
   }
 
   const all = (BigInt(scaled) * 5n ** BigInt(bits)).toString();
-  const digits = all.replace(/0+$/u, "");
+  const digits = all.replace(regex("0+$", "u"), "");
 
   return digits === "" ? zero : { digits, point: all.length - bits };
 };
@@ -300,7 +303,7 @@ const rounded = (decimal: Decimal, keep: number): Decimal => {
   const dropped = decimal.digits.slice(keep);
   const odd = "13579".includes(kept.charAt(keep - 1) || "0");
   if (dropped < "5" || (dropped === "5" && !odd)) {
-    const digits = kept.replace(/0+$/u, "");
+    const digits = kept.replace(regex("0+$", "u"), "");
 
     return digits === "" ? zero : { digits, point: decimal.point };
   }
@@ -308,7 +311,7 @@ const rounded = (decimal: Decimal, keep: number): Decimal => {
   const raised = (BigInt(`0${kept}`) + 1n).toString();
 
   return {
-    digits: raised.replace(/0+$/u, ""),
+    digits: raised.replace(regex("0+$", "u"), ""),
     point: decimal.point + raised.length - kept.length,
   };
 };
@@ -380,7 +383,7 @@ const scientific = (
  * @returns `987` for `987.000`, `0.1` for `0.10`; digits with no point unchanged.
  */
 const trimmed = (mantissa: string): string =>
-  mantissa.includes(".") ? mantissa.replace(/\.?0+$/u, "") : mantissa;
+  mantissa.includes(".") ? mantissa.replace(regex("\\.?0+$", "u"), "") : mantissa;
 
 /**
  * Write a decimal under `g`, `G`, `r` or `R`: rounded to the precision in significant digits (6
@@ -421,7 +424,7 @@ const general = (decimal: Decimal, conversion: Conversion): string => {
  * A float's exponent at the end of its text, as `String` and the `e`, `g` and `r` conversions write
  * it: `e` or `E`, its sign and its digits.
  */
-const exponentPattern = /[eE](?<sign>[+-])(?<power>[0-9]+)$/u;
+const exponentPattern = regex("[eE](?<sign>[+-])(?<power>[0-9]+)$", "u");
 
 /**
  * Write a float's text with its exponent as a power of 10, as `power-form` asks: "the form "e+n" is
@@ -439,7 +442,7 @@ const powerFormed = (text: string): string => {
     return text;
   }
 
-  const { power = "0", sign = "+" } = exponent.groups ?? {};
+  const { power, sign } = exponent.groups;
 
   return `${text.slice(0, exponent.index)} x 10 to the power ${sign === "-" ? "-" : ""}${BigInt(power).toString()}`;
 };

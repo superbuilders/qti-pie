@@ -240,8 +240,9 @@ const plateAlphaClientModules = plateClientModules.filter((module) =>
 /**
  * The options of the rule a module a page loads is held to, given the patterns its place takes
  * ({@link sharedImportPatterns} in core, {@link pathImportPatterns} in `alpha/`): from `effect` only
- * what costs a page little, no Schema, no Effect runtime, no Brand, and nothing but effect, plate's
- * own modules and crust's re-exports of grizzle-text. A type-only import loads nothing.
+ * what costs a page little, no Schema, no Effect runtime, no Brand, and nothing but effect,
+ * arkregex, plate's own modules and crust's re-exports of grizzle-text. A type-only import loads
+ * nothing.
  *
  * @param patterns The place's patterns.
  * @returns The rule's options.
@@ -261,9 +262,16 @@ const pageImportOptions = (patterns: typeof sharedImportPatterns) => ({
     ...plateCorePatterns,
     {
       allowTypeImports: true,
-      group: ["*", "!effect", "!#plate/**", "!@qti-pie/crust/regex.ts", "!@qti-pie/crust/text.ts"],
+      group: [
+        "*",
+        "!effect",
+        "!arkregex",
+        "!#plate/**",
+        "!@qti-pie/crust/regex.ts",
+        "!@qti-pie/crust/text.ts",
+      ],
       message:
-        "A page loads this module: load only effect, plate's own modules and crust's re-exports of grizzle-text.",
+        "A page loads this module: load only effect, arkregex (the one form of a regular expression, a typed new RegExp), plate's own modules and crust's re-exports of grizzle-text.",
     },
   ],
 });

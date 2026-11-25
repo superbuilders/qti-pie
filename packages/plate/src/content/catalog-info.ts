@@ -42,6 +42,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Array as Arr, Option, pipe } from "effect";
 import type { ContentRedactKit, ItemContentModule } from "#plate/content/contract.ts";
 import { qtiNamespace } from "#plate/document/source.ts";
@@ -184,7 +185,7 @@ const spokenSupport = "spoken";
  * @param file The file.
  * @returns Whether it is audio.
  */
-const isAudio = (file: CatalogFile): boolean => /^audio\//iu.test(file.mimeType);
+const isAudio = (file: CatalogFile): boolean => regex("^audio/", "iu").test(file.mimeType);
 
 /**
  * Give the audio an active card gives a candidate who hears content read aloud: a `spoken` card's

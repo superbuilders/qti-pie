@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Schema } from "effect";
 import { readFileSync } from "node:fs";
@@ -61,7 +62,9 @@ const readManifest = (): typeof Manifest.Type =>
  */
 const scriptEntries = (): readonly (readonly [subpath: string, module: string])[] =>
   Object.entries(readManifest().exports).flatMap(([subpath, target]) =>
-    /\.[cm]?[jt]sx?$/u.test(target) ? [[subpath, target.replace(/^\.\//u, "")] as const] : [],
+    regex("\\.[cm]?[jt]sx?$", "u").test(target)
+      ? [[subpath, target.replace(regex("^\\./", "u"), "")] as const]
+      : [],
   );
 
 /**

@@ -7,11 +7,12 @@
  * @module
  * @see https://infra.spec.whatwg.org/#ascii-whitespace
  */
+import { regex } from "arkregex";
 
 /**
  * A run of ASCII whitespace.
  */
-const asciiWhitespace = /[\t\n\f\r ]+/gu;
+const asciiWhitespace = regex("[\t\n\f\r ]+", "gu");
 
 /**
  * Split a value into its tokens, as HTML splits a set of space-separated tokens: an IDREFS value
@@ -33,4 +34,4 @@ export const asciiTokens = (value: string): readonly string[] =>
  * @see https://infra.spec.whatwg.org/#strip-and-collapse-ascii-whitespace
  */
 export const collapsedText = (text: string): string =>
-  text.replaceAll(asciiWhitespace, " ").replaceAll(/^ | $/gu, "");
+  text.replaceAll(asciiWhitespace, " ").replaceAll(regex("^ | $", "gu"), "");

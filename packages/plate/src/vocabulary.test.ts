@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { assert, describe, it } from "@effect/vitest";
@@ -26,7 +27,7 @@ const sourceModules = (): ReadonlyMap<string, string> => {
 
   return new Map(
     readdirSync(root, { encoding: "utf-8", recursive: true })
-      .filter((file) => /\.tsx?$/u.test(file))
+      .filter((file) => regex("\\.tsx?$", "u").test(file))
       .toSorted()
       .map((file) => [
         `src/${file.split(path.sep).join("/")}`,
@@ -118,8 +119,10 @@ describe("the class an interaction's root carries", () => {
  * `data-mode={…}`), a key of an attribute object (`"data-slot":`), or an attribute a selector names
  * (`[data-picked]`).
  */
-const writtenData =
-  /(?<![\w-])(?<name>data-[a-z0-9][a-z0-9-]*)(?:=["{]|":)|\[(?<selected>data-[a-z0-9][a-z0-9-]*)[\]=~|^$*]/gu;
+const writtenData = regex(
+  '(?<![\\w-])(?<name>data-[a-z0-9][a-z0-9-]*)(?:=["{]|":)|\\[(?<selected>data-[a-z0-9][a-z0-9-]*)[\\]=~|^$*]',
+  "gu",
+);
 
 /**
  * Give the `data-*` names one source writes or selects ({@link writtenData}).
@@ -177,10 +180,10 @@ const unpresented = (
 ): readonly string[] =>
   classes.filter(
     (name) =>
-      !styles.some((sheet) => new RegExp(`\\.${name}(?![\\w-])`, "u").test(sheet)) &&
+      !styles.some((sheet) => regex.as(`\\.${name}(?![\\w-])`, "u").test(sheet)) &&
       ![...sources].some(
         ([module, source]) =>
-          !/\.test\.tsx?$/u.test(module) &&
+          !regex("\\.test\\.tsx?$", "u").test(module) &&
           source.includes(`carriesRendererClass(`) &&
           source.includes(`"${name}"`),
       ),
@@ -189,7 +192,7 @@ const unpresented = (
 describe("plate's renderer vocabulary", () => {
   it("names each class under plate's own prefix, never QTI's qti-, as QTI's implementation guide §3.2.1 asks", () => {
     for (const name of Object.keys(rendererClasses)) {
-      assert.match(name, /^plate-[a-z0-9]+(?:-[a-z0-9]+)*$/u, name);
+      assert.match(name, regex("^plate-[a-z0-9]+(?:-[a-z0-9]+)*$", "u"), name);
     }
   });
 
@@ -200,7 +203,7 @@ describe("plate's renderer vocabulary", () => {
   it("names every plate- class a stylesheet selects", () => {
     const selected = new Set(
       sheets.flatMap((sheet) =>
-        [...sheet.matchAll(/\.(?<name>plate-[a-z0-9-]+)/gu)].map(
+        [...sheet.matchAll(regex("\\.(?<name>plate-[a-z0-9-]+)", "gu"))].map(
           (match) => match.groups?.["name"] ?? "",
         ),
       ),

@@ -6,6 +6,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { associateMessages } from "#plate/messages/associate.ts";
 import { contentMessages } from "#plate/messages/content.ts";
 import { coreMessages } from "#plate/messages/core.ts";
@@ -146,7 +147,7 @@ const catalogs: Readonly<Record<Locale, Readonly<Record<MessageKey, string>>>> =
 /**
  * A `{name}` placeholder in a catalog text; its one group is the name.
  */
-const placeholder = /\{(?<name>[A-Za-z]+)\}/gu;
+const placeholder = regex("\\{(?<name>[A-Za-z]+)\\}", "gu");
 
 /**
  * The number format of every locale, built once: a format is a constant of its locale, and

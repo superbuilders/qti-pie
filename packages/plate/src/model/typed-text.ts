@@ -16,6 +16,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Array, Option, Result } from "effect";
 import {
   empty,
@@ -240,7 +241,7 @@ export const readTyped = (
   const lexical = typed.value;
   const { baseType } = reading;
   if (baseType === "string") {
-    return Result.succeedSome({ baseType, value: lexical.replaceAll(/\r\n?/gu, "\n") });
+    return Result.succeedSome({ baseType, value: lexical.replaceAll(regex("\r\n?", "gu"), "\n") });
   }
 
   const decimal =
@@ -265,13 +266,15 @@ export const readTyped = (
  * asks for at least one digit before or after the point. Each run of digits ends at a character the
  * next part starts with, so a failed match backtracks in time linear in the text.
  */
-const recordNumber =
-  /^(?<sign>[+-]?)(?<whole>[0-9]*)(?:\.(?<fraction>[0-9]*))?(?:[Ee](?<exponent>[+-]?[0-9]+))?$/u;
+const recordNumber = regex(
+  "^(?<sign>[+-]?)(?<whole>[0-9]*)(?:\\.(?<fraction>[0-9]*))?(?:[Ee](?<exponent>[+-]?[0-9]+))?$",
+  "u",
+);
 
 /**
  * A digit other than zero: where a number's significant figures start.
  */
-const nonZeroDigit = /[1-9]/u;
+const nonZeroDigit = regex("[1-9]", "u");
 
 /**
  * Construct an integer field of a record.

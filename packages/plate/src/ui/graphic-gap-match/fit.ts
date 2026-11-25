@@ -28,6 +28,7 @@
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Data_GraphicGapMatchInteraction
  */
+import { regex } from "arkregex";
 
 /**
  * A placed choice's content as the fit measures it: a gap text's words, a gap image's size as
@@ -94,7 +95,7 @@ const chrome = {
 /**
  * A capital letter, which the model gives the wide advance.
  */
-const capital = /\p{Lu}/u;
+const capital = regex("\\p{Lu}", "u");
 
 /**
  * Splits a word into what a reader sees as its characters, so a letter with its combining marks,

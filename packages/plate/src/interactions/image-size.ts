@@ -16,6 +16,7 @@
  * @module
  * @see https://html.spec.whatwg.org/multipage/embedded-content-other.html#dimension-attributes
  */
+import { regex } from "arkregex";
 import { Array as Arr, Option } from "effect";
 import type { SourceElement } from "#plate/document/source.ts";
 import type { ReaderKit } from "#plate/interactions/contract.ts";
@@ -64,7 +65,7 @@ export type AuthoredSize =
 /**
  * A dimension written in pixels: digits alone, with no `%`.
  */
-const pixels = /^[0-9]+$/u;
+const pixels = regex("^[0-9]+$", "u");
 
 /**
  * Find the element that carries an image's dimensions: an `img` or `object` itself, and a

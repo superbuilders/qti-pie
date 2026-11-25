@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 /**
@@ -200,7 +201,7 @@ const cases: readonly Case[] = [
  * @returns The item with the default.
  */
 const withDefault = (xml: string, defaulted: Defaulted): string => {
-  const opening = new RegExp(
+  const opening = regex.as(
     `<qti-response-declaration identifier="${defaulted.response}"([^>]*?)(/?)>`,
     "u",
   );

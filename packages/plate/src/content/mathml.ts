@@ -30,6 +30,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Option } from "effect";
 import type { BodyContentModule } from "#plate/content/contract.ts";
 import { mathmlNamespace } from "#plate/document/source.ts";
@@ -207,7 +208,7 @@ const row = (
  * @see https://www.w3.org/TR/MathML3/chapter3.html#presm.mfenced
  */
 const expandFenced = (source: SourceElement): SourceElement => {
-  const separators = attributeOr(source, "separators", ",").match(/\S/gu) ?? [];
+  const separators = attributeOr(source, "separators", ",").match(regex("\\S", "gu")) ?? [];
   const kept = source.attributes.filter(
     (attribute) => !(attribute.namespace === "" && fencedAttributes.has(attribute.local)),
   );
@@ -262,7 +263,7 @@ const normaliseElement = (source: SourceElement): SourceElement => {
  * @see https://html.spec.whatwg.org/multipage/parsing.html#adjust-mathml-attributes
  */
 const readName = (local: string): string => {
-  const lowered = local.replaceAll(/[A-Z]/gu, (letter) => letter.toLowerCase());
+  const lowered = local.replaceAll(regex("[A-Z]", "gu"), (letter) => letter.toLowerCase());
 
   return lowered === "definitionurl" ? "definitionURL" : lowered;
 };

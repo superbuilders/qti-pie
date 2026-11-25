@@ -8,6 +8,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Effect, Option } from "effect";
 import { configure } from "#plate/configuration.ts";
 import type { Configuration } from "#plate/configuration.ts";
@@ -140,7 +141,7 @@ export const textOf = (nodes: readonly RedactedNode[]): string => {
     }
   };
 
-  return nodes.flatMap(below).join("").replaceAll(/\s+/gu, " ").trim();
+  return nodes.flatMap(below).join("").replaceAll(regex("\\s+", "gu"), " ").trim();
 };
 
 /**

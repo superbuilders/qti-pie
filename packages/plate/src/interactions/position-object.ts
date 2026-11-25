@@ -54,6 +54,7 @@
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Root_PositionObjectInteraction
  */
+import { regex } from "arkregex";
 import { Array as Arr, Option } from "effect";
 import { attributePath } from "#plate/document/source.ts";
 import type { SourceElement } from "#plate/document/source.ts";
@@ -204,7 +205,7 @@ interface PositionObjectPayload {
  * A whole number as a `center-point` coordinate writes it once its XML whitespace is collapsed: an
  * `xs:int`'s lexical form, an optional sign, `+` or `-`, and digits.
  */
-const wholeNumber = /^[+-]?[0-9]+$/u;
+const wholeNumber = regex("^[+-]?[0-9]+$", "u");
 
 /**
  * Read a whole number from text, none when the text is not one.

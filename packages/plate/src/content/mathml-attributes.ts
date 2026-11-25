@@ -6,6 +6,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 
 /**
  * The no-namespace attributes plate writes on every MathML element: those MathML 3 admits on every
@@ -22,7 +23,7 @@ const commonAttributes: readonly string[] = ["cdbase", "class", "href", "id", "o
  * @param list The names.
  * @returns Each name, none for an empty list.
  */
-const words = (list: string): readonly string[] => list.match(/\S+/gu) ?? [];
+const words = (list: string): readonly string[] => list.match(regex("\\S+", "gu")) ?? [];
 
 /**
  * A group of elements and the attributes MathML 3 gives each of them beyond

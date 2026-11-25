@@ -14,6 +14,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Option } from "effect";
 import { controlCap } from "#plate/control-cap.ts";
 import type { ModuleKind } from "#plate/interactions/contract.ts";
@@ -278,7 +279,7 @@ const showsLowVision = (supports: Pick<Supports, "catalog" | "display">): boolea
  * https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#set-of-space-separated-tokens
  */
 export const classTokensOf = (classes: string): readonly string[] =>
-  classes.split(/[\t\n\f\r ]+/u).filter((token) => token !== "");
+  classes.split(regex("[\t\n\f\r ]+", "u")).filter((token) => token !== "");
 
 /**
  * Tell whether a `class` attribute holds a token.
@@ -518,7 +519,7 @@ const reservedDataPrefix = "data-qti-";
  * @returns Whether it is one of the two.
  */
 const isSharedVocabulary = (name: string): boolean =>
-  name === "data-qti-a11y-content-role" || /^data-qti-aria-[a-z0-9_.-]+$/u.test(name);
+  name === "data-qti-a11y-content-role" || regex("^data-qti-aria-[a-z0-9_.-]+$", "u").test(name);
 
 /**
  * The `data-*` names plate itself writes or reads, which an author's attribute never takes.
@@ -638,7 +639,7 @@ const reservedDataNames: ReadonlySet<string> = new Set([
  * @returns Whether plate keeps the attribute.
  */
 export const isAuthorData = (name: string): boolean =>
-  /^data-[a-z0-9_.-]+$/u.test(name) &&
+  regex("^data-[a-z0-9_.-]+$", "u").test(name) &&
   (!name.startsWith(reservedDataPrefix) || isSharedVocabulary(name)) &&
   !reservedDataNames.has(name);
 

@@ -15,6 +15,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 
 /**
  * The class an author writes on a `qti-text-entry-interaction` for plate to take digits alone in
@@ -44,4 +45,4 @@ export const digitsFates = [
  * @param text The text the box holds after a keystroke.
  * @returns Its digits.
  */
-export const digitsOf = (text: string): string => text.replaceAll(/[^0-9]/gu, "");
+export const digitsOf = (text: string): string => text.replaceAll(regex("[^0-9]", "gu"), "");

@@ -36,6 +36,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Array as Arr, Option } from "effect";
 import type { SourceElement } from "#plate/document/source.ts";
 import { contentRegion, noReferencingChoices, promptRegion } from "#plate/interactions/contract.ts";
@@ -264,7 +265,7 @@ const ownedChildren = [
 const datasetName = (local: string): string =>
   local
     .slice("data-".length)
-    .replaceAll(/-(?<letter>[a-z])/gu, (_match, letter: string) => letter.toUpperCase());
+    .replaceAll(regex("-(?<letter>[a-z])", "gu"), (_match, letter: string) => letter.toUpperCase());
 
 /**
  * Read the `data-*` attributes of the element as the properties a host passes the PCI, in

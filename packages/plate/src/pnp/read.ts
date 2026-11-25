@@ -13,6 +13,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import type { ReaderRefusal, WellFormednessError } from "@qti-pie/crust/errors.ts";
 import { Effect, Option, Schema } from "effect";
 import { readSource } from "#plate/document/read.ts";
@@ -241,7 +242,7 @@ const memberOf = <Value extends number | string>(
  * @param value The value.
  * @returns Whether it is one.
  */
-const isExtension = (value: string): value is PnpExtension => /^ext:\S+$/u.test(value);
+const isExtension = (value: string): value is PnpExtension => regex("^ext:\\S+$", "u").test(value);
 
 /**
  * Read a value as one of a vocabulary's values or an `ext:` extension of it.
@@ -375,7 +376,10 @@ const langOf = (element: SourceElement): Option.Option<string> =>
  *
  * @see https://www.w3.org/TR/xmlschema-2/#double
  */
-const numberForm = /^[\t\n\r ]*[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?[\t\n\r ]*$/u;
+const numberForm = regex(
+  "^[\t\n\r ]*[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?[\t\n\r ]*$",
+  "u",
+);
 
 /**
  * Read a number as XML Schema writes a float or an integer; anything else is no number: a

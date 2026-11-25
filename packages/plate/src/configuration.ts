@@ -4,6 +4,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import type { SchemaIssue } from "effect";
 import { Effect, Option, Predicate, Schema, SchemaTransformation } from "effect";
 import { locales } from "#plate/messages.ts";
@@ -43,7 +44,7 @@ const PackagePathSchema = Schema.String.check(
  * @see https://html.spec.whatwg.org/multipage/images.html#parse-a-srcset-attribute
  */
 const Address = Schema.String.check(
-  Schema.isPattern(/^[^\t\n\f\r ,](?:[^\t\n\f\r ]*[^\t\n\f\r ,])?$/u),
+  Schema.isPattern(regex("^[^\t\n\f\r ,](?:[^\t\n\f\r ]*[^\t\n\f\r ,])?$", "u")),
 );
 
 /**

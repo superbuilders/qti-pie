@@ -7,6 +7,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Array as Arr, Option, pipe } from "effect";
 import type { ItemNodeOf, ItemParseContext } from "#plate/content/contract.ts";
 import { bodyModuleFor, itemModuleFor, parseBodyContent } from "#plate/content/modules.ts";
@@ -122,7 +123,7 @@ const inCandidateView = (child: SourceChild): boolean =>
   child.kind !== "element" ||
   !isQti(child, "qti-rubric-block") ||
   Option.exists(valueOf(child, "view"), (views) =>
-    views.split(/[\t\n\r ]+/u).includes("candidate"),
+    views.split(regex("[\t\n\r ]+", "u")).includes("candidate"),
   );
 
 /**

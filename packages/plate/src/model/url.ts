@@ -32,6 +32,7 @@
  * @module
  * @see https://url.spec.whatwg.org/#concept-basic-url-parser
  */
+import { regex } from "arkregex";
 import { Option, Result } from "effect";
 import type { Brand } from "effect";
 import { elementAttributes } from "#plate/content/mathml-attributes.ts";
@@ -445,7 +446,7 @@ const sentinelDirectory = (name: string, depth: number): string =>
  */
 const relativePathOf = (value: string): Option.Option<RelativePath> => {
   // `\` separates segments as `/` does on an `https` base.
-  const depth = (value.match(/[/\\]/gu)?.length ?? 0) + 2;
+  const depth = (value.match(regex("[/\\\\]", "gu"))?.length ?? 0) + 2;
   const first = URL.parse(value, sentinelDirectory("a", depth));
   const second = URL.parse(value, sentinelDirectory("b", depth));
   if (
@@ -695,7 +696,7 @@ export const splitSrcset = (input: string): readonly SplitCandidate[] => {
  *
  * @see https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#valid-non-negative-integer
  */
-const nonNegativeInteger = /^[0-9]+$/u;
+const nonNegativeInteger = regex("^[0-9]+$", "u");
 
 /**
  * A valid floating-point number of HTML: an optional `-`, digits with an optional fraction or a
@@ -703,7 +704,7 @@ const nonNegativeInteger = /^[0-9]+$/u;
  *
  * @see https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#valid-floating-point-number
  */
-const floatingPoint = /^-?(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)(?:[Ee][+-]?[0-9]+)?$/u;
+const floatingPoint = regex("^-?(?:[0-9]+(?:\\.[0-9]+)?|\\.[0-9]+)(?:[Ee][+-]?[0-9]+)?$", "u");
 
 /**
  * Report whether a candidate's descriptors pass the HTML descriptor parser: at most one width
@@ -876,7 +877,7 @@ const baseLocationOf = (location: string, context: UrlContext): string =>
  * @see https://www.rfc-editor.org/rfc/rfc3986#section-5.2
  */
 const assetReferenceOf = (location: string, url: PackageUrl): Option.Option<AssetReference> => {
-  const at = url.path.search(/[?#]/u);
+  const at = url.path.search(regex("[?#]", "u"));
 
   return Option.map(resolveIn(location, url.path), (path) => ({
     params: at === -1 ? "" : url.path.slice(at),

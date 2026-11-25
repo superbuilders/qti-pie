@@ -59,6 +59,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Option, Result, Schema } from "effect";
 import { isDotSegment, resolveIn, withoutQuery } from "#plate/document/href.ts";
 import { packageRootDocument } from "#plate/model/url.ts";
@@ -200,7 +201,7 @@ const decodeConfiguration = Schema.decodeUnknownResult(Schema.fromJsonString(Con
  *
  * @see https://www.rfc-editor.org/rfc/rfc3986#section-3.1
  */
-const schemePrefix = /^[A-Za-z][A-Za-z0-9+.-]*:/u;
+const schemePrefix = regex("^[A-Za-z][A-Za-z0-9+.-]*:", "u");
 
 /**
  * Read a configuration file from the package (R2, R3).

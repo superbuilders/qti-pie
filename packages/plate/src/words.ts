@@ -14,6 +14,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 
 /**
  * How an answer's text is read: a plain answer as typed, a rich one with the zero-width characters
@@ -36,12 +37,12 @@ export const INVISIBLE = "\u{200B}-\u{200D}\u{FEFF}";
 /**
  * Every character a rich answer's count reads as nothing.
  */
-const invisibles = new RegExp(`[${INVISIBLE}]`, "gu");
+const invisibles = regex.as(`[${INVISIBLE}]`, "gu");
 
 /**
  * A run of JavaScript's white space, which parts one word from the next.
  */
-const spaceRun = new RegExp(`[${SPACE}\u{FEFF}]+`, "u");
+const spaceRun = regex.as(`[${SPACE}\u{FEFF}]+`, "u");
 
 /**
  * The words an answer's text holds, read as `read` says: its runs of anything but white space.

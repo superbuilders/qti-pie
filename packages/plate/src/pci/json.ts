@@ -54,6 +54,7 @@
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/impl
  */
+import { regex } from "arkregex";
 import { isNcName } from "@qti-pie/crust/text.ts";
 import { Option, Result } from "effect";
 import {
@@ -328,7 +329,7 @@ const refuse = (reason: PciJsonRefusalReason, path: string): Result.Result<never
 /**
  * A key a path writes after a dot: an ASCII identifier.
  */
-const dotKey = /^[A-Za-z_][A-Za-z0-9_]*$/u;
+const dotKey = regex("^[A-Za-z_][A-Za-z0-9_]*$", "u");
 
 /**
  * Extend a path by an object key.
@@ -490,21 +491,28 @@ const readPair = (
  * `format` writes a float in, a sign, a decimal, a lowercase exponent, `INF` and `NaN`. Read
  * through the value model's own lexical reading, so a duration reads as a float does.
  */
-const writtenSeconds = /^PT(?<seconds>-?(?:[0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?|INF)|NaN)S$/u;
+const writtenSeconds = regex(
+  "^PT(?<seconds>-?(?:[0-9]+(?:\\.[0-9]+)?(?:e[+-]?[0-9]+)?|INF)|NaN)S$",
+  "u",
+);
 
 /**
  * The ISO 8601 day-time duration, or weeks alone: `PnDTnHnMnS`, each part optional but one, `T`
  * only before a time part, a fraction on the seconds alone; `PnW`.
  */
-const dayTime =
-  /^P(?=[0-9]|T[0-9])(?:(?<weeks>[0-9]+)W|(?:(?<days>[0-9]+)D)?(?:T(?=[0-9])(?:(?<hours>[0-9]+)H)?(?:(?<minutes>[0-9]+)M)?(?:(?<seconds>[0-9]+(?:\.[0-9]+)?)S)?)?)$/u;
+const dayTime = regex(
+  "^P(?=[0-9]|T[0-9])(?:(?<weeks>[0-9]+)W|(?:(?<days>[0-9]+)D)?(?:T(?=[0-9])(?:(?<hours>[0-9]+)H)?(?:(?<minutes>[0-9]+)M)?(?:(?<seconds>[0-9]+(?:\\.[0-9]+)?)S)?)?)$",
+  "u",
+);
 
 /**
  * An ISO 8601 duration in the same form with years or months, which no fixed number of seconds
  * names. `years` or `months` is present when it has them.
  */
-const calendar =
-  /^P(?=[0-9])(?:(?<years>[0-9]+)Y)?(?:(?<months>[0-9]+)M)?(?:[0-9]+D)?(?:T(?=[0-9])(?:[0-9]+H)?(?:[0-9]+M)?(?:[0-9]+(?:\.[0-9]+)?S)?)?$/u;
+const calendar = regex(
+  "^P(?=[0-9])(?:(?<years>[0-9]+)Y)?(?:(?<months>[0-9]+)M)?(?:[0-9]+D)?(?:T(?=[0-9])(?:[0-9]+H)?(?:[0-9]+M)?(?:[0-9]+(?:\\.[0-9]+)?S)?)?$",
+  "u",
+);
 
 /**
  * The seconds each part of {@link dayTime} stands for, by its group name.
@@ -546,7 +554,7 @@ const readDuration = (payload: unknown, path: string): Read<Option.Option<Single
     return refuse("malformed", path);
   }
 
-  const seconds = writtenSeconds.exec(payload)?.groups?.["seconds"];
+  const seconds = writtenSeconds.exec(payload)?.groups["seconds"];
 
   if (seconds !== undefined) {
     return parseLexical("duration", seconds).pipe(
@@ -576,7 +584,7 @@ const readDuration = (payload: unknown, path: string): Read<Option.Option<Single
  *
  * @see https://www.rfc-editor.org/rfc/rfc2045#section-5.1
  */
-const mimeType = /^(?:[!#$%&'*+\-.^_`|~0-9A-Za-z]+\/[!#$%&'*+\-.^_`|~0-9A-Za-z]+)?$/u;
+const mimeType = regex("^(?:[!#$%&'*+\\-.^_`|~0-9A-Za-z]+/[!#$%&'*+\\-.^_`|~0-9A-Za-z]+)?$", "u");
 
 /**
  * Base64 (RFC 4648 section 4): the alphabet in groups of four, the last group of two or three
@@ -585,7 +593,7 @@ const mimeType = /^(?:[!#$%&'*+\-.^_`|~0-9A-Za-z]+\/[!#$%&'*+\-.^_`|~0-9A-Za-z]+
  *
  * @see https://www.rfc-editor.org/rfc/rfc4648#section-4
  */
-const base64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}(?:==)?|[A-Za-z0-9+/]{3}=?)?$/u;
+const base64 = regex("^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}(?:==)?|[A-Za-z0-9+/]{3}=?)?$", "u");
 
 /**
  * Count the bytes a base64 text names without decoding it: three for each full group of four
@@ -595,7 +603,7 @@ const base64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}(?:==)?|[A-Za-z0-9+/]{3
  * @returns The byte count.
  */
 const base64Bytes = (data: string): number => {
-  const unpadded = data.replace(/[=]+$/u, "").length;
+  const unpadded = data.replace(regex("[=]+$", "u"), "").length;
 
   return Math.floor((unpadded * 3) / 4);
 };

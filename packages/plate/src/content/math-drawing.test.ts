@@ -27,6 +27,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { Option } from "effect";
 import type { LiteElement } from "mathjax-full/js/adaptors/lite/Element.js";
@@ -464,7 +465,7 @@ const attr = (element: LiteElement, name: string): string | undefined =>
  * @returns The number, NaN for anything else.
  */
 const numberOf = (text: string | undefined): number =>
-  Number((text ?? "").replace(/(?:ex|%)$/u, ""));
+  Number((text ?? "").replace(regex("(?:ex|%)$", "u"), ""));
 
 /**
  * The SVG name of each attribute that draws, by the name React writes it under.
@@ -729,7 +730,7 @@ const styledColour = (element: Extract<Child, { readonly kind: "element" }>): re
       const [property, value] = declaration.split(":");
 
       return property?.trim() === "color" && value !== undefined
-        ? [value.replace(/!\s*important\s*$/iu, "").trim()]
+        ? [value.replace(regex("!\\s*important\\s*$", "iu"), "").trim()]
         : [];
     });
 

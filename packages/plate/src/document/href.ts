@@ -10,6 +10,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { resolveWithin } from "@qti-pie/crust/uri.ts";
 import { Option, Result } from "effect";
 
@@ -19,12 +20,13 @@ import { Option, Result } from "effect";
  * @param reference The reference.
  * @returns Its scheme, authority and path, whichever it has.
  */
-export const withoutQuery = (reference: string): string => reference.split(/[#?]/u, 1)[0] ?? "";
+export const withoutQuery = (reference: string): string =>
+  reference.split(regex("[#?]", "u"), 1)[0] ?? "";
 
 /**
  * A percent escape of `/`, in either case, captured so a split keeps it.
  */
-const escapedSlash = /(?<slash>%2F)/iu;
+const escapedSlash = regex("(?<slash>%2F)", "iu");
 
 /**
  * Decode a path segment's percent escapes but those of `/`, which stay as written, and leave a
@@ -61,7 +63,7 @@ const decodeSegment = (segment: string): string =>
  * since a segment is decoded before its dots are read: `%2E%2E` climbs a directory as `..` does.
  * Any other segment stays as written, decoded only once it is resolved ({@link decodeSegment}).
  */
-const dotsOnly = /^(?:\.|%2[Ee])+$/u;
+const dotsOnly = regex("^(?:\\.|%2[Ee])+$", "u");
 
 /**
  * Whether a path segment is one of RFC 3986's dot segments, `.` or `..`, each `%2E` read as the `.`
@@ -124,7 +126,9 @@ export const resolveIn = (location: string, reference: string): Option.Option<st
     `${packageUri}${location.split("/").map(writtenNameOf).join("/")}`,
     `./${path
       .split("/")
-      .map((segment) => (dotsOnly.test(segment) ? segment.replaceAll(/%2[Ee]/gu, ".") : segment))
+      .map((segment) =>
+        dotsOnly.test(segment) ? segment.replaceAll(regex("%2[Ee]", "gu"), ".") : segment,
+      )
       .join("/")}`,
   );
 

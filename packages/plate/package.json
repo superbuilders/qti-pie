@@ -39,6 +39,7 @@
     "@qti-pie/crust": "workspace:*",
     "@ui-sdk/core": "catalog:",
     "@ui-sdk/react": "catalog:",
+    "arkregex": "catalog:",
     "effect": "catalog:",
     "mathjax-full": "catalog:",
     "mathlive": "catalog:",

@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Exit, Option, Predicate, Result } from "effect";
 import { bodyModuleFor } from "#plate/content/modules.ts";
@@ -74,7 +75,7 @@ const hiddenKeys: ReadonlySet<string> = new Set([
  * Matches a text of three characters (code points) or more, the shortest secret the sweep looks
  * for: a shorter value occurs in unrelated text by chance too often to say anything.
  */
-const longEnough = /.{3}/su;
+const longEnough = regex(".{3}", "su");
 
 /**
  * Where an item holds a secret.
@@ -138,7 +139,7 @@ interface Subject {
 /**
  * The start of `qti-item-body`'s start tag, with or without a namespace prefix.
  */
-const bodyStart = /<(?:[^\s/<>:]+:)?qti-item-body[\s/>]/u;
+const bodyStart = regex("<(?:[^\\s/<>:]+:)?qti-item-body[\\s/>]", "u");
 
 /**
  * Give the part of a document's source that writes its item body: from the first `qti-item-body`
@@ -280,7 +281,9 @@ const ownLiteralsOf = (element: SourceElement): readonly Secret[] => {
     ? Option.match(attribute("pattern"), {
         onNone: () => [],
         onSome: (pattern) =>
-          /^\{.*\}$/su.test(pattern) ? [] : [{ origin: "processing pattern", text: pattern }],
+          regex("^\\{.*\\}$", "su").test(pattern)
+            ? []
+            : [{ origin: "processing pattern", text: pattern }],
       })
     : [];
 };

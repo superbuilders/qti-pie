@@ -20,6 +20,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Array as Arr, Brand, Option, Result } from "effect";
 import { checkIsland } from "#plate/content/modules.ts";
 import {
@@ -494,7 +495,7 @@ interface Placed {
  * @returns Whether they are empty to the eye.
  */
 const isBare = (children: readonly BodyNode[]): boolean =>
-  children.every((child) => child.kind === "text" && /^[ \t\r\n]*$/u.test(child.text));
+  children.every((child) => child.kind === "text" && regex("^[ \t\r\n]*$", "u").test(child.text));
 
 /**
  * Construct the notices of the URLs dropped from one element, and note that they were placed.

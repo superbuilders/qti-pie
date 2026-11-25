@@ -5,6 +5,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Option } from "effect";
 import type { Locale } from "#plate/messages.ts";
 import type { RedactedNode } from "#plate/model/item.ts";
@@ -44,9 +45,12 @@ const cjkIdeographic = (n: number): string => {
 
     return digit === 0 ? "零" : `${cjkDigits[digit] ?? ""}${marker}`;
   });
-  const written = places.join("").replace(/零+$/u, "").replaceAll(/零+/gu, "零");
+  const written = places
+    .join("")
+    .replace(regex("零+$", "u"), "")
+    .replaceAll(regex("零+", "gu"), "零");
 
-  return n >= 10 && n <= 19 ? written.replace(/^一/u, "") : written;
+  return n >= 10 && n <= 19 ? written.replace(regex("^一", "u"), "") : written;
 };
 
 /**

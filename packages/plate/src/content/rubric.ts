@@ -21,6 +21,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Option } from "effect";
 import type { BodyContentModule } from "#plate/content/contract.ts";
 import { qtiNamespace } from "#plate/document/source.ts";
@@ -36,7 +37,7 @@ const element = "qti-rubric-block";
  * A run of the white space an XSD list's tokens are separated by, which XML allows as a space, a
  * tab, a carriage return or a line feed.
  */
-const separators = /[\t\n\r ]+/u;
+const separators = regex("[\t\n\r ]+", "u");
 
 /**
  * A rubric block in the item body: the content of its `qti-content-body` in document order,

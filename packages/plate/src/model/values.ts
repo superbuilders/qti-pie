@@ -12,6 +12,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { isNcName, trimmed } from "@qti-pie/crust/text.ts";
 import { Data, Option, Result } from "effect";
 
@@ -78,7 +79,7 @@ export const trimXmlSpace = trimmed;
  * return, and every code point from U+0020 up except the surrogates, U+FFFE and U+FFFF. Under the
  * `u` flag a lone surrogate is a code point of its own, so it falls outside.
  */
-const xmlText = /^[\t\n\r\u{20}-\u{D7FF}\u{E000}-\u{FFFD}\u{10000}-\u{10FFFF}]*$/u;
+const xmlText = regex("^[\t\n\r\\u{20}-\\u{D7FF}\\u{E000}-\\u{FFFD}\\u{10000}-\\u{10FFFF}]*$", "u");
 
 /**
  * Report whether XML can carry a text: whether every character of it is one XML 1.0's `Char`
@@ -103,7 +104,7 @@ export const isXmlText = (text: string): boolean => xmlText.test(text);
  * Two runs of non-whitespace separated by XML whitespace: the lexical form of a pair, before each
  * side is checked as an NCName.
  */
-const pairLexical = /^(?<source>[^\t\n\r ]+)[\t\n\r ]+(?<destination>[^\t\n\r ]+)$/u;
+const pairLexical = regex("^(?<source>[^\t\n\r ]+)[\t\n\r ]+(?<destination>[^\t\n\r ]+)$", "u");
 
 /**
  * The lexical form of a point: two integers, each as {@link integerLexical} writes one, separated
@@ -114,7 +115,7 @@ const pairLexical = /^(?<source>[^\t\n\r ]+)[\t\n\r ]+(?<destination>[^\t\n\r ]+
  *
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_BaseTypeEnum
  */
-const pointLexical = /^(?<x>[+-]?[0-9]+)[\t\n\r ]+(?<y>[+-]?[0-9]+)$/u;
+const pointLexical = regex("^(?<x>[+-]?[0-9]+)[\t\n\r ]+(?<y>[+-]?[0-9]+)$", "u");
 
 /**
  * The lexical space of a QTI integer, and of `xs:integer`: an optional sign and ASCII digits, as
@@ -127,7 +128,7 @@ const pointLexical = /^(?<x>[+-]?[0-9]+)[\t\n\r ]+(?<y>[+-]?[0-9]+)$/u;
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#AppA1
  * @see https://www.w3.org/TR/2004/REC-xmlschema-2-20041028/#integer
  */
-const integerLexical = /^[+-]?[0-9]+$/u;
+const integerLexical = regex("^[+-]?[0-9]+$", "u");
 
 /**
  * The lexical space of `xs:double` (XML Schema 1.0), which a QTI float uses: a decimal with an
@@ -135,7 +136,10 @@ const integerLexical = /^[+-]?[0-9]+$/u;
  *
  * @see https://www.w3.org/TR/2004/REC-xmlschema-2-20041028/#double
  */
-const doubleLexical = /^(?:[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[Ee][+-]?[0-9]+)?|-?INF|NaN)$/u;
+const doubleLexical = regex(
+  "^(?:[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[Ee][+-]?[0-9]+)?|-?INF|NaN)$",
+  "u",
+);
 
 /**
  * A file as a record or a result holds it: its `name`, its `size` in bytes and its MIME `type`, the

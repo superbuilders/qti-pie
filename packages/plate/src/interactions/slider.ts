@@ -30,6 +30,7 @@
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Root_SliderInteraction
  */
+import { regex } from "arkregex";
 import { Option } from "effect";
 import { attributePath } from "#plate/document/source.ts";
 import { boundIn, noReferencingChoices, promptRegion } from "#plate/interactions/contract.ts";
@@ -86,7 +87,7 @@ const stepTolerance = 1e-9;
  * A decimal number as a range's `value` may hold it: the digits of an `xs:double` without `INF`
  * and `NaN`, which a range's value would read as no number at all.
  */
-const decimalNumber = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[Ee][+-]?\d+)?$/u;
+const decimalNumber = regex("^[+-]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[Ee][+-]?\\d+)?$", "u");
 
 /**
  * A Slider as the model holds it: the fields every module's node shares, and the slider's own.

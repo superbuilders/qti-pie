@@ -35,6 +35,7 @@
  * @module
  * @see https://docs.mathjax.org/en/v3.2-latest/output/svg.html
  */
+import { regex } from "arkregex";
 import { Data } from "effect";
 import type { LiteDocument } from "mathjax-full/js/adaptors/lite/Document.js";
 import { LiteElement } from "mathjax-full/js/adaptors/lite/Element.js";
@@ -265,7 +266,7 @@ class MeasuringAdaptor extends LiteAdaptor {
     }
 
     const size = this.hasAttribute(node, "font-size")
-      ? Number(String(this.getAttribute(node, "font-size")).replace(/px$/u, ""))
+      ? Number(String(this.getAttribute(node, "font-size")).replace(regex("px$", "u"), ""))
       : 1000;
 
     return [((estimate + correction) * size) / 1000, height];
@@ -285,7 +286,7 @@ const adaptor = new MeasuringAdaptor();
  * @returns Its text.
  */
 const fixedText = (value: number): string =>
-  Math.abs(value) < 0.0006 ? "0" : value.toFixed(3).replace(/\.?0+$/u, "");
+  Math.abs(value) < 0.0006 ? "0" : value.toFixed(3).replace(regex("\\.?0+$", "u"), "");
 
 /**
  * Read an attribute of an element of MathJax's output.
@@ -417,7 +418,7 @@ const styleOf = (element: LiteElement): readonly (readonly [string, string])[] =
             declaration.slice(0, colon).trim(),
             declaration
               .slice(colon + 1)
-              .replace(/!\s*important\s*$/iu, "")
+              .replace(regex("!\\s*important\\s*$", "iu"), "")
               .trim(),
           ] as const,
         ];
@@ -533,7 +534,8 @@ const undrawnAttributes: ReadonlySet<string> = new Set(["class", "href", "id", "
  */
 const bordered = (attributes: readonly MathAttribute[]): boolean =>
   attributes.some(
-    ({ name, value }) => name === "class" && value.split(/\s+/u).includes("qti-bordered"),
+    ({ name, value }) =>
+      name === "class" && value.split(regex("\\s+", "u")).includes("qti-bordered"),
   );
 
 /**
@@ -660,7 +662,7 @@ const metrics = {
  * @param text The length, with its unit.
  * @returns The number of `ex`.
  */
-const exOf = (text: string): number => Number(text.replace(/ex$/u, ""));
+const exOf = (text: string): number => Number(text.replace(regex("ex$", "u"), ""));
 
 /**
  * Typeset a formula: MathJax reads its MathML and draws it. Its suite reads MathJax's own output
@@ -729,11 +731,11 @@ const transformOf = (text: string | undefined): Matrix => {
   let matrix = identity;
 
   for (const match of (text ?? "").matchAll(
-    /(?<name>translate|scale|matrix)\((?<args>[^)]*)\)/gu,
+    regex("(?<name>translate|scale|matrix)\\((?<args>[^)]*)\\)", "gu"),
   )) {
     const name = match.groups?.["name"] ?? "";
     const args = (match.groups?.["args"] ?? "")
-      .split(/[\s,]+/u)
+      .split(regex("[\\s,]+", "u"))
       .filter((arg) => arg !== "")
       .map(Number);
 

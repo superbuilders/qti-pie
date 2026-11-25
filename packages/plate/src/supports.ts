@@ -24,6 +24,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Option, Schema } from "effect";
 
 /**
@@ -261,7 +262,9 @@ const positive = Schema.Finite.check(Schema.isGreaterThan(0));
  */
 const catalogSupport = Schema.Union([
   Schema.Literals(catalogSupports),
-  Schema.TemplateLiteral(["ext:", Schema.String]).check(Schema.isPattern(/^ext:[a-zA-Z0-9_.-]+$/u)),
+  Schema.TemplateLiteral(["ext:", Schema.String]).check(
+    Schema.isPattern(regex("^ext:[a-zA-Z0-9_.-]+$", "u")),
+  ),
 ]);
 
 /**
@@ -279,7 +282,7 @@ const textAppearance = Schema.Struct({ backgroundColor: written, fontColor: writ
  * A value outside a PNP vocabulary: `ext:` followed by one or more non-space characters.
  */
 const pnpExtension = Schema.TemplateLiteral(["ext:", Schema.String]).check(
-  Schema.isPattern(/^ext:\S+$/u),
+  Schema.isPattern(regex("^ext:\\S+$", "u")),
 );
 
 /**

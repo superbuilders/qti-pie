@@ -15,6 +15,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { Array as Arr, Option, Schema, SchemaTransformation } from "effect";
 import { isNcName } from "@qti-pie/crust/text.ts";
 import { isXmlText, modelledBaseTypes, modelledCardinalities } from "#plate/model/values.ts";
@@ -108,7 +109,7 @@ const FloatFromJson = Schema.Union([FloatNumber, FloatNames]).pipe(
  * (Part 2, section 3.3.13.2). The decimal of each integer is one text, so `+7`, `007`, ` 7` and
  * `-0` are none.
  */
-const canonicalInteger = /^(?:0|-?[1-9][0-9]*)$/u;
+const canonicalInteger = regex("^(?:0|-?[1-9][0-9]*)$", "u");
 
 /**
  * An integer as a Schema whose encoded form is its canonical decimal digits ({@link
@@ -134,7 +135,7 @@ const IntegerFromDigits = Schema.String.check(
  *
  * @see https://www.rfc-editor.org/rfc/rfc2045#section-5.1
  */
-const mimeType = /^(?:[!#$%&'*+\-.^_`|~0-9A-Za-z]+\/[!#$%&'*+\-.^_`|~0-9A-Za-z]+)?$/u;
+const mimeType = regex("^(?:[!#$%&'*+\\-.^_`|~0-9A-Za-z]+/[!#$%&'*+\\-.^_`|~0-9A-Za-z]+)?$", "u");
 
 /**
  * A posted file's metadata as a Schema; its type is `FileValue`. The name holds only characters XML
