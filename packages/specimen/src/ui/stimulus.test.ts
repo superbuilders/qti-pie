@@ -36,6 +36,7 @@ import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
 import { element } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Array as Arr, Duration, Effect, Option } from "effect";
 import { parseHTML } from "linkedom";
@@ -256,10 +257,16 @@ describe("plate's UI over the corpus's shared stimuli", () => {
         );
 
         const firstMarkup = new Map<string, string>();
-        const [first, ...rest] = items.flatMap((item) =>
-          showings.map((showing) => ({ item, showing })),
-        );
-        assert.isDefined(first, "the corpus holds stimulus items");
+        const stimulusItems = Arr.isReadonlyArrayNonEmpty(items)
+          ? items
+          : assert.fail("the corpus holds stimulus items");
+        const showingOfItem: Gen<{
+          readonly item: SourceItem;
+          readonly showing: ShowingName;
+        }> = (source) => ({
+          item: source.draw(element(stimulusItems)),
+          showing: source.draw(element(showings)),
+        });
 
         return yield* searched(
           ctx,
@@ -268,7 +275,7 @@ describe("plate's UI over the corpus's shared stimuli", () => {
               box: "every corpus item that references a stimulus, in answering and in the solution, with no support and with the stimulus card's",
               caseHang: Duration.seconds(30),
               coverage: requiredInSpace<"pane" | "placed">(["pane", "placed"]),
-              generator: element([first, ...rest]),
+              generator: showingOfItem,
               literal: ({ item, showing }) => `${item.location}, ${showing}`,
               oracle: {
                 kind: "specification",
