@@ -56,7 +56,6 @@ import type {
   ValueField,
 } from "#pantry/grammar/closed.ts";
 import {
-  compile,
   boundFacets,
   domainPrimitives,
   identities,
@@ -1537,54 +1536,77 @@ export const readDefinitionOf = (
 };
 
 /**
- * The declarations' domains read so far, by leaf definition and then by the key of the spec
- * readings that apply ({@link applicableTo}). A leaf states each distinct definition once and its
- * declarations share it, so the declarations of one leaf definition under one set of readings
- * share one read. It holds a leaf definition only while the leaf does.
+ * Compile a read definition's value domain: `compile` of `#pantry/grammar/domains.ts`, or a
+ * function that gives what it gives, as a test's counting compile does.
  */
-const readsByDefinition = new WeakMap<Domain, Map<string, DeclarationDomain>>();
+export type DomainCompile = (
+  definition: Domain,
+  whiteSpace: Reading,
+) => Result.Result<CompiledDomain, UnreadDomain>;
 
 /**
- * Each read definition compiled, by its text ({@link definitionText}). A reading builds a new
- * definition each time it is applied, and two groups may read to one definition, so they are
- * told apart by their text. Every composition of the process reads through it, so a definition
- * two compositions share, as a test's toy compositions over the document layer do, compiles once
- * for all of them. A compile is a function of the definition's text alone, so sharing it changes
- * no result.
+ * What reads the declarations' domains for the compositions it is handed to ({@link generate}),
+ * through one compile, each distinct read definition compiled once for all of them.
  */
-const compiledByText = new Map<string, Result.Result<KeyedDomain, UnreadDomain>>();
+export interface DomainCompiler {
+  /**
+   * Read a declaration's domain: the spec readings that apply to it, and its read definition
+   * compiled, each distinct definition compiled once by this compiler.
+   *
+   * @param declared - The declaration.
+   * @returns Its readings and its compiled domain, or why the domain does not compile.
+   */
+  readonly read: (declared: DomainDeclaration) => DeclarationDomain;
+}
 
 /**
- * Read a declaration's domain: the spec readings that apply to it, and its read definition
- * compiled, each distinct definition compiled once in the process.
+ * Make a compiler of the declarations' domains through `compileDomain`. It keeps what it read:
  *
- * @param declared - The declaration.
- * @returns Its readings and its compiled domain, or why the domain does not compile.
+ * - By leaf definition and then by the key of the spec readings that apply ({@link applicableTo}). A
+ *   leaf states each distinct definition once and its declarations share it, so the declarations of
+ *   one leaf definition under one set of readings share one read. It holds a leaf definition only
+ *   while the leaf does.
+ * - Each read definition compiled, by its text ({@link definitionText}). A reading builds a new
+ *   definition each time it is applied, and two groups may read to one definition, so they are told
+ *   apart by their text. Every composition the compiler is handed to reads through it, so a
+ *   definition two compositions share, as a test's toy compositions over the document layer do,
+ *   compiles once for both. A compile is a function of the definition's text alone, so sharing it
+ *   changes no result.
+ *
+ * @param compileDomain - The compile it reads through.
+ * @returns The compiler.
  */
-const readDomain = (declared: DomainDeclaration): DeclarationDomain => {
-  const { key, readings } = Option.match(attributeOf(declared), {
-    onNone: () => noReadings,
-    onSome: (name) => applicableTo(declared.kind, name),
-  });
+export const domainCompilerOf = (compileDomain: DomainCompile): DomainCompiler => {
+  const readsByDefinition = new WeakMap<Domain, Map<string, DeclarationDomain>>();
+  const compiledByText = new Map<string, Result.Result<KeyedDomain, UnreadDomain>>();
 
-  return readsByDefinition
-    .getOrInsertComputed(declared.domain, () => new Map())
-    .getOrInsertComputed(key, () => {
-      const read = readDefinitionOf(declared, readings);
+  return {
+    read: (declared) => {
+      const { key, readings } = Option.match(attributeOf(declared), {
+        onNone: () => noReadings,
+        onSome: (name) => applicableTo(declared.kind, name),
+      });
 
-      return {
-        compiled: compiledByText.getOrInsertComputed(definitionText(read), () =>
-          compile(read.definition, read.whiteSpace).pipe(
-            Result.map((domain): KeyedDomain => ({
-              compiled: domain,
-              definition: read.definition,
-              key: definitionKey(domain),
-            })),
-          ),
-        ),
-        readings,
-      };
-    });
+      return readsByDefinition
+        .getOrInsertComputed(declared.domain, () => new Map())
+        .getOrInsertComputed(key, () => {
+          const read = readDefinitionOf(declared, readings);
+
+          return {
+            compiled: compiledByText.getOrInsertComputed(definitionText(read), () =>
+              compileDomain(read.definition, read.whiteSpace).pipe(
+                Result.map((domain): KeyedDomain => ({
+                  compiled: domain,
+                  definition: read.definition,
+                  key: definitionKey(domain),
+                })),
+              ),
+            ),
+            readings,
+          };
+        });
+    },
+  };
 };
 
 /**
@@ -1668,7 +1690,8 @@ const handleOf = (type: ValueType, anonymous: string, readings: readonly SpecRea
 };
 
 /**
- * Add one declaration's domain to the roster, its spec readings applied ({@link readDomain}).
+ * Add one declaration's domain to the roster, its spec readings applied
+ * ({@link DomainCompiler.read}).
  *
  * @param domains - The roster, which a new domain joins.
  * @param declared - The declaring kind, the attribute's name, and the type with its domain.
@@ -1769,12 +1792,15 @@ const inRosterOrder = (named: readonly ValueDomain[]): readonly ValueDomain[] =>
  * so an element's `attrs` is a set over its governor's positions as it is over its kind's.
  *
  * @param input - The rosters and the declarations.
+ * @param compiler - What reads the declarations' domains: the process's one
+ *   (`#pantry/grammar/compose.ts`, `processCompiler`) for a composition, or a test's own.
  * @returns `AttributeGrammar`, `ValueDomain`, `ValueIdentity`, `TextDomain`, `Governor`,
  *   `GovernedAttribute` and `TypeText`, with the domain and position rosters; or the first
  *   declaration whose domain does not compile, or the first roster or position that has no code.
  */
 export const generate = (
   input: AttributeGrammarInput,
+  compiler: DomainCompiler,
 ): Result.Result<AttributeGrammar, AttributeGrammarError> =>
   Result.gen(function* generateAttributes() {
     const domains: DomainRoster = {
@@ -1788,17 +1814,21 @@ export const generate = (
      */
     const declarations = input.declarations.map((declared) => ({
       declared,
-      read: readDomain(declared),
+      read: compiler.read(declared),
     }));
-    const textsRead = input.texts.map((text) => ({ declared: text, read: readDomain(text), text }));
+    const textsRead = input.texts.map((text) => ({
+      declared: text,
+      read: compiler.read(text),
+      text,
+    }));
     const governedRead = input.governed.map((declared) => ({
       declared,
-      read: readDomain(declared),
+      read: compiler.read(declared),
     }));
     const typeTextsRead = input.typeTexts.map((typeText) => {
       const declared = { ...typeText, kind: typeText.owner };
 
-      return { declared, read: readDomain(declared), typeText };
+      return { declared, read: compiler.read(declared), typeText };
     });
     const admitted: Admitted[] = [];
     for (const { declared, read } of declarations) {

@@ -4153,8 +4153,9 @@ const normalizationOf = (
 /**
  * Compile a resolved definition into its value domain.
  *
- * Each call compiles: the attribute grammar compiles each distinct definition once
- * (`#pantry/grammar/attributes.ts`, `readDomain`), and no caller compiles one definition twice.
+ * Each call compiles: the attribute grammar compiles each distinct definition once for the
+ * compositions a compiler serves (`#pantry/grammar/attributes.ts`, `domainCompilerOf`), and no
+ * caller compiles one definition twice.
  *
  * A definition whose lexical space holds no value, such as `xs:NOTATION`'s, compiles as any other:
  * its pattern is the empty language's, which grizzle admits as a `Text.matches` pattern that

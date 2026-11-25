@@ -42,6 +42,7 @@ import { generate as generateAncestry } from "#pantry/grammar/ancestry.ts";
 import type { AncestrySets } from "#pantry/grammar/ancestry.ts";
 import {
   baseTypes,
+  domainCompilerOf,
   generate as generateAttributes,
   readDeclarations,
 } from "#pantry/grammar/attributes.ts";
@@ -55,6 +56,7 @@ import type {
 import { barredByOf } from "#pantry/grammar/children.ts";
 import type { BarredBy, ChildError, LastWhere } from "#pantry/grammar/children.ts";
 import { roster, rowsAt, tupleKey } from "#pantry/grammar/closed.ts";
+import { compile } from "#pantry/grammar/domains.ts";
 import type { NonEmptyRoster, Roster } from "#pantry/grammar/closed.ts";
 import {
   bindingFit,
@@ -706,12 +708,19 @@ const typeNamespaceOf = (type: string): NamespaceName =>
   });
 
 /**
+ * The compiler every composition of the process reads its attributes' domains through, kept for
+ * the process as production's composition is: a definition an earlier composition compiled, its
+ * own or a test's, is not compiled again. With it warm a composition of production's list takes a
+ * quarter of a second, where the first, which compiles every definition, takes seconds.
+ */
+export const processCompiler = domainCompilerOf(compile);
+
+/**
  * Run every generator over a vocabulary list.
  *
  * Each call composes anew. Production's list is composed once per process, through
- * {@link composed}. Every composition reads its attributes' domains through the attribute
- * grammar's one cache, so a definition an earlier composition compiled is not compiled again
- * (`#pantry/grammar/attributes.ts`, `readDomain`).
+ * {@link composed}. Every composition reads its attributes' domains through
+ * {@link processCompiler}, so a definition an earlier composition compiled is not compiled again.
  *
  * @param list - The vocabularies, in composition order.
  * @returns The grammar, or the first generator's refusal.
@@ -772,15 +781,18 @@ export const compose = <const V extends readonly Vocabulary[]>(
       ),
     });
     const governingTexts = governingTextsOf(list.map(({ namespace }) => namespace));
-    const attributes = yield* generateAttributes({
-      declarations: [...declarations, ...layerOf(kinds, namespaceOf, declared, declaresId)],
-      ...governedOf(kinds, namespaceOf, xsi, governingTexts),
-      kinds: kinds.nodeKind,
-      names: kinds.attributeName,
-      texts: textTypes.filter(({ kind }) => kinds.nodeKind.has(kind)),
-      typeName: xsi.typeName,
-      typeTexts: governingTexts,
-    });
+    const attributes = yield* generateAttributes(
+      {
+        declarations: [...declarations, ...layerOf(kinds, namespaceOf, declared, declaresId)],
+        ...governedOf(kinds, namespaceOf, xsi, governingTexts),
+        kinds: kinds.nodeKind,
+        names: kinds.attributeName,
+        texts: textTypes.filter(({ kind }) => kinds.nodeKind.has(kind)),
+        typeName: xsi.typeName,
+        typeTexts: governingTexts,
+      },
+      processCompiler,
+    );
     /**
      * The namespaces of the vocabularies that write elements, as the patterns spell them.
      */

@@ -46,7 +46,7 @@ import type { AttributeGrammar, Declared, ValueDomain } from "#pantry/grammar/at
 import { roster } from "#pantry/grammar/closed.ts";
 import { declaredRelation, rowFaultOf } from "#pantry/test/declared.ts";
 import type { Roster } from "#pantry/grammar/closed.ts";
-import { composed } from "#pantry/grammar/compose.ts";
+import { composed, processCompiler } from "#pantry/grammar/compose.ts";
 import { patternFlags } from "#pantry/grammar/domains.ts";
 import { openClasses } from "#pantry/grammar/kinds.ts";
 import { loadXsd, XsdOracleLayer, xsdContents } from "#pantry/test/gen/grammar.ts";
@@ -90,7 +90,10 @@ const ungoverned = {
  * state, and every text type.
  */
 const leafGrammar: AttributeGrammar = Result.getOrThrow(
-  generate({ declarations: attributeDeclarations, texts: textTypes, ...rosters, ...ungoverned }),
+  generate(
+    { declarations: attributeDeclarations, texts: textTypes, ...rosters, ...ungoverned },
+    processCompiler,
+  ),
 );
 
 /**
@@ -1953,13 +1956,16 @@ const toyDeclaration = (kind: string, name: string, pattern: string): Declared =
  * @returns The generator's result.
  */
 const toyGenerate = (declarations: readonly Declared[], kinds: Roster<string>) =>
-  generate({
-    declarations,
-    kinds,
-    names: roster("AttributeName", ["a", "b"]),
-    texts: [],
-    ...ungoverned,
-  });
+  generate(
+    {
+      declarations,
+      kinds,
+      names: roster("AttributeName", ["a", "b"]),
+      texts: [],
+      ...ungoverned,
+    },
+    processCompiler,
+  );
 
 describe("The attribute grammar's refusals", () => {
   const kinds = roster("NodeKind", ["k"]);

@@ -1,19 +1,17 @@
 /**
- * The attribute grammar's domain work, counted: the process compiles each distinct read definition
- * once, a composition compiling only those no earlier composition compiled, and every
- * declaration's domain is still its leaf definition read by its spec readings, compiled, for every
- * declaration.
+ * The attribute grammar's domain work, counted: a composition compiles each distinct read
+ * definition once through the compiler it is handed, and every declaration's domain is still its
+ * leaf definition read by its spec readings, compiled, for every declaration.
  *
- * The guard counts work, not time, so a loaded machine cannot pass or fail it. It wraps the
- * value-domain compiler, `compile` (`#pantry/grammar/domains.ts`), and the attribute grammar's
- * `generate` before any module of the composition loads (`vi.doMock`, then the composition's first
- * import), and reads their calls after the composition. Its oracle reads each declaration alone:
- * its spec readings ({@link readingsOf}) applied to its leaf definition ({@link readDefinitionOf}),
- * told apart by text ({@link definitionText}), and compiled by the unwrapped compiler. Beside
- * production's grammar, toy declaration lists are exhausted over a small scope and searched under
- * swarm weights.
+ * The guard counts work, not time, so a loaded machine cannot pass or fail it. Each case hands the
+ * attribute grammar's `generate` a compiler of its own whose compile is the value-domain compiler,
+ * `compile` (`#pantry/grammar/domains.ts`), counted ({@link counting}), and reads its calls after
+ * the composition: no module is mocked. Its oracle reads each declaration alone: its spec readings
+ * ({@link readingsOf}) applied to its leaf definition ({@link readDefinitionOf}), told apart by
+ * text ({@link definitionText}), and compiled by `compile`. Toy declaration lists are exhausted
+ * over a small scope and searched under swarm weights.
  */
-import { assert, describe, it, vi } from "@effect/vitest";
+import { assert, describe, it } from "@effect/vitest";
 import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
 import { required, requiredInSpace } from "@bjornpagen/testing/features";
 import { array, element } from "@bjornpagen/testing/gen";
@@ -24,68 +22,68 @@ import { swarm, swarmChoice } from "@bjornpagen/testing/swarm";
 import type { Swarm } from "@bjornpagen/testing/swarm";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Array as Arr, Duration, Effect, Formatter, Option, pipe, Result } from "effect";
-import type * as Attributes from "#pantry/grammar/attributes.ts";
+import {
+  definitionText,
+  domainCompilerOf,
+  generate,
+  governorHandle,
+  readDefinitionOf,
+  readingsOf,
+} from "#pantry/grammar/attributes.ts";
 import type {
   AttributeGrammar,
   AttributeGrammarInput,
   Declared,
+  DomainCompiler,
   DomainDeclaration,
 } from "#pantry/grammar/attributes.ts";
-import type * as Domains from "#pantry/grammar/domains.ts";
-import type { CompiledDomain, Reading } from "#pantry/grammar/domains.ts";
+import { roster } from "#pantry/grammar/closed.ts";
+import { compile } from "#pantry/grammar/domains.ts";
+import type { CompiledDomain, Reading, UnreadDomain } from "#pantry/grammar/domains.ts";
+import { builtinDomainOf } from "#pantry/vocab/derive/domains.ts";
 import type { Domain } from "#pantry/vocab/inventory/types.ts";
 
 /**
- * What the wrapped functions saw: each definition `compile` compiled, with its reading, in call
- * order, and each input `generate` was given.
+ * One definition a compile compiled, with its reading.
  */
-interface Work {
-  readonly compiled: { readonly definition: Domain; readonly whiteSpace: Reading }[];
-  readonly inputs: AttributeGrammarInput[];
+interface Compiled {
+  readonly definition: Domain;
+  readonly whiteSpace: Reading;
 }
 
 /**
- * The work this file's compositions do, filled by the wrapped functions.
+ * A counting compiler: the compiler a case hands its composition, and each definition its compile
+ * compiled, in call order, appended as it compiles.
  */
-const work: Work = { compiled: [], inputs: [] };
+interface Counting {
+  readonly compiled: readonly Compiled[];
+  readonly compiler: DomainCompiler;
+}
 
-vi.doMock("#pantry/grammar/domains.ts", async (importOriginal) => {
-  const original = await importOriginal<typeof Domains>();
-  const compile: typeof original.compile = (definition, whiteSpace) => {
-    work.compiled.push({ definition, whiteSpace });
+/**
+ * Make a counting compiler, whose compile is `compile` with each call recorded.
+ *
+ * @returns The compiler and its record.
+ */
+const counting = (): Counting => {
+  const compiled: Compiled[] = [];
 
-    return original.compile(definition, whiteSpace);
+  return {
+    compiled,
+    compiler: domainCompilerOf((definition, whiteSpace) => {
+      compiled.push({ definition, whiteSpace });
+
+      return compile(definition, whiteSpace);
+    }),
   };
-
-  return { ...original, compile };
-});
-
-vi.doMock("#pantry/grammar/attributes.ts", async (importOriginal) => {
-  const original = await importOriginal<typeof Attributes>();
-  const generate: typeof original.generate = (input) => {
-    work.inputs.push(input);
-
-    return original.generate(input);
-  };
-
-  return { ...original, generate };
-});
-
-const { definitionText, generate, governorHandle, readDefinitionOf, readingsOf } =
-  await import("#pantry/grammar/attributes.ts");
-
-const { roster } = await import("#pantry/grammar/closed.ts");
-
-const unwrapped = await vi.importActual<typeof Domains>("#pantry/grammar/domains.ts");
-
-const { builtinDomainOf } = await import("#pantry/vocab/derive/domains.ts");
+};
 
 /**
  * The empty language's pattern, which `xs:NOTATION`'s definition compiles to: what a definition
  * whose lexical space holds no value compiles to.
  */
 const emptyPattern = Result.getOrThrow(
-  unwrapped.compile(Result.getOrThrow(builtinDomainOf("NOTATION")), "xsd"),
+  compile(Result.getOrThrow(builtinDomainOf("NOTATION")), "xsd"),
 ).pattern;
 
 /**
@@ -185,10 +183,10 @@ const domainReads = (input: AttributeGrammarInput, grammar: AttributeGrammar): D
 };
 
 /**
- * The compiled domain a definition text names, compiled by the unwrapped compiler once per text.
+ * The compiled domain a definition text names, compiled by `compile` once per text.
  */
 type Oracle = (declared: DomainDeclaration) => {
-  readonly compiled: Result.Result<CompiledDomain, Domains.UnreadDomain>;
+  readonly compiled: Result.Result<CompiledDomain, UnreadDomain>;
   readonly text: string;
 };
 
@@ -198,7 +196,7 @@ type Oracle = (declared: DomainDeclaration) => {
  * @returns The oracle.
  */
 const oracle = (): Oracle => {
-  const byText = new Map<string, Result.Result<CompiledDomain, Domains.UnreadDomain>>();
+  const byText = new Map<string, Result.Result<CompiledDomain, UnreadDomain>>();
 
   return (declared) => {
     const read = readDefinitionOf(
@@ -206,7 +204,7 @@ const oracle = (): Oracle => {
       "name" in declared ? readingsOf(declared.kind, declared.name) : [],
     );
     const text = definitionText(read);
-    const compiled = byText.get(text) ?? unwrapped.compile(read.definition, read.whiteSpace);
+    const compiled = byText.get(text) ?? compile(read.definition, read.whiteSpace);
     byText.set(text, compiled);
 
     return { compiled, text };
@@ -214,35 +212,23 @@ const oracle = (): Oracle => {
 };
 
 /**
- * The texts of the definitions the process compiled before a point of its work, which a later
- * composition reads from the attribute grammar's cache rather than compiling again.
- *
- * @param until - How many compiles had been made, `work.compiled`'s length then.
- * @returns Their texts.
- */
-const compiledBefore = (until: number): ReadonlySet<string> =>
-  new Set(work.compiled.slice(0, until).map((unit) => definitionText(unit)));
-
-/**
- * Hold a generation's work and domains to the oracle: the definitions compiled during it are
- * exactly the distinct read definitions of its declarations no earlier composition compiled, each
- * once, and every declaration names the domain its definition compiles to.
+ * Hold a generation's work and domains to the oracle: the definitions its compiler compiled are
+ * exactly the distinct read definitions of its declarations, each once, and every declaration
+ * names the domain its definition compiles to.
  *
  * @param input - The generator's input.
  * @param grammar - The grammar it generated.
- * @param compiled - The definitions compiled while it generated, in call order.
- * @param before - The definitions earlier compositions of the process compiled.
+ * @param compiled - The definitions its compiler compiled, in call order.
  * @returns The texts of the definitions compiled.
  */
 const holdToOracle = (
   input: AttributeGrammarInput,
   grammar: AttributeGrammar,
-  compiled: readonly { readonly definition: Domain; readonly whiteSpace: Reading }[],
-  before: ReadonlySet<string>,
+  compiled: readonly Compiled[],
 ): ReadonlySet<string> => {
   const read = oracle();
   const texts = compiled.map((unit) => definitionText(unit));
-  const twice = texts.filter((text, at) => texts.indexOf(text) !== at || before.has(text));
+  const twice = texts.filter((text, at) => texts.indexOf(text) !== at);
   assert.deepStrictEqual(
     twice.map((text) => text.slice(0, 200)),
     [],
@@ -250,13 +236,7 @@ const holdToOracle = (
   );
   assert.deepStrictEqual(
     new Set(texts),
-    new Set(
-      declarationsOf(input).flatMap((declared) => {
-        const { text } = read(declared);
-
-        return before.has(text) ? [] : [text];
-      }),
-    ),
+    new Set(declarationsOf(input).map((declared) => read(declared).text)),
     "the definitions compiled are the declarations' distinct read definitions",
   );
 
@@ -459,8 +439,8 @@ const toyInput = (declarations: readonly Declared[]): AttributeGrammarInput => (
 });
 
 /**
- * Generate a toy grammar from declarations, counting the definitions compiled while it generates,
- * and hold it to the oracle.
+ * Generate a toy grammar from declarations through a counting compiler of its own, and hold it to
+ * the oracle.
  *
  * @param declarations - The declarations.
  * @param c - The case, which notes the situations reached.
@@ -476,10 +456,10 @@ const toyCase = (
       c.note(situation);
     }
 
-    const from = work.compiled.length;
+    const { compiled, compiler } = counting();
     const input = toyInput(declarations);
-    const grammar = Result.getOrThrow(generate(input));
-    holdToOracle(input, grammar, work.compiled.slice(from), compiledBefore(from));
+    const grammar = Result.getOrThrow(generate(input, compiler));
+    holdToOracle(input, grammar, compiled);
   });
 
 /**
