@@ -337,6 +337,23 @@ const sessionOf = (database: string) =>
       }),
   );
 
+/**
+ * The search's work: its drawn answers, each one call of the machine's matcher.
+ */
+const runs = 400;
+
+/**
+ * How long one case may run before it is stopped and reported, the search's one guard on time: a
+ * matcher call that runs past it is hung, whatever the machine's load.
+ */
+const caseHang = Duration.seconds(30);
+
+/**
+ * The test's own timeout, which no run of its work can reach: every case and the session's setup at
+ * their guard, so a loaded machine finishes the search, and only a hung case stops it.
+ */
+const searchTimeout = Duration.toMillis(Duration.times(caseHang, runs + 1));
+
 describe.skipIf(Option.isNone(lease))("a word minimum, as the database judges it", () => {
   it.effect(
     "accepts every drawn answer under each word minimum exactly when plate counts enough words, and catches each plant",
@@ -350,10 +367,10 @@ describe.skipIf(Option.isNone(lease))("a word minimum, as the database judges it
             ctx,
             explore(
               {
-                caseHang: Duration.seconds(30),
+                caseHang,
                 concurrency: 1,
                 coverage: required<Feature | Caught>(situations, {
-                  cases: 400,
+                  cases: runs,
                   sense: notesOnly,
                 }),
                 draw: drawn(answers),
@@ -363,7 +380,7 @@ describe.skipIf(Option.isNone(lease))("a word minimum, as the database judges it
                   kind: "second-implementation",
                   name: "plate's wordsIn over textOfXhtml (src/words.ts), the count a page shows beside an essay",
                 },
-                runs: 400,
+                runs,
                 shrink: completeShrink,
                 steerEvery: 16,
                 suite: "ledger/words",
@@ -411,5 +428,6 @@ describe.skipIf(Option.isNone(lease))("a word minimum, as the database judges it
           );
         }),
       ).pipe(Effect.provide(NodeServices.layer)),
+    searchTimeout,
   );
 });

@@ -179,6 +179,25 @@ import { grader, ResultLevel, rubricUse } from "#ledger/test/result-level.ts";
  */
 const lease = Effect.runSync(Config.option(clusterDatabase));
 
+/**
+ * How long one case of any search here may run before it is stopped and reported, the suite's one
+ * guard on time: a write or a read that runs past it is hung, whatever the machine's load.
+ */
+const caseHang = Duration.minutes(2);
+
+/**
+ * The most cases any search of the suite runs: the beacon stream's coverage bound, above every
+ * exhaustive space's size.
+ */
+const mostCases = 128;
+
+/**
+ * Each test's own timeout, which no run of its work reaches: its search's cases and its setup at
+ * the case guard, so a loaded machine finishes the search and only a hung case stops it (vitest's
+ * 60 s cut the essay's search at its third case under a load of hundreds).
+ */
+const searchTimeout = Duration.toMillis(Duration.times(caseHang, mostCases + 1));
+
 const asi = "http://www.imsglobal.org/xsd/imsqtiasi_v3p0";
 
 const rubricScore = "tag:superbuilders.school,2026:qti/custom-operator/rubric-score";
@@ -5836,7 +5855,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "every case of the essay, history and bounds families, each on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<Situation>(situations),
                     generator: space,
                     literal: (c: Case) => c.name,
@@ -5861,6 +5880,7 @@ describe.skipIf(Option.isNone(lease))(
                 `the essay's result relations held over ${String(exhausted.cases)} cases`,
               );
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -5875,7 +5895,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "every pair of replies of the wave's two draws, each on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<WaveSituation>(waveSituations),
                     generator: waveSpace,
                     literal: (c: WaveCase) => c.name,
@@ -5898,6 +5918,7 @@ describe.skipIf(Option.isNone(lease))(
               );
               yield* Effect.log(`the waves held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -5912,7 +5933,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "the templated item taken under each of its seeds, each on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<TakeSituation>(takeSituations),
                     generator: takeSpace,
                     literal: (c: TakeCase) => c.name,
@@ -5935,6 +5956,7 @@ describe.skipIf(Option.isNone(lease))(
               );
               yield* Effect.log(`the take held over ${String(exhausted.cases)} seeds`);
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -5949,7 +5971,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "each MATH answer with each PHRASE answer, each on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<OperatorsSituation>(operatorsSituations),
                     generator: operatorsSpace,
                     literal: (c: OperatorsCase) => c.name,
@@ -5972,6 +5994,7 @@ describe.skipIf(Option.isNone(lease))(
               );
               yield* Effect.log(`the operators item held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -5986,7 +6009,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "each patterns item with each answer, each on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<PatternsSituation>(patternsSituations),
                     generator: patternsSpace,
                     literal: (c: PatternsCase) => c.name,
@@ -6009,6 +6032,7 @@ describe.skipIf(Option.isNone(lease))(
               );
               yield* Effect.log(`the patterns items held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -6023,7 +6047,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "the draw item adaptive and not, every ending of each of its three attempts, each case on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<DrawSituation>(drawSituations),
                     generator: drawSpace,
                     literal: (c: DrawCase) => c.name,
@@ -6048,6 +6072,7 @@ describe.skipIf(Option.isNone(lease))(
                 `the draw item's outcomes held over ${String(exhausted.cases)} cases`,
               );
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -6062,7 +6087,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "a sitting of the adaptive draw answered twice, the draw once, each ending every way, an essay both of whose draws declined and a session never answered, beside a second sitting, each case on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<ReviewSituation>(reviewSituations),
                     generator: reviewSpace,
                     literal: (c: ReviewCase) => c.name,
@@ -6085,6 +6110,7 @@ describe.skipIf(Option.isNone(lease))(
               );
               yield* Effect.log(`the review read held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -6099,7 +6125,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "each timing of a save in the open session, and an untimed sitting's save before, between and after its candidate sessions, each on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<ResponseSituation>(responseSituations),
                     generator: responseSpace,
                     literal: (c: ResponseCase) => c.name,
@@ -6122,6 +6148,7 @@ describe.skipIf(Option.isNone(lease))(
               );
               yield* Effect.log(`the responses held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -6136,7 +6163,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "an in-time save, then a later one within and past the in-flight grace, each on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<SupersedeSituation>(supersedeSituations),
                     generator: supersedeSpace,
                     literal: (c: SupersedeCase) => c.name,
@@ -6159,6 +6186,7 @@ describe.skipIf(Option.isNone(lease))(
               );
               yield* Effect.log(`the supersedes held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -6173,7 +6201,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "a pause, a closed tab before and across the deadline, and a sign past it, each on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<PresenceSituation>(presenceSituations),
                     generator: presenceSpace,
                     literal: (c: PresenceCase) => c.name,
@@ -6196,6 +6224,7 @@ describe.skipIf(Option.isNone(lease))(
               );
               yield* Effect.log(`the presences held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -6210,7 +6239,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "beacons within, at and past the grace, an overlapping window, a pause and a closed tab, each on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<WindowSituation>(windowSituations),
                     generator: windowSpace,
                     literal: (c: WindowCase) => c.name,
@@ -6233,6 +6262,7 @@ describe.skipIf(Option.isNone(lease))(
               );
               yield* Effect.log(`the windows held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -6246,9 +6276,9 @@ describe.skipIf(Option.isNone(lease))(
                 ctx,
                 explore(
                   {
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: required<BeaconSituation>(beaconSituations, {
-                      cases: 128,
+                      cases: mostCases,
                       sense: notesOnly,
                     }),
                     draw: drawnBy(beaconRuns),
@@ -6275,6 +6305,7 @@ describe.skipIf(Option.isNone(lease))(
                 ),
               );
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -6315,7 +6346,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "each sequence of presentations, saves and answers of the controls test's members, then its end, each on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<ControlsSituation>(controlsSituations),
                     generator: controlsSpace,
                     literal: (c: ControlsCase) => c.name,
@@ -6338,6 +6369,7 @@ describe.skipIf(Option.isNone(lease))(
               );
               yield* Effect.log(`the controls held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -6367,7 +6399,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "each item stage's control and attempts, and each test's members under its scopes, answered and ended, each on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<ShowingSituation>(showingSituations),
                     generator: showingSpace,
                     literal: (c: ShowingCase) => c.name,
@@ -6390,6 +6422,7 @@ describe.skipIf(Option.isNone(lease))(
               );
               yield* Effect.log(`the showings held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -6404,7 +6437,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "each sequence of presentations and saves of the shown test's human-scored essay, then its end, each on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<ShownSituation>(shownSituations),
                     generator: shownSpace,
                     literal: (c: ShownCase) => c.name,
@@ -6427,6 +6460,7 @@ describe.skipIf(Option.isNone(lease))(
               );
               yield* Effect.log(`the shown members held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -6441,7 +6475,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "each sequence of entries of the shown test and the linear tests, a suspension between each two, then a save of the member entered at, each on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<EntrySituation>(entrySituations),
                     generator: entrySpace,
                     literal: (c: EntryCase) => c.name,
@@ -6464,6 +6498,7 @@ describe.skipIf(Option.isNone(lease))(
               );
               yield* Effect.log(`the entries held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -6478,7 +6513,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "a guarded take of the untimed test, once and twice, each on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<GuardedTakeSituation>(guardedTakeSituations),
                     generator: guardedTakeSpace,
                     literal: (c: GuardedTakeCase) => c.name,
@@ -6501,6 +6536,7 @@ describe.skipIf(Option.isNone(lease))(
               );
               yield* Effect.log(`the guarded takes held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
 
         it.effect(
@@ -6515,7 +6551,7 @@ describe.skipIf(Option.isNone(lease))(
                 exhaust(
                   {
                     box: "the outcome bounds test taken, entered and ended, on a fresh child",
-                    caseHang: Duration.minutes(2),
+                    caseHang,
                     coverage: requiredInSpace<OutcomeBoundsSituation>(outcomeBoundsSituations),
                     generator: outcomeBoundsSpace,
                     literal: (c: OutcomeBoundsCase) => c.name,
@@ -6542,6 +6578,7 @@ describe.skipIf(Option.isNone(lease))(
               );
               yield* Effect.log(`the outcome bounds held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
+          searchTimeout,
         );
       },
     );
