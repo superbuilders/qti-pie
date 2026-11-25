@@ -164,7 +164,10 @@ interface Found {
 /**
  * Collect the URL attributes plate writes of an item document's elements in QTI's namespace, each
  * with the `xml:base` values in scope, and each such attribute the census does not list, past the
- * ones spec reading 103 leaves out of it.
+ * ones spec reading 103 leaves out of it. An attribute's value's class is read under its kind's own
+ * governor, an element's with no `xsi:type`, as the walk reads no named type; every census
+ * attribute is one its kind admits. The walk pushes an element's children in reverse, so its stack
+ * pops them in document order.
  *
  * @param root - The document's root element.
  * @param source - The package's name and the document's path.
@@ -194,9 +197,6 @@ const referencesIn = (
           writesUrl(element.local, attribute.local) &&
           !leftOut(element.local, attribute.local)
         ) {
-          // Its value's class is read under its kind's own governor, an element's with no
-          // `xsi:type`, as the walk reads no named type; every census attribute is one its kind
-          // admits.
           Option.match(referenceCensus(element.local, attribute.local), {
             onNone: () => {
               uncensused.push(`${element.local}@${attribute.local}`);
@@ -222,7 +222,6 @@ const referencesIn = (
       }
     }
 
-    // Pushed in reverse, so the stack pops the children in document order.
     for (const child of element.children.toReversed()) {
       if (child.kind === "element") {
         stack.push({ bases, element: child });

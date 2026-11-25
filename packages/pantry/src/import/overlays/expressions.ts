@@ -431,7 +431,11 @@ const ruleOf: ReadonlyMap<string, Rule> = new Map(
 
 /**
  * Derive an expression's type as the laws do: its kind's typing over its operands' types, its own
- * attributes, and the variable its `identifier` names.
+ * attributes, and the variable its `identifier` names. A weighted variable's value is its
+ * variable's, "subject to the type promotion of weighted outcomes" (information model §7.47): "When
+ * applying a weight to the value of a variable with base-type integer the value is subject to type
+ * promotion and the result of the expression has base-type float" (§7.47.2). Only a `qti-variable`
+ * writes a weight among the kinds typed so.
  *
  * @param kind - The expression's kind.
  * @param inputs - Its operands' types, in order, its `base-type` and `name`, and its
@@ -464,11 +468,6 @@ const typeOf = (kind: string, inputs: TypeInputs): Typed => {
     case "declared": {
       const read = typeIn(inputs.reference);
 
-      // A weighted variable's value is its variable's, "subject to the type promotion of weighted
-      // outcomes" (information model §7.47): "When applying a weight to the value of a variable
-      // with base-type integer the value is subject to type promotion and the result of the
-      // expression has base-type float" (§7.47.2). Only a `qti-variable` writes a weight among
-      // the kinds typed so.
       return inputs.weighted && read.baseType === "integer" ? { ...read, baseType: "float" } : read;
     }
     case "attribute": {

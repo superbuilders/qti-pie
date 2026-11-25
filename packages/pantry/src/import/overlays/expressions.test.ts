@@ -685,7 +685,12 @@ const spells = (v: Reference): boolean =>
 
 /**
  * `E1_derived`'s resolution: the type each resolution gives, a declared one's by the declaration
- * its name resolves to, which a reference has exactly where it is declared.
+ * its name resolves to, which a reference has exactly where it is declared. A declared variable
+ * with no base type, a record, is `unknown`; one with a base type has its declaration's, which
+ * `PlacedVariableBase` reads. Its cardinality is its declaration's image where it has one (spec
+ * reading 159); one with none is refused by AL3 or its value domain alone, since `cardinality` is
+ * required and enumerated. A read one's type is its one reading's under a test (spec reading 167),
+ * which `overlay-queries/readings.ts` states; its name is neither declared nor built in there.
  *
  * @param v - The reference.
  * @param rows - The rows.
@@ -696,10 +701,6 @@ const resolves = (v: Reference, rows: Rows): boolean => {
   const declared = declarationOf(v, rows);
   switch (v.resolution) {
     case "declared": {
-      // A declared variable with no base type, a record, is `unknown`; one with a base type has its
-      // declaration's, which `PlacedVariableBase` reads. Its cardinality is its declaration's
-      // image where it has one (spec reading 159); one with none is refused by AL3 or its value
-      // domain alone, since `cardinality` is required and enumerated.
       return (
         declared !== undefined &&
         (declared.baseType !== undefined || v.baseType === "unknown") &&
@@ -715,8 +716,6 @@ const resolves = (v: Reference, rows: Rows): boolean => {
       );
     }
     case "read": {
-      // Its type is its one reading's under a test (spec reading 167), which
-      // `overlay-queries/readings.ts` states; its name is neither declared nor built in there.
       return testRootSet.has(v.rootKind) && declared === undefined && builtIn === undefined;
     }
     case "unresolved": {
@@ -787,7 +786,8 @@ const copies = (v: Reference, rows: Rows): boolean => {
 };
 
 /**
- * Each reference law, judged over a reference.
+ * Each reference law, judged over a reference. Under "Variable declared", reading R15-k: a braced
+ * reference, a string attribute's, that names no variable is a string value.
  */
 const referenceLawsOnHost: readonly (readonly [Law, (v: Reference, rows: Rows) => boolean])[] = [
   ["E1_derived", (v, rows) => spells(v) && resolves(v, rows) && copies(v, rows)],
@@ -796,8 +796,6 @@ const referenceLawsOnHost: readonly (readonly [Law, (v: Reference, rows: Rows) =
     (v) =>
       v.rootKind !== "qti-assessment-item" ||
       v.resolution !== "unresolved" ||
-      // Reading R15-k: a braced reference, a string attribute's, that names no variable is a
-      // string value.
       spellings.get(`${v.kind} ${v.attribute}`) === "braced",
   ],
   [
@@ -967,7 +965,9 @@ const literalBreaches = (rows: ExpressionRows): readonly Law[] =>
 
 /**
  * The laws the rows of the smaller overlays break: `Processing`'s language, the base type a typing
- * attribute or a weight gives, and `LiteralTyped`'s code and text.
+ * attribute or a weight gives, and `LiteralTyped`'s code and text. A test variables that writes no
+ * base-type is unknown where it writes no weight, and float where it writes one (§7.39.5 and
+ * §7.39.6; decision 434).
  *
  * @param rows - The rows.
  * @returns The laws broken, each once.
@@ -986,8 +986,6 @@ const overlayBreaches = (rows: Rows): ReadonlySet<Law> => {
     }
   }
 
-  // A test variables that writes no base-type is unknown where it writes no weight, and float
-  // where it writes one (§7.39.5 and §7.39.6; decision 434).
   for (const e of rows.Expression.values()) {
     const written = (attribute: string): boolean =>
       writtenAt(rows, e.start, attribute) !== undefined;
@@ -1115,18 +1113,19 @@ describe("import/overlays/expressions.ts, the fixtures' verdicts", () => {
   it.effect(
     "refuses each fixture under exactly the rule the old checker gave it, and accepts the rest",
     () =>
-      // Oracle: a second implementation, the old processing checker (`src/processing/check.ts` at
-      // its deletion), run once over every fixture and frozen in `verdicts.tsv`; a guard fixture's
-      // rule is another slice's, so O4's laws accept it. Bound: every fixture, 36 documents.
       Effect.gen(function* fixtureVerdicts() {
-        assert.strictEqual(frozen.length, 36);
+        assert.strictEqual(frozen.length, 36, "every fixture, 36 documents");
         for (const { file, rule, source } of frozen) {
           const rows = yield* rowsOfFixture(file);
           const rules = new Set([...breachesOf(rows)].map((law) => ruleOf[law]));
           const expected = source === "guard" || rule === "accepted" ? [] : [rule];
 
           assert.isTrue(source === "guard" || rows.Expression.size > 0, file);
-          assert.deepStrictEqual([...rules].toSorted(), expected, file);
+          assert.deepStrictEqual(
+            [...rules].toSorted(),
+            expected,
+            `${file}: the old processing checker's verdict (src/processing/check.ts at its deletion), run once over every fixture and frozen in verdicts.tsv; a guard fixture's rule is another slice's, so O4's laws accept it`,
+          );
         }
       }),
   );
@@ -1177,20 +1176,16 @@ describe("import/overlays/expressions.ts, a braced pattern that names no variabl
   it.effect(
     "is a string value in an item, while a name of the wrong kind or base type and an unresolved bare reference stay refused",
     () =>
-      // Oracle: information model §9.3.4, "if a string appears to be a reference to a template or
-      // outcome variable but there is no variable with the given name it should be treated simply
-      // as string value", and §2.11.3's base type for a name that is one (P24). Bound: the item's
-      // one reference, each of the four spellings.
       Effect.gen(function* braced() {
         assert.deepStrictEqual(
           yield* breachesUnder(patternMatch("{NOSUCH}")),
           [],
-          "no such variable",
+          'no such variable: information model §9.3.4, "if a string appears to be a reference to a template or outcome variable but there is no variable with the given name it should be treated simply as string value"',
         );
         assert.deepStrictEqual(
           yield* breachesUnder(patternMatch("{RESPONSE}")),
           ["Reference_type"],
-          "a response variable",
+          "a response variable: §2.11.3's base type for a name that is one (P24)",
         );
         assert.deepStrictEqual(
           yield* breachesUnder(patternMatch("{SCORE}")),
@@ -1288,14 +1283,8 @@ const declarationsInTree = (tree: XdmDocument<Composed>): ReadonlySet<string> =>
   return declared;
 };
 
-describe("import/overlays/expressions.ts, the claims a reference proves", () => {
+describe("import/overlays/expressions.ts, the claims a reference proves, a test's references read as spec readings 48 and 88 read them (representation-gaps.md §4)", () => {
   it("types a test variables that writes no base-type unknown, or float where it is weighted", () => {
-    // Oracle: the information model's TestVariables (§7.39.6: a base-type, where written,
-    // selects the variables matched and is the result's; none written, every integer and float
-    // one): the expression is float where it writes a base-type of float or a weight (§7.39.5:
-    // "When a weighting is specified the result of the expression always has base-type float"),
-    // and `unknown` where it writes neither; no row copies an attribute it writes.
-    // Bound: the base-type and the weight each written and unwritten.
     for (const [written, weighted] of [
       [false, false],
       [false, true],
@@ -1345,20 +1334,18 @@ describe("import/overlays/expressions.ts, the claims a reference proves", () => 
         ({ start }) => nodeAt(rows, start).kind === "qti-test-variables",
       );
 
-      assert.strictEqual(variables?.baseType, written || weighted ? "float" : "unknown");
-      assert.isFalse(breachesOf(rows).has("E1_derived"));
+      assert.strictEqual(
+        variables?.baseType,
+        written || weighted ? "float" : "unknown",
+        `the information model's TestVariables, its base-type ${written ? "" : "un"}written and its weight ${weighted ? "" : "un"}written (§7.39.6: a base-type, where written, selects the variables matched and is the result's; none written, every integer and float one): the expression is float where it writes a base-type of float or a weight (§7.39.5: "When a weighting is specified the result of the expression always has base-type float"), and unknown where it writes neither`,
+      );
+      assert.isFalse(breachesOf(rows).has("E1_derived"), "no row copies an attribute it writes");
     }
   });
 
   it.effect(
     "resolves a reference to a declaration exactly where its document declares its name, and types every unwritten unweighted base type unknown",
     () =>
-      // Oracle: each document's own tree (`declarationsInTree`), a second reading of what it
-      // declares, against the references the builder writes under the document's own placement
-      // (M2, `DeclaredPlacement` of `#pantry/qti/queries.ts`): a reference is declared exactly
-      // where its document declares its name, and every test variables that writes neither a
-      // `base-type` nor a weight is `unknown`.
-      // Bound: every fixture, 36 documents.
       Effect.gen(function* claimsProved() {
         for (const { file } of frozen) {
           const tree = yield* treeOfFixture(file);
@@ -1369,7 +1356,7 @@ describe("import/overlays/expressions.ts, the claims a reference proves", () => 
             assert.strictEqual(
               reference.resolution === "declared",
               declared.has(reference.identifier),
-              `${file} ${reference.identifier}`,
+              `${file} ${reference.identifier}: each document's own tree (declarationsInTree), a second reading of what it declares, against the references the builder writes under the document's own placement (M2, DeclaredPlacement of #pantry/qti/queries.ts): a reference is declared exactly where its document declares its name`,
             );
           }
 
@@ -1381,7 +1368,11 @@ describe("import/overlays/expressions.ts, the claims a reference proves", () => 
               !written("base-type") &&
               !written("weight-identifier")
             ) {
-              assert.strictEqual(expression.baseType, "unknown", file);
+              assert.strictEqual(
+                expression.baseType,
+                "unknown",
+                `${file}: every test variables that writes neither a base-type nor a weight is unknown`,
+              );
             }
           }
         }

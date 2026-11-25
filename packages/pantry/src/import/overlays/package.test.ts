@@ -471,7 +471,10 @@ const manifestBases = [undefined, "b/", "../b/", "http://x.org/", "a%zz/"] as co
  * an href with launch parameters or a fragment among them (`href-params`, reading 102), listing up
  * to three files drawn from two hrefs, so a file listed twice (`file-twice`) and a file two
  * resources list (`shared-file`) are drawn, and up to two dependencies, a resource's own identifier
- * among them (`self-dependency`).
+ * among them (`self-dependency`). A manifest has its identifier or none, each resource its own
+ * identifier, another's, the manifest's or none, and its href one of 9 or none (3 with a query or a
+ * fragment, 4 that need resolving), listing up to 3 of 5 files, under 5 xml:base values on each of
+ * the manifest, its resources and each resource.
  */
 const manifests: Gen<ManifestCase> = (source) => ({
   manifestBase: source.draw(element(manifestBases)),
@@ -699,7 +702,8 @@ const packages = ["lti", "metaData", "usageData"] as const satisfies readonly Na
 /**
  * Build a manifest of resources, each its own identifier, its href listed as its one file and the
  * type it writes, if any, and read the unread-type hrefs of the builder's rows
- * ({@link unreadTypeHrefsOf}).
+ * ({@link unreadTypeHrefsOf}): the query `UnreadTypeHref` (`#pantry/qti/queries.ts`) restated over
+ * the rows it reads, the builder's `ResourceHrefPath` and the tree's `type` attribute.
  *
  * @param resources - Each resource's href and type, none where it writes no type.
  * @returns The target of each unread-type href, in document order; the targets those name, once
@@ -734,14 +738,6 @@ const unreadOf = (
 
 describe("import/overlays/package.ts", () => {
   it.effect("writes each overlay's rows as the walk of the manifest's tree names them", (ctx) =>
-    // Oracle: a second implementation, a direct walk of the XDM document that numbers its nodes in
-    // document order and reads each element's attributes, against the builder's read of the tree's
-    // flat rows; the type codes against `ResourceTypeLexical`.
-    // Bound: a manifest with or without its identifier, up to 3 resources of 3 types or none, each
-    // with its own identifier, another's, the manifest's or none, with or without one of 9 hrefs
-    // (3 with a query or a fragment, 4 that need resolving), listing up to 3 of 5 files and up to
-    // 2 dependencies, under 5 xml:base values on each of the manifest, its resources and each
-    // resource, 300 runs.
     searched(
       ctx,
       explore(
@@ -770,7 +766,7 @@ describe("import/overlays/package.ts", () => {
           literal: Formatter.format,
           oracle: {
             kind: "second-implementation",
-            name: "a direct walk of the XDM tree, its hrefs by the oracle's RFC 3986 resolver",
+            name: "a direct walk of the XDM document that numbers its nodes in document order and reads each element's attributes, against the builder's read of the tree's flat rows, its hrefs by the oracle's RFC 3986 resolver; the type codes against ResourceTypeLexical",
           },
           runs: 300,
           shrink: completeShrink,
@@ -798,29 +794,23 @@ describe("import/overlays/package.ts", () => {
   );
 
   it("gives the query UnreadTypeHref a row for a resource whose written type spells no handle, and none for a typed or untyped one", () => {
-    // Oracle: R-O6's manifest (the genetic repair's gr-5a): its first resource's type carries a
-    // trailing space, so it spells no handle; the test resource's spells one. A `bogus` type is
-    // unread too; a resource that writes no type has no row, and AL3 refuses it alone. The query
-    // (`#pantry/qti/queries.ts`) is restated over the rows it reads, the builder's `ResourceHrefPath`
-    // and the tree's `type` attribute ({@link unreadTypeHrefsOf}); two unread resources of one
-    // path are two rows of one (package, target), the pair "Item ref target" reads.
     assert.deepStrictEqual(
       unreadOf([
         { href: "item.xml", type: "resourceextmetadata/xml " },
         { href: "test.xml", type: "imsqti_test_xmlv3p0" },
       ]),
       { hrefs: ["item.xml"], paths: ["item.xml"], typed: ["test.xml"] },
-      "R-O6",
+      "R-O6's manifest (the genetic repair's gr-5a): its first resource's type carries a trailing space, so it spells no handle; the test resource's spells one",
     );
     assert.deepStrictEqual(
       unreadOf([{ href: "item.xml", type: "bogus" }]),
       { hrefs: ["item.xml"], paths: ["item.xml"], typed: [] },
-      "bogus",
+      "a bogus type is unread too",
     );
     assert.deepStrictEqual(
       unreadOf([{ href: "item.xml", type: undefined }]),
       { hrefs: [], paths: [], typed: [] },
-      "no type",
+      "a resource that writes no type has no row, and AL3 refuses it alone",
     );
     assert.deepStrictEqual(
       unreadOf([
@@ -828,7 +818,7 @@ describe("import/overlays/package.ts", () => {
         { href: "item.xml", type: "bogus" },
       ]),
       { hrefs: ["item.xml", "item.xml"], paths: ["item.xml"], typed: [] },
-      "two unread resources of one path, one (package, target)",
+      'two unread resources of one path are two rows of one (package, target), the pair "Item ref target" reads',
     );
   });
 });
@@ -837,8 +827,6 @@ layer(TestLayer, { excludeTestServices: true })("import/overlays/package.ts, fix
   suite.effect(
     "writes each fixture manifest's overlay rows as the walk of its tree names them",
     () =>
-      // Oracle: the same direct walk, over the manifests of real packages.
-      // Bound: the fixtures of `fixtures`, each manifest that shreds.
       Effect.gen(function* fixtureRows() {
         let shredded = 0;
         const read = [
@@ -867,10 +855,15 @@ layer(TestLayer, { excludeTestServices: true })("import/overlays/package.ts, fix
 
           shredded += 1;
           const rows = rowsOf(ownViewOf(tree.value), ids);
-          assertRows(tree.value, rows, walk(tree.value), name);
+          assertRows(
+            tree.value,
+            rows,
+            walk(tree.value),
+            `${name}: the direct walk of a real manifest`,
+          );
         }
 
-        assert.isAtLeast(shredded, 8);
+        assert.isAtLeast(shredded, 8, "each fixture's manifest that shreds is walked");
       }),
   );
 });
@@ -1018,7 +1011,7 @@ interface ReferenceCase {
 /**
  * The generated documents: at the root or below it, with or without an `xml:base` on the root and
  * on each element, holding up to four elements of {@link carriers} with values of
- * {@link referenceValues}.
+ * {@link referenceValues}: 2 paths, 5 xml:base values, 5 kinds and 20 values.
  */
 const referenceCases: Gen<ReferenceCase> = (source) => ({
   base: source.draw(element(referenceBases)),
@@ -1175,26 +1168,24 @@ const declaredWhiteSpace = (kind: string, name: string): Option.Option<WhiteSpac
 
 describe("import/overlays/package.ts, hrefs and references", () => {
   it("reads the grammar's census as ReferenceAttribute's rows hold it, each in its value's whitespace class, and none for an attribute outside it", () => {
-    // Oracle: the closed relation's own rows (`ReferenceAttribute`, spec reading 103), which the
-    // database's copy into Reference selects by, against the builder's lookup; and the attribute
-    // inventory's declarations, read by a second walk, for each one's whitespace class, against
-    // the reading `Attribute.value` makes under the kind's own governor (`valueReadingOf`), for
-    // every attribute whose declared type is no union. No census attribute's type is a union,
-    // which the walk checks too, and every governor of a census kind admits its census names
-    // (`GoverningOf`), so the builder never reads a census attribute its governor admits not.
-    // Bound: every row of ReferenceAttribute under each governor of its kind, and three attributes
-    // outside it.
     assert.isNotEmpty(ReferenceAttribute.rows);
     for (const { form, kind, name } of ReferenceAttribute.rows) {
-      assert.deepStrictEqual(referenceCensus(kind, name), Option.some(form), `${kind} ${name}`);
+      assert.deepStrictEqual(
+        referenceCensus(kind, name),
+        Option.some(form),
+        `${kind} ${name}: the builder's lookup against the closed relation's own rows (ReferenceAttribute, spec reading 103), which the database's copy into Reference selects by`,
+      );
 
       const declared = declaredWhiteSpace(kind, name);
-      assert.isTrue(Option.isSome(declared), `${kind} ${name}: a declared type of one class`);
+      assert.isTrue(
+        Option.isSome(declared),
+        `${kind} ${name}: a declared type of one class, as no census attribute's type is a union`,
+      );
       for (const whiteSpace of Option.toArray(declared)) {
         assert.deepStrictEqual(
           valueReadingOf(kind, name, "a"),
           { _tag: "admitted", whiteSpace },
-          `${kind} ${name}`,
+          `${kind} ${name}: the reading Attribute.value makes under the kind's own governor (valueReadingOf) against the attribute inventory's declaration, read by a second walk, for its whitespace class`,
         );
       }
 
@@ -1202,7 +1193,7 @@ describe("import/overlays/package.ts, hrefs and references", () => {
         assert.strictEqual(
           valueReadingOf(governor, name, "a")._tag,
           "admitted",
-          `${kind} ${name} under ${governor}`,
+          `${kind} ${name} under ${governor}: every governor of a census kind admits its census names (GoverningOf), so the builder never reads a census attribute its governor admits not`,
         );
       }
     }
@@ -1217,27 +1208,31 @@ describe("import/overlays/package.ts, hrefs and references", () => {
   });
 
   it("reads an attribute its governor admits not as written, as Attribute.value keeps it", () => {
-    // Oracle: the specification, `Attribute.value`'s generated term (`#pantry/qti/attributes.ts`),
-    // which finds no domain for a name its element's governor declares none of and keeps the form,
-    // which AL1 admission refuses; and an admitted `xs:anyURI` beside it, collapsed.
-    // Bound: `div@src`, which no governor `div` has admits, and `img@src`, which `img` admits.
-    assert.deepStrictEqual(valueReadingOf("div", "src", " a.png "), { _tag: "unadmitted" });
-    assert.strictEqual(attributeValueOf("div", "src", " a.png "), " a.png ");
-    assert.strictEqual(attributeValueOf("img", "src", " a.png "), "a.png");
+    assert.deepStrictEqual(
+      valueReadingOf("div", "src", " a.png "),
+      { _tag: "unadmitted" },
+      "Attribute.value's generated term (#pantry/qti/attributes.ts) finds no domain for div@src, which no governor div has admits",
+    );
+    assert.strictEqual(
+      attributeValueOf("div", "src", " a.png "),
+      " a.png ",
+      "and keeps the form, which AL1 admission refuses",
+    );
+    assert.strictEqual(
+      attributeValueOf("img", "src", " a.png "),
+      "a.png",
+      "img@src, an admitted xs:anyURI, is collapsed",
+    );
   });
 
   it.effect(
     "splits every lexical form of the box as RFC 3986's Appendix B does, each piece of its pattern",
     (ctx) =>
-      // Oracle: a second implementation, RFC 3986's Appendix B regular expression over the form
-      // with its XML whitespace set aside; and the specification as a checker, each piece against
-      // the pattern its field's check reads (hrefPathPattern, hrefParamsPattern, XML's S).
-      // Bound: every lexical form of at most 4 of 7 letters, 2,801.
       searched(
         ctx,
         exhaust(
           {
-            box: "every lexical form of at most 4 of a / : ? # space tab",
+            box: "every lexical form of at most 4 of a / : ? # space tab, 2,801",
             caseHang: Duration.seconds(10),
             concurrency: searchWidth,
             coverage: requiredInSpace<SplitSituation>([
@@ -1249,7 +1244,10 @@ describe("import/overlays/package.ts, hrefs and references", () => {
             ]),
             generator: lexicals,
             literal: (lexical) => JSON.stringify(lexical),
-            oracle: { kind: "second-implementation", name: "RFC 3986, Appendix B" },
+            oracle: {
+              kind: "second-implementation",
+              name: "RFC 3986's Appendix B regular expression over the form with its XML whitespace set aside; and the specification as a checker, each piece against the pattern its field's check reads (hrefPathPattern, hrefParamsPattern, XML's S)",
+            },
             suite: "import/overlays-package-split",
           },
           (lexical: string, c) =>
@@ -1309,11 +1307,6 @@ describe("import/overlays/package.ts, hrefs and references", () => {
   it.effect(
     "writes each document's reference rows as a second reading of its tree names them",
     (ctx) =>
-      // Oracle: a second implementation, `expectedReferences`: the nodes numbered by hand, each
-      // value split by RFC 3986's Appendix B and resolved by the law oracle's own RFC 3986
-      // resolver with the xml:base values in scope.
-      // Bound: documents at 2 paths, under 5 xml:base values on the root and on each of up to 4
-      // elements of 5 kinds with 20 values, 400 runs.
       searched(
         ctx,
         explore(
@@ -1340,7 +1333,7 @@ describe("import/overlays/package.ts, hrefs and references", () => {
             literal: Formatter.format,
             oracle: {
               kind: "second-implementation",
-              name: "a second reading of the tree, its values by the oracle's RFC 3986 resolver",
+              name: "a second reading of the tree, expectedReferences: the nodes numbered by hand, each value split by RFC 3986's Appendix B and resolved by the law oracle's own RFC 3986 resolver with the xml:base values in scope",
             },
             runs: 400,
             shrink: completeShrink,

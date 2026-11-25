@@ -238,12 +238,11 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     it.effect(
       "writes an identifier only where it is written, and is refused under the oracle's rule",
       (ctx) =>
-        // Bound: the 320 cases of `cases`, exhausted.
         searched(
           ctx,
           exhaust(
             {
-              box: "a manifest with or without its identifier, a first resource of its own identifier, the first's, the manifest's or none, typed or not, with no dependency or one on itself, the second resource or nothing, and an optional second resource of the same identifiers",
+              box: "a manifest with or without its identifier, a first resource of its own identifier, the first's, the manifest's or none, typed or not, with no dependency or one on itself, the second resource or nothing, and an optional second resource of the same identifiers: 320 cases",
               caseHang: Duration.minutes(1),
               coverage: requiredInSpace<Situation>([
                 "dangling-dependency",
@@ -279,17 +278,22 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   );
                 }
 
-                // The host names the oracle's rule only where it judges every law the oracle finds
-                // broken: PostgreSQL may refuse first under a law the host does not judge, before any
-                // law it does. The locked run of 2026-11-19 (~/.cache/rf/VALIDGONE/dbconfirm/out/,
-                // mi13-a.json and mi13-b.json, the CLI's refusals written to mi13-a.err and
-                // mi13-b.err) refused this box's {"dependency":"none","first":"own","manifest":true,
-                // "second":"r0"} under "DocumentId key" alone, untyped (typed false) and typed
-                // alike, no AL3 named beside it on the untyped one: the key's refusal came before AL3
-                // was judged, so the immediate CHECK does not decide the rule there. That run was of
-                // staging's schema (8e801b599), where the key is a stored relation's; here it is a
-                // rule over the query IdBinding, which the host does not judge either.
-                if ([...oracleLaws].every((law) => judged.has(law))) {
+                /**
+                 * Whether the host judges every law the oracle finds broken, where alone it names
+                 * the oracle's rule: PostgreSQL may refuse first under a law the host does not
+                 * judge, before any law it does. The locked run of 2026-11-19
+                 * (~/.cache/rf/VALIDGONE/dbconfirm/out/, mi13-a.json and mi13-b.json, the CLI's
+                 * refusals written to mi13-a.err and mi13-b.err) refused this box's
+                 * {"dependency":"none","first":"own","manifest":true,"second":"r0"} under
+                 * "DocumentId key" alone, untyped (typed false) and typed alike, no AL3 named
+                 * beside it on the untyped one: the key's refusal came before AL3 was judged, so
+                 * the immediate CHECK does not decide the rule there. That run was of staging's
+                 * schema (8e801b599), where the key is a stored relation's; here it is a rule over
+                 * the query IdBinding, which the host does not judge either.
+                 */
+                const judgesEvery = [...oracleLaws].every((law) => judged.has(law));
+
+                if (judgesEvery) {
                   assert.strictEqual(
                     Option.getOrUndefined(Arr.head(rulesOf(host.brokenLaws))),
                     verdict.verdict === "accepted" ? undefined : verdict.rule,

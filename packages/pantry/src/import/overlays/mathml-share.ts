@@ -71,7 +71,8 @@ const documentStart = 0n;
 
 /**
  * Collect the elements that hold a row: each share with a target and each target, with their
- * ancestors up to the nearest `m:math` or, where none holds them, the document node.
+ * ancestors up to the nearest `m:math` or, where none holds them, the document node. A node already
+ * held has its chain held with it, so a walk stops there.
  *
  * @param byStart - A document's node rows by `start`.
  * @param starts - The nodes the walks start from.
@@ -83,7 +84,6 @@ const rowedOf = (
 ): ReadonlyMap<bigint, NodeRow<Composed>> => {
   const rowed = new Map<bigint, NodeRow<Composed>>();
   for (const start of starts) {
-    // A node already held has its chain held with it, so the walk stops there.
     for (
       let node = byStart.get(start);
       node !== undefined && !rowed.has(node.start);
@@ -122,7 +122,8 @@ interface Frame<Key> {
  * include then closes at a child edge or a share edge, which the database proves.
  *
  * @param members - The rowed nodes, each parent before its children and each include's parent
- *   before the elements it splices.
+ *   before the elements it splices: a node whose parent holds a row is met from the parent, which
+ *   precedes it, so each walk starts from the top of a chain.
  * @param childrenOf - Each rowed node's edges to its rowed children, in order, and to the elements
  *   an include of it splices.
  * @param targetOf - Each share's target.
@@ -163,8 +164,6 @@ const ranksOf = <Key>(
     return entry;
   };
 
-  // A node whose parent holds a row is met from the parent, which precedes it, so each walk starts
-  // from the top of a chain.
   for (const id of members) {
     while (!ranks.has(id)) {
       const entry = entryOf(id);
@@ -207,7 +206,12 @@ const ranksOf = <Key>(
 };
 
 /**
- * The share rows of one document in no assembly.
+ * The share rows of one document in no assembly. A document in an assembly has its shares placed
+ * under each instance of it ({@link placedShareRowsOf}), so it has none of its own. Every share's
+ * fragment and every id's owner are the identity builder's rows, which a document with no `src`
+ * that could be a share's needs neither of: a fragment's value starts with `#`, so its lexical
+ * form, whitespace around it or not, holds one. An ID's value is the database's `IdValue`'s, which
+ * the host reads as it does.
  *
  * @param view - The document's view.
  * @param ids - Where it stands in its package, as the identity builder reads it.
@@ -215,23 +219,17 @@ const ranksOf = <Key>(
  */
 export const rowsOf = (view: DocumentView, ids: IdentityIds): MathmlShareRows => {
   const none: MathmlShareRows = { MathRank: new Map(), ShareTarget: new Map() };
-  // A document in an assembly has its shares placed under each instance of it
-  // ({@link placedShareRowsOf}), so it has none of its own.
   if (ids.assembled) {
     return none;
   }
 
   const flat = view.rows;
-  // Every share's fragment and every id's owner are the identity builder's rows; a document with
-  // no `src` that could be one needs neither. A fragment's value starts with `#`, so its lexical
-  // form, whitespace around it or not, holds one.
   if (!flat.attributes.some(({ lexical, name }) => name === "src" && lexical.includes("#"))) {
     return none;
   }
 
   const { DocumentId, ShareFragment } = identityRowsOf(view, ids);
   const owners = new Map<string, bigint>();
-  // An ID's value is the database's `IdValue`'s, which the host reads as it does.
   for (const { id, owner } of idValuesOf(view, DocumentId.values())) {
     if (!owners.has(id)) {
       owners.set(id, owner);
