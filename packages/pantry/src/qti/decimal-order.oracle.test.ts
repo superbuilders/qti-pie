@@ -45,7 +45,7 @@ import { fold } from "#pantry/model/folds.ts";
 import { shred } from "#pantry/model/shred.ts";
 import { parsedDecimalBytes, utf8Length } from "#pantry/qti/limits.ts";
 import { AriaBounds } from "#pantry/qti/overlay-queries/interaction.ts";
-import { documentBreaches, lawsOf } from "#pantry/test/oracle.ts";
+import { documentBreaches, judgedAlone, lawsOf } from "#pantry/test/oracle.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { brokenIn, evaluatorOf, insideDomains } from "#pantry/test/row-evaluation.ts";
 
@@ -743,7 +743,7 @@ const judged = (drawnCase: RangeCase, note: (situation: Situation) => void) =>
       ),
       label,
     );
-    const breaches = documentBreaches("item.xml", folded, oracleLaws);
+    const breaches = documentBreaches("item.xml", folded, oracleLaws, judgedAlone);
 
     assert.deepStrictEqual(
       [

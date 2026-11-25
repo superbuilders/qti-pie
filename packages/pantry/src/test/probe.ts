@@ -171,5 +171,5 @@ export const refusedBy = (law: LawName, ...edits: readonly (readonly [string, st
  * @param markup - What its `qti-interaction-markup` holds, as written.
  * @returns The interaction's text.
  */
-export const contextPci = (identifier: string, markup = ""): string =>
+export const contextPci = (identifier: string, markup: string): string =>
   `<qti-portable-custom-interaction response-identifier="RESPONSE" module="m" custom-interaction-type-identifier="t"><qti-interaction-modules><qti-interaction-module id="m"/></qti-interaction-modules><qti-interaction-markup>${markup}</qti-interaction-markup><qti-context-variable identifier="${identifier}"/></qti-portable-custom-interaction>`;

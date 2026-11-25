@@ -31,7 +31,7 @@ import { foldGrammarOf, shredGrammarOf } from "#pantry/model/composed.ts";
 import { fold } from "#pantry/model/folds.ts";
 import { shred } from "#pantry/model/shred.ts";
 import { flatten } from "#pantry/model/xdm.ts";
-import { documentBreaches, explain, ruleOf } from "#pantry/test/oracle.ts";
+import { documentBreaches, explain, judgedAlone, ruleOf } from "#pantry/test/oracle.ts";
 import type { Laws } from "#pantry/test/oracle.ts";
 import { classOfLaw, classOfMessage, driverFor, schemaSetOf } from "#pantry/test/xsd-catalog.ts";
 import type {
@@ -2296,7 +2296,7 @@ export const judgeDocument = Effect.fn("test.judgeDocument")(function* judgeDocu
               .map((frame) => frame.trim())
               .join("; ")})`
           : String(error),
-      try: () => documentBreaches(input.path, rows.success, input.laws),
+      try: () => documentBreaches(input.path, rows.success, input.laws, judgedAlone),
     }),
   );
   if (Result.isFailure(breaches)) {

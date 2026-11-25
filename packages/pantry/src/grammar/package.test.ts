@@ -266,7 +266,7 @@ describe("cp:resource's type against xmllint", () => {
       Effect.gen(function* againstXmllint() {
         const fs = yield* FileSystem.FileSystem;
         const directory = yield* scratchDirectory("resource-types-");
-        const oracle = yield* writeXsdOracle(directory);
+        const oracle = yield* writeXsdOracle(directory, []);
         const cache = yield* xsdDirectory;
         const disagreements: string[] = [];
         const files = guideTypes.map((type) => `${directory}/${type.replaceAll("/", "-")}.xml`);

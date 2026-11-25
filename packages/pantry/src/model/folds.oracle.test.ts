@@ -12,9 +12,9 @@ import type { Composed } from "#pantry/model/composed.ts";
 import { fold } from "#pantry/model/folds.ts";
 import { closedName } from "#pantry/model/xdm.ts";
 import type { ClosedName, ElementKind, XdmClosedElement, XdmDocument } from "#pantry/model/xdm.ts";
-import { caseHang, familiesOf, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
+import { anyRoot, caseHang, familiesOf, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { GeneratedXdm, Placed, XdmFamily, XdmFeature } from "#pantry/test/gen/xdm.ts";
-import { documentBreaches, lawNames, lawsOf } from "#pantry/test/oracle.ts";
+import { documentBreaches, judgedAlone, lawNames, lawsOf } from "#pantry/test/oracle.ts";
 import type { LawName } from "#pantry/test/oracle.ts";
 
 /**
@@ -35,7 +35,7 @@ const laws = lawsOf(grammar);
 /**
  * The trees every property is checked over: the one generator's, over the composed grammar.
  */
-const documents = xdmDocument(grammar);
+const documents = xdmDocument(grammar, new Set(), anyRoot);
 
 /**
  * A law's verdict on a case, `law refuses`: noted for each law a case's rows break, so a search
@@ -485,7 +485,7 @@ describe("the host's law model over folded rows", () => {
             c.noteAll(familiesOf(model));
 
             const rows = yield* foldedOf(document);
-            const breaches = documentBreaches("generated.xml", rows, laws);
+            const breaches = documentBreaches("generated.xml", rows, laws, judgedAlone);
             c.noteAll(breaches.map(({ law }): LawVerdict => `${law} refuses`));
 
             assert.deepStrictEqual(

@@ -15,6 +15,7 @@ import { describe } from "vitest";
 import { AuthorAppLayer } from "#pantry/db/layer.ts";
 import { memoryMediaStore } from "#pantry/package/media.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
+import { nameOf } from "#pantry/test/package-name.ts";
 import { materialize } from "#pantry/test/fixtures.ts";
 import { importAgreesWithOracle, packagingFixtures } from "#pantry/test/oracle-verdict.ts";
 import { danglingIncludeName, materializeProcessing } from "#pantry/test/processing-fixtures.ts";
@@ -65,9 +66,8 @@ describe.skipIf(!hasLease)("import/package.packaging.test.ts, on the lease", () 
 
     it.effect(`refuses ${danglingIncludeName} by the law its dangling include breaks`, () =>
       Effect.gen(function* includeTarget() {
-        const refused = yield* Effect.flip(
-          importDir(yield* materializeProcessing(danglingIncludeName)),
-        );
+        const dir = yield* materializeProcessing(danglingIncludeName);
+        const refused = yield* Effect.flip(importDir(dir, nameOf(dir)));
         const named: readonly string[] =
           refused instanceof ImportRefused
             ? refused.rules

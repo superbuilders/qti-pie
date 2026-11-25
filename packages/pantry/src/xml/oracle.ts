@@ -84,7 +84,7 @@ interface XmllintRun {
  */
 export const xmllintRun = Effect.fn("oracle.xmllintRun")(function* xmllintRun(
   args: readonly string[],
-  env: Readonly<Record<string, string>> = {},
+  env: Readonly<Record<string, string>>,
 ): Effect.fn.Return<XmllintRun, OracleUnavailable, ChildProcessSpawner.ChildProcessSpawner> {
   const xmllint = yield* Effect.orDie(xmllintPath);
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
@@ -178,7 +178,7 @@ export const requireRecordsLibxml2 = Effect.fn("oracle.requireRecordsLibxml2")(
     ChildProcessSpawner.ChildProcessSpawner
   > {
     const executable = yield* Effect.orDie(xmllintPath);
-    const run = yield* xmllintRun(["--version"]);
+    const run = yield* xmllintRun(["--version"], {});
     const said = `${new TextDecoder().decode(run.stdout)}${run.stderr}`;
     const version = regex("using libxml version (?<version>\\d+)", "u").exec(said)?.groups?.[
       "version"
@@ -216,7 +216,7 @@ export const xmllintC14n = Effect.fn("oracle.xmllintC14n")(function* xmllintC14n
   OracleError | OracleUnavailable,
   ChildProcessSpawner.ChildProcessSpawner
 > {
-  const result = yield* xmllintRun(["--c14n", "--nonet", path]);
+  const result = yield* xmllintRun(["--c14n", "--nonet", path], {});
 
   if (result.code !== ChildProcessSpawner.ExitCode(0)) {
     return yield* new OracleError({ exitCode: result.code, stderr: result.stderr });

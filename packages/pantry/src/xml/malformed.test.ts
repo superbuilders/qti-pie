@@ -44,7 +44,7 @@ import {
 import type { Charset, CodecGenome } from "#pantry/test/gen/genetic/codec-genome.ts";
 import { declaredAgainstBytes, libxml2Class } from "#pantry/test/gen/genetic/codec-judge.ts";
 import { lawfulDocuments } from "#pantry/test/gen/genetic/lawful.ts";
-import { xdmDocument } from "#pantry/test/gen/xdm.ts";
+import { anyRoot, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
 import { OracleLayer, xmllintRun } from "#pantry/xml/oracle.ts";
 
@@ -909,7 +909,11 @@ const genomes: readonly (readonly [string, CodecGenome])[] = [
   ...sample(genericGenome, floorSeed("pantry/xml/malformed/generic-seeds"), 160).map(
     (genome, at) => [`generic seed ${String(at)}`, genome] as const,
   ),
-  ...sample(xdmDocument(grammar), floorSeed("pantry/xml/malformed/qti-seeds"), 8).map(
+  ...sample(
+    xdmDocument(grammar, new Set(), anyRoot),
+    floorSeed("pantry/xml/malformed/qti-seeds"),
+    8,
+  ).map(
     ({ document }, at) =>
       [`QTI seed ${String(at)}`, genomeOfTree(toXmlDocument(document, documentNames))] as const,
   ),
@@ -946,7 +950,7 @@ const batchSize = 200;
  * @returns Libxml2's verdict.
  */
 const judgedAlone = Effect.fnUntraced(function* judgedAlone(file: string) {
-  const run = yield* xmllintRun(["--noout", "--nonet", file]).pipe(Effect.orDie);
+  const run = yield* xmllintRun(["--noout", "--nonet", file], {}).pipe(Effect.orDie);
   const accepted = run.code === 0 && !regex(" namespace error : ", "u").test(run.stderr);
 
   return { accepted, why: accepted ? "" : libxml2Class(run.stderr, run.code) } satisfies Verdict;
@@ -966,7 +970,7 @@ const judgedAlone = Effect.fnUntraced(function* judgedAlone(file: string) {
 const judgedInBatches = Effect.fnUntraced(function* judgedInBatches(files: readonly string[]) {
   const verdicts = new Map<string, Verdict>();
   for (const batch of Arr.chunksOf(files, batchSize)) {
-    const run = yield* xmllintRun(["--noout", "--nonet", ...batch]).pipe(Effect.orDie);
+    const run = yield* xmllintRun(["--noout", "--nonet", ...batch], {}).pipe(Effect.orDie);
     const byFile = new Map<string, string[]>();
     let pending: string[] = [];
     for (const line of run.stderr

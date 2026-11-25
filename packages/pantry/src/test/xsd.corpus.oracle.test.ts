@@ -220,7 +220,7 @@ describe.skipIf(!settings.corpusRequested)("xsd.corpus.oracle.test.ts, the corpu
         yield* fs.remove(outputRoot, { force: true, recursive: true });
 
         const documents = yield* corpusDocuments();
-        const oracle = yield* writeXsdOracle(oracleRoot);
+        const oracle = yield* writeXsdOracle(oracleRoot, []);
         const judged: Judged[] = [];
         const records = [...recorded, ...libxml2Records];
 
@@ -474,7 +474,7 @@ const controlled = Effect.fn("test.controlled")(function* controlled(
     yield* fs.writeFile(file, bytes);
   }
 
-  const oracle = yield* writeXsdOracle(oracleRoot);
+  const oracle = yield* writeXsdOracle(oracleRoot, []);
   const verdicts = yield* validated(oracle, written);
 
   return yield* Effect.forEach(written, ({ bytes, file, name }, at) =>
@@ -542,7 +542,7 @@ describe.skipIf(!settings.corpusRequested)(
               yield* fs.writeFileString(`${controlRoot}/${name}.xml`, text);
             }
 
-            const oracle = yield* writeXsdOracle(oracleRoot);
+            const oracle = yield* writeXsdOracle(oracleRoot, []);
             const verdicts = yield* xmllintValidate({
               catalog: oracle.catalog,
               paths: files,

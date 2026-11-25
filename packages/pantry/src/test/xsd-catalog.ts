@@ -196,13 +196,13 @@ const rootDriversOf = (directory: string) =>
  * and the root drivers into a directory.
  *
  * @param directory - Where to write them, under the package's `work/`.
- * @param probes - The union driver's probe elements, none when not given.
+ * @param probes - The union driver's probe elements.
  * @returns The paths written; `XsdSourceMissing` when a pin is not cached, or `XsdSourceMismatch`
  *   when a cached file's bytes differ from its pin.
  */
 export const writeXsdOracle = Effect.fn("test.writeXsdOracle")(function* writeXsdOracle(
   directory: string,
-  probes: readonly ProbeDeclaration[] = [],
+  probes: readonly ProbeDeclaration[],
 ) {
   const fs = yield* FileSystem.FileSystem;
   const cache = yield* xsdDirectory;

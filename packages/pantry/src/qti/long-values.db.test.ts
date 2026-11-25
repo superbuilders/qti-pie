@@ -27,6 +27,7 @@ import { memoryMediaStore } from "#pantry/package/media.ts";
 import { entryPathBytes, namespaceNameBytes, utf8Length } from "#pantry/qti/limits.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
+import { nameOf } from "#pantry/test/package-name.ts";
 import { hasLease } from "#pantry/test/settings.ts";
 import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
 
@@ -167,7 +168,7 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
             const answer = sentenceOf(bytes);
             const dir = yield* scopedPackage(packageOf(answer, "item.xml"));
             const target = yield* fs.makeTempDirectoryScoped();
-            const imported = yield* importDir(dir);
+            const imported = yield* importDir(dir, nameOf(dir));
 
             assert.strictEqual(utf8Length(answer), bytes);
             assert.include(
@@ -195,7 +196,7 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
           const atBound = pathOf(entryPathBytes);
           const dir = yield* scopedPackage(packageOf(sentenceOf(40), atBound));
           const target = yield* fs.makeTempDirectoryScoped();
-          const imported = yield* importDir(dir);
+          const imported = yield* importDir(dir, nameOf(dir));
 
           assert.strictEqual(utf8Length(atBound), entryPathBytes);
           assert.include(
@@ -213,9 +214,8 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
           );
 
           const past = pathOf(entryPathBytes + 1);
-          const refused = yield* Effect.flip(
-            importDir(yield* scopedPackage(packageOf(sentenceOf(40), past))),
-          );
+          const pastDir = yield* scopedPackage(packageOf(sentenceOf(40), past));
+          const refused = yield* Effect.flip(importDir(pastDir, nameOf(pastDir)));
 
           const rules: readonly string[] =
             refused instanceof ImportRefused
@@ -238,7 +238,7 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
           const fs = yield* FileSystem.FileSystem;
           const dir = yield* scopedPackage(namedPackageOf(longNameBytes));
           const target = yield* fs.makeTempDirectoryScoped();
-          const imported = yield* importDir(dir);
+          const imported = yield* importDir(dir, nameOf(dir));
 
           assert.include(
             ["accepted", "unchanged"],
@@ -254,13 +254,10 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
             "the export differs from its source",
           );
 
-          const refused = yield* Effect.flip(
-            importDir(
-              yield* scopedPackage(
-                namedPackageOf({ ...longNameBytes, elementNamespace: namespaceNameBytes + 1 }),
-              ),
-            ),
+          const longDir = yield* scopedPackage(
+            namedPackageOf({ ...longNameBytes, elementNamespace: namespaceNameBytes + 1 }),
           );
+          const refused = yield* Effect.flip(importDir(longDir, nameOf(longDir)));
           const rules: readonly string[] =
             refused instanceof ImportRefused
               ? refused.rules

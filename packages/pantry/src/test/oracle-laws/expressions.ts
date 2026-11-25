@@ -459,14 +459,10 @@ const typers: Readonly<Record<ExpressionTyping["typing"], (input: TypingInput) =
  * @param rows - The document.
  * @param grammar - The composed grammar.
  * @param scope - Where its placement resolves its references, its own where it heads its
- *   assembly.
+ *   assembly (`rootScopeOf(rows, grammar, () => Option.none())` for a document read alone).
  * @returns The typed document.
  */
-export const typedOf = (
-  rows: View,
-  grammar: ComposedGrammar,
-  scope: PlacementScope = rootScopeOf(rows, grammar, () => Option.none()),
-): Typed => {
+export const typedOf = (rows: View, grammar: ComposedGrammar, scope: PlacementScope): Typed => {
   const { rootKind } = scope;
   const builtIns = new Map(
     grammar.references.builtIn.rows

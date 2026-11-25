@@ -5,6 +5,7 @@ import { describe } from "vitest";
 import { AuthorAppLayer } from "#pantry/db/layer.ts";
 import { memoryMediaStore } from "#pantry/package/media.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
+import { nameOf } from "#pantry/test/package-name.ts";
 import { materialize } from "#pantry/test/fixtures.ts";
 import type { FixtureName } from "#pantry/test/fixtures.ts";
 import { hasLease } from "#pantry/test/settings.ts";
@@ -60,7 +61,8 @@ describe.skipIf(!hasLease)("import/refusal.packaging.test.ts, on the lease", () 
     for (const [name, rules] of refused) {
       it.effect(`refuses ${name} under rules that meet ${rules.join(", ")}`, () =>
         Effect.gen(function* refusesFixture() {
-          const failure = yield* Effect.flip(importDir(yield* materialize(name)));
+          const dir = yield* materialize(name);
+          const failure = yield* Effect.flip(importDir(dir, nameOf(dir)));
 
           assert.instanceOf(failure, ImportRefused, `${name}: refused by another error`);
 

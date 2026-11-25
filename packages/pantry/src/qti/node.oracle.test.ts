@@ -46,13 +46,20 @@ import { ElementType, EndCharacter, Node, nodeLaws } from "#pantry/qti/node.ts";
 import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
-import { caseHang, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
+import { anyRoot, caseHang, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { XdmFeature } from "#pantry/test/gen/xdm.ts";
 import { choiceNode, judgedLaws, previewRowsOf } from "#pantry/test/host-judge.ts";
 import type { HeldRow } from "#pantry/test/host-judge.ts";
 import { admittedOf, symbolRowsOf } from "#pantry/test/indexes.ts";
 import { evaluatorOf, insideDomains } from "#pantry/test/row-evaluation.ts";
-import { documentBreaches, lawNames, lawsOf, oracleRules, ruleOf } from "#pantry/test/oracle.ts";
+import {
+  documentBreaches,
+  judgedAlone,
+  lawNames,
+  lawsOf,
+  oracleRules,
+  ruleOf,
+} from "#pantry/test/oracle.ts";
 import type { LawName } from "#pantry/test/oracle.ts";
 import { asi, edit, item, itemResource, manifestOf, packageOf } from "#pantry/test/probe.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
@@ -578,7 +585,7 @@ describe("N5, content order", () => {
               cases: 300,
               sense: notesOnly,
             }),
-            draw: drawnCase(xdmDocument(grammar)),
+            draw: drawnCase(xdmDocument(grammar, new Set(), anyRoot)),
             kept: [],
             literal: Formatter.format,
             oracle: {
@@ -793,7 +800,7 @@ describe("the foreign element laws, by the host oracle", () => {
             corrupt._tag === "document" ? yield* foldedOf(corrupt.xml) : corrupt.edit(rows);
           const foreignBreaches = (held: FoldedRows<Composed>) => [
             ...new Set(
-              documentBreaches("case.xml", held, oracleLaws)
+              documentBreaches("case.xml", held, oracleLaws, judgedAlone)
                 .map((breach) => breach.law)
                 .filter((name) => foreignLaws.has(name)),
             ),

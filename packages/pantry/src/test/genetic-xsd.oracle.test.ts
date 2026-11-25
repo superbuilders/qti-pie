@@ -718,7 +718,7 @@ describe("genetic-xsd.oracle.test.ts", () => {
               floorSeed("pantry/genetic-xsd"),
               fixedDrawn,
             );
-            const oracle = yield* writeXsdOracle(oracleRoot);
+            const oracle = yield* writeXsdOracle(oracleRoot, []);
             const matched = noMatches();
             const judge = (folder: string, genomes: readonly XsdGenome[]) =>
               judgeAll({
@@ -796,7 +796,7 @@ describe("genetic-xsd.oracle.test.ts", () => {
             const stream = rotatingSeed(run.seed, floorSeed("pantry/genetic-xsd"));
             const { names: seedNames, seeds } = seedsOf(grammar, stream, budget.initial);
             const lawful = new Set(seeds.slice(0, seeds.length - budget.initial));
-            const oracle = yield* writeXsdOracle(oracleRoot);
+            const oracle = yield* writeXsdOracle(oracleRoot, []);
             const breeding: Breeding = {
               corpus: corpusFrom(
                 grammar,

@@ -723,7 +723,7 @@ const lawsBreachedBy = (interaction: string, declarations: string) =>
 describe("qti/interactions.ts, the context variable and the markup's content", () => {
   it.effect("admits QTI_CONTEXT undeclared, the built-in context variable", () =>
     Effect.gen(function* undeclared() {
-      const found = yield* lawsBreachedBy(contextPci("QTI_CONTEXT"), "");
+      const found = yield* lawsBreachedBy(contextPci("QTI_CONTEXT", ""), "");
       assert.notInclude(
         found,
         "Idref target",
@@ -736,7 +736,7 @@ describe("qti/interactions.ts, the context variable and the markup's content", (
   it.effect("admits an item that declares a record context QTI_CONTEXT and names it", () =>
     Effect.gen(function* declared() {
       const found = yield* lawsBreachedBy(
-        contextPci("QTI_CONTEXT"),
+        contextPci("QTI_CONTEXT", ""),
         '<qti-context-declaration identifier="QTI_CONTEXT" cardinality="record"/>',
       );
       assert.notInclude(found, "Idref target", found.join(", "));

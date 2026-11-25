@@ -103,7 +103,7 @@ interface Found {
  * @param args - The arguments, the file last.
  * @returns Its exit status, standard output and standard error.
  */
-const xmllint = (args: readonly string[]) => xmllintRun(args).pipe(Effect.orDie);
+const xmllint = (args: readonly string[]) => xmllintRun(args, {}).pipe(Effect.orDie);
 
 /**
  * Blank one `xmllint` error line's names and numbers, so one rule of libxml2's is one class however

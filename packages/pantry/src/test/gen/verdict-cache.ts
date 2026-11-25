@@ -121,7 +121,7 @@ export const verdictKey = Effect.fn("test.verdictCache.verdictKey")(function* ve
  */
 export const xmllintVersion = Effect.fn("test.verdictCache.xmllintVersion")(
   function* xmllintVersion() {
-    const run = yield* xmllintRun(["--version"]);
+    const run = yield* xmllintRun(["--version"], {});
 
     return `${new TextDecoder().decode(run.stdout)}${run.stderr}`;
   },

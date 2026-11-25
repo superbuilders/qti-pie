@@ -12,6 +12,7 @@ import { AuthorAppLayer } from "#pantry/db/layer.ts";
 import { localMediaStore } from "#pantry/package/media.ts";
 import { PackageNotFound } from "#pantry/export/package.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
+import { nameOf } from "#pantry/test/package-name.ts";
 import { exitCodeOf } from "#pantry/cli/run.ts";
 import { qtiExport } from "#pantry/qti-export.ts";
 import { captureCli } from "#pantry/test/cli.ts";
@@ -89,7 +90,7 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
         const folder = yield* fresh("dry-run");
         const absent = path.join(folder, "absent");
         const real = path.join(folder, "real");
-        const { package: id } = yield* importDir(fixtures.simple);
+        const { package: id } = yield* importDir(fixtures.simple, nameOf(fixtures.simple));
 
         const text = yield* captureCli(qtiExport, ["--dry-run", absent, id], Option.none());
 
@@ -124,7 +125,7 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
         Effect.gen(function* dryRunJson() {
           const folder = yield* fresh("dry-run-json");
           const absent = path.join(folder, "absent");
-          const { package: id } = yield* importDir(fixtures.simple);
+          const { package: id } = yield* importDir(fixtures.simple, nameOf(fixtures.simple));
           const { exit, stderr, stdout } = yield* captureCli(
             qtiExport,
             ["--json", "--dry-run", absent, id],
@@ -154,7 +155,7 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
       Effect.gen(function* dryRunRefused() {
         const fs = yield* FileSystem.FileSystem;
         const folder = yield* fresh("dry-run-refused");
-        const { package: id } = yield* importDir(fixtures.simple);
+        const { package: id } = yield* importDir(fixtures.simple, nameOf(fixtures.simple));
         const file = path.join(folder, "a.txt");
 
         yield* fs.writeFileString(file, "kept");
@@ -174,7 +175,7 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
       Effect.gen(function* dryRunReplace() {
         const fs = yield* FileSystem.FileSystem;
         const folder = yield* fresh("dry-run-replace");
-        const { package: id } = yield* importDir(fixtures.simple);
+        const { package: id } = yield* importDir(fixtures.simple, nameOf(fixtures.simple));
         const file = path.join(folder, "a.txt");
 
         yield* fs.writeFileString(file, "kept");
@@ -201,7 +202,7 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
         const folder = yield* fresh("link");
         const linked = path.join(folder, "linked");
         const link = path.join(folder, "link");
-        const { package: id } = yield* importDir(fixtures.simple);
+        const { package: id } = yield* importDir(fixtures.simple, nameOf(fixtures.simple));
 
         yield* fs.makeDirectory(linked, { recursive: true });
         yield* fs.writeFileString(path.join(linked, "kept.txt"), "kept");

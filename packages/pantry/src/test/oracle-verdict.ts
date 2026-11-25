@@ -9,6 +9,7 @@ import { assert } from "@effect/vitest";
 import { Effect, Option, Result } from "effect";
 import { grammar } from "#pantry/grammar/install.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
+import { nameOf } from "#pantry/test/package-name.ts";
 import { readEntries } from "#pantry/package/read.ts";
 import type { PackageFile } from "#pantry/package/read.ts";
 import type { FixtureName } from "#pantry/test/fixtures.ts";
@@ -69,7 +70,7 @@ export const oracleCodecRule = (
 export const importAgreesWithOracle = (dir: string, label: string) =>
   Effect.gen(function* agreesWithOracle() {
     const expected = yield* oracleVerdict(yield* readEntries(dir));
-    const outcome = yield* Effect.result(importDir(dir));
+    const outcome = yield* Effect.result(importDir(dir, nameOf(dir)));
 
     if (Result.isSuccess(outcome)) {
       assert.strictEqual(

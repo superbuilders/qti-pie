@@ -73,7 +73,7 @@ class SpecXmllintUnavailable extends Schema.TaggedError<SpecXmllintUnavailable>(
  */
 const requireXmllint = Effect.fn("test.specCache.requireXmllint")(function* requireXmllint() {
   const executable = yield* Effect.orDie(xmllintPath);
-  const run = yield* xmllintRun(["--version"]).pipe(
+  const run = yield* xmllintRun(["--version"], {}).pipe(
     Effect.mapError(({ reason }) => new SpecXmllintUnavailable({ executable, reason })),
   );
 

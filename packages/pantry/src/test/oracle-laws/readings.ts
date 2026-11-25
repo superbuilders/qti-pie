@@ -45,7 +45,7 @@ import {
   testsOf,
 } from "#pantry/test/oracle-laws/assembly.ts";
 import type { AssembledDocument, Instance, Name } from "#pantry/test/oracle-laws/assembly.ts";
-import { declarationKindsOf, typedOf } from "#pantry/test/oracle-laws/expressions.ts";
+import { declarationKindsOf, rootScopeOf, typedOf } from "#pantry/test/oracle-laws/expressions.ts";
 import type {
   PlacementScope,
   ScopedReference,
@@ -412,7 +412,11 @@ const testReadingsOf = (
 
   return documents.flatMap(({ listed: { rows } }): readonly Breach[] => {
     const itemScoped = new Set<bigint>();
-    const breaches = typedOf(rows, grammar).references.flatMap((reference): readonly Breach[] => {
+    const breaches = typedOf(
+      rows,
+      grammar,
+      rootScopeOf(rows, grammar, () => Option.none()),
+    ).references.flatMap((reference): readonly Breach[] => {
       const { attribute, identifier, node } = reference;
       const readings = readingsOfReference(tables, testPath, reference);
       if (attribute === "identifier" && readings.some(({ item }) => item)) {

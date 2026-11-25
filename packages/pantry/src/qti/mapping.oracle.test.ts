@@ -18,7 +18,7 @@ import { grammar } from "#pantry/grammar/install.ts";
 import { foldGrammarOf, shredGrammarOf } from "#pantry/model/composed.ts";
 import { fold } from "#pantry/model/folds.ts";
 import { shred } from "#pantry/model/shred.ts";
-import { documentBreaches, lawsOf } from "#pantry/test/oracle.ts";
+import { documentBreaches, judgedAlone, lawsOf } from "#pantry/test/oracle.ts";
 import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
@@ -71,7 +71,7 @@ const mappingBreachesOf = (text: string) =>
     const tree = yield* Effect.orDie(shred(xml, shredGrammarOf(grammar)));
     const rows = yield* Effect.orDie(Effect.fromResult(fold(tree, foldGrammarOf(grammar))));
 
-    return documentBreaches("item.xml", rows, oracleLaws)
+    return documentBreaches("item.xml", rows, oracleLaws, judgedAlone)
       .filter(({ law }) => law === "Typed attribute value")
       .map(({ keys, law }) => `${law} ${JSON.stringify(keys)}`);
   });

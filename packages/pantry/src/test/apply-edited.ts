@@ -28,14 +28,11 @@ export type Applied = WriteOutcome<unknown> | Extract<CallError, { readonly kind
  * Build a package's ChangeSet with one edit of its inputs and apply it, logging the apply's time.
  *
  * @param dir - The package.
- * @param edit - The edit of its inputs; none applies the package as read.
+ * @param edit - The edit of its inputs.
  * @returns The apply's outcome or its refusal, and the package's name, its directory's base name
  *   (`nameOf`).
  */
-export const applyEdited = (
-  dir: string,
-  edit: (inputs: PackageInputs) => PackageInputs = (held) => held,
-) =>
+export const applyEdited = (dir: string, edit: (inputs: PackageInputs) => PackageInputs) =>
   Effect.gen(function* appliesEdited() {
     const name = nameOf(dir);
     const program = yield* readProgram(dir, name);

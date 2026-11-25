@@ -7,19 +7,18 @@ import { Db } from "@bjornpagen/grizzle/runtime";
 import { AuthorLogin } from "#pantry/db/served.ts";
 import { importPackage } from "#pantry/import/package.ts";
 import { readPackage } from "#pantry/import/read.ts";
-import { nameOf } from "#pantry/test/package-name.ts";
 
 /**
  * Read the package at `dir` under `name` and import what was read: `readPackage`, then
  * `importPackage`.
  *
  * @param dir - The package directory or `.zip` file.
- * @param name - The name it is stored under: by default its directory's base name
+ * @param name - The name it is stored under, most often its directory's base name
  *   (`#pantry/test/package-name.ts` `nameOf`).
  * @returns The name of the committed package and what the import did. Fails as the read fails, then
  *   as the import fails.
  */
-export const importDir = (dir: string, name: string = nameOf(dir)) =>
+export const importDir = (dir: string, name: string) =>
   Effect.gen(function* importDirectory() {
     const db = yield* Db.open((yield* AuthorLogin).roles.author, {});
 

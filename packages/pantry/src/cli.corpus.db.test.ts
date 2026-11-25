@@ -133,7 +133,10 @@ const importerRun = Effect.fn("cli.corpus.importerRun")(function* importerRun(
   yield* fs.remove(cwd, { force: true, recursive: true });
   yield* fs.makeDirectory(cwd, { recursive: true });
 
-  const [importTime, direct] = yield* importDir(entry.dir).pipe(Effect.result, Effect.timed);
+  const [importTime, direct] = yield* importDir(entry.dir, nameOf(entry.dir)).pipe(
+    Effect.result,
+    Effect.timed,
+  );
 
   if (Duration.toMillis(importTime) > tally.slowestImport.millis) {
     tally.slowestImport = { millis: Duration.toMillis(importTime), name: entry.name };

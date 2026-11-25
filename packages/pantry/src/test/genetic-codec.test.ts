@@ -55,7 +55,7 @@ import { featureFamily, judgeBytes, judgeOf } from "#pantry/test/gen/genetic/cod
 import type { CodecDisagreement, CodecWorld } from "#pantry/test/gen/genetic/codec-judge.ts";
 import { evolve, reduce } from "#pantry/test/gen/genetic/engine.ts";
 import type { Budget, Evolved, Found } from "#pantry/test/gen/genetic/engine.ts";
-import { xdmDocument } from "#pantry/test/gen/xdm.ts";
+import { anyRoot, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import { fileScratchDirectory } from "#pantry/test/scratch.ts";
 import { searchWidth, settings } from "#pantry/test/settings.ts";
 import { OracleLayer, requireRecordsLibxml2 } from "#pantry/xml/oracle.ts";
@@ -277,7 +277,7 @@ const fixed: readonly Fixed[] = [
  * the codec meets unsorted attributes from the start.
  */
 const qtiSeeds: readonly CodecGenome[] = sample(
-  xdmDocument(grammar),
+  xdmDocument(grammar, new Set(), anyRoot),
   floorSeed("pantry/genetic-codec/qti-seeds"),
   48,
 ).map(({ document }, at) => {

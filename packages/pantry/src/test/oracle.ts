@@ -4965,17 +4965,34 @@ const overlayBreaches = (
 };
 
 /**
+ * Where a document is judged: the ids of its assembly beyond its own, which its IDREFs may name
+ * (spec reading 117); those of them whose owner is a `qti-catalog`, which its `data-catalog-idref`s
+ * may name (spec reading 117); and, where it heads a test, its readings of a reference through a
+ * scope (spec reading 167).
+ */
+export interface Standing {
+  readonly assembled: ReadonlySet<string>;
+  readonly assembledCatalogs: ReadonlySet<string>;
+  readonly read: PlacementScope["read"];
+}
+
+/**
+ * A document judged alone: no assembly beyond its own, so no id its IDREFs may name there, and no
+ * reading through a scope.
+ */
+export const judgedAlone: Standing = {
+  assembled: new Set(),
+  assembledCatalogs: new Set(),
+  read: () => Option.none(),
+};
+
+/**
  * Evaluate every law of §1.3 to §1.5 and the document overlays of §1.7 over one folded document.
  *
  * @param path - The document's path in its package.
  * @param rows - Its folded rows.
  * @param laws - The grammar's tables.
- * @param assembled - The ids of the document's assembly beyond its own, which its IDREFs may name
- *   (spec reading 117), none for a document judged alone.
- * @param assembledCatalogs - Those of `assembled` whose owner is a `qti-catalog`, which its
- *   `data-catalog-idref`s may name (spec reading 117), none for a document judged alone.
- * @param read - Where the document heads a test, its readings of a reference through a scope (spec
- *   reading 167), none for a document judged alone.
+ * @param standing - Where it is judged, {@link judgedAlone} for a document judged alone.
  * @returns The breaches: the node laws in their order, the child sets, the attribute laws, the
  *   laws over the whole document, then the overlays.
  */
@@ -4983,9 +5000,7 @@ export const documentBreaches = (
   path: string,
   rows: FoldedRows<Composed>,
   laws: Laws,
-  assembled: ReadonlySet<string> = new Set(),
-  assembledCatalogs: ReadonlySet<string> = new Set(),
-  read: PlacementScope["read"] = () => Option.none(),
+  { assembled, assembledCatalogs, read }: Standing,
 ): readonly Breach[] => {
   const typed = typedReadingOf(laws);
   const view = viewOf(path, rows, typed);
@@ -7101,14 +7116,11 @@ const inPlaceBreaches = (
           ...Option.match(view, {
             onNone: () => [],
             onSome: (held) =>
-              documentBreaches(
-                held.path,
-                held.rows,
-                laws,
-                assemblies.get(listed.path)?.ids ?? new Set(),
-                assemblies.get(listed.path)?.catalogs ?? new Set(),
-                readsOf(listed.path),
-              ),
+              documentBreaches(held.path, held.rows, laws, {
+                assembled: assemblies.get(listed.path)?.ids ?? new Set(),
+                assembledCatalogs: assemblies.get(listed.path)?.catalogs ?? new Set(),
+                read: readsOf(listed.path),
+              }),
           }),
         ],
       }),
@@ -7246,7 +7258,7 @@ export const judge = Effect.fn("oracle.judge")(function* judge(
         breaches: [
           ...packageBreaches({ documents, files, manifest: view, missing }, laws),
           ...manifest.refusals,
-          ...documentBreaches(view.path, view.rows, laws),
+          ...documentBreaches(view.path, view.rows, laws, judgedAlone),
           ...inPlaceBreaches(documents, grammar, foldGrammar, laws, readsOf),
           ...lawPackageBreaches(lawPackage, grammar, typed, readsOf),
         ],

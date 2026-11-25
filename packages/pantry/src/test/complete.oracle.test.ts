@@ -57,7 +57,14 @@ import { nodeEdits } from "#pantry/test/oracle-complete/row-edits-nodes.ts";
 import { packageMutations } from "#pantry/test/oracle-complete/packages.ts";
 import { testMutations } from "#pantry/test/oracle-complete/tests.ts";
 import { hostlessLaws, policyLaws, statedInParts } from "#pantry/test/oracle-laws.ts";
-import { documentBreaches, judge, lawNames, ruleOf, shownBreach } from "#pantry/test/oracle.ts";
+import {
+  documentBreaches,
+  judge,
+  judgedAlone,
+  lawNames,
+  ruleOf,
+  shownBreach,
+} from "#pantry/test/oracle.ts";
 import type { Breach, LawName } from "#pantry/test/oracle.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
@@ -291,14 +298,16 @@ const property = (bases: Bases, mutation: Mutation) => (members: MemberCounts, c
     bases.folded.set(key, rows);
 
     assert.deepStrictEqual(
-      documentBreaches(mutation.document, rows, laws).map((breach) => shownBreach(breach, grammar)),
+      documentBreaches(mutation.document, rows, laws, judgedAlone).map((breach) =>
+        shownBreach(breach, grammar),
+      ),
       [],
       `${law}: the folded ${mutation.document} of ${literal} breaks a law before its mutation`,
     );
 
     const mutated = c.draw(mutation.mutate(rows, grammar));
 
-    holdsTo(law, documentBreaches(mutation.document, mutated, laws), literal);
+    holdsTo(law, documentBreaches(mutation.document, mutated, laws, judgedAlone), literal);
     c.note(law);
   });
 

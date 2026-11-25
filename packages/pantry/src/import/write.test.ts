@@ -72,7 +72,7 @@ import type { Node } from "#pantry/qti/node.ts";
 import type { Entry, Media } from "#pantry/qti/package.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { corpusPackage, materialize, materializeSpec } from "#pantry/test/fixtures.ts";
-import { caseHang, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
+import { anyRoot, caseHang, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { XdmFeature } from "#pantry/test/gen/xdm.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { rowSetOf } from "#pantry/test/row-sets.ts";
@@ -84,7 +84,7 @@ const fixtures = inject("fixtures");
  * The trees the properties are checked over: the one generator's, over the installed grammar, up to
  * 200 nodes and depth 7 a tree.
  */
-const documents = xdmDocument(grammar);
+const documents = xdmDocument(grammar, new Set(), anyRoot);
 
 /**
  * The manifest identifier the rows of one generated document are written under.

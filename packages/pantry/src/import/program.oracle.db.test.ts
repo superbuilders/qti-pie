@@ -28,6 +28,7 @@ import { composed } from "#pantry/grammar/compose.ts";
 
 import { WrapApply } from "#pantry/import/package.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
+import { nameOf } from "#pantry/test/package-name.ts";
 
 import type { NodeMember, NodeRoot, PackageInputs } from "#pantry/import/write.ts";
 import type { Place } from "#pantry/qti/schema.ts";
@@ -70,6 +71,14 @@ const commitUnknown: CallError = {
 };
 
 const fixtures = inject("fixtures");
+
+/**
+ * A package's inputs as read: the edit that applies the package unchanged.
+ *
+ * @param inputs - The inputs.
+ * @returns The same inputs.
+ */
+const asRead = (inputs: PackageInputs): PackageInputs => inputs;
 
 /**
  * 1EdTech's `svg`, a QTI 3.0.1 package as every fixture is ({@link corpusPackage}), otherwise
@@ -181,14 +190,14 @@ const holdsVerdict = (
 ) =>
   Effect.gen(function* heldToVerdict() {
     if (verdict.verdict === "accepted") {
-      const { outcome } = yield* applyEdited(dir);
+      const { outcome } = yield* applyEdited(dir, asRead);
 
       assert.strictEqual(outcome.kind, "accepted", `${name}: ${Formatter.format(outcome)}`);
 
       return;
     }
 
-    const refused = yield* Effect.flip(importDir(dir));
+    const refused = yield* Effect.flip(importDir(dir, nameOf(dir)));
 
     assert.include(
       refused instanceof ImportRefused
@@ -380,7 +389,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
       () =>
         Effect.gen(function* acceptsCorpus() {
           for (const [name, dir] of Object.entries(yield* acceptedPackages)) {
-            const { outcome, package: identifier } = yield* applyEdited(dir);
+            const { outcome, package: identifier } = yield* applyEdited(dir, asRead);
 
             assert.include(
               ["accepted", "unchanged"],
@@ -397,8 +406,8 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
 
     it.effect("imports one package twice as one package under its name, the second unchanged", () =>
       Effect.gen(function* twice() {
-        const first = yield* importDir(fixtures.simple);
-        const second = yield* importDir(fixtures.simple);
+        const first = yield* importDir(fixtures.simple, nameOf(fixtures.simple));
+        const second = yield* importDir(fixtures.simple, nameOf(fixtures.simple));
 
         assert.strictEqual(
           second.package,
@@ -420,8 +429,9 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
          * The import of a variant no other case imports, so no earlier case stored its identifier,
          * with a failure in place of its apply.
          */
+        const injected = yield* editedSimple("injected-failure", []);
         const failed = yield* Effect.flip(
-          importDir(yield* editedSimple("injected-failure", [])).pipe(
+          importDir(injected, nameOf(injected)).pipe(
             Effect.provideService(WrapApply, () => Effect.fail(commitUnknown)),
           ),
         );
@@ -451,7 +461,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
                 `<qti-response-declaration identifier="${identifier}" cardinality="single" base-type="${baseType}"><qti-mapping default-value="0"><qti-map-entry map-key="${first}" mapped-value="1"/><qti-map-entry map-key="${second}" mapped-value="2"/></qti-mapping></qti-response-declaration>`,
               ),
             ]);
-            const { outcome } = yield* applyEdited(dir);
+            const { outcome } = yield* applyEdited(dir, asRead);
 
             assert.strictEqual(
               outcome.kind,
@@ -487,7 +497,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
               },
             ]);
             const judgment = yield* judge(yield* readEntries(dir), grammar, laws);
-            const { outcome } = yield* applyEdited(dir);
+            const { outcome } = yield* applyEdited(dir, asRead);
 
             assert.strictEqual(
               judgment._tag === "Judged" && judgment.breaches.length === 0,
@@ -520,7 +530,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
                 `<qti-response-declaration identifier="UPLOAD" cardinality="single" base-type="file"><qti-mapping default-value="0"><qti-map-entry map-key="a" mapped-value="1"/></qti-mapping></qti-response-declaration>`,
               ),
             ]),
-            (dir) => applyEdited(dir),
+            (dir) => applyEdited(dir, asRead),
           ),
         laws: [containedIn("MappingBaseType", "MappableBaseType")],
         name: "a mapping on a file response (mapping-base-type, Q5.11)",
@@ -533,7 +543,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
                 `<qti-response-declaration identifier="REC" cardinality="record"><qti-mapping default-value="0"><qti-map-entry map-key="a" mapped-value="1"/></qti-mapping></qti-response-declaration>`,
               ),
             ]),
-            (dir) => applyEdited(dir),
+            (dir) => applyEdited(dir, asRead),
           ),
         laws: [checkNamed("MappingCardinality", "MappableBaseType")],
         name: "a mapping on a record response (mapping-base-type, Q5.11)",
@@ -546,7 +556,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
                 `<qti-response-declaration identifier="AREA" cardinality="single" base-type="pair"><qti-area-mapping default-value="0"><qti-area-map-entry shape="circle" coords="1,1,1" mapped-value="1"/></qti-area-mapping></qti-response-declaration>`,
               ),
             ]),
-            (dir) => applyEdited(dir),
+            (dir) => applyEdited(dir, asRead),
           ),
         laws: [checkNamed("AreaMappingBaseType", "AreaMapping_base_type")],
         name: "an area mapping on a pair response (mapping-base-type, Q5.11)",
@@ -559,7 +569,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
                 `<qti-outcome-declaration identifier="TABLE" cardinality="multiple" base-type="integer"><qti-match-table default-value="0"><qti-match-table-entry source-value="1" target-value="1"/></qti-match-table></qti-outcome-declaration>`,
               ),
             ]),
-            (dir) => applyEdited(dir),
+            (dir) => applyEdited(dir, asRead),
           ),
         laws: [checkNamed("LookupTableCardinality", "Lookup_table_cardinality")],
         name: "a match table on a multiple-cardinality outcome (lookup-cardinality, Q5.11)",
@@ -592,7 +602,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
                   "the oracle finds RootOfType alone broken",
                 );
 
-                const applied = yield* applyEdited(dir);
+                const applied = yield* applyEdited(dir, asRead);
 
                 yield* holdsVerdict("an item named as a stimulus", dir, {
                   rule: "root-type-reverse",
@@ -613,7 +623,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
                 `<resource identifier="extra" type="webcontent" href="choice.xml"><file href="images/sign.png"/></resource>`,
               ),
             ]),
-            (dir) => applyEdited(dir),
+            (dir) => applyEdited(dir, asRead),
           ),
         laws: [containedIn("ResourceHrefPath", "ResourceFilePath")],
         name: "a resource href its own files do not list (href-listed, Q5.06)",
@@ -626,7 +636,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
                 `<resource identifier="ghost" type="imsqti_item_xmlv3p0" href="ghost.xml"><file href="ghost.xml"/></resource>`,
               ),
             ]),
-            (dir) => applyEdited(dir),
+            (dir) => applyEdited(dir, asRead),
           ),
         /**
          * "Document entry" over the query `TypedPath` (`qti/queries.ts`): the document a typed href
@@ -646,7 +656,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
                 search: `identifier="choice" type="imsqti_item_xmlv3p0"`,
               },
             ]),
-            (dir) => applyEdited(dir),
+            (dir) => applyEdited(dir, asRead),
           ),
         laws: [keyOn("IdBinding", "package", "path", "idDigest")],
         name: "a resource sharing its manifest's identifier (document-key over the manifest's IDs, Q5.06)",
@@ -771,7 +781,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
                 `<qti-response-declaration identifier="WORD" cardinality="single" base-type="integer"><qti-mapping default-value="0"><qti-map-entry map-key="abc" mapped-value="1"/></qti-mapping></qti-response-declaration>`,
               ),
             ]),
-            (dir) => applyEdited(dir),
+            (dir) => applyEdited(dir, asRead),
           ),
         laws: [checkNamed("MapKeyType", "Typed_attribute_value")],
         name: "an integer mapping keyed abc (Typed attribute value, Q5.11)",
@@ -784,7 +794,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
                 `<qti-outcome-declaration identifier="LOOK" cardinality="single" base-type="integer"><qti-match-table default-value="0"><qti-match-table-entry source-value="1" target-value="x"/></qti-match-table></qti-outcome-declaration>`,
               ),
             ]),
-            (dir) => applyEdited(dir),
+            (dir) => applyEdited(dir, asRead),
           ),
         laws: [checkNamed("LookupValueType", "Typed_attribute_value")],
         name: "an integer outcome's match table entry targeting x (Typed attribute value, Q5.11)",
@@ -793,7 +803,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
         apply: () =>
           Effect.flatMap(
             editedSimple("dangling-idref", [inBody(`<p aria-describedby="nowhere">See.</p>`)]),
-            (dir) => applyEdited(dir),
+            (dir) => applyEdited(dir, asRead),
           ),
         laws: [containedIn("IdrefTarget", "IdBinding")],
         name: "an IDREF token naming no id of its document (Idref target, Q5.07)",
@@ -870,7 +880,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
                 `<p><ssml:speak xmlns:ssml="http://www.w3.org/2001/10/synthesis" version="1.1" xml:lang="en" startmark="a b"><ssml:mark name="a b"/><ssml:mark name="a  b"/>x</ssml:speak></p>`,
               ),
             ]),
-            (dir) => applyEdited(dir),
+            (dir) => applyEdited(dir, asRead),
           ),
         laws: [keyOn("TrimmedMark", "package", "path", "fragment", "valueDigest")],
         name: "a startmark naming two marks that collapse to one name (SSML trim mark, reading 3)",
@@ -889,7 +899,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
                 `<p><ssml:speak xmlns:ssml="http://www.w3.org/2001/10/synthesis" version="1.1" xml:lang="en"><ssml:voice languages="und">hi</ssml:voice></ssml:speak></p>`,
               ),
             ]),
-            (dir) => applyEdited(dir),
+            (dir) => applyEdited(dir, asRead),
           ),
         laws: [checkNamed("Attribute", "value_domain")],
         name: "a voice whose languages is und (value domain, reading 42)",
@@ -913,7 +923,8 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
     for (const [name, rules] of metadataVerdicts) {
       it.effect(`gives ${name} Q5.12's verdict`, () =>
         Effect.gen(function* metadataVerdict() {
-          const outcome = yield* Effect.result(importDir(yield* materialize(name)));
+          const dir = yield* materialize(name);
+          const outcome = yield* Effect.result(importDir(dir, nameOf(dir)));
 
           if (rules.length === 0) {
             assert.isTrue(outcome._tag === "Success", `${name} was refused`);
@@ -964,7 +975,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
           }
 
           if (verdict.source === "guard") {
-            const { outcome } = yield* applyEdited(dir);
+            const { outcome } = yield* applyEdited(dir, asRead);
 
             assert.isTrue(
               rejectedBy(outcome, [

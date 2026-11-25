@@ -20,6 +20,7 @@ import { AuthorAppLayer } from "#pantry/db/layer.ts";
 import { WrapApply } from "#pantry/import/package.ts";
 import { memoryMediaStore } from "#pantry/package/media.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
+import { nameOf } from "#pantry/test/package-name.ts";
 import { packageStored } from "#pantry/test/apply-edited.ts";
 
 import { materialize } from "#pantry/test/fixtures.ts";
@@ -94,8 +95,8 @@ describe.skipIf(!hasLease)("import/package.test.ts, on the lease", () => {
   )("importPackage on the lease", (it) => {
     it.effect("stores simple under its name, and again is no change", () =>
       Effect.gen(function* acceptsSimple() {
-        const first = yield* importDir(fixtures.simple);
-        const again = yield* importDir(fixtures.simple);
+        const first = yield* importDir(fixtures.simple, nameOf(fixtures.simple));
+        const again = yield* importDir(fixtures.simple, nameOf(fixtures.simple));
         const db = yield* Db.open((yield* AuthorLogin).roles.author, {});
 
         assert.strictEqual(
@@ -143,7 +144,8 @@ describe.skipIf(!hasLease)("import/package.test.ts, on the lease", () => {
     for (const [name, rules] of brokenBeyondOracle) {
       it.effect(`refuses ${name} under rules that meet ${rules.join(", ")}`, () =>
         Effect.gen(function* refusedBeyondOracle() {
-          const refused = yield* Effect.flip(importDir(yield* materialize(name)));
+          const dir = yield* materialize(name);
+          const refused = yield* Effect.flip(importDir(dir, nameOf(dir)));
 
           assert.isTrue(
             refused instanceof ImportRefused && refused.rules.some((rule) => rules.includes(rule)),

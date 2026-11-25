@@ -1992,20 +1992,27 @@ const boundsGen: Gen<Bounds> = (source) => ({
 });
 
 /**
+ * Every root kind, as the roots a case may draw where the suite's oracle judges every one.
+ *
+ * @returns Whether a root kind may be drawn: always.
+ */
+export const anyRoot = (): boolean => true;
+
+/**
  * Generate a valid document over a grammar, with its model and its swarm.
  *
  * @param grammar - The composed grammar.
  * @param without - The features every case's swarm leaves off, for a suite whose oracle cannot
- *   judge them, so the suite never draws what it would set aside: none by default.
+ *   judge them, so the suite never draws what it would set aside.
  * @param rooted - The root kinds a case may draw, for a suite whose oracle judges only some, so
- *   the suite constructs those rather than setting the rest aside: every root by default. It must
- *   leave a root.
+ *   the suite constructs those rather than setting the rest aside ({@link anyRoot} for every root).
+ *   It must leave a root.
  * @returns The generator.
  */
 export const xdmDocument = (
   grammar: ComposedGrammar,
-  without: ReadonlySet<XdmFeature> = new Set(),
-  rooted: (kind: ElementKind<Composed>) => boolean = () => true,
+  without: ReadonlySet<XdmFeature>,
+  rooted: (kind: ElementKind<Composed>) => boolean,
 ): Gen<GeneratedXdm> => {
   const index = indexOf(grammar);
   const weighed = xdmFeatures.filter((feature) => !without.has(feature));

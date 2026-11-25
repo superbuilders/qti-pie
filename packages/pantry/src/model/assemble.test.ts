@@ -26,6 +26,7 @@ import type {
   XdmDocument,
 } from "#pantry/model/xdm.ts";
 import {
+  anyRoot,
   caseHang,
   corrupt,
   corruption,
@@ -56,7 +57,7 @@ const grammar = Result.getOrThrow(composed());
  * The trees every property is checked over: the one generator's, over the composed grammar, up to
  * 200 nodes and depth 7 a tree.
  */
-const documents = xdmDocument(grammar);
+const documents = xdmDocument(grammar, new Set(), anyRoot);
 
 /**
  * The lists of {@link FlatRows} other than the document row.
