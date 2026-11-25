@@ -336,14 +336,6 @@ const childrenOf = (node: BodyNode | undefined): readonly BodyNode[] => {
  */
 const fewerDeclarations = 1000;
 
-/**
- * The quadratic binding control counts 320 million blocks of JavaScript under V8's interpreter and
- * Sparkplug, about 16 s alone, and several times that beside other suites on a busy machine: at
- * the load averages near 400 on 64 cores the vitest config names, about 100 s, past vitest's 60 s
- * default. A failing control should report its ratio, not a timeout.
- */
-const quadraticBindingTimeoutMs = 300_000;
-
 describe("buildItem", () => {
   it("builds BG007's Choice, the same whether its response processing names a template or writes it inline, with no mark", () => {
     const built: Item = admittedItem(bg007(template("match_correct")));
@@ -2067,22 +2059,19 @@ describe("buildItem", () => {
       }),
   );
 
-  it.effect(
-    "control: a quadratic binding of the same interactions fails the growth check",
-    () =>
-      Effect.gen(function* quadraticBindingControl() {
-        const bound = bindQuadratically(textEntries(fewerDeclarations));
-        assert.strictEqual(bound.length, fewerDeclarations);
-        assert.isTrue(bound.every((found) => found !== undefined));
+  it.effect("control: a quadratic binding of the same interactions fails the growth check", () =>
+    Effect.gen(function* quadraticBindingControl() {
+      const bound = bindQuadratically(textEntries(fewerDeclarations));
+      assert.strictEqual(bound.length, fewerDeclarations);
+      assert.isTrue(bound.every((found) => found !== undefined));
 
-        const growth = yield* blockGrowth("quadraticBinding", fewerDeclarations);
-        assert.isAtLeast(
-          growth,
-          blockGrowthLimit,
-          `8 times the interactions ran ${growth.toFixed(1)} times the blocks`,
-        );
-      }),
-    quadraticBindingTimeoutMs,
+      const growth = yield* blockGrowth("quadraticBinding", fewerDeclarations);
+      assert.isAtLeast(
+        growth,
+        blockGrowthLimit,
+        `8 times the interactions ran ${growth.toFixed(1)} times the blocks`,
+      );
+    }),
   );
 
   it.effect("control: a quadratic dedupe of the same features fails the growth check", () =>

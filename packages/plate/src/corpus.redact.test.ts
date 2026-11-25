@@ -23,12 +23,6 @@ import { admitted } from "#plate/test/admitted.ts";
 import type { Accepted } from "#plate/validate/verdict.ts";
 
 /**
- * Opening the corpus (about 800 members) and redacting every accepted item runs in seconds here;
- * the bound leaves room for a slow machine without letting a hung run stall the suite.
- */
-const sweepTimeoutMs = 600_000;
-
-/**
  * The fields of a response declaration that hold what the page must not know: its correct
  * response, its mapping, its area mapping and its default value.
  */
@@ -605,7 +599,7 @@ describe("the allowlist sweep over the corpus", () => {
         assert.isNotEmpty(subjects, "no corpus item is accepted");
         assert.deepStrictEqual(subjects.flatMap(keyProblems), []);
       }),
-    { tags: ["corpus"], timeout: sweepTimeoutMs },
+    { tags: ["corpus"] },
   );
 
   it.effect(
@@ -624,7 +618,7 @@ describe("the allowlist sweep over the corpus", () => {
           [],
         );
       }),
-    { tags: ["corpus"], timeout: sweepTimeoutMs },
+    { tags: ["corpus"] },
   );
 
   it.effect(
@@ -702,7 +696,7 @@ describe("the template sweep over the corpus", () => {
           [],
         );
       }),
-    { tags: ["corpus", "grading-golden"], timeout: sweepTimeoutMs },
+    { tags: ["corpus", "grading-golden"] },
   );
   it.effect(
     "every templated corpus item, redacted under each golden record and with no record, shows a template value only as a printed variable's text, and no hidden template content, template-set correct response, template rule or template visibility, nor any of the core set",
@@ -725,7 +719,7 @@ describe("the template sweep over the corpus", () => {
           [],
         );
       }),
-    { tags: ["corpus", "grading-golden"], timeout: sweepTimeoutMs },
+    { tags: ["corpus", "grading-golden"] },
   );
 
   it.effect(

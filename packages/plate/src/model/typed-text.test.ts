@@ -170,12 +170,6 @@ const recordOf = (text: string): Effect.Effect<RecordValue, UnreadReason> =>
 const fewerDigits = 12_500;
 
 /**
- * The quadratic control reads 100,000 digits three times, about 1.5 s alone; under load that nears
- * vitest's default of 5 s.
- */
-const controlTimeoutMs = 60_000;
-
-/**
  * Measure how a parse's CPU time grows with its digits, through {@link growthRatio}: on the first
  * {@link fewerDigits} digits and on {@link growthFactor} times as many.
  *
@@ -388,23 +382,20 @@ describe("readTyped", () => {
       }),
   );
 
-  it.effect(
-    "control: a quadratic parse fails the growth check",
-    () =>
-      Effect.gen(function* quadraticControl() {
-        const spelling = "z".repeat(fewerDigits * growthFactor);
-        assert.strictEqual(parseQuadratically("zz"), 35n * 36n + 35n);
+  it.effect("control: a quadratic parse fails the growth check", () =>
+    Effect.gen(function* quadraticControl() {
+      const spelling = "z".repeat(fewerDigits * growthFactor);
+      assert.strictEqual(parseQuadratically("zz"), 35n * 36n + 35n);
 
-        const growth = yield* digitGrowth(spelling, (digits) => {
-          parseQuadratically(digits);
-        });
-        assert.isAtLeast(
-          growth,
-          growthLimit,
-          `8 times the digits took ${growth.toFixed(1)} times as long`,
-        );
-      }),
-    controlTimeoutMs,
+      const growth = yield* digitGrowth(spelling, (digits) => {
+        parseQuadratically(digits);
+      });
+      assert.isAtLeast(
+        growth,
+        growthLimit,
+        `8 times the digits took ${growth.toFixed(1)} times as long`,
+      );
+    }),
   );
 
   it("leaves a decimal, INF, a bare sign and a base outside 2 to 36 unread as an integer", () => {

@@ -503,6 +503,6 @@ describe("a fresh attempt's start", () => {
           }
         }
       }),
-    { tags: ["corpus"], timeout: 600_000 },
+    { tags: ["corpus"] },
   );
 });

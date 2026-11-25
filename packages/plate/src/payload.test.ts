@@ -2374,13 +2374,6 @@ const nullSingle = (baseType: Value["baseType"]): Value => nullOf(baseType, "sin
 const fewerEntries = 2000;
 
 /**
- * The growth check reads 16,000 responses three times and 2,000 responses 24 times. A read that
- * searched every interaction for each response took about a second at 16,000 responses, and a
- * failing check should report its ratio, not a timeout.
- */
-const growthTimeoutMs = 300_000;
-
-/**
  * Construct an item whose body is one paragraph of Text Entries, each bound to its own single
  * string response, `R1` to `R<count>`, accepted as it is.
  *
@@ -2666,7 +2659,6 @@ describe("startingResponses", () => {
           `8 times the bound responses took ${growth.toFixed(1)} times as long`,
         );
       }),
-    growthTimeoutMs,
   );
 });
 

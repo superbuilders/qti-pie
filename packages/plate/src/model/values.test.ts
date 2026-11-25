@@ -64,14 +64,6 @@ const record = (...fields: readonly RecordField[]): RecordValue => ({
  */
 const field = (identifier: string, single: Single): RecordField => ({ identifier, value: single });
 
-/**
- * The timeout of the linear-trim check, which samples both sizes of each of its two cases several
- * times, each sample at least `growthRatio`'s minimum of thread CPU: about a second alone, and 2 s
- * and more beside the rest of the suite on a loaded machine, toward vitest's default of 5 s.
- * Vitest fails a test that ends after its timeout even when it passes.
- */
-const growthTimeoutMs = 60_000;
-
 describe("isNullResponse and isRecordValue", () => {
   it("isNull holds a value of no values NULL at any cardinality, and one holding a value not", () => {
     assert.isTrue(isNull(nullOf("string", "multiple")));
@@ -148,52 +140,49 @@ describe("parseElementText", () => {
     );
   });
 
-  it.effect(
-    "trims a 100,000-character whitespace run in linear time",
-    () =>
-      Effect.gen(function* linearTrim() {
-        const run = " \t\n\r".repeat(25_000);
-        const shorterRun = " \t\n\r".repeat(25_000 / growthFactor);
-        const cases: readonly (readonly [
-          ModelledBaseType,
-          (whitespace: string) => string,
-          Single,
-        ])[] = [
-          ["identifier", (whitespace) => `${whitespace}x`, { baseType: "identifier", value: "x" }],
-          [
-            "pair",
-            (whitespace) => `A${whitespace}B${whitespace}`,
-            { baseType: "pair", value: ["A", "B"] },
-          ],
-        ];
-        for (const [baseType, textOf, single] of cases) {
-          const fewer = textOf(shorterRun);
-          const more = textOf(run);
-          assert.deepStrictEqual(
-            yield* Effect.fromResult(parseElementText(baseType, more)),
-            Option.some(single),
-          );
-          assert.deepStrictEqual(
-            yield* Effect.fromResult(parseElementText(baseType, fewer)),
-            Option.some(single),
-          );
+  it.effect("trims a 100,000-character whitespace run in linear time", () =>
+    Effect.gen(function* linearTrim() {
+      const run = " \t\n\r".repeat(25_000);
+      const shorterRun = " \t\n\r".repeat(25_000 / growthFactor);
+      const cases: readonly (readonly [
+        ModelledBaseType,
+        (whitespace: string) => string,
+        Single,
+      ])[] = [
+        ["identifier", (whitespace) => `${whitespace}x`, { baseType: "identifier", value: "x" }],
+        [
+          "pair",
+          (whitespace) => `A${whitespace}B${whitespace}`,
+          { baseType: "pair", value: ["A", "B"] },
+        ],
+      ];
+      for (const [baseType, textOf, single] of cases) {
+        const fewer = textOf(shorterRun);
+        const more = textOf(run);
+        assert.deepStrictEqual(
+          yield* Effect.fromResult(parseElementText(baseType, more)),
+          Option.some(single),
+        );
+        assert.deepStrictEqual(
+          yield* Effect.fromResult(parseElementText(baseType, fewer)),
+          Option.some(single),
+        );
 
-          const growth = yield* growthRatio(
-            () => {
-              parseElementText(baseType, fewer);
-            },
-            () => {
-              parseElementText(baseType, more);
-            },
-          );
-          assert.isBelow(
-            growth,
-            growthLimit,
-            `${baseType}: 8 times the whitespace took ${growth.toFixed(1)} times as long`,
-          );
-        }
-      }),
-    growthTimeoutMs,
+        const growth = yield* growthRatio(
+          () => {
+            parseElementText(baseType, fewer);
+          },
+          () => {
+            parseElementText(baseType, more);
+          },
+        );
+        assert.isBelow(
+          growth,
+          growthLimit,
+          `${baseType}: 8 times the whitespace took ${growth.toFixed(1)} times as long`,
+        );
+      }
+    }),
   );
 });
 
