@@ -12,12 +12,13 @@
  *   `headers`, `tolerance`, an IDREF or IDREFS text);
  * - {@link hrefPiecesOf}: an href's path and its query or fragment;
  * - {@link srcsetCandidatesOf}: a `srcset`'s image candidates, each a URL and its descriptors.
+ *
+ * GRIZZLE-PENDING: Q7: a total Text split (substring, pattern group or k-th token) generates each
+ * piece from its form, and this module goes.
  */
 import { regex } from "arkregex";
 import type { Addition } from "@bjornpagen/grizzle";
 import type { Qti } from "#pantry/qti/schema.ts";
-
-// GRIZZLE-PENDING: Q7: a total Text split (substring, pattern group or k-th token) generates each piece from its form, and this module goes.
 
 /**
  * XML whitespace `S`, possibly none, as the schema's one `Space` type holds every lead, trail and
@@ -325,7 +326,6 @@ export const srcsetCandidatesOf = (lexical: string): SrcsetSplit => {
     const lead = pieceOf(lexical.slice(leadStart, urlStart), isGap, "lead");
     const url = pieceOf(lexical.slice(urlStart, urlEnd), isUrl, "URL");
     if (urlEnd < position) {
-      // A URL that ends with commas has no descriptors, and its commas lead the next candidate.
       candidates.push({ descriptor: "", lead, url });
       position = urlEnd;
       continue;

@@ -343,8 +343,17 @@ const inBody = (markup: string): TextEdit => ({
 });
 
 /**
+ * The item body's first paragraph's text, which no text domain holds, so the text arm alone
+ * refuses it: the manifest's first text, cp:schema's, is TextDomain's first.
+ */
+const firstParagraphText = "Look at the text in the picture.";
+
+/**
  * The metadata fixtures and the verdicts Q5.12 states for them: the rules each may be refused
- * under, none for an accepted one.
+ * under, none for an accepted one. `usage3-integer-float` is accepted: its `0.87` under `integer`
+ * is outside a record, so untyped text (reading 105). PostgreSQL holds each to its verdict by
+ * Q5.12's laws over a whole package (lom-identifier, lom-title, and lastUpdated's value domain)
+ * beside every other law.
  */
 const metadataVerdicts: readonly (readonly [FixtureName, readonly string[]])[] = [
   ["identifier-mismatch", ["lom-identifier"]],
@@ -354,7 +363,6 @@ const metadataVerdicts: readonly (readonly [FixtureName, readonly string[]])[] =
   ["usage3-padded", []],
   ["usage3-float-padded", []],
   ["usage3-feb-30", ["attribute-lexical"]],
-  // Accepted: its `0.87` under `integer` is outside a record, so untyped text (reading 105).
   ["usage3-integer-float", []],
 ];
 
@@ -370,47 +378,59 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
     it.effect(
       "accepts simple, sharedMedia and svg whole, each in one apply, logging the apply time",
       () =>
-        // Oracle: PostgreSQL, every law of the schema over each accepted corpus package
-        // (Q5.03's "accepted through grizzle", for the whole package), and the package read
-        // back by its id.
         Effect.gen(function* acceptsCorpus() {
           for (const [name, dir] of Object.entries(yield* acceptedPackages)) {
             const { outcome, package: identifier } = yield* applyEdited(dir);
 
-            assert.include(["accepted", "unchanged"], outcome.kind, name);
-            assert.isTrue(yield* packageStored(identifier), name);
+            assert.include(
+              ["accepted", "unchanged"],
+              outcome.kind,
+              `${name}: PostgreSQL holds every law of the schema over the package (Q5.03's "accepted through grizzle", for the whole package)`,
+            );
+            assert.isTrue(
+              yield* packageStored(identifier),
+              `${name}: the package reads back by its id`,
+            );
           }
         }),
     );
 
     it.effect("imports one package twice as one package under its name, the second unchanged", () =>
-      // Oracle: the contract's identity: a package is keyed by the name it is imported under
-      // and an import mints nothing, so the same bytes imported again under that name name the
-      // same package and change nothing, whatever the first import found stored.
       Effect.gen(function* twice() {
         const first = yield* importDir(fixtures.simple);
         const second = yield* importDir(fixtures.simple);
 
-        assert.strictEqual(second.package, first.package);
-        assert.strictEqual(second.outcome, "unchanged");
+        assert.strictEqual(
+          second.package,
+          first.package,
+          "the contract's identity: a package is keyed by the name it is imported under and an import mints nothing, so the same bytes imported again under that name name the same package",
+        );
+        assert.strictEqual(
+          second.outcome,
+          "unchanged",
+          "and change nothing, whatever the first import found stored",
+        );
         assert.isTrue(yield* packageStored(first.package), first.package);
       }),
     );
 
     it.effect("leaves no row when a failure is injected in place of the apply", () =>
-      // Oracle: the specification as a checker, `commitUnknown`'s resolution: the failure stands
-      // in for the apply, so nothing ran, and the importer runs nothing again, so the import
-      // fails with the injected failure. An apply run outside `WrapApply` would answer the
-      // package instead.
-      // The package is a variant no other case imports, so no earlier case stored its identifier.
       Effect.gen(function* noRow() {
+        /**
+         * The import of a variant no other case imports, so no earlier case stored its identifier,
+         * with a failure in place of its apply.
+         */
         const failed = yield* Effect.flip(
           importDir(yield* editedSimple("injected-failure", [])).pipe(
             Effect.provideService(WrapApply, () => Effect.fail(commitUnknown)),
           ),
         );
 
-        assert.strictEqual(failed, commitUnknown);
+        assert.strictEqual(
+          failed,
+          commitUnknown,
+          "commitUnknown's resolution: the failure stands in for the apply, so nothing ran, and the importer runs nothing again, so the import fails with the injected failure, where an apply run outside WrapApply would answer the package",
+        );
       }),
     );
 
@@ -425,10 +445,6 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
       it.effect(
         `accepts a ${baseType} mapping keyed ${first} and ${second}, a repeat as written or as the value they name (spec reading 165)`,
         () =>
-          // Oracle: the specification: QTI's XSD holds no `xs:unique` or `xs:key` over a
-          // mapping's entries, and the first entry that matches a value gives it (reading 165),
-          // so a repeated key is a lawful entry, written twice, in another case, or as another
-          // spelling of one integer, float, pair or point. Bound: one mapping of each.
           Effect.gen(function* repeatedKeys() {
             const dir = yield* editedSimple(name, [
               afterResponse(
@@ -437,7 +453,11 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
             ]);
             const { outcome } = yield* applyEdited(dir);
 
-            assert.strictEqual(outcome.kind, "accepted", Formatter.format(outcome));
+            assert.strictEqual(
+              outcome.kind,
+              "accepted",
+              `${Formatter.format(outcome)}: QTI's XSD holds no xs:unique or xs:key over a mapping's entries, and the first entry that matches a value gives it (reading 165), so a repeated key is a lawful entry, written twice, in another case, or as another spelling of one integer, float, pair or point`,
+            );
           }),
       );
     }
@@ -445,16 +465,14 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
     it.effect(
       "accepts an item whose digital material, calculator info and printed variable carry labels and whose root names no tool, and refuses it once a paragraph carries one, as the law oracle judges both (label-tool, reading 128)",
       () =>
-        // Oracle: the law oracle's verdict on the same package (`judge`), and the information
-        // model's label characteristics behind both: an ItemFileInfo's label (§5.80.2) and a
-        // printed variable's (§7.30.4) ask for no tool, a paragraph's (§5.16.5) does. PostgreSQL
-        // judges them through LabelUse's two containments with the selected labels and Label
-        // tools' containment of an item's labels in its root's tool-name.
-        // Bound: simple with the three labels that ask for nothing, then with a labelled paragraph
-        // beside them.
         Effect.gen(function* labelCharacteristics() {
           const grammar = Result.getOrThrow(composed());
           const laws = lawsOf(grammar);
+          /**
+           * Simple's item body with the three labels that ask for no tool: a calculator info's and
+           * a digital material's, each an ItemFileInfo's (§5.80.2), and a printed variable's
+           * (§7.30.4); a labelled paragraph (§5.16.5) beside them asks for one.
+           */
           const readers = `<qti-companion-materials-info><qti-calculator><qti-calculator-type>basic</qti-calculator-type><qti-description>A calculator</qti-description><qti-calculator-info label="calculator"><qti-file-href>https://example.org/calculator.html</qti-file-href></qti-calculator-info></qti-calculator><qti-digital-material label="table"><qti-file-href>https://example.org/table.html</qti-file-href></qti-digital-material></qti-companion-materials-info><qti-item-body><p>Score: <qti-printed-variable identifier="SCORE" label="score"/></p>`;
           for (const [name, body, accepted] of [
             ["label-readers", readers, true],
@@ -474,7 +492,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
             assert.strictEqual(
               judgment._tag === "Judged" && judgment.breaches.length === 0,
               accepted,
-              `${name}: the oracle's verdict`,
+              `${name}: the law oracle's verdict on the same package (judge), from the information model's label characteristics`,
             );
             if (accepted) {
               assert.strictEqual(outcome.kind, "accepted", `${name}: ${Formatter.format(outcome)}`);
@@ -486,7 +504,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
               );
               assert.isTrue(
                 rejectedBy(outcome, [containedIn("LabelUse", "Attribute")]),
-                `${name}: ${Formatter.format(outcome)}`,
+                `${name}: PostgreSQL judges the labels through LabelUse's two containments with the selected labels and Label tools' containment of an item's labels in its root's tool-name: ${Formatter.format(outcome)}`,
               );
             }
           }
@@ -682,10 +700,8 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
           Effect.flatMap(editedSimple("text-whitespace", []), (dir) =>
             applyEdited(
               dir,
-              // The item body's first paragraph's text, which no text domain holds, so the text
-              // arm alone refuses it: the manifest's first text, cp:schema's, is TextDomain's first.
               editNode(
-                (node) => node.kind === "text" && node.chars === "Look at the text in the picture.",
+                (node) => node.kind === "text" && node.chars === firstParagraphText,
                 (node) => ({ ...node, chars: " ", first: " ", last: " " }),
               ),
             ),
@@ -882,11 +898,13 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
 
     for (const { apply, laws, name } of cases) {
       it.effect(`refuses ${name}`, () =>
-        // Oracle: PostgreSQL, the law the case's one edit breaks, among the laws its refusal names.
         Effect.gen(function* refused() {
           const { outcome, package: identifier } = yield* apply();
 
-          assert.isTrue(rejectedBy(outcome, laws), `${name}: ${Formatter.format(outcome)}`);
+          assert.isTrue(
+            rejectedBy(outcome, laws),
+            `${name}: PostgreSQL refuses it by the law its one edit breaks, among the laws its refusal names: ${Formatter.format(outcome)}`,
+          );
           assert.isFalse(yield* packageStored(identifier), name);
         }),
       );
@@ -894,9 +912,6 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
 
     for (const [name, rules] of metadataVerdicts) {
       it.effect(`gives ${name} Q5.12's verdict`, () =>
-        // Oracle: PostgreSQL, Q5.12's laws over a whole package (lom-identifier, lom-title, and
-        // lastUpdated's value domain) beside every other law, as Q5.12 states each fixture's
-        // verdict.
         Effect.gen(function* metadataVerdict() {
           const outcome = yield* Effect.result(importDir(yield* materialize(name)));
 
@@ -916,13 +931,15 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
 
     for (const name of processingFixtureNames) {
       it.effect(`gives the processing fixture ${name} its stated verdict`, () =>
-        // Oracle: the specification as a checker, the stated verdicts (Q5.10,
-        // `processing-verdicts.ts`, which the law oracle predicts with no database): a checker's
-        // fixture is refused under its frozen rule, a codec-refused one under the codec's rule, a
-        // guard's by AL3, N7's Last or N5's Follow, and an accepted one commits. A package with
-        // no frozen row (a round-trip, template or padded package) has no stated verdict, so the
-        // law oracle's verdict on it is the one PostgreSQL is held to.
         Effect.gen(function* processingVerdict() {
+          /**
+           * The fixture's stated verdict (Q5.10, `processing-verdicts.ts`, which the law oracle
+           * predicts with no database): a checker's fixture is refused under its frozen rule, a
+           * codec-refused one under the codec's rule, a guard's by AL3, N7's Last or N5's Follow,
+           * and an accepted one commits. A package with no frozen row (a round-trip, template or
+           * padded package) has no stated verdict, so the law oracle's verdict on it is the one
+           * PostgreSQL is held to.
+           */
           const stated = (yield* processingVerdicts)(name);
           const dir = yield* materializeProcessing(name);
 
@@ -968,12 +985,14 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
 
     for (const { edits, label, verdict } of resourceTypeCases) {
       it.effect(`holds PostgreSQL to reading 93's verdict on ${label}`, () =>
-        // Oracle: the specification as a checker, spec readings 67 and 93 as the box states them
-        // (`resource-type-cases.ts`), whose verdicts the law oracle gives
-        // (`resource-types.oracle.test.ts`): a document has one type, and a resource's type that
-        // spells nothing is refused by AL1's value domain alone.
-        // Bound: {one type, two types, a type that spells nothing} × {one path, two paths}.
         Effect.gen(function* resourceTypeVerdict() {
+          /**
+           * Simple with the case's resources, of {one type, two types, a type that spells nothing}
+           * × {one path, two paths}, whose verdict spec readings 67 and 93 state as the box states
+           * them (`resource-type-cases.ts`) and the law oracle gives
+           * (`resource-types.oracle.test.ts`): a document has one type, and a resource's type that
+           * spells nothing is refused by AL1's value domain alone.
+           */
           const dir = yield* materializeSpec(
             variantOf(
               specOf("simple"),

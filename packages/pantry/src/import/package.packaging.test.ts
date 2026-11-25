@@ -32,9 +32,6 @@ describe.skipIf(!hasLease)("import/package.packaging.test.ts, on the lease", () 
     },
   )("importPackage of the packaging fixtures on the lease", (it) => {
     it.effect("gives each drawn packaging fixture the law oracle's verdict", (ctx) =>
-      // Oracle: a second implementation, the law oracle's verdict over the same entries. Bound:
-      // 12 of the packaging fixtures, drawn from the run's seed, one import each, so the runs
-      // between them cover the list.
       searched(
         ctx,
         explore(
@@ -44,7 +41,10 @@ describe.skipIf(!hasLease)("import/package.packaging.test.ts, on the lease", () 
             draw: drawn(int(0, packagingFixtures.length - 1)),
             kept: [],
             literal: (at) => packagingFixtures[at] ?? String(at),
-            oracle: { kind: "second-implementation", name: "the law oracle's verdict" },
+            oracle: {
+              kind: "second-implementation",
+              name: "the law oracle's verdict over the same entries, for 12 of the packaging fixtures a run, drawn from the run's seed, one import each, so the runs between them cover the list",
+            },
             runs: 12,
             shrink: completeShrink,
             steerEvery: 16,
@@ -64,11 +64,6 @@ describe.skipIf(!hasLease)("import/package.packaging.test.ts, on the lease", () 
     );
 
     it.effect(`refuses ${danglingIncludeName} by the law its dangling include breaks`, () =>
-      // Oracle: the specification as a checker, reading 115: an include whose href names no
-      // document the manifest lists is refused under "Include target", the import's own
-      // ChangeSet writing its site with no SiteTarget, never by an engine refusal of a write to
-      // a document the change does not insert. dangling-include names a file only a resource's
-      // file entry lists, so include-target alone refuses it.
       Effect.gen(function* includeTarget() {
         const refused = yield* Effect.flip(
           importDir(yield* materializeProcessing(danglingIncludeName)),
@@ -81,7 +76,7 @@ describe.skipIf(!hasLease)("import/package.packaging.test.ts, on the lease", () 
         assert.include(
           named,
           "include-target",
-          `${danglingIncludeName}: refused under ${named.join(", ")}`,
+          `${danglingIncludeName}: refused under ${named.join(", ")}, where reading 115 refuses an include whose href names no document the manifest lists under "Include target", the import's own ChangeSet writing its site with no SiteTarget, never by an engine refusal of a write to a document the change does not insert; the fixture names a file only a resource's file entry lists, so include-target alone refuses it`,
         );
       }),
     );

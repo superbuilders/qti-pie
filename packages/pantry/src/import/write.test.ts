@@ -81,7 +81,8 @@ import { searchWidth } from "#pantry/test/settings.ts";
 const fixtures = inject("fixtures");
 
 /**
- * The trees the properties are checked over: the one generator's, over the installed grammar.
+ * The trees the properties are checked over: the one generator's, over the installed grammar, up to
+ * 200 nodes and depth 7 a tree.
  */
 const documents = xdmDocument(grammar);
 
@@ -482,11 +483,6 @@ describe("rootInsertOf", () => {
   it.effect(
     "writes character data its family's model does not admit at its predecessor's state, and leaves every other node's state as it was",
     () =>
-      // Oracle: the specification as a checker, C5 and N5 (`#pantry/qti/node.ts` N5_admitted):
-      // character data steps no automaton, so it holds its predecessor's state, 0 for a first
-      // child, and an unadmitted kind is refused by name while every member after it is judged as
-      // though it were not there. Bound: every slot of every family of the item whose model admits
-      // no text.
       Effect.gen(function* unadmitted() {
         const xml = yield* Effect.orDie(readXml(new TextEncoder().encode(familiesItem)));
         const tree = yield* Effect.orDie(shred(xml, shredGrammarOf(grammar)));
@@ -498,6 +494,9 @@ describe("rootInsertOf", () => {
             }),
           );
         const held = statesOf(insertOf(tree.root));
+        /**
+         * Every slot of every family of the item whose model admits no text.
+         */
         const slots = unadmittedSlotsOf(tree);
         assert.includeMembers(
           slots.map(({ kind }) => kind),
@@ -517,9 +516,13 @@ describe("rootInsertOf", () => {
           assert.strictEqual(
             written?.state,
             at === 0 ? "0" : family?.children[at - 1]?.state,
-            label,
+            `${label}: C5 and N5 (#pantry/qti/node.ts N5_admitted): character data steps no automaton, so it holds its predecessor's state, 0 for a first child`,
           );
-          assert.deepStrictEqual(statesOf(nodes.filter((node) => node !== written)), held, label);
+          assert.deepStrictEqual(
+            statesOf(nodes.filter((node) => node !== written)),
+            held,
+            `${label}: an unadmitted kind is refused by name, while every member after it is judged as though it were not there`,
+          );
         }
       }),
   );
@@ -527,13 +530,6 @@ describe("rootInsertOf", () => {
   it.effect(
     "nests every generated document's tree exactly as the XDM holds it, every flat row naming its node by the position the nesting draws",
     (ctx) =>
-      // Oracle: a universal one, the round trip assemble ∘ draw ∘ (rootInsertOf, documentRowsOf)
-      // = id up to the order of each element's attributes and namespace declarations, which are
-      // sets (`rowSetOf`), where draw takes each slot, start, end and parent from the nesting as
-      // grizzle's filler does, and every flat row names its node by the start the host wrote.
-      // Bound: the generator's drawn bounds, up to 200 nodes and depth 7 a tree, 300 cases. Its
-      // situations are the tree's features and its nesting situations (`nestingSituationsOf`),
-      // which the nesting reads.
       searched(
         ctx,
         explore(
@@ -559,7 +555,10 @@ describe("rootInsertOf", () => {
             draw: drawn(documents),
             kept: [],
             literal: Formatter.format,
-            oracle: { kind: "universal", name: "assemble ∘ draw ∘ rootInsertOf = id" },
+            oracle: {
+              kind: "universal",
+              name: "the round trip assemble ∘ draw ∘ (rootInsertOf, documentRowsOf) = id up to the order of each element's attributes and namespace declarations, which are sets (rowSetOf), where draw takes each slot, start, end and parent from the nesting as grizzle's filler does, and every flat row names its node by the start the host wrote; its situations are the tree's features and its nesting situations (nestingSituationsOf), which the nesting reads",
+            },
             runs: 300,
             shrink: completeShrink,
             steerEvery: 16,
@@ -581,10 +580,6 @@ describe("rootInsertOf", () => {
   it.effect(
     "writes each node's state, ancestry, nearest interaction and characters' ends, and its closed attributes' slots, as the host fold derives them",
     (ctx) =>
-      // Oracle: a second implementation, the host fold of `#pantry/model/folds.ts` (Q4.01), which
-      // derives each node's state through the same content grammar by its own walk, its ancestry,
-      // its nearest interaction and the positions of its closed attributes' names.
-      // Bound: the generator's drawn bounds, 200 cases.
       searched(
         ctx,
         explore(
@@ -600,7 +595,10 @@ describe("rootInsertOf", () => {
             draw: drawn(documents),
             kept: [],
             literal: Formatter.format,
-            oracle: { kind: "second-implementation", name: "the host fold of model/folds.ts" },
+            oracle: {
+              kind: "second-implementation",
+              name: "the host fold of model/folds.ts (Q4.01), which derives each node's state through the same content grammar by its own walk, its ancestry, its nearest interaction and the positions of its closed attributes' names",
+            },
             runs: 200,
             shrink: completeShrink,
             steerEvery: 16,
@@ -777,9 +775,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
   "the corpus packages pantry accepts as QTI 3.0.1",
   (suite) => {
     suite.effect("nest each document's tree exactly as shred read it", () =>
-      // Oracle: a universal one, the round trip of the generated property, up to the order of the
-      // sets, over the three accepted corpus packages' every document (simple, sharedMedia, svg),
-      // each re-declared as QTI 3.0.1.
       Effect.gen(function* corpusRoundTrip() {
         const packages = yield* acceptedPackages;
         for (const dir of Object.values(packages)) {
@@ -798,7 +793,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             assert.deepStrictEqual(
               rowSetOf(assembled),
               rowSetOf(listed.tree),
-              `${dir} ${listed.path}`,
+              `${dir} ${listed.path}: the round trip of the generated property, up to the order of the sets, over every document of the three accepted corpus packages, each re-declared as QTI 3.0.1`,
             );
           }
         }
@@ -808,14 +803,14 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     suite.effect(
       "write no field grizzle draws or fills or PostgreSQL generates, in any relation",
       () =>
-        // Oracle: the specification as a checker, `Addition<R>` (README, "How a field is written"),
-        // read off each field's descriptor: every row of every input names only fields its caller
-        // writes, a sequence's members nested at its count fields, without their group, and only a
-        // tree's root naming its root fields.
         Effect.gen(function* noUnwritten() {
           const packages = yield* acceptedPackages;
           for (const dir of Object.values(packages)) {
-            assert.deepStrictEqual(unwrittenIn(yield* readProgram(dir, nameOf(dir))), [], dir);
+            assert.deepStrictEqual(
+              unwrittenIn(yield* readProgram(dir, nameOf(dir))),
+              [],
+              `${dir}: Addition<R> (README, "How a field is written"), read off each field's descriptor: every row of every input names only fields its caller writes, a sequence's members nested at its count fields, without their group, and only a tree's root naming its root fields`,
+            );
           }
         }),
     );
@@ -1000,20 +995,20 @@ const situationOf = (conflict: Option.Option<string>, repeat: boolean): UnionSit
 
 describe("unionOf", () => {
   it.effect("is a keyed set: an equal repeat is one row, two rows at one key a conflict", (ctx) =>
-    // Oracle: a second implementation, a naive model that records each key's first row and the
-    // first key, in order, met with a row of another value.
-    // Bound: every list of up to 3 sets over 2 keys of 2 values, 1 + 9 + 81 + 729 = 820 cases.
     searched(
       ctx,
       exhaust(
         {
-          box: "every list of up to 3 keyed sets over the keys a and b, each absent or holding v=1 or v=2",
+          box: "every list of up to 3 keyed sets over the keys a and b, each absent or holding v=1 or v=2, 1 + 9 + 81 + 729 = 820 cases",
           caseHang: Duration.seconds(10),
           concurrency: searchWidth,
           coverage: requiredInSpace<UnionSituation>(["conflict", "equal repeat", "disjoint"]),
           generator: unionCases,
           literal: (value) => Formatter.format(value),
-          oracle: { kind: "second-implementation", name: "the first-row model of a keyed union" },
+          oracle: {
+            kind: "second-implementation",
+            name: "the first-row model of a keyed union, which records each key's first row and the first key, in order, met with a row of another value",
+          },
           suite: "import/overlays-union",
         },
         (sets, c) =>
@@ -1081,22 +1076,20 @@ describe("tokensOf, on an IDREFS form", () => {
   it.effect(
     "splits a form into its whitespace-separated tokens, whose pieces concatenate to it",
     (ctx) =>
-      // Oracle: the specification as a checker, `E1_derived` on `Idref` and its fold (each
-      // generated piece is its whitespace and token, the pieces concatenate to the lexical form,
-      // every token but the first follows whitespace), and a second implementation, `split` on
-      // XML's `S`, for the tokens.
-      // Bound: every text of up to 5 characters over a, b, space and tab, (4⁶ − 1) / 3 = 1,365.
       searched(
         ctx,
         exhaust(
           {
-            box: "every text of up to 5 characters over a, b, space and tab",
+            box: "every text of up to 5 characters over a, b, space and tab, (4⁶ − 1) / 3 = 1,365",
             caseHang: Duration.seconds(10),
             concurrency: searchWidth,
             coverage: noCoverage,
             generator: idrefTexts,
             literal: (value) => JSON.stringify(value),
-            oracle: { kind: "specification", name: "E1_derived on Idref, and split on S" },
+            oracle: {
+              kind: "specification",
+              name: "E1_derived on Idref and its fold, each generated piece its whitespace and token, the pieces concatenating to the lexical form, every token but the first following whitespace; and a second implementation, split on XML's S, for the tokens",
+            },
             suite: "import/write-idref-pieces",
           },
           (lexical) =>
@@ -1128,9 +1121,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("nodeIdsOf", (suite) =>
   suite.effect(
     "places a package twice as one: nothing is drawn, every row named by QTI's own identity",
     () =>
-      // Oracle: the specification as a checker, the cutover's rule that an import mints nothing: the
-      // same documents placed twice give equal views, every document's lookups name paths, and every
-      // document holds the package's identifier. Bound: the simple package.
       Effect.gen(function* placedTwice() {
         const program = yield* readProgram(fixtures.simple, nameOf(fixtures.simple));
         const listed = program.documents.map(({ listed: held }) => held);
@@ -1141,10 +1131,19 @@ layer(NodeServices.layer, { excludeTestServices: true })("nodeIdsOf", (suite) =>
         assert.deepStrictEqual(
           first.map(({ listed: held, view }) => ({ listed: held, view })),
           second.map(({ listed: held, view }) => ({ listed: held, view })),
+          "an import mints nothing, so the same documents placed twice give equal views",
         );
         for (const { ids } of first) {
-          assert.deepStrictEqual(ids.documentAt(ids.path), Option.some(ids.path));
-          assert.strictEqual(ids.package, packageIdentifier);
+          assert.deepStrictEqual(
+            ids.documentAt(ids.path),
+            Option.some(ids.path),
+            `${ids.path}: every document's lookups name paths`,
+          );
+          assert.strictEqual(
+            ids.package,
+            packageIdentifier,
+            `${ids.path}: every document holds the package's identifier`,
+          );
         }
       }),
   );
@@ -1152,12 +1151,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("nodeIdsOf", (suite) =>
   suite.effect(
     "reads a path listed twice as one document, and names a site's target there only where a resource lists it",
     () =>
-      // Oracle: the specification as a checker, a path is one document (reading 93): the import
-      // lists a resource's path once, and the manifest again where a resource names it
-      // (`#pantry/import/program.ts`), so `documentAt` names the document at every listed path,
-      // and `targetAt` only a path some listing names under a resource type, never the manifest's
-      // own listing, which names none (reading 115). Bound: the simple package's listing with each
-      // of its documents listed again at its end under the item type.
       Effect.gen(function* relisted() {
         const program = yield* readProgram(fixtures.simple, nameOf(fixtures.simple));
         const listed = program.documents.map(({ listed: held }) => held);
@@ -1170,14 +1163,18 @@ layer(NodeServices.layer, { excludeTestServices: true })("nodeIdsOf", (suite) =>
           );
 
           for (const { ids } of placed) {
-            const label = `${again.path} again, read at ${ids.path}`;
-            assert.deepStrictEqual(ids.documentAt(ids.path), Option.some(ids.path), label);
+            const label = `${again.path} listed again at the listing's end under the item type, read at ${ids.path}`;
+            assert.deepStrictEqual(
+              ids.documentAt(ids.path),
+              Option.some(ids.path),
+              `${label}: a path is one document (reading 93): the import lists a resource's path once, and the manifest again where a resource names it (#pantry/import/program.ts), so documentAt names the document at every listed path`,
+            );
             assert.strictEqual(
               Option.isSome(ids.targetAt(ids.path)),
               placed.some(
                 (other) => other.ids.path === ids.path && other.listed.documentType !== "manifest",
               ),
-              label,
+              `${label}: targetAt names only a path some listing names under a resource type, never the manifest's own listing, which names none (reading 115)`,
             );
           }
         }

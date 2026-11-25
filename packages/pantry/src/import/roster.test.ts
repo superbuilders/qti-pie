@@ -68,33 +68,34 @@ layer(NodeServices.layer)("the roster", (it) => {
   it.effect(
     "lists exactly the relations insertAll takes over Qti, so none is missing and none is stale",
     () =>
-      // Oracle: grizzle's `insertableNamesOf` over the composed schema, the list the roster read off
-      // `Qti` before it was committed. Bound: every stored relation of `Qti`; the document layer's
-      // names are held to be among them, so a renamed layer relation fails here too.
       Effect.sync(() => {
         const insertable = sortedNames(insertableNamesOf(Qti));
 
         assert.deepStrictEqual(
           [...writtenNames],
           insertable,
-          "The import's committed roster (src/import/roster.ts writtenRelations) differs from the relations insertAll takes over Qti: list each name the schema adds and delete each it no longer has.",
+          "The import's committed roster (src/import/roster.ts writtenRelations) differs from the relations insertAll takes over Qti, as grizzle's insertableNamesOf lists them over the composed schema: list each name the schema adds and delete each it no longer has.",
         );
-        assert.includeMembers([...insertable], [...documentLayerNames]);
+        assert.includeMembers(
+          [...insertable],
+          [...documentLayerNames],
+          "the document layer's names are among Qti's stored relations, so a renamed layer relation fails here too",
+        );
       }),
   );
 
   it.effect(
     "names exactly the relations the overlay builders write, so none is dropped or left unwritten",
     () =>
-      // Oracle: the builders themselves. Each returns its every relation, empty or not, so the keys
-      // of their parts over the every-relation package are the relations they write. A builder
-      // relation the roster lacks would be dropped by the merge, and a roster name no builder writes
-      // would have no rows to insert.
       Effect.gen(function* builders() {
         const { parts } = yield* everyRelation;
         const written = new Set(parts.flatMap((part) => Object.keys(part)));
 
-        assert.deepStrictEqual(sortedNames(written), [...overlayNames]);
+        assert.deepStrictEqual(
+          sortedNames(written),
+          [...overlayNames],
+          "the builders return their every relation, empty or not, so the keys of their parts over the every-relation package are the relations they write: a builder relation the roster lacks would be dropped by the merge, and a roster name no builder writes would have no rows to insert",
+        );
       }).pipe(Effect.scoped),
   );
 

@@ -29,9 +29,10 @@ const ruleOf = (failure: ImportRefused | PlatformError.PlatformError): string =>
   failure instanceof ImportRefused ? failure.rules.join("|") : failure._tag;
 
 /**
- * Judge one package as the import reads it against the law oracle's own read of the same entries:
- * the read refuses under the rule the oracle's reader and codec refuse it under, or reads it where
- * they read it.
+ * Judge one package as the import reads it against the law oracle's own read of the same entries
+ * (`judge`'s reader, version and shred), a second implementation: the read refuses under the rule
+ * the oracle's reader and codec refuse it under, or reads it where they read it. Each package is a
+ * case of its own, so a disagreement names its package.
  *
  * @param name - The package's name in the suite, which a failure names.
  * @param dir - Its folder.
@@ -68,8 +69,6 @@ const published = [
 layer(NodeServices.layer, { excludeTestServices: true })(
   "readProgram over the packaging fixtures and the published packages refuses exactly what the oracle's codec refuses, under its rule",
   (suite) => {
-    // Oracle: a second implementation, the law oracle's own read of the same entries (`judge`'s
-    // reader, version and shred). One case per package, so a disagreement names its package.
     for (const name of packagingFixtures) {
       suite.effect(name, () =>
         Effect.gen(function* fixtureAgrees() {

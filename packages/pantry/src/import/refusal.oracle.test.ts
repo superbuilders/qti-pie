@@ -1181,13 +1181,10 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
 
 describe("the rules of the laws one native object carries, in the precedence's order", () => {
   it("holds each adjacent pair of the precedence to the reading or source that orders it", () => {
-    // Oracle: the readings and the plan's tiers, pair by pair (precedencePairs). Bound: every
-    // adjacent pair of the 107 rules, so a swap of any two neighbours, or a rule moved or added,
-    // breaks a pair, and the message names it.
     assert.deepStrictEqual(
       precedencePairs.map(([earlier, later]) => `${earlier} before ${later}`),
       precedence.slice(1).map((later, at) => `${precedence[at] ?? ""} before ${later}`),
-      "the precedence's order, pair by pair against the reading that orders each",
+      "the precedence's order, every adjacent pair of its rules against the reading or plan tier that orders it (precedencePairs), so a swap of any two neighbours, or a rule moved or added, breaks a pair",
     );
     assert.isTrue(precedencePairs.every((pair) => pair[2].length > 0));
   });
@@ -1382,12 +1379,6 @@ const clubNamesOf = (alias: RegexText<string>) => {
 
 describe("the pattern laws, one per field", () => {
   it("names each law grizzle states by the entry its field's type declares, a generated field's included, and none whose type declares none", () => {
-    // Oracle: grizzle's pattern laws (`lawsOf`), one pattern law per stored field whose pattern
-    // states one, by relation name and declared field order, a tautology's field none, each
-    // carrying the entry its field's type declares (`law(entry, str.regex(...))`), the type's one
-    // entry at every field it types. Live: two types of one pattern, each declaring its own entry,
-    // and a generated field of one of them. Wild: a type that declares none, whose law carries the
-    // entry grizzle derives, which names no row.
     assert.deepStrictEqual(
       clubNamesOf(declaring(entryOf("XML production"), str.regex("^[a-z]*$"))),
       [
@@ -1395,12 +1386,17 @@ describe("the pattern laws, one per field", () => {
         [clubLaw("code"), Option.some<LawName>("Key text bound")],
         [clubLaw("joined"), Option.some<LawName>("Key text bound")],
       ],
+      "grizzle's pattern laws (lawsOf), one per stored field whose pattern states one, by relation name and declared field order, a tautology's field none, each carry the entry its field's type declares (law(entry, str.regex(...))), the type's one entry at every field it types: two types of one pattern, each declaring its own entry, and a generated field of one of them",
     );
-    assert.deepStrictEqual(clubNamesOf(str.regex("^[a-z]*$")), [
-      [clubLaw("alias"), Option.none<LawName>()],
-      [clubLaw("code"), Option.some<LawName>("Key text bound")],
-      [clubLaw("joined"), Option.some<LawName>("Key text bound")],
-    ]);
+    assert.deepStrictEqual(
+      clubNamesOf(str.regex("^[a-z]*$")),
+      [
+        [clubLaw("alias"), Option.none<LawName>()],
+        [clubLaw("code"), Option.some<LawName>("Key text bound")],
+        [clubLaw("joined"), Option.some<LawName>("Key text bound")],
+      ],
+      "a type that declares no entry has a law that carries the entry grizzle derives, which names no row",
+    );
   });
 
   it("names two fields of one pattern apart: Node.chars an XML production, OpenElementName.namespace a key text's bound", () => {
@@ -1427,15 +1423,17 @@ describe("the census of the composed Qti schema", () => {
   it.effect(
     "names every law Qti states, and lists every merged axis's rules each once, most specific first",
     (ctx) =>
-      // Oracle: grizzle's laws (`lawsOf`), every law an outcome over Qti can name: each primary
-      // key, each statement's laws, each contract, each pattern law and each generated field's law.
       Effect.gen(function* census() {
         const laws = schemaLawsOf(Qti);
         const unowned = laws
           .filter((law) => Option.isNone(lawNameOf(law)))
           .map((law) => Formatter.format(law));
 
-        assert.deepStrictEqual(unowned, [], "laws Qti states that no row of the table owns");
+        assert.deepStrictEqual(
+          unowned,
+          [],
+          "laws Qti states that no row of the table owns, among grizzle's laws (lawsOf), every law an outcome over Qti can name: each primary key, each statement's laws, each contract, each pattern law and each generated field's law",
+        );
 
         const axes = mergedAxes(laws);
         for (const { laws: carried } of axes) {
