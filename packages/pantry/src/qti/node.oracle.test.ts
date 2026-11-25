@@ -510,19 +510,11 @@ describe("N5, content order", () => {
   it.effect(
     "admits exactly stepOf's state for every child kind of every family from every state",
     (ctx) =>
-      // Oracle: a second implementation. `stepOf` steps the composed grammar's automata,
-      // keyed by parent; the N5 statements (`lawfulStates`) read `install.ts`'s rows,
-      // keyed by content model. They agree exactly when N5_admitted and N5_Follow leave each child
-      // one lawful state, the host's, and none where the host has none, which Unique Particle
-      // Attribution promises (plan §1.3 N5, C5).
-      // Bound: every family ChildGrammar admits a child under (1,276), every state of its model
-      // (0 to its position count less 1), every kind it admits: 2,492,424 (family, state, kind)
-      // triples at the pinned grammar, 654,636 of them in the 46 families with a shared kind.
       searched(
         ctx,
         exhaust(
           {
-            box: "every family, every state of its model, every kind it admits",
+            box: "every family ChildGrammar admits a child under (1,276), every state of its model (0 to its position count less 1), every kind it admits: 2,492,424 (family, state, kind) triples at the pinned grammar, 654,636 of them in the 46 families with a shared kind",
             caseHang: "60 seconds",
             concurrency: searchWidth,
             coverage: requiredInSpace<StepSituation>([
@@ -533,7 +525,10 @@ describe("N5, content order", () => {
             ]),
             generator: elementOf(families),
             literal: Formatter.format,
-            oracle: { kind: "second-implementation", name: "content.ts stepOf" },
+            oracle: {
+              kind: "second-implementation",
+              name: "content.ts stepOf, which steps the composed grammar's automata keyed by parent, against the N5 statements (lawfulStates), which read install.ts's rows keyed by content model: they agree exactly when N5_admitted and N5_Follow leave each child one lawful state, the host's, and none where the host has none, which Unique Particle Attribution promises (plan §1.3 N5, C5)",
+            },
             suite: "qti/node-n5-families",
           },
           ({ parent }, c) =>
@@ -574,11 +569,6 @@ describe("N5, content order", () => {
   it.effect(
     "holds of the state the host's fold writes on every member of a generated document",
     (ctx) =>
-      // Oracle: the specification as a checker, the N5 statements of `node.ts` (`lawfulStates`
-      // over the installed rows, and the predecessor copy) over the rows `fold` writes through
-      // `stepOf`; the brief's split by kind (`¬element ∨ state = was`) is counted beside it,
-      // since it refuses the state of every doctype and of SSML's text in `ssml:speak`.
-      // Bound: the generator's drawn bounds, up to 200 nodes and depth 7 a tree, 300 runs.
       searched(
         ctx,
         explore(
@@ -591,7 +581,10 @@ describe("N5, content order", () => {
             draw: drawnCase(xdmDocument(grammar)),
             kept: [],
             literal: Formatter.format,
-            oracle: { kind: "specification", name: "node.ts's N5 statements over install.ts" },
+            oracle: {
+              kind: "specification",
+              name: "node.ts's N5 statements (lawfulStates over the installed rows, and the predecessor copy) over the rows fold writes through stepOf, on trees of up to 200 nodes and depth 7; the brief's split by kind (¬element ∨ state = was) is counted beside it, since it refuses the state of every doctype and of SSML's text in ssml:speak",
+            },
             runs: 300,
             shrink: completeShrink,
             steerEvery: 16,
@@ -793,11 +786,6 @@ describe("the foreign element laws, by the host oracle", () => {
   it.effect(
     "finds no foreign law broken in each lawful document, and exactly the case's law in its corruption",
     () =>
-      // Oracle: the specification as a checker, the host law model (`documentBreaches` of
-      // `#pantry/test/oracle.ts`), which predicts PostgreSQL's refusals of `node.ts`'s and
-      // `chardata.ts`'s checks: XML Schema 1.0 Part 1 §3.3.4 clause 3.1.2, §3.10.4 clause 2,
-      // §3.3.4 clauses 1.1.1 and 1.2, and Namespaces in XML 1.0 §5 and §6.2.
-      // Bound: the five laws, one lawful document and one corruption each.
       Effect.gen(function* foreign() {
         for (const { corrupt, law, lawful } of foreignCases) {
           const rows = yield* foldedOf(lawful);
@@ -811,8 +799,12 @@ describe("the foreign element laws, by the host oracle", () => {
             ),
           ];
 
-          assert.deepStrictEqual(foreignBreaches(rows), [], law);
-          assert.deepStrictEqual(foreignBreaches(broken), [law], law);
+          assert.deepStrictEqual(foreignBreaches(rows), [], `${law}: its lawful document`);
+          assert.deepStrictEqual(
+            foreignBreaches(broken),
+            [law],
+            `${law}: its corruption, by the host law model (documentBreaches of #pantry/test/oracle.ts), which predicts PostgreSQL's refusals of node.ts's and chardata.ts's checks: XML Schema 1.0 Part 1 §3.3.4 clause 3.1.2, §3.10.4 clause 2, §3.3.4 clauses 1.1.1 and 1.2, and Namespaces in XML 1.0 §5 and §6.2`,
+          );
         }
       }),
   );
@@ -1060,16 +1052,11 @@ describe("the memberships of a node's own position, by the host judge", () => {
   it.effect(
     "meet a node exactly where the handle of its own Position field is in the tested set, every handle exhausted",
     (ctx) =>
-      // Oracle: the specification, the meaning of the diagonal `Bits.singleton` replaced:
-      // {h} ⊆ S exactly where h ∈ S, S read off `install.ts`'s rows, over the predicates grizzle
-      // keeps for the laws, evaluated on the host (`#pantry/test/key-copies.ts`).
-      // Bound: every handle of the Position roster in each of the four memberships, each judged
-      // at the handles its field can hold.
       searched(
         ctx,
         exhaust(
           {
-            box: `every handle of Position, ${install.Position.handles.length}, in each membership`,
+            box: `every handle of Position, ${install.Position.handles.length}, in each of the four memberships, each judged at the handles its field can hold`,
             caseHang,
             concurrency: searchWidth,
             coverage: requiredInSpace<MembershipSituation>([
@@ -1084,7 +1071,10 @@ describe("the memberships of a node's own position, by the host judge", () => {
             ]),
             generator: int(0, install.Position.handles.length - 1),
             literal: Formatter.format,
-            oracle: { kind: "specification", name: "{h} ⊆ S exactly where h ∈ S" },
+            oracle: {
+              kind: "specification",
+              name: "the meaning of the diagonal Bits.singleton replaced: {h} ⊆ S exactly where h ∈ S, S read off install.ts's rows, over the predicates grizzle keeps for the laws, evaluated on the host (#pantry/test/key-copies.ts)",
+            },
             suite: "qti/node-memberships",
           },
           (code, c) =>
@@ -1162,8 +1152,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
   (judging) => {
     for (const { item: text, name, parent } of unadmittedTexts) {
       judging.effect(`${name} breaks N5 admitted alone, N5 Follow true on its text`, () =>
-        // Oracle: the law oracle (`oracle.ts`, N5 Follow leaves a member with no Admission cell
-        // unjudged) and the spec: the text breaks admission and orders nothing.
         Effect.scoped(
           Effect.gen(function* unadmittedText() {
             const files = {
@@ -1181,7 +1169,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
 
             assert.isTrue(
               nodeCheck("N5 Follow")(textRow),
-              `${name}: N5 Follow on the text under ${parent}`,
+              `${name}: N5 Follow on the text under ${parent}, which orders nothing, as the law oracle (oracle.ts) leaves a member with no Admission cell unjudged`,
             );
             assert.deepStrictEqual(
               contentOrderChecks
@@ -1190,7 +1178,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                 .map(({ law }) => law)
                 .toArray(),
               ["N5 admitted"],
-              name,
+              `${name}: the text breaks admission alone`,
             );
           }),
         ),

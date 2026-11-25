@@ -84,7 +84,6 @@ const referenceRelations = [
 
 describe("qti/interactions.ts, the closed data its laws read", () => {
   it("holds every ContentReference row in exactly one reference relation, the one whose law the oracle names for it", () => {
-    // Oracle: the oracle's `contentLawOf`, the law a reference by (kind, attribute) breaks.
     for (const { attribute, kind } of ContentReference.rows) {
       const holders = referenceRelations.filter(
         (relation) =>
@@ -96,15 +95,17 @@ describe("qti/interactions.ts, the closed data its laws read", () => {
       for (const relation of holders) {
         assert.isTrue(
           Option.contains(contentLawOf(kind, attribute), referenceLaws[relation]),
-          `${kind} ${attribute}`,
+          `${kind} ${attribute}: the law the oracle's contentLawOf names for a reference by (kind, attribute)`,
         );
       }
     }
   });
 
   it("reads every LastWhere rule over a shape of a hotspot kind under interactions, so each hotspot's shape states it", () => {
-    // Oracle: the grammar's `lastWhere` rules, which the default-hotspot check is built from.
-    assert.isNotEmpty(grammar.lastWhere);
+    assert.isNotEmpty(
+      grammar.lastWhere,
+      "the grammar's lastWhere rules, which the default-hotspot check is built from",
+    );
     for (const { attribute, kind, parents } of grammar.lastWhere) {
       assert.strictEqual(attribute, "shape", kind);
       assert.include(hotspotKinds, kind);
@@ -115,24 +116,28 @@ describe("qti/interactions.ts, the closed data its laws read", () => {
   });
 
   it("holds every ChoiceBound kind an interaction or a choice, so an Interaction or a Choice row brings its CountBound", () => {
-    // Oracle: the grammar's interaction roster and `choiceKinds`, against `ChoiceBound`'s rows.
     for (const { kind } of ChoiceBound.rows) {
       assert.isTrue(
         interactionKinds.includes(kind) || choiceKinds.some((choice) => choice === kind),
-        kind,
+        `${kind}: in the grammar's interaction roster or choiceKinds`,
       );
     }
   });
 
   it("reads reading 92's cardinality kinds' most count with an XSD default, so the law reads a known most", () => {
-    // Oracle: the inventory leaf's attribute declarations, by way of `countDefault`, and
-    // `ChoiceBound`'s max attributes.
     for (const kind of cardinalityKinds) {
       const bound = ChoiceBound.rows.find((row) => row.kind === kind);
 
       assert.isDefined(bound, kind);
-      assert.include(["max-choices", "max-associations"], bound?.max, kind);
-      assert.isTrue(Option.isSome(countDefault(kind, bound?.max ?? "max-choices")), kind);
+      assert.include(
+        ["max-choices", "max-associations"],
+        bound?.max,
+        `${kind}: one of ChoiceBound's max attributes`,
+      );
+      assert.isTrue(
+        Option.isSome(countDefault(kind, bound?.max ?? "max-choices")),
+        `${kind}: the inventory leaf's attribute declarations give it an XSD default (countDefault)`,
+      );
     }
   });
 
@@ -149,9 +154,6 @@ describe("qti/interactions.ts, the closed data its laws read", () => {
   });
 
   it("lets the interactions no fit relation names bind any type, and no other", () => {
-    // Oracle: the information model's class descriptions: the custom, portable custom and order
-    // interactions state no binding, so each binds a response of any type (§5.36, §5.106 and
-    // §5.97; spec reading 172).
     assert.deepStrictEqual(
       [...anyTypeKinds].toSorted(),
       [
@@ -159,6 +161,7 @@ describe("qti/interactions.ts, the closed data its laws read", () => {
         "qti-order-interaction",
         "qti-portable-custom-interaction",
       ].toSorted(),
+      "the information model's class descriptions: the custom, portable custom and order interactions state no binding, so each binds a response of any type (§5.36, §5.106 and §5.97; spec reading 172)",
     );
   });
 });
@@ -208,7 +211,18 @@ const gapMatch = (text: string, gap: string): string =>
 
 /**
  * The reading-104 cases over the `simple` fixture's item: each edit, written as search and
- * replacement pairs applied in order, and the laws of the two it must break.
+ * replacement pairs applied in order, and the laws of the two it must break, read off its edit by
+ * reading 104 as amended (§5.132.1, §5.55.1, §5.58.1, §5.65.1, §5.67.1, §5.73.1, §6.17, §7.16,
+ * §2.2.2): each class's sentence bars its own noun, so two elements of one class never share a name
+ * in a document, and the four whose noun is "choice" share theirs with no other choice of any
+ * class, a gap being none; and no choice names an item variable, declared or built in.
+ *
+ * The fixture as it is and 15 edits of its item: a choice named as a declared outcome, a declared
+ * response padded and a built-in, two choices of one interaction and of two named alike, two
+ * interactions' choices named apart, a hottext, an inline choice beside a simple choice of one
+ * name, a gap and a gap text of one gap match named alike and apart, a gap and a gap text each
+ * beside a simple choice of its name, a gap text beside a hottext of one name, two gap texts of one
+ * name, and a hotspot choice beside a hottext of one name.
  */
 const choiceNameCases: readonly {
   readonly breaks: readonly ("Choice identifier key" | "Choice not variable")[];
@@ -534,18 +548,6 @@ describe("qti/interactions.ts, reading 104 by the law oracle", () => {
   it.effect(
     "breaks Choice not variable and Choice identifier key exactly where reading 104 says, over edits of simple's item",
     () =>
-      // Oracle: the specification as a checker, reading 104 as amended (§5.132.1, §5.55.1, §5.58.1,
-      // §5.65.1, §5.67.1, §5.73.1, §6.17, §7.16, §2.2.2): each class's sentence bars its own noun,
-      // so two elements of one class never share a name in a document, and the four whose noun is
-      // "choice" share theirs with no other choice of any class, a gap being none; and no choice
-      // names an item variable, declared or built in; each case's expected laws are read off its
-      // edit. Bound: the `simple` fixture as it is and 15 edits of its item: a choice named as a
-      // declared outcome, a declared response padded and a built-in, two choices of one
-      // interaction and of two named alike, two interactions' choices named apart, a hottext, an
-      // inline choice beside a simple choice of one name, a gap and a gap text of one gap match
-      // named alike and apart, a gap and a gap text each beside a simple choice of its name, a gap
-      // text beside a hottext of one name, two gap texts of one name, and a hotspot choice beside
-      // a hottext of one name.
       Effect.gen(function* choiceNames() {
         const files = yield* readEntries(fixtures.simple);
         for (const { breaks, edits, name } of choiceNameCases) {
@@ -563,7 +565,7 @@ describe("qti/interactions.ts, reading 104 by the law oracle", () => {
               ),
             ],
             [...breaks],
-            name,
+            `${name}: reading 104, by the law oracle`,
           );
         }
       }).pipe(Effect.provide(NodeServices.layer)),
@@ -572,12 +574,6 @@ describe("qti/interactions.ts, reading 104 by the law oracle", () => {
   it.effect(
     "breaks the same reading-104 laws by the schema's laws over the import's rows as by the law oracle",
     () =>
-      // Oracle: two implementations side by side, the law oracle's choice names, which group the
-      // document's choices by class and by identifier alone, and the schema's laws over the
-      // import's rows (`#pantry/test/host-judge.ts`): the per-class keys, and the two rules over
-      // queries restated on the host ({@link queryNameLawsOf}), which the host judge reads none
-      // of; each must break exactly the case's laws among reading 104's two, and judge both.
-      // Bound: the same 16 packages as the oracle's own test above.
       Effect.gen(function* choiceNamesByRows() {
         const files = yield* readEntries(fixtures.simple);
         for (const { breaks, edits, name } of choiceNameCases) {
@@ -594,7 +590,11 @@ describe("qti/interactions.ts, reading 104 by the law oracle", () => {
           ];
           const dir = yield* scopedPackage(new Map(edited.map((file) => [file.path, file.bytes])));
           const program = yield* readProgram(dir, nameOf(dir));
-          assert.sameMembers(oracle, [...breaks], `${name}: the oracle`);
+          assert.sameMembers(
+            oracle,
+            [...breaks],
+            `${name}: the law oracle's choice names, which group the document's choices by class and by identifier alone`,
+          );
           assert.sameMembers(
             [
               ...new Set([
@@ -603,7 +603,7 @@ describe("qti/interactions.ts, reading 104 by the law oracle", () => {
               ]),
             ],
             [...breaks],
-            `${name}: the rows`,
+            `${name}: the schema's laws over the import's rows (#pantry/test/host-judge.ts), the per-class keys and the two rules over queries restated on the host (queryNameLawsOf), which the host judge reads none of`,
           );
         }
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
@@ -681,13 +681,13 @@ describe("qti/interactions.ts, PCI module source", () => {
   it.effect(
     "is broken once by a PCI with neither module form, and by none that writes `module`, `qti-interaction-modules` or both",
     () =>
-      // Oracle: the information model's §5.106.2, "If this characteristic is provided the
-      // qti-interaction-modules child attribute is not required, if omitted then the modules child
-      // element is mandatory" (R10-a), read as a count of the forms each PCI writes, over the four
-      // ways a PCI writes them.
       Effect.gen(function* moduleSource() {
         const neither = yield* pciBreachesOf({ attribute: false, element: false });
-        assert.lengthOf(neither, 1, shown(neither));
+        assert.lengthOf(
+          neither,
+          1,
+          `${shown(neither)}: the information model's §5.106.2, "If this characteristic is provided the qti-interaction-modules child attribute is not required, if omitted then the modules child element is mandatory" (R10-a), read as a count of the forms each PCI writes`,
+        );
         for (const forms of [
           { attribute: true, element: false },
           { attribute: false, element: true },
@@ -722,12 +722,13 @@ const lawsBreachedBy = (interaction: string, declarations: string) =>
 
 describe("qti/interactions.ts, the context variable and the markup's content", () => {
   it.effect("admits QTI_CONTEXT undeclared, the built-in context variable", () =>
-    // Oracle: the information model's §2.2.2.1, "There is one built-in context variable:
-    // 'QTI_CONTEXT'", and its issue #142, which makes a `qti-context-variable`'s `identifier` "an
-    // open string" so that it names the built-in variable with no declaration.
     Effect.gen(function* undeclared() {
       const found = yield* lawsBreachedBy(contextPci("QTI_CONTEXT"), "");
-      assert.notInclude(found, "Idref target", found.join(", "));
+      assert.notInclude(
+        found,
+        "Idref target",
+        `${found.join(", ")}: the information model's §2.2.2.1, "There is one built-in context variable: 'QTI_CONTEXT'", and its issue #142, which makes a qti-context-variable's identifier "an open string" so that it names the built-in variable with no declaration`,
+      );
       assert.notInclude(found, "Context variable reference", found.join(", "));
     }),
   );
@@ -744,8 +745,6 @@ describe("qti/interactions.ts, the context variable and the markup's content", (
   );
 
   it.effect("admits a foreign element in a markup's template", () =>
-    // Oracle: reading 57 and reading 6, a `template` of the markup holds foreign content, which
-    // lax processing does not assess.
     Effect.gen(function* foreignTemplate() {
       const found = yield* lawsBreachedBy(
         contextPci(
@@ -754,17 +753,17 @@ describe("qti/interactions.ts, the context variable and the markup's content", (
         ),
         '<qti-context-declaration identifier="QTI_CONTEXT" cardinality="record"/>',
       );
-      assert.deepStrictEqual(found, [], found.join(", "));
+      assert.deepStrictEqual(
+        found,
+        [],
+        `${found.join(", ")}: readings 57 and 6, a template of the markup holds foreign content, which lax processing does not assess`,
+      );
     }),
   );
 
   it.effect(
     "judges a custom interaction by Binding declared, and passes over the choice interaction in its content",
     () =>
-      // Oracle: reading 57: a custom interaction's content is lax, and a `qti-choice-interaction`,
-      // declared only locally, has no declaration lax processing finds, so the walk passes it over
-      // and "Binding declared" does not judge its response (the custom interaction's own binding is
-      // judged: the control).
       Effect.gen(function* customContent() {
         const inside = yield* lawsBreachedBy(
           `<qti-custom-interaction response-identifier="RESPONSE">${choiceInteraction.replace(
@@ -773,13 +772,21 @@ describe("qti/interactions.ts, the context variable and the markup's content", (
           )}</qti-custom-interaction>`,
           "",
         );
-        assert.notInclude(inside, "Binding declared", inside.join(", "));
+        assert.notInclude(
+          inside,
+          "Binding declared",
+          `${inside.join(", ")}: reading 57, a custom interaction's content is lax, and a qti-choice-interaction, declared only locally, has no declaration lax processing finds, so the walk passes it over and Binding declared does not judge its response`,
+        );
 
         const outside = yield* lawsBreachedBy(
           '<qti-custom-interaction response-identifier="NOWHERE"/>',
           "",
         );
-        assert.include(outside, "Binding declared", outside.join(", "));
+        assert.include(
+          outside,
+          "Binding declared",
+          `${outside.join(", ")}: the custom interaction's own binding is judged, the control`,
+        );
       }),
   );
 

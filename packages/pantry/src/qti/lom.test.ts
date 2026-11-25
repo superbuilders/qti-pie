@@ -211,19 +211,13 @@ const isVocabularyKind = (kind: string): kind is keyof typeof vocabularies =>
 
 describe("LOM vocabulary", () => {
   it("holds a status, a role, a kind and a purpose of LOM's own vocabulary to exactly LOM's terms", () => {
-    // Oracle: IEEE 1484.12.1-2002 §4.4 ("If the source is "LOMv1.0", then the value space is
-    // described by this edition of this Standard") over the vocabularies of 2.2, 2.3.1, 3.2.1, 7.1
-    // and 9.1, and QTI 3.0 Metadata §2.7.7.1's precludes. A term of another source is no row of
-    // `LomTerm`, the loose binding enforcing no default vocabulary (§3.6), so no source is judged
-    // here: which terms name another vocabulary is `LomTerm`'s query, the database's to evaluate.
-    // Bound: each of the four elements × every written value, exhausted.
     for (const parent of Rec.keys(vocabularies)) {
       const terms: readonly string[] = vocabularies[parent];
       for (const value of writtenValues) {
         assert.strictEqual(
           termHolds(parent, value),
           terms.includes(value),
-          `${JSON.stringify(value)} in ${parent}`,
+          `${JSON.stringify(value)} in ${parent}: IEEE 1484.12.1-2002 §4.4 ("If the source is "LOMv1.0", then the value space is described by this edition of this Standard") over the vocabularies of 2.2, 2.3.1, 3.2.1, 7.1 and 9.1, and QTI 3.0 Metadata §2.7.7.1's precludes; a term of another source is no row of LomTerm, the loose binding enforcing no default vocabulary (§3.6), so no source is judged here: which terms name another vocabulary is LomTerm's query, the database's to evaluate`,
         );
       }
     }
@@ -232,7 +226,10 @@ describe("LOM vocabulary", () => {
 
 /**
  * Whether a LOM text of some UTF-8 bytes holds "Key text bound", as the check's rule over the query
- * holds the row of its length.
+ * holds the row of its length. Its bound is `lomTextBytes` (`#pantry/qti/limits.ts`), the bound
+ * `LomText` declares, which a view casts a LOM text into under grizzle's byte guard: IEEE
+ * 1484.12.1-2002 bounds no CharacterString, so one past it is refused at import, a stated limit of
+ * the representation.
  *
  * @param bytes - The text's bytes.
  * @returns Whether it holds the check.
@@ -250,10 +247,6 @@ const lomTextHolds = (bytes: number): boolean =>
 
 describe("the LOM texts' bound", () => {
   it("holds a keyed LOM text (a catalog, an entry, an earlier package's name, a taxon's source, id or entry) of lomTextBytes, the most its views' keys hold, and refuses one a byte longer", () => {
-    // Oracle: `lomTextBytes` (`#pantry/qti/limits.ts`), the bound `LomText` declares, which a view
-    // casts a LOM text into under grizzle's byte guard: IEEE 1484.12.1-2002 bounds no
-    // CharacterString, so one past it is refused at import, a stated limit of the representation.
-    // Bound: the empty text, the bound and a byte past it.
     assert.isTrue(lomTextHolds(0), "the empty text");
     assert.isTrue(lomTextHolds(lomTextBytes), "a text of lomTextBytes");
     assert.isFalse(lomTextHolds(lomTextBytes + 1), "a text a byte past lomTextBytes");
@@ -336,10 +329,6 @@ const vcards = [
 
 describe("LOM vCard", () => {
   it("holds every contribute's entity to a vCard 3.0 with its N, its FN and its frame, each of any value", () => {
-    // Oracle: RFC 2426 §3.1.1, §3.1.2 and §3.6.9 ("MUST be present") and §5's BEGIN and END, read
-    // by `readVcard`, RFC 2425 §5.8.2's content line; an FN's and an N's value is a text-value,
-    // `*(SAFE-CHAR / ":" / DQUOTE / ESCAPED-CHAR)` (§4), the blank one among them. Bound: the
-    // box's fourteen entities.
     for (const text of vcards) {
       const vcard = readVcard(text);
       assert.strictEqual(
@@ -353,7 +342,7 @@ describe("LOM vCard", () => {
           has(vcard, "VERSION", (value) => value === "3.0") &&
           has(vcard, "N", () => true) &&
           has(vcard, "FN", () => true),
-        JSON.stringify(text),
+        `${JSON.stringify(text)}: RFC 2426 §3.1.1, §3.1.2 and §3.6.9 ("MUST be present") and §5's BEGIN and END, read by readVcard, RFC 2425 §5.8.2's content line; an FN's and an N's value is a text-value, *(SAFE-CHAR / ":" / DQUOTE / ESCAPED-CHAR) (§4), the blank one among them`,
       );
     }
   });
@@ -407,26 +396,31 @@ describe("the LOM level", () => {
   });
 
   it("asks a package for nothing, judges only a record's terms, its vCards and its keyed texts' bound, and keys a term view only by its whole heading", () => {
-    // Oracle: IEEE 1484.12.1-2002 §4.2 ("All data elements are optional"), QTI 3.0 Metadata
-    // §2.7.2.3, §2.7.7.2 and §2.7.9 ("Usage as defined by [LOM, 02]"; "There may be multiple
-    // instances of the classification category"), and QTI 3.0 Conformance §3 ("the applications
-    // must be able to ignore or remove the unsupported data"): no identity, grade, subject, credit,
-    // source or version is required, counted or held to a chain, so the level states no
-    // containment, a key only over a term view's whole heading, which a set of rows holds always
-    // and which orders the view's stored index for the readers that bind a term's texts, and its
-    // checks read a term of LOM's own vocabulary, a record's node or a keyed LOM text as written
-    // alone, never a view of what a package may state. Bound: every statement of the level.
     for (const statement of Object.values(lomLawsByName).flat()) {
       if (statement.kind === "key") {
         const heading = wholeHeadings.get(statement.side.source);
         assert.isDefined(heading, "a key over a term view");
-        assert.sameMembers([...statement.side.terms], [...(heading ?? [])]);
+        assert.sameMembers(
+          [...statement.side.terms],
+          [...(heading ?? [])],
+          "a key only over a term view's whole heading, which a set of rows holds always and which orders the view's stored index for the readers that bind a term's texts",
+        );
         continue;
       }
 
-      assert.strictEqual(statement.kind, "check");
-      assert.isTrue(judgedRelations.has(statement.relation), statement.name);
-      assert.isFalse(statedViews.has(statement.relation), statement.name);
+      assert.strictEqual(
+        statement.kind,
+        "check",
+        `${statement.name}: IEEE 1484.12.1-2002 §4.2 ("All data elements are optional"), QTI 3.0 Metadata §2.7.2.3, §2.7.7.2 and §2.7.9 ("Usage as defined by [LOM, 02]"; "There may be multiple instances of the classification category"), and QTI 3.0 Conformance §3 ("the applications must be able to ignore or remove the unsupported data"): no identity, grade, subject, credit, source or version is required, counted or held to a chain, so the level states no containment`,
+      );
+      assert.isTrue(
+        judgedRelations.has(statement.relation),
+        `${statement.name}: a check reads a term of LOM's own vocabulary, a record's node or a keyed LOM text as written alone`,
+      );
+      assert.isFalse(
+        statedViews.has(statement.relation),
+        `${statement.name}: never a view of what a package may state`,
+      );
     }
   });
 });
@@ -608,16 +602,11 @@ describe("what a package may state", () => {
   it.effect(
     "holds no credit, classification or relation to a check of its own, whatever its role, purpose, kind, vCard or entry",
     (ctx) =>
-      // Oracle: IEEE 1484.12.1-2002 §4.2 ("All data elements are optional"), 2.3.2 (an entity's
-      // value space is a vCard 3.0, which LOM vCard judges at its node; RFC 2426 asks it for no
-      // EMAIL, §3.3.2, and no ORG, §3.5.5), 7.2.1.2 (an entry is any CharacterString) and 9, with
-      // QTI 3.0 Metadata §2.7.2.3, §2.7.7.2 and §2.7.9 ("Usage as defined by [LOM, 02]"). Bound:
-      // 15 roles × 14 vCards, 9 purposes × 3 ids and 13 kinds × 4 entries, 289 rows, exhausted.
       searched(
         ctx,
         exhaust(
           {
-            box: "every role with every vCard, every purpose with 3 ids, every relation kind with 4 entries",
+            box: "every role with every vCard, every purpose with 3 ids, every relation kind with 4 entries: 15 × 14, 9 × 3 and 13 × 4, 289 rows",
             caseHang: Duration.seconds(10),
             coverage: requiredInSpace<StatedSituation>([
               "an author whose vCard writes no EMAIL",
@@ -630,7 +619,7 @@ describe("what a package may state", () => {
             literal: (row) => JSON.stringify(row),
             oracle: {
               kind: "specification",
-              name: "IEEE 1484.12.1-2002 §4.2, 2.3.2, 7.2.1.2 and 9, QTI 3.0 Metadata §2.7.2.3, §2.7.7.2 and §2.7.9",
+              name: 'IEEE 1484.12.1-2002 §4.2 ("All data elements are optional"), 2.3.2 (an entity\'s value space is a vCard 3.0, which LOM vCard judges at its node; RFC 2426 asks it for no EMAIL, §3.3.2, and no ORG, §3.5.5), 7.2.1.2 (an entry is any CharacterString) and 9, with QTI 3.0 Metadata §2.7.2.3, §2.7.7.2 and §2.7.9 ("Usage as defined by [LOM, 02]")',
             },
             suite: "pantry/qti/lom-stated-views",
           },
@@ -768,11 +757,12 @@ layer(NodeServices.layer, { excludeTestServices: true })("the producers' manifes
           ),
           "a description's string is not folded",
         );
-        // Each is a node of the manifest, a document records are read from, so `RecordNode`
-        // delivers it.
         for (const { kind, package: pkg, parent, parentKind, path, start, stringValue } of nodes) {
           const row = { kind, package: pkg, parent, parentKind, path, start, stringValue };
-          assert.isTrue(vcardHolds(row), `LOM vCard at ${String(start)}`);
+          assert.isTrue(
+            vcardHolds(row),
+            `LOM vCard at ${String(start)}, a node of the manifest, a document records are read from, so RecordNode delivers it`,
+          );
           if (kind === "lom:value" && isVocabularyKind(parentKind)) {
             assert.isTrue(termHolds(parentKind, stringValue), `LOM vocabulary at ${String(start)}`);
           }

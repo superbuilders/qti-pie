@@ -84,17 +84,11 @@ describe("test/oracle.ts, Label tools", () => {
   it.effect(
     "breaks once at each labelled element, the paragraph and the root, exactly when its root lacks tool-name or tool-version",
     (ctx) =>
-      // Oracle: the specification as a checker, the QTI 3.0.1 information model's label
-      // characteristic (§5.16.5: "If an item uses labels then values for the associated toolName
-      // and toolVersion characteristics must also be provided"), and the item's own label (§4.1.3
-      // says the same of it, "attributes" for "characteristics"; spec reading 128).
-      // Bound: every item of one labelled or unlabelled paragraph, with or without a root label,
-      // tool-name and tool-version, 16.
       searched(
         ctx,
         exhaust(
           {
-            box: "every item of one paragraph, each of its body label, root label, tool-name and tool-version present or absent",
+            box: "every item of one paragraph, each of its body label, root label, tool-name and tool-version present or absent, 16",
             caseHang: Duration.seconds(30),
             coverage: requiredInSpace<LabelSituation>([
               "unlabelled",
@@ -107,7 +101,7 @@ describe("test/oracle.ts, Label tools", () => {
             literal: (drawn) => JSON.stringify(drawn),
             oracle: {
               kind: "specification",
-              name: "the information model's label characteristic, §5.16.5, and the item's, §4.1.3",
+              name: 'the QTI 3.0.1 information model\'s label characteristic (§5.16.5: "If an item uses labels then values for the associated toolName and toolVersion characteristics must also be provided"), and the item\'s own label (§4.1.3 says the same of it, "attributes" for "characteristics"; spec reading 128)',
             },
             suite: "test/oracle-label-tools",
           },
@@ -203,16 +197,11 @@ describe("test/oracle.ts, DocumentId key and Idref target over typed texts (C50)
   it.effect(
     "breaks DocumentId key exactly where one id is purported by two parents, and Idref target exactly where a text's IDREF names no id",
     (ctx) =>
-      // Oracle: the specification as a checker, XML Schema 1.0 Part 1 §3.15.5 and cvc-id (reading
-      // 101): an element text's ID is bound to its parent, no id's binding has two members, and an
-      // IDREF names an id of its document.
-      // Bound: every pair of custom interactions, each of at most 2 foreign children over an ID
-      // `a`, an ID `b` and an IDREF to `a`, 169.
       searched(
         ctx,
         exhaust(
           {
-            box: "every two custom interactions of at most 2 xsi:typed foreign children over ID a, ID b and IDREF a",
+            box: "every two custom interactions of at most 2 xsi:typed foreign children over ID a, ID b and IDREF a, 169",
             caseHang: Duration.seconds(30),
             coverage: requiredInSpace<TypedSituation>([
               "one id twice under one parent",
@@ -222,7 +211,10 @@ describe("test/oracle.ts, DocumentId key and Idref target over typed texts (C50)
             ]),
             generator: typedCases,
             literal: (drawn) => JSON.stringify(drawn),
-            oracle: { kind: "specification", name: "XML Schema 1.0 Part 1 §3.15.5, cvc-id" },
+            oracle: {
+              kind: "specification",
+              name: "XML Schema 1.0 Part 1 §3.15.5 and cvc-id (reading 101): an element text's ID is bound to its parent, no id's binding has two members, and an IDREF names an id of its document",
+            },
             suite: "test/oracle-typed-ids",
           },
           (drawn, c) =>
@@ -380,20 +372,11 @@ describe("test/oracle.ts, Document lang (R26)", () => {
   it.effect(
     "breaks once, at the item, exactly when its xml:lang states a language that a general category of its resource's record does not list",
     (ctx) =>
-      // Oracle: the specification as a checker, QTI 3.0 Metadata §2.7.1.3 ("There must be one
-      // value for each of the languages referred to by the language attributes on the associated
-      // assessmentItem, test or object bank and its 'bodyElements'"), over a resource that names
-      // its item by href (reading 93), an xml:lang by its collapsed value, the empty one stating
-      // none (XML 1.0 §2.12), compared with each listed language as a tag, without regard to case
-      // (RFC 5646 §2.1.1); a LOM language is an xs:string, read as written, so one with spaces
-      // around it is no tag ("Whitespace is not permitted in a language tag", §2.1; reading 134).
-      // Bound: every item root xml:lang of 4, href or none, and at most 2 categories of at most
-      // one of en, fr, EN and padded en, 248.
       searched(
         ctx,
         exhaust(
           {
-            box: "every item xml:lang of none, en, padded EN and empty, named by href or not, beside at most 2 general categories of at most one of en, fr, EN and padded en",
+            box: "every item xml:lang of none, en, padded EN and empty, named by href or not, beside at most 2 general categories of at most one of en, fr, EN and padded en, 248",
             caseHang: Duration.seconds(30),
             coverage: requiredInSpace<DocumentLangSituation>([
               "listed by every category",
@@ -406,7 +389,10 @@ describe("test/oracle.ts, Document lang (R26)", () => {
             ]),
             generator: documentLangCases,
             literal: (drawn) => JSON.stringify(drawn),
-            oracle: { kind: "specification", name: "QTI 3.0 Metadata §2.7.1.3, Language" },
+            oracle: {
+              kind: "specification",
+              name: 'QTI 3.0 Metadata §2.7.1.3 ("There must be one value for each of the languages referred to by the language attributes on the associated assessmentItem, test or object bank and its \'bodyElements\'"), over a resource that names its item by href (reading 93), an xml:lang by its collapsed value, the empty one stating none (XML 1.0 §2.12), compared with each listed language as a tag, without regard to case (RFC 5646 §2.1.1); a LOM language is an xs:string, read as written, so one with spaces around it is no tag ("Whitespace is not permitted in a language tag", §2.1; reading 134)',
+            },
             suite: "test/oracle-document-lang",
           },
           (drawn: DocumentLangCase, c) =>
@@ -586,20 +572,11 @@ describe("test/oracle.ts, SSML trim mark and SSML lexicon reference (reading 3)"
   it.effect(
     "breaks SSML trim mark exactly where a startmark names a mark its own speak defines other than once, names compared collapsed, and SSML lexicon reference exactly where a lookup's lexicon is in another speak",
     (ctx) =>
-      // Oracle: the specification as a checker, SSML 1.1 §3.1.1.1 ("Only markers defined once in
-      // the document, i.e. that are unique, are permitted as the value of either startmark or
-      // endmark") and §3.1.5.1 ("The scope of this name is the current SSML document"), read
-      // under spec reading 3: "the document" is each speak fragment, a name compared by its
-      // value, collapsed (`mark@name`, `startmark` and `endmark` are `xsd:token`s, SSML 1.1
-      // §3.3.2, whose whiteSpace is collapse, XML Schema Part 2 §4.3.6), so `a  b` and `a b` are
-      // one name.
-      // Bound: every first speak of 5 startmarks, at most 2 marks over 3 names and 3 lookups,
-      // beside a second speak that defines `a b` or not, 390.
       searched(
         ctx,
         exhaust(
           {
-            box: "every two speaks: the first of 5 startmarks, at most 2 marks over a b, a  b and ab, and 3 lookups, the second defining a b or not",
+            box: "every two speaks: the first of 5 startmarks, at most 2 marks over a b, a  b and ab, and 3 lookups, the second defining a b or not, 390",
             caseHang: Duration.seconds(30),
             coverage: requiredInSpace<SsmlLawSituation>([
               "trim to a mark defined once",
@@ -614,7 +591,7 @@ describe("test/oracle.ts, SSML trim mark and SSML lexicon reference (reading 3)"
             literal: (drawn) => JSON.stringify(drawn),
             oracle: {
               kind: "specification",
-              name: "SSML 1.1 §3.1.1.1, §3.1.5.1 and §3.3.2, reading 3",
+              name: 'SSML 1.1 §3.1.1.1 ("Only markers defined once in the document, i.e. that are unique, are permitted as the value of either startmark or endmark") and §3.1.5.1 ("The scope of this name is the current SSML document"), read under spec reading 3: "the document" is each speak fragment, a name compared by its value, collapsed (mark@name, startmark and endmark are xsd:tokens, SSML 1.1 §3.3.2, whose whiteSpace is collapse, XML Schema Part 2 §4.3.6), so a  b and a b are one name',
             },
             suite: "test/oracle-ssml-fragment",
           },

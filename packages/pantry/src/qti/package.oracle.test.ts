@@ -71,7 +71,7 @@ const listedPaths = [
 
 /**
  * A listing as a reader gives one, in any order: up to six files at distinct paths, each of up to
- * 40 drawn bytes.
+ * 40 drawn bytes, in every order the generator draws.
  */
 const listings: Gen<readonly PackageFile[]> = (source) => {
   const paths = source.draw(shuffled(listedPaths, { max: listedPaths.length, min: 0 }));
@@ -328,17 +328,11 @@ describe("qti/package.ts", () => {
   it.effect(
     "reads every path of the box as RFC 3986 and the HTML Standard state it, and tells each mutant of the patterns apart",
     (ctx) =>
-      // Oracle: the specification as a checker, read segment by segment and character by
-      // character: RFC 3986's dot-segment removal (§5.2.4) for a resolved path, its scheme grammar
-      // (§3.1) and §4.2's network and absolute paths for an external one, and the HTML Standard's
-      // image candidate's URL for a srcset; against the patterns the database reads
-      // (`resolvedPathPattern`, `externalHrefPattern`, `srcsetUrlPattern`).
-      // Bound: every path of at most 4 of 7 letters, 2,801.
       searched(
         ctx,
         exhaust(
           {
-            box: "every path of at most 4 of a . / % : space and a comma",
+            box: "every path of at most 4 of a . / % : space and a comma, 2,801",
             caseHang: Duration.seconds(10),
             concurrency: searchWidth,
             coverage: requiredInSpace<PathSituation>([
@@ -354,7 +348,7 @@ describe("qti/package.ts", () => {
             literal: (candidate) => JSON.stringify(candidate),
             oracle: {
               kind: "specification",
-              name: "RFC 3986's path grammar and the HTML Standard's image candidate, by hand",
+              name: "RFC 3986's path grammar and the HTML Standard's image candidate, by hand, read segment by segment and character by character: RFC 3986's dot-segment removal (§5.2.4) for a resolved path, its scheme grammar (§3.1) and §4.2's network and absolute paths for an external one, and the image candidate's URL for a srcset; against the patterns the database reads (resolvedPathPattern, externalHrefPattern, srcsetUrlPattern)",
             },
             suite: "qti/package-href-patterns",
           },
@@ -398,9 +392,6 @@ describe("qti/package.ts", () => {
   it.effect(
     "keeps the listing's paths as entries, one each, the manifest a document and every other file media with its bytes' digest",
     (ctx) =>
-      // Oracle: the listing itself, a set of paths (IMS Content Packaging gives its order no
-      // meaning), and each media file's digest by Node's own SHA-256, under the package's name.
-      // Bound: listings of up to 6 distinct paths in every order the generator draws, 300 runs.
       searched(
         ctx,
         explore(
@@ -415,7 +406,7 @@ describe("qti/package.ts", () => {
             literal: Formatter.format,
             oracle: {
               kind: "second-implementation",
-              name: "the listing itself and Node's SHA-256",
+              name: "the listing itself, a set of paths (IMS Content Packaging gives its order no meaning), and each media file's digest by Node's own SHA-256, under the package's name",
             },
             runs: 300,
             shrink: completeShrink,
@@ -483,10 +474,6 @@ layer(TestLayer, { excludeTestServices: true })(
     suite.effect(
       "builds one set of entries and media from a package's directory and from its zip",
       () =>
-        // Oracle: a metamorphic relation, two containers of one package giving one program's
-        // entries and media rows, each media row's digest the SHA-256 of the bytes it read.
-        // Bound: 1EdTech's two QTI 3.0.1 packages as published, `BPIG_22April` and
-        // `BegGuide_March2025`, each read from its directory and its zip.
         Effect.gen(function* sameRecord() {
           for (const fixture of ["BPIG_22April", "BegGuide_March2025"] as const) {
             const fromDirectory = yield* readProgram(
@@ -502,15 +489,19 @@ layer(TestLayer, { excludeTestServices: true })(
             assert.deepStrictEqual(
               sortedByPath(fromDirectory.inputs.Entry.values()),
               sortedByPath(fromZip.inputs.Entry.values()),
-              fixture,
+              `${fixture}, one of 1EdTech's two QTI 3.0.1 packages as published: its directory and its zip, two containers of one package, give one program's entries`,
             );
             assert.deepStrictEqual(
               sortedByPath(fromDirectory.inputs.Media.values()),
               sortedByPath(fromZip.inputs.Media.values()),
-              fixture,
+              `${fixture}: and one program's media rows`,
             );
             for (const { bytes: content, digest, path } of fromDirectory.media) {
-              assert.strictEqual(hexOf(digest), sha256Of(content), `${fixture}: ${path}`);
+              assert.strictEqual(
+                hexOf(digest),
+                sha256Of(content),
+                `${fixture}: ${path}: each media row's digest is the SHA-256 of the bytes it read`,
+              );
             }
           }
         }),
@@ -573,11 +564,12 @@ layer(TestLayer, { excludeTestServices: true })("qti/package.ts, text references
   suite.effect(
     "breaks nothing for a card file, a card entry's file and an icon that are present and listed",
     () =>
-      // Oracle: the package's own listing (`card-files` lists every file its cards name), read by
-      // hand: the information model's §6.6 and §5.80.4 make each such file one the package holds.
-      // Bound: the one fixture, and the same with a digital material's icon added, present and listed.
       Effect.gen(function* present() {
-        assert.deepStrictEqual(yield* judgedFixture("card-files"), { laws: [], missing: [] });
+        assert.deepStrictEqual(
+          yield* judgedFixture("card-files"),
+          { laws: [], missing: [] },
+          "card-files lists every file its cards name, and the information model's §6.6 and §5.80.4 make each such file one the package holds",
+        );
         assert.deepStrictEqual(
           yield* judgedFixture("card-files", {
             at: "choice.xml",
@@ -585,6 +577,7 @@ layer(TestLayer, { excludeTestServices: true })("qti/package.ts, text references
             to: "<qti-companion-materials-info><qti-digital-material><qti-file-href>images/sign.png</qti-file-href><qti-resource-icon>images/sign-large.png</qti-resource-icon></qti-digital-material></qti-companion-materials-info><qti-item-body>",
           }),
           { laws: [], missing: [] },
+          "the same with a digital material's icon added, present and listed",
         );
       }),
   );
@@ -592,31 +585,25 @@ layer(TestLayer, { excludeTestServices: true })("qti/package.ts, text references
   suite.effect(
     "breaks File exists for a card file and for an icon the package lacks, and File listed for a file no cp:file lists",
     () =>
-      // Oracle: the information model (§6.6, §5.80.4) and IMS Content Packaging 1.2,
-      // InterchangePackage (d), read by hand: a missing file is named, an unlisted one is described
-      // nowhere.
-      // Bound: the three negative fixtures, one failing input each.
       Effect.gen(function* missing() {
         const card = yield* judgedFixture("card-file-missing");
         const icon = yield* judgedFixture("icon-missing");
         const unlisted = yield* judgedFixture("card-file-undescribed");
 
-        assert.include(card.missing, "choice.xml images/absent.png");
-        assert.include(icon.missing, "choice.xml images/absent.svg");
-        assert.include(unlisted.laws, "File listed");
-        assert.notInclude(unlisted.laws, "File exists");
+        assert.include(
+          card.missing,
+          "choice.xml images/absent.png",
+          "the information model (§6.6, §5.80.4) and IMS Content Packaging 1.2, InterchangePackage (d): a missing card file is named",
+        );
+        assert.include(icon.missing, "choice.xml images/absent.svg", "a missing icon is named");
+        assert.include(unlisted.laws, "File listed", "an unlisted file is described nowhere");
+        assert.notInclude(unlisted.laws, "File exists", "and it exists");
       }),
   );
 
   suite.effect(
     "holds a digital material's file to the package as a card's, and resolves a card file under the xml:base in scope",
     () =>
-      // Oracle: the information model (§5.80.3: a digital material's file is "the URI for the
-      // associated content file", which spec reading R9-b reads as an href), IMS Content Packaging
-      // 1.2, InterchangePackage (d) (a path that resolves in the package names a file it holds),
-      // and RFC 3986, §5.2, read by hand: `video/` merged with `clip.mp4` is `video/clip.mp4`.
-      // Bound: `card-files` with a digital material's file naming an absent path, and with a card file
-      // `clip.mp4` under an `xml:base` of `video/` on its feedback block, and without it.
       Effect.gen(function* unbound() {
         const material = yield* judgedFixture("card-files", {
           at: "choice.xml",
@@ -650,9 +637,21 @@ layer(TestLayer, { excludeTestServices: true })("qti/package.ts, text references
           },
         );
 
-        assert.include(material.missing, "choice.xml images/absent.png");
-        assert.deepStrictEqual(based, { laws: [], missing: [] });
-        assert.include(unbased.missing, "choice.xml clip.mp4");
+        assert.include(
+          material.missing,
+          "choice.xml images/absent.png",
+          '§5.80.3: a digital material\'s file is "the URI for the associated content file", which spec reading R9-b reads as an href, and IMS Content Packaging 1.2, InterchangePackage (d), has a path that resolves in the package name a file it holds',
+        );
+        assert.deepStrictEqual(
+          based,
+          { laws: [], missing: [] },
+          "RFC 3986, §5.2: video/ merged with clip.mp4 is video/clip.mp4, under the feedback block's xml:base",
+        );
+        assert.include(
+          unbased.missing,
+          "choice.xml clip.mp4",
+          "and clip.mp4 without the xml:base names a file the package lacks",
+        );
       }),
   );
 });
