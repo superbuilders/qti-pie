@@ -125,7 +125,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               {
                 box: "rtest01 with no cycle, its fragment including itself, or it and a text fragment including each other, placed by 0 to 3 set items, with and without a tail fragment",
                 caseHang: Duration.seconds(30),
-                concurrency: 1,
                 coverage: requiredInSpace<CycleSituation>([
                   "no cycle",
                   "the fragment includes itself",

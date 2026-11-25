@@ -202,7 +202,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             {
               box: "a fragment spliced into an item's body, once or twice, its printed variable or feedback outcome naming a declared or an undeclared variable",
               caseHang: Duration.minutes(2),
-              concurrency: 1,
               coverage: requiredInSpace<Situation>([
                 "printed variable, accepted",
                 "printed variable, refused",

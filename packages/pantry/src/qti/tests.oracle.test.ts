@@ -999,7 +999,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             {
               box: "the every-relation package, its bank as written or rewritten, alone or beside a test that breaks one law of a test's structure, readings or item refs, or none",
               caseHang: Duration.seconds(120),
-              concurrency: 1,
               coverage: requiredInSpace<StructureCase>(caseNames),
               generator: element(caseNames),
               literal: JSON.stringify,
@@ -1138,7 +1137,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
           explore(
             {
               caseHang: Duration.seconds(60),
-              concurrency: 1,
               coverage: noCoverage,
               draw: drawn(drawnSelection),
               kept: [],

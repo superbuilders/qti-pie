@@ -743,7 +743,6 @@ describe("import/overlays/package.ts", () => {
       explore(
         {
           caseHang: Duration.seconds(10),
-          concurrency: 1,
           coverage: required<Situation>(
             [
               "no-href",
@@ -1299,7 +1298,6 @@ describe("import/overlays/package.ts, hrefs and references", () => {
         explore(
           {
             caseHang: Duration.seconds(10),
-            concurrency: 1,
             coverage: required<ReferenceSituation>(
               [
                 "resolved",

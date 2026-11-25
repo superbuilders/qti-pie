@@ -816,7 +816,6 @@ describe("qti/interactions.ts, the ARIA range's decimal order", () => {
         explore(
           {
             caseHang: Duration.seconds(10),
-            concurrency: 1,
             coverage: required<Situation | AdversarialName>(situations, {
               cases: 1000,
               sense: notesOnly,

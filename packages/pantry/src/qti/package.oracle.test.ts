@@ -402,7 +402,6 @@ describe("qti/package.ts", () => {
         explore(
           {
             caseHang: Duration.seconds(10),
-            concurrency: 1,
             coverage: required<"empty" | "one" | "several">(["empty", "one", "several"], {
               cases: 200,
               sense: notesOnly,

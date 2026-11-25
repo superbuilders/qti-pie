@@ -318,7 +318,6 @@ describe("the bindings the fit laws judge", () => {
             {
               box: "every binding site of binding-cases.ts under every state",
               caseHang: Duration.seconds(60),
-              concurrency: 1,
               coverage: noCoverage,
               generator: int(0, cases.length - 1),
               literal: (at) => {

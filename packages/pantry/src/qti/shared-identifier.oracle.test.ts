@@ -169,7 +169,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             {
               box: "two or three items of one package, under one identifier as is or padded, or each its own",
               caseHang: Duration.minutes(5),
-              concurrency: 1,
               coverage: requiredInSpace<Situation>([
                 "three items share one identifier",
                 "two share it once collapsed",

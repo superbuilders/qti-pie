@@ -183,7 +183,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("a count's value", (it)
           {
             box: "0, +0, -0, 00, +1, -1 and ' 1' as max-choices, under a single response",
             caseHang: Duration.minutes(2),
-            concurrency: 1,
             coverage: requiredInSpace<Situation>([
               "accepted",
               "binding cardinality",

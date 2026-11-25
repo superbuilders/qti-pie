@@ -2288,14 +2288,11 @@ export const validated = Effect.fn("test.validated")(function* validated(
   oracle: XsdOracle,
   documents: readonly { readonly bytes: Uint8Array; readonly file: string }[],
 ) {
-  const roots = yield* Effect.forEach(
-    documents,
-    ({ bytes }) =>
-      readXml(bytes).pipe(
-        Effect.map(({ root }) => root.namespace),
-        Effect.orElseSucceed(() => ""),
-      ),
-    { concurrency: 1 },
+  const roots = yield* Effect.forEach(documents, ({ bytes }) =>
+    readXml(bytes).pipe(
+      Effect.map(({ root }) => root.namespace),
+      Effect.orElseSucceed(() => ""),
+    ),
   );
   const groups = Map.groupBy(
     documents.map((document, at) => ({ ...document, at, root: roots[at] ?? "" })),

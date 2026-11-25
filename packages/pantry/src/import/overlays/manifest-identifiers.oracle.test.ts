@@ -245,7 +245,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             {
               box: "a manifest with or without its identifier, a first resource of its own identifier, the first's, the manifest's or none, typed or not, with no dependency or one on itself, the second resource or nothing, and an optional second resource of the same identifiers",
               caseHang: Duration.minutes(1),
-              concurrency: 1,
               coverage: requiredInSpace<Situation>([
                 "dangling-dependency",
                 "duplicate-identifier",

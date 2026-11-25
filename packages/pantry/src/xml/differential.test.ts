@@ -411,7 +411,6 @@ describe("crust's reader as pantry uses it", () => {
           return yield* explore(
             {
               caseHang: Duration.seconds(30),
-              concurrency: 1,
               coverage: required<Reached>(
                 [
                   ...CHARSETS,

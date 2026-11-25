@@ -621,20 +621,16 @@ const fetchSpecs = Effect.fn("test.specCache.fetchSpecs")(function* fetchSpecs(
     });
   }
 
-  const derived = yield* Effect.forEach(
-    table.renderings,
-    (rendering, index) =>
-      derive(rendering, paths.join(scratch, `rendering-${String(index)}`), directory).pipe(
-        Effect.map((outcome): Result.Result<Rendered, RenderingFailure> => Result.succeed(outcome)),
-        // A rendering's own failure is kept and the others go on; a file system failure ends the run.
-        Effect.catchTags({
-          SpecRenderingChanged: keptRenderingFailure,
-          SpecRenderingUndecodable: keptRenderingFailure,
-        }),
-        Effect.map((result) => ({ path: rendering.path, result })),
-      ),
-    // One at a time: each rendering holds its source, up to 37 MB, and its text in memory.
-    { concurrency: 1 },
+  const derived = yield* Effect.forEach(table.renderings, (rendering, index) =>
+    derive(rendering, paths.join(scratch, `rendering-${String(index)}`), directory).pipe(
+      Effect.map((outcome): Result.Result<Rendered, RenderingFailure> => Result.succeed(outcome)),
+      // A rendering's own failure is kept and the others go on; a file system failure ends the run.
+      Effect.catchTags({
+        SpecRenderingChanged: keptRenderingFailure,
+        SpecRenderingUndecodable: keptRenderingFailure,
+      }),
+      Effect.map((result) => ({ path: rendering.path, result })),
+    ),
   );
   const refused = derived.flatMap(({ result }) =>
     Result.isFailure(result) ? [result.failure] : [],

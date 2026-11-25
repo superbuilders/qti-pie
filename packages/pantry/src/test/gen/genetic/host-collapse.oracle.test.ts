@@ -130,7 +130,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               {
                 box: "2 places (an item's adaptive, a resource's identifier) and 2 values (one U+00A0, one ASCII space)",
                 caseHang: Duration.minutes(5),
-                concurrency: 1,
                 coverage: noCoverage,
                 generator: int(0, cases.length - 1),
                 literal: (at) => {

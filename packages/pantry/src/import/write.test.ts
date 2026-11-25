@@ -536,7 +536,6 @@ describe("rootInsertOf", () => {
         explore(
           {
             caseHang,
-            concurrency: 1,
             coverage: required<XdmFeature | NestingSituation>(
               [
                 "element",
@@ -588,7 +587,6 @@ describe("rootInsertOf", () => {
         explore(
           {
             caseHang,
-            concurrency: 1,
             coverage: required<XdmFeature>(
               ["element", "wildcard", "attribute", "openName", "text"],
               {

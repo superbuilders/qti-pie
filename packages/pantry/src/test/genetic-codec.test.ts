@@ -56,7 +56,7 @@ import { evolve, reduce } from "#pantry/test/gen/genetic/engine.ts";
 import type { Budget, Evolved, Found } from "#pantry/test/gen/genetic/engine.ts";
 import { xdmDocument } from "#pantry/test/gen/xdm.ts";
 import { fileScratchDirectory } from "#pantry/test/scratch.ts";
-import { settings } from "#pantry/test/settings.ts";
+import { searchWidth, settings } from "#pantry/test/settings.ts";
 import { OracleLayer, requireRecordsLibxml2 } from "#pantry/xml/oracle.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 
@@ -315,10 +315,10 @@ const reductionTries = settings.geneticRequested ? 400 : 30;
 const scratch = fileScratchDirectory("genetic-codec-");
 
 /**
- * The judge's world for the kept documents.
+ * The judge's world for the kept documents, judged as wide as the machine runs.
  */
 const keptWorld: CodecWorld = {
-  concurrency: 1,
+  concurrency: searchWidth,
   directory: scratch,
   grammar: shredGrammarOf(grammar),
   names,
@@ -461,44 +461,38 @@ describe("genetic-codec.test.ts", () => {
               ),
           );
           const kept = open.flatMap((entry) => entry.kept.map((held) => ({ entry, held })));
-          const keptJudged = yield* Effect.forEach(
-            kept,
-            ({ entry, held }, at) =>
-              judgeBytes(
-                encodedIn(held.text, held.charset),
-                `${scratch}/kept-${String(at)}.xml`,
-                keptWorld,
-              ).pipe(
-                Effect.map(({ disagreements }) => ({
-                  entry,
-                  held,
-                  shows: disagreements.some(({ signature }) => entry.signature.test(signature)),
-                })),
-              ),
-            { concurrency: 1 },
+          const keptJudged = yield* Effect.forEach(kept, ({ entry, held }, at) =>
+            judgeBytes(
+              encodedIn(held.text, held.charset),
+              `${scratch}/kept-${String(at)}.xml`,
+              keptWorld,
+            ).pipe(
+              Effect.map(({ disagreements }) => ({
+                entry,
+                held,
+                shows: disagreements.some(({ signature }) => entry.signature.test(signature)),
+              })),
+            ),
           );
           const stale = keptJudged.filter(({ shows }) => !shows);
           const seeds = fixed.flatMap((entry) => entry.kept.map((held) => ({ entry, held })));
-          const regressed = yield* Effect.forEach(
-            seeds,
-            ({ entry, held }, at) =>
-              judgeBytes(
-                encodedIn(held.text, held.charset),
-                `${scratch}/fixed-${String(at)}.xml`,
-                keptWorld,
-              ).pipe(
-                Effect.map(({ disagreements }) => {
-                  const shown = disagreements.map(({ signature }) => signature);
-                  const departs = Option.toArray(Option.fromUndefinedOr(held.departs));
+          const regressed = yield* Effect.forEach(seeds, ({ entry, held }, at) =>
+            judgeBytes(
+              encodedIn(held.text, held.charset),
+              `${scratch}/fixed-${String(at)}.xml`,
+              keptWorld,
+            ).pipe(
+              Effect.map(({ disagreements }) => {
+                const shown = disagreements.map(({ signature }) => signature);
+                const departs = Option.toArray(Option.fromUndefinedOr(held.departs));
 
-                  return shown.join("\n") === departs.join("\n")
-                    ? []
-                    : [
-                        `${entry.finding}: ${JSON.stringify(held.text)} (${held.charset}): ${shown.join(" + ") || "no disagreement"}, where it shows ${departs.join(" + ") || "none"}`,
-                      ];
-                }),
-              ),
-            { concurrency: 1 },
+                return shown.join("\n") === departs.join("\n")
+                  ? []
+                  : [
+                      `${entry.finding}: ${JSON.stringify(held.text)} (${held.charset}): ${shown.join(" + ") || "no disagreement"}, where it shows ${departs.join(" + ") || "none"}`,
+                    ];
+              }),
+            ),
           );
 
           assert.deepStrictEqual(

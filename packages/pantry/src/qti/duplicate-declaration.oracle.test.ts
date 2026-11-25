@@ -225,7 +225,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("a second declaration o
             {
               box: "the every-relation package, its item declaring SCORE or N once, twice or three times, each added declaration of the original's codes or others, before the original or after it",
               caseHang: Duration.minutes(5),
-              concurrency: 1,
               coverage: requiredInSpace<Situation>([
                 "added declaration first",
                 "added declaration of other codes",

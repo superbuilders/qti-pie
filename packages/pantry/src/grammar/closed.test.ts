@@ -26,7 +26,6 @@ import { declaredRoster } from "#pantry/test/declared.ts";
  */
 const budget = {
   caseHang: Duration.minutes(1),
-  concurrency: 1,
   kept: [],
   literal: Formatter.format,
   shrink: completeShrink,

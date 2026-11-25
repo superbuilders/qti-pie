@@ -158,7 +158,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("a site at every placem
           {
             box: "every placement of a site: an include in an item's body, its processing, and a fragment",
             caseHang: Duration.minutes(2),
-            concurrency: 1,
             coverage: requiredInSpace<Reached>(["an item's site", "a fragment's site"]),
             generator: (source) => source.draw(element(placements)),
             literal: Formatter.format,

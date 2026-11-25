@@ -215,7 +215,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               {
                 box: `an item's response declaration, its cardinality ${cardinalityName(cardinality)}, its base type unwritten, spelling no code or a code, holding nothing, a mapping of one key, of a repeated key or of one integer twice, or a correct response and a mapping`,
                 caseHang: Duration.minutes(5),
-                concurrency: 1,
                 coverage: requiredInSpace<Noted>([
                   "base type a code",
                   "base type no code",

@@ -425,7 +425,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             {
               box: "every known and fixed disagreement's package",
               caseHang: Duration.minutes(5),
-              concurrency: 1,
               coverage: noCoverage,
               generator: int(0, knownList.length - 1),
               literal: (at) => {
@@ -495,7 +494,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             {
               box: "an identifierref one byte past the key-text bound, and one at it",
               caseHang: Duration.minutes(5),
-              concurrency: 1,
               coverage: noCoverage,
               generator: int(0, filledCases.length - 1),
               literal: (at) => filledCases[at]?.name ?? String(at),
@@ -628,7 +626,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               {
                 box: "the three planted values outside their domain's facets",
                 caseHang: Duration.minutes(5),
-                concurrency: 1,
                 coverage: noCoverage,
                 generator: int(0, plantedCases.length - 1),
                 literal: (at) => plantedCases[at]?.name ?? String(at),
@@ -688,7 +685,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             return yield* explore(
               {
                 caseHang: Duration.minutes(20),
-                concurrency: 1,
                 coverage: noCoverage,
                 draw: steered(
                   (steering) => (source) => ({

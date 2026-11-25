@@ -154,7 +154,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               {
                 box: "an item's response declaration with a correct response and a mapping, its identifier unwritten, no NCName or a name, its mapping lawful, repeating a key, past every B-tree entry, outside its base type or a record's, alone or beside an outcome of its identifier",
                 caseHang: Duration.minutes(5),
-                concurrency: 1,
                 coverage: requiredInSpace<Naming | "beside its twin">([
                   "a name",
                   "beside its twin",

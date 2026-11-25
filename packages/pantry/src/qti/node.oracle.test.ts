@@ -577,7 +577,6 @@ describe("N5, content order", () => {
         explore(
           {
             caseHang,
-            concurrency: 1,
             coverage: required<DocumentSituation>(["doctype", "positioned character data"], {
               cases: 300,
               sense: notesOnly,

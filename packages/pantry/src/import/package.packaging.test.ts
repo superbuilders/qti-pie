@@ -40,7 +40,6 @@ describe.skipIf(!hasLease)("import/package.packaging.test.ts, on the lease", () 
         explore(
           {
             caseHang: Duration.seconds(120),
-            concurrency: 1,
             coverage: noCoverage,
             draw: drawn(int(0, packagingFixtures.length - 1)),
             kept: [],

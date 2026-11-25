@@ -218,97 +218,91 @@ const judgeAll = Effect.fn("test.geneticXsd.judgeAll")(function* judgeAll(input:
   const fs = yield* FileSystem.FileSystem;
   yield* fs.makeDirectory(input.folder, { recursive: true });
 
-  const written = yield* Effect.forEach(
-    input.genomes,
-    (genome, at) =>
-      Effect.gen(function* writeCandidate() {
-        const file = `${input.folder}/c${String(at)}.xml`;
-        const bytes = yield* Effect.option(encode(documentOf(genome), "utf-8"));
-        if (Option.isSome(bytes)) {
-          yield* fs.writeFile(file, bytes.value);
-        }
+  const written = yield* Effect.forEach(input.genomes, (genome, at) =>
+    Effect.gen(function* writeCandidate() {
+      const file = `${input.folder}/c${String(at)}.xml`;
+      const bytes = yield* Effect.option(encode(documentOf(genome), "utf-8"));
+      if (Option.isSome(bytes)) {
+        yield* fs.writeFile(file, bytes.value);
+      }
 
-        return { bytes, file, genome };
-      }),
-    { concurrency: 1 },
+      return { bytes, file, genome };
+    }),
   );
   const writable = written.flatMap(({ bytes, file, genome }) =>
     Option.isSome(bytes) ? [{ bytes: bytes.value, file, genome }] : [],
   );
   const verdicts = writable.length === 0 ? [] : yield* validated(input.oracle, writable);
 
-  return yield* Effect.forEach(
-    written,
-    ({ bytes, file, genome }) =>
-      Effect.gen(function* judgeCandidate() {
-        if (Option.isNone(bytes)) {
-          return {
-            disagreements: [],
-            features: new Set<XsdFeature>(["verdict:unwritable"]),
-          } satisfies Judgment<XsdFeature, Difference>;
-        }
+  return yield* Effect.forEach(written, ({ bytes, file, genome }) =>
+    Effect.gen(function* judgeCandidate() {
+      if (Option.isNone(bytes)) {
+        return {
+          disagreements: [],
+          features: new Set<XsdFeature>(["verdict:unwritable"]),
+        } satisfies Judgment<XsdFeature, Difference>;
+      }
 
-        const slot = writable.findIndex((held) => held.file === file);
-        const { root } = documentOf(genome);
-        const edited = editedNamespaces(genome.seed, root);
-        const disagreements: Difference[] = [];
-        const xsd = verdicts[slot] ?? (yield* Effect.die(new Error(`no verdict for ${file}`)));
-        const law = yield* judgeDocument({
-          bytes: bytes.value,
-          grammar: input.grammar,
-          laws: input.laws,
-          path: file,
-        });
-        const comparison = compareJudgments(xsd, law);
-        const rows = yield* rowsOf(bytes.value, input.grammar);
-        // The law oracle names a foreign element by its foreign kind; the element grain reads
-        // their expanded names from the rows' OpenElementName.
-        const foreign = new Set(
-          Option.match(rows, {
-            onNone: () => [],
-            onSome: ({ openElementNames }) =>
-              openElementNames.map(({ local, namespace }) =>
-                namespace === "" ? local : `{${namespace}}${local}`,
-              ),
-          }),
+      const slot = writable.findIndex((held) => held.file === file);
+      const { root } = documentOf(genome);
+      const edited = editedNamespaces(genome.seed, root);
+      const disagreements: Difference[] = [];
+      const xsd = verdicts[slot] ?? (yield* Effect.die(new Error(`no verdict for ${file}`)));
+      const law = yield* judgeDocument({
+        bytes: bytes.value,
+        grammar: input.grammar,
+        laws: input.laws,
+        path: file,
+      });
+      const comparison = compareJudgments(xsd, law);
+      const rows = yield* rowsOf(bytes.value, input.grammar);
+      // The law oracle names a foreign element by its foreign kind; the element grain reads
+      // their expanded names from the rows' OpenElementName.
+      const foreign = new Set(
+        Option.match(rows, {
+          onNone: () => [],
+          onSome: ({ openElementNames }) =>
+            openElementNames.map(({ local, namespace }) =>
+              namespace === "" ? local : `{${namespace}}${local}`,
+            ),
+        }),
+      );
+      const differences = [
+        ...comparison.differences,
+        ...elementGrainDifferences(xsd, law, comparison, input.grammar, foreign),
+      ];
+      // The classes read the document's names and schema set, which only a difference needs.
+      if (differences.length > 0) {
+        const names = yield* foreignNamesOf(bytes.value, input.grammar);
+        const set = yield* schemaSetOf(root.namespace).pipe(
+          Effect.orElseSucceed(() => new Set<string>()),
         );
-        const differences = [
-          ...comparison.differences,
-          ...elementGrainDifferences(xsd, law, comparison, input.grammar, foreign),
-        ];
-        // The classes read the document's names and schema set, which only a difference needs.
-        if (differences.length > 0) {
-          const names = yield* foreignNamesOf(bytes.value, input.grammar);
-          const set = yield* schemaSetOf(root.namespace).pipe(
-            Effect.orElseSucceed(() => new Set<string>()),
-          );
-          for (const difference of differences) {
-            const record: Recorded | undefined = generatedRecordOf(difference, {
-              document: { path: file, zip: "bred" },
-              edited,
-              grammar: input.grammar,
-              names,
-              root,
-              set,
-              stopped: law.stopped,
-            });
-            const known = record === undefined ? knownOf(difference) : undefined;
-            if (known !== undefined) {
-              knownCounts.set(known, (knownCounts.get(known) ?? 0) + 1);
-            } else if (record === undefined) {
-              disagreements.push(difference);
-            } else {
-              const reason = reasonText(record.reason).slice(0, 60);
-              matchedCounts.set(reason, (matchedCounts.get(reason) ?? 0) + 1);
-            }
+        for (const difference of differences) {
+          const record: Recorded | undefined = generatedRecordOf(difference, {
+            document: { path: file, zip: "bred" },
+            edited,
+            grammar: input.grammar,
+            names,
+            root,
+            set,
+            stopped: law.stopped,
+          });
+          const known = record === undefined ? knownOf(difference) : undefined;
+          if (known !== undefined) {
+            knownCounts.set(known, (knownCounts.get(known) ?? 0) + 1);
+          } else if (record === undefined) {
+            disagreements.push(difference);
+          } else {
+            const reason = reasonText(record.reason).slice(0, 60);
+            matchedCounts.set(reason, (matchedCounts.get(reason) ?? 0) + 1);
           }
         }
+      }
 
-        const features = xsdFeaturesOf({ comparison, edits: genome.edits, law, rows, xsd });
+      const features = xsdFeaturesOf({ comparison, edits: genome.edits, law, rows, xsd });
 
-        return { disagreements, features } satisfies Judgment<XsdFeature, Difference>;
-      }),
-    { concurrency: 1 },
+      return { disagreements, features } satisfies Judgment<XsdFeature, Difference>;
+    }),
   );
 });
 
@@ -632,11 +626,8 @@ const shownOf = (difference: Difference): string =>
 /**
  * The kept documents as genomes, read from their text.
  */
-const keptGenomes = Effect.forEach(
-  keptDocuments,
-  ({ text }) =>
-    Effect.map(Effect.orDie(readXml(new TextEncoder().encode(text))), (doc) => seedGenome(doc, {})),
-  { concurrency: 1 },
+const keptGenomes = Effect.forEach(keptDocuments, ({ text }) =>
+  Effect.map(Effect.orDie(readXml(new TextEncoder().encode(text))), (doc) => seedGenome(doc, {})),
 );
 
 /**
@@ -727,23 +718,20 @@ describe("genetic-xsd.oracle.test.ts", () => {
 
             const keptJudgments = yield* judge("kept", kept);
             const reports: string[] = [
-              ...(yield* Effect.forEach(
-                seedJudgments.entries(),
-                ([at, { disagreements }]) =>
-                  Effect.gen(function* seedReports() {
-                    const genome = seeds[at];
-                    if (genome === undefined || disagreements.length === 0) {
-                      return [];
-                    }
+              ...(yield* Effect.forEach(seedJudgments.entries(), ([at, { disagreements }]) =>
+                Effect.gen(function* seedReports() {
+                  const genome = seeds[at];
+                  if (genome === undefined || disagreements.length === 0) {
+                    return [];
+                  }
 
-                    const text = yield* shown(genome);
+                  const text = yield* shown(genome);
 
-                    return disagreements.map(
-                      (disagreement) =>
-                        `${seedNames.get(genome.seed) ?? "a seed"} ${shownOf(disagreement)}\n  document: ${text}`,
-                    );
-                  }),
-                { concurrency: 1 },
+                  return disagreements.map(
+                    (disagreement) =>
+                      `${seedNames.get(genome.seed) ?? "a seed"} ${shownOf(disagreement)}\n  document: ${text}`,
+                  );
+                }),
               )).flat(),
               ...keptJudgments.flatMap(({ disagreements }, at) =>
                 disagreements.map(
@@ -1041,11 +1029,8 @@ describe("genetic-xsd.oracle.test.ts, libxml2's padded xsi:type", () => {
 
           yield* fs.makeDirectory(controlRoot, { recursive: true });
           yield* fs.writeFileString(`${controlRoot}/lax.xsd`, laxSchema);
-          yield* Effect.forEach(
-            types,
-            (type, at) =>
-              fs.writeFileString(`${controlRoot}/typed${String(at)}.xml`, laxTyped(type)),
-            { concurrency: 1 },
+          yield* Effect.forEach(types, (type, at) =>
+            fs.writeFileString(`${controlRoot}/typed${String(at)}.xml`, laxTyped(type)),
           );
 
           const verdicts = yield* xmllintValidate({
@@ -1096,14 +1081,11 @@ describe("genetic-xsd.oracle.test.ts, libxml2's widened ##other", () => {
           yield* fs.writeFileString(`${controlRoot}/alone.xsd`, widenedSchema(false));
           yield* fs.writeFileString(`${controlRoot}/plain.xml`, '<plain xmlns="urn:t" zz="1"/>');
 
-          const verdicts = yield* Effect.forEach(
-            ["widened", "alone"],
-            (name) =>
-              xmllintValidate({
-                paths: [`${controlRoot}/plain.xml`],
-                schema: `${controlRoot}/${name}.xsd`,
-              }),
-            { concurrency: 1 },
+          const verdicts = yield* Effect.forEach(["widened", "alone"], (name) =>
+            xmllintValidate({
+              paths: [`${controlRoot}/plain.xml`],
+              schema: `${controlRoot}/${name}.xsd`,
+            }),
           );
 
           assert.deepStrictEqual(

@@ -433,7 +433,6 @@ describe("assemble", () => {
         explore(
           {
             caseHang,
-            concurrency: 1,
             coverage: required<XdmFeature | XdmFamily>(
               [
                 "element",
@@ -490,7 +489,6 @@ describe("assemble", () => {
       explore(
         {
           caseHang,
-          concurrency: 1,
           coverage: required<InvalidVariant | VariantField | VariantTarget>(rowVariants, {
             cases: 400,
             sense: notesOnly,
@@ -545,7 +543,6 @@ describe("assemble", () => {
         explore(
           {
             caseHang,
-            concurrency: 1,
             coverage: required<Outside>(["missing", "repeated", "misplaced"], {
               cases: 300,
               sense: notesOnly,

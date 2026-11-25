@@ -757,7 +757,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
             {
               box: "the 13 database variants under 3 CA settings and 2 secrets folders, the 10 port variants under 3 CA settings, and the 5 host variants under a CA file, each other setting at its first, kept variant",
               caseHang: Duration.seconds(10),
-              concurrency: 1,
               coverage: requiredInSpace<Reached>(["built", "malformed", "no CA"]),
               generator: settingsOf,
               literal: Formatter.format,
@@ -818,7 +817,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
             {
               box: "the login's password file present or absent, by the variable that names its folder, and the migration password set, empty or unset",
               caseHang: Duration.seconds(10),
-              concurrency: 1,
               coverage: requiredInSpace<"login refused" | "migration refused" | "read">([
                 "login refused",
                 "migration refused",
@@ -910,7 +908,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
             {
               box: "every combination of 4 CA and 3 migration role variants",
               caseHang: Duration.seconds(10),
-              concurrency: 1,
               coverage: requiredInSpace<"built" | "no CA setting" | "no role" | "unreadable">([
                 "built",
                 "no CA setting",
@@ -1021,7 +1018,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
             {
               box: "every variant of the password command, for the migration identity, the login and the runtime's login",
               caseHang: Duration.seconds(10),
-              concurrency: 1,
               coverage: requiredInSpace<CommandReached>([
                 "command",
                 "exited",
@@ -1202,7 +1198,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
             {
               box: "every variant of QTI_PIE_PG_PASSWORD_COMMAND_TIMEOUT, for the migration identity, the login and the runtime's login",
               caseHang: Duration.seconds(10),
-              concurrency: 1,
               coverage: requiredInSpace<"bounded" | "refused">(["bounded", "refused"]),
               generator: (source) => ({
                 side: source.draw(element(commandSides)),
@@ -1276,7 +1271,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                 box: "a command that ends on SIGTERM at a login's first attempt, and one that ignores it at the build of the runtime's login connection, under a 1-second bound",
                 // Past the commands' 30 seconds, so a run that waits for one is reported by its mark.
                 caseHang: Duration.minutes(1),
-                concurrency: 1,
                 coverage: requiredInSpace<(typeof lingeringScripts)[number]["variant"]>([
                   "ends on SIGTERM",
                   "ignores SIGTERM",

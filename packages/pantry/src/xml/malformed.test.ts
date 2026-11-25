@@ -1090,7 +1090,6 @@ const searchClass = Effect.fnUntraced(function* searchClass(faultClass: FaultCla
     {
       box: `every one of ${String(ofClass.length)} ${faultClass} faults at the last site of each of ${String(seeds.length)} seeds: ${String(cases.length)} documents`,
       caseHang: Duration.seconds(30),
-      concurrency: 1,
       coverage: requiredInSpace<Reached>([
         `${faultClass}: refused by both`,
         `${faultClass}: accepted by both`,

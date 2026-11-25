@@ -449,7 +449,6 @@ describe("census", () => {
       explore(
         {
           caseHang: Duration.seconds(10),
-          concurrency: 1,
           coverage: required<Statement["form"]>(
             [
               "enum",

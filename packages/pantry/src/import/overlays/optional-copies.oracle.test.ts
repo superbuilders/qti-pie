@@ -211,7 +211,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               {
                 box: "an item resource beside two webcontent resources, each writing an href or not",
                 caseHang: Duration.minutes(2),
-                concurrency: 1,
                 coverage: requiredInSpace<Situation>([
                   "a resource with no href",
                   "every attribute written",

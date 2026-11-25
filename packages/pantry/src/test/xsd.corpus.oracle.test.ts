@@ -471,40 +471,37 @@ const controlled = Effect.fn("test.controlled")(function* controlled(
   const oracle = yield* writeXsdOracle(oracleRoot);
   const verdicts = yield* validated(oracle, written);
 
-  return yield* Effect.forEach(
-    written,
-    ({ bytes, file, name }, at) =>
-      Effect.gen(function* compared() {
-        const xsd = verdicts[at] ?? (yield* Effect.die(new Error(`no verdict for ${file}`)));
-        const law = yield* judgeDocument({ bytes, grammar, laws, path: file });
-        const comparison = compareJudgments(xsd, law);
-        const rows = yield* documentRowsOf(bytes, grammar);
-        const { names } = rows;
-        const document: CorpusDocument = {
-          bytes,
-          file,
-          path: `${name}.xml`,
-          zip: "control",
-        };
+  return yield* Effect.forEach(written, ({ bytes, file, name }, at) =>
+    Effect.gen(function* compared() {
+      const xsd = verdicts[at] ?? (yield* Effect.die(new Error(`no verdict for ${file}`)));
+      const law = yield* judgeDocument({ bytes, grammar, laws, path: file });
+      const comparison = compareJudgments(xsd, law);
+      const rows = yield* documentRowsOf(bytes, grammar);
+      const { names } = rows;
+      const document: CorpusDocument = {
+        bytes,
+        file,
+        path: `${name}.xml`,
+        zip: "control",
+      };
 
-        return {
-          comparison,
-          records: comparison.differences.map((difference) => {
-            if (isNestedRoot(difference, names.nested)) {
-              return nestedRoot;
-            }
+      return {
+        comparison,
+        records: comparison.differences.map((difference) => {
+          if (isNestedRoot(difference, names.nested)) {
+            return nestedRoot;
+          }
 
-            if (isNestedRootLaw(difference, names.nestedPaths)) {
-              return nestedRootLaw;
-            }
+          if (isNestedRootLaw(difference, names.nestedPaths)) {
+            return nestedRootLaw;
+          }
 
-            return isLaxXsiType(difference, new Set([...names.lax, ...names.outside]))
-              ? laxXsiType
-              : gatedRecordOf(document, difference, libxml2Records, rows);
-          }),
-        };
-      }),
-    { concurrency: 1 },
+          return isLaxXsiType(difference, new Set([...names.lax, ...names.outside]))
+            ? laxXsiType
+            : gatedRecordOf(document, difference, libxml2Records, rows);
+        }),
+      };
+    }),
   );
 });
 
@@ -564,10 +561,8 @@ describe.skipIf(!settings.corpusRequested)(
             const lom = "http://ltsc.ieee.org/xsd/LOM";
             const usage = "http://www.imsglobal.org/xsd/imsqti_usagedata_v3p0";
             const xml = "http://www.w3.org/XML/1998/namespace";
-            const sets = yield* Effect.forEach(
-              [asi, cp, lom, usage],
-              (root) => Effect.map(schemaSetOf(root), (set) => [...set].toSorted()),
-              { concurrency: 1 },
+            const sets = yield* Effect.forEach([asi, cp, lom, usage], (root) =>
+              Effect.map(schemaSetOf(root), (set) => [...set].toSorted()),
             );
             const expected = [
               [

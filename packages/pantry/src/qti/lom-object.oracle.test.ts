@@ -167,7 +167,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               {
                 box: "the named resource type, 3 roots, and 3 forms each of the record's identifier and title",
                 caseHang: Duration.minutes(5),
-                concurrency: 1,
                 coverage: noCoverage,
                 generator: int(0, cases.length - 1),
                 literal: (at) => {

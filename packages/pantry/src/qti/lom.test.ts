@@ -618,7 +618,6 @@ describe("what a package may state", () => {
           {
             box: "every role with every vCard, every purpose with 3 ids, every relation kind with 4 entries",
             caseHang: Duration.seconds(10),
-            concurrency: 1,
             coverage: requiredInSpace<StatedSituation>([
               "an author whose vCard writes no EMAIL",
               "a publisher whose vCard writes no ORG",

@@ -1348,7 +1348,6 @@ describe("The spec readings", () => {
         explore(
           {
             caseHang: Duration.minutes(1),
-            concurrency: 1,
             coverage: required<PrintfNote>(printfNotes, { cases: 600, sense: notesOnly }),
             draw: drawn(printfCase),
             kept: [],
@@ -1575,7 +1574,6 @@ describe("The spec readings", () => {
         explore(
           {
             caseHang: Duration.minutes(1),
-            concurrency: 1,
             coverage: required<MediaTypeNote | MediaTypeListNote>(
               [...mediaTypeNotes, ...mediaTypeListNotes],
               { cases: 600, sense: notesOnly },

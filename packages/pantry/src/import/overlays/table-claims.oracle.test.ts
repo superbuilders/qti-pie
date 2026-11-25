@@ -216,7 +216,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               {
                 box: "an item's map response, map response point or lookup naming a declaration that holds no table, a mapping, an area mapping, a match table or an interpolation table, a built-in, or nothing",
                 caseHang: Duration.minutes(5),
-                concurrency: 1,
                 coverage: requiredInSpace<Noted>(
                   pipe(
                     claimers,

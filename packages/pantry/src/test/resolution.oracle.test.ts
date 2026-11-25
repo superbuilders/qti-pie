@@ -491,7 +491,6 @@ describe("import/overlays/package.ts resolveIn against test/resolution.ts", () =
         explore(
           {
             caseHang: Duration.seconds(10),
-            concurrency: 1,
             coverage: required<Situation | AdversarialName>(
               [...situations, ...adversarial.map(({ name }) => name)],
               { cases: 1200, sense: notesOnly },

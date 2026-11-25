@@ -277,7 +277,6 @@ describe("crust's reader on attribute defaults", () => {
           return yield* explore(
             {
               caseHang: Duration.seconds(30),
-              concurrency: 1,
               coverage: required<Reached>(
                 [
                   "refused by both",

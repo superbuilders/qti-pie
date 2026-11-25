@@ -43,7 +43,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("test/gen/every-relatio
           {
             box: "every count of 2 or 3 choices, 1 or 2 hottexts and 1 or 2 hotspots",
             caseHang: Duration.seconds(60),
-            concurrency: 1,
             coverage: requiredInSpace<CountSituation>([
               "a choice past the mapped two",
               "a second hotspot",

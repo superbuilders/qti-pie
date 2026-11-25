@@ -537,7 +537,6 @@ describe("the attribute grammar's domain work on toy declarations", () => {
           {
             box: "every list of one or two toy declarations over 6 (kind, attribute) pairs and 3 leaves",
             caseHang: Duration.minutes(2),
-            concurrency: 1,
             coverage: requiredInSpace<ToySituation>([
               "a leaf two declarations share",
               "two leaves of one content",
@@ -567,7 +566,6 @@ describe("the attribute grammar's domain work on toy declarations", () => {
         explore(
           {
             caseHang: Duration.minutes(2),
-            concurrency: 1,
             coverage: required<ToySituation>(
               [
                 "a leaf two declarations share",

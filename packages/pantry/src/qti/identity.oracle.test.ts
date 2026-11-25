@@ -95,7 +95,6 @@ describe("test/oracle.ts, Label tools", () => {
           {
             box: "every item of one paragraph, each of its body label, root label, tool-name and tool-version present or absent",
             caseHang: Duration.seconds(30),
-            concurrency: 1,
             coverage: requiredInSpace<LabelSituation>([
               "unlabelled",
               "root label only",
@@ -214,7 +213,6 @@ describe("test/oracle.ts, DocumentId key and Idref target over typed texts (C50)
           {
             box: "every two custom interactions of at most 2 xsi:typed foreign children over ID a, ID b and IDREF a",
             caseHang: Duration.seconds(30),
-            concurrency: 1,
             coverage: requiredInSpace<TypedSituation>([
               "one id twice under one parent",
               "one id under two parents",
@@ -395,7 +393,6 @@ describe("test/oracle.ts, Document lang (R26)", () => {
           {
             box: "every item xml:lang of none, en, padded EN and empty, named by href or not, beside at most 2 general categories of at most one of en, fr, EN and padded en",
             caseHang: Duration.seconds(30),
-            concurrency: 1,
             coverage: requiredInSpace<DocumentLangSituation>([
               "listed by every category",
               "missing from a category",
@@ -598,7 +595,6 @@ describe("test/oracle.ts, SSML trim mark and SSML lexicon reference (reading 3)"
           {
             box: "every two speaks: the first of 5 startmarks, at most 2 marks over a b, a  b and ab, and 3 lookups, the second defining a b or not",
             caseHang: Duration.seconds(30),
-            concurrency: 1,
             coverage: requiredInSpace<SsmlLawSituation>([
               "trim to a mark defined once",
               "trim to a mark defined twice",

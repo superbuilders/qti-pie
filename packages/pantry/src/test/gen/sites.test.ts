@@ -310,7 +310,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("test/gen/sites.ts", (i
           {
             box: "the every-relation package's include of fragment.xml and include of rules.xml, each listed, naming an absent file, an entry listed as no document or an external file, or writing no href",
             caseHang: Duration.seconds(120),
-            concurrency: 1,
             coverage: requiredInSpace<Situation>([
               "fragment absent",
               "fragment external",

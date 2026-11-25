@@ -1059,7 +1059,6 @@ describe("qti/interactions.ts and qti/declarations.ts, the double orders", () =>
         explore(
           {
             caseHang: Duration.seconds(10),
-            concurrency: 1,
             coverage: required<Situation | AdversarialName>(situations, {
               cases: 1200,
               sense: notesOnly,

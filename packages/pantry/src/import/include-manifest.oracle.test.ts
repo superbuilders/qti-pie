@@ -116,7 +116,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("an include of the mani
             {
               box: "an include of the manifest beside each of the two includes, under each of four spellings",
               caseHang: Duration.minutes(5),
-              concurrency: 1,
               coverage: noCoverage,
               generator: int(0, cases.length - 1),
               literal: (at) => {

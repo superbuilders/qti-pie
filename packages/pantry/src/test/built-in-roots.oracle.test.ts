@@ -263,7 +263,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             {
               box: `an item's ${placement} feedback, template, printed variable, printed variable base or context variable reference naming each built-in variable`,
               caseHang: Duration.minutes(1),
-              concurrency: 1,
               coverage: requiredInSpace<Situation>([
                 `${placement}, resolved`,
                 `${placement}, unresolved`,

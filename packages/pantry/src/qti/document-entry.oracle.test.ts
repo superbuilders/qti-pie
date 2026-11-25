@@ -125,7 +125,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             {
               box: "the 10 document types, each naming a path with no entry, the item type naming none four other ways, and an included fragment listed under a second type",
               caseHang: Duration.minutes(5),
-              concurrency: 1,
               coverage: noCoverage,
               generator: int(0, cases.length - 1),
               literal: (at) => {

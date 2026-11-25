@@ -327,7 +327,6 @@ describe("every law the oracle declares", () => {
           explore(
             {
               caseHang: Duration.seconds(60),
-              concurrency: 1,
               coverage: noCoverage,
               draw: drawn(memberCounts),
               kept: Object.entries(keptCases).find(([kept]) => kept === name)?.[1] ?? [],
@@ -386,7 +385,6 @@ describe("a declaration that writes no cardinality", () => {
         {
           box: "one declaration of each kind in each item, its cardinality dropped",
           caseHang: Duration.seconds(60),
-          concurrency: 1,
           coverage: noCoverage,
           generator: int(0, declarationSites.length - 1),
           literal: String,

@@ -183,7 +183,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("an item ref's href", (
             {
               box: "a test whose part holds two nested sections around one item ref, each identifier written or not, its href unwritten or naming the item, nothing, an external URI, the empty reference or an absolute path, with or without an undeclared mapping",
               caseHang: Duration.minutes(5),
-              concurrency: 1,
               coverage: requiredInSpace<Situation>([
                 "href unwritten",
                 "href names nothing",
