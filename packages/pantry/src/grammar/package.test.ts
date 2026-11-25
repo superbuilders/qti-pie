@@ -1,5 +1,10 @@
 import { assert, beforeAll, describe, it } from "@effect/vitest";
-import { Effect, FileSystem, Formatter, Option, Result } from "effect";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { requiredInSpace } from "@bjornpagen/testing/features";
+import { constant, element, oneOf } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
+import { Array as Arr, Duration, Effect, FileSystem, Formatter, Option, Result } from "effect";
 import type { Element } from "@qti-pie/crust/tree.ts";
 import { admissionOf } from "#pantry/grammar/attributes.ts";
 import type { ValueDomain } from "#pantry/grammar/attributes.ts";
@@ -19,7 +24,9 @@ import {
 import { packageGrammar } from "#pantry/grammar/package.ts";
 import { xsdDirectory } from "#pantry/vocab/derive/sources.ts";
 import { loadXsd, XsdOracleLayer } from "#pantry/test/gen/grammar.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 import { writeXsdOracle, xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
 import { OracleLayer, xmllintValidate } from "#pantry/xml/oracle.ts";
 
@@ -104,44 +111,94 @@ const enumerationOf = (
     return [...viaType, ...enumerationOf(child, named, inside || entering)];
   });
 
+/**
+ * The spellings a resource type of the box is held under: as written, and the three strangers to
+ * an enumerated type the domain must refuse, its upper case and the type with an outer space
+ * before or after it.
+ */
+const SPELLINGS = [
+  (type: string) => type,
+  (type: string) => type.toUpperCase(),
+  (type: string) => ` ${type}`,
+  (type: string) => `${type} `,
+] as const;
+
+/**
+ * The guide's own spelling of the response processing type (§6.2's table), which the
+ * content-packaging XSD does not enumerate (spec reading `response-processing-resource-type`).
+ */
+const guideResponseProcessing = "imsqti_responseprocessing_xmlv3p0";
+
+/**
+ * Draw a form of the resource-type box: one of `bases` in one of {@link SPELLINGS}, or the empty
+ * form.
+ *
+ * @param bases - The types the XSD enumerates, and the guide's spelling beside them.
+ * @returns The box's generator.
+ */
+const resourceTypeForms = (bases: Arr.NonEmptyReadonlyArray<string>): Gen<string> =>
+  oneOf([(source) => source.draw(element(SPELLINGS))(source.draw(element(bases))), constant("")]);
+
 describe("cp:resource's type against the content-packaging XSD", () => {
   beforeAll(xsdCachePresent);
 
+  /**
+   * The resource types the content-packaging XSD enumerates for a resource's `type`, read from the
+   * XSD itself, after holding the domain's enumeration to them.
+   */
+  const resourceTypes = Effect.gen(function* resourceTypes() {
+    const root = "imsqtiv3p0p1_imscpv1p2_v1p0.xsd";
+    const target = "http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1";
+    const { set } = yield* loadXsd(root);
+    const resource = set.types.get(`{${target}}ResourceDType`);
+    const named = (local: string) =>
+      Option.map(Option.fromNullishOr(set.types.get(`{${target}}${local}`)), ({ node }) => node);
+    const enumerated = resource === undefined ? [] : enumerationOf(resource.node, named, false);
+
+    assert.isAbove(enumerated.length, 0, root);
+    assert.deepStrictEqual(
+      new Set(enumerationKept(resourceTypeDomain.definition, resourceTypeDomain.pattern)),
+      new Set(enumerated),
+    );
+
+    return enumerated;
+  }).pipe(Effect.provide(XsdOracleLayer));
+
   it.effect(
     "admits exactly the types its content-packaging XSD enumerates, and keeps them as its enumeration: the one statement of spec reading `manifest-profile`",
-    () =>
-      // Oracle: the XSD, its resource type's `type` enumeration read from the XSD itself. Bound:
-      // every type it enumerates, the guide's own spelling of the response processing type, and
-      // three strangers to each (case, outer space, an empty form). The domain is spec reading `manifest-profile`'s
-      // one statement: it refuses a form outside the list.
-      Effect.gen(function* resourceTypes() {
-        const root = "imsqtiv3p0p1_imscpv1p2_v1p0.xsd";
-        const target = "http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1";
-        const { set } = yield* loadXsd(root);
-        const resource = set.types.get(`{${target}}ResourceDType`);
-        const named = (local: string) =>
-          Option.map(
-            Option.fromNullishOr(set.types.get(`{${target}}${local}`)),
-            ({ node }) => node,
-          );
-        const enumerated = resource === undefined ? [] : enumerationOf(resource.node, named, false);
-
-        assert.isAbove(enumerated.length, 0, root);
-        assert.deepStrictEqual(
-          new Set(enumerationKept(resourceTypeDomain.definition, resourceTypeDomain.pattern)),
-          new Set(enumerated),
-        );
-
+    (ctx) =>
+      Effect.gen(function* admitsTheEnumeration() {
+        const enumerated = yield* resourceTypes;
+        const bases = Arr.append(enumerated, guideResponseProcessing);
         const held = new Set(enumerated);
-        const strangers = enumerated.flatMap((type) => [
-          type.toUpperCase(),
-          ` ${type}`,
-          `${type} `,
-        ]);
-        for (const type of [...enumerated, ...strangers, "imsqti_responseprocessing_xmlv3p0", ""]) {
-          assert.strictEqual(admits(type), held.has(type), JSON.stringify(type));
-        }
-      }).pipe(Effect.provide(XsdOracleLayer)),
+        const generator = resourceTypeForms(bases);
+
+        yield* boxHolds(generator, bases.length * SPELLINGS.length + 1);
+        yield* searched(
+          ctx,
+          exhaust(
+            {
+              box: "every type the content-packaging XSD enumerates and the guide's spelling of the response processing type, each as written, upper-cased and with a space before or after it, and the empty form",
+              caseHang: Duration.seconds(10),
+              concurrency: searchWidth,
+              coverage: requiredInSpace<"admitted" | "refused">(["admitted", "refused"]),
+              generator,
+              literal: (type) => JSON.stringify(type),
+              oracle: {
+                kind: "specification",
+                name: "the XSD's enumeration of ResourceDType's type, read from the XSD itself: spec reading `manifest-profile`'s one statement, the domain admits exactly the forms it lists, as written",
+              },
+              suite: "grammar/package/resource-types",
+            },
+            (type, c) =>
+              Effect.sync(() => {
+                c.note(held.has(type) ? "admitted" : "refused");
+
+                assert.strictEqual(admits(type), held.has(type), JSON.stringify(type));
+              }),
+          ),
+        );
+      }),
   );
 });
 
