@@ -11,6 +11,7 @@
  *
  * @module
  */
+import { isDeepStrictEqual } from "node:util";
 import { Effect, Option } from "effect";
 import { configure } from "#plate/configuration.ts";
 import { defaultView } from "#plate/content/contract.ts";
@@ -209,7 +210,7 @@ export const walkShownCatalogs = (subject: Subject): Option.Option<string> => {
       const kept = infos.flatMap((info) => info.catalogs.map((catalog) => catalog.id)).toSorted();
       const expected = keptByRule(name);
       const label = `${names.join("+")}, ${name}`;
-      if (JSON.stringify(kept) !== JSON.stringify(expected)) {
+      if (!isDeepStrictEqual(kept, expected)) {
         return Option.some(
           `${label}: kept ${JSON.stringify(kept)}, the rule keeps ${JSON.stringify(expected)}`,
         );
