@@ -7,7 +7,12 @@
  */
 import { regex } from "arkregex";
 import { assert, describe, it } from "@effect/vitest";
-import { Option } from "effect";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { requiredInSpace } from "@bjornpagen/testing/features";
+import { element, int } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
+import { Array as Arr, Duration, Effect, Option } from "effect";
 import { stepOf } from "#pantry/grammar/content.ts";
 import { expressionTypings } from "#pantry/grammar/expression.ts";
 import { openDomain } from "#pantry/grammar/attributes.ts";
@@ -34,7 +39,9 @@ import {
   ValueBaseOf,
   ValueCardinalityOf,
 } from "#pantry/qti/expression-types.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { builtInTypes } from "#pantry/test/built-in-types.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 import { contentEnds } from "#pantry/test/indexes.ts";
 import {
   expressionKinds,
@@ -283,29 +290,75 @@ const admits = (kind: string, count: number) => {
   return Option.exists(state, (end) => contentEnds(grammar.content, kind, end));
 };
 
-describe("qti/expressions.ts, arity", () => {
-  it("holds exactly at the seeded bounds, at min − 1, min, max and max + 1, for every kind", () => {
-    assert.strictEqual(seededArity.length, 64, "all 64 kinds");
-    let judged = 0;
-    for (const { kind, max, min } of seededArity) {
-      const counts = [
-        ...(min > 0n ? [min - 1n] : []),
-        min,
-        ...Option.match(max, { onNone: () => [min + 3n], onSome: (most) => [most, most + 1n] }),
-      ];
-      for (const count of counts) {
-        assert.strictEqual(
-          arityHolds(kind, count),
-          count >= min &&
-            Option.match(max, { onNone: () => true, onSome: (most) => count <= most }),
-          `${kind} ${count}: Arity over the installed OperatorArity against the deleted seed's arity table, the old deriver's output over the ASI 3.0 XSD, at min − 1 (where min > 0), min, max and max + 1 for a bounded kind, and min + 3 for an unbounded one`,
-        );
-        judged += 1;
-      }
-    }
+/**
+ * The seeded kinds, every one, as a list a draw can pick from.
+ */
+const seededKinds = Arr.isReadonlyArrayNonEmpty(seededArity)
+  ? seededArity
+  : assert.fail("the seed holds no kind");
 
-    assert.isAtLeast(judged, 64 * 3);
-  });
+/**
+ * The greatest operand count of the arity box: one past the seed's greatest max, 2, and three past
+ * its greatest min, 1, as an unbounded kind is held past its min.
+ */
+const ARITY_TOP = 4;
+
+/**
+ * Draw a case of the arity box: a seeded kind and an operand count of 0 to {@link ARITY_TOP}.
+ */
+const arityCase: Gen<(typeof seededArity)[number] & { readonly count: bigint }> = (source) => ({
+  ...source.draw(element(seededKinds)),
+  count: BigInt(source.draw(int(0, ARITY_TOP))),
+});
+
+/**
+ * How many cases {@link arityCase} draws: the seed's 64 kinds, all of them, by 5 counts, so a seed
+ * that lost or gained a kind fails the box's count.
+ */
+const ARITY_CASES = 64 * (ARITY_TOP + 1);
+
+describe("qti/expressions.ts, arity", () => {
+  it.effect(
+    `holds exactly within the seeded bounds, for every kind at every count up to ${String(ARITY_TOP)}: ${String(ARITY_CASES)} cases`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(arityCase, ARITY_CASES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: `every one of the 64 seeded kinds at every operand count of 0 to ${String(ARITY_TOP)}, past every bound the seed states by one at least`,
+              caseHang: Duration.seconds(10),
+              concurrency: searchWidth,
+              coverage: requiredInSpace<"holds" | "below min" | "above max">([
+                "holds",
+                "below min",
+                "above max",
+              ]),
+              generator: arityCase,
+              literal: ({ count, kind }) => `${kind} ${String(count)}`,
+              oracle: {
+                kind: "specification",
+                name: "the deleted seed's arity table, the old deriver's output over the ASI 3.0 XSD: a count holds when it is at least the kind's min and, for a bounded kind, at most its max",
+              },
+              suite: "qti/expressions-arity",
+            },
+            ({ count, kind, max, min }, c) =>
+              Effect.sync(() => {
+                const below = count < min;
+                const above = Option.exists(max, (most) => count > most);
+                c.note(below ? "below min" : above ? "above max" : "holds");
+
+                assert.strictEqual(
+                  arityHolds(kind, count),
+                  !below && !above,
+                  `${kind} ${String(count)}: Arity over the installed OperatorArity against the seed's`,
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 
   it("never refuses a count each kind's content automaton admits within its bounds", () => {
     for (const { kind, min } of OperatorArity.rows) {
