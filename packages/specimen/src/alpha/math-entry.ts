@@ -78,7 +78,9 @@ const namesOf = (
  * A key's name means the same key on plate's keyboard and AlphaTest's.
  */
 export const keycaps: Arr.NonEmptyReadonlyArray<string> = Arr.match(namesOf(keyboardKeys), {
-  // Plate's keyboard holds every key of AlphaTest's, so it is never without keys.
+  /**
+   * Plate's keyboard holds every key of AlphaTest's, so it is never without keys.
+   */
   onEmpty: () =>
     Arr.map(Arr.flatten(alphaTestRows), (each) => ("latex" in each ? each.latex : each.label)),
   onNonEmpty: (names) => names,
@@ -535,7 +537,8 @@ const aimFrames = 3600;
 
 /**
  * Find, in the page, where a click on a key of the keyboard lands once the key stands still: the
- * keyboard laid out with its fonts, done sliding in (MathLive holds its `animate` class until the
+ * keyboard laid out with its fonts (laying it out starts the loads of the fonts its keys show, so
+ * their readiness waits for them), done sliding in (MathLive holds its `animate` class until the
  * slide's transition ends), the key's centre where it was a frame before, and the key the element
  * at its centre.
  *
@@ -573,8 +576,6 @@ const aimAt = async ([at, frames]: readonly [number, number]): Promise<Aim> => {
       : await look(now, left - 1);
   };
 
-  // Laying the keyboard out starts the loads of the fonts its keys show, so their readiness waits
-  // for them.
   document.querySelector(".ML__keyboard")?.getBoundingClientRect();
   await document.fonts.ready;
 
@@ -611,7 +612,8 @@ const keyboardShown = (page: Page): Effect.Effect<void, MathEntryFailure> =>
   });
 
 /**
- * Press one key on the focused field, as a child does.
+ * Press one key on the focused field, as a child does. A tap on a box waits two frames first:
+ * MathLive draws a change on the next frame, and the boxes stand where they are drawn once it has.
  *
  * @param page The page.
  * @param setup The keyboard's setup, whose keys' names place a key of the keyboard.
@@ -648,7 +650,6 @@ const press = (
     const { box } = pressedKey;
 
     return attempt(`tapped box ${String(box)}`, async () => {
-      // MathLive draws a change on the next frame: the boxes stand where they are drawn once it has.
       await page.evaluate(twoFrames);
       const aim = await page.evaluate((at) => {
         const field = document.querySelector<MathfieldElement>("#field");
@@ -698,7 +699,9 @@ export interface MathEntryField {
 
 /**
  * Open a page driving one field. Keys go to one field at a time, so a caller that types many
- * sequences at once opens several ({@link mathEntryFields}).
+ * sequences at once opens several ({@link mathEntryFields}). The page waits with no timeout of
+ * Playwright's: its 30 s defaults fail a page on a loaded machine that would answer, and the run's
+ * own hang guards bound it instead (a search's case hang, the aim's {@link aimFrames}).
  *
  * @param browser The Chrome it opens in.
  * @param url The page's address.
