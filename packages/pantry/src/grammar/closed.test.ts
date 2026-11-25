@@ -7,7 +7,7 @@ import type { Gen } from "@bjornpagen/testing/gen";
 import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Duration, Effect, Formatter, Option, Result } from "effect";
+import { Array as Arr, Duration, Effect, Formatter, Option, Result } from "effect";
 import {
   closed,
   dependentField,
@@ -524,23 +524,23 @@ describe("closed relations against a naive tuple-set model", () => {
                * most significant field one past its roster, and each row with one key field
                * left out, which no key holds.
                */
-              const probes = [
-                ...model.pointRows,
-                ...model.rows,
-                ...model.rows.map((row) => ({
+              const probes = Arr.flatten([
+                model.pointRows,
+                model.rows,
+                model.rows.map((row) => ({
                   ...row,
                   k0: String(
                     drawnCase.key[0]?._tag === "id" ? drawnCase.key[0].size : dependentWidth,
                   ),
                 })),
-                ...model.rows.flatMap((row) =>
+                model.rows.flatMap((row) =>
                   drawnCase.key.map((_, place) =>
                     Object.fromEntries(
                       Object.entries(row).filter(([name]) => name !== `k${String(place)}`),
                     ),
                   ),
                 ),
-              ];
+              ]);
               if (model.rows.length > 0) {
                 c.note("lookup missing a field");
               }
