@@ -457,9 +457,6 @@ const childNodesOf = (node: BodyNode): Nodes => {
     case "unsupported": {
       return [];
     }
-    default: {
-      return node satisfies never;
-    }
   }
 };
 
@@ -494,9 +491,6 @@ export const mapChildNodes = (node: BodyNode, map: (nodes: Nodes) => Nodes): Bod
     case "unsupported": {
       return node;
     }
-    default: {
-      return node satisfies never;
-    }
   }
 };
 
@@ -517,6 +511,34 @@ export const interactionsIn = (nodes: Nodes): readonly Interaction[] =>
   ]);
 
 /**
+ * The interactions of one redacted body node and below it, as {@link redactedInteractionsIn}
+ * collects them.
+ *
+ * @param node The node.
+ * @returns The interactions, in document order.
+ */
+const redactedInteractionsOf = (node: RedactedNode): readonly Interaction<RedactedLevel>[] => {
+  if (isInteraction(node)) {
+    return [
+      node,
+      ...regionsOf<RedactedLevel>(node).flatMap((region) => redactedInteractionsIn(region.nodes)),
+    ];
+  }
+
+  switch (node.kind) {
+    case "container":
+    case "element": {
+      return redactedInteractionsIn(node.children);
+    }
+    case "content":
+    case "text":
+    case "unsupported": {
+      return [];
+    }
+  }
+};
+
+/**
  * Collect the interactions of a redacted body in document order, as {@link interactionsIn} does,
  * inside elements, a module's containers and every interaction's regions, each at the redacted
  * level, so the payload (`interactionPayload` in `#plate/payload.ts`) takes it. A redacted body
@@ -527,30 +549,7 @@ export const interactionsIn = (nodes: Nodes): readonly Interaction[] =>
  */
 export const redactedInteractionsIn = (
   nodes: readonly RedactedNode[],
-): readonly Interaction<RedactedLevel>[] =>
-  nodes.flatMap((node): readonly Interaction<RedactedLevel>[] => {
-    if (isInteraction(node)) {
-      return [
-        node,
-        ...regionsOf<RedactedLevel>(node).flatMap((region) => redactedInteractionsIn(region.nodes)),
-      ];
-    }
-
-    switch (node.kind) {
-      case "container":
-      case "element": {
-        return redactedInteractionsIn(node.children);
-      }
-      case "content":
-      case "text":
-      case "unsupported": {
-        return [];
-      }
-      default: {
-        return node satisfies never;
-      }
-    }
-  });
+): readonly Interaction<RedactedLevel>[] => nodes.flatMap((node) => redactedInteractionsOf(node));
 
 /**
  * Give the value an interaction's response starts at whatever its default, because no control of
@@ -691,9 +690,6 @@ export const modulePayload = (
     }
     case "text-entry": {
       return payloadAt("text-entry", interaction, kit);
-    }
-    default: {
-      return interaction satisfies never;
     }
   }
 };

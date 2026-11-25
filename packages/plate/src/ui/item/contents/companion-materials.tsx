@@ -233,9 +233,6 @@ const materialItem = (
         scaledText(material, locale),
       );
     }
-    default: {
-      return material satisfies never;
-    }
   }
 };
 
@@ -275,6 +272,26 @@ export const companionMaterials = (
 };
 
 /**
+ * The files a listed material names: a calculator's info, a digital material's file, and none of a
+ * physical one's.
+ */
+const materialFilesOf = (material: Material): readonly MaterialFile[] => {
+  switch (material.kind) {
+    case "calculator": {
+      return Option.toArray(material.info);
+    }
+    case "digital": {
+      return [material.file];
+    }
+    case "physical":
+    case "protractor":
+    case "rule": {
+      return [];
+    }
+  }
+};
+
+/**
  * Find the first file a listed material names, its link or its icon, that `assets` gives no
  * address, so `<Item>` refuses the item before it writes any of it.
  *
@@ -288,24 +305,7 @@ export const missingInMaterials = (
 ): string | undefined => {
   const files = payloads
     .flatMap((payload) => payload.materials)
-    .flatMap((material): readonly MaterialFile[] => {
-      switch (material.kind) {
-        case "calculator": {
-          return Option.toArray(material.info);
-        }
-        case "digital": {
-          return [material.file];
-        }
-        case "physical":
-        case "protractor":
-        case "rule": {
-          return [];
-        }
-        default: {
-          return material satisfies never;
-        }
-      }
-    });
+    .flatMap((material) => materialFilesOf(material));
 
   for (const file of files) {
     const urls = [

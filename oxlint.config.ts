@@ -696,10 +696,15 @@ export default defineConfig({
     {
       files: [
         "packages/crust/src/test/trees.ts",
+        "packages/plate/src/content/math-drawing.ts",
         "packages/plate/src/content/mathml.ts",
         "packages/plate/src/model/body.ts",
+        "packages/plate/src/model/interactions.ts",
         "packages/plate/src/model/regex.ts",
+        "packages/plate/src/test/admitted.ts",
         "packages/plate/src/ui/item/content.tsx",
+        "packages/plate/src/ui/item/contents/catalog.tsx",
+        "packages/plate/src/ui/item/contents/mathml.tsx",
       ],
       rules: { "no-use-before-define": ["error", { variables: false }] },
     },
@@ -871,6 +876,7 @@ export default defineConfig({
     ],
     // Related Effect schemas and errors form one cohesive module.
     "max-classes-per-file": "off",
+    "no-fallthrough": "off",
     // ultracite 8 relaxes these from ultracite 7's settings, which qti-pie keeps: sort-keys orders a relation's
     // fields, its column order.
     "no-unused-vars": "error",

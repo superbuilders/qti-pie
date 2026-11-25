@@ -96,9 +96,6 @@ const missingAt = (slot: Slot): readonly string[] => {
     case "missed-only": {
       return [slot.chip];
     }
-    default: {
-      return slot satisfies never;
-    }
   }
 };
 
@@ -161,16 +158,10 @@ const chipsAt = (slot: Slot, names: ReadonlyMap<string, string>, locale: Locale)
             ),
           ];
         }
-        default: {
-          return slot.mark satisfies never;
-        }
       }
     }
     case "missed-only": {
       return chipPart(names.get(slot.chip), "missed", "missed", locale);
-    }
-    default: {
-      return slot satisfies never;
     }
   }
 };

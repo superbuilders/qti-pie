@@ -273,6 +273,43 @@ const contentBodyOf = (node: ContentNode<RedactedLevel>): readonly RedactedNode[
   contentNodes(copyContent(node));
 
 /**
+ * The elements of one body node and below it, each with the tags of the elements it stands inside,
+ * as {@link elementsWithin} collects them.
+ *
+ * @param node The node.
+ * @param throughDropped Whether to descend into an element the walk drops.
+ * @param within The tags of the elements the node stands inside.
+ * @returns Each element, with the tags of the elements it stands inside.
+ */
+const elementsWithinNode = (
+  node: RedactedNode,
+  throughDropped: boolean,
+  within: readonly string[],
+): readonly (readonly [element: BodyElement<RedactedLevel>, within: readonly string[]])[] => {
+  if (isInteraction(node)) {
+    return elementsWithin(contentOf(node), throughDropped, within);
+  }
+
+  switch (node.kind) {
+    case "element": {
+      return throughDropped || writtenTag(node.tag)
+        ? [[node, within], ...elementsWithin(node.children, throughDropped, [...within, node.tag])]
+        : [[node, within]];
+    }
+    case "container": {
+      return elementsWithin(node.children, throughDropped, within);
+    }
+    case "content": {
+      return elementsWithin(contentBodyOf(node), throughDropped, within);
+    }
+    case "text":
+    case "unsupported": {
+      return [];
+    }
+  }
+};
+
+/**
  * Collect every element among body nodes, at any depth and in document order, each with the tags
  * of the elements it stands inside, outermost first: below each element, in each interaction's own
  * content ({@link contentOf}), and in the body content a content module's node holds, such as a
@@ -289,35 +326,7 @@ const elementsWithin = (
   throughDropped: boolean,
   within: readonly string[],
 ): readonly (readonly [element: BodyElement<RedactedLevel>, within: readonly string[]])[] =>
-  nodes.flatMap((node): readonly (readonly [BodyElement<RedactedLevel>, readonly string[]])[] => {
-    if (isInteraction(node)) {
-      return elementsWithin(contentOf(node), throughDropped, within);
-    }
-
-    switch (node.kind) {
-      case "element": {
-        return throughDropped || writtenTag(node.tag)
-          ? [
-              [node, within],
-              ...elementsWithin(node.children, throughDropped, [...within, node.tag]),
-            ]
-          : [[node, within]];
-      }
-      case "container": {
-        return elementsWithin(node.children, throughDropped, within);
-      }
-      case "content": {
-        return elementsWithin(contentBodyOf(node), throughDropped, within);
-      }
-      case "text":
-      case "unsupported": {
-        return [];
-      }
-      default: {
-        return node satisfies never;
-      }
-    }
-  });
+  nodes.flatMap((node) => elementsWithinNode(node, throughDropped, within));
 
 /**
  * Collect every element among body nodes, at any depth and in document order, as
@@ -356,6 +365,43 @@ const heldInRun = (run: readonly RedactedNode[]): Held =>
   );
 
 /**
+ * The elements of one body node and below it that hold their controls after their own content, as
+ * {@link heldWithin} gives them.
+ *
+ * @param node The node.
+ * @param within The tags of the elements the node stands inside.
+ * @returns The elements, in document order.
+ */
+const heldWithinNode = (node: RedactedNode, within: readonly string[]): Held => {
+  if (isInteraction(node)) {
+    return Option.match(heldRun(node), { onNone: () => [], onSome: heldInRun });
+  }
+
+  switch (node.kind) {
+    case "element": {
+      return writtenTag(node.tag)
+        ? [
+            ...Option.toArray(
+              Option.map(spokenInCell(node, within), (spoken) => [node.path, spoken] as const),
+            ),
+            ...heldWithin(node.children, [...within, node.tag]),
+          ]
+        : [];
+    }
+    case "container": {
+      return heldWithin(node.children, within);
+    }
+    case "content": {
+      return heldWithin(contentBodyOf(node), within);
+    }
+    case "text":
+    case "unsupported": {
+      return [];
+    }
+  }
+};
+
+/**
  * Give the elements among body nodes that hold their controls after their own content, at any
  * depth and in document order: below each element the body's walk writes, and in the body content
  * a content module's node holds, each inside a table cell the placement gives one (`spokenInCell`
@@ -368,37 +414,7 @@ const heldInRun = (run: readonly RedactedNode[]): Held =>
  * @returns The elements.
  */
 const heldWithin = (nodes: readonly RedactedNode[], within: readonly string[]): Held =>
-  nodes.flatMap((node): Held => {
-    if (isInteraction(node)) {
-      return Option.match(heldRun(node), { onNone: () => [], onSome: heldInRun });
-    }
-
-    switch (node.kind) {
-      case "element": {
-        return writtenTag(node.tag)
-          ? [
-              ...Option.toArray(
-                Option.map(spokenInCell(node, within), (spoken) => [node.path, spoken] as const),
-              ),
-              ...heldWithin(node.children, [...within, node.tag]),
-            ]
-          : [];
-      }
-      case "container": {
-        return heldWithin(node.children, within);
-      }
-      case "content": {
-        return heldWithin(contentBodyOf(node), within);
-      }
-      case "text":
-      case "unsupported": {
-        return [];
-      }
-      default: {
-        return node satisfies never;
-      }
-    }
-  });
+  nodes.flatMap((node) => heldWithinNode(node, within));
 
 /**
  * Give the elements of a document's body, an item's or a stimulus's, that hold their read-aloud
@@ -441,6 +457,34 @@ const heldBy = (element: BodyElement<RedactedLevel>, walk: Walk): readonly React
   );
 
 /**
+ * The content module nodes of one body node and below it, as {@link contentsIn} collects them.
+ *
+ * @param node The node.
+ * @returns The content nodes, in document order.
+ */
+const contentsOf = (node: RedactedNode): readonly ContentNode<RedactedLevel>[] => {
+  if (isInteraction(node)) {
+    return contentsIn(contentOf(node));
+  }
+
+  switch (node.kind) {
+    case "element": {
+      return writtenTag(node.tag) ? contentsIn(node.children) : [];
+    }
+    case "container": {
+      return contentsIn(node.children);
+    }
+    case "content": {
+      return [node, ...contentsIn(contentBodyOf(node))];
+    }
+    case "text":
+    case "unsupported": {
+      return [];
+    }
+  }
+};
+
+/**
  * Collect every content module's node among body nodes, at any depth and in document order: below
  * each element the walk writes, in each interaction's own content and in each content node's own
  * body content, each before the nodes it holds. The shell checks what a node writes beyond its
@@ -450,30 +494,7 @@ const heldBy = (element: BodyElement<RedactedLevel>, walk: Walk): readonly React
  * @returns The content nodes.
  */
 export const contentsIn = (nodes: readonly RedactedNode[]): readonly ContentNode<RedactedLevel>[] =>
-  nodes.flatMap((node): readonly ContentNode<RedactedLevel>[] => {
-    if (isInteraction(node)) {
-      return contentsIn(contentOf(node));
-    }
-
-    switch (node.kind) {
-      case "element": {
-        return writtenTag(node.tag) ? contentsIn(node.children) : [];
-      }
-      case "container": {
-        return contentsIn(node.children);
-      }
-      case "content": {
-        return [node, ...contentsIn(contentBodyOf(node))];
-      }
-      case "text":
-      case "unsupported": {
-        return [];
-      }
-      default: {
-        return node satisfies never;
-      }
-    }
-  });
+  nodes.flatMap((node) => contentsOf(node));
 
 /**
  * Find the first file body nodes name that `assets` gives no address, resolved against the
@@ -840,6 +861,42 @@ const standingBelow = (tag: string, standing: Standing): Standing => {
 };
 
 /**
+ * The nodes one node below a phrasing position holds itself to, as {@link heldBelow} gives them: the
+ * node, and what stands below it at a phrasing position too.
+ *
+ * @param node The node.
+ * @param standing Where it stands.
+ * @returns The nodes, in document order.
+ */
+const heldAt = (node: RedactedNode, standing: Standing): readonly RedactedNode[] => {
+  if (isInteraction(node)) {
+    return [node];
+  }
+
+  switch (node.kind) {
+    case "element": {
+      if (node.tag === feedbackBlockTag) {
+        return [node, ...heldBelow(node.children, standing)];
+      }
+
+      return htmlSubset.has(node.tag)
+        ? [node, ...heldBelow(node.children, standingBelow(node.tag, standing))]
+        : [];
+    }
+    case "container": {
+      return [node, ...heldBelow(node.children, standing)];
+    }
+    case "content": {
+      return [node, ...heldBelow(contentBodyOf(node), standing)];
+    }
+    case "text":
+    case "unsupported": {
+      return [node];
+    }
+  }
+};
+
+/**
  * Give the nodes an element at a flow position is the nearest block of: every node below it the
  * walk writes at a phrasing position, in document order, reached through phrasing positions alone.
  * The walk below an element is where {@link standingBelow} stands it, a feedback block's content
@@ -855,38 +912,7 @@ const standingBelow = (tag: string, standing: Standing): Standing => {
  * @returns The nodes, in document order.
  */
 const heldBelow = (nodes: readonly RedactedNode[], standing: Standing): readonly RedactedNode[] =>
-  positionOf(standing) === "flow"
-    ? []
-    : nodes.flatMap((node): readonly RedactedNode[] => {
-        if (isInteraction(node)) {
-          return [node];
-        }
-
-        switch (node.kind) {
-          case "element": {
-            if (node.tag === feedbackBlockTag) {
-              return [node, ...heldBelow(node.children, standing)];
-            }
-
-            return htmlSubset.has(node.tag)
-              ? [node, ...heldBelow(node.children, standingBelow(node.tag, standing))]
-              : [];
-          }
-          case "container": {
-            return [node, ...heldBelow(node.children, standing)];
-          }
-          case "content": {
-            return [node, ...heldBelow(contentBodyOf(node), standing)];
-          }
-          case "text":
-          case "unsupported": {
-            return [node];
-          }
-          default: {
-            return node satisfies never;
-          }
-        }
-      });
+  positionOf(standing) === "flow" ? [] : nodes.flatMap((node) => heldAt(node, standing));
 
 /**
  * Give the terms an element at a flow position owns, whose disclosures follow it: the element
@@ -1247,9 +1273,6 @@ const contentNodeOf = (node: ContentNode<RedactedLevel>, key: Key, walk: Walk): 
     case "qti-rubric-block": {
       return rubricContent(payload, view);
     }
-    default: {
-      return payload satisfies never;
-    }
   }
 };
 
@@ -1361,9 +1384,6 @@ const nodeOf = (node: RedactedNode, key: Key, walk: Walk): ReactNode => {
     case "content": {
       return contentNodeOf(node, key, walk);
     }
-    default: {
-      return node satisfies never;
-    }
   }
 };
 
@@ -1417,9 +1437,6 @@ export const firstFeedbackIn = (
       case "text":
       case "unsupported": {
         return Option.none();
-      }
-      default: {
-        return node satisfies never;
       }
     }
   });

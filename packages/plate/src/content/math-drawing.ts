@@ -46,7 +46,7 @@ import { HTMLDocument } from "mathjax-full/js/handlers/html/HTMLDocument.js";
 import { HTMLMathItem } from "mathjax-full/js/handlers/html/HTMLMathItem.js";
 import { MathML } from "mathjax-full/js/input/mathml.js";
 import { SVG } from "mathjax-full/js/output/svg.js";
-import type { MathAttribute, MathElement } from "#plate/content/mathml.ts";
+import type { MathAttribute, MathChild, MathElement } from "#plate/content/mathml.ts";
 import type { SlotSize } from "#plate/content/math-slots.ts";
 
 /**
@@ -539,6 +539,28 @@ const bordered = (attributes: readonly MathAttribute[]): boolean =>
   );
 
 /**
+ * Write one child of a MathML element as MathJax is handed it, as {@link elementText} writes the
+ * element: text escaped, an element in turn, an `annotation-xml` with no content.
+ *
+ * @param child The child.
+ * @param sizes Each slot's size, by the `id` it names.
+ * @returns Its MathML.
+ */
+const childText = (child: MathChild<unknown>, sizes: ReadonlyMap<string, SlotSize>): string => {
+  switch (child.kind) {
+    case "annotation-xml": {
+      return `<annotation-xml${child.attributes.map(attributeText).join("")}></annotation-xml>`;
+    }
+    case "element": {
+      return elementText(child, sizes);
+    }
+    case "text": {
+      return escapedText(child.text);
+    }
+  }
+};
+
+/**
  * Write a MathML element as MathJax is handed it: its attributes but those it is not handed
  * ({@link undrawnAttributes}); its children, text escaped, each element in turn and an
  * `annotation-xml` with no content; inside an `menclose` of notation `box` when it carries
@@ -582,22 +604,7 @@ const elementText = (
     .map(attributeText)
     .join("");
   const namespace = element.local === "math" ? ` xmlns="${mathmlNamespace}"` : "";
-  const children = element.children.map((child): string => {
-    switch (child.kind) {
-      case "annotation-xml": {
-        return `<annotation-xml${child.attributes.map(attributeText).join("")}></annotation-xml>`;
-      }
-      case "element": {
-        return elementText(child, sizes);
-      }
-      case "text": {
-        return escapedText(child.text);
-      }
-      default: {
-        return child satisfies never;
-      }
-    }
-  });
+  const children = element.children.map((child) => childText(child, sizes));
   const written = `<${element.local}${namespace}${attributes}>${children.join("")}</${element.local}>`;
 
   return bordered(element.attributes)

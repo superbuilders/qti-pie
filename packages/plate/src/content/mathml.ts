@@ -325,6 +325,33 @@ const readChildren = (
   });
 
 /**
+ * Rewrite the content of every `annotation-xml` in one child of a tree, as {@link mapContent}
+ * rewrites the tree.
+ *
+ * @template A The content nodes read.
+ * @template B The content nodes written.
+ * @param child The child.
+ * @param content The rewrite of an `annotation-xml`'s content.
+ * @returns The child with each `annotation-xml`'s content rewritten.
+ */
+const mapChildContent = <A, B>(
+  child: MathChild<A>,
+  content: (nodes: readonly A[]) => readonly B[],
+): MathChild<B> => {
+  switch (child.kind) {
+    case "annotation-xml": {
+      return { ...child, content: content(child.content) };
+    }
+    case "element": {
+      return mapContent(child, content);
+    }
+    case "text": {
+      return child;
+    }
+  }
+};
+
+/**
  * Rewrite the content of every `annotation-xml` in a tree, keeping everything else as it is.
  *
  * @template A The content nodes read.
@@ -338,22 +365,7 @@ const mapContent = <A, B>(
   content: (nodes: readonly A[]) => readonly B[],
 ): MathElement<B> => ({
   ...node,
-  children: node.children.map((child): MathChild<B> => {
-    switch (child.kind) {
-      case "annotation-xml": {
-        return { ...child, content: content(child.content) };
-      }
-      case "element": {
-        return mapContent(child, content);
-      }
-      case "text": {
-        return child;
-      }
-      default: {
-        return child satisfies never;
-      }
-    }
-  }),
+  children: node.children.map((child) => mapChildContent(child, content)),
 });
 
 /**
@@ -423,6 +435,28 @@ const substituted = <C>(
 });
 
 /**
+ * The content of every `annotation-xml` in one child of a tree, as {@link contentOf} gives the
+ * tree's.
+ *
+ * @template C The content nodes.
+ * @param child The child.
+ * @returns The content nodes, flattened.
+ */
+const childContentOf = <C>(child: MathChild<C>): readonly C[] => {
+  switch (child.kind) {
+    case "annotation-xml": {
+      return child.content;
+    }
+    case "element": {
+      return contentOf(child);
+    }
+    case "text": {
+      return [];
+    }
+  }
+};
+
+/**
  * The content of every `annotation-xml` in a tree, in document order.
  *
  * @template C The content nodes.
@@ -430,22 +464,7 @@ const substituted = <C>(
  * @returns The content nodes, flattened.
  */
 const contentOf = <C>(node: MathElement<C>): readonly C[] =>
-  node.children.flatMap((child) => {
-    switch (child.kind) {
-      case "annotation-xml": {
-        return child.content;
-      }
-      case "element": {
-        return contentOf(child);
-      }
-      case "text": {
-        return [];
-      }
-      default: {
-        return child satisfies never;
-      }
-    }
-  });
+  node.children.flatMap((child) => childContentOf(child));
 
 /**
  * The MathML module: `math` read as written, `mfenced` expanded, the tree checked against MathML

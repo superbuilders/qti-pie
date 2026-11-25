@@ -27,7 +27,12 @@ import type { Attribute, AttributeReference, Child, Element } from "@qti-pie/cru
 import { Array as Arr, Config, Data, Effect, Option, pipe } from "effect";
 import { expect } from "vitest";
 import { xmlNamespace, xmlnsNamespace } from "#plate/document/source.ts";
-import type { SourceAttribute, SourceDocument, SourceElement } from "#plate/document/source.ts";
+import type {
+  SourceAttribute,
+  SourceChild,
+  SourceDocument,
+  SourceElement,
+} from "#plate/document/source.ts";
 import { writeDocument } from "#plate/document/write.ts";
 import { admittedDocuments } from "#plate/test/admitted-digests.ts";
 import { openAdmitted } from "#plate/validate/admitted.ts";
@@ -196,6 +201,28 @@ const attributePrefixOf = (namespace: string, prefixFor: (namespace: string) => 
 };
 
 /**
+ * Write one child of a source element as crust's tree holds it, as {@link crustElementOf} writes
+ * the element: an element in turn, a text as an uncoded run, an entity as its reference.
+ *
+ * @param child The source child.
+ * @param scope The namespaces in scope.
+ * @returns The child.
+ */
+const crustChildOf = (child: SourceChild, scope: Scope): Child => {
+  switch (child.kind) {
+    case "element": {
+      return crustElementOf(child, scope);
+    }
+    case "text": {
+      return { cdata: false, kind: "text", value: child.text };
+    }
+    case "entity": {
+      return { kind: "entityRef", name: child.name };
+    }
+  }
+};
+
+/**
  * Write a source element as crust's tree holds it, each name with the prefix its namespace is in
  * scope under, and a declaration where none is: the element's own namespace as the default, an
  * attribute's under its known prefix or one of its own.
@@ -267,22 +294,7 @@ const crustElementOf = (element: SourceElement, scope: Scope): Element => {
 
   return {
     attributes: [...added, ...attributes],
-    children: element.children.map((child): Child => {
-      switch (child.kind) {
-        case "element": {
-          return crustElementOf(child, inner);
-        }
-        case "text": {
-          return { cdata: false, kind: "text", value: child.text };
-        }
-        case "entity": {
-          return { kind: "entityRef", name: child.name };
-        }
-        default: {
-          return child satisfies never;
-        }
-      }
-    }),
+    children: element.children.map((child) => crustChildOf(child, inner)),
     kind: "element",
     local: element.local,
     namespace: element.namespace,

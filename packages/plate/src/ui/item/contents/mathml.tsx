@@ -201,6 +201,37 @@ const slotOf = (
   );
 
 /**
+ * Write one child of a MathML tree as MathJax draws it, as {@link formulaOf} writes the tree: an
+ * `annotation-xml` with its attributes and no content, an element as the tree's, a text as it is.
+ *
+ * @param child The child.
+ * @param addressing The instance, the item's location and the assets.
+ * @param slots The ids of the interactions the walk draws in this formula's slots.
+ * @returns The child, as the drawing reads it.
+ */
+const formulaChildOf = (
+  child: MathChild<RedactedNode>,
+  addressing: Addressing,
+  slots: ReadonlySet<string>,
+): MathChild<never> => {
+  switch (child.kind) {
+    case "annotation-xml": {
+      return {
+        attributes: writtenAttributes(child.kind, child.attributes, addressing),
+        content: [],
+        kind: "annotation-xml",
+      };
+    }
+    case "element": {
+      return formulaOf(child, addressing, slots);
+    }
+    case "text": {
+      return child;
+    }
+  }
+};
+
+/**
  * Write a MathML tree as MathJax draws it: each element with the attributes plate writes on it
  * ({@link writtenAttributes}) and its `style`, and each `annotation-xml` with its attributes and no
  * content, which MathJax never draws. MathJax reads a `style` as it reads `mathcolor` and
@@ -229,26 +260,7 @@ const formulaOf = (
       onSome: (id) => [{ name: slotMark, value: id }],
     }),
   ),
-  children: element.children.map((child): MathChild<never> => {
-    switch (child.kind) {
-      case "annotation-xml": {
-        return {
-          attributes: writtenAttributes(child.kind, child.attributes, addressing),
-          content: [],
-          kind: "annotation-xml",
-        };
-      }
-      case "element": {
-        return formulaOf(child, addressing, slots);
-      }
-      case "text": {
-        return child;
-      }
-      default: {
-        return child satisfies never;
-      }
-    }
-  }),
+  children: element.children.map((child) => formulaChildOf(child, addressing, slots)),
   kind: "element",
   local: element.local,
 });
@@ -277,6 +289,41 @@ const drawnNodes = (nodes: readonly Drawn[]): readonly ReactNode[] =>
   );
 
 /**
+ * Write one child of a MathML element, as {@link childrenOf} writes them: text as itself, an
+ * element with its own children, an `annotation-xml` with its content written through the walk.
+ *
+ * @param child The child.
+ * @param index Its place among its siblings, its key.
+ * @param walk The walk where the `math` stands.
+ * @returns The child.
+ */
+const childOf = (child: MathChild<RedactedNode>, index: number, walk: ContentWalk): ReactNode => {
+  switch (child.kind) {
+    case "annotation-xml": {
+      return createElement(
+        "annotation-xml",
+        { ...propsOf("annotation-xml", child.attributes, walk.walk.addressing), key: index },
+        walk.nodes(child.content),
+      );
+    }
+    case "element": {
+      return createElement(
+        child.local,
+        {
+          "aria-hidden": child.local === "annotation" ? "true" : undefined,
+          ...propsOf(child.local, child.attributes, walk.walk.addressing),
+          key: index,
+        },
+        childrenOf(child.children, walk),
+      );
+    }
+    case "text": {
+      return child.text;
+    }
+  }
+};
+
+/**
  * Write a MathML element's children: text as itself, an element with its own children, an
  * `annotation-xml` with its content written through the walk.
  *
@@ -287,35 +334,7 @@ const drawnNodes = (nodes: readonly Drawn[]): readonly ReactNode[] =>
 const childrenOf = (
   children: readonly MathChild<RedactedNode>[],
   walk: ContentWalk,
-): readonly ReactNode[] =>
-  children.map((child, index): ReactNode => {
-    switch (child.kind) {
-      case "annotation-xml": {
-        return createElement(
-          "annotation-xml",
-          { ...propsOf("annotation-xml", child.attributes, walk.walk.addressing), key: index },
-          walk.nodes(child.content),
-        );
-      }
-      case "element": {
-        return createElement(
-          child.local,
-          {
-            "aria-hidden": child.local === "annotation" ? "true" : undefined,
-            ...propsOf(child.local, child.attributes, walk.walk.addressing),
-            key: index,
-          },
-          childrenOf(child.children, walk),
-        );
-      }
-      case "text": {
-        return child.text;
-      }
-      default: {
-        return child satisfies never;
-      }
-    }
-  });
+): readonly ReactNode[] => children.map((child, index) => childOf(child, index, walk));
 
 /**
  * Give a formula's accessible name: the text it says (`formulaText` in `#plate/content/text.ts`),
@@ -480,9 +499,6 @@ const checkedElements = (child: MathChild<RedactedNode>): readonly MathElement<R
     }
     case "text": {
       return [];
-    }
-    default: {
-      return child satisfies never;
     }
   }
 };

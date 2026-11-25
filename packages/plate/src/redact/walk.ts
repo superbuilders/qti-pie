@@ -674,6 +674,82 @@ const printBody = (
       return decideRegions<RedactedLevel>(mapped, regionShown);
     },
     /**
+     * Show one body node from the values, walking content the page does not see as well, so its
+     * responses are bound.
+     *
+     * @param node The body node.
+     * @param seen Whether the page sees it.
+     * @returns The nodes the page is given in its place.
+     */
+    node: (node: BodyNode, seen: boolean): readonly RedactedNode[] => {
+      if (isInteraction(node)) {
+        return [walk.interaction(node, seen)];
+      }
+
+      switch (node.kind) {
+        case "element": {
+          return walk.element(node, seen);
+        }
+        case "unsupported": {
+          return [node];
+        }
+        case "container": {
+          return [{ ...node, children: walk.nodes(node.children, seen) }];
+        }
+        case "content": {
+          const kept = redactContent(node, walk.contentKit(seen, node.path));
+
+          return Option.isSome(kept) ? [kept.value] : [];
+        }
+        case "printed-variable": {
+          return Option.match(
+            printing.pipe(Option.flatMap((record) => printedText(node, record))),
+            {
+              onNone: (): readonly RedactedNode[] => [
+                { feature: printedNotice, kind: "unsupported", path: node.path },
+              ],
+              onSome: (print): readonly RedactedNode[] => {
+                const printed = seen ? written(print, node.identifier, node.path) : "";
+
+                return printed === "" ? [] : [{ kind: "text", text: printed }];
+              },
+            },
+          );
+        }
+        case "template-block":
+        case "template-inline": {
+          return walk.conditional(
+            node,
+            shownBy(printing, node.templateVisibility, node.identifier),
+            templateNotice[node.kind],
+            seen,
+            (content) => content,
+          );
+        }
+        case "feedback-block": {
+          return walk.conditional(
+            node,
+            feedbackShownBy(feedbackBy, node.feedbackVisibility, node.identifier),
+            feedbackNotice[node.kind],
+            seen,
+            (content) => [shownBlock(node.path, node.identifier, content)],
+          );
+        }
+        case "feedback-inline": {
+          return walk.conditional(
+            node,
+            feedbackShownBy(feedbackBy, node.feedbackVisibility, node.identifier),
+            feedbackNotice[node.kind],
+            seen,
+            (content) => content,
+          );
+        }
+        case "text": {
+          return [node];
+        }
+      }
+    },
+    /**
      * Show body nodes from the values, walking content the page does not see as well, so its
      * responses are bound.
      *
@@ -682,77 +758,7 @@ const printBody = (
      * @returns The nodes the page is given in their place.
      */
     nodes: (nodes: readonly BodyNode[], seen: boolean): Nodes<RedactedLevel> =>
-      nodes.flatMap((node): readonly RedactedNode[] => {
-        if (isInteraction(node)) {
-          return [walk.interaction(node, seen)];
-        }
-
-        switch (node.kind) {
-          case "element": {
-            return walk.element(node, seen);
-          }
-          case "unsupported": {
-            return [node];
-          }
-          case "container": {
-            return [{ ...node, children: walk.nodes(node.children, seen) }];
-          }
-          case "content": {
-            const kept = redactContent(node, walk.contentKit(seen, node.path));
-
-            return Option.isSome(kept) ? [kept.value] : [];
-          }
-          case "printed-variable": {
-            return Option.match(
-              printing.pipe(Option.flatMap((record) => printedText(node, record))),
-              {
-                onNone: (): readonly RedactedNode[] => [
-                  { feature: printedNotice, kind: "unsupported", path: node.path },
-                ],
-                onSome: (print): readonly RedactedNode[] => {
-                  const printed = seen ? written(print, node.identifier, node.path) : "";
-
-                  return printed === "" ? [] : [{ kind: "text", text: printed }];
-                },
-              },
-            );
-          }
-          case "template-block":
-          case "template-inline": {
-            return walk.conditional(
-              node,
-              shownBy(printing, node.templateVisibility, node.identifier),
-              templateNotice[node.kind],
-              seen,
-              (content) => content,
-            );
-          }
-          case "feedback-block": {
-            return walk.conditional(
-              node,
-              feedbackShownBy(feedbackBy, node.feedbackVisibility, node.identifier),
-              feedbackNotice[node.kind],
-              seen,
-              (content) => [shownBlock(node.path, node.identifier, content)],
-            );
-          }
-          case "feedback-inline": {
-            return walk.conditional(
-              node,
-              feedbackShownBy(feedbackBy, node.feedbackVisibility, node.identifier),
-              feedbackNotice[node.kind],
-              seen,
-              (content) => content,
-            );
-          }
-          case "text": {
-            return [node];
-          }
-          default: {
-            return node satisfies never;
-          }
-        }
-      }),
+      nodes.flatMap((node) => walk.node(node, seen)),
   };
 
   const body = walk.nodes(item.body, true);

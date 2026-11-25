@@ -109,6 +109,40 @@ const catalogsOf = (payloads: readonly CatalogInfoPayload[]): readonly CatalogPa
   payloads.flatMap((payload) => payload.catalogs);
 
 /**
+ * The elements below one body node that reference a catalog, as {@link termsIn} collects them.
+ *
+ * @param node The node.
+ * @returns The referencing elements, in document order.
+ */
+const termsOf = (node: RedactedNode): readonly BodyElement<RedactedLevel>[] => {
+  if (isInteraction(node)) {
+    return [];
+  }
+
+  switch (node.kind) {
+    case "element": {
+      if (!writtenTag(node.tag)) {
+        return [];
+      }
+
+      return node.catalog === undefined
+        ? termsIn(node.children)
+        : [node, ...termsIn(node.children)];
+    }
+    case "container": {
+      return termsIn(node.children);
+    }
+    case "content": {
+      return termsIn(contentNodes(copyContent(node)));
+    }
+    case "text":
+    case "unsupported": {
+      return [];
+    }
+  }
+};
+
+/**
  * Collect the elements of the body that reference a catalog, in document order: through every
  * element the walk writes, a module's container and the body content of a content node, and never
  * into an interaction, whose own content presents no disclosure.
@@ -117,36 +151,7 @@ const catalogsOf = (payloads: readonly CatalogInfoPayload[]): readonly CatalogPa
  * @returns The referencing elements.
  */
 export const termsIn = (nodes: readonly RedactedNode[]): readonly BodyElement<RedactedLevel>[] =>
-  nodes.flatMap((node): readonly BodyElement<RedactedLevel>[] => {
-    if (isInteraction(node)) {
-      return [];
-    }
-
-    switch (node.kind) {
-      case "element": {
-        if (!writtenTag(node.tag)) {
-          return [];
-        }
-
-        return node.catalog === undefined
-          ? termsIn(node.children)
-          : [node, ...termsIn(node.children)];
-      }
-      case "container": {
-        return termsIn(node.children);
-      }
-      case "content": {
-        return termsIn(contentNodes(copyContent(node)));
-      }
-      case "text":
-      case "unsupported": {
-        return [];
-      }
-      default: {
-        return node satisfies never;
-      }
-    }
-  });
+  nodes.flatMap((node) => termsOf(node));
 
 /**
  * Give the address of one of a card's files: its href resolved against the item's location and
