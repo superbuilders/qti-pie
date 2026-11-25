@@ -462,6 +462,26 @@ export default defineConfig({
       files: [...plateAlphaClientModules],
       rules: { "no-restricted-imports": ["error", pageImportOptions(pathImportPatterns)] },
     },
+    // The index of Alpha's PCI modules is a leaf: a host outside qti-pie (AlphaTest's player, through
+    // its qti-pie submodule) imports it as TypeScript with none of plate's dependencies installed,
+    // and its TypeScript follows a type-only import too, so the index imports nothing at all.
+    {
+      files: ["packages/plate/src/alpha/pci-modules.ts"],
+      rules: {
+        "no-restricted-imports": [
+          "error",
+          {
+            patterns: [
+              {
+                message:
+                  "The index of Alpha's PCI modules is a leaf a host outside qti-pie imports: it imports nothing.",
+                regex: ".",
+              },
+            ],
+          },
+        ],
+      },
+    },
     // Errors with no fields, each with a fixed message (plate's defects, assembly's RootMissing): a
     // getter writes it, since a `message` field would be an own property of every error, so the getter
     // reads nothing of `this`.

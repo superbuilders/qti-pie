@@ -7,6 +7,8 @@
  * - Each module file's SHA-256 is its pin below (Bjorn, Q3: the module file is emitted from typed
  *   TypeScript), so a change to the bytes an item's package holds, whether its source changed or
  *   the machine's Node strips differently, changes a pin in the same commit.
+ * - Each module's entry is the one {@link alphaPciModule} writes from its id, a kebab-case name, so
+ *   its id, path and type identifier agree.
  * - The folder holds each module's source and file, and nothing else, and each module's URL names its
  *   file there.
  * - Each module file, run as the frame's loader runs it, defines one anonymous AMD module asking for
@@ -21,7 +23,7 @@ import { stripTypeScriptTypes } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runInNewContext } from "node:vm";
-import { alphaPciModules } from "#plate/alpha/pci-modules.ts";
+import { alphaPciModule, alphaPciModules } from "#plate/alpha/pci-modules.ts";
 import type { AlphaPciModuleId } from "#plate/alpha/pci-modules.ts";
 
 /**
@@ -129,6 +131,13 @@ const registeredBy = ({ factory }: Defined): readonly Registration[] => {
 };
 
 describe("Alpha's PCI modules", () => {
+  it("are each written from their id, a kebab-case name", () => {
+    for (const entry of alphaPciModules) {
+      assert.match(entry.id, /^[a-z][a-z\d]*(?:-[a-z\d]+)*$/u);
+      assert.deepStrictEqual(entry, alphaPciModule(entry.id, entry.script));
+    }
+  });
+
   it("are each their typed source with the types stripped, byte for byte", () => {
     for (const { script } of alphaPciModules) {
       const file = fileURLToPath(script);
