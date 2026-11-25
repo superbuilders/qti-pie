@@ -33,7 +33,7 @@ import type {
   RedactedLevel,
   RedactedNode,
 } from "#plate/model/item.ts";
-import { spokenBefore, spokenWithin } from "#plate/read-aloud/placement.ts";
+import { spokenBefore, spokenInCell, spokenWithin } from "#plate/read-aloud/placement.ts";
 import type { SpokenControl } from "#plate/read-aloud/placement.ts";
 import { feedbackBlockTag } from "#plate/redact/walk.ts";
 import type { Glossary, Glossed } from "#plate/ui/item/contents/catalog.tsx";
@@ -144,9 +144,11 @@ export interface Walk {
   readonly slots: ReadonlyMap<string, Slotted>;
   /**
    * Read-aloud's control each element of the walk holds after its own content, by the element's
-   * path ({@link spokenIn}): none but in a run of an interaction's own content that stands outside
-   * every control of the interaction, whose interaction hands the walk read-aloud
-   * (`ContentOptions.readAloud` in `#plate/ui/item/context.ts`), as gap match's sentence does.
+   * path: in the body, each element inside a table cell ({@link spokenInCells}); in a run of an
+   * interaction's own content that stands outside every control of the interaction, whose
+   * interaction hands the walk read-aloud (`ContentOptions.readAloud` in
+   * `#plate/ui/item/context.ts`), as gap match's sentence does, each of its elements
+   * ({@link spokenIn}); none elsewhere.
    */
   readonly spoken: ReadonlyMap<string, ReactNode>;
   readonly standing: Standing;
@@ -325,29 +327,21 @@ export const elementsIn = (
   elementsWithin(nodes, throughDropped, []).map(([element]) => element);
 
 /**
- * Give the controls the elements of a run of an interaction's own content hold after their own
- * content, where the run stands outside every control of the interaction: each element the
- * placement gives one (`spokenWithin` in `#plate/read-aloud/placement.ts`), by its tag and the
- * tags of the elements it stands inside, whose catalog keeps a spoken card that gives audio, at
- * any depth, in document order, named `readAloudLabel` by its
- * place among them, so two labels' controls ("least", "greatest") are told apart, and keyed
- * `read-aloud` among the element's children.
+ * Write the controls elements hold after their own content, each element and the control the
+ * placement gives it, in document order: each whose catalog keeps a spoken card that gives audio,
+ * named `readAloudLabel` by its place among them, so two labels' controls ("least", "greatest")
+ * are told apart, and keyed `read-aloud` among the element's children.
  *
- * @param nodes The run's body nodes.
+ * @param held Each element's path and the control the placement gives it, in document order.
  * @param readAloud The page's read-aloud.
  * @param locale The locale of plate's own text.
  * @returns Each control, by its element's path.
  */
-export const spokenIn = (
-  nodes: readonly RedactedNode[],
+const heldControls = (
+  held: readonly (readonly [path: string, spoken: SpokenControl])[],
   readAloud: ReadsAloud,
   locale: Locale,
 ): ReadonlyMap<string, ReactNode> => {
-  const held = elementsWithin(nodes, false, []).flatMap(([element, within]) =>
-    Option.toArray(
-      Option.map(spokenWithin(element, within), (spoken) => [element.path, spoken] as const),
-    ),
-  );
   const [, controls] = Arr.mapAccum(
     held,
     1,
@@ -364,6 +358,101 @@ export const spokenIn = (
 
   return new Map(controls.flat());
 };
+
+/**
+ * Give the controls the elements of a run of an interaction's own content hold after their own
+ * content, where the run stands outside every control of the interaction: each element the
+ * placement gives one (`spokenWithin` in `#plate/read-aloud/placement.ts`), by its tag and the
+ * tags of the elements it stands inside, at any depth ({@link heldControls}).
+ *
+ * @param nodes The run's body nodes.
+ * @param readAloud The page's read-aloud.
+ * @param locale The locale of plate's own text.
+ * @returns Each control, by its element's path.
+ */
+export const spokenIn = (
+  nodes: readonly RedactedNode[],
+  readAloud: ReadsAloud,
+  locale: Locale,
+): ReadonlyMap<string, ReactNode> =>
+  heldControls(
+    elementsWithin(nodes, false, []).flatMap(([element, within]) =>
+      Option.toArray(
+        Option.map(spokenWithin(element, within), (spoken) => [element.path, spoken] as const),
+      ),
+    ),
+    readAloud,
+    locale,
+  );
+
+/**
+ * Collect every element the body's own walk writes among body nodes, at any depth and in document
+ * order, each with the tags of the elements it stands inside, outermost first: below each element
+ * the walk writes and in the body content a content module's node holds, never in an
+ * interaction's own content, which its interaction's walk writes, nor below an element the walk
+ * drops.
+ *
+ * @param nodes The body nodes.
+ * @param within The tags of the elements the nodes stand inside.
+ * @returns Each element, with the tags of the elements it stands inside.
+ */
+const bodyElementsWithin = (
+  nodes: readonly RedactedNode[],
+  within: readonly string[],
+): readonly (readonly [element: BodyElement<RedactedLevel>, within: readonly string[]])[] =>
+  nodes.flatMap((node): readonly (readonly [BodyElement<RedactedLevel>, readonly string[]])[] => {
+    if (isInteraction(node)) {
+      return [];
+    }
+
+    switch (node.kind) {
+      case "element": {
+        return writtenTag(node.tag)
+          ? [[node, within], ...bodyElementsWithin(node.children, [...within, node.tag])]
+          : [];
+      }
+      case "container": {
+        return bodyElementsWithin(node.children, within);
+      }
+      case "content": {
+        return bodyElementsWithin(contentBodyOf(node), within);
+      }
+      case "text":
+      case "unsupported": {
+        return [];
+      }
+      default: {
+        return node satisfies never;
+      }
+    }
+  });
+
+/**
+ * Give the controls the elements of an item's body inside a table cell hold after their own
+ * content: each element the placement gives one (`spokenInCell` in
+ * `#plate/read-aloud/placement.ts`), at any depth below its cell ({@link heldControls}), so a
+ * picture graph's category words and a ruler's unit word each hold their play control after their
+ * words, in their cell. Such an element takes no control before it ({@link readAloudBefore}).
+ *
+ * @param nodes The body's nodes.
+ * @param readAloud The page's read-aloud.
+ * @param locale The locale of plate's own text.
+ * @returns Each control, by its element's path.
+ */
+export const spokenInCells = (
+  nodes: readonly RedactedNode[],
+  readAloud: ReadsAloud,
+  locale: Locale,
+): ReadonlyMap<string, ReactNode> =>
+  heldControls(
+    bodyElementsWithin(nodes, []).flatMap(([element, within]) =>
+      Option.toArray(
+        Option.map(spokenInCell(element, within), (spoken) => [element.path, spoken] as const),
+      ),
+    ),
+    readAloud,
+    locale,
+  );
 
 /**
  * Collect every content module's node among body nodes, at any depth and in document order: below
@@ -914,15 +1003,16 @@ const disclosuresAfter = (
  * None in a walk with no read-aloud, a walk of an interaction's own content among them, whose
  * Choice writes its choices' controls itself, and whose other parts stand where a control would
  * sit inside another control or, in a run outside every control, hold their controls inside them
- * ({@link spokenIn}); and none for an element at a phrasing position, whose parent may admit no
- * control after it (a list item's, a table cell's).
+ * ({@link spokenIn}); none for an element at a phrasing position, whose parent may admit no
+ * control after it (a list item's, a paragraph's); and none for an element the walk gives a control
+ * to hold after its own content, as one inside a table cell ({@link spokenInCells}).
  *
  * @param element The element.
  * @param walk The walk where it stands.
  * @returns The control, or nothing.
  */
 const readAloudBefore = (element: BodyElement<RedactedLevel>, walk: Walk): readonly ReactNode[] =>
-  walk.scope.kind === "body"
+  walk.scope.kind === "body" && !walk.spoken.has(element.path)
     ? spokenAt(spokenBefore({ element, kind: "element" }), walk.scope.readAloud, walk.locale)
     : [];
 

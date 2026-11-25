@@ -4237,24 +4237,27 @@ C2: the oracle's own reader.)
      response judged under `validateResponses` alone, is not adopted. This binds plate alone: pantry stores no
      response. This is not a case of documents in conflict. (Decided 2026-11-14, ruling R7.)
 
-188. **A media interaction's play is a playback begun at rest, or a return to the media's start from past it; the start
-     is the media's first second, or the first half of a media shorter than two seconds; and `autostart` starts the
-     media once its plays are counted, never by the page alone.** The information model says of `max-plays` that "it
-     must not be possible for the candidate to play the media object more than max-play times" (5.92.3), of `loop`
-     that the media "should play continuously (subject to max-plays)" (5.92.4), and of `autostart` that the media
-     "should begin as soon as the candidate starts the attempt" (5.92.1); it never says what one play is. So plate's
-     island (`#plate/ui/media/plays.ts`, `#plate/ui/media/media.tsx`) counts a play when the media begins playing at
-     rest, before its first playback or once it has ended, wherever the candidate moved the position to (upstream
-     #359), and when its position comes back to the start from past it, a rewind (upstream #452) or a loop's wrap; a
-     paused playback resumed is the same play. A play past `max-plays` is paused at once and announced, and the media
-     stays at rest. The start is the first second so that restarting a play just begun spends none, and half of a
+188. **A media interaction's play is a playback begun at rest, counted when it first sounds, or a return to the media's
+     start from past it; the start is the media's first second, or the first half of a media shorter than two seconds;
+     and `autostart` starts the media once its plays are counted, never by the page alone.** The information model says
+     of `max-plays` that "it must not be possible for the candidate to play the media object more than max-play times"
+     (5.92.3), of `loop` that the media "should play continuously (subject to max-plays)" (5.92.4), and of `autostart`
+     that the media "should begin as soon as the candidate starts the attempt" (5.92.1); it never says what one play is.
+     So plate's island (`#plate/ui/media/plays.ts`, `#plate/ui/media/media.tsx`) counts a play when a playback begun at
+     rest, before its first playback or once it has ended, first sounds (its first `playing`), wherever the candidate
+     moved the position to (upstream #359), a playback paused before it sounded being no play, and when its position
+     comes back to the start from past it, a rewind (upstream #452) or a loop's wrap; a paused playback resumed is the
+     same play. A play past `max-plays` is refused as it begins, before it sounds: paused at once and announced, and the
+     media stays at rest. The start is the first second so that restarting a play just begun spends none, and half of a
      media shorter than two seconds so that every wrap of a short loop counts; a seek through the start costs a play
      even where it ends past it, since 5.92.3 forbids the extra play and allows none it cannot see. The page writes no
      `autoplay`: the island calls `play()` once it listens, so the play is counted, a page React holds hidden starts
-     nothing, and only while the response counts no play, so a restored attempt has started already and spends no
-     play by loading; a browser that refuses an unmuted start leaves the media for the candidate's press. This binds
-     plate, which delivers; pantry stores `autostart`, `loop`, `min-plays` and `max-plays` as written and counts no
-     play. This is not a case of documents in conflict. (Decided 2026-11-14 by the Mind, lane U5's decisions 1 and 2.)
+     nothing, and only while the response counts no play, so a restored attempt has started already and spends no play
+     by loading; a browser that refuses an unmuted start leaves the media for the candidate's press. This binds plate,
+     which delivers; pantry stores `autostart`, `loop`, `min-plays` and `max-plays` as written and counts no play. This
+     is not a case of documents in conflict. (Decided 2026-11-14 by the Mind, lane U5's decisions 1 and 2. Amended
+     2026-11-25 by lane FORM-AUDIO on edullm-bd's question (reading 245): a play is counted when it first sounds, since
+     the count is of the times the media object "was experienced" (5.92), so one paused while it still loads is none.)
 
 189. **A `qti-index` takes an ordered container, and neither operand of a `qti-delete` is a duration.** The
      information model says of Index "The index operator takes a sub-expression with an ordered container value
@@ -5208,37 +5211,59 @@ C2: the oracle's own reader.)
      pre-recorded reading the implementation guide stores the sound files in a `spoken` card's entry for the
      `computer-read-aloud` reading type: "The intent of the storage of the audio files is to present the audio as an
      alternative to the written text provided in the default content" (section 5.2.8.3). So plate presents an active
-     `spoken` card that gives a file whose `mime-type` is `audio/*` (RFC 2045 section 5.1: compared without case) as
-     one play control: a native toggle button whose name says what it reads and whose pressed state says whether it
-     plays, over an `audio` element with one `source` per audio file in document order, among which the browser plays
-     the first format it can (HTML's source selection; the guide's example stores one recording as `audio/mpeg` and
-     `audio/ogg`), so plate picks none (step 7). The control follows an element of the body at a flow position, an
-     interaction's prompt, and stands beside every choice the child picks, moves, orders or fills, each heard from one
-     place and never inside a control: a Choice's choice in its row, a Hot Text's hottext after it in its line, a
+     `spoken` card that gives a file whose `mime-type` is `audio/*` (RFC 2045 section 5.1: compared without case) as one
+     play control: a native toggle button whose name says what it reads and whose pressed state says whether it plays,
+     over an `audio` element with one `source` per audio file in document order, among which the browser plays the first
+     format it can (HTML's source selection; the guide's example stores one recording as `audio/mpeg` and `audio/ogg`),
+     so plate picks none (step 7). The control stands before an element of the body at a flow position, at the top of
+     what it reads, but for one inside a table cell; inside an element of the body inside a table cell, at any depth,
+     after its own words, as a picture graph's category word or a ruler's unit word holds its play icon, so the word
+     keeps its place in its cell and its row; before an interaction, for the catalog the interaction's own root
+     references; after an interaction's prompt; inside an element of a Gap Match's sentence, after its own words, as a
+     slot's label holds its play icon; an element that holds its control so may hold phrasing content and stands inside
+     no element that bars a control (a link, a label, a media element), and each such control is named by its place
+     among them ("Listen to label 1"); and beside every choice the child picks, moves, orders or fills, each heard from
+     one place and never inside a control: a Choice's choice in its row, a Hot Text's hottext after it in its line, a
      Match's group and a Graphic Gap Match's hotspot after its name in its target, and beside its chip in the bank an
      Order's, a Gap Match's and a Graphic Gap Match's gap text or gap image, a Match's first set, an Associate's choice,
      and a Graphic Order's and a Graphic Associate's hotspot, and a Hotspot's hotspot beside its row, the K–5 kinds
      whose options and bins Becky Allen's items record clips for. At any other referencing part (an element at a
-     phrasing position or inside an interaction's own content, a `qti-gap`, which has no text to read, an Inline
-     Choice's choice, an option of a select where no control can stand, and a hottext its template shows as plain
-     text) it is not presented, and the card is never listed, since a recording heard apart from its text, or a link
-     to it, presents nothing the candidate can follow. The entry's other files (the guide's `application/xml`) are not
-     presented, and a `spoken` card with no audio file is listed as before. A review and a solution present no control:
-     their page ships no island but a Media's replay (plate's UI suite's J1). Each control plays its own part alone, and
-     only at its own press: the guide stores a recording as the alternative to the written text of the part that
-     references its catalog and states no sequencing of an item's recordings (section 5.2.8.3), so a press presents its
-     own part's alternative and no other's. A press of a control plays its recording from its start and stops the one
-     playing, and a press of the control playing stops it; nothing plays by itself, when the item opens or after a
-     recording ends, stops or cannot play; and a stop by anything else and moving to another item leave the item at
-     rest. A press that cannot play, where every `source` fails, `play()` is refused but with an `AbortError` or a
-     `MediaError` but `MEDIA_ERR_ABORTED` arrives, is told so once at the control, in an assertive live region, in the
-     words of plate's catalog for the configuration's `locale`. This changes no verdict. This is not a case of documents
-     in conflict. (Stated 2026-11-20 by lane IMPL-READALOUD; widened from Choice and Order, AlphaTest's two, to every
-     choice kind the same day by lane MM-PLATE-READALOUD, and given its session and its notice by lane PLATE-READALOUD;
-     to be confirmed by the owner, Bjorn. Amended 2026-11-25 by lane FORM-AUDIO on edullm-bd's ruling, a hard cutover:
-     the session's chain, AlphaTest's player's (mastery-track-player 941a86a, `src/contexts/TtsSessionContext.tsx` lines
-     96–159), in which an item's first press of a prompt played every other control mounted after it, is gone, with the
-     test's memory of first presses, `<ReadAloudSession>`.)
+     phrasing position of the body outside every table cell, an element of an interaction's own content but a Gap Match
+     sentence's, a table cell itself, an element of a cell or of that sentence that may hold no phrasing content or
+     stands inside an element that bars a control, a `qti-gap`, which has no text to read, an Inline Choice's choice, an
+     option of a select where no control can stand, and a hottext its template shows as plain text) it is not presented,
+     and the card is never listed, since a recording heard apart from its text, or a link to it, presents nothing the
+     candidate can follow. The entry's other files (the guide's `application/xml`) are not presented, and a `spoken`
+     card with no audio file is listed as before. A review and a solution present no control: their page ships no island
+     but a Media's replay (plate's UI suite's J1). Each control plays its own part alone, and only at its own press: the
+     guide stores a recording as the alternative to the written text of the part that references its catalog (section
+     5.2.8.3; "A catalog is referenced from a specific portion of the content body", information model section 5.28) and
+     states no sequencing of spoken recordings, so a press presents its own part's alternative and no other's. The one
+     order of play the guide gives, "determined by the order of reference from the qti-item-body content" (section
+     5.1.2.4), is the sign-language support's: it orders the videos of an item's portions, and says nothing of what
+     starts a play. A press of a control plays its recording from its start and stops the one playing, and a press of
+     the control playing stops it, before its recording has begun to sound as after; nothing plays by itself, when the
+     item opens or after a recording ends, stops or cannot play; and a stop by anything else and moving to another item
+     leave the item at rest. The page has one voice: a press of a control stops whatever recording or media of the page
+     sounds and is heard, another item's, a Media interaction's and a host's own, whether it began before any control
+     was mounted or not, and a Media's play, or a host's own media, that starts stops a recording read aloud; a Media's
+     play refused past `max-plays` stops nothing, and a muted media is no voice, taking nothing and losing nothing
+     (reading 245 says what a stop does to a Media's count). A press that cannot play, where every `source` fails,
+     `play()` is refused but with an `AbortError` or a `MediaError` but `MEDIA_ERR_ABORTED` arrives, is told so once at
+     the control, in an assertive live region, in the words of plate's catalog for the configuration's `locale`. This
+     changes no verdict. This is not a case of documents in conflict. (Stated 2026-11-20 by lane IMPL-READALOUD; widened
+     from Choice and Order, AlphaTest's two, to every choice kind the same day by lane MM-PLATE-READALOUD, and given its
+     session and its notice by lane PLATE-READALOUD; to be confirmed by the owner, Bjorn. Amended 2026-11-25 by lane
+     FORM-AUDIO on edullm-bd's ruling, a hard cutover: the session's chain, AlphaTest's player's (mastery-track-player
+     941a86a, `src/contexts/TtsSessionContext.tsx` lines 96–159), in which an item's first press of a prompt played the
+     prompt and then every other control mounted, prompts before texts before choices, one after another, is gone, with
+     the test's memory of first presses, `<ReadAloudSession>`. Amended again the same day by lane FORM-AUDIO on the
+     reviews of that cutover: a press of the control playing stops it however soon it comes, the page has one voice,
+     Media included, and the control's place before a body element is stated as it stands. Amended a third time the same
+     day by lane FORM-AUDIO on the reviews: where plate presents a control is stated as it stands since 5e180b7, a Gap
+     Match sentence's label, the control before an interaction, and a said word in a table cell, which now holds its
+     control after its words, included; the one voice holds what sounded before a control mounted, takes nothing at a
+     refused play and leaves muted media alone; and section 5.1.2.4 is read as it says.)
 
 238. **Under `tolerance-mode` absolute or relative, a `qti-equal` compares the exact binary values of its floats, the
      ends of its range computed exactly over them.** The information model gives the range, "In absolute mode the result
@@ -5335,3 +5360,37 @@ C2: the oracle's own reader.)
      open. (Decided 2026-11-22 by lane WORDCAP on the coordinator's ruling, for parity with AlphaTest's player, which
      counts an essay's words on its text: mastery-track-player 941a86a,
      `src/components/questions/ExtendedTextInteraction.tsx`, `getWordCount`.)
+
+245. **A media interaction that the page's one voice pauses keeps the play it counted where its playback had sounded,
+     and its resumption is that play, spending none; a playback paused before it sounded is no play.** The information
+     model binds the interaction to a count: it "allows the number of times the media object was experienced to be
+     reported in the value of the associated response variable, which must be of base-type integer and single
+     cardinality" (section 5.92), and the implementation guide says the same, that it "enables measurement of the number
+     of times the media object was experienced" (section 3.2.15). Of `max-plays` it says "it must not be possible for
+     the candidate to play the media object more than max-play times" (section 5.92.3), of `min-plays` that "the media
+     object should be played a minimum number of times by the candidate" (section 5.92.2), and of `loop` that "In
+     continuous play mode, once the media object has started to play it should play continuously (subject to max-plays)"
+     (section 5.92.4). It names no unit of a play, never forbids a delivery to pause the media, and never says a play
+     stopped part way is uncounted; the class "allows more control over the way the candidate interacts with a
+     time-based media object" (section 5.92). Plate reads a media object as experienced once it sounds, and so counts as
+     reading 188 does, a play when a playback begun at rest first sounds, a paused playback resumed being the same play,
+     and refuses a play past `max-plays` as it begins, before it sounds. The page's one voice (reading 237) pauses a
+     Media sounding when the candidate presses another Media's control or a read-aloud control, or a host's own media
+     starts. A pause of a playback that sounded is a pause within its play: the count the page posts stays as it was,
+     the candidate's next press of the Media resumes where it stopped and spends no play, so under `max-plays` 1 the
+     interrupted Media still plays, a pause makes no play and so can never carry the count past `max-plays`, and
+     `min-plays` counts the play the pause interrupted. A pause of a playback that never sounded, a press while its data
+     still loads followed by another press elsewhere, leaves the media at rest with no play counted: nothing of it was
+     experienced, so its next press plays and counts, under `max-plays` 1 too. A play refused past `max-plays`, as the
+     Media's native controls may start one, takes the voice from nothing. A play the candidate leaves paused, by a press
+     elsewhere or by the Media's own Pause, ends when the item is left: the island holds no position across items, so on
+     the candidate's return the media is at rest, and its next playback is a new play, which `max-plays` may refuse. A
+     looping Media paused so stops playing continuously, which section 5.92.4 asks with "should", a best practice the
+     specification's conventions say "does not violate conformance" when set aside (section 1.3); the candidate's own
+     press of another player is the candidate's control of the media, as plate's Pause control already is (WCAG 2.2.2),
+     and one voice keeps two recordings from sounding at once. So the one voice pauses a Media as it pauses a recording
+     read aloud, and the count the page posts is the plays this reading counts. This binds plate, which delivers; pantry
+     stores the four characteristics as written and counts no play. This is not a case of documents in conflict. (Stated
+     2026-11-25 by lane FORM-AUDIO on edullm-bd's question; pinned in Chrome by plate's UI suite: RB19, two Media
+     interactions, one stopping the other mid-play and a read-aloud press stopping one, each posting its one play, and
+     one stopped while it loads posting none until its next press sounds; and RB20, a refused play stopping nothing.)

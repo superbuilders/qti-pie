@@ -36,6 +36,7 @@ import {
   noSpoken,
   nodesOf,
   spokenIn,
+  spokenInCells,
 } from "#plate/ui/item/content.tsx";
 import type { InteractionAt, VerdictAt, Walk } from "#plate/ui/item/content.tsx";
 import {
@@ -425,6 +426,7 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
             ),
           verdict: verdictAt,
         },
+        spoken: spokenInCells(redacted.body, readAloud, configuration.locale),
       })}
       {afterBody}
       {listing(catalogs, redacted.body, (nodes) => nodesOf(nodes, outside), addressing)}

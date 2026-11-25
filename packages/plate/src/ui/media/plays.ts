@@ -6,17 +6,21 @@
  * QTI binds a Media to a single `integer`, the number of times the media object was experienced
  * (information model 5.92), and says of `max-plays` that it must not be possible for the candidate
  * to play the media object more than `max-plays` times (5.92.3). Neither says what one play is.
- * plate reads it so, from upstream issues #359 and #452:
+ * plate reads it so (spec readings 188 and 245), from upstream issues #359 and #452:
  *
  * - The media is at rest before its first playback and again once it has ended. A playback begun at
- *   rest is a play, wherever the child had moved the position to.
+ *   rest is a play, wherever the child had moved the position to, counted when it first sounds (its
+ *   first `playing`), since a media is experienced once it sounds: a playback paused while it still
+ *   loads, before it sounded, as one voice pauses it at another press, is no play, and leaves the
+ *   media at rest.
  * - A playback paused and resumed is the same play, wherever it resumes.
  * - The position coming back to the media's start from past it ({@link rewound}) is a new play: the
  *   child going back to hear it again, or a looping media wrapping round, which plays "subject to
  *   max-plays" (5.92.4). While playing, it begins that play at once; while paused, it leaves the
  *   media at rest, so the next playback is the play.
- * - A play past `max-plays` is refused: the island pauses it at once and says so, and the media stays
- *   at rest. Nothing else is ever refused, so with no limit the child plays freely.
+ * - A play past `max-plays` is refused as it begins, before it sounds: the island pauses it at once
+ *   and says so, and the media stays at rest. Nothing else is ever refused, so with no limit the
+ *   child plays freely.
  *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Data_MediaInteraction
@@ -25,10 +29,10 @@ import { reached } from "#plate/placement/limit.ts";
 import type { Limit } from "#plate/placement/limit.ts";
 
 /**
- * Where the media stands: at rest, before its first playback or once it has ended; playing; or
- * paused within a playback.
+ * Where the media stands: at rest, before its first playback or once it has ended; pending, a
+ * playback begun at rest that has not sounded yet; playing; or paused within a playback.
  */
-export type Phase = "paused" | "playing" | "rest";
+export type Phase = "paused" | "pending" | "playing" | "rest";
 
 /**
  * The plays of one media: how many the response counts, and where the media stands.
@@ -39,11 +43,11 @@ export interface Plays {
 }
 
 /**
- * What the media element reports, as the step reads it: it began or resumed playing (`play`), it
- * paused (`pause`), it reached its end and stopped (`ended`), or its position came back to the
- * start from past it ({@link rewound}).
+ * What the media element reports, as the step reads it: it began or resumed a playback (`play`),
+ * it sounds, its data having come (`playing`), it paused (`pause`), it reached its end and stopped
+ * (`ended`), or its position came back to the start from past it ({@link rewound}).
  */
-export type Seen = "ended" | "pause" | "play" | "rewound";
+export type Seen = "ended" | "pause" | "play" | "playing" | "rewound";
 
 /**
  * What one step leaves, and what the island does about it: `count` writes the new count, `refuse`
@@ -62,16 +66,34 @@ export interface Stepped {
 const startSeconds = 1;
 
 /**
- * Begin a play, or refuse it at the limit.
+ * Refuse a play at the limit, or let it go on as the phase given.
  *
  * @param plays The plays so far.
  * @param limit `max-plays`, as the server wrote it.
- * @returns The play counted, the media playing; or refused at the limit, the media at rest.
+ * @param then What the play becomes where the limit allows it: pending, a playback that has yet
+ *   to sound, or playing, counted now, as a rewound playback sounds at once.
+ * @returns The play refused at the limit, the media at rest; else pending, or counted and playing.
  */
-const begin = (plays: Plays, limit: Limit): Stepped =>
-  reached(limit, plays.count)
-    ? { does: "refuse", plays: { ...plays, phase: "rest" } }
+const begin = (plays: Plays, limit: Limit, then: "pending" | "playing"): Stepped => {
+  if (reached(limit, plays.count)) {
+    return { does: "refuse", plays: { ...plays, phase: "rest" } };
+  }
+
+  return then === "pending"
+    ? { does: "none", plays: { ...plays, phase: "pending" } }
     : { does: "count", plays: { count: plays.count + 1, phase: "playing" } };
+};
+
+/**
+ * Where a pause leaves the media, by where it stood: a playback that sounded is paused within its
+ * play; one that never sounded is no play, and the media is at rest again.
+ */
+const pausedFrom = {
+  paused: "paused",
+  pending: "rest",
+  playing: "paused",
+  rest: "rest",
+} as const satisfies Readonly<Record<Phase, Phase>>;
 
 /**
  * Step the plays by one thing the media reported.
@@ -87,20 +109,32 @@ export const step = (plays: Plays, seen: Seen, limit: Limit): Stepped => {
       return { does: "none", plays: { ...plays, phase: "rest" } };
     }
     case "pause": {
-      return {
-        does: "none",
-        plays: plays.phase === "playing" ? { ...plays, phase: "paused" } : plays,
-      };
+      return { does: "none", plays: { ...plays, phase: pausedFrom[plays.phase] } };
     }
     case "play": {
-      return plays.phase === "rest"
-        ? begin(plays, limit)
-        : { does: "none", plays: { ...plays, phase: "playing" } };
+      if (plays.phase === "rest") {
+        return begin(plays, limit, "pending");
+      }
+
+      return {
+        does: "none",
+        plays: { ...plays, phase: plays.phase === "paused" ? "playing" : plays.phase },
+      };
+    }
+    case "playing": {
+      return plays.phase === "pending"
+        ? { does: "count", plays: { count: plays.count + 1, phase: "playing" } }
+        : { does: "none", plays };
     }
     case "rewound": {
-      return plays.phase === "playing"
-        ? begin(plays, limit)
-        : { does: "none", plays: { ...plays, phase: "rest" } };
+      if (plays.phase === "playing") {
+        return begin(plays, limit, "playing");
+      }
+
+      return {
+        does: "none",
+        plays: { ...plays, phase: plays.phase === "pending" ? "pending" : "rest" },
+      };
     }
     default: {
       return seen satisfies never;

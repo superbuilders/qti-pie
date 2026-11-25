@@ -1,25 +1,30 @@
 /**
- * Read-aloud's session over one item: which of the item's read-aloud controls plays, and the
- * notice a press gets that cannot play. A state machine over what the controls report
+ * Read-aloud's session over one item: which of the item's read-aloud controls plays, and at which
+ * the notice of a press that cannot play stands. A state machine over what the controls report
  * ({@link heard}), pure, so its rules are checked apart from any browser (`session.test.ts`);
- * `<Item>`'s client provider holds one per item and carries out its commands on the controls
- * (`ReadAloudItem` in `#plate/ui/read-aloud/session.tsx`).
+ * `<Item>`'s client provider holds one per item, carries out its commands on the controls and shows
+ * each control what the session holds of it ({@link shownAt}), its toggle pressed while it plays
+ * and its notice while it is told (`ReadAloudItem` in `#plate/ui/read-aloud/session.tsx`), so a
+ * control shows the session's state and nothing else's.
  *
  * A control's recording is its own part's, "the audio as an alternative to the written text
  * provided in the default content" (implementation guide §5.2.8.3), and QTI states no sequencing of
- * an item's recordings, so a control plays its own part and no other's:
+ * spoken recordings, so a control plays its own part and no other's. The one order the guide gives
+ * a play (§5.1.2.4: "The sequence of play is determined by the order of reference from the
+ * qti-item-body content") is the sign-language support's: it orders the videos of an item's
+ * portions, and starts none.
  *
  * - **A press.** A press of a control plays its own recording alone, from its start, and stops the
- *   one playing; a press of the control playing stops it. Nothing plays but at a press: a recording
- *   that ends, stops or cannot play is followed by nothing.
+ *   one playing; a press of the control playing stops it, whether or not its recording has begun to
+ *   sound, since the session, not the page, says what plays. Nothing plays but at a press: a
+ *   recording that ends, stops or cannot play is followed by nothing.
  * - **Stopping.** A stop by anything else (another media's play, the page hidden) and an unmount of
  *   the playing control leave the item at rest, as moving to another item does: the provider, keyed
  *   by the item's instance, unmounts every control with it.
- * - **The notice.** A press whose recording cannot play is told so once, at its control
- *   ({@link interrupts} says which refusals are no failure), and the next press takes the notice
- *   down, as AlphaTest's player tells it (mastery-track-player at 941a86a,
- *   `src/utils/audio-failure.ts`). A refusal of a control that is not playing belongs to no press
- *   and is told nothing.
+ * - **The notice.** A press whose recording cannot play is told so, at its control
+ *   ({@link interrupts} says which refusals are no failure), until the next press, as AlphaTest's
+ *   player tells it (mastery-track-player at 941a86a, `src/utils/audio-failure.ts`). A refusal of a
+ *   control that is not playing belongs to no press and is told nothing.
  *
  * @module
  */
@@ -43,6 +48,22 @@ export type Session<Control> =
 export const newSession: Session<never> = { kind: "resting" };
 
 /**
+ * What one control shows of its item's session: `playing` while the session plays it, `told` while
+ * the notice stands at it, `resting` otherwise.
+ */
+export type Shown = Session<unknown>["kind"];
+
+/**
+ * Give what a control shows of its item's session.
+ *
+ * @param session The session.
+ * @param control The control.
+ * @returns `playing` or `told` where the session plays it or tells at it, else `resting`.
+ */
+export const shownAt = <Control>(session: Session<Control>, control: Control): Shown =>
+  session.kind !== "resting" && session.control === control ? session.kind : "resting";
+
+/**
  * Why a recording would not play, as the browser said it: `rejected`, the promise `play()` gave
  * rejected with `cause`; `media-error`, a `MediaError` of `code` reached the `audio`; `no-source`,
  * every one of its `source`s failed, so it holds nothing to play.
@@ -53,29 +74,28 @@ export type Refusal =
   | { readonly kind: "no-source" };
 
 /**
- * What a control reports to its item's session: `press`, a press to play it; `release`, a press
- * that stops it; `ended`, its recording played to its end; `paused`, its recording stopped
- * otherwise, by another media's play, the page hidden or the session's own command; `refused`, its
- * recording would not play; and `unmounted`, the control left the page.
+ * What a control reports to its item's session: `press`, a press of it, which plays it, or stops it
+ * while the session plays it; `stopped`, its recording no longer plays, played to its end or
+ * stopped otherwise (another media's play, the page hidden, the session's own command), reported
+ * only while the recording does not play again, since a press that plays it again overtakes a stop
+ * the page has yet to report; `refused`, its recording would not play; and `unmounted`, the control
+ * left the page.
  *
  * @template Control The controls.
  */
 export type Report<Control> =
-  | { readonly control: Control; readonly kind: "ended" }
-  | { readonly control: Control; readonly kind: "paused" }
   | { readonly control: Control; readonly kind: "press" }
   | { readonly control: Control; readonly kind: "refused"; readonly refusal: Refusal }
-  | { readonly control: Control; readonly kind: "release" }
+  | { readonly control: Control; readonly kind: "stopped" }
   | { readonly control: Control; readonly kind: "unmounted" };
 
 /**
- * What the session asks of a control: `play` its recording from the start, `stop` it, `tell` the
- * child its press cannot play, or `hush`, take that notice down.
+ * What the session asks of a control: `play` its recording from the start, or `stop` it.
  *
  * @template Control The controls.
  */
 export interface Command<Control> {
-  readonly act: "hush" | "play" | "stop" | "tell";
+  readonly act: "play" | "stop";
   readonly control: Control;
 }
 
@@ -148,39 +168,32 @@ const command = <Control>(act: Command<Control>["act"], control: Control): Comma
 });
 
 /**
- * Give the commands that take down the latest press's notice, where it stands: what every press
- * runs first, a press that stops a control among them.
- *
- * @param session The session.
- * @returns The `hush`, or none while no notice stands.
- */
-const hushing = <Control>(session: Session<Control>): readonly Command<Control>[] =>
-  session.kind === "told" ? [command("hush", session.control)] : [];
-
-/**
- * Answer a press to play a control: it plays its own part alone, the control playing before
- * stops, and the latest notice comes down.
+ * Answer a press of a control: the control the session plays stops, and the item rests; any other
+ * plays its own part alone, the control playing before it stopping first, and the latest notice
+ * comes down.
  *
  * @param session The session.
  * @param control The control pressed.
  * @returns The turn.
  */
-const pressed = <Control>(session: Session<Control>, control: Control): Turn<Control> => ({
-  commands: [
-    ...hushing(session),
-    ...(session.kind === "playing" && session.control !== control
-      ? [command("stop", session.control)]
-      : []),
-    command("play", control),
-  ],
-  session: { control, kind: "playing" },
-});
+const pressed = <Control>(session: Session<Control>, control: Control): Turn<Control> => {
+  if (plays(session, control)) {
+    return { commands: [command("stop", control)], session: newSession };
+  }
+
+  return {
+    commands: [
+      ...(session.kind === "playing" ? [command("stop", session.control)] : []),
+      command("play", control),
+    ],
+    session: { control, kind: "playing" },
+  };
+};
 
 /**
  * Hear a report of one of the item's controls: the session after it, and the commands that carry
- * it out. A report of a control the session does not play changes nothing, but a press, which
- * plays it, a release, which stops it, and the unmount of the control told at, whose notice leaves
- * the page with it.
+ * it out. A report of a control the session neither plays nor tells at changes nothing, but a
+ * press, which plays it.
  *
  * @param session The session.
  * @param report What the control reports.
@@ -191,13 +204,8 @@ export const heard = <Control>(
   report: Report<Control>,
 ): Turn<Control> => {
   const unchanged: Turn<Control> = { commands: [], session };
-  const rests: Turn<Control> = { commands: [], session: newSession };
 
   switch (report.kind) {
-    case "ended":
-    case "paused": {
-      return plays(session, report.control) ? rests : unchanged;
-    }
     case "press": {
       return pressed(session, report.control);
     }
@@ -205,19 +213,17 @@ export const heard = <Control>(
       return interrupts(report.refusal) || !plays(session, report.control)
         ? unchanged
         : {
-            commands: [command("stop", report.control), command("tell", report.control)],
+            commands: [command("stop", report.control)],
             session: { control: report.control, kind: "told" },
           };
     }
-    case "release": {
-      return {
-        commands: [...hushing(session), command("stop", report.control)],
-        session:
-          session.kind === "playing" && session.control !== report.control ? session : newSession,
-      };
+    case "stopped": {
+      return plays(session, report.control) ? { commands: [], session: newSession } : unchanged;
     }
     case "unmounted": {
-      return session.kind !== "resting" && session.control === report.control ? rests : unchanged;
+      return shownAt(session, report.control) === "resting"
+        ? unchanged
+        : { commands: [], session: newSession };
     }
     default: {
       return report satisfies never;

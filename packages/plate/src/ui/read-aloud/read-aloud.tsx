@@ -17,30 +17,36 @@
  * - **The recording.** An `audio` element with no controls, which a browser does not draw, holds one
  *   `source` per audio file, in document order, each with its `mime-type` as `type`, so the browser
  *   plays the first format it can (HTML's source selection) and plate picks none. It loads nothing
- *   until it is played (`preload="none"`).
+ *   until it is played (`preload="none"`). A control is its recording's: another recording is
+ *   another control, whose `audio` is a new element ({@link ReadAloud}), since a `source` whose
+ *   `src` changes loads nothing in the element that holds it.
  * - **The control.** UI SDK's Toggle: a native button, so Tab reaches it and Enter or Space press it
  *   (WCAG 2.1.1). Its name, the label the server gives, says what it reads and stays the same while
  *   its pressed state, `aria-pressed`, says whether it plays (WCAG 4.1.2), as UI SDK asks of a
- *   toggle. Pressed, it plays the recording from its start; pressed while it plays, it stops it and
- *   goes back to the start. The pressed state follows the recording's own events, so a play the
- *   browser refuses leaves it unpressed.
+ *   toggle. Every press is reported as one press, and the session says what it does: it plays the
+ *   recording from its start, or, while the session plays it, stops it and goes back to the start,
+ *   whether or not it has begun to sound.
  * - **The item's session.** What plays is the item's read-aloud session's to say
  *   (`#plate/ui/read-aloud/session.tsx`), which every control of the item mounts in: a press plays
  *   the control's own part alone and stops any other of the item's controls playing, and nothing
- *   plays after it.
- * - **The notice.** A press that cannot play is told so once, at the control that failed, in
+ *   plays after it. The control shows the session's state, never its own: pressed from the press
+ *   that plays it until its recording ends, stops or cannot play, so a control hidden and shown
+ *   again, or remounted, never shows a recording that does not play.
+ * - **The notice.** A press that cannot play is told so, at the control that failed, in
  *   `plate-read-aloud-notice`, an assertive live region (WCAG 4.1.3) that stays in the page empty,
  *   so the words it then says are read; the next press takes them down. It cannot play where every
  *   `source` fails, where `play()` is refused but with an `AbortError`, or where a `MediaError` but
  *   `MEDIA_ERR_ABORTED` reaches the recording: both of those follow a stop the page made.
- * - **One at a time.** Any other media of the page that starts to play, another item's read-aloud or
- *   a Media interaction's, stops this one: a `play` event, which does not bubble, is heard at the
- *   document as it is captured.
+ * - **One voice.** The recording joins the page's one voice (`#plate/ui/voice.ts`) while the control
+ *   is mounted: a press takes the voice as it plays, which pauses any other recording or media of
+ *   the page that sounds and is heard, another item's read-aloud, a Media interaction's or a host's
+ *   own, in the press's own task, whenever it began; and any other media of the page that starts to
+ *   play and is heard pauses this one, but a Media's play refused past its limit.
  * - **Stopping.** The recording stops when the page is hidden, as when the candidate switches tab,
- *   and when React unmounts the island, as when the candidate goes on to another item, so nothing
- *   reads on where the candidate cannot see what it reads.
+ *   and when React unmounts or hides the island, as when the candidate goes on to another item, so
+ *   nothing reads on where the candidate cannot see what it reads.
  *
- * The parts: `plate-read-aloud`, a `span`, with `data-playing` while the recording plays, holding
+ * The parts: `plate-read-aloud`, a `span`, with `data-playing` while the session plays it, holding
  * UI SDK's `toggle`, the `audio` and `plate-read-aloud-notice`, a `span` holding the notice's title
  * in a `strong` and its description while it is told. A `span` is phrasing content, so it stands
  * wherever the shell places it. No `class` and no `style`: the item's stylesheet styles the slots
@@ -49,10 +55,12 @@
  * @module
  */
 import { Toggle } from "@ui-sdk/react/toggle";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useSyncExternalStore } from "react";
+import type { Shown } from "#plate/read-aloud/session.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import { useReadAloudItem } from "#plate/ui/read-aloud/session.tsx";
 import type { ReadAloudPort } from "#plate/ui/read-aloud/session.tsx";
+import { joinVoice, speak } from "#plate/ui/voice.ts";
 
 /**
  * One recording file as the island plays it: its address in the configuration's `assets`, and its
@@ -124,18 +132,28 @@ const reportError = (event: Event, element: HTMLAudioElement, port: ReadAloudPor
 };
 
 /**
- * Render the control that reads one part of the item aloud from its recording.
+ * What a control shows before the page runs, as the server renders it and React hydrates it: no
+ * session has played it.
+ *
+ * @returns `resting`.
+ */
+const resting = (): Shown => "resting";
+
+/**
+ * Render the control of one recording: the island proper, whose `audio`, mounted once, holds that
+ * recording alone.
  *
  * @param props The control's name and the recording's files ({@link ReadAloudProps}).
  * @returns The `plate-read-aloud` part.
  * @throws {ReadAloudOutsideItem} When it is rendered outside its item's `<ReadAloudItem>`.
  */
-export const ReadAloud = ({ label, sources }: ReadAloudProps) => {
-  const { failed, mount } = useReadAloudItem();
+const RecordingControl = ({ label, sources }: ReadAloudProps) => {
+  const { failed, mount, shown, subscribe } = useReadAloudItem();
+  const control = useId();
   const audio = useRef<HTMLAudioElement>(null);
   const port = useRef<ReadAloudPort>(undefined);
-  const [playing, setPlaying] = useState(false);
-  const [told, setTold] = useState(false);
+  const showing = useSyncExternalStore(subscribe, () => shown(control), resting);
+  const playing = showing === "playing";
 
   useEffect((): (() => void) | undefined => {
     const element = audio.current ?? undefined;
@@ -143,63 +161,36 @@ export const ReadAloud = ({ label, sources }: ReadAloudProps) => {
       return undefined;
     }
 
-    const control = mount({
-      hush: () => {
-        setTold(false);
+    const leave = joinVoice(element);
+    const reported = mount(control, {
+      play: () => {
+        speak(element);
+
+        return play(element);
       },
-      play: () => play(element),
       stop: () => {
         stop(element);
-      },
-      tell: () => {
-        setTold(true);
       },
     });
     const listeners = new AbortController();
     const { signal } = listeners;
 
-    element.addEventListener(
-      "play",
-      () => {
-        setPlaying(true);
-      },
-      { signal },
-    );
-    // A recording that plays to its end fires `pause` before `ended`, while `ended` already holds,
-    // and a `pause` that a press to play again overtook finds the recording playing: neither is a
-    // stop.
+    // A recording that plays to its end fires `pause` before `ended`, and one stopped otherwise
+    // fires `pause` alone; a `pause` that a press to play again overtook finds the recording
+    // playing, and is no stop.
     element.addEventListener(
       "pause",
       () => {
-        setPlaying(false);
-
-        if (element.paused && !element.ended) {
-          control.paused();
+        if (element.paused) {
+          reported.stopped();
         }
-      },
-      { signal },
-    );
-    element.addEventListener(
-      "ended",
-      () => {
-        setPlaying(false);
-        control.ended();
       },
       { signal },
     );
     element.addEventListener(
       "error",
       (event) => {
-        reportError(event, element, control);
-      },
-      { capture: true, signal },
-    );
-    document.addEventListener(
-      "play",
-      (event) => {
-        if (event.target !== element && !element.paused) {
-          stop(element);
-        }
+        reportError(event, element, reported);
       },
       { capture: true, signal },
     );
@@ -212,28 +203,24 @@ export const ReadAloud = ({ label, sources }: ReadAloudProps) => {
       },
       { signal },
     );
-    port.current = control;
+    port.current = reported;
 
     return () => {
       listeners.abort();
       stop(element);
-      control.unmount();
+      reported.unmount();
+      leave();
       port.current = undefined;
     };
-  }, [mount]);
+  }, [control, mount]);
 
   return (
     <span data-playing={flag(playing)} data-slot="plate-read-aloud">
       <Toggle
         pressed={playing}
-        onPressedChange={(next, details) => {
+        onPressedChange={(_next, details) => {
           details.cancel();
-
-          if (next) {
-            port.current?.press();
-          } else {
-            port.current?.release();
-          }
+          port.current?.press();
         }}
       >
         {label}
@@ -244,7 +231,7 @@ export const ReadAloud = ({ label, sources }: ReadAloudProps) => {
         ))}
       </audio>
       <span data-slot="plate-read-aloud-notice" role="alert">
-        {told ? (
+        {showing === "told" ? (
           <>
             <strong>{failed.title}</strong> {failed.description}
           </>
@@ -253,3 +240,17 @@ export const ReadAloud = ({ label, sources }: ReadAloudProps) => {
     </span>
   );
 };
+
+/**
+ * Render the control that reads one part of the item aloud from its recording, keyed by the
+ * recording's files, so a recording other than the one rendered there before is another control,
+ * with an `audio` of its own: the one before it unmounts, which stops it, as a host that keeps one
+ * item instance across items would otherwise leave the left item's recording in the element.
+ *
+ * @param props The control's name and the recording's files ({@link ReadAloudProps}).
+ * @returns The `plate-read-aloud` part.
+ * @throws {ReadAloudOutsideItem} When it is rendered outside its item's `<ReadAloudItem>`.
+ */
+export const ReadAloud = (props: ReadAloudProps) => (
+  <RecordingControl key={JSON.stringify(props.sources)} {...props} />
+);

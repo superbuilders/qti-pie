@@ -12,6 +12,9 @@
  *   content ({@link spokenWithin}), as a slot's label holds its play icon ("least ▷"), so the
  *   element keeps its own place in the run's layout, the label's place on a number line. The walk
  *   writes it as the element's last child.
+ * - **Within a cell**, in the item's body: the control an element inside a table cell holds after its
+ *   own content ({@link spokenInCell}), as a graph's category word or a ruler's unit word holds its
+ *   play icon, so the word keeps its place in its cell and its row.
  *
  * Either way the walk writes the control only where the catalog keeps a spoken card that gives
  * audio (`#plate/ui/item/content.tsx`).
@@ -87,3 +90,30 @@ export const spokenWithin = (
   within: readonly string[],
 ): Option.Option<SpokenControl> =>
   holdsPhrasing(element.tag) && !within.some(barsControls) ? spokenText(element) : Option.none();
+
+/**
+ * Tell whether a tag is a table cell's.
+ *
+ * @param tag The tag.
+ * @returns Whether it is `td` or `th`.
+ */
+const isCell = (tag: string): boolean => tag === "td" || tag === "th";
+
+/**
+ * Give the control an element of an item's body inside a table cell, at any depth, holds after its
+ * own content, as {@link spokenWithin} gives it there: a said word in a cell, a picture graph's
+ * category or a ruler's unit, holds its control after its words, as a slot's label does, so the
+ * word keeps its place in its cell and its row, where a control before it would push it off its
+ * line. None for an element outside every cell, which stands where the body's walk places it
+ * ({@link spokenBefore}), and none for the cell itself, which stands in its row, where no control
+ * may stand beside it.
+ *
+ * @param element The element.
+ * @param within The tags of the elements it stands inside, outermost first, from the body.
+ * @returns The control, none where the element holds none.
+ */
+export const spokenInCell = (
+  element: BodyElement<RedactedLevel>,
+  within: readonly string[],
+): Option.Option<SpokenControl> =>
+  within.some(isCell) ? spokenWithin(element, within) : Option.none();

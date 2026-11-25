@@ -56,6 +56,7 @@ import {
   noSlots,
   noSpoken,
   nodesOf,
+  spokenInCells,
 } from "#plate/ui/item/content.tsx";
 import type { Walk } from "#plate/ui/item/content.tsx";
 import {
@@ -254,6 +255,8 @@ export const stimulusArticle = (
     instance: shown.instance,
     writing: "original",
   };
+  const readAloud =
+    setting.mode === "answering" ? readAloudOf(shown.catalogs, addressing) : noReadAloud;
   const outside: Walk = {
     addressing,
     credit: Option.none(),
@@ -281,11 +284,11 @@ export const stimulusArticle = (
         glossary: glossaryOf(shown.catalogs, redacted.body, addressing, setting.locale),
         interaction: (interaction) => noItemPart(`a ${interaction.kind} interaction`),
         kind: "body",
-        readAloud:
-          setting.mode === "answering" ? readAloudOf(shown.catalogs, addressing) : noReadAloud,
+        readAloud,
         stimulus: () => Option.none(),
         verdict: Option.none(),
       },
+      spoken: spokenInCells(redacted.body, readAloud, setting.locale),
     }),
     listing(shown.catalogs, redacted.body, (nodes) => nodesOf(nodes, outside), addressing),
   );

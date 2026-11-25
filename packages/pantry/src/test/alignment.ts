@@ -1630,7 +1630,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     237,
     {
       owner:
-        "plate's read-aloud control beside a body element at a flow position, a prompt, and a Choice's and an Order's choice, over an active `spoken` card's audio files; pantry stores the catalog as written",
+        "plate's read-aloud control before a body element at a flow position and an interaction, after a prompt, inside a Gap Match sentence's label and a said element in a table cell, and beside each choice kind's choice, over an active `spoken` card's audio files, every control of the page in one voice (`#plate/ui/voice.ts`); pantry stores the catalog as written",
       status: "G",
     },
   ],
@@ -1687,6 +1687,14 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     {
       owner:
         "the ledger's admission, matching an `xhtml` Extended Text's `pattern-mask` against `p3.xhtml_text` of its value (`machine/admission.sql`), held to plate's `textOfXhtml` by `xhtml-text.db.test.ts`; pantry stores `pattern-mask` as written",
+      status: "G",
+    },
+  ],
+  [
+    245,
+    {
+      owner:
+        "plate's Media island, which counts a play at its first sound and keeps it through a pause by the page's one voice (`#plate/ui/media/plays.ts`, `#plate/ui/voice.ts`), held in Chrome by specimen's RB19 and RB20; pantry stores `autostart`, `loop`, `min-plays` and `max-plays` as written and counts no play",
       status: "G",
     },
   ],

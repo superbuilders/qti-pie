@@ -6,11 +6,11 @@
  * counted into the response, a single `integer` (QTI 3.0 information model 5.92).
  *
  * What counts as a play, and what is refused, is `#plate/ui/media/plays.ts`'s: the island listens
- * to the media element and runs its step at each `play`, `pause`, `ended` and each `seeking` that
- * brings the position back to the start, so the author's native controls, where the author asked
- * for them, count and refuse exactly as the island's own control does. After each counted play the
- * count is the response's one integer; until the first, the island writes nothing, and the response
- * is NULL.
+ * to the media element and runs its step at each `play`, `playing`, `pause`, `ended` and each
+ * `seeking` that brings the position back to the start, so the author's native controls, where the
+ * author asked for them, count and refuse exactly as the island's own control does. After each
+ * counted play the count is the response's one integer; until the first, the island writes nothing,
+ * and the response is NULL.
  *
  * - **Autostart.** The server writes no `autoplay`: with `autostart` the island starts the media
  *   itself once it is listening, so the play is counted, and only while the response counts no play
@@ -22,6 +22,13 @@
  * - **Hidden or removed.** The media pauses whenever React unmounts the island or hides it (an
  *   `<Activity>` the host hides), in the listeners' effect cleanup, so a page the child left does
  *   not keep playing; the plays so far stand, and the media resumes as a paused playback.
+ * - **One voice.** The media joins the page's one voice (`#plate/ui/voice.ts`) while the island is
+ *   mounted, as read-aloud's controls do, so it and a recording read aloud never sound together:
+ *   its control's press, its `autostart` and any play the limit allows, its native controls' among
+ *   them, take the voice, which pauses a recording read aloud or another media sounding; a play
+ *   past the limit, refused, takes nothing. A read-aloud press or another media that starts to play
+ *   pauses it: a playback that sounded keeps the play it counted, and the control's next press
+ *   resumes it and spends none; one that never sounded is no play (spec reading 245).
  * - **The control.** UI SDK's Button: Play, or Pause while the media plays, so media that starts by
  *   itself can always be paused, with or without the native controls (WCAG 1.4.2, 2.2.2). Pressed,
  *   it calls the element's `play()`, whose promise keeps the button pending, announcing `loading`,
@@ -81,6 +88,7 @@ import type { mediaKeys } from "#plate/ui/media/labels.ts";
 import { countIn, rewound, step } from "#plate/ui/media/plays.ts";
 import type { Phase, Plays, Seen } from "#plate/ui/media/plays.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
+import { joinVoice, speak } from "#plate/ui/voice.ts";
 import type { Prompt } from "#plate/ui/prompt.tsx";
 import type { Declared } from "#plate/model/values.ts";
 import { integerSingles, useResponse } from "#plate/ui/responses.tsx";
@@ -285,7 +293,7 @@ const Player = (props: PlayerProps) => {
   const full = reached(maxPlays, count);
   const left = maxPlays.kind === "at-most" ? Math.max(0, maxPlays.n - count) : undefined;
   const short = least.kind === "at-least" && count < least.n;
-  const playing = phase === "playing";
+  const playing = phase === "playing" || phase === "pending";
 
   /**
    * Step the plays by one thing the media reported, and do what the step says: post the new
@@ -317,7 +325,7 @@ const Player = (props: PlayerProps) => {
   /**
    * Take up a media the island has begun listening to: no loop past the limit; a playback already
    * under way, which the child began from the native controls before the page hydrated, as begun
-   * at rest; and `autostart`, while no play is counted yet.
+   * at rest, holding the page's voice; and `autostart`, while no play is counted yet.
    *
    * @param element The media element.
    */
@@ -327,12 +335,18 @@ const Player = (props: PlayerProps) => {
     }
 
     if (!element.paused) {
+      speak(element);
       observe("play", element);
+
+      if (element.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+        observe("playing", element);
+      }
 
       return;
     }
 
     if (autostart && plays.current.count === 0) {
+      speak(element);
       element.play().catch(startRefused);
     }
   });
@@ -407,12 +421,26 @@ const Player = (props: PlayerProps) => {
     const listeners = new AbortController();
     const { signal } = listeners;
     const rendered = element.loop;
+    const leave = joinVoice(element);
     let last = element.currentTime;
 
+    // The step refuses a play past the limit by pausing it as it is heard: a play still playing
+    // after the step is one the limit allows, and only it takes the page's voice.
     element.addEventListener(
       "play",
       () => {
         observe("play", element);
+
+        if (!element.paused) {
+          speak(element);
+        }
+      },
+      { signal },
+    );
+    element.addEventListener(
+      "playing",
+      () => {
+        observe("playing", element);
       },
       { signal },
     );
@@ -463,6 +491,7 @@ const Player = (props: PlayerProps) => {
       element.pause();
       observe("pause", element);
       element.loop = rendered;
+      leave();
     };
   }, []);
 
@@ -483,6 +512,8 @@ const Player = (props: PlayerProps) => {
 
       return undefined;
     }
+
+    speak(element);
 
     return element.play();
   };

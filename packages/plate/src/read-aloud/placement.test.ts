@@ -38,7 +38,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Option } from "effect";
 import type { BodyElement, RedactedLevel } from "#plate/model/item.ts";
-import { spokenBefore, spokenWithin } from "#plate/read-aloud/placement.ts";
+import { spokenBefore, spokenInCell, spokenWithin } from "#plate/read-aloud/placement.ts";
 import { textEntry } from "#plate/test/slotted.ts";
 import { htmlSubset } from "#plate/ui/item/html.ts";
 
@@ -409,5 +409,91 @@ describe("the read-aloud control an element of an interaction's own content hold
     ],
   ] as const)("refuses a mutant: %s (%s)", (_name, property, place) => {
     assert.include([...brokenWithin(place).keys()], property);
+  });
+});
+
+/**
+ * Check the control an element of the body inside a table cell holds, through a placement: the
+ * said span of a picture graph's label row and a ruler's unit cell, at every depth below its cell,
+ * holds its control; the same span outside every cell, the cell itself, and a span below a link in
+ * its cell hold none.
+ *
+ * @param place The placement.
+ * @returns Each broken property's name, with the first place it broke on.
+ */
+const brokenInCell = (place: typeof spokenInCell): ReadonlyMap<string, string> => {
+  const breaks = new Map<string, string>();
+  const cases: readonly (readonly [
+    string,
+    readonly string[],
+    BodyElement<RedactedLevel>,
+    string,
+  ])[] = [
+    ...["td", "th"].flatMap((cell) =>
+      [[], ["p"], ["em", "strong"]].map(
+        (inside) =>
+          ["held", ["table", "tbody", "tr", cell, ...inside], labelSpan, "text spoken-a"] as const,
+      ),
+    ),
+    ["outside", [], labelSpan, "none"],
+    ["outside", ["div", "p"], labelSpan, "none"],
+    ["outside", ["ul", "li"], labelSpan, "none"],
+    ["cell", ["table", "tbody", "tr"], { ...labelSpan, path: "td", tag: "td" }, "none"],
+    ["below", ["table", "tbody", "tr", "td", "a"], labelSpan, "none"],
+  ];
+
+  for (const [property, within, element, expected] of cases) {
+    const found = Option.match(place(element, within), {
+      onNone: () => "none",
+      onSome: ({ catalog, role }) => `${role} ${catalog}`,
+    });
+
+    if (found !== expected && !breaks.has(property)) {
+      breaks.set(
+        property,
+        `a ${[...within, element.tag].join(" > ")} gave ${found}, not ${expected}`,
+      );
+    }
+  }
+
+  return breaks;
+};
+
+describe("the read-aloud control an element of the body inside a table cell holds", () => {
+  it("holds a said element's catalog as text inside every cell, at any depth, and nowhere else", () => {
+    assert.deepStrictEqual(Object.fromEntries(brokenInCell(spokenInCell)), {});
+  });
+
+  it.each([
+    ["no control held in a cell", "held", (() => Option.none()) satisfies typeof spokenInCell],
+    [
+      "a control held outside every cell too",
+      "outside",
+      ((element, within) => spokenWithin(element, within)) satisfies typeof spokenInCell,
+    ],
+    [
+      "a control held by a cell itself",
+      "cell",
+      ((element, within) =>
+        within.some((tag) => tag === "tr")
+          ? Option.map(Option.fromUndefinedOr(element.catalog), (catalog) => ({
+              catalog,
+              role: "text" as const,
+            }))
+          : Option.none()) satisfies typeof spokenInCell,
+    ],
+    [
+      "a control held below a link in a cell",
+      "below",
+      ((element, within) =>
+        within.includes("td") || within.includes("th")
+          ? Option.map(Option.fromUndefinedOr(element.catalog), (catalog) => ({
+              catalog,
+              role: "text" as const,
+            }))
+          : Option.none()) satisfies typeof spokenInCell,
+    ],
+  ] as const)("refuses a mutant: %s (%s)", (_name, property, place) => {
+    assert.include([...brokenInCell(place).keys()], property);
   });
 });
