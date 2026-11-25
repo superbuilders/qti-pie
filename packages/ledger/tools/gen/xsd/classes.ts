@@ -13,6 +13,7 @@ import { regex } from "arkregex";
 import { complement, intersection } from "@bjornpagen/grizzle-text/regex/charset";
 import type { CharSet } from "@bjornpagen/grizzle-text/regex/charset";
 import type { RegexNode } from "@bjornpagen/grizzle-text/regex/ir";
+import { Option } from "effect";
 import { xmlChar, xmlSchemaBlocks } from "@bjornpagen/grizzle-text/regex/xml";
 import { xsdCategoryNames, xsdPattern } from "@bjornpagen/grizzle-text/regex/xsd";
 
@@ -104,18 +105,21 @@ const classOf = (pattern: string): CharSet => {
  * complement of the set within XML's Char, as the SQL writes it.
  *
  * @param pattern The class.
- * @param negated Its negated form.
+ * @param negated Its negated form, none for a class that has none.
  * @returns The class's set.
  */
-const derived = (pattern: string, negated?: string): CharSet => {
+const derived = (pattern: string, negated: Option.Option<string>): CharSet => {
   const set = classOf(pattern);
   if (!same(intersection(xmlChar, set), set)) {
     throw new Error(`grizzle-text's ${pattern} holds a character outside XML's Char, the alphabet`);
   }
 
-  if (negated !== undefined && !same(classOf(negated), intersection(xmlChar, complement(set)))) {
+  if (
+    Option.isSome(negated) &&
+    !same(classOf(negated.value), intersection(xmlChar, complement(set)))
+  ) {
     throw new Error(
-      `grizzle-text's ${negated} is not the complement of ${pattern} within XML's Char, as the SQL writes it`,
+      `grizzle-text's ${negated.value} is not the complement of ${pattern} within XML's Char, as the SQL writes it`,
     );
   }
 
@@ -149,9 +153,12 @@ const byLengthThenCodePoint = (a: string, b: string): number => {
  */
 export const xsdClasses = (): XsdClasses => {
   const escapes = new Map<string, CharSet>(
-    escapeLetters.map((letter) => [letter, derived(`\\${letter}`, `\\${letter.toUpperCase()}`)]),
+    escapeLetters.map((letter) => [
+      letter,
+      derived(`\\${letter}`, Option.some(`\\${letter.toUpperCase()}`)),
+    ]),
   );
-  escapes.set(".", derived("."));
+  escapes.set(".", derived(".", Option.none()));
   for (let point = 0x41; point <= 0x7a; point += 1) {
     const letter = String.fromCodePoint(point);
     if (
@@ -166,10 +173,13 @@ export const xsdClasses = (): XsdClasses => {
   const categories = [...xsdCategoryNames].toSorted(byLengthThenCodePoint);
   const blocks = [...xmlSchemaBlocks.keys()];
   const properties = new Map<string, CharSet>([
-    ...categories.map((name): [string, CharSet] => [name, derived(`\\p{${name}}`, `\\P{${name}}`)]),
+    ...categories.map((name): [string, CharSet] => [
+      name,
+      derived(`\\p{${name}}`, Option.some(`\\P{${name}}`)),
+    ]),
     ...blocks.map((name): [string, CharSet] => [
       `Is${name}`,
-      derived(`\\p{Is${name}}`, `\\P{Is${name}}`),
+      derived(`\\p{Is${name}}`, Option.some(`\\P{Is${name}}`)),
     ]),
   ]);
 
