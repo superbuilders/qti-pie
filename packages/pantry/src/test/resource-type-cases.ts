@@ -67,118 +67,181 @@ export interface ResourceTypeCase {
     | { readonly verdict: "accepted" }
     | { readonly rule: "attribute-lexical" | "entry-kind"; readonly verdict: "refused" };
 }
+/**
+ * How many document types a case's resources name: one, two, or one beside a type that spells
+ * nothing.
+ */
+const TYPE_COUNTS = ["one type", "two types", "a type that spells nothing"] as const;
 
 /**
- * The seven cases: the box's six, and one path under two types with the stimulus listed first. The
- * document is typed by the listing its item root bears out in either order (reading
- * `path-document-type`), so Document entry breaks alone, in its rule over the typed hrefs (the
- * other type's href names no document of its type), and the verdict never turns on the order the
- * resources are listed in.
+ * How many paths a case's resources name.
  */
-export const resourceTypeCases: readonly ResourceTypeCase[] = [
-  {
-    broken: [],
-    byQuery: false,
-    edits: [],
-    label: "one type, one path",
-    named: [["choice.xml", itemType]],
-    typed: 1,
-    verdict: { verdict: "accepted" },
-  },
-  {
-    broken: [],
-    byQuery: false,
-    edits: [
-      { _tag: "copyFile", from: "choice.xml", to: "choice2.xml" },
-      // A second item, under an identifier of its own.
-      {
-        _tag: "ReplaceText",
-        file: "choice2.xml",
-        replacement: 'identifier="choice2"',
-        search: 'identifier="choice"',
-      },
-      resource("choice2", itemType, "choice2.xml"),
-    ],
-    label: "one type, two paths",
-    named: [
-      ["choice.xml", itemType],
-      ["choice2.xml", itemType],
-    ],
-    typed: 2,
-    verdict: { verdict: "accepted" },
-  },
-  {
-    broken: ["Document entry"],
-    byQuery: true,
-    edits: [resource("stim", stimulusType, "choice.xml")],
-    label: "two types, one path",
-    named: [
-      ["choice.xml", itemType],
-      ["choice.xml", stimulusType],
-    ],
-    typed: 2,
-    verdict: { rule: "entry-kind", verdict: "refused" },
-  },
-  {
-    broken: ["Document entry"],
-    byQuery: true,
-    edits: [
-      {
-        _tag: "ReplaceText",
-        file: "imsmanifest.xml",
-        replacement: `<resources><resource identifier="stim" type="${stimulusType}" href="choice.xml"><file href="choice.xml"/></resource>`,
-        search: "<resources>",
-      },
-    ],
-    label: "two types, one path, the stimulus listed first",
-    named: [
-      ["choice.xml", stimulusType],
-      ["choice.xml", itemType],
-    ],
-    typed: 2,
-    verdict: { rule: "entry-kind", verdict: "refused" },
-  },
-  {
-    broken: [],
-    byQuery: false,
-    edits: [
-      { _tag: "addFile", path: "stim.xml", source: { text: stimulus } },
-      resource("stim", stimulusType, "stim.xml"),
-    ],
-    label: "two types, two paths",
-    named: [
-      ["choice.xml", itemType],
-      ["stim.xml", stimulusType],
-    ],
-    typed: 2,
-    verdict: { verdict: "accepted" },
-  },
-  {
-    broken: ["value domain"],
-    byQuery: false,
-    edits: [
-      {
-        _tag: "ReplaceText",
-        file: "imsmanifest.xml",
-        replacement: choiceResource.replace(`type="${itemType}"`, `type=" ${itemType}"`),
-        search: choiceResource,
-      },
-    ],
-    label: "a type that spells nothing, one path",
-    named: [],
-    typed: 0,
-    verdict: { rule: "attribute-lexical", verdict: "refused" },
-  },
-  {
-    broken: ["value domain"],
-    byQuery: false,
-    edits: [
-      { _tag: "addFile", path: "stim.xml", source: { text: stimulus } },
-      resource("stim", `${stimulusType} `, "stim.xml"),
-    ],
-    label: "a type that spells nothing, two paths",
-    named: [["choice.xml", itemType]],
-    typed: 1,
-    verdict: { rule: "attribute-lexical", verdict: "refused" },
-  },
-];
+const PATH_COUNTS = ["one path", "two paths"] as const;
+
+/**
+ * A resource of a case's manifest as the law reads it: the path it names, its type as written, and
+ * whether that type spells a handle.
+ */
+interface Listed {
+  readonly href: string;
+  readonly spelled: boolean;
+  readonly type: string;
+}
+
+/**
+ * A case's package as written: its edits of `simple`, and the resources its manifest lists, in the
+ * manifest's order.
+ */
+interface Written {
+  readonly edits: readonly Edit[];
+  readonly listed: readonly Listed[];
+}
+
+/**
+ * `simple`'s item resource, its type spelled.
+ */
+const choiceListed: Listed = { href: "choice.xml", spelled: true, type: itemType };
+
+/**
+ * Write a case's package: `simple`'s item resource, and beside it what the case's counts ask for.
+ * One type and one path is `simple` as it is; one type and two paths a second item, a copy of the
+ * first under an identifier of its own; two types and one path a stimulus resource naming the
+ * item's path, listed after the item's resource or first; two types and two paths a stimulus of its
+ * own; a type that spells nothing on one path the item resource's own type padded with a space, and
+ * on two paths a stimulus of its own whose type is padded.
+ *
+ * @param types - How many types the resources name.
+ * @param paths - How many paths they name.
+ * @param stimulusFirst - Whether a stimulus resource that names the item's path is listed first.
+ * @returns The package's edits and its listed resources.
+ */
+const writtenOf = (
+  types: (typeof TYPE_COUNTS)[number],
+  paths: (typeof PATH_COUNTS)[number],
+  stimulusFirst: boolean,
+): Written => {
+  const ownStimulus: Edit = { _tag: "addFile", path: "stim.xml", source: { text: stimulus } };
+  if (types === "one type") {
+    return paths === "one path"
+      ? { edits: [], listed: [choiceListed] }
+      : {
+          edits: [
+            { _tag: "copyFile", from: "choice.xml", to: "choice2.xml" },
+            {
+              _tag: "ReplaceText",
+              file: "choice2.xml",
+              replacement: 'identifier="choice2"',
+              search: 'identifier="choice"',
+            },
+            resource("choice2", itemType, "choice2.xml"),
+          ],
+          listed: [choiceListed, { href: "choice2.xml", spelled: true, type: itemType }],
+        };
+  }
+
+  if (types === "two types") {
+    const stimulusListed = {
+      href: paths === "one path" ? "choice.xml" : "stim.xml",
+      spelled: true,
+      type: stimulusType,
+    };
+    if (paths === "two paths") {
+      return {
+        edits: [ownStimulus, resource("stim", stimulusType, "stim.xml")],
+        listed: [choiceListed, stimulusListed],
+      };
+    }
+
+    return stimulusFirst
+      ? {
+          edits: [
+            {
+              _tag: "ReplaceText",
+              file: "imsmanifest.xml",
+              replacement: `<resources><resource identifier="stim" type="${stimulusType}" href="choice.xml"><file href="choice.xml"/></resource>`,
+              search: "<resources>",
+            },
+          ],
+          listed: [stimulusListed, choiceListed],
+        }
+      : {
+          edits: [resource("stim", stimulusType, "choice.xml")],
+          listed: [choiceListed, stimulusListed],
+        };
+  }
+
+  return paths === "one path"
+    ? {
+        edits: [
+          {
+            _tag: "ReplaceText",
+            file: "imsmanifest.xml",
+            replacement: choiceResource.replace(`type="${itemType}"`, `type=" ${itemType}"`),
+            search: choiceResource,
+          },
+        ],
+        listed: [{ ...choiceListed, spelled: false, type: ` ${itemType}` }],
+      }
+    : {
+        edits: [ownStimulus, resource("stim", `${stimulusType} `, "stim.xml")],
+        listed: [choiceListed, { href: "stim.xml", spelled: false, type: `${stimulusType} ` }],
+      };
+};
+
+/**
+ * Judge a case's package by the readings, from its listed resources alone: a resource whose type
+ * spells no handle names no type, so AL1's value domain refuses its `type` (`attribute-lexical`,
+ * reading `manifest-profile`); a path two resources name under two types is refused under Document
+ * entry (`entry-kind`) alone, a rule over the typed hrefs (the query `TypedPath`), which the host's
+ * judge leaves to the database, since a document has the one type its root bears out (reading
+ * `path-document-type`), whichever resource is listed first; every other package is accepted. Each
+ * spelled resource names its (path, type) pair.
+ *
+ * @param label - The case's name.
+ * @param written - The case's package.
+ * @returns The case, with the verdict the readings give it.
+ */
+const judgedCase = (label: string, { edits, listed }: Written): ResourceTypeCase => {
+  const named = listed.flatMap(({ href, spelled, type }) =>
+    spelled ? [[href, type] as const] : [],
+  );
+  const unspelled = listed.some(({ spelled }) => !spelled);
+  const twoTyped = named.some(([href, type]) =>
+    named.some(([otherHref, otherType]) => otherHref === href && otherType !== type),
+  );
+  const common = { edits, label, named, typed: named.length };
+  if (unspelled) {
+    return {
+      ...common,
+      broken: ["value domain"],
+      byQuery: false,
+      verdict: { rule: "attribute-lexical", verdict: "refused" },
+    };
+  }
+
+  return twoTyped
+    ? {
+        ...common,
+        broken: ["Document entry"],
+        byQuery: true,
+        verdict: { rule: "entry-kind", verdict: "refused" },
+      }
+    : { ...common, broken: [], byQuery: false, verdict: { verdict: "accepted" } };
+};
+
+/**
+ * The box's cases: every count of types by every count of paths, and one path under two types with
+ * the stimulus listed first too, seven in all, each judged by {@link judgedCase}. The document is
+ * typed by the listing its item root bears out in either order (reading `path-document-type`), so
+ * the verdict never turns on the order the resources are listed in.
+ */
+export const resourceTypeCases: readonly ResourceTypeCase[] = TYPE_COUNTS.flatMap((types) =>
+  PATH_COUNTS.flatMap((paths) =>
+    (types === "two types" && paths === "one path" ? [false, true] : [false]).map((stimulusFirst) =>
+      judgedCase(
+        `${types}, ${paths}${stimulusFirst ? ", the stimulus listed first" : ""}`,
+        writtenOf(types, paths, stimulusFirst),
+      ),
+    ),
+  ),
+);
