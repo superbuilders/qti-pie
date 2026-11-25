@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_itemv3p0p1_v1p0.xsd" identifier="alpha-mark-objects-row-leave" title="Mark objects" time-dependent="false" xml:lang="en-US">
+  <!-- A synthetic mark-objects item for qti-pie's own suite (one row of eight, a take-away): its id, objects, count, stem and key are made up. -->
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="integer"><qti-correct-response><qti-value>5</qti-value></qti-correct-response></qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>0</qti-value></qti-default-value></qti-outcome-declaration>
+  <qti-item-body>
+    <qti-portable-custom-interaction response-identifier="RESPONSE" custom-interaction-type-identifier="urn:fdc:alpha.school:2026:mark-objects" module="mark-objects" data-objects="8" data-layout="rows" data-per-row="8">
+      <qti-prompt><p>3 of the ducks swim away. Mark the ducks that stay.</p></qti-prompt>
+      <qti-interaction-modules><qti-interaction-module id="mark-objects" primary-path="modules/mark-objects"/></qti-interaction-modules>
+      <qti-interaction-markup><img src="../media/9959d61e5281fb8e17f0e20a67f657cf34a5e134a901d5ffdaf8d66919bbe9de.svg" alt="duck" width="60" height="60"/></qti-interaction-markup>
+    </qti-portable-custom-interaction>
+  </qti-item-body>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct"/>
+</qti-assessment-item>

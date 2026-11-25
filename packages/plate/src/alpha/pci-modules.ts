@@ -103,11 +103,21 @@ export const countPlacements: AlphaPciModule<"count-placements"> = alphaPciModul
 );
 
 /**
+ * Mark objects: identical objects a tap rings and a second tap unrings, its response the count
+ * ringed (`#plate/alpha/pci-modules/mark-objects.ts`).
+ */
+export const markObjects: AlphaPciModule<"mark-objects"> = alphaPciModule(
+  "mark-objects",
+  new URL("pci-modules/mark-objects.js", import.meta.url),
+);
+
+/**
  * Every one of Alpha's PCI modules.
  */
 export const alphaPciModules = [
   buildWithBlocks,
   countPlacements,
+  markObjects,
 ] as const satisfies readonly AlphaPciModule<string>[];
 
 /**
