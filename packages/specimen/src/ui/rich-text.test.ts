@@ -355,27 +355,29 @@ const outsideQti = (xhtml: string): readonly string[] => {
   const problems: string[] = [];
   const walk = (children: readonly Child[]): void => {
     for (const child of children) {
-      if (child.kind === "element") {
-        if (!qtiElements.has(child.local)) {
-          problems.push(`RT3: ${child.local} is no element of QTI 3.0.1's the essay writes`);
+      if (child.kind !== "element") {
+        continue;
+      }
+
+      if (!qtiElements.has(child.local)) {
+        problems.push(`RT3: ${child.local} is no element of QTI 3.0.1's the essay writes`);
+      }
+
+      for (const attribute of child.attributes) {
+        if (attribute.local !== (child.local === "a" ? "href" : "class")) {
+          problems.push(`RT3: ${child.local} carries ${attribute.local}`);
         }
 
-        for (const attribute of child.attributes) {
-          if (attribute.local !== (child.local === "a" ? "href" : "class")) {
-            problems.push(`RT3: ${child.local} carries ${attribute.local}`);
-          }
-
-          if (attribute.local === "class") {
-            for (const name of attribute.value.split(" ")) {
-              if (!essayClasses.has(name)) {
-                problems.push(`RT3: ${name} is no class the essay writes`);
-              }
+        if (attribute.local === "class") {
+          for (const name of attribute.value.split(" ")) {
+            if (!essayClasses.has(name)) {
+              problems.push(`RT3: ${name} is no class the essay writes`);
             }
           }
         }
-
-        walk(child.children);
       }
+
+      walk(child.children);
     }
   };
 
