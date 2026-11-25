@@ -42,8 +42,8 @@ type CaseKind = "m:apply" | "m:ci" | "m:cn" | "m:math" | "m:mglyph" | "m:mi" | "
  */
 const elementOf = (
   kind: CaseKind,
-  children: readonly XdmChild<Composed>[] = [],
-  attributes: readonly XdmAttribute<Composed>[] = [],
+  children: readonly XdmChild<Composed>[],
+  attributes: readonly XdmAttribute<Composed>[],
 ): XdmClosedElement<Composed> => ({
   _tag: "element",
   attributes,
@@ -153,13 +153,23 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
     const rows = rowsOf(
       ownViewOf(
         documentOf(
-          elementOf("m:math", [
-            elementOf(
-              "m:cn",
-              [text("1"), elementOf("m:sep"), text("2"), elementOf("m:sep"), text("3")],
-              [attributeOf("type", "rational"), attributeOf("base", "40")],
-            ),
-          ]),
+          elementOf(
+            "m:math",
+            [
+              elementOf(
+                "m:cn",
+                [
+                  text("1"),
+                  elementOf("m:sep", [], []),
+                  text("2"),
+                  elementOf("m:sep", [], []),
+                  text("3"),
+                ],
+                [attributeOf("type", "rational"), attributeOf("base", "40")],
+              ),
+            ],
+            [],
+          ),
         ),
       ),
       ids,
@@ -176,14 +186,18 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
     const rows = rowsOf(
       ownViewOf(
         documentOf(
-          elementOf("m:math", [
-            elementOf(
-              "m:cn",
-              [elementOf("m:mglyph"), elementOf("m:sep"), text("2")],
-              [attributeOf("type", "rational")],
-            ),
-            elementOf("m:cn", [text("x")], [attributeOf("type", "constant")]),
-          ]),
+          elementOf(
+            "m:math",
+            [
+              elementOf(
+                "m:cn",
+                [elementOf("m:mglyph", [], []), elementOf("m:sep", [], []), text("2")],
+                [attributeOf("type", "rational")],
+              ),
+              elementOf("m:cn", [text("x")], [attributeOf("type", "constant")]),
+            ],
+            [],
+          ),
         ),
       ),
       ids,
@@ -200,16 +214,26 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
     const rows = rowsOf(
       ownViewOf(
         documentOf(
-          elementOf("m:math", [
-            elementOf("m:cn", [text("1")]),
-            elementOf("m:cn", [text("1")], [attributeOf("base", "37")]),
-            elementOf("m:cn", [text("1")], [attributeOf("base", "")]),
-            elementOf(
-              "m:cn",
-              [text("1"), elementOf("m:sep"), text("2"), elementOf("m:sep"), text("3")],
-              [attributeOf("type", "rational")],
-            ),
-          ]),
+          elementOf(
+            "m:math",
+            [
+              elementOf("m:cn", [text("1")], []),
+              elementOf("m:cn", [text("1")], [attributeOf("base", "37")]),
+              elementOf("m:cn", [text("1")], [attributeOf("base", "")]),
+              elementOf(
+                "m:cn",
+                [
+                  text("1"),
+                  elementOf("m:sep", [], []),
+                  text("2"),
+                  elementOf("m:sep", [], []),
+                  text("3"),
+                ],
+                [attributeOf("type", "rational")],
+              ),
+            ],
+            [],
+          ),
         ),
       ),
       ids,
@@ -225,13 +249,17 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
     const rows = rowsOf(
       ownViewOf(
         documentOf(
-          elementOf("m:math", [
-            elementOf(
-              "m:cn",
-              [text("1"), elementOf("m:sep"), text("2")],
-              [attributeOf("type", "rational")],
-            ),
-          ]),
+          elementOf(
+            "m:math",
+            [
+              elementOf(
+                "m:cn",
+                [text("1"), elementOf("m:sep", [], []), text("2")],
+                [attributeOf("type", "rational")],
+              ),
+            ],
+            [],
+          ),
         ),
       ),
       ids,
@@ -269,7 +297,7 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
      * Nodes: 0 document, 1 math, 2 cn, 3 text.
      */
     const rows = rowsOf(
-      ownViewOf(documentOf(elementOf("m:math", [elementOf("m:cn", [text(" \t3.5\n ")])]))),
+      ownViewOf(documentOf(elementOf("m:math", [elementOf("m:cn", [text(" \t3.5\n ")], [])], []))),
       ids,
     );
 
@@ -298,13 +326,17 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
     const rows = rowsOf(
       ownViewOf(
         documentOf(
-          elementOf("m:math", [
-            elementOf(
-              "m:cn",
-              [text("ff")],
-              [attributeOf("type", " integer\n"), attributeOf("base", " 016 ")],
-            ),
-          ]),
+          elementOf(
+            "m:math",
+            [
+              elementOf(
+                "m:cn",
+                [text("ff")],
+                [attributeOf("type", " integer\n"), attributeOf("base", " 016 ")],
+              ),
+            ],
+            [],
+          ),
         ),
       ),
       ids,
@@ -325,11 +357,15 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
     const rows = rowsOf(
       ownViewOf(
         documentOf(
-          elementOf("m:math", [
-            elementOf("m:cn", [text("x")], [attributeOf("type", "constant")]),
-            elementOf("m:cn", [text("x")], [attributeOf("type", "Integer")]),
-            elementOf("m:cn", [text("x")], [attributeOf("type", "")]),
-          ]),
+          elementOf(
+            "m:math",
+            [
+              elementOf("m:cn", [text("x")], [attributeOf("type", "constant")]),
+              elementOf("m:cn", [text("x")], [attributeOf("type", "Integer")]),
+              elementOf("m:cn", [text("x")], [attributeOf("type", "")]),
+            ],
+            [],
+          ),
         ),
       ),
       ids,
@@ -348,6 +384,7 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
             ["1", "37", "abc", "16.5", "", "0"].map((base) =>
               elementOf("m:cn", [text("1")], [attributeOf("base", base)]),
             ),
+            [],
           ),
         ),
       ),
@@ -366,15 +403,19 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
     const rows = rowsOf(
       ownViewOf(
         documentOf(
-          elementOf("m:math", [
-            elementOf("m:cn", [elementOf("m:mglyph")]),
-            elementOf(
-              "m:cn",
-              [text("1"), reference, elementOf("m:sep"), text("2")],
-              [attributeOf("type", "rational")],
-            ),
-            elementOf("m:cn", [text("7")]),
-          ]),
+          elementOf(
+            "m:math",
+            [
+              elementOf("m:cn", [elementOf("m:mglyph", [], [])], []),
+              elementOf(
+                "m:cn",
+                [text("1"), reference, elementOf("m:sep", [], []), text("2")],
+                [attributeOf("type", "rational")],
+              ),
+              elementOf("m:cn", [text("7")], []),
+            ],
+            [],
+          ),
         ),
       ),
       ids,
@@ -391,13 +432,17 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
     const rows = rowsOf(
       ownViewOf(
         documentOf(
-          elementOf("m:math", [
-            elementOf(
-              "m:cn",
-              [comment, spacing, text("1 2"), elementOf("m:sep"), spacing, comment],
-              [attributeOf("type", "e-notation")],
-            ),
-          ]),
+          elementOf(
+            "m:math",
+            [
+              elementOf(
+                "m:cn",
+                [comment, spacing, text("1 2"), elementOf("m:sep", [], []), spacing, comment],
+                [attributeOf("type", "e-notation")],
+              ),
+            ],
+            [],
+          ),
         ),
       ),
       ids,
@@ -419,27 +464,37 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
     const rows = rowsOf(
       ownViewOf(
         documentOf(
-          elementOf("m:math", [
-            elementOf("m:cn", [text("1"), elementOf("m:sep"), text("2")]),
-            elementOf(
-              "m:cn",
-              [text("1"), elementOf("m:sep"), text("2"), elementOf("m:sep"), text("3")],
-              [attributeOf("type", "rational")],
-            ),
-            elementOf(
-              "m:cn",
-              [
-                text("1"),
-                elementOf("m:sep"),
-                text("2"),
-                elementOf("m:sep"),
-                text("3"),
-                elementOf("m:sep"),
-                text("4"),
-              ],
-              [attributeOf("type", "rational")],
-            ),
-          ]),
+          elementOf(
+            "m:math",
+            [
+              elementOf("m:cn", [text("1"), elementOf("m:sep", [], []), text("2")], []),
+              elementOf(
+                "m:cn",
+                [
+                  text("1"),
+                  elementOf("m:sep", [], []),
+                  text("2"),
+                  elementOf("m:sep", [], []),
+                  text("3"),
+                ],
+                [attributeOf("type", "rational")],
+              ),
+              elementOf(
+                "m:cn",
+                [
+                  text("1"),
+                  elementOf("m:sep", [], []),
+                  text("2"),
+                  elementOf("m:sep", [], []),
+                  text("3"),
+                  elementOf("m:sep", [], []),
+                  text("4"),
+                ],
+                [attributeOf("type", "rational")],
+              ),
+            ],
+            [],
+          ),
         ),
       ),
       ids,
@@ -472,19 +527,30 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
      * Nodes: 0 document, 1 math, 2 apply, 3 plus, 4 cn, 5 text, 6 ci.
      */
     const doc = documentOf(
-      elementOf("m:math", [
-        elementOf("m:apply", [
-          elementOf("m:plus"),
-          elementOf("m:cn", [text("1")]),
-          elementOf("m:ci"),
-        ]),
-      ]),
+      elementOf(
+        "m:math",
+        [
+          elementOf(
+            "m:apply",
+            [
+              elementOf("m:plus", [], []),
+              elementOf("m:cn", [text("1")], []),
+              elementOf("m:ci", [], []),
+            ],
+            [],
+          ),
+        ],
+        [],
+      ),
     );
     const rows = rowsOf(ownViewOf(doc), ids);
 
     assert.sameMembers(keysOf(rows.MathCn), [keyAt(4)]);
     assert.sameMembers(
-      keysOf(rowsOf(ownViewOf(documentOf(elementOf("m:math", [elementOf("m:ci")]))), ids).MathCn),
+      keysOf(
+        rowsOf(ownViewOf(documentOf(elementOf("m:math", [elementOf("m:ci", [], [])], []))), ids)
+          .MathCn,
+      ),
       [],
     );
   });

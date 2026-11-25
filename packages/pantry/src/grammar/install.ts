@@ -1034,17 +1034,19 @@ const countedModels = (() => {
   const counts = new Map<string, AttributeCount>();
   for (const row of GoverningOf.rows) {
     const count = attributeCounts.find(({ kind }) => kind === row.kind);
-    if (count !== undefined) {
-      const model = modelOfRow(row);
-      const earlier = counts.get(model);
-      if (earlier !== undefined && earlier !== count) {
-        throw new Error(
-          `The attribute model ${model} is read by the counted kinds ${earlier.kind} and ${count.kind}, whose counts differ; give each its own model.`,
-        );
-      }
-
-      counts.set(model, count);
+    if (count === undefined) {
+      continue;
     }
+
+    const model = modelOfRow(row);
+    const earlier = counts.get(model);
+    if (earlier !== undefined && earlier !== count) {
+      throw new Error(
+        `The attribute model ${model} is read by the counted kinds ${earlier.kind} and ${count.kind}, whose counts differ; give each its own model.`,
+      );
+    }
+
+    counts.set(model, count);
   }
 
   for (const row of GoverningOf.rows) {
@@ -1386,16 +1388,16 @@ export const CnPartForm = closed.ordered("CnPartForm", cnPartForms);
  */
 export const CnPart = closed.ordered(
   "CnPart",
-  pipe(
-    Arr.range(
-      0,
-      Arr.reduce(
-        [...cnForms.values()].map((forms) => forms.length),
-        Number.NEGATIVE_INFINITY,
-        (most, each) => Math.max(most, each),
-      ),
-    ),
-    Arr.map(String),
+  Array.from(
+    {
+      length:
+        Arr.reduce(
+          [...cnForms.values()].map((forms) => forms.length),
+          Number.NEGATIVE_INFINITY,
+          (most, each) => Math.max(most, each),
+        ) + 1,
+    },
+    (_, place) => String(place),
   ),
 );
 
