@@ -56,7 +56,7 @@ const xmlSide = [
   "package/media.ts",
   "package/read.ts",
   "package/zip.ts",
-];
+] as const;
 
 /**
  * The PostgreSQL side, what pantry keeps once filling is split out, at today's paths, as globs
@@ -79,7 +79,7 @@ const databaseSide = [
   "qti/overlay-queries/*.ts",
   "vocab/**/*.ts",
   "xml/oracle.ts",
-];
+] as const;
 
 /**
  * Where the sides meet: the PostgreSQL side's modules the XML side may import, the `exports` pantry
@@ -105,25 +105,25 @@ const handoff = [
   "vocab/namespaces.ts",
   "vocab/sequencing.ts",
   "vocab/terms/*.ts",
-];
+] as const;
 
 /**
  * The offline derivers, which read the XSDs with crust when `vocab/derive/derive.ts` runs, never on
  * a run-time path. pantry keeps crust for them and for `uriReference` alone.
  */
-const derivers = ["vocab/derive/*.ts"];
+const derivers = ["vocab/derive/*.ts"] as const;
 
 /**
  * The XML readers, which the PostgreSQL side does not import: no run-time import path of its reads
  * XML.
  */
-const xmlReaders = ["@qti-pie/crust", "saxes"];
+const xmlReaders = ["@qti-pie/crust", "saxes"] as const;
 
 /**
  * The database driver, which only the PostgreSQL side imports: filling's dependencies are crust,
  * pantry, grizzle, Effect and the Node platform.
  */
-const databaseDrivers = ["pg"];
+const databaseDrivers = ["pg"] as const;
 
 /**
  * The PostgreSQL side's one run-time read of an XML reader that the target keeps: a namespace
