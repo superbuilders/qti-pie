@@ -503,6 +503,39 @@ const literalText = (value: string, quote: Quote): string =>
 type Context = "content" | Quote | `literal${Quote}`;
 
 /**
+ * Write one piece's source text.
+ *
+ * @param piece - The piece.
+ * @param context - Where it is written.
+ * @returns The text.
+ */
+const pieceText = (piece: Piece, context: Context): string => {
+  switch (piece._tag) {
+    case "charref": {
+      return piece.hex ? `&#x${piece.code.toString(16).toUpperCase()};` : `&#${piece.code};`;
+    }
+    case "escaped": {
+      return `${piece.spelling}${piece.name};`;
+    }
+    case "ref": {
+      return `&${piece.name};`;
+    }
+    case "text": {
+      if (context === "content") {
+        return contentText(piece.value);
+      }
+
+      return context === '"' || context === "'"
+        ? valueText(piece.value, context)
+        : literalText(piece.value, context === "literal'" ? "'" : '"');
+    }
+    case "token": {
+      return piece.value;
+    }
+  }
+};
+
+/**
  * Write a piece list's source text.
  *
  * @param pieces - The pieces.
@@ -510,36 +543,7 @@ type Context = "content" | Quote | `literal${Quote}`;
  * @returns The text.
  */
 const piecesText = (pieces: readonly Piece[], context: Context): string =>
-  pieces
-    .map((piece) => {
-      switch (piece._tag) {
-        case "charref": {
-          return piece.hex ? `&#x${piece.code.toString(16).toUpperCase()};` : `&#${piece.code};`;
-        }
-        case "escaped": {
-          return `${piece.spelling}${piece.name};`;
-        }
-        case "ref": {
-          return `&${piece.name};`;
-        }
-        case "text": {
-          if (context === "content") {
-            return contentText(piece.value);
-          }
-
-          return context === '"' || context === "'"
-            ? valueText(piece.value, context)
-            : literalText(piece.value, context === "literal'" ? "'" : '"');
-        }
-        case "token": {
-          return piece.value;
-        }
-        default: {
-          return piece satisfies never;
-        }
-      }
-    })
-    .join("");
+  pieces.map((piece) => pieceText(piece, context)).join("");
 
 /**
  * Write a comment or a processing instruction.
@@ -569,9 +573,6 @@ const defaultText = (value: AttDefault): string => {
     case "value": {
       return `${value.fixed ? "#FIXED " : ""}${value.quote}${piecesText(value.pieces, value.quote)}${value.quote}`;
     }
-    default: {
-      return value satisfies never;
-    }
   }
 };
 
@@ -600,9 +601,6 @@ const declarationText = (declaration: Declaration): string => {
     }
     case "peref": {
       return `%${declaration.name};`;
-    }
-    default: {
-      return declaration satisfies never;
     }
   }
 };
@@ -654,9 +652,6 @@ const elementText = (root: ElementNode): string => {
       case "text": {
         out.push(piecesText(next.pieces, "content"));
         break;
-      }
-      default: {
-        next satisfies never;
       }
     }
   }
@@ -869,9 +864,6 @@ export const encodedIn = (text: string, charset: Charset): Uint8Array => {
     }
     case "UTF-8 BOM": {
       return Uint8Array.from([0xef, 0xbb, 0xbf, ...new TextEncoder().encode(text)]);
-    }
-    default: {
-      return charset satisfies never;
     }
   }
 };
@@ -1119,9 +1111,6 @@ export const genomeOfTree = (document: XmlDocument): CodecGenome => {
         return child.cdata
           ? { _tag: "cdata", value: child.value }
           : { _tag: "text", pieces: [{ _tag: "text", value: child.value }] };
-      }
-      default: {
-        return child satisfies never;
       }
     }
   };
@@ -2427,9 +2416,6 @@ const useOf = (piece: Piece, before: ReadonlySet<string>, all: ReadonlySet<strin
     }
     case "token": {
       return `token-${piece.value}`;
-    }
-    default: {
-      return piece satisfies never;
     }
   }
 };

@@ -53,6 +53,29 @@ interface IncludeAlternative {
 }
 
 /**
+ * Collect the element kinds one particle of a choice group adds to the class it states: an
+ * element's, a nested choice's members, and none for a sequence, an `all` or a wildcard.
+ *
+ * @param particle - The particle.
+ * @returns Its element kinds, in tree order.
+ */
+const choiceKindsOf = (particle: Particle): readonly string[] => {
+  switch (particle._tag) {
+    case "element": {
+      return particle.kinds;
+    }
+    case "group": {
+      return particle.compositor === "choice"
+        ? particle.particles.flatMap((member) => choiceKindsOf(member))
+        : [];
+    }
+    case "any": {
+      return [];
+    }
+  }
+};
+
+/**
  * Collect the element kinds of a choice group, its nested choices' included: the members of the
  * class it states. A sequence or an `all` inside it is no member, and a wildcard names no kind.
  *
@@ -60,22 +83,7 @@ interface IncludeAlternative {
  * @returns Their element kinds, in tree order.
  */
 const choiceKinds = (particles: readonly Particle[]): readonly string[] =>
-  particles.flatMap((particle): readonly string[] => {
-    switch (particle._tag) {
-      case "element": {
-        return particle.kinds;
-      }
-      case "group": {
-        return particle.compositor === "choice" ? choiceKinds(particle.particles) : [];
-      }
-      case "any": {
-        return [];
-      }
-      default: {
-        return particle satisfies never;
-      }
-    }
-  });
+  particles.flatMap((particle) => choiceKindsOf(particle));
 
 /**
  * Collect the alternatives of every explicit include particle in a particle tree: for each choice

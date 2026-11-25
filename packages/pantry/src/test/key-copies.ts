@@ -597,9 +597,6 @@ const statementCopies = (statement: StoredStatement, at: number): readonly Draft
     case "check": {
       return checkCopies(statement, at);
     }
-    default: {
-      return statement satisfies never;
-    }
   }
 };
 

@@ -3185,9 +3185,6 @@ const tracked = (tree: Regex, dfa: Dfa): Regex => {
               read = out;
               break;
             }
-            default: {
-              read = node satisfies never;
-            }
           }
         }
 

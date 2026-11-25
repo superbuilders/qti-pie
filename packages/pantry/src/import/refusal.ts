@@ -106,13 +106,7 @@ export const lawsOfRefusal = (refused: RefusalOf): readonly [RefusalLaw, ...Refu
         case "unjudged": {
           return refused.above;
         }
-        default: {
-          return refused satisfies never;
-        }
       }
-    }
-    default: {
-      return refused satisfies never;
     }
   }
 };
@@ -229,9 +223,6 @@ const witnessText = (witness: Witness): string => {
     }
     case "unreproduced": {
       return "the database names no row: this law refused the write, and the row it left unmatched could not be named, since another write committed beside it changed that row before it was read";
-    }
-    default: {
-      return witness satisfies never;
     }
   }
 };

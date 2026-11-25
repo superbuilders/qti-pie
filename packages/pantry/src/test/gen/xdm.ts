@@ -300,9 +300,6 @@ export const kindOfDrawn = (drawn: Drawn): Kind => {
     case "entityRef": {
       return drawn.class;
     }
-    default: {
-      return drawn satisfies never;
-    }
   }
 };
 
@@ -1219,9 +1216,6 @@ const openNamesOf = (
     case "foreign": {
       return foreignAttributes.map((attribute) => ({ _tag: "foreign", ...attribute }));
     }
-    default: {
-      return name satisfies never;
-    }
   }
 };
 
@@ -1398,9 +1392,6 @@ const characterOf = (drawn: Exclude<ChildClass, "element" | "wildcard">): Gen<Xd
     case "entityRef": {
       return (source) => ({ _tag: "entityRef", name: source.draw(element(entityNames)) });
     }
-    default: {
-      return drawn satisfies never;
-    }
   }
 };
 
@@ -1450,9 +1441,6 @@ const usable = (
     case "comment":
     case "pi": {
       return true;
-    }
-    default: {
-      return candidate satisfies never;
     }
   }
 };
@@ -1817,9 +1805,6 @@ const familyUnder = (
         case "entityRef": {
           return placedCharacter(context, candidate.class, below, owner.replaced);
         }
-        default: {
-          return candidate satisfies never;
-        }
       }
     },
   );
@@ -2155,9 +2140,6 @@ export const featuresOf = (document: XdmDocument<Composed>): ReadonlySet<XdmFeat
       case "entityRef": {
         found.add(node._tag);
         break;
-      }
-      default: {
-        return node satisfies never;
       }
     }
   }
@@ -3024,9 +3006,6 @@ const corruptRows = (rows: FoldedRows<Composed>, variant: RowCorruption): Folded
         },
       });
     }
-    default: {
-      return variant satisfies never;
-    }
   }
 };
 
@@ -3057,9 +3036,6 @@ const corruptFolds = (
           case "elementsWas": {
             return { ...node, elementsWas: node.elementsWas + 1n };
           }
-          default: {
-            return field satisfies never;
-          }
         }
       });
     }
@@ -3081,36 +3057,35 @@ const corruptFolds = (
           case "parentNearestKind": {
             return { ...node, parentNearestKind: otherKind(parent.nearestKind, node.kind) };
           }
-          default: {
-            return field satisfies never;
-          }
         }
       });
     }
     case "ownerCopy": {
       const { field } = variant;
+      /**
+       * The attribute's row with its copy of its owner's `field` not its owner's.
+       *
+       * @param attribute - The attribute's row.
+       * @returns The row.
+       */
+      const ownerCopied = (attribute: FoldedRows<Composed>["attributes"][number]) => {
+        switch (field) {
+          case "kind": {
+            const owner = byStart.get(attribute.start);
+
+            return {
+              ...attribute,
+              kind: otherKind(attribute.kind, owner?.parentKind ?? "document"),
+            };
+          }
+        }
+      };
 
       return {
         ...rows,
-        attributes: rows.attributes.map((attribute, index) => {
-          if (index !== variant.attribute) {
-            return attribute;
-          }
-
-          switch (field) {
-            case "kind": {
-              const owner = byStart.get(attribute.start);
-
-              return {
-                ...attribute,
-                kind: otherKind(attribute.kind, owner?.parentKind ?? "document"),
-              };
-            }
-            default: {
-              return field satisfies never;
-            }
-          }
-        }),
+        attributes: rows.attributes.map((attribute, index) =>
+          index === variant.attribute ? ownerCopied(attribute) : attribute,
+        ),
       };
     }
     case "repeatedName": {
@@ -3170,9 +3145,6 @@ const corruptFolds = (
               ),
             },
       );
-    }
-    default: {
-      return variant satisfies never;
     }
   }
 };
@@ -3262,9 +3234,6 @@ export const editElement = (
       case "pi":
       case "entityRef": {
         return node;
-      }
-      default: {
-        return node satisfies never;
       }
     }
   };

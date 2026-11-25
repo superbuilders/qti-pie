@@ -2258,9 +2258,6 @@ export const judgeDocument = Effect.fn("test.judgeDocument")(function* judgeDocu
           case "mathml-foreign": {
             return "content";
           }
-          default: {
-            return reason satisfies never;
-          }
         }
       }
 
@@ -2356,9 +2353,6 @@ export const reasonText = (reason: Reason): string => {
     }
     case "specification": {
       return `${reason.source}: ${reason.why}`;
-    }
-    default: {
-      return reason satisfies never;
     }
   }
 };

@@ -627,9 +627,6 @@ describe("assemble", () => {
                   );
                   break;
                 }
-                default: {
-                  assert.fail(`no edit ${String(edit satisfies never)}`);
-                }
               }
             }),
         ),

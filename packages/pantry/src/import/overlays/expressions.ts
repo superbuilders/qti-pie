@@ -394,40 +394,48 @@ const onlyOf = <A>(kind: string, values: readonly A[], what: string): A =>
   );
 
 /**
+ * One expression kind's {@link Rule}, from its generated typing.
+ *
+ * @param typed - The kind's typing: its kind, typing, and result bases and cardinalities.
+ * @returns The kind and its rule.
+ */
+const ruleEntryOf = ({
+  kind,
+  resultBases,
+  resultCardinalities,
+  typing,
+}: (typeof typings)[number]): readonly [string, Rule] => {
+  switch (typing) {
+    case "attribute":
+    case "container":
+    case "first":
+    case "numeric": {
+      return [
+        kind,
+        { cardinality: onlyOf(kind, resultCardinalities, "result cardinality"), typing },
+      ];
+    }
+    case "fixed": {
+      return [
+        kind,
+        {
+          baseType: onlyOf(kind, resultBases, "result base"),
+          cardinality: onlyOf(kind, resultCardinalities, "result cardinality"),
+          typing,
+        },
+      ];
+    }
+    case "declared":
+    case "second": {
+      return [kind, { typing }];
+    }
+  }
+};
+
+/**
  * Each expression kind's {@link Rule}, read once from the generated typings.
  */
-const ruleOf: ReadonlyMap<string, Rule> = new Map(
-  typings.map(({ kind, resultBases, resultCardinalities, typing }): readonly [string, Rule] => {
-    switch (typing) {
-      case "attribute":
-      case "container":
-      case "first":
-      case "numeric": {
-        return [
-          kind,
-          { cardinality: onlyOf(kind, resultCardinalities, "result cardinality"), typing },
-        ];
-      }
-      case "fixed": {
-        return [
-          kind,
-          {
-            baseType: onlyOf(kind, resultBases, "result base"),
-            cardinality: onlyOf(kind, resultCardinalities, "result cardinality"),
-            typing,
-          },
-        ];
-      }
-      case "declared":
-      case "second": {
-        return [kind, { typing }];
-      }
-      default: {
-        return typing satisfies never;
-      }
-    }
-  }),
-);
+const ruleOf: ReadonlyMap<string, Rule> = new Map(typings.map((typed) => ruleEntryOf(typed)));
 
 /**
  * Derive an expression's type as the laws do: its kind's typing over its operands' types, its own
@@ -478,9 +486,6 @@ const typeOf = (kind: string, inputs: TypeInputs): Typed => {
     }
     case "fixed": {
       return { baseType: rule.baseType, cardinality: rule.cardinality };
-    }
-    default: {
-      return rule satisfies never;
     }
   }
 };
