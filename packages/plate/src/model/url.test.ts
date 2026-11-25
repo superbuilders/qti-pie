@@ -514,8 +514,10 @@ const fileByRfc3986 = (location: string, reference: string): readonly string[] =
 
 describe("resolution against the item's location, by RFC 3986", () => {
   it("names, for every path of up to four segments in items at four depths, the file RFC 3986 resolves it to", () => {
-    // The names include the item's own folders and short names a resolver could mistake for its
-    // own, so a climb back into the folder it left is told apart from a path that never left.
+    /**
+     * The names include the item's own folders and short names a resolver could mistake for its
+     * own, so a climb back into the folder it left is told apart from a path that never left.
+     */
     const segments = [".", "..", "%2e%2E", "a", "b", "root", "items", "c%20d.png"];
     const locations = ["q1.xml", "items/q1.xml", "items/deep/q1.xml", "a/b/q1.xml"];
     let paths: readonly string[] = [""];

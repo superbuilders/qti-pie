@@ -299,8 +299,10 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
    * that part, so no two share a name.
    */
   const namer = pageNamer();
-  // Read-aloud presents a spoken card's recording while the candidate answers alone: a review's and
-  // a solution's page ships no island but a Media's replay.
+  /**
+   * Read-aloud presents a spoken card's recording while the candidate answers alone: a review's and
+   * a solution's page ships no island but a Media's replay.
+   */
   const readAloud =
     mode === "answering"
       ? readAloudOf(catalogs, addressing, namer, configuration.locale)
@@ -424,8 +426,10 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
     stimuli.filter((shown) => !placed.has(shown)),
     setting,
   );
-  // The verdict after the body, where no feedback block of the body holds it: at the head of the
-  // modal feedback, else alone.
+  /**
+   * The verdict after the body, where no feedback block of the body holds it: at the head of the
+   * modal feedback, else alone.
+   */
   const verdictAfter = Option.isSome(verdictAt) ? [] : Option.toArray(verdict);
   const after = [
     ...verdictAfter,

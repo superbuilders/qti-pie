@@ -356,8 +356,10 @@ export interface PositionObjectProps extends Authored<Named> {
 export const PositionObject = (props: PositionObjectProps) => {
   const { naming, object, objectName, response, root } = props;
   const name = response.identifier;
-  // A part made by UI SDK's `createParts` types its `className` as never `undefined`, so the
-  // author's class is spread only where it is written.
+  /**
+   * A part made by UI SDK's `createParts` types its `className` as never `undefined`, so the
+   * author's class is spread only where it is written.
+   */
   const { className, ...data } = root;
 
   return (

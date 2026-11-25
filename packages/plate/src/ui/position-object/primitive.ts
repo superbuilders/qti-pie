@@ -734,7 +734,9 @@ export const positionObject = definePrimitive({
         const from = { x: event.clientX, y: event.clientY };
         let last = from;
         let started = false;
-        // The copy that follows the pointer and the scrolling it drives, once the drag has started.
+        /**
+         * The copy that follows the pointer and the scrolling it drives, once the drag has started.
+         */
         let carried:
           | { readonly preview: DragPreview; readonly scroll: ReturnType<typeof createAutoScroll> }
           | undefined;
@@ -1008,8 +1010,10 @@ export const positionObject = definePrimitive({
         "data-picked": flag(state.held?.name === part.props.name),
       }),
       props: { id: "id", name: "string" },
-      // An application, not a group: a screen reader in browse mode keeps the arrow keys for
-      // itself in a group, and hands them on in an application, where they move a held copy.
+      /**
+       * An application, not a group: a screen reader in browse mode keeps the arrow keys for
+       * itself in a group, and hands them on in an application, where they move a held copy.
+       */
       role: "application",
       state: (state, part) => {
         const object = objectOf(state, part.props.name);

@@ -467,12 +467,16 @@ const printBody = (
   supports: Supports,
   view: OutcomeView,
 ): RedactedBody => {
-  // The responses an interaction the page sees binds, and those content it does not see binds.
+  /**
+   * The responses an interaction the page sees binds, and those content it does not see binds.
+   */
   const shownBound = new Set<string>();
   const unseenBound = new Set<string>();
-  // The first printed variable or parameter on content the page sees whose text passed its bound;
-  // the characters of text the walk has printed there; and whether a text passed what remained of
-  // the budget, after which the walk prints nothing more.
+  /**
+   * The first printed variable or parameter on content the page sees whose text passed its bound;
+   * the characters of text the walk has printed there; and whether a text passed what remained of
+   * the budget, after which the walk prints nothing more.
+   */
   let unprinted: RedactedFields["unprinted"] = Option.none();
   let spent = 0;
   let exhausted = false;
@@ -752,9 +756,11 @@ const printBody = (
   };
 
   const body = walk.nodes(item.body, true);
-  // Each modal feedback after the body, in document order, as the document holds it. Before
-  // response processing has run in the attempt shown, and where the page shows no feedback, none is
-  // seen, so its content is walked unseen: its printed variables print nothing.
+  /**
+   * Each modal feedback after the body, in document order, as the document holds it. Before
+   * response processing has run in the attempt shown, and where the page shows no feedback, none is
+   * seen, so its content is walked unseen: its printed variables print nothing.
+   */
   const submitted = Option.exists(printing, (record) => record.attempt === "submitted");
   const modalFeedback = item.modalFeedback.flatMap((feedback): readonly ShownModalFeedback[] => {
     const decided = submitted

@@ -717,8 +717,10 @@ describe("redactItem", () => {
   });
 
   it("copies only the fields it names, and each response's binding", () => {
-    // TypeScript admits a wider object wherever an `Item` is expected, so a field the model gains,
-    // or one a caller adds, reaches `redactItem` with no cast; it must not reach the output.
+    /**
+     * TypeScript admits a wider object wherever an `Item` is expected, so a field the model gains,
+     * or one a caller adds, reaches `redactItem` with no cast; it must not reach the output.
+     */
     const extra = "MarkerExtraField";
     const widened = {
       ...item,
@@ -2595,7 +2597,9 @@ describe("startingResponses", () => {
       responses: new Map([booleanResponse("MORE", Option.none())]),
     };
     const accepted = acceptForTest(clue);
-    // FEEDBACK at NULL, as the database's record holds it at the start: the hide block shows.
+    /**
+     * FEEDBACK at NULL, as the database's record holds it at the start: the hide block shows.
+     */
     const start: RedactRecord = {
       attempt: "none",
       defaults: {},

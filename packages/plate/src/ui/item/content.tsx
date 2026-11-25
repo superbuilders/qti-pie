@@ -1092,7 +1092,9 @@ const elementOf = (element: BodyElement<RedactedLevel>, key: Key, walk: Walk): R
   };
   const entries = placed(element.children, element.tag);
   const authored = propsOf(element, declared, walk.addressing);
-  // A picture carries the line the stylesheet shows under its words where it fails to load.
+  /**
+   * A picture carries the line the stylesheet shows under its words where it fails to load.
+   */
   const written =
     element.tag === "img"
       ? { ...authored, "data-plate-unloaded": message(walk.locale, "pictureUnloaded") }
@@ -1119,16 +1121,20 @@ const elementOf = (element: BodyElement<RedactedLevel>, key: Key, walk: Walk): R
         ...heldBy(element, walk),
       ];
   const writtenAt = (at: Key): ReactNode => {
-    // `satisfies` gives the literal React's `Attributes` as its contextual type, so `key` stays a
-    // `Key`: without one, React's experimental types (Next loads them) widen `optimisticKey`'s
-    // unique symbol to `symbol`, which `Attributes.key` refuses.
+    /**
+     * `satisfies` gives the literal React's `Attributes` as its contextual type, so `key` stays a
+     * `Key`: without one, React's experimental types (Next loads them) widen `optimisticKey`'s
+     * unique symbol to `symbol`, which `Attributes.key` refuses.
+     */
     const props = { ...attributes, key: at } satisfies Attributes;
 
     return children === undefined ? createElement(tag, props) : createElement(tag, props, children);
   };
-  // A table stands in plate's Table part, the box it scrolls sideways in when it is wider than the
-  // item, so the page never does (WCAG 1.4.10); the table keeps its own display, and so its
-  // semantics, which some engines drop from a table displayed otherwise.
+  /**
+   * A table stands in plate's Table part, the box it scrolls sideways in when it is wider than the
+   * item, so the page never does (WCAG 1.4.10); the table keeps its own display, and so its
+   * semantics, which some engines drop from a table displayed otherwise.
+   */
   const elementAt = (at: Key): ReactNode =>
     element.tag === "table"
       ? createElement("div", { "data-slot": "plate-table", key: at }, writtenAt("table"))

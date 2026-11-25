@@ -378,7 +378,9 @@ const deepestBy = (depth: (x: number, y: number) => number, box: Box): Interior 
 
     return { bound: value + half * Math.SQRT2, depth: value, half, x, y };
   };
-  // Kept in ascending order of bound, so the last cell is the one to split next.
+  /**
+   * Kept in ascending order of bound, so the last cell is the one to split next.
+   */
   const queue: Cell[] = [];
   const enqueue = (cell: Cell) => {
     let low = 0;

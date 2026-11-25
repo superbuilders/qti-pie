@@ -752,8 +752,10 @@ describe("buildItem", () => {
             },
           ],
           class: Option.some("qti-input-width-10"),
-          // The root's `data-*`, which securing keeps, ride on the node as an author's, as every
-          // interaction module's do.
+          /**
+           * The root's `data-*`, which securing keeps, ride on the node as an author's, as every
+           * interaction module's do.
+           */
           data: [
             { name: "data-min-selections-message", value: "Pick a colour" },
             { name: "data-prompt", value: "Choose" },
@@ -2087,10 +2089,12 @@ describe("buildItem", () => {
   });
 
   it("reads a root title holding a tab and a line feed with each a space", () => {
-    // XSD gives the root's `title` `xs:normalizedString`, whose whiteSpace is `replace`: "All
-    // occurrences of #x9 (tab), #xA (line feed) and #xD (carriage return) are replaced with #x20
-    // (space)" (XML Schema 1.0 Part 2, 4.3.6). A character reference, such as `&#10;`, writes
-    // them past the parser's attribute-value normalization.
+    /**
+     * XSD gives the root's `title` `xs:normalizedString`, whose whiteSpace is `replace`: "All
+     * occurrences of #x9 (tab), #xA (line feed) and #xD (carriage return) are replaced with #x20
+     * (space)" (XML Schema 1.0 Part 2, 4.3.6). A character reference, such as `&#10;`, writes
+     * them past the parser's attribute-value normalization.
+     */
     const built = admittedItem(
       doc(
         "items/test.xml",

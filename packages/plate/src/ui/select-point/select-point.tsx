@@ -262,8 +262,10 @@ export const SelectPoint = (props: SelectPointProps) => {
       <parts.Limit>{(limit) => limit.text}</parts.Limit>
     </>
   );
-  // A part UI SDK makes types its `className` as never `undefined`, so the author's class is set
-  // only where it is written, after the attributes it follows.
+  /**
+   * A part UI SDK makes types its `className` as never `undefined`, so the author's class is set
+   * only where it is written, after the attributes it follows.
+   */
   const { className, ...data } = root;
   const part: PartProps<"div"> = { ...data, ...naming, children: content };
 

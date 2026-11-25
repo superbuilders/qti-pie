@@ -979,8 +979,10 @@ export const buildItem = (source: AdmittedDocument): Item => {
     "qti-catalog-info": [],
     "qti-companion-materials-info": [],
   };
-  // A context declaration the model does not hold, of base type `file` or cardinality `record`,
-  // is an item part and keeps its `qti-context-declaration` mark.
+  /**
+   * A context declaration the model does not hold, of base type `file` or cardinality `record`,
+   * is an item part and keeps its `qti-context-declaration` mark.
+   */
   const readOtherPart = (part: SourceElement): void => {
     const read =
       part.local === "qti-context-declaration"

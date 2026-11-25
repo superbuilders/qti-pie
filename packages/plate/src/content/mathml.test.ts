@@ -79,12 +79,14 @@ const token = (local: string, content: string): MathChild<BodyNode> => ({
 
 describe("MathML's template variables", () => {
   it("replaces each mi and ci naming a math-variable template variable with an mn or cn holding its value, and leaves every other token as written", () => {
-    // The information model, section 2.3.3: "If mathVariable is set in a template variable's
-    // declaration then all instances of 'mi' and 'ci' that match the name of the template variable
-    // must be replaced by 'mn' and 'cn' respectively with the template variable's value as their
-    // content." A token's content matches without the whitespace at its ends, which "is removed"
-    // (MathML 3, section 2.1.7). `PLAIN` is a template variable with no `math-variable`, so its
-    // token stays an `mi`.
+    /**
+     * The information model, section 2.3.3: "If mathVariable is set in a template variable's
+     * declaration then all instances of 'mi' and 'ci' that match the name of the template variable
+     * must be replaced by 'mn' and 'cn' respectively with the template variable's value as their
+     * content." A token's content matches without the whitespace at its ends, which "is removed"
+     * (MathML 3, section 2.1.7). `PLAIN` is a template variable with no `math-variable`, so its
+     * token stays an `mi`.
+     */
     const built = admittedItem(
       doc(
         "items/calc.xml",
@@ -122,8 +124,10 @@ describe("MathML's template variables", () => {
         ),
       ),
     );
-    // The template values the database's take gives the item session (its record), which the page
-    // shows: plate draws none.
+    /**
+     * The template values the database's take gives the item session (its record), which the page
+     * shows: plate draws none.
+     */
     const record = recordOf({ templates: { CALC0: integer(7n), PLAIN: integer(3n) } });
     const trees = mathIn(redactItem(built, shownToCandidate, underRecord(record)).body);
 

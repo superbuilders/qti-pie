@@ -445,7 +445,9 @@ const sentinelDirectory = (name: string, depth: number): string =>
  * @see https://url.spec.whatwg.org/#path-state
  */
 const relativePathOf = (value: string): Option.Option<RelativePath> => {
-  // `\` separates segments as `/` does on an `https` base.
+  /**
+   * `\` separates segments as `/` does on an `https` base.
+   */
   const depth = (value.match(regex("[/\\\\]", "gu"))?.length ?? 0) + 2;
   const first = URL.parse(value, sentinelDirectory("a", depth));
   const second = URL.parse(value, sentinelDirectory("b", depth));
