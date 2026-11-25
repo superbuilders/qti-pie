@@ -673,7 +673,7 @@ const entriesOf = (control: Element): readonly FormEntry[] => {
       ]);
     }
     case "textarea": {
-      return [[name, control.textContent ?? ""]];
+      return [[name, control.textContent]];
     }
     default: {
       if (type === "checkbox" || type === "radio") {

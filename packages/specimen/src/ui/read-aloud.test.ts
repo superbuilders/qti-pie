@@ -229,8 +229,7 @@ const sourcesOf = (control: Element): readonly (readonly [string | null, string 
  * @param element The element.
  * @returns Its text.
  */
-const textOf = (element: Element): string =>
-  (element.textContent ?? "").replaceAll(/\s+/gu, " ").trim();
+const textOf = (element: Element): string => element.textContent.replaceAll(/\s+/gu, " ").trim();
 
 describe("read-aloud", () => {
   it.effect("RA1: with no support enabled the catalog stays dormant", () =>
@@ -264,14 +263,14 @@ describe("read-aloud", () => {
           stem?.previousElementSibling?.matches(readAloudPart),
           "the stem's control precedes it",
         );
-        assert.deepStrictEqual(sourcesOf(stem?.previousElementSibling ?? document.body), [
+        assert.deepStrictEqual(sourcesOf(stem.previousElementSibling), [
           [addressOf(recordings.stem), "audio/mpeg"],
         ]);
         assert.isTrue(
           prompt?.nextElementSibling?.matches(readAloudPart),
           "the prompt's control follows it",
         );
-        assert.deepStrictEqual(sourcesOf(prompt?.nextElementSibling ?? document.body), [
+        assert.deepStrictEqual(sourcesOf(prompt.nextElementSibling), [
           [addressOf(recordings.prompt), "audio/mpeg"],
         ]);
         assert.deepStrictEqual(
