@@ -64,6 +64,8 @@ import type { ItemProps } from "@qti-pie/plate/ui";
 import { heldOf, Responses } from "@qti-pie/plate/ui/client";
 import { framePage } from "@qti-pie/plate/ui/pci-frame";
 import type { FramePage } from "@qti-pie/plate/ui/pci-frame";
+import { pressInto } from "#specimen/alpha/delivered.ts";
+import type { TapNotDelivered } from "#specimen/alpha/delivered.ts";
 import { clientExports } from "#specimen/ui/clients.ts";
 import { islandsIn } from "#specimen/ui/rendered.ts";
 import type { Island } from "#specimen/ui/rendered.ts";
@@ -575,24 +577,33 @@ export interface BlocksFrame {
    * Tap twice where the first piece of a kind in a place lies, at once, as a child's double tap
    * does: the second tap lands where the first did, on whatever lies there after the first.
    */
-  readonly doubleTap: (kind: Kind, place: Place) => Effect.Effect<void, BlocksFailure>;
+  readonly doubleTap: (
+    kind: Kind,
+    place: Place,
+  ) => Effect.Effect<void, BlocksFailure | TapNotDelivered>;
   /**
    * Tap twice at a point of the screen, at once, as a child's double tap does.
    */
-  readonly doubleTapAt: (point: Point) => Effect.Effect<void, BlocksFailure>;
+  readonly doubleTapAt: (point: Point) => Effect.Effect<void, BlocksFailure | TapNotDelivered>;
   /**
    * Drag the first piece of a kind in a place to the other place.
    */
-  readonly drag: (kind: Kind, from: Place) => Effect.Effect<void, BlocksFailure>;
+  readonly drag: (kind: Kind, from: Place) => Effect.Effect<void, BlocksFailure | TapNotDelivered>;
   /**
    * Drag the first piece of a kind in a place out of the frame and let go there, where the frame
    * cannot hear the release, then bring the pointer back over the tray with no button held.
    */
-  readonly dragOut: (kind: Kind, from: Place) => Effect.Effect<void, BlocksFailure>;
+  readonly dragOut: (
+    kind: Kind,
+    from: Place,
+  ) => Effect.Effect<void, BlocksFailure | TapNotDelivered>;
   /**
    * Drag the mouse from one point of the screen to another and let go there.
    */
-  readonly dragBetween: (from: Point, to: Point) => Effect.Effect<void, BlocksFailure>;
+  readonly dragBetween: (
+    from: Point,
+    to: Point,
+  ) => Effect.Effect<void, BlocksFailure | TapNotDelivered>;
   /**
    * Give where a mat is tapped or dropped on: the middle of its top edge, where no piece sits.
    */
@@ -605,23 +616,29 @@ export interface BlocksFrame {
    * Drag the first piece of a kind in a place to the other place with a finger, as a touch screen
    * sends it.
    */
-  readonly touchDrag: (kind: Kind, from: Place) => Effect.Effect<void, BlocksFailure>;
+  readonly touchDrag: (
+    kind: Kind,
+    from: Place,
+  ) => Effect.Effect<void, BlocksFailure | TapNotDelivered>;
   /**
    * Swipe a finger sideways across a mat's floor, from its left end to its right, as a pan.
    */
-  readonly touchSwipe: (place: Place) => Effect.Effect<void, BlocksFailure>;
+  readonly touchSwipe: (place: Place) => Effect.Effect<void, BlocksFailure | TapNotDelivered>;
   /**
    * Tap the first piece of a kind in a place with a finger.
    */
-  readonly touchTapPiece: (kind: Kind, place: Place) => Effect.Effect<void, BlocksFailure>;
+  readonly touchTapPiece: (
+    kind: Kind,
+    place: Place,
+  ) => Effect.Effect<void, BlocksFailure | TapNotDelivered>;
   /**
    * Tap a mat's floor with a finger.
    */
-  readonly touchTapMat: (place: Place) => Effect.Effect<void, BlocksFailure>;
+  readonly touchTapMat: (place: Place) => Effect.Effect<void, BlocksFailure | TapNotDelivered>;
   /**
    * Tap twice with a finger at a point of the screen, at once, as a child's double tap does.
    */
-  readonly touchDoubleTapAt: (point: Point) => Effect.Effect<void, BlocksFailure>;
+  readonly touchDoubleTapAt: (point: Point) => Effect.Effect<void, BlocksFailure | TapNotDelivered>;
   /**
    * Hold a mouse drag of the first piece of one kind in the tray open, drag the first piece of
    * another kind in the tray onto the mat with a finger meanwhile, and let the mouse go over the
@@ -632,7 +649,10 @@ export interface BlocksFrame {
   readonly twoPresses: (
     mouse: Kind,
     touch: Kind,
-  ) => Effect.Effect<{ readonly copies: number; readonly lifted: number }, BlocksFailure>;
+  ) => Effect.Effect<
+    { readonly copies: number; readonly lifted: number },
+    BlocksFailure | TapNotDelivered
+  >;
   /**
    * Count what a drag leaves drawn: the pieces faded as lifted, the copies following the pointer,
    * and the mats ringed as a drop's destination.
@@ -665,11 +685,14 @@ export interface BlocksFrame {
   /**
    * Tap a mat where it holds no piece: the middle of its top edge.
    */
-  readonly tapMat: (place: Place) => Effect.Effect<void, BlocksFailure>;
+  readonly tapMat: (place: Place) => Effect.Effect<void, BlocksFailure | TapNotDelivered>;
   /**
    * Tap the first piece of a kind in a place.
    */
-  readonly tapPiece: (kind: Kind, place: Place) => Effect.Effect<void, BlocksFailure>;
+  readonly tapPiece: (
+    kind: Kind,
+    place: Place,
+  ) => Effect.Effect<void, BlocksFailure | TapNotDelivered>;
   /**
    * Give the text the PCI's element holds.
    */
@@ -822,10 +845,15 @@ const openOn = (
     }
 
     const press = (point: Point) =>
-      attempt("pressed", async () => {
-        await page.mouse.move(point.x, point.y);
-        await page.mouse.down();
-      });
+      pressInto(
+        frame,
+        attempt,
+        `pressed the mouse at ${String(point.x)},${String(point.y)}`,
+        attempt("pressed", async () => {
+          await page.mouse.move(point.x, point.y);
+          await page.mouse.down();
+        }),
+      );
     const lift = attempt("released", () => page.mouse.up());
     const touchscreen = yield* attempt("opened a touch screen", async () => {
       const session = await page.context().newCDPSession(page);
@@ -837,13 +865,25 @@ const openOn = (
 
       return session;
     });
-    const finger = (type: "touchEnd" | "touchMove" | "touchStart", points: readonly Point[]) =>
+    const finger = (type: "touchEnd" | "touchMove", points: readonly Point[]) =>
       attempt(`sent ${type}`, () =>
         touchscreen.send("Input.dispatchTouchEvent", { touchPoints: [...points], type }),
       );
+    const fingerDown = (point: Point) =>
+      pressInto(
+        frame,
+        attempt,
+        `put a finger down at ${String(point.x)},${String(point.y)}`,
+        attempt("sent touchStart", () =>
+          touchscreen.send("Input.dispatchTouchEvent", {
+            touchPoints: [point],
+            type: "touchStart",
+          }),
+        ).pipe(Effect.asVoid),
+      );
     const fingerAlong = (from: Point, to: Point) =>
       Effect.gen(function* alongTheScreen() {
-        yield* finger("touchStart", [from]);
+        yield* fingerDown(from);
 
         for (const step of [1, 2, 3, 4, 5, 6]) {
           yield* finger("touchMove", [
@@ -988,9 +1028,9 @@ const openOn = (
       ),
       touchDoubleTapAt: (point) =>
         Effect.gen(function* touchDoubleTapAt() {
-          yield* finger("touchStart", [point]);
+          yield* fingerDown(point);
           yield* finger("touchEnd", []);
-          yield* finger("touchStart", [point]);
+          yield* fingerDown(point);
           yield* finger("touchEnd", []);
         }),
       touchDrag: (kind, from) =>
@@ -1011,14 +1051,14 @@ const openOn = (
         Effect.gen(function* touchTapMat() {
           const point = matPointOf(yield* matOf(place));
 
-          yield* finger("touchStart", [point]);
+          yield* fingerDown(point);
           yield* finger("touchEnd", []);
         }),
       touchTapPiece: (kind, place) =>
         Effect.gen(function* touchTapPiece() {
           const point = centreOf(yield* boxOf(frame, piecesOf(kind, place)));
 
-          yield* finger("touchStart", [point]);
+          yield* fingerDown(point);
           yield* finger("touchEnd", []);
         }),
       twoPresses: (mouse, touch) =>
@@ -1031,7 +1071,7 @@ const openOn = (
           yield* attempt("moved the mouse", () =>
             page.mouse.move(held.x + 40, held.y + 10, { steps: 4 }),
           );
-          yield* finger("touchStart", [start]);
+          yield* fingerDown(start);
 
           for (const step of [1, 2, 3, 4, 5, 6]) {
             yield* finger("touchMove", [

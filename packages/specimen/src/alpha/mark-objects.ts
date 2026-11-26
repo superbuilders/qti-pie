@@ -41,6 +41,8 @@ import type { Browser, Frame, Page, Route } from "playwright-core";
 import { resolvePciModules } from "@qti-pie/plate";
 import type { PciModules } from "@qti-pie/plate";
 import { framePage } from "@qti-pie/plate/ui/pci-frame";
+import { pressInto } from "#specimen/alpha/delivered.ts";
+import type { TapNotDelivered } from "#specimen/alpha/delivered.ts";
 import { markObjects } from "@qti-pie/plate/alpha/pci-modules";
 
 /**
@@ -562,13 +564,14 @@ export interface RingPage {
     keys: readonly string[],
   ) => Effect.Effect<void, MarkObjectsFailure>;
   /**
-   * Tap objects in order, each by its place, with the pointer at its centre; forced, a tap lands
-   * on an object the PCI has disabled, as a child's finger would.
+   * Tap objects in order, each by its place, with the pointer at its centre, each delivered to the
+   * frame's document (`#specimen/alpha/delivered.ts`); forced, a tap lands on an object the PCI
+   * has disabled, as a child's finger would.
    */
   readonly tap: (
     places: readonly number[],
     forced?: boolean,
-  ) => Effect.Effect<void, MarkObjectsFailure>;
+  ) => Effect.Effect<void, MarkObjectsFailure | TapNotDelivered>;
   /**
    * Every uncaught error the page and its frame threw since the last frame was started, its name
    * and message as Chrome reports them, waiting for one where none is in yet: a refusal's own
@@ -932,6 +935,16 @@ export const ringPage: Effect.Effect<RingPage, MarkObjectsFailure, Scope.Scope> 
     yield* attempt("load the host page", () => page.goto(`${origin}/`));
 
     const frame = page.frameLocator("iframe");
+    /**
+     * The frame's document, the one frame of the page but its own.
+     */
+    const framed = Effect.flatMap(
+      Effect.sync(() => page.frames().find((each) => each !== page.mainFrame())),
+      (found) =>
+        found === undefined
+          ? Effect.fail(new MarkObjectsFailure({ cause: "no frame", step: "find the frame" }))
+          : Effect.succeed(found),
+    );
 
     return {
       beforeModule: (item) =>
@@ -1004,8 +1017,17 @@ export const ringPage: Effect.Effect<RingPage, MarkObjectsFailure, Scope.Scope> 
         Effect.forEach(
           places,
           (place) =>
-            attempt(`tap object ${String(place)}`, () =>
-              frame.locator('[data-part="object"]').nth(place).click({ force: forced }),
+            framed.pipe(
+              Effect.flatMap((document) =>
+                pressInto(
+                  document,
+                  attempt,
+                  `tap object ${String(place)}`,
+                  attempt(`tap object ${String(place)}`, () =>
+                    frame.locator('[data-part="object"]').nth(place).click({ force: forced }),
+                  ),
+                ),
+              ),
             ),
           { discard: true },
         ),

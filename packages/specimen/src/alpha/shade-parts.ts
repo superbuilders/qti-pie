@@ -45,6 +45,8 @@ import { resolvePciModules } from "@qti-pie/plate";
 import type { PciModules } from "@qti-pie/plate";
 import { shadeParts } from "@qti-pie/plate/alpha/pci-modules";
 import { framePage } from "@qti-pie/plate/ui/pci-frame";
+import { pressInto } from "#specimen/alpha/delivered.ts";
+import type { TapNotDelivered } from "#specimen/alpha/delivered.ts";
 
 /**
  * A step of the harness failed: Chrome, the server, a file of the fixture, or a page's script.
@@ -581,13 +583,18 @@ export interface ShadePage {
   >;
   /**
    * Tap parts in order, each by its place, with the pointer at the centre of the largest disc it
-   * holds.
+   * holds, each delivered to the frame's document (`#specimen/alpha/delivered.ts`).
    */
-  readonly tap: (places: readonly number[]) => Effect.Effect<void, ShadePartsFailure>;
+  readonly tap: (
+    places: readonly number[],
+  ) => Effect.Effect<void, ShadePartsFailure | TapNotDelivered>;
   /**
-   * Tap points of the frame's document in order, with the pointer.
+   * Tap points of the frame's document in order, with the pointer, each delivered to it
+   * (`#specimen/alpha/delivered.ts`).
    */
-  readonly tapAt: (points: readonly Point[]) => Effect.Effect<void, ShadePartsFailure>;
+  readonly tapAt: (
+    points: readonly Point[],
+  ) => Effect.Effect<void, ShadePartsFailure | TapNotDelivered>;
 }
 
 /**
@@ -1046,25 +1053,27 @@ export const shadePage: Effect.Effect<ShadePage, ShadePartsFailure, Scope.Scope>
     });
 
     /**
-     * Tap points of the frame's document, in order.
+     * Tap points of the frame's document, in order, each delivered to it.
      *
      * @param points The points.
      * @returns Nothing.
      */
     const tapAt = (points: readonly Point[]) =>
-      offset.pipe(
-        Effect.flatMap((at) =>
-          pipe(
-            points,
-            Effect.forEach((point) =>
-              attempt(`tap ${String(point.x)},${String(point.y)}`, () =>
-                page.mouse.click(at.x + point.x, at.y + point.y),
-              ),
-            ),
-          ),
-        ),
-        Effect.asVoid,
-      );
+      Effect.gen(function* tapped() {
+        const frame = yield* inner;
+        const at = yield* offset;
+
+        for (const point of points) {
+          const step = `tap ${String(point.x)},${String(point.y)}`;
+
+          yield* pressInto(
+            frame,
+            attempt,
+            step,
+            attempt(step, () => page.mouse.click(at.x + point.x, at.y + point.y)),
+          );
+        }
+      });
 
     return {
       beforeModule: (item) =>
