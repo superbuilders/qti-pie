@@ -28,7 +28,8 @@ import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
-import { Data, Effect, Option, Schema, pipe } from "effect";
+import { regex } from "arkregex";
+import { Data, Effect, Option, Schema } from "effect";
 import type { Scope } from "effect";
 import { Digest } from "effect/crypto";
 import { parseHTML } from "linkedom";
@@ -93,7 +94,7 @@ export interface HostedItem {
 const datasetName = (name: string): string =>
   name
     .slice("data-".length)
-    .replaceAll(/-(?<letter>[a-z])/gu, (_match, letter: string) => letter.toUpperCase());
+    .replaceAll(regex("-(?<letter>[a-z])", "gu"), (_match, letter: string) => letter.toUpperCase());
 
 /**
  * The DOM's `DOMParser`, as linkedom's window gives it.
@@ -115,7 +116,7 @@ const voids: ReadonlySet<string> = new Set(["br", "hr", "img", "wbr"]);
  */
 const htmlOf = (xml: string): string =>
   xml.replaceAll(
-    /<(?<name>[a-z][a-z0-9-]*)(?<rest>[^<>]*?)\s*\/>/gu,
+    regex("<(?<name>[a-z][a-z0-9-]*)(?<rest>[^<>]*?)\\s*/>", "gu"),
     (whole, name: string, rest: string) => (voids.has(name) ? whole : `<${name}${rest}></${name}>`),
   );
 
@@ -146,7 +147,7 @@ export const hostedItem = Effect.fn("hostedItem")(function* hostedItem(
   const modules = pci?.querySelector("qti-interaction-modules");
   const declaration = document.querySelector("qti-response-declaration");
 
-  if (pci === null || pci === undefined || markup === null || markup === undefined) {
+  if (pci === null || markup === null || markup === undefined) {
     return yield* new HostedPciFailure({
       cause: "no qti-portable-custom-interaction with a qti-interaction-markup",
       step: `read ${file}`,
@@ -342,7 +343,10 @@ export interface HostedPage {
    */
   readonly read: <A>(reader: () => A) => Effect.Effect<A, HostedPciFailure>;
   /**
-   * Make a fresh frame for the item and settle on its `ready` or `failed`.
+   * Make a fresh frame for the item and settle on its `ready` or `failed`. A ready frame is settled
+   * only once it has posted its height and painted twice: the frame lays the PCI out after
+   * `ready`, and Chrome hit-tests a new frame only once it has painted, so a tap before then is
+   * dropped, as no child's finger can be that quick.
    */
   readonly start: (item: HostedItem, start: Start) => Effect.Effect<FrameMessage, HostedPciFailure>;
   /**
@@ -424,11 +428,9 @@ export const hostedPage = (
         page.evaluate<readonly FrameMessage[]>("window.frameMessages"),
       ),
       press: (keys) =>
-        pipe(
-          keys,
-          Effect.forEach((key) => attempt(`press ${key}`, () => page.keyboard.press(key))),
-          Effect.asVoid,
-        ),
+        Effect.forEach(keys, (key) => attempt(`press ${key}`, () => page.keyboard.press(key)), {
+          discard: true,
+        }),
       read: (reader) =>
         inner.pipe(
           Effect.flatMap((frame) => attempt("read the frame", () => frame.evaluate(reader))),
@@ -437,8 +439,6 @@ export const hostedPage = (
         attempt("start the PCI", async () => {
           const settled = await page.evaluate<FrameMessage>(startScript(item, start));
 
-          // The frame lays the PCI out after `ready`, and Chrome hit-tests a new frame only once it
-          // has painted: a tap before then is dropped, as no child's finger can be that quick.
           if (settled.kind === "ready") {
             await page.waitForFunction(
               "window.frameMessages.some((message) => message.kind === 'height')",
@@ -463,16 +463,15 @@ export const hostedPage = (
           return box ?? { x: 0, y: 0 };
         }).pipe(
           Effect.flatMap((at) =>
-            pipe(
+            Effect.forEach(
               points,
-              Effect.forEach((point) =>
+              (point) =>
                 attempt(`tap ${String(point.x)},${String(point.y)}`, () =>
                   page.mouse.click(at.x + point.x, at.y + point.y),
                 ),
-              ),
+              { discard: true },
             ),
           ),
-          Effect.asVoid,
         ),
     } satisfies HostedPage;
   });

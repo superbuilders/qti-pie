@@ -31,15 +31,10 @@
  * @module
  */
 import { assert, layer } from "@effect/vitest";
-import { Context, Duration, Effect, Layer } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { enterNumbers } from "@qti-pie/plate/alpha/pci-modules";
 import { hostedItem, hostedPage } from "#specimen/alpha/hosted-pci.ts";
 import type { HostedItem, HostedPage, Point, Start } from "#specimen/alpha/hosted-pci.ts";
-
-/**
- * How long a rule may take before vitest fails it bare: a hang guard, never a budget.
- */
-const ruleHang = 600_000;
 
 /**
  * WCAG 2.2's Target Size (Enhanced), in CSS pixels.
@@ -114,7 +109,11 @@ const readScreen = (): Screen => {
       box.remove();
     }
 
-    return copy.textContent.replaceAll(/\s+/gu, " ").trim();
+    return Array.from(copy.textContent, (character) => (character.trim() === "" ? " " : character))
+      .join("")
+      .split(" ")
+      .filter((word) => word !== "")
+      .join(" ");
   });
 
   return {
@@ -192,7 +191,7 @@ interface Scripted {
  * The golden entries of each item, the response each must give derived from the specification:
  * a value in lowest terms, boxes in order, NULL for an entry missing a box it needs.
  */
-const scripts = {
+const scripts: Readonly<Record<ItemName, readonly Scripted[]>> = {
   "decimal-sum": [
     { entry: ["3.75"], response: [15, 4], why: "the key" },
     { entry: ["3.750"], response: [15, 4], why: "a trailing zero, the same value" },
@@ -237,7 +236,7 @@ const scripts = {
     { entry: ["4", "246"], response: [4, 246], why: "swapped" },
     { entry: ["246", ""], response: null, why: "no remainder" },
   ],
-} satisfies Readonly<Record<ItemName, readonly Scripted[]>>;
+};
 
 /**
  * The score `match_correct` gives a response against an item's key: 1 where they are one value
@@ -397,7 +396,7 @@ const withProperties = (
   ),
 });
 
-layer(HostedLayer, { timeout: Duration.millis(ruleHang) })("the enter-numbers PCI", (it) => {
+layer(HostedLayer)("the enter-numbers PCI", (it) => {
   for (const golden of goldens) {
     it.effect(
       `EN1: ${golden.name} shows its lines, its boxes empty at the marks, and the keypad`,
@@ -447,7 +446,6 @@ layer(HostedLayer, { timeout: Duration.millis(ruleHang) })("the enter-numbers PC
             "every key is a 44 px target",
           );
         }),
-      ruleHang,
     );
 
     it.effect(
@@ -471,15 +469,14 @@ layer(HostedLayer, { timeout: Duration.millis(ruleHang) })("the enter-numbers PC
             );
           }
         }),
-      ruleHang,
     );
   }
 
-  it.effect(
-    "EN3: the keys score 1 and every wrong or partial entry 0, on every item",
-    () =>
-      Effect.gen(function* keyScores() {
-        for (const golden of goldens) {
+  it.effect("EN3: the keys score 1 and every wrong or partial entry 0, on every item", () =>
+    Effect.forEach(
+      goldens,
+      (golden) =>
+        Effect.gen(function* keyScores() {
           const item = yield* Effect.orDie(hostedItem(enterNumbers, golden.name));
           const right = scripts[golden.name].filter(
             (scripted) => scoreOf(item, scripted.response) === 1,
@@ -492,81 +489,71 @@ layer(HostedLayer, { timeout: Duration.millis(ruleHang) })("the enter-numbers PC
               .every((scripted) => scoreOf(item, scripted.response) === 0),
             `${golden.name}: NULL scores 0`,
           );
-        }
-      }),
-    ruleHang,
+        }),
+      { discard: true },
+    ),
   );
 
-  it.effect(
-    "EN2: a key that begins no admitted number changes nothing",
-    () =>
-      Effect.gen(function* refusals() {
-        const page = yield* Hosted;
-        const fraction = yield* Effect.orDie(hostedItem(enterNumbers, "fraction-sum"));
-        const decimal = yield* Effect.orDie(hostedItem(enterNumbers, "decimal-sum"));
+  it.effect("EN2: a key that begins no admitted number changes nothing", () =>
+    Effect.gen(function* refusals() {
+      const page = yield* Hosted;
+      const fraction = yield* Effect.orDie(hostedItem(enterNumbers, "fraction-sum"));
+      const decimal = yield* Effect.orDie(hostedItem(enterNumbers, "decimal-sum"));
 
-        yield* started(page, fraction, {});
-        yield* typed(page, ["05", "07"]);
-        assert.deepStrictEqual(
-          yield* boxTexts(page),
-          ["0", "7"],
-          "no leading zero; no zero first in a denominator",
-        );
-        yield* typed(page, ["", "1234"]);
-        assert.deepStrictEqual(
-          yield* boxTexts(page),
-          ["0", "712"],
-          "no digit past the box's three",
-        );
+      yield* started(page, fraction, {});
+      yield* typed(page, ["05", "07"]);
+      assert.deepStrictEqual(
+        yield* boxTexts(page),
+        ["0", "7"],
+        "no leading zero; no zero first in a denominator",
+      );
+      yield* typed(page, ["", "1234"]);
+      assert.deepStrictEqual(yield* boxTexts(page), ["0", "712"], "no digit past the box's three");
 
-        yield* started(page, decimal, {});
-        yield* typed(page, [".3.7.5"]);
-        assert.deepStrictEqual(yield* boxTexts(page), ["3.75"], "no point first, no second point");
-        yield* started(page, decimal, {});
-        yield* typed(page, ["123456"]);
-        assert.deepStrictEqual(yield* boxTexts(page), ["12345"], "no digit past five");
-        yield* typed(page, ["."]);
-        assert.deepStrictEqual(
-          yield* boxTexts(page),
-          ["12345"],
-          "no point with no digit left to follow it",
-        );
-      }),
-    ruleHang,
+      yield* started(page, decimal, {});
+      yield* typed(page, [".3.7.5"]);
+      assert.deepStrictEqual(yield* boxTexts(page), ["3.75"], "no point first, no second point");
+      yield* started(page, decimal, {});
+      yield* typed(page, ["123456"]);
+      assert.deepStrictEqual(yield* boxTexts(page), ["12345"], "no digit past five");
+      yield* typed(page, ["."]);
+      assert.deepStrictEqual(
+        yield* boxTexts(page),
+        ["12345"],
+        "no point with no digit left to follow it",
+      );
+    }),
   );
 
-  it.effect(
-    "EN4: an entry emptied again is NULL, and a change of mind gives the last value",
-    () =>
-      Effect.gen(function* emptied() {
-        const page = yield* Hosted;
-        const item = yield* Effect.orDie(hostedItem(enterNumbers, "fraction-sum"));
-        yield* started(page, item, {});
+  it.effect("EN4: an entry emptied again is NULL, and a change of mind gives the last value", () =>
+    Effect.gen(function* emptied() {
+      const page = yield* Hosted;
+      const item = yield* Effect.orDie(hostedItem(enterNumbers, "fraction-sum"));
+      yield* started(page, item, {});
 
-        const screen = yield* Effect.orDie(page.read(readScreen));
-        const backspace = screen.keys.find((key) => key.label === "Backspace");
+      const screen = yield* Effect.orDie(page.read(readScreen));
+      const backspace = screen.keys.find((key) => key.label === "Backspace");
 
-        assert.isDefined(backspace);
-        yield* typed(page, ["5", "7"]);
-        yield* Effect.orDie(page.tapAt([backspace.centre]));
-        assert.deepStrictEqual(
-          (yield* finished(page)).response,
-          jsonOf(null),
-          "the denominator deleted",
-        );
+      assert.isDefined(backspace);
+      yield* typed(page, ["5", "7"]);
+      yield* Effect.orDie(page.tapAt([backspace.centre]));
+      assert.deepStrictEqual(
+        (yield* finished(page)).response,
+        jsonOf(null),
+        "the denominator deleted",
+      );
 
-        yield* started(page, item, {});
-        yield* typed(page, ["4", "7"]);
-        yield* typed(page, [""]);
-        yield* Effect.orDie(page.tapAt([backspace.centre]));
-        yield* typed(page, ["5"]);
-        assert.deepStrictEqual(
-          (yield* finished(page)).response,
-          jsonOf([5, 7]),
-          "4/7 changed to 5/7",
-        );
-      }),
-    ruleHang,
+      yield* started(page, item, {});
+      yield* typed(page, ["4", "7"]);
+      yield* typed(page, [""]);
+      yield* Effect.orDie(page.tapAt([backspace.centre]));
+      yield* typed(page, ["5"]);
+      assert.deepStrictEqual(
+        (yield* finished(page)).response,
+        jsonOf([5, 7]),
+        "4/7 changed to 5/7",
+      );
+    }),
   );
 
   it.effect(
@@ -611,65 +598,65 @@ layer(HostedLayer, { timeout: Duration.millis(ruleHang) })("the enter-numbers PC
           "it gives back what it was bound to",
         );
       }),
-    ruleHang,
   );
 
-  it.effect(
-    "EN6: an item the PCI cannot read fails to run",
-    () =>
-      Effect.gen(function* refused() {
-        const page = yield* Hosted;
-        const item = yield* Effect.orDie(hostedItem(enterNumbers, "fraction-sum"));
-        const pair = yield* Effect.orDie(hostedItem(enterNumbers, "quotient-remainder"));
-        const cases: readonly (readonly [string, HostedItem, Start])[] = [
-          ["no entry kind", withProperties(item, { entry: undefined }), {}],
-          ["an unknown kind", withProperties(item, { entry: "percent" }), {}],
-          ["no digits", withProperties(item, { digits: undefined }), {}],
-          ["digits with a leading zero", withProperties(item, { digits: "03" }), {}],
-          ["a fraction of five digits", withProperties(item, { digits: "5" }), {}],
-          ["an unknown property", withProperties(item, { target: "5" }), {}],
-          [
-            "two marks for a fraction",
-            {
-              ...item,
-              markup: '<p><span class="alpha-entry"></span><span class="alpha-entry"></span></p>',
-            },
-            {},
-          ],
-          [
-            "one mark for whole boxes",
-            { ...pair, markup: '<p><span class="alpha-entry"></span></p>' },
-            {},
-          ],
-          [
-            "a picture in the markup",
-            {
-              ...item,
-              markup: '<p><img src="x.svg" alt="x"><span class="alpha-entry"></span></p>',
-            },
-            {},
-          ],
-          ["text outside a line", { ...item, markup: '5/7 <span class="alpha-entry"></span>' }, {}],
-          ["a bound value not in lowest terms", item, { boundTo: { list: { integer: [10, 14] } } }],
-          ["a bound zero denominator", item, { boundTo: { list: { integer: [5, 0] } } }],
-          ["a bound single value", item, { boundTo: { base: { integer: 5 } } }],
-        ];
+  it.effect("EN6: an item the PCI cannot read fails to run", () =>
+    Effect.gen(function* refused() {
+      const page = yield* Hosted;
+      const item = yield* Effect.orDie(hostedItem(enterNumbers, "fraction-sum"));
+      const pair = yield* Effect.orDie(hostedItem(enterNumbers, "quotient-remainder"));
+      const cases: readonly (readonly [string, HostedItem, Start])[] = [
+        ["no entry kind", withProperties(item, { entry: undefined }), {}],
+        ["an unknown kind", withProperties(item, { entry: "percent" }), {}],
+        ["no digits", withProperties(item, { digits: undefined }), {}],
+        ["digits with a leading zero", withProperties(item, { digits: "03" }), {}],
+        ["a fraction of five digits", withProperties(item, { digits: "5" }), {}],
+        ["an unknown property", withProperties(item, { target: "5" }), {}],
+        [
+          "two marks for a fraction",
+          {
+            ...item,
+            markup: '<p><span class="alpha-entry"></span><span class="alpha-entry"></span></p>',
+          },
+          {},
+        ],
+        [
+          "one mark for whole boxes",
+          { ...pair, markup: '<p><span class="alpha-entry"></span></p>' },
+          {},
+        ],
+        [
+          "a picture in the markup",
+          {
+            ...item,
+            markup: '<p><img src="x.svg" alt="x"><span class="alpha-entry"></span></p>',
+          },
+          {},
+        ],
+        ["text outside a line", { ...item, markup: '5/7 <span class="alpha-entry"></span>' }, {}],
+        ["a bound value not in lowest terms", item, { boundTo: { list: { integer: [10, 14] } } }],
+        ["a bound zero denominator", item, { boundTo: { list: { integer: [5, 0] } } }],
+        ["a bound single value", item, { boundTo: { base: { integer: 5 } } }],
+      ];
 
-        for (const [why, broken, start] of cases) {
-          const settled = yield* Effect.orDie(page.start(broken, start));
+      yield* Effect.forEach(
+        cases,
+        ([why, broken, start]) =>
+          Effect.gen(function* refusedCase() {
+            const settled = yield* Effect.orDie(page.start(broken, start));
 
-          assert.strictEqual(settled.kind, "failed", why);
-        }
+            assert.strictEqual(settled.kind, "failed", why);
+          }),
+        { discard: true },
+      );
 
-        assert.strictEqual(
-          (yield* Effect.orDie(
-            page.start(withProperties(item, { catalogIdref: "audio-stem" }), {}),
-          )).kind,
-          "ready",
-          "data-catalog-idref is QTI's own and passed over",
-        );
-      }),
-    ruleHang,
+      assert.strictEqual(
+        (yield* Effect.orDie(page.start(withProperties(item, { catalogIdref: "audio-stem" }), {})))
+          .kind,
+        "ready",
+        "data-catalog-idref is QTI's own and passed over",
+      );
+    }),
   );
 
   it.effect(
@@ -685,7 +672,6 @@ layer(HostedLayer, { timeout: Duration.millis(ruleHang) })("the enter-numbers PC
         yield* Effect.orDie(page.press(["Shift+Tab", "Backspace", "Backspace", "5"]));
         assert.deepStrictEqual((yield* finished(page)).response, jsonOf([5, 14]));
       }),
-    ruleHang,
   );
 
   it.effect(
@@ -721,7 +707,7 @@ layer(HostedLayer, { timeout: Duration.millis(ruleHang) })("the enter-numbers PC
           ],
         ];
 
-        for (const [item, entries] of cases) {
+        const space = cases.flatMap(([item, entries]) => {
           const values = new Map(
             entries.map((texts) => {
               const value = writtenValue(texts);
@@ -730,39 +716,42 @@ layer(HostedLayer, { timeout: Duration.millis(ruleHang) })("the enter-numbers PC
             }),
           );
 
-          for (const value of values.values()) {
-            for (const status of ["interacting", "closed"]) {
+          return [...values.values()].flatMap((value) =>
+            ["interacting", "closed"].map((status) => ({ item, status, value })),
+          );
+        });
+
+        yield* Effect.forEach(
+          space,
+          ({ item, status, value }) =>
+            Effect.gen(function* boundAgain() {
               const why = `${String(item.properties["entry"])} ${value.join("/")} ${status}`;
 
               yield* started(page, item, { boundTo: bound(value), status });
               assert.deepStrictEqual(writtenValue(yield* boxTexts(page)), value, why);
               assert.deepStrictEqual((yield* finished(page)).response, jsonOf(value), why);
-            }
-          }
-        }
+            }),
+          { discard: true },
+        );
       }),
-    ruleHang,
   );
 
-  it.effect(
-    "EN8: in review the PCI takes no key and no tap",
-    () =>
-      Effect.gen(function* review() {
-        const page = yield* Hosted;
-        const item = yield* Effect.orDie(hostedItem(enterNumbers, "fraction-sum"));
+  it.effect("EN8: in review the PCI takes no key and no tap", () =>
+    Effect.gen(function* review() {
+      const page = yield* Hosted;
+      const item = yield* Effect.orDie(hostedItem(enterNumbers, "fraction-sum"));
 
-        yield* started(page, item, { boundTo: { list: { integer: [5, 7] } }, status: "closed" });
+      yield* started(page, item, { boundTo: { list: { integer: [5, 7] } }, status: "closed" });
 
-        const shown = yield* Effect.orDie(page.read(readScreen));
+      const shown = yield* Effect.orDie(page.read(readScreen));
 
-        assert.isTrue(
-          shown.keys.every((key) => key.disabled),
-          "every key disabled",
-        );
-        yield* typed(page, ["9", ""]).pipe(Effect.ignore);
-        yield* Effect.orDie(page.press(["Tab", "9"]));
-        assert.deepStrictEqual(yield* boxTexts(page), ["5", "7"]);
-      }),
-    ruleHang,
+      assert.isTrue(
+        shown.keys.every((key) => key.disabled),
+        "every key disabled",
+      );
+      yield* typed(page, ["9", ""]).pipe(Effect.ignore);
+      yield* Effect.orDie(page.press(["Tab", "9"]));
+      assert.deepStrictEqual(yield* boxTexts(page), ["5", "7"]);
+    }),
   );
 });

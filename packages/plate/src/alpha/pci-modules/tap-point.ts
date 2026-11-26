@@ -190,9 +190,23 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   const most = { end: 20, parts: 12, size: 10, title: 40 };
 
   /**
-   * A whole number as a property writes it: 0, or a number from 1 with no leading zero.
+   * Whether a text is one or more of the digits 0 to 9 and nothing else.
+   *
+   * @param text The text.
+   * @returns Whether it is digits alone.
    */
-  const whole = /^(?:0|[1-9][0-9]*)$/u;
+  const isDigits = (text: string): boolean =>
+    text !== "" && text.split("").every((character) => character >= "0" && character <= "9");
+
+  /**
+   * Whether a text writes a whole number as a property writes it: 0, or a number from 1 with no
+   * leading zero.
+   *
+   * @param text The text.
+   * @returns Whether it writes such a number.
+   */
+  const isWhole = (text: string): boolean =>
+    text === "0" || (isDigits(text) && !text.startsWith("0"));
 
   /**
    * The namespace the drawing is made in.
@@ -242,7 +256,9 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
    * @returns The attribute's name.
    */
   const attributeOf = (name: string): string =>
-    `data-${name.replaceAll(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`)}`;
+    `data-${Array.from(name, (character) =>
+      character >= "A" && character <= "Z" ? `-${character.toLowerCase()}` : character,
+    ).join("")}`;
 
   /**
    * Read a property that writes a whole number within a range.
@@ -263,7 +279,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
     const written = properties[name];
 
     return written !== undefined &&
-      whole.test(written) &&
+      isWhole(written) &&
       Number(written) >= least &&
       Number(written) <= greatest
       ? Number(written)
@@ -384,7 +400,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
     }
 
     const integer: unknown =
-      typeof value === "object" && value !== null
+      typeof value === "object"
         ? Object.getOwnPropertyDescriptor(value, "integer")?.value
         : undefined;
     const members: readonly unknown[] = Array.isArray(integer) ? integer : [integer, 0];

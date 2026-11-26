@@ -146,6 +146,14 @@ interface BoxPlan {
 type Phase = { readonly chosen: number; readonly kind: "answering" } | { readonly kind: "closed" };
 
 /**
+ * What the PCI is bound to: no response at all, NULL, or a list of integers.
+ */
+type Bound =
+  | { readonly kind: "list"; readonly value: readonly number[] }
+  | { readonly kind: "null" }
+  | { readonly kind: "unbound" };
+
+/**
  * AMD's `define` as the frame's loader gives it to a module's script
  * (`#plate/ui/portable-custom/frame-boot.ts`): the module is anonymous, named by the route that
  * loads it, and its one dependency is the bridge.
@@ -217,9 +225,44 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   ] as const;
 
   /**
-   * A count as a property writes it: a whole number from 1, no leading zero.
+   * Whether a text is one or more of the digits 0 to 9 and nothing else.
+   *
+   * @param text The text.
+   * @returns Whether it is digits alone.
    */
-  const counting = /^[1-9][0-9]*$/u;
+  const isDigits = (text: string): boolean =>
+    text !== "" && text.split("").every((character) => character >= "0" && character <= "9");
+
+  /**
+   * Whether a text writes a number from 1 with no leading zero: digits, the first of them no 0.
+   *
+   * @param text The text.
+   * @returns Whether it writes such a number.
+   */
+  const isCounting = (text: string): boolean => isDigits(text) && !text.startsWith("0");
+
+  /**
+   * Whether a text writes a whole number with no leading zero: 0, or a number from 1.
+   *
+   * @param text The text.
+   * @returns Whether it writes such a number.
+   */
+  const isWhole = (text: string): boolean => text === "0" || isCounting(text);
+
+  /**
+   * Whether a text writes a decimal: a whole number, then any point followed by one or more
+   * digits.
+   *
+   * @param text The text.
+   * @returns Whether it writes a decimal.
+   */
+  const isDecimal = (text: string): boolean => {
+    const point = text.indexOf(".");
+
+    return point === -1
+      ? isWhole(text)
+      : isWhole(text.slice(0, point)) && isDigits(text.slice(point + 1));
+  };
 
   /**
    * The class of the empty `span` that marks where the entry stands in a line.
@@ -274,7 +317,9 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
    * @returns The attribute's name.
    */
   const attributeOf = (name: string): string =>
-    `data-${name.replaceAll(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`)}`;
+    `data-${Array.from(name, (character) =>
+      character >= "A" && character <= "Z" ? `-${character.toLowerCase()}` : character,
+    ).join("")}`;
 
   /**
    * Read the entry's kind, and refuse a property the PCI does not read.
@@ -316,7 +361,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   ): number => {
     const written = properties["digits"];
 
-    if (written === undefined || !counting.test(written)) {
+    if (written === undefined || !isCounting(written)) {
       return refuse(
         `its property data-digits is ${written === undefined ? "absent" : `"${written}"`}; write it as a whole number from 1 with no leading zero.`,
       );
@@ -441,13 +486,9 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
    * @returns Whether it is admitted.
    */
   const isAdmitted = (text: string, rule: BoxRule, digits: number): boolean => {
-    const pattern = {
-      count: /^(?:0|[1-9][0-9]*)$/u,
-      decimal: /^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/u,
-      positive: /^[1-9][0-9]*$/u,
-    }[rule];
+    const writes = { count: isWhole, decimal: isDecimal, positive: isCounting }[rule];
 
-    return pattern.test(text) && digitCount(text) <= digits;
+    return writes(text) && digitCount(text) <= digits;
   };
 
   /**
@@ -462,7 +503,10 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   const isBeginning = (text: string, rule: BoxRule, digits: number): boolean =>
     text === "" ||
     isAdmitted(text, rule, digits) ||
-    (rule === "decimal" && /^(?:0|[1-9][0-9]*)\.$/u.test(text) && digitCount(text) < digits);
+    (rule === "decimal" &&
+      text.endsWith(".") &&
+      isWhole(text.slice(0, -1)) &&
+      digitCount(text) < digits);
 
   /**
    * The greatest common divisor of two whole numbers, Euclid's.
@@ -636,30 +680,30 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
 
   /**
    * Read the value the PCI is bound to, an ordered integer response's Appendix C JSON: nothing
-   * bound is `undefined`, `{ list: null }` or an empty list NULL (`null`), a list of integers that
+   * bound is `unbound`, `{ list: null }` or an empty list NULL (`null`), a list of integers that
    * list.
    *
    * @param bound The bound value.
-   * @returns The value, `null` for NULL, `undefined` for nothing bound.
+   * @returns What the PCI is bound to.
    * @throws {EnterNumbersRefusedError} When the JSON is no ordered integer value.
    */
-  const valueOfBound = (bound: unknown): readonly number[] | null | undefined => {
+  const valueOfBound = (bound: unknown): Bound => {
     if (bound === undefined) {
-      return undefined;
+      return { kind: "unbound" };
     }
 
     const list: unknown =
       typeof bound === "object" && bound !== null && "list" in bound ? bound.list : undefined;
 
     if (list === null) {
-      return null;
+      return { kind: "null" };
     }
 
     const members: unknown =
-      typeof list === "object" && list !== null && "integer" in list ? list.integer : undefined;
+      typeof list === "object" && "integer" in list ? list.integer : undefined;
 
     if (Array.isArray(members) && members.every((member) => Number.isSafeInteger(member))) {
-      return members.length === 0 ? null : members.map(Number);
+      return members.length === 0 ? { kind: "null" } : { kind: "list", value: members.map(Number) };
     }
 
     return refuse(
@@ -743,21 +787,24 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
       state === undefined || state === null ? undefined : textsOfState(state, plans, digits);
     const empty = plans.map(() => "");
     const boundTexts =
-      bound === undefined || bound === null
-        ? empty
-        : (spellingOf(entry, bound, plans, digits) ??
+      bound.kind === "list"
+        ? (spellingOf(entry, bound.value, plans, digits) ??
           refuse(
-            `the response it is bound to, [${bound.join(", ")}], is no value a ${entry} entry of ${String(digits)} digits writes; bind it to the response it gave.`,
-          ));
+            `the response it is bound to, [${bound.value.join(", ")}], is no value a ${entry} entry of ${String(digits)} digits writes; bind it to the response it gave.`,
+          ))
+        : empty;
     /**
      * The boxes' texts. The stored response decides: a state is kept only where it writes the value
      * the response it is bound to holds (NULL writing none), and decides alone only where no
      * response is bound at all.
      */
     const texts = [
-      ...(bound === undefined ||
+      ...(bound.kind === "unbound" ||
       (stateTexts !== undefined &&
-        sameValue(valueOf(entry, stateTexts, plans, digits), bound ?? undefined))
+        sameValue(
+          valueOf(entry, stateTexts, plans, digits),
+          bound.kind === "list" ? bound.value : undefined,
+        ))
         ? (stateTexts ?? empty)
         : boundTexts),
     ];
@@ -901,7 +948,11 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
 
       choose(index, false);
 
-      if (/^[0-9]$/u.test(event.key) || event.key === "." || event.key === "Backspace") {
+      if (
+        (event.key.length === 1 && isDigits(event.key)) ||
+        event.key === "." ||
+        event.key === "Backspace"
+      ) {
         event.preventDefault();
         type(event.key === "Backspace" ? "backspace" : event.key);
 
@@ -992,14 +1043,22 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
       const row = document.createElement("div");
 
       row.dataset["enter"] = "line";
-      row.append(...line.childNodes);
+
+      while (line.firstChild !== null) {
+        row.append(line.firstChild);
+      }
+
       column.append(row);
     }
 
     keypad.dataset["enter"] = "keypad";
     keypad.setAttribute("role", "group");
     keypad.setAttribute("aria-label", "Number keypad");
-    keypad.append(...keys);
+
+    for (const key of keys) {
+      keypad.append(key);
+    }
+
     style(document);
     whole.dataset["enter"] = "whole";
     whole.append(column, keypad);

@@ -23,15 +23,10 @@
  * @module
  */
 import { assert, layer } from "@effect/vitest";
-import { Context, Duration, Effect, Layer } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { tapPoint } from "@qti-pie/plate/alpha/pci-modules";
 import { hostedItem, hostedPage } from "#specimen/alpha/hosted-pci.ts";
 import type { HostedItem, HostedPage, Point, Start } from "#specimen/alpha/hosted-pci.ts";
-
-/**
- * How long a rule may take before vitest fails it bare: a hang guard, never a budget.
- */
-const ruleHang = 600_000;
 
 /**
  * How far from a point a tap still lands on it: inside half of WCAG 2.2's 44 px target.
@@ -75,7 +70,11 @@ const readFigure = (): Figure => {
   const horizontal = strokes.find((line) => line.getAttribute("y1") === line.getAttribute("y2"));
   const axisY = horizontal === undefined ? Number.NaN : centre(horizontal).y;
   const texts = [...(svg?.querySelectorAll("text") ?? [])];
-  const numerals = texts.filter((text) => /^\d+$/u.test(text.textContent));
+  const numerals = texts.filter(
+    (text) =>
+      text.textContent !== "" &&
+      text.textContent.split("").every((character) => character >= "0" && character <= "9"),
+  );
   const below = numerals.filter((text) => text.getAttribute("text-anchor") !== "end");
   const beside = numerals.filter((text) => text.getAttribute("text-anchor") === "end");
 
@@ -106,8 +105,8 @@ const placeOf = (figure: Figure, [x, y]: readonly [number, number]): Point => {
   }
 
   return {
-    x: figure.columns.find((column) => column.text === String(x))?.at ?? Number.NaN,
-    y: figure.rows.find((row) => row.text === String(y))?.at ?? Number.NaN,
+    x: figure.columns.find((column) => Number(column.text) === x)?.at ?? Number.NaN,
+    y: figure.rows.find((row) => Number(row.text) === y)?.at ?? Number.NaN,
   };
 };
 
@@ -228,7 +227,7 @@ const withProperties = (
   ),
 });
 
-layer(HostedLayer, { timeout: Duration.millis(ruleHang) })("the tap-point PCI", (it) => {
+layer(HostedLayer)("the tap-point PCI", (it) => {
   for (const [name, parts, ends] of [
     ["line-0-1-5", 5, ["0", "1"]],
     ["line-0-2-8", 8, ["0", "2"]],
@@ -265,7 +264,6 @@ layer(HostedLayer, { timeout: Duration.millis(ruleHang) })("the tap-point PCI", 
           assert.deepStrictEqual(figure.marks, [], "nothing marked");
           assert.isTrue(figure.fits, "the whole line fits AlphaTest's frame");
         }),
-      ruleHang,
     );
   }
 
@@ -299,7 +297,6 @@ layer(HostedLayer, { timeout: Duration.millis(ruleHang) })("the tap-point PCI", 
           );
           assert.deepStrictEqual(figure.marks, [], "nothing marked");
         }),
-      ruleHang,
     );
   }
 
@@ -337,45 +334,49 @@ layer(HostedLayer, { timeout: Duration.millis(ruleHang) })("the tap-point PCI", 
           [[], null, "untouched"],
         ];
 
-        for (const [taps, expected, why] of scripts) {
-          const figure = yield* started(page, item, {});
+        yield* Effect.forEach(
+          scripts,
+          ([taps, expected, why]) =>
+            Effect.gen(function* lineScript() {
+              const figure = yield* started(page, item, {});
 
-          yield* tapped(page, figure, taps);
+              yield* tapped(page, figure, taps);
 
-          const after = yield* Effect.orDie(page.read(readFigure));
+              const after = yield* Effect.orDie(page.read(readFigure));
 
-          assert.strictEqual(
-            after.marks.length,
-            expected === null ? 0 : 1,
-            `${why}: one mark at most`,
-          );
+              assert.strictEqual(
+                after.marks.length,
+                expected === null ? 0 : 1,
+                `${why}: one mark at most`,
+              );
 
-          if (expected !== null) {
-            const at = placeOf(after, [expected, 0]);
+              if (expected !== null) {
+                const at = placeOf(after, [expected, 0]);
 
-            assert.isBelow(
-              Math.hypot((after.marks[0]?.x ?? 0) - at.x, (after.marks[0]?.y ?? 0) - at.y),
-              1,
-              `${why}: the ring on its tick`,
-            );
-          }
+                assert.isBelow(
+                  Math.hypot((after.marks[0]?.x ?? 0) - at.x, (after.marks[0]?.y ?? 0) - at.y),
+                  1,
+                  `${why}: the ring on its tick`,
+                );
+              }
 
-          const { last, response } = yield* finished(page);
+              const { last, response } = yield* finished(page);
 
-          assert.deepStrictEqual(response, lineJson(expected), why);
-          assert.deepStrictEqual(
-            last,
-            taps.length === 0 ? undefined : lineJson(expected),
-            `${why}: the last change relayed`,
-          );
-          assert.strictEqual(
-            scoreOf(item, expected === null ? null : [expected]),
-            expected === 2 ? 1 : 0,
-            `${why}: scored`,
-          );
-        }
+              assert.deepStrictEqual(response, lineJson(expected), why);
+              assert.deepStrictEqual(
+                last,
+                taps.length === 0 ? undefined : lineJson(expected),
+                `${why}: the last change relayed`,
+              );
+              assert.strictEqual(
+                scoreOf(item, expected === null ? null : [expected]),
+                expected === 2 ? 1 : 0,
+                `${why}: scored`,
+              );
+            }),
+          { discard: true },
+        );
       }),
-    ruleHang,
   );
 
   it.effect(
@@ -412,166 +413,167 @@ layer(HostedLayer, { timeout: Duration.millis(ruleHang) })("the tap-point PCI", 
           [[], null, "untouched"],
         ];
 
-        for (const [taps, expected, why] of scripts) {
-          const figure = yield* started(page, item, {});
+        yield* Effect.forEach(
+          scripts,
+          ([taps, expected, why]) =>
+            Effect.gen(function* gridScript() {
+              const figure = yield* started(page, item, {});
 
-          yield* tapped(page, figure, taps);
+              yield* tapped(page, figure, taps);
 
-          const after = yield* Effect.orDie(page.read(readFigure));
+              const after = yield* Effect.orDie(page.read(readFigure));
 
-          assert.strictEqual(
-            after.marks.length,
-            expected === null ? 0 : 1,
-            `${why}: one dot at most`,
-          );
+              assert.strictEqual(
+                after.marks.length,
+                expected === null ? 0 : 1,
+                `${why}: one dot at most`,
+              );
 
-          if (expected !== null) {
-            const at = placeOf(after, [expected[0] ?? 0, expected[1] ?? 0]);
+              if (expected !== null) {
+                const at = placeOf(after, [expected[0] ?? 0, expected[1] ?? 0]);
 
-            assert.isBelow(
-              Math.hypot((after.marks[0]?.x ?? 0) - at.x, (after.marks[0]?.y ?? 0) - at.y),
-              1,
-              `${why}: the dot on its intersection`,
+                assert.isBelow(
+                  Math.hypot((after.marks[0]?.x ?? 0) - at.x, (after.marks[0]?.y ?? 0) - at.y),
+                  1,
+                  `${why}: the dot on its intersection`,
+                );
+              }
+
+              const { last, response } = yield* finished(page);
+
+              assert.deepStrictEqual(response, gridJson(expected), why);
+              assert.deepStrictEqual(
+                last,
+                taps.length === 0 ? undefined : gridJson(expected),
+                `${why}: the last change relayed`,
+              );
+              assert.strictEqual(
+                scoreOf(item, expected),
+                why === "the key" || why === "a change of mind" ? 1 : 0,
+                `${why}: scored`,
+              );
+            }),
+          { discard: true },
+        );
+      }),
+  );
+
+  it.effect("TP4: coming back, the bound point is marked and given back; NULL marks none", () =>
+    Effect.gen(function* resume() {
+      const page = yield* Hosted;
+      const line = yield* Effect.orDie(hostedItem(tapPoint, "line-0-1-5"));
+      const grid = yield* Effect.orDie(hostedItem(tapPoint, "grid-10"));
+      const lineFigure = yield* started(page, line, { boundTo: { base: { integer: 2 } } });
+
+      assert.strictEqual(lineFigure.marks.length, 1);
+      assert.deepStrictEqual((yield* finished(page)).response, lineJson(2));
+
+      const gridFigure = yield* started(page, grid, { boundTo: { list: { integer: [3, 6] } } });
+      const at = placeOf(gridFigure, [3, 6]);
+
+      assert.isBelow(
+        Math.hypot((gridFigure.marks[0]?.x ?? 0) - at.x, (gridFigure.marks[0]?.y ?? 0) - at.y),
+        1,
+      );
+      assert.deepStrictEqual((yield* finished(page)).response, gridJson([3, 6]));
+      assert.deepStrictEqual((yield* started(page, grid, { boundTo: { list: null } })).marks, []);
+    }),
+  );
+
+  it.effect("TP5: an item the PCI cannot read fails to run", () =>
+    Effect.gen(function* refused() {
+      const page = yield* Hosted;
+      const line = yield* Effect.orDie(hostedItem(tapPoint, "line-0-1-5"));
+      const grid = yield* Effect.orDie(hostedItem(tapPoint, "grid-10"));
+      const cases: readonly (readonly [string, HostedItem, Start])[] = [
+        ["no kind", withProperties(line, { kind: undefined }), {}],
+        ["an unknown kind", withProperties(line, { kind: "circle" }), {}],
+        ["one part", withProperties(line, { parts: "1" }), {}],
+        ["thirteen parts", withProperties(line, { parts: "13" }), {}],
+        ["an end before the start", withProperties(line, { end: "0", start: "1" }), {}],
+        ["a grid's property on a line", withProperties(line, { size: "10" }), {}],
+        ["a grid of eleven", withProperties(grid, { size: "11" }), {}],
+        ["an empty title", withProperties(grid, { xTitle: "" }), {}],
+        ["a line's property on a grid", withProperties(grid, { parts: "4" }), {}],
+        ["markup", { ...line, markup: "<p>0</p>" }, {}],
+        ["a bound tick past the end", line, { boundTo: { base: { integer: 6 } } }],
+        ["a bound pair on a line", line, { boundTo: { list: { integer: [3, 0] } } }],
+        ["a bound point off the grid", grid, { boundTo: { list: { integer: [4, 11] } } }],
+      ];
+
+      yield* Effect.forEach(
+        cases,
+        ([why, broken, start]) =>
+          Effect.gen(function* refusedCase() {
+            assert.strictEqual(
+              (yield* Effect.orDie(page.start(broken, start))).kind,
+              "failed",
+              why,
             );
-          }
-
-          const { last, response } = yield* finished(page);
-
-          assert.deepStrictEqual(response, gridJson(expected), why);
-          assert.deepStrictEqual(
-            last,
-            taps.length === 0 ? undefined : gridJson(expected),
-            `${why}: the last change relayed`,
-          );
-          assert.strictEqual(
-            scoreOf(item, expected),
-            why === "the key" || why === "a change of mind" ? 1 : 0,
-            `${why}: scored`,
-          );
-        }
-      }),
-    ruleHang,
+          }),
+        { discard: true },
+      );
+    }),
   );
 
-  it.effect(
-    "TP4: coming back, the bound point is marked and given back; NULL marks none",
-    () =>
-      Effect.gen(function* resume() {
-        const page = yield* Hosted;
-        const line = yield* Effect.orDie(hostedItem(tapPoint, "line-0-1-5"));
-        const grid = yield* Effect.orDie(hostedItem(tapPoint, "grid-10"));
-        const lineFigure = yield* started(page, line, { boundTo: { base: { integer: 2 } } });
+  it.effect("TP6: the keyboard moves over the points and Enter or Space taps", () =>
+    Effect.gen(function* keyboard() {
+      const page = yield* Hosted;
+      const line = yield* Effect.orDie(hostedItem(tapPoint, "line-0-1-5"));
+      const grid = yield* Effect.orDie(hostedItem(tapPoint, "grid-10"));
 
-        assert.strictEqual(lineFigure.marks.length, 1);
-        assert.deepStrictEqual((yield* finished(page)).response, lineJson(2));
+      yield* started(page, line, {});
+      yield* Effect.orDie(page.press(["Tab", "ArrowRight", "ArrowRight", "Enter"]));
+      assert.deepStrictEqual((yield* finished(page)).response, lineJson(2));
 
-        const gridFigure = yield* started(page, grid, { boundTo: { list: { integer: [3, 6] } } });
-        const at = placeOf(gridFigure, [3, 6]);
-
-        assert.isBelow(
-          Math.hypot((gridFigure.marks[0]?.x ?? 0) - at.x, (gridFigure.marks[0]?.y ?? 0) - at.y),
-          1,
-        );
-        assert.deepStrictEqual((yield* finished(page)).response, gridJson([3, 6]));
-        assert.deepStrictEqual((yield* started(page, grid, { boundTo: { list: null } })).marks, []);
-      }),
-    ruleHang,
+      yield* started(page, grid, {});
+      yield* Effect.orDie(
+        page.press([
+          "Tab",
+          ...Array.from({ length: 3 }, () => "ArrowRight"),
+          ...Array.from({ length: 6 }, () => "ArrowUp"),
+          "Space",
+          "Space",
+        ]),
+      );
+      assert.deepStrictEqual(
+        (yield* finished(page)).response,
+        gridJson(null),
+        "Space taps, and taps again",
+      );
+      yield* started(page, grid, {});
+      yield* Effect.orDie(
+        page.press([
+          "Tab",
+          ...Array.from({ length: 3 }, () => "ArrowRight"),
+          ...Array.from({ length: 6 }, () => "ArrowUp"),
+          "Space",
+        ]),
+      );
+      assert.deepStrictEqual((yield* finished(page)).response, gridJson([3, 6]));
+    }),
   );
 
-  it.effect(
-    "TP5: an item the PCI cannot read fails to run",
-    () =>
-      Effect.gen(function* refused() {
-        const page = yield* Hosted;
-        const line = yield* Effect.orDie(hostedItem(tapPoint, "line-0-1-5"));
-        const grid = yield* Effect.orDie(hostedItem(tapPoint, "grid-10"));
-        const cases: readonly (readonly [string, HostedItem, Start])[] = [
-          ["no kind", withProperties(line, { kind: undefined }), {}],
-          ["an unknown kind", withProperties(line, { kind: "circle" }), {}],
-          ["one part", withProperties(line, { parts: "1" }), {}],
-          ["thirteen parts", withProperties(line, { parts: "13" }), {}],
-          ["an end before the start", withProperties(line, { end: "0", start: "1" }), {}],
-          ["a grid's property on a line", withProperties(line, { size: "10" }), {}],
-          ["a grid of eleven", withProperties(grid, { size: "11" }), {}],
-          ["an empty title", withProperties(grid, { xTitle: "" }), {}],
-          ["a line's property on a grid", withProperties(grid, { parts: "4" }), {}],
-          ["markup", { ...line, markup: "<p>0</p>" }, {}],
-          ["a bound tick past the end", line, { boundTo: { base: { integer: 6 } } }],
-          ["a bound pair on a line", line, { boundTo: { list: { integer: [3, 0] } } }],
-          ["a bound point off the grid", grid, { boundTo: { list: { integer: [4, 11] } } }],
-        ];
+  it.effect("TP7: in review the PCI takes no tap", () =>
+    Effect.gen(function* review() {
+      const page = yield* Hosted;
+      const grid = yield* Effect.orDie(hostedItem(tapPoint, "grid-10"));
+      const figure = yield* started(page, grid, {
+        boundTo: { list: { integer: [3, 6] } },
+        status: "closed",
+      });
 
-        for (const [why, broken, start] of cases) {
-          assert.strictEqual((yield* Effect.orDie(page.start(broken, start))).kind, "failed", why);
-        }
-      }),
-    ruleHang,
-  );
+      yield* tapped(page, figure, [[1, 1]]);
+      yield* Effect.orDie(page.press(["Tab", "Enter"]));
 
-  it.effect(
-    "TP6: the keyboard moves over the points and Enter or Space taps",
-    () =>
-      Effect.gen(function* keyboard() {
-        const page = yield* Hosted;
-        const line = yield* Effect.orDie(hostedItem(tapPoint, "line-0-1-5"));
-        const grid = yield* Effect.orDie(hostedItem(tapPoint, "grid-10"));
+      const at = placeOf(figure, [3, 6]);
+      const after = yield* Effect.orDie(page.read(readFigure));
 
-        yield* started(page, line, {});
-        yield* Effect.orDie(page.press(["Tab", "ArrowRight", "ArrowRight", "Enter"]));
-        assert.deepStrictEqual((yield* finished(page)).response, lineJson(2));
-
-        yield* started(page, grid, {});
-        yield* Effect.orDie(
-          page.press([
-            "Tab",
-            ...Array.from({ length: 3 }, () => "ArrowRight"),
-            ...Array.from({ length: 6 }, () => "ArrowUp"),
-            "Space",
-            "Space",
-          ]),
-        );
-        assert.deepStrictEqual(
-          (yield* finished(page)).response,
-          gridJson(null),
-          "Space taps, and taps again",
-        );
-        yield* started(page, grid, {});
-        yield* Effect.orDie(
-          page.press([
-            "Tab",
-            ...Array.from({ length: 3 }, () => "ArrowRight"),
-            ...Array.from({ length: 6 }, () => "ArrowUp"),
-            "Space",
-          ]),
-        );
-        assert.deepStrictEqual((yield* finished(page)).response, gridJson([3, 6]));
-      }),
-    ruleHang,
-  );
-
-  it.effect(
-    "TP7: in review the PCI takes no tap",
-    () =>
-      Effect.gen(function* review() {
-        const page = yield* Hosted;
-        const grid = yield* Effect.orDie(hostedItem(tapPoint, "grid-10"));
-        const figure = yield* started(page, grid, {
-          boundTo: { list: { integer: [3, 6] } },
-          status: "closed",
-        });
-
-        yield* tapped(page, figure, [[1, 1]]);
-        yield* Effect.orDie(page.press(["Tab", "Enter"]));
-
-        const at = placeOf(figure, [3, 6]);
-        const after = yield* Effect.orDie(page.read(readFigure));
-
-        assert.strictEqual(after.marks.length, 1);
-        assert.isBelow(
-          Math.hypot((after.marks[0]?.x ?? 0) - at.x, (after.marks[0]?.y ?? 0) - at.y),
-          1,
-        );
-      }),
-    ruleHang,
+      assert.strictEqual(after.marks.length, 1);
+      assert.isBelow(
+        Math.hypot((after.marks[0]?.x ?? 0) - at.x, (after.marks[0]?.y ?? 0) - at.y),
+        1,
+      );
+    }),
   );
 });
