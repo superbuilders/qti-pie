@@ -4,7 +4,7 @@ import { requiredInSpace } from "@bjornpagen/testing/features";
 import { array, constant, element, int, map, oneOf } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Duration, Effect, Formatter, Option } from "effect";
+import { Array as Arr, Duration, Effect, Formatter, Option } from "effect";
 import { configure } from "#plate/configuration.ts";
 import type { Configuration, ConfigurationInput } from "#plate/configuration.ts";
 import { boxHolds } from "#plate/test/box.ts";
@@ -133,7 +133,7 @@ const isOneUrl = (address: string): boolean =>
   address !== "" &&
   !address.startsWith(",") &&
   !address.endsWith(",") &&
-  !Array.from(address).some((character) => "\t\n\f\r ".includes(character));
+  !Arr.fromIterable(address).some((character) => "\t\n\f\r ".includes(character));
 
 /**
  * The field the oracle expects `configure` to refuse a case for: a heading level outside 2 to 6
@@ -275,6 +275,7 @@ describe("configure", () => {
                   );
 
                   assert.deepStrictEqual(decoded, oracle);
+
                   return;
                 }
 

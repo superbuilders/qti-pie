@@ -5,7 +5,16 @@ import { array, boolean, element, int, oneOf } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { regex } from "arkregex";
-import { Duration, Effect, Formatter, Option, Result, Schema } from "effect";
+import {
+  Array as Arr,
+  Duration,
+  Effect,
+  Formatter,
+  Option,
+  Predicate,
+  Result,
+  Schema,
+} from "effect";
 import {
   PostedResponses,
   RecordValueSchema,
@@ -141,7 +150,7 @@ type SinglesOf<B extends ModelledBaseType> = readonly [
  * order and of one identifier twice; durations of each kind a float has; URIs of a query, a space
  * and a fragment; and files at either end of a size.
  */
-const ROUND_TRIP_SINGLES: { readonly [B in ModelledBaseType]: SinglesOf<B> } = {
+const ROUND_TRIP_SINGLES = {
   boolean: [
     { baseType: "boolean", value: true },
     { baseType: "boolean", value: false },
@@ -198,7 +207,7 @@ const ROUND_TRIP_SINGLES: { readonly [B in ModelledBaseType]: SinglesOf<B> } = {
     { baseType: "uri", value: "a b.png" },
     { baseType: "uri", value: "#q1" },
   ],
-};
+} as const satisfies { readonly [B in ModelledBaseType]: SinglesOf<B> };
 
 /**
  * Draw a value of the round-trip box: a base type the value model holds, a cardinality it holds,
@@ -221,11 +230,11 @@ const roundTripValue: Gen<Value> = (source) => {
  * How many values {@link roundTripValue} draws: for each base type of `k` singles, `1 + k` singles
  * and `1 + k + k²` values of each of the two containers.
  */
-const ROUND_TRIP_VALUES = modelledBaseTypes.reduce((sum, baseType) => {
+const ROUND_TRIP_VALUES = Arr.reduce(modelledBaseTypes, 0, (sum, baseType) => {
   const k = ROUND_TRIP_SINGLES[baseType].length;
 
   return sum + (1 + k) + 2 * (1 + k + k ** 2);
-}, 0);
+});
 
 /**
  * The integer a text is the canonical representation of, read apart from the codec, character by
@@ -240,7 +249,7 @@ const ROUND_TRIP_VALUES = modelledBaseTypes.reduce((sum, baseType) => {
 const integerNamed = (text: string): Option.Option<bigint> => {
   const digits = text.startsWith("-") ? text.slice(1) : text;
   const isDigits =
-    digits !== "" && Array.from(digits).every((digit) => digit >= "0" && digit <= "9");
+    digits !== "" && Arr.fromIterable(digits).every((digit) => digit >= "0" && digit <= "9");
 
   return text === "0" || (isDigits && !digits.startsWith("0"))
     ? Option.some(BigInt(text))
@@ -505,8 +514,7 @@ const CHARACTER_CASES = 2 * (33 + 2052 + 4 + 2 + 2);
  * @returns The text.
  */
 const textWith = ({ baseType, codePoint }: CharacterCase): string => {
-  const character =
-    codePoint > 0xff_ff ? String.fromCodePoint(codePoint) : String.fromCharCode(codePoint);
+  const character = String.fromCodePoint(codePoint);
 
   return baseType === "string" ? `a${character}b` : `http://a/${character}`;
 };
@@ -771,7 +779,7 @@ describe("ValueSchema", () => {
                   value(baseType, "single", [{ baseType, value: written }]),
                 );
                 const [stored] = encoded.values;
-                const storedAsNumber = typeof stored?.value === "number";
+                const storedAsNumber = Predicate.isNumber(stored?.value);
                 c.note(storedAsNumber ? "number" : "name");
 
                 const name = `${baseType} ${Formatter.format(written)}`;
@@ -1129,7 +1137,7 @@ const POSTED_CASES = (1 + 7 + 7 ** 2 + 7 ** 3) * (1 + 2 + 2 ** 2);
  * @param posting The case.
  * @returns The body.
  */
-const postedBody = ({ key, types }: PostedCase): Readonly<Record<string, Schema.Json>> => ({
+const postedBody = ({ key, types }: PostedCase) => ({
   [key]: {
     baseType: "identifier",
     cardinality: "single",

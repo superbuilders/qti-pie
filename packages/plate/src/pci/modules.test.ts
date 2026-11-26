@@ -170,7 +170,7 @@ const hasScheme = (reference: string): boolean => {
   return (
     colon > 0 &&
     ((first >= "a" && first <= "z") || (first >= "A" && first <= "Z")) &&
-    Array.from(scheme).every(continuesScheme)
+    Arr.fromIterable(scheme).every(continuesScheme)
   );
 };
 
@@ -205,6 +205,16 @@ const fromRoot = (decoded: string): Option.Option<string> =>
   );
 
 /**
+ * A module location routed as the reading reads it: the routed location, its files, and the
+ * situations it reaches.
+ */
+interface ExpectedRoute {
+  readonly files: readonly string[];
+  readonly routed: Option.Option<string>;
+  readonly situations: readonly LocationSituation[];
+}
+
+/**
  * Where reading `pci-module-locations` routes a module location, and the file the package serves it
  * from: none for an absolute URL (R5). Otherwise the location's query (from its first `?`) and
  * fragment (from its first `#`) are kept apart, as reading `href-resolution` reads an href, and
@@ -220,13 +230,7 @@ const fromRoot = (decoded: string): Option.Option<string> =>
  * @param written The location as written.
  * @returns The routed location, its files and the situations it reaches.
  */
-const expectedRoute = (
-  written: string,
-): {
-  readonly files: readonly string[];
-  readonly routed: Option.Option<string>;
-  readonly situations: readonly LocationSituation[];
-} => {
+const expectedRoute = (written: string): ExpectedRoute => {
   if (hasScheme(written)) {
     return { files: [], routed: Option.none(), situations: ["an absolute URL"] };
   }
@@ -241,7 +245,8 @@ const expectedRoute = (
   const isFolder = lastDecoded === "." || lastDecoded === "..";
   const named = Option.getOrElse(fromRoot(decoded), () => writtenPath);
   const endsInJs = !isFolder && named.endsWith(".js");
-  const routedPath = isFolder ? `${writtenPath}/.js` : endsInJs ? writtenPath : `${writtenPath}.js`;
+  const jsPath = endsInJs ? writtenPath : `${writtenPath}.js`;
+  const routedPath = isFolder ? `${writtenPath}/.js` : jsPath;
   const file = fromRoot(decodeURIComponent(routedPath));
   const situations: readonly (readonly [LocationSituation, boolean])[] = [
     [".js appended", !isFolder && !endsInJs],
