@@ -9,6 +9,16 @@ export type { Digest, GradeProof, Instant, ResponsesRead } from "#processing/gra
 
 export { proofOf } from "#processing/grade.ts";
 
+export {
+  compileItem,
+  compileTest,
+  gradeAnswer,
+  gradeSitting,
+  regrade,
+  takeItem,
+  templateDefaults,
+} from "#processing/entries.ts";
+
 export type {
   ArgumentsOf,
   CustomOperator,
@@ -95,3 +105,7 @@ export type { Seed } from "#processing/stream.ts";
 export { processingSeed, responseLabel, templateLabel } from "#processing/stream.ts";
 
 export type { XmlAttribute, XmlElement, XmlNode } from "#processing/xml.ts";
+
+export type { Admission } from "#processing/admission.ts";
+
+export type { Checked, Refusal, RefusalCode } from "#processing/operators/operator.ts";
