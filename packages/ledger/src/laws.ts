@@ -490,7 +490,7 @@ export const ledgerLaws = {
   },
   "Unfinal ended": {
     source:
-      "src/results.ts UnfinalEnded: 'Each ended sitting that has no SittingFinal row: each must hold an attempt not final'",
+      "src/results.ts AwaitingEvaluation: 'Each sitting awaiting evaluation: ended (`TestEnd`) with no SittingFinal row', each an ended sitting that holds an attempt not final",
   },
   "Value digest": {
     source:

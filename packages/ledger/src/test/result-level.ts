@@ -129,6 +129,7 @@ const {
   ApplicationOperands,
   Attempt,
   AttemptCredit,
+  AwaitingEvaluation,
   AwaitingHumanEvaluation,
   DeliveredTest,
   HumanOperatorValue,
@@ -162,6 +163,7 @@ const {
   TestSession,
   TestVisit,
   UnendedSitting,
+  UnsettledSitting,
 } = ResultLevel.relations;
 
 /**
@@ -1093,6 +1095,27 @@ const finalsOf = query(ResultLevel).rule((r) => {
 });
 
 /**
+ * The child's sittings awaiting evaluation (`AwaitingEvaluation`), each by its stage: ended and not
+ * final, the fact a screen reads.
+ */
+const awaitingEvaluationsOf = query(ResultLevel).rule((r) => {
+  const { stage } = v(AwaitingEvaluation, "awaiting");
+
+  return r.match(AwaitingEvaluation, { child: r.param("child", LearnerId), stage }).find({ stage });
+});
+
+/**
+ * The child's sittings that hold an attempt not final (`UnsettledSitting`), each by its stage: the
+ * derivation "Unfinal ended" reads, which {@link awaitingEvaluationsOf} is held equal to on every
+ * ended sitting.
+ */
+const unsettledSittingsOf = query(ResultLevel).rule((r) => {
+  const { stage } = v(UnsettledSitting, "unsettled");
+
+  return r.match(UnsettledSitting, { child: r.param("child", LearnerId), stage }).find({ stage });
+});
+
+/**
  * The item document the call names, as opening it reads it (`itemRowsOf`, the read every
  * application attaches under its own read of the item it serves): what served-item opens and
  * routes its PCIs from.
@@ -1193,6 +1216,7 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite, PresenceRu
       answerTestItem: sittingPrograms.answerTestItem.bind({ sittings: namedSitting }),
       applicationsOf,
       attemptsOf,
+      awaitingEvaluationsOf,
       awaitingOf,
       begin,
       budgetsOf,
@@ -1245,6 +1269,7 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite, PresenceRu
       takenIntegersOf,
       testOutcomeBooleansOf,
       testOutcomeFloatsOf,
+      unsettledSittingsOf,
       windowsOf,
     }),
     presenceWorkload,

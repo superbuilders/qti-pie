@@ -9,6 +9,12 @@
  * 2,283 rows read a session at 210 members against 1,195 at 20, 561,362 pages and 1.3 s for the
  * drill's read, where it reads 18 rows a session at either (MEMBERSTART, 2026-11-25).
  *
+ * And the read of a child's sittings awaiting evaluation (`awaitingEvaluationsOf`, the Delivery
+ * level's `AwaitingEvaluation`: ended and not final), held to the child's own rows: ending other
+ * children's sittings adds no row to it. Before it was stored by the sitting's key, every screen
+ * that showed "awaiting evaluation" derived which attempts were pending for every sitting to keep
+ * one, 8,425,707 pages a read at 1x (QP-SITTING-READ, 2026-11-26).
+ *
  * The work is PostgreSQL's own count, which no load moves: the read's statement as its login's
  * served file holds it (the planning budget's reading, `@qti-pie/plan-budget/served.ts`), run
  * under EXPLAIN ANALYZE as every grizzle session plans it, generically (`plan_cache_mode` at
@@ -20,7 +26,7 @@
  * (`@qti-pie/plan-budget/content.ts`): `rate.xml`, 20 choice items, and `drill.xml`, a FastMath
  * drill's 210, each taken as the test runtime takes one (`takeSitting`).
  *
- * The served statement under plain EXPLAIN ANALYZE ({@link sessionsRows}) stands in for grizzle's
+ * The served statement under plain EXPLAIN ANALYZE ({@link scannedRowsOf}) stands in for grizzle's
  * own `db.workload.sessionsOf.explainAnalyze`, whose decode refuses every plan that reads a stored
  * derived relation's table ("statement 0 answered rows grizzle cannot read"; a read of
  * `DeliveredTest` alone is the least case), as this read's plan does. When grizzle decodes those
@@ -41,6 +47,7 @@ import {
   drillItems,
   drillTest,
   rateTest,
+  stdTest,
   writeChoicePackage,
 } from "@qti-pie/plan-budget/content.ts";
 import { actionsOf } from "@qti-pie/plan-budget/served.ts";
@@ -110,29 +117,31 @@ const scannedRows = (node: PlanNode): number =>
   (node.Plans ?? []).reduce((sum, child) => sum + scannedRows(child), 0);
 
 /**
- * SessionsOf's one statement, as the result suite's served file holds it.
+ * A read's one statement, as the result suite's served file holds it.
  *
+ * @param read - The read's name in the suite's workload.
  * @returns Its text.
  */
-const sessionsStatement = (): string => {
+const servedStatement = (read: "awaitingEvaluationsOf" | "sessionsOf"): string => {
   const action = actionsOf(path.join(resultMigrations, "qti"), "result_suite", [], new Map()).find(
-    ({ action: name }) => name.endsWith(".sessionsOf"),
+    ({ action: name }) => name.endsWith(`.${read}`),
   );
   const [step, ...more] = action?.steps ?? [];
 
-  assert.isTrue(step?.kind === "plan" && more.length === 0, "sessionsOf is one planned statement");
+  assert.isTrue(step?.kind === "plan" && more.length === 0, `${read} is one planned statement`);
 
   return step?.sql ?? "";
 };
 
 /**
- * The rows sessionsOf's scans return for `child`, on the file's copy of the result database, as a
+ * The rows a read's scans return for `child`, on the file's copy of the result database, as a
  * grizzle session plans it.
  *
- * @param child - The child whose item sessions it reads.
+ * @param read - The read's name in the suite's workload.
+ * @param child - The child whose rows it reads.
  * @returns The rows its scans returned.
  */
-const sessionsRows = (child: string) =>
+const scannedRowsOf = (read: "awaitingEvaluationsOf" | "sessionsOf", child: string) =>
   Effect.acquireUseRelease(
     migrationClientOf(`${resultDatabaseOf(Option.getOrThrow(lease))}_${file}`).pipe(
       Effect.provide(
@@ -146,7 +155,7 @@ const sessionsRows = (child: string) =>
       Effect.promise(async () => {
         await client.query("BEGIN READ ONLY");
         await client.query("SET LOCAL plan_cache_mode = force_generic_plan");
-        await client.query(`PREPARE member_reads AS ${sessionsStatement()}`);
+        await client.query(`PREPARE member_reads AS ${servedStatement(read)}`);
         const explained = await client.query<QueryResultRow>(
           `EXPLAIN (ANALYZE, FORMAT JSON) EXECUTE member_reads(${client.escapeLiteral(child)})`,
         );
@@ -203,12 +212,39 @@ const measuredSitting = (test: string) =>
     const sessions = [...(yield* db.workload.sessionsOf.once({ facts: {}, params: { child } }))]
       .length;
 
-    return { rows: yield* sessionsRows(child), sessions } as const;
+    return { rows: yield* scannedRowsOf("sessionsOf", child), sessions } as const;
   });
 
-describe.skipIf(Option.isNone(lease))("a sitting's reads of its members, by key", () => {
+/**
+ * A fresh child's sitting of the simultaneous test, taken, entered at its first member and ended
+ * with its finish, as the test runtime does: every member submitted and graded, so it is final.
+ *
+ * @param child - The child.
+ */
+const endedSitting = (child: string) =>
+  Effect.gen(function* end() {
+    const { suite } = yield* SuiteLogin;
+    const db = yield* Db.open(suite.roles.result_runner, {});
+    const sitting = { child, stage: 1n };
+    const taken = yield* db.workload.takeSitting.once({
+      facts: {},
+      params: { ...sitting, package: choicePackage, path: stdTest, seed: DECISION },
+    });
+    assert.strictEqual(taken.kind, "accepted", `${child}: taken`);
+
+    const entered = yield* db.workload.startTest.once({
+      facts: {},
+      params: { ...sitting, item: choiceItems[0] ?? "" },
+    });
+    assert.strictEqual(entered.kind, "accepted", `${child}: entered`);
+
+    const ended = yield* db.workload.finishTest.once({ facts: {}, params: sitting });
+    assert.strictEqual(ended.kind, "accepted", `${child}: ended and finished`);
+  });
+
+describe.skipIf(Option.isNone(lease))("a sitting's reads, by key", () => {
   layer(suiteLayerOf(file), { excludeTestServices: true })(
-    "the read of a child's item sessions costs each session one probe of its member's control",
+    "a read of a child's rows reads them alone: each session one probe of its member's control, and no other child's sitting",
     (it) => {
       it.effect("reads a session of a 210-member drill in no more rows than one of 20", () =>
         Effect.gen(function* perSession() {
@@ -230,6 +266,28 @@ describe.skipIf(Option.isNone(lease))("a sitting's reads of its members, by key"
             drill.rows / drill.sessions,
             rate.rows / rate.sessions,
             `rows a session: ${String(drill.rows)} over ${String(drill.sessions)} at the drill, ${String(rate.rows)} over ${String(rate.sessions)} at the rate test`,
+          );
+        }),
+      );
+
+      it.effect("reads a child's sittings awaiting evaluation in no more rows as others end", () =>
+        Effect.gen(function* awaiting() {
+          yield* publish;
+          const child = `awaiting-reads-${run}`;
+          yield* endedSitting(child);
+
+          const alone = yield* scannedRowsOf("awaitingEvaluationsOf", child);
+
+          for (const item of choiceItems) {
+            yield* endedSitting(`awaiting-reads-${run}-${item}`);
+          }
+
+          const among = yield* scannedRowsOf("awaitingEvaluationsOf", child);
+
+          assert.isAtMost(
+            among,
+            alone,
+            `rows read: ${String(among)} beside ${String(choiceItems.length)} other ended sittings, ${String(alone)} alone`,
           );
         }),
       );

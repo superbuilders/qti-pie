@@ -109,7 +109,9 @@ export const pendingApplicationsOf = (ledger: LedgerLevel) => {
  *   hold it to SettledSitting both ways, each one negation deep, as grizzle states a law (a law
  *   over SettledSitting itself, a negation of a negation, is an UnsupportedLawFamily): every final
  *   sitting has ended and holds no attempt not final (`UnsettledFinal` empty), and every ended
- *   sitting with no row holds one (`UnfinalEnded` ⊆ `UnsettledSitting`).
+ *   sitting with no row holds one (`AwaitingEvaluation` ⊆ `UnsettledSitting`).
+ * - **AwaitingEvaluation** `(child, stage)`: each sitting awaiting evaluation, ended (`TestEnd`) and
+ *   not final (no `SittingFinal`), the one statement of it every screen reads.
  * - **TestRunInForce** `(child, stage) → at`: each sitting's outcome processing run in force.
  *
  * @param ledger - The ledger level.
@@ -313,12 +315,19 @@ export const resultRelationsOf = (
   );
 
   /**
-   * Each ended sitting that has no SittingFinal row: each must hold an attempt not final (law 2).
+   * Each sitting awaiting evaluation: ended (`TestEnd`) with no SittingFinal row. By the two laws
+   * below these are exactly the ended sittings that hold an attempt not final, its response
+   * processing or an external score pending (Results Reporting, Table 2.7.7,
+   * `pendingResponseProcessing` and `pendingExternalScoring`): "Unfinal ended" puts each of them in
+   * {@link UnsettledSitting}, and "Final settled" puts no final sitting there. So a screen reads it
+   * by the sitting's key, two stored keyed facts, and never derives which attempts are pending:
+   * every relation it reads leads with the learner and its negation is correlated at the sitting,
+   * so grizzle stores it (README, "Derived tables").
    */
-  const UnfinalEnded = derived(
-    "UnfinalEnded",
+  const AwaitingEvaluation = derived(
+    "AwaitingEvaluation",
     query(ledger).rule((r) => {
-      const { child, stage } = v(TestEnd, "unfinalEnd");
+      const { child, stage } = v(TestEnd, "awaitingEnd");
 
       return r
         .match(TestEnd, { child, stage })
@@ -329,6 +338,8 @@ export const resultRelationsOf = (
 
   /**
    * Each sitting that holds an attempt not final, as a relation of the level, for law 2 to read.
+   * It derives every attempt's status, so no screen reads it: a screen reads {@link
+   * AwaitingEvaluation}.
    */
   const UnsettledSitting = derived("UnsettledSitting", unsettledSittings);
 
@@ -356,7 +367,7 @@ export const resultRelationsOf = (
     LatestAttempt,
     SettledSitting,
     UnsettledFinal,
-    UnfinalEnded,
+    AwaitingEvaluation,
     UnsettledSitting,
     TestRunInForce,
     UnendedSitting,
@@ -369,7 +380,7 @@ export const resultRelationsOf = (
     ),
     named(
       "Unfinal ended",
-      contained(on(UnfinalEnded, "child", "stage"), on(UnsettledSitting, "child", "stage")),
+      contained(on(AwaitingEvaluation, "child", "stage"), on(UnsettledSitting, "child", "stage")),
     ),
     named("Unended sitting key", key(on(UnendedSitting, "child", "package", "path"))),
   ] as const;

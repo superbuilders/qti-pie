@@ -3766,6 +3766,7 @@ type ShownExpected = Readonly<{
   attempts: Readonly<Record<typeof MEMBER | typeof HUMAN_REF, readonly ("saved" | "default")[]>>;
   statuses: Readonly<Record<typeof MEMBER | typeof HUMAN_REF, readonly string[]>>;
   final: boolean;
+  awaiting: boolean;
 }>;
 
 /**
@@ -3783,7 +3784,8 @@ type ShownExpected = Readonly<{
  *   processing ran: "the score is NOT final because the 'external-scored' property for the outcome
  *   variable was set" (Results Reporting, Table 2.7.7); the member's, which scores nothing
  *   externally, is `final`. A sitting is final once ended with no attempt pending, so it is final
- *   exactly where the essay was never presented.
+ *   exactly where the essay was never presented, and awaiting evaluation (ended and not final)
+ *   exactly where it was: the sitting that holds an attempt not final.
  *
  * @param c - The case.
  */
@@ -3811,6 +3813,7 @@ const shownExpectedOf = (c: ShownCase): ShownExpected => {
       [HUMAN_REF]: presented ? [saved ? "saved" : "default"] : [],
       [MEMBER]: ["default"],
     },
+    awaiting: presented,
     final: !presented,
     moves,
     statuses: {
@@ -3828,7 +3831,7 @@ const shownSituations = [
   "a presented member's save is submitted at the end",
   "a presented member never saved is submitted at its defaults",
   "a member never presented has no attempt, and its sitting is final",
-  "a presented human-scored essay waits for its score, and its sitting is not final",
+  "a presented human-scored essay waits for its score, and its sitting awaits evaluation",
 ] as const;
 
 type ShownSituation = (typeof shownSituations)[number];
@@ -3856,7 +3859,7 @@ const shownSituationsOf = (expected: ShownExpected) => {
   reached.add(
     expected.final
       ? "a member never presented has no attempt, and its sitting is final"
-      : "a presented human-scored essay waits for its score, and its sitting is not final",
+      : "a presented human-scored essay waits for its score, and its sitting awaits evaluation",
   );
 
   return [...reached];
@@ -3951,6 +3954,16 @@ const holdShown = (c: ShownCase, child: string, note: (situation: ShownSituation
       }
     }
 
+    const awaitingNow = Effect.map(
+      db.workload.awaitingEvaluationsOf.once({ facts: {}, params: { child } }),
+      (rows) => Arr.fromIterable(rows).some((row) => row.stage === sitting.stage),
+    );
+    const unsettledNow = Effect.map(
+      db.workload.unsettledSittingsOf.once({ facts: {}, params: { child } }),
+      (rows) => Arr.fromIterable(rows).some((row) => row.stage === sitting.stage),
+    );
+    assert.isFalse(yield* awaitingNow, `${c.name}: an open sitting awaits no evaluation`);
+
     const ended = yield* db.workload.finishTest.once({ facts: {}, params: sitting });
     assert.strictEqual(ended.kind, "accepted", `${c.name}: the end and its finish`);
 
@@ -3990,14 +4003,26 @@ const holdShown = (c: ShownCase, child: string, note: (situation: ShownSituation
       statuses
         .filter((row) => row.package === PACKAGE && row.path === path)
         .map((row) => row.status);
+    const awaiting = yield* awaitingNow;
     assert.deepStrictEqual<unknown>(
       {
         attempts: { [HUMAN_REF]: submittedOf(HUMAN), [MEMBER]: submittedOf(SHORT) },
+        awaiting,
         final: finals.some((row) => row.stage === sitting.stage),
         statuses: { [HUMAN_REF]: statusesAt(HUMAN), [MEMBER]: statusesAt(SHORT) },
       },
-      { attempts: expected.attempts, final: expected.final, statuses: expected.statuses },
-      `${c.name}: every member's attempts and their statuses after the end, and whether the sitting is final`,
+      {
+        attempts: expected.attempts,
+        awaiting: expected.awaiting,
+        final: expected.final,
+        statuses: expected.statuses,
+      },
+      `${c.name}: every member's attempts and their statuses after the end, whether the sitting is final, and whether it awaits evaluation`,
+    );
+    assert.strictEqual(
+      awaiting,
+      yield* unsettledNow,
+      `${c.name}: an ended sitting awaits evaluation exactly where it holds an attempt not final (UnsettledSitting), the definition AwaitingEvaluation replaces`,
     );
   });
 
@@ -7109,7 +7134,7 @@ describe.skipIf(Option.isNone(lease))(
                     literal: (c: ShownCase) => c.name,
                     oracle: {
                       kind: "specification",
-                      name: "shownExpectedOf: a save is of a member shown (§2.2.1, §2.3), the end of a simultaneous part submits every shown member and none never shown (Tables 5.159.5, 7.19.6, 5.115), and an attempt of a human-scored outcome is pendingExternalScoring (Results Reporting Table 2.7.7)",
+                      name: "shownExpectedOf: a save is of a member shown (§2.2.1, §2.3), the end of a simultaneous part submits every shown member and none never shown (Tables 5.159.5, 7.19.6, 5.115), and an attempt of a human-scored outcome is pendingExternalScoring (Results Reporting Table 2.7.7), its sitting awaiting evaluation (ended and not final) exactly where it holds an attempt not final",
                     },
                     suite: "ledger/results/shown",
                   },
