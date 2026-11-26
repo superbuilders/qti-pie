@@ -18,8 +18,8 @@ import {
   testContext,
   testRun,
 } from "#processing/test/run.ts";
-import { nullOf, single } from "#processing/value.ts";
-import type { Value } from "#processing/value.ts";
+import { container, isText, nullOf, recordOf, single, valueTypeOf } from "#processing/value.ts";
+import type { Text, Value, ValueType } from "#processing/value.ts";
 
 const operators = Object.freeze({ ...comparisonOperators, ...valuesOperators });
 
@@ -178,6 +178,69 @@ const rounded = (
       singleBoolean,
     ),
   );
+
+/**
+ * An identifier the tests know is not empty.
+ *
+ * @param written - The identifier.
+ * @returns It, as a Text.
+ */
+const text = (written: string): Text => (isText(written) ? written : assert.fail("empty text"));
+
+/**
+ * The values `qti-match` is held over, each a variable of its own name.
+ */
+const matched = Object.freeze({
+  bagAAB: { value: container("multiple", "identifier", [text("A"), text("A"), text("B")]) },
+  bagAB: { value: container("multiple", "identifier", [text("A"), text("B")]) },
+  bagABA: { value: container("multiple", "identifier", [text("A"), text("B"), text("A")]) },
+  listAB: { value: container("ordered", "identifier", [text("A"), text("B")]) },
+  listBA: { value: container("ordered", "identifier", [text("B"), text("A")]) },
+  pairAB: { value: single("pair", { first: text("A"), second: text("B") }) },
+  pairBA: { value: single("pair", { first: text("B"), second: text("A") }) },
+  recordFloat: {
+    value: recordOf([
+      { name: "n", value: single("float", 1) },
+      { name: "s", value: single("string", text("x")) },
+    ]),
+  },
+  recordOne: {
+    value: recordOf([
+      { name: "n", value: single("integer", 1n) },
+      { name: "s", value: single("string", text("x")) },
+    ]),
+  },
+  recordTwo: {
+    value: recordOf([
+      { name: "s", value: single("string", text("x")) },
+      { name: "n", value: single("integer", 1n) },
+    ]),
+  },
+} satisfies Readonly<Record<string, { readonly value: Value }>>);
+
+const { run: matchRun } = testRun(operators, matched, {});
+
+/**
+ * A stated value's read.
+ *
+ * @param name - Its variable.
+ * @returns The `qti-variable`.
+ */
+const stated = (name: keyof typeof matched): Expression => {
+  const type: ValueType = valueTypeOf(matched[name].value);
+
+  return nodeOf("variable", [], { variable: ownVariable(name, type) }, { kind: "typed", type });
+};
+
+/**
+ * A `qti-match`'s value.
+ *
+ * @param left - The first operand.
+ * @param right - The second operand.
+ * @returns Its value.
+ */
+const match = (left: Expression, right: Expression): Value =>
+  matchRun.evaluate(nodeOf("match", [left, right], {}, singleBoolean));
 
 describe("the comparison family's laws", () => {
   it.effect(
@@ -444,6 +507,45 @@ describe("the comparison family's attributes", () => {
           },
           roundingMode: "significantFigures",
         },
+      },
+    );
+  });
+});
+
+describe("qti-match", () => {
+  it("compares a multiple as a multiset, an ordered by position, a pair unordered and a record field by field (§2.11.3.28)", () => {
+    assert.deepStrictEqual(match(stated("bagAAB"), stated("bagABA")), single("boolean", true));
+    assert.deepStrictEqual(match(stated("bagAAB"), stated("bagAB")), single("boolean", false));
+    assert.deepStrictEqual(match(stated("listAB"), stated("listBA")), single("boolean", false));
+    assert.deepStrictEqual(match(stated("listAB"), stated("listAB")), single("boolean", true));
+    assert.deepStrictEqual(match(stated("pairAB"), stated("pairBA")), single("boolean", true));
+    assert.deepStrictEqual(
+      match(stated("recordOne"), stated("recordTwo")),
+      single("boolean", true),
+    );
+    assert.deepStrictEqual(
+      match(stated("recordOne"), stated("recordFloat")),
+      single("boolean", false),
+    );
+  });
+
+  it("a NaN matches nothing and -0 matches 0; NULL gives NULL (§2.11.3.28)", () => {
+    assert.deepStrictEqual(match(float(Number.NaN), float(Number.NaN)), single("boolean", false));
+    assert.deepStrictEqual(match(float(-0), float(0)), single("boolean", true));
+    assert.deepStrictEqual(
+      match(float(1), literal(nullOf({ base: "float", cardinality: "single" }))),
+      booleanNull,
+    );
+  });
+
+  it("refuses operands of two types or of base type duration (reading `index-and-delete-operands`)", () => {
+    assert.isFalse(comparisonOperators.match.typing([integer(1n), float(1)], {}, 0).ok);
+    assert.isFalse(comparisonOperators.match.typing([duration(1), duration(1)], {}, 0).ok);
+    assert.deepStrictEqual(
+      comparisonOperators.match.typing([stated("bagAAB"), stated("bagAB")], {}, 0),
+      {
+        ok: true,
+        value: singleBoolean,
       },
     );
   });

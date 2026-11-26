@@ -1,7 +1,8 @@
 /**
  * The comparison family: `qti-lt`, `qti-gt`, `qti-lte`, `qti-gte`, `qti-equal`,
  * `qti-equal-rounded`, `qti-duration-lt` and `qti-duration-gte` (sections 2.11.3.3, 2.11.3.4,
- * 2.11.3.20–23, 26 and 27). `qti-match` is the values family's.
+ * 2.11.3.20–23, 26, 27 and 28). `qti-match` compares as value.ts's `sameScalar` compares members,
+ * the one implementation of "the same value".
  *
  * Numbers compare by their exact values, an integer against a float included (reading
  * `integer-unbounded`), so the integer 9007199254740993 is greater than the float 9007199254740992.
@@ -23,8 +24,9 @@ import {
   sameDecimal,
 } from "#processing/numbers.ts";
 import type { NumberScalar, Order } from "#processing/numbers.ts";
-import type { AttributesOf, Node } from "#processing/ir.ts";
+import type { AttributesOf, Expression, Node, StaticType } from "#processing/ir.ts";
 import { numberOf, roundedOf, roundingAttributes } from "#processing/operators/arithmetic.ts";
+import { membersOf } from "#processing/operators/containers.ts";
 import type { Rounded, RoundingMode } from "#processing/operators/arithmetic.ts";
 import {
   booleanAttribute,
@@ -49,8 +51,8 @@ import type {
 } from "#processing/operators/operator.ts";
 import { floatAttribute, integerAttribute } from "#processing/run.ts";
 import type { Run } from "#processing/run.ts";
-import { nullOf, single } from "#processing/value.ts";
-import type { Value } from "#processing/value.ts";
+import { nullOf, sameScalar, sameValueType, single, valueTypeOf } from "#processing/value.ts";
+import type { BaseType, Present, RecordValue, Scalars, Value } from "#processing/value.ts";
 import type { XmlElement } from "#processing/xml.ts";
 
 /**
@@ -309,6 +311,151 @@ export const equalRoundedOf = (
 };
 
 /**
+ * Whether two lists of one base type hold the same members, each matched once: a multiset's
+ * equality.
+ *
+ * @param base - The base type.
+ * @param left - The one list.
+ * @param right - The other.
+ * @returns Whether they are one multiset.
+ */
+const sameBag = <B extends BaseType>(
+  base: B,
+  left: readonly Scalars[B][],
+  right: readonly Scalars[B][],
+): boolean => {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  const unmatched = [...right];
+
+  return left.every((member) => {
+    const at = unmatched.findIndex((held) => sameScalar(base, held, member));
+    if (at === -1) {
+      return false;
+    }
+
+    unmatched.splice(at, 1);
+
+    return true;
+  });
+};
+
+/**
+ * Whether two lists of one base type hold the same members in the same places.
+ *
+ * @param base - The base type.
+ * @param left - The one list.
+ * @param right - The other.
+ * @returns Whether they are one sequence.
+ */
+const sameSequence = <B extends BaseType>(
+  base: B,
+  left: readonly Scalars[B][],
+  right: readonly Scalars[B][],
+): boolean =>
+  left.length === right.length &&
+  left.every((member, at) => {
+    const other = right[at];
+
+    return other !== undefined && sameScalar(base, member, other);
+  });
+
+/**
+ * Whether two records are the same: the same field names, each field's value of one base type and
+ * the same (records are sorted by name, so field i meets field i).
+ *
+ * @param left - The one record.
+ * @param right - The other.
+ * @returns Whether they are one record.
+ */
+const sameRecord = (left: RecordValue, right: RecordValue): boolean =>
+  left.fields.length === right.fields.length &&
+  left.fields.every((field, at) => {
+    const other = right.fields[at];
+    if (other === undefined || other.name !== field.name) {
+      return false;
+    }
+
+    const { base } = field.value;
+    const [one] = membersOf(base, field.value) ?? [];
+    const [two] = membersOf(base, other.value) ?? [];
+
+    return one !== undefined && two !== undefined && sameScalar(base, one, two);
+  });
+
+/**
+ * Whether two present values of one type are the same value (section 2.11.3.28): a single by
+ * `sameScalar`, a multiple as a multiset, an ordered position by position, a record field by field.
+ *
+ * @param left - The one value.
+ * @param right - The other, of the same type.
+ * @returns Whether they are the same.
+ */
+const sameValue = (left: Present, right: Present): boolean => {
+  if (left.kind === "record") {
+    return right.kind === "record" && sameRecord(left, right);
+  }
+
+  const { base } = left;
+  const one = membersOf(base, left);
+  const other = membersOf(base, right);
+  if (one === undefined || other === undefined) {
+    return false;
+  }
+
+  return left.kind === "multiple" ? sameBag(base, one, other) : sameSequence(base, one, other);
+};
+
+/**
+ * The value of `qti-match`: whether the two values, of one base type and cardinality, are the same
+ * value (section 2.11.3.28).
+ *
+ * @param left - The first operand's value.
+ * @param right - The second operand's value.
+ * @returns The truth; NULL where either is NULL, or where the two differ in type, which no static
+ *   type admits and only a dynamic operand gives.
+ */
+export const matchOf = (left: Value, right: Value): Value => {
+  if (left.kind === "null" || right.kind === "null") {
+    return booleanNull;
+  }
+
+  return sameValueType(valueTypeOf(left), valueTypeOf(right))
+    ? truth(sameValue(left, right))
+    : booleanNull;
+};
+
+/**
+ * The typing of `qti-match`: two operands of one type where both are known, never duration ("must
+ * not be used on sub-expressions of base-type duration", section 2.11.3.28, reading
+ * `index-and-delete-operands`).
+ *
+ * @param operands - The two operands.
+ * @param place - The operator's place.
+ * @returns The single boolean, or the refusal.
+ */
+const matchTyping = (
+  operands: readonly [Expression, Expression],
+  place: number,
+): Checked<StaticType> => {
+  const [left, right] = operands;
+  const duration = operands.some(
+    ({ type }) =>
+      type.kind === "typed" && type.type.cardinality !== "record" && type.type.base === "duration",
+  );
+  const differ =
+    left.type.kind === "typed" &&
+    right.type.kind === "typed" &&
+    !sameValueType(left.type.type, right.type.type);
+
+  return duration || differ
+    ? refused("operand-type", place, "write two operands of one type other than duration")
+    : checked(singleBoolean);
+};
+
+/**
  * A single numeric operand.
  */
 const singleNumber: OperandRule = { bases: ["float", "integer"], cardinalities: ["single"] };
@@ -451,7 +598,7 @@ const toleranceOf = (node: Node<"equal">, run: Run): Tolerance | "exact" | undef
  * The comparison family's operators.
  */
 export const comparisonOperators: OperatorTable<
-  "duration-gte" | "duration-lt" | "equal" | "equal-rounded" | "gt" | "gte" | "lt" | "lte"
+  "duration-gte" | "duration-lt" | "equal" | "equal-rounded" | "gt" | "gte" | "lt" | "lte" | "match"
 > = {
   "duration-gte": durationOrder("gte"),
   "duration-lt": durationOrder("lt"),
@@ -484,4 +631,11 @@ export const comparisonOperators: OperatorTable<
   gte: inequalityOperator("gte"),
   lt: inequalityOperator("lt"),
   lte: inequalityOperator("lte"),
+  match: {
+    arity: twoOperands,
+    evaluate: (node, run) =>
+      matchOf(run.evaluate(node.operands[0]), run.evaluate(node.operands[1])),
+    read: noAttributes,
+    typing: (operands, _attributes, place) => matchTyping(operands, place),
+  },
 };
