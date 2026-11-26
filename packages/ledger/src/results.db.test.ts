@@ -140,6 +140,7 @@
  */
 import { Sha256 } from "@bjornpagen/grizzle";
 import { factsDecoder } from "@bjornpagen/grizzle/compile";
+import { compareCodePoints } from "@bjornpagen/grizzle-text/text";
 import type { BrokenLaws } from "@bjornpagen/grizzle";
 import { Db } from "@bjornpagen/grizzle/runtime";
 import { drawn as drawnBy, exhaust, explore } from "@bjornpagen/testing/explore";
@@ -1685,17 +1686,35 @@ const refusedBy = (refused: BrokenLaws, ...names: readonly LedgerLawName[]) =>
   refusedLawsOf(refused).some(({ law }) => names.some((name) => law.entry.name === name));
 
 /**
- * A read's float outcomes in the variable order the tables state them: floatsOf reads a union of
- * two rules (a snapshot's value, an assertion's), whose key grizzle proves is its whole heading, so
- * it arrives ordered by value before variable, no order a table states.
+ * The order of a read of values in force whose key grizzle proves is its whole heading, `(value,
+ * variable)` under its session: by value in its type's order, then by variable in code point
+ * order, a text's order in the database (grizzle's canonical order, ORDERKEY). Each value in
+ * force is a union of two rules (a snapshot's value, an assertion's), so no narrower key is proved.
+ *
+ * @param value - The values' order.
+ * @param valueOf - A row's value.
+ * @returns The rows' order.
+ */
+const valueThenVariable = <R extends readonly [string, ...(readonly unknown[])], V>(
+  value: Order.Order<V>,
+  valueOf: (row: R) => V,
+): Order.Order<R> =>
+  Order.combine(
+    Order.mapInput(value, valueOf),
+    Order.mapInput(Order.make(compareCodePoints), (row: R) => row[0]),
+  );
+
+/**
+ * A table's float outcomes, `[variable, value]`, restated in the order floatsOf delivers them, by
+ * value and then variable ({@link valueThenVariable}).
  *
  * @param floats - Each outcome's variable and value.
- * @returns Them by variable.
+ * @returns Them in the read's order.
  */
-const byVariableOf = (floats: readonly (readonly [string, number])[]) =>
+const inFloatsOrder = (floats: readonly (readonly [string, number])[]) =>
   Arr.sort(
     floats,
-    Order.mapInput(Order.String, (row: readonly [string, number]) => row[0]),
+    valueThenVariable(Order.Number, ([, value]: readonly [string, number]) => value),
   );
 
 /**
@@ -1887,8 +1906,8 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
       `${c.name}: ApplicationDraw, the essay's two literal draws`,
     );
     assert.deepStrictEqual<unknown>(
-      byVariableOf(Arr.fromIterable(floatRows).map((row) => [row.variable, row.value] as const)),
-      want.floats,
+      Arr.fromIterable(floatRows).map((row) => [row.variable, row.value] as const),
+      inFloatsOrder(want.floats),
       `${c.name}: floats in force`,
     );
     assert.deepStrictEqual<unknown>(
@@ -2179,12 +2198,10 @@ const holdOperators = (
     assert.deepStrictEqual<unknown>(
       {
         credit: Arr.fromIterable(creditRows).map((row) => [row.earned, row.maximum, row.kind]),
-        floats: byVariableOf(
-          Arr.fromIterable(floatRows).map((row) => [row.variable, row.value] as const),
-        ),
+        floats: Arr.fromIterable(floatRows).map((row) => [row.variable, row.value] as const),
         status: Arr.fromIterable(statusRows).map((row) => row.status),
       },
-      { credit: want.credit, floats: want.floats, status: ["final"] },
+      { credit: want.credit, floats: inFloatsOrder(want.floats), status: ["final"] },
       `${c.name}: graded through the ledger's own grading, its operators given the registry's tables`,
     );
   });
@@ -2222,7 +2239,7 @@ const patternsSpace: Gen<PatternsCase> = (source) => {
  * @param c - The case.
  * @returns The float outcomes in force, by name.
  */
-const patternsExpectedOf = (c: PatternsCase) =>
+const patternsExpectedOf = (c: PatternsCase): readonly (readonly [string, number])[] =>
   c.item === "item"
     ? [
         ["DECLARED", c.answer === "digits" ? 1 : 0],
@@ -2310,12 +2327,10 @@ const holdPatterns = (
     const floatRows = yield* db.workload.floatsOf.once(atChild);
     assert.deepStrictEqual<unknown>(
       {
-        floats: byVariableOf(
-          Arr.fromIterable(floatRows).map((row) => [row.variable, row.value] as const),
-        ),
+        floats: Arr.fromIterable(floatRows).map((row) => [row.variable, row.value] as const),
         status: Arr.fromIterable(statusRows).map((row) => row.status),
       },
-      { floats: patternsExpectedOf(c), status: ["final"] },
+      { floats: inFloatsOrder(patternsExpectedOf(c)), status: ["final"] },
       `${c.name}: a braced pattern read by the run's own declarations, through the ledger's own grading`,
     );
   });
@@ -2435,7 +2450,8 @@ const reviewSpace: Gen<ReviewCase> = map(element(endings), (ending): ReviewCase 
  * status its response processing left (none while it is pending), its single values in force and
  * its multiple values, each `[variable, base type, value]` (a multiple's with its count), its
  * credit `[earned, maximum, kind]`, and each mark `[variable, value, mark]`, every mark of a
- * multiple at place 0 covering one copy.
+ * multiple at place 0 covering one copy. Each list is in the order the read delivers it, its
+ * result key's.
  */
 type ReviewRow = Readonly<{
   credit: readonly (readonly [number, number, string])[];
@@ -2470,6 +2486,12 @@ const reviewCreditOf = (score: number, maximum: number): string => {
  * (no point the checklist offers outside the model is ever ticked here). DRAWN, a boolean with no
  * correct response, has no mark.
  *
+ * Each list is in the review read's order. A text mark's key is its whole heading, (baseType,
+ * copies, mark, place, value, variable), and each here is an identifier's one copy at place 0, so
+ * the marks come by mark, the missed before the right, then by value. The singles in force come a
+ * base type's after another's in the order the case merges the read's arrays (boolean, float,
+ * identifier, string), and each array by value and then variable ({@link valueThenVariable}).
+ *
  * @param adaptive Whether the item is the adaptive one.
  * @param ended How each attempt ended.
  * @returns The row.
@@ -2484,8 +2506,10 @@ const drawRowOf = (adaptive: boolean, ended: readonly Ending[]): ReviewRow => {
     credit: after.score.flatMap((score) =>
       after.maxScore.map((maximum) => [score, maximum, reviewCreditOf(score, maximum)] as const),
     ),
-    marks: drawPoints.map(
-      (point) => ["RESPONSE", point, ticked.includes(point) ? "right" : "missed"] as const,
+    marks: (["missed", "right"] as const).flatMap((mark) =>
+      drawPoints
+        .filter((point) => ticked.includes(point) === (mark === "right"))
+        .map((point) => ["RESPONSE", point, mark] as const),
     ),
     multiples: [
       ...after.feedback.map((value) => ["FEEDBACK", "identifier", value, 1n] as const),
@@ -2494,11 +2518,21 @@ const drawRowOf = (adaptive: boolean, ended: readonly Ending[]): ReviewRow => {
     path: drawPathOf(adaptive),
     processed: [after.status],
     singles: [
-      ["DRAWN", "boolean", drawn],
+      ...Arr.sort(
+        [
+          ["DRAWN", "boolean", drawn] as const,
+          ...after.hintNull.map((value) => ["HINT_NULL", "boolean", value] as const),
+        ],
+        valueThenVariable(Order.Boolean, (single: readonly [string, string, boolean]) => single[2]),
+      ),
+      ...Arr.sort(
+        [
+          ...after.maxScore.map((value) => ["MAXSCORE", "float", value] as const),
+          ...after.score.map((value) => ["SCORE", "float", value] as const),
+        ],
+        valueThenVariable(Order.Number, (single: readonly [string, string, number]) => single[2]),
+      ),
       ...after.hint.map((value) => ["HINT", "identifier", value] as const),
-      ...after.hintNull.map((value) => ["HINT_NULL", "boolean", value] as const),
-      ...after.maxScore.map((value) => ["MAXSCORE", "float", value] as const),
-      ...after.score.map((value) => ["SCORE", "float", value] as const),
     ],
   };
 };
@@ -2823,30 +2857,21 @@ const holdReview = (c: ReviewCase, child: string, note: (situation: ReviewSituat
 
           return {
             credit: row.credit.map(({ earned, kind, maximum }) => [earned, maximum, kind] as const),
-            marks: Arr.sort(
-              marked.text.map((mark) => {
-                assert.deepStrictEqual<unknown>(
-                  [mark.baseType, mark.place, mark.copies],
-                  ["identifier", 0n, 1n],
-                  `${c.name}, ${row.path}: a multiple's mark at place 0, one copy`,
-                );
+            marks: marked.text.map((mark) => {
+              assert.deepStrictEqual<unknown>(
+                [mark.baseType, mark.place, mark.copies],
+                ["identifier", 0n, 1n],
+                `${c.name}, ${row.path}: a multiple's mark at place 0, one copy`,
+              );
 
-                return [mark.variable, mark.value, mark.mark] as const;
-              }),
-              Order.mapInput(Order.String, (mark: readonly [string, string, string]) => mark[1]),
-            ),
+              return [mark.variable, mark.value, mark.mark] as const;
+            }),
             multiples,
             path: row.path,
             processed: Option.toArray(
               row.processed.pipe(Option.map(({ completionStatus }) => completionStatus)),
             ),
-            singles: Arr.sort(
-              singles,
-              Order.mapInput(
-                Order.String,
-                ([variable]: readonly [string, string, unknown]) => variable,
-              ),
-            ),
+            singles,
           } satisfies ReviewRow;
         }),
       ),
