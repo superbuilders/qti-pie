@@ -57,23 +57,25 @@ const UnassembledReference = derived(
 );
 
 /**
- * Each token of an instance's document under the instance's assembly (spec reading 117), by its
- * SHA-256: every {@link catalogReferences} token of the document each `Instance` places, which
- * resolves among its assembly's catalogs. A document is assembled exactly where an instance places
- * it (the laws {@link UnassembledReference} cites), so every token of an assembled document is here
- * once for each assembly that places it, and the join is complete by its definition, with no row
- * stored or counted. It resolves among {@link AssembledCatalog}.
+ * Each token of an instance's document under the instance's assembly (spec reading
+ * `fragment-placement`), by the instance, the token's element's place and the token's SHA-256:
+ * every {@link catalogReferences} token of the document each `Instance` places, which resolves among
+ * its assembly's catalogs. A document is assembled exactly where an instance places it (the laws
+ * {@link UnassembledReference} cites), so every token of an assembled document is here once for each
+ * instance that places it, keyed by the instance and the token as each holds it, and no two
+ * placements' tokens are one row. It resolves among {@link AssembledCatalog} by its assembly and
+ * digest.
  */
 const PlacedReference = derived(
   "PlacedReference",
   query(QtiBase).rule((r) => {
-    const { assembly, document, package: pkg } = v(Instance, "instance");
-    const { tokenDigest } = v(catalogReferences, "reference");
+    const { assembly, document, package: pkg, start: instance } = v(Instance, "instance");
+    const { start, tokenDigest } = v(catalogReferences, "reference");
 
     return r
-      .match(Instance, { assembly, document, package: pkg })
-      .match(catalogReferences, { package: pkg, path: document, tokenDigest })
-      .find({ assembly, package: pkg, tokenDigest });
+      .match(Instance, { assembly, document, package: pkg, start: instance })
+      .match(catalogReferences, { package: pkg, path: document, start, tokenDigest })
+      .find({ assembly, instance, package: pkg, start, tokenDigest });
   }),
 );
 
