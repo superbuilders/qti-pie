@@ -697,6 +697,36 @@ type ComparisonPlaced = "another symbol placed" | "nothing placed" | "the key pl
 type Situation<E extends Edit, P extends string> = "answering" | "review" | E | P | Screen | Theme;
 
 /**
+ * Give what a page of the number line places: nothing, every card, or some of them.
+ *
+ * @param pairs The cards placed, each by card and gap.
+ * @returns What it places.
+ */
+const numberLinePlacedOf = (pairs: readonly (readonly [string, string])[]): NumberLinePlaced => {
+  if (pairs.length === 0) {
+    return "nothing placed";
+  }
+
+  return pairs.length === numberLineCards.length ? "every card placed" : "some cards placed";
+};
+
+/**
+ * Give what a page of the comparison places in its gap: nothing, the key, or another symbol.
+ *
+ * @param pairs The cards placed, each by card and gap.
+ * @returns What it places.
+ */
+const comparisonPlacedOf = (pairs: readonly (readonly [string, string])[]): ComparisonPlaced => {
+  if (pairs.length === 0) {
+    return "nothing placed";
+  }
+
+  return pairs.some(([card]) => card === comparisonKey)
+    ? "the key placed"
+    : "another symbol placed";
+};
+
+/**
  * Give the situations a page of the number line is: its theme, its screen, its mode, its edit, and
  * whether it places nothing, some of its cards or every one.
  *
@@ -710,11 +740,7 @@ const numberLineSituations = (
   page.screen,
   page.mode,
   page.edit,
-  page.pairs.length === 0
-    ? "nothing placed"
-    : page.pairs.length === numberLineCards.length
-      ? "every card placed"
-      : "some cards placed",
+  numberLinePlacedOf(page.pairs),
 ];
 
 /**
@@ -731,11 +757,7 @@ const comparisonSituations = (
   page.screen,
   page.mode,
   page.edit,
-  page.pairs.length === 0
-    ? "nothing placed"
-    : page.pairs.some(([card]) => card === comparisonKey)
-      ? "the key placed"
-      : "another symbol placed",
+  comparisonPlacedOf(page.pairs),
 ];
 
 describe("Alpha's Gap Match layouts, measured in Chrome", () => {

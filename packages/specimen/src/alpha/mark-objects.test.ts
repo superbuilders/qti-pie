@@ -92,7 +92,7 @@ import {
 } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Context, Duration, Effect, Formatter, Layer, Option } from "effect";
+import { Array as Arr, Context, Duration, Effect, Formatter, Layer, Option } from "effect";
 import { statuses } from "#specimen/alpha/mark-objects.dictionary.ts";
 import { markItem, ringPage } from "#specimen/alpha/mark-objects.ts";
 import type {
@@ -914,7 +914,7 @@ const variedOf = (golden: Golden, item: MarkItem, variation: Variation): MarkIte
  * The markup the PCI is handed, as MO6's rules read it: how many elements it holds, whether it
  * holds text, and its picture as written.
  */
-interface Shape {
+interface HandedMarkup {
   readonly elements: number;
   readonly picture: PictureWriting;
   readonly text: boolean;
@@ -924,9 +924,9 @@ interface Shape {
  * Give the markup a variation hands the PCI.
  *
  * @param variation The part written otherwise.
- * @returns The markup's shape.
+ * @returns The markup as MO6's rules read it.
  */
-const shapeOf = (variation: Variation): Shape => {
+const handedMarkupOf = (variation: Variation): HandedMarkup => {
   switch (variation.kind) {
     case "markup": {
       return {
@@ -955,7 +955,7 @@ const countingOf = (text: string | undefined): Option.Option<number> =>
   text !== undefined &&
   text !== "" &&
   !text.startsWith("0") &&
-  Array.from(text).every((character) => character >= "0" && character <= "9")
+  Arr.fromIterable(text).every((character) => character >= "0" && character <= "9")
     ? Option.some(Number(text))
     : Option.none();
 
@@ -1002,9 +1002,9 @@ const countingRefusals = (name: string, text: string | undefined): readonly stri
  * @returns The refusals, none when the layout's properties fit it.
  */
 const layoutRefusals = (properties: Readonly<Record<string, string>>): readonly string[] => {
-  const layout = properties["layout"];
+  const { layout } = properties;
   const count = countingOf(properties["objects"]);
-  const perRow = properties["perRow"];
+  const { perRow } = properties;
   const beyond = (kind: "rows" | "scatter"): readonly string[] =>
     Option.match(count, {
       onNone: () => [],
@@ -1099,22 +1099,22 @@ const pictureRefusals = (picture: PictureWriting): readonly string[] => {
  * one picture and no text; and that picture.
  *
  * @param properties The PCI's properties.
- * @param shape The markup the PCI is handed.
+ * @param markup The markup the PCI is handed.
  * @returns The refusals, none for an item the PCI runs.
  */
 const refusalsOf = (
   properties: Readonly<Record<string, string>>,
-  shape: Shape,
+  markup: HandedMarkup,
 ): readonly string[] => [
   ...Object.keys(properties)
     .filter((name) => !contract.has(name) && !qtiOwn.has(name))
     .map((name) => `its property ${attributeOf(name)} is none of the PCI's`),
   ...countingRefusals("objects", properties["objects"]),
   ...layoutRefusals(properties),
-  ...(shape.elements === 1 && !shape.text
-    ? pictureRefusals(shape.picture)
+  ...(markup.elements === 1 && !markup.text
+    ? pictureRefusals(markup.picture)
     : [
-        `its markup holds ${String(shape.elements)} elements${shape.text ? " and text" : ""}; give it exactly one img`,
+        `its markup holds ${String(markup.elements)} elements${markup.text ? " and text" : ""}; give it exactly one img`,
       ]),
 ];
 
@@ -1206,12 +1206,17 @@ const handedStates: Gen<HandedState> = (source) => ({
 const HANDED_STATES = 6 * (1 + 6 + 6 * 6);
 
 /**
+ * A state as a case hands it the PCI: a text the host hands, or an object where it hands no text.
+ */
+type StateHanded = string | { readonly ringed: readonly number[] };
+
+/**
  * Give the state a case hands the PCI.
  *
  * @param handed The case.
  * @returns The state, as the host hands it.
  */
-const stateOf = ({ places, writing }: HandedState): unknown => {
+const stateOf = ({ places, writing }: HandedState): StateHanded => {
   switch (writing) {
     case "as getState writes it": {
       return JSON.stringify({ ringed: places });
@@ -1284,12 +1289,22 @@ const handedBounds: Gen<HandedBound> = (source) => ({
 const HANDED_BOUNDS = 5 * 6;
 
 /**
+ * A bound value as a case binds the PCI to it: Appendix C's JSON of an integer, of the integer's
+ * text, of a string or of a number with a half, or an object with no base.
+ */
+type BoundHanded =
+  | { readonly base: { readonly integer: number } }
+  | { readonly base: { readonly integer: string } }
+  | { readonly base: { readonly string: string } }
+  | { readonly integer: number };
+
+/**
  * Give the bound value a case binds the PCI to.
  *
  * @param handed The case.
  * @returns The bound value.
  */
-const boundOf = ({ count, writing }: HandedBound): unknown => {
+const boundOf = ({ count, writing }: HandedBound): BoundHanded => {
   switch (writing) {
     case "an integer": {
       return { base: { integer: count } };
@@ -1523,7 +1538,7 @@ layer(RingLayer, { timeout: Duration.millis(ruleHang) })("the mark-objects PCI",
               Effect.gen(function* refused() {
                 const golden = goldenOf(`alpha-mark-objects-${layout}`);
                 const item = variedOf(golden, yield* Effect.orDie(markItem(golden.id)), variation);
-                const broken = refusalsOf(item.properties, shapeOf(variation));
+                const broken = refusalsOf(item.properties, handedMarkupOf(variation));
                 const outcome = yield* Effect.orDie(page.start(item, {}));
 
                 if (broken.length === 0) {

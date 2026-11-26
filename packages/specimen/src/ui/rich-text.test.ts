@@ -597,7 +597,7 @@ const fragmentOf = (xhtml: string) =>
  * its class and a link by its address; how deep they stand, so a format written twice shows; and
  * the word.
  */
-interface Shape {
+interface LineXhtml {
   readonly block: string;
   readonly classes: ReadonlySet<string>;
   readonly depth: number;
@@ -620,13 +620,13 @@ const classesOf = (node: XmlElement): ReadonlySet<string> =>
   );
 
 /**
- * Read the shape of a line's XHTML ({@link Shape}).
+ * Read the shape of a line's XHTML ({@link LineXhtml}).
  *
  * @param xhtml The line's XHTML.
  * @returns Its shape; fails where crust's reader refuses it.
  */
-const shapeOf = (xhtml: string) =>
-  Effect.map(fragmentOf(xhtml), (children): Shape => {
+const lineXhtmlOf = (xhtml: string) =>
+  Effect.map(fragmentOf(xhtml), (children): LineXhtml => {
     const [outer, ...others] = elementsIn(children);
 
     if (outer === undefined || others.length > 0) {
@@ -678,7 +678,7 @@ const alignClasses = {
  * @param word The case.
  * @returns The shape.
  */
-const shapeWritten = ({ line, run }: OneWord): Shape => {
+const lineXhtmlExpected = ({ line, run }: OneWord): LineXhtml => {
   const inline = new Set([
     ...(run.bold ? ["strong"] : []),
     ...(run.italic ? ["em"] : []),
@@ -839,6 +839,21 @@ const keptAddress = (link: string): Option.Option<string> =>
   );
 
 /**
+ * Give the block a line's format writes in review: its list's `ol` or `ul` with its `li`, its
+ * header's `h1` to `h6`, or a paragraph.
+ *
+ * @param format The line's format.
+ * @returns The block's elements, as {@link ReviewLine} names them.
+ */
+const reviewBlockOf = (format: LineFormat): string => {
+  if (format.list !== undefined) {
+    return `${format.list === "ordered" ? "ol" : "ul"} li`;
+  }
+
+  return format.header === undefined ? "p" : `h${String(format.header)}`;
+};
+
+/**
  * The lines RT4's rules give a review of a document plate wrote: each line its block, alignment
  * and indent, each run its marks, its text and its link's kept address.
  *
@@ -848,12 +863,7 @@ const keptAddress = (link: string): Option.Option<string> =>
 const reviewExpected = (document: readonly Line[]): readonly ReviewLine[] =>
   document.map(({ format, runs }) => ({
     align: Option.fromUndefinedOr(format.align),
-    block:
-      format.list === undefined
-        ? format.header === undefined
-          ? "p"
-          : `h${String(format.header)}`
-        : `${format.list === "ordered" ? "ol" : "ul"} li`,
+    block: reviewBlockOf(format),
     indent: format.indent,
     runs: runs.map(({ format: run, text }) => ({
       link: run.link === undefined ? Option.none() : Option.some(keptAddress(run.link)),
@@ -1098,7 +1108,7 @@ describe("the rich-text essay's value", () => {
                 const line = lineOf(word);
                 const xhtml = xhtmlOfLines([line]);
 
-                assert.deepStrictEqual(yield* shapeOf(xhtml), shapeWritten(word), xhtml);
+                assert.deepStrictEqual(yield* lineXhtmlOf(xhtml), lineXhtmlExpected(word), xhtml);
                 assert.isTrue(sameDocument(linesOfXhtml(xhtml), [line]), `${xhtml} reads back`);
               }),
           ),
