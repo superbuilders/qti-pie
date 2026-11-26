@@ -789,8 +789,8 @@ export const Lesson = derived("Lesson", lessons);
 export const Supersedes = derived("Supersedes", supersessions);
 
 /**
- * Each earlier package a package of a lesson names, by that lesson: who claims it within the
- * lesson.
+ * Each earlier package a package of a lesson names, by that lesson and the package that claims it
+ * within the lesson, `package`.
  */
 const lessonClaims = query(QtiLomVocabulary).rule((r) => {
   const { earlier, package: pkg } = v(supersessions, "supersession");
@@ -799,7 +799,7 @@ const lessonClaims = query(QtiLomVocabulary).rule((r) => {
   return r
     .match(supersessions, { earlier, package: pkg })
     .match(lessons, { catalog, entry, package: pkg })
-    .find({ catalog, earlier, entry });
+    .find({ catalog, earlier, entry, package: pkg });
 });
 
 /**
@@ -879,15 +879,16 @@ export const PackageRelation = derived(
 /**
  * Each entry string each package's record gives a taxon, by the taxon: its source and id, and the
  * string as written, one per language a producer writes, each text beside the node it is the
- * string value of (`sourceNode`, `idNode`, `entryNode`), which key it.
+ * string value of (`sourceNode`, `idNode`, `entryNode`), which key it, beside its classification's
+ * purpose node (`purposeNode`), which keys a taxon of {@link taxa} with them.
  */
 const taxonEntries = query(QtiLomVocabulary).rule((r) => {
-  const { id, idNode, package: pkg, source, sourceNode, taxon } = v(taxa, "taxon");
+  const { id, idNode, package: pkg, purposeNode, source, sourceNode, taxon } = v(taxa, "taxon");
   const name = v(Node, "name");
   const string = v(Node, "string");
 
   return r
-    .match(taxa, { id, idNode, package: pkg, source, sourceNode, taxon })
+    .match(taxa, { id, idNode, package: pkg, purposeNode, source, sourceNode, taxon })
     .match(Node, {
       kind: "lom:entry.langString",
       package: pkg,
@@ -909,6 +910,7 @@ const taxonEntries = query(QtiLomVocabulary).rule((r) => {
       id,
       idNode,
       package: pkg,
+      purposeNode,
       source,
       sourceNode,
     });
