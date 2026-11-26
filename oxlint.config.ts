@@ -138,8 +138,9 @@ const effectFreeImports = Object.freeze({
  * engine: no Effect, Node built-in or PostgreSQL client at run time, none of the clock, timers,
  * ambient randomness, Promise, process or fetch, and no try, async, console, environment or bare
  * error. The override stands after the alpha/ ones, so an effect-free package's alpha/ keeps it,
- * and the one after it lets processing's registry, where its host plugs Alpha's operators in, and
- * its alpha/ modules import alpha/ under the same bans.
+ * and the ones after it let processing's one invariant door (`src/invariant.ts`, a defect of the
+ * package never its input) throw its Error, and processing's registry, where its host plugs Alpha's
+ * operators in, and its alpha/ modules import alpha/ under the same bans.
  */
 const effectFreeSources = toolchain.effectFree.map((directory) => `${directory}/src/**/*.ts`);
 
@@ -606,6 +607,10 @@ export default defineConfig({
         "typescript/no-import-type-side-effects": "error",
         "typescript/strict-boolean-expressions": "error",
       },
+    },
+    {
+      files: ["packages/processing/src/invariant.ts"],
+      rules: { "devtools/no-new-error": "off" },
     },
     {
       excludeFiles: effectFreeTests,

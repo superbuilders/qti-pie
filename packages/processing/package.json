@@ -15,6 +15,9 @@
     "typecheck": "sh -c 'toolchain-typecheck -p src/tsconfig.json \"$@\" & toolchain-typecheck -p tsconfig.json \"$@\"; source=$?; wait $! && exit $source' typecheck",
     "test": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" NODE_OPTIONS=\"$NODE_OPTIONS --disable-proto=delete --disable-sigusr1\" vitest run"
   },
+  "dependencies": {
+    "arkregex": "catalog:"
+  },
   "devDependencies": {
     "@bjornpagen/devtools": "workspace:*",
     "@bjornpagen/testing": "workspace:*",

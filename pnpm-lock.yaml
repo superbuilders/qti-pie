@@ -393,6 +393,10 @@ importers:
         version: 5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/processing:
+    dependencies:
+      arkregex:
+        specifier: 'catalog:'
+        version: 0.0.15
     devDependencies:
       '@bjornpagen/devtools':
         specifier: workspace:*

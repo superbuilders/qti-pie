@@ -8,19 +8,28 @@
  *
  * Two kinds:
  *
- * - **inline**: a pure, total, synchronous function of its operands. It never sees NULL: the entry
- *   gives NULL for a NULL operand, or one not of its declared type, before calling it, and a NULL
- *   result takes the declared result type.
+ * - **inline**: a pure, total, synchronous function of its operands.
  * - **recorded**: an answer computed outside the evaluator (an AI rubric verdict) and handed in as
  *   input, read by the operator's place in the document. Where none is recorded the run records a
  *   demand and its result is Pending (D7, D8).
  *
+ * An operand has one of two forms:
+ *
+ * - **expression**: computed at run time, of a declared type. QTI's NULL law covers it: a NULL
+ *   expression operand gives NULL of the declared result type, and the function never sees one.
+ * - **literal**: written as a `qti-base-value` or a `qti-null` and parsed when the document is
+ *   compiled, by the module's own `parse`, which reads NULL as the module defines it (a NULL
+ *   literal may mean the empty string or the empty set). A literal its `parse` refuses refuses the
+ *   document at publication. The compiled program holds the parsed value, and the function is
+ *   handed it.
+ *
  * A module is written against its typed operands ({@link InlineOperator}); {@link inlineOperator}
- * turns it into the uniform {@link CustomOperator} entry the registry lists and the evaluator
- * calls, so no module's operands are checked anywhere else.
+ * turns it into the uniform {@link CustomOperator} entry the registry lists, which the compiler
+ * binds to an element's literals ({@link InlineEntry.bind}) and the evaluator calls.
  *
  * @module
  */
+import { invariant } from "#processing/invariant.ts";
 import { nullOf, sameValueType, valueTypeOf } from "#processing/value.ts";
 import type {
   BaseType,
@@ -35,20 +44,41 @@ import type {
 } from "#processing/value.ts";
 
 /**
- * The type an operand or a result is declared with: a cardinality and base type, a record, or any
- * present value.
+ * The type an expression operand or a result is declared with: a cardinality and base type, a
+ * record, or any present value.
  */
 export type TypeSpec = ValueType | { readonly cardinality: "any" };
 
 /**
- * One operand of a custom operator: its name, its type, and whether the document must write it as
- * a `qti-base-value` (`literal`) or may compute it (`expression`).
+ * An operand computed at run time, of a declared type.
  */
-export interface OperandSpec {
-  readonly form: "expression" | "literal";
+export interface ExpressionOperand<T extends TypeSpec = TypeSpec> {
+  readonly form: "expression";
   readonly name: string;
-  readonly type: TypeSpec;
+  readonly type: T;
 }
+
+/**
+ * An operand the document writes as a literal, parsed when the document is compiled.
+ */
+export interface LiteralOperand<P = unknown> {
+  readonly form: "literal";
+  readonly name: string;
+  /**
+   * The literal's meaning: from the value written (NULL for a `qti-null`, or a value of `type`),
+   * the parsed value the function is handed, or `undefined` where the document is to be refused.
+   */
+  readonly parse: (value: Value) => P | undefined;
+  /**
+   * The type the literal is written in.
+   */
+  readonly type: ValueType;
+}
+
+/**
+ * One operand of a custom operator.
+ */
+export type OperandSpec = ExpressionOperand | LiteralOperand;
 
 /**
  * The single of each base type of a union of them.
@@ -79,14 +109,26 @@ export type PresentOf<S extends TypeSpec> = S extends {
       : Present;
 
 /**
- * The operands an inline operator's function is handed, each present, in declared order.
+ * What the function is handed for an operand: a literal's parsed value, or an expression operand's
+ * present value.
+ */
+export type ArgumentOf<O extends OperandSpec> =
+  O extends LiteralOperand<infer P>
+    ? P
+    : O extends ExpressionOperand<infer T>
+      ? PresentOf<T>
+      : never;
+
+/**
+ * The operands an inline operator's function is handed, in declared order.
  */
 export type ArgumentsOf<Operands extends readonly OperandSpec[]> = {
-  readonly [I in keyof Operands]: PresentOf<Operands[I]["type"]>;
+  readonly [I in keyof Operands]: ArgumentOf<Operands[I]>;
 };
 
 /**
- * A result's declared type: a fixed type, or the type of one of its operands, by position.
+ * A result's declared type: a fixed type, or the type of one of its expression operands, by
+ * position (a literal operand's parsed value is no value a result can follow).
  */
 export type ResultSpec = ValueType | { readonly operand: number };
 
@@ -96,7 +138,9 @@ export type ResultSpec = ValueType | { readonly operand: number };
 export type ResultOf<R extends ResultSpec, Operands extends readonly OperandSpec[]> =
   | Null
   | (R extends { readonly operand: infer I extends number }
-      ? ArgumentsOf<Operands>[I]
+      ? Operands[I] extends ExpressionOperand<infer T>
+        ? PresentOf<T>
+        : never
       : R extends ValueType
         ? PresentOf<R>
         : never);
@@ -107,8 +151,7 @@ export type ResultOf<R extends ResultSpec, Operands extends readonly OperandSpec
 export const alphaDefinitionPrefix = "tag:superbuilders.school,2026:qti/custom-operator/";
 
 /**
- * An inline operator as its module writes it: a pure, total function of present operands of the
- * declared types.
+ * An inline operator as its module writes it: a pure, total function of its operands.
  */
 export interface InlineOperator<
   Definition extends string,
@@ -131,7 +174,7 @@ export interface InlineOperator<
  */
 export interface RecordedOperator<
   Definition extends string,
-  Operands extends readonly OperandSpec[],
+  Operands extends readonly ExpressionOperand[],
   R extends ValueType,
 > {
   readonly definition: Definition;
@@ -145,15 +188,30 @@ export interface RecordedOperator<
 }
 
 /**
- * An inline operator's registry entry, as the evaluator calls it.
+ * An inline operator bound to one element's literals: what the compiled program holds.
  */
-export interface InlineEntry<Definition extends string = string> {
-  readonly definition: Definition;
+export interface BoundOperator {
   /**
-   * The operator applied to its operands' values: NULL where an operand is NULL or not of its
-   * declared type, else the module's result, a NULL of it of the declared result type.
+   * The operator applied to its expression operands' values, in order: NULL of the declared result
+   * type where one is NULL, or is not of its declared type (a value only a dynamic expression,
+   * `qti-null` or a record field, can give), else the function's result, a NULL result of the
+   * declared type.
    */
   readonly evaluate: (operands: readonly Value[]) => Value;
+}
+
+/**
+ * An inline operator's registry entry.
+ */
+export interface InlineEntry<Definition extends string = string> {
+  /**
+   * Bind the operator to an element's operands as written: at each literal position the value
+   * written there, at each expression position `undefined`. It gives `undefined` where a literal's
+   * `parse` refuses its value, or where an operand stands in the wrong form, and publication then
+   * refuses the document.
+   */
+  readonly bind: (written: readonly (Value | undefined)[]) => BoundOperator | undefined;
+  readonly definition: Definition;
   readonly kind: "inline";
   readonly operands: readonly OperandSpec[];
   readonly result: ResultSpec;
@@ -166,7 +224,7 @@ export interface RecordedEntry<Definition extends string = string> {
   readonly definition: Definition;
   readonly kind: "recorded";
   readonly maximum: number;
-  readonly operands: readonly OperandSpec[];
+  readonly operands: readonly ExpressionOperand[];
   readonly result: ValueType;
 }
 
@@ -184,45 +242,76 @@ export type CustomOperator<Definition extends string = string> =
  * @param type - The declared type.
  * @returns Whether it is.
  */
-const conforms = (value: Value, type: TypeSpec): value is Present =>
+export const conforms = (value: Value, type: TypeSpec): value is Present =>
   value.kind !== "null" && (type.cardinality === "any" || sameValueType(valueTypeOf(value), type));
 
 /**
- * Whether values are the present operands an operator declares, one of each declared type, in
- * order.
+ * Whether arguments are the tuple an operator's function takes: one a position, and at each
+ * expression position the present value that conformed there, in order; each literal position holds
+ * the value its `parse` gave, which {@link inlineOperator}'s binding put there and nothing else can.
  *
  * @param operands - The declared operands.
- * @param values - The values.
+ * @param handed - The arguments.
+ * @param presents - The expression operands' present values, in order.
  * @returns Whether they are.
  */
 const areArguments = <Operands extends readonly OperandSpec[]>(
   operands: Operands,
-  values: readonly Value[],
-): values is ArgumentsOf<Operands> =>
-  values.length === operands.length &&
-  operands.every((operand, index) => {
-    const value = values[index];
+  handed: readonly unknown[],
+  presents: readonly Present[],
+): handed is ArgumentsOf<Operands> => {
+  let next = 0;
 
-    return value !== undefined && conforms(value, operand.type);
-  });
+  return (
+    handed.length === operands.length &&
+    operands.every((operand, index) => {
+      if (operand.form === "literal") {
+        return true;
+      }
+
+      const present = presents[next];
+      next += 1;
+
+      return present !== undefined && handed[index] === present;
+    })
+  );
+};
 
 /**
- * The NULL an operator gives: of its declared result type, or of the type of the operand its result
- * follows.
+ * The NULL an operator gives: of its declared result type, or of the type of the expression operand
+ * its result follows, as that operand's value has it.
  *
  * @param result - The declared result.
- * @param values - The operands' values.
+ * @param operands - The declared operands.
+ * @param values - The expression operands' values, in order.
  * @returns The NULL.
  */
-const nullResult = (result: ResultSpec, values: readonly Value[]): Null => {
+const nullResult = (
+  result: ResultSpec,
+  operands: readonly OperandSpec[],
+  values: readonly Value[],
+): Null => {
   if (!("operand" in result)) {
     return nullOf(result);
   }
 
-  const followed = values[result.operand];
+  const position = operands
+    .slice(0, result.operand)
+    .filter((operand) => operand.form === "expression").length;
+  const followed = values[position];
+  invariant(followed !== undefined, "a result follows an expression operand the operator declares");
 
-  return nullOf(followed === undefined ? { cardinality: "record" } : valueTypeOf(followed));
+  return nullOf(valueTypeOf(followed));
 };
+
+/**
+ * A literal position's parse, or an expression position's mark, as {@link InlineEntry.bind} reads
+ * an element's operands.
+ */
+type Parsed =
+  | { readonly kind: "expression" }
+  | { readonly kind: "literal"; readonly meaning: unknown }
+  | { readonly kind: "refused" };
 
 /**
  * Make an inline operator's registry entry, checking its function against its declared operands
@@ -238,16 +327,62 @@ export const inlineOperator = <
 >(
   operator: InlineOperator<Definition, Operands, R>,
 ): InlineEntry<Definition> => ({
-  definition: operator.definition,
-  evaluate: (values) => {
-    if (!areArguments(operator.operands, values)) {
-      return nullResult(operator.result, values);
+  bind: (written) => {
+    if (written.length !== operator.operands.length) {
+      return;
     }
 
-    const value = operator.apply(values);
+    const parsed = operator.operands.map((operand, index): Parsed => {
+      const value = written[index];
+      if (operand.form === "expression") {
+        return value === undefined ? { kind: "expression" } : { kind: "refused" };
+      }
 
-    return value.kind === "null" ? nullResult(operator.result, values) : value;
+      const meaning = value === undefined ? undefined : operand.parse(value);
+
+      return meaning === undefined ? { kind: "refused" } : { kind: "literal", meaning };
+    });
+    if (parsed.some((each) => each.kind === "refused")) {
+      return;
+    }
+
+    return {
+      evaluate: (values) => {
+        const handed: unknown[] = [];
+        const presents: Present[] = [];
+        for (const [index, slot] of parsed.entries()) {
+          if (slot.kind === "literal") {
+            handed.push(slot.meaning);
+          } else {
+            const value = values[presents.length];
+            const operand = operator.operands[index];
+            invariant(
+              value !== undefined && operand !== undefined,
+              "an expression operand has its value",
+            );
+            if (!conforms(value, operand.type)) {
+              return nullResult(operator.result, operator.operands, values);
+            }
+
+            handed.push(value);
+            presents.push(value);
+          }
+        }
+
+        invariant(
+          areArguments(operator.operands, handed, presents),
+          "the arguments are the declared tuple",
+        );
+
+        const value = operator.apply(handed);
+
+        return value.kind === "null"
+          ? nullResult(operator.result, operator.operands, values)
+          : value;
+      },
+    };
   },
+  definition: operator.definition,
   kind: "inline",
   operands: operator.operands,
   result: operator.result,
@@ -261,7 +396,7 @@ export const inlineOperator = <
  */
 export const recordedOperator = <
   const Definition extends string,
-  const Operands extends readonly OperandSpec[],
+  const Operands extends readonly ExpressionOperand[],
   const R extends ValueType,
 >(
   operator: RecordedOperator<Definition, Operands, R>,
