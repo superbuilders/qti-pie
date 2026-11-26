@@ -1,6 +1,6 @@
-import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
-import { noCoverage, requiredInSpace } from "@bjornpagen/testing/features";
-import { bytes, element, int, map } from "@bjornpagen/testing/gen";
+import { drawn, explore } from "@bjornpagen/testing/explore";
+import { noCoverage } from "@bjornpagen/testing/features";
+import { array, bytes, int, map } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
@@ -45,6 +45,67 @@ const anyDouble: Gen<number> = map(bytes({ max: 8, min: 8 }), (eight) =>
  * A finite double, a NaN or an infinity drawn as 0.
  */
 const finiteDouble: Gen<number> = map(anyDouble, (float) => (Number.isFinite(float) ? float : 0));
+
+/**
+ * A finite double below 2^1000 in magnitude, so no partial of a sum of eight overflows.
+ */
+const moderateDouble: Gen<number> = map(finiteDouble, (float) =>
+  Math.abs(float) < 2 ** 1000 ? float : float / 2 ** 100,
+);
+
+/**
+ * The sum of finite doubles by Shewchuk's exact partials, rounded once as Python's `math.fsum`
+ * rounds them: a second implementation of the exact sum, sharing nothing with the kernel.
+ *
+ * @param floats - The doubles, each below 2^1000 in magnitude.
+ * @returns Their correctly rounded sum.
+ */
+const partialsSum = (floats: readonly number[]): number => {
+  const partials: number[] = [];
+  for (const float of floats) {
+    let x = float;
+    let kept = 0;
+    for (const partial of partials) {
+      const [big, small] = Math.abs(x) < Math.abs(partial) ? [partial, x] : [x, partial];
+      const high = big + small;
+      const low = small - (high - big);
+      if (low !== 0) {
+        partials[kept] = low;
+        kept += 1;
+      }
+
+      x = high;
+    }
+
+    partials.length = kept;
+    partials.push(x);
+  }
+
+  let at = partials.length - 1;
+  let high = partials[at] ?? 0;
+  let low = 0;
+  while (at > 0) {
+    const x = high;
+    at -= 1;
+    const y = partials[at] ?? 0;
+    high = x + y;
+    low = y - (high - x);
+    if (low !== 0) {
+      break;
+    }
+  }
+
+  const below = partials[at - 1] ?? 0;
+  if (at > 0 && ((low < 0 && below < 0) || (low > 0 && below > 0))) {
+    const doubled = low * 2;
+    const nudged = high + doubled;
+    if (doubled === nudged - high) {
+      high = nudged;
+    }
+  }
+
+  return floats.every((float) => Object.is(float, -0)) ? -0 : high + 0;
+};
 
 /**
  * A pair of doubles: half drawn near each other, so sums cancel and round at every exponent.
@@ -181,31 +242,30 @@ describe("the exact kernel rounds once, as IEEE 754 rounds one operation", () =>
       ),
   );
 
-  it.effect("a sum is one rounding of the exact total, whatever the order", (ctx) =>
+  it.effect("a sum of any doubles is their exact total rounded once, whatever the order", (ctx) =>
     searched(
       ctx,
-      exhaust(
+      explore(
         {
-          box: "every ordering of the stated sums",
           caseHang,
-          coverage: requiredInSpace<"cancels" | "ties">(["cancels", "ties"]),
-          generator: element([
-            { expected: 0.6, floats: [0.1, 0.2, 0.3], note: "ties" },
-            { expected: 0.6, floats: [0.3, 0.2, 0.1], note: "ties" },
-            { expected: 1, floats: [1e100, 1, -1e100], note: "cancels" },
-            { expected: 1, floats: [-1e100, 1e100, 1], note: "cancels" },
-            { expected: 2 ** 53, floats: [2 ** 53, 1], note: "ties" },
-            { expected: 2 ** 53 + 2, floats: [2 ** 53, 1, 1], note: "ties" },
-            { expected: 1e-323, floats: [5e-324, 5e-324], note: "ties" },
-          ] as const),
-          literal: (row) => Formatter.format(row),
-          oracle: { kind: "specification", name: "the exact sum, rounded once by hand (D2)" },
+          coverage: noCoverage,
+          draw: drawn(array(moderateDouble, { max: 8, min: 1 })),
+          kept: [],
+          literal: (floats) => Formatter.format(floats),
+          oracle: {
+            kind: "second-implementation",
+            name: "Shewchuk's exact partials, rounded once as Python's math.fsum rounds them",
+          },
+          runs: CASES,
+          shrink: completeShrink,
+          steerEvery: 16,
           suite: "processing/numbers/exact-sum",
         },
-        (row, c) =>
+        (floats) =>
           Effect.sync(() => {
-            c.note(row.note);
-            agrees(exactSum(row.floats), row.expected, Formatter.format(row.floats));
+            const sum = exactSum(floats);
+            agrees(sum, partialsSum(floats), Formatter.format(floats));
+            agrees(exactSum(floats.toReversed()), sum, `${Formatter.format(floats)} reversed`);
           }),
       ),
     ),
@@ -239,6 +299,22 @@ const integer = (value: bigint) => ({ base: "integer", value }) as const;
 const float = (value: number) => ({ base: "float", value }) as const;
 
 describe("the exact kernel's stated values", () => {
+  it("sums every member exactly and rounds once (D2)", () => {
+    agrees(exactSum([0.1, 0.2, 0.3]), 0.6, "0.1 + 0.2 + 0.3");
+    agrees(exactSum([0.3, 0.2, 0.1]), 0.6, "0.3 + 0.2 + 0.1");
+    agrees(exactSum([1e100, 1, -1e100]), 1, "1e100 + 1 - 1e100");
+    agrees(exactSum([2 ** 53, 1, 1]), 2 ** 53 + 2, "2^53 + 1 + 1");
+    agrees(exactSum([5e-324, 5e-324]), 1e-323, "two least subnormals");
+    agrees(exactSum([-0, -0]), -0, "-0 + -0");
+    agrees(exactSum([-0, 0]), 0, "-0 + 0");
+    agrees(exactSum([Number.POSITIVE_INFINITY, 1]), Number.POSITIVE_INFINITY, "INF + 1");
+    agrees(
+      exactSum([Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]),
+      Number.NaN,
+      "INF + -INF",
+    );
+  });
+
   it("rounds a double's exact decimal at the deciding digit (reading 209)", () => {
     assert.strictEqual(
       decimalOfExact(exactOfFloat(0.175)).digits,

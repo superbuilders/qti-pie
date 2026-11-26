@@ -214,7 +214,7 @@ const powerOfTwo = (exponent: number): number => {
 /**
  * The double nearest an exact, rounded once: a tie to the even significand, a value past the
  * largest finite double to the infinity of its sign, and one below the least subnormal's half to
- * zero of its sign, as IEEE 754's round-to-nearest-even gives.
+ * zero of its sign, as IEEE 754's round-to-nearest-even gives; an exact zero is +0.
  *
  * The unit of the result is `2^unit`: the significand's 53 bits below the value's leading bit, or
  * the subnormals' 2^-1074 where that is lower. The significand is shifted to that unit, its
@@ -222,14 +222,13 @@ const powerOfTwo = (exponent: number): number => {
  * so multiplying it by `2^unit`, itself a double, rounds nothing.
  *
  * @param exact - The value.
- * @param negativeZero - Whether a zero result is -0 (a sum of -0s alone, as IEEE gives).
  * @returns The nearest double.
  */
-export const nearestFloat = (exact: Exact, negativeZero = false): number => {
+export const nearestFloat = (exact: Exact): number => {
   const negative = exact.significand < 0n;
   const magnitude = negative ? -exact.significand : exact.significand;
   if (magnitude === 0n) {
-    return negativeZero ? -0 : 0;
+    return 0;
   }
 
   const unit = Math.max(bitLength(magnitude) + exact.exponent - significandBits, leastExponent);
@@ -277,7 +276,7 @@ export const exactSum = (floats: readonly number[]): number => {
     return positiveInfinity ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
   }
 
-  return nearestFloat(total, allNegativeZero);
+  return allNegativeZero ? -0 : nearestFloat(total);
 };
 
 /**
