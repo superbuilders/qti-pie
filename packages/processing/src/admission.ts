@@ -6,13 +6,13 @@
  * until they have provided valid responses for all interactions"), as the SQL grader judged them
  * (`admission_one`, `@qti-pie/ledger`'s `machine/admission.sql`), moved here (D6).
  *
- * Each interaction's limits are of two tiers (reading 195): tier (a), a response no interaction's
- * controls let the candidate give, refused whatever `validate-responses` says; tier (b), what a
- * valid response needs, refused only under it. Admission judges responses, never content. The
- * values in force (the outcomes after the last attempt, the declared ones before the first, and the
- * session's template values) close the feedback and template content they gate, and an interaction
- * inside closed content is hidden: its response, where no shown interaction binds it too, is one
- * the grade ignores, as NULL.
+ * Each interaction's limits are of two tiers (reading `response-limits`): tier (a), a response no
+ * interaction's controls let the candidate give, refused whatever `validate-responses` says; tier
+ * (b), what a valid response needs, refused only under it. Admission judges responses, never
+ * content. The values in force (the outcomes after the last attempt, the declared ones before the
+ * first, and the session's template values) close the feedback and template content they gate, and
+ * an interaction inside closed content is hidden: its response, where no shown interaction binds it
+ * too, is one the grade ignores, as NULL.
  *
  * The reasons come in plate's order, numbered from 1, by the interaction's place, the check's rank
  * and the place within the check; each with the attributes its words name, by form, as plate's
@@ -1315,7 +1315,7 @@ const mismatches = (mask: PatternMask | undefined, texts: readonly string[]): bo
  * A Text Entry's and an Extended Text's checks: an Extended Text's at most `max-strings` where
  * above 0 and at least `min-strings` ("the minimum number separate (non-empty) strings required
  * from the candidate to form a valid response", §5.48.7); each string matching the `pattern-mask`,
- * an xhtml Extended Text's by its text (reading 244).
+ * an xhtml Extended Text's by its text (reading `xhtml-pattern-mask-text`).
  *
  * @param interaction - The interaction.
  * @param judging - What is posted.

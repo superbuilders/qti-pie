@@ -125,7 +125,7 @@ export interface CompileContext {
   readonly variable: (identifier: string) => VariableRef | undefined;
   /**
    * The variable an `identifier` names read with the weight a `weight-identifier` names: in a test,
-   * an item's variable through its item ref; nowhere else (reading 199).
+   * an item's variable through its item ref; nowhere else (reading `weight-identifier-placement`).
    */
   readonly weightedVariable: (identifier: string, weight: string) => VariableRef | undefined;
 }

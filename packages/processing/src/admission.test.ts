@@ -244,7 +244,7 @@ const sliderItem = (base: BaseType, attributes: Readonly<Record<string, string>>
   );
 
 describe("the closed roster", () => {
-  it("holds 60 codes once each, tier (a)'s 40 then tier (b)'s 20, as plate's roster orders them (reading 195)", () => {
+  it("holds 60 codes once each, tier (a)'s 40 then tier (b)'s 20, as plate's roster orders them (reading `response-limits`)", () => {
     const all = [...alwaysCodes, ...validatedCodes];
     assert.strictEqual(alwaysCodes.length, 40);
     assert.strictEqual(validatedCodes.length, 20);
@@ -830,7 +830,7 @@ describe("text entry and extended text", () => {
     ]);
   });
 
-  it("matches a mask anchored at both ends, a number by its canonical text, a record's stringValue, and an xhtml value by its text (reading 244)", () => {
+  it("matches a mask anchored at both ends, a number by its canonical text, a record's stringValue, and an xhtml value by its text (reading `xhtml-pattern-mask-text`)", () => {
     const entry = itemOf(
       [declared("R", "single", "float")],
       [
@@ -893,7 +893,7 @@ describe("text entry and extended text", () => {
 });
 
 describe("end attempt", () => {
-  it("carries count-attempt, true where unwritten (reading 204)", () => {
+  it("carries count-attempt, true where unwritten (reading `end-attempt-count`)", () => {
     const item = itemOf(
       [declared("R", "single", "boolean"), declared("S", "single", "boolean")],
       [

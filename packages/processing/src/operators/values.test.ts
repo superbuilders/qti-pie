@@ -29,7 +29,7 @@ const baseValue = (base: string, written: string) =>
   );
 
 describe("the values family", () => {
-  it("reads a base value in its base type's lexical form: an integer in xs:integer's space, trimmed (reading 247)", () => {
+  it("reads a base value in its base type's lexical form: an integer in xs:integer's space, trimmed (reading `integer-lexical`)", () => {
     assert.deepStrictEqual(baseValue("integer", " +007\n"), {
       ok: true,
       value: { value: single("integer", 7n) },
@@ -45,7 +45,7 @@ describe("the values family", () => {
     assert.isFalse(baseValue("integer", "7.0").ok);
   });
 
-  it("reads an empty string base value as NULL, and a string as written (§2.2.2, reading 7)", () => {
+  it("reads an empty string base value as NULL, and a string as written (§2.2.2, reading `typed-value-whitespace`)", () => {
     assert.deepStrictEqual(baseValue("string", ""), {
       ok: true,
       value: { value: nullOf({ base: "string", cardinality: "single" }) },

@@ -8,10 +8,10 @@
  *   defaults, drawing under `served␟template␟<identifier>`.
  * - **At an attempt**: `numAttempts` is one more (§2.2.2.3); responses take the values submitted, a
  *   response submitted without one its default (a default submission); outcomes start at their
- *   defaults, else a single numeric one at 0 (reading 205), or, in an adaptive item after its first
- *   attempt, where its last processed attempt left them (§5.7); `completionStatus` is `unknown` at
- *   the first attempt and where the last attempt left it after; response processing draws under
- *   `served␟response␟<numAttempts>`.
+ *   defaults, else a single numeric one at 0 (reading `numeric-outcome-default`), or, in an
+ *   adaptive item after its first attempt, where its last processed attempt left them (§5.7);
+ *   `completionStatus` is `unknown` at the first attempt and where the last attempt left it after;
+ *   response processing draws under `served␟response␟<numAttempts>`.
  *
  * @module
  */
@@ -53,7 +53,7 @@ export interface Failed {
  * @param declaration - The declaration.
  * @param defaults - The defaults template processing set.
  * @returns Its starting value: its default, else for a single integer or float outcome 0 (reading
- *   205), else NULL.
+ *   `numeric-outcome-default`), else NULL.
  */
 export const startOf = (declaration: Declaration, defaults: ReadonlyMap<string, Value>): Value => {
   const declared = defaults.get(declaration.identifier) ?? declaration.default;
@@ -138,7 +138,7 @@ export type Prior =
 export interface Attempt {
   readonly context: ReadonlyMap<string, Value>;
   /**
-   * The item's duration at the attempt, in seconds (reading 29).
+   * The item's duration at the attempt, in seconds (reading `duration-variable-type`).
    */
   readonly duration: number;
   /**

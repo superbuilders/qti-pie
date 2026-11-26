@@ -1,7 +1,7 @@
 /**
  * The text of an xhtml Extended Text's value: the text its box shows, against which its
- * `pattern-mask` is matched (reading 244), as plate reads a value (`textOfXhtml`,
- * `@qti-pie/plate`'s `interactions/xhtml-text.ts`) and the SQL grader restated it
+ * `pattern-mask` is matched (reading `xhtml-pattern-mask-text`), as plate reads a value
+ * (`textOfXhtml`, `@qti-pie/plate`'s `interactions/xhtml-text.ts`) and the SQL grader restated it
  * (`p3.xhtml_text`): a value plate wrote reads back as the text typed; any other has each `br` a
  * line feed, each run of block tags a blank line per paragraph boundary it is alone (none where it
  * opens or closes the value, a line feed elsewhere), every other tag removed, then each character

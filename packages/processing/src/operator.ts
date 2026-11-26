@@ -2,9 +2,9 @@
  * The interface every custom operator implements, and the registry entry it becomes.
  *
  * QTI 3.0.1 gives `qti-custom-operator` no semantics of its own: its `definition` URI names the
- * operator, and "an engine that does not know it gives NULL" (§5.37, reading 212). This package
- * knows exactly the operators `#processing/registry.ts` lists, each keyed by its `definition` URI
- * and never by redefining a QTI element; publication refuses any other (D10).
+ * operator, and "an engine that does not know it gives NULL" (§5.37, reading `container-operands`).
+ * This package knows exactly the operators `#processing/registry.ts` lists, each keyed by its
+ * `definition` URI and never by redefining a QTI element; publication refuses any other (D10).
  *
  * Two kinds:
  *

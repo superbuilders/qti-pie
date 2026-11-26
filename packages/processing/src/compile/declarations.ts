@@ -322,7 +322,8 @@ export const valuesOf = (
 /**
  * A response's `qti-mapping` (§5.88): QTI's defaults 0, −INF and +INF where unwritten; each entry's
  * key read in the response's base type, its tabs and line ends read as spaces (`map-key` is an
- * `xs:normalizedString`, reading 7), and its case sensitivity false where unwritten (§7.21.3).
+ * `xs:normalizedString`, reading `typed-value-whitespace`), and its case sensitivity false where
+ * unwritten (§7.21.3).
  *
  * @param mapping - The mapping element.
  * @param base - The response's base type.
@@ -379,7 +380,7 @@ const mappingOf = (
 
 /**
  * An area's coordinates: comma-separated lengths, a circle's radius possibly a percentage
- * (reading 180), each trimmed.
+ * (reading `circle-percentage-radius`), each trimmed.
  *
  * @param written - The `coords` attribute.
  * @returns The coordinates, or `undefined` where one is no number.
@@ -493,7 +494,7 @@ const lookupOf = (
     return refused(
       "attribute",
       place,
-      "give a lookup table to a single outcome alone (reading 100)",
+      "give a lookup table to a single outcome alone (reading `lookup-sets-single-outcome`)",
     );
   }
 
@@ -675,8 +676,8 @@ const builtIn = (identifier: string, type: ValueType): Declaration => ({
 
 /**
  * Every declaration of a document's root, with the built-ins it holds: an item's `numAttempts`
- * (single integer), `duration` (single float, reading 29) and `completionStatus` (single
- * identifier); a test's `duration` (single duration).
+ * (single integer), `duration` (single float, reading `duration-variable-type`) and
+ * `completionStatus` (single identifier); a test's `duration` (single duration).
  *
  * @param root - The item's or test's root element.
  * @param document - Which it is.

@@ -1,8 +1,9 @@
 /**
  * The compiler of the processing languages' rules: response processing (§4.6), template processing
  * (§5.156) and outcome processing (§5.102). A fragment is a grouping of rules and is spliced where
- * it stands (§5.118, reading 117); a condition's branches are its if and each else-if in order, and
- * its else; a set's or a lookup's target is resolved against the document's declarations.
+ * it stands (§5.118, reading `fragment-placement`); a condition's branches are its if and each
+ * else-if in order, and its else; a set's or a lookup's target is resolved against the document's
+ * declarations.
  *
  * @module
  */
@@ -87,7 +88,7 @@ const targetOf = (
 
 /**
  * A `qti-lookup-outcome-value`: an outcome with a lookup table, set to what it maps (§5.72). An
- * outcome without one, `completionStatus` among them, is refused (reading 197).
+ * outcome without one, `completionStatus` among them, is refused (reading `lookup-outcome-table`).
  *
  * @param element - The rule.
  * @param rules - The compiler's context.
@@ -107,7 +108,7 @@ const lookupOf = (element: XmlElement, rules: RulesContext): Checked<LookupRule>
     return refused(
       "unknown-identifier",
       place,
-      "look up an outcome that declares a lookup table (reading 197)",
+      "look up an outcome that declares a lookup table (reading `lookup-outcome-table`)",
     );
   }
 
@@ -348,7 +349,8 @@ export const outcomeRulesOf = (
 };
 
 /**
- * Compile template processing's rules. A constraint stands only at the top level (reading 22).
+ * Compile template processing's rules. A constraint stands only at the top level (reading
+ * `template-constraint-placement`).
  *
  * @param children - The rule elements, in order.
  * @param rules - The compiler's context.
@@ -402,7 +404,7 @@ export const templateRulesOf = (
             return refused(
               "element",
               place,
-              "write a qti-template-constraint directly in qti-template-processing (reading 22)",
+              "write a qti-template-constraint directly in qti-template-processing (reading `template-constraint-placement`)",
             );
           }
 

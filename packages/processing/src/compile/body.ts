@@ -1,8 +1,9 @@
 /**
  * The compiler of an item's body (`qti-item-body`, §5.66) into the interactions response admission
- * judges (QTI 3.0.1 §7.19.7, reading 195): each interaction this package models, bound to the
- * response it declares, with its constraint attributes at QTI's defaults, the choices and areas it
- * presents, its image's authored size, and the feedback and template content that may hide it.
+ * judges (QTI 3.0.1 §7.19.7, reading `response-limits`): each interaction this package models,
+ * bound to the response it declares, with its constraint attributes at QTI's defaults, the choices
+ * and areas it presents, its image's authored size, and the feedback and template content that may
+ * hide it.
  *
  * An interaction is modelled where its element binds a declared response of a cardinality and base
  * type its kind takes (the SQL grader's `module` table, `admission.sql`), and where none of its
@@ -103,7 +104,8 @@ export type Interaction =
     })
   | (Common<"end-attempt"> & {
       /**
-       * Whether ending the attempt through it counts an attempt (default true, reading 204).
+       * Whether ending the attempt through it counts an attempt (default true, reading
+       * `end-attempt-count`).
        */
       readonly countAttempt: boolean;
     })

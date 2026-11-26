@@ -240,7 +240,7 @@ describe("response processing", () => {
     });
   });
 
-  it("fails the run on a set of a value of another type, and of completionStatus outside its four values, NULL included (reading 213)", () => {
+  it("fails the run on a set of a value of another type, and of completionStatus outside its four values, NULL included (reading `completion-status-values`)", () => {
     const mistyped = itemOf(false, [
       element("qti-response-processing", {}, [setOutcome("SCORE", literal("integer", "1"))]),
     ]);
@@ -319,7 +319,7 @@ describe("response processing", () => {
 });
 
 describe("template processing", () => {
-  it("sets template values at the take, and after spending 100 restarts on a false constraint uses the declared values and continues (reading 216 item 7)", () => {
+  it("sets template values at the take, and after spending 100 restarts on a false constraint uses the declared values and continues (reading `null-results` item 7)", () => {
     const item = itemOf(false, [
       element("qti-template-processing", {}, [
         element("qti-set-template-value", { identifier: "FLAG" }, [literal("boolean", "true")]),

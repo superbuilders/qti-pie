@@ -1,8 +1,8 @@
 /**
- * The six published response-processing templates (information model §2.5.1, reading 51), read from
- * their published files (`packages/processing/templates/`) by crust, as the element trees the
- * compiler reads: what `#processing/templates.generated.ts` holds, which `templates.test.ts` holds
- * to these files and `tools/generate-templates.ts` writes.
+ * The six published response-processing templates (information model §2.5.1, reading
+ * `built-in-templates`), read from their published files (`packages/processing/templates/`) by
+ * crust, as the element trees the compiler reads: what `#processing/templates.generated.ts` holds,
+ * which `templates.test.ts` holds to these files and `tools/generate-templates.ts` writes.
  *
  * @module
  */

@@ -142,7 +142,7 @@ describe("the document compiler", () => {
     });
   });
 
-  it("compiles response rules in order, a fragment spliced where it stands and a condition's branches kept (§4.6, reading 117)", () => {
+  it("compiles response rules in order, a fragment spliced where it stands and a condition's branches kept (§4.6, reading `fragment-placement`)", () => {
     const processing = element("qti-response-processing", {}, [
       element("qti-response-condition", {}, [
         element("qti-response-if", {}, [truth(false), element("qti-exit-response", {}, [])]),
@@ -220,7 +220,7 @@ describe("the document compiler", () => {
     assert.strictEqual(nested.ok ? undefined : nested.refusal.code, "element");
   });
 
-  it("names a published template under either prefix, with or without .xml, and nothing else (reading 51)", () => {
+  it("names a published template under either prefix, with or without .xml, and nothing else (reading `built-in-templates`)", () => {
     assert.isDefined(
       publishedTemplate("https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct"),
     );
@@ -235,7 +235,7 @@ describe("the document compiler", () => {
     assert.isUndefined(publishedTemplate("http://example.com/match_correct"));
   });
 
-  it("resolves a test's prefixed references to its items' variables, a numbered occurrence and a weight among them (reading 88, §7.47.2)", () => {
+  it("resolves a test's prefixed references to its items' variables, a numbered occurrence and a weight among them (reading `numbered-reference`, §7.47.2)", () => {
     const q1 = compileItemWith(item(declarations), digest, table);
 
     const compiledItem: CompiledItem = q1.ok ? q1.value : assert.fail("compiled");

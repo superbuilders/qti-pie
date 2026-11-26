@@ -12,7 +12,8 @@ import type { Value, ValueType } from "#processing/value.ts";
 
 /**
  * Why a run failed: a stated limit reached, or a value no variable may hold. A failed run is never
- * a grade; the attempt it graded stays unprocessed (reading 211, reading 213).
+ * a grade; the attempt it graded stays unprocessed (reading `engine-size-limit`, reading
+ * `completion-status-values`).
  */
 export type ProcessingFailure =
   | {
@@ -138,12 +139,12 @@ export interface Run {
 }
 
 /**
- * The most bits an integer a run computes may take (reading 211).
+ * The most bits an integer a run computes may take (reading `engine-size-limit`).
  */
 export const integerBitBound = 1_000_000;
 
 /**
- * The most members a container a run computes may hold (reading 211).
+ * The most members a container a run computes may hold (reading `engine-size-limit`).
  */
 export const containerMemberBound = 1_000_000;
 
@@ -206,7 +207,8 @@ export const integerAttribute = (run: Run, attribute: LiteralOr<bigint>): bigint
 
 /**
  * The value a float attribute that may name a variable holds at run time: its literal, or the
- * variable's single float, or its single integer as the nearest finite double (reading 45).
+ * variable's single float, or its single integer as the nearest finite double (reading
+ * `integer-unbounded`).
  *
  * @param run - The run.
  * @param attribute - The attribute.

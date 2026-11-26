@@ -207,13 +207,13 @@ export type LiteralOr<A> =
 /**
  * A reference to a variable, resolved at compile time against the document's declarations: what it
  * reads and the type it is declared with. A read of a variable the run does not hold is NULL of
- * that type (reading 216).
+ * that type (reading `null-results`).
  *
  * - `own`: a variable of the program's own document: an item's response, outcome, template or context
  *   variable or built-in, or a test's outcome or context variable or built-in.
  * - `member`: in a test, an item's variable through its item ref (`ITEMREF.VAR`, `ITEMREF.N.VAR`,
- *   reading 88), with the weight a `weight-identifier` names (§7.47.2: 1.0 where the ref defines
- *   none).
+ *   reading `numbered-reference`), with the weight a `weight-identifier` names (§7.47.2: 1.0 where
+ *   the ref defines none).
  */
 export type VariableRef =
   | {
@@ -268,7 +268,7 @@ export type AreaGeometry = "circle" | "default" | "ellipse" | "poly" | "rect";
 
 /**
  * An area: its geometry and its coordinates as written, a circle's radius possibly a percentage
- * (reading 180).
+ * (reading `circle-percentage-radius`).
  */
 export interface Area {
   readonly coords: readonly AreaCoordinate[];
@@ -328,7 +328,8 @@ export type CustomCall =
 
 /**
  * The filters an outcome-processing-only expression selects the test's items by (§7.39): a section,
- * which includes its sub-sections, and categories, one shared name enough (reading 216, item 4).
+ * which includes its sub-sections, and categories, one shared name enough (reading `null-results`,
+ * item 4).
  */
 export interface ItemFilter {
   readonly excludeCategories: readonly string[];

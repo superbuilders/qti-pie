@@ -311,7 +311,7 @@ describe("the exact kernel's stated values", () => {
     );
   });
 
-  it("rounds a double's exact decimal at the deciding digit (reading 209)", () => {
+  it("rounds a double's exact decimal at the deciding digit (reading `format-float-rounding`)", () => {
     assert.strictEqual(
       decimalOfExact(exactOfFloat(0.175)).digits,
       "174999999999999988897769753748434595763683319091796875",
@@ -332,7 +332,7 @@ describe("the exact kernel's stated values", () => {
     assert.strictEqual(orderOfNumbers(float(-0), integer(0n)), 0);
   });
 
-  it("converts an integer past the double range to the largest finite double (reading 45)", () => {
+  it("converts an integer past the double range to the largest finite double (reading `integer-unbounded`)", () => {
     assert.strictEqual(toFloat(10n ** 400n), Number.MAX_VALUE);
     assert.strictEqual(toFloat(-(10n ** 400n)), -Number.MAX_VALUE);
     assert.strictEqual(toFloat(9_007_199_254_740_993n), 2 ** 53);

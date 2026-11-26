@@ -35,7 +35,7 @@ import { attributeOf, collapseXmlSpace, qtiChildren, qtiNamespace } from "#proce
 import type { XmlElement } from "#processing/xml.ts";
 
 /**
- * The two prefixes a published template is named under (reading 51).
+ * The two prefixes a published template is named under (reading `built-in-templates`).
  */
 const templatePrefixes = [
   "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/",
@@ -43,8 +43,8 @@ const templatePrefixes = [
 ] as const;
 
 /**
- * The published template a `template` URI names: one of the two prefixes followed by the
- * template's name, with or without `.xml`, its white space collapsed (reading 51).
+ * The published template a `template` URI names: one of the two prefixes followed by the template's
+ * name, with or without `.xml`, its white space collapsed (reading `built-in-templates`).
  *
  * @param uri - The URI as written.
  * @returns The template's `qti-response-processing`, or `undefined` where it names none.
@@ -82,7 +82,8 @@ const placesWith = (
 };
 
 /**
- * What an item's weighted read names: nothing, since weights are a test's (reading 199).
+ * What an item's weighted read names: nothing, since weights are a test's (reading
+ * `weight-identifier-placement`).
  */
 const noVariable: VariableRef | undefined = undefined;
 
@@ -247,9 +248,9 @@ const itemRefsOf = (
 const occurrencePrefix = regex("^(?<occurrence>[1-9][0-9]*)\\.(?<variable>.+)$", "u");
 
 /**
- * The member variable a prefixed identifier names: `ITEMREF.VAR` or `ITEMREF.N.VAR` (reading 88),
- * the longest item ref identifier that prefixes it first, since identifiers may hold `.` (reading
- * 37).
+ * The member variable a prefixed identifier names: `ITEMREF.VAR` or `ITEMREF.N.VAR` (reading
+ * `numbered-reference`), the longest item ref identifier that prefixes it first, since identifiers
+ * may hold `.` (reading `identifier-dot`).
  *
  * @param identifier - The identifier.
  * @param members - The test's item refs by identifier.

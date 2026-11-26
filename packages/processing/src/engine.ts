@@ -5,16 +5,17 @@
  * - **Template processing** (§5.156) draws template values, correct responses and defaults at the
  *   start of an item session. A constraint that is not true restarts it from the declared values,
  *   at most 100 restarts a run, shared by every constraint; once they are spent the declared values
- *   are used and processing continues after the constraint (reading 216, item 7).
+ *   are used and processing continues after the constraint (reading `null-results`, item 7).
  * - **Response processing** (§4.6) sets an item's outcomes from its responses. `qti-exit-response`
  *   ends the whole run, from inside a fragment too.
  * - **Outcome processing** (§5.102) sets a test's outcomes from its items', from the defaults every
  *   run. `qti-exit-test` ends outcome processing.
  *
  * A set stores a NULL as the target's NULL, a value of the target's type as it is, and fails the
- * run on any other (reading 213), `completionStatus` only to one of its four values. A condition's
- * branch runs when its test is the single boolean true; NULL is not true. The first failure ends
- * the run; its result is the failure, never a value (readings 211, 213).
+ * run on any other (reading `completion-status-values`), `completionStatus` only to one of its four
+ * values. A condition's branch runs when its test is the single boolean true; NULL is not true. The
+ * first failure ends the run; its result is the failure, never a value (readings
+ * `engine-size-limit`, `completion-status-values`).
  *
  * @module
  */
@@ -65,7 +66,7 @@ export type RunResult =
   | { readonly failure: ProcessingFailure; readonly kind: "failed" };
 
 /**
- * The four values `completionStatus` may hold (§2.2.2.3, reading 213).
+ * The four values `completionStatus` may hold (§2.2.2.3, reading `completion-status-values`).
  */
 const completionValues: ReadonlySet<string> = new Set([
   "completed",
@@ -107,7 +108,7 @@ const heldBy = <K extends ExpressionKind>(
 ): expression is Node<K> => Object.hasOwn(table, expression.kind);
 
 /**
- * Whether a member's sections and categories pass a filter (§7.39, reading 216 item 4).
+ * Whether a member's sections and categories pass a filter (§7.39, reading `null-results` item 4).
  *
  * @param member - The member.
  * @param filter - The filter.
@@ -230,8 +231,9 @@ const isTrue = (value: Value): boolean =>
   value.kind === "single" && value.base === "boolean" && value.value;
 
 /**
- * The value a set stores in its target, or the failure it is (reading 213): a NULL as the target's
- * NULL, a value of the target's type as it is, `completionStatus` only one of its four values.
+ * The value a set stores in its target, or the failure it is (reading `completion-status-values`):
+ * a NULL as the target's NULL, a value of the target's type as it is, `completionStatus` only one
+ * of its four values.
  *
  * @param target - The target.
  * @param value - The value.
@@ -502,7 +504,7 @@ const runTemplateRules = (
 };
 
 /**
- * The most restarts one run of template processing takes (§5.150, reading 216 item 7).
+ * The most restarts one run of template processing takes (§5.150, reading `null-results` item 7).
  */
 export const restartBudget = 100;
 

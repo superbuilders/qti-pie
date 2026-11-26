@@ -1,9 +1,9 @@
 /**
- * The number kernels every family shares: the one integer-to-float conversion, and the exact
- * binary rationals every float is (reading 235), over which a sum is computed exactly and rounded
- * once (D2), a comparison of an integer with a float is decided exactly, a tolerance's ends are
- * computed exactly (reading 238), and a rounding reads the deciding digit of a double's exact
- * decimal expansion (reading 209).
+ * The number kernels every family shares: the one integer-to-float conversion, and the exact binary
+ * rationals every float is (reading `float-binary64`), over which a sum is computed exactly and
+ * rounded once (D2), a comparison of an integer with a float is decided exactly, a tolerance's ends
+ * are computed exactly (reading `tolerance-exact-binary`), and a rounding reads the deciding digit
+ * of a double's exact decimal expansion (reading `format-float-rounding`).
  *
  * A finite double is `significand × 2^exponent` for an integer significand and an exponent of
  * -1074 or more, so every finite float and every integer is an {@link Exact}, and a sum, a
@@ -17,7 +17,7 @@
 /**
  * Convert an exact integer to a float: the nearest double, ties to even, and the largest finite
  * double of its sign for an integer beyond it, since the float base type holds no infinity made
- * from an integer (reading 45).
+ * from an integer (reading `integer-unbounded`).
  *
  * @param integer - The integer.
  * @returns The nearest double, finite.
@@ -345,9 +345,9 @@ export const decimalOfExact = (exact: Exact): Decimal => {
 /**
  * A decimal rounded to its first `keep` digits: increased by one in the last kept digit when the
  * deciding digit, the first dropped, is 5 or greater, of the magnitude, so a negative value rounds
- * as its magnitude does (sections 2.11.3.43 and 2.11.3.4, reading 209). Keeping none, or fewer, is
- * rounding at a place above the leading digit: the deciding digit is then 0 and the value 0, but
- * where `keep` is 0 exactly, when the leading digit itself decides.
+ * as its magnitude does (sections 2.11.3.43 and 2.11.3.4, reading `format-float-rounding`). Keeping
+ * none, or fewer, is rounding at a place above the leading digit: the deciding digit is then 0 and
+ * the value 0, but where `keep` is 0 exactly, when the leading digit itself decides.
  *
  * @param decimal - The decimal.
  * @param keep - How many of its leading digits to keep.

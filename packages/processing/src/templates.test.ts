@@ -5,7 +5,7 @@ import { publishedTemplates } from "#processing/templates.generated.ts";
 import { readTemplates } from "#processing/test/templates.ts";
 
 describe("the published response-processing templates", () => {
-  it.effect("are compiled in as their published files read (reading 51)", () =>
+  it.effect("are compiled in as their published files read (reading `built-in-templates`)", () =>
     Effect.gen(function* templatesHeld() {
       const trees = yield* readTemplates();
       assert.deepStrictEqual(publishedTemplates, trees, "run pnpm generate:templates");

@@ -50,7 +50,7 @@ describe("values", () => {
     });
   });
 
-  it("a record with no field is the NULL record, and a later field of a name replaces one (reading 153)", () => {
+  it("a record with no field is the NULL record, and a later field of a name replaces one (reading `record-without-base-type`)", () => {
     assert.deepStrictEqual(recordOf([]), nullOf({ cardinality: "record" }));
 
     const record = recordOf([

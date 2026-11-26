@@ -41,7 +41,7 @@ export type LookupTable =
  *
  * - A response starts NULL whatever it declares (§2.2.2.1); its declared default is its `default`.
  * - An outcome starts at its default, else a single numeric one at 0 and any other NULL (reading
- *   205).
+ *   `numeric-outcome-default`).
  * - A template variable and a context variable start at their defaults, else NULL.
  */
 export interface Declaration {
@@ -136,7 +136,8 @@ export type ResponseRule =
   | SetRule<"set-outcome">;
 
 /**
- * A template processing rule (§5.156). A constraint stands only at the top level (reading 22).
+ * A template processing rule (§5.156). A constraint stands only at the top level (reading
+ * `template-constraint-placement`).
  */
 export type TemplateRule =
   | Condition<TemplateRule>

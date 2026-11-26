@@ -95,7 +95,8 @@ const xmlSpace: ReadonlySet<string> = new Set([" ", "\t", "\n", "\r"]);
 const xmlSpaceRun = regex("[\\t\\n\\r ]+", "u");
 
 /**
- * Text with XML white space removed at both ends, as an element's typed text is read (reading 7).
+ * Text with XML white space removed at both ends, as an element's typed text is read (reading
+ * `typed-value-whitespace`).
  *
  * @param text - The text.
  * @returns It, trimmed of XML white space alone.
@@ -116,7 +117,7 @@ export const trimXmlSpace = (text: string): string => {
 
 /**
  * Text with XML white space collapsed: each run one space, none at either end, as XML Schema's
- * whiteSpace `collapse` reads an attribute's typed value (reading 7).
+ * whiteSpace `collapse` reads an attribute's typed value (reading `typed-value-whitespace`).
  *
  * @param text - The text.
  * @returns It, collapsed.

@@ -4,12 +4,12 @@
  * pantry, which refused any value outside its base type's lexical space, so a reader here is the
  * value map of an admitted form: it gives `undefined` only for a form pantry's admission refuses.
  *
- * - An integer is `xs:integer`'s lexical space (reading 247): `+7` and `007` are 7, exact at any size
- *   (reading 45).
- * - A float and a duration's seconds are `xs:double`'s (reading 235), read as XML Schema 1.1's
- *   doubleLexicalMap reads one, so a decimal beyond the largest finite double is an infinity of its
- *   sign (reading 144).
- * - A boolean is `true`, `false`, `1` or `0` (reading 34).
+ * - An integer is `xs:integer`'s lexical space (reading `integer-lexical`): `+7` and `007` are 7,
+ *   exact at any size (reading `integer-unbounded`).
+ * - A float and a duration's seconds are `xs:double`'s (reading `float-binary64`), read as XML Schema
+ *   1.1's doubleLexicalMap reads one, so a decimal beyond the largest finite double is an infinity
+ *   of its sign (reading `bounded-double`).
+ * - A boolean is `true`, `false`, `1` or `0` (reading `boolean-lexical`).
  * - A pair, a directed pair and a point are two tokens, a point's two integers.
  *
  * @module
@@ -43,7 +43,7 @@ export const readInteger = (lexical: string): bigint | undefined =>
 
 /**
  * Read an `xs:double`: a decimal rounds to the nearest double, ties to even, and beyond the largest
- * finite double it is an infinity of its sign (reading 144).
+ * finite double it is an infinity of its sign (reading `bounded-double`).
  *
  * @param lexical - The text, already trimmed or collapsed.
  * @returns The double, or `undefined` for text outside the lexical space.
@@ -61,7 +61,7 @@ export const readDouble = (lexical: string): number | undefined => {
 };
 
 /**
- * Read a boolean: `true` or `1` is true, `false` or `0` false (reading 34).
+ * Read a boolean: `true` or `1` is true, `false` or `0` false (reading `boolean-lexical`).
  *
  * @param lexical - The text, already trimmed or collapsed.
  * @returns The boolean, or `undefined` for any other text.
@@ -124,7 +124,8 @@ const readTuple = (
 /**
  * Read the single value of a base type from its lexical form. A string is read as written, and the
  * empty string is NULL (§2.2.2); every other base type's text is read trimmed, as an element's
- * typed text is (reading 7). A file has no lexical form: a document writes none.
+ * typed text is (reading `typed-value-whitespace`). A file has no lexical form: a document writes
+ * none.
  *
  * @param base - The base type.
  * @param text - The text as written.

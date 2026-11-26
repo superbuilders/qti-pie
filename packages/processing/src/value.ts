@@ -7,13 +7,13 @@
  * is a {@link Text}, a string no code can make empty, so the constructors give NULL where QTI does
  * and no operator meets an empty value it would have to defend against.
  *
- * - An integer is an exact `bigint` at any size (reading 45); a float and a duration's seconds are
- *   IEEE 754 binary64 doubles (reading 235), compared by `===`, so NaN matches nothing and −0
- *   matches 0.
+ * - An integer is an exact `bigint` at any size (reading `integer-unbounded`); a float and a
+ *   duration's seconds are IEEE 754 binary64 doubles (reading `float-binary64`), compared by `===`,
+ *   so NaN matches nothing and −0 matches 0.
  * - A pair is unordered (§8.14: "(A,B) equals (B,A)"); a directed pair and a point are ordered.
- * - A record has no base type: each field is a single value of its own (reading 153), and a NULL
- *   field is no field.
- * - NULL is typed: it keeps the type it was declared or computed with (reading 216).
+ * - A record has no base type: each field is a single value of its own (reading
+ *   `record-without-base-type`), and a NULL field is no field.
+ * - NULL is typed: it keeps the type it was declared or computed with (reading `null-results`).
  *
  * @module
  */

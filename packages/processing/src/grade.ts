@@ -67,7 +67,7 @@ export interface AnswerInput {
 }
 
 /**
- * An answer admission refused (§7.19.7, reading 195): its reasons. It writes nothing.
+ * An answer admission refused (§7.19.7, reading `response-limits`): its reasons. It writes nothing.
  */
 export interface Refused {
   readonly admission: Admission;

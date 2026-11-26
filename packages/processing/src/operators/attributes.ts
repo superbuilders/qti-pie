@@ -15,7 +15,8 @@ import { attributeOf, collapseXmlSpace } from "#processing/xml.ts";
 import type { XmlElement } from "#processing/xml.ts";
 
 /**
- * A boolean attribute (reading 34: `true`, `false`, `1`, `0`), or its default where unwritten.
+ * A boolean attribute (reading `boolean-lexical`: `true`, `false`, `1`, `0`), or its default where
+ * unwritten.
  *
  * @param element - The element.
  * @param name - The attribute.
@@ -204,7 +205,7 @@ export const floatOrVariable = (
 /**
  * An attribute that is a string or names a variable (`stringOrVariableRef`): a value that is
  * exactly `{name}`, where `name` names a declared variable, is a reference; any other value is
- * literal text as written, braces kept (§2.7.2, reading 58).
+ * literal text as written, braces kept (§2.7.2, reading `pattern-mask-braces`).
  *
  * @param written - The attribute's value.
  * @param context - The document's declarations.
