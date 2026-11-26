@@ -69,7 +69,7 @@ export const ledgerLaws = {
   },
   "Delivered shape": {
     source:
-      "src/delivery.ts UndeliveredSitting: no sitting is of a test this runtime does not deliver (DeliveredTest's clauses)",
+      "src/delivery.ts DeliveredTest: every sitting's test (TestSession's package and path) is a test this runtime delivers, a key of the stored DeliveredTest",
   },
   "Demand of an application": {
     source:

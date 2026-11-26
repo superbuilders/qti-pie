@@ -22,11 +22,12 @@
  *   (whose template values the take would draw: §2.7.3, "Template processing consists of one or
  *   more TemplateRules that are followed by the cloning engine or delivery system in order to
  *   assign values to the template variables"). Every other valid test is content pantry admits and
- *   this runtime does not open: "Delivered shape" holds every sitting to DeliveredTest's clauses at
- *   every write, so no test is ever delivered half to its rules. Each construct it leaves out has
- *   no form in AlphaTest's 2,825 served tests (`qti-port/registry/tests.md`, T-ABSENT and
- *   T-FORM-01; 0 of 2,825 refused, QP-CONVERTER's count), and each is lifted by the runtime that
- *   delivers it.
+ *   this runtime does not open: "Delivered shape" holds every sitting's test to a key of
+ *   DeliveredTest, which the sealed Package stores at publication, so no test is ever delivered
+ *   half to its rules and no write of a sitting re-derives its test's clauses. Each construct it
+ *   leaves out has no form in AlphaTest's 2,825 served tests (`qti-port/registry/tests.md`,
+ *   T-ABSENT and T-FORM-01; 0 of 2,825 refused, QP-CONVERTER's count), and each is lifted by the
+ *   runtime that delivers it.
  * - The laws of a sitting's candidate sessions: each later budget is the time its sitting has left,
  *   no candidate session ran, up to its last sign of presence, past its deadline unless the test
  *   allows late submission (a closed tab's time, after the last sign, is not charged: H10) (Table
@@ -482,32 +483,6 @@ export const deliveryOf = (ledger: LedgerLevel) => {
         .where(r.not(undeliveredTests, { package: pkg, path }))
         .find({ package: pkg, path });
     }),
-  );
-
-  /**
-   * Each sitting of a test this runtime does not deliver, by {@link DeliveredTest}'s clauses: a test
-   * that is not IMPL-TESTS' DeliverableTest, or one {@link undeliveredTests} names. None may stand,
-   * its `delivered` false, which "Delivered shape" refuses.
-   */
-  const UndeliveredSitting = derived(
-    "UndeliveredSitting",
-    query(ledger)
-      .rule((r) => {
-        const { child, stage, package: pkg, path } = v(TestSession, "undeliverableSitting");
-
-        return r
-          .match(TestSession, { child, package: pkg, path, stage })
-          .where(r.not(DeliverableTest, { package: pkg, path }))
-          .find({ child, delivered: Type.literal(pg.boolean, false), stage });
-      })
-      .rule((r) => {
-        const { child, stage, package: pkg, path } = v(TestSession, "undeliveredSitting");
-
-        return r
-          .match(TestSession, { child, package: pkg, path, stage })
-          .match(undeliveredTests, { package: pkg, path })
-          .find({ child, delivered: Type.literal(pg.boolean, false), stage });
-      }),
   );
 
   /**
@@ -1222,7 +1197,6 @@ export const deliveryOf = (ledger: LedgerLevel) => {
   const deliveryRelations = [
     DeliveredTest,
     ItemDuration,
-    UndeliveredSitting,
     NextBudget,
     BudgetChain,
     SuspensionInTime,
@@ -1249,7 +1223,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
   const deliveryLaws = [
     named(
       "Delivered shape",
-      check("Delivered_shape", UndeliveredSitting, (u) => u.eq(u.delivered, true)),
+      contained(on(TestSession, "package", "path"), on(DeliveredTest, "package", "path")),
     ),
     named(
       "Budget chain",
