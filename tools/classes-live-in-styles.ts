@@ -1,3 +1,4 @@
+import { regex } from "arkregex";
 import { Option, Predicate, Schema } from "effect";
 import type { RuleTester } from "oxlint/plugins-dev";
 
@@ -35,10 +36,15 @@ type AnyNode = Extract<
 type NodeOf<T extends AnyNode["type"]> = Extract<AnyNode, { type: T }>;
 
 /**
- * The rule's options: the files that pass the author's QTI class through to the markup, each by
- * its path relative to qti-pie's root, decoded once where the rule is created.
+ * The rule's options, decoded once where the rule is created, each file by its path relative to
+ * qti-pie's root: the files whose HTML markup pins its root's and its body's geometry in a `style`
+ * element of its own (`markupPins`), the frame page's; and the files that pass the author's QTI
+ * class through to the markup (`passthrough`).
  */
-const Options = Schema.Struct({ passthrough: Schema.Array(Schema.String) });
+const Options = Schema.Struct({
+  markupPins: Schema.Array(Schema.String),
+  passthrough: Schema.Array(Schema.String),
+});
 
 /**
  * Decode the options Oxlint was configured with, none for options of another shape.
@@ -58,6 +64,55 @@ const classMessage = [
  */
 const styleMessage =
   "plate's UI writes no style: a part's look lives in plate/src/styles/*.css, keyed on data-slot and data-* states.";
+
+/**
+ * The diagnostic for a style in markup plate's UI writes as a string.
+ */
+const markupStyleMessage =
+  "plate's UI writes no style in its markup: no style attribute anywhere, and one style element, the frame page's pins of its root and body, at the sites the rule's markupPins option lists.";
+
+/**
+ * A `style` element in markup written as a string.
+ */
+const styleElement = regex("<style[\\s>]", "giu");
+
+/**
+ * An element's opening tag that carries a `style` attribute, in markup written as a string.
+ */
+const styleAttribute = regex("<[A-Za-z][\\w-]*(?:\\s[^<>]*?)?\\sstyle\\s*=", "giu");
+
+/**
+ * The styles markup written as a string holds: its `style` elements and its `style` attributes.
+ */
+interface MarkupStyles {
+  readonly attributes: number;
+  readonly elements: number;
+}
+
+/**
+ * Count the styles of markup written as a string, the markup a string literal's value, or a
+ * template's text with each substitution a space.
+ *
+ * @param node A string literal or a template.
+ * @returns How many of each, none for anything else.
+ */
+const markupStylesOf = (node: AnyNode): MarkupStyles => {
+  const textOf = (): string => {
+    if (node.type === "Literal") {
+      return Predicate.isString(node.value) ? node.value : "";
+    }
+
+    return node.type === "TemplateLiteral"
+      ? node.quasis.map((quasi) => quasi.value.cooked ?? quasi.value.raw).join(" ")
+      : "";
+  };
+  const text = textOf();
+
+  return {
+    attributes: [...text.matchAll(styleAttribute)].length,
+    elements: [...text.matchAll(styleElement)].length,
+  };
+};
 
 /**
  * The diagnostic for a stylesheet plate's UI imports.
@@ -116,11 +171,17 @@ const isStylesheet = (source: AnyNode | null): boolean =>
  * Refuses a look written in plate's UI, on the files Oxlint's configuration runs it on: no class
  * (a JSX `className`, `class` or `*ClassName`, an object literal's key of those names, which a
  * spread writes as an attribute, a `.className` assignment or `.classList`), no style (a JSX
- * `style`, an object literal's `style`, a `.style` read or write) and no stylesheet import. Its
+ * `style`, an object literal's `style`, a `.style` read or write, a `style` attribute or element in
+ * markup a string or a template writes, but one `style` element at a `markupPins` site) and no
+ * stylesheet import. Its
  * look is the separate imports `plate/src/styles/base.css` and `theme.css`, which a host chooses,
  * so a part names itself by `data-slot` and its state by `data-*`, and a new look replaces the
  * stylesheet alone. The one class plate writes is the author's QTI class, passed through at the
- * sites the `passthrough` option lists; a style or stylesheet has no such site.
+ * sites the `passthrough` option lists; a stylesheet has no such site, and a style one: the frame
+ * page's own `style` element, which pins its root's and its body's geometry (`pins` in
+ * `packages/plate/src/ui/portable-custom/frame-page.ts`), at the sites the `markupPins` option
+ * lists, one per string. A `style` attribute in markup fails everywhere, and a second element
+ * there too.
  */
 const classesLiveInStyles = {
   /**
@@ -137,16 +198,29 @@ const classesLiveInStyles = {
          */
         Program(node) {
           context.report({
-            message: `${context.id} takes one object option, { passthrough: string[] }, the files that pass the author's class through.`,
+            message: `${context.id} takes one object option, { markupPins: string[], passthrough: string[] }, the files whose markup pins its root's and body's style, and the files that pass the author's class through.`,
             node,
           });
         },
       };
     }
 
-    const passes = options.value.passthrough.some(
-      (path) => context.filename === path || context.filename.endsWith(`/${path}`),
-    );
+    const listed = (paths: readonly string[]): boolean =>
+      paths.some((path) => context.filename === path || context.filename.endsWith(`/${path}`));
+    const passes = listed(options.value.passthrough);
+    const pins = listed(options.value.markupPins);
+
+    /**
+     * @param node A string or a template, whose markup may carry a style: refused but for one
+     *   `style` element at a `markupPins` site.
+     */
+    const reportMarkup = (node: AnyNode): void => {
+      const styles = markupStylesOf(node);
+
+      if (styles.attributes > 0 || styles.elements > (pins ? 1 : 0)) {
+        context.report({ message: markupStyleMessage, node });
+      }
+    };
 
     /**
      * @param node A class plate writes.
@@ -227,6 +301,12 @@ const classesLiveInStyles = {
         }
       },
       /**
+       * @param node A string literal, whose markup may carry a style.
+       */
+      Literal(node) {
+        reportMarkup(node);
+      },
+      /**
        * @param node A member read or written: `.style`, `.classList`.
        */
       MemberExpression(node) {
@@ -255,12 +335,18 @@ const classesLiveInStyles = {
           reportClass(node);
         }
       },
+      /**
+       * @param node A template, whose markup may carry a style.
+       */
+      TemplateLiteral(node) {
+        reportMarkup(node);
+      },
     };
   },
   meta: {
     docs: {
       description:
-        "Disallow classes, styles and stylesheet imports in plate's UI but the author's class at its passthrough sites, so plate's look is its separate stylesheets.",
+        "Disallow classes, styles and stylesheet imports in plate's UI but the author's class at its passthrough sites and the frame page's own style element, its pins, at its markupPins sites, so plate's look is its separate stylesheets.",
     },
     schema: [{ type: "object" }],
     type: "problem",

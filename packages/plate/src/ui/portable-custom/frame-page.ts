@@ -93,18 +93,19 @@ const policyOf = (hash: string): string =>
   ].join("; ");
 
 /**
- * Write declarations as a `style` attribute's text, each `!important`.
+ * Write a rule of declarations for a selector, each `!important`.
  *
+ * @param selector The selector.
  * @param declarations The declarations, by property.
- * @returns The text.
+ * @returns The rule's text.
  */
-const pinnedStyleOf = (declarations: Readonly<Record<string, string>>): string =>
-  Object.entries(declarations)
+const pinnedRuleOf = (selector: string, declarations: Readonly<Record<string, string>>): string =>
+  `${selector}{${Object.entries(declarations)
     .map(([property, value]) => `${property}:${value}!important`)
-    .join(";");
+    .join(";")}}`;
 
 /**
- * The root element's geometry, pinned in the page's own markup, so that the root's border box,
+ * The root element's geometry, pinned in the page's own stylesheet, so that the root's border box,
  * which the boot posts as the frame's height, is the extent the document paints and no function of
  * the frame's own height: each property by which a PCI's stylesheet could set that box apart from
  * its content, or tie it to the viewport, at its initial value.
@@ -121,27 +122,52 @@ const pinnedStyleOf = (declarations: Readonly<Record<string, string>>): string =
  * - `writing-mode`, here and on the body: the root's used writing mode is the body's, or its own
  *   where either has containment (CSS Writing Modes 4, §8). In a vertical one the box's block size
  *   is the frame's width, so each post rewraps the text at a new height and the next post swaps the
- *   two (716, 302, 716, … in Chrome 158).
+ *   two (716, 302, 716, … in Chrome 158). So a PCI whose stylesheet makes its body vertical renders
+ *   horizontally; one that wants vertical text sets it on its own element, an orthogonal flow,
+ *   which cannot oscillate: its height is the viewport's, which the boot stops at its first echo;
+ * - `overflow-y: auto`, so the viewport scrolls what overflows the frame: the root's `overflow` is
+ *   the viewport's, and while it is `visible` the body's is, so a PCI's `overflow: hidden` on
+ *   either would leave unreachable the content the frame cannot fit, which content sized from the
+ *   viewport's own height always is (the boot's `postHeight`). The viewport takes `visible` as
+ *   `auto` (CSS Overflow 3, §3.3), so this is the value a page that sets neither already has.
  *
- * The `style` attribute is element-attached, and its `!important` declarations win over every
- * stylesheet's, its `!important` ones and those of every layer included (CSS Cascade 5, §6.1's
- * "Element-Attached Styles", which sorts before "Layers"). The values are the properties' initial
- * ones, so the page lays out as it would without them unless a PCI's stylesheet would have moved
- * one, and they carry no look: no colour, type or spacing of anything a host's theme styles. A
- * PCI's own script can still write the root's `style`; that is the PCI's code, not its stylesheet.
+ * The pins are the page's own `style` element, the first stylesheet of its head, each declaration
+ * `!important` and in a cascade layer of its own, `qti-pie-frame-pins`, the page's first. Among
+ * `!important` declarations the first layer wins over every later one and over every unlayered one
+ * (CSS Cascade 5, §6.1 and §6.4: layers sort in reverse for important declarations), so a PCI's
+ * stylesheet cannot move them, `!important` or layered; and an `!important` declaration wins over
+ * every normal one, so neither can a PCI's script that writes the root's or the body's `style` as
+ * plainly as CSSOM writes it (`style.height = …`, `style.cssText`, `removeAttribute("style")`).
+ * What still can: a script that removes or edits this `style` element, writes a pinned property
+ * with `setProperty(…, "important")`, whose element-attached `!important` declaration sorts before
+ * every layer, or attaches a shadow root to the body and styles the body from inside it with an
+ * `!important` `:host` rule, whose inner context sorts before element-attached styles; and a
+ * stylesheet that adds its own rules to the layer `qti-pie-frame-pins`, later. That is the PCI's
+ * code, not its stylesheet; a height it moves so the boot stops at its first echo. The root cannot
+ * host a shadow root.
+ *
+ * The values are the properties' initial ones, `overflow-y` the viewport's own, so the page lays
+ * out as it would without them unless a PCI would have moved one, and they carry no look: no
+ * colour, type or spacing of anything a host's theme styles.
  *
  * @constraint What the pin leaves: content the root holds that overflows its box (a descendant's
- *   transform, absolute position or negative margin), and content sized from the viewport's height
- *   (`vh` units, an orthogonal flow, whose available inline size is the viewport's height), which
- *   grows the frame at each post by whatever stands beside it.
+ *   transform, absolute position or negative margin; the body's own `position: absolute`, which
+ *   takes it out of the root's flow, and the body's size containment, which lays it out as if it
+ *   held nothing), which the viewport scrolls; and content sized from the viewport's height (`vh`
+ *   units, an orthogonal flow, whose available inline size is the viewport's height), which has no
+ *   height to post; the boot stops it at the first post its own resize echoes, and the viewport
+ *   scrolls the rest.
  * @source CSS Writing Modes 4, §8 (the principal writing mode); CSS Cascade 5, §6.1 (cascade
- *   sorting order); CSS Containment 2 (size containment); Chrome 158, probed through this page's
- *   markup with each property set by a PCI's stylesheet.
+ *   sorting order) and §6.4 (cascade layers); CSS Containment 2 (size containment); Chrome 158,
+ *   probed through this page's markup with each property set by a PCI's stylesheet, layered or not,
+ *   and by its script.
  * @see https://drafts.csswg.org/css-writing-modes-4/#principal-flow
  * @see https://drafts.csswg.org/css-cascade-5/#cascade-sort
+ * @see https://drafts.csswg.org/css-cascade-5/#layering
  * @see https://drafts.csswg.org/css-contain-2/#containment-size
+ * @see https://drafts.csswg.org/css-overflow-3/#overflow-propagation
  */
-const rootPin = pinnedStyleOf({
+const rootPin = pinnedRuleOf("html", {
   contain: "none",
   "content-visibility": "visible",
   height: "auto",
@@ -149,6 +175,7 @@ const rootPin = pinnedStyleOf({
   "max-height": "none",
   "min-height": "auto",
   "offset-path": "none",
+  "overflow-y": "auto",
   position: "static",
   rotate: "none",
   scale: "none",
@@ -159,20 +186,35 @@ const rootPin = pinnedStyleOf({
 });
 
 /**
- * The body's writing mode, pinned as the root's is ({@link rootPin}): the body's is the one the
- * root takes as its used writing mode.
+ * The body's geometry, pinned as the root's is ({@link rootPin}): its writing mode, the one the
+ * root takes as its used writing mode; and its `height`, `min-height` and `max-height`, so a
+ * reset's `body { min-height: 100vh }`, which sizes the body from the viewport, does not; what a
+ * descendant sizes from the viewport the boot's echo rule stops. Its `position` is not pinned: an
+ * absolutely positioned body only overflows the root, which the viewport scrolls (the pin's
+ * `@constraint`).
  */
-const bodyPin = pinnedStyleOf({ "writing-mode": "horizontal-tb" });
+const bodyPin = pinnedRuleOf("body", {
+  height: "auto",
+  "max-height": "none",
+  "min-height": "auto",
+  "writing-mode": "horizontal-tb",
+});
+
+/**
+ * The page's own stylesheet: the pins of the root's and the body's geometry ({@link rootPin},
+ * {@link bodyPin}), in the layer that is the page's first.
+ */
+const pins = `@layer qti-pie-frame-pins{${rootPin}${bodyPin}}`;
 
 /**
  * The frame page's HTML, its boot the inline script at the end of its body, where the boot finds
  * the body it writes the PCI's `dom` into. Its colour schemes are a `meta`, which the page reads
  * before any stylesheet a PCI loads, "to aid user agents in rendering the page background with the
- * desired color scheme immediately (rather than waiting for all CSS in the page to load)". The
- * root's and the body's geometry are pinned in their `style` attributes ({@link rootPin}), which
- * the page's policy allows: its `style-src` carries `'unsafe-inline'`.
+ * desired color scheme immediately (rather than waiting for all CSS in the page to load)". Its
+ * first stylesheet, the head's one `style` element, pins the root's and the body's geometry
+ * ({@link pins}), which the page's policy allows: its `style-src` carries `'unsafe-inline'`.
  */
-const html = `<!DOCTYPE html><html style="${rootPin}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><title></title></head><body style="${bodyPin}"><script>${script}</script></body></html>`;
+const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${pins}</style><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><title></title></head><body><script>${script}</script></body></html>`;
 
 /**
  * Give the frame page a host serves for every Portable Custom Interaction, at the URL it names as

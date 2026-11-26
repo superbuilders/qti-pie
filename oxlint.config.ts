@@ -498,6 +498,7 @@ export default defineConfig({
         "workspace/classes-live-in-styles": [
           "error",
           {
+            markupPins: ["packages/plate/src/ui/portable-custom/frame-page.ts"],
             // The author's class: the shell filters it into the interaction's context (item.tsx), the
             // island's context copies it (index.tsx), the roots carry it (labels.ts), and two UI SDK
             // parts write it only where the author did (position-object.tsx, select-point.tsx).

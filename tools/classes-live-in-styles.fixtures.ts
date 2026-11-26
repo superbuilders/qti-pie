@@ -31,11 +31,23 @@ const passthrough = "/qti-pie/packages/plate/src/ui/item/item.tsx";
 const passthroughSite = "packages/plate/src/ui/item/item.tsx";
 
 /**
- * The options a case runs under, made for each case: the one passthrough site.
+ * The one site whose markup the cases' options let hold the one `style` element that pins its
+ * root's and body's style, by its path from qti-pie's root.
+ */
+const pinSite = "packages/plate/src/ui/portable-custom/frame-page.ts";
+
+/**
+ * The frame page, the file of the one `markupPins` site.
+ */
+const framePage = "/qti-pie/packages/plate/src/ui/portable-custom/frame-page.ts";
+
+/**
+ * The options a case runs under, made for each case: the one passthrough site and the one
+ * `markupPins` site.
  *
  * @returns The options.
  */
-const optionsOf = () => [{ passthrough: [passthroughSite] }];
+const optionsOf = () => [{ markupPins: [pinSite], passthrough: [passthroughSite] }];
 
 /**
  * What a refused class says.
@@ -46,6 +58,19 @@ const noClass = regex("writes no class of its own", "u");
  * What a refused style says.
  */
 const noStyle = regex("writes no style", "u");
+
+/**
+ * Write a template's substitution of a name, as a case's code holds it.
+ *
+ * @param name The name.
+ * @returns The substitution's text.
+ */
+const substitution = (name: string): string => `$\u{7B}${name}}`;
+
+/**
+ * What a refused style in markup says.
+ */
+const noMarkupStyle = regex("writes no style in its markup", "u");
 
 /**
  * What a refused stylesheet import says.
@@ -78,8 +103,11 @@ const invalid = (filename: string, message: RegExp, code: string) => ({
 
 /**
  * The rule's cases: a part named by `data-slot` and its state by `data-*`, a class only read, typed
- * or passed through at a listed site, all admitted; a class written anywhere else, any style and
- * any stylesheet import, refused, at a passthrough site too.
+ * or passed through at a listed site, markup with no style, and the frame page's one `style`
+ * element at its `markupPins` site, all admitted; a class written anywhere else, any other style,
+ * in JSX, an object, a member or markup, a `style` attribute at the frame page too, a second
+ * `style` element there and one anywhere else, and any stylesheet import, refused, at a passthrough
+ * site too.
  */
 const cases: Cases = {
   invalid: [
@@ -106,11 +134,28 @@ const cases: Cases = {
     invalid(island, noStylesheet, `export const load = () => import("#plate/styles/theme.css");`),
     invalid(passthrough, noStyle, `export const A = () => <div style={{ inset: 0 }} />;`),
     invalid(passthrough, noStylesheet, `import "#plate/styles/theme.css";`),
+    invalid(
+      island,
+      noMarkupStyle,
+      `export const html = \`<html style="${substitution("pin")}"><body></body></html>\`;`,
+    ),
+    invalid(island, noMarkupStyle, `export const html = '<div class="x" style="margin: 0">';`),
+    invalid(
+      framePage,
+      noMarkupStyle,
+      `export const html = \`<html style="${substitution("pin")}"><body></body></html>\`;`,
+    ),
+    invalid(
+      framePage,
+      noMarkupStyle,
+      `export const html = \`<head><style>${substitution("pins")}</style><style>p{}</style></head>\`;`,
+    ),
+    invalid(island, noMarkupStyle, `export const html = '<head><style>p{}</style></head>';`),
     {
       code: `export const A = () => <div data-slot="plate-choice" />;`,
       errors: [{ message: regex("takes one object option", "u") }],
       filename: island,
-      options: [{ classes: [] }],
+      options: [{ passthrough: [] }],
     },
   ],
   valid: [
@@ -121,6 +166,11 @@ const cases: Cases = {
     ),
     valid(island, `export interface Root { readonly className: string | undefined }`),
     valid(island, `import { Option } from "effect";`),
+    valid(island, `export const html = '<html lang="en"><body data-pinned=""></body></html>';`),
+    valid(
+      framePage,
+      `export const html = \`<!DOCTYPE html><html><head><style>${substitution("pins")}</style></head><body></body></html>\`;`,
+    ),
     valid(passthrough, `export const root = (author: string) => ({ className: author });`),
     valid(
       passthrough,

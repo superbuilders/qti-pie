@@ -27,10 +27,12 @@
  *    as it is when the page navigates away or the island's frame is removed with no time left to
  *    ask. A document the cache keeps may come back, so its PCI stays as it was.
  *
- * Its height follows its content: a `ResizeObserver` on the document's root element posts the
- * whole pixels of its border box's block size, which the island writes as the frame's `height`
- * attribute. The frame page's markup pins the root's geometry, so that box is the extent the
- * document paints, at the frame's width, and a post changes no box it observes.
+ * Its height follows its content: a `ResizeObserver` on the document's root element posts the whole
+ * pixels of its border box's block size, which the island writes as the frame's `height` attribute.
+ * The frame page's own stylesheet pins the root's geometry, so that box is the extent the document
+ * paints, at the frame's width, and a post changes no box it observes. Content sized from the
+ * viewport's own height, which no height fits, stops at the first post its own resize echoes, and
+ * scrolls the rest.
  *
  * Failure travels as a `failed` message while the PCI is not yet running: a route that exhausts
  * its locations, a module that names a dependency no route defines, no factory for the identifier
@@ -183,6 +185,18 @@ interface Loading {
 }
 
 /**
+ * What the frame keeps of the heights it posts: the last, none before its first; whether the
+ * viewport stood at it when the frame last looked; whether a content signal has fired since; and
+ * the root's inline size at the last observation.
+ */
+interface Followed {
+  atPosted: boolean;
+  inline: number | undefined;
+  posted: number | undefined;
+  signalled: boolean;
+}
+
+/**
  * An object whose keys are read one by one at this boundary: what a message or a PCI's event
  * detail is before a predicate has read it.
  */
@@ -224,6 +238,11 @@ export const bootFrame = (): void => {
   const bridgeId = "qtiCustomInteractionContext";
   const commonJsNames = ["require", "exports", "module"] as const;
   const inputEvents = ["change", "click", "drop", "input", "keyup", "pointerup"] as const;
+  /**
+   * The events by which an element's own content changes without a mutation of the document: a
+   * picture or a medium that loaded or failed to, a transition or an animation that ended.
+   */
+  const contentEvents = ["animationend", "error", "load", "transitionend"] as const;
   /**
    * The longest delay a browser's timer holds, in milliseconds: `setTimeout` takes it as a WebIDL
    * `long`, a 32-bit signed integer.
@@ -860,8 +879,49 @@ export const bootFrame = (): void => {
   }
 
   /**
+   * The height the frame last posted, none before its first; whether the viewport stood at that
+   * height when the frame last looked, at its last observation or in a timer after its last
+   * `resize`; whether a content signal has fired since the last post; and the root's inline size
+   * at the last observation.
+   */
+  const height: Followed = {
+    atPosted: false,
+    inline: undefined,
+    posted: undefined,
+    signalled: false,
+  };
+
+  /**
+   * Note that the document's content changed by a signal that says so.
+   */
+  const signal = (): void => {
+    height.signalled = true;
+  };
+
+  /**
+   * Tell whether the frame's viewport is a given height now, by the `height` media feature, the
+   * viewport's own, its scroll bar included.
+   *
+   * @param pixels The height, in CSS pixels.
+   * @returns Whether it is.
+   * @see https://drafts.csswg.org/mediaqueries-4/#height
+   */
+  const viewportAt = (pixels: number): boolean =>
+    matchMedia(`(height: ${String(pixels)}px)`).matches;
+
+  /**
+   * Look at the viewport: note whether it stands at the height last posted.
+   */
+  const look = (): void => {
+    height.atPosted = height.posted !== undefined && viewportAt(height.posted);
+  };
+
+  /**
    * Post the frame's height: its document element's border box's block size, in CSS pixels
-   * rounded up, as the `ResizeObserver` observing that very box reports it.
+   * rounded up, as the `ResizeObserver` observing that very box reports it, once the island's
+   * `load` has written the PCI's markup; except for an observation that only echoes the frame's
+   * own resize. Before the markup the document holds nothing, and its height, its body's margins,
+   * would shrink the frame for nothing.
    *
    * @param entries The observation's entries: the document element's alone.
    * @constraint The height posted is the box observed, so every change of it has its observation.
@@ -870,27 +930,76 @@ export const bootFrame = (): void => {
    *   reports. Either left the host's frame at a height the document no longer had, its content
    *   clipped, with nothing posted.
    * @constraint The block size is the frame's height, and the extent the document paints, because
-   *   the frame page's markup pins the root's geometry and its and the body's writing mode
+   *   the frame page's own stylesheet pins the root's geometry and its and the body's writing mode
    *   (`rootPin` in `#plate/ui/portable-custom/frame-page.ts`): the root is horizontal, so its
-   *   block size is its height, and that height is its content's, at the frame's width, whatever
-   *   the frame's height. So a post sets the frame's height and changes no box the observation
-   *   watches, and the frame posts once for each change of its content. Content sized from the
-   *   viewport's height is the exception the pin's doc names.
+   *   block size is its height, and that height is its content's, at the frame's width. So a post
+   *   sets the frame's height and changes no box the observation watches, and the frame posts once
+   *   for each change of its content.
+   * @constraint Content sized from the viewport's own height (`vh` units, an orthogonal flow, whose
+   *   available inline size is the viewport's height) has no height to post: at a viewport of `V`
+   *   it is `V + c`, so each post would grow the frame by `c` without end. The viewport's height
+   *   changes only when the island applies the frame's own post, so an observation made once the
+   *   viewport has come to stand at the height last posted, the frame's width as it was, is an
+   *   echo, and posts nothing, unless a content signal fired since that post: a mutation of the
+   *   document, an element's `load` or `error`, a font face loaded, a transition or an animation
+   *   ended. The frame then keeps its height, and its root, which the pin scrolls, scrolls the `c`
+   *   pixels: a frame its island made at the default height of an `iframe`, 150 pixels, stops at
+   *   `150 + c`, since nothing is posted for the empty document before the markup. In Chrome the observation of a rendering update comes before that update's `resize`,
+   *   so the viewport is looked at again in a timer after each `resize`, never in its listener.
+   *   What is left: a change of the content that no signal reports (a stylesheet's rule changed
+   *   through the CSSOM, a media query, a hover) and that lands in the very observation that
+   *   echoes the frame's resize, with nothing after it, is not posted until the content next
+   *   changes; and a PCI whose script sizes its content from the viewport at each `resize` mutates
+   *   the document, which is a signal, so its frame follows each resize with a post.
    * @source Resize Observer: `ResizeObserverOptions.box` and its `border-box`, and
-   *   `ResizeObserverEntry.borderBoxSize`.
+   *   `ResizeObserverEntry.borderBoxSize`; Chrome 158, probed through this frame page
+   *   (`car-i2/probe/order-probe.mjs` and `echo-probe.mts` in the lane's directory): the
+   *   observation before the `resize`, and each case of content sized from the viewport ending at
+   *   its first echo.
    * @see https://drafts.csswg.org/resize-observer/#dom-resizeobserverboxoptions-border-box
    * @see https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-borderboxsize
+   * @see https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering
    */
   const postHeight = (entries: readonly ResizeObserverEntry[]): void => {
     const [box] = entries[0]?.borderBoxSize ?? [];
 
-    if (box === undefined) {
+    if (box === undefined || dom === undefined) {
       return;
     }
 
-    post({ kind: "height", nonce, pixels: Math.ceil(box.blockSize) });
+    const now = height.posted !== undefined && viewportAt(height.posted);
+    const echo = now && !height.atPosted && box.inlineSize === height.inline && !height.signalled;
+
+    height.atPosted = now;
+    height.inline = box.inlineSize;
+
+    if (echo) {
+      return;
+    }
+
+    const pixels = Math.ceil(box.blockSize);
+
+    height.posted = pixels;
+    height.signalled = false;
+    height.atPosted = viewportAt(pixels);
+    post({ kind: "height", nonce, pixels });
   };
 
+  new MutationObserver(signal).observe(document, {
+    attributes: true,
+    characterData: true,
+    childList: true,
+    subtree: true,
+  });
+
+  for (const name of contentEvents) {
+    document.addEventListener(name, signal, { capture: true });
+  }
+
+  document.fonts.addEventListener("loadingdone", signal);
+  window.addEventListener("resize", () => {
+    setTimeout(look, 0);
+  });
   new ResizeObserver(postHeight).observe(document.documentElement, { box: "border-box" });
   post({ kind: "booted", nonce });
 };
