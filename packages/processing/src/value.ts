@@ -378,3 +378,47 @@ export const sameScalar = <B extends BaseType>(
 
   return same(left, right);
 };
+
+/**
+ * The members of a container as singles of its base type, in order.
+ *
+ * @param value - The container.
+ * @returns Its members.
+ */
+export const singlesOf = (value: Container): readonly Single[] => {
+  switch (value.base) {
+    case "boolean": {
+      return value.values.map((member) => single(value.base, member));
+    }
+    case "directedPair": {
+      return value.values.map((member) => single(value.base, member));
+    }
+    case "duration": {
+      return value.values.map((member) => single(value.base, member));
+    }
+    case "file": {
+      return value.values.map((member) => single(value.base, member));
+    }
+    case "float": {
+      return value.values.map((member) => single(value.base, member));
+    }
+    case "identifier": {
+      return value.values.map((member) => single(value.base, member));
+    }
+    case "integer": {
+      return value.values.map((member) => single(value.base, member));
+    }
+    case "pair": {
+      return value.values.map((member) => single(value.base, member));
+    }
+    case "point": {
+      return value.values.map((member) => single(value.base, member));
+    }
+    case "string": {
+      return value.values.map((member) => single(value.base, member));
+    }
+    case "uri": {
+      return value.values.map((member) => single(value.base, member));
+    }
+  }
+};

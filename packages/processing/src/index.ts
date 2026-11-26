@@ -61,3 +61,36 @@ export {
   single,
   textValue,
 } from "#processing/value.ts";
+
+export type { Credit, Mark } from "#processing/credit.ts";
+
+export type {
+  AnswerGrade,
+  AnswerInput,
+  CarriedMember,
+  ClosingMember,
+  ItemSession,
+  MemberGrade,
+  MemberRef,
+  SittingGrade,
+  SittingInput,
+  Submitted,
+} from "#processing/grade.ts";
+
+export type {
+  CompiledItem,
+  CompiledItemRef,
+  CompiledTest,
+  Declaration,
+  LookupTable,
+} from "#processing/program.ts";
+
+export type { Demand, ProcessingFailure } from "#processing/run.ts";
+
+export type { Failed, ItemResult, Prior, Take } from "#processing/session.ts";
+
+export type { Seed } from "#processing/stream.ts";
+
+export { processingSeed, responseLabel, templateLabel } from "#processing/stream.ts";
+
+export type { XmlAttribute, XmlElement, XmlNode } from "#processing/xml.ts";
