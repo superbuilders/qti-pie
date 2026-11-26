@@ -67,7 +67,7 @@
  * a person holds its response alone, a session never answered has no row, and another sitting's
  * attempt is not read.
  *
- * And a test's responses (`enterTest`, `saveTestItem`, `suspendTest`, `endTest`, the test runtime's
+ * And a test's responses (`startTest`, `saveTestItem`, `suspendTest`, `endTest`, the test runtime's
  * own programs, over a sitting written as host rows), held to their table
  * ({@link responseExpectedOf}): a save lies inside a candidate session, so one before the sitting's
  * first, after its suspension or after its end is refused by "Inside a candidate session" (QTI
@@ -117,7 +117,8 @@
  * waits for its score (`pendingExternalScoring`, Results Reporting Table 2.7.7), so its sitting is
  * final only where the essay was never presented.
  *
- * And a shuffling section's sittings (`takeSitting`, `resumeTest`, `presentItem`, `suspendTest`),
+ * And a shuffling section's sittings (`takeSitting`, `startFirstTest`, `resumeLastTest`,
+ * `presentItem`, `suspendTest`),
  * held to the order plate's keyed digest gives ({@link shuffledOrderOf}): a section whose
  * qti-ordering shuffles presents its members in ascending HMAC-SHA-256 under its sitting's
  * decision seed over "ordering", the package and the item ref (§5.98.1, "causes the order of the
@@ -130,13 +131,13 @@
  * fixed item ref, or an ordering's extension element of any namespace is no test this runtime
  * delivers.
  *
- * And a sitting's entries (`enterTest` at a named member, `resumeTest` where its candidate left it,
- * `suspendTest`, `saveTestItem`), held to their table ({@link entryExpectedOf}): an entry presents
- * the member it names, the last presented or else the first for a resumed one, any in a nonlinear
- * part, and in a linear part only one whose every member before it was presented ("Linear in
- * order"), and in an individual one the one the candidate is on at a resumption ("In turn", moving
- * on submitting only there); a name of no member enters nothing; and a save of the member entered
- * at is accepted.
+ * And a sitting's entries (`startTest` and `resumeTest` at a named member, `startFirstTest` at its
+ * first, `resumeLastTest` where its candidate left it, `suspendTest`, `saveTestItem`), held to
+ * their table ({@link entryExpectedOf}): an entry presents the member it names, the last presented
+ * or else the first for a resumed one, any in a nonlinear part, and in a linear part only one whose
+ * every member before it was presented ("Linear in order"), and in an individual one the one the
+ * candidate is on at a resumption ("In turn", moving on submitting only there); a name of no member
+ * enters nothing; and a save of the member entered at is accepted.
  */
 import { Sha256 } from "@bjornpagen/grizzle";
 import { factsDecoder } from "@bjornpagen/grizzle/compile";
@@ -3146,14 +3147,14 @@ const holdResponse = (
       const entered = Option.isSome(timing.remaining)
         ? yield* at(
             began,
-            db.workload.enterTimedTest.once({
+            db.workload.startTimedTest.once({
               facts: {},
               params: { ...sitting, item: SAVED, remaining: timing.remaining.value },
             }),
           )
         : yield* at(
             began,
-            db.workload.enterTest.once({ facts: {}, params: { ...sitting, item: SAVED } }),
+            db.workload.startTest.once({ facts: {}, params: { ...sitting, item: SAVED } }),
           );
       assert.deepStrictEqual<unknown>(
         {
@@ -3619,7 +3620,7 @@ const holdControls = (
     });
     assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
 
-    const entered = yield* db.workload.enterTest.once({
+    const entered = yield* db.workload.startTest.once({
       facts: {},
       params: { ...sitting, item: MEMBER_REF },
     });
@@ -3889,7 +3890,7 @@ const holdShown = (c: ShownCase, child: string, note: (situation: ShownSituation
     });
     assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
 
-    const entered = yield* db.workload.enterTest.once({
+    const entered = yield* db.workload.startTest.once({
       facts: {},
       params: { ...sitting, item: MEMBER },
     });
@@ -4016,9 +4017,9 @@ type EntryMember = typeof MEMBER | typeof SAVED | typeof HUMAN_REF;
 const NOBODY = "nobody";
 
 /**
- * An entry of an entry case: at the member an item ref names (`enterTest` bound to
- * `namedEntries`), or where its candidate left the sitting (`resumeTest`, bound to
- * `resumedEntries`).
+ * An entry of an entry case: at the member an item ref names (`startTest` or `resumeTest` bound
+ * to `namedEntries`), or where its candidate left the sitting (`startTest` bound to
+ * `firstEntries` at the first entry, `resumeTest` bound to `lastEntries` after it).
  */
 type Entry =
   | Readonly<{ kind: "named"; item: EntryMember | typeof NOBODY }>
@@ -4146,8 +4147,8 @@ type EntryExpected = Readonly<{
  *
  * - An entry presents the member its entry names. A named one names its item ref; a resumed one names
  *   the member last presented, where a candidate session showed one, else the test's first
- *   (`resumedEntries`: QTI leaves where a delivery starts and resumes to it, §2.8.2). An entry
- *   naming no member of the sitting's test enters nothing.
+ *   (`lastEntries`, `firstEntries`: QTI leaves where a delivery starts and resumes to it, §2.8.2).
+ *   An entry naming no member of the sitting's test enters nothing.
  * - In a nonlinear part every named member is presented: "the candidate is free to navigate to any
  *   item in the test at any time" (the overview, from TestPart's `navigation-mode`, Table
  *   5.159.4).
@@ -4287,11 +4288,13 @@ const entrySituationsOf = (c: EntryCase, expected: EntryExpected): EntrySituatio
 
 /**
  * One entry case: a fresh child's sitting of the case's test, taken by the test runtime's own take
- * (`takeSitting`); each entry, `enterTest` at the member it names or `resumeTest` where its
- * candidate left the sitting, its outcome held to the table, a refusal to name its law, and an
- * accepted one's candidate session to present the member the table says (`presentationsOf`); the
- * sitting suspended (`suspendTest`) before each entry but the first; then, where every entry was
- * accepted, a save (`saveTestItem`) of the member the last one presented, held to be accepted.
+ * (`takeSitting`); each entry, the first a start (`startTest` at the member it names,
+ * `startFirstTest` at the sitting's first) and each after it a resumption (`resumeTest` at the
+ * member it names, `resumeLastTest` where its candidate left the sitting), its outcome held to the
+ * table, a refusal to name its law, and an accepted one's candidate session to present the member
+ * the table says (`presentationsOf`); the sitting suspended (`suspendTest`) before each entry but
+ * the first; then, where every entry was accepted, a save (`saveTestItem`) of the member the last
+ * one presented, held to be accepted.
  *
  * @param c - The case.
  * @param child - The run's fresh child.
@@ -4321,10 +4324,19 @@ const holdEntry = (c: EntryCase, child: string, note: (situation: EntrySituation
         assert.strictEqual(suspended.kind, "accepted", `${what}: the suspension before it`);
       }
 
+      const named = entry.kind === "named" ? Option.some(entry.item) : Option.none();
       const entered = yield* Effect.result(
-        entry.kind === "named"
-          ? db.workload.enterTest.once({ facts: {}, params: { ...sitting, item: entry.item } })
-          : db.workload.resumeTest.once({ facts: {}, params: sitting }),
+        i === 0
+          ? Option.match(named, {
+              onNone: () => db.workload.startFirstTest.once({ facts: {}, params: sitting }),
+              onSome: (item) =>
+                db.workload.startTest.once({ facts: {}, params: { ...sitting, item } }),
+            })
+          : Option.match(named, {
+              onNone: () => db.workload.resumeLastTest.once({ facts: {}, params: sitting }),
+              onSome: (item) =>
+                db.workload.resumeTest.once({ facts: {}, params: { ...sitting, item } }),
+            }),
       );
       if (want.kind === "refused") {
         assert.isTrue(
@@ -4469,7 +4481,7 @@ const holdSupersede = (
     const began = clockStart + oneSecond;
     const entered = yield* at(
       began,
-      db.workload.enterTimedTest.once({
+      db.workload.startTimedTest.once({
         facts: {},
         params: { ...sitting, item: MEMBER, remaining: supersedeBudgetMicros },
       }),
@@ -4667,7 +4679,7 @@ const holdPresence = (
     const began = clockStart + oneSecond;
     const entered = yield* at(
       began,
-      db.workload.enterTimedTest.once({
+      db.workload.startTimedTest.once({
         facts: {},
         params: { ...sitting, item: MEMBER, remaining: budget },
       }),
@@ -4716,7 +4728,7 @@ const holdPresence = (
 
     const resumed = yield* at(
       suspension + oneSecond,
-      db.workload.enterTest.once({
+      db.workload.resumeTest.once({
         facts: {},
         params: { ...sitting, item: MEMBER },
       }),
@@ -5156,7 +5168,7 @@ const holdShowing = (c: ShowingCase, child: string, note: (situation: ShowingSit
     assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
     yield* checkpoint(0);
 
-    const entered = yield* db.workload.enterTest.once({
+    const entered = yield* db.workload.startTest.once({
       facts: {},
       params: { ...sitting, item: MEMBER },
     });
@@ -5240,7 +5252,7 @@ const enteredSitting = (name: string, child: string) =>
     const began = clockStart + oneSecond;
     const entered = yield* at(
       began,
-      db.workload.enterTest.once({
+      db.workload.startTest.once({
         facts: {},
         params: { ...sitting, item: MEMBER },
       }),
@@ -5474,7 +5486,7 @@ const windowMoveOf = (
         return (yield* presence.workload.pauseTest.once({ facts: {}, params: sitting })).kind;
       }
       case "resume": {
-        return (yield* db.workload.enterTest.once({
+        return (yield* db.workload.resumeTest.once({
           facts: {},
           params: { ...sitting, item: MEMBER },
         })).kind;
@@ -5783,7 +5795,7 @@ const holdShuffle = (run: ShuffleRun, child: string, note: (situation: ShuffleSi
         });
         assert.strictEqual(taken.kind, "accepted", `${seed}: the sitting, as the take writes it`);
 
-        const started = yield* db.workload.resumeTest.once({ facts: {}, params: sitting });
+        const started = yield* db.workload.startFirstTest.once({ facts: {}, params: sitting });
         assert.strictEqual(started.kind, "accepted", `${seed}: the start`);
 
         const at = (i: number) => Option.getOrThrow(Arr.get(order, i));
@@ -5811,7 +5823,7 @@ const holdShuffle = (run: ShuffleRun, child: string, note: (situation: ShuffleSi
           const suspended = yield* db.workload.suspendTest.once({ facts: {}, params: sitting });
           assert.strictEqual(suspended.kind, "accepted", `${seed}: the suspension`);
 
-          const resumed = yield* db.workload.resumeTest.once({ facts: {}, params: sitting });
+          const resumed = yield* db.workload.resumeLastTest.once({ facts: {}, params: sitting });
           assert.strictEqual(resumed.kind, "accepted", `${seed}: the resumption`);
 
           const behind = yield* presentAt(0);
@@ -5887,7 +5899,7 @@ const holdShuffle = (run: ShuffleRun, child: string, note: (situation: ShuffleSi
         });
         assert.strictEqual(taken.kind, "accepted", `${test} ${seed}: the take`);
 
-        const entered = yield* db.workload.resumeTest.once({ facts: {}, params: sitting });
+        const entered = yield* db.workload.startFirstTest.once({ facts: {}, params: sitting });
         assert.strictEqual(entered.kind, "accepted", `${test} ${seed}: the start`);
 
         return {
@@ -6453,7 +6465,7 @@ const holdOutcomeBounds = (
     });
     assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
 
-    const entered = yield* db.workload.enterTest.once({
+    const entered = yield* db.workload.startTest.once({
       facts: {},
       params: { ...sitting, item: BOUNDED_A_REF },
     });

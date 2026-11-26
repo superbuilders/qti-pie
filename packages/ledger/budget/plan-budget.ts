@@ -13,19 +13,20 @@
  * finish; one in eight takes the drill instead, starts it and answers its first member, so the
  * ledger holds every scale's drilled sittings, their ranks and places among them.
  *
- * - `start`: the entry into a taken test (`enterTest`).
+ * - `start`: a taken test started (`startTest`).
  * - `present`: a member presented (`presentItem`).
  * - `save`: a response saved (`saveTestItem`).
  * - `answer`: an individual part's attempt, graded in the same transaction (`answerTestItem`).
- * - `suspend` and `resume`: the sitting suspended (`suspendTest`), and entered again (`enterTest`).
+ * - `suspend` and `resume`: the sitting suspended (`suspendTest`), and resumed (`resumeTest`).
  * - `submit`: the test ended and finished (`finishTest`: endTest, then finishTestOf).
  * - `beacon`: the sitting's presence beacon (`beaconTest`), measured warm at its own bar of 10 ms, on
  *   a connection that already sent one, as the browser sends one a second: from PRESENCE-LEDGER's
  *   Presence on, one put of the sitting's growing window.
  * - `drill-take`: the drill's take (`takeSitting`): its 210 item sessions, its ranks and its places.
- * - `drill-start`: the drill entered where it begins (`resumeTest`, at its first place).
+ * - `drill-start`: the drill entered where it begins (`startFirstTest`, at its first place).
  * - `drill-answer`: the drill's first member answered, the next named by its places.
- * - `drill-resume`: the suspended drill entered again (`resumeTest`, at the member last presented).
+ * - `drill-resume`: the suspended drill entered again (`resumeLastTest`, at the member last
+ *   presented).
  * - `drill-places`: the drill's order read (`placesOf`), as an application orders its list by.
  *
  * `--only <name,…>` measures those actions alone, as a run that scopes its heavy arm does.
@@ -167,13 +168,21 @@ const take = (db: SuiteDb, child: string, test: string) =>
   );
 
 /**
- * A candidate session entered at the member `item` names, the first at the start and the one last
- * presented on a resumption.
+ * A sitting started at the member `item` names (`startTest`).
  */
-const enter = (db: SuiteDb, child: string, item: string) =>
+const start = (db: SuiteDb, child: string, item: string) =>
   accepted(
-    "enterTest",
-    db.workload.enterTest.once({ facts: {}, params: { ...sittingOf(child), item } }),
+    "startTest",
+    db.workload.startTest.once({ facts: {}, params: { ...sittingOf(child), item } }),
+  );
+
+/**
+ * A suspended sitting resumed at the member `item` names (`resumeTest`).
+ */
+const resumeAt = (db: SuiteDb, child: string, item: string) =>
+  accepted(
+    "resumeTest",
+    db.workload.resumeTest.once({ facts: {}, params: { ...sittingOf(child), item } }),
   );
 
 const present = (db: SuiteDb, child: string, item: string) =>
@@ -220,11 +229,22 @@ const finish = (db: SuiteDb, child: string) =>
   accepted("finishTest", db.workload.finishTest.once({ facts: {}, params: sittingOf(child) }));
 
 /**
- * A candidate session entered where the sitting's runtime resumes it (`resumeTest`): at its first
- * place at the start, at the member last presented after.
+ * A sitting started at the member its sitting places first (`startFirstTest`).
  */
-const resume = (db: SuiteDb, child: string) =>
-  accepted("resumeTest", db.workload.resumeTest.once({ facts: {}, params: sittingOf(child) }));
+const startFirst = (db: SuiteDb, child: string) =>
+  accepted(
+    "startFirstTest",
+    db.workload.startFirstTest.once({ facts: {}, params: sittingOf(child) }),
+  );
+
+/**
+ * A suspended sitting resumed at the member last presented (`resumeLastTest`).
+ */
+const resumeLast = (db: SuiteDb, child: string) =>
+  accepted(
+    "resumeLastTest",
+    db.workload.resumeLastTest.once({ facts: {}, params: sittingOf(child) }),
+  );
 
 /**
  * Each item of the package by its document.
@@ -294,14 +314,14 @@ const fullPath = (db: SuiteDb, child: string, n: number) =>
 
     if (n % 8 === 1) {
       yield* take(db, child, drillTest);
-      yield* resume(db, child);
+      yield* startFirst(db, child);
       yield* answerFirstPlaced(db, child);
 
       return;
     }
 
     yield* take(db, child, rate ? rateTest : stdTest);
-    yield* enter(db, child, firstItem);
+    yield* start(db, child, firstItem);
 
     for (const [k, q] of choiceItems.entries()) {
       if (rate) {
@@ -331,13 +351,13 @@ const beaconed = (child: string) => opened(openPresenceDb(), (db) => beacon(db, 
 const taken = (test: string) => (child: string) => withDb((db) => take(db, child, test));
 
 const entered = (test: string) => (child: string) =>
-  withDb((db) => Effect.andThen(take(db, child, test), enter(db, child, firstItem)));
+  withDb((db) => Effect.andThen(take(db, child, test), start(db, child, firstItem)));
 
 /**
  * The child's drill, taken and started where it begins.
  */
 const drilled = (child: string) =>
-  withDb((db) => Effect.andThen(take(db, child, drillTest), resume(db, child)));
+  withDb((db) => Effect.andThen(take(db, child, drillTest), startFirst(db, child)));
 
 /**
  * The package, published through the suite's own `publish`: accepted the first time, and unchanged
@@ -407,7 +427,7 @@ const program = (run: Run) =>
         barMs: actionBarMs,
         name: "start",
         prepare: (child) =>
-          Effect.as(taken(stdTest)(child), cold(withDb((db) => enter(db, child, firstItem)))),
+          Effect.as(taken(stdTest)(child), cold(withDb((db) => start(db, child, firstItem)))),
       },
       {
         barMs: actionBarMs,
@@ -449,11 +469,11 @@ const program = (run: Run) =>
           Effect.as(
             withDb((db) =>
               Effect.andThen(
-                Effect.andThen(take(db, child, stdTest), enter(db, child, firstItem)),
+                Effect.andThen(take(db, child, stdTest), start(db, child, firstItem)),
                 suspend(db, child),
               ),
             ),
-            cold(withDb((db) => enter(db, child, firstItem))),
+            cold(withDb((db) => resumeAt(db, child, firstItem))),
           ),
       },
       {
@@ -465,7 +485,7 @@ const program = (run: Run) =>
         barMs: actionBarMs,
         name: "drill-start",
         prepare: (child) =>
-          Effect.as(taken(drillTest)(child), cold(withDb((db) => resume(db, child)))),
+          Effect.as(taken(drillTest)(child), cold(withDb((db) => startFirst(db, child)))),
       },
       {
         barMs: actionBarMs,
@@ -491,11 +511,11 @@ const program = (run: Run) =>
           Effect.as(
             withDb((db) =>
               Effect.andThen(
-                Effect.andThen(take(db, child, drillTest), resume(db, child)),
+                Effect.andThen(take(db, child, drillTest), startFirst(db, child)),
                 suspend(db, child),
               ),
             ),
-            cold(withDb((db) => resume(db, child))),
+            cold(withDb((db) => resumeLast(db, child))),
           ),
       },
       {
@@ -510,7 +530,7 @@ const program = (run: Run) =>
           Effect.as(
             withDb((db) =>
               Effect.andThen(
-                Effect.andThen(take(db, child, stdTest), enter(db, child, firstItem)),
+                Effect.andThen(take(db, child, stdTest), start(db, child, firstItem)),
                 savedAll(db, child),
               ),
             ),

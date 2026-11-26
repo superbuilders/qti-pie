@@ -1043,13 +1043,18 @@ const startsOf = query(ResultLevel).rule((r) => {
 });
 
 /**
- * The entry at the member a call names (`namedEntries`, its `item`), and the entry where its
- * candidate left the sitting (`resumedEntries`): each the ledger's one entry, its `entries` bound
- * on its own part.
+ * A start and a resumption at the member a call names (`namedEntries`, its `item`), a start at the
+ * member its sitting places first (`firstEntries`), and a resumption where its candidate left the
+ * sitting (`lastEntries`): each the ledger's one start or resumption, its `entries` bound on its
+ * own part.
  */
-const namedEntry = sittingPrograms.enterTest.bind({ entries: sittingPrograms.namedEntries });
+const namedStart = sittingPrograms.startTest.bind({ entries: sittingPrograms.namedEntries });
 
-const resumedEntry = sittingPrograms.enterTest.bind({ entries: sittingPrograms.resumedEntries });
+const namedResume = sittingPrograms.resumeTest.bind({ entries: sittingPrograms.namedEntries });
+
+const firstStart = sittingPrograms.startTest.bind({ entries: sittingPrograms.firstEntries });
+
+const lastResume = sittingPrograms.resumeTest.bind({ entries: sittingPrograms.lastEntries });
 
 /**
  * The child's presentations (`TestPresented`), each by its sitting, its candidate session and its
@@ -1120,14 +1125,19 @@ const beaconTest = clocked(sittingPrograms.beaconTest.bind({ sittings: namedSitt
 const endTest = sittingPrograms.endTest.bind({ sittings: namedSitting });
 
 /**
- * An entry at the member the call names.
+ * A start at the member the call names.
  */
-const enterTest = namedEntry.bind({ sittings: namedSitting });
+const startTest = namedStart.bind({ sittings: namedSitting });
 
 /**
- * A timed entry, with the first budget the call gives.
+ * A timed start, with the first budget the call gives.
  */
-const enterTimedTest = ChangeSet.union(namedEntry, firstBudget).bind({ sittings: namedSitting });
+const startTimedTest = ChangeSet.union(namedStart, firstBudget).bind({ sittings: namedSitting });
+
+/**
+ * A resumption at the member the call names.
+ */
+const resumeTest = namedResume.bind({ sittings: namedSitting });
 
 /**
  * The end followed by the finish, as every application ends a sitting.
@@ -1192,8 +1202,6 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite, PresenceRu
       drawsOf,
       durationsOf,
       endTest,
-      enterTest,
-      enterTimedTest,
       evaluate,
       facts,
       finalsOf,
@@ -1210,7 +1218,8 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite, PresenceRu
       presentationsOf,
       publish: ChangeSet.union(insertWrite, ChangeSet.empty(ResultLevel)),
       recordEvaluations: ChangeSet.over(Suite, evaluations.recordEvaluations),
-      resumeTest: resumedEntry.bind({ sittings: namedSitting }),
+      resumeLastTest: lastResume.bind({ sittings: namedSitting }),
+      resumeTest,
       reviewOf,
       saveTestItem,
       savesOf,
@@ -1222,6 +1231,9 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite, PresenceRu
       snapshotIdentifierBagsOf,
       snapshotIdentifiersOf,
       snapshotStringsOf,
+      startFirstTest: firstStart.bind({ sittings: namedSitting }),
+      startTest,
+      startTimedTest,
       startsOf,
       statusesOf,
       suspendTest,
@@ -1253,15 +1265,16 @@ export const clockedWorkload = workload(Suite, {
   budgetsOf,
   durationsOf,
   endTest,
-  enterTest,
-  enterTimedTest,
   finishTest,
   lastPresencesOf,
   presentItem,
   presentTimesOf,
+  resumeTest,
   saveTestItem,
   sittingFacts,
   snapshotStringsOf,
+  startTest,
+  startTimedTest,
   suspendTest,
   takeSitting,
   windowsOf,
