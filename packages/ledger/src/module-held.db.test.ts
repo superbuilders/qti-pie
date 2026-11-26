@@ -106,7 +106,8 @@ interface Listed {
  * A PCI: its type identifier, its `module` as written where it writes one, the modules it lists (no
  * `qti-interaction-modules` where none), the primary configuration its modules child names where it
  * names one, and the module the delivery must route it to where the table admits it: the module's
- * id and the file its route serves, at every location it has.
+ * id, the file its route serves, at every location it has, and the wait its fallback holds before
+ * it loads, none where the route has no fallback (reading `pci-wait-before-fallback`).
  */
 interface Pci {
   readonly type: string;
@@ -116,7 +117,7 @@ interface Pci {
   readonly routed: Option.Option<{
     readonly id: string;
     readonly file: string;
-    readonly waitSeconds: { readonly primary: number; readonly fallback: number };
+    readonly primaryWaitSeconds: Option.Option<number>;
   }>;
 }
 
@@ -152,8 +153,8 @@ interface Case {
 const accepted: Expected = { kind: "accepted" };
 
 /**
- * The wait of a load no configuration states (the implementation guide §3.7.12.2, reading
- * `pci-configuration-waits`): 7 seconds.
+ * The wait before a fallback no configuration states (the implementation guide §3.7.12.2, readings
+ * `pci-configuration-waits` and `pci-wait-before-fallback`): 7 seconds.
  */
 const defaultWaitSeconds = 7;
 
@@ -204,7 +205,8 @@ const atPrimary = (module: ReturnType<typeof moduleOf>, path = module.file): Lis
 });
 
 /**
- * A PCI that names and lists one module, routed to its file.
+ * A PCI that names and lists one module, routed to its file, its fallback, where it lists one,
+ * holding the default wait.
  */
 const heldPci = (module: ReturnType<typeof moduleOf>, listed: Listed = atPrimary(module)): Pci => ({
   configuration: Option.none(),
@@ -213,7 +215,7 @@ const heldPci = (module: ReturnType<typeof moduleOf>, listed: Listed = atPrimary
   routed: Option.some({
     file: module.file,
     id: module.id,
-    waitSeconds: { fallback: defaultWaitSeconds, primary: defaultWaitSeconds },
+    primaryWaitSeconds: Option.as(listed.fallback, defaultWaitSeconds),
   }),
   type: module.type,
 });
@@ -334,8 +336,8 @@ const cases: Arr.NonEmptyReadonlyArray<Case> = [
   {
     // §3.7.12.2: a primary configuration's `paths` locate a module with no primary path; the
     // delivery's rule loads a module from its own locations alone, so a configuration mapping it to
-    // another module's file routes nothing, and it loads from its own fallback; reading `pci-configuration-waits`: its
-    // `waitSeconds` is the module's primary wait.
+    // another module's file routes nothing, and it loads from its own fallback; reading `pci-wait-before-fallback`: its
+    // `waitSeconds` is the wait its fallback holds.
     expected: accepted,
     files: [
       fileOf(counter),
@@ -357,7 +359,7 @@ const cases: Arr.NonEmptyReadonlyArray<Case> = [
         routed: Option.some({
           file: counter.file,
           id: counter.id,
-          waitSeconds: { fallback: defaultWaitSeconds, primary: 30 },
+          primaryWaitSeconds: Option.some(30),
         }),
       },
     ],
@@ -365,7 +367,7 @@ const cases: Arr.NonEmptyReadonlyArray<Case> = [
   },
   {
     // Reading `pci-configuration-waits`: a stated wait is never dropped, however long; the frame holds one longer than a
-    // timer can as no limit.
+    // timer can as no limit. Reading `pci-wait-before-fallback`: a wait is held only before a fallback.
     expected: accepted,
     files: [fileOf(counter), ["modules/cfg.js", JSON.stringify({ waitSeconds: 1e9 })]],
     name: "a configuration stating a wait longer than a timer holds",
@@ -373,10 +375,11 @@ const cases: Arr.NonEmptyReadonlyArray<Case> = [
       {
         ...heldPci(counter),
         configuration: Option.some("modules/cfg.js"),
+        listed: [{ ...atPrimary(counter), fallback: Option.some(counter.file) }],
         routed: Option.some({
           file: counter.file,
           id: counter.id,
-          waitSeconds: { fallback: defaultWaitSeconds, primary: 1e9 },
+          primaryWaitSeconds: Option.some(1e9),
         }),
       },
     ],
@@ -712,7 +715,7 @@ const routedCase = Effect.fn("module-held.routed")(function* routedCase(c: Case,
   const texts = new Map(c.files);
 
   for (const [at, pci] of c.pcis.entries()) {
-    const { file, id, waitSeconds } = Option.getOrThrowWith(
+    const { file, id, primaryWaitSeconds } = Option.getOrThrowWith(
       pci.routed,
       () => new Error(`${c.name}: unrouted`),
     );
@@ -724,15 +727,16 @@ const routedCase = Effect.fn("module-held.routed")(function* routedCase(c: Case,
     assert.isTrue(
       route !== undefined &&
         (Option.isSome(route.primary) || Option.isSome(route.fallback)) &&
-        [route.primary, route.fallback].every((location) =>
-          Option.match(location, { onNone: () => true, onSome: (url) => url === address }),
+        [route.primary, route.fallback.pipe(Option.map(({ location }) => location))].every(
+          (location) =>
+            Option.match(location, { onNone: () => true, onSome: (url) => url === address }),
         ),
       `${c.name}: ${responseOf(at)}'s module ${id} routed to ${file} alone, got ${Formatter.format(route)}`,
     );
     assert.deepStrictEqual(
-      route?.waitSeconds,
-      waitSeconds,
-      `${c.name}: ${responseOf(at)}'s module ${id} waits as its configurations state`,
+      route?.fallback.pipe(Option.map((fallback) => fallback.primaryWaitSeconds)),
+      primaryWaitSeconds,
+      `${c.name}: ${responseOf(at)}'s module ${id} waits before its fallback as its primary configuration states, and holds no wait with no fallback`,
     );
   }
 

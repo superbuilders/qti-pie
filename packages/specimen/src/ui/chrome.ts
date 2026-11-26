@@ -5,10 +5,11 @@
  * wait took under the machine's load. A page that never loads is a hang, which the case's work
  * guard and the gate's progress watch judge (2026-11-26: eight harnesses each launched Chrome, five
  * kept Playwright's 30 s default, and `page.goto` timed out at load 300). Every portable custom
- * interaction a harness hosts loads its modules with no wait either ({@link unboundedModuleWait}).
- * Its sound plays to fake audio streams ({@link fakeAudioStreams}), so no recording a page plays
- * fails on the machine's sound server. The lint holds every other module to this one
- * (oxlint.config.ts, `no-restricted-properties` on `chromium.launch`, `newContext` and `newPage`).
+ * interaction a harness hosts loads its modules with no clock either ({@link
+ * unboundedPrimaryWait}). Its sound plays to fake audio streams ({@link fakeAudioStreams}), so no
+ * recording a page plays fails on the machine's sound server. The lint holds every other module to
+ * this one (oxlint.config.ts, `no-restricted-properties` on `chromium.launch`, `newContext` and
+ * `newPage`).
  */
 import { tmpdir } from "node:os";
 import { Config, Effect } from "effect";
@@ -34,11 +35,13 @@ const runtimeFolder = Config.String("XDG_RUNTIME_DIR").pipe(Config.withDefault(t
 const fakeAudioStreams = "--disable-audio-output";
 
 /**
- * The module wait every hosted portable custom interaction is given, for its primary and its
- * fallback modules: none, QTI's 0. A module that never defines itself is a hang the case's guards
+ * The wait every hosted portable custom interaction's primary is given before its fallback loads:
+ * none, QTI's 0. plate's frame times only a primary with a fallback after it, and any other
+ * location waits for its script's load or error (reading `pci-wait-before-fallback`), so with this
+ * no hosted module is timed at all. A module that never defines itself is a hang the case's guards
  * judge, never a verdict at 7 seconds.
  */
-export const unboundedModuleWait = { fallback: 0, primary: 0 } as const;
+export const unboundedPrimaryWait = 0;
 
 /**
  * What a harness reaches Chrome through, its own failure for each step that fails.

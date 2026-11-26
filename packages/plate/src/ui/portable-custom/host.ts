@@ -33,7 +33,7 @@
  */
 import { Brand } from "effect";
 import type { Result } from "effect";
-import type { FrameToPage, PciFrameRoute } from "#plate/pci/frame-protocol.ts";
+import type { FrameToPage, PciFrameFallback, PciFrameRoute } from "#plate/pci/frame-protocol.ts";
 import { fromPciJson } from "#plate/pci/json.ts";
 import type { ResponseValue } from "#plate/model/values.ts";
 import type { PciJson, PciJsonRefused } from "#plate/pci/json.ts";
@@ -257,16 +257,30 @@ const checkedOf = (
 const absolute = (url: string): string | undefined => URL.parse(url, document.baseURI)?.href;
 
 /**
+ * Make a fallback's location absolute, keeping the primary's wait before it.
+ *
+ * @param fallback The fallback as the host wrote it.
+ * @returns The fallback, or `undefined` when its location is no URL.
+ */
+const absoluteFallback = (fallback: PciFrameFallback): PciFrameFallback | undefined => {
+  const location = absolute(fallback.location);
+
+  return location === undefined ? undefined : { ...fallback, location };
+};
+
+/**
  * Make a route's locations absolute, so the frame, whose base is its own page, loads what the
- * host meant. A location that is no URL is dropped, as if the module had none there.
+ * host meant. A location that is no URL is dropped, as if the module had none there: a fallback
+ * dropped takes the primary's wait with it, so the primary then waits for its own script (R3 of
+ * `#plate/pci/resolve.ts`).
  *
  * @param route The route as the host wrote it.
  * @returns The route with absolute locations.
  */
 const absoluteRoute = (route: PciFrameRoute): PciFrameRoute => {
   const primary = route.primary === undefined ? undefined : absolute(route.primary);
-  const fallback = route.fallback === undefined ? undefined : absolute(route.fallback);
-  const made: Building<PciFrameRoute> = { id: route.id, waitSeconds: route.waitSeconds };
+  const fallback = route.fallback === undefined ? undefined : absoluteFallback(route.fallback);
+  const made: Building<PciFrameRoute> = { id: route.id };
 
   if (primary !== undefined) {
     made.primary = primary;

@@ -37,7 +37,7 @@ import type { Scope } from "effect";
 import { Digest } from "effect/crypto";
 import { parseHTML } from "linkedom";
 import type { Browser, Page } from "playwright-core";
-import { chromeFor, unboundedModuleWait } from "#specimen/ui/chrome.ts";
+import { chromeFor, unboundedPrimaryWait } from "#specimen/ui/chrome.ts";
 import { createElement, isValidElement } from "react";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -157,14 +157,15 @@ export interface TrayItem {
 }
 
 /**
- * A module route as plate's frame host sends it to the frame: the module's id, its locations as
- * absolute URLs, and the loader's waits.
+ * A module route as plate's frame host sends it to the frame: the module's id, its primary
+ * location as an absolute URL, and its fallback's, with the primary's wait before it.
  */
 const FrameRoute = Schema.Struct({
-  fallback: Schema.optional(Schema.String),
+  fallback: Schema.optional(
+    Schema.Struct({ location: Schema.String, primaryWaitSeconds: Schema.Number }),
+  ),
   id: Schema.String,
   primary: Schema.optional(Schema.String),
-  waitSeconds: Schema.Struct({ fallback: Schema.Number, primary: Schema.Number }),
 });
 
 /**
@@ -570,10 +571,14 @@ const hostIn = (
         [
           item.pci.response,
           resolution.routes.map((route) => ({
-            fallback: route.fallback.pipe(Option.map(urlOf)),
+            fallback: route.fallback.pipe(
+              Option.map((fallback) => ({
+                location: urlOf(fallback.location),
+                primaryWaitSeconds: unboundedPrimaryWait,
+              })),
+            ),
             id: route.id,
             primary: route.primary.pipe(Option.map(urlOf)),
-            waitSeconds: unboundedModuleWait,
           })),
         ],
       ]),

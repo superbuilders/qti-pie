@@ -87,7 +87,7 @@ import type {
   TapNotDelivered,
   Target,
 } from "#specimen/alpha/delivered.ts";
-import { chromeFor, unboundedModuleWait } from "#specimen/ui/chrome.ts";
+import { chromeFor, unboundedPrimaryWait } from "#specimen/ui/chrome.ts";
 import { clientExports } from "#specimen/ui/clients.ts";
 import { islandsIn } from "#specimen/ui/rendered.ts";
 import type { Island } from "#specimen/ui/rendered.ts";
@@ -263,13 +263,14 @@ const instance = "blocks";
 
 /**
  * One module route as the island's frame facts carry it (`PciFrameRoute`): each location the host
- * serves the module at, absent where it has none, and the loader's waits.
+ * serves the module at, absent where it has none, the fallback with the primary's wait before it.
  */
 const FrameRoute = Schema.Struct({
-  fallback: Schema.optionalKey(Schema.String),
+  fallback: Schema.optionalKey(
+    Schema.Struct({ location: Schema.String, primaryWaitSeconds: Schema.Number }),
+  ),
   id: Schema.String,
   primary: Schema.optionalKey(Schema.String),
-  waitSeconds: Schema.Struct({ fallback: Schema.Number, primary: Schema.Number }),
 });
 
 /**
@@ -347,9 +348,13 @@ const islandsWithin = (node: ReactNode, clients: ReadonlyMap<unknown, string>): 
  */
 const servedRoute = (route: PciModuleRoute): PciModuleRoute => ({
   ...route,
-  fallback: route.fallback.pipe(Option.map((location) => `${packageRoot}${location}`)),
+  fallback: route.fallback.pipe(
+    Option.map((fallback) => ({
+      location: `${packageRoot}${fallback.location}`,
+      primaryWaitSeconds: unboundedPrimaryWait,
+    })),
+  ),
   primary: route.primary.pipe(Option.map((location) => `${packageRoot}${location}`)),
-  waitSeconds: unboundedModuleWait,
 });
 
 /**
@@ -521,7 +526,8 @@ window.addEventListener("message", (event) => {
     const absolute = (url) => url === undefined ? undefined : new URL(url, location.href).href;
     post({ kind: "load", markup: setup.markup, templates: [], entry: setup.frame.entry,
       routes: setup.frame.routes.map((route) => ({ ...route, primary: absolute(route.primary),
-        fallback: absolute(route.fallback) })),
+        fallback: route.fallback === undefined ? undefined
+          : { ...route.fallback, location: absolute(route.fallback.location) } })),
       lang: "en-US", dir: "ltr", title: "blocks" });
   } else if (message.kind === "registered") {
     note("registered", message.typeIdentifiers);

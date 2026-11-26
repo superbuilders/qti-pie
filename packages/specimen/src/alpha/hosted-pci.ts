@@ -44,7 +44,7 @@ import type { Frame, Page } from "playwright-core";
 import { createElement, isValidElement } from "react";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { chromeFor, unboundedModuleWait } from "#specimen/ui/chrome.ts";
+import { chromeFor, unboundedPrimaryWait } from "#specimen/ui/chrome.ts";
 import { clientExports } from "#specimen/ui/clients.ts";
 import { islandsIn } from "#specimen/ui/rendered.ts";
 import type { Island } from "#specimen/ui/rendered.ts";
@@ -520,14 +520,18 @@ export const hostedPage = (
         (file) => file === module.path,
       ).routes.map((route) => ({
         id: route.id,
-        waitSeconds: unboundedModuleWait,
         ...Option.match(route.primary, {
           onNone: () => ({}),
           onSome: (file) => ({ primary: `${origin}/${file}` }),
         }),
         ...Option.match(route.fallback, {
           onNone: () => ({}),
-          onSome: (file) => ({ fallback: `${origin}/${file}` }),
+          onSome: (fallback) => ({
+            fallback: {
+              location: `${origin}/${fallback.location}`,
+              primaryWaitSeconds: unboundedPrimaryWait,
+            },
+          }),
         }),
       }));
     const startScript = (item: HostedItem, start: Start): string =>

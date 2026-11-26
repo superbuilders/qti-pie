@@ -39,7 +39,7 @@ import type { Scope } from "effect";
 import { Digest } from "effect/crypto";
 import { parseHTML } from "linkedom";
 import type { Frame, Page, Route } from "playwright-core";
-import { chromeFor, unboundedModuleWait } from "#specimen/ui/chrome.ts";
+import { chromeFor, unboundedPrimaryWait } from "#specimen/ui/chrome.ts";
 import { resolvePciModules } from "@qti-pie/plate";
 import type { PciModules } from "@qti-pie/plate";
 import { shadeParts } from "@qti-pie/plate/alpha/pci-modules";
@@ -619,14 +619,18 @@ const routesOf = (origin: string, item: ShadeItem) =>
     (file) => file === shadeParts.path,
   ).routes.map((route) => ({
     id: route.id,
-    waitSeconds: unboundedModuleWait,
     ...Option.match(route.primary, {
       onNone: () => ({}),
       onSome: (file) => ({ primary: `${origin}/${file}` }),
     }),
     ...Option.match(route.fallback, {
       onNone: () => ({}),
-      onSome: (file) => ({ fallback: `${origin}/${file}` }),
+      onSome: (fallback) => ({
+        fallback: {
+          location: `${origin}/${fallback.location}`,
+          primaryWaitSeconds: unboundedPrimaryWait,
+        },
+      }),
     }),
   }));
 

@@ -58,18 +58,28 @@ export interface PciFrameConfiguration {
 }
 
 /**
+ * A route's fallback as the frame protocol carries it (`ModuleFallback` in
+ * `#plate/pci/resolve.ts`): its location as an absolute URL, and the seconds the primary is waited
+ * for before the frame loads it instead, 0 for no limit.
+ */
+export interface PciFrameFallback {
+  readonly location: string;
+  readonly primaryWaitSeconds: number;
+}
+
+/**
  * One module route as the host resolved it (issue pci-01's rules) and the PCI's payload node
- * carries it: the module id, its primary and fallback locations as absolute URLs, where the host
- * serves each script (a package file's at an address of the host's choosing, which need not end in
- * `.js`), each absent when the module has none, and the seconds the loader waits for each
- * before it gives up, 0 for no limit. The frame tries `primary` first and `fallback` after a
- * timeout or a fatal error; a route with no `fallback` has no second chance.
+ * carries it: the module id, and its primary location and its fallback as absolute URLs, where the
+ * host serves each script (a package file's at an address of the host's choosing, which need not
+ * end in `.js`), each absent when the module has none. The frame tries `primary` first and the
+ * fallback after the primary's fatal error or once the fallback's `primaryWaitSeconds` run out; a
+ * location with nothing after it, a `primary` with no fallback or the fallback itself, waits for
+ * its script's load or error, never for a clock (R3: a timeout means only "load the fallback").
  */
 export interface PciFrameRoute {
-  readonly fallback?: string;
+  readonly fallback?: PciFrameFallback;
   readonly id: string;
   readonly primary?: string;
-  readonly waitSeconds: { readonly fallback: number; readonly primary: number };
 }
 
 /**

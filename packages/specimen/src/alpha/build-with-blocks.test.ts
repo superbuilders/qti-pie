@@ -377,24 +377,13 @@ layer(Layer.effect(Pages, blocksPages), { excludeTestServices: true, timeout: ca
                 entry: Option.some(id),
                 notices: [],
                 routes: [
-                  {
-                    fallback: Option.none(),
-                    id,
-                    primary: Option.some(buildWithBlocks.path),
-                    waitSeconds: { fallback: 7, primary: 7 },
-                  },
+                  { fallback: Option.none(), id, primary: Option.some(buildWithBlocks.path) },
                 ],
               });
               assert.deepStrictEqual(hosted.frame, {
                 entry: id,
                 loader: "/frame.html",
-                routes: [
-                  {
-                    id,
-                    primary: `/package/${buildWithBlocks.path}`,
-                    waitSeconds: { fallback: 0, primary: 0 },
-                  },
-                ],
+                routes: [{ id, primary: `/package/${buildWithBlocks.path}` }],
               });
               assert.deepStrictEqual(yield* frame.registered, [hosted.typeIdentifier]);
               assert.strictEqual(hosted.typeIdentifier, buildWithBlocks.typeIdentifier);

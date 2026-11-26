@@ -417,17 +417,20 @@ const servedAt = (
  * Give the item's facts for plate's Portable Custom Interactions (`pci` of `HostFacts`): the host's
  * frame page as the loader, and, by the response each binds, every PCI's module routes, which
  * plate's resolution (`resolvePciModules`) gives from its module facts as written (`pciModulesIn`)
- * and the item's files, each location then mapped to where the frame loads it (`servedAt`). A
- * configuration file the item references is read from the store by its digest, for its waits alone:
- * plate's resolution routes a module only from its own `primary-path` and `fallback-path`, never
- * from a configuration's `paths` (plate's R2, reading `pci-configuration-waits`), the locations
- * "Module held" holds to files the delivery serves, and the law holds every configuration a PCI
- * writes to one too, so a stated wait is always read; one the item references no file at, the
- * schema's default, is absent and waits 7. The manifest lists each file the item references, the
- * only files whose digest the application holds, so those are the files it calls listed. Each of
- * the resolution's notices is logged as a warning, naming the item and the response. An item with
- * no PCI reads nothing. Exported as the one routing of an item's PCIs, which the delivery level's
- * "Module held" is held to by its test (`#ledger/module-held.db.test.ts`).
+ * and the item's files, each location then mapped to where the frame loads it (`servedAt`), a
+ * fallback that is served nowhere dropped with the wait it holds, so its primary then waits for its
+ * own script (plate's R3, reading `pci-wait-before-fallback`). A configuration file the item
+ * references is read from the store by its digest, for the primary's wait before a fallback and
+ * plate's notices alone: plate's resolution routes a module only from its own `primary-path` and
+ * `fallback-path`, never from a configuration's `paths` (plate's R2, reading
+ * `pci-configuration-waits`), the locations "Module held" holds to files the delivery serves, and
+ * the law holds every configuration a PCI writes to one too, so a stated wait is always read; one
+ * the item references no file at, the schema's default, is absent and waits 7. The manifest lists
+ * each file the item references, the only files whose digest the application holds, so those are
+ * the files it calls listed. Each of the resolution's notices is logged as a warning, naming the
+ * item and the response. An item with no PCI reads nothing. Exported as the one routing of an
+ * item's PCIs, which the delivery level's "Module held" is held to by its test
+ * (`#ledger/module-held.db.test.ts`).
  *
  * @param host The application's addresses.
  * @param accepted The item, accepted.
@@ -482,7 +485,11 @@ export const pciFactsOf = Effect.fnUntraced(function* pciFactsOf(
           response,
           resolution.routes.map((route: ModuleRoute): PciModuleRoute => ({
             ...route,
-            fallback: route.fallback.pipe(Option.flatMap(served)),
+            fallback: route.fallback.pipe(
+              Option.flatMap((fallback) =>
+                Option.map(served(fallback.location), (location) => ({ ...fallback, location })),
+              ),
+            ),
             primary: route.primary.pipe(Option.flatMap(served)),
           })),
         ] as const,

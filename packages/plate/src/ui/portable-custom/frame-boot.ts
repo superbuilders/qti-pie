@@ -12,9 +12,10 @@
  * 1. It reads its nonce from its own URL's fragment and says it has booted.
  * 2. On the island's `load` it builds the element the PCI is handed as its `dom` from the markup, each
  *    `template` written inert at its end, takes the language, direction and title, and loads the
- *    routes: the entry first when the PCI names one, each route's primary location with its wait,
- *    then its fallback after a timeout or a fatal error. It runs the modules and tells the island
- *    the type identifiers they registered.
+ *    routes: the entry first when the PCI names one, each route's primary location, then its
+ *    fallback after the primary's fatal error or once the wait the fallback holds runs out; a
+ *    location with nothing after it waits for its script's load or error, never for a clock. It
+ *    runs the modules and tells the island the type identifiers they registered.
  * 3. On the island's choice it calls `factory.getInstance(dom, configuration, state)` through the
  *    bridge, the configuration the island's with the bridge's own `onready` and `ondone`.
  * 4. It relays `onready`, `ondone`, each `qti-interaction-changed` fired at the `dom`, and, after each
@@ -572,18 +573,22 @@ export const bootFrame = (): void => {
   };
 
   /**
-   * Load one script and wait for it to define its module: loaded when the module is defined by the
-   * time the script ran; failed when the script does not load, when an uncaught error is reported
-   * while it loads, or when the wait runs out first (an empty script defines nothing, so its wait
-   * runs out). A wait of 0 is no limit, and so is a wait longer than a timer holds: HTML's
-   * `setTimeout` takes its delay as a WebIDL `long`, milliseconds in a 32-bit signed integer, and a
-   * longer delay wraps, so it fires early, at once just past the bound, which would fail the load a
+   * Load one script and wait for its `load` or `error`: loaded when the module is defined by the
+   * time the script ran; failed when the script does not load, when it loads defining no such
+   * module (an empty script defines nothing), when an uncaught error is reported while it loads, or
+   * when a wait is given and runs out first. Only a primary with a fallback after it is given a
+   * wait, since a timeout means nothing but "load the fallback" (R3 of `#plate/pci/resolve.ts`,
+   * reading `pci-wait-before-fallback`): any other location waits for its script however long it
+   * takes. A wait of 0 is no limit, and so is a wait longer than a timer holds: HTML's `setTimeout`
+   * takes its delay as a WebIDL `long`, milliseconds in a 32-bit signed integer, and a longer delay
+   * wraps, so it fires early, at once just past the bound, which would cut short a wait a
    * configuration stated as longer than any session (reading `pci-configuration-waits`: a stated
    * wait is never dropped).
    *
    * @param id The route's module id, which an anonymous define takes.
    * @param url The script's absolute URL.
-   * @param waitSeconds How long to wait, 0 for no limit.
+   * @param waitSeconds How long to wait before the fallback loads instead, 0 for no limit, as for
+   *   every location but a primary with a fallback.
    * @returns How the load came out.
    * @see https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timers
    */
@@ -618,16 +623,18 @@ export const bootFrame = (): void => {
       settle({ kind: "failed", reason: `The module script at ${url} did not load.` });
     });
     script.addEventListener("load", () => {
-      if (definitions.has(id)) {
-        settle({ kind: "loaded" });
-      }
+      settle(
+        definitions.has(id)
+          ? { kind: "loaded" }
+          : { kind: "failed", reason: `The module script at ${url} defined no module "${id}".` },
+      );
     });
 
     if (waitSeconds > 0 && waitSeconds * 1000 <= longestTimerMs) {
       timer = setTimeout(() => {
         settle({
           kind: "failed",
-          reason: `The module script at ${url} defined no module "${id}" within ${String(waitSeconds)} seconds.`,
+          reason: `The module script at ${url} did not load within ${String(waitSeconds)} seconds.`,
         });
       }, waitSeconds * 1000);
     }
@@ -639,23 +646,31 @@ export const bootFrame = (): void => {
   };
 
   /**
-   * Load one route: its primary location, then its fallback when the primary fails. A route with
-   * no location loads nothing and is no failure; a route with no fallback has no second chance.
+   * Load one route: its primary location, waited for as long as its fallback says, then its
+   * fallback when the primary fails, waited for however long it takes. A route with no location
+   * loads nothing and is no failure; a route with no fallback has no second chance, so its
+   * primary is waited for however long it takes too. A route whose fallback fails as well fails
+   * with both reasons, the primary's first, so an author reads why the primary was left (its wait
+   * run out, its script not loaded, or no module defined) beside why the fallback failed.
    *
    * @param route The route.
    * @returns How the route came out.
    */
-  const loadRoute = async (route: PciFrameRoute): Promise<Outcome> => {
-    const primary =
-      route.primary === undefined
+  const loadRoute = async ({ fallback, id, primary }: PciFrameRoute): Promise<Outcome> => {
+    const first =
+      primary === undefined
         ? undefined
-        : await loadLocation(route.id, route.primary, route.waitSeconds.primary);
+        : await loadLocation(id, primary, fallback?.primaryWaitSeconds ?? 0);
 
-    if (primary?.kind === "loaded" || route.fallback === undefined) {
-      return primary ?? { kind: "loaded" };
+    if (first?.kind === "loaded" || fallback === undefined) {
+      return first ?? { kind: "loaded" };
     }
 
-    return await loadLocation(route.id, route.fallback, route.waitSeconds.fallback);
+    const second = await loadLocation(id, fallback.location, 0);
+
+    return first === undefined || second.kind === "loaded"
+      ? second
+      : { kind: "failed", reason: `${first.reason} ${second.reason}` };
   };
 
   /**

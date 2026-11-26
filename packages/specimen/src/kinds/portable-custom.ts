@@ -95,8 +95,8 @@ const moduleText = `define(["qtiCustomInteractionContext"], function (context) {
 
 /**
  * The host facts every case gives: qti-app's frame page as the loader, and the counter's route,
- * its source as a `data:` URL, with the wait plate's resolution gives a module whose
- * configuration names none.
+ * its source as a `data:` URL and no fallback, so its primary waits for its script and never for a
+ * clock (plate's R3, reading `pci-wait-before-fallback`).
  */
 const host: HostFacts = {
   pci: {
@@ -111,7 +111,6 @@ const host: HostFacts = {
             primary: Option.some(
               `data:text/javascript;base64,${Base64.encode(new TextEncoder().encode(moduleText))}`,
             ),
-            waitSeconds: { fallback: 30, primary: 30 },
           },
         ],
       ],

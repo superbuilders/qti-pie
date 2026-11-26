@@ -12,19 +12,21 @@
  * @module
  */
 import type { Option } from "effect";
+import type { ModuleFallback } from "#plate/pci/resolve.ts";
 
 /**
- * Where a host resolved one of a PCI's modules, and how long its loader waits for each location:
- * the field names of `ModuleRoute` in `#plate/pci/resolve.ts` (issue pci-01), so the frame host
- * (issue pci-04) maps one onto the other with no translation. `id` is the module's AMD id,
- * `primary` and `fallback` its locations as the host will serve them, each none when the
- * configuration names none, and `waitSeconds` the loader's wait for each, in seconds.
+ * Where a host resolved one of a PCI's modules: the field names of `ModuleRoute` in
+ * `#plate/pci/resolve.ts` (issue pci-01), so the frame host (issue pci-04) maps one onto the other
+ * with no translation. `id` is the module's AMD id, `primary` its primary location as the host
+ * will serve it, and `fallback` its fallback's, with how long the primary is waited for before it
+ * (`ModuleFallback`), each none when the module has none. A host that drops a fallback it does not
+ * serve drops its wait with it, so a primary left alone waits for its own script and never for a
+ * clock (R3).
  */
 export interface PciModuleRoute {
-  readonly fallback: Option.Option<string>;
+  readonly fallback: Option.Option<ModuleFallback>;
   readonly id: string;
   readonly primary: Option.Option<string>;
-  readonly waitSeconds: { readonly fallback: number; readonly primary: number };
 }
 
 /**

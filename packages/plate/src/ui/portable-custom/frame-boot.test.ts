@@ -1,16 +1,20 @@
 /**
  * The frame's wait for a module script (`bootFrame`, `#plate/ui/portable-custom/frame-boot.ts`): a
- * load whose script defines no module fails once its stated wait runs out, and a wait of 0, or one
- * longer than a browser's timer holds, is no limit.
+ * timeout means only "load the fallback", so a primary with a fallback after it is waited for as
+ * long as its fallback says and then the fallback loads, while a location with nothing after it, a
+ * primary with no fallback or the fallback itself, waits for its script's load or error however
+ * long it takes; a wait of 0, or one longer than a browser's timer holds, is no limit.
  *
- * The oracle is reading `pci-configuration-waits` (docs/spec-readings.md) and the implementation
- * guide's `waitSeconds` (§3.7.12.2: "how long the delivery engine should wait for each Javascript
- * file to load before timing out. A setting of 0 indicates that no timeout should be used"),
- * written by hand: a stated wait is never dropped, and HTML's `setTimeout` takes its delay as a
- * WebIDL `long`, milliseconds in a 32-bit signed integer, so a wait past 2,147,483.647 seconds is
- * longer than any session and no timer can hold it. The frame runs against a document of the test's
- * own, its timers vitest's fake ones, and a script that never loads, so only the wait can fail the
- * load.
+ * The oracle is reading `pci-wait-before-fallback` (docs/spec-readings.md), the information model's
+ * `fallback-path` ("the location from which to load the Javascript module if the module can't be
+ * loaded from the primary location", section 7.17.3) and the implementation guide's `waitSeconds`
+ * (§3.7.12.2: "how long the delivery engine should wait for each Javascript file to load before
+ * timing out. A setting of 0 indicates that no timeout should be used (however this may prevent a
+ * fallback configuration from being used)"), with reading `pci-configuration-waits`'s bound,
+ * written by hand: HTML's `setTimeout` takes its delay as a WebIDL `long`, milliseconds in a 32-bit
+ * signed integer, so a wait past 2,147,483.647 seconds is longer than any session and no timer can
+ * hold it. The frame runs against a document of the test's own, its timers vitest's fake ones, and
+ * scripts that load, fail or run only when a case says so.
  *
  * @module
  */
@@ -31,7 +35,7 @@ import type {
   Node,
   ParamPattern,
 } from "oxc-parser/src-js";
-import { afterEach, assert, describe, it, vi } from "vitest";
+import { afterEach, assert, beforeEach, describe, it, vi } from "vitest";
 import type { FrameToPage, PciFrameRoute } from "#plate/pci/frame-protocol.ts";
 import { bootFrame } from "#plate/ui/portable-custom/frame-boot.ts";
 import { framePage } from "#plate/ui/portable-custom/frame-page.ts";
@@ -41,6 +45,11 @@ import type { FrameNonce, PageMessage } from "#plate/ui/portable-custom/protocol
  * The frame's nonce, its URL's fragment.
  */
 const nonce = Brand.nominal<FrameNonce>()("n1");
+
+/**
+ * The longest delay a browser's timer holds, in milliseconds.
+ */
+const longestTimerMs = 2_147_483_647;
 
 /**
  * A message posted to the frame, as the frame's listener reads it: the island's, or one another
@@ -60,16 +69,35 @@ interface Island {
 }
 
 /**
- * An element of the test's document: every member the frame writes or calls, doing nothing.
- *
- * @returns The element.
+ * An element of the test's document: the listeners the frame adds to it, by type, and the
+ * elements appended to it; every other member the frame writes or calls does nothing.
  */
-const elementOf = () => ({
-  addEventListener: () => {},
-  append: () => {},
-  dataset: {},
-  innerHTML: "",
-});
+interface LoaderElement {
+  readonly addEventListener: (type: string, listener: () => void) => void;
+  readonly append: (child: LoaderElement) => void;
+  readonly appended: LoaderElement[];
+  readonly dataset: Record<string, string>;
+  readonly innerHTML: string;
+  readonly listeners: Map<string, () => void>;
+  readonly src: string;
+}
+
+/**
+ * The frame's window as the test holds it: where the frame writes its loader's `define`.
+ */
+interface LoaderWindow {
+  readonly define?: (factory: () => object) => void;
+}
+
+/**
+ * A booted frame: the island it posts to, its document's head, whose children are the scripts it
+ * appends in order, and its window.
+ */
+interface LoaderFrame {
+  readonly head: LoaderElement;
+  readonly island: Island;
+  readonly window: LoaderWindow;
+}
 
 /**
  * A `ResizeObserver` the frame constructs, which only notes what it is asked to observe.
@@ -77,19 +105,43 @@ const elementOf = () => ({
 class NotedObserver {
   readonly observed: Element[] = [];
 
-  observe(target: Element, ..._options: readonly ResizeObserverOptions[]): void {
+  observe(target: Element): void {
     this.observed.push(target);
   }
 }
 
 /**
- * Boot a frame in the test's document and hand it the island's `load` with one route, whose primary
- * waits the seconds given.
+ * An element of the test's document.
  *
- * @param waitSeconds The primary location's wait.
- * @returns The island, holding what the frame posted.
+ * @returns The element.
  */
-const loaded = (waitSeconds: number): Island => {
+const elementOf = (): LoaderElement => {
+  const listeners = new Map<string, () => void>();
+  const appended: LoaderElement[] = [];
+
+  return {
+    addEventListener: (type, listener) => {
+      listeners.set(type, listener);
+    },
+    append: (child) => {
+      appended.push(child);
+    },
+    appended,
+    dataset: {},
+    innerHTML: "",
+    listeners,
+    src: "",
+  };
+};
+
+/**
+ * Boot a frame in the test's document and hand it the island's `load` with one route, module
+ * `a`, its entry.
+ *
+ * @param route The route, its locations and its fallback's wait.
+ * @returns The frame.
+ */
+const loadingFrame = (route: Omit<PciFrameRoute, "id">): LoaderFrame => {
   const posted: FrameToPage[] = [];
   const island: Island = {
     postMessage: (message) => {
@@ -98,21 +150,26 @@ const loaded = (waitSeconds: number): Island => {
     posted,
   };
   const listeners = new Map<string, (message: IslandMessage) => void>();
+  const head = elementOf();
+  const frameWindow: LoaderWindow = {};
 
   vi.stubGlobal("location", { hash: `#${nonce}` });
-  vi.stubGlobal("window", {
-    addEventListener: (type: string, listener: (message: IslandMessage) => void) => {
-      listeners.set(type, listener);
-    },
-    parent: island,
-  });
+  vi.stubGlobal(
+    "window",
+    Object.assign(frameWindow, {
+      addEventListener: (type: string, listener: (message: IslandMessage) => void) => {
+        listeners.set(type, listener);
+      },
+      parent: island,
+    }),
+  );
   vi.stubGlobal("document", {
     addEventListener: () => {},
     body: elementOf(),
     createElement: elementOf,
     documentElement: { dir: "", getBoundingClientRect: () => ({ height: 0 }), lang: "" },
     fonts: { addEventListener: () => {} },
-    head: elementOf(),
+    head,
     styleSheets: [],
     title: "",
   });
@@ -127,53 +184,229 @@ const loaded = (waitSeconds: number): Island => {
       lang: "en",
       markup: "",
       nonce,
-      routes: [
-        { id: "a", primary: "modules/a.js", waitSeconds: { fallback: 7, primary: waitSeconds } },
-      ],
+      routes: [{ id: "a", ...route }],
       templates: [],
       title: "PCI",
     },
     source: island,
   });
 
-  return island;
+  return { head, island, window: frameWindow };
+};
+
+/**
+ * The scripts a frame has appended, by their URLs, in order.
+ *
+ * @param frame The frame.
+ * @returns Their URLs.
+ */
+const scriptsOf = (frame: LoaderFrame): readonly string[] =>
+  frame.head.appended.map(({ src }) => src);
+
+/**
+ * Fire an event the frame listens for on the script it appended at a place.
+ *
+ * @param frame The frame.
+ * @param at The script's place among those appended.
+ * @param type `load` or `error`.
+ */
+const fire = (frame: LoaderFrame, at: number, type: "error" | "load"): void => {
+  frame.head.appended[at]?.listeners.get(type)?.();
+};
+
+/**
+ * Let the script at a place arrive: it runs, defining its module anonymously, then loads.
+ *
+ * @param frame The frame.
+ * @param at The script's place among those appended.
+ */
+const arrive = (frame: LoaderFrame, at: number): void => {
+  frame.window.define?.(() => ({}));
+  fire(frame, at, "load");
 };
 
 /**
  * Whether the frame has told the island the load failed.
  *
- * @param island The island.
- * @returns Whether a `failed` is among what it was posted.
+ * @param frame The frame.
+ * @returns Whether a `failed` is among what it posted.
  */
-const failed = (island: Island): boolean => island.posted.some(({ kind }) => kind === "failed");
+const failedIn = (frame: LoaderFrame): boolean =>
+  frame.island.posted.some(({ kind }) => kind === "failed");
+
+/**
+ * The reason of each failure the frame has told the island, in order.
+ *
+ * @param frame The frame.
+ * @returns The reasons.
+ */
+const failuresIn = (frame: LoaderFrame): readonly string[] =>
+  frame.island.posted.flatMap((message) => (message.kind === "failed" ? [message.reason] : []));
+
+/**
+ * Whether the frame has told the island its modules registered, so the route loaded.
+ *
+ * @param frame The frame.
+ * @returns Whether a `registered` is among what it posted.
+ */
+const registeredIn = (frame: LoaderFrame): boolean =>
+  frame.island.posted.some(({ kind }) => kind === "registered");
+
+/**
+ * The primary location every case's route has.
+ */
+const primary = "https://frame.example/modules/a.js";
+
+/**
+ * The fallback location of every case's route that has one.
+ */
+const fallbackAt = "https://frame.example/modules/fallback/a.js";
 
 describe("a PCI frame's wait for a module script", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
-  // Bound: a second, and the longest wait a timer holds, 2,147,483.647 seconds.
-  it.each([1, 2_147_483.647])("fails a load once a wait of %d s runs out", async (waitSeconds) => {
-    vi.useFakeTimers();
+  it("loads a primary with no fallback whose script arrives after the longest wait a timer holds", async () => {
+    const frame = loadingFrame({ primary });
 
-    const island = loaded(waitSeconds);
-
-    await vi.advanceTimersByTimeAsync(waitSeconds * 1000 - 1);
-    assert.isFalse(failed(island), "not yet failed");
-    await vi.advanceTimersByTimeAsync(1);
-    assert.isTrue(failed(island), "failed once it ran out");
+    await vi.advanceTimersByTimeAsync(longestTimerMs + 1);
+    assert.isFalse(failedIn(frame), "no clock failed it");
+    assert.deepStrictEqual(scriptsOf(frame), [primary], "nothing else was tried");
+    arrive(frame, 0);
+    await vi.advanceTimersByTimeAsync(0);
+    assert.isTrue(registeredIn(frame), "it loaded when its script arrived");
+    assert.isFalse(failedIn(frame), "and never failed");
   });
+
+  // Bound: a second, and the longest wait a timer holds, 2,147,483.647 seconds.
+  it.each([1, longestTimerMs / 1000])(
+    "falls back once a primary's wait of %d s runs out, and waits for the fallback however long it takes",
+    async (waitSeconds) => {
+      const frame = loadingFrame({
+        fallback: { location: fallbackAt, primaryWaitSeconds: waitSeconds },
+        primary,
+      });
+
+      await vi.advanceTimersByTimeAsync(waitSeconds * 1000 - 1);
+      assert.deepStrictEqual(
+        scriptsOf(frame),
+        [primary],
+        "the primary alone, until its wait ran out",
+      );
+      await vi.advanceTimersByTimeAsync(1);
+      assert.deepStrictEqual(scriptsOf(frame), [primary, fallbackAt], "then the fallback");
+      await vi.advanceTimersByTimeAsync(longestTimerMs + 1);
+      assert.isFalse(failedIn(frame), "no clock failed the fallback");
+      arrive(frame, 1);
+      await vi.advanceTimersByTimeAsync(0);
+      assert.isTrue(registeredIn(frame), "it loaded when the fallback's script arrived");
+      assert.isFalse(failedIn(frame), "and never failed");
+    },
+  );
 
   // Bound: 0, the first millisecond past a timer's longest delay, and 1e9 seconds, each waited out
   // ten times over.
-  it.each([0, 2_147_483.648, 1e9])("never fails a load for a wait of %d s", async (waitSeconds) => {
-    vi.useFakeTimers();
+  it.each([0, 2_147_483.648, 1e9])(
+    "never times out a primary whose wait of %d s is no limit",
+    async (waitSeconds) => {
+      const frame = loadingFrame({
+        fallback: { location: fallbackAt, primaryWaitSeconds: waitSeconds },
+        primary,
+      });
 
-    const island = loaded(waitSeconds);
+      await vi.advanceTimersByTimeAsync(Math.max(waitSeconds, 1) * 10_000);
+      assert.deepStrictEqual(scriptsOf(frame), [primary], "no fallback was tried");
+      assert.isFalse(failedIn(frame), "no limit");
+      arrive(frame, 0);
+      await vi.advanceTimersByTimeAsync(0);
+      assert.isTrue(registeredIn(frame), "it loaded when its script arrived");
+    },
+  );
 
-    await vi.advanceTimersByTimeAsync(Math.max(waitSeconds, 1) * 10_000);
-    assert.isFalse(failed(island), "no limit");
+  it("fails a primary with no fallback as soon as its script loads defining no module", async () => {
+    const frame = loadingFrame({ primary });
+
+    fire(frame, 0, "load");
+    await vi.advanceTimersByTimeAsync(0);
+    assert.isTrue(failedIn(frame), "failed once its script had run");
+  });
+
+  it("falls back as soon as a primary's script loads defining no module, and fails when the fallback's does too", async () => {
+    const frame = loadingFrame({
+      fallback: { location: fallbackAt, primaryWaitSeconds: 30 },
+      primary,
+    });
+
+    fire(frame, 0, "load");
+    await vi.advanceTimersByTimeAsync(0);
+    assert.deepStrictEqual(
+      scriptsOf(frame),
+      [primary, fallbackAt],
+      "the fallback, before the wait ran out",
+    );
+    assert.isFalse(failedIn(frame), "not yet failed");
+    fire(frame, 1, "load");
+    await vi.advanceTimersByTimeAsync(0);
+    assert.isTrue(failedIn(frame), "failed once the fallback's script had run");
+  });
+
+  it("falls back at once when a primary's script does not load, and fails when the fallback's does not", async () => {
+    const frame = loadingFrame({
+      fallback: { location: fallbackAt, primaryWaitSeconds: 30 },
+      primary,
+    });
+
+    fire(frame, 0, "error");
+    await vi.advanceTimersByTimeAsync(0);
+    assert.deepStrictEqual(
+      scriptsOf(frame),
+      [primary, fallbackAt],
+      "the fallback, before the wait ran out",
+    );
+    assert.isFalse(failedIn(frame), "not yet failed");
+    fire(frame, 1, "error");
+    await vi.advanceTimersByTimeAsync(0);
+    assert.isTrue(failedIn(frame), "failed once the fallback did not load");
+  });
+
+  it("names the primary's run-out wait beside the fallback's failure when both fail", async () => {
+    const frame = loadingFrame({
+      fallback: { location: fallbackAt, primaryWaitSeconds: 1 },
+      primary,
+    });
+
+    await vi.advanceTimersByTimeAsync(1000);
+    assert.deepStrictEqual(
+      scriptsOf(frame),
+      [primary, fallbackAt],
+      "the fallback, once the wait ran out",
+    );
+    fire(frame, 1, "error");
+    await vi.advanceTimersByTimeAsync(0);
+    assert.deepStrictEqual(
+      failuresIn(frame),
+      [
+        `The module script at ${primary} did not load within 1 seconds. The module script at ${fallbackAt} did not load.`,
+      ],
+      "one failure, the primary's reason first",
+    );
+  });
+
+  it("loads a fallback alone at once, with no clock", async () => {
+    const frame = loadingFrame({ fallback: { location: fallbackAt, primaryWaitSeconds: 1 } });
+
+    assert.deepStrictEqual(scriptsOf(frame), [fallbackAt], "the fallback at once");
+    await vi.advanceTimersByTimeAsync(longestTimerMs + 1);
+    assert.isFalse(failedIn(frame), "no clock failed it");
+    arrive(frame, 0);
+    await vi.advanceTimersByTimeAsync(0);
+    assert.isTrue(registeredIn(frame), "it loaded when its script arrived");
   });
 });
 
@@ -475,7 +708,8 @@ const parentTaking =
   };
 
 /**
- * The island's `load` for one route, `a`, with no wait and no markup.
+ * The island's `load` for one route, `a`, a primary with no fallback, so waited for with no clock,
+ * and no markup.
  */
 const loadOfA: PageMessage = {
   dir: "ltr",
@@ -484,7 +718,7 @@ const loadOfA: PageMessage = {
   lang: "en",
   markup: "",
   nonce,
-  routes: [{ id: "a", primary: "modules/a.js", waitSeconds: { fallback: 0, primary: 0 } }],
+  routes: [{ id: "a", primary: "modules/a.js" }],
   templates: [],
   title: "PCI",
 };
@@ -3208,22 +3442,25 @@ const loadOf = (routes: readonly PciFrameRoute[], entry: string | null): PageMes
 };
 
 /**
- * A route of one primary location, with a wait, and a fallback where one is given.
+ * A route of one primary location and no fallback.
  *
  * @param id The route's id.
- * @param wait The primary's wait, in seconds.
- * @param fallback The fallback's location, none where the route has none.
  * @returns The route.
  */
-const routeOf = (id: string, wait: number, fallback: string | null): PciFrameRoute => {
-  const route: PciFrameRoute = {
-    id,
-    primary: `modules/${id}.js`,
-    waitSeconds: { fallback: 0, primary: wait },
-  };
+const routeOf = (id: string): PciFrameRoute => ({ id, primary: `modules/${id}.js` });
 
-  return fallback === null ? route : { ...route, fallback };
-};
+/**
+ * A route of one primary location and a fallback after it, `modules/fallback.js`, which alone
+ * holds a wait for the primary (reading `pci-wait-before-fallback`).
+ *
+ * @param id The route's id.
+ * @param primaryWaitSeconds The primary's wait before the fallback, in seconds, 0 for no limit.
+ * @returns The route.
+ */
+const fallingBackOf = (id: string, primaryWaitSeconds: number): PciFrameRoute => ({
+  ...routeOf(id),
+  fallback: { location: "modules/fallback.js", primaryWaitSeconds },
+});
 
 /**
  * The script element the frame made last.
@@ -3479,8 +3716,8 @@ const wholeLife = async (run: Run): Promise<void> => {
 
   dispatch(run.on, "message", { ...fromIsland(run, { kind: "complete", nonce }), source: {} });
   dispatch(run.on, "message", fromIsland(run, instantiateOf(typeIdentifier)));
-  dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a", 0, null)], "a")));
-  dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a", 0, null)], "a")));
+  dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a")], "a")));
+  dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a")], "a")));
   run.evaluate(changedWith("{}"));
   dispatch(run.onDocument, "pointerup", { view: run.global });
   ranOut(run);
@@ -3733,20 +3970,7 @@ const wholeLife = async (run: Run): Promise<void> => {
  * @returns Once driven.
  */
 const fallenBack = async (run: Run): Promise<void> => {
-  dispatch(
-    run.on,
-    "message",
-    fromIsland(
-      run,
-      loadOf(
-        [
-          routeOf("a", 0, "modules/fallback.js"),
-          { id: "z", waitSeconds: { fallback: 0, primary: 0 } },
-        ],
-        null,
-      ),
-    ),
-  );
+  dispatch(run.on, "message", fromIsland(run, loadOf([fallingBackOf("a", 0), { id: "z" }], null)));
   lastScript(run)?.fire("error", {});
   await setImmediate();
   run.evaluate("define(function () { return 1; });");
@@ -3764,11 +3988,7 @@ const fallenBack = async (run: Run): Promise<void> => {
  * @returns Once driven.
  */
 const exhausted = async (run: Run): Promise<void> => {
-  dispatch(
-    run.on,
-    "message",
-    fromIsland(run, loadOf([routeOf("a", 0, null), routeOf("b", 0, null)], "a")),
-  );
+  dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a"), routeOf("b")], "a")));
   lastScript(run)?.fire("error", {});
   lastScript(run)?.fire("load", {});
 
@@ -3780,30 +4000,36 @@ const exhausted = async (run: Run): Promise<void> => {
 };
 
 /**
- * Drive a run whose route's script loads but defines nothing, so its stated wait runs out; its
- * module defined late, and its script's `load` again, change nothing of the settled load.
+ * Drive a run whose primary, a fallback after it, does not load within the fallback's stated
+ * wait, so the fallback loads instead and its script defines nothing; the primary's module
+ * defined late, and its script's `load` late, change nothing of the settled load.
  *
  * @param run The run.
  * @returns Once driven.
  */
 const timedOut = async (run: Run): Promise<void> => {
-  dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a", 5, null)], "a")));
-  lastScript(run)?.fire("load", {});
+  dispatch(run.on, "message", fromIsland(run, loadOf([fallingBackOf("a", 5)], "a")));
+
+  const primaryScript = lastScript(run);
+
   ranOut(run);
+  await setImmediate();
+  lastScript(run)?.fire("load", {});
+  primaryScript?.fire("load", {});
   run.evaluate('define("a", function () {});');
   lastScript(run)?.fire("load", {});
   await setImmediate();
 };
 
 /**
- * Drive a run whose entry module depends on a module no route defines, its wait longer than any
- * timer holds.
+ * Drive a run whose entry module depends on a module no route defines, its primary's wait before
+ * its fallback longer than any timer holds.
  *
  * @param run The run.
  * @returns Once driven.
  */
 const missingDependency = async (run: Run): Promise<void> => {
-  dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a", 1e9, null)], "a")));
+  dispatch(run.on, "message", fromIsland(run, loadOf([fallingBackOf("a", 1e9)], "a")));
   run.evaluate('define(["missing"], function () {});');
   lastScript(run)?.fire("load", {});
   await setImmediate();
@@ -3816,7 +4042,7 @@ const missingDependency = async (run: Run): Promise<void> => {
  * @returns Once driven.
  */
 const missingEntry = async (run: Run): Promise<void> => {
-  dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a", 0, null)], "x")));
+  dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a")], "x")));
   run.evaluate("define(function () {});");
   lastScript(run)?.fire("load", {});
   await setImmediate();
@@ -3830,7 +4056,7 @@ const missingEntry = async (run: Run): Promise<void> => {
  * @returns Once driven.
  */
 const thrownEarly = async (run: Run): Promise<void> => {
-  dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a", 0, null)], "a")));
+  dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a")], "a")));
   dispatch(run.on, "error", atWindow(run, { message: "thrown while loading" }));
   await setImmediate();
   dispatch(run.on, "error", atWindow(run, { message: "" }));
@@ -3844,7 +4070,7 @@ const thrownEarly = async (run: Run): Promise<void> => {
  * @returns Once driven.
  */
 const noInteraction = async (run: Run): Promise<void> => {
-  dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a", 0, null)], "a")));
+  dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a")], "a")));
   run.evaluate(
     'define(["qtiCustomInteractionContext"], function (context) { context.register({ getInstance: function () { return 1; }, typeIdentifier: "urn:qti-pie:test:none" }); });',
   );
@@ -4017,7 +4243,7 @@ describe("the frame's boot, run", () => {
       'its whole life: booted, registered, failed (No registered factory serves the type identifier "urn:qti-pie:test:unregistered", or its getInstance returned no interaction.), ready, changed, changed, changed, changed, changed, done, height 216, height 240, height 300, height 324, height 400, height 500, height 700, height 1000, height 1100, height 1300, height 1500, height 1600, height 1700, height 1900, height 2100, height 2050, height 2125, height 2350, height 2238, height 3000, height 3100, height 3200, height 3700, height 4200, height 3975, height 4500, height 4650, height 5000, height 4860, height 4960, height 5000, height 5200, height 10598, height 5398, height 6000, height 6100, height 6120, height 6080, height 6350, height 7000, height 7500, height 8000, height 8040, height 9000, height 9100, height 50, height 9500, height 9600, height 9620, height 10000, height 10100, height 10301, height 10420, height 20000, height 20100, height 20120, height 20340, height 20500, completed',
       "a fallback: booted, registered, completed",
       "a route exhausted: booted, failed (The module script at modules/a.js did not load.)",
-      'a wait run out: booted, failed (The module script at modules/a.js defined no module "a" within 5 seconds.)',
+      'a wait run out: booted, failed (The module script at modules/a.js did not load within 5 seconds. The module script at modules/fallback.js defined no module "a".)',
       'a missing dependency: booted, failed (The module "a" depends on "missing", which no route defines.)',
       'a missing entry: booted, failed (The entry module "x" was not defined by any route.)',
       "errors before the PCI runs: booted, failed (thrown while loading), failed (A script in the frame threw.), failed (A promise in the frame was rejected.)",

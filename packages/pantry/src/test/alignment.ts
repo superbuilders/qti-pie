@@ -817,6 +817,11 @@ const readingEntries = {
     status: "G",
   },
   "pci-secondary-configuration": { owner: "codec", status: "G" },
+  "pci-wait-before-fallback": {
+    owner:
+      "plate's R3 and R4 (`#plate/pci/resolve.ts`): a route carries the primary configuration's `waitSeconds` only inside its fallback (`ModuleFallback`, the frame protocol's `PciFrameFallback`), held by `pci/modules.test.ts`; its frame timing a primary with a fallback alone and waiting for any other location's script, never a clock (`#plate/ui/portable-custom/frame-boot.ts`), held by `frame-boot.test.ts`; the ledger's routing dropping a fallback it does not serve with its wait (`pciFactsOf`), held by `module-held.db.test.ts`; pantry stores both configuration attributes as written",
+    status: "G",
+  },
   "pnp-low-vision": {
     owner:
       "plate leaves `qti-unselected-hidden` off a Graphic Gap Match's root for a candidate whose supports show magnification, inverted display polarity or the `high-contrast` catalog support (`carriedClass`, `#plate/vocabulary.ts`; `<Item>`'s class carrying, `#plate/ui/item/item.tsx`); pantry stores `class` as written in `Attribute` and reads no PNP",

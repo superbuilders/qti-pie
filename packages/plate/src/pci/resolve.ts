@@ -1,9 +1,9 @@
 /**
  * Module resolution for a portable custom interaction (issue pci-01, a server module):
  * {@link resolvePciModules} says, for one PCI in an opened package, where each of its AMD modules
- * loads from, the primary and the fallback URL of every module with its timeouts, and a typed
- * {@link PciNotice} for each route that cannot resolve. The frame host (issue pci-04) consumes the
- * {@link PciResolution}; nothing here loads or fetches a URL.
+ * loads from, the primary and the fallback URL of every module with the wait before its fallback,
+ * and a typed {@link PciNotice} for each route that cannot resolve. The frame host (issue pci-04)
+ * consumes the {@link PciResolution}; nothing here loads or fetches a URL.
  *
  * The QTI 3 module-resolution rules, from the implementation guide and the information model: a PCI
  * names its module with the `module` attribute or lists its modules in `qti-interaction-modules`,
@@ -33,18 +33,22 @@
  *   `.js` goes after the path, before the query and the fragment, which name no part of the file; a
  *   path whose last segment is a dot segment names a directory, so `.js` names a file of it
  *   (`modules/b/..` names `modules/.js`), as the database appends `.js` to the resolved path.
- * - **R2** A configuration contributes its `waitSeconds` alone, never a location: its `paths` and
+ * - **R2** A configuration contributes at most its `waitSeconds`, never a location: its `paths` and
  *   every other member are passed over, so a module loads only from its own `primary-path` and
  *   `fallback-path` (reading `pci-configuration-waits`: the information model gives a configuration
  *   "to use", and the guide, informative, lets the delivery "apply security rules to the URLs from
  *   which it will load Javascript files"). A configuration file absent from the package contributes
  *   nothing and no notice; one present but not a JSON object with, where written, a non-negative
  *   finite `waitSeconds` gives `pci-configuration-invalid` and contributes nothing.
- * - **R3** The timeout is the primary configuration's `waitSeconds` for primary loads and the
- *   secondary's for fallback loads, 7 when absent.
+ * - **R3** A timeout means only "load the fallback" (reading `pci-wait-before-fallback`): a primary
+ *   with a fallback after it is waited for the primary configuration's `waitSeconds`, 7 when absent
+ *   and no limit for 0, and then the fallback loads; a location with nothing after it, a primary
+ *   with no fallback or any fallback, waits for its own script's load or error and never for a
+ *   clock. So a route holds a wait only inside its fallback, and the secondary configuration's
+ *   `waitSeconds` times nothing: that file is read for R2's notice alone.
  * - **R4** A module with no location at all, primary or fallback, gives `pci-module-unresolved`; one
- *   with no fallback has none, it simply has no second chance; one with a fallback alone loads from
- *   it, since the frame tries the fallback where no primary is given.
+ *   with no fallback has no second chance and no timeout (R3); one with a fallback alone loads from
+ *   it at once, since the frame tries the fallback where no primary is given.
  * - **R5** A package-relative location the manifest does not list is kept and gives
  *   `pci-module-unlisted`; an absolute location, of any scheme, is dropped and gives
  *   `pci-module-remote`: plate loads no script from outside the package, whose files alone the host
@@ -84,18 +88,30 @@ export interface PciModules {
 }
 
 /**
+ * A module's second chance (R3, R4): the `location` it loads from when its primary cannot load,
+ * and `primaryWaitSeconds`, how long the primary is waited for before this location loads instead,
+ * 0 for no limit, so that only the primary's error reaches it. The wait is the fallback's because a
+ * timeout means nothing but "load the fallback": a route with no fallback holds no wait to time
+ * its primary out by, and the fallback's own load is never timed. A route with no primary loads
+ * its fallback at once, and the wait times nothing.
+ */
+export interface ModuleFallback {
+  readonly location: string;
+  readonly primaryWaitSeconds: number;
+}
+
+/**
  * Where one AMD module loads from.
  *
- * `primary` and `fallback` are paths relative to the package's base, each ending in `.js` exactly
- * once (R1), never an absolute URL (R5). `fallback` is tried after `primary` times out or
- * fails fatally; a module with none has no second chance (R4). `waitSeconds` is how long each
- * load waits before the host gives up on it, 0 for no timeout (R3).
+ * `primary` and the `fallback`'s `location` are paths relative to the package's base, each ending
+ * in `.js` exactly once (R1), never an absolute URL (R5). The fallback is tried after the primary
+ * fails fatally or its wait runs out; a module with none has no second chance and its primary no
+ * timeout (R3, R4).
  */
 export interface ModuleRoute {
-  readonly fallback: Option.Option<string>;
+  readonly fallback: Option.Option<ModuleFallback>;
   readonly id: string;
   readonly primary: Option.Option<string>;
-  readonly waitSeconds: { readonly fallback: number; readonly primary: number };
 }
 
 /**
@@ -137,7 +153,8 @@ export type PciNotice =
 
 /**
  * The `waitSeconds` of a configuration that writes none, and of an absent or invalid
- * configuration (R3).
+ * configuration: the guide's default (§3.7.12.2, "If "waitSeconds" is not specified then a default
+ * of 7 seconds should be assumed"), which times a primary with a fallback alone (R3).
  */
 const defaultWaitSeconds = 7;
 
@@ -289,12 +306,12 @@ const placeLocation = (
   });
 
 /**
- * Route one module: its own paths alone (R2), each load waiting its configuration's time (R3, R4).
+ * Route one module: its own paths alone (R2), its primary waited for the primary configuration's
+ * time where a fallback follows it, and never otherwise (R3, R4).
  *
  * @param id The module's id.
  * @param written The module's `qti-interaction-module`, when the PCI lists one.
- * @param primary The primary configuration, whose wait its primary load takes.
- * @param secondary The secondary configuration, whose wait its fallback load takes.
+ * @param primary The primary configuration, whose wait its fallback holds.
  * @param listed Whether the manifest lists a package-relative path.
  * @returns The route and its notices: the primary location's, the fallback location's, then
  *   `pci-module-unresolved` when no URL remains, primary or fallback.
@@ -303,7 +320,6 @@ const routeModule = (
   id: string,
   written: Option.Option<ListedModule>,
   primary: Configuration,
-  secondary: Configuration,
   listed: (path: string) => boolean,
 ): RoutedModule => {
   const own = Option.match(written, {
@@ -322,10 +338,11 @@ const routeModule = (
         : []),
     ],
     route: {
-      fallback: placedFallback.url,
+      fallback: placedFallback.url.pipe(
+        Option.map((location) => ({ location, primaryWaitSeconds: primary.waitSeconds })),
+      ),
       id,
       primary: placedPrimary.url,
-      waitSeconds: { fallback: secondary.waitSeconds, primary: primary.waitSeconds },
     },
   };
 };
@@ -334,12 +351,12 @@ const routeModule = (
  * Resolve where each module of one PCI loads from, by the module-resolution rules and the
  * defaults R1 to R6 the module doc states.
  *
- * The routes cover the module the PCI names with `module` and every module it lists, each id
- * once, the entry first; a module named by `module` alone has no location (R2, R4). Both
- * configuration files are read from the package by their written or default paths, for their
- * waits alone, never fetched: one named by an absolute URL is not held, so it contributes nothing,
- * as an absent file does. Paths reach `files` and `listed` as the document writes them, with `.js`
- * appended; normalising them is the caller's, which holds the package.
+ * The routes cover the module the PCI names with `module` and every module it lists, each id once,
+ * the entry first; a module named by `module` alone has no location (R2, R4). Both configuration
+ * files are read from the package by their written or default paths, never fetched, the primary for
+ * its wait and both for R2's notice: one named by an absolute URL is not held, so it contributes
+ * nothing, as an absent file does. Paths reach `files` and `listed` as the document writes them,
+ * with `.js` appended; normalising them is the caller's, which holds the package.
  *
  * @param modules The interaction's module facts, as written.
  * @param files Read a package-relative file: its text, none when the package holds no such file.
@@ -361,7 +378,6 @@ export const resolvePciModules = (
       id,
       Option.fromNullishOr(modules.modules.find((module) => module.id === id)),
       primary.configuration,
-      secondary.configuration,
       listed,
     ),
   );

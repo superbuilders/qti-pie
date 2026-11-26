@@ -100,15 +100,14 @@ const declaredOf = (model: ModelOf<"portable-custom", RedactedLevel>): Option.Op
   );
 
 /**
- * Write a route the host resolved as the frame protocol carries it: each location as a key,
- * absent where the route has none.
+ * Write a route the host resolved as the frame protocol carries it: its primary and its fallback
+ * as keys, absent where the route has none, the fallback with the primary's wait before it.
  *
  * @param route The route, as the payload node holds it.
  * @returns The route.
  */
 const routeOf = (route: PciModuleRoute): PciFrameRoute => ({
   id: route.id,
-  waitSeconds: route.waitSeconds,
   ...Option.match(route.primary, { onNone: () => ({}), onSome: (primary) => ({ primary }) }),
   ...Option.match(route.fallback, { onNone: () => ({}), onSome: (fallback) => ({ fallback }) }),
 });

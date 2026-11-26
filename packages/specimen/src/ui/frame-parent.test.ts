@@ -140,22 +140,28 @@ interface IslandMessage {
  * A route of the island's `load`.
  */
 interface Route {
-  readonly fallback?: string;
+  readonly fallback?: { readonly location: string; readonly primaryWaitSeconds: number };
   readonly id: string;
   readonly primary: string;
-  readonly waitSeconds: { readonly fallback: number; readonly primary: number };
 }
 
 /**
+ * A module the page never answers: its script neither loads nor fails, so only a wait before a
+ * fallback ends its load.
+ */
+const hung: unique symbol = Symbol("hung");
+
+/**
  * One life of the frame: its URL's fragment, the island's `load` for it, the module files the
- * page serves by name (a name it serves nothing for is a script that does not load), and what the
- * test does once the frame has said how its load came out.
+ * page serves by name (a name it serves nothing for is a script that does not load, and one it
+ * holds {@link hung} for a script whose request it never answers), and what the test does once the
+ * frame has said how its load came out.
  */
 interface Life {
   readonly entry: string | null;
   readonly hash: string;
   readonly live: (page: Page) => Promise<void>;
-  readonly modules: Readonly<Record<string, string>>;
+  readonly modules: Readonly<Record<string, string | typeof hung>>;
   readonly name: string;
   readonly routes: readonly Route[];
 }
@@ -182,16 +188,24 @@ const loadOf = (life: Life): IslandMessage => {
 };
 
 /**
- * A route of one primary location.
+ * A route of one primary location and no fallback.
  *
  * @param id The route's id.
- * @param wait The primary's wait, in seconds.
  * @returns The route.
  */
-const routeOf = (id: string, wait: number): Route => ({
-  id,
-  primary: `${origin}/modules/${id}.js`,
-  waitSeconds: { fallback: 0, primary: wait },
+const routeOf = (id: string): Route => ({ id, primary: `${origin}/modules/${id}.js` });
+
+/**
+ * A route of one primary location and a fallback after it, `modules/fallback.js`, which alone
+ * holds a wait for the primary (reading `pci-wait-before-fallback`).
+ *
+ * @param id The route's id.
+ * @param primaryWaitSeconds The primary's wait before the fallback, in seconds, 0 for no limit.
+ * @returns The route.
+ */
+const fallingBackOf = (id: string, primaryWaitSeconds: number): Route => ({
+  ...routeOf(id),
+  fallback: { location: `${origin}/modules/fallback.js`, primaryWaitSeconds },
 });
 
 /**
@@ -290,7 +304,7 @@ const lives: readonly Life[] = [
     live: wholeLife,
     modules: { a: wholeModule },
     name: "its whole life",
-    routes: [routeOf("a", 0)],
+    routes: [routeOf("a")],
   },
   {
     entry: null,
@@ -298,7 +312,7 @@ const lives: readonly Life[] = [
     live: settled,
     modules: { fallback: "define(function () { return 1; });" },
     name: "a fallback",
-    routes: [{ ...routeOf("a", 0), fallback: `${origin}/modules/fallback.js` }],
+    routes: [fallingBackOf("a", 0)],
   },
   {
     entry: "a",
@@ -306,15 +320,15 @@ const lives: readonly Life[] = [
     live: settled,
     modules: {},
     name: "a route exhausted",
-    routes: [routeOf("a", 0), routeOf("b", 0)],
+    routes: [routeOf("a"), routeOf("b")],
   },
   {
     entry: "a",
     hash: `#${nonce}`,
     live: settled,
-    modules: { a: "void 0;" },
+    modules: { a: hung, fallback: "void 0;" },
     name: "a wait run out",
-    routes: [routeOf("a", 1)],
+    routes: [fallingBackOf("a", 1)],
   },
   {
     entry: "a",
@@ -322,7 +336,7 @@ const lives: readonly Life[] = [
     live: settled,
     modules: { a: 'define(["missing"], function () {});' },
     name: "a missing dependency",
-    routes: [routeOf("a", 0)],
+    routes: [routeOf("a")],
   },
   {
     entry: "x",
@@ -330,7 +344,7 @@ const lives: readonly Life[] = [
     live: settled,
     modules: { a: "define(function () {});" },
     name: "a missing entry",
-    routes: [routeOf("a", 0)],
+    routes: [routeOf("a")],
   },
   {
     entry: "a",
@@ -338,7 +352,7 @@ const lives: readonly Life[] = [
     live: settled,
     modules: { a: 'throw new Error("thrown while loading");' },
     name: "a module that throws while it loads",
-    routes: [routeOf("a", 0)],
+    routes: [routeOf("a")],
   },
   {
     entry: "a",
@@ -370,7 +384,7 @@ const lives: readonly Life[] = [
       a: 'define(["qtiCustomInteractionContext"], function (context) { context.register({ getInstance: function () { return 1; }, typeIdentifier: "urn:qti-pie:test:none" }); });',
     },
     name: "a factory that gives no interaction",
-    routes: [routeOf("a", 0)],
+    routes: [routeOf("a")],
   },
   {
     entry: null,
@@ -451,7 +465,7 @@ describe("plate's PCI frame page in Chrome", () => {
                       await route.fulfill({ body: page.html, headers: { ...page.headers } });
                     } else if (body === undefined) {
                       await route.fulfill({ body: "", status: 404 });
-                    } else {
+                    } else if (body !== hung) {
                       await route.fulfill({ body, contentType: "text/javascript" });
                     }
                   });

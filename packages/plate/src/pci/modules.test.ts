@@ -9,9 +9,10 @@
  * "modules/module_resolution.js"`, which writes `waitSeconds` 30; the manifest lists that file and
  * `modules/counter.js`; the package holds no secondary configuration. So, by the implementation
  * guide's rules as `#plate/pci/resolve.ts` states them, the module loads from its own
- * `primary-path` with `.js` appended (R1), waits 30 seconds (the primary configuration's) and 7 for
- * a fallback it has none of (R3, R4), and nothing is unlisted. `items/pci.xml` names its module by
- * `module="counter"` alone, so its facts hold no listed module and no configuration.
+ * `primary-path` with `.js` appended (R1), and, having no fallback, holds no wait: its primary
+ * waits for its script however long it takes, the configuration's 30 seconds timing nothing (R3,
+ * R4, reading `pci-wait-before-fallback`), and nothing is unlisted. `items/pci.xml` names its
+ * module by `module="counter"` alone, so its facts hold no listed module and no configuration.
  *
  * @module
  */
@@ -263,9 +264,56 @@ const expectedRoute = (written: string): ExpectedRoute => {
   };
 };
 
+/**
+ * The primary configurations {@link routeUnder} is asked under: one stating 30 seconds, one
+ * stating 0, and none, so the default.
+ */
+const waitsUnder = [Option.some(30), Option.some(0), Option.none<number>()] as const;
+
+/**
+ * Route module `a`, whose primary path is `modules/a`, under a primary configuration stating a
+ * wait, or none, and a secondary configuration stating 1 second.
+ *
+ * The oracle is reading `pci-wait-before-fallback` (docs/spec-readings.md), written by hand: a
+ * timeout means only "load the fallback" (the information model's `fallback-path`, "if the module
+ * can't be loaded from the primary location", section 7.17.3), so a primary with a fallback after
+ * it waits the primary configuration's `waitSeconds`, 7 when absent and 0 kept as no limit, and a
+ * module with no fallback holds no wait at all; the secondary configuration's wait would time the
+ * fallback, which nothing times, so it times nothing. The bound is a primary alone and a primary
+ * with a fallback, under each of {@link waitsUnder}.
+ *
+ * @param primaryWait The primary configuration's `waitSeconds`, none for no configuration.
+ * @param fallbackPath The module's `fallback-path`, none for none.
+ * @returns The module's routes.
+ */
+const routeUnder = (primaryWait: Option.Option<number>, fallbackPath: Option.Option<string>) => {
+  const files = new Map<string, string>([
+    ...Option.toArray(
+      primaryWait.pipe(
+        Option.map(
+          (waitSeconds) =>
+            ["modules/module_resolution.js", JSON.stringify({ waitSeconds })] as const,
+        ),
+      ),
+    ),
+    ["modules/fallback_module_resolution.js", JSON.stringify({ waitSeconds: 1 })],
+  ]);
+
+  return resolvePciModules(
+    {
+      module: Option.some("a"),
+      modules: [{ fallbackPath, id: "a", primaryPath: Option.some("modules/a") }],
+      primaryConfiguration: "modules/module_resolution.js",
+      secondaryConfiguration: "modules/fallback_module_resolution.js",
+    },
+    (file) => Option.fromUndefinedOr(files.get(file)),
+    () => true,
+  ).routes;
+};
+
 describe("the module facts of an item's Portable Custom Interactions", () => {
   it.effect(
-    "give the package item's PCI with its module and listed module, which resolve to its own primary path, the configuration's wait and no fallback",
+    "give the package item's PCI with its module and listed module, which resolve to its own primary path and no fallback, so no wait",
     () =>
       Effect.gen(function* packageItem() {
         const facts = pciModulesIn(yield* accept("package/counter.xml"));
@@ -302,7 +350,6 @@ describe("the module facts of an item's Portable Custom Interactions", () => {
                 fallback: Option.none(),
                 id: "counter",
                 primary: Option.some("modules/counter.js"),
-                waitSeconds: { fallback: 7, primary: 30 },
               },
             ],
           },
@@ -328,15 +375,15 @@ describe("the module facts of an item's Portable Custom Interactions", () => {
       }),
   );
 
-  it("route a module from its own locations alone, its configurations giving its waits and never a location", () => {
+  it("route a module from its own locations alone, its configurations giving no location", () => {
     /**
      * The package's two configurations, each case's PCI resolved against them: one PCI whose entry
      * has a fallback alone, a module the primary configuration maps elsewhere, and a module named
      * only in the configurations. The oracle is reading `pci-configuration-waits`
-     * (docs/spec-readings.md), written by hand: a configuration gives its loads' waits, the primary
-     * configuration's to primary loads and the secondary's to fallback loads, 0 meaning no timeout,
-     * and never a location, so `paths` routes nothing, a module named by `module` alone has no
-     * location (R4), and a configuration that writes no `paths` is valid.
+     * (docs/spec-readings.md), written by hand: a configuration never gives a location, so `paths`
+     * routes nothing, a module named by `module` alone has no location (R4), and a configuration
+     * that writes no `paths` is valid; and reading `pci-wait-before-fallback`: a fallback holds the
+     * primary configuration's wait, here a wait that times nothing, since the route has no primary.
      */
     const files = new Map([
       [
@@ -361,10 +408,9 @@ describe("the module facts of an item's Portable Custom Interactions", () => {
       notices: [],
       routes: [
         {
-          fallback: Option.some("modules/a.js"),
+          fallback: Option.some({ location: "modules/a.js", primaryWaitSeconds: 30 }),
           id: "a",
           primary: Option.none(),
-          waitSeconds: { fallback: 0, primary: 30 },
         },
       ],
     });
@@ -382,15 +428,31 @@ describe("the module facts of an item's Portable Custom Interactions", () => {
       {
         entry: Option.some("c"),
         notices: [{ id: "c", kind: "pci-module-unresolved" }],
-        routes: [
+        routes: [{ fallback: Option.none(), id: "c", primary: Option.none() }],
+      },
+    );
+  });
+
+  it("time a module's primary by the primary configuration alone, and only where a fallback follows it", () => {
+    assert.deepStrictEqual(
+      waitsUnder.map((primaryWait) => [
+        routeUnder(primaryWait, Option.none()),
+        routeUnder(primaryWait, Option.some("modules/fallback/a")),
+      ]),
+      [30, 0, 7].map((waited) => [
+        [{ fallback: Option.none(), id: "a", primary: Option.some("modules/a.js") }],
+        [
           {
-            fallback: Option.none(),
-            id: "c",
-            primary: Option.none(),
-            waitSeconds: { fallback: 0, primary: 30 },
+            fallback: Option.some({
+              location: "modules/fallback/a.js",
+              primaryWaitSeconds: waited,
+            }),
+            id: "a",
+            primary: Option.some("modules/a.js"),
           },
         ],
-      },
+      ]),
+      "a primary alone holds no wait; one with a fallback holds the primary configuration's, 7 where it states none",
     );
   });
 
@@ -436,7 +498,10 @@ describe("the module facts of an item's Portable Custom Interactions", () => {
                   () => true,
                 );
                 const [route] = routes;
-                const location = own === "primaryPath" ? route?.primary : route?.fallback;
+                const location =
+                  own === "primaryPath"
+                    ? route?.primary
+                    : route?.fallback.pipe(Option.map((fallback) => fallback.location));
 
                 assert.deepStrictEqual(location, expected.routed, `${written} as a ${own}`);
                 assert.deepStrictEqual(
