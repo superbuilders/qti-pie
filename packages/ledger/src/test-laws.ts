@@ -7,9 +7,10 @@
  *
  * - **Members, completely** and **Members only**: a sitting's item sessions are exactly its test's
  *   members, one per item ref, each named by the item document its ref names (IMPL-TESTS'
- *   `TestMember.document`; SV-KEY-01: an item is `(package, path)`). "If no selection rules are
- *   given it must be assumed that all elements are to be selected" (Table 5.129, info:42753), and a
- *   delivered test selects nothing (`DeliveredTest`).
+ *   `TestMember.document`; SV-KEY-01: an item is `(package, path)`), which no other ref of the test
+ *   names, its identifier its item's (§4.1.1) and unique within the test (§4.2.1). "If no selection
+ *   rules are given it must be assumed that all elements are to be selected" (Table 5.129,
+ *   info:42753), and a delivered test selects nothing (`DeliveredTest`).
  * - **One attempt**: at most one attempt per member's item session, but an unlimited member's. In a
  *   simultaneous part "By definition the candidate can take one and only one attempt at each item"
  *   (the overview, info:5376, from TestPart's `submission-mode`, Table 5.159.5); in an individual

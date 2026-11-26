@@ -161,7 +161,7 @@ export const ledgerLaws = {
   },
   "Item session key": {
     source:
-      "src/ledger.ts ItemSession: 'its sitting (`stage`) beside it, at most one per sitting and item'",
+      "src/ledger.ts ItemSession: 'its sitting (`stage`) beside it, at most one per sitting and item', a test naming each item document by one item ref, its identifier its item's (§4.1.1) and unique within the test (§4.2.1)",
   },
   "Item session place": {
     source:

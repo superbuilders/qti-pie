@@ -157,7 +157,10 @@ const RegistryText = str.bytes(registryTextBytes, anyText);
  *   and its place `n` among the learner's sessions of that item, which the database stamps one past
  *   the greatest (grizzle's `place`), so the places run gapless from 0 in the order the sessions
  *   were taken; its sitting (`stage`) beside it, at most one per sitting and item, which orders the
- *   sessions a migration numbers.
+ *   sessions a migration numbers. A test names each item document by one item ref: a ref's
+ *   identifier "MUST be the same" as its item's (§4.1.1) and is "unique within the test" (§4.2.1),
+ *   pantry's "Item ref identifier" and "Structure identifier", so §5.6.5's "A test may refer to the
+ *   same item multiple times within a test" has no instance pantry admits.
  * - **ItemSessionValue**: a variable the item session's template processing set at the take, and what
  *   it set (`SessionValueKind`), with its value in the sidecar of its declared base type and
  *   cardinality, **ItemSessionValue**`<Single|Multiple|Ordered><BaseType>`: no value row is the
