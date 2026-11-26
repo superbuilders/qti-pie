@@ -306,14 +306,14 @@ const elementWire = (
  * @param value The value: a page's element tree, or the responses it starts from.
  * @param clients Every export of plate's `"use client"` modules, by value, with its name, the
  *   islands the expansion stops at.
- * @param where Where the value stands, as a failure names it.
+ * @param where Where the value stands, as a failure names it: "the root" for a page's whole tree.
  * @returns The value, wired.
  * @throws {Unwired} At a value the wire cannot hold.
  */
 export const toWire = (
   value: unknown,
   clients: ReadonlyMap<unknown, string>,
-  where = "the root",
+  where: string,
 ): Wire => {
   const wiring: Wiring = (each, at) => toWire(each, clients, at);
 

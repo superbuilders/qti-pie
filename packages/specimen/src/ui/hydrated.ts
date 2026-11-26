@@ -234,6 +234,7 @@ const written = (spec: PageSpec, clients: ReadonlyMap<unknown, string>): Written
     tree: toWire(
       createElement(Item, { ...answering.props, renderers: standardRenderers }),
       clients,
+      "the root",
     ),
   }));
   const html = renderToString(
