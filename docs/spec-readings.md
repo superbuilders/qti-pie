@@ -5768,3 +5768,19 @@ C2: the oracle's own reader.)
      what no control lets the candidate give). `@qti-pie/processing`'s admission refuses so (`src/admission.ts`), as the
      SQL grader's did. This binds `@qti-pie/processing`. This is not a case of documents in conflict. (Stated 2026-11-26
      by lane QP-PROC-CORE, D6, D11.)
+
+264. [`end-attempt-validation`] **`validate-responses` refuses no answer whose attempt the candidate ended through an
+     End Attempt written `count-attempt="false"`.** Reading `end-attempt-count` reads such an End Attempt, a hint
+     button among them, as ending an attempt without spending one: `numAttempts` stays where it was. ItemSessionControl's
+     `validate-responses` governs what a candidate submits as an attempt: "When validate-responses is turned on (true)
+     then the candidates are not allowed to submit the item until they have provided valid responses for all
+     interactions" (section 7.19.7). A press that spends no attempt submits no attempt of the item, so it is no
+     submission that rule holds back: a hint asked for before the item is answered is given, and the responses the press
+     carries are processed as they stand. A limit on what the candidate is allowed to give at all (reading
+     `response-limits`) still refuses the answer, since no press makes such a response one a control could give. An End
+     Attempt written `true` or unwritten ends a counted attempt, which `validate-responses` holds as it holds any
+     submission. `@qti-pie/processing`'s `gradeAnswer` admits so: it applies `validate-responses` only where
+     `countsAttempt` answers true (`src/grade.ts`, `src/session.ts`). This binds `@qti-pie/processing`. This is not a
+     case of documents in conflict: neither the information model nor the XSD states how the two attributes meet, and
+     the coordinator ruled. (Stated 2026-11-26 by lane QP-PROC-CORE, on QP-PROC-DIFF's differential, R1, ruled by
+     edullm-bd.)
