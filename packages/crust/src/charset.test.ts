@@ -349,6 +349,7 @@ describe("classify", () => {
 
                 if (classified === charset.class) {
                   c.note("registered");
+
                   return;
                 }
 
@@ -454,6 +455,7 @@ describe("exportCharset", () => {
                     Option.map(charset.ceiling, (ceiling) => [codePoint, ceiling]),
                     name,
                   );
+
                   return;
                 }
 

@@ -813,7 +813,10 @@ const THRESHOLD_FORMS = [Option.none(), Option.some(0xff)] as const;
 /**
  * A case of the refusal box: a code point outside Char and the threshold writeXml writes under.
  */
-type UnderThreshold = { readonly codePoint: number; readonly threshold: Option.Option<number> };
+interface UnderThreshold {
+  readonly codePoint: number;
+  readonly threshold: Option.Option<number>;
+}
 
 /**
  * Draw a case of the refusal box: every code point {@link nonChar} draws under each of
