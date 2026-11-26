@@ -5,9 +5,9 @@
  *
  * @module
  */
-export type { Digest, GradeProof, Graded, Instant, ResponsesRead } from "#processing/graded.ts";
+export type { Digest, GradeProof, Instant, ResponsesRead } from "#processing/graded.ts";
 
-export { proofOf } from "#processing/graded.ts";
+export { proofOf } from "#processing/grade.ts";
 
 export type {
   ArgumentsOf,
@@ -66,6 +66,7 @@ export type { Credit, Mark } from "#processing/credit.ts";
 
 export type {
   AnswerGrade,
+  Graded,
   AnswerInput,
   CarriedMember,
   ClosingMember,

@@ -380,6 +380,40 @@ export const sameScalar = <B extends BaseType>(
 };
 
 /**
+ * Whether a single is of a base type.
+ *
+ * @param member - The single.
+ * @param base - The base type.
+ * @returns Whether it is.
+ */
+const isOfBase = <B extends BaseType>(
+  member: Single | SingleOf<B>,
+  base: B,
+): member is SingleOf<B> => member.base === base;
+
+/**
+ * Whether a single of a base type and another single are the same value.
+ *
+ * @param base - The first single's base type.
+ * @param left - The first single.
+ * @param right - The other.
+ * @returns Whether the other is of the same base type and holds the same scalar.
+ */
+const sameOfBase = <B extends BaseType>(base: B, left: SingleOf<B>, right: Single): boolean =>
+  isOfBase(right, base) && sameScalar(base, left.value, right.value);
+
+/**
+ * Whether two singles are the same value, as `qti-match` compares members: of one base type, and
+ * the same scalar by {@link sameScalar}.
+ *
+ * @param left - One single.
+ * @param right - The other.
+ * @returns Whether they are the same.
+ */
+export const sameSingle = (left: Single, right: Single): boolean =>
+  sameOfBase(left.base, left, right);
+
+/**
  * The members of a container as singles of its base type, in order.
  *
  * @param value - The container.

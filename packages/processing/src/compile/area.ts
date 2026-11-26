@@ -5,11 +5,11 @@
  * a circle's radius of the smaller of its width and height).
  *
  * Coordinates that do not fit a shape are read as the HTML Standard's image-map processing reads
- * them (reading `area-mapping`): a circle without three coordinates or with a radius not above 0, a
- * rect or an ellipse without four, a poly under three vertices, hold no point (`nowhere`); a poly's
- * odd last coordinate is dropped and every coordinate past what a shape takes is ignored; `default`
- * is the whole image (`everywhere`). A rect's corners are ordered, so no reader meets them either
- * way round. An area with a percentage whose image's size is not known is refused.
+ * them (reading `area-coords-fit`): a circle without three coordinates or with a radius not above
+ * 0, a rect or an ellipse without four, a poly under three vertices, hold no point (`nowhere`); a
+ * poly's odd last coordinate is dropped and every coordinate past what a shape takes is ignored;
+ * `default` is the whole image (`everywhere`). A rect's corners are ordered, so no reader meets
+ * them either way round. An area with a percentage whose image's size is not known is refused.
  *
  * @module
  */

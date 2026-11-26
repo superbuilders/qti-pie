@@ -56,7 +56,7 @@ describe("an area's resolution", () => {
     assert.deepStrictEqual(resolved("circle", "50%, 50%, 10", "unsized"), "attribute");
   });
 
-  it("reads coordinates that fit no shape as the HTML image map does: nowhere, a dropped odd vertex, extras ignored (reading `area-mapping`)", () => {
+  it("reads coordinates that fit no shape as the HTML image map does: nowhere, a dropped odd vertex, extras ignored (reading `area-coords-fit`)", () => {
     assert.deepStrictEqual(resolved("circle", "1, 2", "unsized"), { kind: "nowhere" });
     assert.deepStrictEqual(resolved("circle", "1, 2, 0", "unsized"), { kind: "nowhere" });
     assert.deepStrictEqual(resolved("poly", "0, 0, 4, 0", "unsized"), { kind: "nowhere" });

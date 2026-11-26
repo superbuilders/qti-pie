@@ -274,7 +274,7 @@ export interface Vertex {
  * over its one `denominator` (1 or more), every percentage taken of its image's size, a rect's
  * corners ordered (`left ≤ right`, `top ≤ bottom`): `everywhere` is QTI's `default` ("the entire
  * area of the associated image"), `nowhere` an area whose coordinates hold no point (reading
- * `area-mapping`). No percentage, image or double reaches an area's reader.
+ * `area-coords-fit`). No percentage, image or double reaches an area's reader.
  */
 export type Area =
   | { readonly kind: "everywhere" }

@@ -1,7 +1,7 @@
 /**
- * The entries: the only functions that mint a grade. Each takes everything it reads as an argument
- * (programs, values, seeds, the read's instant) and gives a {@link Graded} result whose proof names
- * what it read, or a failure, which is never a grade.
+ * The entries, and the grade they mint: `Graded`, whose key this module alone holds. Each takes
+ * everything it reads as an argument (programs, values, seeds, the read's instant) and gives a
+ * {@link Graded} result whose proof names what it read, or a failure, which is never a grade.
  *
  * - {@link gradeAnswerWith}: one attempt of an item in an individual part (D14): the answer graded
  *   when it is given, on the session's last processed attempt.
@@ -16,19 +16,52 @@
 import { admit } from "#processing/admission.ts";
 import type { Admission } from "#processing/admission.ts";
 import { valuesDigest } from "#processing/digest.ts";
-import { runProcessing } from "#processing/engine.ts";
-import { mint } from "#processing/graded.ts";
-import type { Digest, GradeProof, Graded, Instant, ResponsesRead } from "#processing/graded.ts";
+import { evaluateExpression, runProcessing } from "#processing/engine.ts";
+import type { Digest, GradeProof, Instant, ResponsesRead } from "#processing/graded.ts";
 import type { ExpressionKind } from "#processing/ir.ts";
 import type { OperatorTable } from "#processing/operators/operator.ts";
 import type { CompiledItem, CompiledTest } from "#processing/program.ts";
 import type { Demand, MemberOutcome, MemberResponse, MemberState } from "#processing/run.ts";
 import { attemptWith, startOf } from "#processing/session.ts";
 import type { Attempt, Failed, ItemResult, Prior, Take } from "#processing/session.ts";
-import { drawStream, responseLabel } from "#processing/stream.ts";
+import { drawStream, responseLabel, templateLabel } from "#processing/stream.ts";
 import type { Seed } from "#processing/stream.ts";
 import { nullOf, single } from "#processing/value.ts";
 import type { Value } from "#processing/value.ts";
+
+/**
+ * The grade's key: a symbol this module holds and never exports. The package's `exports` map lists
+ * only its index, which exports the type and {@link proofOf} alone, so no code outside this module
+ * can make a `Graded` value: not by a literal (the key cannot be named), not by a cast (casts are
+ * banned) and not through `any` (banned too). The ledger's write of a grade takes a `Graded` value,
+ * so nothing but an entry's result can be written as one.
+ */
+const graded: unique symbol = Symbol("graded");
+
+/**
+ * A result an entry computed, carrying the proof of what it was computed from.
+ */
+export type Graded<T extends object> = T & { readonly [graded]: GradeProof };
+
+/**
+ * Mint a grade. Only this module's entries call it.
+ *
+ * @param result - The result.
+ * @param proof - What it was computed from.
+ * @returns The grade.
+ */
+const mint = <T extends object>(result: T, proof: GradeProof): Graded<T> => ({
+  ...result,
+  [graded]: proof,
+});
+
+/**
+ * Read a grade's proof.
+ *
+ * @param grade - The grade.
+ * @returns What it was computed from.
+ */
+export const proofOf = (grade: Graded<object>): GradeProof => grade[graded];
 
 /**
  * Which responses an attempt grades: a save's values, or the default submission where the
@@ -492,3 +525,56 @@ export const regradeWith = <K extends ExpressionKind>(
   table: OperatorTable<K>,
   input: SittingInput,
 ): Failed | Graded<SittingGrade> => sittingWith(table, input);
+
+/**
+ * The template defaults a test's item ref gives its item's take (§5.152): each
+ * `qti-template-default`'s expression evaluated in the test's scope, before the item's first
+ * attempt, the test's `duration` NULL (reading `null-results`, its item 3) and its outcomes at
+ * their defaults.
+ *
+ * @param table - The standard operators.
+ * @param test - The test.
+ * @param identifier - The item ref's identifier.
+ * @param context - The context values.
+ * @param seed - The seed its expressions draw under.
+ * @returns Each template variable's default, by identifier, or the failure.
+ */
+export const templateDefaultsWith = <K extends ExpressionKind>(
+  table: OperatorTable<K>,
+  test: CompiledTest,
+  identifier: string,
+  context: ReadonlyMap<string, Value>,
+  seed: Seed,
+): Failed | ReadonlyMap<string, Value> => {
+  const values = new Map<string, Value>();
+  for (const declaration of test.declarations.values()) {
+    if (declaration.role === "outcome") {
+      values.set(declaration.identifier, startOf(declaration, noDefaults));
+    } else if (declaration.role === "context") {
+      values.set(
+        declaration.identifier,
+        context.get(declaration.identifier) ?? declaration.default,
+      );
+    }
+  }
+
+  const defaults = new Map<string, Value>();
+  const ref = test.itemRefs.find((each) => each.identifier === identifier);
+  const draw = drawStream(seed, templateLabel(identifier));
+  for (const { expression, template } of ref?.templateDefaults ?? []) {
+    const evaluated = evaluateExpression(table, expression, {
+      declarations: test.declarations,
+      draw,
+      members: [],
+      recorded: new Map(),
+      variables: { correct: new Map(), defaults: new Map(), values },
+    });
+    if (evaluated.kind === "failed") {
+      return evaluated;
+    }
+
+    defaults.set(template, evaluated.value);
+  }
+
+  return defaults;
+};

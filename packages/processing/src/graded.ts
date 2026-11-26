@@ -1,11 +1,8 @@
 /**
- * The one grade: a {@link Graded} result, which only the evaluator's entries mint.
- *
- * The brand's key is a symbol this module holds and never exports, and the package's `exports`
- * map does not list this module, so no code outside the package can make a `Graded` value: not by
- * a literal (the key cannot be named), not by a cast (casts are banned) and not through `any`
- * (banned too). The ledger's write of a grade takes a `Graded` value alone, so nothing but the
- * evaluator's result can be written as a grade.
+ * What a grade proves it was computed from: the program it ran, the responses it read, the
+ * processed attempt it follows and when its inputs were read, and the digests and instants that
+ * name them. The grade itself, `Graded`, is the grade module's (`#processing/grade.ts`), which
+ * alone holds its key and mints it.
  *
  * @module
  */
@@ -59,33 +56,3 @@ export interface GradeProof {
   readonly readAt: Instant;
   readonly responses: readonly ResponsesRead[];
 }
-
-/**
- * The brand's key. It is never exported.
- */
-const graded: unique symbol = Symbol("graded");
-
-/**
- * A result the evaluator computed, carrying the proof of what it was computed from.
- */
-export type Graded<T extends object> = T & { readonly [graded]: GradeProof };
-
-/**
- * Mint a grade. Only the evaluator's entries call it.
- *
- * @param result - The result.
- * @param proof - What it was computed from.
- * @returns The grade.
- */
-export const mint = <T extends object>(result: T, proof: GradeProof): Graded<T> => ({
-  ...result,
-  [graded]: proof,
-});
-
-/**
- * Read a grade's proof.
- *
- * @param grade - The grade.
- * @returns What it was computed from.
- */
-export const proofOf = (grade: Graded<object>): GradeProof => grade[graded];

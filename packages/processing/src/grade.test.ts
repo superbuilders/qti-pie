@@ -2,9 +2,13 @@ import { assert, describe, it } from "@effect/vitest";
 import { compileItemWith, compileTestWith } from "#processing/compile/document.ts";
 import { valuesDigest } from "#processing/digest.ts";
 import { restartBudget } from "#processing/engine.ts";
-import { gradeAnswerWith, gradeSittingWith } from "#processing/grade.ts";
+import {
+  gradeAnswerWith,
+  gradeSittingWith,
+  proofOf,
+  templateDefaultsWith,
+} from "#processing/grade.ts";
 import type { ItemSession } from "#processing/grade.ts";
-import { proofOf } from "#processing/graded.ts";
 import { customOperators } from "#processing/operators/custom.ts";
 import { logicOperators } from "#processing/operators/logic.ts";
 import { valuesOperators } from "#processing/operators/values.ts";
@@ -411,5 +415,31 @@ describe("a sitting", () => {
 
     assert.deepStrictEqual(graded.test.get("TOTAL"), single("float", 1.5));
     assert.deepStrictEqual(graded.members[0]?.read.saved, { kind: "default" });
+  });
+});
+
+describe("a test's template defaults", () => {
+  it("evaluates each item ref's template default in the test's scope before the item's take (§5.152)", () => {
+    const item = itemOf(false, []);
+    const compiled = compileTestWith(
+      element("qti-assessment-test", { identifier: "t" }, [
+        element("qti-test-part", { identifier: "p" }, [
+          element("qti-assessment-item-ref", { href: "q1.xml", identifier: "q1" }, [
+            element("qti-template-default", { "template-identifier": "FLAG" }, [
+              literal("boolean", "true"),
+            ]),
+          ]),
+        ]),
+      ]),
+      digest,
+      new Map([["q1", item]]),
+      table,
+    );
+    const test = compiled.ok ? compiled.value : assert.fail("compiled");
+    const defaults = templateDefaultsWith(table, test, "q1", new Map(), seed);
+    assert.deepStrictEqual(
+      "failure" in defaults ? undefined : defaults.get("FLAG"),
+      single("boolean", true),
+    );
   });
 });

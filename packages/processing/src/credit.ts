@@ -15,7 +15,7 @@
  *
  * @module
  */
-import { sameScalar, singlesOf } from "#processing/value.ts";
+import { sameSingle, singlesOf } from "#processing/value.ts";
 import type { Single, Value } from "#processing/value.ts";
 
 /**
@@ -89,21 +89,6 @@ const membersOf = (
 };
 
 /**
- * Whether two singles are the same value, as `qti-match` compares members.
- *
- * @param left - One.
- * @param right - The other.
- * @returns Whether they are.
- */
-const same = (left: Single, right: Single): boolean => {
-  if (left.base !== right.base) {
-    return false;
-  }
-
-  return sameScalar(left.base, left.value, right.value);
-};
-
-/**
  * Add one copy of a mark, joining it to the mark of the same value, place and kind.
  *
  * @param marks - The marks so far.
@@ -111,7 +96,8 @@ const same = (left: Single, right: Single): boolean => {
  */
 const addMark = (marks: Mark[], mark: Omit<Mark, "copies">): void => {
   const index = marks.findIndex(
-    (each) => each.mark === mark.mark && each.place === mark.place && same(each.value, mark.value),
+    (each) =>
+      each.mark === mark.mark && each.place === mark.place && sameSingle(each.value, mark.value),
   );
   const found = marks[index];
   if (found === undefined) {
@@ -135,7 +121,7 @@ const bagMarks = (given: Value, correct: Value): readonly Mark[] => {
   const marks: Mark[] = [];
   for (const { place, single } of givens) {
     const index = corrects.findIndex(
-      (each, at) => taken[at] !== true && each.place === place && same(each.single, single),
+      (each, at) => taken[at] !== true && each.place === place && sameSingle(each.single, single),
     );
     if (index === -1) {
       addMark(marks, { mark: "wrong", place, value: single });

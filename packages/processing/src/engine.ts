@@ -583,3 +583,27 @@ export const runTemplateProcessing = <K extends ExpressionKind>(
     }
   }
 };
+
+/**
+ * Evaluate one expression over a run's input, outside any rule: a test's template default
+ * (§5.152), whose value an item's take starts a template variable at.
+ *
+ * @param table - The operators.
+ * @param expression - The expression.
+ * @param input - What the run is over.
+ * @returns Its value, or the failure.
+ */
+export const evaluateExpression = <K extends ExpressionKind>(
+  table: OperatorTable<K>,
+  expression: Expression,
+  input: RunInput,
+):
+  | { readonly failure: ProcessingFailure; readonly kind: "failed" }
+  | { readonly kind: "value"; readonly value: Value } => {
+  const state = stateOf(input.variables);
+  const value = runOver(table, input, state).evaluate(expression);
+
+  return state.failure === undefined
+    ? { kind: "value", value }
+    : { failure: state.failure, kind: "failed" };
+};
