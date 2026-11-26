@@ -8,19 +8,24 @@
  * key, written as the AMD module a content package carries and the frame host loads by QTI 3.0.1's
  * own module resolution (`modules/enter-numbers.js`).
  *
- * - **The screen.** The lines the item's markup holds, each a `p` of text and MathML, in large type,
- *   with the entry standing where the markup's `span class="alpha-entry"` stands (the one empty
- *   element the markup marks for it), and the keypad beneath them, as her screens draw it: the keys
- *   1 to 9 in three rows, then 0 between the point key (a decimal entry only, an empty place
- *   otherwise) and backspace, AlphaTest's own child-sized keypad. As `entry` says, the entry is:
- *   `whole`, a box for a whole number at each of the markup's two to four marks; `fraction`, at its
- *   one mark, two boxes stacked, the numerator's above the denominator's and a fraction bar
- *   between; `mixed`, the same with a whole-number box before it; or `decimal`, at its one mark,
- *   one box that takes a point. No box is sized to an answer: each is as wide as `digits` digits.
- * - **The interaction.** One box is the chosen one, the first at the start: a key of the keypad types
- *   into it, a tap on a box chooses it. A key the box's rule refuses (a leading zero, a second
- *   point, a digit past `digits`, a zero as a denominator's first digit, a point with no digit
- *   before it) changes nothing, so the box never holds what begins no number it admits. A physical
+ * - **The screen.** The lines the item's markup holds, each a `p` of text and MathML drawn as itself
+ *   (its attributes kept, so a line marked silent stays silent to a reader), in large type, with
+ *   the entry standing where the markup's `span class="alpha-entry"` stands (the one empty element
+ *   the markup marks for it), and the keypad beneath them, as her screens draw it: the keys 1 to 9
+ *   in three rows, then 0 between the point key (a decimal entry only, an empty place otherwise)
+ *   and backspace, AlphaTest's own child-sized keypad. As `entry` says, the entry is: `whole`, a
+ *   box for a whole number at each of the markup's two to four marks; `fraction`, at its one mark,
+ *   two boxes stacked, the numerator's above the denominator's and a fraction bar between; `mixed`,
+ *   the same with a whole-number box before it; or `decimal`, at its one mark, one box that takes a
+ *   point. No box is sized to an answer: each is as wide as `digits` digits.
+ * - **The interaction.** One box is the chosen one: at the start, a fraction's or a mixed number's
+ *   numerator (the boxes every answer needs come first; a mixed entry's whole-number box, which may
+ *   stay empty, is chosen by a tap), any other entry's first box. A key of the keypad types into
+ *   it, a tap on a box chooses it. The point pressed in an empty decimal box writes `0.`, the one
+ *   zero a box may begin with, so the point a child presses first is kept and the box shows the
+ *   number it gives; a digit pressed in a box holding only `0` takes the zero's place. A key the
+ *   box's rule refuses (a second point, a digit past `digits`, a zero as a denominator's first
+ *   digit) changes nothing, so the box never holds what begins no number it admits. A physical
  *   keyboard types into the focused box too: a digit, `.` for a decimal, Backspace; Tab, the arrows
  *   and `/` (to a fraction's denominator) move between the boxes.
  * - **The response.** An `ordered` list of integers, `{ list: { integer: [...] } }`:
@@ -178,8 +183,10 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
 
   /**
    * The look, AlphaTest's keypad's and its boxes': keys and boxes outlined in `#1f2937` at 2 px
-   * with a 10 px radius on white, the chosen box ringed in `#1d6fd1` (Alpha's PCIs' mark), the
-   * line's type 40 px at weight 600 in `#111827`, and a fraction's bar `#111827` at 3 px.
+   * with a 10 px radius on white, a mixed number's whole-number box, which may stay empty, dashed
+   * in `#6b7280` (4.8:1 on white, past WCAG 2.2's 3:1 for a control's outline), the chosen box
+   * ringed in `#1d6fd1` (Alpha's PCIs' mark), the line's type 40 px at weight 600 in `#111827`, and
+   * a fraction's bar `#111827` at 3 px.
    *
    * @formatConstant
    */
@@ -188,6 +195,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
     chosen: "#1d6fd1",
     ink: "#111827",
     line: 40,
+    optional: "#6b7280",
     outline: "#1f2937",
     pressed: "#f3f4f6",
     radius: 10,
@@ -511,6 +519,30 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
       digitCount(text) < digits);
 
   /**
+   * The text a key leaves in a box: backspace removes its last character; the point pressed in an
+   * empty decimal box writes `0.` (a decimal's one leading zero, so a point typed first is kept); a
+   * digit pressed in a box holding only `0` takes the zero's place (so the box never begins with a
+   * zero before a digit, and the digit is never lost); any other key is appended. Whether the box
+   * keeps it is {@link isBeginning}'s.
+   *
+   * @param before The box's text.
+   * @param key The key: a digit, the point or backspace.
+   * @param rule The box's rule.
+   * @returns The text the key would leave.
+   */
+  const typedInto = (before: string, key: string, rule: BoxRule): string => {
+    if (key === "backspace") {
+      return before.slice(0, -1);
+    }
+
+    if (key === "." && before === "" && rule === "decimal") {
+      return "0.";
+    }
+
+    return before === "0" && isDigits(key) ? key : `${before}${key}`;
+  };
+
+  /**
    * The greatest common divisor of two whole numbers, Euclid's.
    *
    * @param left One.
@@ -757,10 +789,11 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
     sheet.textContent = [
       `${part("whole")}{display:flex;flex-direction:column;align-items:flex-start;gap:24px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:${look.ink};color-scheme:light;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}`,
       `${part("lines")}{display:flex;flex-direction:column;gap:16px}`,
-      `${part("line")}{margin:0;font-size:${String(look.line)}px;font-weight:600;line-height:1.2;display:flex;flex-wrap:wrap;align-items:center;gap:0 12px}`,
-      `${part("line")} math{font-family:inherit;font-size:1em;font-weight:600;math-style:normal}`,
-      `${part("line")} mn{font-weight:600}`,
+      `${part("lines")}>p{margin:0;font-size:${String(look.line)}px;font-weight:600;line-height:1.2;display:flex;flex-wrap:wrap;align-items:center;gap:0 12px}`,
+      `${part("lines")}>p math{font-family:inherit;font-size:1em;font-weight:600;math-style:normal}`,
+      `${part("lines")}>p mn{font-weight:600}`,
       `${part("box")}{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;height:${String(size.box)}px;padding:0 ${String(size.pad)}px;border:${String(look.stroke)}px solid ${look.outline};border-radius:${String(look.radius)}px;background:#fff;font-size:${String(look.line)}px;font-weight:600;line-height:1;cursor:text;touch-action:manipulation;-webkit-tap-highlight-color:transparent;outline:none;font-variant-numeric:tabular-nums}`,
+      `${part("box")}[data-box="whole"]{border-style:dashed;border-color:${look.optional}}`,
       `${part("box")}[data-chosen]{border-color:${look.chosen};box-shadow:0 0 0 2px ${look.chosen}}`,
       `${part("box")}[aria-disabled="true"]{cursor:default}`,
       `${part("box")}:focus-visible{outline:3px dashed #555;outline-offset:3px}`,
@@ -830,6 +863,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
       const box = document.createElement("span");
 
       box.dataset["enter"] = "box";
+      box.dataset["box"] = plan.role;
       box.setAttribute("role", "textbox");
       box.setAttribute("aria-label", plan.name);
       box.setAttribute("aria-readonly", "true");
@@ -848,9 +882,13 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
 
       return button;
     });
+    const opening = Math.max(
+      0,
+      plans.findIndex((plan) => plan.role === "numerator"),
+    );
     let phase: Phase =
       configuration.status === "interacting"
-        ? { chosen: 0, kind: "answering" }
+        ? { chosen: opening, kind: "answering" }
         : { kind: "closed" };
 
     /**
@@ -913,9 +951,10 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
 
       const { chosen } = phase;
       const before = texts[chosen] ?? "";
-      const after = key === "backspace" ? before.slice(0, -1) : `${before}${key}`;
+      const rule = plans[chosen]?.rule ?? "count";
+      const after = typedInto(before, key, rule);
 
-      if (after === before || !isBeginning(after, plans[chosen]?.rule ?? "count", digits)) {
+      if (after === before || !isBeginning(after, rule, digits)) {
         return;
       }
 
@@ -1056,15 +1095,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
     column.dataset["enter"] = "lines";
 
     for (const line of lines) {
-      const row = document.createElement("div");
-
-      row.dataset["enter"] = "line";
-
-      while (line.firstChild !== null) {
-        row.append(line.firstChild);
-      }
-
-      column.append(row);
+      column.append(line);
     }
 
     keypad.dataset["enter"] = "keypad";

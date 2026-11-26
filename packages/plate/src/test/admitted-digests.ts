@@ -31,10 +31,14 @@
  * items, its lines between whole numbers and its untitled grid
  * (`packages/specimen/fixtures/alpha/tap-point/line-40000-50000-10.xml`,
  * `line-990000-1000000-10.xml` and `grid-6-untitled.xml`), collected alone, were admitted by one
- * run at qti-pie c500d024b5e6138147ee4e66fffc49fedbb4d2e6's laws: 3 judged, 3 admitted. Do not edit
- * it: run the admission again when a document a suite opens changes, and when a law lands that
- * moves a verdict (follow-up 5's template needs, the normative half of G1, refuse 1EdTech's
- * slider-1, which this set admits).
+ * run at qti-pie c500d024b5e6138147ee4e66fffc49fedbb4d2e6's laws: 3 judged, 3 admitted. The
+ * enter-numbers suite's decimal-sum item
+ * (`packages/specimen/fixtures/alpha/enter-numbers/decimal-sum.xml`), its line marked as one that
+ * shows mathematics, collected alone, was admitted by one run at qti-pie
+ * 151b5d5c0f2945a29f2df7f3c992e60dedbb4cef's laws: 1 judged, 1 admitted, replacing its earlier
+ * digest. Do not edit it: run the admission again when a document a suite opens changes, and when a
+ * law lands that moves a verdict (follow-up 5's template needs, the normative half of G1, refuse
+ * 1EdTech's slider-1, which this set admits).
  *
  * @module
  */
@@ -509,14 +513,14 @@ export const admittedDocuments: ReadonlyMap<
   ],
   ["47ffb955abc48ba4af5d0c34a6be5bc2c5b726b22af8e5815509cc175c116c7b", []],
   ["4870f0d1bb1928d8bbad25867071f5b0c2ecea849025617d81b5dd55f2a4dea1", []],
-  ["488dc7bf807c6b25e545069142caa852e592c73989f253d7d5859b985d9e9bd6", []],
   [
-    "48cfeca02ddea71f4b5f662cab057555aa6dc0b2352816b36b2b1a1a8cba0711",
+    "488ab928d43d7c854dd83323cf1d108bf1f3d361e7adf52ecdc58215d9dc1ffd",
     [
       [13, "", "data-digits"],
       [13, "", "data-entry"],
     ],
   ],
+  ["488dc7bf807c6b25e545069142caa852e592c73989f253d7d5859b985d9e9bd6", []],
   ["48dbf2aeddf065ccb31aabe9ff39c0ddb738e5ae04edf1ab569512b9a5ec9b67", []],
   ["4928404c4e34cac8e126b892edfecbf75b8b12d61c72f6034697619579df5620", []],
   ["4959b894ce8c38a951edfe7765b0f5c326cc6980e67f9d97cfe57772e84daaf4", []],

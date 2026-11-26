@@ -23,7 +23,7 @@
         <qti-interaction-module id="enter-numbers" primary-path="modules/enter-numbers"/>
       </qti-interaction-modules>
       <qti-interaction-markup>
-        <p>1.25 + 2.5 = <span class="alpha-entry"></span></p>
+        <p class="alpha-shown" data-qti-suppress-tts="computer-read-aloud">1.25 + 2.5 = <span class="alpha-entry"></span></p>
       </qti-interaction-markup>
     </qti-portable-custom-interaction>
   </qti-item-body>

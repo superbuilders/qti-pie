@@ -6,12 +6,14 @@
  * frame in headless Google Chrome (`#specimen/alpha/hosted-pci.ts`). The rules are written from
  * the specification, never from the module's code:
  *
- * - EN1, the screen: the markup's lines, a box at each mark (a fraction two stacked over a bar, a
- *   mixed number three), each box at least 44 px both ways and empty; the keypad's keys 0 to 9 and
- *   backspace, the point key on a decimal entry only.
+ * - EN1, the screen: the markup's lines, each keeping its read-aloud mark, a box at each mark (a
+ *   fraction two stacked over a bar, a mixed number three, its whole-number box dashed), each box
+ *   at least 44 px both ways and empty, a fraction's numerator chosen first, else the first box;
+ *   the keypad's keys 0 to 9 and backspace, the point key on a decimal entry only.
  * - EN2, refusals at entry: a key that would leave a box no beginning of a number its kind admits
- *   changes nothing (a leading zero, a zero as a denominator's first digit, a second point, a point
- *   first, a digit past the box's digits).
+ *   changes nothing (a zero as a denominator's first digit, a second point, a digit past the box's
+ *   digits); the point pressed in an empty decimal box writes `0.`, and a digit pressed in a box
+ *   holding only `0` takes its place, so no box begins with a zero before a digit.
  * - EN3, the response on value: a fraction, a mixed number or a decimal is its numerator and
  *   denominator in lowest terms, so every equivalent and an improper fraction for a mixed number
  *   score as `match_correct` scores the item's key; a mixed number's whole-number box alone is that
@@ -49,6 +51,7 @@ const target = 44;
  */
 interface Control {
   readonly centre: Point;
+  readonly dashed: boolean;
   readonly disabled: boolean;
   readonly height: number;
   readonly label: string;
@@ -66,6 +69,7 @@ interface Screen {
   readonly boxes: readonly Control[];
   readonly keys: readonly Control[];
   readonly lines: readonly string[];
+  readonly marks: readonly (string | null)[];
 }
 
 /**
@@ -82,6 +86,7 @@ const readScreen = (): Screen => {
 
       return {
         centre: { x: box.x + box.width / 2, y: box.y + box.height / 2 },
+        dashed: style.borderTopStyle === "dashed",
         disabled:
           element instanceof HTMLButtonElement
             ? element.disabled
@@ -119,10 +124,15 @@ const readScreen = (): Screen => {
       .join(" ");
   });
 
+  const marks = [...(keypad?.previousElementSibling?.children ?? [])].map((line) =>
+    line instanceof HTMLElement ? (line.dataset["qtiSuppressTts"] ?? null) : null,
+  );
+
   return {
     boxes: controls('[role="textbox"]'),
     keys: controls("button"),
     lines,
+    marks,
   };
 };
 
@@ -144,6 +154,7 @@ type ItemName =
 interface Golden {
   readonly boxes: readonly string[];
   readonly lines: readonly string[];
+  readonly marks: readonly (string | null)[];
   readonly name: ItemName;
   readonly point: boolean;
 }
@@ -155,29 +166,45 @@ const goldens: readonly Golden[] = [
   {
     boxes: ["numerator", "denominator"],
     lines: ["2/7 + 3/7 ="],
+    marks: [null],
     name: "fraction-sum",
     point: false,
   },
   {
     boxes: ["whole number", "numerator", "denominator"],
     lines: ["3 × 5/6 ="],
+    marks: [null],
     name: "mixed-product",
     point: false,
   },
-  { boxes: ["number"], lines: ["1.25 + 2.5 ="], name: "decimal-sum", point: true },
+  {
+    boxes: ["number"],
+    lines: ["1.25 + 2.5 ="],
+    marks: ["computer-read-aloud"],
+    name: "decimal-sum",
+    point: true,
+  },
   {
     boxes: ["box 1 of 2", "box 2 of 2"],
     lines: ["1,234 ÷ 5 = R"],
+    marks: [null],
     name: "quotient-remainder",
     point: false,
   },
   {
     boxes: ["box 1 of 2", "box 2 of 2"],
     lines: ["1 × 36", "2 × 18", "3 × 12", "×", "6 × 6"],
+    marks: [null, null, null, null, null],
     name: "factor-pair",
     point: false,
   },
-  { boxes: ["box 1 of 2", "box 2 of 2"], lines: ["(, )"], name: "ordered-pair", point: false },
+  {
+    boxes: ["box 1 of 2", "box 2 of 2"],
+    lines: ["(, )"],
+    marks: [null],
+    name: "ordered-pair",
+    point: false,
+  },
 ];
 
 /**
@@ -202,6 +229,7 @@ const scripts: Readonly<Record<ItemName, readonly Scripted[]>> = {
     { entry: ["3.57"], response: [357, 100], why: "another decimal" },
     { entry: ["4"], response: [4, 1], why: "a whole number" },
     { entry: ["3."], response: [3, 1], why: "a point with no digit after it, the whole number" },
+    { entry: [".5"], response: [1, 2], why: "a point first, the zero before it written" },
     { entry: [""], response: null, why: "blank" },
   ],
   "factor-pair": [
@@ -420,6 +448,23 @@ layer(HostedLayer)("the enter-numbers PCI", (it) => {
 
           assert.deepStrictEqual(shown.lines, golden.lines, "the lines, as the markup writes them");
           assert.deepStrictEqual(
+            shown.marks,
+            golden.marks,
+            "each line keeps the read-aloud mark the markup gives it",
+          );
+
+          const opening = Math.max(0, golden.boxes.indexOf("numerator"));
+          assert.deepStrictEqual(
+            shown.boxes.map((box) => box.ringed),
+            golden.boxes.map((_, at) => at === opening),
+            "the box chosen first is a fraction's numerator, the boxes every answer needs, else the first",
+          );
+          assert.deepStrictEqual(
+            shown.boxes.map((box) => box.dashed),
+            golden.boxes.map((label) => label === "whole number"),
+            "only a mixed number's whole-number box, which may stay empty, is dashed",
+          );
+          assert.deepStrictEqual(
             shown.boxes.map((box) => box.label),
             golden.boxes,
           );
@@ -513,15 +558,19 @@ layer(HostedLayer)("the enter-numbers PCI", (it) => {
       yield* typed(page, ["05", "07"]);
       assert.deepStrictEqual(
         yield* boxTexts(page),
-        ["0", "7"],
-        "no leading zero; no zero first in a denominator",
+        ["5", "7"],
+        "a digit takes a lone zero's place; no zero first in a denominator",
       );
       yield* typed(page, ["", "1234"]);
-      assert.deepStrictEqual(yield* boxTexts(page), ["0", "712"], "no digit past the box's three");
+      assert.deepStrictEqual(yield* boxTexts(page), ["5", "712"], "no digit past the box's three");
 
       yield* started(page, decimal, {});
       yield* typed(page, [".3.7.5"]);
-      assert.deepStrictEqual(yield* boxTexts(page), ["3.75"], "no point first, no second point");
+      assert.deepStrictEqual(
+        yield* boxTexts(page),
+        ["0.375"],
+        "a point first writes 0., and no second point",
+      );
       yield* started(page, decimal, {});
       yield* typed(page, ["123456"]);
       assert.deepStrictEqual(yield* boxTexts(page), ["12345"], "no digit past five");
