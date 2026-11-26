@@ -401,22 +401,6 @@ export default defineConfig({
       files: ["packages/pantry/src/cli/errors.ts", "packages/pantry/src/cli/present.ts"],
       rules: { "anti-slop/no-unknown-parameters": "off" },
     },
-    // crust reads and writes XML's encoding labels: `UTF-8`, `UTF-16LE` and `US-ASCII` are the labels
-    // XML 1.0 section 4.3.3 and IANA spell, and `utf8` a closed encoder-class name, data of its table
-    // and of the documents its tests read, never an identifier handed to a Node encoding API, which is
-    // what the rule is for.
-    {
-      files: [
-        "packages/crust/src/canonical.test.ts",
-        "packages/crust/src/charset.test.ts",
-        "packages/crust/src/charset.ts",
-        "packages/crust/src/decode.ts",
-        "packages/crust/src/scale.test.ts",
-        "packages/crust/src/test/trees.ts",
-        "packages/crust/src/write.test.ts",
-      ],
-      rules: { "unicorn/text-encoding-identifier-case": "off" },
-    },
     // crust's UTF-16 writers and its code point order work in UTF-16 code units: `codePointAt` joins
     // a surrogate pair into one value, which no unit-wise write or comparison can carry.
     {
@@ -900,6 +884,14 @@ export default defineConfig({
     // Relaxed by ultracite 8 too, and kept at ultracite 7's settings.
     "unicorn/no-useless-undefined": "error",
     "unicorn/prefer-export-from": "error",
+    /**
+     * Rejected (edullm-bd, 2026-11-26): ultracite's rule asks for `utf8` where a text says `UTF-8`,
+     * but qti-pie's charset names are case-exact data: IANA's registered names and the labels XML
+     * 1.0 section 4.3.3 writes, and crust's closed encoder classes, never an identifier handed to a
+     * Node encoding API, which is what the rule is for. The core never carried it, and the cutover
+     * deletes ultracite.
+     */
+    "unicorn/text-encoding-identifier-case": "off",
     // unicorn's rule reads `Schema.TaggedError<Self>()`, the class factory every error class extends,
     // as an error called without `new`, and has no option to exempt it (oxc exempts `Data.TaggedError`
     // alone, `throw_new_error.rs`). The workspace rule is unicorn's with `Schema.TaggedError` exempt too.
