@@ -7,8 +7,8 @@
  * the page's account of its media (`#specimen/ui/hydrate-account.ts`). Every wait ends on what is
  * certain to come whether the page is right or broken: the frames after an action and the page's
  * next idle period, every play the page asked for settled, an event of a recording the rule saw
- * begin, or the server's report that it was asked for or delivered a held-back recording; never a
- * delay. A rule then reads the page and gives its faults.
+ * begin, or the server's report that it was asked for a held-back recording or began to deliver it;
+ * never a delay. A rule then reads the page and gives its faults.
  *
  * Test support for plate's UI suite under `src/ui/`.
  *
@@ -22,8 +22,13 @@ import { admitted } from "@qti-pie/plate/test/admitted";
 import type { ItemProps } from "@qti-pie/plate/ui";
 import type { Recording, Seen } from "#specimen/ui/hydrate-account.ts";
 import type { Scene } from "#specimen/ui/hydrate-page.ts";
-import { HydrationFailure, scenePages } from "#specimen/ui/hydrated.ts";
-import type { Answering, HydratedScene, Recordings } from "#specimen/ui/hydrated.ts";
+import { endlessAddress, HydrationFailure, scenePages } from "#specimen/ui/hydrated.ts";
+import type {
+  Answering,
+  CrowdedRecording,
+  HydratedScene,
+  Recordings,
+} from "#specimen/ui/hydrated.ts";
 import type { Synthetic } from "#specimen/ui/read-aloud-items.ts";
 
 /**
@@ -42,9 +47,28 @@ export class DrivingFailure extends Data.TaggedError("DrivingFailure")<{
 }
 
 /**
- * A step of a rule failed: driving the page, or the page itself.
+ * A recording the harness answers endlessly has an end the page knows, its length finite: the
+ * harness's endless answer broke, so no reading of the page can tell the page's silence from the
+ * recording's own end. Every read of a page's account refuses it ({@link Driven.account}), so a
+ * reading of an endless recording's state never rests on its length.
  */
-export type RuleFailure = DrivingFailure | HydrationFailure;
+export class EndedEndless extends Data.TaggedError("EndedEndless")<{
+  readonly duration: number;
+  readonly name: string;
+}> {
+  /**
+   * The recording and the end the page knows.
+   */
+  override get message(): string {
+    return `Recording ${this.name} was to be endless, but the page knows its end, at ${String(this.duration)} s: the harness's endless answer broke, so no reading of the page can tell the page's doing from the recording's end. Mend the endless answer (answerEndless in #specimen/ui/hydrated.ts).`;
+  }
+}
+
+/**
+ * A step of a rule failed: driving the page, the page itself, a request of one recording past
+ * Chrome's connections to its host, or an endless recording that ended.
+ */
+export type RuleFailure = CrowdedRecording | DrivingFailure | EndedEndless | HydrationFailure;
 
 /**
  * One item of a page as a rule asks for it: its document, its instance, the address of each of its
@@ -68,6 +92,35 @@ export interface SceneSpec {
   readonly first: readonly string[];
   readonly shows: Readonly<Record<string, ShowSpec>>;
 }
+
+/**
+ * One item as a scene shows it, every default written: its key, whether it is hidden, the place
+ * the host gives it, and whether it stands in a frame.
+ */
+type Entry = Scene[number];
+
+/**
+ * Write an item of a scene with every default written: no frame, shown, in a place of its own
+ * named by its key.
+ *
+ * @param entry The item as a rule names it.
+ * @param entry.frame Whether it stands in a frame.
+ * @param entry.hidden Whether the host hides it.
+ * @param entry.key Its key.
+ * @param entry.slot The place the host gives it.
+ * @returns It, every default written.
+ */
+const entryOf = ({
+  frame = false,
+  hidden = false,
+  key,
+  slot = key,
+}: {
+  readonly frame?: boolean;
+  readonly hidden?: boolean;
+  readonly key: string;
+  readonly slot?: string;
+}): Entry => ({ frame, hidden, key, slot });
 
 /**
  * The supports of a child who hears content read aloud: the `spoken` catalog support enabled at
@@ -164,7 +217,8 @@ export interface Account {
  */
 export interface Driven {
   /**
-   * Read the page's account now.
+   * Read the page's account now, refused where a recording the harness answers endlessly has an
+   * end the page knows ({@link EndedEndless}): every reading of a recording's state passes here.
    */
   readonly account: Effect.Effect<Account, RuleFailure>;
   /**
@@ -172,6 +226,12 @@ export interface Driven {
    * snapshot: each node by its role and accessible name, in document order.
    */
   readonly ariaTree: Effect.Effect<string, RuleFailure>;
+  /**
+   * Fail once Chrome has been asked for more requests of one of the page's recordings open at once
+   * than it opens connections to its host ({@link CrowdedRecording}): a rule raced with it ends at
+   * the request held back, whoever made it, rather than wait on it for good.
+   */
+  readonly crowded: Effect.Effect<never, CrowdedRecording>;
   /**
    * Play a media element of the host's own, heard, or muted and looping, in the page or in a frame
    * of it, then wait as {@link Driven.heard} waits.
@@ -188,7 +248,8 @@ export interface Driven {
   ) => Effect.Effect<void, RuleFailure>;
   /**
    * Wait for the page to paint and go idle, so every `play` an action caused has been heard, then
-   * until every play the page asked for has settled, then for the page to paint again.
+   * until every play the page asked for has settled, then for the page to paint again. Like
+   * {@link Driven.saw}, it only waits, and leaves the duration guard to the account's next read.
    */
   readonly heard: Effect.Effect<void, RuleFailure>;
   /**
@@ -269,7 +330,10 @@ export interface Driven {
   ) => Effect.Effect<void, RuleFailure>;
   /**
    * Wait until a recording has fired one of the events named, counting only those after the
-   * number of its events given.
+   * number of its events given. Its read of the page's events, in the page, only waits, and so
+   * passes no recording through the duration guard ({@link EndedEndless}): no verdict rests on it,
+   * and the rule's next read of the page's account, which every rule makes at its end, refuses an
+   * endless recording that ended.
    *
    * @param label The recording's name.
    * @param events The events.
@@ -350,6 +414,25 @@ const drivenOf = (hydrated: HydratedScene): Driven => {
    * The items the last scene put in frames of the page, each a page of its own.
    */
   let framed: ReadonlySet<string> = new Set();
+  /**
+   * Read the page's account now, refused where an endless recording has an end the page knows.
+   */
+  const account = Effect.gen(function* checked() {
+    const read = yield* attempt("read the page's account", () =>
+      page.evaluate(() => ({
+        overlaps: window.account?.overlaps() ?? [],
+        recordings: window.account?.recordings() ?? [],
+        seen: window.account?.seen() ?? [],
+      })),
+    );
+    const ended = read.recordings.find(
+      (each) => endlessAddress(each.src) && Number.isFinite(each.duration),
+    );
+
+    return ended === undefined
+      ? read
+      : yield* new EndedEndless({ duration: ended.duration, name: ended.label });
+  });
 
   /**
    * Find an item's `section`: in the page, or in the frame it stands in.
@@ -417,26 +500,21 @@ const drivenOf = (hydrated: HydratedScene): Driven => {
   );
 
   return {
-    account: attempt("read the page's account", () =>
-      page.evaluate(() => ({
-        overlaps: window.account?.overlaps() ?? [],
-        recordings: window.account?.recordings() ?? [],
-        seen: window.account?.seen() ?? [],
-      })),
-    ),
+    account,
     ariaTree: attempt("read the page's accessible tree", () => page.locator("main").ariaSnapshot()),
+    crowded: hydrated.crowded,
     foreign: (src, muted, frame) =>
-      Effect.andThen(
-        attempt(`played the host's own ${src}`, () =>
+      Effect.gen(function* played() {
+        yield* attempt(`played the host's own ${src}`, () =>
           page.evaluate(
             ([file, quiet, inFrame]) => {
               window.account?.foreign(file, quiet, inFrame);
             },
             [src, muted, frame] as const,
           ),
-        ),
-        settled,
-      ),
+        );
+        yield* settled;
+      }),
     heard: settled,
     inPage: (script) =>
       Effect.andThen(
@@ -544,19 +622,12 @@ const drivenOf = (hydrated: HydratedScene): Driven => {
       ).pipe(Effect.asVoid),
     scene: (next) =>
       Effect.gen(function* moved() {
-        framed = new Set(next.flatMap(({ frame = false, key }) => (frame ? [key] : [])));
+        const entries = next.map(entryOf);
+        framed = new Set(entries.flatMap(({ frame, key }) => (frame ? [key] : [])));
         yield* attempt("moved to the next scene", () =>
-          page.evaluate(
-            (scene) => {
-              window.hydrated?.scene?.(scene);
-            },
-            next.map(({ frame = false, hidden = false, key, slot = key }): Scene[number] => ({
-              frame,
-              hidden,
-              key,
-              slot,
-            })),
-          ),
+          page.evaluate((scene) => {
+            window.hydrated?.scene?.(scene);
+          }, entries),
         );
         yield* Effect.forEach([...framed], (show) =>
           attempt(`waited for the frame of ${show} to hold it`, () =>
@@ -602,7 +673,7 @@ export const readAloudPages: Effect.Effect<
           );
 
           return {
-            scene: spec.first.map((key) => ({ frame: false, hidden: false, key, slot: key })),
+            scene: spec.first.map((key) => entryOf({ key })),
             shows: new Map(shows),
             strict,
           };

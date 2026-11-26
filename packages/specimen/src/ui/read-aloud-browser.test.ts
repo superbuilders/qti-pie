@@ -4,15 +4,28 @@
  * of `#specimen/ui/read-aloud-items.ts`, each opened as content the database admitted, driven as a
  * child presses and a host moves between items (`#specimen/ui/read-aloud-scenes.ts`), with
  * synthetic recordings, sine tones the harness's server answers at once, holds back until a rule
- * releases them, or refuses. Each rule logs its name as it starts, runs under `<StrictMode>` and
- * without, and also holds that no two recordings ever sounded at once and that the page reported
- * no error. Every wait ends on what is certain to come whether the page is right or broken (the
- * frames after an action and the page's next idle period, every play the page asked for settled,
- * an event of a recording the rule saw begin, the server's report that it was asked for or
- * delivered a held-back recording), never on a delay; the rule then reads the page and gives its
- * faults, so a broken page fails the rule rather than leaving it waiting. A rule whose next step
- * would rest on the page being right, a seek in a recording no press played or a press that would
- * stop what had to play, ends at its first fault.
+ * releases them, or refuses, nearly every one a tone that never ends. Each rule logs its name as it
+ * starts, runs under `<StrictMode>` and without, and also holds that no two recordings ever sounded
+ * at once and that the page reported no error. Every wait ends on what is certain to come whether
+ * the page is right or broken (the frames after an action and the page's next idle period, every
+ * play the page asked for settled, an event of a recording the rule saw begin, the server's report
+ * that it was asked for a held-back recording or began to deliver it), never on a delay; the rule
+ * then reads the page and gives its faults, so a broken page fails the rule rather than leaving it
+ * waiting. A rule whose next step would rest on the page being right, a seek in a recording no
+ * press played or a press that would stop what had to play, ends at its first fault.
+ *
+ * Whether a recording sounds is read at a moment only of one that never ends ({@link soundsNow},
+ * which takes no other's name, {@link Endless}): it sounds from its `playing` until the page stops
+ * it, so what a rule reads is the page's doing, however long the machine took to get there. A
+ * recording that ends ({@link Finite}), a prompt's or a Media's tone whose end a rule waits on, may
+ * have played to its end before the rule reads the page, however soon after its press, so it is
+ * read by its events alone: its press began it alone where its `playing` came after the press and
+ * nothing else sounds ({@link beganAlone}), and it ended at its `ended` or its `pause`. Every read
+ * of the page's account refuses an endless recording the page knows an end of, so no reading of an
+ * endless recording's state rests on its length. A position a rule compares is one an event read,
+ * never one read later. And every rule races Chrome's own report of a request of one recording past
+ * the connections it opens to its host, so a seventh stream, whoever made it, fails the rule by
+ * name rather than leave a wait on it waiting.
  *
  * The rules are the product's (one voice; each control plays its own part alone and only at its
  * own press; nothing plays by itself; a press stops whatever plays; every control has a name of its
@@ -95,7 +108,8 @@
  */
 import { assert, layer } from "@effect/vitest";
 import { Context, Effect, Layer } from "effect";
-import type { Recordings } from "#specimen/ui/hydrated.ts";
+import { endlessName, finiteName } from "#specimen/ui/hydrated.ts";
+import type { Endless, Finite, Recordings } from "#specimen/ui/hydrated.ts";
 import { graph, line, media, passage, said } from "#specimen/ui/read-aloud-items.ts";
 import type { Synthetic } from "#specimen/ui/read-aloud-items.ts";
 import { readAloudPages } from "#specimen/ui/read-aloud-scenes.ts";
@@ -108,9 +122,45 @@ import type {
 } from "#specimen/ui/read-aloud-scenes.ts";
 
 /**
- * A recording that outlasts every rule: thirty seconds of tone.
+ * The recordings the rules name, each named once, by a key of its own, so a name is one kind of
+ * recording throughout the file: every one never ends ({@link endlessName}), so a rule may read at
+ * any moment whether it sounds, but the three whose events alone tell what they did
+ * ({@link finiteName}): the prompt and the Media's tone whose ends RB1 and RB20 wait on, and the
+ * recording the server refuses in RB9 and RB27.
  */
-const long = 30_000;
+const recording = {
+  a: endlessName("a"),
+  a1: endlessName("a1"),
+  apples: endlessName("apples"),
+  b: endlessName("b"),
+  broken: finiteName("broken"),
+  c: endlessName("c"),
+  c2: endlessName("c2"),
+  choice2: endlessName("choice2"),
+  deco: endlessName("deco"),
+  greatest: endlessName("greatest"),
+  host: endlessName("host"),
+  least: endlessName("least"),
+  left: endlessName("left"),
+  m1: endlessName("m1"),
+  m2: endlessName("m2"),
+  m3: endlessName("m3"),
+  media: endlessName("media"),
+  next: endlessName("next"),
+  p: endlessName("p"),
+  pears: endlessName("pears"),
+  prompt0: finiteName("prompt0"),
+  same: endlessName("same"),
+  short: finiteName("short"),
+  stem: endlessName("stem"),
+  text1: endlessName("text1"),
+} as const;
+
+/**
+ * The length of a recording that ends, in milliseconds: any length serves, since a rule reads such
+ * a recording by its events alone, never at a moment.
+ */
+const finiteLength = 1500;
 
 /**
  * The names plate gives the said item's controls (`said` in `#specimen/ui/read-aloud-items.ts`).
@@ -126,7 +176,8 @@ const named = {
 
 /**
  * Write an item a host shows: a document, its instance, and its recordings' addresses, each part
- * the rule names its own, every other part a long tone named for the instance and the part.
+ * the rule names its own, every other part a tone that never ends named for the instance and the
+ * part.
  *
  * @param document The document.
  * @param instance Its instance.
@@ -145,7 +196,7 @@ const showOf = (
   recordings: Object.fromEntries(
     Object.keys(document.recordings).map((part) => [
       part,
-      given[part] ?? recordings.tone(`${instance}-${part}`, long),
+      given[part] ?? recordings.endless(endlessName(`${instance}-${part}`)),
     ]),
   ),
 });
@@ -211,14 +262,17 @@ const shownOf = (account: Account, label: string): string => {
 };
 
 /**
- * Check that exactly the recordings named sound now.
+ * Check that exactly the recordings named sound now: each one that never ends ({@link Endless}),
+ * so whether it sounds at this moment is the page's doing alone, never its own end's, as the
+ * page's account, which refuses an endless recording the page knows an end of, holds. A recording
+ * that ends is no recording this check takes: {@link beganAlone} and its events read it.
  *
  * @param page The page.
  * @param step The step, for the fault.
  * @param labels The recordings' names.
  * @returns The fault, none where exactly they sound.
  */
-const soundsNow = (page: Driven, step: string, ...labels: readonly string[]) =>
+const soundsNow = (page: Driven, step: string, ...labels: readonly Endless[]) =>
   page.account.pipe(
     Effect.map((account) => {
       const now = soundingIn(account);
@@ -228,6 +282,92 @@ const soundsNow = (page: Driven, step: string, ...labels: readonly string[]) =>
         : [
             `${step}: ${now.length === 0 ? "nothing" : now.join(" and ")} sounds, not ${labels.length === 0 ? "nothing" : labels.join(" and ")}`,
           ];
+    }),
+  );
+
+/**
+ * Count the events of a recording the page saw.
+ *
+ * @param account The page's account.
+ * @param label The recording's name.
+ * @returns How many.
+ */
+const eventsOf = (account: Account, label: string): number =>
+  account.seen.filter((each) => each.label === label).length;
+
+/**
+ * The events by which a press plays a recording from a place: its `play`, where it stood at rest;
+ * its `seeked`, where the press took a recording already sounding back to a place, which fires no
+ * `play`; its `playing`, where it sounded with neither.
+ */
+const playedAt: ReadonlySet<string> = new Set(["play", "playing", "seeked"]);
+
+/**
+ * Give the position a press played a recording from: its position as the first of its
+ * {@link playedAt} events after the events of it passed over reached the page, the place the press
+ * set it to play from, never one read once the recording has played on.
+ *
+ * @param account The page's account.
+ * @param label The recording's name.
+ * @param after How many of its events came before the press.
+ * @returns The position, in seconds, none where the press neither played, sought nor sounded it.
+ */
+const playedFrom = (account: Account, label: string, after: number): number | undefined =>
+  account.seen
+    .filter((each) => each.label === label)
+    .slice(after)
+    .find((each) => playedAt.has(each.event))?.time;
+
+/**
+ * Check the position a press played a recording from ({@link playedFrom}) against the place the
+ * step asks for.
+ *
+ * @param step The step, for the fault.
+ * @param label The recording's name.
+ * @param from The position, none where the press neither played, sought nor sounded it.
+ * @param right Whether a position is the one the step asks for.
+ * @param wrong The fault where it is not.
+ * @returns The fault, none where the press played it from where the step asks.
+ */
+const playedFromFaults = (
+  step: string,
+  label: string,
+  from: number | undefined,
+  right: (at: number) => boolean,
+  wrong: (at: number) => string,
+): readonly string[] => {
+  if (from === undefined) {
+    return [`${step}: the press neither played, sought nor sounded ${label}`];
+  }
+
+  return right(from) ? [] : [wrong(from)];
+};
+
+/**
+ * Check that a press began a recording that ends, alone: its `playing` came after the events of
+ * it passed over, and nothing else sounds now. Whether it sounds itself is no fact of a moment,
+ * since it may have played to its end by the time the rule reads the page, however soon after the
+ * press; its end is its `ended` or its `pause`, which a rule waits on.
+ *
+ * @param page The page.
+ * @param step The step, for the fault.
+ * @param label The recording's name.
+ * @param after How many of its events came before the press.
+ * @returns The fault, none where the press began it alone.
+ */
+const beganAlone = (page: Driven, step: string, label: Finite, after: number) =>
+  page.account.pipe(
+    Effect.map((account) => {
+      const others = soundingIn(account).filter((each) => each !== label);
+      const began = account.seen
+        .filter((each) => each.label === label)
+        .slice(after)
+        .some((each) => each.event === "playing");
+
+      return [
+        ...(began ? [] : [`${step}: ${label} did not sound`]),
+        ...(others.length === 0 ? [] : [`${step}: ${others.join(" and ")} sounds beside ${label}`]),
+      ];
     }),
   );
 
@@ -283,8 +423,10 @@ const showsNow = (page: Driven, label: string, shown: string) =>
 /**
  * Run a rule on a page of a scene, under `<StrictMode>` and without, each run logged by the rule's
  * name as it starts, and gather what went wrong: the rule's own faults, a press it could not make,
- * two recordings sounding at once, and the page's errors, and with them, where anything went wrong,
- * every event the page saw and every recording it holds, so the fault can be read.
+ * two recordings sounding at once, the page's errors, an endless recording that ended, and a
+ * request of one recording past Chrome's connections to its host, which the rule races so that its
+ * every wait ends at the request held back; and with them, where anything went wrong, every event
+ * the page saw and every recording it holds, so the fault can be read.
  *
  * @param rule The rule's name.
  * @param build The scene, from the page's recordings.
@@ -306,27 +448,37 @@ const inEveryMode = (
           yield* Effect.logInfo(`read-aloud in Chrome: ${rule} starts, ${mode}`);
 
           const page = yield* open(build, strict);
-          const own = yield* check(page);
-          const ended = yield* Effect.as(page.painted, []);
-          const { overlaps, recordings, seen } = yield* page.account;
-          const found = [
-            ...own,
-            ...ended,
-            ...overlaps.map((each) => `two voices at once: ${each}`),
-          ];
 
-          return [
-            ...found,
-            ...(found.length === 0
-              ? []
-              : [
-                  `seen: ${seen.map((each) => `${String(each.at)} ${each.label} ${each.event}`).join(", ")}`,
-                  `holds: ${JSON.stringify(recordings)}`,
-                ]),
-          ].map((fault) => `${mode}: ${fault}`);
+          return yield* Effect.raceFirst(
+            Effect.gen(function* ruled() {
+              const own = yield* check(page);
+              const ended = yield* Effect.as(page.painted, []);
+              const { overlaps, recordings, seen } = yield* page.account;
+              const found = [
+                ...own,
+                ...ended,
+                ...overlaps.map((each) => `two voices at once: ${each}`),
+              ];
+
+              return [
+                ...found,
+                ...(found.length === 0
+                  ? []
+                  : [
+                      `seen: ${seen.map((each) => `${String(each.at)} ${each.label} ${each.event}`).join(", ")}`,
+                      `holds: ${JSON.stringify(recordings)}`,
+                    ]),
+              ].map((fault) => `${mode}: ${fault}`);
+            }),
+            page.crowded,
+          );
         }).pipe(
           Effect.catchTags({
+            CrowdedRecording: (failure) =>
+              Effect.succeed([`${strict ? "strict" : "plain"}: ${failure.message}`]),
             DrivingFailure: (failure) =>
+              Effect.succeed([`${strict ? "strict" : "plain"}: ${failure.message}`]),
+            EndedEndless: (failure) =>
               Effect.succeed([`${strict ? "strict" : "plain"}: ${failure.message}`]),
             HydrationFailure: (failure) =>
               Effect.succeed([`${strict ? "strict" : "plain"}: ${failure.message}`]),
@@ -398,8 +550,8 @@ const countedNow = (page: Driven, step: string, expected: Readonly<Record<string
 
 /**
  * Release a held-back recording and wait until the page has taken in its answer: the server's
- * delivery of it, then the recording's event that says its data came, or failed, or that its load
- * was given up, counting only events after the release; nothing more where the page let the
+ * delivery of its start, then the recording's event that says its data came, or failed, or that its
+ * load was given up, counting only events after the release; nothing more where the page let the
  * request go before the answer reached it. A rule releases every recording a broken page may still
  * wait on before it waits for every play to settle, so no wait of the rule rests on the page being
  * right.
@@ -410,7 +562,7 @@ const countedNow = (page: Driven, step: string, expected: Readonly<Record<string
  */
 const released = (page: Driven, label: string) =>
   Effect.gen(function* takenIn() {
-    const before = (yield* page.account).seen.filter((each) => each.label === label).length;
+    const before = eventsOf(yield* page.account, label);
 
     yield* page.recordings.release(label);
 
@@ -433,22 +585,24 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
     holds(
       "RB1",
       saidAlone((at) => ({
-        apple: at.tone("choice2", long),
-        prompt: at.tone("prompt0", 1500),
-        stem: at.tone("text1", long),
+        apple: at.endless(recording.choice2),
+        prompt: at.tone(recording.prompt0, finiteLength),
+        stem: at.endless(recording.text1),
       })),
       (page) =>
         Effect.gen(function* alone() {
+          const before = eventsOf(yield* page.account, recording.prompt0);
+
           yield* page.press("i1", named.question1);
           yield* page.heard;
 
-          const begun = yield* soundsNow(page, "the press", "prompt0");
+          const begun = yield* beganAlone(page, "the press", recording.prompt0, before);
 
           if (begun.length > 0) {
             return begun;
           }
 
-          yield* page.saw("prompt0", ["ended", "pause"], 0);
+          yield* page.saw(recording.prompt0, ["ended", "pause"], before);
           yield* page.heard;
 
           const account = yield* page.account;
@@ -466,18 +620,21 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
     () =>
       holds(
         "RB2",
-        saidAlone((at) => ({ apple: at.tone("choice2", long), stem: at.tone("text1", long) })),
+        saidAlone((at) => ({
+          apple: at.endless(recording.choice2),
+          stem: at.endless(recording.text1),
+        })),
         (page) =>
           Effect.gen(function* oneAtATime() {
             yield* page.press("i1", named.text1);
             yield* page.heard;
 
-            const first = yield* soundsNow(page, "text1 pressed", "text1");
+            const first = yield* soundsNow(page, "text1 pressed", recording.text1);
 
             yield* page.press("i1", named.choice1);
             yield* page.heard;
 
-            const second = yield* soundsNow(page, "choice2 pressed", "choice2");
+            const second = yield* soundsNow(page, "choice2 pressed", recording.choice2);
 
             yield* page.press("i1", named.choice1);
             yield* page.heard;
@@ -486,7 +643,7 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
               ...first,
               ...second,
               ...(yield* soundsNow(page, "choice2 pressed again")),
-              ...(yield* showsNow(page, "choice2", `pressed false notice ""`)),
+              ...(yield* showsNow(page, recording.choice2, `pressed false notice ""`)),
             ];
           }),
       ),
@@ -498,8 +655,8 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
       (at) => ({
         first: ["i1", "i2"],
         shows: {
-          i1: showOf(said, "i1", at, { apple: at.tone("a1", long) }),
-          i2: showOf(said, "i2", at, { apple: at.tone("c2", long) }),
+          i1: showOf(said, "i1", at, { apple: at.endless(recording.a1) }),
+          i2: showOf(said, "i2", at, { apple: at.endless(recording.c2) }),
         },
       }),
       (page) =>
@@ -507,9 +664,9 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
           const faults: (readonly string[])[] = [];
 
           for (const [show, label] of [
-            ["i1", "a1"],
-            ["i2", "c2"],
-            ["i1", "a1"],
+            ["i1", recording.a1],
+            ["i2", recording.c2],
+            ["i1", recording.a1],
           ] as const) {
             yield* page.press(show, named.choice1);
             yield* page.heard;
@@ -529,8 +686,8 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
         (at) => ({
           first: ["i1"],
           shows: {
-            i1: showOf(said, "i1", at, { apple: at.tone("same", long) }),
-            i2: showOf(said, "i2", at, { apple: at.tone("same", long) }),
+            i1: showOf(said, "i1", at, { apple: at.endless(recording.same) }),
+            i2: showOf(said, "i2", at, { apple: at.endless(recording.same) }),
           },
         }),
         (page) =>
@@ -538,7 +695,7 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
             yield* page.press("i1", named.choice1);
             yield* page.heard;
 
-            const begun = yield* soundsNow(page, "the press", "same");
+            const begun = yield* soundsNow(page, "the press", recording.same);
 
             yield* page.scene([{ key: "i2" }]);
             yield* page.heard;
@@ -559,23 +716,25 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
     () =>
       holds(
         "RB5",
-        saidAlone((at) => ({ apple: at.held("p", long) })),
+        saidAlone((at) => ({ apple: at.held(recording.p) })),
         (page) =>
           Effect.gen(function* leavingPending() {
             yield* page.press("i1", named.choice1);
 
-            const asked = yield* playedNow(page, "p");
+            const asked = yield* playedNow(page, recording.p);
 
             if (asked.length > 0) {
               return asked;
             }
 
-            yield* page.recordings.requested("p");
+            yield* page.recordings.requested(recording.p);
             yield* page.scene([]);
-            yield* released(page, "p");
+            yield* released(page, recording.p);
             yield* page.heard;
 
-            return sounded(yield* page.account, "p") ? ["p sounded after its control left"] : [];
+            return sounded(yield* page.account, recording.p)
+              ? ["p sounded after its control left"]
+              : [];
           }),
       ),
   );
@@ -588,14 +747,17 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
           (at: Recordings): SceneSpec => ({
             first: ["i1"],
             shows: {
-              i1: showOf(said, "i1", at, { apple: at.held("a", long), pear: at.tone("b", long) }),
+              i1: showOf(said, "i1", at, {
+                apple: at.held(recording.a),
+                pear: at.endless(recording.b),
+              }),
             },
           }),
           (at: Recordings): SceneSpec => ({
             first: ["i1", "i2"],
             shows: {
-              i1: showOf(said, "i1", at, { apple: at.held("a", long) }),
-              i2: showOf(said, "i2", at, { pear: at.tone("b", long) }),
+              i1: showOf(said, "i1", at, { apple: at.held(recording.a) }),
+              i2: showOf(said, "i2", at, { pear: at.endless(recording.b) }),
             },
           }),
         ],
@@ -604,24 +766,24 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
             Effect.gen(function* overtaken() {
               yield* page.press("i1", named.choice1);
 
-              const asked = yield* playedNow(page, "a");
+              const asked = yield* playedNow(page, recording.a);
 
               if (asked.length > 0) {
                 return asked;
               }
 
-              yield* page.recordings.requested("a");
+              yield* page.recordings.requested(recording.a);
               yield* page.press(index === 0 ? "i1" : "i2", named.choice2);
-              yield* released(page, "a");
+              yield* released(page, recording.a);
               yield* page.heard;
 
               const account = yield* page.account;
 
               return [
-                ...(sounded(account, "a") ? ["a sounded"] : []),
-                ...(yield* soundsNow(page, "a's data arrived", "b")),
-                ...(yield* showsNow(page, "a", `pressed false notice ""`)),
-                ...(yield* showsNow(page, "b", `pressed true notice ""`)),
+                ...(sounded(account, recording.a) ? ["a sounded"] : []),
+                ...(yield* soundsNow(page, "a's data arrived", recording.b)),
+                ...(yield* showsNow(page, recording.a, `pressed false notice ""`)),
+                ...(yield* showsNow(page, recording.b, `pressed true notice ""`)),
               ];
             }),
           ),
@@ -645,22 +807,22 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
         (twice, index) =>
           holds(
             index === 0 ? "RB8, by the pointer" : "RB8, in one task",
-            saidAlone((at) => ({ apple: at.held("a", long) })),
+            saidAlone((at) => ({ apple: at.held(recording.a) })),
             (page) =>
               Effect.gen(function* stoppedPending() {
                 yield* twice(page);
-                yield* page.recordings.release("a");
+                yield* page.recordings.release(recording.a);
                 yield* page.heard;
 
                 const account = yield* page.account;
-                const answers = answersIn(account, "a").join(" ");
+                const answers = answersIn(account, recording.a).join(" ");
 
                 return [
                   ...(answers.endsWith("play pause")
                     ? []
                     : [`the presses' answers were "${answers}", not a play and then its stop`]),
-                  ...(sounded(account, "a") ? ["a sounded after its second press"] : []),
-                  ...(yield* showsNow(page, "a", `pressed false notice ""`)),
+                  ...(sounded(account, recording.a) ? ["a sounded after its second press"] : []),
+                  ...(yield* showsNow(page, recording.a, `pressed false notice ""`)),
                 ];
               }),
           ),
@@ -673,26 +835,26 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
     () =>
       holds(
         "RB9",
-        saidAlone((at) => ({ apple: at.refused("broken"), pear: at.tone("b", long) })),
+        saidAlone((at) => ({ apple: at.refused(recording.broken), pear: at.endless(recording.b) })),
         (page) =>
           Effect.gen(function* lateFailure() {
             yield* page.press("i1", named.choice1);
 
-            const asked = yield* playedNow(page, "broken");
+            const asked = yield* playedNow(page, recording.broken);
 
             if (asked.length > 0) {
               return asked;
             }
 
-            yield* page.recordings.requested("broken");
+            yield* page.recordings.requested(recording.broken);
             yield* page.press("i1", named.choice2);
-            yield* released(page, "broken");
+            yield* released(page, recording.broken);
             yield* page.heard;
 
             const account = yield* page.account;
 
             return [
-              ...(yield* soundsNow(page, "broken failed", "b")),
+              ...(yield* soundsNow(page, "broken failed", recording.b)),
               ...account.recordings
                 .filter((each) => each.notice !== "")
                 .map((each) => `${each.label} tells ${each.notice}`),
@@ -706,13 +868,13 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
     () =>
       holds(
         "RB10",
-        saidAlone((at) => ({ apple: at.tone("a", long) })),
+        saidAlone((at) => ({ apple: at.endless(recording.a) })),
         (page) =>
           Effect.gen(function* hidden() {
             yield* page.press("i1", named.choice1);
             yield* page.heard;
 
-            const pressed = yield* soundsNow(page, "a pressed", "a");
+            const pressed = yield* soundsNow(page, "a pressed", recording.a);
 
             yield* page.scene([{ hidden: true, key: "i1" }]);
 
@@ -722,7 +884,7 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
 
             const shown = [
               ...(yield* soundsNow(page, "shown again")),
-              ...(yield* showsNow(page, "a", `pressed false notice ""`)),
+              ...(yield* showsNow(page, recording.a, `pressed false notice ""`)),
             ];
 
             yield* page.press("i1", named.choice1);
@@ -732,7 +894,7 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
               ...pressed,
               ...hid,
               ...shown,
-              ...(yield* soundsNow(page, "pressed again", "a")),
+              ...(yield* soundsNow(page, "pressed again", recording.a)),
             ];
           }),
       ),
@@ -744,8 +906,11 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
       (at) => ({
         first: ["i1", "i2"],
         shows: {
-          i1: showOf(said, "i1", at, { apple: at.tone("a", long), pear: at.tone("b", long) }),
-          i2: showOf(said, "i2", at, { apple: at.tone("c", long) }),
+          i1: showOf(said, "i1", at, {
+            apple: at.endless(recording.a),
+            pear: at.endless(recording.b),
+          }),
+          i2: showOf(said, "i2", at, { apple: at.endless(recording.c) }),
         },
       }),
       (page) =>
@@ -764,7 +929,7 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
 
           yield* page.heard;
 
-          return yield* soundsNow(page, "the last press", "b");
+          return yield* soundsNow(page, "the last press", recording.b);
         }),
     ),
   );
@@ -779,8 +944,8 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
             scene: (at: Recordings): SceneSpec => ({
               first: ["i1", "i2"],
               shows: {
-                i1: showOf(said, "i1", at, { apple: at.tone("a", long) }),
-                i2: showOf(said, "i2", at, { apple: at.tone("b", long) }),
+                i1: showOf(said, "i1", at, { apple: at.endless(recording.a) }),
+                i2: showOf(said, "i2", at, { apple: at.endless(recording.b) }),
               },
             }),
             targets: [
@@ -790,7 +955,10 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
           },
           {
             rule: "RB14",
-            scene: saidAlone((at) => ({ apple: at.tone("a", long), pear: at.tone("b", long) })),
+            scene: saidAlone((at) => ({
+              apple: at.endless(recording.a),
+              pear: at.endless(recording.b),
+            })),
             targets: [
               ["i1", named.choice1],
               ["i1", named.choice2],
@@ -803,7 +971,7 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
               yield* page.pressTogether(targets);
               yield* page.heard;
 
-              return yield* soundsNow(page, "two presses in one task", "b");
+              return yield* soundsNow(page, "two presses in one task", recording.b);
             }),
           ),
         { discard: true },
@@ -818,8 +986,8 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
         (at) => ({
           first: ["i1"],
           shows: {
-            i1: showOf(said, "i1", at, { apple: at.tone("same", long) }),
-            i2: showOf(said, "i2", at, { apple: at.tone("same", long) }),
+            i1: showOf(said, "i1", at, { apple: at.endless(recording.same) }),
+            i2: showOf(said, "i2", at, { apple: at.endless(recording.same) }),
           },
         }),
         (page) =>
@@ -827,7 +995,7 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
             yield* page.press("i1", named.choice1);
             yield* page.heard;
 
-            const pressed = yield* soundsNow(page, "i1 pressed", "same");
+            const pressed = yield* soundsNow(page, "i1 pressed", recording.same);
 
             yield* page.scene([{ hidden: true, key: "i1" }, { key: "i2" }]);
 
@@ -836,7 +1004,11 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
             yield* page.press("i2", named.choice1);
             yield* page.heard;
 
-            return [...pressed, ...moved, ...(yield* soundsNow(page, "i2 pressed", "same"))];
+            return [
+              ...pressed,
+              ...moved,
+              ...(yield* soundsNow(page, "i2 pressed", recording.same)),
+            ];
           }),
       ),
   );
@@ -846,28 +1018,28 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
     () =>
       holds(
         "RB15",
-        mediaAlone((at) => ({ m1: at.tone("media", long), stem: at.tone("a", long) })),
+        mediaAlone((at) => ({ m1: at.endless(recording.media), stem: at.endless(recording.a) })),
         (page) =>
           Effect.gen(function* withMedia() {
             const faults: (readonly string[])[] = [];
 
             yield* page.pressMedia("m", 0);
             yield* page.heard;
-            faults.push(yield* soundsNow(page, "the Media pressed", "media"));
+            faults.push(yield* soundsNow(page, "the Media pressed", recording.media));
             yield* page.press("m", named.text1);
             yield* page.heard;
-            faults.push(yield* soundsNow(page, "read-aloud pressed", "a"));
+            faults.push(yield* soundsNow(page, "read-aloud pressed", recording.a));
             yield* page.pressMedia("m", 0);
             yield* page.heard;
             faults.push(
-              yield* soundsNow(page, "the Media pressed again", "media"),
-              yield* showsNow(page, "a", `pressed false notice ""`),
+              yield* soundsNow(page, "the Media pressed again", recording.media),
+              yield* showsNow(page, recording.a, `pressed false notice ""`),
             );
-            yield* page.foreign(page.recordings.tone("host", long), false, "");
-            faults.push(yield* soundsNow(page, "the host's media", "host"));
+            yield* page.foreign(page.recordings.endless(recording.host), false, "");
+            faults.push(yield* soundsNow(page, "the host's media", recording.host));
             yield* page.press("m", named.text1);
             yield* page.heard;
-            faults.push(yield* soundsNow(page, "read-aloud pressed again", "a"));
+            faults.push(yield* soundsNow(page, "read-aloud pressed again", recording.a));
 
             return faults.flat();
           }),
@@ -879,20 +1051,22 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
     () =>
       holds(
         "RB16",
-        saidAlone((at) => ({ apple: at.tone("a", long) })),
+        saidAlone((at) => ({ apple: at.endless(recording.a) })),
         (page) =>
           Effect.gen(function* stopAll() {
             yield* page.press("i1", named.choice1);
             yield* page.heard;
 
-            const pressed = yield* soundsNow(page, "a pressed", "a");
+            const pressed = yield* soundsNow(page, "a pressed", recording.a);
 
             if (pressed.length > 0) {
               return pressed;
             }
 
+            const sought = 10;
+
             yield* page.inPage(
-              `new Promise((resolve) => { const element = ${elementNamed("a")}; element.addEventListener("seeked", () => { resolve(undefined); }, { once: true }); element.currentTime = 10; })`,
+              `new Promise((resolve) => { const element = ${elementNamed(recording.a)}; element.addEventListener("seeked", () => { resolve(undefined); }, { once: true }); element.currentTime = ${String(sought)}; })`,
             );
             yield* page.inPage(
               `for (const each of document.querySelectorAll("audio")) each.pause();`,
@@ -900,20 +1074,26 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
 
             const stopped = [
               ...(yield* soundsNow(page, "the host stopped every recording")),
-              ...(yield* showsNow(page, "a", `pressed false notice ""`)),
+              ...(yield* showsNow(page, recording.a, `pressed false notice ""`)),
             ];
+            const before = eventsOf(yield* page.account, recording.a);
 
             yield* page.press("i1", named.choice1);
             yield* page.heard;
 
-            const again = (yield* page.account).recordings.find((each) => each.label === "a");
+            const again = playedFrom(yield* page.account, recording.a, before);
 
             return [
               ...stopped,
-              ...(yield* soundsNow(page, "a pressed again", "a")),
-              ...(again !== undefined && again.time < 1.5
-                ? []
-                : [`a did not start again from its start: ${String(again?.time)}`]),
+              ...(yield* soundsNow(page, "a pressed again", recording.a)),
+              ...playedFromFaults(
+                "a pressed again",
+                recording.a,
+                again,
+                (at) => at < sought,
+                (at) =>
+                  `a did not start again from its start: it played from ${String(at)}, the host having sought ${String(sought)}`,
+              ),
             ];
           }),
       ),
@@ -927,8 +1107,8 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
         (at) => ({
           first: ["left"],
           shows: {
-            left: showOf(said, "kept", at, { apple: at.tone("left", long) }),
-            next: showOf(said, "kept", at, { apple: at.tone("next", long) }),
+            left: showOf(said, "kept", at, { apple: at.endless(recording.left) }),
+            next: showOf(said, "kept", at, { apple: at.endless(recording.next) }),
           },
         }),
         (page) =>
@@ -936,7 +1116,7 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
             yield* page.press("left", named.choice1);
             yield* page.heard;
 
-            const pressed = yield* soundsNow(page, "left pressed", "left");
+            const pressed = yield* soundsNow(page, "left pressed", recording.left);
 
             yield* page.scene([{ key: "next", slot: "left" }]);
 
@@ -945,7 +1125,11 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
             yield* page.press("next", named.choice1);
             yield* page.heard;
 
-            return [...pressed, ...moved, ...(yield* soundsNow(page, "next pressed", "next"))];
+            return [
+              ...pressed,
+              ...moved,
+              ...(yield* soundsNow(page, "next pressed", recording.next)),
+            ];
           }),
       ),
   );
@@ -959,10 +1143,10 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
           first: ["gm", "i1"],
           shows: {
             gm: showOf(line, "gm", at, {
-              greatest: at.tone("greatest", long),
-              least: at.tone("least", long),
+              greatest: at.endless(recording.greatest),
+              least: at.endless(recording.least),
             }),
-            i1: showOf(said, "i1", at, { stem: at.tone("stem", long) }),
+            i1: showOf(said, "i1", at, { stem: at.endless(recording.stem) }),
           },
         }),
         (page) =>
@@ -970,10 +1154,10 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
             const faults: (readonly string[])[] = [];
 
             for (const [show, name, label] of [
-              ["gm", named.label1, "least"],
-              ["gm", named.label2, "greatest"],
-              ["i1", named.text1, "stem"],
-              ["gm", named.label2, "greatest"],
+              ["gm", named.label1, recording.least],
+              ["gm", named.label2, recording.greatest],
+              ["i1", named.text1, recording.stem],
+              ["gm", named.label2, recording.greatest],
             ] as const) {
               yield* page.press(show, name);
               yield* page.heard;
@@ -993,7 +1177,7 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
 
             return [
               ...faults.flat(),
-              ...(yield* soundsNow(page, "a card placed", "greatest")),
+              ...(yield* soundsNow(page, "a card placed", recording.greatest)),
               ...(placed.includes("3") ? [] : [`the gap holds "${placed}", not the card 3`]),
               ...(playsIn(account) === "least greatest stem greatest"
                 ? []
@@ -1009,10 +1193,10 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
       holds(
         "RB19",
         mediaAlone((at) => ({
-          m1: at.tone("m1", long),
-          m2: at.tone("m2", long),
-          m3: at.held("m3", long),
-          stem: at.tone("a", long),
+          m1: at.endless(recording.m1),
+          m2: at.endless(recording.m2),
+          m3: at.held(recording.m3),
+          stem: at.endless(recording.a),
         })),
         (page) =>
           Effect.gen(function* interrupted() {
@@ -1021,22 +1205,24 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
             yield* page.pressMedia("m", 0);
             yield* page.heard;
             faults.push(
-              yield* soundsNow(page, "M1 pressed", "m1"),
+              yield* soundsNow(page, "M1 pressed", recording.m1),
               yield* countedNow(page, "M1 plays", { M1: "1", M2: "", M3: "" }),
             );
             yield* page.pressMedia("m", 1);
             yield* page.heard;
             faults.push(
-              yield* soundsNow(page, "M2 pressed", "m2"),
+              yield* soundsNow(page, "M2 pressed", recording.m2),
               yield* countedNow(page, "M2 stops M1 mid-play", { M1: "1", M2: "1", M3: "" }),
             );
 
-            const stopped = (yield* page.account).recordings.find((each) => each.label === "m1");
+            const paused = yield* page.account;
+            const stopped = paused.recordings.find((each) => each.label === recording.m1);
+            const beforeResume = eventsOf(paused, recording.m1);
 
             yield* page.pressMedia("m", 0);
             yield* page.heard;
             faults.push(
-              yield* soundsNow(page, "M1 pressed again", "m1"),
+              yield* soundsNow(page, "M1 pressed again", recording.m1),
               yield* countedNow(page, "M1 resumed under max-plays 1", {
                 M1: "1",
                 M2: "1",
@@ -1044,12 +1230,12 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
               }),
             );
 
-            const resumed = (yield* page.account).recordings.find((each) => each.label === "m1");
+            const resumed = playedFrom(yield* page.account, recording.m1, beforeResume);
 
             yield* page.press("m", named.text1);
             yield* page.heard;
             faults.push(
-              yield* soundsNow(page, "read-aloud pressed", "a"),
+              yield* soundsNow(page, "read-aloud pressed", recording.a),
               yield* countedNow(page, "a read-aloud press stops M1", {
                 M1: "1",
                 M2: "1",
@@ -1059,23 +1245,23 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
             yield* page.pressMedia("m", 1);
             yield* page.heard;
             faults.push(
-              yield* soundsNow(page, "M2 pressed again", "m2"),
+              yield* soundsNow(page, "M2 pressed again", recording.m2),
               yield* countedNow(page, "M2 resumed in loop mode", { M1: "1", M2: "1", M3: "" }),
             );
             yield* page.pressMedia("m", 2);
 
-            const asked = yield* playedNow(page, "m3");
+            const asked = yield* playedNow(page, recording.m3);
 
             if (asked.length > 0) {
               return [...faults.flat(), ...asked];
             }
 
-            yield* page.recordings.requested("m3");
+            yield* page.recordings.requested(recording.m3);
             yield* page.press("m", named.text1);
-            yield* released(page, "m3");
+            yield* released(page, recording.m3);
             yield* page.heard;
             faults.push(
-              yield* soundsNow(page, "read-aloud pressed over M3", "a"),
+              yield* soundsNow(page, "read-aloud pressed over M3", recording.a),
               yield* countedNow(page, "M3 paused before it sounded", {
                 M1: "1",
                 M2: "1",
@@ -1085,7 +1271,7 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
             yield* page.pressMedia("m", 2);
             yield* page.heard;
             faults.push(
-              yield* soundsNow(page, "M3 pressed again", "m3"),
+              yield* soundsNow(page, "M3 pressed again", recording.m3),
               yield* countedNow(page, "M3 plays and counts", { M1: "1", M2: "1", M3: "1" }),
             );
 
@@ -1094,9 +1280,13 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
               ...(stopped !== undefined && stopped.paused && !stopped.ended && stopped.time > 0
                 ? []
                 : [`M1 was not paused mid-play by M2: ${JSON.stringify(stopped)}`]),
-              ...(resumed !== undefined && stopped !== undefined && resumed.time >= stopped.time
-                ? []
-                : [`M1 did not resume where it stopped: ${JSON.stringify([stopped, resumed])}`]),
+              ...playedFromFaults(
+                "M1 pressed again",
+                recording.m1,
+                resumed,
+                (at) => stopped !== undefined && at >= stopped.time,
+                (at) => `M1 did not resume where it stopped: ${JSON.stringify([stopped, at])}`,
+              ),
             ];
           }),
       ),
@@ -1107,30 +1297,35 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
     () =>
       holds(
         "RB20",
-        mediaAlone((at) => ({ m1: at.tone("short", 1500), stem: at.tone("a", long) })),
+        mediaAlone((at) => ({
+          m1: at.tone(recording.short, finiteLength),
+          stem: at.endless(recording.a),
+        })),
         (page) =>
           Effect.gen(function* refusedPlay() {
+            const before = eventsOf(yield* page.account, recording.short);
+
             yield* page.pressMedia("m", 0);
             yield* page.heard;
 
-            const begun = yield* soundsNow(page, "M1 pressed", "short");
+            const begun = yield* beganAlone(page, "M1 pressed", recording.short, before);
 
             if (begun.length > 0) {
               return begun;
             }
 
-            yield* page.saw("short", ["ended", "pause"], 0);
+            yield* page.saw(recording.short, ["ended", "pause"], before);
             yield* page.press("m", named.text1);
             yield* page.heard;
 
-            const pressed = yield* soundsNow(page, "read-aloud pressed", "a");
+            const pressed = yield* soundsNow(page, "read-aloud pressed", recording.a);
 
-            yield* page.inPage(`${elementNamed("short")}?.play().catch(() => undefined)`);
+            yield* page.inPage(`${elementNamed(recording.short)}?.play().catch(() => undefined)`);
             yield* page.heard;
 
             return [
               ...pressed,
-              ...(yield* soundsNow(page, "the refusal", "a")),
+              ...(yield* soundsNow(page, "the refusal", recording.a)),
               ...(yield* countedNow(page, "the refusal", { M1: "1", M2: "", M3: "" })),
             ];
           }),
@@ -1145,8 +1340,8 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
         (at) => ({
           first: ["i1", "i2"],
           shows: {
-            i1: showOf(said, "i1", at, { apple: at.tone("a", long) }),
-            i2: showOf(said, "i2", at, { apple: at.tone("b", long) }),
+            i1: showOf(said, "i1", at, { apple: at.endless(recording.a) }),
+            i2: showOf(said, "i2", at, { apple: at.endless(recording.b) }),
           },
         }),
         (page) =>
@@ -1155,11 +1350,11 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
             yield* page.press("i1", named.choice1);
             yield* page.heard;
 
-            const pressed = yield* soundsNow(page, "a pressed", "a");
+            const pressed = yield* soundsNow(page, "a pressed", recording.a);
 
-            yield* page.foreign(page.recordings.tone("host", long), false, "");
+            yield* page.foreign(page.recordings.endless(recording.host), false, "");
 
-            return [...pressed, ...(yield* soundsNow(page, "the host's media", "host"))];
+            return [...pressed, ...(yield* soundsNow(page, "the host's media", recording.host))];
           }),
       ),
   );
@@ -1171,24 +1366,26 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
         "RB22",
         (at) => ({
           first: [],
-          shows: { i1: showOf(said, "i1", at, { apple: at.tone("a", long) }) },
+          shows: { i1: showOf(said, "i1", at, { apple: at.endless(recording.a) }) },
         }),
         (page) =>
           Effect.gen(function* alreadyPlaying() {
-            yield* page.foreign(page.recordings.tone("host", long), false, "");
-            yield* page.foreign(page.recordings.tone("deco", long), true, "");
+            yield* page.foreign(page.recordings.endless(recording.host), false, "");
+            yield* page.foreign(page.recordings.endless(recording.deco), true, "");
 
-            const before = yield* soundsNow(page, "before any player", "host");
+            const before = yield* soundsNow(page, "before any player", recording.host);
 
             yield* page.scene([{ key: "i1" }]);
             yield* page.press("i1", named.choice1);
             yield* page.heard;
 
-            const muted = (yield* page.account).recordings.find((each) => each.label === "deco");
+            const muted = (yield* page.account).recordings.find(
+              (each) => each.label === recording.deco,
+            );
 
             return [
               ...before,
-              ...(yield* soundsNow(page, "a pressed", "a")),
+              ...(yield* soundsNow(page, "a pressed", recording.a)),
               ...(muted !== undefined && !muted.paused
                 ? []
                 : [`the muted media was paused: ${JSON.stringify(muted)}`]),
@@ -1207,9 +1404,9 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
           shows: {
             g: {
               ...showOf(graph, "g", at, {
-                apples: at.tone("apples", long),
-                pears: at.tone("pears", long),
-                stem: at.tone("stem", long),
+                apples: at.endless(recording.apples),
+                pears: at.endless(recording.pears),
+                stem: at.endless(recording.stem),
               }),
               stimuli: [{ document: passage, recordings: showOf(passage, "p", at, {}).recordings }],
             },
@@ -1220,9 +1417,9 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
             const faults: (readonly string[])[] = [];
 
             for (const [name, label] of [
-              [named.text1, "stem"],
-              [named.label1, "apples"],
-              [named.label2, "pears"],
+              [named.text1, recording.stem],
+              [named.label1, recording.apples],
+              [named.label2, recording.pears],
             ] as const) {
               yield* page.press("g", name);
               yield* page.heard;
@@ -1248,13 +1445,13 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
     () =>
       holds(
         "RB24",
-        saidAlone((at) => ({ apple: at.tone("a", long) })),
+        saidAlone((at) => ({ apple: at.endless(recording.a) })),
         (page) =>
           Effect.gen(function* turnedUp() {
             const faults: (readonly string[])[] = [];
             const change = (script: string) =>
               page.inPage(
-                `new Promise((resolve) => { const deco = ${elementNamed("deco")}; deco.addEventListener("volumechange", () => { setTimeout(resolve, 0); }, { once: true }); ${script} })`,
+                `new Promise((resolve) => { const deco = ${elementNamed(recording.deco)}; deco.addEventListener("volumechange", () => { setTimeout(resolve, 0); }, { once: true }); ${script} })`,
               );
             const holdsPaused = (step: string, label: string, paused: boolean) =>
               page.account.pipe(
@@ -1267,8 +1464,8 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
 
             yield* page.press("i1", named.choice1);
             yield* page.heard;
-            faults.push(yield* soundsNow(page, "a pressed", "a"));
-            yield* page.foreign(page.recordings.tone("deco", long), true, "");
+            faults.push(yield* soundsNow(page, "a pressed", recording.a));
+            yield* page.foreign(page.recordings.endless(recording.deco), true, "");
             yield* change("deco.volume = 0;");
             yield* change("deco.muted = false;");
             faults.push(yield* holdsPaused("unmuted at volume 0", "a", false));
@@ -1284,11 +1481,11 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
 
             yield* page.press("i1", named.choice1);
             yield* page.heard;
-            faults.push(yield* soundsNow(page, "a pressed again", "a"));
+            faults.push(yield* soundsNow(page, "a pressed again", recording.a));
             yield* change("deco.volume = 0.5;");
             faults.push(yield* holdsPaused("turned while paused", "a", false));
             yield* change("deco.muted = true;");
-            yield* page.inPage(`${elementNamed("deco")}.play()`);
+            yield* page.inPage(`${elementNamed(recording.deco)}.play()`);
             faults.push(yield* holdsPaused("played muted", "a", false));
             yield* change("deco.muted = false;");
             faults.push(yield* holdsPaused("unmuted", "a", true));
@@ -1303,26 +1500,28 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
     () =>
       holds(
         "RB25",
-        mediaAlone((at) => ({ m3: at.held("m3", long) })),
+        mediaAlone((at) => ({ m3: at.held(recording.m3) })),
         (page) =>
           Effect.gen(function* pausedLoading() {
             yield* page.pressMedia("m", 2);
 
-            const asked = yield* playedNow(page, "m3");
+            const asked = yield* playedNow(page, recording.m3);
 
             if (asked.length > 0) {
               return asked;
             }
 
-            yield* page.recordings.requested("m3");
+            yield* page.recordings.requested(recording.m3);
 
             const loading = yield* page.mediaControlText("m", 2);
 
             yield* page.pressMedia("m", 2);
 
-            const paused = (yield* page.account).recordings.find((each) => each.label === "m3");
+            const paused = (yield* page.account).recordings.find(
+              (each) => each.label === recording.m3,
+            );
 
-            yield* released(page, "m3");
+            yield* released(page, recording.m3);
             yield* page.heard;
 
             const account = yield* page.account;
@@ -1342,9 +1541,9 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
               ...(paused?.paused === true
                 ? []
                 : [`the Pause left m3 playing: ${JSON.stringify(paused)}`]),
-              ...(sounded(account, "m3") ? ["m3 sounded once its data arrived"] : []),
+              ...(sounded(account, recording.m3) ? ["m3 sounded once its data arrived"] : []),
               ...counted,
-              ...(yield* soundsNow(page, "pressed again", "m3")),
+              ...(yield* soundsNow(page, "pressed again", recording.m3)),
               ...(yield* countedNow(page, "pressed again", { M1: "", M2: "", M3: "1" })),
             ];
           }),
@@ -1359,8 +1558,8 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
         (at) => ({
           first: ["i1"],
           shows: {
-            i1: showOf(said, "i1", at, { apple: at.tone("a", long) }),
-            i2: showOf(said, "i2", at, { apple: at.tone("b", long) }),
+            i1: showOf(said, "i1", at, { apple: at.endless(recording.a) }),
+            i2: showOf(said, "i2", at, { apple: at.endless(recording.b) }),
           },
         }),
         (page) =>
@@ -1369,21 +1568,31 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
             yield* page.press("i1", named.choice1);
             yield* page.heard;
 
-            const inPage = yield* soundsNow(page, "a pressed in the page", "a");
+            const inPage = yield* soundsNow(page, "a pressed in the page", recording.a);
 
             yield* page.inPage(
               `[...(document.querySelector('iframe[data-frame="i2"]')?.contentDocument?.querySelectorAll('section[data-show="i2"] button') ?? [])].find((each) => each.textContent === ${JSON.stringify(named.choice1)})?.dispatchEvent(new PointerEvent("click", { bubbles: true, cancelable: true, composed: true }))`,
             );
             yield* page.heard;
 
-            const inFrame = yield* soundsNow(page, "b pressed in the frame", "a", "b");
+            const inFrame = yield* soundsNow(
+              page,
+              "b pressed in the frame",
+              recording.a,
+              recording.b,
+            );
 
-            yield* page.foreign(page.recordings.tone("host", long), false, "i2");
+            yield* page.foreign(page.recordings.endless(recording.host), false, "i2");
 
             return [
               ...inPage,
               ...inFrame,
-              ...(yield* soundsNow(page, "the host's media in the frame", "a", "host")),
+              ...(yield* soundsNow(
+                page,
+                "the host's media in the frame",
+                recording.a,
+                recording.host,
+              )),
             ];
           }),
       ),
@@ -1394,19 +1603,19 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
     () =>
       holds(
         "RB27",
-        mediaAlone((at) => ({ m1: at.refused("broken") })),
+        mediaAlone((at) => ({ m1: at.refused(recording.broken) })),
         (page) =>
           Effect.gen(function* failedMedia() {
             yield* page.pressMedia("m", 0);
 
-            const asked = yield* playedNow(page, "broken");
+            const asked = yield* playedNow(page, recording.broken);
 
             if (asked.length > 0) {
               return asked;
             }
 
-            yield* page.recordings.requested("broken");
-            yield* released(page, "broken");
+            yield* page.recordings.requested(recording.broken);
+            yield* released(page, recording.broken);
             yield* page.painted;
 
             const control = yield* page.mediaControlText("m", 0);
@@ -1433,18 +1642,20 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
     () =>
       holds(
         "RB28",
-        saidAlone((at) => ({ apple: at.tone("a", long) })),
+        saidAlone((at) => ({ apple: at.endless(recording.a) })),
         (page) =>
           Effect.gen(function* playAndPress() {
             yield* page.inPage(
-              `(() => { const host = document.createElement("audio"); host.src = ${JSON.stringify(page.recordings.tone("host", long))}; document.body.append(host); void host.play().catch(() => undefined); [...document.querySelectorAll('section[data-show="i1"] button')].find((each) => each.textContent === ${JSON.stringify(named.choice1)})?.click(); })()`,
+              `(() => { const host = document.createElement("audio"); host.src = ${JSON.stringify(page.recordings.endless(recording.host))}; document.body.append(host); void host.play().catch(() => undefined); [...document.querySelectorAll('section[data-show="i1"] button')].find((each) => each.textContent === ${JSON.stringify(named.choice1)})?.click(); })()`,
             );
             yield* page.heard;
 
-            const host = (yield* page.account).recordings.find((each) => each.label === "host");
+            const host = (yield* page.account).recordings.find(
+              (each) => each.label === recording.host,
+            );
 
             return [
-              ...(yield* soundsNow(page, "the press after the host's play", "a")),
+              ...(yield* soundsNow(page, "the press after the host's play", recording.a)),
               ...(host?.paused === true
                 ? []
                 : [`the host's media was not paused: ${JSON.stringify(host)}`]),

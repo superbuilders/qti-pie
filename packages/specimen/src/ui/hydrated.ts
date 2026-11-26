@@ -15,10 +15,12 @@
  *
  * A page may show several items, as a host does, each in a `section` of its own under an
  * `<Activity>`, and move between them as a host moves from item to item ({@link scenePages}). The
- * pages' server also serves synthetic recordings, a sine tone of a stated length, which it answers
- * at once, holds back until the suite releases it, or refuses, as a slow or broken network would,
- * and reports when it was asked for one and when it delivered it, so a suite waits on what comes,
- * never on a delay. Every page keeps an account of its media (`#specimen/ui/hydrate-account.ts`).
+ * pages' server also serves synthetic recordings, sine tones: one of a stated length, or one that
+ * never ends, streamed for as long as the page reads it, so a suite that reads whether it sounds at
+ * a moment rests on no length; each answered at once, held back until the suite releases it, or
+ * refused, as a slow or broken network would, with the server's report of when it was asked for
+ * one and when it began to deliver it, so a suite waits on what comes, never on a delay. Every page
+ * keeps an account of its media (`#specimen/ui/hydrate-account.ts`).
  *
  * Test support for plate's UI suite under `src/ui/`.
  *
@@ -31,7 +33,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
-import { Config, Data, Effect, Option, Predicate, Schema } from "effect";
+import { Brand, Config, Data, Effect, Option, Predicate, Schema } from "effect";
 import type { Scope } from "effect";
 import { chromium } from "playwright-core";
 import type { Browser, BrowserContext, ConsoleMessage, Page } from "playwright-core";
@@ -390,38 +392,129 @@ const ListeningAddress = Schema.Struct({ port: Schema.Number });
 const sampleRate = 8000;
 
 /**
- * Write a synthetic recording: a WAV file of 16-bit mono PCM holding a 440 Hz sine tone of the
- * length given, at a third of full scale.
+ * The length of a WAV file's header of 16-bit PCM: the RIFF chunk's head, the `fmt ` chunk, and the
+ * `data` chunk's head, after which its samples begin.
  *
- * @param milliseconds Its length.
- * @returns The file's bytes.
+ * @formatConstant The canonical WAVE file format's header, 44 bytes.
  * @see {@link http://soundfile.sapp.org/doc/WaveFormat/ | The canonical WAVE file format}
  */
-const toneOf = (milliseconds: number): Buffer => {
-  const samples = Math.round((sampleRate * milliseconds) / 1000);
-  const file = Buffer.alloc(44 + samples * 2);
+const headerBytes = 44;
 
-  file.write("RIFF", 0, "ascii");
-  file.writeUInt32LE(36 + samples * 2, 4);
-  file.write("WAVEfmt ", 8, "ascii");
-  file.writeUInt32LE(16, 16);
-  file.writeUInt16LE(1, 20);
-  file.writeUInt16LE(1, 22);
-  file.writeUInt32LE(sampleRate, 24);
-  file.writeUInt32LE(sampleRate * 2, 28);
-  file.writeUInt16LE(2, 32);
-  file.writeUInt16LE(16, 34);
-  file.write("data", 36, "ascii");
-  file.writeUInt32LE(samples * 2, 40);
+/**
+ * The largest size a WAV header's 32-bit fields declare, the RIFF chunk's and the `data` chunk's.
+ * FFmpeg, which demuxes WAV for Chrome, reads a `data` chunk of this size as one of no stated end
+ * and plays its samples for as long as they come, so a recording whose header declares it has no
+ * end but its stream's.
+ *
+ * @formatConstant The largest unsigned 32-bit integer, `0xFFFFFFFF`, which FFmpeg's WAV demuxer
+ *   reads as no size ("Ignoring maximum wav data size"), its data's end at `INT64_MAX`.
+ * @see {@link https://github.com/FFmpeg/FFmpeg/blob/master/libavformat/wavdec.c | FFmpeg's WAV demuxer, `wav_read_header`}
+ */
+const largestSize = 0xff_ff_ff_ff;
+
+/**
+ * Write a WAV file's header of 16-bit mono PCM at {@link sampleRate}.
+ *
+ * @param riffBytes The RIFF chunk's size, as the header declares it.
+ * @param dataBytes The `data` chunk's size, as the header declares it.
+ * @returns The header's bytes.
+ * @see {@link http://soundfile.sapp.org/doc/WaveFormat/ | The canonical WAVE file format}
+ */
+const headerOf = (riffBytes: number, dataBytes: number): Buffer => {
+  const header = Buffer.alloc(headerBytes);
+
+  header.write("RIFF", 0, "ascii");
+  header.writeUInt32LE(riffBytes, 4);
+  header.write("WAVEfmt ", 8, "ascii");
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * 2, 28);
+  header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write("data", 36, "ascii");
+  header.writeUInt32LE(dataBytes, 40);
+
+  return header;
+};
+
+/**
+ * Write samples of a synthetic recording's tone: a 440 Hz sine at a third of full scale, as 16-bit
+ * PCM.
+ *
+ * @param samples How many, from the tone's start.
+ * @returns Their bytes.
+ */
+const samplesOf = (samples: number): Buffer => {
+  const bytes = Buffer.alloc(samples * 2);
 
   for (let at = 0; at < samples; at += 1) {
-    file.writeInt16LE(
+    bytes.writeInt16LE(
       Math.round(10_000 * Math.sin((2 * Math.PI * 440 * at) / sampleRate)),
-      44 + at * 2,
+      at * 2,
     );
   }
 
-  return file;
+  return bytes;
+};
+
+/**
+ * Write a synthetic recording of a length: a WAV file of 16-bit mono PCM holding the tone for that
+ * long.
+ *
+ * @param milliseconds Its length.
+ * @returns The file's bytes.
+ */
+const toneOf = (milliseconds: number): Buffer => {
+  const samples = samplesOf(Math.round((sampleRate * milliseconds) / 1000));
+
+  return Buffer.concat([headerOf(36 + samples.length, samples.length), samples]);
+};
+
+/**
+ * The header of a synthetic recording that never ends: both its sizes the largest a header
+ * declares ({@link largestSize}).
+ */
+const endlessHeader = headerOf(largestSize, largestSize);
+
+/**
+ * One second of the tone, which holds 440 of its periods whole, so the second written again and
+ * again is the tone unbroken.
+ */
+const toneSecond = samplesOf(sampleRate);
+
+/**
+ * Answer a request with a recording that never ends: the header of {@link endlessHeader}, then the
+ * tone, a second at a time, for as long as the page reads it, each second written once the
+ * connection has taken the last; its wait for the connection to take more goes when the response
+ * closes, so a stream the page let go leaves nothing listening. The answer states no length and
+ * offers no ranges, so Chrome plays it as a stream, from its start, and it ends only when the page
+ * lets the request go: no rule's length is bounded by it. Chrome holds the connection for as long
+ * as the recording's element lives, paused or gone from the page alike, which is why every
+ * recording has a host of its own and a page at most six of its requests open at once
+ * ({@link connectionsPerHost}).
+ *
+ * @param response The response.
+ * @see {@link https://www.rfc-editor.org/rfc/rfc9110#section-14.3 | RFC 9110 §14.3, Accept-Ranges}
+ */
+const answerEndless = (response: ServerResponse): void => {
+  const more = (): void => {
+    while (!response.destroyed) {
+      if (!response.write(toneSecond)) {
+        response.once("drain", more);
+
+        return;
+      }
+    }
+  };
+
+  response.once("close", () => {
+    response.off("drain", more);
+  });
+  response.writeHead(200, { "content-type": "audio/wav" });
+  response.write(endlessHeader);
+  more();
 };
 
 /**
@@ -506,7 +599,7 @@ const answerRange = (request: IncomingMessage, response: ServerResponse, bytes: 
 
 /**
  * A recording the server holds back, as the server knows it: whether it was asked for, the
- * suite's release of it, and whether an answer was delivered.
+ * suite's release of it, and whether an answer began to reach the page.
  */
 interface Held {
   readonly delivered: PromiseWithResolvers<boolean>;
@@ -546,29 +639,31 @@ const heldAt = (held: HeldRecordings, key: string): Held => {
 };
 
 /**
- * How the server answers a synthetic recording: `tone` at once, `held` once the suite releases
- * it, and `held-refused` with a 404 once released.
+ * How the server answers a synthetic recording, as its path names it: `tone`, a tone of its
+ * length, at once; `endless`, a tone that never ends ({@link answerEndless}), at once; `held`, a
+ * tone that never ends, once the suite releases it; and `held-refused`, a 404, once released.
  */
-type Answered = "held" | "held-refused" | "tone";
+type Answered =
+  | { readonly kind: "endless" | "held" | "held-refused" }
+  | { readonly kind: "tone"; readonly milliseconds: number };
 
 /**
  * A synthetic recording's path as the server reads it: how it is answered, the page it belongs
- * to, its length in milliseconds, and its name.
+ * to, and its name.
  */
 interface RecordingPath {
-  readonly kind: Answered;
-  readonly length: number;
+  readonly answered: Answered;
   readonly name: string;
   readonly page: string;
 }
 
 /**
- * The ways the server answers a recording, each by its path's segment.
+ * The ways the server answers a recording of no stated length, each by its path's segment.
  */
-const answeredKinds: ReadonlyMap<string, Answered> = new Map([
+const unlengthedKinds: ReadonlyMap<string, "endless" | "held" | "held-refused"> = new Map([
+  ["endless", "endless"],
   ["held", "held"],
   ["held-refused", "held-refused"],
-  ["tone", "tone"],
 ]);
 
 /**
@@ -577,36 +672,78 @@ const answeredKinds: ReadonlyMap<string, Answered> = new Map([
 const wav = ".wav";
 
 /**
- * Read a request's path as a synthetic recording's: `/recording/<kind>/<page>/<length>/<name>.wav`.
+ * Read how a synthetic recording's path says it is answered: a `tone` by the one segment of its
+ * length in milliseconds, every other kind by none.
+ *
+ * @param kind The path's kind segment.
+ * @param lengths The segments between the page's and the file's.
+ * @returns How it is answered, none where the path names no such answer.
+ */
+const answeredOf = (
+  kind: string | undefined,
+  lengths: readonly string[],
+): Option.Option<Answered> => {
+  const [length] = lengths;
+  const unlengthed = unlengthedKinds.get(kind ?? "");
+
+  if (kind === "tone") {
+    return lengths.length === 1 && length !== undefined && length !== "" && digitsOnly(length)
+      ? Option.some({ kind, milliseconds: Number(length) })
+      : Option.none();
+  }
+
+  return unlengthed !== undefined && lengths.length === 0
+    ? Option.some({ kind: unlengthed })
+    : Option.none();
+};
+
+/**
+ * Read a request's path as a synthetic recording's:
+ * `/recording/tone/<page>/<milliseconds>/<name>.wav` for a tone of a length,
+ * `/recording/<kind>/<page>/<name>.wav` for every other.
  *
  * @param url The request's path.
  * @returns The recording's path, none where it names no synthetic recording.
  */
 const recordingPath = (url: string): Option.Option<RecordingPath> => {
-  const segments = url.split("/");
-  const [root, area, kindName, page, length, file] = segments;
-  const kind = answeredKinds.get(kindName ?? "");
+  const [root, area, kind, page, ...rest] = url.split("/");
+  const file = rest.at(-1);
 
-  return segments.length === 6 &&
-    root === "" &&
+  return root === "" &&
     area === "recording" &&
-    kind !== undefined &&
     page !== undefined &&
     page !== "" &&
-    length !== undefined &&
-    length !== "" &&
-    digitsOnly(length) &&
     file !== undefined &&
     file.endsWith(wav) &&
     file.length > wav.length
-    ? Option.some({ kind, length: Number(length), name: file.slice(0, -wav.length), page })
+    ? Option.map(answeredOf(kind, rest.slice(0, -1)), (answered) => ({
+        answered,
+        name: file.slice(0, -wav.length),
+        page,
+      }))
     : Option.none();
 };
 
 /**
- * Answer a request for a synthetic recording, as its path says: a held-back one once the suite
- * releases it, its delivery reported as written whole or as the page letting the request go
- * first, whichever of the two comes first.
+ * Tell whether an address names a synthetic recording the server answers endlessly: at once
+ * (`endless`) or once released (`held`).
+ *
+ * @param address The address, as a page holds it; empty where an element names none yet.
+ * @returns Whether it names an endless recording.
+ */
+export const endlessAddress = (address: string): boolean =>
+  address !== "" &&
+  Option.exists(
+    recordingPath(new URL(address).pathname),
+    ({ answered }) => answered.kind === "endless" || answered.kind === "held",
+  );
+
+/**
+ * Answer a request for a synthetic recording, as its path says: a tone of a length as a file the
+ * page may seek in, every other as it comes; a held-back one once the suite releases it, its
+ * delivery reported as begun, its 404 written whole or its endless tone begun, or as the page
+ * letting the request go first, whichever of the two comes first, a request the page let go before
+ * the release among them.
  *
  * @param asked The recording's path.
  * @param request The request.
@@ -619,33 +756,47 @@ const answerRecording = (
   response: ServerResponse,
   held: HeldRecordings,
 ): void => {
-  const answer = (): void => {
-    if (asked.kind === "held-refused") {
-      response.writeHead(404).end();
-    } else {
-      answerRange(request, response, toneOf(asked.length));
-    }
-  };
+  const { answered } = asked;
 
-  if (asked.kind === "tone") {
-    answer();
+  if (answered.kind === "tone") {
+    answerRange(request, response, toneOf(answered.milliseconds));
+
+    return;
+  }
+
+  if (answered.kind === "endless") {
+    answerEndless(response);
 
     return;
   }
 
   const recording = heldAt(held, `${asked.page}/${asked.name}`);
+  const begun = (): void => {
+    recording.delivered.resolve(true);
+  };
 
   recording.requested.resolve();
 
   const released = async (): Promise<void> => {
     await recording.release.promise;
-    response.once("finish", () => {
-      recording.delivered.resolve(true);
-    });
+
+    if (response.destroyed) {
+      recording.delivered.resolve(false);
+
+      return;
+    }
+
     response.once("close", () => {
       recording.delivered.resolve(false);
     });
-    answer();
+
+    if (answered.kind === "held-refused") {
+      response.once("finish", begun);
+      response.writeHead(404).end();
+    } else {
+      answerEndless(response);
+      begun();
+    }
   };
 
   void released();
@@ -930,34 +1081,165 @@ const openedAt = (
   });
 
 /**
+ * The most connections Chrome opens to one host over HTTP/1.1, past which a request waits for one
+ * to close. A recording that never ends holds its request open for as long as its element lives,
+ * paused or gone from the page alike, and every recording has a host of its own
+ * ({@link recordingsOf}), so a page with more requests of one recording open at once than this
+ * would leave the one past them waiting for good, and the rule that waits on it: the harness
+ * counts every request Chrome makes that the page still wants, from Chrome's own request events
+ * and the page's own letting go, and fails the page's rule at the one past this
+ * ({@link CrowdedRecording}).
+ *
+ * @limitKind published
+ * @owner Google Chrome 158.0.8127.88's network stack (net/socket/client_socket_pool_manager.cc,
+ *   g_max_sockets_per_group), the machine's Chrome the harness drives
+ * @unit connections
+ * @scope each host a page's recordings are served from, in Chrome's normal socket pool, its
+ *   default, which every page of the harness's one browser context shares
+ * @constraint configurable default
+ * @source https://github.com/chromium/chromium/blob/158.0.8127.88/net/socket/client_socket_pool_manager.cc#L46
+ * @quote // Default to allow up to 6 connections per host.
+ * @verified 2026-11-26
+ */
+export const connectionsPerHost = 6;
+
+/**
+ * Chrome was asked for more requests of one recording open at once than it opens connections to
+ * its host ({@link connectionsPerHost}), so the one past them waits for a connection, and the rule
+ * with it, for good: whoever made it, an item's control, a host's media or a rule's own script.
+ * Counted from Chrome's own request event, which fires for the request held back too, until the
+ * first of its end (`requestfinished`, `requestfailed`) and its element letting its load go
+ * (`abort`, `emptied`, `error`), which the page reports through the harness's binding before it
+ * starts its next load: Chrome reports a new load's request before the end of the one it replaces,
+ * which never waits on it, so its end alone would count both.
+ */
+export class CrowdedRecording extends Data.TaggedError("CrowdedRecording")<{
+  readonly host: string;
+  readonly name: string;
+  readonly open: number;
+}> {
+  /**
+   * The recording, its host, how many of its requests were open, and Chrome's cap.
+   */
+  override get message(): string {
+    return `Chrome was asked for ${String(this.open)} requests of recording ${this.name} open at once on one page, more than the ${String(connectionsPerHost)} connections it opens to one host (${this.host}), so the one past them would wait for good, and the rule's step that asked for it is refused. Give one page at most ${String(connectionsPerHost)} streams of ${this.name} at once, and name another recording for the rest.`;
+  }
+}
+
+/**
+ * Change a count by one.
+ *
+ * @param counts The counts.
+ * @param key What is counted.
+ * @param change Up or down.
+ * @returns The count now.
+ */
+const stepped = (counts: Map<string, number>, key: string, change: 1 | -1): number => {
+  const now = (counts.get(key) ?? 0) + change;
+
+  counts.set(key, now);
+
+  return now;
+};
+
+/**
+ * The arguments the page's binding is called with: the address of the load it let go.
+ */
+const LetGoArguments = Schema.Tuple([Schema.String]);
+
+/**
+ * The host a page's recording is served from: its name under the page's segment under
+ * `localhost`, which Chrome resolves to the loopback itself.
+ *
+ * @param name The recording's name.
+ * @param page The page's segment.
+ * @returns The host's name.
+ * @see {@link https://www.rfc-editor.org/rfc/rfc6761#section-6.3 | RFC 6761 §6.3, localhost names}
+ */
+const recordingHost = (name: string, page: string): string => `${name}.${page}.localhost`;
+
+/**
+ * Read a host's name as a recording's ({@link recordingHost}): its name and its page's segment.
+ *
+ * @param hostname The host's name.
+ * @returns The recording's name and page, none where the host is no recording's.
+ */
+const recordingOfHost = (
+  hostname: string,
+): Option.Option<{ readonly name: string; readonly page: string }> => {
+  const labels = hostname.split(".");
+  const [name, page, top] = labels;
+
+  return labels.length === 3 && name !== undefined && page !== undefined && top === "localhost"
+    ? Option.some({ name, page })
+    : Option.none();
+};
+
+/**
+ * The name a rule gives a synthetic recording that never ends on its own ({@link
+ * Recordings.endless}, {@link Recordings.held}): once it sounds, it sounds until the page stops it,
+ * so whether it sounds now is a fact of the page a rule may read at any moment. A name is also the
+ * first label of the recording's host ({@link recordingsOf}): lowercase letters, digits and
+ * hyphens.
+ */
+export type Endless = Brand.Branded<string, "Endless">;
+
+/**
+ * The name a rule gives a synthetic recording that ends or never sounds: a tone of a length
+ * ({@link Recordings.tone}), which may have played to its end by the moment a rule reads the page,
+ * however soon after its press, or one the server refuses ({@link Recordings.refused}). Only its
+ * events tell whether it sounded and whether it ended. A name is also the first label of the
+ * recording's host ({@link recordingsOf}): lowercase letters, digits and hyphens.
+ */
+export type Finite = Brand.Branded<string, "Finite">;
+
+/**
+ * Name a synthetic recording that never ends on its own.
+ */
+export const endlessName = Brand.nominal<Endless>();
+
+/**
+ * Name a synthetic recording that ends or never sounds.
+ */
+export const finiteName = Brand.nominal<Finite>();
+
+/**
  * The addresses of a page's synthetic recordings on the pages' server, each by its name, and what
  * the server reports of those it holds back. A name is the page's own: another page's recording of
  * the same name is another recording.
  */
 export interface Recordings {
   /**
-   * Give a recording's address: a tone of the length given, answered at once.
+   * Give a recording's address: a tone of the length given, answered at once, as a file the page
+   * may seek in.
    *
    * @param name Its name.
    * @param milliseconds Its length.
    * @returns Its address.
    */
-  readonly tone: (name: string, milliseconds: number) => string;
+  readonly tone: (name: Finite, milliseconds: number) => string;
   /**
-   * Give a recording's address: a tone the server holds back until the suite releases it.
+   * Give a recording's address: a tone that never ends, answered at once.
    *
    * @param name Its name.
-   * @param milliseconds Its length.
    * @returns Its address.
    */
-  readonly held: (name: string, milliseconds: number) => string;
+  readonly endless: (name: Endless) => string;
+  /**
+   * Give a recording's address: a tone that never ends, which the server holds back until the
+   * suite releases it.
+   *
+   * @param name Its name.
+   * @returns Its address.
+   */
+  readonly held: (name: Endless) => string;
   /**
    * Give a recording's address: one the server refuses, with a 404, once the suite releases it.
    *
    * @param name Its name.
    * @returns Its address.
    */
-  readonly refused: (name: string) => string;
+  readonly refused: (name: Finite) => string;
   /**
    * Wait until the server has been asked for a held-back recording.
    *
@@ -973,11 +1255,11 @@ export interface Recordings {
    */
   readonly release: (name: string) => Effect.Effect<void>;
   /**
-   * Wait until the server has delivered an answer to a request for a held-back recording, all of
-   * it written, or the page let the request go before it was.
+   * Wait until the server has begun to deliver its answer to a request for a held-back recording,
+   * its 404 written whole or its endless tone begun, or the page let the request go before it was.
    *
    * @param name Its name.
-   * @returns Whether the answer reached the page whole.
+   * @returns Whether the answer began to reach the page.
    */
   readonly delivered: (name: string) => Effect.Effect<boolean>;
 }
@@ -986,39 +1268,57 @@ export interface Recordings {
  * A page of items hydrated in Chrome, with its recordings.
  */
 export interface HydratedScene extends Hydrated {
+  /**
+   * Fail once Chrome has been asked for more requests of one of the page's recordings open at once
+   * than it opens connections to its host: a wait raced with it ends at the request held back.
+   */
+  readonly crowded: Effect.Effect<never, CrowdedRecording>;
   readonly recordings: Recordings;
 }
 
 /**
- * Give a page's recordings: their addresses under its own segment of the server's, and what the
- * server reports of those it holds back.
+ * Give a page's recordings: their addresses under its own segment of the server's, each on a host
+ * of its own, and what the server reports of those it holds back. Chrome opens at most six
+ * connections to one host over HTTP/1.1 ("Default to allow up to 6 connections per host"), and a
+ * recording that never ends holds one for as long as its element lives ({@link answerEndless}),
+ * paused or gone from the page, so on one host a seventh request, another recording or anything
+ * else of the page, would wait for good. Each recording's host is its own ({@link recordingHost}),
+ * so no recording waits on another's; and the harness counts each host's open requests at Chrome's
+ * request events, failing the page's rule at the one past six ({@link connectionsPerHost}), so
+ * none waits on its own.
  *
  * @param base The pages' server's address.
  * @param page The page's segment.
  * @param held The recordings the server holds back.
  * @returns The recordings.
+ * @see {@link https://github.com/chromium/chromium/blob/158.0.8127.88/net/socket/client_socket_pool_manager.cc#L46 | Chrome 158's socket pools, six connections a host}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc6761#section-6.3 | RFC 6761 §6.3, localhost names}
  */
 const recordingsOf = (base: string, page: string, held: HeldRecordings): Recordings => {
-  const at = (kind: string, name: string, milliseconds: number): string =>
-    `${base}/recording/${kind}/${page}/${String(milliseconds)}/${name}.wav`;
+  const { port, protocol } = new URL(base);
+  const at = (name: string, ...segments: readonly string[]): string =>
+    `${protocol}//${recordingHost(name, page)}:${port}/${["recording", ...segments, `${name}.wav`].join("/")}`;
   const heldNamed = (name: string): Held => heldAt(held, `${page}/${name}`);
 
   return {
     delivered: (name) => Effect.promise(() => heldNamed(name).delivered.promise),
-    held: (name, milliseconds) => at("held", name, milliseconds),
-    refused: (name) => at("held-refused", name, 0),
+    endless: (name) => at(name, "endless", page),
+    held: (name) => at(name, "held", page),
+    refused: (name) => at(name, "held-refused", page),
     release: (name) =>
       Effect.sync(() => {
         heldNamed(name).release.resolve();
       }),
     requested: (name) => Effect.promise(() => heldNamed(name).requested.promise),
-    tone: (name, milliseconds) => at("tone", name, milliseconds),
+    tone: (name, milliseconds) => at(name, "tone", page, String(milliseconds)),
   };
 };
 
 /**
  * Vite, the pages' server and Chrome, for the scope, and how a page opens on them: each page at an
- * address of its own, hydrated, its recordings under a segment of their own.
+ * address of its own, hydrated, its recordings under a segment of their own, every request Chrome
+ * makes to a recording's host counted, made and ended, at the browser context's own events, and let
+ * go at the page's word, through a binding every page and frame of the context holds.
  */
 const harness = Effect.gen(function* harness() {
   const clients = yield* clientExports;
@@ -1027,6 +1327,99 @@ const harness = Effect.gen(function* harness() {
   const held: HeldRecordings = new Map();
   const base = yield* pageServer(server, pages, held);
   const context = yield* contextIn(yield* chrome);
+  /**
+   * Each page's crowding, by its segment: settled at the first request of one of its recordings
+   * past Chrome's connections to its host.
+   */
+  const crowdings = new Map<string, PromiseWithResolvers<CrowdedRecording>>();
+  /**
+   * The requests open to each recording's address, as Chrome reports them.
+   */
+  const openByAddress = new Map<string, number>();
+  /**
+   * Of those, by address, the ones the page has let go, whose end Chrome has yet to report.
+   */
+  const letGoByAddress = new Map<string, number>();
+  /**
+   * The requests each recording's host, with its port, holds for a page that still wants them:
+   * made, and neither ended nor let go.
+   */
+  const liveByHost = new Map<string, number>();
+
+  /**
+   * Count a request Chrome reports made, where its host is a recording's, and settle its page's
+   * crowding where its host now holds more than Chrome's connections.
+   *
+   * @param address The request's address.
+   */
+  const made = (address: string): void => {
+    const { host, hostname } = new URL(address);
+
+    for (const { name, page } of Option.toArray(recordingOfHost(hostname))) {
+      stepped(openByAddress, address, 1);
+
+      const now = stepped(liveByHost, host, 1);
+
+      if (now > connectionsPerHost) {
+        crowdings.get(page)?.resolve(new CrowdedRecording({ host, name, open: now }));
+      }
+    }
+  };
+
+  /**
+   * Count a recording load the page let go: one request of its address that Chrome holds open
+   * stops counting, where one does that is not let go already.
+   *
+   * @param address The load's address.
+   */
+  const lost = (address: string): void => {
+    const { host, hostname } = new URL(address);
+
+    if (
+      Option.isSome(recordingOfHost(hostname)) &&
+      (openByAddress.get(address) ?? 0) > (letGoByAddress.get(address) ?? 0)
+    ) {
+      stepped(letGoByAddress, address, 1);
+      stepped(liveByHost, host, -1);
+    }
+  };
+
+  /**
+   * Count a request Chrome reports finished or failed: one let go already only leaves the count of
+   * those let go.
+   *
+   * @param address The request's address.
+   */
+  const ended = (address: string): void => {
+    const { host, hostname } = new URL(address);
+
+    if (Option.isSome(recordingOfHost(hostname))) {
+      stepped(openByAddress, address, -1);
+
+      if ((letGoByAddress.get(address) ?? 0) > 0) {
+        stepped(letGoByAddress, address, -1);
+      } else {
+        stepped(liveByHost, host, -1);
+      }
+    }
+  };
+
+  context.on("request", (request) => {
+    made(request.url());
+  });
+  context.on("requestfinished", (request) => {
+    ended(request.url());
+  });
+  context.on("requestfailed", (request) => {
+    ended(request.url());
+  });
+  yield* attempt("exposed the recordings' binding", () =>
+    context.exposeBinding("recordingLetGo", (_page, ...called) => {
+      for (const [address] of Option.toArray(Schema.decodeUnknownOption(LetGoArguments)(called))) {
+        lost(address);
+      }
+    }),
+  );
 
   return <E>(
     build: (recordings: Recordings) => Effect.Effect<PageSpec, E>,
@@ -1034,6 +1427,9 @@ const harness = Effect.gen(function* harness() {
     Effect.suspend(() => {
       const page = `p${String(pages.size)}`;
       const recordings = recordingsOf(base, page, held);
+      const crowding = Promise.withResolvers<CrowdedRecording>();
+
+      crowdings.set(page, crowding);
 
       return Effect.gen(function* opened() {
         const spec = yield* build(recordings);
@@ -1043,7 +1439,11 @@ const harness = Effect.gen(function* harness() {
 
         const hydrated = yield* openedAt(context, `${base}${address}`);
 
-        return { ...hydrated, recordings };
+        return {
+          ...hydrated,
+          crowded: Effect.promise(() => crowding.promise).pipe(Effect.flatMap(Effect.fail)),
+          recordings,
+        };
       });
     });
 });

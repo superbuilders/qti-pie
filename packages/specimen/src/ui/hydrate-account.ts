@@ -2,15 +2,17 @@
  * The account a hydrated page keeps of its media for plate's read-aloud suite
  * (`#specimen/ui/read-aloud-browser.test.ts`), installed before the page hydrates
  * (`#specimen/ui/hydrated.ts`): every media event of every recording from its entry into the page
- * on, in order, by the recording's name, its file's name without `.wav`, the page's frames' with
- * them; every moment two recordings sounded at once in one page; and every play the page has asked
- * for that has yet to settle. A play is asked for when its recording fires `play`, the answer of
- * the session or island a press reached, and it settles when the recording sounds (`playing`),
- * pauses, ends, fails at the element itself, or is emptied or aborted: the events with which HTML
- * settles a `play()`'s promise. A rule waits on what is certain to come whether the page is right
- * or broken: the frames after a press and the page's next idle period, which come after every
- * `play` the press caused, then every play asked for settled ({@link PageAccount.idle}); never on a
- * delay.
+ * on, in order, by the recording's name, its file's name without `.wav`, with its position as the
+ * event came, the page's frames' with them; every moment two recordings sounded at once in one
+ * page; and every play the page has asked for that has yet to settle. A play is asked for when its
+ * recording fires `play`, the answer of the session or island a press reached, and it settles when
+ * the recording sounds (`playing`), pauses, ends, fails at the element itself, or is emptied or
+ * aborted: the events with which HTML settles a `play()`'s promise. A rule waits on what is
+ * certain to come whether the page is right or broken: the frames after a press and the page's next
+ * idle period, which come after every `play` the press caused, then every play asked for settled
+ * ({@link PageAccount.idle}); never on a delay. It also tells the harness each recording load the
+ * page lets go, so the harness's count of a recording's open requests drops the moment the page
+ * abandons one, never later than Chrome reports the next.
  *
  * Test support for plate's UI suite under `src/ui/`; it runs in the browser alone.
  *
@@ -21,10 +23,12 @@
 /**
  * One recording as the page holds it now: its name, whether it is still in the document, has
  * ended, is muted, is paused and sounds, the file it plays, its control's pressed state and
- * notice, and its position.
+ * notice, its position, and its length as the page knows it, in seconds: `Infinity` while the page
+ * knows no end of it, as of a stream it has not read to its end, `NaN` before its metadata.
  */
 export interface Recording {
   readonly detached: boolean;
+  readonly duration: number;
   readonly ended: boolean;
   readonly label: string;
   readonly muted: boolean;
@@ -38,12 +42,14 @@ export interface Recording {
 
 /**
  * One thing the page saw: a media event of the recording named, at its place among every event
- * the account saw, from 0.
+ * the account saw, from 0, and the recording's position, in seconds, as the event reached the
+ * account.
  */
 export interface Seen {
   readonly at: number;
   readonly event: string;
   readonly label: string;
+  readonly time: number;
 }
 
 /**
@@ -93,6 +99,11 @@ declare global {
      * The page's account, once {@link installAccount} has run.
      */
     account?: PageAccount;
+    /**
+     * Tell the harness that a recording's element let its load go, the harness's binding
+     * (`#specimen/ui/hydrated.ts`): absent where the page runs outside the harness.
+     */
+    recordingLetGo?: (address: string) => Promise<void>;
   }
 }
 
@@ -177,6 +188,11 @@ const mediaIn = (node: Node): readonly HTMLMediaElement[] => {
  */
 export const installAccount = (): void => {
   const labels = new Map<HTMLMediaElement, string>();
+  /**
+   * The address each recording's load reached data from, its request open since: a load that never
+   * reached its metadata, a `preload="none"` one never played among them, may have made no request.
+   */
+  const reached = new Map<HTMLMediaElement, string>();
   const sounding = new Set<HTMLMediaElement>();
   const pending = new Set<HTMLMediaElement>();
   const followed = new WeakSet<HTMLMediaElement>();
@@ -241,7 +257,7 @@ export const installAccount = (): void => {
   const heard = (event: Event, element: HTMLMediaElement): void => {
     const { type } = event;
 
-    seen.push({ at: seen.length, event: type, label: labelOf(element) });
+    seen.push({ at: seen.length, event: type, label: labelOf(element), time: element.currentTime });
 
     if (type === "play") {
       pending.add(element);
@@ -266,6 +282,24 @@ export const installAccount = (): void => {
   };
 
   /**
+   * Tell the harness that a recording let its load go, where that load reached data: the element
+   * fires `abort` or `emptied` as the media element load algorithm abandons its fetch, before it
+   * starts its next load, and `error` once its fetch has ended; so the harness hears it before the
+   * next load's request, which Chrome reports before it reports the old one's end.
+   *
+   * @param element The recording.
+   * @see https://html.spec.whatwg.org/multipage/media.html#media-element-load-algorithm
+   */
+  const lettingGo = (element: HTMLMediaElement): void => {
+    const address = reached.get(element);
+
+    if (address !== undefined) {
+      reached.delete(element);
+      void Promise.allSettled([window.recordingLetGo?.(address)]);
+    }
+  };
+
+  /**
    * Account for a recording from its entry into the page on: every media event it fires, heard at
    * the element itself as it is captured, its `source`s' among them, since an element React has
    * taken out of the document still fires its events, but no longer to the document.
@@ -281,6 +315,18 @@ export const installAccount = (): void => {
         },
         { capture: true },
       );
+    }
+
+    element.addEventListener("loadedmetadata", () => {
+      reached.set(element, element.currentSrc);
+    });
+
+    for (const type of ["abort", "emptied", "error"]) {
+      element.addEventListener(type, (event) => {
+        if (event.target === element) {
+          lettingGo(element);
+        }
+      });
     }
   };
 
@@ -344,6 +390,7 @@ export const installAccount = (): void => {
 
         return {
           detached: !element.isConnected,
+          duration: element.duration,
           ended: element.ended,
           label: labelOf(element),
           muted: element.muted,
