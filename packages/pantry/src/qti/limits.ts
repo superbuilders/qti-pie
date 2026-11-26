@@ -210,8 +210,9 @@ export const LomText = law(entryOf("Key text bound"), str.bytes(lomTextBytes, Ch
  *   (`en`, `en-us`, `english`) in 81,204 `xml:lang` values and 336 LOM languages (364 published
  *   packages, 118 metis packages and 080622Z's 2,813 AlphaTest packages, 2026-11-24), 0.4% of the
  *   bound
- * @derivation grizzle's `keyTextBytes` over `DescribedLang`'s and `ListedLang`'s whole headings
- *   `(general, package, path, value)`: a tag beside a natural, a name of {@link nameMaxBytes} and a
+ * @derivation grizzle's `keyTextBytes` over `ListedLang`'s whole heading `(general, lang, package,
+ *   path)` and the lookup "Document lang" reads `DescribedLang` and `DescribedAssembledLang` by,
+ *   `(package, path, general, value)`: a tag beside a natural, a name of {@link nameMaxBytes} and a
  *   path of {@link entryPathBytes}
  * @from nameMaxBytes, entryPathBytes
  */

@@ -755,44 +755,53 @@ const MatchedTitle = derived(
 
 /**
  * Each language a document's `xml:lang` states, under each general category that describes the
- * document (`namingGenerals`), by the category's place: the compared value of each form the
- * document carries outside every catalog that states a language, a {@link LangValue} whose scope
- * is the document node, which R26 asks the category to list. A form that states no language, the
- * empty one, asks nothing, so it is lawful beside an empty `lom:language`, and one outside its
- * domain AL1 refuses where it is written (spec reading `lang-outside-tag`).
+ * document (`namingGenerals`), by the category's place and the form's, the document `document` and
+ * the element `form` that writes it: the compared value of each form the document carries outside
+ * every catalog that states a language, a {@link LangValue} whose scope is the document node, which
+ * R26 asks the category to list. Each form is its own row, so two elements that state one language
+ * are two. A form that states no language, the empty one, asks nothing, so it is lawful beside an
+ * empty `lom:language`, and one outside its domain AL1 refuses where it is written (spec reading
+ * `lang-outside-tag`).
  */
 const DescribedLang = derived(
   "DescribedLang",
   query(QtiViews).rule((r) => {
-    const { value } = v(LangValue, "form");
+    const { start: form, value } = v(LangValue, "form");
     const { document, general, package: pkg, path } = v(namingGenerals, "described");
 
     return r
-      .match(LangValue, { package: pkg, path: document, scope: documentStart, value })
+      .match(LangValue, { package: pkg, path: document, scope: documentStart, start: form, value })
       .match(namingGenerals, { document, general, package: pkg, path })
-      .find({ general, package: pkg, path, value: keyedLangText(value) });
+      .find({ document, form, general, package: pkg, path, value: keyedLangText(value) });
   }),
 );
 
 /**
  * Each language an item's assembly states in place (spec reading `fragment-placement`), under each
- * general category that describes the item, as `DescribedLang` is a document's: the compared value
+ * general category that describes the item, as `DescribedLang` is a document's, by the category's
+ * place, the instance and the form's element `form` in the instance's document: the compared value
  * of each form outside every catalog that states a language, a {@link LangValue} whose scope is its
  * document node, of the document of each instance of the item's assembly, the instance and the form
- * joined by the instance's document, which no row stores.
+ * joined by the instance's document, which no row stores. Each placed form is its own row.
  */
 const DescribedAssembledLang = derived(
   "DescribedAssembledLang",
   query(QtiViews).rule((r) => {
-    const { assembly, document } = v(Instance, "instance");
-    const { value } = v(LangValue, "form");
+    const { assembly, document, start: instance } = v(Instance, "instance");
+    const { start: form, value } = v(LangValue, "form");
     const { general, package: pkg, path } = v(namingGenerals, "described");
 
     return r
-      .match(Instance, { assembly, assemblyKind: itemKind, document, package: pkg })
-      .match(LangValue, { package: pkg, path: document, scope: documentStart, value })
+      .match(Instance, {
+        assembly,
+        assemblyKind: itemKind,
+        document,
+        package: pkg,
+        start: instance,
+      })
+      .match(LangValue, { package: pkg, path: document, scope: documentStart, start: form, value })
       .match(namingGenerals, { document: assembly, general, package: pkg, path })
-      .find({ general, package: pkg, path, value: keyedLangText(value) });
+      .find({ assembly, form, general, instance, package: pkg, path, value: keyedLangText(value) });
   }),
 );
 

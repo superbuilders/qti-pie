@@ -56,7 +56,7 @@ describe("qti/key-bounds", () => {
     assert.isAtMost(
       langTextBytes,
       keyTextBytes([natural, PackageName, EntryPath]),
-      "DescribedLang's and ListedLang's whole headings (general, package, path, value)",
+      "ListedLang's heading (general, lang, package, path), and \"Document lang\"'s by value",
     );
     assert.isAtMost(
       patternTextBytes,
