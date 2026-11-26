@@ -443,3 +443,71 @@ describe("a test's template defaults", () => {
     );
   });
 });
+
+/**
+ * An item with a hint button: an End Attempt bound to `HINT`, writing `count-attempt`.
+ *
+ * @param countAttempt - The attribute as written.
+ * @returns The compiled item.
+ */
+const hinted = (countAttempt: string): CompiledItem => {
+  const compiled = compileItemWith(
+    element("qti-assessment-item", { adaptive: "true", identifier: "q1" }, [
+      element(
+        "qti-response-declaration",
+        { "base-type": "boolean", cardinality: "single", identifier: "HINT" },
+        [],
+      ),
+      element(
+        "qti-outcome-declaration",
+        { "base-type": "float", cardinality: "single", identifier: "SCORE" },
+        [],
+      ),
+      element("qti-item-body", {}, [
+        element(
+          "qti-end-attempt-interaction",
+          { "count-attempt": countAttempt, "response-identifier": "HINT", title: "Hint" },
+          [],
+        ),
+      ]),
+    ]),
+    digest,
+    table,
+  );
+
+  return compiled.ok ? compiled.value : assert.fail(compiled.refusal.detail);
+};
+
+/**
+ * The attempts a press of the hint leaves.
+ *
+ * @param countAttempt - The End Attempt's `count-attempt`.
+ * @returns `numAttempts` after the press.
+ */
+const pressed = (countAttempt: string): bigint | undefined => {
+  const item = hinted(countAttempt);
+  const graded = gradeAnswerWith(table, {
+    context: new Map(),
+    evaluations: new Map(),
+    item,
+    readAt: { microseconds: 2n },
+    responses: {
+      at: { microseconds: 1n },
+      kind: "save",
+      values: new Map([["HINT", single("boolean", true)]]),
+    },
+    session: fresh(noTake),
+    validate: false,
+  });
+
+  return "result" in graded && graded.result.kind === "done"
+    ? graded.result.numAttempts
+    : undefined;
+};
+
+describe("an End Attempt's count-attempt", () => {
+  it("leaves numAttempts where it was for an attempt ended through one written false, and counts one written true (reading `end-attempt-count`)", () => {
+    assert.strictEqual(pressed("false"), 0n);
+    assert.strictEqual(pressed("true"), 1n);
+  });
+});

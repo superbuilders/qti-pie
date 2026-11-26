@@ -6,10 +6,11 @@
  * - **At the take** (§5.156, IM 2.2.2): template variables start at their defaults (a test's template
  *   default before that, §5.152), template processing sets them and may set correct responses and
  *   defaults, drawing under `served␟template␟<identifier>`.
- * - **At an attempt**: `numAttempts` is one more (§2.2.2.3); responses take the values submitted, a
- *   response submitted without one its default (a default submission); outcomes start at their
- *   defaults, else a single numeric one at 0 (reading `numeric-outcome-default`), or, in an
- *   adaptive item after its first attempt, where its last processed attempt left them (§5.7);
+ * - **At an attempt**: `numAttempts` is one more (§2.2.2.3), but for an attempt ended through an End
+ *   Attempt that does not count one (reading `end-attempt-count`); responses take the values
+ *   submitted, a response submitted without one its default (a default submission); outcomes start
+ *   at their defaults, else a single numeric one at 0 (reading `numeric-outcome-default`), or, in
+ *   an adaptive item after its first attempt, where its last processed attempt left them (§5.7);
  *   `completionStatus` is `unknown` at the first attempt and where the last attempt left it after;
  *   response processing draws under `served␟response␟<numAttempts>`.
  *
@@ -254,6 +255,25 @@ const creditOfOutcomes = (
 };
 
 /**
+ * Whether an attempt counts (reading `end-attempt-count`): it does unless the candidate ended it
+ * through an End Attempt written `count-attempt="false"`, whose response is then true (§5.45), as a
+ * hint button ends an attempt without spending one.
+ *
+ * @param attempt - The attempt.
+ * @returns Whether `numAttempts` rises by one.
+ */
+const countsAttempt = (attempt: Attempt): boolean =>
+  !attempt.item.interactions.some((interaction) => {
+    if (interaction.kind !== "end-attempt" || interaction.countAttempt) {
+      return false;
+    }
+
+    const pressed = attempt.responses.get(interaction.response);
+
+    return pressed?.kind === "single" && pressed.base === "boolean" && pressed.value;
+  });
+
+/**
  * Process one attempt.
  *
  * @param table - The standard operators.
@@ -264,7 +284,7 @@ export const attemptWith = <K extends ExpressionKind>(
   table: OperatorTable<K>,
   attempt: Attempt,
 ): Failed | ItemResult => {
-  const numAttempts = attempt.numAttempts + 1n;
+  const numAttempts = countsAttempt(attempt) ? attempt.numAttempts + 1n : attempt.numAttempts;
   const variables = startingVariables(attempt, numAttempts);
   const ran = runProcessing(table, attempt.item.responseProcessing, {
     declarations: attempt.item.declarations,
