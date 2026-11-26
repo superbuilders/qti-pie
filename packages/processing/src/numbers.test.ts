@@ -175,11 +175,7 @@ describe("the exact kernel rounds once, as IEEE 754 rounds one operation", () =>
           Effect.sync(() => {
             agrees(exactSum([x, y]), x + y, `${String(x)} + ${String(y)}`);
             if (Number.isFinite(x)) {
-              agrees(
-                nearestFloat(exactOfFloat(x), Object.is(x, -0)),
-                x,
-                `round trip of ${String(x)}`,
-              );
+              agrees(nearestFloat(exactOfFloat(x)), x + 0, `round trip of ${String(x)}`);
             }
           }),
       ),
