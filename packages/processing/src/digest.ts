@@ -21,7 +21,7 @@ import type { Single, Value, ValueType } from "#processing/value.ts";
  * @param text - The text.
  * @returns Its encoding.
  */
-const framed = (text: string): string => `${String(text.length)}:${text}`;
+export const framed = (text: string): string => `${String(text.length)}:${text}`;
 
 /**
  * A double's IEEE 754 bits, as hexadecimal.
@@ -29,7 +29,7 @@ const framed = (text: string): string => `${String(text.length)}:${text}`;
  * @param float - The double.
  * @returns Its bits.
  */
-const bitsOf = (float: number): string => {
+export const bitsOf = (float: number): string => {
   const view = new DataView(new ArrayBuffer(8));
   view.setFloat64(0, Number.isNaN(float) ? Number.NaN : float);
 
@@ -114,20 +114,47 @@ export const valueText = (value: Value): string => {
 };
 
 /**
+ * Variables' values' encoding: each by identifier in code-unit order.
+ *
+ * @param values - The values, by identifier.
+ * @returns Their encoding.
+ */
+export const valuesText = (values: ReadonlyMap<string, Value>): string =>
+  [...values]
+    .toSorted(([left], [right]) => (left < right ? -1 : 1))
+    .map(([identifier, value]) => framed(identifier) + framed(valueText(value)))
+    .join("");
+
+/**
+ * Every field of a record, each already encoded, which a {@link Fields} of its type names in full.
+ */
+export type Fields<T> = { readonly [K in keyof T]-?: string };
+
+/**
+ * A record's encoding from its fields' encodings: each by name in code-unit order.
+ *
+ * @param fields - The encoded fields.
+ * @returns The encoding.
+ */
+export const fieldsText = (fields: Readonly<Record<string, string>>): string =>
+  Object.entries(fields)
+    .toSorted(([left], [right]) => (left < right ? -1 : 1))
+    .map(([name, text]) => framed(name) + framed(text))
+    .join("");
+
+/**
+ * The digest of an encoding.
+ *
+ * @param text - The encoding.
+ * @returns Its SHA-256.
+ */
+export const textDigest = (text: string): Digest => ({ sha256: hexOf(sha256(utf8Bytes(text))) });
+
+/**
  * The digest of variables' values.
  *
  * @param values - The values, by identifier.
  * @returns The SHA-256 of their canonical encoding.
  */
-export const valuesDigest = (values: ReadonlyMap<string, Value>): Digest => ({
-  sha256: hexOf(
-    sha256(
-      utf8Bytes(
-        [...values]
-          .toSorted(([left], [right]) => (left < right ? -1 : 1))
-          .map(([identifier, value]) => framed(identifier) + framed(valueText(value)))
-          .join(""),
-      ),
-    ),
-  ),
-});
+export const valuesDigest = (values: ReadonlyMap<string, Value>): Digest =>
+  textDigest(valuesText(values));

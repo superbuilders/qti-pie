@@ -50,6 +50,12 @@ export interface ResponsesRead {
  */
 export interface GradeProof {
   /**
+   * The digest of the grade's whole input but the recorded operators' answers in (`evaluations`):
+   * every session, response, duration, attempt count, context, seed and instant it read, so a
+   * pending grade is completed on exactly the input it was graded on.
+   */
+  readonly inputDigest: Digest;
+  /**
    * The digest of the stored document whose program ran.
    */
   readonly program: Digest;

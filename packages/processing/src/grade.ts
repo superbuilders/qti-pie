@@ -16,7 +16,15 @@
  */
 import { admit } from "#processing/admission.ts";
 import type { Admission } from "#processing/admission.ts";
-import { valuesDigest } from "#processing/digest.ts";
+import {
+  bitsOf,
+  fieldsText,
+  framed,
+  textDigest,
+  valuesDigest,
+  valuesText,
+} from "#processing/digest.ts";
+import type { Fields } from "#processing/digest.ts";
 import { evaluateExpression, runProcessing } from "#processing/engine.ts";
 import type { Digest, GradeProof, Instant, ResponsesRead } from "#processing/graded.ts";
 import type { ExpressionKind } from "#processing/ir.ts";
@@ -278,6 +286,177 @@ const priorOf = (prior: Prior): GradeProof["prior"] =>
   prior.kind === "processed" ? { at: prior.at, kind: "processed" } : { kind: "none" };
 
 /**
+ * An instant's encoding.
+ *
+ * @param instant - The instant.
+ * @returns Its microseconds, in decimal.
+ */
+const instantText = (instant: Instant): string => instant.microseconds.toString(10);
+
+/**
+ * A take's encoding.
+ *
+ * @param take - The take.
+ * @returns Its encoding.
+ */
+const takeText = (take: Take): string =>
+  fieldsText({
+    correct: valuesText(take.correct),
+    defaults: valuesText(take.defaults),
+    templates: valuesText(take.templates),
+  } satisfies Fields<Take>);
+
+/**
+ * A prior's encoding.
+ *
+ * @param prior - The processed attempt a session follows, or none.
+ * @returns Its encoding.
+ */
+const priorText = (prior: Prior): string =>
+  prior.kind === "processed"
+    ? fieldsText({
+        at: instantText(prior.at),
+        kind: prior.kind,
+        outcomes: valuesText(prior.outcomes),
+      } satisfies Fields<typeof prior>)
+    : fieldsText({ kind: prior.kind } satisfies Fields<typeof prior>);
+
+/**
+ * A session's encoding.
+ *
+ * @param session - The session.
+ * @returns Its encoding.
+ */
+const sessionText = (session: ItemSession): string =>
+  fieldsText({
+    duration: bitsOf(session.duration),
+    numAttempts: session.numAttempts.toString(10),
+    prior: priorText(session.prior),
+    seed: session.seed.key,
+    take: takeText(session.take),
+  } satisfies Fields<ItemSession>);
+
+/**
+ * Submitted responses' encoding.
+ *
+ * @param submitted - Which responses.
+ * @returns Their encoding.
+ */
+const submittedText = (submitted: Submitted): string => {
+  switch (submitted.kind) {
+    case "default": {
+      return fieldsText({ kind: submitted.kind } satisfies Fields<typeof submitted>);
+    }
+    case "posted": {
+      return fieldsText({
+        kind: submitted.kind,
+        values: valuesText(submitted.values),
+      } satisfies Fields<typeof submitted>);
+    }
+    case "save": {
+      return fieldsText({
+        at: instantText(submitted.at),
+        kind: submitted.kind,
+        values: valuesText(submitted.values),
+      } satisfies Fields<typeof submitted>);
+    }
+  }
+};
+
+/**
+ * A member ref's encoding.
+ *
+ * @param ref - The ref.
+ * @returns Its encoding.
+ */
+const refText = (ref: MemberRef): string =>
+  fieldsText({
+    identifier: ref.identifier,
+    occurrence: ref.occurrence.toString(10),
+  } satisfies Fields<MemberRef>);
+
+/**
+ * Members' encoding, ordered by ref, so the order a caller lists them in moves no digest (a
+ * sitting processes its members in the test's order whatever it is given).
+ *
+ * @param members - The members.
+ * @param text - One member's encoding.
+ * @returns Their encoding.
+ */
+const membersText = <M extends { readonly ref: MemberRef }>(
+  members: readonly M[],
+  text: (member: M) => string,
+): string =>
+  members
+    .map((member) => ({ key: refText(member.ref), text: text(member) }))
+    .toSorted((left, right) => (left.key < right.key ? -1 : 1))
+    .map((each) => framed(each.text))
+    .join("");
+
+/**
+ * The digest of a sitting's input but its recorded answers: every field of the sitting and of its
+ * members, the closing members' `evaluations` alone left out, which a completion brings in.
+ *
+ * @param input - The sitting.
+ * @returns The digest.
+ */
+const sittingDigest = (input: SittingInput): Digest =>
+  textDigest(
+    fieldsText({
+      carried: membersText(input.carried, (member) =>
+        fieldsText({
+          duration: bitsOf(member.duration),
+          item: member.item.digest.sha256,
+          numAttempts: member.numAttempts.toString(10),
+          outcomes: valuesText(member.outcomes),
+          ref: refText(member.ref),
+          responses: valuesText(member.responses),
+          take: takeText(member.take),
+        } satisfies Fields<CarriedMember>),
+      ),
+      closing: membersText(input.closing, (member) =>
+        fieldsText({
+          evaluations: "",
+          item: member.item.digest.sha256,
+          ref: refText(member.ref),
+          responses: submittedText(member.responses),
+          session: sessionText(member.session),
+        } satisfies Fields<ClosingMember>),
+      ),
+      context: valuesText(input.context),
+      readAt: instantText(input.readAt),
+      startedAt: instantText(input.startedAt),
+      test: input.test.digest.sha256,
+      testSeed: input.testSeed.key,
+      unpresented: membersText(input.unpresented, (member) =>
+        fieldsText({
+          item: member.item.digest.sha256,
+          ref: refText(member.ref),
+        } satisfies Fields<UnpresentedMember>),
+      ),
+    } satisfies Fields<SittingInput>),
+  );
+
+/**
+ * The digest of an answer's input but its recorded answers.
+ *
+ * @param input - The answer.
+ * @returns The digest.
+ */
+const answerDigest = (input: AnswerInput): Digest =>
+  textDigest(
+    fieldsText({
+      context: valuesText(input.context),
+      evaluations: "",
+      item: input.item.digest.sha256,
+      readAt: instantText(input.readAt),
+      responses: submittedText(input.responses),
+      session: sessionText(input.session),
+      validate: String(input.validate),
+    } satisfies Fields<AnswerInput>),
+  );
+
+/**
  * The values in force an answer's admission reads (the SQL grader's `start_of`): each outcome where
  * the session's last processed attempt left it, its starting value before the first, and the
  * session's template values.
@@ -313,6 +492,7 @@ export const gradeAnswerWith = <K extends ExpressionKind>(
   input: AnswerInput,
 ): Failed | Graded<AnswerGrade> => {
   const proof: GradeProof = {
+    inputDigest: answerDigest(input),
     prior: priorOf(input.session.prior),
     program: input.item.digest,
     readAt: input.readAt,
@@ -581,6 +761,7 @@ const sittingWith = <K extends ExpressionKind>(
   }
 
   const proof: GradeProof = {
+    inputDigest: sittingDigest(input),
     prior: { kind: "none" },
     program: input.test.digest,
     readAt: input.readAt,
@@ -623,7 +804,8 @@ export interface CompletionInput extends SittingInput {
 
 /**
  * Complete a pending grade (D7, D8): the same attempts graded again with the recorded answers now
- * in, every closing member one the pending grade graded, on the same responses.
+ * in. The completion's whole input but its recorded answers must be the one the pending grade
+ * read, by its proof's input digest, so a drifted completion is refused and never minted.
  *
  * @param table - The standard operators.
  * @param input - The sitting and the pending grade.
@@ -633,22 +815,10 @@ export const completePendingWith = <K extends ExpressionKind>(
   table: OperatorTable<K>,
   input: CompletionInput,
 ): Failed | Graded<SittingGrade> => {
-  for (const member of input.closing) {
-    const pendingMember = input.pending.members.find(
-      (each) =>
-        each.ref.identifier === member.ref.identifier &&
-        each.ref.occurrence === member.ref.occurrence,
-    );
-    if (pendingMember?.read.digest.sha256 !== readOf(member.responses).digest.sha256) {
-      return {
-        failure: {
-          identifier: member.ref.identifier,
-          kind: "completion-mismatch",
-          occurrence: member.ref.occurrence,
-        },
-        kind: "failed",
-      };
-    }
+  const pending = proofOf(input.pending).inputDigest;
+  const given = sittingDigest(input);
+  if (given.sha256 !== pending.sha256) {
+    return { failure: { given, kind: "completion-mismatch", pending }, kind: "failed" };
   }
 
   return sittingWith(table, input);

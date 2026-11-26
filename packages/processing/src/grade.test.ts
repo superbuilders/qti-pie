@@ -1,4 +1,10 @@
+import { exhaust } from "@bjornpagen/testing/explore";
+import { noCoverage } from "@bjornpagen/testing/features";
+import { int } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
 import { assert, describe, it } from "@effect/vitest";
+import { Duration, Effect } from "effect";
 import { compileItemWith, compileTestWith } from "#processing/compile/document.ts";
 import { valuesDigest } from "#processing/digest.ts";
 import { restartBudget } from "#processing/engine.ts";
@@ -8,7 +14,7 @@ import {
   proofOf,
   templateDefaultsWith,
 } from "#processing/grade.ts";
-import type { ItemSession } from "#processing/grade.ts";
+import type { ClosingMember, ItemSession, SittingInput } from "#processing/grade.ts";
 import { operatorTable } from "#processing/operators/table.ts";
 import type { CompiledItem } from "#processing/program.ts";
 import { takeWith } from "#processing/session.ts";
@@ -229,7 +235,9 @@ describe("response processing", () => {
       return assert.fail("graded");
     }
 
-    assert.deepStrictEqual(proofOf(graded), {
+    const { inputDigest, ...proof } = proofOf(graded);
+    assert.strictEqual(inputDigest.sha256.length, 64);
+    assert.deepStrictEqual(proof, {
       prior: { kind: "none" },
       program: digest,
       readAt: { microseconds: 5n },
@@ -427,6 +435,177 @@ describe("a sitting", () => {
  */
 const outcome = (identifier: string, base: string, cardinality: string): XmlElement =>
   element("qti-outcome-declaration", { "base-type": base, cardinality, identifier }, []);
+
+/**
+ * A closing member of the input-digest sitting.
+ *
+ * @param identifier - Its item ref.
+ * @param session - Its session.
+ * @param evaluations - The recorded answers in.
+ * @returns The member.
+ */
+const closingOf = (
+  identifier: string,
+  session: ItemSession,
+  evaluations: ReadonlyMap<number, Value>,
+): ClosingMember => ({
+  evaluations,
+  item: itemOf(false, [scoring]),
+  ref: { identifier, occurrence: 1n },
+  responses: { kind: "default" },
+  session,
+});
+
+/**
+ * A sitting of two default submissions, q1 and q2, over a test of the two.
+ *
+ * @returns The sitting.
+ */
+const twoMemberSitting = (): SittingInput => {
+  const item = itemOf(false, [scoring]);
+  const compiled = compileTestWith(
+    element("qti-assessment-test", { identifier: "t" }, [
+      element("qti-test-part", { identifier: "p" }, [
+        element("qti-assessment-item-ref", { href: "q1.xml", identifier: "q1" }, []),
+        element("qti-assessment-item-ref", { href: "q2.xml", identifier: "q2" }, []),
+      ]),
+    ]),
+    digest,
+    new Map([
+      ["q1", item],
+      ["q2", item],
+    ]),
+    table,
+  );
+
+  return {
+    carried: [],
+    closing: [closingOf("q1", fresh(noTake), new Map()), closingOf("q2", fresh(noTake), new Map())],
+    context: new Map(),
+    readAt: { microseconds: 3_000_000n },
+    startedAt: { microseconds: 1_000_000n },
+    test: compiled.ok ? compiled.value : assert.fail(compiled.refusal.detail),
+    testSeed: seed,
+    unpresented: [],
+  };
+};
+
+/**
+ * The input digest a sitting's grade proves.
+ *
+ * @param input - The sitting.
+ * @returns The digest's hex, or `undefined` where the grade failed.
+ */
+const inputDigestOf = (input: SittingInput): string | undefined => {
+  const graded = gradeSittingWith(table, input);
+
+  return "failure" in graded ? undefined : proofOf(graded).inputDigest.sha256;
+};
+
+/**
+ * How a sitting departs from {@link twoMemberSitting}: each field a completion may not drift, and
+ * the two it may (the recorded answers in, the order the members come in).
+ */
+interface Departure {
+  readonly context: boolean;
+  readonly duration: boolean;
+  readonly evaluations: boolean;
+  readonly numAttempts: boolean;
+  readonly readAt: boolean;
+  readonly reordered: boolean;
+  readonly startedAt: boolean;
+  readonly testSeed: boolean;
+  readonly unpresented: boolean;
+}
+
+/**
+ * Every departure: each of its nine fields either way.
+ */
+const departures: Gen<Departure> = (source) => {
+  const bit = (): boolean => int(0, 1)(source) === 1;
+
+  return {
+    context: bit(),
+    duration: bit(),
+    evaluations: bit(),
+    numAttempts: bit(),
+    readAt: bit(),
+    reordered: bit(),
+    startedAt: bit(),
+    testSeed: bit(),
+    unpresented: bit(),
+  };
+};
+
+/**
+ * The sitting a departure makes of a base sitting.
+ *
+ * @param base - The sitting.
+ * @param departure - How it departs.
+ * @returns The departed sitting.
+ */
+const departed = (base: SittingInput, departure: Departure): SittingInput => {
+  const q1 = closingOf(
+    "q1",
+    departure.duration ? { ...fresh(noTake), duration: 13 } : fresh(noTake),
+    departure.evaluations ? new Map([[7, single("float", 1)]]) : new Map(),
+  );
+  const q2 = closingOf(
+    "q2",
+    departure.numAttempts ? { ...fresh(noTake), numAttempts: 1n } : fresh(noTake),
+    new Map(),
+  );
+  const members = departure.unpresented ? [q1] : [q1, q2];
+
+  return {
+    ...base,
+    closing: departure.reordered ? members.toReversed() : members,
+    context: departure.context ? new Map([["C", single("integer", 1n)]]) : base.context,
+    readAt: departure.readAt ? { microseconds: 3_000_001n } : base.readAt,
+    startedAt: departure.startedAt ? { microseconds: 0n } : base.startedAt,
+    testSeed: departure.testSeed ? { key: `${seed.key}0` } : base.testSeed,
+    unpresented: departure.unpresented
+      ? [{ item: itemOf(false, [scoring]), ref: { identifier: "q2", occurrence: 1n } }]
+      : [],
+  };
+};
+
+describe("a sitting's input digest (completePending's check)", () => {
+  it.effect(
+    "is the base's exactly when the sitting departs from it in nothing but its recorded answers and its members' order",
+    (ctx) => {
+      const base = twoMemberSitting();
+      const at = inputDigestOf(base);
+
+      return searched(
+        ctx,
+        exhaust(
+          {
+            box: "each of nine fields of a two-member sitting either way",
+            caseHang: Duration.seconds(30),
+            coverage: noCoverage,
+            generator: departures,
+            literal: (departure) => JSON.stringify(departure),
+            oracle: { kind: "specification", name: "the digest names every field but evaluations" },
+            suite: "processing/grade/input-digest",
+          },
+          (departure) =>
+            Effect.sync(() => {
+              const drifted =
+                departure.context ||
+                departure.duration ||
+                departure.numAttempts ||
+                departure.readAt ||
+                departure.startedAt ||
+                departure.testSeed ||
+                departure.unpresented;
+              assert.strictEqual(inputDigestOf(departed(base, departure)) === at, !drifted);
+            }),
+        ),
+      );
+    },
+  );
+});
 
 describe("a sitting's members", () => {
   it("reads a member's built-ins and counts a selected, unpresented member at its declared start, in the test's order (§2.2.2, §2.11.2)", () => {

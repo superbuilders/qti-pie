@@ -6,6 +6,7 @@
  *
  * @module
  */
+import type { Digest } from "#processing/graded.ts";
 import type { Expression, ItemFilter, LiteralOr, VariableRef } from "#processing/ir.ts";
 import { toFloat } from "#processing/numbers.ts";
 import { single } from "#processing/value.ts";
@@ -32,12 +33,15 @@ export type ProcessingFailure =
   | { readonly kind: "completion-status"; readonly place: number; readonly value: Value }
   | {
       /**
-       * A completion of a pending grade named a member the pending grade did not grade, or the
-       * member's responses as other values than it read.
+       * The digest of the completion's input, but its recorded answers.
        */
-      readonly identifier: string;
+      readonly given: Digest;
+      /**
+       * A completion of a pending grade read another input than the pending grade did: the
+       * digest of the input the pending grade read.
+       */
       readonly kind: "completion-mismatch";
-      readonly occurrence: bigint;
+      readonly pending: Digest;
     };
 
 /**
