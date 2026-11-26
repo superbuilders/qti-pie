@@ -13,7 +13,7 @@
  * @module
  */
 import type { BoundOperator, InlineEntry, RecordedEntry } from "#processing/operator.ts";
-import type { BaseType, Null, Single, ValueType } from "#processing/value.ts";
+import type { BaseType, Null, Single, Value, ValueType } from "#processing/value.ts";
 
 /**
  * The expression kinds: every element QTI 3.0.1's ASI XSD admits where an expression stands, by its
@@ -316,7 +316,15 @@ export type CustomCall =
       readonly entry: InlineEntry;
       readonly kind: "inline";
     }
-  | { readonly entry: RecordedEntry; readonly kind: "recorded" };
+  | {
+      readonly entry: RecordedEntry;
+      readonly kind: "recorded";
+      /**
+       * For each operand position, the literal value written there, or `undefined` where an
+       * expression stands.
+       */
+      readonly written: readonly (Value | undefined)[];
+    };
 
 /**
  * The filters an outcome-processing-only expression selects the test's items by (§7.39): a section,

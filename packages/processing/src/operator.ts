@@ -170,11 +170,12 @@ export interface InlineOperator<
 
 /**
  * A recorded operator as its module writes it: its operands and result type, and which operand is
- * the most its answer may score.
+ * the most its answer may score. A literal operand is checked by its `parse` at publication, as an
+ * inline operator's is, and its value as written is carried into the demand.
  */
 export interface RecordedOperator<
   Definition extends string,
-  Operands extends readonly ExpressionOperand[],
+  Operands extends readonly OperandSpec[],
   R extends ValueType,
 > {
   readonly definition: Definition;
@@ -221,10 +222,16 @@ export interface InlineEntry<Definition extends string = string> {
  * A recorded operator's registry entry: its declaration, since its answer is an input.
  */
 export interface RecordedEntry<Definition extends string = string> {
+  /**
+   * Whether an element's operands as written suit the operator: at each literal position a value
+   * its `parse` takes, at each expression position `undefined`. Publication refuses a document
+   * where they do not.
+   */
+  readonly admits: (written: readonly (Value | undefined)[]) => boolean;
   readonly definition: Definition;
   readonly kind: "recorded";
   readonly maximum: number;
-  readonly operands: readonly ExpressionOperand[];
+  readonly operands: readonly OperandSpec[];
   readonly result: ValueType;
 }
 
@@ -396,11 +403,21 @@ export const inlineOperator = <
  */
 export const recordedOperator = <
   const Definition extends string,
-  const Operands extends readonly ExpressionOperand[],
+  const Operands extends readonly OperandSpec[],
   const R extends ValueType,
 >(
   operator: RecordedOperator<Definition, Operands, R>,
 ): RecordedEntry<Definition> => ({
+  admits: (written) =>
+    written.length === operator.operands.length &&
+    operator.operands.every((operand, index) => {
+      const value = written[index];
+      if (operand.form === "expression") {
+        return value === undefined;
+      }
+
+      return value !== undefined && operand.parse(value) !== undefined;
+    }),
   definition: operator.definition,
   kind: "recorded",
   maximum: operator.maximum,

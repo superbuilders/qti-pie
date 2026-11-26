@@ -139,8 +139,10 @@ const effectFreeImports = Object.freeze({
  * ambient randomness, Promise, process or fetch, and no try, async, console, environment or bare
  * error. The override stands after the alpha/ ones, so an effect-free package's alpha/ keeps it,
  * and the ones after it let processing's one invariant door (`src/invariant.ts`, a defect of the
- * package never its input) throw its Error, and processing's registry, where its host plugs Alpha's
- * operators in, and its alpha/ modules import alpha/ under the same bans.
+ * package never its input) throw its Error, its SHA-256 (`src/sha256.ts`, FIPS 180-4's functions,
+ * which are defined by 32-bit shifts, rotations and bitwise logic) use the bitwise operators, and
+ * processing's registry, where its host plugs Alpha's operators in, and its alpha/ modules import
+ * alpha/ under the same bans.
  */
 const effectFreeSources = toolchain.effectFree.map((directory) => `${directory}/src/**/*.ts`);
 
@@ -611,6 +613,10 @@ export default defineConfig({
     {
       files: ["packages/processing/src/invariant.ts"],
       rules: { "devtools/no-new-error": "off" },
+    },
+    {
+      files: ["packages/processing/src/sha256.ts"],
+      rules: { "no-bitwise": "off" },
     },
     {
       excludeFiles: effectFreeTests,

@@ -81,9 +81,9 @@ export const customOperators: OperatorTable<"custom-operator"> = {
         return call.bound.evaluate(values);
       }
 
-      const { entry } = call;
-      const values = operands.map((operand) => run.evaluate(operand));
-      if (values.some((value) => value.kind === "null")) {
+      const { entry, written } = call;
+      const values = operands.map((operand, index) => written[index] ?? run.evaluate(operand));
+      if (values.some((value, index) => written[index] === undefined && value.kind === "null")) {
         return nullOf(entry.result);
       }
 
@@ -122,16 +122,22 @@ export const customOperators: OperatorTable<"custom-operator"> = {
         );
       }
 
-      if (entry.kind === "recorded") {
-        return checked({ call: { entry, kind: "recorded" } });
-      }
-
-      const computed = entry.operands.map((operand) => operand.form === "expression");
       const written = children.map((child, index) => {
         const operand = entry.operands[index];
 
         return operand === undefined ? undefined : writtenLiteral(child, operand);
       });
+      if (entry.kind === "recorded") {
+        return entry.admits(written)
+          ? checked({ call: { entry, kind: "recorded", written } })
+          : refused(
+              "attribute",
+              place,
+              `write each literal operand of ${definition.value} as a qti-base-value or qti-null its definition reads`,
+            );
+      }
+
+      const computed = entry.operands.map((operand) => operand.form === "expression");
       const bound = entry.bind(written);
 
       return bound === undefined

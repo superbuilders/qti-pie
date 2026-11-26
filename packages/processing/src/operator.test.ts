@@ -124,23 +124,29 @@ describe("custom operators", () => {
     );
   });
 
-  it("keeps a recorded operator's declaration, which has no function", () => {
+  it("admits a recorded operator's literals by their parse, and expressions only where it computes them", () => {
     const rubric = recordedOperator({
       definition: `${alphaDefinitionPrefix}test-rubric`,
       maximum: 1,
       operands: [
         { form: "expression", name: "essay", type: { base: "string", cardinality: "single" } },
         { form: "expression", name: "maximum", type: { base: "float", cardinality: "single" } },
+        {
+          form: "literal",
+          name: "draw",
+          parse: (value: Value) =>
+            value.kind === "single" && value.base === "integer" && value.value > 0n
+              ? value.value
+              : undefined,
+          type: { base: "integer", cardinality: "single" },
+        },
       ],
       result: { cardinality: "record" },
     });
-    assert.deepStrictEqual(Object.keys(rubric).toSorted(), [
-      "definition",
-      "kind",
-      "maximum",
-      "operands",
-      "result",
-    ]);
+    assert.isTrue(rubric.admits([undefined, undefined, single("integer", 2n)]));
+    assert.isFalse(rubric.admits([undefined, undefined, single("integer", 0n)]));
+    assert.isFalse(rubric.admits([undefined, undefined, undefined]));
+    assert.isFalse(rubric.admits([textValue("string", "a"), undefined, single("integer", 2n)]));
   });
 
   it("lists each definition once in the registry", () => {
