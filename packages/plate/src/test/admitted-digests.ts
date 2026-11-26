@@ -22,9 +22,13 @@
  * d4e7e509ec35186e8cbd15fba42e96c3128f5a9f's laws, and the graph item's fourth form at
  * 411f3a038efb2b2ccf580dfc9bc9249d22e1d26f's: 8 judged, 7 admitted, these five and the graph item's
  * second and third forms, since changed and dropped, its first form, which named a template its
- * declarations do not meet, refused. Do not edit it: run the admission again when a document a
- * suite opens changes, and when a law lands that moves a verdict (follow-up 5's template needs, the
- * normative half of G1, refuse 1EdTech's slider-1, which this set admits).
+ * declarations do not meet, refused. The four build-with-blocks items of specimen's Alpha fixtures
+ * (`packages/specimen/fixtures/alpha/build-with-blocks/`), their stems rewritten, were admitted
+ * again, collected alone in one run with ten documents of a later change, at qti-pie
+ * b1a17274eb5aa7f733679ddfe1b3b0bde533ae1e's laws: 14 judged, 14 admitted, these four replacing
+ * their earlier digests. Do not edit it: run the admission again when a document a suite opens
+ * changes, and when a law lands that moves a verdict (follow-up 5's template needs, the normative
+ * half of G1, refuse 1EdTech's slider-1, which this set admits).
  *
  * @module
  */
@@ -260,6 +264,14 @@ export const admittedDocuments: ReadonlyMap<
   ["29e6277f53dc74c8ce6a2d2145dc9243590d691cdb1409298ae2b393cf0fb492", []],
   ["2a382c47dd354d9a96874969bb46aeb94abcc60ceaafd57d7721b08e79232ed8", []],
   ["2a56ef6cb906ef65308f55aad9e02a8a7130b19cfe249cc9717f45ff6c6196d7", []],
+  [
+    "2b3895695374a7c48e425f640b5ad21abfa0c1093fbaeb9400d73c017278576a",
+    [
+      [14, "", "data-supply-cubes"],
+      [14, "", "data-supply-flats"],
+      [14, "", "data-supply-rods"],
+    ],
+  ],
   ["2b6572f429444ea615d979d31d3736aae229cf0ccc421b504dc31ead47b70b3a", []],
   ["2b9f1775f8968dd667c0b3ffa46c1dcc1d4185726e47b5904683868c43c90385", []],
   ["2ba954996d9f58c596ffb9e948828920f22a7ccf73a19ec60b523b6a11f6d2ac", []],
@@ -555,13 +567,6 @@ export const admittedDocuments: ReadonlyMap<
   ["6121a38102f5b9e18ec15663ae08f537974d41e13ed25fb7c0cb8552f3dac916", []],
   ["61800468bf68725f5a4d85c2232f403c661590b2b0907a5b4fb8b70459f7f5e2", []],
   ["61fb30283159aba66ebdc02e91e0b01c08dd062637d66a131a2d245ff9b42dae", []],
-  [
-    "620dac301615957182401311a335225ecde07e593eb29d143dc8c93c7d1c3e0d",
-    [
-      [13, "", "data-supply-cubes"],
-      [13, "", "data-supply-rods"],
-    ],
-  ],
   ["625c24b44d95983746f47868060713c5cb0978c8b922ff474bac24ff78fb8dee", []],
   [
     "627a9b88f84a7d3c5a7e6ae8747bca20a8dd72b183ab2ec7c9efb7a97de20ce9",
@@ -659,13 +664,6 @@ export const admittedDocuments: ReadonlyMap<
   ],
   ["6fbd5780a6b7f28be8e108f31e404bd69ff79fed1fc596d4293474f9ea9f6a98", []],
   ["6fe2d56f962eca0daeede14839d236a0a8f450217025ffb1e787afc4c762a26b", []],
-  [
-    "7092c3df941b5625350d119b147667ff14f21b7a3ea07541a221cf8e7913ba81",
-    [
-      [13, "", "data-supply-cubes"],
-      [13, "", "data-supply-rods"],
-    ],
-  ],
   ["70cefe1af4d1b4149bc55e2653874a5cd86cf89008068a179e6cb9a2e3deffc9", []],
   ["70d32860174ed3c492c25bf84aa719b1173df4d0ee552809c4dfa15bd3c88776", []],
   ["70de36282146dc23985aa4404322db96b93633696c47b086af345f6454041d29", []],
@@ -679,14 +677,6 @@ export const admittedDocuments: ReadonlyMap<
   ["714603e5b6c9ff4f59b1a69f6b252c99fb1cda019e1cbbf0a114263980ccec95", []],
   ["714e07c62cdda4992cff6a0d5b05899ec94e8bff8f8852369cf2d2145907f317", []],
   ["71c89af69f081c26dcc803012f1afebcff36f08dfa81919204f4d2160987d748", []],
-  [
-    "71f5ae90d83b4049cdce97699757de4286816c4bbb5edb1fd33aae1f65035828",
-    [
-      [14, "", "data-supply-cubes"],
-      [14, "", "data-supply-flats"],
-      [14, "", "data-supply-rods"],
-    ],
-  ],
   ["72028c2c25411cd1f945cc64253f1135bba47c90e832a902e739dde30b2f3c88", []],
   ["7217238317f294f21c6d242a04a55cd3b4ab72a76091cb40bbf7a3b47e915224", []],
   ["7226f556f13c5a143b17d269d3486a0c3955d37b9a33bfd7defe7f584559002c", []],
@@ -752,6 +742,13 @@ export const admittedDocuments: ReadonlyMap<
   ["7a6b1a3f4feee6d29d737da4aa77fdb884af24bab6678d049eda8620099c551d", []],
   ["7a7c82f4b90ffeaf80b6c748c6b8faeedcf6717cf24ba7d298a2288078f13325", []],
   ["7aa040e83bd4225080af481213a6217c6cd3f7238021c2c6c9ef84fcff7810cc", []],
+  [
+    "7b1bb23f822194dd9755fea703a7ac9f42863c331597a42297d523f0efe68b7b",
+    [
+      [13, "", "data-supply-cubes"],
+      [13, "", "data-supply-rods"],
+    ],
+  ],
   ["7b701fa4f0b764664876eae80df74073878e28f7ef4354a3e60600ec116fb99a", []],
   ["7b79fa4ea5dbf6a63e3ec8aaada0829d9282499a0d401138cf907c95aed35050", []],
   ["7bfc8102c262b6db4277a26e6cd2551559be0feba5cd088822647052d6cf2a50", []],
@@ -1107,6 +1104,13 @@ export const admittedDocuments: ReadonlyMap<
   ["b49014c459a664dc82ecbbff79c0b05cf401d84c18e53ace403278da6145e9cb", []],
   ["b5353b08261819d650bfb965cfb0274cb39bb0ed452eeeba5a26343852e0002a", []],
   ["b564b33a9c380dc50865be5909ccbae06824ab8f080c92ad7df161c7f90389af", []],
+  [
+    "b5eb0aaf4ca8f6ff735bb3a7691e65cf879342dd2085ae015c0fa78fce83f8ce",
+    [
+      [13, "", "data-supply-cubes"],
+      [13, "", "data-supply-rods"],
+    ],
+  ],
   ["b615c5ad00061ce8bad0003ccd880a51fcfa4ec01726602f27a088de21abb418", []],
   ["b62448d03a1e9adc78b50ffe0d6fbbe944f7f343288f9f1095855d46cf23a489", []],
   ["b6246af7b65226dcc73b39baab4a9d20b4c9396f92f53fd5cf37eb5f9965f292", []],
@@ -1218,14 +1222,6 @@ export const admittedDocuments: ReadonlyMap<
   ["cb74705b1be3e81cf10ba8688b6ddab83f0b7dad5a0cc1f8e54515277b740774", []],
   ["cb7ac05d3b8d473eae965fc7e64465176704f6c0805ec5e0abc9ec3f2587a4f9", []],
   ["cb81e289e3c70997d1fc22748d384fb933948880cfd09034af82392c406c5b25", []],
-  [
-    "cb9af1fed9caa0d7fd3bfc4acb864a23f95ad99fc0ce3227f5d84512f8f4af9d",
-    [
-      [14, "", "data-supply-cubes"],
-      [14, "", "data-supply-flats"],
-      [14, "", "data-supply-rods"],
-    ],
-  ],
   ["cc7c8a799ffe4753b8aa49e91825dd1183e4844c499cf299ec19a8d45be8d833", []],
   ["ccd4fd4d4bc8b8edd23ce30cac33bb7f3acaac2f73e1a8facc49061250ba0162", []],
   ["cd1a899702e8cf522be62e9baacfa4c4469fbda479129f981c712741f075edc9", []],
@@ -1311,6 +1307,14 @@ export const admittedDocuments: ReadonlyMap<
   ["db832b2440f67d55ca844ea430b988ec9e7ec40122f4c177ff4274a514bb6d48", []],
   ["db97a5ddf1fb3698ec7f36d5002a3a4ff9008f49476d7731bc60536f5dbec170", []],
   ["dccadafc10cdd246bb123648daf046c27700ac17458e00226ab157dc04f9a6da", []],
+  [
+    "dcd0f0d6036c1d30cf3e01e3889b4ed5cbb1bd36095b50b16af4733a770e8b9c",
+    [
+      [14, "", "data-supply-cubes"],
+      [14, "", "data-supply-flats"],
+      [14, "", "data-supply-rods"],
+    ],
+  ],
   ["dcf6515c0d80fc427f9fe3e41b5e8c7c99184a874b00881ece74689af8843483", []],
   ["dd18010ff3626b02508cdec0906b0423b1a74037f4b750765161220c32a6160b", []],
   ["dd387ffce47b50c89ec97790f0d91bd9ca2ba3676166f7e693f75463f3d45665", []],
