@@ -4,11 +4,14 @@
  * `#registry/operators.ts`), and the laws that hold its answer, a machine's reply or a person's
  * value, to the application's maximum.
  *
- * - **ApplicationOperands** `(child, package, path, n, at, operator) → stage, response, rubric,
- *   grader`: each recorded application whose request is made, the attempt's demand of it
- *   (`ApplicationDemand`, what the grader's run reached with a response), with the response's text,
- *   the rubric group its `rubric` operand names (`RubricApplication`) and the grader version in
- *   force for its class (`InForceGrader`).
+ * - **ApplicationOperands** `(child, package, path, n, at, operator, identifier) → stage, response,
+ *   rubric, grader`: each recorded application whose request is made, the attempt's demand of it
+ *   (`ApplicationDemand`, what the grader's run reached with a response), with the response its
+ *   essay operand names (`identifier`, `ApplicationResponse`'s) and that response's text, the
+ *   rubric group its `rubric` operand names (`RubricApplication`) and the grader version in force
+ *   for its class (`InForceGrader`). The response's identifier is a column, never projected away,
+ *   so the relation keeps its root key: an application of a class with several essay operands has a
+ *   row of each, and two responses of one text are two rows, never one.
  * - The maximum, the value its `maximum` operand, a `qti-default`, takes in the attempt's item
  *   session ("This expression looks up the declaration of an itemVariable and returns the
  *   associated defaultValue or NULL if no default value was declared", ASI Table 5.42), is no
@@ -79,7 +82,19 @@ export const applicationOperandsOf = (ledger: LedgerLevel) => {
       })
       .match(RubricApplication, { package: pkg, path, rubric, start: operator })
       .match(InForceGrader, { class: operatorClass, version: grader })
-      .find({ at, child, grader, n, operator, package: pkg, path, response, rubric, stage });
+      .find({
+        at,
+        child,
+        grader,
+        identifier,
+        n,
+        operator,
+        package: pkg,
+        path,
+        response,
+        rubric,
+        stage,
+      });
   });
 };
 

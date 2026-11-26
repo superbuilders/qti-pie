@@ -146,6 +146,7 @@ const {
   Presence,
   PresentTime,
   ProcessedAttempt,
+  RubricGrader,
   SessionSeed,
   SittingFinal,
   SnapshotMultipleIdentifier,
@@ -611,7 +612,8 @@ const awaitingOf = query(ResultLevel).rule((r) => {
 });
 
 /**
- * The child's recorded applications' request operands.
+ * The child's recorded applications' request operands, each by the response its essay operand
+ * names.
  */
 const operandsOf = query(ResultLevel).rule((r) => {
   const {
@@ -620,6 +622,7 @@ const operandsOf = query(ResultLevel).rule((r) => {
     n,
     at,
     operator,
+    identifier,
     stage,
     response,
     rubric,
@@ -631,6 +634,7 @@ const operandsOf = query(ResultLevel).rule((r) => {
       at,
       child: r.param("child", LearnerId),
       grader: version,
+      identifier,
       n,
       operator,
       package: pkg,
@@ -639,7 +643,38 @@ const operandsOf = query(ResultLevel).rule((r) => {
       rubric,
       stage,
     })
-    .find({ at, grader: version, n, operator, package: pkg, path, response, rubric, stage });
+    .find({
+      at,
+      grader: version,
+      identifier,
+      n,
+      operator,
+      package: pkg,
+      path,
+      response,
+      rubric,
+      stage,
+    });
+});
+
+/**
+ * A package's `rubric-score` graders, each by its item's document and rubric group (the registry's
+ * `RubricGrader`): one a group, however many applications name it and however many assemblies
+ * place its document.
+ */
+const gradersOf = query(ResultLevel).rule((r) => {
+  const { path, rubric, block, use, grader: version } = v(RubricGrader, "grader");
+
+  return r
+    .match(RubricGrader, {
+      block,
+      grader: version,
+      package: r.param("package", ItemSession.fields.package),
+      path,
+      rubric,
+      use,
+    })
+    .find({ block, grader: version, path, rubric, use });
 });
 
 /**
@@ -1165,6 +1200,7 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite, PresenceRu
       finishTest,
       floatsOf,
       grade: gradeAttemptOf(ResultLevel).bind({ sittings: sessionSitting }),
+      gradersOf,
       lastPresencesOf,
       maximaOf,
       operandsOf,

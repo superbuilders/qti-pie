@@ -5,6 +5,7 @@ import {
   contained,
   Crypto,
   derived,
+  key,
   Logic,
   natural,
   on,
@@ -468,7 +469,7 @@ export const registryOf = (qti: typeof QtiLom, roster: Roster) => {
   /**
    * Every key a seed table holds, each once, in seed order.
    */
-  const RegistryWord = closed.ordered("RegistryWord", Arr.dedupe(tables.map(({ key }) => key)));
+  const RegistryWord = closed.ordered("RegistryWord", Arr.dedupe(tables.map((entry) => entry.key)));
 
   /**
    * The roles a primitive reads a seed table in.
@@ -483,7 +484,7 @@ export const registryOf = (qti: typeof QtiLom, roster: Roster) => {
     "RegistryEntry",
     { key: closedId(RegistryWord), place: natural, table: closedId(RegistryTable) },
     ["table", "key"],
-    tables.map(({ key, place, table }) => ({ key, place: BigInt(place), table })),
+    tables.map((entry) => ({ key: entry.key, place: BigInt(entry.place), table: entry.table })),
   );
 
   /**
@@ -493,8 +494,11 @@ export const registryOf = (qti: typeof QtiLom, roster: Roster) => {
     "RegistryValue",
     { key: closedId(RegistryWord), table: closedId(RegistryTable), value: anyText },
     ["table", "key"],
-    tables.flatMap(({ key, table, value }) =>
-      Option.match(value, { onNone: () => [], onSome: (text) => [{ key, table, value: text }] }),
+    tables.flatMap((entry) =>
+      Option.match(entry.value, {
+        onNone: () => [],
+        onSome: (text) => [{ key: entry.key, table: entry.table, value: text }],
+      }),
     ),
   );
 
@@ -1178,7 +1182,7 @@ export const registryOf = (qti: typeof QtiLom, roster: Roster) => {
       ApplicationDefault,
       ApplicationLiteral,
     ],
-    [],
+    [named("Rubric grader key", key(on(RubricGrader, "package", "path", "rubric")))],
   );
 
   return { Registry, RegistryRoster };

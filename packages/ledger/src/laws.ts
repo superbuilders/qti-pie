@@ -383,6 +383,10 @@ export const ledgerLaws = {
   "Response in time": {
     source: `${info}#DerivedCharacteristic_TimeLimits.Attr_allow-late-submission (Table 7.40.3: 'The allow-late-submission attribute regulates whether a candidate's response that is beyond the max-time should still be accepted', 'Default = false'): a response given and arrived within its candidate session's budget (src/delivery.ts TimedResponse)`,
   },
+  "Rubric grader key": {
+    source:
+      "src/registry/levels.ts RubricGrader: 'The `rubric-score` grader each item configures, by its natural key, its document and the `id` of the scorer rubric block its applications name': one grader a rubric group, however many applications name it and however many assemblies place its document",
+  },
   "Run instant": {
     source:
       "src/ledger.ts TestOutcomeRun: 'one run, by its sitting and its instant, a clock whose child is the sitting, stamped by the insert that adds it'",
