@@ -26,6 +26,7 @@
  *
  * @module
  */
+import { regex } from "arkregex";
 import { realpathSync } from "node:fs";
 import { createServer } from "node:http";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
@@ -902,7 +903,7 @@ export interface Hydrated {
 /**
  * A picture's address: a file whose extension names an image format.
  */
-const pictureAddress = /\.(?:avif|gif|jpe?g|png|svg|webp)(?:[?#]|$)/iu;
+const pictureAddress = regex.as("\\.(?:avif|gif|jpe?g|png|svg|webp)(?:[?#]|$)", "iu");
 
 /**
  * Tell whether a console message reports an error of the page's. React's development build reports
