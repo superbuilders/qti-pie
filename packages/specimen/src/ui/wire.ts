@@ -473,9 +473,6 @@ const fromWire = (wire: Wire, clients: ReadonlyMap<string, unknown>): unknown =>
 
       return createElement(wire.tag, props, ...children);
     }
-    default: {
-      return wire satisfies never;
-    }
   }
 };
 

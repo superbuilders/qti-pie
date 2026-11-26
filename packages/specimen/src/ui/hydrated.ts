@@ -187,9 +187,6 @@ const islandNames = (wire: Wire): readonly string[] => {
     case "undefined": {
       return [];
     }
-    default: {
-      return wire satisfies never;
-    }
   }
 };
 
