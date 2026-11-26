@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0p1_v1p0.xsd" identifier="tap-point-line-0-1-5" title="Tap a point: line-0-1-5" adaptive="false" time-dependent="false" xml:lang="en-US">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="integer">
+    <qti-correct-response>
+      <qti-value>2</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" normal-maximum="1" normal-minimum="0">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>1</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body>
+    <p>Find the tick for two fifths and choose it.</p>
+    <qti-portable-custom-interaction response-identifier="RESPONSE" custom-interaction-type-identifier="urn:fdc:alpha.school:2026:tap-point" module="tap-point" data-kind="line" data-start="0" data-end="1" data-parts="5">
+      <qti-interaction-modules>
+        <qti-interaction-module id="tap-point" primary-path="modules/tap-point"/>
+      </qti-interaction-modules>
+      <qti-interaction-markup/>
+    </qti-portable-custom-interaction>
+  </qti-item-body>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>
