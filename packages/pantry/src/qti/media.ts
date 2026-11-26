@@ -62,7 +62,6 @@ import {
   closed,
   closedId,
   derived,
-  Logic,
   login,
   query,
   role,
@@ -180,22 +179,6 @@ export const QtiMediaPolicy = schema.extend(
 );
 
 /**
- * Each extension of the policy with the media type it is served as, `suffix`, the extension with
- * its dot, as a path ends with it, and `segmentSuffix`, the suffix after a `/`, as a path ends with
- * it whose last segment is the suffix alone: a name that begins with its only `.`, which has no
- * extension.
- */
-const policySuffixes = query(QtiMediaPolicy).rule((r) => {
-  const { name, type } = v(MediaType, "policy");
-
-  return r.match(MediaType, { name, type }).find({
-    segmentSuffix: Text.concat(Type.literal(str.regex("^/[.]$"), "/."), name),
-    suffix: Text.concat(Type.literal(str.regex("^[.]$"), "."), name),
-    type,
-  });
-});
-
-/**
  * Every media file each document names, by the document's place and the file's path, with the
  * digest the application serves it under: the target of each reference, image candidate and text
  * reference resolved in the package (`ReferencePath`, `CandidatePath`, `TextReferencePath`) that
@@ -232,29 +215,36 @@ const namedMedia = query(QtiMediaPolicy)
   });
 
 /**
+ * The one slash written ahead of an entry's path, so its last segment follows a slash.
+ */
+const Slash = str.regex("^/$");
+
+/**
  * Every media entry of a package whose extension a {@link MediaType} row lists, with the media
- * type the row serves it as: its path, in ASCII lower case, ends with the row's suffix, and neither
- * ends with its segment suffix nor is the suffix alone, so a character that is no `/` stands before
- * the `.`, which is then not its last segment's first character, as Node's `path.posix.extname`
- * reads an extension. A path of any length is read so, by text comparisons alone, with no pattern
- * or length its size could outgrow.
+ * type the row serves it as: its path, rooted with a `/`, split at its last `/` into its last
+ * segment, which is split at its last `.` into a stem and an extension, neither empty, as Node's
+ * `path.posix.extname` reads an extension; the extension in ASCII lower case is the row's `name`,
+ * one equality. A path that holds no `.` in its last segment, one whose last segment begins with
+ * its only `.` or ends with a `.`, has none and no row.
  *
  * @see {@link https://nodejs.org/api/path.html#pathextnamepath | Node.js, path.extname}
  */
 const listedMedia = query(QtiMediaPolicy).rule((r) => {
   const { package: pkg, path } = v(Media, "media");
-  const { segmentSuffix, suffix, type } = v(policySuffixes, "policy");
+  const lastSlash = r.splitLast(Text.concat(Type.literal(Slash, "/"), path), "/");
+  const { after: segment } = v(lastSlash, "segment");
+  const lastDot = r.splitLast(segment, ".");
+  const { after: extension, before: stem } = v(lastDot, "dot");
+  const { name, type } = v(MediaType, "policy");
 
-  return (
-    r
-      .match(Media, { package: pkg, path })
-      .match(policySuffixes, { segmentSuffix, suffix, type })
-      // GRIZZLE-PENDING: a boolean term as a predicate
-      .where(Logic.eq(Text.endsWith(Text.lowerAscii(path), suffix), true))
-      .where(Logic.eq(Text.endsWith(Text.lowerAscii(path), segmentSuffix), false))
-      .where(r.ne(Text.lowerAscii(path), suffix))
-      .find({ package: pkg, path, type })
-  );
+  return r
+    .match(Media, { package: pkg, path })
+    .match(lastSlash, { after: segment })
+    .match(lastDot, { after: extension, before: stem })
+    .where(r.ne(stem, ""))
+    .match(MediaType, { name, type })
+    .where(r.eq(name, Text.lowerAscii(extension)))
+    .find({ package: pkg, path, type });
 });
 
 /**

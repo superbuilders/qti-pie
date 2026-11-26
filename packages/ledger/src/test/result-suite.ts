@@ -40,7 +40,8 @@ export type ResultFile =
   | "typed"
   | "module_held"
   | "member_reads"
-  | "app_operands";
+  | "app_operands"
+  | "media_served";
 
 /**
  * The suite's login as `grizzle generate` compiled it, and the file's connection as that login,
