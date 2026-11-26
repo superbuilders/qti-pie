@@ -87,7 +87,7 @@ export const textOf = (element: XmlElement): string =>
 /**
  * The four characters XML counts as white space (XML 1.0 production [3]).
  */
-const xmlSpace = new Set([" ", "\t", "\n", "\r"]);
+const xmlSpace: ReadonlySet<string> = new Set([" ", "\t", "\n", "\r"]);
 
 /**
  * A run of XML white space.

@@ -7,7 +7,7 @@ import { literal, nodeOf, ownVariable, testRun } from "#processing/test/run.ts";
 import { nullOf, single } from "#processing/value.ts";
 import type { Value } from "#processing/value.ts";
 
-const operators = { ...logicOperators, ...valuesOperators };
+const operators = Object.freeze({ ...logicOperators, ...valuesOperators });
 
 /**
  * A truth in Kleene's order, false below unknown below true, the oracle's reading of three-valued
@@ -15,7 +15,24 @@ const operators = { ...logicOperators, ...valuesOperators };
  */
 type Truth = 0 | 1 | 2;
 
-const truths: readonly Truth[] = [0, 1, 2];
+/**
+ * The truth at an index of Kleene's order.
+ *
+ * @param index - 0, 1 or 2.
+ * @returns The truth.
+ */
+const truthAt = (index: number): Truth => {
+  if (index === 0) {
+    return 0;
+  }
+
+  return index === 1 ? 1 : 2;
+};
+
+/**
+ * Every truth, in Kleene's order.
+ */
+const truths: readonly Truth[] = Array.from({ length: 3 }, (_, index) => truthAt(index));
 
 /**
  * The operand a truth is.
@@ -84,6 +101,11 @@ const reversed = (truth: Truth): Truth => {
 };
 
 /**
+ * The counts of trues a list of up to three truths can hold.
+ */
+const counts: readonly bigint[] = Array.from({ length: 4 }, (_, count) => BigInt(count));
+
+/**
  * Every list of one to three truths.
  */
 const lists: readonly (readonly [Truth, ...Truth[]])[] = truths.flatMap((first) => [
@@ -111,9 +133,13 @@ const expectedAnyN = (within: readonly boolean[]): Value => {
     : single("boolean", false);
 };
 
-const { run } = testRun(operators, {
-  threshold: { value: single("integer", 2n) },
-});
+const { run } = testRun(
+  operators,
+  {
+    threshold: { value: single("integer", 2n) },
+  },
+  {},
+);
 
 describe("the logic family", () => {
   it("and is the least truth and or the greatest, over every list of up to three truths (Kleene, §2.11.3.10, §2.11.3.15)", () => {
@@ -136,8 +162,8 @@ describe("the logic family", () => {
 
   it("any-n is true when every reading of the unknowns keeps the trues within [min, max], false when none does, else NULL (§2.11.3.1)", () => {
     for (const list of lists) {
-      for (const min of [0n, 1n, 2n]) {
-        for (const max of [1n, 2n, 3n]) {
+      for (const min of counts.slice(0, 3)) {
+        for (const max of counts.slice(1)) {
           const [first, ...rest] = list.map(operandOf);
           const node = nodeOf(
             "any-n",

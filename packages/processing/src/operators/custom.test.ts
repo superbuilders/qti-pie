@@ -48,7 +48,7 @@ const scored = recordedOperator({
 
 const context = testContext({ declared: {}, operators: [repeated, scored] });
 
-const operators = { ...customOperators, ...valuesOperators };
+const operators = Object.freeze({ ...customOperators, ...valuesOperators });
 
 /**
  * Read a custom operator element.
@@ -81,25 +81,24 @@ describe("the custom-operator family", () => {
       element("qti-base-value", { "base-type": "integer" }, [text("3")]),
     ]);
     assert.isTrue(three.ok);
-    if (three.ok) {
-      const node = nodeOf(
-        "custom-operator",
-        [literal(textValue("string", "ab")), literal(single("integer", 3n))],
-        three.value,
-        {
-          kind: "typed",
-          type: { base: "string", cardinality: "single" },
-        },
-      );
 
-      const { run } = testRun(operators, {});
-      assert.deepStrictEqual(
-        customOperators["custom-operator"].evaluate(node, run),
-        textValue("string", "ababab"),
-      );
-    }
+    const node = nodeOf(
+      "custom-operator",
+      [literal(textValue("string", "ab")), literal(single("integer", 3n))],
+      three.value,
+      {
+        kind: "typed",
+        type: { base: "string", cardinality: "single" },
+      },
+    );
 
-    assert.isTrue(read("urn:test:repeat", [word, element("qti-null")]).ok);
+    const { run } = testRun(operators, {}, {});
+    assert.deepStrictEqual(
+      customOperators["custom-operator"].evaluate(node, run),
+      textValue("string", "ababab"),
+    );
+
+    assert.isTrue(read("urn:test:repeat", [word, element("qti-null", {}, [])]).ok);
 
     const zero = read("urn:test:repeat", [
       word,
@@ -111,49 +110,48 @@ describe("the custom-operator family", () => {
   it("demands a recorded answer that is not in, gives NULL meanwhile, and asks nothing for a NULL operand (D7, D8)", () => {
     const call = read(`${alphaDefinitionPrefix}test-score`, [word, word]);
     assert.isTrue(call.ok);
-    if (call.ok) {
-      const floatType = { kind: "typed", type: { base: "float", cardinality: "single" } } as const;
-      const essay = nodeOf(
-        "custom-operator",
-        [literal(textValue("string", "ab")), literal(single("float", 4))],
-        call.value,
-        floatType,
-      );
 
-      const pending = testRun(operators, {});
-      assert.deepStrictEqual(
-        customOperators["custom-operator"].evaluate(essay, pending.run),
-        nullOf({ base: "float", cardinality: "single" }),
-      );
-      assert.deepStrictEqual(pending.recorder.demands, [
-        {
-          definition: `${alphaDefinitionPrefix}test-score`,
-          maximum: single("float", 4),
-          operands: [textValue("string", "ab"), single("float", 4)],
-          place: 0,
-        },
-      ]);
+    const floatType = { kind: "typed", type: { base: "float", cardinality: "single" } } as const;
+    const essay = nodeOf(
+      "custom-operator",
+      [literal(textValue("string", "ab")), literal(single("float", 4))],
+      call.value,
+      floatType,
+    );
 
-      const answered = testRun(operators, {}, { recorded: new Map([[0, single("float", 3)]]) });
-      assert.deepStrictEqual(
-        customOperators["custom-operator"].evaluate(essay, answered.run),
-        single("float", 3),
-      );
-      assert.deepStrictEqual(answered.recorder.demands, []);
+    const pending = testRun(operators, {}, {});
+    assert.deepStrictEqual(
+      customOperators["custom-operator"].evaluate(essay, pending.run),
+      nullOf({ base: "float", cardinality: "single" }),
+    );
+    assert.deepStrictEqual(pending.recorder.demands, [
+      {
+        definition: `${alphaDefinitionPrefix}test-score`,
+        maximum: single("float", 4),
+        operands: [textValue("string", "ab"), single("float", 4)],
+        place: 0,
+      },
+    ]);
 
-      const empty = nodeOf(
-        "custom-operator",
-        [literal(textValue("string", "")), literal(single("float", 4))],
-        call.value,
-        floatType,
-      );
+    const answered = testRun(operators, {}, { recorded: new Map([[0, single("float", 3)]]) });
+    assert.deepStrictEqual(
+      customOperators["custom-operator"].evaluate(essay, answered.run),
+      single("float", 3),
+    );
+    assert.deepStrictEqual(answered.recorder.demands, []);
 
-      const blank = testRun(operators, {});
-      assert.deepStrictEqual(
-        customOperators["custom-operator"].evaluate(empty, blank.run),
-        nullOf({ base: "float", cardinality: "single" }),
-      );
-      assert.deepStrictEqual(blank.recorder.demands, []);
-    }
+    const empty = nodeOf(
+      "custom-operator",
+      [literal(textValue("string", "")), literal(single("float", 4))],
+      call.value,
+      floatType,
+    );
+
+    const blank = testRun(operators, {}, {});
+    assert.deepStrictEqual(
+      customOperators["custom-operator"].evaluate(empty, blank.run),
+      nullOf({ base: "float", cardinality: "single" }),
+    );
+    assert.deepStrictEqual(blank.recorder.demands, []);
   });
 });

@@ -68,14 +68,14 @@ describe("the values family", () => {
 
   it("refuses a variable the document does not declare, and types one it does by its declaration", () => {
     const read = valuesOperators.variable.read(
-      element("qti-variable", { identifier: "MISSING" }),
+      element("qti-variable", { identifier: "MISSING" }, []),
       context,
       4,
     );
     assert.deepStrictEqual(read.ok ? undefined : read.refusal.code, "unknown-identifier");
 
     const known = valuesOperators.variable.read(
-      element("qti-variable", { identifier: "SCORE" }),
+      element("qti-variable", { identifier: "SCORE" }, []),
       context,
       4,
     );
@@ -101,13 +101,17 @@ describe("the values family", () => {
   it("evaluates a variable, its correct response and its default from the run, NULL of its type where it holds none", () => {
     const score = ownVariable("SCORE", { base: "float", cardinality: "single" });
 
-    const { run } = testRun(valuesOperators, {
-      SCORE: {
-        correct: single("float", 1),
-        default: single("float", 0),
-        value: single("float", 0.5),
+    const { run } = testRun(
+      valuesOperators,
+      {
+        SCORE: {
+          correct: single("float", 1),
+          default: single("float", 0),
+          value: single("float", 0.5),
+        },
       },
-    });
+      {},
+    );
 
     const typedScore = { kind: "typed", type: score.type } as const;
     assert.deepStrictEqual(

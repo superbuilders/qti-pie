@@ -106,7 +106,7 @@ export const testRun = <K extends ExpressionKind>(
     readonly draws?: readonly number[];
     readonly members?: readonly MemberState[];
     readonly recorded?: ReadonlyMap<number, Value>;
-  } = {},
+  },
 ) => {
   const recorder: Recorder = { demands: [], draws: { taken: 0 }, failures: [] };
   const lookup = (variable: VariableRef): Stated | undefined => stated[nameOf(variable)];
@@ -189,8 +189,8 @@ export const ownVariable = (identifier: string, type: ValueType): VariableRef =>
  */
 export const element = (
   local: string,
-  attributes: Readonly<Record<string, string>> = {},
-  children: readonly XmlNode[] = [],
+  attributes: Readonly<Record<string, string>>,
+  children: readonly XmlNode[],
 ): XmlElement => ({
   attributes: Object.entries(attributes).map(([name, value]) => ({
     local: name,
