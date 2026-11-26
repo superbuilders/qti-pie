@@ -8,15 +8,18 @@
  * columns and rows stand at its axes' numerals.
  *
  * - TP1, the screen: a line shows its ticks evenly spaced, the start's numeral under the first and
- *   the end's under the last and no other text; a grid shows every unit numbered on both axes and
- *   both titles. Nothing is marked.
+ *   the end's under the last, grouped in threes with a comma from 1,000, and no other text, every
+ *   numeral inside the drawing; a grid shows every unit numbered on both axes and its two titles
+ *   where the item gives them, and no word where it gives none. Nothing is marked.
  * - TP2, tapping: a tap within 20 px of a tick or an intersection (inside its 44 px target) marks it;
  *   a tap on the marked one takes the mark away; a tap on another moves it. One mark at most.
  * - TP3, the response: a line's tick place `{ base: { integer: k } }`, a grid's `{ list: { integer:
  *   [x, y] } }`, NULL with nothing marked; `match_correct` scores the key 1 and a swapped pair 0;
  *   the last change relayed is the response completed with.
- * - TP4, coming back: bound to a point the PCI marks it and gives it back; NULL marks none.
- * - TP5, refusals: properties it cannot read, the other kind's property, or markup fail it.
+ * - TP4, coming back: bound to a point the PCI marks it and gives it back; NULL, or a grid's empty
+ *   list (an empty container is NULL), marks none.
+ * - TP5, refusals: properties it cannot read, the other kind's property, one title without the other,
+ *   or markup fail it.
  * - TP6, the keyboard: the figure is a tab stop, the arrows move, Enter or Space taps.
  * - TP7, review: a PCI not interacting takes no tap.
  *
@@ -39,12 +42,24 @@ const offTarget = 20;
  * the marks (circles), each in the frame's document.
  */
 interface Figure {
+  /**
+   * The drawing's view box.
+   */
+  readonly box: string;
   readonly columns: readonly { readonly at: number; readonly text: string }[];
   /**
    * Whether the whole figure lies inside the frame's width.
    */
   readonly fits: boolean;
+  /**
+   * Whether every text lies inside the drawing's box, none cut at its edge.
+   */
+  readonly inside: boolean;
   readonly marks: readonly Point[];
+  /**
+   * The figure's accessible name.
+   */
+  readonly name: string;
   readonly rows: readonly { readonly at: number; readonly text: string }[];
   readonly texts: readonly string[];
   readonly ticks: readonly Point[];
@@ -73,17 +88,33 @@ const readFigure = (): Figure => {
   const numerals = texts.filter(
     (text) =>
       text.textContent !== "" &&
-      text.textContent.split("").every((character) => character >= "0" && character <= "9"),
+      text.textContent
+        .split("")
+        .every((character) => (character >= "0" && character <= "9") || character === ","),
   );
   const below = numerals.filter((text) => text.getAttribute("text-anchor") !== "end");
   const beside = numerals.filter((text) => text.getAttribute("text-anchor") === "end");
 
   return {
+    box: svg?.getAttribute("viewBox") ?? "",
     columns: below.map((text) => ({ at: centre(text).x, text: text.textContent })),
     fits:
       (svg?.getBoundingClientRect().right ?? Number.POSITIVE_INFINITY) <=
       document.documentElement.clientWidth,
+    inside: texts.every((text) => {
+      const box = text.getBoundingClientRect();
+      const drawing = svg?.getBoundingClientRect();
+
+      return (
+        drawing !== undefined &&
+        box.left >= drawing.left &&
+        box.right <= drawing.right &&
+        box.top >= drawing.top &&
+        box.bottom <= drawing.bottom
+      );
+    }),
     marks: [...(svg?.querySelectorAll("circle") ?? [])].map(centre),
+    name: svg?.getAttribute("aria-label") ?? "",
     rows: beside.map((text) => ({ at: centre(text).y, text: text.textContent })),
     texts: texts.map((text) => text.textContent),
     ticks: strokes
@@ -228,9 +259,21 @@ const withProperties = (
 });
 
 layer(HostedLayer)("the tap-point PCI", (it) => {
-  for (const [name, parts, ends] of [
-    ["line-0-1-5", 5, ["0", "1"]],
-    ["line-0-2-8", 8, ["0", "2"]],
+  for (const [name, parts, ends, said] of [
+    ["line-0-1-5", 5, ["0", "1"], "a number line from 0 to 1 in 5 equal parts"],
+    ["line-0-2-8", 8, ["0", "2"], "a number line from 0 to 2 in 8 equal parts"],
+    [
+      "line-40000-50000-10",
+      10,
+      ["40,000", "50,000"],
+      "a number line from 40,000 to 50,000 in 10 equal parts",
+    ],
+    [
+      "line-990000-1000000-10",
+      10,
+      ["990,000", "1,000,000"],
+      "a number line from 990,000 to 1,000,000 in 10 equal parts",
+    ],
   ] as const) {
     it.effect(
       `TP1: ${name} draws its ticks evenly with numerals at its ends alone, nothing marked`,
@@ -263,16 +306,26 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
           );
           assert.deepStrictEqual(figure.marks, [], "nothing marked");
           assert.isTrue(figure.fits, "the whole line fits AlphaTest's frame");
+          assert.isTrue(figure.inside, "every numeral inside the drawing");
+          assert.strictEqual(figure.name, `${said}; no point marked`);
+          if (ends.every((end) => end.length <= 2)) {
+            assert.strictEqual(
+              figure.box,
+              "0 0 640 136",
+              "a line of short numerals keeps its drawing",
+            );
+          }
         }),
     );
   }
 
-  for (const [name, size, titles] of [
-    ["grid-10", 10, ["Days", "Pages read"]],
-    ["grid-5", 5, ["Steps", "Height"]],
+  for (const [name, size, titles, said] of [
+    ["grid-10", 10, ["Days", "Pages read"], "a grid from 0 to 10, Days across and Pages read up"],
+    ["grid-5", 5, ["Steps", "Height"], "a grid from 0 to 5, Steps across and Height up"],
+    ["grid-6-untitled", 6, [], "a grid from 0 to 6"],
   ] as const) {
     it.effect(
-      `TP1: ${name} numbers every unit on both axes and draws both titles, nothing marked`,
+      `TP1: ${name} numbers every unit on both axes and draws its titles alone, nothing marked`,
       () =>
         Effect.gen(function* gridScreen() {
           const page = yield* Hosted;
@@ -288,7 +341,13 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
             figure.rows.map((row) => row.text),
             units,
           );
-          assert.includeMembers([...figure.texts], [...titles]);
+          assert.sameMembers(
+            [...figure.texts],
+            [...units, ...units, ...titles],
+            "the numerals of both axes and its titles, no other word",
+          );
+          assert.strictEqual(figure.name, `${said}; no point marked`);
+          assert.isTrue(figure.inside, "every numeral and title inside the drawing");
           assert.isTrue(
             figure.rows.every(
               (row, index) => index === 0 || row.at < (figure.rows[index - 1]?.at ?? 0),
@@ -477,6 +536,12 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
       );
       assert.deepStrictEqual((yield* finished(page)).response, gridJson([3, 6]));
       assert.deepStrictEqual((yield* started(page, grid, { boundTo: { list: null } })).marks, []);
+      assert.deepStrictEqual(
+        (yield* started(page, grid, { boundTo: { list: { integer: [] } } })).marks,
+        [],
+        "an empty container is NULL: no point",
+      );
+      assert.deepStrictEqual((yield* finished(page)).response, gridJson(null));
     }),
   );
 
@@ -494,6 +559,11 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
         ["a grid's property on a line", withProperties(line, { size: "10" }), {}],
         ["a grid of eleven", withProperties(grid, { size: "11" }), {}],
         ["an empty title", withProperties(grid, { xTitle: "" }), {}],
+        ["an x title alone", withProperties(grid, { yTitle: undefined }), {}],
+        ["a y title alone", withProperties(grid, { xTitle: undefined }), {}],
+        ["an end past a million", withProperties(line, { end: "1000001" }), {}],
+        ["a grouped end", withProperties(line, { end: "4,300", start: "4200" }), {}],
+        ["a start of a million", withProperties(line, { end: "1000000", start: "1000000" }), {}],
         ["a line's property on a grid", withProperties(grid, { parts: "4" }), {}],
         ["markup", { ...line, markup: "<p>0</p>" }, {}],
         ["a bound tick past the end", line, { boundTo: { base: { integer: 6 } } }],

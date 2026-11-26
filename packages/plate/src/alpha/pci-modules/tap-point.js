@@ -9,9 +9,10 @@
  *
  * - **The screen.** As `kind` says: `line`, a number line from `start` to `end` cut into `parts`
  *   equal parts by ticks, a numeral under its two end ticks and nothing under any other; or `grid`,
- *   a first-quadrant grid from 0 to `size` on both axes, every unit numbered on both axes, the
- *   x-axis titled `x-title` beneath and the y-axis titled `y-title` beside it. Nothing is marked at
- *   the start, and nothing else is drawn.
+ *   a first-quadrant grid from 0 to `size` on both axes, every unit numbered on both axes, and,
+ *   where the item gives titles, the x-axis titled `x-title` beneath and the y-axis titled
+ *   `y-title` beside it. A numeral from 1,000 up is grouped in threes with a comma (`4,200`), as a
+ *   stem writes a number. Nothing is marked at the start, and nothing else is drawn.
  * - **The interaction.** A tap on a tick rings it, a tap on an intersection sets a dot on it; a tap
  *   on the marked one takes the mark away, and a tap on another moves it there: one point at most.
  *   Each tick and intersection is a target of at least 44 px (WCAG 2.2's Target Size, Enhanced), a
@@ -29,9 +30,11 @@
  *
  * **Properties.** A closed set, each a `data-*` attribute of the `qti-portable-custom-interaction`:
  * `data-kind` (`line` or `grid`); for a line `data-start` and `data-end` (whole numbers from 0, no
- * leading zero, the end past the start, at most 20) and `data-parts` (2 to 12); for a grid
- * `data-size` (1 to 10), `data-x-title` and `data-y-title` (each a non-empty title of at most 40
- * characters). It passes over the two QTI 3.0.1's schema declares on the element
+ * leading zero and no grouping, the end past the start, at most 1,000,000, the elementary grades'
+ * whole numbers) and `data-parts` (2 to 12); for a grid `data-size` (1 to 10), and `data-x-title`
+ * and `data-y-title`, both or neither (each a non-empty title of at most 40 characters; an item
+ * that says its titles carries them as its own text, so a grid without them draws no word). It
+ * passes over the two QTI 3.0.1's schema declares on the element
  * (`data-catalog-idref`, `data-qti-suppress-tts`) and refuses any other, one of the other kind's,
  * and one absent or malformed. The markup is empty: anything in it refuses.
  *
@@ -103,8 +106,24 @@
                             
                             
                               
-                              
       
+
+/**
+ * The room about a figure for its numerals and titles, in CSS pixels.
+ */
+                   
+                          
+                        
+                         
+                       
+ 
+
+/**
+ * A grid's axis titles: none, or both, drawn beneath the x-axis and beside the y-axis.
+ */
+             
+                             
+                                                                       
 
 /**
  * A point of the figure: a line's tick by its place from the start, `[k, 0]`, or a grid's
@@ -185,9 +204,20 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   const margin = { bottom: 84, left: 84, right: 28, top: 24 };
 
   /**
-   * The most a line's end may be, and its parts and a grid's size.
+   * The room about a grid without titles: its y numerals end 12 px left of the axis and its x
+   * numerals' baseline is 26 px below it, each at most two digits at `grid.numeral`; and at least
+   * half a unit on every side, so a point on an edge keeps its whole target, focus square and dot
+   * inside the drawing.
    */
-  const most = { end: 20, parts: 12, size: 10, title: 40 };
+  const untitled = { bottom: 44, left: 48, right: 28, top: 24 };
+
+  /**
+   * The most a line's end may be (the elementary grades' whole numbers, CCSS Grade 4 Number and
+   * Operations in Base Ten: "limited to whole numbers less than or equal to 1,000,000"; its
+   * numeral, the widest, still leaves the line inside a 700 px frame), and its parts and a grid's
+   * size.
+   */
+  const most = { end: 1_000_000, parts: 12, size: 10, title: 40 };
 
   /**
    * Whether a text is one or more of the digits 0 to 9 and nothing else.
@@ -207,6 +237,25 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
    */
   const isWhole = (text        )          =>
     text === "0" || (isDigits(text) && !text.startsWith("0"));
+
+  /**
+   * A whole number's numeral as a stem writes it: its digits, grouped in threes with a comma from
+   * 1,000 up.
+   *
+   * @param value The number.
+   * @returns Its numeral.
+   */
+  const numeralOf = (value        )         => {
+    const digits = String(value);
+    const lead = digits.length % 3 === 0 ? 3 : digits.length % 3;
+    const groups = [digits.slice(0, lead)];
+
+    for (let at = lead; at < digits.length; at += 3) {
+      groups.push(digits.slice(at, at + 3));
+    }
+
+    return groups.join(",");
+  };
 
   /**
    * The namespace the drawing is made in.
@@ -305,7 +354,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
       written.length <= most.title
       ? written
       : refuse(
-          `its property ${attributeOf(name)} is ${written === undefined ? "absent" : `"${written}"`}; write the axis's title, 1 to ${String(most.title)} characters with no space at either end.`,
+          `its property ${attributeOf(name)} is ${written === undefined ? "absent" : `"${written}"`}; write the axis's title, 1 to ${String(most.title)} characters with no space at either end, or neither axis's title.`,
         );
   };
 
@@ -341,8 +390,10 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
       return {
         kind,
         size: wholeOf(properties, "size", 1, most.size),
-        xTitle: titleOf(properties, "xTitle"),
-        yTitle: titleOf(properties, "yTitle"),
+        titles:
+          properties["xTitle"] === undefined && properties["yTitle"] === undefined
+            ? { kind: "none" }
+            : { kind: "drawn", x: titleOf(properties, "xTitle"), y: titleOf(properties, "yTitle") },
       };
     }
 
@@ -380,8 +431,8 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   /**
    * Read the integer member of a response's Appendix C JSON as the figure writes it: a line's `{
    * base: { integer: k } }` as the point `[k, 0]`, a grid's `{ list: { integer: [x, y] } }` as `[x,
-   * y]`; NULL or nothing as no point. Any other JSON reads as `NaN` coordinates, which no figure
-   * holds.
+   * y]`; NULL, an empty grid's list (an empty container is NULL) or nothing as no point. Any other
+   * JSON reads as `NaN` coordinates, which no figure holds.
    *
    * @param figure The figure.
    * @param given The JSON, or its text.
@@ -403,6 +454,10 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
       typeof value === "object"
         ? Object.getOwnPropertyDescriptor(value, "integer")?.value
         : undefined;
+    if (figure.kind === "grid" && Array.isArray(integer) && integer.length === 0) {
+      return undefined;
+    }
+
     const members                     = Array.isArray(integer) ? integer : [integer, 0];
     const written = figure.kind === "line" ? !Array.isArray(integer) : members.length === 2;
     const [x, y] = members.map((member) => (typeof member === "number" ? member : Number.NaN));
@@ -480,22 +535,36 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   };
 
   /**
+   * The room about a figure: a grid without titles keeps room for its numerals alone, every other
+   * figure the margins it always had (a line's numerals that pass them widen the drawing as drawn,
+   * `fitNumerals`).
+   *
+   * @param figure The figure.
+   * @returns Its margins.
+   */
+  const marginOf = (figure        )          =>
+    figure.kind === "grid" && figure.titles.kind === "none" ? untitled : margin;
+
+  /**
    * Where a point is drawn, in the drawing's pixels.
    *
    * @param figure The figure.
    * @param point The point.
    * @returns Its centre.
    */
-  const placeOf = (figure        , [x, y]       )                                               =>
-    figure.kind === "line"
+  const placeOf = (figure        , [x, y]       )                                               => {
+    const room = marginOf(figure);
+
+    return figure.kind === "line"
       ? {
-          cx: margin.left + (x * line.length) / figure.parts,
-          cy: margin.top + line.tick + line.ring.r,
+          cx: room.left + (x * line.length) / figure.parts,
+          cy: room.top + line.tick + line.ring.r,
         }
       : {
-          cx: margin.left + x * grid.unit,
-          cy: margin.top + (figure.size - y) * grid.unit,
+          cx: room.left + x * grid.unit,
+          cy: room.top + (figure.size - y) * grid.unit,
         };
+  };
 
   /**
    * Draw the figure, beneath its targets: the line with its ticks and its end numerals, or the grid
@@ -508,16 +577,17 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   const drawFigure = (document          , figure        )                => {
     const svg = document.createElementNS(svgNamespace, "svg");
     const parts               = [];
+    const room = marginOf(figure);
     const stroke = { stroke: look.axis, "stroke-linecap": "round", "stroke-width": look.stroke };
     const [width, height] =
       figure.kind === "line"
         ? [
-            margin.left + line.length + margin.right,
-            margin.top + 2 * (line.tick + line.ring.r) + line.numeralBelow,
+            room.left + line.length + room.right,
+            room.top + 2 * (line.tick + line.ring.r) + line.numeralBelow,
           ]
         : [
-            margin.left + figure.size * grid.unit + margin.right,
-            margin.top + figure.size * grid.unit + margin.bottom,
+            room.left + figure.size * grid.unit + room.right,
+            room.top + figure.size * grid.unit + room.bottom,
           ];
 
     if (figure.kind === "line") {
@@ -525,8 +595,8 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
 
       parts.push(
         svgElement(document, "line", {
-          x1: margin.left,
-          x2: margin.left + line.length,
+          x1: room.left,
+          x2: room.left + line.length,
           y1: y,
           y2: y,
           ...stroke,
@@ -552,7 +622,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
         [figure.parts, figure.end],
       ]         ) {
         parts.push(
-          svgText(document, String(numeral), {
+          svgText(document, numeralOf(numeral), {
             "font-size": line.numeral,
             "font-weight": 600,
             x: placeOf(figure, [tick, 0]).cx,
@@ -574,14 +644,14 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
             "stroke-width": 1,
             x1: cx,
             x2: cx,
-            y1: margin.top,
-            y2: margin.top + far,
+            y1: room.top,
+            y2: room.top + far,
           }),
           svgElement(document, "line", {
             stroke: look.grid,
             "stroke-width": 1,
-            x1: margin.left,
-            x2: margin.left + far,
+            x1: room.left,
+            x2: room.left + far,
             y1: cy,
             y2: cy,
           }),
@@ -608,23 +678,28 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
           x1: origin.cx,
           x2: origin.cx,
           y1: origin.cy,
-          y2: margin.top,
+          y2: room.top,
           ...stroke,
         }),
-        svgText(document, figure.xTitle, {
-          "font-size": grid.title,
-          "font-weight": 600,
-          x: origin.cx + far / 2,
-          y: origin.cy + 64,
-        }),
-        svgText(document, figure.yTitle, {
-          "font-size": grid.title,
-          "font-weight": 600,
-          transform: `rotate(-90 ${String(margin.left - 52)} ${String(margin.top + far / 2)})`,
-          x: margin.left - 52,
-          y: margin.top + far / 2,
-        }),
       );
+
+      if (figure.titles.kind === "drawn") {
+        parts.push(
+          svgText(document, figure.titles.x, {
+            "font-size": grid.title,
+            "font-weight": 600,
+            x: origin.cx + far / 2,
+            y: origin.cy + 64,
+          }),
+          svgText(document, figure.titles.y, {
+            "font-size": grid.title,
+            "font-weight": 600,
+            transform: `rotate(-90 ${String(room.left - 52)} ${String(room.top + far / 2)})`,
+            x: room.left - 52,
+            y: room.top + far / 2,
+          }),
+        );
+      }
     }
 
     svg.setAttribute("viewBox", `0 0 ${String(width)} ${String(height)}`);
@@ -641,16 +716,16 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   };
 
   /**
-   * Name the figure for a screen reader: "a number line from 0 to 1 in 5 equal parts", "a grid from
-   * 0 to 10, Days across and Pages read up".
+   * Name the figure for a screen reader: "a number line from 40,000 to 50,000 in 10 equal parts",
+   * "a grid from 0 to 10, Days across and Pages read up", "a grid from 0 to 6" (no titles).
    *
    * @param figure The figure.
    * @returns The name.
    */
   const nameOf = (figure        )         =>
     figure.kind === "line"
-      ? `a number line from ${String(figure.start)} to ${String(figure.end)} in ${String(figure.parts)} equal parts`
-      : `a grid from 0 to ${String(figure.size)}, ${figure.xTitle} across and ${figure.yTitle} up`;
+      ? `a number line from ${numeralOf(figure.start)} to ${numeralOf(figure.end)} in ${String(figure.parts)} equal parts`
+      : `a grid from 0 to ${String(figure.size)}${figure.titles.kind === "drawn" ? `, ${figure.titles.x} across and ${figure.titles.y} up` : ""}`;
 
   /**
    * Name a point for a screen reader: "tick 2 of 5", "(3, 6)".
@@ -681,6 +756,45 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
       `${part("figure")}:focus-visible ${part("cursor")}{visibility:visible}`,
     ].join("\n");
     document.head.append(sheet);
+  };
+
+  /**
+   * Widen a line's drawing to hold its end numerals as the frame's own font draws them: each is
+   * centred under its end tick, and its measured box (`getBBox`, in the drawing's units) may pass
+   * the side margins in a wide face, so the view box and the width grow to hold both, and no
+   * numeral is cut, whatever the font. It only ever grows, so it runs again whenever the drawing's
+   * box changes (a frame shown after it was hidden measures nothing at first), in the next frame,
+   * so growing the drawing never loops its observer. A grid's numerals are at most two digits and
+   * never pass its margins.
+   *
+   * @param svg The drawing, in the frame's document.
+   * @param figure The figure.
+   */
+  const fitNumerals = (svg               , figure        )       => {
+    if (figure.kind !== "line") {
+      return;
+    }
+
+    const [x = 0, y = 0, width = 0, height = 0] = (svg.getAttribute("viewBox") ?? "")
+      .split(" ")
+      .map(Number);
+    let left = x;
+    let right = x + width;
+
+    for (const text of svg.querySelectorAll                ("text")) {
+      const box = text.getBBox();
+
+      left = Math.min(left, Math.floor(box.x));
+      right = Math.max(right, Math.ceil(box.x + box.width));
+    }
+
+    if (left < x || right > x + width) {
+      svg.setAttribute(
+        "viewBox",
+        `${String(left)} ${String(y)} ${String(right - left)} ${String(height)}`,
+      );
+      svg.setAttribute("width", String(right - left));
+    }
   };
 
   /**
@@ -884,6 +998,12 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
 
     style(document);
     dom.replaceChildren(svg);
+    fitNumerals(svg, figure);
+    new ResizeObserver(() => {
+      requestAnimationFrame(() => {
+        fitNumerals(svg, figure);
+      });
+    }).observe(svg);
     show();
     configuration.onready(instance, getResponse());
 

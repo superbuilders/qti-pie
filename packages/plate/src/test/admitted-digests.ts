@@ -27,9 +27,14 @@
  * synthetic items of specimen's enter-numbers and tap-point suites
  * (`packages/specimen/fixtures/alpha/enter-numbers/` and `tap-point/`), collected alone, were
  * admitted by one run at qti-pie b1a17274eb5aa7f733679ddfe1b3b0bde533ae1e's laws: 14 judged, 14
- * admitted, the four replacing their earlier digests. Do not edit it: run the admission again when
- * a document a suite opens changes, and when a law lands that moves a verdict (follow-up 5's
- * template needs, the normative half of G1, refuse 1EdTech's slider-1, which this set admits).
+ * admitted, the four replacing their earlier digests. The tap-point suite's three later synthetic
+ * items, its lines between whole numbers and its untitled grid
+ * (`packages/specimen/fixtures/alpha/tap-point/line-40000-50000-10.xml`,
+ * `line-990000-1000000-10.xml` and `grid-6-untitled.xml`), collected alone, were admitted by one
+ * run at qti-pie c500d024b5e6138147ee4e66fffc49fedbb4d2e6's laws: 3 judged, 3 admitted. Do not edit
+ * it: run the admission again when a document a suite opens changes, and when a law lands that
+ * moves a verdict (follow-up 5's template needs, the normative half of G1, refuse 1EdTech's
+ * slider-1, which this set admits).
  *
  * @module
  */
@@ -217,6 +222,15 @@ export const admittedDocuments: ReadonlyMap<
   ["1e8e50547f73ab422280fa6676ea154b1a0ef2b0a8fc835cf7d3a6a6a84bab1a", []],
   ["1f2f0e6be262b4e1fb0a5d93e9a1ce59535a8f0aeb4e27060f5d2b703e96c8b0", []],
   ["1f3701a15e0c78dea9583a14f7465eacefd04c2d039023e185379a5e3b01fc51", []],
+  [
+    "1f596f46dc38248a6bc29bf8770f4a54df14328b385c0c353e35eaa20bbc7a66",
+    [
+      [12, "", "data-end"],
+      [12, "", "data-kind"],
+      [12, "", "data-parts"],
+      [12, "", "data-start"],
+    ],
+  ],
   ["1f669de9739fa6db25ce356f1f9613bbcc6958b27a938bd3acfa44f9effba291", []],
   ["1fa34c03e53b6f52fe75f353672f34b43d0f296e670d676a55828a2166c781a8", []],
   ["218b2b1c0a580c0be31b2de72f838f5400c8318a9744426dfaeb6c8716c6d6db", []],
@@ -1201,6 +1215,15 @@ export const admittedDocuments: ReadonlyMap<
   ],
   ["ba129e8d982f5a07c0a482acaf5e9c1445e065fc679a5846758bbbe94032703b", []],
   ["ba2687983caf5ade19a513dfb8992b27d020ff5c0379556e2b29bf3d5b89b4c1", []],
+  [
+    "ba3db0a64729c48159b5664e123b44e08c4e247cd05c9a0b08d450130a6c2533",
+    [
+      [12, "", "data-end"],
+      [12, "", "data-kind"],
+      [12, "", "data-parts"],
+      [12, "", "data-start"],
+    ],
+  ],
   ["ba5671eb9bfca1efcdeebcf6ebd8b8a4d448f45bb48648eae6b19a067837ab65", []],
   ["ba7cd3ddda48fdc9752b2bbbc338e13fb963ea1b0c94bab901b6b29417583a01", []],
   ["ba9ab89bfe947a6412e121d6c69f70484e1e20a6938e9597e5cc580359cadd0a", []],
@@ -1240,6 +1263,13 @@ export const admittedDocuments: ReadonlyMap<
   ["c0269209339fea6b6c3b8e4291dcd576d69c06df94bf15ae7a8258b7aaba7a37", []],
   ["c02d926a7175f46e0e867ec3d96a7328e56d2b7ab867e08250654d27dea48fbd", []],
   ["c04b9c09cd389950f25464bbd90cb9097a0b4cee52d846e6f059fe62d75cb8d7", []],
+  [
+    "c0b2cf0f22edefa64b9edac5f59fae8bd0c2fdd45e73147b645f8f83389c2556",
+    [
+      [13, "", "data-kind"],
+      [13, "", "data-size"],
+    ],
+  ],
   ["c0cdfc4017844b8b8b54a52eac149ea227d2c0dfd33cd0086ff9b1c2871a2cb7", []],
   [
     "c0f77ae1d023b08f5123b347721734066595e406f3b8eb782d2b65d6807ddc4e",
