@@ -14,7 +14,7 @@
  * @module
  * @see https://react.dev/reference/rsc/use-client#serializable-types
  */
-import { Data, Predicate, Schema } from "effect";
+import { Data, Option, Predicate, Schema } from "effect";
 import { Component, Fragment, Suspense, createElement, isValidElement } from "react";
 import type { ElementType, JSXElementConstructor, Key, ReactElement, ReactNode } from "react";
 
@@ -216,31 +216,33 @@ const objectWire = (
  * @param where Where the collection stands.
  * @returns It, wired, or none.
  */
-const collectionWire = (value: unknown, wiring: Wiring, where: string): Wire | undefined => {
+const collectionWire = (value: unknown, wiring: Wiring, where: string): Option.Option<Wire> => {
   if (Array.isArray(value)) {
-    return value.map((each: unknown, index) => wiring(each, `${where}[${String(index)}]`));
+    return Option.some(
+      value.map((each: unknown, index) => wiring(each, `${where}[${String(index)}]`)),
+    );
   }
 
   if (value instanceof Map) {
-    return {
+    return Option.some({
       entries: Array.from(value, ([key, each]: readonly [unknown, unknown], index) => [
         wiring(key, `${where} key ${String(index)}`),
         wiring(each, `${where} value ${String(index)}`),
       ]),
       kind: "map",
-    };
+    });
   }
 
   if (value instanceof Set) {
-    return {
+    return Option.some({
       kind: "set",
       values: Array.from(value, (each: unknown, index) =>
         wiring(each, `${where} member ${String(index)}`),
       ),
-    };
+    });
   }
 
-  return undefined;
+  return Option.none();
 };
 
 /**
@@ -334,8 +336,8 @@ export const toWire = (
 
   const collection = collectionWire(value, wiring, where);
 
-  if (collection !== undefined) {
-    return collection;
+  if (Option.isSome(collection)) {
+    return collection.value;
   }
 
   if (isValidElement<Readonly<Record<string, unknown>>>(value)) {
