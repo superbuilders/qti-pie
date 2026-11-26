@@ -5500,42 +5500,43 @@ C2: the oracle's own reader.)
      control had waited on the play, and RB25 pins it on plate's hydrated items; and a playback whose media cannot play,
      every `source` failed or a `MediaError` reached it, ends at rest, counting the play it counted where it had
      sounded, the Media telling the child beside its control, as RB27 pins.)
-246. [`pci-configuration-waits`] **A PCI's module configuration gives its loads' waits, never their locations, and every
-     configuration an item's PCI writes is a file the delivery serves.** The information model gives
-     `primary-configuration` and `secondary-configuration` one description: "Provides a URL which is a reference to a
-     JSON configuration file which describes the PCI module configuration to use for this interaction instance. Relative
-     URLs indicate relative paths in the QTI content package" (sections 5.77.1 and 5.77.2). It defines no member of the
-     file. Only the implementation guide does (section 3.7.12.2): `waitSeconds` "defines how long the delivery engine
-     should wait for each Javascript file to load before timing out. A setting of 0 indicates that no timeout should be
-     used … If "waitSeconds" is not specified then a default of 7 seconds should be assumed", and `paths` "provides a
-     collection of AMD module name to URL mappings"; the same section says "A delivery engine MAY apply security rules
-     to the URLs from which it will load Javascript files". The guide "does not include any normative requirements"
-     (section 1.3; reading `response-processing-resource-type`). So the configuration is one "to use", and this delivery
-     uses it for what it can use without loading a script the content package's law has not held: it honours
-     `waitSeconds` (0, no timeout; absent, 7) as the wait before a fallback, the primary configuration's timing a
-     module's primary where a fallback follows it (reading `pci-wait-before-fallback`), so a stated wait is never
-     dropped where it can time anything; and it reads no `paths`, a security rule on the URLs it loads script from, so a
-     module loads only from its own `primary-path` and `fallback-path`, the locations the ledger's law "Module held"
-     holds to files the delivery serves (plate's R2, `#plate/pci/resolve.ts`; `#ledger/module-held.ts`). Without it, a
-     configuration's `paths` could stand in for a module's missing primary path and load another file than the one the
-     law held, first. "Module held" holds the wait too: every `primary-configuration` and `secondary-configuration` a
-     PCI of an item document writes names a file among the item's served files (pantry's `ServedFile`), so the delivery
-     can always read it, and a publish whose PCI names one it does not serve (outside the package, or of an extension
-     the media policy withholds) is refused. A configuration the PCI does not write, the schema's default, is read where
-     the item names that file and waits 7 where it does not, as before. A configuration file that is not a JSON object
-     with, where written, a non-negative finite `waitSeconds` gives plate's `pci-configuration-invalid` and the default
-     wait; every other member is passed over. A wait longer than a browser's timer holds (2,147,483.647 seconds: HTML's
-     `setTimeout` takes its delay as a WebIDL `long` of milliseconds, and a longer one wraps, firing early, at once just
-     past the bound) is longer than any session, so the frame arms no timer for it, as for 0
-     (`#plate/ui/portable-custom/frame-boot.ts`). An empty configuration, valid as an `xs:anyURI`, names no file the
-     item's media is served as, so it is refused too. This moves no admission of stored content and no served line:
-     GOLDEN-INSTALL's one configured PCI (a-d6d95092, `counter.xml`, its configuration listed and served under edullm's
-     policy) keeps its 30 seconds, and the K–2 forms write no configuration, so each of their modules waits 7, each file
-     29 to 38 KB. This is not a case of documents in conflict: the normative model leaves the file's members to the
-     delivery. (Decided 2026-11-25 by edullm-bd on lane MODULE-HELD's proposal, after lane RED's counterexample: a
-     configuration's `paths` routed a module held at its own fallback to another module's file. Amended 2026-11-26 by
-     reading `pci-wait-before-fallback`: a wait times only a primary with a fallback after it, and the secondary
-     configuration's wait, which timed a fallback load, times nothing.)
+246. [`pci-configuration-waits`] **A PCI's module configuration gives no load its location, the primary one at most the
+     wait before a module's fallback (reading `pci-wait-before-fallback`), and every configuration an item's PCI writes
+     is a file the delivery serves.** The information model gives `primary-configuration` and `secondary-configuration`
+     one description: "Provides a URL which is a reference to a JSON configuration file which describes the PCI module
+     configuration to use for this interaction instance. Relative URLs indicate relative paths in the QTI content
+     package" (sections 5.77.1 and 5.77.2). It defines no member of the file. Only the implementation guide does
+     (section 3.7.12.2): `waitSeconds` "defines how long the delivery engine should wait for each Javascript file to
+     load before timing out. A setting of 0 indicates that no timeout should be used … If "waitSeconds" is not specified
+     then a default of 7 seconds should be assumed", and `paths` "provides a collection of AMD module name to URL
+     mappings"; the same section says "A delivery engine MAY apply security rules to the URLs from which it will load
+     Javascript files". The guide "does not include any normative requirements" (section 1.3; reading
+     `response-processing-resource-type`). So the configuration is one "to use", and this delivery uses it for what it
+     can use without loading a script the content package's law has not held: it honours `waitSeconds` (0, no timeout;
+     absent, 7) as the wait before a fallback, the primary configuration's timing a module's primary where a fallback
+     follows it (reading `pci-wait-before-fallback`), so a stated wait is never dropped where it can time anything; and
+     it reads no `paths`, a security rule on the URLs it loads script from, so a module loads only from its own
+     `primary-path` and `fallback-path`, the locations the ledger's law "Module held" holds to files the delivery serves
+     (plate's R2, `#plate/pci/resolve.ts`; `#ledger/module-held.ts`). Without it, a configuration's `paths` could stand
+     in for a module's missing primary path and load another file than the one the law held, first. "Module held" holds
+     the wait too: every `primary-configuration` and `secondary-configuration` a PCI of an item document writes names a
+     file among the item's served files (pantry's `ServedFile`), so the delivery can always read it, and a publish whose
+     PCI names one it does not serve (outside the package, or of an extension the media policy withholds) is refused. A
+     configuration the PCI does not write, the schema's default, is read where the item names that file and waits 7
+     where it does not, as before. A configuration file that is not a JSON object with, where written, a non-negative
+     finite `waitSeconds` gives plate's `pci-configuration-invalid` and the default wait; every other member is passed
+     over. A wait longer than a browser's timer holds (2,147,483.647 seconds: HTML's `setTimeout` takes its delay as a
+     WebIDL `long` of milliseconds, and a longer one wraps, firing early, at once just past the bound) is longer than
+     any session, so the frame arms no timer for it, as for 0 (`#plate/ui/portable-custom/frame-boot.ts`). An empty
+     configuration, valid as an `xs:anyURI`, names no file the item's media is served as, so it is refused too. This
+     moves no admission of stored content and no served line: GOLDEN-INSTALL's one configured PCI (a-d6d95092,
+     `counter.xml`, its configuration listed and served under edullm's policy) keeps its 30 seconds, and the K–2 forms
+     write no configuration, so each of their modules waits 7, each file 29 to 38 KB. This is not a case of documents in
+     conflict: the normative model leaves the file's members to the delivery. (Decided 2026-11-25 by edullm-bd on lane
+     MODULE-HELD's proposal, after lane RED's counterexample: a configuration's `paths` routed a module held at its own
+     fallback to another module's file. Amended 2026-11-26 by reading `pci-wait-before-fallback`: a wait times only a
+     primary with a fallback after it, and the secondary configuration's wait, which timed a fallback load, times
+     nothing.)
 
 247. [`integer-lexical`] **An integer's text is read in `xs:integer`'s lexical space, so `+7` and `007` name 7; a Text Entry bound to an
      integer reads the candidate's text in that space, in its `base`; and plate's codec, which carries an integer
@@ -5818,8 +5819,17 @@ C2: the oracle's own reader.)
      (`#plate/ui/portable-custom/frame-boot.ts`) arms a clock for a primary with a fallback alone. This binds plate, and
      the ledger and specimen, which carry plate's routes; pantry stores both configuration attributes as written. It
      moves no admission and no stored line: a module with no fallback, as specimen's alpha items write theirs, waits for
-     its script where it had failed once 7 seconds ran out. This is not a case of documents in conflict: the normative
-     model states no wait, and the informative guide ties its timeout to a fallback everywhere but Appendix D's "failure
-     on a fallback url", which this delivery sets aside. (Stated 2026-11-26 by lane FORM-AUDIO on edullm-bd's ruling,
-     after a counter-tray item's module, which has no fallback, failed under load when its 7-second wait ran out before
-     its script arrived.)
+     its script where it had failed once 7 seconds ran out. The reading sets aside two of the guide's own phrasings:
+     §3.7.12.2's "how long the delivery engine should wait for each Javascript file to load before timing out", which,
+     read alone, would time every file, a last one too, and Appendix D's "reporting an error for a failure on a fallback
+     url"; it keeps the timeout where §3.7.12.2's own caveat and §3.7.12.3 put its purpose, before a fallback. A load is
+     decided at its script's `load` event, as RequireJS decides it: its `completeLoad`, which `onScriptLoad` runs at the
+     script's `load`, takes the `define` calls made by then, and under `enforceDefine` fails a module that made none,
+     "No define call for" it, or loads its path fallback (RequireJS 2.3.7, `require.js`). So a module whose script
+     defines it only in a later task, a timer's, or a promise's that settles in a later task (after a fetch, say), is
+     refused by name, "defined no module", or falls back where it has a fallback: no clock waits on a script that has
+     run. A promise that settles while the script runs defines the module in a microtask, at the script's own microtask
+     checkpoint, before its `load`, and the module loads. This is not a case of documents in conflict: the normative
+     model states no wait, and the guide that states one is informative. (Stated 2026-11-26 by lane FORM-AUDIO on
+     edullm-bd's ruling, after a counter-tray item's module, which has no fallback, failed under load when its 7-second
+     wait ran out before its script arrived.)

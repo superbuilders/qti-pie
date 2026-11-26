@@ -337,6 +337,17 @@ describe("a PCI frame's wait for a module script", () => {
     assert.isTrue(failedIn(frame), "failed once its script had run");
   });
 
+  it("refuses a module its script defines only in a task after its load", async () => {
+    const frame = loadingFrame({ primary });
+
+    fire(frame, 0, "load");
+    await vi.advanceTimersByTimeAsync(0);
+    frame.window.define?.(() => ({}));
+    await vi.advanceTimersByTimeAsync(longestTimerMs + 1);
+    assert.isTrue(failedIn(frame), "refused at its script's load");
+    assert.isFalse(registeredIn(frame), "the define that came after registers nothing");
+  });
+
   it("falls back as soon as a primary's script loads defining no module, and fails when the fallback's does too", async () => {
     const frame = loadingFrame({
       fallback: { location: fallbackAt, primaryWaitSeconds: 30 },

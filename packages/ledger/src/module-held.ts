@@ -39,11 +39,14 @@
  *
  * A configuration a PCI's modules child writes (`primary-configuration`, `secondary-configuration`,
  * information model §5.77.1–2: "a JSON configuration file which describes the PCI module
- * configuration to use for this interaction instance") gives its loads' waits, never a location
- * (plate's R2, reading `pci-configuration-waits`), and the law holds it as it holds a module: every
- * configuration a PCI of an item document writes names one of the item's `ServedFile` rows, so the
- * delivery can always read a stated wait ({@link ServedConfiguration}). One the PCI does not write,
- * the schema's default, is no row of `Attribute`, and nothing holds it.
+ * configuration to use for this interaction instance") gives no location (plate's R2, reading
+ * `pci-configuration-waits`), and the primary one the wait before a module's fallback, the
+ * secondary's waiting on nothing (plate's R3, reading `pci-wait-before-fallback`). The delivery
+ * reads every configuration a PCI writes, for that wait and for its validity (plate's
+ * `pci-configuration-invalid`), and the law holds it as it holds a module: every configuration a
+ * PCI of an item document writes names one of the item's `ServedFile` rows, so the delivery can
+ * always read it ({@link ServedConfiguration}). One the PCI does not write, the schema's default,
+ * is no row of `Attribute`, and nothing holds it.
  *
  * Three narrowings of QTI 3.0.1 follow from the delivery's rule, each refused under this law: a PCI
  * that writes no `module` (information model §5.106.2 lets the modules child name every module it
@@ -204,7 +207,8 @@ export const moduleHeldOf = (ledger: LedgerLevel) => {
 
   /**
    * Each configuration a PCI of an item document writes, by its modules child's place and its
-   * name: a wait the delivery reads (reading `pci-configuration-waits`).
+   * name: a file the delivery reads, the primary one for the wait before a module's fallback
+   * (readings `pci-configuration-waits` and `pci-wait-before-fallback`).
    */
   const ItemConfiguration = derived(
     "ItemConfiguration",
@@ -241,7 +245,7 @@ export const moduleHeldOf = (ledger: LedgerLevel) => {
    * Module held: every PCI of an item names a module it lists, every module such a PCI lists has a
    * location in its package whose file the delivery serves, and every configuration it writes is
    * such a file; so every module a stored item's PCI loads is a file of its package, served by its
-   * digest, and every wait it states is read.
+   * digest, and every configuration it writes is read.
    */
   const moduleHeld = [
     named(

@@ -21,10 +21,11 @@
  * owner's rule (edullm-bd, 2026-11-25) is: an item is published only where each of its PCIs writes
  * `module`, lists that module among its `qti-interaction-module`s by its `id`, and every module it
  * lists has a location in the package whose file the media policy serves, from which alone the
- * delivery loads it, and every configuration it writes is such a file too, read for its waits alone
- * (reading `pci-configuration-waits`); a PCI of a stimulus is never run, so it is not held; and a
- * location in the package names a file the package holds (pantry's "File exists", IMS Content
- * Packaging 1.2, InterchangePackage (d)).
+ * delivery loads it, and every configuration it writes is such a file too, read for no location,
+ * the primary one for the wait before a fallback and each for its validity (readings
+ * `pci-configuration-waits` and `pci-wait-before-fallback`); a PCI of a stimulus is never run, so
+ * it is not held; and a location in the package names a file the package holds (pantry's "File
+ * exists", IMS Content Packaging 1.2, InterchangePackage (d)).
  *
  * Each case is a package of its own, its PCIs under the K–2 forms' names (Bjorn's hard cutover:
  * type identifier `urn:fdc:alpha.school:2026:<name>`, module id `<name>`, file
@@ -104,8 +105,9 @@ interface Listed {
 
 /**
  * A PCI: its type identifier, its `module` as written where it writes one, the modules it lists (no
- * `qti-interaction-modules` where none), the primary configuration its modules child names where it
- * names one, and the module the delivery must route it to where the table admits it: the module's
+ * `qti-interaction-modules` where none), the primary and the secondary configuration its modules
+ * child names where it names each, and the module the delivery must route it to where the table
+ * admits it: the module's
  * id, the file its route serves, at every location it has, and the wait its fallback holds before
  * it loads, none where the route has no fallback (reading `pci-wait-before-fallback`).
  */
@@ -114,6 +116,7 @@ interface Pci {
   readonly module: Option.Option<string>;
   readonly listed: readonly Listed[];
   readonly configuration: Option.Option<string>;
+  readonly secondary: Option.Option<string>;
   readonly routed: Option.Option<{
     readonly id: string;
     readonly file: string;
@@ -217,6 +220,7 @@ const heldPci = (module: ReturnType<typeof moduleOf>, listed: Listed = atPrimary
     id: module.id,
     primaryWaitSeconds: Option.as(listed.fallback, defaultWaitSeconds),
   }),
+  secondary: Option.none(),
   type: module.type,
 });
 
@@ -232,6 +236,7 @@ const refusedPci = (
   listed,
   module: written,
   routed: Option.none(),
+  secondary: Option.none(),
   type: module.type,
 });
 
@@ -416,6 +421,20 @@ const cases: Arr.NonEmptyReadonlyArray<Case> = [
     stimulus: Option.none(),
   },
   {
+    expected: accepted,
+    files: [fileOf(counter), ["modules/fallback_cfg.js", JSON.stringify({ waitSeconds: 1 })]],
+    name: "a secondary configuration it writes that the delivery serves, which times nothing and is read for its validity",
+    pcis: [{ ...heldPci(counter), secondary: Option.some("modules/fallback_cfg.js") }],
+    stimulus: Option.none(),
+  },
+  {
+    expected: refused("Module held"),
+    files: [fileOf(counter), ["modules/fallback_cfg.json", JSON.stringify({ waitSeconds: 1 })]],
+    name: "a secondary configuration it writes of an extension the media policy withholds",
+    pcis: [{ ...heldPci(counter), secondary: Option.some("modules/fallback_cfg.json") }],
+    stimulus: Option.none(),
+  },
+  {
     // Reading `pci-configuration-waits`: an empty configuration, a valid xs:anyURI, names no file the item's media is
     // served as.
     expected: refused("Module held"),
@@ -543,7 +562,7 @@ const pciXml = (pci: Pci, at: number) => {
   const modules =
     pci.listed.length === 0
       ? ""
-      : `<qti-interaction-modules${locationAttribute("primary-configuration", pci.configuration)}>${pci.listed
+      : `<qti-interaction-modules${locationAttribute("primary-configuration", pci.configuration)}${locationAttribute("secondary-configuration", pci.secondary)}>${pci.listed
           .map(
             ({ fallback, id, primary }) =>
               `<qti-interaction-module id="${id}"${locationAttribute("primary-path", primary)}${locationAttribute("fallback-path", fallback)}/>`,

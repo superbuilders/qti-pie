@@ -590,7 +590,17 @@ export const bootFrame = (): void => {
    * @param waitSeconds How long to wait before the fallback loads instead, 0 for no limit, as for
    *   every location but a primary with a fallback.
    * @returns How the load came out.
+   * @constraint A module is defined while its script runs, or not at all: the load is decided at
+   *   the script's `load`, so a module whose script defines it only in a later task, a timer's, or a
+   *   promise's that settles in a later task (after a fetch, say), is refused by name, "defined no
+   *   module", or its fallback loads where it has one. A promise that settles while the script runs
+   *   defines it in a microtask, before the `load`, and it loads. No clock waits on a script that
+   *   has run (reading `pci-wait-before-fallback`).
+   * @source RequireJS 2.3.7, `require.js`: `onScriptLoad` runs `completeLoad` at the script's
+   *   `load`, which takes the `define` calls made by then and, under `enforceDefine`, fails a module
+   *   that made none, "No define call for" it, or loads its path fallback.
    * @see https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timers
+   * @see https://github.com/requirejs/requirejs/blob/2.3.7/require.js
    */
   const loadLocation = (id: string, url: string, waitSeconds: number): Promise<Outcome> => {
     const { promise, resolve } = Promise.withResolvers<Outcome>();
