@@ -3069,7 +3069,9 @@ describe("startingResponses", () => {
       CAPITAL: nullSingle("identifier"),
       ESSAY: nullSingle("string"),
       FIRST: nullSingle("string"),
-      // A Text Entry starts at its response's default (spec reading `response-default`).
+      /**
+       * A Text Entry starts at its response's default (spec reading `response-default`).
+       */
       NAMED: one({ baseType: "string", value: responseDefault }),
       SECOND: nullSingle("string"),
     });

@@ -557,7 +557,9 @@ describe("buildItem", () => {
   });
 
   it("reads a padded xs:double mapped-value and source-value with its whitespace collapsed, as the XSD does (reading `typed-value-whitespace`)", () => {
-    // XML Schema 1.0 Part 2 §4.3.6: xs:double's whiteSpace facet is collapse, fixed.
+    /**
+     * XML Schema 1.0 Part 2 §4.3.6: xs:double's whiteSpace facet is collapse, fixed.
+     */
     const built = admittedItem(
       item({
         body: [paragraph],

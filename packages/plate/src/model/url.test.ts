@@ -992,10 +992,12 @@ describe("assetPaths", () => {
 
 describe("a PCI's module locations", () => {
   it("are paths from the package root for an item in a subfolder, by reading `pci-module-locations`", () => {
-    // Implementation guide §3.7.12.2: "Otherwise it should be assumed to be a QTI content package
-    // relative path", the default configuration read from "<content package base
-    // href>/modules/module_resolution.js". Information model §5.77.1: "Relative URLs indicate
-    // relative paths in the QTI content package".
+    /**
+     * Implementation guide §3.7.12.2: "Otherwise it should be assumed to be a QTI content package
+     * relative path", the default configuration read from "<content package base
+     * href>/modules/module_resolution.js". Information model §5.77.1: "Relative URLs indicate
+     * relative paths in the QTI content package".
+     */
     const item = "items/counter.xml";
 
     assert.deepStrictEqual(
