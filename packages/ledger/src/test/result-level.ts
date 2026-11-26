@@ -186,7 +186,8 @@ const facts = ChangeSet.empty(ResultLevel).insertAll({
  * The suite's role: every relation to read, and each family it writes by the mode the ledger
  * exports it in (pantry's `authorWrites` and the ledger's `*Writes`): a package's relations, an
  * item session's, the evaluations and a person's value, the take's values, grading's, what settling
- * a sitting writes, what the test runtime's programs write of a sitting, and the presence window.
+ * a sitting writes, and what the test runtime's programs write of a sitting. The presence window is
+ * {@link PresenceRunner}'s.
  */
 const Suite = role(ResultLevel, "result_runner", wholeEntriesOf(ResultLevel), {
   insert: [
@@ -198,7 +199,6 @@ const Suite = role(ResultLevel, "result_runner", wholeEntriesOf(ResultLevel), {
     ...gradeAttemptWrites.insert,
     ...settleWrites.insert,
     ...sittingWrites.insert,
-    ...presenceWrites.insert,
   ],
   write: [
     ...authorWrites.write,
@@ -209,9 +209,21 @@ const Suite = role(ResultLevel, "result_runner", wholeEntriesOf(ResultLevel), {
     ...gradeAttemptWrites.write,
     ...settleWrites.write,
     ...sittingWrites.write,
-    ...presenceWrites.write,
   ],
 });
+
+/**
+ * The suite's presence role, a role of its own: every relation to read, and the ledger's presence
+ * grants alone (`presenceWrites`), the beacon's window and a pause's suspension. An insert into
+ * Presence, whose key holds a span, has no READ COMMITTED form, so this role runs SERIALIZABLE;
+ * {@link Suite} holds every other write.
+ */
+const PresenceRunner = role(
+  ResultLevel,
+  "presence_runner",
+  wholeEntriesOf(ResultLevel),
+  presenceWrites,
+);
 
 /**
  * The test runtime's programs over the composition.
@@ -1120,16 +1132,23 @@ const suspendTest = sittingPrograms.suspendTest.bind({ sittings: namedSitting })
 const takeSitting = sittingPrograms.take.bind({ taken: namedTaken });
 
 /**
- * The suite's login, `result_suite`, acting as its one role, `result_runner`.
+ * The presence role's workload: the beacon, the pause and a window written as host rows, each an
+ * insert into Presence. The login's own, and compiled for a moved clock beside
+ * {@link clockedWorkload} (`#ledger/test/result-clock.ts`).
  */
-export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
+export const presenceWorkload = workload(PresenceRunner, { beaconTest, pauseTest, windowFacts });
+
+/**
+ * The suite's login, `result_suite`, acting as two roles: `result_runner`, and `presence_runner`,
+ * the beacons, a pause and a window written as host rows, each an insert into Presence.
+ */
+export const ResultSuite = login(ResultLevel, "result_suite", [Suite, PresenceRunner], {
   workload: [
     workload(Suite, {
       answerTestItem: sittingPrograms.answerTestItem.bind({ sittings: namedSitting }),
       applicationsOf,
       attemptsOf,
       awaitingOf,
-      beaconTest,
       begin,
       budgetsOf,
       completionsOf,
@@ -1149,7 +1168,6 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       lastPresencesOf,
       maximaOf,
       operandsOf,
-      pauseTest,
       placesOf,
       presentItem,
       presentTimesOf,
@@ -1179,23 +1197,23 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       takenIntegersOf,
       testOutcomeBooleansOf,
       testOutcomeFloatsOf,
-      windowFacts,
       windowsOf,
     }),
+    presenceWorkload,
   ],
 });
 
 /**
- * The programs of the suite's login its families over a moved clock call
- * (`#ledger/test/result-clock.ts`): a sitting's take, its entries, beacons, pause, suspension,
- * saves, presentation and end, written as host rows where the family writes them, and the reads
- * that hold their time. A workload of no login's: `#ledger/test/result-clock.ts` compiles the
- * login with it in the place of the login's own, so the file `grizzle generate` writes for the
- * login is untouched by it.
+ * The programs of the suite's runner its families over a moved clock call
+ * (`#ledger/test/result-clock.ts`): a sitting's take, its entries, suspension, saves, presentation
+ * and end, written as host rows where the family writes them, and the reads that hold their time;
+ * the beacon and the pause are the presence role's ({@link presenceWorkload}). A workload of no
+ * login's: `#ledger/test/result-clock.ts` compiles the login with it and the presence workload in
+ * the place of the login's own, so the file `grizzle generate` writes for the login is untouched
+ * by it.
  */
 export const clockedWorkload = workload(Suite, {
   attemptsOf,
-  beaconTest,
   budgetsOf,
   durationsOf,
   endTest,
@@ -1203,7 +1221,6 @@ export const clockedWorkload = workload(Suite, {
   enterTimedTest,
   finishTest,
   lastPresencesOf,
-  pauseTest,
   presentItem,
   presentTimesOf,
   saveTestItem,
@@ -1211,7 +1228,6 @@ export const clockedWorkload = workload(Suite, {
   snapshotStringsOf,
   suspendTest,
   takeSitting,
-  windowFacts,
   windowsOf,
 });
 
@@ -1223,6 +1239,6 @@ export const clockedWorkload = workload(Suite, {
 export type ClockedSuite = Login<
   typeof ResultLevel,
   "result_suite",
-  readonly [typeof Suite],
-  readonly [typeof clockedWorkload]
+  readonly [typeof Suite, typeof PresenceRunner],
+  readonly [typeof clockedWorkload, typeof presenceWorkload]
 >;

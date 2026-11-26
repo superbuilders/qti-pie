@@ -2883,19 +2883,20 @@ const oneSecond = 1_000_000n;
 const tenth = 100_000n;
 
 /**
- * A case's Db over the moved clock (`#ledger/test/result-clock.ts`), whose every call reads the
- * instant the case last stated, {@link clockStart} until it states one: the clocked parameters of
- * the call and every instant it stamps. `at(instant, call)` states `instant` and makes `call` at
- * it.
+ * A case's Dbs over the moved clock (`#ledger/test/result-clock.ts`), the runner's and the presence
+ * role's, whose every call reads the instant the case last stated, {@link clockStart} until it
+ * states one: the clocked parameters of the call and every instant it stamps. `at(instant, call)`
+ * states `instant` and makes `call` at it.
  */
 const clockedDb = Effect.gen(function* openClocked() {
   const { suite } = yield* (yield* MovedSuite).moved;
   const clock = yield* Ref.make(clockStart);
   const db = yield* Db.openMoved(suite.roles.result_runner, {}, Ref.get(clock));
+  const presence = yield* Db.openMoved(suite.roles.presence_runner, {}, Ref.get(clock));
   const at = <A, E, R>(instant: bigint, call: Effect.Effect<A, E, R>) =>
     Effect.andThen(Ref.set(clock, instant), call);
 
-  return { at, db } as const;
+  return { at, db, presence } as const;
 });
 
 /**
@@ -4629,7 +4630,7 @@ const holdPresence = (
 ) =>
   Effect.gen(function* hold() {
     const want = presenceExpectedOf(c);
-    const { at, db } = yield* clockedDb;
+    const { at, db, presence } = yield* clockedDb;
     const sitting = { child, stage: 1n };
     const taken = yield* db.workload.takeSitting.once({
       facts: {},
@@ -4655,10 +4656,16 @@ const holdPresence = (
     const sign = began + lastSigns[c.ending];
     const suspension = c.ending === "pause" ? sign : sign + absence;
     if (c.ending === "pause") {
-      const paused = yield* at(sign, db.workload.pauseTest.once({ facts: {}, params: sitting }));
+      const paused = yield* at(
+        sign,
+        presence.workload.pauseTest.once({ facts: {}, params: sitting }),
+      );
       assert.strictEqual(paused.kind, "accepted", `${c.name}: the pause`);
     } else {
-      const beaconed = yield* at(sign, db.workload.beaconTest.once({ facts: {}, params: sitting }));
+      const beaconed = yield* at(
+        sign,
+        presence.workload.beaconTest.once({ facts: {}, params: sitting }),
+      );
       assert.strictEqual(beaconed.kind, "accepted", `${c.name}: the beacon`);
 
       const suspended = yield* Effect.result(
@@ -5197,7 +5204,7 @@ type ClockedDb = Effect.Success<typeof clockedDb>;
  */
 const enteredSitting = (name: string, child: string) =>
   Effect.gen(function* enter() {
-    const { at, db } = yield* clockedDb;
+    const { at, db, presence } = yield* clockedDb;
     const sitting = { child, stage: 1n };
     const taken = yield* db.workload.takeSitting.once({
       facts: {},
@@ -5219,7 +5226,7 @@ const enteredSitting = (name: string, child: string) =>
       `${name}: the entry, at the instant the case states`,
     );
 
-    return { at, began, db, sitting } as const;
+    return { at, began, db, presence, sitting } as const;
   });
 
 /**
@@ -5422,22 +5429,24 @@ type WindowSituation = (typeof windowSituations)[number];
  * A presence-window move, through the test runtime's own program for it, at the instant the case
  * last stated: the kind of its outcome.
  *
- * @param db - The case's Db.
+ * @param db - The case's runner Db.
+ * @param presence - The case's presence Db.
  * @param sitting - The case's sitting.
  * @param move - The move.
  */
 const windowMoveOf = (
   db: ClockedDb["db"],
+  presence: ClockedDb["presence"],
   sitting: Readonly<{ child: string; stage: bigint }>,
   move: WindowMove["move"],
 ) =>
   Effect.gen(function* windowMove() {
     switch (move) {
       case "beacon": {
-        return (yield* db.workload.beaconTest.once({ facts: {}, params: sitting })).kind;
+        return (yield* presence.workload.beaconTest.once({ facts: {}, params: sitting })).kind;
       }
       case "pause": {
-        return (yield* db.workload.pauseTest.once({ facts: {}, params: sitting })).kind;
+        return (yield* presence.workload.pauseTest.once({ facts: {}, params: sitting })).kind;
       }
       case "resume": {
         return (yield* db.workload.enterTest.once({
@@ -5462,9 +5471,9 @@ const windowMoveOf = (
 const holdWindow = (c: WindowCase, child: string, note: (situation: WindowSituation) => void) =>
   Effect.gen(function* hold() {
     const want = windowExpected[c.beacons];
-    const { at, began, db, sitting } = yield* enteredSitting(c.name, child);
+    const { at, began, db, presence, sitting } = yield* enteredSitting(c.name, child);
     for (const { after, move } of want.moves) {
-      const moved = yield* at(began + after, windowMoveOf(db, sitting, move));
+      const moved = yield* at(began + after, windowMoveOf(db, presence, sitting, move));
       assert.strictEqual(moved, "accepted", `${c.name}: the ${move} at ${String(after)}`);
     }
 
@@ -5485,7 +5494,7 @@ const holdWindow = (c: WindowCase, child: string, note: (situation: WindowSituat
 
     const windowAt = ([start, end]: Window) =>
       Effect.result(
-        db.workload.windowFacts.once({
+        presence.workload.windowFacts.once({
           facts: {
             insert: {
               Presence: rowsOf("Presence", [
@@ -6018,7 +6027,7 @@ type BeaconSituation = (typeof beaconSituations)[number];
  */
 const holdBeacons = (run: BeaconRun, child: string, note: (situation: BeaconSituation) => void) =>
   Effect.gen(function* hold() {
-    const { at, began, db, sitting } = yield* enteredSitting("a run of beacons", child);
+    const { at, began, db, presence, sitting } = yield* enteredSitting("a run of beacons", child);
     const offsets = [0n];
     for (const gap of run.gaps) {
       offsets.push((offsets.at(-1) ?? 0n) + BigInt(gap));
@@ -6036,7 +6045,7 @@ const holdBeacons = (run: BeaconRun, child: string, note: (situation: BeaconSitu
       const before = windowsOfReadings(sent.filter((other) => other !== reading)).length;
       const beaconed = yield* at(
         reading,
-        db.workload.beaconTest.once({ facts: {}, params: sitting }),
+        presence.workload.beaconTest.once({ facts: {}, params: sitting }),
       );
       assert.include(["accepted", "unchanged"], beaconed.kind, `the beacon at ${String(reading)}`);
       if (windowsOfReadings(sent).length < before) {

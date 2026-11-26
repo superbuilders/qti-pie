@@ -22,7 +22,7 @@ import { DbLayer, LiveSource, served } from "@bjornpagen/grizzle/runtime";
 import type { DbConnection } from "@bjornpagen/grizzle/runtime";
 import { Context, Effect, FileSystem, Layer, Schema } from "effect";
 import { resultMigrations } from "#ledger/test/result-database.ts";
-import { clockedWorkload, ResultSuite } from "#ledger/test/result-level.ts";
+import { clockedWorkload, presenceWorkload, ResultSuite } from "#ledger/test/result-level.ts";
 import type { ClockedSuite } from "#ledger/test/result-level.ts";
 import { onePool, SuiteLogin } from "#ledger/test/result-suite.ts";
 
@@ -54,7 +54,10 @@ const movedOf = (connection: DbConnection, fs: FileSystem.FileSystem) =>
     const snapshot = yield* Schema.decodeEffect(Schema.fromJsonString(Schema.Unknown))(
       yield* fs.readFileString(`${resultMigrations}/qti/snapshot.json`),
     );
-    const file = yield* compileServedMoved(ResultSuite, snapshot, [clockedWorkload]);
+    const file = yield* compileServedMoved(ResultSuite, snapshot, [
+      clockedWorkload,
+      presenceWorkload,
+    ]);
     const suite = served<ClockedSuite>(file, "result_suite");
 
     return { layer: movedLayerOf(suite, connection), suite } as const;

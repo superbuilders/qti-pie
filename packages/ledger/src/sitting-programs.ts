@@ -38,11 +38,12 @@
  * - `beaconTest` { sittings, now }: the open candidate session's presence beacon at `now`, the
  *   database's clock (served `clocked(…, { now: "micros" })`), the application's sign that its
  *   candidate is there: one put of the sitting's presence window, grown or opened (`Presence`),
- *   which the session's time is charged up to (`#delivery.ts`, H10) and time credit is read from.
+ *   which the session's time is charged up to (`#delivery.ts`, H10) and time credit is read from,
+ *   served through a role of its own ({@link presenceWrites}).
  * - `suspendTest`, `endTest` { sittings }: the open candidate session suspended; the sitting's part
  *   ended. A pause the candidate makes is `beaconTest`, then `suspendTest`, in one transaction,
- *   charged to the pause; an application that finds a session abandoned suspends it alone, charged
- *   to its last sign of presence.
+ *   charged to the pause, served through the presence role ({@link presenceWrites}); an application
+ *   that finds a session abandoned suspends it alone, charged to its last sign of presence.
  *
  * `sittings` is the relation parameter every builder but the take reads
  * (`#ledger/sitting-queries.ts` sittingHeading), which the application binds once per program to
@@ -113,11 +114,23 @@ export const sittingWrites = {
 } as const;
 
 /**
- * The relation the presence beacon puts, by name and by the mode a role writes it by: `Presence`,
- * the ledger's one open relation, whose window a beacon's put displaces (`beaconTest`), so a role's
- * write list names it.
+ * The grants of a presence role, the one declaration every composition spreads into a role of its
+ * own, by name and by the mode a role writes each by: `Presence`, the ledger's one open relation,
+ * whose window a beacon's put displaces (`beaconTest`), so its write list names it; and what a
+ * pause's suspension inserts after its beacon in the same transaction (`suspendTest`'s moment and
+ * suspension), so its insert list names them.
+ *
+ * A role of its own, never beside a composition's other writes: an insert into `Presence`, whose
+ * primary key holds a span, has no READ COMMITTED form (its exclusion constraint arbitrates by ON
+ * CONFLICT DO NOTHING alone), so the role that serves it runs SERIALIZABLE (grizzle's generate:
+ * "move each ChangeSet that inserts into a relation whose primary key holds a span to a role of
+ * its own"). A role that holds it with every other write runs all of them SERIALIZABLE, a
+ * package's publish and grading with the beacons; one that leaves it out runs READ COMMITTED.
  */
-export const presenceWrites = { insert: [], write: ["Presence"] } as const;
+export const presenceWrites = {
+  insert: ["TestMoment", "TestSuspension"],
+  write: ["Presence"],
+} as const;
 
 /**
  * The delivery level the builders write over.

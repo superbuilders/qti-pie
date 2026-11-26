@@ -135,6 +135,13 @@ const openDb = () => Db.open(suite.roles.result_runner, {});
 
 type SuiteDb = Effect.Success<ReturnType<typeof openDb>>;
 
+/**
+ * The suite's presence role, a role of its own, which serves the beacon.
+ */
+const openPresenceDb = () => Db.open(suite.roles.presence_runner, {});
+
+type PresenceDb = Effect.Success<ReturnType<typeof openPresenceDb>>;
+
 const sittingOf = (child: string) => ({ child, stage: 1n });
 
 const choice = (value: string) =>
@@ -203,7 +210,7 @@ const answer = (db: SuiteDb, child: string, item: string, value: string) =>
     ),
   );
 
-const beacon = (db: SuiteDb, child: string) =>
+const beacon = (db: PresenceDb, child: string) =>
   accepted("beaconTest", db.workload.beaconTest.once({ facts: {}, params: sittingOf(child) }));
 
 const suspend = (db: SuiteDb, child: string) =>
@@ -319,7 +326,7 @@ const withDb = <A, R>(f: (db: SuiteDb) => Effect.Effect<A, StudentCallFailed, R>
  * The child's sitting's beacon, which the browser repeats on one connection: measured warm, its
  * connection warmed by a beacon before it.
  */
-const beaconed = (child: string) => withDb((db) => beacon(db, child));
+const beaconed = (child: string) => opened(openPresenceDb(), (db) => beacon(db, child));
 
 const taken = (test: string) => (child: string) => withDb((db) => take(db, child, test));
 
@@ -392,7 +399,10 @@ const program = (run: Run) =>
     yield* Effect.logInfo(`${choicePackage} published, or held already`);
 
     const layer = yield* layerOf;
-    const actions: readonly StudentAction<Effect.Services<ReturnType<typeof openDb>>>[] = [
+    const actions: readonly StudentAction<
+      | Effect.Services<ReturnType<typeof openDb>>
+      | Effect.Services<ReturnType<typeof openPresenceDb>>
+    >[] = [
       {
         barMs: actionBarMs,
         name: "start",
