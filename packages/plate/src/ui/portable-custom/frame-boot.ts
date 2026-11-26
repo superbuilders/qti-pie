@@ -30,9 +30,9 @@
  * Its height follows its content: a `ResizeObserver` on the document's root element posts the whole
  * pixels of its border box's block size, which the island writes as the frame's `height` attribute.
  * The frame page's own stylesheet pins the root's geometry, so that box is the extent the document
- * paints, at the frame's width, and a post changes no box it observes. Content sized from the
- * viewport's own height, which no height fits, stops at the first post its own resize echoes, and
- * scrolls the rest.
+ * paints, at the frame's width, and a post changes no box it observes. A height media query reaches
+ * its fixed point one post on, and content sized from the viewport's own height, which no height
+ * fits, stops within two posts and scrolls the rest.
  *
  * Failure travels as a `failed` message while the PCI is not yet running: a route that exhausts
  * its locations, a module that names a dependency no route defines, no factory for the identifier
@@ -186,14 +186,20 @@ interface Loading {
 
 /**
  * What the frame keeps of the heights it posts: the last, none before its first; whether the
- * viewport stood at it when the frame last looked; whether a content signal has fired since; and
- * the root's inline size at the last observation.
+ * viewport stood at it when the frame last looked; the root's inline size at the last observation;
+ * how much the echo it last posted for grew the root, none since a post that was no echo's; the
+ * height of an echo it dropped, for the next content signal to post, none where there is none to
+ * post; whether a content signal has come since the last post; and whether a signal has posted a
+ * dropped echo since the last post that was no echo's.
  */
 interface Followed {
   atPosted: boolean;
+  dropped: number | undefined;
+  echoGrowth: number | undefined;
   inline: number | undefined;
   posted: number | undefined;
   signalled: boolean;
+  spent: boolean;
 }
 
 /**
@@ -248,6 +254,11 @@ export const bootFrame = (): void => {
    * `long`, a 32-bit signed integer.
    */
   const longestTimerMs = 2_147_483_647;
+  /**
+   * The page's own stylesheet, its pins, the document's first as the boot runs: no PCI has written
+   * anything yet. None in a document that holds no stylesheet.
+   */
+  const pins = document.styleSheets[0]?.ownerNode ?? null;
   const definitions = new Map<string, AmdDefinition>();
   const exported = new Map<string, unknown>();
   const builtins = new Map<string, unknown>();
@@ -881,21 +892,17 @@ export const bootFrame = (): void => {
   /**
    * The height the frame last posted, none before its first; whether the viewport stood at that
    * height when the frame last looked, at its last observation or in a timer after its last
-   * `resize`; whether a content signal has fired since the last post; and the root's inline size
-   * at the last observation.
+   * `resize`; the root's inline size at the last observation; and the echoes since the last post
+   * that was no echo's (`Followed`).
    */
   const height: Followed = {
     atPosted: false,
+    dropped: undefined,
+    echoGrowth: undefined,
     inline: undefined,
     posted: undefined,
     signalled: false,
-  };
-
-  /**
-   * Note that the document's content changed by a signal that says so.
-   */
-  const signal = (): void => {
-    height.signalled = true;
+    spent: false,
   };
 
   /**
@@ -917,11 +924,44 @@ export const bootFrame = (): void => {
   };
 
   /**
+   * Post a height, and note it as the last posted, with the viewport where it stands now and no
+   * signal since.
+   *
+   * @param pixels The height, in CSS pixels.
+   */
+  const postPixels = (pixels: number): void => {
+    height.posted = pixels;
+    height.signalled = false;
+    height.atPosted = viewportAt(pixels);
+    post({ kind: "height", nonce, pixels });
+  };
+
+  /**
+   * Take a content signal, a sign that the document's content changed, and note it: where the
+   * frame dropped an echo whose growth was no `V + c`, post that echo's height, once until the next
+   * post that is no echo's (`postHeight`). A signal decides no echo: a PCI that writes the document
+   * every frame would leave none.
+   */
+  const signal = (): void => {
+    height.signalled = true;
+
+    const { dropped } = height;
+
+    if (dropped === undefined) {
+      return;
+    }
+
+    height.dropped = undefined;
+    height.spent = true;
+    postPixels(dropped);
+  };
+
+  /**
    * Post the frame's height: its document element's border box's block size, in CSS pixels
    * rounded up, as the `ResizeObserver` observing that very box reports it, once the island's
-   * `load` has written the PCI's markup; except for an observation that only echoes the frame's
-   * own resize. Before the markup the document holds nothing, and its height, its body's margins,
-   * would shrink the frame for nothing.
+   * `load` has written the PCI's markup; except for the echo of a post the frame made for an echo.
+   * Before the markup the document holds nothing, and its height, its body's margins, would shrink
+   * the frame for nothing.
    *
    * @param entries The observation's entries: the document element's alone.
    * @constraint The height posted is the box observed, so every change of it has its observation.
@@ -937,25 +977,51 @@ export const bootFrame = (): void => {
    *   for each change of its content.
    * @constraint Content sized from the viewport's own height (`vh` units, an orthogonal flow, whose
    *   available inline size is the viewport's height) has no height to post: at a viewport of `V`
-   *   it is `V + c`, so each post would grow the frame by `c` without end. The viewport's height
-   *   changes only when the island applies the frame's own post, so an observation made once the
-   *   viewport has come to stand at the height last posted, the frame's width as it was, is an
-   *   echo, and posts nothing, unless a content signal fired since that post: a mutation of the
-   *   document, an element's `load` or `error`, a font face loaded, a transition or an animation
-   *   ended. The frame then keeps its height, and its root, which the pin scrolls, scrolls the `c`
-   *   pixels: a frame its island made at the default height of an `iframe`, 150 pixels, stops at
-   *   `150 + c`, since nothing is posted for the empty document before the markup. In Chrome the observation of a rendering update comes before that update's `resize`,
-   *   so the viewport is looked at again in a timer after each `resize`, never in its listener.
-   *   What is left: a change of the content that no signal reports (a stylesheet's rule changed
-   *   through the CSSOM, a media query, a hover) and that lands in the very observation that
-   *   echoes the frame's resize, with nothing after it, is not posted until the content next
-   *   changes; and a PCI whose script sizes its content from the viewport at each `resize` mutates
-   *   the document, which is a signal, so its frame follows each resize with a post.
+   *   it is `V + c` (or `2V + c`, two stacked full-height panels), so each post would grow the
+   *   frame without end. The viewport's height changes only when the island applies the frame's
+   *   own post, so the first observation made once the viewport has come to stand at the height
+   *   last posted, the frame's width as it was, is that post's echo, whatever content signals came
+   *   between: a PCI whose script writes the document every frame (an animation by script, a
+   *   spinner) or at each `resize` (content sized from `innerHeight`, the mobile `--vh` fix) raises
+   *   a signal before every observation, and an echo that waited for none would never come (RED
+   *   i5: a heading over `100vh` under a script's animation grew to 103,104 px). A height media
+   *   query also changes only in an echo, since it reads the viewport, and has a fixed point one
+   *   post away: 400 px of content that a `(min-height: 400px)` query grows by 200 is 616 once the
+   *   frame is 416. So the first echo after a post that was no echo's is posted, once more, and
+   *   the echo of that post is dropped: a step query has reached its height and raises no
+   *   observation, and content sized from the viewport stops after two posts, its root, which the
+   *   pin scrolls, scrolling its overflow. In Chrome the observation of a rendering update comes
+   *   before that update's `resize`, so the viewport is looked at again in a timer after each
+   *   `resize`, never in its listener.
+   * @constraint A dropped echo whose growth is not the posted echo's own, which `V + c` repeats, may
+   *   hold a change that came with it: a picture whose layout lands in that very rendering, whose
+   *   `load` comes after the observation (Chrome 158 delivers the observation of a picture's new
+   *   size before its `load`, and of a font face's swap before `loadingdone`); or a PCI's own
+   *   drawing, whose mutation signals before the observation, as a `MutationObserver`'s callback
+   *   runs in the microtask after the script that mutated, before the rendering, and which raises
+   *   no signal after it. So the echo's height is posted at the next content signal, or at once
+   *   where a signal has come since the last post; once until the next post that is no echo's.
+   *   `V + c` content's dropped echo grows as the posted one did, so it posts nothing, and other
+   *   content sized from the viewport grows the frame at most once more (specimen's shade-parts
+   *   suite on a rule that waited for a later signal: a tap missed `rectangle-vertical-2`'s first
+   *   part in 2 runs of 4; `logs22/i6b-alpha/` in the lane's directory).
+   * @constraint What is left:
+   *   - a media query that flips at the posted height, `.x { height: 400px }` under
+   *     `@media (min-height: 600px) { .x { height: 0 } }`: the frame stops short with its content
+   *     scrolling (477 for 877), or, after a later signal, tall with blank space below the content
+   *     (877 for 477);
+   *   - a query whose fixed point is more than one post away stops one post short, scrolling;
+   *   - a change no signal reports (a stylesheet rule changed through the CSSOM, a hover) that lands
+   *     in a dropped echo is not posted until the content next changes;
+   *   - each content change that lands outside an echo starts a new chain of at most three posts,
+   *     so content sized from the viewport grows by its overflow at each, as two stacked
+   *     full-height panels do (about ×4 for each later change).
    * @source Resize Observer: `ResizeObserverOptions.box` and its `border-box`, and
    *   `ResizeObserverEntry.borderBoxSize`; Chrome 158, probed through this frame page
    *   (`car-i2/probe/order-probe.mjs` and `echo-probe.mts` in the lane's directory): the
-   *   observation before the `resize`, and each case of content sized from the viewport ending at
-   *   its first echo.
+   *   observation before the `resize`, each case of content sized from the viewport ending within
+   *   two posts, the step query reaching 616 and the flipping query stopping (`car-i5/probe/` in
+   *   the lane's directory).
    * @see https://drafts.csswg.org/resize-observer/#dom-resizeobserverboxoptions-border-box
    * @see https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-borderboxsize
    * @see https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering
@@ -967,25 +1033,145 @@ export const bootFrame = (): void => {
       return;
     }
 
-    const now = height.posted !== undefined && viewportAt(height.posted);
-    const echo = now && !height.atPosted && box.inlineSize === height.inline && !height.signalled;
+    const { posted } = height;
+    const now = posted !== undefined && viewportAt(posted);
+    const echo = now && !height.atPosted && box.inlineSize === height.inline;
+    const pixels = Math.ceil(box.blockSize);
 
     height.atPosted = now;
     height.inline = box.inlineSize;
 
-    if (echo) {
+    if (posted === undefined || !echo) {
+      height.dropped = undefined;
+      height.echoGrowth = undefined;
+      height.spent = false;
+      postPixels(pixels);
+
       return;
     }
 
-    const pixels = Math.ceil(box.blockSize);
+    const growth = pixels - posted;
 
-    height.posted = pixels;
-    height.signalled = false;
-    height.atPosted = viewportAt(pixels);
-    post({ kind: "height", nonce, pixels });
+    if (height.echoGrowth === undefined) {
+      height.echoGrowth = growth;
+      postPixels(pixels);
+
+      return;
+    }
+
+    height.dropped = growth === height.echoGrowth || height.spent ? undefined : pixels;
+
+    if (height.signalled) {
+      signal();
+    }
   };
 
-  new MutationObserver(signal).observe(document, {
+  /**
+   * The nodes the pins have been put ahead of, each a stylesheet's node or, for a document a PCI
+   * left with no stylesheet, its head (`keepPinsFirst`).
+   */
+  const overtaken = new WeakSet<Node>();
+
+  /**
+   * Whether the pins have moved in this task: set at a move, and cleared by a timer of 0 ms, which
+   * runs in a later task (`keepPinsFirst`).
+   */
+  let moved = false;
+
+  /**
+   * Put the pins ahead of the document's first stylesheet, a `style` or a stylesheet link found in
+   * the document's order, loaded or not, or first in the head where none is left, unless they are
+   * first or have passed that node before (`keepPinsFirst`).
+   *
+   * @returns Whether the pins moved.
+   */
+  const pinnedFirst = (): boolean => {
+    if (pins === null) {
+      return false;
+    }
+
+    const first = document.querySelector('link[rel~="stylesheet" i], style');
+    const ahead = first ?? document.head;
+
+    if (first === pins || overtaken.has(ahead)) {
+      return false;
+    }
+
+    overtaken.add(ahead);
+
+    if (first === null) {
+      document.head.prepend(pins);
+
+      return true;
+    }
+
+    first.before(pins);
+
+    return true;
+  };
+
+  /**
+   * End a task's move: let the pins move again.
+   */
+  const released = (): void => {
+    moved = false;
+  };
+
+  /**
+   * End the task the pins moved in, and look once more: a sheet a PCI put first later in that
+   * task, in a later microtask, after an `await` or in a 0 ms timer of its own, came while the
+   * pins could not move. Where the pins move now, this task's bound ends in a timer that looks no
+   * more (`keepPinsFirst`).
+   */
+  const rechecked = (): void => {
+    moved = pinnedFirst();
+
+    if (moved) {
+      setTimeout(released, 0);
+    }
+  };
+
+  /**
+   * Keep the page's pins first among the document's stylesheets (`pins` in
+   * `#plate/ui/portable-custom/frame-page.ts`): where a stylesheet comes before them, a `style` or
+   * a stylesheet link a PCI put ahead of them, or where a PCI removed them, put them back before
+   * the first, or first in the head where none is left; ahead of each node at most once, and at
+   * most once in a task. Cascade layers are ordered by the sheets' own order, so a layer declared
+   * first beats every later one among important declarations; with the pins first, none can. The
+   * move runs in the mutation's own microtask, before the next rendering lays the document out. The
+   * first is found in the document's order, a `style` or a stylesheet link, not among
+   * `document.styleSheets`, which holds a link only once its sheet has loaded, after the mutation:
+   * the boot would have seen the pins first, and the link's layer, once loaded, would have come
+   * before them unseen (`overflow: hidden` from a link put first in the head, in Chrome 158,
+   * `car-i5/probe/` in the lane's directory).
+   *
+   * @constraint A PCI whose own `MutationObserver` puts its stylesheet back first answers each move
+   *   with another, in the next microtask, and the two would trade places without end, the frame
+   *   frozen in its microtask checkpoint (RED i5: 100,000 moves at the cap of RED's probe). So the
+   *   pins pass a node once, and move at most once in a task (RED i5's pins-fight-new: 20,000
+   *   moves in 45 s with no animation frame, the main thread never yielding). The timer that ends
+   *   the task's bound looks once more, so a sheet a PCI puts first later in that task, in a later
+   *   microtask, after an `await` or in a 0 ms timer set in that task, is passed too (COLD i5: each
+   *   kept the pins second, the root's `overflow-y` hidden, in every trial); a move that look
+   *   makes is not looked at again. A fight with new nodes costs two moves for each change the
+   *   PCI does not answer, and the page renders on; a node that comes back before the pins, or one
+   *   a PCI puts first in answer to that last look, keeps its place, and its layer beats the pins
+   *   as the residue in `frame-page.ts` names.
+   * @see https://drafts.csswg.org/css-cascade-5/#layer-ordering
+   */
+  const keepPinsFirst = (): void => {
+    if (moved || !pinnedFirst()) {
+      return;
+    }
+
+    moved = true;
+    setTimeout(rechecked, 0);
+  };
+
+  new MutationObserver(() => {
+    keepPinsFirst();
+    signal();
+  }).observe(document, {
     attributes: true,
     characterData: true,
     childList: true,

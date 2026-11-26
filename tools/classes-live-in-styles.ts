@@ -172,8 +172,8 @@ const isStylesheet = (source: AnyNode | null): boolean =>
  * (a JSX `className`, `class` or `*ClassName`, an object literal's key of those names, which a
  * spread writes as an attribute, a `.className` assignment or `.classList`), no style (a JSX
  * `style`, an object literal's `style`, a `.style` read or write, a `style` attribute or element in
- * markup a string or a template writes, but one `style` element at a `markupPins` site) and no
- * stylesheet import. Its
+ * markup a string or a template writes, but one `style` element in the whole of a `markupPins`
+ * site's file, however its markup is split among strings) and no stylesheet import. Its
  * look is the separate imports `plate/src/styles/base.css` and `theme.css`, which a host chooses,
  * so a part names itself by `data-slot` and its state by `data-*`, and a new look replaces the
  * stylesheet alone. The one class plate writes is the author's QTI class, passed through at the
@@ -208,16 +208,23 @@ const classesLiveInStyles = {
     const listed = (paths: readonly string[]): boolean =>
       paths.some((path) => context.filename === path || context.filename.endsWith(`/${path}`));
     const passes = listed(options.value.passthrough);
-    const pins = listed(options.value.markupPins);
+    const allowed = listed(options.value.markupPins) ? 1 : 0;
+    /**
+     * The `style` elements the file's markup has written so far, in every string and template
+     * before this one: the file holds at most `allowed`, however its markup is split.
+     */
+    const written = { elements: 0 };
 
     /**
      * @param node A string or a template, whose markup may carry a style: refused but for one
-     *   `style` element at a `markupPins` site.
+     *   `style` element in the whole of a `markupPins` site's file.
      */
     const reportMarkup = (node: AnyNode): void => {
       const styles = markupStylesOf(node);
 
-      if (styles.attributes > 0 || styles.elements > (pins ? 1 : 0)) {
+      written.elements += styles.elements;
+
+      if (styles.attributes > 0 || (styles.elements > 0 && written.elements > allowed)) {
         context.report({ message: markupStyleMessage, node });
       }
     };

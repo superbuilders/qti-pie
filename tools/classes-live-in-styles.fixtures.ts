@@ -106,8 +106,8 @@ const invalid = (filename: string, message: RegExp, code: string) => ({
  * or passed through at a listed site, markup with no style, and the frame page's one `style`
  * element at its `markupPins` site, all admitted; a class written anywhere else, any other style,
  * in JSX, an object, a member or markup, a `style` attribute at the frame page too, a second
- * `style` element there and one anywhere else, and any stylesheet import, refused, at a passthrough
- * site too.
+ * `style` element there, in the same string or another of the file, and one anywhere else, and any
+ * stylesheet import, refused, at a passthrough site too.
  */
 const cases: Cases = {
   invalid: [
@@ -149,6 +149,11 @@ const cases: Cases = {
       framePage,
       noMarkupStyle,
       `export const html = \`<head><style>${substitution("pins")}</style><style>p{}</style></head>\`;`,
+    ),
+    invalid(
+      framePage,
+      noMarkupStyle,
+      `export const pins = \`<style>${substitution("pins")}</style>\`;\nexport const more = '<style>p{}</style>';`,
     ),
     invalid(island, noMarkupStyle, `export const html = '<head><style>p{}</style></head>';`),
     {

@@ -124,7 +124,7 @@ const pinnedRuleOf = (selector: string, declarations: Readonly<Record<string, st
  *   is the frame's width, so each post rewraps the text at a new height and the next post swaps the
  *   two (716, 302, 716, … in Chrome 158). So a PCI whose stylesheet makes its body vertical renders
  *   horizontally; one that wants vertical text sets it on its own element, an orthogonal flow,
- *   which cannot oscillate: its height is the viewport's, which the boot stops at its first echo;
+ *   which cannot oscillate: its height is the viewport's, which the boot stops within two posts;
  * - `overflow-y: auto`, so the viewport scrolls what overflows the frame: the root's `overflow` is
  *   the viewport's, and while it is `visible` the body's is, so a PCI's `overflow: hidden` on
  *   either would leave unreachable the content the frame cannot fit, which content sized from the
@@ -132,19 +132,34 @@ const pinnedRuleOf = (selector: string, declarations: Readonly<Record<string, st
  *   `auto` (CSS Overflow 3, §3.3), so this is the value a page that sets neither already has.
  *
  * The pins are the page's own `style` element, the first stylesheet of its head, each declaration
- * `!important` and in a cascade layer of its own, `qti-pie-frame-pins`, the page's first. Among
+ * `!important` and in an anonymous cascade layer, `@layer { … }`, the page's first. Among
  * `!important` declarations the first layer wins over every later one and over every unlayered one
  * (CSS Cascade 5, §6.1 and §6.4: layers sort in reverse for important declarations), so a PCI's
- * stylesheet cannot move them, `!important` or layered; and an `!important` declaration wins over
- * every normal one, so neither can a PCI's script that writes the root's or the body's `style` as
- * plainly as CSSOM writes it (`style.height = …`, `style.cssText`, `removeAttribute("style")`).
- * What still can: a script that removes or edits this `style` element, writes a pinned property
- * with `setProperty(…, "important")`, whose element-attached `!important` declaration sorts before
- * every layer, or attaches a shadow root to the body and styles the body from inside it with an
- * `!important` `:host` rule, whose inner context sorts before element-attached styles; and a
- * stylesheet that adds its own rules to the layer `qti-pie-frame-pins`, later. That is the PCI's
- * code, not its stylesheet; a height it moves so the boot stops at its first echo. The root cannot
- * host a shadow root.
+ * stylesheet cannot move them, `!important` or layered; and an anonymous layer has no name, so no
+ * later stylesheet can add its rules to that layer, nest a sublayer in it, or import a sheet into
+ * it, each of which outranked a named layer's own rules: a rule added later to the same layer by
+ * its order of appearance, a sublayer by its earlier place among important declarations (CSS
+ * Cascade 5, §6.4.2.1: "A layer declared without a <layer-name> does not provide any external hook
+ * for re-arranging or adding styles"). An `!important` declaration wins over every normal one, so
+ * neither can a PCI's script that writes the root's or the body's `style` as plainly as CSSOM
+ * writes it (`style.height = …`, `style.cssText`, `removeAttribute("style")`). The pins stay first:
+ * a stylesheet a script puts before them, in the head or in the root ahead of it, whose layer would
+ * then come first and outrank them as they outrank every later layer, or a removal of their `style`
+ * element, the boot undoes in the mutation's own microtask, before the next rendering, by putting
+ * the pins back before the document's first `style` or stylesheet link, loaded or not, or first in
+ * the head where none is left (`keepPinsFirst` in `#plate/ui/portable-custom/frame-boot.ts`; RED
+ * i5: a prepended layer's `overflow: hidden` had left 557 px no pointer could reach). The pins pass
+ * each node once, and move at most once in a task, looking once more when that task ends, so a
+ * node that comes back before them keeps its place. What still can: a script that puts a
+ * stylesheet back before the pins once they have passed it, or puts a new one before them in
+ * answer to that last look, a fight that costs the boot two moves for each change while the page
+ * renders on; that edits the pins' own
+ * sheet through the CSSOM (`insertRule`, a rule's `style.setProperty`); that writes a pinned
+ * property with `setProperty(…, "important")`, whose element-attached `!important` declaration
+ * sorts before every layer; or that attaches a shadow root to the body and styles the body from
+ * inside it with an `!important` `:host` rule, whose inner context sorts before element-attached
+ * styles. That is the PCI's code, not its stylesheet; a height it moves the boot stops at its echo.
+ * The root cannot host a shadow root.
  *
  * The values are the properties' initial ones, `overflow-y` the viewport's own, so the page lays
  * out as it would without them unless a PCI would have moved one, and they carry no look: no
@@ -155,8 +170,7 @@ const pinnedRuleOf = (selector: string, declarations: Readonly<Record<string, st
  *   takes it out of the root's flow, and the body's size containment, which lays it out as if it
  *   held nothing), which the viewport scrolls; and content sized from the viewport's height (`vh`
  *   units, an orthogonal flow, whose available inline size is the viewport's height), which has no
- *   height to post; the boot stops it at the first post its own resize echoes, and the viewport
- *   scrolls the rest.
+ *   height to post; the boot stops it within two posts, and the viewport scrolls the rest.
  * @source CSS Writing Modes 4, §8 (the principal writing mode); CSS Cascade 5, §6.1 (cascade
  *   sorting order) and §6.4 (cascade layers); CSS Containment 2 (size containment); Chrome 158,
  *   probed through this page's markup with each property set by a PCI's stylesheet, layered or not,
@@ -164,6 +178,7 @@ const pinnedRuleOf = (selector: string, declarations: Readonly<Record<string, st
  * @see https://drafts.csswg.org/css-writing-modes-4/#principal-flow
  * @see https://drafts.csswg.org/css-cascade-5/#cascade-sort
  * @see https://drafts.csswg.org/css-cascade-5/#layering
+ * @see https://drafts.csswg.org/css-cascade-5/#unnamed-layers
  * @see https://drafts.csswg.org/css-contain-2/#containment-size
  * @see https://drafts.csswg.org/css-overflow-3/#overflow-propagation
  */
@@ -202,9 +217,10 @@ const bodyPin = pinnedRuleOf("body", {
 
 /**
  * The page's own stylesheet: the pins of the root's and the body's geometry ({@link rootPin},
- * {@link bodyPin}), in the layer that is the page's first.
+ * {@link bodyPin}), in the anonymous layer that is the page's first, which no other stylesheet can
+ * name.
  */
-const pins = `@layer qti-pie-frame-pins{${rootPin}${bodyPin}}`;
+const pins = `@layer{${rootPin}${bodyPin}}`;
 
 /**
  * The frame page's HTML, its boot the inline script at the end of its body, where the boot finds

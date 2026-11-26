@@ -113,6 +113,7 @@ const loaded = (waitSeconds: number): Island => {
     documentElement: { dir: "", getBoundingClientRect: () => ({ height: 0 }), lang: "" },
     fonts: { addEventListener: () => {} },
     head: elementOf(),
+    styleSheets: [],
     title: "",
   });
   vi.stubGlobal("ResizeObserver", NotedObserver);
@@ -383,6 +384,7 @@ const booted = (
     documentElement: root,
     fonts: { addEventListener: () => {} },
     head: elementOf(),
+    styleSheets: [],
     title: "",
   });
   vi.stubGlobal("ResizeObserver", observer);
@@ -1542,11 +1544,13 @@ const styleOf =
 
 /**
  * What the frame's document holds: a block of a given height; a run of text of a given advance,
- * which breaks into lines 20 px apart; or a block of a given height above blocks each as tall as
- * the viewport, as `100vh` sizes them.
+ * which breaks into lines 20 px apart; a block of a given height above blocks each as tall as the
+ * viewport, as `100vh` sizes them; or a block of a given height that a height media query lays out
+ * at another, `matched`, once the viewport is at least as tall as the query's `minHeight`.
  */
 type Content =
   | { readonly block: number }
+  | { readonly block: number; readonly matched: number; readonly minHeight: number }
   | { readonly block: number; readonly screens: number }
   | { readonly text: number };
 
@@ -1611,6 +1615,10 @@ interface Flow {
 const contentHeightOf = (content: Content, inline: number, viewport: number): number => {
   if ("screens" in content) {
     return content.block + content.screens * viewport;
+  }
+
+  if ("minHeight" in content) {
+    return viewport >= content.minHeight ? content.matched : content.block;
   }
 
   return "block" in content
@@ -2166,31 +2174,166 @@ const unfittedCases: readonly HeightCase[] = [
   },
 ];
 
+/**
+ * The cases whose height a height media query, or the viewport's own height, sets, each with what
+ * the frame posts once it stops, then after each of three content signals that change nothing:
+ * COLD i3's 400 px that `@media (min-height: 400px)` grows by 200, whose fixed point is one post
+ * away; RED i3's `.x { height: 400px }` that `@media (min-height: 600px)` hides, which flips at
+ * each post; a heading over a full-height block, `V + c`; and RED's two stacked full-height
+ * panels, `2V + c`.
+ */
+const queryCases: readonly {
+  readonly content: Content;
+  readonly name: string;
+  readonly posts: readonly string[];
+}[] = [
+  {
+    content: { block: 400, matched: 600, minHeight: 400 },
+    name: "COLD's 400 px grown by 200 at a min-height of 400",
+    posts: ["416, 616", "416, 616", "416, 616", "416, 616"],
+  },
+  {
+    content: { block: 861, matched: 461, minHeight: 600 },
+    name: "RED's 400 px hidden at a min-height of 600",
+    posts: ["877, 477", "877, 477, 877", "877, 477, 877", "877, 477, 877"],
+  },
+  {
+    content: { block: 72, screens: 1 },
+    name: "a heading over a block as tall as the viewport",
+    posts: ["388, 476", "388, 476", "388, 476", "388, 476"],
+  },
+  {
+    content: { block: 0, screens: 2 },
+    name: "RED's two stacked full-height panels",
+    posts: ["616, 1248", "616, 1248, 2512", "616, 1248, 2512", "616, 1248, 2512"],
+  },
+];
+
+/**
+ * When a case's script writes the document: before each frame's layout, as an animation by script
+ * does (`requestAnimationFrame` writing a style, a spinner); after the frame's `resize`, in its
+ * listener, as a script sizing content from `innerHeight` does; or at the `resize` that comes in
+ * the very rendering it lays out, as the mobile `--vh` fix's custom property is set.
+ */
+type Writes = "each frame" | "after each resize" | "with each resize";
+
+/**
+ * Follow a frame frame by frame, as Chrome renders it: each frame the island has written the last
+ * height posted as the frame's, the case's script writes where its {@link Writes} say, the
+ * document is laid out at that height and its observations delivered, the frame's `resize` fires
+ * where its height changed, and its timers run.
+ *
+ * @param booting The frame.
+ * @param layout The document's layout.
+ * @param writes When the case's script writes the document.
+ * @param frames How many frames to follow.
+ * @param shown The frame's height before this frame.
+ */
+const framed = (
+  booting: Booted,
+  layout: Layout,
+  writes: Writes,
+  frames: number,
+  shown: number,
+): void => {
+  if (frames === 0) {
+    return;
+  }
+
+  const next = heightsOf(booting.island).at(-1) ?? shown;
+  const resized = next !== shown;
+
+  if (writes === "each frame" || (writes === "with each resize" && resized)) {
+    booting.mutated();
+  }
+
+  if (resized && writes === "with each resize") {
+    booting.resized();
+  }
+
+  layout.layOut(next);
+
+  if (resized && writes !== "with each resize") {
+    booting.resized();
+  }
+
+  if (resized && writes === "after each resize") {
+    booting.mutated();
+  }
+
+  booting.later();
+  framed(booting, layout, writes, frames - 1, next);
+};
+
+/**
+ * RED i5's four loops, each a script that writes the document beside content the echo rule stops:
+ * a heading over a full-height block under an animation by script; the flip, `.x` 400 px hidden at
+ * a `min-height` of 600, under the same animation; a block a resize listener sizes to the
+ * viewport, `innerHeight`, under a heading; and the same by the `--vh` fix, its property set as
+ * the frame's resize comes. Each with what the frame posts through forty frames.
+ */
+const scriptedCases: readonly {
+  readonly content: Content;
+  readonly name: string;
+  readonly posts: readonly number[];
+  readonly writes: Writes;
+}[] = [
+  {
+    content: { block: 72, screens: 1 },
+    name: "a heading over a full-height block, animated by script",
+    posts: [388, 476],
+    writes: "each frame",
+  },
+  {
+    content: { block: 861, matched: 461, minHeight: 600 },
+    name: "RED's flip, animated by script",
+    posts: [877, 477, 877],
+    writes: "each frame",
+  },
+  {
+    content: { block: 72, screens: 1 },
+    name: "a heading over a block a resize listener sizes to innerHeight",
+    posts: [388, 476],
+    writes: "after each resize",
+  },
+  {
+    content: { block: 72, screens: 1 },
+    name: "a heading over a block sized by the --vh fix",
+    posts: [388, 476],
+    writes: "with each resize",
+  },
+];
+
 describe("content sized from its own viewport, which no height fits", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("stops at the first post its own resize echoes, and scrolls the rest", async () => {
+  it("stops at the second post, its first echo's, and scrolls the rest", async () => {
     const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
-    const posted = unfittedCases.map(({ body, content, name, root }) => {
-      const { booting, layout, styled: style } = bootedOn(page.html, { body, root }, () => content);
+    const posted = unfittedCases.map(({ body, content, name, root, script }) => {
+      const {
+        booting,
+        layout,
+        styled: style,
+      } = bootedOn(page.html, { body, root, script }, () => content);
       const laid = followed(booting, layout, iframe.firstHeight, iframe.firstHeight);
       const heights = heightsOf(booting.island);
       const shown = heights.at(-1) ?? iframe.firstHeight;
       const first = Math.ceil(laidOut(style, content, iframe.firstHeight).block);
-      const over = Math.ceil(laidOut(style, content, first).taken) - first;
+      const second = Math.ceil(laidOut(style, content, first).block);
+      const over = Math.ceil(laidOut(style, content, second).taken) - second;
 
       return {
         actual: `${name}: posts ${heights.join(", ")}; then ${scrollsOf(style) ? `scrolls ${String(Math.ceil(laid.taken) - shown)} px` : "cannot scroll"}`,
-        expected: `${name}: posts ${String(first)}; then scrolls ${String(over)} px`,
+        expected: `${name}: posts ${String(first)}, ${String(second)}; then scrolls ${String(over)} px`,
       };
     });
 
     assert.deepStrictEqual(
       posted.map(({ actual }) => actual),
       posted.map(({ expected }) => expected),
-      "each posts once, the height its content takes at the frame's first height; the observation the frame's own resize brings is an echo and posts nothing; and the root, which the page pins to scroll, scrolls the overflow, so nothing is lost",
+      "each posts the height its content takes at the frame's first height, then, for the first echo of the frame's own resize, once more; the echo of that post is dropped; and the root, which the page pins to scroll, scrolls the overflow, so nothing is lost",
     );
   });
 
@@ -2255,11 +2398,13 @@ describe("content sized from its own viewport, which no height fits", () => {
     observed(500, 248);
     viewport = 248;
     observed(500, 264);
+    viewport = 264;
+    observed(500, 280);
 
     assert.deepStrictEqual(
       heightsOf(booting.island),
-      [216, 248],
-      "the observation that follows the frame's own resize, its width changed too, is the content reflowing, and is posted; the next, its width as it was, is an echo",
+      [216, 248, 264],
+      "the observation that follows the frame's own resize, its width changed too, is the content reflowing, and is posted; the next, its width as it was, is a first echo, posted once more; and the echo of that post is dropped",
     );
   });
 
@@ -2293,8 +2438,115 @@ describe("content sized from its own viewport, which no height fits", () => {
         stopped: Math.ceil(stopped.block),
         within: heightsOf(same.booting.island),
       },
-      { after: [326, 452], stopped: 352, within: [326, 452] },
-      "the frame stops at 326 with 352 to show; a picture 100 px tall that loads once it has stopped is posted, 452, and so is one whose load, a content signal, lands just before the observation that echoes the frame's resize to 326; each then stops at its own next echo",
+      { after: [326, 352, 478, 604], stopped: 378, within: [326, 452] },
+      "the frame stops at 352 with 378 to show; a picture 100 px tall that loads once it has stopped is posted, 478, then once more for its echo; one whose load, a content signal, lands just before the observation that echoes the frame's resize to 326 is posted as that echo, 452, and the echo of that post is dropped",
+    );
+  });
+
+  it("stops RED's loops, a script that writes the document every frame or at each resize beside content sized from the viewport or a flipping query, as it stops the same content alone", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const runs = scriptedCases.map(({ content, name, posts, writes }) => {
+      const { booting, layout } = bootedOn(page.html, { body: "", root: "" }, () => content);
+
+      framed(booting, layout, writes, 40, iframe.firstHeight);
+
+      return {
+        actual: `${name}: ${heightsOf(booting.island).join(", ")}`,
+        expected: `${name}: ${posts.join(", ")}`,
+      };
+    });
+
+    assert.deepStrictEqual(
+      runs.map(({ actual }) => actual),
+      runs.map(({ expected }) => expected),
+      "a signal before every observation leaves each echo an echo, so each case posts what it posts with no script, and nothing more through forty frames: a heading over a full-height block 388 and 476, the flip 877, 477 and then, at the signal after its dropped echo, 877",
+    );
+  });
+
+  it("posts a picture whose layout lands in the echo it drops once the picture's load comes after it", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    let picture = 0;
+    const late = bootedOn(page.html, { body: "", root: "padding-bottom: 10px" }, () => ({
+      block: picture,
+      screens: 1,
+    }));
+
+    late.layout.layOut(iframe.firstHeight);
+    late.booting.later();
+    late.layout.layOut(326);
+    late.booting.resized();
+    late.booting.later();
+    picture = 100;
+    late.layout.layOut(352);
+    late.booting.resized();
+    late.booting.later();
+
+    const dropped = heightsOf(late.booting.island);
+
+    late.booting.signalled("load");
+    followed(late.booting, late.layout, 478, 352);
+
+    assert.deepStrictEqual(
+      { dropped, posted: heightsOf(late.booting.island) },
+      { dropped: [326, 352], posted: [326, 352, 478] },
+      "the picture's 100 px land in the echo of the frame's second post, which grows as no `V + c` echo does, so its `load`, which Chrome fires after that observation, posts the height the echo held, 478; the echo of that post is dropped",
+    );
+  });
+
+  it("posts what a mutation draws in the echo it drops, whose signal comes before that observation and no later one", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    let drawn = 0;
+    const late = bootedOn(page.html, { body: "", root: "padding-bottom: 10px" }, () => ({
+      block: drawn,
+      screens: 1,
+    }));
+
+    late.layout.layOut(iframe.firstHeight);
+    late.booting.later();
+    late.layout.layOut(326);
+    late.booting.resized();
+    late.booting.later();
+    drawn = 100;
+    late.booting.mutated();
+    followed(late.booting, late.layout, 352, 326);
+
+    assert.deepStrictEqual(
+      heightsOf(late.booting.island),
+      [326, 352, 478],
+      "a PCI that draws its figure in the echo of the frame's second post signals by its mutation before that observation, as a MutationObserver's callback runs before the rendering, and raises none after; the echo, which grows as no `V + c` echo does, is posted at once, 478, and the echo of that post is dropped",
+    );
+  });
+
+  it("reaches a height media query's fixed point, stops one that flips at the posted height, and stays stopped through later signals", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const runs = queryCases.map(({ content, name }) => {
+      const { booting, layout } = bootedOn(page.html, { body: "", root: "" }, () => content);
+      const shown = (): number => heightsOf(booting.island).at(-1) ?? iframe.firstHeight;
+      const postsAfter = (type: string): string => {
+        const before = shown();
+
+        booting.signalled(type);
+        followed(booting, layout, shown(), before);
+
+        return heightsOf(booting.island).join(", ");
+      };
+
+      followed(booting, layout, iframe.firstHeight, iframe.firstHeight);
+
+      const posts = [
+        heightsOf(booting.island).join(", "),
+        postsAfter("transitionend"),
+        postsAfter("animationend"),
+        postsAfter("load"),
+      ];
+
+      return `${name}: ${posts.join(" | ")}`;
+    });
+
+    assert.deepStrictEqual(
+      runs,
+      queryCases.map(({ name, posts }) => `${name}: ${posts.join(" | ")}`),
+      "COLD's query reaches 616 and raises nothing more; RED's flip stops at 477, scrolling, and after one signal at 877, blank below; `V + c` posts nothing more for any signal; `2V + c` once more, at the first",
     );
   });
 });
@@ -2350,12 +2602,15 @@ interface Listeners extends Map<string, ((event: RunEvent) => void)[]> {
 const listenersOf = (): Listeners => Object.assign(new Map(), { owner: {} });
 
 /**
- * A run of the frame page's script in a `node:vm` context of its own: the names read and the
- * moment `define` was installed, in order; the context's window; the island; the listeners added
- * to the window and to the document; the elements the frame made, in order; the island's posts;
- * the timers the frame set, by their ids; its `ResizeObserver` and `MutationObserver` callbacks;
- * the viewport's height, which `matchMedia` answers by; and a way to run a script of the PCI's in
- * the same context, as a module file the frame loaded runs.
+ * A run of the frame page's script in a `node:vm` context of its own: the names read and the moment
+ * `define` was installed, in order; the context's window; the island; the listeners added to the
+ * window and to the document; the elements the frame made, in order; the island's posts; the timers
+ * the frame set, by their ids; its `ResizeObserver` and `MutationObserver` callbacks; the
+ * viewport's height, which `matchMedia` answers by; the document's style sheets, in order, the
+ * page's pins among them where the run has them, the pins' node and a way to make another, as a
+ * PCI's `style` is, and the nodes whose sheet has not loaded, a link's, which the document's order
+ * holds and `styleSheets` does not; and a way to run a script of the PCI's in the same context, as
+ * a module file the frame loaded runs.
  */
 interface Run {
   readonly elements: RunElement[];
@@ -2367,9 +2622,31 @@ interface Run {
   readonly observers: ((entries: readonly object[]) => void)[];
   readonly on: Listeners;
   readonly onDocument: Listeners;
+  readonly owner: () => SheetOwner;
+  readonly pending: Set<SheetOwner>;
+  readonly pins: SheetOwner;
   readonly posted: FrameToPage[];
+  readonly sheets: RunSheet[];
   readonly timers: Map<number, () => void>;
   readonly viewport: { height: number };
+}
+
+/**
+ * A node that owns a style sheet in a run, a `style` element, which another can be put before, as
+ * the DOM's `before` puts it.
+ */
+interface SheetOwner {
+  readonly before: (moved: SheetOwner) => void;
+}
+
+/**
+ * A style sheet of a run's document, by its node and where the node stands: in the head, or in
+ * the root before the head, where a PCI can put a `style` with `documentElement.prepend`, ahead of
+ * everything the head holds.
+ */
+interface RunSheet {
+  readonly ownerNode: SheetOwner;
+  place: "before the head" | "in the head";
 }
 
 /**
@@ -2411,9 +2688,11 @@ const dispatch = (listeners: Listeners, type: string, event: RunEvent): void => 
  *
  * @param script The script's text.
  * @param hash The frame's URL's fragment, its nonce after the `#`.
+ * @param pinned Whether the document holds the page's pins, its one style sheet, as the frame page
+ *   does, when the script runs.
  * @returns The run, its script evaluated.
  */
-const ran = (script: string, hash: string): Run => {
+const ran = (script: string, hash: string, pinned: boolean): Run => {
   const log: string[] = [];
   const posted: FrameToPage[] = [];
   const on = listenersOf();
@@ -2423,6 +2702,33 @@ const ran = (script: string, hash: string): Run => {
   const observers: ((entries: readonly object[]) => void)[] = [];
   const mutations: (() => void)[] = [];
   const viewport = { height: 0 };
+  const sheets: RunSheet[] = [];
+  const taken = (moved: SheetOwner, place: RunSheet["place"]): RunSheet => {
+    const at = sheets.findIndex(({ ownerNode }) => ownerNode === moved);
+    const sheet = (at === -1 ? undefined : sheets.splice(at, 1)[0]) ?? { ownerNode: moved, place };
+
+    sheet.place = place;
+
+    return sheet;
+  };
+  const owner = (): SheetOwner => {
+    const node: SheetOwner = {
+      before: (moved) => {
+        const at = sheets.findIndex(({ ownerNode }) => ownerNode === node);
+
+        sheets.splice(at, 0, taken(moved, sheets[at]?.place ?? "in the head"));
+      },
+    };
+
+    return node;
+  };
+  const pins = owner();
+  const pending = new Set<SheetOwner>();
+
+  if (pinned) {
+    sheets.push({ ownerNode: pins, place: "in the head" });
+  }
+
   const installed = new Map<string, FixtureContext | FixtureDefine>();
   let timed = 0;
   const island = {
@@ -2506,10 +2812,25 @@ const ran = (script: string, hash: string): Run => {
       return element;
     },
     defaultView: sandbox,
-    documentElement: { dataset: {}, dir: "", lang: "" },
+    documentElement: {
+      dataset: {},
+      dir: "",
+      lang: "",
+    },
     fonts: { addEventListener: () => {} },
-    head: { append: () => {} },
+    head: {
+      append: () => {},
+      prepend: (moved: SheetOwner) => {
+        const sheet = taken(moved, "in the head");
+
+        sheets.splice(sheets.filter(({ place }) => place === "before the head").length, 0, sheet);
+      },
+    },
     made: elements,
+    querySelector: () => sheets[0]?.ownerNode ?? null,
+    get styleSheets() {
+      return sheets.filter(({ ownerNode }) => !pending.has(ownerNode));
+    },
     title: "",
   };
 
@@ -2563,7 +2884,11 @@ const ran = (script: string, hash: string): Run => {
     observers,
     on,
     onDocument,
+    owner,
+    pending,
+    pins,
     posted,
+    sheets,
     timers,
     viewport,
   };
@@ -2713,15 +3038,180 @@ const changedWith = (detail: string): string =>
   `var changed = new CustomEvent("qti-interaction-changed"); changed.detail = ${detail}; document.made[0].fire("qti-interaction-changed", changed);`;
 
 /**
+ * Play RED i5's `pins-fight` in a run: the boot's observer takes the document's mutations, and a
+ * PCI whose own observer answers each move of the pins ahead of its sheet by putting the sheet
+ * back first, or, where it makes them anew, a new sheet, for at most a number of rounds, all in
+ * one task.
+ *
+ * @param run The run, its script evaluated.
+ * @param sheet The PCI's sheet, first in the document.
+ * @param rounds The most rounds to play.
+ * @param anew Whether the PCI puts a new sheet first each time, rather than its own back.
+ * @returns How many times the boot moved the pins ahead of the PCI's sheet.
+ */
+const fought = (run: Run, sheet: RunSheet, rounds: number, anew: boolean): number => {
+  for (const mutated of run.mutations) {
+    mutated();
+  }
+
+  if (rounds === 0 || run.sheets[0] === sheet) {
+    return 0;
+  }
+
+  const next: RunSheet = anew ? { ownerNode: run.owner(), place: "in the head" } : sheet;
+
+  run.sheets.splice(run.sheets.indexOf(next), anew ? 0 : 1);
+  run.sheets.unshift(next);
+
+  return 1 + fought(run, next, rounds - 1, anew);
+};
+
+/**
+ * Play RED i5's `pins-fight-new` in a run, for a number of tasks: in each, the boot's observer
+ * takes the document's mutations, and a PCI whose own observer answers each move of the pins by
+ * putting a new sheet first, for at most a number of rounds; then the task's timers run.
+ *
+ * @param run The run, its script evaluated.
+ * @param tasks How many tasks to play.
+ * @returns How many times the boot moved the pins in each task.
+ */
+const foughtAnew = (run: Run, tasks: number): readonly number[] => {
+  if (tasks === 0) {
+    return [];
+  }
+
+  run.sheets.unshift({ ownerNode: run.owner(), place: "in the head" });
+
+  const moves = fought(
+    run,
+    run.sheets[0] ?? { ownerNode: run.owner(), place: "in the head" },
+    100,
+    true,
+  );
+
+  ranOut(run);
+
+  return [moves, ...foughtAnew(run, tasks - 1)];
+};
+
+/**
+ * Play RED i5's `pins-fight` in a run across a number of tasks: in each, the document changes, the
+ * boot's observer takes the mutation, and the PCI's observer puts its own sheet back first each
+ * time the boot moves the pins ahead of it; then the task's timers run.
+ *
+ * @param run The run, its script evaluated.
+ * @param sheet The PCI's sheet, first in the document.
+ * @param tasks How many tasks to play.
+ * @returns How many times the boot moved the pins in each task.
+ */
+const foughtAcross = (run: Run, sheet: RunSheet, tasks: number): readonly number[] => {
+  if (tasks === 0) {
+    return [];
+  }
+
+  const moves = fought(run, sheet, 100, false);
+
+  ranOut(run);
+
+  return [moves, ...foughtAcross(run, sheet, tasks - 1)];
+};
+
+/**
+ * Put a PCI's sheet first in a run's document, a mutation the boot's observer takes.
+ *
+ * @param run The run, its script evaluated.
+ */
+const prepended = (run: Run): void => {
+  run.sheets.unshift({ ownerNode: run.owner(), place: "in the head" });
+
+  for (const mutated of run.mutations) {
+    mutated();
+  }
+};
+
+/**
+ * Play RED i5's `pins-fight-new` in a run through its timers: the frame's timers run one by one,
+ * and wherever one leaves the pins first, the PCI's observer answers with a new sheet put first,
+ * a mutation the boot's observer takes, for at most a number of timers.
+ *
+ * @param run The run, its script evaluated.
+ * @param rounds The most timers to run.
+ * @returns How many times a timer left the pins first.
+ */
+const answered = (run: Run, rounds: number): number => {
+  const [next] = [...run.timers];
+
+  if (next === undefined || rounds === 0) {
+    return 0;
+  }
+
+  run.timers.delete(next[0]);
+  next[1].call(run.global);
+
+  const first = run.sheets[0]?.ownerNode === run.pins;
+
+  if (first) {
+    prepended(run);
+  }
+
+  return (first ? 1 : 0) + answered(run, rounds - 1);
+};
+
+/**
+ * Play COLD i5's case in a run: a PCI puts a sheet first, the pins move ahead of it, and the PCI
+ * puts a second sheet first later in that task, in a later microtask or after an `await`, or in a
+ * 0 ms timer of its own set before the boot's; then the task's timers run.
+ *
+ * @param run The run, its script evaluated.
+ * @param own Whether the second sheet comes in a timer of the PCI's own.
+ * @returns Whether the pins end first.
+ */
+const secondLater = (run: Run, own: boolean): boolean => {
+  if (own) {
+    run.timers.set(0, () => {
+      prepended(run);
+    });
+  }
+
+  prepended(run);
+
+  if (!own) {
+    prepended(run);
+  }
+
+  ranOut(run);
+
+  return run.sheets[0]?.ownerNode === run.pins;
+};
+
+/**
+ * Run the timer a run's frame set last, and only that one.
+ *
+ * @param run The run.
+ */
+const ranLast = (run: Run): void => {
+  const [last] = [...run.timers].slice(-1);
+
+  if (last !== undefined) {
+    run.timers.delete(last[0]);
+    last[1].call(run.global);
+  }
+};
+
+/**
  * Drive a run of the frame through its whole life, and every way it is entered on the way:
  * messages that are no island's (no object, no nonce, an unknown kind, another nonce, another
  * window), an `instantiate` before the `load`, the `load` and a second one, the PCI's module file
  * (`wholeModule`), a factory chosen that is not registered and then one that is, a second
  * `instantiate`, an input before and after, each way the PCI fires `qti-interaction-changed`,
- * `ondone`, observations of the root (an entry with no box, an echo of the frame's own resize, a
- * change a mutation signals), a `resize`, an uncaught error, unhandled rejections, a message the
- * frame posts itself, a `pagehide` the back/forward cache keeps, `complete` twice, and the
- * `pagehide` that unloads it. Each event names the frame's window where a browser's would.
+ * `ondone`, observations of the root (an entry with no box, an echo of the frame's own resize,
+ * posted once more, and the echo of that post, dropped, as `V + c` grows and as other content does,
+ * a change a mutation signals, a signal that posts a dropped echo, a signal's post whose echo is
+ * dropped, and a mutation before an echo the frame drops, which posts it at once), a style sheet
+ * put before the pins and the pins removed, each with the mutation that puts them back first, a
+ * `resize`, an uncaught error, unhandled rejections, a message the frame posts itself, a `pagehide`
+ * the back/forward cache keeps, `complete` twice, and the `pagehide` that unloads it. Each event
+ * names the frame's window where a browser's would.
  *
  * @param run The run, its script evaluated.
  * @returns Once the run has been driven.
@@ -2776,6 +3266,55 @@ const wholeLife = async (run: Run): Promise<void> => {
     }
 
     observer([{ borderBoxSize: [{ blockSize: 300, inlineSize: 600 }] }]);
+    run.viewport.height = 300;
+    observer([{ borderBoxSize: [{ blockSize: 324, inlineSize: 600 }] }]);
+    run.viewport.height = 324;
+    observer([{ borderBoxSize: [{ blockSize: 348, inlineSize: 600 }] }]);
+
+    for (const mutated of run.mutations) {
+      mutated();
+    }
+
+    run.sheets.unshift({ ownerNode: run.owner(), place: "in the head" });
+
+    for (const mutated of run.mutations) {
+      mutated();
+    }
+
+    run.sheets.splice(0);
+
+    for (const mutated of run.mutations) {
+      mutated();
+    }
+
+    ranLast(run);
+
+    for (const mutated of run.mutations) {
+      mutated();
+    }
+
+    observer([{ borderBoxSize: [{ blockSize: 400, inlineSize: 600 }] }]);
+    run.viewport.height = 400;
+    observer([{ borderBoxSize: [{ blockSize: 500, inlineSize: 600 }] }]);
+    run.viewport.height = 500;
+    observer([{ borderBoxSize: [{ blockSize: 700, inlineSize: 600 }] }]);
+
+    for (const mutated of run.mutations) {
+      mutated();
+    }
+
+    run.viewport.height = 700;
+    observer([{ borderBoxSize: [{ blockSize: 1000, inlineSize: 600 }] }]);
+    observer([{ borderBoxSize: [{ blockSize: 1100, inlineSize: 600 }] }]);
+    run.viewport.height = 1100;
+    observer([{ borderBoxSize: [{ blockSize: 1200, inlineSize: 600 }] }]);
+
+    for (const mutated of run.mutations) {
+      mutated();
+    }
+
+    run.viewport.height = 1200;
+    observer([{ borderBoxSize: [{ blockSize: 1400, inlineSize: 600 }] }]);
   }
 
   dispatch(run.on, "error", atWindow(run, { message: "thrown" }));
@@ -2829,7 +3368,8 @@ const fallenBack = async (run: Run): Promise<void> => {
 
 /**
  * Drive a run whose first route's only location does not load, and whose script then reports
- * loading after all, which the settled load ignores.
+ * loading after all, which the settled load ignores; then a mutation of its document, which holds
+ * no pins to keep first.
  *
  * @param run The run.
  * @returns Once driven.
@@ -2842,6 +3382,11 @@ const exhausted = async (run: Run): Promise<void> => {
   );
   lastScript(run)?.fire("error", {});
   lastScript(run)?.fire("load", {});
+
+  for (const mutated of run.mutations) {
+    mutated();
+  }
+
   await setImmediate();
 };
 
@@ -2927,16 +3472,17 @@ const lives: readonly {
   readonly drive: (run: Run) => Promise<void>;
   readonly hash: string;
   readonly name: string;
+  readonly pinned: boolean;
 }[] = [
-  { drive: async () => {}, hash: "", name: "no nonce" },
-  { drive: wholeLife, hash: `#${nonce}`, name: "its whole life" },
-  { drive: fallenBack, hash: `#${nonce}`, name: "a fallback" },
-  { drive: exhausted, hash: `#${nonce}`, name: "a route exhausted" },
-  { drive: timedOut, hash: `#${nonce}`, name: "a wait run out" },
-  { drive: missingDependency, hash: `#${nonce}`, name: "a missing dependency" },
-  { drive: missingEntry, hash: `#${nonce}`, name: "a missing entry" },
-  { drive: thrownEarly, hash: `#${nonce}`, name: "errors before the PCI runs" },
-  { drive: noInteraction, hash: `#${nonce}`, name: "no interaction" },
+  { drive: async () => {}, hash: "", name: "no nonce", pinned: true },
+  { drive: wholeLife, hash: `#${nonce}`, name: "its whole life", pinned: true },
+  { drive: fallenBack, hash: `#${nonce}`, name: "a fallback", pinned: true },
+  { drive: exhausted, hash: `#${nonce}`, name: "a route exhausted", pinned: false },
+  { drive: timedOut, hash: `#${nonce}`, name: "a wait run out", pinned: true },
+  { drive: missingDependency, hash: `#${nonce}`, name: "a missing dependency", pinned: true },
+  { drive: missingEntry, hash: `#${nonce}`, name: "a missing entry", pinned: true },
+  { drive: thrownEarly, hash: `#${nonce}`, name: "errors before the PCI runs", pinned: true },
+  { drive: noInteraction, hash: `#${nonce}`, name: "no interaction", pinned: true },
 ];
 
 /**
@@ -3005,6 +3551,21 @@ const inlineScript = regex("<script>(?<text>[\\s\\S]*)</script>", "u");
  */
 const scriptOf = (html: string): string => inlineScript.exec(html)?.groups.text ?? "";
 
+/**
+ * Write what a run posted, as the posts test lists it: a failure with its reason, a height with
+ * its pixels, any other message by its kind.
+ *
+ * @param message The message.
+ * @returns Its text.
+ */
+const postedAs = (message: FrameToPage): string => {
+  if (message.kind === "failed") {
+    return `failed (${message.reason})`;
+  }
+
+  return message.kind === "height" ? `height ${String(message.pixels)}` : message.kind;
+};
+
 describe("the frame's boot, run", () => {
   it("runs every block of the boot, and in every run reads `parent` once, before it installs `define`, and no other replaceable attribute of its window", async () => {
     const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
@@ -3018,7 +3579,7 @@ describe("the frame's boot, run", () => {
     const reads = await Effect.runPromise(
       Effect.forEach(lives, (life) =>
         Effect.promise(async () => {
-          const run = ran(script, life.hash);
+          const run = ran(script, life.hash, life.pinned);
 
           await life.drive(run);
 
@@ -3053,18 +3614,18 @@ describe("the frame's boot, run", () => {
     const posts = await Effect.runPromise(
       Effect.forEach(lives, (life) =>
         Effect.promise(async () => {
-          const run = ran(script, life.hash);
+          const run = ran(script, life.hash, life.pinned);
 
           await life.drive(run);
 
-          return `${life.name}: ${run.posted.map((message) => (message.kind === "failed" ? `failed (${message.reason})` : message.kind)).join(", ")}`;
+          return `${life.name}: ${run.posted.map(postedAs).join(", ")}`;
         }),
       ),
     );
 
     assert.deepStrictEqual(posts, [
       "no nonce: ",
-      'its whole life: booted, registered, failed (No registered factory serves the type identifier "urn:qti-pie:test:unregistered", or its getInstance returned no interaction.), ready, changed, changed, changed, changed, changed, done, height, height, completed',
+      'its whole life: booted, registered, failed (No registered factory serves the type identifier "urn:qti-pie:test:unregistered", or its getInstance returned no interaction.), ready, changed, changed, changed, changed, changed, done, height 216, height 240, height 300, height 324, height 400, height 500, height 700, height 1100, height 1200, height 1400, completed',
       "a fallback: booted, registered, completed",
       "a route exhausted: booted, failed (The module script at modules/a.js did not load.)",
       'a wait run out: booted, failed (The module script at modules/a.js defined no module "a" within 5 seconds.)',
@@ -3073,6 +3634,96 @@ describe("the frame's boot, run", () => {
       "errors before the PCI runs: booted, failed (thrown while loading), failed (A script in the frame threw.), failed (A promise in the frame was rejected.)",
       'no interaction: booted, registered, failed (No registered factory serves the type identifier "urn:qti-pie:test:none", or its getInstance returned no interaction.)',
     ]);
+  });
+
+  it("keeps the page's pins first among the document's style sheets, before one a PCI puts ahead of them and back in where a PCI removed them", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const settled = (change: (run: Run) => void) => {
+      const run = ran(scriptOf(page.html), `#${nonce}`, true);
+
+      change(run);
+
+      for (const mutated of run.mutations) {
+        mutated();
+      }
+
+      return { first: run.sheets[0]?.ownerNode === run.pins, sheets: run.sheets.length };
+    };
+
+    assert.deepStrictEqual(
+      {
+        emptied: settled((run) => {
+          run.sheets.splice(0);
+        }),
+        linked: settled((run) => {
+          const link = run.owner();
+
+          run.sheets.unshift({ ownerNode: link, place: "in the head" });
+          run.pending.add(link);
+        }),
+        prepended: settled((run) => {
+          run.sheets.unshift({ ownerNode: run.owner(), place: "in the head" });
+        }),
+        removed: settled((run) => {
+          run.sheets.push({ ownerNode: run.owner(), place: "in the head" });
+          run.sheets.shift();
+        }),
+        rooted: settled((run) => {
+          run.sheets.unshift({ ownerNode: run.owner(), place: "before the head" });
+        }),
+      },
+      {
+        emptied: { first: true, sheets: 1 },
+        linked: { first: true, sheets: 2 },
+        prepended: { first: true, sheets: 2 },
+        removed: { first: true, sheets: 2 },
+        rooted: { first: true, sheets: 2 },
+      },
+      "a style sheet put before the pins, first in the head or in the root ahead of the head, or a stylesheet link whose sheet has not loaded, and so is not yet among the document's sheets, whose layer would come first, and a removal of the pins, with another sheet left and with none, are each undone at the mutation: the pins are put back before the document's first style or link, wherever it stands, or first in the head",
+    );
+  });
+
+  it("lets a PCI whose own observer keeps its sheet first win after one move, and one that puts a new sheet first at each move win after one move a task, so the frame stays live", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const run = ran(scriptOf(page.html), `#${nonce}`, true);
+    const sheet: RunSheet = { ownerNode: run.owner(), place: "in the head" };
+
+    run.sheets.unshift(sheet);
+
+    const moves = fought(run, sheet, 100, false);
+    const anew = ran(scriptOf(page.html), `#${nonce}`, true);
+    const across = ran(scriptOf(page.html), `#${nonce}`, true);
+    const kept: RunSheet = { ownerNode: across.owner(), place: "in the head" };
+    const timed = ran(scriptOf(page.html), `#${nonce}`, true);
+
+    across.sheets.unshift(kept);
+    prepended(timed);
+    prepended(timed);
+
+    assert.deepStrictEqual(
+      {
+        across: foughtAcross(across, kept, 3),
+        anew: foughtAnew(anew, 3),
+        answered: answered(timed, 100),
+        first: run.sheets[0] === sheet,
+        moves,
+      },
+      { across: [1, 0, 0], anew: [1, 1, 1], answered: 1, first: true, moves: 1 },
+      "RED i5's pins-fight: the boot puts the pins ahead of the PCI's sheet once, the PCI's observer puts its sheet back first, and the boot leaves it there; without the once, the two trade places at every mutation, a microtask loop that freezes the frame. The same fight across three tasks, the document changed in each, moves the pins once in all: the sheet has been passed, so the task's bound alone, which would move them once every task, forever, is not what holds it. RED's pins-fight-new, a new sheet put first at each move, costs the boot one move a task, three tasks three moves, and the page renders between; without the task's bound, a hundred moves in one task at the test's cap. Answered in its timers too, the fight costs one move more, the look that ends the task, which is not looked at again; a look that looked again would trade moves with the PCI timer after timer, a hundred at the test's cap",
+    );
+  });
+
+  it("puts the pins back first where a PCI puts a second sheet first later in the task they moved in, in a later microtask, after an await or in a 0 ms timer of its own", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+
+    assert.deepStrictEqual(
+      {
+        microtask: secondLater(ran(scriptOf(page.html), `#${nonce}`, true), false),
+        timer: secondLater(ran(scriptOf(page.html), `#${nonce}`, true), true),
+      },
+      { microtask: true, timer: true },
+      "COLD i5: a CSS-in-JS PCI writes a sheet first, the pins move ahead of it, and it writes a second first in the same task, in a later microtask or after an await, or in a 0 ms timer set in that task, which runs before the boot's; the pins cannot move again in that task, and the timer that ends its bound looks once more, so the pins end first in each. Without that look, they stayed second, the root's overflow hidden",
+    );
   });
 
   it("records a read the syntax scan cannot see: through `this`, a value, an event's window, a computed member", async () => {
@@ -3092,7 +3743,7 @@ describe("the frame's boot, run", () => {
       '  addEventListener("message", (event) => { void [event.srcElement.screenLeft, event.composedPath()[0].screenTop]; });',
       "})();",
     ].join("\n");
-    const run = ran(`${scriptOf(page.html)}\n${planted}`, `#${nonce}`);
+    const run = ran(`${scriptOf(page.html)}\n${planted}`, `#${nonce}`, true);
 
     await wholeLife(run);
 
