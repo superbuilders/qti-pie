@@ -768,7 +768,7 @@ type CharSituation = (typeof charSituations)[number];
  * @returns Each it reaches.
  */
 const charSituationsOf = (value: string): readonly CharSituation[] => {
-  const characters = Array.from(value);
+  const characters = Arr.fromIterable(value);
   const reached: readonly (readonly [CharSituation, boolean])[] = [
     ["]]>", value.includes("]]>")],
     ["a CR LF pair", value.includes("\r\n")],
@@ -1159,7 +1159,10 @@ describe("the writer writes only comments and processing instructions XML 1.0 al
               },
               suite: "crust/write/comments",
             },
-            (misc, c) => Effect.map(holdsToProductions(misc), (situation) => c.note(situation)),
+            (misc, c) =>
+              Effect.map(holdsToProductions(misc), (situation) => {
+                c.note(situation);
+              }),
           ),
         ),
       ),
@@ -1186,7 +1189,10 @@ describe("the writer writes only comments and processing instructions XML 1.0 al
               },
               suite: "crust/write/instruction-targets",
             },
-            (misc, c) => Effect.map(holdsToProductions(misc), (situation) => c.note(situation)),
+            (misc, c) =>
+              Effect.map(holdsToProductions(misc), (situation) => {
+                c.note(situation);
+              }),
           ),
         ),
       ),
@@ -1213,7 +1219,10 @@ describe("the writer writes only comments and processing instructions XML 1.0 al
               },
               suite: "crust/write/instruction-data",
             },
-            (misc, c) => Effect.map(holdsToProductions(misc), (situation) => c.note(situation)),
+            (misc, c) =>
+              Effect.map(holdsToProductions(misc), (situation) => {
+                c.note(situation);
+              }),
           ),
         ),
       ),
