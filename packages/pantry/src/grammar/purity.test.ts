@@ -57,15 +57,6 @@ const reachesGrizzle = (specifier: string): boolean => grizzlePackages.has(packa
 const install = "grammar/install.ts";
 
 /**
- * Every other pure-layer import of {@link grizzlePackages}, each `module: statement`: `domains.ts`
- * writes a repetition's bound within the limit grizzle publishes, `regexMaxRepeat`, which it reads
- * rather than restates, and nothing else.
- */
-const publishedLimits: readonly string[] = [
-  'grammar/domains.ts: import { regexMaxRepeat } from "@bjornpagen/grizzle"',
-];
-
-/**
  * The modules outside `src/test/` that import its helpers today: none since the processing
  * fixtures' materializer moved to `src/test/processing-fixtures.ts` (Q5.10). The list only shrinks:
  * a module that starts importing them fails the test until the list says so.
@@ -286,12 +277,13 @@ const grizzleImports = (
     );
 
 describe("the pure layers", () => {
-  it("import grizzle only in install.ts, and its published regexMaxRepeat in domains.ts", () => {
+  it("import grizzle only in install.ts", () => {
     assert.deepStrictEqual(
       grizzleImports(modules(pureLayers), (file) =>
         readFileSync(path.join(sourceRoot, file), "utf-8"),
       ),
-      publishedLimits,
+      [],
+      "domains.ts reads grizzle's regexMaxRepeat from grizzle-text's regex parser, which no pure layer is kept from",
     );
   });
 

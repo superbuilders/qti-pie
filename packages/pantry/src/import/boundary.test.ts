@@ -23,8 +23,9 @@ type ByStep = readonly (readonly [step: Step, entries: readonly string[]])[];
 
 /**
  * The XML side, `@qti-pie/filling` at today's paths, as globs relative to `src`: ZIP and XML to
- * typed rows and back, and the command line. It hands the PostgreSQL side a package's rows and gets
- * the scan's rows back.
+ * typed rows and back, and the command line, `cli.ts` and the programs its engine commands run as
+ * (`qti-export.ts`, `qti-import.ts`, `qti-roundtrip.ts`). It hands the PostgreSQL side a package's
+ * rows and gets the scan's rows back.
  *
  * `import/read.ts`, the package read and parsed before the database, is here. `import/package.ts`,
  * `import/write.ts` and `export/package.ts` stay here, the XML program, the row builders and the
@@ -56,6 +57,9 @@ const xmlSide = [
   "package/media.ts",
   "package/read.ts",
   "package/zip.ts",
+  "qti-export.ts",
+  "qti-import.ts",
+  "qti-roundtrip.ts",
 ] as const;
 
 /**
