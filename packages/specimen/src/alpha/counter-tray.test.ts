@@ -76,9 +76,10 @@
  *   the page or the browser's swipe back.
  * - CT16, two rows at most: for every supply from 1 to 20, on the open mat and the double ten frame,
  *   the tray as it starts shows the whole supply in at most two rows, and one of five or fewer in
- *   one; and the open mat holding the whole supply shows it in at most two rows. So the board is no
- *   taller for twenty counters than for ten, and a tray under a picture to match stays in a
- *   laptop's 1366 by 768 window, where a third row fell below it.
+ *   one; and the open mat holding the whole supply shows it in at most two rows. The board, as it
+ *   starts and with the open mat full, is drawn no taller than for a supply of ten, so a tray under
+ *   a picture to match stays in a laptop's 1366 by 768 window wherever a supply of ten did, and a
+ *   third row once fell below it.
  * - CT17, not interacting: a tray the host shows in review (a submitted test) or closed, bound to
  *   what the child left, shows it; its board says it is disabled, no part offers a hand or holds a
  *   tab stop, and no tap, drag or key moves a counter or fires a change. Bound to a value it could
@@ -1791,7 +1792,7 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
           })),
         );
 
-        yield* Effect.forEach(
+        const heights = yield* Effect.forEach(
           cases,
           (played) =>
             Effect.scoped(
@@ -1803,7 +1804,7 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
                 twoRows(atStart.trayCentres, `${where}, the tray`);
 
                 if (played.tenFrame) {
-                  return;
+                  return { full: atStart.boardHeight, played, start: atStart.boardHeight };
                 }
 
                 const full = yield* Effect.orDie(
@@ -1812,10 +1813,30 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
 
                 assert.strictEqual(full.mat, played.supply, `${where}: the mat holds them all`);
                 twoRows(full.matCentres, `${where}, the mat`);
+
+                return { full: full.boardHeight, played, start: atStart.boardHeight };
               }),
             ),
-          { concurrency: trayCount, discard: true },
+          { concurrency: trayCount },
         );
+
+        for (const { full, played, start } of heights) {
+          const ten = heights.find(
+            (each) => each.played.item.id === played.item.id && each.played.supply === 10,
+          );
+          const where = `${played.item.id} with a supply of ${String(played.supply)}`;
+
+          assert.isAtMost(
+            start,
+            (ten?.start ?? 0) + 0.5,
+            `${where}: CT16, no taller as it starts than ten`,
+          );
+          assert.isAtMost(
+            full,
+            (ten?.full ?? 0) + 0.5,
+            `${where}: CT16, no taller with the mat full than ten`,
+          );
+        }
       }),
   );
 

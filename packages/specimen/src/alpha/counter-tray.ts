@@ -978,6 +978,10 @@ export type Gesture = "back" | "move" | "onto" | "release" | "switch";
  */
 export interface Look {
   /**
+   * The board's height as the screen draws it, in CSS pixels.
+   */
+  readonly boardHeight: number;
+  /**
    * The board's computed `touch-action`: the browser's own gestures a touch that starts on it may
    * make, `none` where the PCI takes every touch as the child's.
    */
@@ -1061,6 +1065,7 @@ const lookIn = (): Look => {
   const shown = [...document.querySelectorAll('[data-zone-of][display="inline"] image')];
 
   return {
+    boardHeight: board === null ? 0 : board.getBoundingClientRect().height,
     boardTouchAction: board === null ? "" : getComputedStyle(board).touchAction,
     carried: board?.querySelector('g[aria-hidden="true"][visibility="visible"]') !== null,
     cells,
