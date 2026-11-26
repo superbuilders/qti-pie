@@ -79,6 +79,12 @@
  *   one; and the open mat holding the whole supply shows it in at most two rows. So the board is no
  *   taller for twenty counters than for ten, and a tray under a picture to match stays in a
  *   laptop's 1366 by 768 window, where a third row fell below it.
+ * - CT17, not interacting: a tray the host shows in review (a submitted test) or closed, bound to
+ *   what the child left, shows it; its board says it is disabled, no part offers a hand or holds a
+ *   tab stop, and no tap, drag or key moves a counter or fires a change. Bound to a value it could
+ *   not have left, it shows an empty mat and still fires no change, so it never asks the host to
+ *   change a submitted answer. A tray interacting, as every rule starts one, has every part a child
+ *   could press as a tab stop.
  *
  * Every item is opened by plate's admission, its module resolved to its package's file with no
  * notice, and its frame's module registers exactly the identifier the item writes, so plate's
@@ -96,8 +102,11 @@
  * ignored while another finger rests on the screen, a second finger's tap on a counter dropped, a
  * press left standing when its release is lost before it moves, a press left standing when its
  * pointer loses the board's capture, the chosen ring left behind when its counter is dragged, a
- * completion that leaves the tray listening, one that leaves the drag under way, and the tray laid
- * five counters a row, whatever its supply.
+ * completion that leaves the tray listening, one that leaves the drag under way, the tray laid
+ * five counters a row, whatever its supply, and a tray not interacting that takes input, takes it
+ * in any status but review, does not say it is disabled, keeps its tab stops, offers a hand, or
+ * fires a change for a stored answer it cannot read, and a tray interacting whose counters are no
+ * tab stops.
  *
  * @module
  */
@@ -314,9 +323,44 @@ const kills: readonly Kill[] = [
     write: 'isChosen ? "visible" : "hidden"',
   },
   {
-    at: /listening\.abort\(\);/gu,
-    why: "a completion that leaves the tray listening",
+    at: "if (!interacting) {",
+    why: "a tray that takes input in review",
+    write: "if (false) {",
+  },
+  {
+    at: 'const interacting = configuration.status === "interacting";',
+    why: "a tray that takes input in any status but review",
+    write: 'const interacting = configuration.status !== "review";',
+  },
+  {
+    at: 'board.setAttribute("aria-disabled", "true");',
+    why: "a tray not interacting that does not say it is disabled",
     write: "",
+  },
+  {
+    at: 'role: "button",\n        tabindex: interacting ? 0 : -1,',
+    why: "a tray not interacting whose counters keep their tab stops",
+    write: 'role: "button", tabindex: 0,',
+  },
+  {
+    at: 'role: "button",\n        tabindex: interacting ? 0 : -1,',
+    why: "a tray interacting whose counters are no tab stops",
+    write: 'role: "button", tabindex: -1,',
+  },
+  {
+    at: '[data-board][aria-disabled="true"], [data-board][aria-disabled="true"] * { cursor: default; }',
+    why: "a tray not interacting whose parts offer a hand",
+    write: "",
+  },
+  {
+    at: "if (interacting && bound.unreadable) {",
+    why: "a tray not interacting that fires a change for a stored answer it cannot read",
+    write: "if (bound.unreadable) {",
+  },
+  {
+    at: /oncompleted: \(\) => \{\s*listening\.abort\(\);/gu,
+    why: "a completion that leaves the tray listening",
+    write: "oncompleted: () => {",
   },
   {
     at: /endPress\(\);\s*choice = undefined;\s*draw\(\);\s*\},/gu,
@@ -363,7 +407,8 @@ class TraysService extends Context.Service<TraysService, Trays>()(
 const TraysLayer = Layer.effect(TraysService, Effect.orDie(counterTrays));
 
 /**
- * Start a tray and give it running, failing the rule when the frame says it cannot run.
+ * Start a tray and give it running, failing the rule when the frame says it cannot run, and
+ * holding that every part a child could press is a tab stop exactly while it is interacting.
  *
  * @param trays The trays.
  * @param played The item as played.
@@ -371,7 +416,9 @@ const TraysLayer = Layer.effect(TraysService, Effect.orDie(counterTrays));
  * @returns The running tray, its page closed with the scope.
  */
 const running = (trays: Trays, played: Played, bound: Bound) =>
-  Effect.map(Effect.orDie(trays.start(played.hosted, bound)), (started: Started): Running => {
+  Effect.gen(function* run() {
+    const started: Started = yield* Effect.orDie(trays.start(played.hosted, bound));
+
     if (started.kind === "failed") {
       return assert.fail(`${played.item.id} cannot run: ${started.reason}`);
     }
@@ -380,6 +427,14 @@ const running = (trays: Trays, played: Played, bound: Bound) =>
       started.registered,
       [played.hosted.typeIdentifier],
       `${played.item.id}: the module registers the identifier the item writes, the one factory`,
+    );
+
+    const look = yield* Effect.orDie(started.running.look);
+
+    assert.strictEqual(
+      look.tabStops,
+      played.hosted.status === "interacting" ? look.mat + look.tray + 2 : 0,
+      `${played.item.id} ${played.hosted.status}: every part a child could press is a tab stop exactly while it is interacting`,
     );
 
     return started.running;
@@ -564,6 +619,62 @@ const completedStill = (tray: Running, by: "mouse" | "touch") =>
       yield* stillAt(tray, 2, `completed, then taps by ${input}: CT10`);
     }
   });
+
+/**
+ * Hold CT17: a tray the host shows in a status but `interacting`, bound to what the child left,
+ * shows it, says it is disabled, offers no hand and holds no tab stop, and moves nothing by mouse
+ * taps, a mouse drag, finger taps or the keyboard, firing no change; bound to a value it could not
+ * have left, it shows an empty mat and fires no change either.
+ *
+ * @param trays The trays.
+ * @param played The item as played.
+ * @param status The status the host shows it in.
+ * @returns The check.
+ */
+const notInteracting = (trays: Trays, played: Played, status: string) =>
+  Effect.forEach(
+    [
+      { bound: integer(2), left: 2 },
+      { bound: integer(played.supply + 1), left: 0 },
+    ],
+    ({ bound, left }) =>
+      Effect.scoped(
+        Effect.gen(function* shown() {
+          const where = `${played.item.id} ${status}, bound to ${JSON.stringify(bound)}`;
+          const tray = yield* running(
+            trays,
+            { ...played, hosted: { ...played.hosted, status } },
+            bound,
+          );
+          const look = yield* Effect.orDie(tray.look);
+
+          assert.isTrue(look.disabled, `${where}: CT17, the board says it is disabled`);
+          assert.deepStrictEqual(
+            look.cursors,
+            ["default"],
+            `${where}: CT17, no part offers a hand`,
+          );
+          assert.strictEqual(look.tabStops, 0, `${where}: CT17, no part holds a tab stop`);
+          yield* stillAt(tray, left, `${where}, as it opens: CT17`);
+
+          for (const input of ["mouse", "touch", "keyboard"] as const) {
+            yield* Effect.orDie(tray.tap({ at: 0, kind: "counter", zone: "tray" }, input));
+            yield* Effect.orDie(tray.tap({ kind: "zone", zone: "mat" }, input));
+            yield* stillAt(tray, left, `${where}, taps by ${input}: CT17`);
+          }
+
+          yield* Effect.orDie(
+            tray.drag(
+              { at: 0, kind: "counter", zone: "tray" },
+              { kind: "zone", zone: "mat" },
+              "mouse",
+            ),
+          );
+          yield* stillAt(tray, left, `${where}, a mouse drag: CT17`);
+        }),
+      ),
+    { discard: true },
+  );
 
 /**
  * Hold CT12: while one finger rests on a spot, a second finger's taps on a tray counter and then on
@@ -870,6 +981,7 @@ const battery = (trays: Trays, module: string) =>
     );
 
     yield* restingFinger(trays, openMat, { kind: "beside the mat, right" });
+    yield* notInteracting(trays, openMat, "closed");
     yield* unseenEnd(trays, openMat);
     yield* lostEnd(trays, openMat, 1);
     yield* jumped(trays, openMat);
@@ -1704,6 +1816,22 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
             ),
           { concurrency: trayCount, discard: true },
         );
+      }),
+  );
+
+  it.effect(
+    "CT17: a tray in review or closed shows what the child left, offers nothing to press, and fires no change",
+    () =>
+      Effect.gen(function* reviewRule() {
+        const trays = yield* TraysService;
+
+        const openMat = yield* playing(trays, "open-mat", trays.module);
+        const tenFrame = yield* playing(trays, "ten-frame", trays.module);
+
+        yield* notInteracting(trays, openMat, "review");
+        yield* notInteracting(trays, openMat, "closed");
+        yield* notInteracting(trays, tenFrame, "review");
+        yield* notInteracting(trays, tenFrame, "closed");
       }),
   );
 

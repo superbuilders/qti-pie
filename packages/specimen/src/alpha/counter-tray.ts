@@ -167,7 +167,9 @@ const IslandProps = Schema.Struct({
 /**
  * What plate's island hands its frame for one item, as its frame host builds the messages: the
  * `load` content (direction, entry, language, markup, routes, templates, title), the PCI's
- * properties by dataset name, its response identifier and its type identifier.
+ * properties by dataset name, its response identifier, the status it shows the PCI in
+ * (`interacting` as hosted; a rule that holds a submitted test's review gives `review`) and its
+ * type identifier.
  */
 export interface Hosted {
   readonly dir: string;
@@ -177,6 +179,7 @@ export interface Hosted {
   readonly properties: Readonly<Record<string, string>>;
   readonly responseIdentifier: string;
   readonly routes: readonly (typeof FrameRoute.Type)[];
+  readonly status: string;
   readonly templates: readonly string[];
   readonly title: string;
   readonly typeIdentifier: string;
@@ -618,6 +621,7 @@ const hostIn = (
       properties: Object.fromEntries(given.properties.map(({ name, value }) => [name, value])),
       responseIdentifier: given.responseIdentifier,
       routes: given.frame.routes,
+      status: "interacting",
       templates: [...root.querySelectorAll('[data-slot="plate-portable-custom-template"]')].map(
         (each) => each.innerHTML,
       ),
@@ -981,12 +985,26 @@ export interface Look {
   readonly carried: boolean;
   readonly cells: readonly Point[];
   readonly counterSide: number;
+  /**
+   * The computed cursors of the zones' backgrounds and the shown counters, each once, sorted: what
+   * the pointer offers over the parts a child could press.
+   */
+  readonly cursors: readonly string[];
+  /**
+   * Whether the board says it is disabled (`aria-disabled="true"`).
+   */
+  readonly disabled: boolean;
   readonly faces: readonly string[];
   readonly fired: number;
   readonly mat: number;
   readonly matCentres: readonly Point[];
   readonly matDrawing: string;
   readonly rings: number;
+  /**
+   * How many of the parts a child could press, the zones' backgrounds and the shown counters, are
+   * tab stops (a `tabindex` of 0 or more).
+   */
+  readonly tabStops: number;
   readonly texts: readonly string[];
   readonly tray: number;
   readonly trayCentres: readonly Point[];
@@ -1047,6 +1065,14 @@ const lookIn = (): Look => {
     carried: board?.querySelector('g[aria-hidden="true"][visibility="visible"]') !== null,
     cells,
     counterSide: shown[0]?.getBoundingClientRect().width ?? 0,
+    cursors: [
+      ...new Set(
+        [...document.querySelectorAll('[data-zone], [data-zone-of][display="inline"]')].map(
+          (part) => getComputedStyle(part).cursor,
+        ),
+      ),
+    ].toSorted(),
+    disabled: document.querySelector('svg[data-board][aria-disabled="true"]') !== null,
     faces: [...new Set(shown.map((image) => image.getAttribute("href") ?? ""))],
     fired: window.trayFired,
     mat: matCentres.length,
@@ -1058,6 +1084,9 @@ const lookIn = (): Look => {
     rings: [...document.querySelectorAll("[data-ring]")].filter(
       (ring) => getComputedStyle(ring).visibility === "visible",
     ).length,
+    tabStops: [
+      ...document.querySelectorAll('[data-zone], [data-zone-of][display="inline"]'),
+    ].filter((part) => Number(part.getAttribute("tabindex")) >= 0).length,
     texts: [texts.join(""), ...named],
     tray: document.querySelectorAll('[data-zone-of="tray"][display="inline"]').length,
     trayCentres,
@@ -1134,7 +1163,7 @@ type PageMessage =
         readonly contextVariables: Readonly<Record<string, never>>;
         readonly properties: Readonly<Record<string, string>>;
         readonly responseIdentifier: string;
-        readonly status: "interacting";
+        readonly status: string;
         readonly templateVariables: Readonly<Record<string, never>>;
       };
       readonly kind: "instantiate";
@@ -1568,7 +1597,7 @@ const startIn = (
         contextVariables: {},
         properties: hosted.properties,
         responseIdentifier: hosted.responseIdentifier,
-        status: "interacting",
+        status: hosted.status,
         templateVariables: {},
       },
       kind: "instantiate",

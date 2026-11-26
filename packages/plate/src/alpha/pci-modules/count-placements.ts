@@ -50,6 +50,11 @@
  *   release; and no context menu opens on the board.
  * - **Completion.** Once the host completes the PCI (`oncompleted()`), a drag under way ends where it
  *   is, and the tray hears no more input.
+ * - **Not interacting.** A tray the host shows in any status but `interacting` (a submitted test's
+ *   review, closed, solution, suspended) shows the counters it is bound to (the child's answer, or
+ *   in solution the correct response) and takes no input: its board says it is disabled, no part
+ *   offers a hand or holds a tab stop, and it fires no change, not even for a stored answer it
+ *   cannot read.
  *
  * Its response is the count, a single integer in the Appendix C binding (`{ "base": { "integer": n
  * } }`), which it fires as `qti-interaction-changed` on each move and returns from `getResponse()`;
@@ -506,6 +511,13 @@ define(["qtiCustomInteractionContext"], (context) => {
   const render = (dom: HTMLElement, configuration: GivenConfiguration): CounterTray => {
     const { mat, supply } = settingsOf(configuration.properties);
     const tenFrame = mat === "double-ten-frame";
+    /**
+     * Whether the child may move counters: only while the host shows the PCI `interacting`. In any
+     * other status (a submitted test's review, closed, solution, suspended) the tray shows the
+     * counters it is bound to, takes no input, holds no tab stop, offers no hand (the style's last
+     * rule, so it wins the rules of equal specificity before it) and tells the host nothing.
+     */
+    const interacting = configuration.status === "interacting";
 
     /**
      * The markup's picture: what every counter shows, never a counter of its own, so it leaves the
@@ -574,7 +586,8 @@ define(["qtiCustomInteractionContext"], (context) => {
     /**
      * The stored answer the host binds, as a count of counters on the mat. When it is unreadable
      * the mat starts empty while the host still holds that answer, so once the tray has told the
-     * host it is ready, it tells the host the empty mat the child sees.
+     * host it is ready, it tells the host the empty mat the child sees, while interacting: a tray
+     * in review never asks the host to change a submitted answer.
      */
     const bound = boundCount(configuration.boundTo[configuration.responseIdentifier], supply);
     let placed = bound.count;
@@ -618,6 +631,7 @@ define(["qtiCustomInteractionContext"], (context) => {
       "[data-board] [data-zone] { cursor: pointer; }",
       `[data-board] :focus { outline: none; } [data-board] :focus-visible { outline: 3px solid ${chosen}; outline-offset: 2px; }`,
       "[data-board] [data-dragged] { cursor: grabbing; }",
+      '[data-board][aria-disabled="true"], [data-board][aria-disabled="true"] * { cursor: default; }',
     ].join("\n");
 
     /**
@@ -647,7 +661,7 @@ define(["qtiCustomInteractionContext"], (context) => {
         rx: radius,
         stroke: zoneStroke[zone],
         "stroke-width": border,
-        tabindex: 0,
+        tabindex: interacting ? 0 : -1,
         width: zoneWidth,
         x: left,
         y: top,
@@ -731,7 +745,7 @@ define(["qtiCustomInteractionContext"], (context) => {
         "data-zone-of": zone,
         display: "none",
         role: "button",
-        tabindex: 0,
+        tabindex: interacting ? 0 : -1,
       });
 
       made.append(
@@ -773,7 +787,9 @@ define(["qtiCustomInteractionContext"], (context) => {
     dom.append(style, board);
 
     /**
-     * The tray's input, aborted once the host completes the PCI, which removes every listener.
+     * The tray's input, aborted once the host completes the PCI, which removes every listener, and
+     * from the start when the host shows the PCI in any status but `interacting` (a submitted
+     * test's review): the child sees the counters they left and moves none.
      */
     const listening = new AbortController();
     const { signal } = listening;
@@ -1169,9 +1185,14 @@ define(["qtiCustomInteractionContext"], (context) => {
 
     draw();
 
+    if (!interacting) {
+      listening.abort();
+      board.setAttribute("aria-disabled", "true");
+    }
+
     configuration.onready(instance, response());
 
-    if (bound.unreadable) {
+    if (interacting && bound.unreadable) {
       changed();
     }
 
