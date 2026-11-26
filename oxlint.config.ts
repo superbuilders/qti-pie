@@ -121,16 +121,19 @@ const effectFreeGlobals = Object.freeze([
 
 /**
  * The imports an effect-free package refuses beside every module's: Effect at run time (its types
- * stay importable), any Node built-in, and PostgreSQL's client.
+ * stay importable), any Node built-in, and PostgreSQL's client. Each block that states them takes
+ * a fresh copy, since oxlint's config types its lists mutable.
+ *
+ * @returns The paths and patterns.
  */
-const effectFreeImports = Object.freeze({
+const effectFreeImports = () => ({
   paths: [{ allowTypeImports: true, message: effectFree.effect, name: "effect" }],
   patterns: [
     { allowTypeImports: true, group: ["effect/*", "@effect/*"], message: effectFree.effect },
     { message: effectFree.node, regex: `^${nodeBuiltins}` },
     { message: effectFree.io, regex: "^pg(?:/|$)" },
   ],
-} as const);
+});
 
 /**
  * The source of each package toolchain.config.ts lists as effect-free, its tests apart: a test
@@ -596,8 +599,8 @@ export default defineConfig({
         "no-restricted-imports": [
           "error",
           {
-            paths: [...effectFreeImports.paths],
-            patterns: [...sharedImportPatterns, ...effectFreeImports.patterns],
+            paths: effectFreeImports().paths,
+            patterns: [...sharedImportPatterns, ...effectFreeImports().patterns],
           },
         ],
         "no-restricted-properties": [
@@ -625,8 +628,8 @@ export default defineConfig({
         "no-restricted-imports": [
           "error",
           {
-            paths: [...effectFreeImports.paths],
-            patterns: [...pathImportPatterns, ...effectFreeImports.patterns],
+            paths: effectFreeImports().paths,
+            patterns: [...pathImportPatterns, ...effectFreeImports().patterns],
           },
         ],
       },
