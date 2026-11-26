@@ -13,7 +13,7 @@
  * set to 'false'."
  *
  * And what an item session shows (`showingOf`, `reviewShowsOf`, `reviewOf`), derived from its
- * control and its state: every state of a session against a table of QTI 3.0.1's rule (information
+ * control and its state: every state of a session of a box against QTI 3.0.1's rule (information
  * model Table 7.19.1: feedback "must be shown" while attempts remain, and once the last attempt is
  * made, or an adaptive item completed, "whether or not feedback is shown is controlled by the
  * show-feedback constraint"; Table 7.19.3, the solution once closed under show-solution; the marks
@@ -25,11 +25,16 @@
  *
  * @module
  */
+import { exhaust } from "@bjornpagen/testing/explore";
+import { requiredInSpace } from "@bjornpagen/testing/features";
+import { boolean, int } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
 import { assert, describe, it } from "@effect/vitest";
 import { acceptedItem, configure, noSupports, openAdmitted } from "@qti-pie/plate";
 import type { ItemRecord, Value } from "@qti-pie/plate";
-import { Effect, Option } from "effect";
-import { reviewOf, reviewShowsOf } from "#ledger/served-item.ts";
+import { Duration, Effect, Formatter, Option } from "effect";
+import { reviewOf } from "#ledger/served-item.ts";
 import type { ReviewShows, ServedItem, SessionControl, SessionFacts } from "#ledger/served-item.ts";
 import type { Judged } from "#ledger/served-values.ts";
 
@@ -208,117 +213,138 @@ const factsOf = (control: SessionControl, state: Attempted): SessionFacts => ({
 });
 
 /**
- * Every control of max-attempts 0 to 3, each show-feedback and show-solution.
+ * An item session as the box draws it: its control and its state.
  */
-const controls: readonly SessionControl[] = [0n, 1n, 2n, 3n].flatMap((maxAttempts) =>
-  [false, true].flatMap((showFeedback) =>
-    [false, true].map((showSolution) => ({ maxAttempts, showFeedback, showSolution })),
-  ),
-);
+interface Sitting {
+  readonly control: SessionControl;
+  readonly state: Attempted;
+}
 
 /**
- * Every state of a session after one attempt or more, up to four, adaptive or not, completed or
- * not, its sitting ended or not; an attempt beyond a limit is never taken, so none is listed.
+ * Draw a session of the box: a control of max-attempts 0 to 3, each show-feedback and
+ * show-solution, and a state after one attempt or more, up to four, within its limit (an attempt
+ * beyond a limit is never taken), adaptive or not, completed or not where adaptive (only an
+ * adaptive item completes), its sitting ended or not.
+ */
+const sittings: Gen<Sitting> = (source) => {
+  const maxAttempts = BigInt(source.draw(int(0, 3)));
+  const showFeedback = source.draw(boolean);
+  const showSolution = source.draw(boolean);
+  const attempts = BigInt(source.draw(int(1, maxAttempts === 0n ? 4 : Number(maxAttempts))));
+  const adaptive = source.draw(boolean);
+  const completed = adaptive && source.draw(boolean);
+  const ended = source.draw(boolean);
+
+  return {
+    control: { maxAttempts, showFeedback, showSolution },
+    state: { adaptive, attempts, completed, ended },
+  };
+};
+
+/**
+ * What a review of a session shows, written from QTI 3.0.1's rule, not the code: its feedback while
+ * the session is open, attempts remaining, and once it closed where its show-feedback is true
+ * (Table 7.19.1, Table 7.19.2); its marks and verdict where its feedback shows or the session
+ * closed (edullm-bd 2026-11-23); its solution once it closed, where its show-solution is true
+ * (Table 7.19.3).
  *
  * @param control The session's control.
- * @returns The states.
+ * @param state The session's state.
+ * @returns What its review shows.
  */
-const statesOf = (control: SessionControl): readonly Attempted[] =>
-  [1n, 2n, 3n, 4n]
-    .filter((attempts) => control.maxAttempts === 0n || attempts <= control.maxAttempts)
-    .flatMap((attempts) =>
-      [false, true].flatMap((adaptive) =>
-        [false, true].flatMap((completed) =>
-          [false, true].map((ended) => ({ adaptive, attempts, completed, ended })),
-        ),
-      ),
-    )
-    .filter((state) => state.adaptive || !state.completed);
+const showsByRule = (control: SessionControl, state: Attempted): ReviewShows => {
+  const closed = closedByRule(control, state);
+  const feedback = !closed || control.showFeedback;
+
+  return { feedback, marks: feedback || closed, solution: closed && control.showSolution };
+};
 
 /**
- * What each review the rule reaches shows, written from the rule: the record its item shows (the
- * attempt's where it shows feedback, else the one the session began with), whether it says the
- * verdict (where it shows marks), and what its marks reveal (the solution where it shows it, else
- * the candidate's own answers where it shows marks, else none).
+ * The reviews the box reaches, by whether each shows the item's feedback and its solution; every
+ * one shows marks, since a session after an attempt either is open, its feedback shown, or closed.
  */
-const reviews: readonly (readonly [
-  ReviewShows,
-  {
-    readonly record: "after" | "begun";
-    readonly reveals: "none" | "own" | "solution";
-    readonly verdict: boolean;
-  },
-])[] = [
-  [
-    { feedback: false, marks: true, solution: false },
-    { record: "begun", reveals: "own", verdict: true },
-  ],
-  [
-    { feedback: false, marks: true, solution: true },
-    { record: "begun", reveals: "solution", verdict: true },
-  ],
-  [
-    { feedback: true, marks: true, solution: false },
-    { record: "after", reveals: "own", verdict: true },
-  ],
-  [
-    { feedback: true, marks: true, solution: true },
-    { record: "after", reveals: "solution", verdict: true },
-  ],
-];
+type Reached =
+  | "feedback and solution"
+  | "feedback, no solution"
+  | "no feedback, solution"
+  | "neither feedback nor solution";
 
 describe("what an item session shows is derived from its control and its state", () => {
-  it.effect("reviewOf draws every review the rule reaches, against its table", () =>
-    Effect.gen(function* everyReview() {
-      const served = yield* opened;
-      const records = { after: answered, begun: revealed };
-      const reached = new Map(
-        controls.flatMap((control) =>
-          statesOf(control).map((state) => {
-            const facts = factsOf(control, state);
+  it.effect(
+    "reviewOf shows of every session of the box what QTI's rule shows: the record its feedback selects, the verdict where it shows marks, and the solution or the candidate's own answers its marks reveal",
+    (ctx) =>
+      Effect.gen(function* everyReview() {
+        const served = yield* opened;
+        const records = { after: answered, begun: revealed };
+        const { values } = reviewOf(served, records, judged, openAdaptive);
 
-            return [JSON.stringify(reviewShowsOf(facts)), facts] as const;
-          }),
-        ),
-      );
+        yield* searched(
+          ctx,
+          exhaust(
+            {
+              box: "every control of max-attempts 0 to 3, each show-feedback and show-solution, by every state after 1 to 4 attempts within its limit, adaptive or not, completed or not where adaptive, its sitting ended or not",
+              caseHang: Duration.seconds(10),
+              coverage: requiredInSpace<Reached>([
+                "feedback and solution",
+                "feedback, no solution",
+                "no feedback, solution",
+                "neither feedback nor solution",
+              ]),
+              generator: sittings,
+              literal: (sitting) => Formatter.format(sitting),
+              oracle: {
+                kind: "specification",
+                name: "QTI 3.0.1 information model Tables 7.19.1 to 7.19.3 and edullm-bd 2026-11-23's marks, by hand (closedByRule, showsByRule)",
+              },
+              suite: "ledger/served-item/review",
+            },
+            ({ control, state }, c) =>
+              Effect.sync(() => {
+                const facts = factsOf(control, state);
+                const shows = showsByRule(control, state);
+                const named = Formatter.format({ control, state });
+                const props = reviewOf(served, records, judged, facts);
 
-      assert.deepStrictEqual(
-        [...reached.keys()].toSorted(),
-        reviews.map(([shows]) => JSON.stringify(shows)).toSorted(),
-        "the reviews the rule reaches are the table's",
-      );
-
-      const { values } = reviewOf(served, records, judged, openAdaptive);
-      for (const [shows, expected] of reviews) {
-        const named = JSON.stringify(shows);
-        const facts = reached.get(named);
-        assert.isDefined(facts, named);
-
-        if (facts === undefined) {
-          continue;
-        }
-
-        const props = reviewOf(served, records, judged, facts);
-
-        assert.strictEqual(props.mode, "review", named);
-        assert.deepStrictEqual(props.shows, shows, named);
-        assert.deepStrictEqual(props.session, facts.session, named);
-        assert.strictEqual(props.showFeedback, shows.feedback, named);
-        assert.deepStrictEqual(props.record, records[expected.record], named);
-        assert.deepStrictEqual(
-          props.values,
-          values,
-          `${named}: the answers shown are the attempt's under every switch`,
+                c.note(
+                  shows.feedback
+                    ? shows.solution
+                      ? "feedback and solution"
+                      : "feedback, no solution"
+                    : shows.solution
+                      ? "no feedback, solution"
+                      : "neither feedback nor solution",
+                );
+                assert.strictEqual(props.mode, "review", named);
+                assert.deepStrictEqual(props.shows, shows, named);
+                assert.deepStrictEqual(props.session, facts.session, named);
+                assert.strictEqual(props.showFeedback, shows.feedback, named);
+                assert.deepStrictEqual(
+                  props.record,
+                  shows.feedback ? records.after : records.begun,
+                  `${named}: the attempt's record where it shows feedback, else the one it began with`,
+                );
+                assert.deepStrictEqual(
+                  props.values,
+                  values,
+                  `${named}: the answers shown are the attempt's under every switch`,
+                );
+                assert.strictEqual(
+                  props.graded?.credit,
+                  shows.marks ? "partial" : undefined,
+                  named,
+                );
+                assert.deepStrictEqual(
+                  props.graded?.marks,
+                  shows.solution
+                    ? { parts: judged.marks, reveals: "solution" }
+                    : shows.marks
+                      ? { parts: judged.marks, reveals: "own" }
+                      : undefined,
+                  `${named}: the solution where it shows it, else the candidate's own answers where it shows marks`,
+                );
+              }),
+          ),
         );
-        assert.strictEqual(props.graded?.credit, expected.verdict ? "partial" : undefined, named);
-        assert.deepStrictEqual(
-          props.graded?.marks,
-          expected.reveals === "none"
-            ? undefined
-            : { parts: judged.marks, reveals: expected.reveals },
-          named,
-        );
-      }
-    }),
+      }),
   );
 });
