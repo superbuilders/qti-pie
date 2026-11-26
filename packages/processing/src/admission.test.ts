@@ -2,7 +2,7 @@ import { assert, describe, it } from "@effect/vitest";
 import { admit, alwaysCodes, validatedCodes } from "#processing/admission.ts";
 import type { AdmissionCode } from "#processing/admission.ts";
 import { compileItemWith } from "#processing/compile/document.ts";
-import { gradeAnswerWith } from "#processing/grade.ts";
+import { gradeAnswerWith, proofOf } from "#processing/grade.ts";
 import { customOperators } from "#processing/operators/custom.ts";
 import { logicOperators } from "#processing/operators/logic.ts";
 import { valuesOperators } from "#processing/operators/values.ts";
@@ -949,7 +949,7 @@ describe("an answer's grade", () => {
     assert.isTrue("result" in graded && graded.result.kind === "refused");
   });
 
-  it("reads a hidden response as NULL", () => {
+  it("reads a hidden response as NULL, and a grade names the responses it graded, a posted answer's with no save and no instant", () => {
     const item = itemOf(
       [
         declared("R", "single", "identifier"),
@@ -979,14 +979,18 @@ describe("an answer's grade", () => {
       evaluations: new Map(),
       item,
       readAt: { microseconds: 1n },
-      responses: {
-        at: { microseconds: 1n },
-        kind: "save",
-        values: posted(single("identifier", word("A"))),
-      },
+      responses: { kind: "posted", values: posted(single("identifier", word("A"))) },
       session,
       validate: true,
     });
+    assert.deepStrictEqual(
+      "responses" in graded ? graded.responses.get("R") : undefined,
+      nullOf({ base: "identifier", cardinality: "single" }),
+    );
+    assert.deepStrictEqual(
+      "responses" in graded ? proofOf(graded).responses[0]?.saved : undefined,
+      { kind: "posted" },
+    );
     assert.deepStrictEqual(
       "result" in graded && graded.result.kind === "done"
         ? graded.result.outcomes.get("COPY")

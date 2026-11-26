@@ -33,7 +33,14 @@ export interface Instant {
  */
 export interface ResponsesRead {
   readonly digest: Digest;
-  readonly saved: { readonly at: Instant; readonly kind: "save" } | { readonly kind: "default" };
+  /**
+   * Where the responses came from: a stored save, at its instant; values posted with the answer,
+   * which have no stored save and no instant; or the default submission.
+   */
+  readonly saved:
+    | { readonly at: Instant; readonly kind: "save" }
+    | { readonly kind: "default" }
+    | { readonly kind: "posted" };
 }
 
 /**

@@ -65,12 +65,14 @@ const mint = <T extends object>(result: T, proof: GradeProof): Graded<T> => ({
 export const proofOf = (grade: Graded<object>): GradeProof => grade[graded];
 
 /**
- * Which responses an attempt grades: a save's values, or the default submission where the
- * candidate saved nothing.
+ * Which responses an attempt grades, by where they came from: a stored save's values, at its
+ * instant; values posted with the answer, which no save stores and no instant dates; or the
+ * default submission where the candidate gave nothing.
  */
 export type Submitted =
   | { readonly at: Instant; readonly kind: "save"; readonly values: ReadonlyMap<string, Value> }
-  | { readonly kind: "default" };
+  | { readonly kind: "default" }
+  | { readonly kind: "posted"; readonly values: ReadonlyMap<string, Value> };
 
 /**
  * An item session as a grade reads it: its take, its attempts before, the processed attempt it
@@ -114,6 +116,11 @@ export interface Refused {
  * A graded answer: its item's result, or its refusal.
  */
 export interface AnswerGrade {
+  /**
+   * The responses the answer was graded on, by identifier: the posted values, every response
+   * admission hides (§5.148) set to NULL, so the answer's write stores exactly what was graded.
+   */
+  readonly responses: ReadonlyMap<string, Value>;
   readonly result: ItemResult | Refused;
 }
 
@@ -226,7 +233,7 @@ const noDefaults: ReadonlyMap<string, Value> = new Map();
  * @returns The values.
  */
 const valuesOf = (submitted: Submitted): ReadonlyMap<string, Value> =>
-  submitted.kind === "save" ? submitted.values : new Map();
+  submitted.kind === "default" ? new Map() : submitted.values;
 
 /**
  * What a grade read of a member's responses.
@@ -236,7 +243,7 @@ const valuesOf = (submitted: Submitted): ReadonlyMap<string, Value> =>
  */
 const readOf = (submitted: Submitted): ResponsesRead => ({
   digest: valuesDigest(valuesOf(submitted)),
-  saved: submitted.kind === "save" ? { at: submitted.at, kind: "save" } : { kind: "default" },
+  saved: submitted.kind === "save" ? { at: submitted.at, kind: "save" } : { kind: submitted.kind },
 });
 
 /**
@@ -318,10 +325,6 @@ export const gradeAnswerWith = <K extends ExpressionKind>(
     heldOf(input.item, input.session),
     input.validate && countsAttempt(input.item, posted),
   );
-  if (admission.reasons.length > 0) {
-    return mint({ result: { admission, kind: "refused" } }, proof);
-  }
-
   const shown = new Map(posted);
   for (const response of admission.hidden) {
     const declaration = input.item.declarations.get(response);
@@ -330,12 +333,16 @@ export const gradeAnswerWith = <K extends ExpressionKind>(
     }
   }
 
+  if (admission.reasons.length > 0) {
+    return mint({ responses: shown, result: { admission, kind: "refused" } }, proof);
+  }
+
   const result = attemptWith(table, {
     ...attemptOf(input, input.context),
     responses: shown,
   });
 
-  return result.kind === "failed" ? result : mint({ result }, proof);
+  return result.kind === "failed" ? result : mint({ responses: shown, result }, proof);
 };
 
 /**
