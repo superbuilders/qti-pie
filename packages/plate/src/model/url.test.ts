@@ -21,8 +21,8 @@ import {
 import { boxHolds } from "#plate/test/box.ts";
 import { assetsOf } from "#plate/test/fixtures.ts";
 import type { KeptUrl, UrlContext } from "#plate/model/url.ts";
-import { htmlAttributes } from "#plate/model/url.dictionary.ts";
-import type { HtmlAttribute } from "#plate/model/url.dictionary.ts";
+import { asiUrlAttributes, htmlAttributes } from "#plate/model/url.dictionary.ts";
+import type { AsiUrlAttribute, HtmlAttribute } from "#plate/model/url.dictionary.ts";
 
 /**
  * A URL attribute value's classification, as {@link classifyUrl} gives it.
@@ -315,6 +315,36 @@ const addressCase: Gen<AddressCase> = (source) => {
 const ADDRESS_CASES = 3 * 2 * (1 + 4 + 4 ** 2) * 4;
 
 /**
+ * A case of the directory box: a reference, and the location of the item that holds it.
+ */
+interface DirectoryCase {
+  readonly location: string;
+  readonly reference: string;
+}
+
+/**
+ * Draw a case of the directory box: an item at the package root, in `items` or in `items/deep`,
+ * and a reference of one to three of `.`, `..`, `items` and `a.png`, a slash after it or not, so a
+ * path that ends in a directory, one that names a file and one that climbs above the package root.
+ */
+const directoryCase: Gen<DirectoryCase> = (source) => {
+  const depth = source.draw(int(0, 2));
+  const segments = source.draw(
+    array(member([".", "..", "items", "a.png"] as const), { max: 3, min: 1 }),
+  );
+
+  return {
+    location: [...["items", "deep"].slice(0, depth), "q1.xml"].join("/"),
+    reference: `${segments.join("/")}${source.draw(member(["", "/"] as const))}`,
+  };
+};
+
+/**
+ * How many cases {@link directoryCase} draws.
+ */
+const DIRECTORY_CASES = 3 * (4 + 4 ** 2 + 4 ** 3) * 2;
+
+/**
  * A case of the attribute box: an HTML attribute and the value it holds.
  */
 interface AttributeCase {
@@ -573,23 +603,6 @@ describe("isPackagePath", () => {
         ),
       ),
   );
-
-  it("fails for an empty path, a rooted one, a directory, and one with a . or .. segment", () => {
-    for (const path of [
-      "",
-      "/a.png",
-      "//a.png",
-      "./a.png",
-      "items/./a.png",
-      "items/../a.png",
-      "..",
-      "a/..",
-      "items/",
-      "items//",
-    ]) {
-      assert.isFalse(isPackagePath(path), path);
-    }
-  });
 });
 
 describe("resolution against the item's location", () => {
@@ -657,17 +670,51 @@ describe("resolution against the item's location", () => {
       ),
   );
 
-  it("names a directory for a path that ends in one, and no file for one that climbs above the package root", () => {
-    for (const [location, value, files] of [
-      ["items/q1.xml", "./", ["items/"]],
-      ["items/q1.xml", "../", [""]],
-      ["q1.xml", "../a.png", []],
-      ["items/q1.xml", "../../a.png", []],
-      ["items/q1.xml", "../../items/a.png", []],
-    ] as const) {
-      assert.deepStrictEqual(assetPaths(location, "img", "src", value), files, value);
-    }
-  });
+  it.effect(
+    `names the directory a path that ends in one names, the file one that names a file names, and no file for one that climbs above the package root, over every reference of the directory box in an item at each depth: ${String(DIRECTORY_CASES)} cases`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(directoryCase, DIRECTORY_CASES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every reference of one to three of ., .., items and a.png, a slash after it or not, in an item at the package root, in items and in items/deep",
+              caseHang,
+              coverage: requiredInSpace<"a directory" | "a file" | "above the root">([
+                "a directory",
+                "a file",
+                "above the root",
+              ]),
+              generator: directoryCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "RFC 3986, by the suite's transcription (fileByRfc3986): the reference resolved against the item's location (section 5.2), so a path that ends in a slash or a dot segment names its directory, written with its slash, and one that climbs above the package root names no file of it (reading `href-resolution`)",
+              },
+              suite: "plate/url/directories",
+            },
+            ({ location, reference }, c) =>
+              Effect.sync(() => {
+                const files = fileByRfc3986(location, reference);
+                c.note(
+                  files.length === 0
+                    ? "above the root"
+                    : files.some((file) => file === "" || file.endsWith("/"))
+                      ? "a directory"
+                      : "a file",
+                );
+
+                assert.deepStrictEqual(
+                  assetPaths(location, "img", "src", reference),
+                  files,
+                  `${reference} in ${location}`,
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 
   it.effect(
     `resolves the value check writes for a reference to the file the reference names, over every reference of up to two segments before a file: ${String(REFERENCES)} references`,
@@ -1006,38 +1053,54 @@ describe("resolution against the item's location, by RFC 3986", () => {
  */
 const replacedSpace = (value: string): string => value.replaceAll(regex("[\t\n\r]", "gu"), " ");
 
+/**
+ * XML Schema 1.0 Part 2 §4.3.6's whiteSpace facets, by hand: `replace`, "All occurrences of #x9
+ * (tab), #xA (line feed) and #xD (carriage return) are replaced with #x20 (space)"; `collapse`,
+ * "After the processing implied by replace, contiguous sequences of #x20's are collapsed to a
+ * single #x20, and initial and/or final #x20's are deleted"; `preserve`, "No normalization is
+ * done".
+ */
+const facets = {
+  collapse: (value: string) => replacedSpace(value).replaceAll(regex(" +", "gu"), " ").trim(),
+  preserve: (value: string) => value,
+  replace: replacedSpace,
+} as const;
+
+/**
+ * The whiteSpace facet of each type the ASI XSD gives a URL attribute: `xs:anyURI` collapses (XML
+ * Schema 1.0 Part 2 §3.2.17), `URLDType` is an `xs:normalizedString`, which replaces (§3.3.1), and
+ * `xs:string` preserves (§3.2.1).
+ */
+const facetOfType = {
+  URLDType: "replace",
+  "xs:anyURI": "collapse",
+  "xs:string": "preserve",
+} as const satisfies Record<AsiUrlAttribute["type"], keyof typeof facets>;
+
+/**
+ * Tell whether plate meets a lexical value under a facet: every one but an `xs:string` that holds a
+ * tab, a line feed or a carriage return inside, which names no file, since the database refuses it
+ * under "Href form" (pantry's spec reading `href-resolution`).
+ *
+ * @param facet The facet of the attribute's type.
+ * @param lexical The value as written.
+ * @returns Whether plate meets it.
+ */
+const metByPlate = (facet: keyof typeof facets, lexical: string): boolean =>
+  facet !== "preserve" ||
+  !regex("[\t\n\r]", "u").test(lexical.replaceAll(regex("^[\t\n\r ]+|[\t\n\r ]+$", "gu"), ""));
+
+/**
+ * Set aside the whitespace around a value, as an HTML URL is "potentially surrounded by spaces".
+ *
+ * @param value The value.
+ * @returns It without the whitespace around it.
+ */
+const setAside = (value: string): string =>
+  value.replace(regex("^[\t\n\r ]+", "u"), "").replace(regex("[\t\n\r ]+$", "u"), "");
+
 describe("a URL attribute's value, read by its type's whiteSpace facet", () => {
   it("names, for every URL attribute of the ASI XSD and every run of whitespace around and inside a name, the file the attribute's value names", () => {
-    // Oracle: XML Schema 1.0 Part 2 §4.3.6 by hand. `replace`: "All occurrences of #x9 (tab), #xA
-    // (line feed) and #xD (carriage return) are replaced with #x20 (space)"; `collapse`: "After the
-    // processing implied by replace, contiguous sequences of #x20's are collapsed to a single #x20,
-    // and initial and/or final #x20's are deleted"; `preserve`: "No normalization is done". Each
-    // type is the ASI XSD's: `xs:anyURI` collapses (§3.2.17), `URLDType` is an
-    // `xs:normalizedString`, which replaces, and `object@data` is an `xs:string`. The whitespace
-    // around the value is then set aside, as an HTML URL is "potentially surrounded by spaces".
-    const facets = {
-      collapse: (value: string) => replacedSpace(value).replaceAll(/ +/gu, " ").trim(),
-      preserve: (value: string) => value,
-      replace: replacedSpace,
-    } as const;
-    const rows = [
-      ["a", "href", "collapse", "items/"],
-      ["audio", "src", "replace", "items/"],
-      ["blockquote", "cite", "collapse", "items/"],
-      ["img", "longdesc", "collapse", "items/"],
-      ["img", "src", "collapse", "items/"],
-      ["object", "data", "preserve", "items/"],
-      ["q", "cite", "collapse", "items/"],
-      ["qti-assessment-stimulus-ref", "href", "collapse", "items/"],
-      ["qti-interaction-module", "fallback-path", "collapse", ""],
-      ["qti-interaction-module", "primary-path", "collapse", ""],
-      ["qti-interaction-modules", "primary-configuration", "collapse", ""],
-      ["qti-interaction-modules", "secondary-configuration", "collapse", ""],
-      ["source", "src", "replace", "items/"],
-      ["track", "src", "replace", "items/"],
-      ["video", "poster", "replace", "items/"],
-      ["video", "src", "replace", "items/"],
-    ] as const;
     const around = ["", " ", "\t", "\n", "\r"];
     const inside = ["", " ", "  ", "\t", " \t", "\n\r"];
     const lexicals = around.flatMap((before) =>
@@ -1045,30 +1108,25 @@ describe("a URL attribute's value, read by its type's whiteSpace facet", () => {
         ["", " ", "\t"].map((after) => `${before}a${within}b.png${after}`),
       ),
     );
-    // An `xs:string` that holds a tab, a line feed or a carriage return inside names no file: the
-    // database refuses it under "Href form" (pantry's spec reading `href-resolution`), so plate never meets one.
-    const held = (facet: keyof typeof facets, lexical: string): boolean =>
-      facet !== "preserve" ||
-      !/[\t\n\r]/u.test(lexical.replaceAll(/^[\t\n\r ]+|[\t\n\r ]+$/gu, ""));
-    const disagreements = rows.flatMap(([element, attribute, facet, directory]) =>
-      lexicals
-        .filter((lexical) => held(facet, lexical))
+    const disagreements = asiUrlAttributes.flatMap(({ attribute, element, from, type }) => {
+      const facet = facetOfType[type];
+      const directory = from === "item" ? "items/" : "";
+
+      return lexicals
+        .filter((lexical) => metByPlate(facet, lexical))
         .flatMap((lexical) => {
-          const value = facets[facet](lexical)
-            .replace(/^[\t\n\r ]+/u, "")
-            .replace(/[\t\n\r ]+$/u, "");
-          const expected = [`${directory}${value}`];
+          const expected = `${directory}${setAside(facets[facet](lexical))}`;
           const plate = assetPaths("items/q1.xml", element, attribute, lexical);
 
-          return plate.length === 1 && plate[0] === expected[0]
+          return plate.length === 1 && plate[0] === expected
             ? []
             : [
-                `${element}@${attribute}=${JSON.stringify(lexical)}: plate ${JSON.stringify(plate)}, the ${facet}d value ${JSON.stringify(expected)}`,
+                `${element}@${attribute}=${JSON.stringify(lexical)}: plate ${JSON.stringify(plate)}, the ${facet}d value ${JSON.stringify([expected])}`,
               ];
-        }),
-    );
+        });
+    });
 
     assert.deepStrictEqual(disagreements, []);
-    assert.strictEqual(rows.length * lexicals.length, 1440);
+    assert.strictEqual(asiUrlAttributes.length * lexicals.length, 1440);
   });
 });
