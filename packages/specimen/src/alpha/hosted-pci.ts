@@ -26,15 +26,14 @@
  */
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
-import { Config, Data, Effect, Option, Schema, pipe } from "effect";
+import { Data, Effect, Option, Schema, pipe } from "effect";
 import type { Scope } from "effect";
 import { Digest } from "effect/crypto";
 import { parseHTML } from "linkedom";
-import { chromium } from "playwright-core";
-import type { Browser, Frame, Page } from "playwright-core";
+import type { Frame, Page } from "playwright-core";
+import { chromeFor, unboundedModuleWait } from "#specimen/ui/chrome.ts";
 import { resolvePciModules } from "@qti-pie/plate";
 import type { PciModules } from "@qti-pie/plate";
 import type { AlphaPciModule } from "@qti-pie/plate/alpha/pci-modules";
@@ -288,25 +287,9 @@ const harnessServer = (
   });
 
 /**
- * The folder Chrome keeps its process singleton's socket in.
+ * Chrome for the harness, through specimen's one launcher, its failures the harness's own.
  */
-const runtimeFolder = Config.String("XDG_RUNTIME_DIR").pipe(Config.withDefault(tmpdir()));
-
-/**
- * The machine's Google Chrome, headless, closed with its scope.
- */
-const chrome: Effect.Effect<Browser, HostedPciFailure, Scope.Scope> = Effect.acquireRelease(
-  Effect.flatMap(Effect.orDie(runtimeFolder), (temporary) =>
-    attempt("start Chrome", () =>
-      chromium.launch({
-        channel: "chrome",
-        env: { ...process.env, TMPDIR: temporary },
-        headless: true,
-      }),
-    ),
-  ),
-  (browser) => Effect.promise(() => browser.close()),
-);
+const chrome = chromeFor((step, cause) => new HostedPciFailure({ cause, step }));
 
 /**
  * A message the frame posted, as the page kept it.
@@ -384,10 +367,10 @@ export const hostedPage = (
 ): Effect.Effect<HostedPage, HostedPciFailure, Scope.Scope> =>
   Effect.gen(function* openHostedPage() {
     const origin = yield* harnessServer(module);
-    const browser = yield* chrome;
-    const page: Page = yield* attempt("open a page", () =>
-      browser.newPage({ viewport: { height: pageHeight, width: 1300 } }),
-    );
+    const browser = yield* chrome.browser;
+    const page: Page = yield* chrome.pageOf(browser, {
+      viewport: { height: pageHeight, width: 1300 },
+    });
 
     yield* attempt("load the host page", () => page.goto(`${origin}/`));
 
@@ -405,7 +388,7 @@ export const hostedPage = (
         (file) => file === module.path,
       ).routes.map((route) => ({
         id: route.id,
-        waitSeconds: route.waitSeconds,
+        waitSeconds: unboundedModuleWait,
         ...Option.match(route.primary, {
           onNone: () => ({}),
           onSome: (file) => ({ primary: `${origin}/${file}` }),
