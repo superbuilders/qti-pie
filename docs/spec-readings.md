@@ -4857,13 +4857,39 @@ C2: the oracle's own reader.)
      pantry states none here. This is not a case of documents in conflict. (Decided 2026-11-15 by lane R3-ENGINE, survey
      rows RQ-k, EC A2 and G15; pantry's part stated 2026-11-19 by lane VALIDGONE under DECISIONS 60.)
 
-214. [`adaptive-simultaneous`] **Withdrawn.** It read an adaptive item in a test part whose `submission-mode` is `simultaneous`, which plate
-     delivered. The placement cutover deleted that engine (plate, 2026-11-17) and pantry stores no test (reading `tests-stored-as-defined`),
-     so no package this repository admits holds what it read.
+214. [`adaptive-simultaneous`] **An adaptive item may stand in a test part whose `submission-mode` is `simultaneous`; it
+     takes the one attempt the mode allows, and `@qti-pie/processing` processes that attempt as an adaptive item's
+     first.** The information model says of the submission mode "In simultaneous mode the candidate's responses are all
+     submitted together at the end of the testPart ... By definition the candidate can take one and only one attempt at
+     each item and feedback cannot be seen during the test. For this reason, adaptive items are not compatible with the
+     simultaneous mode." (section 5.159.5, TestPart `submission-mode`). The sentence gives the mode's consequence for an
+     adaptive item, which "must maintain a suitable value and should set completionStatus to "completed" to indicate
+     when the cycle of interaction, response processing and feedback must stop" (section 2.2.2.3): the cycle cannot run,
+     since the mode allows one attempt and shows no feedback. It states no rule an item or a test breaks, and the XSD
+     admits the combination. So the test is valid, and the item takes its one attempt: its response processing starts
+     from its outcomes' defaults, as an adaptive item's first attempt does ("the outcome variables are not reset" only
+     between attempts), and the item closes when the mode closes it, whatever `completionStatus` its processing sets.
+     The package starts an attempt's outcomes from where the session's last processed attempt left them only where one
+     exists (`startingVariables` in `src/session.ts`), so a simultaneous part's one attempt starts from the defaults;
+     how many attempts a part gives is the delivery's. It moves no verdict and no score: plate's deleted engine read so.
+     This binds `@qti-pie/processing`, which processes the attempt, and the delivery that closes the part. This is not a
+     case of documents in conflict. (Decided 2026-11-15 by lane R3-ENGINE for plate's engine; restored for the grading
+     package 2026-11-26 by lane QP-PROC-CORE, D11.)
 
-215. [`unweighted-test-variables-type`] **Withdrawn.** It read the base type of an unweighted `qti-test-variables`, which plate typed from a test's items.
-     The placement cutover deleted that engine (plate, 2026-11-17) and pantry stores no test (reading `tests-stored-as-defined`), so no
-     package this repository admits holds what it read.
+215. [`unweighted-test-variables-type`] **The base type an unweighted `qti-test-variables` with no `base-type` collects
+     is integer when every value its filters keep is an integer, otherwise float; an item its filters drop does not
+     count.** The information model says of its filters "If specified, only variables from items in the
+     qti-assessment-section with matching identifier are matched. Items in sub-sections are included in this
+     definition." (section 7.39.1, `section-identifier`), "If specified, only variables from items with a matching
+     category are included." (section 7.39.2) and "If specified, only variables from items with no matching category are
+     included." (section 7.39.3), and of its `base-type` "If omitted, variables declared with base-type integer or float
+     are matched. The base-type of the result is integer if all matching values have base-type integer, otherwise it is
+     float" (section 7.39.6). So a variable of an item the filters drop is not matched, and its declaration does not
+     make the result float. `@qti-pie/processing` types the expression from the declarations of the items its filters
+     keep (a test's compiled item refs carry their sections and categories, `src/compile/document.ts`), and its run
+     keeps the same items (`members` in `src/engine.ts`), so a run never gives a value of another type than the compiler
+     typed. This binds `@qti-pie/processing`. This is not a case of documents in conflict. (Decided 2026-11-15 by lane
+     R3-ENGINE for plate's engine; restored for the grading package 2026-11-26 by lane QP-PROC-CORE, D11.)
 
 216. [`null-results`] **Where the information model gives a read or an operator no value, plate's engine gives NULL, and it settles these
      open points so.** The information model says "An item variable may have no value at all, in which case it is said
@@ -5051,18 +5077,58 @@ C2: the oracle's own reader.)
      is not a case of documents in conflict. (Proposed by lane R3-PACKAGE on the survey's PKG#7, under ruling R7,
      "decided by the spec", 2026-11-16.)
 
-224. [`test-delivery`] **Withdrawn.** It read the delivery of a test, a session's parts, pre-conditions and outcome processing,
-     which plate delivered. The placement cutover deleted that engine (plate, 2026-11-17) and pantry stores no test
-     (reading `tests-stored-as-defined`), so no package this repository admits holds what it read.
-225. [`test-session-parts`] **Withdrawn.** It read the delivery of a test, a session's parts, pre-conditions and outcome processing,
-     which plate delivered. The placement cutover deleted that engine (plate, 2026-11-17) and pantry stores no test
-     (reading `tests-stored-as-defined`), so no package this repository admits holds what it read.
-226. [`test-pre-conditions`] **Withdrawn.** It read the delivery of a test, a session's parts, pre-conditions and outcome processing,
-     which plate delivered. The placement cutover deleted that engine (plate, 2026-11-17) and pantry stores no test
-     (reading `tests-stored-as-defined`), so no package this repository admits holds what it read.
-227. [`test-outcome-processing`] **Withdrawn.** It read the delivery of a test, a session's parts, pre-conditions and outcome processing,
-     which plate delivered. The placement cutover deleted that engine (plate, 2026-11-17) and pantry stores no test
-     (reading `tests-stored-as-defined`), so no package this repository admits holds what it read.
+224. [`test-delivery`] **A test's outcome processing runs once after each submission and at no other time, from the
+     test's outcome defaults every time.** The information model says "Outcome processing takes place each time the
+     candidate submits the responses for an item (when in individual submission mode) or a group of items (when in
+     simultaneous submission mode). It happens after any (item level) response processing triggered by the submission.
+     The values of the test's outcome variables are always reset to their defaults prior to carrying out the
+     instructions described by the outcome rules" (section 2.9; section 5.102 says the same of OutcomeProcessing). It
+     ties every run to a submission and names no run at a part's end or at the test's close. So a grade of a submission
+     is the response processing of what it submits and then one run of the test's outcome processing, from the test's
+     outcome defaults, over every item session's outcomes in force: a grade keeps no running test outcomes, so the
+     test's outcomes are a function of the item sessions alone. An end that submits nothing runs none.
+     `@qti-pie/processing`'s `gradeSitting` and `gradeAnswer` grade so (`src/grade.ts`). This binds
+     `@qti-pie/processing` and the delivery that names a submission. This is not a case of documents in conflict.
+     (Decided 2026-11-16 by lane R3-SESSION for plate's delivery; restored for the grading package 2026-11-26 by lane
+     QP-PROC-CORE, D11.)
+
+225. [`test-session-parts`] **An item ref's template defaults are evaluated before its item's template processing, at
+     the start of the item's first attempt, and a place its pre-conditions skip evaluates none.** The information model
+     says of a template default "When the assessmentItemRef occurs in a testPart navigated in linear mode the expression
+     is evaluated immediately prior to the start of the first attempt, after any pre-conditions are evaluated and acted
+     upon but before the templateProcessing rules of the item itself are followed. In nonlinear mode the expression is
+     evaluated at the start of the testPart" (section 5.152, TemplateDefault). So the template defaults' values are
+     handed to the item's take, which starts its template variables at them before template processing runs (`takeWith`
+     in `src/session.ts`), and the test's `duration` they read is NULL (reading `null-results`, its item 3). When a
+     place is entered is the delivery's. This binds `@qti-pie/processing` and the delivery. This is not a case of
+     documents in conflict. (Decided 2026-11-16 by lane R3-SESSION for plate's delivery; restored for the grading
+     package 2026-11-26 by lane QP-PROC-CORE, D11.)
+
+226. [`test-pre-conditions`] **A pre-condition or a branch rule holds only when its expression is the single boolean
+     true: NULL, any other value and an evaluation that fails do not hold.** The information model gives pre-conditions
+     as "An optional set of conditions evaluated during the test, that determine if the item or section is to be
+     skipped" (sections 4.2.9, 5.6.8 and 5.159.7), a branch rule as one whose target the test jumps to "If the
+     expression evaluates to true" (section 2.8.3.2), and names no case for NULL. Its processing conditions read the
+     same expressions with a rule for it: "If the expression is true then the sub-rules are processed, otherwise they
+     are skipped (including if the expression is NULL)" (sections 5.99, 5.114 and 5.149). `@qti-pie/processing` reads a
+     condition so (`isTrue` in `src/engine.ts`), and a pre-condition or branch rule it evaluates holds the same way.
+     This binds `@qti-pie/processing` and the delivery. This is not a case of documents in conflict. (Decided 2026-11-16
+     by lane R3-SESSION for plate's delivery; restored for the grading package 2026-11-26 by lane QP-PROC-CORE, D11.)
+
+227. [`test-outcome-processing`] **A simultaneous test part is graded as one submission when it ends: each item it
+     presented processed once with the responses it holds, then the test's outcome processing once; a part that
+     presented no item, and an individual part, submit nothing as they end.** The information model says "In
+     simultaneous mode the candidate's responses are all submitted together at the end of the qti-test-part" (section
+     2.8.2; section 5.159.5 says the same of `submission-mode`), and "Outcome processing takes place each time the
+     candidate submits the responses for an item (when in individual submission mode) or a group of items (when in
+     simultaneous submission mode)" (section 2.9). So the end of a simultaneous part, by a submit or by a skip or an
+     exit that leaves it, is one grade: `gradeSitting` over the part's presented items as its closing members, each on
+     its last save or its default submission, then the test's outcome processing (reading `test-delivery`). An
+     individual part's items were each graded as they were answered (`gradeAnswer`, D14). This binds
+     `@qti-pie/processing` and the delivery that ends the part. This is not a case of documents in conflict. (Decided
+     2026-11-16 by lane R3-SESSION-3 for plate's delivery; restored for the grading package 2026-11-26 by lane
+     QP-PROC-CORE, D11.)
+
 228. [`tests-stored-as-defined`] **pantry stores tests, sections and banks as QTI 3.0.1 defines them, and a deliverable test is a reading, never a
      law.** The owner's placement mandate (rulings 1 to 3 and 7, 2026-11-17) once held QTI to content and banks, and
      refused every test. The owner's orders of 2026-11-20 lift that: every QTI 3.0.1 feature the AlphaTest port needs is
@@ -5533,3 +5599,114 @@ C2: the oracle's own reader.)
      which the coordinator ruled. (Stated 2026-11-25 by lane SPEC-INTEGER, on metis's AT-GRADING differential, under the
      owner's rule that QTI 3.0.1's normative text decides; the codec's one spelling and the typed syntax decided the
      same day by the coordinator, edullm-bd.)
+
+248. [`string-match-substring`] **`qti-string-match` with the deprecated `substring` true is true where the first string
+     contains the second; `qti-substring` is true where the first string is a substring of the second: the two run in
+     opposite directions.** The information model says of StringMatch's `substring` "This attribute is now deprecated,
+     the substring operator should be used instead. If true, then the comparison returns true if the first string
+     contains the second one, otherwise it returns true only if they match entirely." (section 5.138.2), and of
+     Substring "The result is a single boolean with a value of true if the first expression is a substring of the second
+     expression and false if it isn't" (section 5.139). Both texts are normative and plain; the deprecation points to
+     `qti-substring` for the same test with its operands the other way round. `@qti-pie/processing` keeps both
+     directions, as the SQL grader did; primer read string-match's the substring's way, which this reading refuses. This
+     binds `@qti-pie/processing`. This is not a case of documents in conflict. (Stated 2026-11-26 by lane QP-PROC-CORE,
+     D11.)
+
+249. [`non-finite-result-null`] **A `qti-divide` or `qti-power` whose result is not a finite double is NULL, whatever
+     its operands.** The information model says of divide "if it is zero or the resulting value is outside the value set
+     defined by float (not including positive and negative infinity) then the operator should result in NULL" (section
+     2.11.3.19) and of power "If the resulting value is outside the value set defined by float (not including positive
+     and negative infinity) then the operator shall result in NULL" (section 2.11.3.30). The parenthesis takes the
+     infinities out of the value set a result must lie in, and NaN is no number, so a result that is an infinity or NaN
+     is NULL: `INF / 2`, `1 / 0`, `10 ** 400` and `(-1) ** 0.5` among them. An infinite operand is no NULL by itself: `1
+     / INF` is 0. The SQL grader read so, and `@qti-pie/processing` does. This binds `@qti-pie/processing`. This is not
+     a case of documents in conflict. (Stated 2026-11-26 by lane QP-PROC-CORE, D11.)
+
+250. [`empty-is-null`] **An empty string and an empty container are NULL in every value `@qti-pie/processing` holds, and
+     no value it holds is either.** The information model says "Empty containers and empty strings are always treated as
+     NULL values" (section 2.2.2). The package's value model cannot represent either: a container holds at least one
+     member and a string, identifier or URI at least one character, and every constructor gives NULL of the declared
+     type in their place (`src/value.ts`). So a response posted as `""`, a container an operator empties (`qti-delete`
+     of every member, a `qti-multiple` of NULLs alone), a custom operator's empty result and a `qti-base-value` of base
+     type string with no text are each NULL, `qti-is-null` is true of each, and `qti-match` of two of them is NULL. This
+     binds `@qti-pie/processing`. This is not a case of documents in conflict. (Stated 2026-11-26 by lane QP-PROC-CORE,
+     D11.)
+
+251. [`failed-run-typed`] **A processing run that fails gives a typed failure, never a value: the attempt or the take it
+     processed stays unprocessed.** Reading `engine-size-limit` aborts a run that passes the computation bound, and
+     reading `completion-status-values` fails a run that sets a value of another type or `completionStatus` outside its
+     four values. `@qti-pie/processing` gives such a run's result as a failure (`Failed` in `src/session.ts`:
+     `computation-bound`, `set-type`, `completion-status`, each with the place of the expression or rule), which no
+     write can take as a grade, since only the evaluator mints one (`Graded`). It never throws for an input: a failure
+     is a value the caller matches. This binds `@qti-pie/processing` and its callers. This is not a case of documents in
+     conflict. (Stated 2026-11-26 by lane QP-PROC-CORE, D11.)
+
+252. [`exact-float-sum`] **A sum of floats is the exact sum of the doubles' values rounded once to the nearest double,
+     ties to even: `qti-sum`, `qti-map-response`'s and `qti-map-response-point`'s sums, `qti-test-variables`', and a
+     `qti-stats-operator`'s sums.** The information model states no order of summation (sections 2.11.3.16, 2.11.1.5,
+     2.11.2.8, 2.11.3.42), and a fold in document order gives an order's rounding errors: 0.1 + 0.2 + 0.3 folds to
+     0.6000000000000001 and reordered to 0.6. Summing the exact binary values and rounding once gives every order the
+     same result, the one nearest the true sum; a mean or a variance is likewise computed on the exact values and
+     rounded once. An integer operand of a float sum takes part at its exact value where it lies within the double range
+     (reading `integer-unbounded` sets one beyond it to the largest finite double of its sign before any float
+     arithmetic, which the SQL grader's exact over-range arithmetic did not). `qti-product` and `qti-subtract` are
+     in-order IEEE arithmetic. The lead's ruling of 2026-11-20 for the SQL grader, registered here for
+     `@qti-pie/processing` (its exact kernel, `src/numbers.ts`). This binds `@qti-pie/processing`. This is not a case of
+     documents in conflict. (Stated 2026-11-26 by lanes QP-PROC-CORE and QP-PROC-OPS, D2, D11.)
+
+253. [`min-max-nan-null`] **`qti-min` and `qti-max` of a NaN operand are NULL.** The information model gives min and max
+     "the smallest (largest) value of the sub-expressions" and NULL "If any of the sub-expressions is NULL" (sections
+     2.11.3.12, 2.11.3.13), and states nothing of NaN, which no ordering of the doubles places. A NaN has no rank among
+     the operands, so there is no smallest or largest to give, and the result is NULL, as the SQL grader read it. This
+     binds `@qti-pie/processing`. This is not a case of documents in conflict. (Stated 2026-11-26 by lane QP-PROC-CORE,
+     D11.)
+
+254. [`round-to-finite`] **A `qti-round-to` of a finite value gives a finite value: a decimal past the largest finite
+     double rounds to it.** The information model gives round-to the value rounded to the figures it names (section
+     2.11.3.43), and reading `format-float-rounding` reads the deciding digit from the double's exact decimal; rounding
+     up a value near the largest finite double can name a decimal beyond it, which no double holds. The float base type
+     holds no infinity a finite operand gives, so the result is the largest finite double of its sign. So, too, `1.005`
+     rounded to three significant figures is `1`: the double nearest 1.005 is 1.00499999999999989…, whose deciding digit
+     is 4. This binds `@qti-pie/processing`. This is not a case of documents in conflict. (Stated 2026-11-26 by lane
+     QP-PROC-OPS through QP-PROC-CORE, D2, D11.)
+
+255. [`log-of-zero-null`] **A `qti-math-operator` `ln` or `log` of 0 is NULL.** The information model says of the math
+     operator "if the argument is outside the domain of the function ... the result is NULL" (section 2.11.3.39), and 0
+     is outside the domain of the logarithm, which is defined on the positive numbers. So `ln(0)` and `log(0)` are NULL,
+     never the −INF JavaScript's `Math.log` gives; the SQL grader gave −INF. This binds `@qti-pie/processing`. This is
+     not a case of documents in conflict. (Stated 2026-11-26 by lane QP-PROC-OPS through QP-PROC-CORE, D11.)
+
+256. [`draw-stream`] **Template and response processing draw from one keyed stream, in evaluation order, the contract
+     plate's engine and the SQL grader kept.** QTI states no algorithm for its random expressions (sections 2.11.3.36,
+     6.9.38, 6.9.39). An item session's draws are a function of its seed alone: the item's processing seed is the
+     lowercase hexadecimal HMAC-SHA-256, keyed by the decision's seed, of `processing`, the package and the item's
+     identifier joined by U+001F; the stream is HMAC-SHA-256 in counter mode keyed by that seed, block b the tag of the
+     label's UTF-8 bytes then b as four big-endian bytes, draw j the big-endian 32-bit word j mod 8 of block ⌊j / 8⌋;
+     template processing draws under `served␟template␟<identifier>`, an attempt's response processing under
+     `served␟response␟<numAttempts>`. A float is the top 27 bits of one draw above the top 26 of the next over 2^53; an
+     integer below a count is drawn by rejection over the fewest 32-bit words that hold the count's bits. Draws are
+     taken in evaluation order; a range that holds no value draws nothing (reading `null-results`, its item 8); each
+     pass of `qti-repeat` draws anew. `@qti-pie/processing` computes the stream with its own SHA-256 (`src/sha256.ts`,
+     `src/stream.ts`, `src/draws.ts`), since it loads no `node:crypto`, and its tests hold it to vectors computed with
+     plate's code. This binds `@qti-pie/processing`. This is not a case of documents in conflict. (Stated 2026-11-26 by
+     lane QP-PROC-CORE, QP-PROC-DIFF's contract, D11.)
+
+257. [`host-fold-and-math`] **A case-insensitive text comparison folds each text by JavaScript's `toUpperCase` then
+     `toLowerCase`, and a math operator computes by JavaScript's `Math`, on the Node the package runs on.** The
+     information model names no case folding for `case-sensitive="false"` (sections 5.138.1, 5.139.1, 7.21.3) and no
+     precision for `qti-math-operator`'s functions (section 2.11.3.39). The owner's ruling D3 (2026-11-26) takes the
+     host's: "use pure js Math libraries direct ... we hard assume node", so `@qti-pie/processing` folds and computes
+     with the ECMAScript built-ins of the Node it runs on (its Unicode tables and its libm), and pins no table of its
+     own; the SQL grader's port of V8's libm is deleted with nothing in its place. A last-bit difference from the SQL
+     grader on a transcendental function is accepted; no served item uses `qti-math-operator` (reading
+     `math-operator-arity`). This binds `@qti-pie/processing`. This is not a case of documents in conflict. (Stated
+     2026-11-26 by lane QP-PROC-CORE, D3, D11.)
+
+258. [`any-n-empty-range`] **`qti-any-n` with `min` above `max` is false.** The information model says the result "is
+     true if at least min of the sub-expressions are true and at most max of the sub-expressions are true ... If one or
+     more sub-expressions are NULL then it is possible that neither of these conditions is satisfied, in which case the
+     operator results in NULL" (section 2.11.3.1). Where `min` is above `max` no count of trues is at least `min` and at
+     most `max`, so no reading of the NULLs makes the result true: it is false, not NULL. `@qti-pie/processing` reads so
+     (`anyNOf` in `src/operators/logic.ts`); plate's engine gave NULL where NULLs stood. It moves a verdict only for a
+     document that writes `min` above `max`. This binds `@qti-pie/processing`. This is not a case of documents in
+     conflict. (Stated 2026-11-26 by lane QP-PROC-CORE, D11.)
