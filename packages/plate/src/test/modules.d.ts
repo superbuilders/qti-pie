@@ -1,25 +1,26 @@
 /**
- * Every script entry of plate's exports map but this table's own, by its subpath, and every
- * `"use client"` module under plate's `src/`, by its path there, each with its module's exports,
- * imported statically: the entries through the package's own name, as a host loads them, and the
- * client modules through `#plate/*`, as the server shell does. Written by
- * `src/test/emit-modules.ts` (`pnpm run generate`), which `pnpm run generate:check` holds it to.
+ * Plate's table of core's modules, every one outside an `alpha/` folder but this table's own entry:
+ * each script entry of the exports map, by its subpath, and each `"use client"` module under
+ * `src/`, by its path there, with its exports as name and value pairs, imported statically: the
+ * entries through the package's own name, as a host loads them, and the client modules through
+ * `#plate/*`, as the server shell does. `src/test/emit-modules.ts` writes it, and its check holds
+ * it to the sources.
  *
  * @module
  */
 
 /**
- * The exports map's script entries, each subpath with its module's exports, in the map's order.
+ * The table's script entries, each subpath with its module's exports, in the map's order.
  */
 export declare const entries: readonly (readonly [
   subpath: string,
-  exports: Readonly<Record<string, unknown>>,
+  exports: readonly (readonly [name: string, value: unknown])[],
 ])[];
 
 /**
- * The `"use client"` modules, each path under `src/` with its module's exports, sorted.
+ * The table's `"use client"` modules, each path under `src/` with its exports, sorted.
  */
 export declare const clients: readonly (readonly [
   file: string,
-  exports: Readonly<Record<string, unknown>>,
+  exports: readonly (readonly [name: string, value: unknown])[],
 ])[];
