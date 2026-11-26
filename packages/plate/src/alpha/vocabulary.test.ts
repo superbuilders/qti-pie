@@ -144,7 +144,7 @@ describe("Alpha's sheets", () => {
   it("draw every part Alpha's renderers write: each alpha- data-slot a module of src/alpha/ writes, Alpha's sheets select", () => {
     const drawn = new Set([...alphaSheets.values()].flatMap((sheet) => [...selectedSlots(sheet)]));
     const written = modulesUnder("./").flatMap((source) =>
-      [...source.matchAll(/data-slot="(?<slot>alpha-[^"]+)"/gu)].map(
+      [...source.matchAll(regex('data-slot="(?<slot>alpha-[^"]+)"', "gu"))].map(
         (match) => match.groups?.["slot"] ?? "",
       ),
     );
