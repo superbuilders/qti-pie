@@ -23,6 +23,7 @@
  */
 import type {
   AnyOperands,
+  Area,
   AreaMapping,
   AttributesOf,
   Expression,
@@ -105,6 +106,12 @@ export interface DeclaredResponse {
  * What an operator's attributes are resolved against: the document's declarations.
  */
 export interface CompileContext {
+  /**
+   * The area an element's `shape` and `coords` write, resolved against the image it lies on: for a
+   * `qti-inside`, the image of the interaction whose response its operand reads
+   * (`#processing/compile/area.ts`).
+   */
+  readonly area: (element: XmlElement, place: number) => Checked<Area>;
   /**
    * The registered custom operator a `definition` URI names (`#processing/registry.ts`).
    */

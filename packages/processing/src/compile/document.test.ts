@@ -299,3 +299,70 @@ describe("the document compiler", () => {
     ]);
   });
 });
+
+/**
+ * An item of a Select Point bound to a point response with a percentage area mapping.
+ *
+ * @param imageAttributes - The image's attributes.
+ * @returns The compiled item, or the refusal's code.
+ */
+const pointItem = (imageAttributes: Readonly<Record<string, string>>) =>
+  compileItemWith(
+    element("qti-assessment-item", { adaptive: "false", identifier: "p" }, [
+      element(
+        "qti-response-declaration",
+        { "base-type": "point", cardinality: "single", identifier: "RESPONSE" },
+        [
+          element("qti-area-mapping", {}, [
+            element(
+              "qti-area-map-entry",
+              Object.fromEntries([
+                ["coords", "50%,50%,25%"],
+                ["mapped-value", "1"],
+                ["shape", "circle"],
+              ]),
+              [],
+            ),
+          ]),
+        ],
+      ),
+      element("qti-item-body", {}, [
+        element("qti-select-point-interaction", { "response-identifier": "RESPONSE" }, [
+          {
+            attributes: Object.entries(imageAttributes).map(([local, written]) => ({
+              local,
+              namespace: "",
+              value: written,
+            })),
+            children: [],
+            kind: "element",
+            local: "img",
+            namespace: "http://www.w3.org/1999/xhtml",
+          },
+        ]),
+      ]),
+    ]),
+    digest,
+    table,
+  );
+
+describe("an area mapping's areas", () => {
+  it("resolves a percentage against the size of the image its response's interaction shows (reading `circle-percentage-radius`)", () => {
+    const compiled = pointItem({ height: "100", src: "a.png", width: "300" });
+    assert.isTrue(compiled.ok);
+    assert.deepStrictEqual(
+      compiled.value.declarations.get("RESPONSE")?.areaMapping?.entries[0]?.area,
+      {
+        centre: { x: 150n, y: 50n },
+        denominator: 1n,
+        kind: "circle",
+        radius: 25n,
+      },
+    );
+  });
+
+  it("refuses a percentage whose image has no known size", () => {
+    const compiled = pointItem({ src: "a.png" });
+    assert.strictEqual(compiled.ok ? undefined : compiled.refusal.code, "attribute");
+  });
+});

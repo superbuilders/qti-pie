@@ -262,41 +262,57 @@ export interface Mapping {
 }
 
 /**
- * An area's geometry, as its `shape` attribute names it.
+ * A vertex or a centre of an area: integers over the area's denominator.
  */
-export type AreaGeometry = "circle" | "default" | "ellipse" | "poly" | "rect";
-
-/**
- * An area: its geometry and its coordinates as written, a circle's radius possibly a percentage
- * (reading `circle-percentage-radius`).
- */
-export interface Area {
-  readonly coords: readonly AreaCoordinate[];
-  readonly geometry: AreaGeometry;
+export interface Vertex {
+  readonly x: bigint;
+  readonly y: bigint;
 }
 
 /**
- * One coordinate of an area: a length, or a percentage of the image's size.
+ * An area as the compiler resolves it (`#processing/compile/area.ts`), its coordinates integers
+ * over its one `denominator` (1 or more), every percentage taken of its image's size, a rect's
+ * corners ordered (`left ≤ right`, `top ≤ bottom`): `everywhere` is QTI's `default` ("the entire
+ * area of the associated image"), `nowhere` an area whose coordinates hold no point (reading
+ * `area-mapping`). No percentage, image or double reaches an area's reader.
  */
-export interface AreaCoordinate {
-  readonly percent: boolean;
-  readonly value: number;
-}
+export type Area =
+  | { readonly kind: "everywhere" }
+  | { readonly kind: "nowhere" }
+  | {
+      readonly bottom: bigint;
+      readonly denominator: bigint;
+      readonly kind: "rect";
+      readonly left: bigint;
+      readonly right: bigint;
+      readonly top: bigint;
+    }
+  | {
+      readonly centre: Vertex;
+      readonly denominator: bigint;
+      readonly kind: "circle";
+      readonly radius: bigint;
+    }
+  | {
+      readonly across: bigint;
+      readonly centre: Vertex;
+      readonly denominator: bigint;
+      readonly down: bigint;
+      readonly kind: "ellipse";
+    }
+  | {
+      readonly denominator: bigint;
+      readonly kind: "poly";
+      readonly vertices: readonly [Vertex, Vertex, Vertex, ...Vertex[]];
+    };
 
 /**
- * One entry of an area mapping: its area and mapped value.
- */
-export interface AreaMapEntry {
-  readonly area: Area;
-  readonly value: number;
-}
-
-/**
- * A response's area mapping (§5.6): its entries in document order, the default and the bounds.
+ * A response's area mapping (§5.6): its entries in document order, each area resolved, the default
+ * and the bounds.
  */
 export interface AreaMapping {
   readonly defaultValue: number;
-  readonly entries: readonly AreaMapEntry[];
+  readonly entries: readonly { readonly area: Area; readonly value: number }[];
   readonly lowerBound: number;
   readonly upperBound: number;
 }

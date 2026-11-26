@@ -6,29 +6,17 @@
  *
  * @module
  */
-import type {
-  Area,
-  AreaCoordinate,
-  AreaGeometry,
-  AreaMapping,
-  MapEntry,
-  Mapping,
-  VariableRole,
-} from "#processing/ir.ts";
+import type { Area, AreaMapping, MapEntry, Mapping, VariableRole } from "#processing/ir.ts";
 import { regex } from "arkregex";
+import { resolveArea } from "#processing/compile/area.ts";
+import type { ImageSize } from "#processing/compile/area.ts";
 import { readBoolean, readDouble, readInteger, readSingle } from "#processing/lexical.ts";
 import { checked, refused } from "#processing/operators/operator.ts";
 import type { Checked } from "#processing/operators/operator.ts";
 import type { Declaration, LookupTable } from "#processing/program.ts";
 import { baseTypes, container, nullOf, recordOf, textValue } from "#processing/value.ts";
 import type { BaseType, RecordField, Single, Value, ValueType } from "#processing/value.ts";
-import {
-  attributeOf,
-  collapseXmlSpace,
-  qtiChildren,
-  textOf,
-  trimXmlSpace,
-} from "#processing/xml.ts";
+import { attributeOf, collapseXmlSpace, qtiChildren, textOf } from "#processing/xml.ts";
 import type { XmlElement } from "#processing/xml.ts";
 
 /**
@@ -50,17 +38,6 @@ const noBound: number | undefined = undefined;
  * The cardinalities a declaration may write.
  */
 const cardinalities = ["multiple", "ordered", "record", "single"] as const;
-
-/**
- * The geometries an area may name.
- */
-const geometries = [
-  "circle",
-  "default",
-  "ellipse",
-  "poly",
-  "rect",
-] as const satisfies readonly AreaGeometry[];
 
 /**
  * The first child of a name.
@@ -379,59 +356,25 @@ const mappingOf = (
 };
 
 /**
- * An area's coordinates: comma-separated lengths, a circle's radius possibly a percentage
- * (reading `circle-percentage-radius`), each trimmed.
- *
- * @param written - The `coords` attribute.
- * @returns The coordinates, or `undefined` where one is no number.
+ * How a pass over the declarations reads area mappings: not at all (the pass that types the
+ * responses the body's interactions bind), or resolved against the size of each response's image.
  */
-export const coordinatesOf = (written: string): readonly AreaCoordinate[] | undefined => {
-  if (trimXmlSpace(written) === "") {
-    return [];
-  }
-
-  const coordinates: AreaCoordinate[] = [];
-  for (const token of written.split(",")) {
-    const trimmed = trimXmlSpace(token);
-    const percent = trimmed.endsWith("%");
-    const value = readDouble(percent ? trimmed.slice(0, -1) : trimmed);
-    if (value === undefined) {
-      return undefined;
-    }
-
-    coordinates.push({ percent, value });
-  }
-
-  return coordinates;
-};
+export type AreaReading =
+  | { readonly imageOf: (response: string) => ImageSize | undefined; readonly kind: "resolve" }
+  | { readonly kind: "skip" };
 
 /**
- * An area: its geometry and coordinates.
- *
- * @param element - The element that writes `shape` and `coords`.
- * @param place - Its place.
- * @returns The area.
- */
-export const areaOf = (element: XmlElement, place: number): Checked<Area> => {
-  const geometry = geometries.find(
-    (each) => each === collapseXmlSpace(attributeOf(element, "shape") ?? ""),
-  );
-  const coords = coordinatesOf(attributeOf(element, "coords") ?? "");
-
-  return geometry === undefined || coords === undefined
-    ? refused("attribute", place, "write the area's shape and coords")
-    : checked({ coords, geometry });
-};
-
-/**
- * A response's `qti-area-mapping` (§5.6), with QTI's defaults.
+ * A response's `qti-area-mapping` (§5.6), with QTI's defaults, each area resolved against the
+ * response's image.
  *
  * @param mapping - The area mapping element.
+ * @param image - The size of the image the response's interaction shows, where known.
  * @param placeOf - Where each element stands.
  * @returns The area mapping.
  */
 const areaMappingOf = (
   mapping: XmlElement,
+  image: ImageSize | undefined,
   placeOf: (element: XmlElement) => number,
 ): Checked<AreaMapping> => {
   const place = placeOf(mapping);
@@ -448,7 +391,7 @@ const areaMappingOf = (
 
   const entries: { readonly area: Area; readonly value: number }[] = [];
   for (const entry of childrenNamed(mapping, "qti-area-map-entry")) {
-    const area = areaOf(entry, placeOf(entry));
+    const area = resolveArea(entry, image, placeOf(entry));
     const value = readDouble(collapseXmlSpace(attributeOf(entry, "mapped-value") ?? ""));
     if (!area.ok) {
       return area;
@@ -558,6 +501,29 @@ const lookupOf = (
 };
 
 /**
+ * A response's area mapping as a pass reads it: none where it writes none or the pass skips area
+ * mappings, else resolved against the response's image.
+ *
+ * @param element - The declaration.
+ * @param identifier - Its identifier.
+ * @param areas - How the pass reads area mappings.
+ * @param placeOf - Where each element stands.
+ * @returns The area mapping, or none.
+ */
+const declaredAreaMapping = (
+  element: XmlElement,
+  identifier: string,
+  areas: AreaReading,
+  placeOf: (element: XmlElement) => number,
+): Checked<AreaMapping | undefined> => {
+  const mapping = childNamed(element, "qti-area-mapping");
+
+  return mapping === undefined || areas.kind === "skip"
+    ? absent
+    : areaMappingOf(mapping, areas.imageOf(identifier), placeOf);
+};
+
+/**
  * The roles a declaration element declares.
  */
 const roles = {
@@ -580,11 +546,13 @@ const isDeclaration = (local: string): local is keyof typeof roles => Object.has
  *
  * @param element - The declaration element.
  * @param placeOf - Where each element stands.
+ * @param areas - How the pass reads area mappings.
  * @returns The declaration, or `undefined` for an element that declares none.
  */
 const declarationOf = (
   element: XmlElement,
   placeOf: (element: XmlElement) => number,
+  areas: AreaReading,
 ): Checked<Declaration> | undefined => {
   if (!isDeclaration(element.local)) {
     return undefined;
@@ -608,13 +576,12 @@ const declarationOf = (
       ? valuesOf(childNamed(element, "qti-correct-response"), type.value, placeOf)
       : checked(nullOf(type.value));
   const mappingElement = childNamed(element, "qti-mapping");
-  const areaElement = childNamed(element, "qti-area-mapping");
   const base = type.value.cardinality === "record" ? undefined : type.value.base;
   const mapping =
     mappingElement === undefined || base === undefined
       ? absent
       : mappingOf(mappingElement, base, placeOf);
-  const areaMapping = areaElement === undefined ? absent : areaMappingOf(areaElement, placeOf);
+  const areaMapping = declaredAreaMapping(element, identifier, areas, placeOf);
   const lookup = role === "outcome" ? lookupOf(element, type.value, placeOf) : absent;
   const normalMaximum = doubleAttribute(element, "normal-maximum", noBound, place);
   const normalMinimum = doubleAttribute(element, "normal-minimum", noBound, place);
@@ -682,12 +649,14 @@ const builtIn = (identifier: string, type: ValueType): Declaration => ({
  * @param root - The item's or test's root element.
  * @param document - Which it is.
  * @param placeOf - Where each element stands.
+ * @param areas - How the pass reads area mappings.
  * @returns The declarations by identifier.
  */
 export const declarationsOf = (
   root: XmlElement,
   document: "item" | "test",
   placeOf: (element: XmlElement) => number,
+  areas: AreaReading,
 ): Checked<ReadonlyMap<string, Declaration>> => {
   const declarations = new Map<string, Declaration>(
     document === "item"
@@ -702,7 +671,7 @@ export const declarationsOf = (
       : [["duration", builtIn("duration", { base: "duration", cardinality: "single" })]],
   );
   for (const child of qtiChildren(root)) {
-    const declaration = declarationOf(child, placeOf);
+    const declaration = declarationOf(child, placeOf, areas);
     if (declaration !== undefined) {
       if (!declaration.ok) {
         return declaration;

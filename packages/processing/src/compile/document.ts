@@ -10,6 +10,9 @@ import { regex } from "arkregex";
 import type { Digest } from "#processing/graded.ts";
 import type { Expression, ExpressionKind, VariableRef } from "#processing/ir.ts";
 import { interactionsOf } from "#processing/compile/body.ts";
+import { resolveArea } from "#processing/compile/area.ts";
+import type { ImageSize } from "#processing/compile/area.ts";
+import type { Interaction } from "#processing/compile/body.ts";
 import { childNamed, childrenNamed, declarationsOf } from "#processing/compile/declarations.ts";
 import { expressionCompiler, placesOf } from "#processing/compile/expression.ts";
 import { outcomeRulesOf, responseRulesOf, templateRulesOf } from "#processing/compile/rules.ts";
@@ -98,6 +101,45 @@ const noResponse: DeclaredResponse | undefined = undefined;
 const noWeight: string | undefined = undefined;
 
 /**
+ * The size of the image each point response's interaction shows: a Select Point's image, a Position
+ * Object's stage.
+ *
+ * @param interactions - The item's interactions.
+ * @returns Each response's image size.
+ */
+const imagesOf = (interactions: readonly Interaction[]): ReadonlyMap<string, ImageSize> =>
+  new Map(
+    interactions.flatMap((interaction): readonly (readonly [string, ImageSize])[] => {
+      if (interaction.kind === "select-point") {
+        return [[interaction.response, interaction.image]];
+      }
+
+      return interaction.kind === "position-object"
+        ? [[interaction.response, interaction.stage]]
+        : [];
+    }),
+  );
+
+/**
+ * The size of the image a `qti-inside`'s area lies on: the image of the interaction whose response
+ * its operand reads, where its operand is a `qti-variable` of a point response.
+ *
+ * @param element - The `qti-inside`.
+ * @param images - Each response's image size.
+ * @returns The size, where known.
+ */
+const imageOfOperand = (
+  element: XmlElement,
+  images: ReadonlyMap<string, ImageSize>,
+): ImageSize | undefined => {
+  const [operand] = qtiChildren(element);
+
+  return operand?.local === "qti-variable"
+    ? images.get(collapseXmlSpace(attributeOf(operand, "identifier") ?? ""))
+    : undefined;
+};
+
+/**
  * A variable's reference to a declaration of the program's own.
  *
  * @param declaration - The declaration.
@@ -133,13 +175,24 @@ export const compileItemWith = <K extends ExpressionKind>(
   const template =
     rules.length === 0 && templateUri !== undefined ? publishedTemplate(templateUri) : undefined;
   const placeOf = placesWith(root, template);
-  const declarations = declarationsOf(root, "item", placeOf);
+  const typed = declarationsOf(root, "item", placeOf, { kind: "skip" });
+  if (!typed.ok) {
+    return typed;
+  }
+
+  const interactions = interactionsOf(childNamed(root, "qti-item-body"), typed.value, placeOf);
+  const images = imagesOf(interactions);
+  const declarations = declarationsOf(root, "item", placeOf, {
+    imageOf: (response) => images.get(response),
+    kind: "resolve",
+  });
   if (!declarations.ok) {
     return declarations;
   }
 
   const declared = declarations.value;
   const context: CompileContext = {
+    area: (element, place) => resolveArea(element, imageOfOperand(element, images), place),
     customOperator: customOperatorOf,
     document: "item",
     response: (identifier) => {
@@ -209,7 +262,7 @@ export const compileItemWith = <K extends ExpressionKind>(
         declarations: declared,
         digest,
         identifier: collapseXmlSpace(attributeOf(root, "identifier") ?? ""),
-        interactions: interactionsOf(childNamed(root, "qti-item-body"), declared, placeOf),
+        interactions,
         kind: "item",
         responseProcessing: responses.value,
         templateProcessing: templates.value,
@@ -316,13 +369,14 @@ export const compileTestWith = <K extends ExpressionKind>(
 
   const places = placesOf(root);
   const placeOf = (element: XmlElement): number => places.get(element) ?? -1;
-  const declarations = declarationsOf(root, "test", placeOf);
+  const declarations = declarationsOf(root, "test", placeOf, { kind: "skip" });
   if (!declarations.ok) {
     return declarations;
   }
 
   const declared = declarations.value;
   const context: CompileContext = {
+    area: (element, place) => resolveArea(element, undefined, place),
     customOperator: customOperatorOf,
     document: "test",
     response: () => noResponse,

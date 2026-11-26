@@ -22,6 +22,8 @@ import type {
   Operator,
   OperatorTable,
 } from "#processing/operators/operator.ts";
+import { resolveArea } from "#processing/compile/area.ts";
+import type { ImageSize } from "#processing/compile/area.ts";
 import type { CustomOperator } from "#processing/operator.ts";
 import { customOperatorOf } from "#processing/registry.ts";
 import type { Demand, MemberState, ProcessingFailure, Run } from "#processing/run.ts";
@@ -213,18 +215,20 @@ export const text = (value: string): XmlNode => ({ kind: "text", value });
 
 /**
  * A compile context over stated declarations: each variable declared by name with its type, the
- * responses' mappings by name, the weighted reads by `identifier weight`, and the custom operators
- * by definition (the registry's where none are stated).
+ * responses' mappings by name, the weighted reads by `identifier weight`, the custom operators by
+ * definition (the registry's where none are stated), and the image an area's percentages are of.
  *
  * @param stated - The declarations.
  * @returns The context.
  */
 export const testContext = (stated: {
   readonly declared: Readonly<Record<string, ValueType>>;
+  readonly image?: ImageSize;
   readonly operators?: readonly CustomOperator[];
   readonly responses?: Readonly<Record<string, Omit<DeclaredResponse, "variable">>>;
   readonly weighted?: Readonly<Record<string, VariableRef>>;
 }): CompileContext => ({
+  area: (written, place) => resolveArea(written, stated.image, place),
   customOperator: (definition) =>
     stated.operators === undefined
       ? customOperatorOf(definition)
