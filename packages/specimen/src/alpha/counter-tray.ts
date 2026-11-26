@@ -29,16 +29,15 @@
 import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { createServer } from "node:http";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { inspect } from "node:util";
-import { Config, Data, Effect, Option, Schema } from "effect";
+import { Data, Effect, Option, Schema } from "effect";
 import type { Scope } from "effect";
 import { Digest } from "effect/crypto";
 import { parseHTML } from "linkedom";
-import { chromium } from "playwright-core";
 import type { Browser, Page } from "playwright-core";
+import { chromeFor, unboundedModuleWait } from "#specimen/ui/chrome.ts";
 import { createElement, isValidElement } from "react";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -332,27 +331,14 @@ const pageServer = (modules: ModuleFiles): Effect.Effect<string, CounterTrayFail
   });
 
 /**
- * The folder Chrome keeps its process singleton's socket in: the session's runtime folder, whose
- * path is short (a socket's path is at most 107 bytes, too short beneath a package's `work/`), and
- * the system's temporary folder where the session has none.
+ * Chrome, through the suites' one launcher (`#specimen/ui/chrome.ts`), its failures this harness's.
  */
-const runtimeFolder = Config.String("XDG_RUNTIME_DIR").pipe(Config.withDefault(tmpdir()));
+const launched = chromeFor((step, cause) => new CounterTrayFailure({ cause, step }));
 
 /**
  * The machine's Google Chrome, headless, closed with its scope.
  */
-const chrome: Effect.Effect<Browser, CounterTrayFailure, Scope.Scope> = Effect.acquireRelease(
-  Effect.flatMap(Effect.orDie(runtimeFolder), (temporary) =>
-    attempt("started Chrome", () =>
-      chromium.launch({
-        channel: "chrome",
-        env: { ...process.env, TMPDIR: temporary },
-        headless: true,
-      }),
-    ),
-  ),
-  (browser) => Effect.promise(() => browser.close()),
-);
+const chrome = launched.browser;
 
 /**
  * The counter tray's module file as an item's package holds it: plate's emitted file,
@@ -564,7 +550,7 @@ const hostIn = (
             fallback: route.fallback.pipe(Option.map(urlOf)),
             id: route.id,
             primary: route.primary.pipe(Option.map(urlOf)),
-            waitSeconds: route.waitSeconds,
+            waitSeconds: unboundedModuleWait,
           })),
         ],
       ]),
@@ -1541,20 +1527,10 @@ const startIn = (
   bound: Given,
 ): Effect.Effect<Started, CounterTrayFailure, Scope.Scope> =>
   Effect.gen(function* started() {
-    const context = yield* Effect.acquireRelease(
-      attempt("opened a page", () =>
-        browser.newContext({ hasTouch: true, reducedMotion: "reduce" }),
-      ),
-      (made) => Effect.promise(() => made.close()),
-    );
+    const context = yield* launched.context(browser, { hasTouch: true, reducedMotion: "reduce" });
     const thrown: string[] = [];
+    const made = yield* launched.page(context);
     const page = yield* attempt("loaded the frame page", async () => {
-      const made = await context.newPage();
-
-      // Playwright's 30 s defaults fail a page on a loaded machine that would answer; the run's
-      // own hang guards bound it instead.
-      made.setDefaultTimeout(0);
-      made.setDefaultNavigationTimeout(0);
       made.on("pageerror", (error) => {
         thrown.push(error.message);
       });

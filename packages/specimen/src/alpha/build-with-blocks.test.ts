@@ -381,7 +381,7 @@ layer(Layer.effect(Pages, blocksPages), { excludeTestServices: true, timeout: ca
                   {
                     id,
                     primary: `/package/${buildWithBlocks.path}`,
-                    waitSeconds: { fallback: 7, primary: 7 },
+                    waitSeconds: { fallback: 0, primary: 0 },
                   },
                 ],
               });

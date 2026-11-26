@@ -29,14 +29,13 @@
 import { realpathSync } from "node:fs";
 import { createServer } from "node:http";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
-import { Brand, Config, Data, Effect, Option, Predicate, Schema } from "effect";
+import { Brand, Data, Effect, Option, Predicate, Schema } from "effect";
 import type { Scope } from "effect";
-import { chromium } from "playwright-core";
-import type { Browser, BrowserContext, ConsoleMessage, Page } from "playwright-core";
+import type { BrowserContext, ConsoleMessage, Page } from "playwright-core";
+import { chromeFor } from "#specimen/ui/chrome.ts";
 import { Activity, createElement } from "react";
 import { renderToString } from "react-dom/server";
 import type { Responses as ResponseValues } from "@qti-pie/plate";
@@ -863,51 +862,14 @@ const pageServer = (
 };
 
 /**
- * The folder Chrome keeps its process singleton's socket in: the session's runtime folder, whose
- * path is short, as the math entry's pages take it (`#specimen/ui/math-entry.ts`); the system's
- * temporary folder where the session has none.
+ * Chrome, through the suites' one launcher (`#specimen/ui/chrome.ts`), its failures this harness's.
  */
-const runtimeFolder = Config.String("XDG_RUNTIME_DIR").pipe(Config.withDefault(tmpdir()));
+const launched = chromeFor((step, cause) => new HydrationFailure({ cause, step }));
 
 /**
  * The machine's Google Chrome, headless, closed with its scope.
  */
-const chrome: Effect.Effect<Browser, HydrationFailure, Scope.Scope> = Effect.acquireRelease(
-  Effect.flatMap(Effect.orDie(runtimeFolder), (temporary) =>
-    attempt("started Chrome", () =>
-      chromium.launch({
-        channel: "chrome",
-        env: { ...process.env, TMPDIR: temporary },
-        headless: true,
-      }),
-    ),
-  ),
-  (browser) => Effect.promise(() => browser.close()),
-);
-
-/**
- * The browser context every page opens in, closed with its scope: one for the harness, so a page
- * loads the modules an earlier page loaded from the browser's cache, as Vite's answers allow, and
- * no page holds state of another's, since no island keeps any in the browser's storage.
- *
- * @param browser Chrome.
- * @returns The context.
- */
-const contextIn = (
-  browser: Browser,
-): Effect.Effect<BrowserContext, HydrationFailure, Scope.Scope> =>
-  Effect.acquireRelease(
-    attempt("opened a browser context", async () => {
-      const context = await browser.newContext({ viewport: { height: 900, width: 1200 } });
-
-      // Playwright waits on a page, its loads, its keys and its taps, with no timeout of its own:
-      // the case's hang guard is the one.
-      context.setDefaultTimeout(0);
-
-      return context;
-    }),
-    (opened) => Effect.promise(() => opened.close()),
-  );
+const chrome = launched.browser;
 
 /**
  * What the harness's page keeps, as the harness reads it from the page.
@@ -1008,9 +970,8 @@ const openedAt = (
   address: string,
 ): Effect.Effect<Hydrated, HydrationFailure, Scope.Scope> =>
   Effect.gen(function* opening() {
-    const page = yield* Effect.acquireRelease(
-      attempt("opened a page", () => context.newPage()),
-      (opened) => Effect.promise(() => opened.close()),
+    const page = yield* Effect.acquireRelease(launched.page(context), (opened) =>
+      Effect.promise(() => opened.close()),
     );
     const thrown: string[] = [];
 
@@ -1326,7 +1287,9 @@ const harness = Effect.gen(function* harness() {
   const pages = new Map<string, Written>();
   const held: HeldRecordings = new Map();
   const base = yield* pageServer(server, pages, held);
-  const context = yield* contextIn(yield* chrome);
+  const context = yield* launched.context(yield* chrome, {
+    viewport: { height: 900, width: 1200 },
+  });
   /**
    * Each page's crowding, by its segment: settled at the first request of one of its recordings
    * past Chrome's connections to its host.

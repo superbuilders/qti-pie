@@ -28,16 +28,15 @@
  * @see https://html.spec.whatwg.org/multipage/dom.html#dom-dataset
  */
 import { createServer } from "node:http";
-import { tmpdir } from "node:os";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { Config, Data, Effect, Option, Schema } from "effect";
+import { Data, Effect, Option, Schema } from "effect";
 import type { Scope } from "effect";
 import { Digest } from "effect/crypto";
 import { parseHTML } from "linkedom";
-import { chromium } from "playwright-core";
-import type { Browser, Frame, Page, Route } from "playwright-core";
+import type { Frame, Page, Route } from "playwright-core";
+import { chromeFor, unboundedModuleWait } from "#specimen/ui/chrome.ts";
 import { resolvePciModules } from "@qti-pie/plate";
 import type { PciModules } from "@qti-pie/plate";
 import { framePage } from "@qti-pie/plate/ui/pci-frame";
@@ -338,26 +337,14 @@ const harnessServer: Effect.Effect<string, MarkObjectsFailure, Scope.Scope> = Ef
 );
 
 /**
- * The folder Chrome keeps its process singleton's socket in: the session's runtime folder, whose
- * path is short enough for a socket, else the system's temporary folder.
+ * Chrome, through the suites' one launcher (`#specimen/ui/chrome.ts`), its failures this harness's.
  */
-const runtimeFolder = Config.String("XDG_RUNTIME_DIR").pipe(Config.withDefault(tmpdir()));
+const launched = chromeFor((step, cause) => new MarkObjectsFailure({ cause, step }));
 
 /**
  * The machine's Google Chrome, headless, closed with its scope.
  */
-const chrome: Effect.Effect<Browser, MarkObjectsFailure, Scope.Scope> = Effect.acquireRelease(
-  Effect.flatMap(Effect.orDie(runtimeFolder), (temporary) =>
-    attempt("start Chrome", () =>
-      chromium.launch({
-        channel: "chrome",
-        env: { ...process.env, TMPDIR: temporary },
-        headless: true,
-      }),
-    ),
-  ),
-  (browser) => Effect.promise(() => browser.close()),
-);
+const chrome = launched.browser;
 
 /**
  * A message the frame posted, as the page kept it: its kind and the fields the rules read.
@@ -595,7 +582,7 @@ const routesOf = (origin: string, item: MarkItem) =>
     (file) => file === modulePath,
   ).routes.map((route) => ({
     id: route.id,
-    waitSeconds: route.waitSeconds,
+    waitSeconds: unboundedModuleWait,
     ...Option.match(route.primary, {
       onNone: () => ({}),
       onSome: (file) => ({ primary: `${origin}/${file}` }),
@@ -925,7 +912,7 @@ export const ringPage: Effect.Effect<RingPage, MarkObjectsFailure, Scope.Scope> 
   function* ringPage() {
     const origin = yield* harnessServer;
     const browser = yield* chrome;
-    const page: Page = yield* attempt("open a page", () => browser.newPage());
+    const page: Page = yield* launched.pageOf(browser, {});
     const thrown: string[] = [];
 
     page.on("pageerror", (error) => {

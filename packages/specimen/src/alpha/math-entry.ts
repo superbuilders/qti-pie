@@ -28,7 +28,6 @@
  * @module
  */
 import { createServer } from "node:http";
-import { tmpdir } from "node:os";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -36,10 +35,10 @@ import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
 import { array, element, map, oneOf } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
-import { Array as Arr, Config, Data, Effect, Option, Schema } from "effect";
+import { Array as Arr, Data, Effect, Option, Schema } from "effect";
 import type { Result, Scope } from "effect";
-import { chromium } from "playwright-core";
 import type { Browser, Page } from "playwright-core";
+import { chromeFor } from "#specimen/ui/chrome.ts";
 import {
   alphaTestLayout,
   alphaTestRows,
@@ -425,28 +424,14 @@ const pageServer: Effect.Effect<string, MathEntryFailure, Scope.Scope> = Effect.
 );
 
 /**
- * The folder Chrome keeps its process singleton's socket in: the session's runtime folder, whose
- * path is short. A socket's path is at most 107 bytes, and a suite runs with its temporary folder
- * in its package's `work/`, a path too long for Chrome's socket beneath it, so Chrome would stop at
- * its start. The system's temporary folder where the session has no runtime folder.
+ * Chrome, through the suites' one launcher (`#specimen/ui/chrome.ts`), its failures this harness's.
  */
-const runtimeFolder = Config.String("XDG_RUNTIME_DIR").pipe(Config.withDefault(tmpdir()));
+const launched = chromeFor((step, cause) => new MathEntryFailure({ cause, step }));
 
 /**
  * The machine's Google Chrome, headless, closed with its scope.
  */
-const chrome: Effect.Effect<Browser, MathEntryFailure, Scope.Scope> = Effect.acquireRelease(
-  Effect.flatMap(Effect.orDie(runtimeFolder), (temporary) =>
-    attempt("started Chrome", () =>
-      chromium.launch({
-        channel: "chrome",
-        env: { ...process.env, TMPDIR: temporary },
-        headless: true,
-      }),
-    ),
-  ),
-  (browser) => Effect.promise(() => browser.close()),
-);
+const chrome = launched.browser;
 
 /**
  * Wait in the page until it has painted twice since now, so what a key changed has been laid out.
@@ -730,19 +715,8 @@ const fieldIn = (
   setup: Setup,
 ): Effect.Effect<MathEntryField, MathEntryFailure, Scope.Scope> =>
   Effect.map(
-    Effect.acquireRelease(
-      attempt("opened the page", async () => {
-        const page = await browser.newPage({ reducedMotion: "reduce" });
-
-        // Playwright's 30 s defaults fail a page on a loaded machine that would answer; the run's
-        // own hang guards (vitest's, the aim's) bound it instead.
-        page.setDefaultTimeout(0);
-        page.setDefaultNavigationTimeout(0);
-        await page.goto(url);
-
-        return page;
-      }),
-      (page) => Effect.promise(() => page.close()),
+    Effect.tap(launched.pageOf(browser, { reducedMotion: "reduce" }), (page) =>
+      attempt("opened the page", () => page.goto(url)),
     ),
     (page): MathEntryField => ({
       typed: (keys, given = setup) =>

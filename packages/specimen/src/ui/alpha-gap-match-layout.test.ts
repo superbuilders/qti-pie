@@ -40,12 +40,11 @@
  * @module
  */
 import { readFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { assert, describe, it } from "@effect/vitest";
-import { Config, Effect, Option } from "effect";
-import { chromium } from "playwright-core";
+import { Effect, Option } from "effect";
 import type { Browser } from "playwright-core";
+import { chromeFor } from "#specimen/ui/chrome.ts";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { acceptedItem, configure, startingResponses } from "@qti-pie/plate";
@@ -168,25 +167,15 @@ interface Box {
 }
 
 /**
- * The folder Chrome keeps its process singleton's socket in, as the math entry suite chooses it.
+ * Chrome, through the suites' one launcher (`#specimen/ui/chrome.ts`): a failure of its is a defect
+ * of the test.
  */
-const runtimeFolder = Config.String("XDG_RUNTIME_DIR").pipe(Config.withDefault(tmpdir()));
+const launched = chromeFor((_step, cause) => cause);
 
 /**
  * The machine's Google Chrome, headless, closed with its scope.
  */
-const chrome = Effect.acquireRelease(
-  Effect.flatMap(Effect.orDie(runtimeFolder), (temporary) =>
-    Effect.promise(() =>
-      chromium.launch({
-        channel: "chrome",
-        env: { ...process.env, TMPDIR: temporary },
-        headless: true,
-      }),
-    ),
-  ),
-  (browser) => Effect.promise(() => browser.close()),
-);
+const chrome = Effect.orDie(launched.browser);
 
 /**
  * Read one of plate's files as text.
@@ -415,8 +404,8 @@ const boxOf = ([left, top, right, bottom]: Edges): Box => ({
 const measured = (browser: Browser, laid: Laid) =>
   Effect.gen(function* measure() {
     const html = yield* pageOf(laid);
-    const page = yield* Effect.promise(() =>
-      browser.newPage({ viewport: { height: 900, width: laid.width } }),
+    const page = yield* Effect.orDie(
+      launched.pageOf(browser, { viewport: { height: 900, width: laid.width } }),
     );
 
     yield* Effect.promise(() =>

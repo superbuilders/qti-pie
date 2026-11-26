@@ -255,6 +255,27 @@ export default defineConfig({
       },
     },
     {
+      files: ["packages/specimen/**/*.ts", "packages/specimen/**/*.tsx"],
+      rules: {
+        "no-restricted-properties": [
+          "error",
+          ...[
+            { object: "chromium", property: "launch" },
+            { property: "newContext" },
+            { property: "newPage" },
+          ].map((restricted) => ({
+            ...restricted,
+            message:
+              "Chrome, its contexts and its pages are opened by #specimen/ui/chrome.ts alone, with Playwright's timeouts at 0, so no verdict rests on a load deadline (2026-11-26: eight harnesses each opened Chrome, five kept Playwright's 30 s default, and page.goto timed out at load 300).",
+          })),
+        ],
+      },
+    },
+    {
+      files: ["packages/specimen/src/ui/chrome.ts"],
+      rules: { "no-restricted-properties": "off" },
+    },
+    {
       files: ["packages/crust/**/*.ts"],
       rules: {
         "no-restricted-imports": [

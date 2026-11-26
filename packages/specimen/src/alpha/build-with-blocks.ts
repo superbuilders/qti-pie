@@ -36,15 +36,13 @@
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { inspect } from "node:util";
-import { Config, Data, Effect, Option, Schema } from "effect";
+import { Data, Effect, Option, Schema } from "effect";
 import type { Scope } from "effect";
 import { Digest } from "effect/crypto";
 import { parseHTML } from "linkedom";
-import { chromium } from "playwright-core";
 import type { Browser, Frame, Page } from "playwright-core";
 import { createElement, isValidElement } from "react";
 import type { ReactNode } from "react";
@@ -66,6 +64,7 @@ import { framePage } from "@qti-pie/plate/ui/pci-frame";
 import type { FramePage } from "@qti-pie/plate/ui/pci-frame";
 import { pressInto } from "#specimen/alpha/delivered.ts";
 import type { TapNotDelivered } from "#specimen/alpha/delivered.ts";
+import { chromeFor, unboundedModuleWait } from "#specimen/ui/chrome.ts";
 import { clientExports } from "#specimen/ui/clients.ts";
 import { islandsIn } from "#specimen/ui/rendered.ts";
 import type { Island } from "#specimen/ui/rendered.ts";
@@ -296,6 +295,7 @@ const servedRoute = (route: PciModuleRoute): PciModuleRoute => ({
   ...route,
   fallback: route.fallback.pipe(Option.map((location) => `${packageRoot}${location}`)),
   primary: route.primary.pipe(Option.map((location) => `${packageRoot}${location}`)),
+  waitSeconds: unboundedModuleWait,
 });
 
 /**
@@ -532,26 +532,14 @@ const pageServer: Effect.Effect<string, BlocksFailure, Scope.Scope> = Effect.fla
 );
 
 /**
- * The folder Chrome keeps its process singleton's socket in: the session's runtime folder, whose
- * path is short enough for a socket (`#specimen/ui/math-entry.ts` says why).
+ * Chrome, through the suites' one launcher (`#specimen/ui/chrome.ts`), its failures this harness's.
  */
-const runtimeFolder = Config.String("XDG_RUNTIME_DIR").pipe(Config.withDefault(tmpdir()));
+const launched = chromeFor((step, cause) => new BlocksFailure({ cause, step }));
 
 /**
  * The machine's Google Chrome, headless, closed with its scope.
  */
-const chrome: Effect.Effect<Browser, BlocksFailure, Scope.Scope> = Effect.acquireRelease(
-  Effect.flatMap(Effect.orDie(runtimeFolder), (temporary) =>
-    attempt("started Chrome", () =>
-      chromium.launch({
-        channel: "chrome",
-        env: { ...process.env, TMPDIR: temporary },
-        headless: true,
-      }),
-    ),
-  ),
-  (browser) => Effect.promise(() => browser.close()),
-);
+const chrome = launched.browser;
 
 /**
  * One item's PCI running in its frame, and what the test does to it and reads of it.
@@ -815,12 +803,10 @@ const openOn = (
   bound: Bound,
 ): Effect.Effect<BlocksFrame, BlocksFailure, Scope.Scope> =>
   Effect.gen(function* openBlocks() {
-    const page = yield* Effect.acquireRelease(
-      attempt("opened a page", () =>
-        browser.newPage({ hasTouch: true, viewport: { height: 900, width: 1280 } }),
-      ),
-      (opened) => Effect.promise(() => opened.close()),
-    );
+    const page = yield* launched.pageOf(browser, {
+      hasTouch: true,
+      viewport: { height: 900, width: 1280 },
+    });
     const setup = JSON.stringify({
       bound,
       frame: hosted.frame,
