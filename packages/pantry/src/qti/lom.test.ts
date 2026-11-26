@@ -21,7 +21,16 @@ import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it, layer } from "@effect/vitest";
-import { Duration, Effect, FileSystem, Formatter, Option, Record as Rec, Result } from "effect";
+import {
+  Array as Arr,
+  Duration,
+  Effect,
+  FileSystem,
+  Formatter,
+  Option,
+  Record as Rec,
+  Result,
+} from "effect";
 import { lawNameOf } from "#pantry/import/refusal.ts";
 import { readProgram } from "#pantry/import/program.ts";
 import {
@@ -43,7 +52,9 @@ import { lomTextBytes } from "#pantry/qti/limits.ts";
 import { RecordNode } from "#pantry/qti/names.ts";
 import { previewRowsOf } from "#pantry/test/host-judge.ts";
 import { evaluatorOf, insideDomains } from "#pantry/test/row-evaluation.ts";
+import { boxHolds } from "#pantry/test/box.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
  * Grizzle's evaluator of the LOM level's rows.
@@ -210,18 +221,55 @@ const isVocabularyKind = (kind: string): kind is keyof typeof vocabularies =>
   Object.hasOwn(vocabularies, kind);
 
 describe("LOM vocabulary", () => {
-  it("holds a status, a role, a kind and a purpose of LOM's own vocabulary to exactly LOM's terms", () => {
-    for (const parent of Rec.keys(vocabularies)) {
-      const terms: readonly string[] = vocabularies[parent];
-      for (const value of writtenValues) {
-        assert.strictEqual(
-          termHolds(parent, value),
-          terms.includes(value),
-          `${JSON.stringify(value)} in ${parent}: IEEE 1484.12.1-2002 §4.4 ("If the source is "LOMv1.0", then the value space is described by this edition of this Standard") over the vocabularies of 2.2, 2.3.1, 3.2.1, 7.1 and 9.1, and QTI 3.0 Metadata §2.7.7.1's precludes; a term of another source is no row of LomTerm, the loose binding enforcing no default vocabulary (§3.6), so no source is judged here: which terms name another vocabulary is LomTerm's query, the database's to evaluate`,
+  it.effect(
+    "holds a status, a role, a kind and a purpose of LOM's own vocabulary to exactly LOM's terms, over every vocabulary by every value the box writes",
+    (ctx) =>
+      Effect.gen(function* everyTerm() {
+        const kinds = Rec.keys(vocabularies);
+        const values = writtenValues;
+
+        if (!Arr.isReadonlyArrayNonEmpty(kinds) || !Arr.isReadonlyArrayNonEmpty(values)) {
+          return assert.fail("the box writes no vocabulary or no value");
+        }
+
+        const termCase: Gen<readonly [keyof typeof vocabularies, string]> = (source) => [
+          source.draw(element(kinds)),
+          source.draw(element(values)),
+        ];
+
+        yield* boxHolds(termCase, kinds.length * values.length);
+
+        return yield* searched(
+          ctx,
+          exhaust(
+            {
+              box: "every vocabulary LOM vocabulary reads (a status, a role, a kind, a purpose) by every value of writtenValues: each term of every vocabulary, 1EdTech's own spellings under LOMv1.0 and a term of none",
+              caseHang: Duration.seconds(10),
+              coverage: requiredInSpace<"a term" | "no term">(["a term", "no term"]),
+              generator: termCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: 'IEEE 1484.12.1-2002 §4.4 ("If the source is "LOMv1.0", then the value space is described by this edition of this Standard") over the vocabularies of 2.2, 2.3.1, 3.2.1, 7.1 and 9.1, transcribed here, and QTI 3.0 Metadata §2.7.7.1\'s precludes; a term of another source is no row of LomTerm, the loose binding enforcing no default vocabulary (§3.6), so no source is judged here: which terms name another vocabulary is LomTerm\'s query, the database\'s to evaluate',
+              },
+              suite: "qti/lom/vocabulary",
+            },
+            ([parent, value], c) =>
+              Effect.sync(() => {
+                const terms: readonly string[] = vocabularies[parent];
+                const held = terms.includes(value);
+
+                c.note(held ? "a term" : "no term");
+                assert.strictEqual(
+                  termHolds(parent, value),
+                  held,
+                  `${JSON.stringify(value)} in ${parent}`,
+                );
+              }),
+          ),
         );
-      }
-    }
-  });
+      }),
+  );
 });
 
 /**
@@ -306,9 +354,9 @@ const has = (vcard: ReadVcard, name: string, value: (text: string) => boolean): 
   (vcard.properties.get(name) ?? []).some(value);
 
 /**
- * The vCards of the box: the producers' own (RAM's author and publisher, decision 12), LOM's own
- * example (IEEE 1484.12.1 2.3.2, which writes no N and no VERSION), and each one property away from
- * them, in case, group, line ending and frame.
+ * The vCards a record of the level's searches holds: the producers' own (RAM's author and
+ * publisher, decision 12), LOM's own example (IEEE 1484.12.1 2.3.2, which writes no N and no
+ * VERSION), and each one property away from them, in case, group, line ending and frame.
  */
 const vcards = [
   "BEGIN:VCARD\nVERSION:3.0\nN:Family;Given;;;\nFN:Given Family\nEMAIL;TYPE=INTERNET:given@example.org\nORG:Alpha School\nEND:VCARD",
@@ -327,25 +375,95 @@ const vcards = [
   "Given Family <given@example.org>",
 ] as const;
 
+/**
+ * The parts a vCard of the box is written from, each one of its forms, the empty form none: the
+ * frame's BEGIN as RFC 2426 writes it, in lower case (a name is case-insensitive, §5) and led by
+ * spaces, which no content line is; a VERSION of 3.0, in lower case and of 2.1; an N as the
+ * producers write it (RAM's author and publisher, decision 12), empty in every component, in a
+ * group and in lower case; an FN as written, blank, in a group and in lower case; another
+ * property, an EMAIL with a parameter or a NOTE; and the frame's END, in lower case and followed by
+ * a property after it. LOM's own example (IEEE 1484.12.1 2.3.2) writes no N and no VERSION.
+ */
+const VCARD_PARTS = [
+  ["BEGIN:VCARD", "begin:vcard", "  BEGIN:VCARD", ""],
+  ["VERSION:3.0", "version:3.0", "VERSION:2.1", ""],
+  ["N:Family;Given;;;", "N:;;;;", "item1.N:Family;Given", "n:Family;Given", ""],
+  ["FN:Given Family", "FN: ", "item1.FN:Given Family", "fn:Given Family", ""],
+  ["EMAIL;TYPE=INTERNET:given@example.org", "NOTE:no name", ""],
+  ["END:VCARD", "end:vcard", "END:VCARD\nNOTE:after the end", ""],
+] as const;
+
+/**
+ * The line endings a vCard of the box is written with: RFC 2425's CRLF, and the LF a producer
+ * writes.
+ */
+const VCARD_LINE_ENDS = ["\n", "\r\n"] as const;
+
+/**
+ * Draw a vCard of the box: one form of each of {@link VCARD_PARTS}, in order, the empty ones left
+ * out, joined by one of {@link VCARD_LINE_ENDS}.
+ */
+const vcardText: Gen<string> = (source) => {
+  const lineEnd = source.draw(element(VCARD_LINE_ENDS));
+
+  return VCARD_PARTS.map((forms) => source.draw(element(forms)))
+    .filter((part) => part !== "")
+    .join(lineEnd);
+};
+
+/**
+ * How many vCards {@link vcardText} draws: 4 by 4 by 5 by 5 by 3 by 4 forms of its parts, by 2
+ * line endings.
+ */
+const VCARD_TEXTS = 4 * 4 * 5 * 5 * 3 * 4 * 2;
+
 describe("LOM vCard", () => {
-  it("holds every contribute's entity to a vCard 3.0 with its N, its FN and its frame, each of any value", () => {
-    for (const text of vcards) {
-      const vcard = readVcard(text);
-      assert.strictEqual(
-        vcardHolds({
-          ...recordNode,
-          kind: "lom:entity",
-          parentKind: "lom:contribute",
-          stringValue: text,
-        }),
-        vcard.framed &&
-          has(vcard, "VERSION", (value) => value === "3.0") &&
-          has(vcard, "N", () => true) &&
-          has(vcard, "FN", () => true),
-        `${JSON.stringify(text)}: RFC 2426 §3.1.1, §3.1.2 and §3.6.9 ("MUST be present") and §5's BEGIN and END, read by readVcard, RFC 2425 §5.8.2's content line; an FN's and an N's value is a text-value, *(SAFE-CHAR / ":" / DQUOTE / ESCAPED-CHAR) (§4), the blank one among them`,
-      );
-    }
-  });
+  it.effect(
+    `holds every contribute's entity to a vCard 3.0 with its N, its FN and its frame, each of any value, over every vCard of the box: ${String(VCARD_TEXTS)} vCards`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(vcardText, VCARD_TEXTS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every vCard of one form of each part (the frame's BEGIN, a VERSION, an N, an FN, another property, the frame's END, each or none, in case, group and frame) under LF or CRLF",
+              caseHang: Duration.seconds(10),
+              concurrency: searchWidth,
+              coverage: requiredInSpace<"held" | "refused">(["held", "refused"]),
+              generator: vcardText,
+              literal: (text) => JSON.stringify(text),
+              oracle: {
+                kind: "specification",
+                name: "RFC 2426 §3.1.1, §3.1.2 and §3.6.9 (\"MUST be present\") and §5's BEGIN and END, read by readVcard, RFC 2425 §5.8.2's content line; an FN's and an N's value is a text-value, *(SAFE-CHAR / \":\" / DQUOTE / ESCAPED-CHAR) (§4), the blank one among them",
+              },
+              suite: "qti/lom/vcard",
+            },
+            (text, c) =>
+              Effect.sync(() => {
+                const vcard = readVcard(text);
+                const held =
+                  vcard.framed &&
+                  has(vcard, "VERSION", (value) => value === "3.0") &&
+                  has(vcard, "N", () => true) &&
+                  has(vcard, "FN", () => true);
+
+                c.note(held ? "held" : "refused");
+                assert.strictEqual(
+                  vcardHolds({
+                    ...recordNode,
+                    kind: "lom:entity",
+                    parentKind: "lom:contribute",
+                    stringValue: text,
+                  }),
+                  held,
+                  JSON.stringify(text),
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 });
 
 /**
