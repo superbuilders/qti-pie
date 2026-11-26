@@ -498,6 +498,19 @@ const heldOf = (item: CompiledItem, session: ItemSession): ReadonlyMap<string, V
 };
 
 /**
+ * The responses an answer is graded on, from where they came: a save's or a post's values with
+ * every response admission hides set to NULL, so its proof digests exactly the map the answer
+ * write stores, and an answer rebuilt from that map digests alike (admission hides the same
+ * responses again); a default submission as it is, its graded map following from the item.
+ *
+ * @param submitted - The responses as submitted.
+ * @param shown - The values graded.
+ * @returns The responses as graded.
+ */
+const gradedOf = (submitted: Submitted, shown: ReadonlyMap<string, Value>): Submitted =>
+  submitted.kind === "default" ? submitted : { ...submitted, values: shown };
+
+/**
  * Grade one answer (D14).
  *
  * @param table - The standard operators.
@@ -508,13 +521,6 @@ export const gradeAnswerWith = <K extends ExpressionKind>(
   table: OperatorTable<K>,
   input: AnswerInput,
 ): Failed | Graded<AnswerGrade> => {
-  const proof: GradeProof = {
-    inputDigest: answerDigest(input),
-    prior: priorOf(input.session.prior),
-    program: input.item.digest,
-    readAt: input.readAt,
-    responses: [readOf(input.responses)],
-  };
   const posted = valuesOf(input.responses);
   const admission = admit(
     input.item,
@@ -530,6 +536,14 @@ export const gradeAnswerWith = <K extends ExpressionKind>(
     }
   }
 
+  const asGraded = gradedOf(input.responses, shown);
+  const proof: GradeProof = {
+    inputDigest: answerDigest({ ...input, responses: asGraded }),
+    prior: priorOf(input.session.prior),
+    program: input.item.digest,
+    readAt: input.readAt,
+    responses: [readOf(asGraded)],
+  };
   if (admission.reasons.length > 0) {
     return mint({ responses: shown, result: { admission, kind: "refused" } }, proof);
   }

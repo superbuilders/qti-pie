@@ -23,7 +23,7 @@ import { takeWith } from "#processing/session.ts";
 import type { Take } from "#processing/session.ts";
 import { processingSeed } from "#processing/stream.ts";
 import { element, text } from "#processing/test/run.ts";
-import { container, single, textValue } from "#processing/value.ts";
+import { container, nullOf, single, textValue } from "#processing/value.ts";
 import type { Value } from "#processing/value.ts";
 import type { XmlElement } from "#processing/xml.ts";
 
@@ -630,13 +630,24 @@ const essayScore = recordedOperator({
 });
 
 /**
- * An essay item: its `SCORE` the recorded score of its `ESSAY`, out of 1.
+ * An essay item: its `SCORE` the recorded score of its `ESSAY`, out of 1, and a choice `PICK` in a
+ * feedback block its `FB` closes until it names the block, so admission hides `PICK`.
  *
  * @returns The compiled item.
  */
 const essayItem = (): CompiledItem => {
   const compiled = compileItemOver(
     element("qti-assessment-item", { adaptive: "false", identifier: "q1" }, [
+      element(
+        "qti-response-declaration",
+        { "base-type": "identifier", cardinality: "single", identifier: "PICK" },
+        [],
+      ),
+      element(
+        "qti-outcome-declaration",
+        { "base-type": "identifier", cardinality: "single", identifier: "FB" },
+        [],
+      ),
       element(
         "qti-response-declaration",
         { "base-type": "string", cardinality: "single", identifier: "ESSAY" },
@@ -654,6 +665,17 @@ const essayItem = (): CompiledItem => {
             variable("ESSAY"),
             literal("float", "1"),
           ]),
+        ),
+      ]),
+      element("qti-item-body", {}, [
+        element(
+          "qti-feedback-block",
+          { identifier: "open", "outcome-identifier": "FB", "show-hide": "show" },
+          [
+            element("qti-choice-interaction", { "response-identifier": "PICK" }, [
+              element("qti-simple-choice", { identifier: "A" }, []),
+            ]),
+          ],
         ),
       ]),
     ]),
@@ -774,6 +796,56 @@ describe("a sitting with a pending member", () => {
       "failure" in drifted ? drifted.failure.kind : undefined,
       "completion-mismatch",
     );
+  });
+});
+
+describe("a pending answer with a hidden response", () => {
+  it("proves the responses as graded, so the answer rebuilt from what its write stored digests alike and completes without mismatch", () => {
+    const item = essayItem();
+    const answerOf = (
+      values: ReadonlyMap<string, Value>,
+      evaluations: ReadonlyMap<number, Value>,
+    ) =>
+      gradeAnswerWith(table, {
+        context: new Map(),
+        evaluations,
+        item,
+        readAt: { microseconds: 2_000_000n },
+        responses: { kind: "posted", values },
+        session: fresh(noTake),
+        validate: false,
+      });
+
+    const first = answerOf(
+      new Map<string, Value>([
+        ["ESSAY", textValue("string", "An essay.")],
+        ["PICK", textValue("identifier", "A")],
+      ]),
+      new Map(),
+    );
+    if ("failure" in first || first.result.kind !== "pending") {
+      return assert.fail("pending");
+    }
+
+    assert.deepStrictEqual(
+      first.responses.get("PICK"),
+      nullOf({ base: "identifier", cardinality: "single" }),
+    );
+
+    const [demand] = first.result.demands;
+    if (demand === undefined) {
+      return assert.fail("a demand");
+    }
+
+    const stored = new Map([...first.responses].filter(([, held]) => held.kind !== "null"));
+    const rebuilt = answerOf(stored, new Map([[demand.place, single("float", 0.5)]]));
+    if ("failure" in rebuilt || rebuilt.result.kind !== "done") {
+      return assert.fail("completed");
+    }
+
+    assert.deepStrictEqual(proofOf(rebuilt).inputDigest, proofOf(first).inputDigest);
+    assert.deepStrictEqual(proofOf(rebuilt).responses, proofOf(first).responses);
+    assert.deepStrictEqual(rebuilt.result.outcomes.get("SCORE"), single("float", 0.5));
   });
 });
 
