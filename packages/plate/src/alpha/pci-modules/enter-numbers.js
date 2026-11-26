@@ -32,20 +32,22 @@
  *     `[5, 4]`, 2.50 and 2.5 both `[5, 2]`, 0/4 `[0, 1]`. So `match_correct` scores a fraction, a
  *     mixed number and a decimal on its value, as QTI's integers are scored on their value and never
  *     on how they are spelt, under the one standard template both AlphaTest's marked grader and
- *     qti-pie run. An entry with a box it needs left empty is NULL, `{ list: null }`: every box of a
- *     `whole` entry, the numerator and the denominator of a fraction (a mixed number's whole-number
- *     box may stay empty), and a decimal with a digit after any point it holds. An interaction left
- *     untouched sends no answer (owner's ruling Q6), and an entry no value can be read from is the
- *     same screen.
+ *     qti-pie run. A mixed number's whole-number box alone is that whole number (`3` is `[3, 1]`),
+ *     and a decimal's point with no digit after it adds nothing (`3.` is `[3, 1]`, as xs:decimal
+ *     reads `3.`). An entry with a box it needs left empty is NULL, `{ list: null }`: every box of a
+ *     `whole` entry, the numerator and the denominator of a fraction, and of a mixed number one of
+ *     them without the other or both without a whole number. An interaction left untouched sends no
+ *     answer (owner's ruling Q6), and an entry no value can be read from is the same screen.
  * - **Coming back.** The stored response decides. Bound to a value, the PCI shows the state it is
  *   handed where that state writes the same value, and otherwise the value in its own spelling: a
  *   `whole` list in its boxes, a fraction as `n` over `d`, a mixed number as its whole part and the
- *   rest over `d` (`2 2/6` and `14/6` both come back `2 1/3`), a decimal in its shortest digits
- *   (`2.50` comes back `2.5`). A host that keeps only the response (AlphaTest's player hands no
- *   state) so shows the number written in lowest terms, never its spelling, as the other Alpha
- *   modules show their counts on the first parts. Bound to NULL it shows the state's boxes where
- *   they write no value, and empty boxes otherwise; bound to nothing, the state alone decides.
- *   Every value the entry writes comes back; a value it could not have written is refused.
+ *   rest over `d` (`2 2/6` and `14/6` both come back `2 1/3`; a whole number, `3 0/1` or `3`, in
+ *   its whole-number box alone), a decimal in its shortest digits (`2.50` comes back `2.5`). A host
+ *   that keeps only the response (AlphaTest's player hands no state) so shows the number written in
+ *   lowest terms, never its spelling, as the other Alpha modules show their counts on the first
+ *   parts. Bound to NULL it shows the state's boxes where they write no value, and empty boxes
+ *   otherwise; bound to nothing, the state alone decides. Every value the entry writes comes back;
+ *   a value it could not have written is refused.
  *
  * **Properties.** Exactly two, each a `data-*` attribute of the `qti-portable-custom-interaction`,
  * read by its dataset name: `data-entry` (`whole`, `fraction`, `mixed` or `decimal`) and
@@ -540,7 +542,8 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
 
   /**
    * The value an entry's boxes write, or none where a box it needs is empty or holds no admitted
-   * number.
+   * number. A mixed number's whole-number box alone writes that whole number, and a decimal's point
+   * with no digit after it adds nothing.
    *
    * @param entry The entry's kind.
    * @param texts The boxes' texts, in box order.
@@ -562,14 +565,22 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
     }
 
     if (entry === "decimal") {
-      const [text = ""] = texts;
+      const [typed = ""] = texts;
+      const text = typed.endsWith(".") ? typed.slice(0, -1) : typed;
       const places = text.includes(".") ? text.length - text.indexOf(".") - 1 : 0;
 
-      return admitted(0) ? lowest(Number(text.replace(".", "")), 10 ** places) : undefined;
+      return isAdmitted(text, "decimal", digits)
+        ? lowest(Number(text.replace(".", "")), 10 ** places)
+        : undefined;
     }
 
     const [whole, numerator, denominator] = entry === "mixed" ? texts : ["", ...texts];
     const fractionAt = entry === "mixed" ? 1 : 0;
+
+    if (entry === "mixed" && admitted(0) && numerator === "" && denominator === "") {
+      return lowest(Number(whole), 1);
+    }
+
     const wholeKept = entry !== "mixed" || whole === "" || admitted(0);
 
     return wholeKept && admitted(fractionAt) && admitted(fractionAt + 1)
@@ -583,7 +594,8 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   /**
    * Write a value in the entry's own spelling: a `whole` list in its boxes, a fraction as `n` over
    * `d`, a mixed number as its whole part (as much of it as the whole-number box's digits hold, the
-   * box empty below 1) and the rest over `d`, a decimal in its shortest digits. Every value the
+   * box empty below 1) and the rest over `d` (a whole number that box holds in it alone, the
+   * fraction's boxes empty), a decimal in its shortest digits. Every value the
    * entry writes has this spelling within its boxes' digits (a mixed number's whole part past them
    * leaves a rest no greater than the numerator typed), so the boxes can always show again what
    * they gave. None where the entry could not have written the value.
@@ -605,6 +617,11 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
       texts.every(
         (text, index) =>
           (entry === "mixed" && index === 0 && text === "") ||
+          (entry === "mixed" &&
+            index > 0 &&
+            texts[0] !== "" &&
+            texts[1] === "" &&
+            texts[2] === "") ||
           isAdmitted(text, plans[index]?.rule ?? "count", digits),
       )
         ? texts
@@ -627,12 +644,11 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
 
     if (entry === "mixed") {
       const whole = Math.min(Math.floor(numerator / denominator), 10 ** digits - 1);
+      const rest = numerator - whole * denominator;
 
-      return fits([
-        whole === 0 ? "" : String(whole),
-        String(numerator - whole * denominator),
-        String(denominator),
-      ]);
+      return whole > 0 && rest === 0
+        ? fits([String(whole), "", ""])
+        : fits([whole === 0 ? "" : String(whole), String(rest), String(denominator)]);
     }
 
     let places = 0;

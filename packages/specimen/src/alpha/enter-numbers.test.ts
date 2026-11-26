@@ -14,12 +14,15 @@
  *   first, a digit past the box's digits).
  * - EN3, the response on value: a fraction, a mixed number or a decimal is its numerator and
  *   denominator in lowest terms, so every equivalent and an improper fraction for a mixed number
- *   score as `match_correct` scores the item's key; boxes are their integers in order (a factor
- *   pair's declaration is `multiple`, so either order scores); a swap of ordered boxes does not.
- * - EN4, NULL: untouched, one box of two, a trailing point, or emptied again, the response is NULL
- *   and scores 0; the last change relayed is the response completed with.
- * - EN5, coming back: bound to a value the boxes show it; with a state writing the same value, the
- *   state's spelling; with a state writing another, the bound value.
+ *   score as `match_correct` scores the item's key; a mixed number's whole-number box alone is that
+ *   whole number, and a decimal's point with no digit after it adds nothing (xs:decimal's `3.`);
+ *   boxes are their integers in order (a factor pair's declaration is `multiple`, so either order
+ *   scores); a swap of ordered boxes does not.
+ * - EN4, NULL: untouched, one box of two, or emptied again, the response is NULL and scores 0; the
+ *   last change relayed is the response completed with.
+ * - EN5, coming back: bound to a value the boxes show it (a mixed entry's whole number in its
+ *   whole-number box alone); with a state writing the same value, the state's spelling; with a
+ *   state writing another, the bound value.
  * - EN6, refusals: an item whose properties or markup the PCI cannot read fails to run.
  * - EN7, the keyboard: a box is a tab stop, digits type, `/` moves from a numerator to its
  *   denominator, Backspace deletes.
@@ -189,7 +192,8 @@ interface Scripted {
 
 /**
  * The golden entries of each item, the response each must give derived from the specification:
- * a value in lowest terms, boxes in order, NULL for an entry missing a box it needs.
+ * a value in lowest terms, boxes in order, NULL for an entry missing a box it needs (a mixed
+ * number's whole-number box alone is its whole number, a decimal's bare point adds nothing).
  */
 const scripts: Readonly<Record<ItemName, readonly Scripted[]>> = {
   "decimal-sum": [
@@ -197,7 +201,7 @@ const scripts: Readonly<Record<ItemName, readonly Scripted[]>> = {
     { entry: ["3.750"], response: [15, 4], why: "a trailing zero, the same value" },
     { entry: ["3.57"], response: [357, 100], why: "another decimal" },
     { entry: ["4"], response: [4, 1], why: "a whole number" },
-    { entry: ["3."], response: null, why: "a point with no digit after it" },
+    { entry: ["3."], response: [3, 1], why: "a point with no digit after it, the whole number" },
     { entry: [""], response: null, why: "blank" },
   ],
   "factor-pair": [
@@ -222,8 +226,10 @@ const scripts: Readonly<Record<ItemName, readonly Scripted[]>> = {
     { entry: ["", "5", "2"], response: [5, 2], why: "the improper fraction in lowest terms" },
     { entry: ["2", "3", "6"], response: [5, 2], why: "a mixed number not in lowest terms" },
     { entry: ["2", "1", "3"], response: [7, 3], why: "a wrong mixed number" },
-    { entry: ["2", "", ""], response: null, why: "the whole number alone" },
+    { entry: ["2", "", ""], response: [2, 1], why: "the whole number alone, its value" },
     { entry: ["2", "1", ""], response: null, why: "no denominator" },
+    { entry: ["2", "", "2"], response: null, why: "no numerator" },
+    { entry: ["", "", ""], response: null, why: "blank" },
   ],
   "ordered-pair": [
     { entry: ["3", "5"], response: [3, 5], why: "the key" },
@@ -278,8 +284,8 @@ const bound = (integer: readonly number[]) => ({ list: { integer } });
 
 /**
  * The value a fraction's, a mixed number's or a decimal's boxes write, as the specification
- * reads them (one box a decimal, two a fraction, three a mixed number): its numerator and
- * denominator in lowest terms.
+ * reads them (one box a decimal, two a fraction, three a mixed number, whose whole-number box alone
+ * is its whole number): its numerator and denominator in lowest terms.
  *
  * @param texts The boxes' texts, in box order, each a number.
  * @returns `[n, d]` in lowest terms.
@@ -290,7 +296,10 @@ const writtenValue = (texts: readonly string[]): readonly number[] => {
   const read = {
     1: [Number(first.replace(".", "")), 10 ** places],
     2: [Number(first), Number(second)],
-    3: [Number(first === "" ? "0" : first) * Number(third) + Number(second), Number(third)],
+    3:
+      second === "" && third === ""
+        ? [Number(first), 1]
+        : [Number(first === "" ? "0" : first) * Number(third) + Number(second), Number(third)],
   }[texts.length] ?? [0, 1];
   const [numerator = 0, denominator = 1] = read;
   const common = (left: number, right: number): number =>
@@ -588,6 +597,12 @@ layer(HostedLayer)("the enter-numbers PCI", (it) => {
         );
         yield* started(page, mixed, { boundTo: bound([1, 2]) });
         assert.deepStrictEqual(yield* boxTexts(page), ["", "1", "2"], "below 1, no whole part");
+        yield* started(page, mixed, { boundTo: bound([3, 1]) });
+        assert.deepStrictEqual(
+          yield* boxTexts(page),
+          ["3", "", ""],
+          "a whole number comes back in the whole-number box alone",
+        );
         yield* started(page, decimal, { boundTo: bound([15, 4]) });
         assert.deepStrictEqual(yield* boxTexts(page), ["3.75"]);
         yield* started(page, pair, { boundTo: bound([246, 4]) });
