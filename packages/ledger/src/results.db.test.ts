@@ -84,15 +84,21 @@
  * to its last beacon, even across its deadline, and one whose last sign is past its deadline is
  * refused its suspension ({@link presenceExpectedOf}).
  *
- * And a sitting's presence windows (`beaconTest`, served on the database's clock and at a reading
- * the call gives), held to their table ({@link windowExpected}): a beacon within 3 s of the
- * sitting's latest window grows it, one past the grace opens a window of its own, a window
- * overlapping another is refused by Presence's key and one from its end admitted, half-open, and
- * a question visit is credited from the first beacon to the last, cut at a suspension and never
- * charged a closed tab's tail (`PresentTime`, `LastPresence`). And any run of up to twelve
- * beacons, in order or not, across a UTC midnight or not, leaves the windows, the visit's present
- * time by day and the last beacon a serial reference gives ({@link windowsOfReadings},
- * {@link creditByDayOf}).
+ * And a sitting's presence windows (`beaconTest`, served on the database's clock), held to their
+ * table ({@link windowExpected}): a beacon within 3 s of the sitting's latest window grows it, one
+ * past the grace opens a window of its own, a window overlapping another is refused by Presence's
+ * key and one from its end admitted, half-open, and a question visit is credited from the first
+ * beacon to the last, cut at a suspension and never charged a closed tab's tail (`PresentTime`,
+ * `LastPresence`). And any run of up to twelve beacons, in order or not, across a UTC midnight or
+ * not, leaves the windows, the visit's present time by day and the last beacon a serial reference
+ * gives ({@link windowsOfReadings}, {@link creditByDayOf}).
+ *
+ * Each family whose verdict turns on time (the responses, the supersedes, the presences, the
+ * windows and the beacon runs) runs over a moved clock (`#ledger/test/result-clock.ts`): its case
+ * states the instant of every call, each stamp and each reading of the database's clock, so no
+ * real time between its statements, however loaded the machine, moves a verdict, and no case
+ * sleeps. Every other family runs the statements `grizzle generate` compiled, the ones an
+ * application runs.
  *
  * And a test's item-session controls (`presentItem`, `saveTestItem`, `answerTestItem`, and
  * `finishTest`, the end with its finish), held to their table ({@link controlsExpectedOf}):
@@ -159,11 +165,11 @@ import { importRowsOf } from "@qti-pie/pantry/import/program.ts";
 import { readPackage } from "@qti-pie/pantry/import/read.ts";
 import {
   Array as Arr,
-  Clock,
   Duration,
   Effect,
   FileSystem,
   Formatter,
+  Layer,
   Option,
   Order,
   Ref,
@@ -175,9 +181,10 @@ import { reviewShowsOf, sessionFactsOf } from "#ledger/served-item.ts";
 import type { ReviewShows, SessionControl } from "#ledger/served-item.ts";
 import { judgedOfRows, responseParamsOf, responsesOfRows } from "#ledger/served-values.ts";
 import type { AttemptRows, MarkRows, ValueRows } from "#ledger/served-values.ts";
-import { BrowserReading, Reading } from "#ledger/sittings.ts";
+import { BrowserReading } from "#ledger/sittings.ts";
 import { inFlightGraceMicros, presenceGraceMicros } from "#ledger/delivery.ts";
 import type { LedgerLawName } from "#ledger/laws.ts";
+import { MovedSuite, movedSuiteLayer, onMovedClock } from "#ledger/test/result-clock.ts";
 import { lease, SuiteLogin, suiteLayerOf } from "#ledger/test/result-suite.ts";
 import { grader, ResultLevel, rubricUse } from "#ledger/test/result-level.ts";
 
@@ -2857,19 +2864,63 @@ const holdReview = (c: ReviewCase, child: string, note: (situation: ReviewSituat
   });
 
 /**
+ * The instant every case on the moved clock starts from, 2026-11-25T12:00:00Z, in microseconds
+ * since the Unix epoch. Each case is a fresh child's, and every clock of a sitting has its child
+ * for its child, so no stamp of another case is a head a case's stamps meet: each instant a case
+ * states is the instant its writes stamp, in every run.
+ */
+const clockStart = 1_795_608_000_000_000n;
+
+/**
+ * A second of the database's clock, in microseconds.
+ */
+const oneSecond = 1_000_000n;
+
+/**
+ * A tenth of a second, in microseconds: the span between a case's moves where only their order
+ * matters.
+ */
+const tenth = 100_000n;
+
+/**
+ * A case's Db over the moved clock (`#ledger/test/result-clock.ts`), whose every call reads the
+ * instant the case last stated, {@link clockStart} until it states one: the clocked parameters of
+ * the call and every instant it stamps. `at(instant, call)` states `instant` and makes `call` at
+ * it.
+ */
+const clockedDb = Effect.gen(function* openClocked() {
+  const { suite } = yield* (yield* MovedSuite).moved;
+  const clock = yield* Ref.make(clockStart);
+  const db = yield* Db.openMoved(suite.roles.result_runner, {}, Ref.get(clock));
+  const at = <A, E, R>(instant: bigint, call: Effect.Effect<A, E, R>) =>
+    Effect.andThen(Ref.set(clock, instant), call);
+
+  return { at, db } as const;
+});
+
+/**
+ * The instants a program's `entered` read-back gives, each candidate session it began.
+ *
+ * @param reads - The program's read-backs.
+ */
+const entryInstantsOf = (reads: Readonly<{ entered: Iterable<Readonly<{ at: bigint }>> }>) =>
+  Arr.fromIterable(reads.entered).map((row) => row.at);
+
+/**
  * When a response case's save is given: before the sitting's first candidate session, in its open
  * one, after its suspension, or after its end.
  */
 type When = "unstarted" | "open" | "suspended" | "ended";
 
 /**
- * A response case's timing: an untimed sitting; or a timed one, its save at its session's beginning
- * (in time), arriving just past a deadline at its beginning (in flight, within the grace), with a
- * browser's reading a microsecond past that deadline (which decides nothing), or arriving twice
- * the grace past a deadline before its beginning; or a microsecond past its deadline where the test
- * allows late submission; or an untimed sitting's save whose browser reading runs a day ahead of
- * the database's stamp, a skewed clock, which no law holds to the stamp (`BrowserReading`), so it
- * is admitted, where the parent's "Given before" refused it.
+ * A response case's timing, its save arriving at an instant of the moved clock it states: an
+ * untimed sitting; or a timed one, its save arriving within its time (in time), at the last
+ * microsecond of the in-flight grace past a deadline at its session's beginning (in flight), within
+ * that grace with a browser's reading a microsecond past the deadline (which decides nothing), or
+ * at the microsecond after the grace (arrived late); or at that microsecond where the test allows
+ * late submission; or an untimed sitting's save whose browser reading runs a day ahead of the
+ * database's stamp, a skewed clock, which no law holds to the stamp (`BrowserReading`), so it is
+ * admitted, where the parent's "Given before" refused it.
  */
 type Timing =
   | "untimed"
@@ -2883,24 +2934,46 @@ type Timing =
 type ResponseCase = Readonly<{ name: string; when: When; timing: Timing }>;
 
 /**
- * Each timing's test, its first budget (none for an untimed sitting) and the save's `given`, from
- * its candidate session's beginning, all in microseconds.
+ * Each timing's test, its first budget (none for an untimed sitting), when its save arrives, the
+ * database's stamp, and the save's `given`, the browser's reading, each from its candidate
+ * session's beginning, all in microseconds.
  */
 const timings = {
   arrivedLate: {
-    given: -2n * inFlightGraceMicros,
-    remaining: Option.some(-2n * inFlightGraceMicros),
+    arrives: inFlightGraceMicros + 1n,
+    given: 0n,
+    remaining: Option.some(0n),
     test: TIMED_TEST,
   },
-  givenAhead: { given: 86_400_000_000n, remaining: Option.none<bigint>(), test: UNTIMED_TEST },
-  givenLate: { given: 1n, remaining: Option.some(0n), test: TIMED_TEST },
-  inFlight: { given: 0n, remaining: Option.some(0n), test: TIMED_TEST },
-  inTime: { given: 0n, remaining: Option.some(3_600_000_000n), test: TIMED_TEST },
-  lateAllowed: { given: 1n, remaining: Option.some(0n), test: LATE_TEST },
-  untimed: { given: 0n, remaining: Option.none<bigint>(), test: UNTIMED_TEST },
+  givenAhead: {
+    arrives: oneSecond,
+    given: 86_400_000_000n,
+    remaining: Option.none<bigint>(),
+    test: UNTIMED_TEST,
+  },
+  givenLate: { arrives: oneSecond, given: 1n, remaining: Option.some(0n), test: TIMED_TEST },
+  inFlight: {
+    arrives: inFlightGraceMicros,
+    given: 0n,
+    remaining: Option.some(0n),
+    test: TIMED_TEST,
+  },
+  inTime: {
+    arrives: oneSecond,
+    given: 0n,
+    remaining: Option.some(3_600_000_000n),
+    test: TIMED_TEST,
+  },
+  lateAllowed: {
+    arrives: inFlightGraceMicros + 1n,
+    given: 1n,
+    remaining: Option.some(0n),
+    test: LATE_TEST,
+  },
+  untimed: { arrives: oneSecond, given: 0n, remaining: Option.none<bigint>(), test: UNTIMED_TEST },
 } as const satisfies Record<
   Timing,
-  Readonly<{ given: bigint; remaining: Option.Option<bigint>; test: string }>
+  Readonly<{ arrives: bigint; given: bigint; remaining: Option.Option<bigint>; test: string }>
 >;
 
 /**
@@ -3017,9 +3090,11 @@ const standingsOf = (reads: Readonly<{ standing: Iterable<Readonly<{ standing: s
  * first candidate session, entered at {@link SAVED}, the member the case saves ("Shown before
  * saved"), a timed entry with the case's first budget, then suspended, or ended as the case says,
  * an attempt of {@link MEMBER}, presented, before the end, which nothing grades, so the ended
- * sitting waits on it and is not final; then a save of {@link SAVED} with no value, its `given` the
- * case's from the session's beginning, held to the table, and every move's `standing` read-back to
- * the sitting's standing after it.
+ * sitting waits on it and is not final; then a save of {@link SAVED} with no value, arriving and
+ * given the case's times from the session's beginning, held to the table, and every move's
+ * `standing` read-back to the sitting's standing after it. Every instant is the moved clock's: the
+ * take at {@link clockStart}, the entry a second after it, each move between it and the save a
+ * tenth of a second after the one before.
  *
  * @param c - The case.
  * @param child - The run's fresh child.
@@ -3031,8 +3106,7 @@ const holdResponse = (
   note: (situation: ResponseSituation) => void,
 ) =>
   Effect.gen(function* hold() {
-    const { suite } = yield* SuiteLogin;
-    const db = yield* Db.open(suite.roles.result_runner, {});
+    const { at, db } = yield* clockedDb;
     const timing = timings[c.timing];
     const sitting = { child, stage: 1n };
     const taken = yield* db.workload.takeSitting.once({
@@ -3041,31 +3115,37 @@ const holdResponse = (
     });
     assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
 
-    const began =
-      c.when === "unstarted"
-        ? 0n
-        : yield* Effect.gen(function* enter() {
-            const entered = Option.isSome(timing.remaining)
-              ? yield* db.workload.enterTimedTest.once({
-                  facts: {},
-                  params: { ...sitting, item: SAVED, remaining: timing.remaining.value },
-                })
-              : yield* db.workload.enterTest.once({
-                  facts: {},
-                  params: { ...sitting, item: SAVED },
-                });
-            assert.deepStrictEqual<unknown>(
-              { kind: entered.kind, standing: standingsOf(entered.reads) },
-              { kind: "accepted", standing: ["open"] },
-              `${c.name}: the entry, the sitting open after it`,
-            );
-            note("standing: open");
-
-            return Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at;
-          });
+    const began = clockStart + oneSecond;
+    if (c.when !== "unstarted") {
+      const entered = Option.isSome(timing.remaining)
+        ? yield* at(
+            began,
+            db.workload.enterTimedTest.once({
+              facts: {},
+              params: { ...sitting, item: SAVED, remaining: timing.remaining.value },
+            }),
+          )
+        : yield* at(
+            began,
+            db.workload.enterTest.once({ facts: {}, params: { ...sitting, item: SAVED } }),
+          );
+      assert.deepStrictEqual<unknown>(
+        {
+          at: entryInstantsOf(entered.reads),
+          kind: entered.kind,
+          standing: standingsOf(entered.reads),
+        },
+        { at: [began], kind: "accepted", standing: ["open"] },
+        `${c.name}: the entry at the instant the case states, the sitting open after it`,
+      );
+      note("standing: open");
+    }
 
     if (c.when === "suspended") {
-      const suspended = yield* db.workload.suspendTest.once({ facts: {}, params: sitting });
+      const suspended = yield* at(
+        began + tenth,
+        db.workload.suspendTest.once({ facts: {}, params: sitting }),
+      );
       assert.deepStrictEqual<unknown>(
         { kind: suspended.kind, standing: standingsOf(suspended.reads) },
         { kind: "accepted", standing: ["suspended"] },
@@ -3075,25 +3155,34 @@ const holdResponse = (
     }
 
     if (c.when === "ended") {
-      const shown = yield* db.workload.presentItem.once({
-        facts: {},
-        params: { ...sitting, item: MEMBER },
-      });
+      const shown = yield* at(
+        began + tenth,
+        db.workload.presentItem.once({
+          facts: {},
+          params: { ...sitting, item: MEMBER },
+        }),
+      );
       assert.strictEqual(shown.kind, "accepted", `${c.name}: the member presented`);
 
       const attempt = { child, n: 0n, package: PACKAGE, path: SHORT };
-      const attempted = yield* db.workload.sittingFacts.once({
-        facts: {
-          insert: {
-            Attempt: rowsOf("Attempt", [attempt]),
-            ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...attempt, kind: "attempt" }]),
+      const attempted = yield* at(
+        began + 2n * tenth,
+        db.workload.sittingFacts.once({
+          facts: {
+            insert: {
+              Attempt: rowsOf("Attempt", [attempt]),
+              ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...attempt, kind: "attempt" }]),
+            },
           },
-        },
-        params: {},
-      });
+          params: {},
+        }),
+      );
       assert.strictEqual(attempted.kind, "accepted", `${c.name}: the member's attempt`);
 
-      const ended = yield* db.workload.endTest.once({ facts: {}, params: sitting });
+      const ended = yield* at(
+        began + 3n * tenth,
+        db.workload.endTest.once({ facts: {}, params: sitting }),
+      );
       assert.deepStrictEqual<unknown>(
         { kind: ended.kind, standing: standingsOf(ended.reads) },
         { kind: "accepted", standing: ["ended"] },
@@ -3101,7 +3190,10 @@ const holdResponse = (
       );
       note("standing: ended");
 
-      const again = yield* db.workload.suspendTest.once({ facts: {}, params: sitting });
+      const again = yield* at(
+        began + 4n * tenth,
+        db.workload.suspendTest.once({ facts: {}, params: sitting }),
+      );
       assert.deepStrictEqual<unknown>(
         { kind: again.kind, standing: standingsOf(again.reads) },
         { kind: "unchanged", standing: ["ended"] },
@@ -3113,10 +3205,13 @@ const holdResponse = (
     const values = yield* responseParamsOf({});
     const given = BrowserReading(c.when === "unstarted" ? 1n : began + timing.given);
     const saved = yield* Effect.result(
-      db.workload.saveTestItem.once({
-        facts: {},
-        params: { ...sitting, given, item: SAVED, ...values },
-      }),
+      at(
+        began + timing.arrives,
+        db.workload.saveTestItem.once({
+          facts: {},
+          params: { ...sitting, given, item: SAVED, ...values },
+        }),
+      ),
     );
     const want = responseExpectedOf(c);
     if (want.kind === "refused") {
@@ -4266,8 +4361,9 @@ const holdEntry = (c: EntryCase, child: string, note: (situation: EntrySituation
 type SupersedeCase = Readonly<{ name: string; pastMicros: bigint }>;
 
 /**
- * The budget a supersede case's candidate session begins with, two seconds: the first save lands
- * well within it, and the case waits out the rest in real time, since the database is the clock.
+ * The budget a supersede case's candidate session begins with, two seconds: the first save lands a
+ * second into it, and the later one at the case's offset past it, each at the instant the case
+ * states on the moved clock.
  */
 const supersedeBudgetMicros = 2_000_000n;
 
@@ -4314,9 +4410,10 @@ type SupersedeSituation = (typeof supersedeSituations)[number];
 /**
  * One supersede case: a fresh child's sitting of the timed test, taken by the test runtime's own
  * take (`takeSitting`), entered with the case's budget, which presents {@link MEMBER}; its save of
- * the first text at once; then, once the database's clock is the case's offset past the deadline,
- * its save of the later text, held to the table; then the end with its finish, and the member's one
- * attempt held to submit the text the table says.
+ * the first text a second into the session; then, at the case's offset past the deadline, its save
+ * of the later text, held to the table; then, a second later, the end with its finish, and the
+ * member's one attempt held to submit the text the table says. Every instant is the moved clock's:
+ * the take at {@link clockStart}, the entry a second after it.
  *
  * @param c - The case.
  * @param child - The run's fresh child.
@@ -4335,8 +4432,7 @@ const holdSupersede = (
         : "a later save past the grace is refused, and the in-time one is submitted",
     );
 
-    const { suite } = yield* SuiteLogin;
-    const db = yield* Db.open(suite.roles.result_runner, {});
+    const { at, db } = yield* clockedDb;
     const sitting = { child, stage: 1n };
     const taken = yield* db.workload.takeSitting.once({
       facts: {},
@@ -4344,13 +4440,20 @@ const holdSupersede = (
     });
     assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
 
-    const entered = yield* db.workload.enterTimedTest.once({
-      facts: {},
-      params: { ...sitting, item: MEMBER, remaining: supersedeBudgetMicros },
-    });
-    assert.strictEqual(entered.kind, "accepted", `${c.name}: the timed entry`);
+    const began = clockStart + oneSecond;
+    const entered = yield* at(
+      began,
+      db.workload.enterTimedTest.once({
+        facts: {},
+        params: { ...sitting, item: MEMBER, remaining: supersedeBudgetMicros },
+      }),
+    );
+    assert.deepStrictEqual<unknown>(
+      { at: entryInstantsOf(entered.reads), kind: entered.kind },
+      { at: [began], kind: "accepted" },
+      `${c.name}: the timed entry, at the instant the case states`,
+    );
 
-    const began = Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at;
     const saveOf = (text: string) =>
       Effect.gen(function* saveText() {
         const values = yield* responseParamsOf({
@@ -4368,17 +4471,14 @@ const holdSupersede = (
           }),
         );
       });
-    const first = yield* saveOf(supersedeTexts.first);
+    const first = yield* at(began + oneSecond, saveOf(supersedeTexts.first));
     assert.isTrue(
       Result.isSuccess(first) && first.success.kind === "accepted",
       `${c.name}: the in-time save, got ${Formatter.format(first)}`,
     );
 
-    const now = yield* Clock.currentTimeMillis;
-    const due = Number((began + supersedeBudgetMicros + c.pastMicros) / 1000n);
-    yield* Effect.sleep(Duration.millis(Math.max(0, due - now)));
-
-    const later = yield* saveOf(supersedeTexts.later);
+    const arrives = began + supersedeBudgetMicros + c.pastMicros;
+    const later = yield* at(arrives, saveOf(supersedeTexts.later));
     if (want.later === "accepted") {
       assert.isTrue(
         Result.isSuccess(later) && later.success.kind === "accepted",
@@ -4393,7 +4493,10 @@ const holdSupersede = (
       );
     }
 
-    const ended = yield* db.workload.finishTest.once({ facts: {}, params: sitting });
+    const ended = yield* at(
+      arrives + oneSecond,
+      db.workload.finishTest.once({ facts: {}, params: sitting }),
+    );
     assert.strictEqual(ended.kind, "accepted", `${c.name}: the end and its finish`);
 
     const attempts = Arr.fromIterable(
@@ -4421,14 +4524,16 @@ const holdSupersede = (
 
 /**
  * A presence case: how a timed sitting's first candidate session ends, and the budget it begins
- * with.
+ * with, each instant on the moved clock and stated from the session's beginning.
  *
- * - `pause`: the candidate pauses, a beacon, then a suspension, in one transaction, then resumes.
- * - `lapse`: a beacon, then two seconds of no sign (a closed tab), then the application suspends the
- *   session it finds abandoned, and the candidate resumes.
- * - `lapsePastDeadline`: the same with a one-second budget, so the deadline passes while the tab is
- *   closed.
- * - `presentPastDeadline`: a beacon after a one-second budget ran out, then a suspension.
+ * - `pause`: a second in, the candidate pauses, a beacon, then a suspension, in one transaction, then
+ *   resumes.
+ * - `lapse`: a beacon a second in, then two seconds of no sign (a closed tab), then the application
+ *   suspends the session it finds abandoned, and the candidate resumes.
+ * - `lapsePastDeadline`: the same with a one-second budget and the beacon half a second in, so the
+ *   deadline passes while the tab is closed.
+ * - `presentPastDeadline`: a beacon a microsecond past a one-second budget's deadline, then, two
+ *   seconds later, a suspension.
  */
 type PresenceCase = Readonly<{
   name: string;
@@ -4453,15 +4558,26 @@ const presenceSpace: Gen<PresenceCase> = element(presenceCases);
  */
 const presenceBudgetOf = (c: PresenceCase): bigint =>
   c.ending === "lapsePastDeadline" || c.ending === "presentPastDeadline"
-    ? 1_000_000n
-    : 600_000_000n;
+    ? oneSecond
+    : 600n * oneSecond;
 
 /**
- * How long a presence case waits in real time after its beacon, before the suspension: two seconds
- * of no sign for a closed tab; none for a pause, which carries its own; and, for a beacon past the
- * deadline, a second and a half before the beacon.
+ * Each presence case's last sign of presence, its pause or its beacon, from its session's
+ * beginning: a second in, half a second into a one-second budget whose deadline then passes while
+ * the tab is closed, or the microsecond past that deadline for a sign past it.
  */
-const absenceMillis = 2000;
+const lastSigns = {
+  lapse: oneSecond,
+  lapsePastDeadline: oneSecond / 2n,
+  pause: oneSecond,
+  presentPastDeadline: oneSecond + 1n,
+} as const satisfies Readonly<Record<PresenceCase["ending"], bigint>>;
+
+/**
+ * A closed tab's time, from a presence case's beacon to the suspension, two seconds: a pause
+ * carries its own beacon and has none.
+ */
+const absence = 2n * oneSecond;
 
 /**
  * The presence table: a candidate session is charged up to its last sign of presence (its start, a
@@ -4493,21 +4609,14 @@ const presenceSituations = [
 type PresenceSituation = (typeof presenceSituations)[number];
 
 /**
- * The last beacon of the window a beacon put, read back: one microsecond before the window's end,
- * since a window is `[first, last + 1 µs)`.
- *
- * @param reads - The beacon's read-backs.
- */
-const lastBeaconOf = (reads: Readonly<{ presence: Iterable<Readonly<{ end: bigint }>> }>) =>
-  Option.getOrThrow(Arr.head(Arr.fromIterable(reads.presence))).end - 1n;
-
-/**
  * One presence case: a fresh child's sitting of the timed test, taken by the test runtime's own
  * take (`takeSitting`), entered with the case's budget; then its ending, held to the table; and,
- * where the suspension is accepted, a resumption, whose budget is held to the first budget less the
- * time from the session's start to its last sign of presence, the last beacon's instant, and the
- * member the start presented, whose built-in `duration` (the CQPM window's part) is held to the
- * same time: a closed tab's time counts against neither the budget nor a child's rate.
+ * where the suspension is accepted, a resumption a second after it, whose budget is held to the
+ * first budget less the time the table charges, from the session's start to its last sign of
+ * presence, and the member the start presented, whose built-in `duration` (the CQPM window's part)
+ * is held to the same time: a closed tab's time counts against neither the budget nor a child's
+ * rate. Every instant is the moved clock's: the take at {@link clockStart}, the entry a second
+ * after it.
  *
  * @param c - The case.
  * @param child - The run's fresh child.
@@ -4520,8 +4629,7 @@ const holdPresence = (
 ) =>
   Effect.gen(function* hold() {
     const want = presenceExpectedOf(c);
-    const { suite } = yield* SuiteLogin;
-    const db = yield* Db.open(suite.roles.result_runner, {});
+    const { at, db } = yield* clockedDb;
     const sitting = { child, stage: 1n };
     const taken = yield* db.workload.takeSitting.once({
       facts: {},
@@ -4530,33 +4638,31 @@ const holdPresence = (
     assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
 
     const budget = presenceBudgetOf(c);
-    const entered = yield* db.workload.enterTimedTest.once({
-      facts: {},
-      params: { ...sitting, item: MEMBER, remaining: budget },
-    });
-    assert.strictEqual(entered.kind, "accepted", `${c.name}: the timed entry`);
+    const began = clockStart + oneSecond;
+    const entered = yield* at(
+      began,
+      db.workload.enterTimedTest.once({
+        facts: {},
+        params: { ...sitting, item: MEMBER, remaining: budget },
+      }),
+    );
+    assert.deepStrictEqual<unknown>(
+      { at: entryInstantsOf(entered.reads), kind: entered.kind },
+      { at: [began], kind: "accepted" },
+      `${c.name}: the timed entry, at the instant the case states`,
+    );
 
-    const began = Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at;
-    const lastSign = yield* Effect.gen(function* end() {
-      if (c.ending === "pause") {
-        const paused = yield* db.workload.pauseTest.once({ facts: {}, params: sitting });
-        assert.strictEqual(paused.kind, "accepted", `${c.name}: the pause`);
-
-        return Option.some(lastBeaconOf(paused.reads));
-      }
-
-      if (c.ending === "presentPastDeadline") {
-        yield* Effect.sleep(Duration.millis(absenceMillis - 500));
-      }
-
-      const beaconed = yield* db.workload.beaconTest.once({ facts: {}, params: sitting });
+    const sign = began + lastSigns[c.ending];
+    const suspension = c.ending === "pause" ? sign : sign + absence;
+    if (c.ending === "pause") {
+      const paused = yield* at(sign, db.workload.pauseTest.once({ facts: {}, params: sitting }));
+      assert.strictEqual(paused.kind, "accepted", `${c.name}: the pause`);
+    } else {
+      const beaconed = yield* at(sign, db.workload.beaconTest.once({ facts: {}, params: sitting }));
       assert.strictEqual(beaconed.kind, "accepted", `${c.name}: the beacon`);
 
-      const beacon = lastBeaconOf(beaconed.reads);
-      yield* Effect.sleep(Duration.millis(absenceMillis));
-
       const suspended = yield* Effect.result(
-        db.workload.suspendTest.once({ facts: {}, params: sitting }),
+        at(suspension, db.workload.suspendTest.once({ facts: {}, params: sitting })),
       );
       if (want.kind === "refused") {
         assert.isTrue(
@@ -4567,24 +4673,22 @@ const holdPresence = (
         );
         note("a sign past the deadline refused its suspension");
 
-        return Option.none<bigint>();
+        return;
       }
 
       assert.isTrue(
         Result.isSuccess(suspended) && suspended.success.kind === "accepted",
         `${c.name}: the suspension, got ${Formatter.format(suspended)}`,
       );
-
-      return Option.some(beacon);
-    });
-    if (Option.isNone(lastSign)) {
-      return;
     }
 
-    const resumed = yield* db.workload.enterTest.once({
-      facts: {},
-      params: { ...sitting, item: MEMBER },
-    });
+    const resumed = yield* at(
+      suspension + oneSecond,
+      db.workload.enterTest.once({
+        facts: {},
+        params: { ...sitting, item: MEMBER },
+      }),
+    );
     assert.strictEqual(resumed.kind, "accepted", `${c.name}: the resumption`);
 
     const budgets = Arr.fromIterable(
@@ -4592,7 +4696,7 @@ const holdPresence = (
     );
     assert.deepStrictEqual<unknown>(
       budgets.filter((row) => row.k === 1n).map((row) => String(row.remaining)),
-      [String(budget - (lastSign.value - began))],
+      [String(budget - lastSigns[c.ending])],
       `${c.name}: the resumption's budget, the first less the time to the last sign of presence`,
     );
 
@@ -4601,7 +4705,7 @@ const holdPresence = (
     ).filter((row) => row.package === PACKAGE && row.path === SHORT);
     assert.deepStrictEqual<unknown>(
       durations.map((row) => String(row.micros)),
-      [String(lastSign.value - began)],
+      [String(lastSigns[c.ending])],
       `${c.name}: the member's duration, from its presentation at the start to the last sign of presence`,
     );
     note("an item's duration ends at the last sign of presence");
@@ -5077,17 +5181,23 @@ const holdShowing = (c: ShowingCase, child: string, note: (situation: ShowingSit
   });
 
 /**
+ * A case's Db over the moved clock, as {@link clockedDb} opens it.
+ */
+type ClockedDb = Effect.Success<typeof clockedDb>;
+
+/**
  * A fresh child's sitting of the untimed test, taken by the test runtime's own take
- * (`takeSitting`), and entered: its member {@link MEMBER} on screen from the instant its first
- * candidate session began, the entry's, which the case reads back.
+ * (`takeSitting`) at {@link clockStart} and entered a second after it, `began`: its member
+ * {@link MEMBER} on screen from the instant its first candidate session began, the entry's, which
+ * the case states and reads back; with the case's Db over the moved clock and the `at` that states
+ * its next instant.
  *
  * @param name - The case's name, for its assertions.
  * @param child - The run's fresh child.
  */
 const enteredSitting = (name: string, child: string) =>
   Effect.gen(function* enter() {
-    const { suite } = yield* SuiteLogin;
-    const db = yield* Db.open(suite.roles.result_runner, {});
+    const { at, db } = yield* clockedDb;
     const sitting = { child, stage: 1n };
     const taken = yield* db.workload.takeSitting.once({
       facts: {},
@@ -5095,17 +5205,21 @@ const enteredSitting = (name: string, child: string) =>
     });
     assert.strictEqual(taken.kind, "accepted", `${name}: the sitting, as the take writes it`);
 
-    const entered = yield* db.workload.enterTest.once({
-      facts: {},
-      params: { ...sitting, item: MEMBER },
-    });
-    assert.strictEqual(entered.kind, "accepted", `${name}: the entry`);
+    const began = clockStart + oneSecond;
+    const entered = yield* at(
+      began,
+      db.workload.enterTest.once({
+        facts: {},
+        params: { ...sitting, item: MEMBER },
+      }),
+    );
+    assert.deepStrictEqual<unknown>(
+      { at: entryInstantsOf(entered.reads), kind: entered.kind },
+      { at: [began], kind: "accepted" },
+      `${name}: the entry, at the instant the case states`,
+    );
 
-    return {
-      began: Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at,
-      db,
-      sitting,
-    } as const;
+    return { at, began, db, sitting } as const;
   });
 
 /**
@@ -5117,11 +5231,13 @@ type Window = readonly [start: bigint, end: bigint];
 
 /**
  * What a sitting's presence reads say after a case: its windows, by their start; the present time
- * of each question visit with any, by the visit's instant, summed over its UTC days; and its last
+ * of each question visit with any, keyed by the visit's instant, summed over its UTC days, so two
+ * reads are one where they credit each visit alike, whatever order the read returns its rows in
+ * (`presentTimesOf` returns them by its key, the day and the time before the visit); and its last
  * beacon.
  */
 type PresenceReads = Readonly<{
-  credits: readonly (readonly [at: bigint, micros: bigint])[];
+  credits: ReadonlyMap<bigint, bigint>;
   last: bigint;
   windows: readonly Window[];
 }>;
@@ -5130,12 +5246,11 @@ type PresenceReads = Readonly<{
  * A sitting's presence reads, through the suite's readers of `Presence`, `PresentTime` and
  * `LastPresence`, one child's at a time.
  *
+ * @param db - The case's Db.
  * @param child - The case's child.
  */
-const presenceReadsOf = (child: string) =>
+const presenceReadsOf = (db: ClockedDb["db"], child: string) =>
   Effect.gen(function* read() {
-    const { suite } = yield* SuiteLogin;
-    const db = yield* Db.open(suite.roles.result_runner, {});
     const windows = Arr.fromIterable(
       yield* db.workload.windowsOf.once({ facts: {}, params: { child } }),
     ).map((row): Window => [row.from, row.to]);
@@ -5150,24 +5265,24 @@ const presenceReadsOf = (child: string) =>
     ).at;
 
     return {
-      credits: [...credits.entries()],
+      credits,
       last,
       windows,
     } satisfies PresenceReads;
   });
 
 /**
- * A presence-window case: how its beacons go on a fresh child's untimed sitting, entered, its first
- * member on screen from the entry.
+ * A presence-window case: how its moves go on a fresh child's untimed sitting, entered, its first
+ * member on screen from the entry, each move at an instant of the moved clock the case states.
  *
- * - `grows`: two beacons 1.5 s apart, within the grace, at readings the case gives.
+ * - `grows`: two beacons 1.5 s apart, within the grace.
  * - `graceJoins`: two beacons exactly the grace apart.
  * - `opensPastGrace`: two beacons the grace and a microsecond apart.
  * - `overlapRefused`: a window, then a window written as host rows inside it, and one just past it.
- * - `pause`: a beacon, a pause (a beacon, then a suspension, in one transaction), a resumption and a
- *   beacon, on the database's clock, each at once after the one before.
+ * - `pause`: a beacon, a pause (a beacon, then a suspension, in one transaction) two seconds later, a
+ *   resumption a second after it and a beacon a second after that, each gap within the grace.
  * - `tail`: a beacon, another a second later, then two seconds of no sign (a closed tab) and the
- *   application's suspension of the session it finds abandoned, on the database's clock.
+ *   application's suspension of the session it finds abandoned.
  */
 type WindowCase = Readonly<{
   beacons: "grows" | "graceJoins" | "opensPastGrace" | "overlapRefused" | "pause" | "tail";
@@ -5189,53 +5304,65 @@ const windowCases = [
 const windowSpace: Gen<WindowCase> = element(windowCases);
 
 /**
- * What a presence-window case's reads must say: beacons at readings the case gives, and the
- * windows, the visit's present time and the last beacon they leave; a window overlapping another,
- * and one adjacent; or a pause or a closed tab on the database's clock, which the case reads back.
+ * A move of a presence-window case: a beacon, a pause, a resumption at {@link MEMBER} or the
+ * application's suspension, at microseconds after the sitting's entry.
+ */
+type WindowMove = Readonly<{ after: bigint; move: "beacon" | "pause" | "resume" | "suspend" }>;
+
+/**
+ * What a presence-window case's moves are and what its reads must say after them: the windows, the
+ * present time of each question visit with any, by its instant, and the last beacon they leave,
+ * all in microseconds after the sitting's entry; or, after its beacons, a window overlapping
+ * another, and one adjacent.
  */
 type WindowExpected =
   | Readonly<{
-      credit: bigint;
-      kind: "readings";
+      credits: readonly (readonly [visit: bigint, micros: bigint])[];
+      kind: "moves";
       last: bigint;
+      moves: readonly WindowMove[];
       reaches: WindowSituation;
-      readings: readonly bigint[];
       windows: readonly Window[];
     }>
-  | Readonly<{ adjacent: Window; inside: Window; kind: "overlap"; readings: readonly bigint[] }>
-  | Readonly<{ kind: "pause" }>
-  | Readonly<{ kind: "tail" }>;
+  | Readonly<{ adjacent: Window; inside: Window; kind: "overlap"; moves: readonly WindowMove[] }>;
 
 /**
- * The presence-window table, each case's beacons at microseconds after the sitting's entry and
- * what its reads must say, by the owner's presence design (2026-11-23): a beacon within 3 s of the
+ * A beacon a case sends, at microseconds after the sitting's entry.
+ *
+ * @param after - When it is sent.
+ */
+const beaconAfter = (after: bigint): WindowMove => ({ after, move: "beacon" });
+
+/**
+ * The presence-window table, each case's moves at microseconds after the sitting's entry and what
+ * its reads must say, by the owner's presence design (2026-11-23): a beacon within 3 s of the
  * sitting's latest window grows it, any other opens one; a window is `[first, last + 1 µs)` and
  * credits from its first beacon to its last; no two windows of a sitting overlap; time credit is
  * cut at a suspension, and ends at the last beacon, never at what follows it.
  */
 const windowExpected = {
   graceJoins: {
-    credit: 3_000_000n,
-    kind: "readings",
+    credits: [[0n, 3_000_000n]],
+    kind: "moves",
     last: 3_500_000n,
+    moves: [beaconAfter(500_000n), beaconAfter(3_500_000n)],
     reaches: "a gap of exactly the grace joins",
-    readings: [500_000n, 3_500_000n],
     windows: [[500_000n, 3_500_001n]],
   },
   grows: {
-    credit: 1_500_000n,
-    kind: "readings",
+    credits: [[0n, 1_500_000n]],
+    kind: "moves",
     last: 2_000_000n,
+    moves: [beaconAfter(500_000n), beaconAfter(2_000_000n)],
     reaches: "a window grown within the grace",
-    readings: [500_000n, 2_000_000n],
     windows: [[500_000n, 2_000_001n]],
   },
   opensPastGrace: {
-    credit: 0n,
-    kind: "readings",
+    credits: [],
+    kind: "moves",
     last: 3_500_001n,
+    moves: [beaconAfter(500_000n), beaconAfter(3_500_001n)],
     reaches: "a gap past the grace opens a window",
-    readings: [500_000n, 3_500_001n],
     windows: [
       [500_000n, 500_001n],
       [3_500_001n, 3_500_002n],
@@ -5245,10 +5372,36 @@ const windowExpected = {
     adjacent: [2_000_001n, 2_000_002n],
     inside: [1_000_000n, 1_000_001n],
     kind: "overlap",
-    readings: [500_000n, 2_000_000n],
+    moves: [beaconAfter(500_000n), beaconAfter(2_000_000n)],
   },
-  pause: { kind: "pause" },
-  tail: { kind: "tail" },
+  pause: {
+    credits: [
+      [0n, 2_000_000n],
+      [4_000_000n, 1_000_000n],
+    ],
+    kind: "moves",
+    last: 5_000_000n,
+    moves: [
+      beaconAfter(1_000_000n),
+      { after: 3_000_000n, move: "pause" },
+      { after: 4_000_000n, move: "resume" },
+      beaconAfter(5_000_000n),
+    ],
+    reaches: "a pause's suspended time credited to nothing",
+    windows: [[1_000_000n, 5_000_001n]],
+  },
+  tail: {
+    credits: [[0n, 1_000_000n]],
+    kind: "moves",
+    last: 2_000_000n,
+    moves: [
+      beaconAfter(1_000_000n),
+      beaconAfter(2_000_000n),
+      { after: 4_000_000n, move: "suspend" },
+    ],
+    reaches: "a closed tab's tail credited to nothing",
+    windows: [[1_000_000n, 2_000_001n]],
+  },
 } as const satisfies Readonly<Record<WindowCase["beacons"], WindowExpected>>;
 
 /**
@@ -5266,14 +5419,41 @@ const windowSituations = [
 type WindowSituation = (typeof windowSituations)[number];
 
 /**
- * How long the tail case waits between its two beacons, and after its last before the suspension.
+ * A presence-window move, through the test runtime's own program for it, at the instant the case
+ * last stated: the kind of its outcome.
+ *
+ * @param db - The case's Db.
+ * @param sitting - The case's sitting.
+ * @param move - The move.
  */
-const tailGapMillis = 1000;
-
-const tailAbsenceMillis = 2000;
+const windowMoveOf = (
+  db: ClockedDb["db"],
+  sitting: Readonly<{ child: string; stage: bigint }>,
+  move: WindowMove["move"],
+) =>
+  Effect.gen(function* windowMove() {
+    switch (move) {
+      case "beacon": {
+        return (yield* db.workload.beaconTest.once({ facts: {}, params: sitting })).kind;
+      }
+      case "pause": {
+        return (yield* db.workload.pauseTest.once({ facts: {}, params: sitting })).kind;
+      }
+      case "resume": {
+        return (yield* db.workload.enterTest.once({
+          facts: {},
+          params: { ...sitting, item: MEMBER },
+        })).kind;
+      }
+      case "suspend": {
+        return (yield* db.workload.suspendTest.once({ facts: {}, params: sitting })).kind;
+      }
+    }
+  });
 
 /**
- * One presence-window case, held to {@link windowExpected}.
+ * One presence-window case, held to {@link windowExpected}: its moves, each at the instant the
+ * table states, then its reads, or its overlapping and adjacent windows.
  *
  * @param c - The case.
  * @param child - The run's fresh child.
@@ -5282,132 +5462,56 @@ const tailAbsenceMillis = 2000;
 const holdWindow = (c: WindowCase, child: string, note: (situation: WindowSituation) => void) =>
   Effect.gen(function* hold() {
     const want = windowExpected[c.beacons];
-    const { db, sitting, began } = yield* enteredSitting(c.name, child);
-    const at = (reading: bigint) =>
-      db.workload.beaconAt.once({
-        facts: {},
-        params: { ...sitting, now: Reading(began + reading) },
-      });
+    const { at, began, db, sitting } = yield* enteredSitting(c.name, child);
+    for (const { after, move } of want.moves) {
+      const moved = yield* at(began + after, windowMoveOf(db, sitting, move));
+      assert.strictEqual(moved, "accepted", `${c.name}: the ${move} at ${String(after)}`);
+    }
 
-    if (want.kind === "readings") {
-      for (const reading of want.readings) {
-        const beaconed = yield* at(reading);
-        assert.strictEqual(
-          beaconed.kind,
-          "accepted",
-          `${c.name}: the beacon at ${String(reading)}`,
-        );
-      }
-
+    if (want.kind === "moves") {
       assert.deepStrictEqual<unknown>(
-        yield* presenceReadsOf(child),
+        yield* presenceReadsOf(db, child),
         {
-          credits: want.credit === 0n ? [] : [[began, want.credit]],
+          credits: new Map(want.credits.map(([visit, micros]) => [began + visit, micros])),
           last: began + want.last,
           windows: want.windows.map(([start, end]) => [began + start, began + end]),
         },
-        `${c.name}: the windows, the visit's present time and the last beacon`,
+        `${c.name}: the windows, each visit's present time and the last beacon`,
       );
       note(want.reaches);
 
       return;
     }
 
-    if (want.kind === "overlap") {
-      for (const reading of want.readings) {
-        const beaconed = yield* at(reading);
-        assert.strictEqual(
-          beaconed.kind,
-          "accepted",
-          `${c.name}: the beacon at ${String(reading)}`,
-        );
-      }
-
-      const windowAt = ([start, end]: Window) =>
-        Effect.result(
-          db.workload.windowFacts.once({
-            facts: {
-              insert: {
-                Presence: rowsOf("Presence", [
-                  { ...sitting, during: { end: began + end, start: began + start } },
-                ]),
-              },
+    const windowAt = ([start, end]: Window) =>
+      Effect.result(
+        db.workload.windowFacts.once({
+          facts: {
+            insert: {
+              Presence: rowsOf("Presence", [
+                { ...sitting, during: { end: began + end, start: began + start } },
+              ]),
             },
-            params: {},
-          }),
-        );
-      const inside = yield* windowAt(want.inside);
-      assert.isTrue(
-        Result.isFailure(inside) &&
-          inside.failure.kind === "refused" &&
-          refusedLawsOf(inside.failure.refused).some(
-            (refusal) => refusal.law.kind === "primaryKey" && refusal.law.relation === "Presence",
-          ),
-        `${c.name}: the window inside another refused by Presence's key, got ${Formatter.format(inside)}`,
+          },
+          params: {},
+        }),
       );
-
-      const adjacent = yield* windowAt(want.adjacent);
-      assert.isTrue(
-        Result.isSuccess(adjacent) && adjacent.success.kind === "accepted",
-        `${c.name}: the window from the other's end admitted, half-open, got ${Formatter.format(adjacent)}`,
-      );
-      note("an overlapping window refused, an adjacent one admitted");
-
-      return;
-    }
-
-    if (want.kind === "pause") {
-      const opened = yield* db.workload.beaconTest.once({ facts: {}, params: sitting });
-      const first = lastBeaconOf(opened.reads);
-      const paused = yield* db.workload.pauseTest.once({ facts: {}, params: sitting });
-      assert.strictEqual(paused.kind, "accepted", `${c.name}: the pause`);
-
-      const pausedAt = lastBeaconOf(paused.reads);
-      const resumed = yield* db.workload.enterTest.once({
-        facts: {},
-        params: { ...sitting, item: MEMBER },
-      });
-      assert.strictEqual(resumed.kind, "accepted", `${c.name}: the resumption`);
-
-      const resumedAt = Option.getOrThrow(Arr.head(Arr.fromIterable(resumed.reads.entered))).at;
-      const after = yield* db.workload.beaconTest.once({ facts: {}, params: sitting });
-      const last = lastBeaconOf(after.reads);
-
-      assert.deepStrictEqual<unknown>(
-        yield* presenceReadsOf(child),
-        {
-          credits: [
-            [began, pausedAt - first],
-            [resumedAt, last - resumedAt],
-          ],
-          last,
-          windows: [[first, last + 1n]],
-        },
-        `${c.name}: one window across the pause, its credit each visit's part of it, the suspension's none`,
-      );
-      note("a pause's suspended time credited to nothing");
-
-      return;
-    }
-
-    const opened = yield* db.workload.beaconTest.once({ facts: {}, params: sitting });
-    const first = lastBeaconOf(opened.reads);
-    yield* Effect.sleep(Duration.millis(tailGapMillis));
-
-    const second = lastBeaconOf(
-      (yield* db.workload.beaconTest.once({ facts: {}, params: sitting })).reads,
+    const inside = yield* windowAt(want.inside);
+    assert.isTrue(
+      Result.isFailure(inside) &&
+        inside.failure.kind === "refused" &&
+        refusedLawsOf(inside.failure.refused).some(
+          (refusal) => refusal.law.kind === "primaryKey" && refusal.law.relation === "Presence",
+        ),
+      `${c.name}: the window inside another refused by Presence's key, got ${Formatter.format(inside)}`,
     );
-    yield* Effect.sleep(Duration.millis(tailAbsenceMillis));
 
-    const suspended = yield* db.workload.suspendTest.once({ facts: {}, params: sitting });
-    assert.strictEqual(suspended.kind, "accepted", `${c.name}: the application's suspension`);
-
-    assert.deepStrictEqual<unknown>(
-      yield* presenceReadsOf(child),
-      { credits: [[began, second - first]], last: second, windows: [[first, second + 1n]] },
-      `${c.name}: the visit credited from the first beacon to the last, none of the tail`,
+    const adjacent = yield* windowAt(want.adjacent);
+    assert.isTrue(
+      Result.isSuccess(adjacent) && adjacent.success.kind === "accepted",
+      `${c.name}: the window from the other's end admitted, half-open, got ${Formatter.format(adjacent)}`,
     );
-    note("a closed tab's tail credited to nothing");
+    note("an overlapping window refused, an adjacent one admitted");
   });
 
 /**
@@ -5903,8 +6007,8 @@ const beaconSituations = [
 type BeaconSituation = (typeof beaconSituations)[number];
 
 /**
- * One run of beacons, sent at the readings it draws through the beacon served at a reading the
- * call gives, on a fresh child's entered sitting, and held to the serial reference: the windows
+ * One run of beacons, each sent at the reading it draws, the instant of the moved clock the case
+ * states for it, on a fresh child's entered sitting, and held to the serial reference: the windows
  * {@link windowsOfReadings} gives, the on-screen visit's present time by day
  * {@link creditByDayOf} gives, and the greatest reading as its last beacon.
  *
@@ -5914,7 +6018,7 @@ type BeaconSituation = (typeof beaconSituations)[number];
  */
 const holdBeacons = (run: BeaconRun, child: string, note: (situation: BeaconSituation) => void) =>
   Effect.gen(function* hold() {
-    const { db, sitting, began } = yield* enteredSitting("a run of beacons", child);
+    const { at, began, db, sitting } = yield* enteredSitting("a run of beacons", child);
     const offsets = [0n];
     for (const gap of run.gaps) {
       offsets.push((offsets.at(-1) ?? 0n) + BigInt(gap));
@@ -5926,12 +6030,14 @@ const holdBeacons = (run: BeaconRun, child: string, note: (situation: BeaconSitu
 
     for (const place of run.order) {
       const reading = Arr.getUnsafe(readings, place);
-      const sent = readings.filter((_, at) => run.order.indexOf(at) <= run.order.indexOf(place));
+      const sent = readings.filter(
+        (_, index) => run.order.indexOf(index) <= run.order.indexOf(place),
+      );
       const before = windowsOfReadings(sent.filter((other) => other !== reading)).length;
-      const beaconed = yield* db.workload.beaconAt.once({
-        facts: {},
-        params: { ...sitting, now: Reading(reading) },
-      });
+      const beaconed = yield* at(
+        reading,
+        db.workload.beaconTest.once({ facts: {}, params: sitting }),
+      );
       assert.include(["accepted", "unchanged"], beaconed.kind, `the beacon at ${String(reading)}`);
       if (windowsOfReadings(sent).length < before) {
         note("a beacon joins two windows");
@@ -5941,7 +6047,7 @@ const holdBeacons = (run: BeaconRun, child: string, note: (situation: BeaconSitu
     const sorted = readings.toSorted((a, b) => (a < b ? -1 : 1));
     const expected = windowsOfReadings(readings);
     const credit = creditByDayOf(expected, began);
-    const reads = yield* presenceReadsOf(child);
+    const reads = yield* presenceReadsOf(db, child);
     assert.deepStrictEqual<unknown>(
       reads.windows,
       expected,
@@ -5949,7 +6055,7 @@ const holdBeacons = (run: BeaconRun, child: string, note: (situation: BeaconSitu
     );
     assert.deepStrictEqual<unknown>(
       reads.credits,
-      credit.size === 0 ? [] : [[began, sumOf(credit.values())]],
+      new Map(credit.size === 0 ? [] : [[began, sumOf(credit.values())]]),
       "the on-screen visit's present time, against the serial reference",
     );
     assert.strictEqual(reads.last, sorted.at(-1), "the last beacon, the greatest reading");
@@ -5967,7 +6073,11 @@ const holdBeacons = (run: BeaconRun, child: string, note: (situation: BeaconSitu
       note("a window grown");
     }
 
-    if (sorted.some((reading, at) => at > 0 && reading - Arr.getUnsafe(sorted, at - 1) === grace)) {
+    if (
+      sorted.some(
+        (reading, index) => index > 0 && reading - Arr.getUnsafe(sorted, index - 1) === grace,
+      )
+    ) {
       note("a gap of exactly the grace joins");
     }
 
@@ -5975,7 +6085,7 @@ const holdBeacons = (run: BeaconRun, child: string, note: (situation: BeaconSitu
       note("a gap past the grace opens a window");
     }
 
-    if (run.order.some((place, at) => place !== at)) {
+    if (run.order.some((place, index) => place !== index)) {
       note("a beacon out of order");
     }
 
@@ -6337,7 +6447,10 @@ const holdOutcomeBounds = (
 describe.skipIf(Option.isNone(lease))(
   "an AI-graded essay's result relations, a templated item's take and an adaptive item's attempts, on the runner's database",
   () => {
-    layer(suiteLayerOf("results"), { excludeTestServices: true, timeout: "300 seconds" })(
+    layer(movedSuiteLayer.pipe(Layer.provideMerge(suiteLayerOf("results"))), {
+      excludeTestServices: true,
+      timeout: "300 seconds",
+    })(
       "waiting, grading in the write after which nothing waits, operands, status, values and credit under a composition with rubric-score's grader",
       (it) => {
         it.effect(
@@ -6617,30 +6730,32 @@ describe.skipIf(Option.isNone(lease))(
               yield* Effect.scoped(published);
 
               const runs = yield* Ref.make(0);
-              const exhausted = yield* searched(
-                ctx,
-                exhaust(
-                  {
-                    box: "each timing of a save in the open session, and an untimed sitting's save before, between and after its candidate sessions, each on a fresh child",
-                    caseHang,
-                    coverage: requiredInSpace<ResponseSituation>(responseSituations),
-                    generator: responseSpace,
-                    literal: (c: ResponseCase) => c.name,
-                    oracle: {
-                      kind: "specification",
-                      name: "responseExpectedOf: inside a candidate session (QTI 3.0.1 §2.2.1), of a member shown (§2.3), arriving, by the database's stamp, within its time and the in-flight grace unless the test allows late submission (Table 7.40.3)",
+              const exhausted = yield* onMovedClock(
+                searched(
+                  ctx,
+                  exhaust(
+                    {
+                      box: "each timing of a save in the open session, and an untimed sitting's save before, between and after its candidate sessions, each on a fresh child",
+                      caseHang,
+                      coverage: requiredInSpace<ResponseSituation>(responseSituations),
+                      generator: responseSpace,
+                      literal: (c: ResponseCase) => c.name,
+                      oracle: {
+                        kind: "specification",
+                        name: "responseExpectedOf: inside a candidate session (QTI 3.0.1 §2.2.1), of a member shown (§2.3), arriving, by the database's stamp, within its time and the in-flight grace unless the test allows late submission (Table 7.40.3)",
+                      },
+                      suite: "ledger/results/responses",
                     },
-                    suite: "ledger/results/responses",
-                  },
-                  (row, c) =>
-                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
-                      Effect.flatMap((k) =>
-                        holdResponse(row, `user_ledgerresp${String(k)}`, (situation) => {
-                          c.note(situation);
-                        }),
+                    (row, c) =>
+                      Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                        Effect.flatMap((k) =>
+                          holdResponse(row, `user_ledgerresp${String(k)}`, (situation) => {
+                            c.note(situation);
+                          }),
+                        ),
+                        Effect.orDie,
                       ),
-                      Effect.orDie,
-                    ),
+                  ),
                 ),
               );
               yield* Effect.log(`the responses held over ${String(exhausted.cases)} cases`);
@@ -6655,30 +6770,32 @@ describe.skipIf(Option.isNone(lease))(
               yield* Effect.scoped(published);
 
               const runs = yield* Ref.make(0);
-              const exhausted = yield* searched(
-                ctx,
-                exhaust(
-                  {
-                    box: "an in-time save, then a later one within and past the in-flight grace, each on a fresh child",
-                    caseHang,
-                    coverage: requiredInSpace<SupersedeSituation>(supersedeSituations),
-                    generator: supersedeSpace,
-                    literal: (c: SupersedeCase) => c.name,
-                    oracle: {
-                      kind: "specification",
-                      name: "supersedeExpectedOf: the database is the clock; what arrives by the deadline and the in-flight grace is admitted, the latest save winning, and the end submits it (Table 7.40.3, §2.2.4)",
+              const exhausted = yield* onMovedClock(
+                searched(
+                  ctx,
+                  exhaust(
+                    {
+                      box: "an in-time save, then a later one within and past the in-flight grace, each on a fresh child",
+                      caseHang,
+                      coverage: requiredInSpace<SupersedeSituation>(supersedeSituations),
+                      generator: supersedeSpace,
+                      literal: (c: SupersedeCase) => c.name,
+                      oracle: {
+                        kind: "specification",
+                        name: "supersedeExpectedOf: the database is the clock; what arrives by the deadline and the in-flight grace is admitted, the latest save winning, and the end submits it (Table 7.40.3, §2.2.4)",
+                      },
+                      suite: "ledger/results/supersede",
                     },
-                    suite: "ledger/results/supersede",
-                  },
-                  (row, c) =>
-                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
-                      Effect.flatMap((k) =>
-                        holdSupersede(row, `user_ledgersup${String(k)}`, (situation) => {
-                          c.note(situation);
-                        }),
+                    (row, c) =>
+                      Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                        Effect.flatMap((k) =>
+                          holdSupersede(row, `user_ledgersup${String(k)}`, (situation) => {
+                            c.note(situation);
+                          }),
+                        ),
+                        Effect.orDie,
                       ),
-                      Effect.orDie,
-                    ),
+                  ),
                 ),
               );
               yield* Effect.log(`the supersedes held over ${String(exhausted.cases)} cases`);
@@ -6693,30 +6810,32 @@ describe.skipIf(Option.isNone(lease))(
               yield* Effect.scoped(published);
 
               const runs = yield* Ref.make(0);
-              const exhausted = yield* searched(
-                ctx,
-                exhaust(
-                  {
-                    box: "a pause, a closed tab before and across the deadline, and a sign past it, each on a fresh child",
-                    caseHang,
-                    coverage: requiredInSpace<PresenceSituation>(presenceSituations),
-                    generator: presenceSpace,
-                    literal: (c: PresenceCase) => c.name,
-                    oracle: {
-                      kind: "specification",
-                      name: "presenceExpectedOf: a candidate session is charged up to its last sign of presence (H10), and one whose last sign is past its deadline is refused its suspension (Table 7.40)",
+              const exhausted = yield* onMovedClock(
+                searched(
+                  ctx,
+                  exhaust(
+                    {
+                      box: "a pause, a closed tab before and across the deadline, and a sign past it, each on a fresh child",
+                      caseHang,
+                      coverage: requiredInSpace<PresenceSituation>(presenceSituations),
+                      generator: presenceSpace,
+                      literal: (c: PresenceCase) => c.name,
+                      oracle: {
+                        kind: "specification",
+                        name: "presenceExpectedOf: a candidate session is charged up to its last sign of presence (H10), and one whose last sign is past its deadline is refused its suspension (Table 7.40)",
+                      },
+                      suite: "ledger/results/presence",
                     },
-                    suite: "ledger/results/presence",
-                  },
-                  (row, c) =>
-                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
-                      Effect.flatMap((k) =>
-                        holdPresence(row, `user_ledgerpres${String(k)}`, (situation) => {
-                          c.note(situation);
-                        }),
+                    (row, c) =>
+                      Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                        Effect.flatMap((k) =>
+                          holdPresence(row, `user_ledgerpres${String(k)}`, (situation) => {
+                            c.note(situation);
+                          }),
+                        ),
+                        Effect.orDie,
                       ),
-                      Effect.orDie,
-                    ),
+                  ),
                 ),
               );
               yield* Effect.log(`the presences held over ${String(exhausted.cases)} cases`);
@@ -6731,30 +6850,32 @@ describe.skipIf(Option.isNone(lease))(
               yield* Effect.scoped(published);
 
               const runs = yield* Ref.make(0);
-              const exhausted = yield* searched(
-                ctx,
-                exhaust(
-                  {
-                    box: "beacons within, at and past the grace, an overlapping window, a pause and a closed tab, each on a fresh child",
-                    caseHang,
-                    coverage: requiredInSpace<WindowSituation>(windowSituations),
-                    generator: windowSpace,
-                    literal: (c: WindowCase) => c.name,
-                    oracle: {
-                      kind: "specification",
-                      name: "windowExpected: the owner's presence design (2026-11-23), a window grown within 3 s, `[first, last + 1 µs)`, no two overlapping, credit cut at a suspension and ending at the last beacon",
+              const exhausted = yield* onMovedClock(
+                searched(
+                  ctx,
+                  exhaust(
+                    {
+                      box: "beacons within, at and past the grace, an overlapping window, a pause and a closed tab, each on a fresh child",
+                      caseHang,
+                      coverage: requiredInSpace<WindowSituation>(windowSituations),
+                      generator: windowSpace,
+                      literal: (c: WindowCase) => c.name,
+                      oracle: {
+                        kind: "specification",
+                        name: "windowExpected: the owner's presence design (2026-11-23), a window grown within 3 s, `[first, last + 1 µs)`, no two overlapping, credit cut at a suspension and ending at the last beacon",
+                      },
+                      suite: "ledger/results/windows",
                     },
-                    suite: "ledger/results/windows",
-                  },
-                  (row, c) =>
-                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
-                      Effect.flatMap((k) =>
-                        holdWindow(row, `user_ledgerwin${String(k)}`, (situation) => {
-                          c.note(situation);
-                        }),
+                    (row, c) =>
+                      Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                        Effect.flatMap((k) =>
+                          holdWindow(row, `user_ledgerwin${String(k)}`, (situation) => {
+                            c.note(situation);
+                          }),
+                        ),
+                        Effect.orDie,
                       ),
-                      Effect.orDie,
-                    ),
+                  ),
                 ),
               );
               yield* Effect.log(`the windows held over ${String(exhausted.cases)} cases`);
@@ -6769,36 +6890,38 @@ describe.skipIf(Option.isNone(lease))(
               yield* Effect.scoped(published);
 
               const runs = yield* Ref.make(0);
-              yield* searched(
-                ctx,
-                explore(
-                  {
-                    caseHang,
-                    coverage: required<BeaconSituation>(beaconSituations, {
-                      cases: mostCases,
-                      sense: notesOnly,
-                    }),
-                    draw: drawnBy(beaconRuns),
-                    kept: [],
-                    literal: (run) => JSON.stringify(run),
-                    oracle: {
-                      kind: "second-implementation",
-                      name: "windowsOfReadings and creditByDayOf: the readings sorted, each run whose gaps are within the grace one window, credited first beacon to last and split at UTC midnights",
+              yield* onMovedClock(
+                searched(
+                  ctx,
+                  explore(
+                    {
+                      caseHang,
+                      coverage: required<BeaconSituation>(beaconSituations, {
+                        cases: mostCases,
+                        sense: notesOnly,
+                      }),
+                      draw: drawnBy(beaconRuns),
+                      kept: [],
+                      literal: (run) => JSON.stringify(run),
+                      oracle: {
+                        kind: "second-implementation",
+                        name: "windowsOfReadings and creditByDayOf: the readings sorted, each run whose gaps are within the grace one window, credited first beacon to last and split at UTC midnights",
+                      },
+                      runs: 64,
+                      shrink: completeShrink,
+                      steerEvery: 16,
+                      suite: "ledger/results/beacons",
                     },
-                    runs: 64,
-                    shrink: completeShrink,
-                    steerEvery: 16,
-                    suite: "ledger/results/beacons",
-                  },
-                  (run, c) =>
-                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
-                      Effect.flatMap((k) =>
-                        holdBeacons(run, `user_ledgerrun${String(k)}`, (situation) => {
-                          c.note(situation);
-                        }),
+                    (run, c) =>
+                      Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                        Effect.flatMap((k) =>
+                          holdBeacons(run, `user_ledgerrun${String(k)}`, (situation) => {
+                            c.note(situation);
+                          }),
+                        ),
+                        Effect.orDie,
                       ),
-                      Effect.orDie,
-                    ),
+                  ),
                 ),
               );
             }).pipe(Effect.orDie),

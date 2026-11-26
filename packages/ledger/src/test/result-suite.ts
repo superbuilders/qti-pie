@@ -16,6 +16,7 @@
  * @module
  */
 import { DbLayer, LiveSource, served } from "@bjornpagen/grizzle/runtime";
+import type { DbConnection } from "@bjornpagen/grizzle/runtime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { clusterDatabase } from "@qti-pie/pantry/db/connection.ts";
 import { fileConnections } from "@qti-pie/pantry/test/file-database.ts";
@@ -36,9 +37,11 @@ export const lease = Effect.runSync(Config.option(clusterDatabase));
 export type ResultFile = "results" | "placement" | "typed" | "module_held" | "member_reads";
 
 /**
- * The suite's login as `grizzle generate` compiled it.
+ * The suite's login as `grizzle generate` compiled it, and the file's connection as that login,
+ * which its file compiled for a moved clock connects with too (`#ledger/test/result-clock.ts`).
  */
 type Logins = Readonly<{
+  connection: DbConnection;
   suite: ReturnType<typeof served<typeof ResultSuite>>;
 }>;
 
@@ -52,7 +55,7 @@ export class SuiteLogin extends Context.Service<SuiteLogin, Logins>()(
 /**
  * One session: the suite's calls run one after another.
  */
-const onePool = { max: 1 } as const;
+export const onePool = { max: 1 } as const;
 
 /**
  * A file's services: its served login, its database layer on its own copy of the lease's result
@@ -79,7 +82,7 @@ export const suiteLayerOf = (file: ResultFile) =>
       const connection = loginConnectionOf(suite);
 
       return Layer.mergeAll(
-        Layer.succeed(SuiteLogin, { suite }),
+        Layer.succeed(SuiteLogin, { connection, suite }),
         DbLayer.make({ ...connection, login: suite, pool: onePool }).pipe(
           Layer.provide(LiveSource.layer({ ...connection, login: suite })),
         ),

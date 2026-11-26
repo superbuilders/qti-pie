@@ -23,7 +23,7 @@
  * test's sitting through the test runtime's own take (`takeSitting`, and `takeGuarded` under the
  * guard an application states in its `taken`), writes an attempt of a member
  * as host rows (`sittingFacts`), then enters, presents in, saves in, answers in, beacons in (on the
- * database's clock, and at a reading the call gives), pauses (a beacon, then a suspension, in one
+ * database's clock), pauses (a beacon, then a suspension, in one
  * transaction), suspends and ends it through the test runtime's own programs (`sittingProgramsOf`),
  * writes a presence window as host rows, each over the sitting the call names, a timed entry with
  * the first budget the call gives, as an application's level writes it from its applied limit, and
@@ -51,6 +51,7 @@ import {
   wholeEntriesOf,
   workload,
 } from "@bjornpagen/grizzle";
+import type { Login } from "@bjornpagen/grizzle";
 import { EntryPath, PackageName } from "@qti-pie/pantry/qti/limits.ts";
 import { authorWrites, insertWrite } from "@qti-pie/pantry/qti/logins.ts";
 import { QtiLom } from "@qti-pie/pantry/qti/lom.ts";
@@ -1060,6 +1061,65 @@ const deliveredTestsOf = query(ResultLevel).rule((r) => {
 });
 
 /**
+ * The open candidate session's presence beacon on the database's clock.
+ */
+const beaconTest = clocked(sittingPrograms.beaconTest.bind({ sittings: namedSitting }), {
+  now: "micros",
+});
+
+/**
+ * The end of the sitting the call names.
+ */
+const endTest = sittingPrograms.endTest.bind({ sittings: namedSitting });
+
+/**
+ * An entry at the member the call names.
+ */
+const enterTest = namedEntry.bind({ sittings: namedSitting });
+
+/**
+ * A timed entry, with the first budget the call gives.
+ */
+const enterTimedTest = ChangeSet.union(namedEntry, firstBudget).bind({ sittings: namedSitting });
+
+/**
+ * The end followed by the finish, as every application ends a sitting.
+ */
+const finishTest = ChangeSet.sequence(sittingPrograms.endTest, finishTestOf(ResultLevel)).bind({
+  sittings: namedSitting,
+});
+
+/**
+ * A pause: a beacon, then a suspension, in one transaction, on the database's clock.
+ */
+const pauseTest = clocked(
+  ChangeSet.sequence(sittingPrograms.beaconTest, sittingPrograms.suspendTest).bind({
+    sittings: namedSitting,
+  }),
+  { now: "micros" },
+);
+
+/**
+ * A presentation of the member the call names.
+ */
+const presentItem = sittingPrograms.presentItem.bind({ sittings: namedSitting });
+
+/**
+ * A save of the member the call names.
+ */
+const saveTestItem = sittingPrograms.saveTestItem.bind({ sittings: namedSitting });
+
+/**
+ * The suspension of the sitting the call names.
+ */
+const suspendTest = sittingPrograms.suspendTest.bind({ sittings: namedSitting });
+
+/**
+ * The test runtime's own take of the sitting the call names.
+ */
+const takeSitting = sittingPrograms.take.bind({ taken: namedTaken });
+
+/**
  * The suite's login, `result_suite`, acting as its one role, `result_runner`.
  */
 export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
@@ -1069,10 +1129,7 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       applicationsOf,
       attemptsOf,
       awaitingOf,
-      beaconAt: sittingPrograms.beaconTest.bind({ sittings: namedSitting }),
-      beaconTest: clocked(sittingPrograms.beaconTest.bind({ sittings: namedSitting }), {
-        now: "micros",
-      }),
+      beaconTest,
       begin,
       budgetsOf,
       completionsOf,
@@ -1080,37 +1137,28 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       deliveredTestsOf,
       drawsOf,
       durationsOf,
-      endTest: sittingPrograms.endTest.bind({ sittings: namedSitting }),
-      enterTest: namedEntry.bind({ sittings: namedSitting }),
-      enterTimedTest: ChangeSet.union(namedEntry, firstBudget).bind({
-        sittings: namedSitting,
-      }),
+      endTest,
+      enterTest,
+      enterTimedTest,
       evaluate,
       facts,
       finalsOf,
-      finishTest: ChangeSet.sequence(sittingPrograms.endTest, finishTestOf(ResultLevel)).bind({
-        sittings: namedSitting,
-      }),
+      finishTest,
       floatsOf,
       grade: gradeAttemptOf(ResultLevel).bind({ sittings: sessionSitting }),
       lastPresencesOf,
       maximaOf,
       operandsOf,
-      pauseTest: clocked(
-        ChangeSet.sequence(sittingPrograms.beaconTest, sittingPrograms.suspendTest).bind({
-          sittings: namedSitting,
-        }),
-        { now: "micros" },
-      ),
+      pauseTest,
       placesOf,
-      presentItem: sittingPrograms.presentItem.bind({ sittings: namedSitting }),
+      presentItem,
       presentTimesOf,
       presentationsOf,
       publish: ChangeSet.union(insertWrite, ChangeSet.empty(ResultLevel)),
       recordEvaluations: ChangeSet.over(Suite, evaluations.recordEvaluations),
       resumeTest: resumedEntry.bind({ sittings: namedSitting }),
       reviewOf,
-      saveTestItem: sittingPrograms.saveTestItem.bind({ sittings: namedSitting }),
+      saveTestItem,
       savesOf,
       servedItemOf,
       sessionsOf,
@@ -1122,10 +1170,10 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       snapshotStringsOf,
       startsOf,
       statusesOf,
-      suspendTest: sittingPrograms.suspendTest.bind({ sittings: namedSitting }),
+      suspendTest,
       takeGuarded: sittingPrograms.take.bind({ taken: guardedTaken }),
       takeRunIntegersOf,
-      takeSitting: sittingPrograms.take.bind({ taken: namedTaken }),
+      takeSitting,
       takenHeadersOf,
       takenIdentifiersOf,
       takenIntegersOf,
@@ -1136,3 +1184,45 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
     }),
   ],
 });
+
+/**
+ * The programs of the suite's login its families over a moved clock call
+ * (`#ledger/test/result-clock.ts`): a sitting's take, its entries, beacons, pause, suspension,
+ * saves, presentation and end, written as host rows where the family writes them, and the reads
+ * that hold their time. A workload of no login's: `#ledger/test/result-clock.ts` compiles the
+ * login with it in the place of the login's own, so the file `grizzle generate` writes for the
+ * login is untouched by it.
+ */
+export const clockedWorkload = workload(Suite, {
+  attemptsOf,
+  beaconTest,
+  budgetsOf,
+  durationsOf,
+  endTest,
+  enterTest,
+  enterTimedTest,
+  finishTest,
+  lastPresencesOf,
+  pauseTest,
+  presentItem,
+  presentTimesOf,
+  saveTestItem,
+  sittingFacts,
+  snapshotStringsOf,
+  suspendTest,
+  takeSitting,
+  windowFacts,
+  windowsOf,
+});
+
+/**
+ * The suite's login as its families over a moved clock serve it: the same login and role, with the
+ * clocked workload in the place of its own, the file `#ledger/test/result-clock.ts` compiles for a
+ * moved clock, so a run compiles the programs those families call and no other.
+ */
+export type ClockedSuite = Login<
+  typeof ResultLevel,
+  "result_suite",
+  readonly [typeof Suite],
+  readonly [typeof clockedWorkload]
+>;
