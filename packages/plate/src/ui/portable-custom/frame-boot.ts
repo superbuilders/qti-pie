@@ -203,6 +203,22 @@ export const bootFrame = (): void => {
     return;
   }
 
+  /**
+   * The island, the parent window the frame booted under, read once, before any script of the
+   * PCI's runs: the frame posts to it alone and takes messages from it alone.
+   *
+   * @constraint `parent` is a replaceable global: a script's `window.parent = …`, or a classic
+   *   script's top-level `var parent = …`, puts its own value in place of the parent for every
+   *   later read in the frame. Read at each post and each check, a PCI that does so would take
+   *   every response the frame relays, and no message of the island's would be heard, with no
+   *   error anywhere.
+   * @source HTML's `Window` interface: `[Replaceable] readonly attribute WindowProxy? parent`;
+   *   Web IDL's `[Replaceable]`, whose setter defines an own property in place of the attribute.
+   * @see https://html.spec.whatwg.org/multipage/nav-history-apis.html#dom-parent
+   * @see https://webidl.spec.whatwg.org/#Replaceable
+   */
+  const host = window.parent;
+
   const bridgeId = "qtiCustomInteractionContext";
   const commonJsNames = ["require", "exports", "module"] as const;
   const inputEvents = ["change", "click", "drop", "input", "keyup", "pointerup"] as const;
@@ -326,13 +342,14 @@ export const bootFrame = (): void => {
   const jsonOf = (value: unknown): string | undefined => JSON.stringify(value);
 
   /**
-   * Post a message to the island. The target origin is `"*"`: an opaque frame cannot name the
-   * page's origin, and the island accepts only by source and nonce.
+   * Post a message to the island, the parent window the frame booted under (`host`). The target
+   * origin is `"*"`: an opaque frame cannot name the page's origin, and the island accepts only by
+   * source and nonce.
    *
    * @param message The message, carrying the nonce.
    */
   const post = (message: FrameToPage): void => {
-    window.parent.postMessage(message, "*");
+    host.postMessage(message, "*");
   };
 
   /**
@@ -784,15 +801,15 @@ export const bootFrame = (): void => {
   };
 
   /**
-   * Act on a message from the island: only one from the parent window carrying this frame's
-   * nonce.
+   * Act on a message from the island: only one from the parent window the frame booted under
+   * (`host`), carrying this frame's nonce.
    *
    * @param event The message event.
    */
   const onMessage = (event: MessageEvent): void => {
     const data: unknown = event.data;
 
-    if (event.source !== window.parent || !isPageMessage(data) || data.nonce !== nonce) {
+    if (event.source !== host || !isPageMessage(data) || data.nonce !== nonce) {
       return;
     }
 
