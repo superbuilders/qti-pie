@@ -52,9 +52,10 @@
  *   cross-origin to the frame's opaque origin, so the browser withholds its error from the frame's
  *   `error` event); the page's own record of what the frame threw holds the refusal. The `data-*`
  *   attributes QTI 3.0.1's schema itself declares on the element are passed over.
- * - MO7, not answering: in review, solution or suspended, the PCI shows the rings it is bound to and
- *   a tap on an object changes nothing; once it has completed, no tap changes anything either, and
- *   the frame relays nothing more.
+ * - MO7, not answering: in suspended, closed, solution or review (every status a delivery engine
+ *   passes a PCI but interacting, QTI 3.0.1's implementation guide §3.7.12.7.1), the PCI shows the
+ *   rings it is bound to and a tap on an object changes nothing; once it has completed, no tap
+ *   changes anything either, and the frame relays nothing more.
  * - MO8, the keyboard: Space and Enter on a focused object ring it and take its ring away, as a tap
  *   does, and Tab moves to the next object.
  * - MO9, fitting: each object is drawn at its picture's `width` and `height`; in a frame narrower
@@ -75,7 +76,24 @@
  * @module
  */
 import { assert, layer } from "@effect/vitest";
-import { Context, Duration, Effect, Layer } from "effect";
+import { word } from "@bjornpagen/testing/dictionary";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { noCoverage } from "@bjornpagen/testing/features";
+import {
+  array,
+  boolean,
+  characterOf,
+  constant,
+  element,
+  int,
+  oneOf,
+  option,
+  string,
+} from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
+import { Context, Duration, Effect, Formatter, Layer, Option } from "effect";
+import { statuses } from "#specimen/alpha/mark-objects.dictionary.ts";
 import { markItem, ringPage } from "#specimen/alpha/mark-objects.ts";
 import type {
   Drawn,
@@ -85,6 +103,7 @@ import type {
   RingPage,
   Start,
 } from "#specimen/alpha/mark-objects.ts";
+import { boxHolds } from "#specimen/test/box.ts";
 
 /**
  * How long a rule may take before vitest fails it bare: a hang guard, never a budget.
@@ -196,7 +215,7 @@ interface Golden {
 /**
  * The seven synthetic items, from their documents.
  */
-const goldens: readonly Golden[] = [
+const goldens: readonly [Golden, ...Golden[]] = [
   {
     correct: 7,
     count: 11,
@@ -678,6 +697,676 @@ const drawnWhen = Effect.fnUntraced(function* drawnWhen(
   return drawn;
 });
 
+/**
+ * Give the item of an id among the goldens.
+ *
+ * @param id The item's id.
+ * @returns The item.
+ */
+const goldenOf = (id: string): Golden =>
+  goldens.find((each) => each.id === id) ?? assert.fail(`${id} is among the goldens`);
+
+/**
+ * The properties the form gives the PCI, by dataset name: its whole contract (MO6).
+ */
+const contract: ReadonlySet<string> = new Set(["layout", "objects", "perRow"]);
+
+/**
+ * The `data-*` attributes QTI 3.0.1's schema declares on `qti-portable-custom-interaction`, by
+ * dataset name, the delivery engine's, which the PCI passes over (MO6).
+ */
+const qtiOwn: ReadonlySet<string> = new Set(["catalogIdref", "qtiSuppressTts"]);
+
+/**
+ * The form's most: the objects a set holds in rows and scattered, the objects a row holds, and a
+ * picture's side in CSS pixels (MO6).
+ */
+const most = { perRow: 10, rows: 20, scatter: 10, side: 120 } as const;
+
+/**
+ * A picture's `alt`, kept or left out, and its `width` and `height` as written, each none when
+ * left out.
+ */
+interface PictureWriting {
+  readonly alt: boolean;
+  readonly height: Option.Option<string>;
+  readonly width: Option.Option<string>;
+}
+
+/**
+ * The fixtures' picture as written: its `alt` the object, 60 CSS pixels square.
+ */
+const asWritten: PictureWriting = {
+  alt: true,
+  height: Option.some(String(form.side)),
+  width: Option.some(String(form.side)),
+};
+
+/**
+ * A piece of a markup: the item's picture, a `span` holding the object's name, or a line of text.
+ */
+type Piece = "picture" | "span" | "text";
+
+/**
+ * A part of the rows or the scatter item that MO6's box writes otherwise: a typed property written
+ * as a text or left out, a property outside the PCI's contract written, the markup made of other
+ * pieces, or the picture written otherwise.
+ */
+type Variation =
+  | {
+      readonly kind: "property";
+      readonly name: "layout" | "objects" | "perRow";
+      readonly written: Option.Option<string>;
+    }
+  | { readonly kind: "stray"; readonly name: string }
+  | { readonly kind: "markup"; readonly pieces: readonly Piece[] }
+  | { readonly kind: "picture"; readonly picture: PictureWriting };
+
+/**
+ * A case of MO6's box: the item varied, by its layout, and its part written otherwise.
+ */
+interface Varied {
+  readonly layout: "rows" | "scatter";
+  readonly variation: Variation;
+}
+
+/**
+ * The texts MO6's box writes a count or a row length as: every text of up to two characters of 0,
+ * 1, 2 and x, so every whole number to 22 an item could write, with a leading zero and without,
+ * the empty text, and texts that are no number.
+ */
+const numberTexts: Gen<string> = string(characterOf(["0", "1", "2", "x"]), { max: 2, min: 0 });
+
+/**
+ * The sides MO6's box writes a picture's `width` or `height` as: the least and the most a picture
+ * takes, 44 and 120, a pixel beyond each, and 60 with its unit written.
+ */
+const sideTexts: Gen<string> = element(["43", "44", "120", "121", "60px"]);
+
+/**
+ * Draw a part of MO6's box: the layout left out or written rows, scatter or another word; the count
+ * or the row length left out or written as any of {@link numberTexts}; one of four properties
+ * outside the PCI's contract, or one of the two QTI 3.0.1's schema declares on the element,
+ * written; the markup as any sequence of up to two pieces; or the picture with its `alt` kept or
+ * left out and each side left out or written as any of {@link sideTexts}.
+ */
+const variations: Gen<Variation> = oneOf<Variation>([
+  (source) => ({
+    kind: "property",
+    name: "layout",
+    written: source.draw(option(element(["rows", "scatter", "circle"]))),
+  }),
+  (source) => ({ kind: "property", name: "objects", written: source.draw(option(numberTexts)) }),
+  (source) => ({ kind: "property", name: "perRow", written: source.draw(option(numberTexts)) }),
+  (source) => ({
+    kind: "stray",
+    name: source.draw(
+      element(["answer", "count", "ringColour", "seed", "catalogIdref", "qtiSuppressTts"]),
+    ),
+  }),
+  (source) => ({
+    kind: "markup",
+    pieces: source.draw(array(element(["picture", "span", "text"]), { max: 2, min: 0 })),
+  }),
+  (source) => ({
+    kind: "picture",
+    picture: {
+      alt: source.draw(boolean),
+      height: source.draw(option(sideTexts)),
+      width: source.draw(option(sideTexts)),
+    },
+  }),
+]);
+
+/**
+ * Draw a case of MO6's box: the rows or the scatter item, and one of {@link variations}.
+ */
+const variedItems: Gen<Varied> = (source) => ({
+  layout: source.draw(element(["rows", "scatter"])),
+  variation: source.draw(variations),
+});
+
+/**
+ * How many cases {@link variedItems} draws: for each of the two items, 4 layouts, 22 counts, 22 row
+ * lengths, 6 properties outside the contract, 13 markups and 72 pictures (2 `alt`s by 6 widths by
+ * 6 heights).
+ */
+const VARIED = 2 * (4 + 22 + 22 + 6 + 13 + 2 * 6 * 6);
+
+/**
+ * Give a piece's markup: the item's own for its picture, a `span` naming the object, or a line
+ * asking the child to mark.
+ *
+ * @param golden The item.
+ * @param item The item as the frame host is handed it.
+ * @param piece The piece.
+ * @returns Its markup.
+ */
+const pieceOf = (golden: Golden, item: MarkItem, piece: Piece): string => {
+  switch (piece) {
+    case "picture": {
+      return item.markup;
+    }
+    case "span": {
+      return `<span>${golden.object}</span>`;
+    }
+    case "text": {
+      return "Mark them. ";
+    }
+  }
+};
+
+/**
+ * Write a side as the picture's attribute, nothing when it is left out.
+ *
+ * @param name The attribute.
+ * @param side The side as written, none when left out.
+ * @returns The attribute as the markup writes it.
+ */
+const sideAttribute = (name: "height" | "width", side: Option.Option<string>): string =>
+  Option.match(side, { onNone: () => "", onSome: (text) => ` ${name}="${text}"` });
+
+/**
+ * Write the rows or the scatter item with one part otherwise (MO6).
+ *
+ * @param golden The item.
+ * @param item The item as the frame host is handed it.
+ * @param variation The part written otherwise.
+ * @returns The item so written.
+ */
+const variedOf = (golden: Golden, item: MarkItem, variation: Variation): MarkItem => {
+  switch (variation.kind) {
+    case "property": {
+      const { [variation.name]: _left, ...others } = item.properties;
+
+      return written(
+        item,
+        Option.match(variation.written, {
+          onNone: () => others,
+          onSome: (text) => ({ ...others, [variation.name]: text }),
+        }),
+      );
+    }
+    case "stray": {
+      return written(item, { ...item.properties, [variation.name]: "4" });
+    }
+    case "markup": {
+      return {
+        ...item,
+        markup: variation.pieces.map((piece) => pieceOf(golden, item, piece)).join(""),
+      };
+    }
+    case "picture": {
+      const { alt, height, width } = variation.picture;
+
+      return {
+        ...item,
+        markup: item.markup
+          .replace(` alt="${golden.object}"`, alt ? ` alt="${golden.object}"` : "")
+          .replace(` width="${String(form.side)}"`, sideAttribute("width", width))
+          .replace(` height="${String(form.side)}"`, sideAttribute("height", height)),
+      };
+    }
+  }
+};
+
+/**
+ * The markup the PCI is handed, as MO6's rules read it: how many elements it holds, whether it
+ * holds text, and its picture as written.
+ */
+interface Shape {
+  readonly elements: number;
+  readonly picture: PictureWriting;
+  readonly text: boolean;
+}
+
+/**
+ * Give the markup a variation hands the PCI.
+ *
+ * @param variation The part written otherwise.
+ * @returns The markup's shape.
+ */
+const shapeOf = (variation: Variation): Shape => {
+  switch (variation.kind) {
+    case "markup": {
+      return {
+        elements: variation.pieces.filter((piece) => piece !== "text").length,
+        picture: asWritten,
+        text: variation.pieces.some((piece) => piece !== "picture"),
+      };
+    }
+    case "picture": {
+      return { elements: 1, picture: variation.picture, text: false };
+    }
+    case "property":
+    case "stray": {
+      return { elements: 1, picture: asWritten, text: false };
+    }
+  }
+};
+
+/**
+ * Read a count or a row length as the form writes it: a whole number from 1, with no leading zero.
+ *
+ * @param text The property as written, `undefined` when left out.
+ * @returns The number, none when it is not so written.
+ */
+const countingOf = (text: string | undefined): Option.Option<number> =>
+  text !== undefined &&
+  text !== "" &&
+  !text.startsWith("0") &&
+  Array.from(text).every((character) => character >= "0" && character <= "9")
+    ? Option.some(Number(text))
+    : Option.none();
+
+/**
+ * Name a property's writing as a refusal names it: `absent`, or the text in quotes.
+ *
+ * @param text The property as written, `undefined` when left out.
+ * @returns Its name in a refusal.
+ */
+const writingOf = (text: string | undefined): string =>
+  text === undefined ? "absent" : `"${text}"`;
+
+/**
+ * Give the attribute an item writes for a property, by its dataset name: HTML's dataset naming
+ * read backwards, `data-` and each capital letter a hyphen and the letter in lower case.
+ *
+ * @param name The dataset name.
+ * @returns The attribute.
+ */
+const attributeOf = (name: string): string =>
+  `data-${Array.from(name, (character) =>
+    character === character.toLowerCase() ? character : `-${character.toLowerCase()}`,
+  ).join("")}`;
+
+/**
+ * Give the refusal MO6 names for a property that writes a count or a row length, none when it is
+ * written as the form writes one.
+ *
+ * @param name The property's dataset name.
+ * @param text The property as written, `undefined` when left out.
+ * @returns The refusal, or none.
+ */
+const countingRefusals = (name: string, text: string | undefined): readonly string[] =>
+  Option.isSome(countingOf(text))
+    ? []
+    : [`its property ${attributeOf(name)} is ${writingOf(text)}`];
+
+/**
+ * Give the refusals MO6 names for a layout's properties: a layout other than rows and scatter; a
+ * count beyond the layout's most; for rows, a row length not written as the form writes one, or
+ * longer than ten or than the count; for a scatter, a row length written at all.
+ *
+ * @param properties The PCI's properties.
+ * @returns The refusals, none when the layout's properties fit it.
+ */
+const layoutRefusals = (properties: Readonly<Record<string, string>>): readonly string[] => {
+  const layout = properties["layout"];
+  const count = countingOf(properties["objects"]);
+  const perRow = properties["perRow"];
+  const beyond = (kind: "rows" | "scatter"): readonly string[] =>
+    Option.match(count, {
+      onNone: () => [],
+      onSome: (objects) =>
+        objects > most[kind]
+          ? [
+              `its property data-objects is ${String(objects)}, more than the ${String(most[kind])} a set laid out as ${kind} holds`,
+            ]
+          : [],
+    });
+
+  if (layout === "rows") {
+    return [
+      ...beyond("rows"),
+      ...countingRefusals("perRow", perRow),
+      ...Option.match(countingOf(perRow), {
+        onNone: () => [],
+        onSome: (row) => [
+          ...(row > most.perRow
+            ? [
+                `its property data-per-row is ${String(row)}, more than the ${String(most.perRow)} a row holds`,
+              ]
+            : []),
+          ...Option.match(count, {
+            onNone: () => [],
+            onSome: (objects) =>
+              row > objects
+                ? [
+                    `its property data-per-row is ${String(row)}, more than its ${String(objects)} objects`,
+                  ]
+                : [],
+          }),
+        ],
+      }),
+    ];
+  }
+
+  if (layout === "scatter") {
+    return [
+      ...beyond("scatter"),
+      ...(perRow === undefined
+        ? []
+        : ["its property data-per-row belongs to another layout than scatter"]),
+    ];
+  }
+
+  return [`its property data-layout is ${writingOf(layout)}`];
+};
+
+/**
+ * Read a picture's side as the form writes it: a whole number of CSS pixels from 44 to 120.
+ *
+ * @param side The side as written, none when left out.
+ * @returns The side, none when it is not so written.
+ */
+const sideOf = (side: Option.Option<string>): Option.Option<number> =>
+  Option.filter(
+    Option.flatMap(side, countingOf),
+    (pixels) => pixels >= form.least && pixels <= most.side,
+  );
+
+/**
+ * Give the refusals MO6 names for one picture: no `alt`, a side not written as the form writes
+ * one, or two sides unequal.
+ *
+ * @param picture The picture as written.
+ * @returns The refusals, none when the picture fits the form.
+ */
+const pictureRefusals = (picture: PictureWriting): readonly string[] => {
+  const width = sideOf(picture.width);
+  const height = sideOf(picture.height);
+
+  return [
+    ...(picture.alt ? [] : ["its picture has no alt"]),
+    ...(Option.isSome(width)
+      ? []
+      : [`its picture's width is ${writingOf(Option.getOrUndefined(picture.width))}`]),
+    ...(Option.isSome(height)
+      ? []
+      : [`its picture's height is ${writingOf(Option.getOrUndefined(picture.height))}`]),
+    ...(Option.isSome(width) && Option.isSome(height) && width.value !== height.value
+      ? [
+          `its picture is ${String(width.value)} by ${String(height.value)}; draw the object in a square`,
+        ]
+      : []),
+  ];
+};
+
+/**
+ * Give every refusal MO6 names for an item, each what breaks one of its rules, as the PCI's refusal
+ * opens: a property outside the contract; the count; the layout's properties; a markup that is not
+ * one picture and no text; and that picture.
+ *
+ * @param properties The PCI's properties.
+ * @param shape The markup the PCI is handed.
+ * @returns The refusals, none for an item the PCI runs.
+ */
+const refusalsOf = (
+  properties: Readonly<Record<string, string>>,
+  shape: Shape,
+): readonly string[] => [
+  ...Object.keys(properties)
+    .filter((name) => !contract.has(name) && !qtiOwn.has(name))
+    .map((name) => `its property ${attributeOf(name)} is none of the PCI's`),
+  ...countingRefusals("objects", properties["objects"]),
+  ...layoutRefusals(properties),
+  ...(shape.elements === 1 && !shape.text
+    ? pictureRefusals(shape.picture)
+    : [
+        `its markup holds ${String(shape.elements)} elements${shape.text ? " and text" : ""}; give it exactly one img`,
+      ]),
+];
+
+/**
+ * A case of MO7's box: an item, and the status its PCI is started in.
+ */
+interface Statused {
+  readonly golden: Golden;
+  readonly status: string;
+}
+
+/**
+ * Draw a case of MO7's box: one of the seven items, and one of the {@link statuses}.
+ */
+const statusedItems: Gen<Statused> = (source) => ({
+  golden: source.draw(element(goldens)),
+  status: source.draw(word(statuses)),
+});
+
+/**
+ * How many cases {@link statusedItems} draws: the seven items, each in the five statuses.
+ */
+const STATUSED = 7 * 5;
+
+/**
+ * The objects MO10's boxes hand saved answers to: the rows item written with three in one row, so
+ * every place and the place past the set's end are a handful.
+ */
+const threeObjects = 3;
+
+/**
+ * Write the rows item with {@link threeObjects} in one row.
+ *
+ * @param item The rows item.
+ * @returns The item so written.
+ */
+const threeOf = (item: MarkItem): MarkItem =>
+  written(item, {
+    ...item.properties,
+    objects: String(threeObjects),
+    perRow: String(threeObjects),
+  });
+
+/**
+ * How MO10's states box hands a state back, from the places it lists: as `getState` writes it,
+ * JSON's compact text of `{ ringed }`; with a key more; the list without its object; the object
+ * itself rather than its text; that text short of its last character; or the number of places for
+ * the list.
+ */
+type StateWriting =
+  | "as getState writes it"
+  | "with a key more"
+  | "the list alone"
+  | "not as text"
+  | "cut short"
+  | "a number for the list";
+
+/**
+ * A case of MO10's states box: the places a state lists, and how it is written.
+ */
+interface HandedState {
+  readonly places: readonly number[];
+  readonly writing: StateWriting;
+}
+
+/**
+ * Draw a case of MO10's states box: every list of up to two numbers, each a whole number from -1
+ * to {@link threeObjects} (the set's places, 0 to 2, and 3 past its end) or one half, in each of
+ * the writings.
+ */
+const handedStates: Gen<HandedState> = (source) => ({
+  places: source.draw(array(oneOf([int(-1, threeObjects), constant(0.5)]), { max: 2, min: 0 })),
+  writing: source.draw(
+    element([
+      "as getState writes it",
+      "with a key more",
+      "the list alone",
+      "not as text",
+      "cut short",
+      "a number for the list",
+    ]),
+  ),
+});
+
+/**
+ * How many cases {@link handedStates} draws: the six writings, each of every list of up to two of
+ * six numbers.
+ */
+const HANDED_STATES = 6 * (1 + 6 + 6 * 6);
+
+/**
+ * Give the state a case hands the PCI.
+ *
+ * @param handed The case.
+ * @returns The state, as the host hands it.
+ */
+const stateOf = ({ places, writing }: HandedState): unknown => {
+  switch (writing) {
+    case "as getState writes it": {
+      return JSON.stringify({ ringed: places });
+    }
+    case "with a key more": {
+      return JSON.stringify({ more: 1, ringed: places });
+    }
+    case "the list alone": {
+      return JSON.stringify(places);
+    }
+    case "not as text": {
+      return { ringed: places };
+    }
+    case "cut short": {
+      return JSON.stringify({ ringed: places }).slice(0, -1);
+    }
+    case "a number for the list": {
+      return JSON.stringify({ ringed: places.length });
+    }
+  }
+};
+
+/**
+ * Give the objects a state rings by MO5 and MO10: a state written as `getState` writes it whose
+ * places are distinct places of the set, in any order, rings exactly them; any other is one the
+ * PCI cannot use.
+ *
+ * @param handed The case.
+ * @param objects The set's count.
+ * @returns The objects it rings, none for a state the PCI cannot use.
+ */
+const usableOf = (
+  { places, writing }: HandedState,
+  objects: number,
+): Option.Option<ReadonlySet<number>> =>
+  writing === "as getState writes it" &&
+  new Set(places).size === places.length &&
+  places.every((place) => Number.isInteger(place) && place >= 0 && place < objects)
+    ? Option.some(new Set(places))
+    : Option.none();
+
+/**
+ * How MO10's bound box writes a bound value from a whole number: as Appendix C's integer; that
+ * integer as its text; as a string; the number and a half; or the integer with no `base`.
+ */
+type BoundWriting = "an integer" | "the integer's text" | "a string" | "and a half" | "no base";
+
+/**
+ * A case of MO10's bound box: a whole number, and how the bound value writes it.
+ */
+interface HandedBound {
+  readonly count: number;
+  readonly writing: BoundWriting;
+}
+
+/**
+ * Draw a case of MO10's bound box: every whole number from -1 to one past {@link threeObjects}, in
+ * each of the writings.
+ */
+const handedBounds: Gen<HandedBound> = (source) => ({
+  count: source.draw(int(-1, threeObjects + 1)),
+  writing: source.draw(
+    element(["an integer", "the integer's text", "a string", "and a half", "no base"]),
+  ),
+});
+
+/**
+ * How many cases {@link handedBounds} draws: the five writings, each of six whole numbers.
+ */
+const HANDED_BOUNDS = 5 * 6;
+
+/**
+ * Give the bound value a case binds the PCI to.
+ *
+ * @param handed The case.
+ * @returns The bound value.
+ */
+const boundOf = ({ count, writing }: HandedBound): unknown => {
+  switch (writing) {
+    case "an integer": {
+      return { base: { integer: count } };
+    }
+    case "the integer's text": {
+      return { base: { integer: String(count) } };
+    }
+    case "a string": {
+      return { base: { string: String(count) } };
+    }
+    case "and a half": {
+      return { base: { integer: count + 0.5 } };
+    }
+    case "no base": {
+      return { integer: count };
+    }
+  }
+};
+
+/**
+ * Give the objects a bound value rings by MO5 and MO10: Appendix C's integer from 1 to the set's
+ * count rings that many, the first by place; any other value rings none.
+ *
+ * @param handed The case.
+ * @param objects The set's count.
+ * @returns The objects it rings.
+ */
+const boundRingsOf = ({ count, writing }: HandedBound, objects: number): ReadonlySet<number> =>
+  new Set(
+    writing === "an integer" && count >= 1 && count <= objects
+      ? Array.from({ length: count }, (_unused, place) => place)
+      : [],
+  );
+
+/**
+ * The Appendix C JSON of the objects ringed: their count, NULL for none (MO3).
+ *
+ * @param ringed The objects ringed.
+ * @returns The JSON.
+ */
+const responseOfRings = (ringed: ReadonlySet<number>) =>
+  ringed.size === 0 ? responseOf() : responseOf(ringed.size);
+
+/**
+ * A case of MO11's box: an item, the object a finger starts on, by place, and how far it swipes
+ * sideways, four pictures' sides to the right or to the left.
+ */
+interface Swipe {
+  readonly by: number;
+  readonly golden: Golden;
+  readonly place: number;
+}
+
+/**
+ * Draw a case of MO11's box: one of the seven items, any of its objects, and either way.
+ */
+const swipes: Gen<Swipe> = (source) => {
+  const golden = source.draw(element(goldens));
+
+  return {
+    by: (source.draw(boolean) ? -4 : 4) * form.side,
+    golden,
+    place: source.draw(int(0, golden.count - 1)),
+  };
+};
+
+/**
+ * How many cases {@link swipes} draws: each of the seven items' 62 objects, either way.
+ */
+const SWIPES = 2 * (11 + 9 + 8 + 8 + 7 + 10 + 9);
+
+/**
+ * How long one case of a box may run before it is stopped and reported: a hang guard, never a
+ * budget.
+ */
+const caseHang = "5 minutes";
+
 layer(RingLayer, { timeout: Duration.millis(ruleHang) })("the mark-objects PCI", (it) => {
   for (const golden of goldens) {
     it.effect(
@@ -807,210 +1496,170 @@ layer(RingLayer, { timeout: Duration.millis(ruleHang) })("the mark-objects PCI",
   }
 
   it.effect(
-    "MO6: an item, a bound value or a state the PCI cannot read fails it, with the refusal naming what broke the rule",
-    () =>
+    `MO6: an item whose layout, count, row length, markup or picture the PCI cannot read, or that writes a property outside its contract, fails it, with the refusal naming a rule it breaks: every one-part variation of the rows and the scatter item, ${String(VARIED)}`,
+    (ctx) =>
       Effect.gen(function* refusals() {
         const page = yield* Ring;
-        const rows = yield* Effect.orDie(markItem("alpha-mark-objects-rows"));
-        const scattered = yield* Effect.orDie(markItem("alpha-mark-objects-scatter"));
-        const full = yield* Effect.orDie(markItem("alpha-mark-objects-rows-full"));
-        const { layout: _layout, ...noLayout } = rows.properties;
-        const { perRow: _perRow, ...noPerRow } = rows.properties;
-        const cases: readonly {
-          readonly item: MarkItem;
-          readonly refusal: string;
-          readonly start: Start;
-        }[] = [
-          {
-            item: written(rows, noLayout),
-            refusal: "its property data-layout is absent",
-            start: {},
-          },
-          ...["circle", "row"].map((layout) => ({
-            item: written(rows, { ...rows.properties, layout }),
-            refusal: `its property data-layout is "${layout}"`,
-            start: {},
-          })),
-          {
-            item: written(rows, { ...rows.properties, objects: "21" }),
-            refusal:
-              "its property data-objects is 21, more than the 20 a set laid out as rows holds",
-            start: {},
-          },
-          {
-            item: written(scattered, { ...scattered.properties, objects: "11" }),
-            refusal:
-              "its property data-objects is 11, more than the 10 a set laid out as scatter holds",
-            start: {},
-          },
-          {
-            item: written(rows, { ...rows.properties, perRow: "11" }),
-            refusal: "its property data-per-row is 11, more than the 10 a row holds",
-            start: {},
-          },
-          {
-            item: written(full, { ...full.properties, perRow: "10" }),
-            refusal: "its property data-per-row is 10, more than its 9 objects",
-            start: {},
-          },
-          ...["010", "0", "x"].map((objects) => ({
-            item: written(rows, { ...rows.properties, objects }),
-            refusal: `its property data-objects is "${objects}"`,
-            start: {},
-          })),
-          {
-            item: written(rows, noPerRow),
-            refusal: "its property data-per-row is absent",
-            start: {},
-          },
-          ...["0", "04", "x"].map((perRow) => ({
-            item: written(rows, { ...rows.properties, perRow }),
-            refusal: `its property data-per-row is "${perRow}"`,
-            start: {},
-          })),
-          {
-            item: written(scattered, { ...scattered.properties, perRow: "4" }),
-            refusal: "its property data-per-row belongs to another layout than scatter",
-            start: {},
-          },
-          ...[
-            ["answer", "data-answer"],
-            ["count", "data-count"],
-            ["ringColour", "data-ring-colour"],
-            ["seed", "data-seed"],
-          ].map(([stray = "", attribute = ""]) => ({
-            item: written(rows, { ...rows.properties, [stray]: "4" }),
-            refusal: `its property ${attribute} is none of the PCI's`,
-            start: {},
-          })),
-          {
-            item: { ...rows, markup: "" },
-            refusal: "its markup holds 0 elements; give it exactly one img",
-            start: {},
-          },
-          {
-            item: { ...rows, markup: `${rows.markup}${rows.markup}` },
-            refusal: "its markup holds 2 elements; give it exactly one img",
-            start: {},
-          },
-          {
-            item: { ...rows, markup: "<span>an acorn</span>" },
-            refusal: "its markup holds 1 elements and text; give it exactly one img",
-            start: {},
-          },
-          {
-            item: { ...rows, markup: `Mark them. ${rows.markup}` },
-            refusal: "its markup holds 1 elements and text; give it exactly one img",
-            start: {},
-          },
-          ...[
-            [' width="60"', ' width="43"', `its picture's width is "43"`],
-            [' height="60"', ' height="121"', `its picture's height is "121"`],
-            [' width="60"', ' width="60px"', `its picture's width is "60px"`],
-            [' width="60"', "", "its picture's width is absent"],
-            [
-              ' height="60"',
-              ' height="61"',
-              "its picture is 60 by 61; draw the object in a square",
-            ],
-            [' alt="acorn"', "", "its picture has no alt"],
-          ].map(([from = "", to = "", refusal = ""]) => ({
-            item: { ...rows, markup: rows.markup.replace(from, to) },
-            refusal,
-            start: {},
-          })),
-        ];
 
-        for (const { item, refusal, start } of cases) {
-          const outcome = yield* Effect.orDie(page.start(item, start));
-          const thrown = yield* Effect.orDie(page.thrown);
+        yield* boxHolds(variedItems, VARIED);
 
-          assert.strictEqual(outcome.kind, "failed", `${refusal}: the PCI does not run`);
-          assert.strictEqual(thrown.length, 1, `${refusal}: the frame threw once`);
-          assert.include(
-            thrown[0] ?? "",
-            `MarkObjectsRefusedError: The mark-objects PCI (${item.typeIdentifier}) cannot run: ${refusal}`,
-            `${refusal}: the PCI refuses it, naming what broke the rule`,
-          );
-        }
+        return yield* searched(
+          ctx,
+          exhaust(
+            {
+              box: "the rows and the scatter item, each with one part written otherwise: the layout left out or written rows, scatter or another word; the count or the row length left out or written as any text of up to two of 0, 1, 2 and x; one of four properties outside the contract or one of the two QTI 3.0.1's schema declares on the element written; the markup any sequence of up to two of the picture, a span and a line of text; or the picture's alt kept or left out and each side left out or written 43, 44, 120, 121 or 60px",
+              caseHang,
+              coverage: noCoverage,
+              generator: variedItems,
+              literal: ({ layout, variation }) =>
+                `the ${layout} item with ${Formatter.format(variation)}`,
+              oracle: {
+                kind: "specification",
+                name: "MO6 as the suite transcribes the form: data-layout rows or scatter; data-objects a whole number from 1 with no leading zero, at most 20 in rows and 10 scattered; data-per-row such a number, for rows alone, at most 10 and at most the count; the markup one img and no text, its alt present and its sides whole numbers of CSS pixels from 44 to 120, equal; no data-* property but these three and the two QTI 3.0.1's schema declares on the element; an item breaking none runs, and one breaking any fails with one refusal naming one it breaks",
+              },
+              suite: "alpha/mark-objects-refusals",
+            },
+            ({ layout, variation }) =>
+              Effect.gen(function* refused() {
+                const golden = goldenOf(`alpha-mark-objects-${layout}`);
+                const item = variedOf(golden, yield* Effect.orDie(markItem(golden.id)), variation);
+                const broken = refusalsOf(item.properties, shapeOf(variation));
+                const outcome = yield* Effect.orDie(page.start(item, {}));
 
-        const qtiOwn = yield* Effect.orDie(
-          page.start(
-            written(scattered, {
-              ...scattered.properties,
-              catalogIdref: "catalog-1",
-              qtiSuppressTts: "computer-read-aloud",
-            }),
-            {},
+                if (broken.length === 0) {
+                  assert.strictEqual(
+                    outcome.kind,
+                    "ready",
+                    `an item breaking no rule runs: ${outcome.reason ?? ""}`,
+                  );
+                } else {
+                  const thrown = yield* Effect.orDie(page.thrown);
+                  const opening = `MarkObjectsRefusedError: The mark-objects PCI (${item.typeIdentifier}) cannot run: `;
+
+                  assert.strictEqual(
+                    outcome.kind,
+                    "failed",
+                    `${broken.join("; ")}: the PCI does not run`,
+                  );
+                  assert.strictEqual(
+                    thrown.length,
+                    1,
+                    `${broken.join("; ")}: the frame threw once`,
+                  );
+                  assert.isTrue(
+                    broken.some((refusal) => (thrown[0] ?? "").includes(`${opening}${refusal}`)),
+                    `the PCI refuses it naming a rule it breaks, one of ${broken.join(" | ")}: it threw ${thrown[0] ?? "nothing"}`,
+                  );
+                }
+              }),
           ),
-        );
-
-        assert.strictEqual(
-          qtiOwn.kind,
-          "ready",
-          "the data-* attributes QTI's schema declares on the element are passed over",
         );
       }),
     ruleHang,
   );
 
   it.effect(
-    "MO7: in review, solution or suspended a tap changes nothing, and once completed nothing does",
-    () =>
+    `MO7: in every status but interacting the PCI shows the rings it is bound to and a tap changes nothing, and in interacting each tap rings or unrings: every item in each of the five statuses, ${String(STATUSED)}`,
+    (ctx) =>
       Effect.gen(function* notAnswering() {
         const page = yield* Ring;
-        const golden =
-          goldens.find((each) => each.id === "alpha-mark-objects-row-leave") ??
-          assert.fail("the row take-away item is among the goldens");
 
-        const item = yield* Effect.orDie(markItem(golden.id));
-        const bound = new Set([0, 1, 2]);
+        yield* boxHolds(statusedItems, STATUSED);
 
-        for (const status of ["review", "solution", "suspended"]) {
-          yield* started(page, item, { boundTo: responseOf(bound.size), status });
+        return yield* searched(
+          ctx,
+          exhaust(
+            {
+              box: "each of the seven items, bound to its key's count, its first, last and second objects tapped, in each status a delivery engine passes a PCI",
+              caseHang,
+              coverage: noCoverage,
+              generator: statusedItems,
+              literal: ({ golden, status }) => `${golden.id} in ${status}`,
+              oracle: {
+                kind: "specification",
+                name: "QTI 3.0.1's PCI statuses (implementation guide §3.7.12.7.1) and MO7 as the suite transcribes the form: the candidate answers in interacting alone, where each tap rings an object or takes its ring away (MO2) and the response is the count ringed (MO3); in suspended, closed, solution and review the PCI shows the rings it is bound to, takes no tap, and gives the bound count",
+              },
+              suite: "alpha/mark-objects-statuses",
+            },
+            ({ golden, status }) =>
+              Effect.gen(function* inStatus() {
+                const item = yield* Effect.orDie(markItem(golden.id));
+                const bound = new Set(
+                  Array.from({ length: golden.correct }, (_unused, place) => place),
+                );
+                const taps = [0, golden.count - 1, 1];
+                const answering = status === "interacting";
+                const ringed = answering ? ringedBy([...bound, ...taps]) : bound;
 
-          const before = yield* Effect.orDie(page.drawn);
+                yield* started(page, item, { boundTo: responseOf(bound.size), status });
 
-          assert.isTrue(
-            before.objects.every((object) => object.disabled),
-            `in ${status}, no object takes a tap`,
-          );
-          holdsRings(golden, before, bound);
-          yield* Effect.orDie(page.tap([0, 5]));
-          holdsRings(golden, yield* Effect.orDie(page.drawn), bound);
-          // The frame relays the PCI's response after any input it sees, when it differs from the last
-          // it relayed, the first time included: the bound response may come back, never another.
-          for (const message of yield* Effect.orDie(page.messages)) {
-            if (message.kind === "changed") {
-              assert.deepStrictEqual(
-                message.value,
-                responseOf(bound.size),
-                `in ${status}, a tap changes no response`,
-              );
-            }
-          }
-        }
+                const before = yield* Effect.orDie(page.drawn);
 
-        yield* started(page, item, {});
-        yield* Effect.orDie(page.tap([1]));
-        assert.deepStrictEqual((yield* finished(page)).response, responseOf(1));
-        yield* Effect.orDie(page.tap([2, 1]));
+                assert.isTrue(
+                  before.objects.every((object) => object.disabled !== answering),
+                  `in ${status}, ${answering ? "every object takes a tap" : "no object takes a tap"}`,
+                );
+                holdsRings(golden, before, bound);
+                yield* Effect.orDie(page.tap(taps));
+                holdsRings(golden, yield* Effect.orDie(page.drawn), ringed);
 
-        const after = yield* Effect.orDie(page.drawn);
-        const kinds = (yield* Effect.orDie(page.messages)).map((message) => message.kind);
+                const changes = (yield* Effect.orDie(page.messages)).filter(
+                  (message) => message.kind === "changed",
+                );
 
-        assert.isTrue(
-          after.objects.every((object) => object.disabled),
-          "once completed, no object takes a tap",
-        );
-        holdsRings(golden, after, new Set([1]));
-        assert.deepStrictEqual(
-          kinds.slice(kinds.indexOf("completed") + 1),
-          [],
-          "once completed, the frame relays nothing",
+                if (answering) {
+                  assert.deepStrictEqual(
+                    changes.at(-1)?.value,
+                    responseOfRings(ringed),
+                    `in ${status}, the last change relayed is the count ringed`,
+                  );
+                } else {
+                  for (const change of changes) {
+                    assert.deepStrictEqual(
+                      change.value,
+                      responseOf(bound.size),
+                      `in ${status}, a tap changes no response: the frame relays the PCI's response after any input it sees when it differs from the last it relayed, the first time included, so the bound response may come back, never another`,
+                    );
+                  }
+                }
+
+                assert.deepStrictEqual(
+                  (yield* finished(page)).response,
+                  responseOfRings(ringed),
+                  `in ${status}, the response is the count ringed`,
+                );
+              }),
+          ),
         );
       }),
     ruleHang,
+  );
+
+  it.effect("MO7: once completed, no tap changes anything, and the frame relays nothing", () =>
+    Effect.gen(function* completed() {
+      const page = yield* Ring;
+      const golden = goldenOf("alpha-mark-objects-row-leave");
+      const item = yield* Effect.orDie(markItem(golden.id));
+
+      yield* started(page, item, {});
+      yield* Effect.orDie(page.tap([1]));
+      assert.deepStrictEqual((yield* finished(page)).response, responseOf(1));
+      yield* Effect.orDie(page.tap([2, 1]));
+
+      const after = yield* Effect.orDie(page.drawn);
+      const kinds = (yield* Effect.orDie(page.messages)).map((message) => message.kind);
+
+      assert.isTrue(
+        after.objects.every((object) => object.disabled),
+        "once completed, no object takes a tap",
+      );
+      holdsRings(golden, after, new Set([1]));
+      assert.deepStrictEqual(
+        kinds.slice(kinds.indexOf("completed") + 1),
+        [],
+        "once completed, the frame relays nothing",
+      );
+    }),
   );
 
   it.effect(
@@ -1083,58 +1732,99 @@ layer(RingLayer, { timeout: Duration.millis(ruleHang) })("the mark-objects PCI",
   );
 
   it.effect(
-    "MO10: a saved state or response the PCI cannot use never stops it, and a picture the host marked still draws",
-    () =>
-      Effect.gen(function* forgiving() {
+    `MO10: a saved state rings its places when it is getState's text of places of the set, in any order, and else falls back to the bound count: ${String(HANDED_STATES)} states`,
+    (ctx) =>
+      Effect.gen(function* forgivingStates() {
         const page = yield* Ring;
-        const golden =
-          goldens.find((each) => each.id === "alpha-mark-objects-rows") ??
-          assert.fail("the rows item is among the goldens");
+        const golden = goldenOf("alpha-mark-objects-rows");
+        const item = threeOf(yield* Effect.orDie(markItem(golden.id)));
+        const bound = new Set([0, 1]);
+
+        yield* boxHolds(handedStates, HANDED_STATES);
+
+        return yield* searched(
+          ctx,
+          exhaust(
+            {
+              box: "the rows item with three objects in one row, bound to 2, handed every list of up to two of -1, 0, 1, 2, 3 and one half as getState writes it, with a key more, as the list alone, as the object rather than its text, cut short of its last character, and with the number of places for the list",
+              caseHang,
+              coverage: noCoverage,
+              generator: handedStates,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: 'MO5 and MO10 as the suite transcribes the form: a state is used when it is the JSON text getState gives, {"ringed":[…]}, of distinct places of the set in any order, and the PCI rings exactly those; any other falls back to the bound count, the first by place; the response is the count ringed (MO3)',
+              },
+              suite: "alpha/mark-objects-states",
+            },
+            (handed) =>
+              Effect.gen(function* restoredState() {
+                const ringed = Option.getOrElse(usableOf(handed, threeObjects), () => bound);
+                yield* started(page, item, {
+                  boundTo: responseOf(bound.size),
+                  state: stateOf(handed),
+                });
+                holdsRings(golden, yield* Effect.orDie(page.drawn), ringed);
+                assert.deepStrictEqual(
+                  (yield* finished(page)).response,
+                  responseOfRings(ringed),
+                  `handed ${Formatter.format(stateOf(handed))}: the response`,
+                );
+              }),
+          ),
+        );
+      }),
+  );
+
+  it.effect(
+    `MO10: bound to a value that is no count of the set, the PCI rings none, and bound to a count it rings that many: ${String(HANDED_BOUNDS)} values`,
+    (ctx) =>
+      Effect.gen(function* forgivingBounds() {
+        const page = yield* Ring;
+        const golden = goldenOf("alpha-mark-objects-rows");
+        const item = threeOf(yield* Effect.orDie(markItem(golden.id)));
+
+        yield* boxHolds(handedBounds, HANDED_BOUNDS);
+
+        return yield* searched(
+          ctx,
+          exhaust(
+            {
+              box: "the rows item with three objects in one row, bound to every whole number from -1 to 4 written as Appendix C's integer, as the integer's text, as a string, as the number and a half, and with no base",
+              caseHang,
+              coverage: noCoverage,
+              generator: handedBounds,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "MO5 and MO10 as the suite transcribes the form: bound to Appendix C's integer from 1 to the set's count, the PCI rings that many, the first by place, and gives that count back; bound to any other value it rings none and gives NULL",
+              },
+              suite: "alpha/mark-objects-bound",
+            },
+            (handed) =>
+              Effect.gen(function* boundValue() {
+                const ringed = boundRingsOf(handed, threeObjects);
+
+                yield* started(page, item, { boundTo: boundOf(handed) });
+                holdsRings(golden, yield* Effect.orDie(page.drawn), ringed);
+                assert.deepStrictEqual(
+                  (yield* finished(page)).response,
+                  responseOfRings(ringed),
+                  `bound to ${Formatter.format(boundOf(handed))}: the response`,
+                );
+              }),
+          ),
+        );
+      }),
+  );
+
+  it.effect(
+    "MO10: a picture the host marked still draws, each object's picture its src, alt, width and height alone",
+    () =>
+      Effect.gen(function* hostMarked() {
+        const page = yield* Ring;
+        const golden = goldenOf("alpha-mark-objects-rows");
         const item = yield* Effect.orDie(markItem(golden.id));
-        const first = new Set([0, 1, 2]);
-
-        for (const state of [
-          { ringed: [0] },
-          '{"ringed":3}',
-          '{"ringed":[1.5]}',
-          '{"ringed":[11]}',
-          '{"ringed":[-1]}',
-          '{"ringed":[1,1]}',
-          '{"ringed":[0],"more":1}',
-          '{"ringed":',
-          "{}",
-          "[]",
-        ]) {
-          yield* started(page, item, { boundTo: responseOf(first.size), state });
-          holdsRings(golden, yield* Effect.orDie(page.drawn), first);
-          assert.deepStrictEqual(
-            (yield* finished(page)).response,
-            responseOf(first.size),
-            `a state it cannot use (${JSON.stringify(state)}) falls back to the bound count`,
-          );
-        }
-
-        yield* started(page, item, { state: '{"ringed":[4,1]}' });
-        holdsRings(golden, yield* Effect.orDie(page.drawn), new Set([1, 4]));
-
-        for (const boundTo of [
-          { base: { integer: 12 } },
-          { base: { integer: 0 } },
-          { base: { integer: -1 } },
-          { base: { integer: 2.5 } },
-          { base: { integer: "3" } },
-          { base: { string: "3" } },
-          {},
-          null,
-        ]) {
-          yield* started(page, item, { boundTo });
-          holdsRings(golden, yield* Effect.orDie(page.drawn), new Set());
-          assert.deepStrictEqual(
-            (yield* finished(page)).response,
-            responseOf(),
-            `a response it cannot use (${JSON.stringify(boundTo)}) rings none`,
-          );
-        }
 
         yield* started(
           page,
@@ -1159,64 +1849,77 @@ layer(RingLayer, { timeout: Duration.millis(ruleHang) })("the mark-objects PCI",
     ruleHang,
   );
   it.effect(
-    "MO11: a swipe from an object rings nothing and takes the page nowhere: the set and every object take every touch",
-    () =>
+    `MO11: a swipe from any object of every item, either way, rings nothing and takes the page nowhere: the set and every object take every touch: ${String(SWIPES)} swipes`,
+    (ctx) =>
       Effect.gen(function* swiping() {
         const page = yield* Ring;
 
-        for (const id of ["alpha-mark-objects-rows", "alpha-mark-objects-scatter"]) {
-          const golden =
-            goldens.find((each) => each.id === id) ?? assert.fail(`${id} is among the goldens`);
-          const item = yield* Effect.orDie(markItem(golden.id));
+        yield* boxHolds(swipes, SWIPES);
 
-          yield* started(page, item, {});
+        return yield* searched(
+          ctx,
+          exhaust(
+            {
+              box: "each object of the seven items, by place, swiped four pictures' sides to the right and to the left",
+              caseHang,
+              coverage: noCoverage,
+              generator: swipes,
+              literal: ({ by, golden, place }) =>
+                `${golden.id} object ${String(place)} swiped by ${String(by)}`,
+              oracle: {
+                kind: "specification",
+                name: "MO11 as the suite transcribes the form: the set and every object take every touch that starts on them (computed touch-action none), so a sideways swipe from an object rings nothing, relays no response but the empty one, has none of the frame's pointers cancelled by the browser, and leaves the host page's address and history as they were",
+              },
+              suite: "alpha/mark-objects-swipes",
+            },
+            ({ by, golden, place }) =>
+              Effect.gen(function* swiped() {
+                const item = yield* Effect.orDie(markItem(golden.id));
+                const named = `in ${golden.id}, a swipe from object ${String(place)} by ${String(by)}`;
 
-          const before = yield* Effect.orDie(page.drawn);
+                yield* started(page, item, {});
 
-          assert.strictEqual(before.setTouchAction, "none", `${id}'s set takes every touch on it`);
-          for (const object of before.objects) {
-            assert.strictEqual(
-              object.touchAction,
-              "none",
-              `${id}'s objects take every touch on them`,
-            );
-          }
+                const before = yield* Effect.orDie(page.drawn);
 
-          for (const by of [form.side * 4, -form.side * 4]) {
-            const where = yield* Effect.orDie(page.swipe(0, by));
+                assert.strictEqual(
+                  before.setTouchAction,
+                  "none",
+                  `${golden.id}'s set takes every touch on it`,
+                );
+                for (const object of before.objects) {
+                  assert.strictEqual(
+                    object.touchAction,
+                    "none",
+                    `${golden.id}'s objects take every touch on them`,
+                  );
+                }
 
-            assert.strictEqual(
-              where.cancelled,
-              0,
-              `in ${id}, the browser takes no part of the swipe`,
-            );
-            assert.deepStrictEqual(
-              where.after,
-              where.before,
-              `in ${id}, the page stays where it was`,
-            );
-          }
+                const where = yield* Effect.orDie(page.swipe(place, by));
 
-          holdsRings(golden, yield* Effect.orDie(page.drawn), new Set());
-          // The frame relays the PCI's response after any input it sees, when it differs from the
-          // last it relayed, the first time included: a swipe may relay the empty response, never
-          // another.
-          for (const message of yield* Effect.orDie(page.messages)) {
-            if (message.kind === "changed") {
-              assert.deepStrictEqual(
-                message.value,
-                responseOf(),
-                `in ${id}, a swipe changes no response`,
-              );
-            }
-          }
-
-          assert.deepStrictEqual(
-            (yield* finished(page)).response,
-            responseOf(),
-            `in ${id}, nothing is ringed`,
-          );
-        }
+                assert.strictEqual(where.cancelled, 0, `${named}: the browser takes no part of it`);
+                assert.deepStrictEqual(
+                  where.after,
+                  where.before,
+                  `${named}: the page stays where it was`,
+                );
+                holdsRings(golden, yield* Effect.orDie(page.drawn), new Set());
+                for (const change of (yield* Effect.orDie(page.messages)).filter(
+                  (message) => message.kind === "changed",
+                )) {
+                  assert.deepStrictEqual(
+                    change.value,
+                    responseOf(),
+                    `${named} changes no response: the frame relays the PCI's response after any input it sees when it differs from the last it relayed, the first time included, so a swipe may relay the empty response, never another`,
+                  );
+                }
+                assert.deepStrictEqual(
+                  (yield* finished(page)).response,
+                  responseOf(),
+                  `${named}: nothing is ringed`,
+                );
+              }),
+          ),
+        );
       }),
     ruleHang,
   );
