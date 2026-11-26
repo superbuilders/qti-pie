@@ -1,0 +1,1487 @@
+[
+  {
+    "field": "kind",
+    "graded": "\"refused: atLeast\"",
+    "key": "bank-chemistry|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: atLeast\"",
+    "key": "bank-ram|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: atLeast,orderAll\"",
+    "key": "bank-ram|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: orderAll\"",
+    "key": "bank-ram|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "credit",
+    "graded": "\"full\"",
+    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|RESPONSE: correct#0",
+    "mom": "The child answered fully correctly; floating-point noise does not cost them (edullm-bd ruling R2).",
+    "reading": {
+      "section": "owner's credit rule (proposal 2026-11-18, Decision 3) over the exact score",
+      "text": "a SCORE of 0.9999999999999999 against MAXSCORE 1 earns full credit"
+    },
+    "recorded": "\"partial\""
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|RESPONSE: correct#0",
+    "mom": "The child's fully correct answer scores the full mark (D2, with R2).",
+    "reading": {
+      "section": "D2 (Bjorn, 2026-11-26): a float sum is the exact sum of its doubles, rounded once; qti-sum §6.9.55",
+      "text": "a sum plate rounded at every step (0.9999999999999999) is the exact total rounded once (1)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.9999999999999999\"]}"
+  },
+  {
+    "field": "credit",
+    "graded": "\"full\"",
+    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|correct#0",
+    "mom": "The child answered fully correctly; floating-point noise does not cost them (edullm-bd ruling R2).",
+    "reading": {
+      "section": "owner's credit rule (proposal 2026-11-18, Decision 3) over the exact score",
+      "text": "a SCORE of 0.9999999999999999 against MAXSCORE 1 earns full credit"
+    },
+    "recorded": "\"partial\""
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|correct#0",
+    "mom": "The child's fully correct answer scores the full mark (D2, with R2).",
+    "reading": {
+      "section": "D2 (Bjorn, 2026-11-26): a float sum is the exact sum of its doubles, rounded once; qti-sum §6.9.55",
+      "text": "a sum plate rounded at every step (0.9999999999999999) is the exact total rounded once (1)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.9999999999999999\"]}"
+  },
+  {
+    "field": "credit",
+    "graded": "\"full\"",
+    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|sequence: RESPONSE: alone barrel-bath group.second, then correct#1",
+    "mom": "The child answered fully correctly; floating-point noise does not cost them (edullm-bd ruling R2).",
+    "reading": {
+      "section": "owner's credit rule (proposal 2026-11-18, Decision 3) over the exact score",
+      "text": "a SCORE of 0.9999999999999999 against MAXSCORE 1 earns full credit"
+    },
+    "recorded": "\"partial\""
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|sequence: RESPONSE: alone barrel-bath group.second, then correct#1",
+    "mom": "The child's fully correct answer scores the full mark (D2, with R2).",
+    "reading": {
+      "section": "D2 (Bjorn, 2026-11-26): a float sum is the exact sum of its doubles, rounded once; qti-sum §6.9.55",
+      "text": "a sum plate rounded at every step (0.9999999999999999) is the exact total rounded once (1)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.9999999999999999\"]}"
+  },
+  {
+    "field": "credit",
+    "graded": "\"full\"",
+    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|sequence: correct twice#0",
+    "mom": "The child answered fully correctly; floating-point noise does not cost them (edullm-bd ruling R2).",
+    "reading": {
+      "section": "owner's credit rule (proposal 2026-11-18, Decision 3) over the exact score",
+      "text": "a SCORE of 0.9999999999999999 against MAXSCORE 1 earns full credit"
+    },
+    "recorded": "\"partial\""
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|sequence: correct twice#0",
+    "mom": "The child's fully correct answer scores the full mark (D2, with R2).",
+    "reading": {
+      "section": "D2 (Bjorn, 2026-11-26): a float sum is the exact sum of its doubles, rounded once; qti-sum §6.9.55",
+      "text": "a sum plate rounded at every step (0.9999999999999999) is the exact total rounded once (1)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.9999999999999999\"]}"
+  },
+  {
+    "field": "credit",
+    "graded": "\"full\"",
+    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|sequence: correct twice#1",
+    "mom": "The child answered fully correctly; floating-point noise does not cost them (edullm-bd ruling R2).",
+    "reading": {
+      "section": "owner's credit rule (proposal 2026-11-18, Decision 3) over the exact score",
+      "text": "a SCORE of 0.9999999999999999 against MAXSCORE 1 earns full credit"
+    },
+    "recorded": "\"partial\""
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|sequence: correct twice#1",
+    "mom": "The child's fully correct answer scores the full mark (D2, with R2).",
+    "reading": {
+      "section": "D2 (Bjorn, 2026-11-26): a float sum is the exact sum of its doubles, rounded once; qti-sum §6.9.55",
+      "text": "a sum plate rounded at every step (0.9999999999999999) is the exact total rounded once (1)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.9999999999999999\"]}"
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: atLeast\"",
+    "key": "bank-shadows|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: orderAtLeast\"",
+    "key": "bank-shadows|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: atLeast\"",
+    "key": "corpus|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: graphicOrderAtLeast\"",
+    "key": "corpus|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: orderAll\"",
+    "key": "corpus|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: orderAtLeast\"",
+    "key": "corpus|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: patternMismatch\"",
+    "key": "corpus|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: positionObjectOffStage\"",
+    "key": "corpus|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: selectPointBeyond\"",
+    "key": "corpus|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "outcomes.FEEDBACK",
+    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SEEN-SOLUTION\"]}",
+    "key": "corpus|QTI3_BPIG_Examples/BPIG_22April.zip.d/items/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint twice#1",
+    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
+    "reading": {
+      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
+      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
+    },
+    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SEEN-SOLUTION\",\"SOLUTION\"]}"
+  },
+  {
+    "field": "outcomes.FEEDBACK",
+    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"CORRECT\",\"SEEN-SOLUTION\"]}",
+    "key": "corpus|QTI3_BPIG_Examples/BPIG_22April.zip.d/items/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint, then correct#1",
+    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
+    "reading": {
+      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
+      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
+    },
+    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SEEN-SOLUTION\",\"SOLUTION\"]}"
+  },
+  {
+    "field": "compiled",
+    "graded": "\"refused: unknown-identifier: declare a mapping on the response RESPONSE\"",
+    "key": "corpus|QTI3_BPIG_Examples/BPIG_22April.zip.d/items/slider-1.xml",
+    "mom": "No child meets these documents (edullm-bd ruling A6).",
+    "reading": {
+      "section": "§6.9.25 qti-map-response needs the response's mapping; §6.9.11 qti-custom-operator definition (D10: publication refuses an operator the registry does not define); pantry's broken/ fixtures",
+      "text": "the document is refused at compile; none is live content (1EdTech examples and fixtures designed broken)"
+    },
+    "recorded": "\"accepted\""
+  },
+  {
+    "field": "compiled",
+    "graded": "\"refused: attribute: write the required attribute definition\"",
+    "key": "corpus|qtiv3-examples/packaging/BBQsTest/BBQsTest.zip.d/id-bd44a757f562/SineRule-001.xml",
+    "mom": "No child meets these documents (edullm-bd ruling A6).",
+    "reading": {
+      "section": "§6.9.25 qti-map-response needs the response's mapping; §6.9.11 qti-custom-operator definition (D10: publication refuses an operator the registry does not define); pantry's broken/ fixtures",
+      "text": "the document is refused at compile; none is live content (1EdTech examples and fixtures designed broken)"
+    },
+    "recorded": "\"accepted\""
+  },
+  {
+    "field": "compiled",
+    "graded": "\"refused: attribute: write the required attribute definition\"",
+    "key": "corpus|qtiv3-examples/packaging/BBQsTest/id-bd44a757f562/SineRule-001.xml",
+    "mom": "No child meets these documents (edullm-bd ruling A6).",
+    "reading": {
+      "section": "§6.9.25 qti-map-response needs the response's mapping; §6.9.11 qti-custom-operator definition (D10: publication refuses an operator the registry does not define); pantry's broken/ fixtures",
+      "text": "the document is refused at compile; none is live content (1EdTech examples and fixtures designed broken)"
+    },
+    "recorded": "\"accepted\""
+  },
+  {
+    "field": "outcomes.FEEDBACK",
+    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[]}",
+    "key": "corpus|qtiv3-examples/packaging/basicFeedbackTest/basicFeedbackTest.zip.d/id-a360e0fa63e6/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint twice#1",
+    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
+    "reading": {
+      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
+      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
+    },
+    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
+  },
+  {
+    "field": "outcomes.FEEDBACK",
+    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"CORRECT\",\"SEEN-SOLUTION\"]}",
+    "key": "corpus|qtiv3-examples/packaging/basicFeedbackTest/basicFeedbackTest.zip.d/id-a360e0fa63e6/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint, then correct#1",
+    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
+    "reading": {
+      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
+      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
+    },
+    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
+  },
+  {
+    "field": "outcomes.FEEDBACK",
+    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[]}",
+    "key": "corpus|qtiv3-examples/packaging/basicFeedbackTest/id-a360e0fa63e6/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint twice#1",
+    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
+    "reading": {
+      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
+      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
+    },
+    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
+  },
+  {
+    "field": "outcomes.FEEDBACK",
+    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"CORRECT\",\"SEEN-SOLUTION\"]}",
+    "key": "corpus|qtiv3-examples/packaging/basicFeedbackTest/id-a360e0fa63e6/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint, then correct#1",
+    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
+    "reading": {
+      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
+      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
+    },
+    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
+  },
+  {
+    "field": "outcomes.FEEDBACK",
+    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[]}",
+    "key": "corpus|qtiv3-examples/packaging/feedbackTest/feedbackTest.zip.d/id-5e216df10030/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint twice#1",
+    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
+    "reading": {
+      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
+      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
+    },
+    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
+  },
+  {
+    "field": "outcomes.FEEDBACK",
+    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"CORRECT\",\"SEEN-SOLUTION\"]}",
+    "key": "corpus|qtiv3-examples/packaging/feedbackTest/feedbackTest.zip.d/id-5e216df10030/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint, then correct#1",
+    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
+    "reading": {
+      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
+      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
+    },
+    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
+  },
+  {
+    "field": "outcomes.FEEDBACK",
+    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[]}",
+    "key": "corpus|qtiv3-examples/packaging/feedbackTest/id-5e216df10030/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint twice#1",
+    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
+    "reading": {
+      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
+      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
+    },
+    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
+  },
+  {
+    "field": "outcomes.FEEDBACK",
+    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"CORRECT\",\"SEEN-SOLUTION\"]}",
+    "key": "corpus|qtiv3-examples/packaging/feedbackTest/id-5e216df10030/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint, then correct#1",
+    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
+    "reading": {
+      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
+      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
+    },
+    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
+  },
+  {
+    "field": "outcomes.FEEDBACK",
+    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[]}",
+    "key": "corpus|qtiv3-examples/packaging/items/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint twice#1",
+    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
+    "reading": {
+      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
+      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
+    },
+    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
+  },
+  {
+    "field": "outcomes.FEEDBACK",
+    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"CORRECT\",\"SEEN-SOLUTION\"]}",
+    "key": "corpus|qtiv3-examples/packaging/items/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint, then correct#1",
+    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
+    "reading": {
+      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
+      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
+    },
+    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
+  },
+  {
+    "field": "outcomes.FEEDBACK",
+    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[]}",
+    "key": "corpus|qtiv3-examples/packaging/items/items.zip.d/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint twice#1",
+    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
+    "reading": {
+      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
+      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
+    },
+    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
+  },
+  {
+    "field": "outcomes.FEEDBACK",
+    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"CORRECT\",\"SEEN-SOLUTION\"]}",
+    "key": "corpus|qtiv3-examples/packaging/items/items.zip.d/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint, then correct#1",
+    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
+    "reading": {
+      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
+      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
+    },
+    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "key": "k2|1/F1.21|1/F1.21#00",
+    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "reading": {
+      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
+      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "key": "k2|1/F1.21|1/F1.21#03",
+    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "reading": {
+      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
+      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "key": "k2|1/F1.21|1/F1.21#04",
+    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "reading": {
+      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
+      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6666666666666666\"]}",
+    "key": "k2|1/F1.21|1/F1.21#06",
+    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "reading": {
+      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
+      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.67\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6666666666666666\"]}",
+    "key": "k2|1/F1.21|1/F1.21#07",
+    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "reading": {
+      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
+      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.67\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6666666666666666\"]}",
+    "key": "k2|1/F1.21|1/F1.21#08",
+    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "reading": {
+      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
+      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.67\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "key": "k2|1/F1.21|1/F1.21#09",
+    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "reading": {
+      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
+      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "key": "k2|1/F1.21|1/F1.21#10",
+    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "reading": {
+      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
+      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "key": "k2|1/F1.21|1/F1.21#11",
+    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "reading": {
+      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
+      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F1.29|1/F1.29#02",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F1.29|1/F1.29#08",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F1.29|1/F1.29#09",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F1.29|1/F1.29#10",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|1/F1.30|1/F1.30#01",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|1/F1.30|1/F1.30#02",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|1/F1.30|1/F1.30#03",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|1/F2.21|1/F2.21#01",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|1/F2.21|1/F2.21#02",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|1/F2.21|1/F2.21#03",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "key": "k2|1/F2.26|1/F2.26#01",
+    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "reading": {
+      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
+      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "key": "k2|1/F2.26|1/F2.26#02",
+    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "reading": {
+      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
+      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "key": "k2|1/F2.26|1/F2.26#05",
+    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "reading": {
+      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
+      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F2.29|1/F2.29#02",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F2.29|1/F2.29#08",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F2.29|1/F2.29#09",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F2.29|1/F2.29#10",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|1/F3.30|1/F3.30#01",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|1/F3.30|1/F3.30#02",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|2/F1.17|2/F1.17#01",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|2/F1.17|2/F1.17#02",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F1.25|2/F1.25#02",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F1.25|2/F1.25#03",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F1.25|2/F1.25#11",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F1.25|2/F1.25#12",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F1.25|2/F1.25#13",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F1.25|2/F1.25#14",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F1.25|2/F1.25#15",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|2/F1.28|2/F1.28#01",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|2/F1.28|2/F1.28#02",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|2/F1.28|2/F1.28#03",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F2.26|2/F2.26#02",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F2.26|2/F2.26#03",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F2.26|2/F2.26#11",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F2.26|2/F2.26#12",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F2.26|2/F2.26#13",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F2.26|2/F2.26#14",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F2.26|2/F2.26#15",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|2/F2.27|2/F2.27#01",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|2/F2.27|2/F2.27#02",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|2/F2.29|2/F2.29#01",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|2/F2.29|2/F2.29#02",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F3.26|2/F3.26#02",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F3.26|2/F3.26#03",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F3.26|2/F3.26#11",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F3.26|2/F3.26#12",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F3.26|2/F3.26#13",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F3.26|2/F3.26#14",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|2/F3.26|2/F3.26#15",
+    "mom": "Ours stands: the blocks show a different number (edullm-bd ruling A2(iii)).",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct) over the ordered counts",
+      "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|2/F3.27|2/F3.27#01",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|2/F3.29|2/F3.29#01",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|2/F3.29|2/F3.29#02",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|2/F3.29|2/F3.29#03",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
+    "key": "k2|2/F3.29|2/F3.29#04",
+    "mom": "The child's accepted answer now earns its credit (edullm-bd ruling A2(i)).",
+    "reading": {
+      "section": "rptemplates/map_response.xml over the item's qti-mapping",
+      "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: selectPointBeyond\"",
+    "key": "pantry-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "compiled",
+    "graded": "\"refused: unknown-identifier: declare the variable QTI_CONTEXT\"",
+    "key": "pantry-fixtures|broken/p26-template-reads-context.xml",
+    "mom": "No child meets these documents (edullm-bd ruling A6).",
+    "reading": {
+      "section": "§6.9.25 qti-map-response needs the response's mapping; §6.9.11 qti-custom-operator definition (D10: publication refuses an operator the registry does not define); pantry's broken/ fixtures",
+      "text": "the document is refused at compile; none is live content (1EdTech examples and fixtures designed broken)"
+    },
+    "recorded": "\"accepted\""
+  },
+  {
+    "field": "compiled",
+    "graded": "\"refused: unknown-operator: use an operator the registry lists; it lists no https://example.org/operators/custom\"",
+    "key": "pantry-fixtures|broken/p49-custom-operator-unresolved.xml",
+    "mom": "No child meets these documents (edullm-bd ruling A6).",
+    "reading": {
+      "section": "§6.9.25 qti-map-response needs the response's mapping; §6.9.11 qti-custom-operator definition (D10: publication refuses an operator the registry does not define); pantry's broken/ fixtures",
+      "text": "the document is refused at compile; none is live content (1EdTech examples and fixtures designed broken)"
+    },
+    "recorded": "\"accepted\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: associateAtLeast,associateChoiceAtLeast\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: atLeast\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: atLeastStrings\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: gapMatchChoiceAtLeast\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: gapMatchChoiceAtLeast,gapMatchGapRequired\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: graphicAssociateAtLeast,graphicAssociateMatchMin\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: graphicGapMatchAreaAtLeast,graphicGapMatchChoiceAtLeast\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: graphicOrderAtLeast\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: matchChoiceAtLeast\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: mediaAtLeast\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: orderAll\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: orderAll,orderAtLeast\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: orderAtLeast\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: positionObjectAtLeast\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: positionObjectAtLeast,positionObjectOffStage\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: positionObjectOffStage\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: selectPointAtLeast\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: selectPointAtLeast,selectPointBeyond\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"refused: selectPointBeyond\"",
+    "key": "plate-fixtures|*",
+    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "reading": {
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+    },
+    "recorded": "\"done\""
+  },
+  {
+    "field": "refused",
+    "graded": "[\"FIRST\",\"ONE\"]",
+    "key": "plate-fixtures|*",
+    "mom": "The child sees every answer still to complete at once (A1).",
+    "reading": {
+      "section": "§7.19.7 validate-responses",
+      "text": "every interaction whose response breaks its minimum is named, not the first alone"
+    },
+    "recorded": "[\"FIRST\"]"
+  },
+  {
+    "field": "refused",
+    "graded": "[\"MANY\",\"ONE\"]",
+    "key": "plate-fixtures|*",
+    "mom": "The child sees every answer still to complete at once (A1).",
+    "reading": {
+      "section": "§7.19.7 validate-responses",
+      "text": "every interaction whose response breaks its minimum is named, not the first alone"
+    },
+    "recorded": "[\"MANY\"]"
+  },
+  {
+    "field": "refused",
+    "graded": "[\"ONCE\",\"TWICE\"]",
+    "key": "plate-fixtures|*",
+    "mom": "The child sees every answer still to complete at once (A1).",
+    "reading": {
+      "section": "§7.19.7 validate-responses",
+      "text": "every interaction whose response breaks its minimum is named, not the first alone"
+    },
+    "recorded": "[\"ONCE\"]"
+  },
+  {
+    "field": "refused",
+    "graded": "[\"FIRST\",\"ONE\"]",
+    "key": "plate-fixtures|*",
+    "mom": "The child sees every answer still to complete at once (A1).",
+    "reading": {
+      "section": "§7.19.7 validate-responses",
+      "text": "every interaction whose response breaks its minimum is named, not the first alone"
+    },
+    "recorded": "[\"ONE\"]"
+  },
+  {
+    "field": "refused",
+    "graded": "[\"MANY\",\"ONE\"]",
+    "key": "plate-fixtures|*",
+    "mom": "The child sees every answer still to complete at once (A1).",
+    "reading": {
+      "section": "§7.19.7 validate-responses",
+      "text": "every interaction whose response breaks its minimum is named, not the first alone"
+    },
+    "recorded": "[\"ONE\"]"
+  },
+  {
+    "field": "refused",
+    "graded": "[\"ONE\",\"SOME\"]",
+    "key": "plate-fixtures|*",
+    "mom": "The child sees every answer still to complete at once (A1).",
+    "reading": {
+      "section": "§7.19.7 validate-responses",
+      "text": "every interaction whose response breaks its minimum is named, not the first alone"
+    },
+    "recorded": "[\"ONE\"]"
+  },
+  {
+    "field": "kind",
+    "graded": "\"done\"",
+    "key": "sql|sqltruth-crafted-itemdur|test.xml|alternate",
+    "mom": "A finish that crashes is worse than one that grades (edullm-bd ruling A4).",
+    "reading": {
+      "section": "§5.48 built-in duration of every item session (reading 29, 150)",
+      "text": "an item whose response processing reads duration is graded; the SQL grader failed the finish with 'undeclared variable duration'"
+    },
+    "recorded": "\"failed: Error: the write failed: undeclared variable duration {}\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"done\"",
+    "key": "sql|sqltruth-crafted-itemdur|test.xml|correct",
+    "mom": "A finish that crashes is worse than one that grades (edullm-bd ruling A4).",
+    "reading": {
+      "section": "§5.48 built-in duration of every item session (reading 29, 150)",
+      "text": "an item whose response processing reads duration is graded; the SQL grader failed the finish with 'undeclared variable duration'"
+    },
+    "recorded": "\"failed: Error: the write failed: undeclared variable duration {}\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"done\"",
+    "key": "sql|sqltruth-crafted-itemdur|test.xml|first",
+    "mom": "A finish that crashes is worse than one that grades (edullm-bd ruling A4).",
+    "reading": {
+      "section": "§5.48 built-in duration of every item session (reading 29, 150)",
+      "text": "an item whose response processing reads duration is graded; the SQL grader failed the finish with 'undeclared variable duration'"
+    },
+    "recorded": "\"failed: Error: the write failed: undeclared variable duration {}\""
+  },
+  {
+    "field": "kind",
+    "graded": "\"done\"",
+    "key": "sql|sqltruth-crafted-itemdur|test.xml|none",
+    "mom": "A finish that crashes is worse than one that grades (edullm-bd ruling A4).",
+    "reading": {
+      "section": "§5.48 built-in duration of every item session (reading 29, 150)",
+      "text": "an item whose response processing reads duration is graded; the SQL grader failed the finish with 'undeclared variable duration'"
+    },
+    "recorded": "\"failed: Error: the write failed: undeclared variable duration {}\""
+  }
+]

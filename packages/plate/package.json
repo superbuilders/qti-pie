@@ -26,6 +26,7 @@
     "./test/admitted": "./src/test/admitted.ts",
     "./test/catalog-shown": "./src/test/catalog-shown.ts",
     "./test/corpus": "./src/test/corpus.ts",
+    "./test/golden": "./src/test/golden.ts",
     "./test/records": "./src/test/records.ts",
     "./words": "./src/words.ts"
   },

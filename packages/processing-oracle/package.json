@@ -1,0 +1,33 @@
+{
+  "name": "@qti-pie/processing-oracle",
+  "private": true,
+  "description": "The differential oracle of @qti-pie/processing: plate's recorded golden grading (every item, seed, attempt and refusal it recorded) and the SQL grader's recorded truths, replayed through the package's public API with no database, every difference from the recording held to a ruling that names the QTI 3.0.1 reading deciding it.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "imports": {
+    "#processing-oracle/*": "./src/*"
+  },
+  "exports": {
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "typecheck": "toolchain-typecheck",
+    "test": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" NODE_OPTIONS=\"$NODE_OPTIONS --disable-proto=delete --disable-sigusr1\" vitest run"
+  },
+  "dependencies": {
+    "@qti-pie/crust": "workspace:*",
+    "@qti-pie/plate": "workspace:*",
+    "@qti-pie/processing": "workspace:*",
+    "@qti-pie/specimen": "workspace:*",
+    "arkregex": "catalog:",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@bjornpagen/devtools": "workspace:*",
+    "@bjornpagen/testing": "workspace:*",
+    "@effect/vitest": "catalog:",
+    "@types/node": "catalog:",
+    "vitest": "catalog:"
+  }
+}
