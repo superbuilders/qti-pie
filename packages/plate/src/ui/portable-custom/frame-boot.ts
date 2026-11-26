@@ -877,11 +877,8 @@ export const bootFrame = (): void => {
     const cause: unknown = event.reason;
 
     fail(
-      typeof cause === "object" &&
-        cause !== null &&
-        "message" in cause &&
-        typeof cause.message === "string"
-        ? cause.message
+      isObject(cause) && isString(cause["message"])
+        ? cause["message"]
         : "A promise in the frame was rejected.",
     );
   });
