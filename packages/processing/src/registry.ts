@@ -7,12 +7,39 @@
  *
  * @module
  */
+import { markupTextOperator } from "#processing/alpha/operators/markup-text.ts";
+import { mathCanonicalOperator } from "#processing/alpha/operators/math-canonical.ts";
+import { normalizeSpaceOperator } from "#processing/alpha/operators/normalize-space.ts";
+import { numeralNormalOperator } from "#processing/alpha/operators/numeral-normal.ts";
+import { phraseDistanceOperator } from "#processing/alpha/operators/phrase-distance.ts";
+import { quantityOperator } from "#processing/alpha/operators/quantity.ts";
+import { readNumberOperator } from "#processing/alpha/operators/read-number.ts";
+import { rubricScoreOperator } from "#processing/alpha/operators/rubric-score.ts";
+import { texNormalOperator } from "#processing/alpha/operators/tex-normal.ts";
+import { tokenizeOperator } from "#processing/alpha/operators/tokenize.ts";
+import { translateOperator } from "#processing/alpha/operators/translate.ts";
+import { unitNearOperator } from "#processing/alpha/operators/unit-near.ts";
+import { whenPresentOperator } from "#processing/alpha/operators/when-present.ts";
 import type { CustomOperator } from "#processing/operator.ts";
 
 /**
- * Every custom operator, each `definition` once.
+ * Every custom operator, each `definition` once: Alpha's, in its roster's order.
  */
-export const customOperators = [] as const satisfies readonly CustomOperator[];
+export const customOperators = [
+  normalizeSpaceOperator,
+  texNormalOperator,
+  numeralNormalOperator,
+  readNumberOperator,
+  tokenizeOperator,
+  translateOperator,
+  mathCanonicalOperator,
+  quantityOperator,
+  unitNearOperator,
+  phraseDistanceOperator,
+  rubricScoreOperator,
+  markupTextOperator,
+  whenPresentOperator,
+] as const satisfies readonly CustomOperator[];
 
 /**
  * The `definition` URI of a registered operator.
