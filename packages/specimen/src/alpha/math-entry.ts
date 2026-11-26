@@ -458,6 +458,18 @@ const twoFrames = async (): Promise<void> => {
  * after both, so the first key lands on a field that takes it and on a keyboard no late timer
  * hides, as every key of a child's does, a child being slower than this.
  *
+ * @constraint MathLive gives no event to end this wait on. `onFocus`'s 60 ms timer ends in
+ *   `connectToVirtualKeyboard`, whose `window.mathVirtualKeyboard.connect()` sets
+ *   `connectedMathfieldWindow` and dispatches nothing; the keyboard's `focusout` listener's 300 ms
+ *   timer hides the keyboard, its one event, only where no field holds focus, which is not the case
+ *   waited out; and its `focusin` listener's 300 ms timer shows the keyboard only on a page that
+ *   takes touch, which this page, opened without touch, does not. So the wait ends on a timer of the
+ *   page's own that HTML orders after all three: a timer set later with a delay no shorter fires
+ *   after them.
+ * @source `mathlive.mjs` 0.105.3: `onFocus`'s timer at lines 38652 to 38672, its
+ *   `connectToVirtualKeyboard()` at line 38669; `VirtualKeyboard.connect` at lines 26274 to 26276;
+ *   the `focusin` listener's timer at lines 25750 to 25757; the `focusout` listener's timer at lines
+ *   25759 to 25764.
  * @formatConstant
  */
 const focusDelay = 300;

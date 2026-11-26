@@ -40,8 +40,18 @@ import { chromeFor, unboundedModuleWait } from "#specimen/ui/chrome.ts";
 import { resolvePciModules } from "@qti-pie/plate";
 import type { PciModules } from "@qti-pie/plate";
 import { framePage } from "@qti-pie/plate/ui/pci-frame";
-import { pressInto } from "#specimen/alpha/delivered.ts";
-import type { TapNotDelivered } from "#specimen/alpha/delivered.ts";
+import {
+  centred,
+  focusOn,
+  framesIn,
+  keyInto,
+  listening,
+  meantFor,
+  nameOf,
+  pressInto,
+  settledFor,
+} from "#specimen/alpha/delivered.ts";
+import type { KeyNotDelivered, TapNotDelivered, Target } from "#specimen/alpha/delivered.ts";
 import { markObjects } from "@qti-pie/plate/alpha/pci-modules";
 
 /**
@@ -260,12 +270,6 @@ window.startPci = (start) => new Promise((settle) => {
 });
 window.completePci = () => new Promise((settle) => { window.completed = settle; post({ kind: "complete" }); });
 </script></body></html>`;
-
-/**
- * How long {@link RingPage.thrown} waits for an error the page has not thrown yet: a hang guard,
- * never a budget.
- */
-const errorWait = 10_000;
 
 /**
  * The address a listening server took, as Node reports it for a TCP server.
@@ -520,11 +524,12 @@ export interface RingPage {
    */
   readonly start: (item: MarkItem, start: Start) => Effect.Effect<FrameMessage, MarkObjectsFailure>;
   /**
-   * Put a finger down at an object's centre, by its place, and swipe it sideways by a distance in
-   * CSS pixels, then lift it, as a child's swipe does on a touch screen: a devtools session of its
-   * own with touch on for the swipe alone. Give where the host page stood before and after (after
-   * a navigation that took its document, the address "navigated away"), and how many of the
-   * frame's pointers the browser cancelled, taking the gesture for its own.
+   * Put a finger down at an object's centre, by its place, delivered to the frame's document there
+   * (`#specimen/alpha/delivered.ts`), and swipe it sideways by a distance in CSS pixels, then lift
+   * it, as a child's swipe does on a touch screen: a devtools session of its own with touch on for
+   * the swipe alone. Give where the host page stood before and after (after a navigation that took
+   * its document, the address "navigated away"), and how many of the frame's pointers the browser
+   * cancelled, taking the gesture for its own.
    */
   readonly swipe: (
     place: number,
@@ -535,7 +540,7 @@ export interface RingPage {
       readonly before: Whereabouts;
       readonly cancelled: number;
     },
-    MarkObjectsFailure
+    MarkObjectsFailure | TapNotDelivered
   >;
   /**
    * Give the frame a width, in CSS pixels, as a host's layout would: the harness's frame is 1000
@@ -544,25 +549,30 @@ export interface RingPage {
   readonly frameWidth: (width: number) => Effect.Effect<void, MarkObjectsFailure>;
   /**
    * Focus an object by its place, then press keys in order on the keyboard, each named as
-   * Playwright names it (`" "`, `"Enter"`, `"Tab"`).
+   * Playwright names it (`" "`, `"Enter"`, `"Tab"`): the focus taken once the frame's document
+   * holds it on the object, and each key delivered to it (`#specimen/alpha/delivered.ts`), or
+   * failing as `key not delivered`.
    */
   readonly press: (
     place: number,
     keys: readonly string[],
-  ) => Effect.Effect<void, MarkObjectsFailure>;
+  ) => Effect.Effect<void, MarkObjectsFailure | KeyNotDelivered>;
   /**
-   * Tap objects in order, each by its place, with the pointer at its centre, each delivered to the
-   * frame's document (`#specimen/alpha/delivered.ts`); forced, a tap lands on an object the PCI
-   * has disabled, as a child's finger would.
+   * Tap objects in order, each by its place, with the pointer at its centre in the frame's
+   * document, as a child's finger does, whether or not the PCI has disabled it, each delivered to
+   * the document there (`#specimen/alpha/delivered.ts`).
    */
   readonly tap: (
     places: readonly number[],
-    forced?: boolean,
   ) => Effect.Effect<void, MarkObjectsFailure | TapNotDelivered>;
   /**
    * Every uncaught error the page and its frame threw since the last frame was started, its name
-   * and message as Chrome reports them, waiting for one where none is in yet: a refusal's own
-   * message, which the frame's `failed` withholds as "Script error.".
+   * and message as Chrome reports them: a refusal's own message, which the frame's `failed`
+   * withholds as "Script error.". It is read once the frame has answered one plain evaluation,
+   * which Chrome answers on the frame's own session only after every error that frame reported
+   * before it, and once two of the page's own frames have come, after the page's: so the count is
+   * ordered after every throw, never timed. Nothing waits for a frame of the frame's, which a
+   * failed frame left hidden would never let end.
    */
   readonly thrown: Effect.Effect<readonly string[], MarkObjectsFailure>;
 }
@@ -594,21 +604,60 @@ const routesOf = (origin: string, item: MarkItem) =>
   }));
 
 /**
- * Read what the frame shows, in the frame's document, once each object's picture has loaded or
- * failed to.
+ * Say why the frame's pictures could not be read: the harness's listeners are not in the frame's
+ * document, a picture's request had not ended, or a picture did not decode.
  *
- * @returns Each object by its place, and the document's text.
+ * @param read What the read found.
+ * @param read.undecoded The pictures that did not decode, none where the listeners are missing.
+ * @param read.unloaded The pictures whose request had not ended.
+ * @returns The cause.
  */
-const readDrawn = async (): Promise<Drawn> => {
+const unreadOf = (read: {
+  readonly undecoded: readonly string[] | null;
+  readonly unloaded: readonly string[];
+}): string => {
+  if (read.undecoded === null) {
+    return "the frame has none of the harness's listeners";
+  }
+
+  return read.unloaded.length > 0
+    ? `pictures that did not load: ${read.unloaded.join(", ")}`
+    : `pictures that did not decode: ${read.undecoded.join(", ")}`;
+};
+
+/**
+ * Read what the frame shows, in the frame's document, once each object's picture has decoded, on
+ * the clock the document kept before its own scripts ran (`listening`): each picture's kept
+ * `decode()`, which settles once the picture is decoded or cannot be, waited for only where the
+ * picture's request has ended or must end; any other picture is named as one that did not load.
+ *
+ * @returns Each object by its place, and the document's text; or the pictures that did not load or
+ *   did not decode, by their addresses, and none where the harness's listeners are not in the
+ *   document.
+ */
+const readDrawn = async (): Promise<
+  | Drawn
+  | {
+      readonly undecoded: readonly string[] | null;
+      readonly unloaded: readonly string[];
+    }
+> => {
   const marker = "data-part";
   const part = (name: string): string => `[${marker}="${name}"]`;
   const objects = [...document.querySelectorAll<HTMLElement>(part("object"))];
+  const kept = window.harnessKept;
 
-  await Promise.allSettled(
-    objects.flatMap((object) =>
-      [...object.querySelectorAll("img")].map((picture) => picture.decode()),
-    ),
+  if (kept === undefined) {
+    return { undecoded: null, unloaded: [] };
+  }
+
+  const pictured = await kept.decoded(
+    objects.flatMap((object) => [...object.querySelectorAll("img")]),
   );
+
+  if (pictured.unloaded.length > 0 || pictured.undecoded.length > 0) {
+    return pictured;
+  }
 
   const scatter = document.querySelector(part("scatter"))?.getBoundingClientRect();
 
@@ -680,7 +729,7 @@ const readDrawn = async (): Promise<Drawn> => {
           alt: picture.alt,
           attributes: picture.getAttributeNames().toSorted(),
           height: picture.getBoundingClientRect().height,
-          loaded: picture.complete && picture.naturalWidth > 0,
+          loaded: kept.loaded(picture),
           width: picture.getBoundingClientRect().width,
         })),
         pressed: object.getAttribute("aria-pressed"),
@@ -833,23 +882,25 @@ const watchCancels = (): void => {
 const cancelsSeen = (): number => Number(document.documentElement.dataset["cancels"] ?? "0");
 
 /**
- * Swipe one finger sideways from a point of the page, on a devtools session of its own that turns
- * touch on for the swipe alone and is detached with it: down, `swipeSteps` equal moves, up, then
- * two of the page's animation frames. The frame's cancelled pointers are counted meanwhile: none
- * where the PCI kept the whole swipe, and -1 where the frame went with its page.
+ * Swipe one finger sideways from what it is meant to start on, on a devtools session of its own
+ * that turns touch on for the swipe alone and is detached with it: down, delivered to the frame's
+ * document there (`#specimen/alpha/delivered.ts`) or failing as `tap not delivered`, then
+ * `swipeSteps` equal moves from where it went down, up, then two of the page's animation frames.
+ * The frame's cancelled pointers are counted meanwhile: none where the PCI kept the whole swipe,
+ * and -1 where the frame went with its page.
  *
  * @param page The page.
  * @param frame The PCI's frame.
- * @param from Where the finger goes down, in CSS pixels of the page.
+ * @param from What the finger goes down on, and where inside its box.
  * @param by How far it moves sideways, in CSS pixels, to the right where positive.
  * @returns The pointers the browser cancelled.
  */
 const swiped = (
   page: Page,
   frame: Frame,
-  from: { readonly x: number; readonly y: number },
+  from: Target,
   by: number,
-): Effect.Effect<number, MarkObjectsFailure> =>
+): Effect.Effect<number, MarkObjectsFailure | TapNotDelivered> =>
   Effect.scoped(
     Effect.gen(function* swiping() {
       yield* attempt("count the frame's cancelled pointers", () => frame.evaluate(watchCancels));
@@ -862,15 +913,24 @@ const swiped = (
       yield* attempt("turn touch on", () =>
         session.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 }),
       );
-      yield* attempt("put a finger down", () =>
-        session.send("Input.dispatchTouchEvent", { touchPoints: [from], type: "touchStart" }),
+
+      const { aim } = yield* pressInto(
+        frame,
+        attempt,
+        `put a finger down on ${nameOf(from.meant)}`,
+        from,
+        (point) =>
+          attempt("put a finger down", () =>
+            session.send("Input.dispatchTouchEvent", { touchPoints: [point], type: "touchStart" }),
+          ).pipe(Effect.asVoid),
       );
+
       yield* Effect.forEach(
         Array.from({ length: swipeSteps }, (_unused, step) => step + 1),
         (step) =>
           attempt("move the finger", () =>
             session.send("Input.dispatchTouchEvent", {
-              touchPoints: [{ x: from.x + (by * step) / swipeSteps, y: from.y }],
+              touchPoints: [{ x: aim.x + (by * step) / swipeSteps, y: aim.y }],
               type: "touchMove",
             }),
           ),
@@ -882,20 +942,7 @@ const swiped = (
       yield* attempt("turn touch off", () =>
         session.send("Emulation.setTouchEmulationEnabled", { enabled: false }),
       );
-      yield* Effect.ignore(
-        attempt("let the page settle", () =>
-          page.evaluate(async () => {
-            const frames = Promise.withResolvers<number>();
-
-            requestAnimationFrame(() => {
-              requestAnimationFrame((time) => {
-                frames.resolve(time);
-              });
-            });
-            await frames.promise;
-          }),
-        ),
-      );
+      yield* Effect.ignore(attempt("let the page settle", () => page.evaluate(framesIn)));
 
       return yield* attempt("read the frame's cancelled pointers", () =>
         frame.evaluate(cancelsSeen),
@@ -913,6 +960,9 @@ export const ringPage: Effect.Effect<RingPage, MarkObjectsFailure, Scope.Scope> 
     const origin = yield* harnessServer;
     const browser = yield* chrome;
     const page: Page = yield* launched.pageOf(browser, {});
+
+    yield* attempt("listen in every document of the page", () => page.addInitScript(listening));
+
     const thrown: string[] = [];
 
     page.on("pageerror", (error) => {
@@ -935,16 +985,42 @@ export const ringPage: Effect.Effect<RingPage, MarkObjectsFailure, Scope.Scope> 
 
     return {
       beforeModule: (item) =>
-        attempt("start the PCI with its module held back", () => startHeld(page, origin, item)),
+        Effect.gen(function* heldBack() {
+          const held = yield* attempt("start the PCI with its module held back", () =>
+            startHeld(page, origin, item),
+          );
+
+          if (held.settled.kind === "ready") {
+            yield* settledFor(
+              yield* framed,
+              attempt,
+              "start the PCI with its module held back",
+              (why) => new MarkObjectsFailure({ cause: why, step: "settle the PCI's frame" }),
+            );
+          }
+
+          return held;
+        }),
       complete: attempt("complete the PCI", () =>
         page.evaluate<FrameMessage>("window.completePci()"),
       ),
       drawn: Effect.flatMap(
-        Effect.sync(() => page.frames().find((each) => each !== page.mainFrame())),
-        (inner) =>
-          inner === undefined
-            ? Effect.fail(new MarkObjectsFailure({ cause: "no frame", step: "read the frame" }))
-            : attempt("read the frame", () => inner.evaluate(readDrawn)),
+        Effect.flatMap(
+          Effect.sync(() => page.frames().find((each) => each !== page.mainFrame())),
+          (inner) =>
+            inner === undefined
+              ? Effect.fail(new MarkObjectsFailure({ cause: "no frame", step: "read the frame" }))
+              : attempt("read the frame", () => inner.evaluate(readDrawn)),
+        ),
+        (read) =>
+          "undecoded" in read
+            ? Effect.fail(
+                new MarkObjectsFailure({
+                  cause: unreadOf(read),
+                  step: "read the frame",
+                }),
+              )
+            : Effect.succeed(read),
       ),
       frameWidth: (width) =>
         attempt(`give the frame ${String(width)} pixels`, () =>
@@ -956,42 +1032,57 @@ export const ringPage: Effect.Effect<RingPage, MarkObjectsFailure, Scope.Scope> 
         page.evaluate<readonly FrameMessage[]>("window.frameMessages"),
       ),
       press: (place, keys) =>
-        Effect.andThen(
-          attempt(`focus object ${String(place)}`, () =>
-            frame.locator('[data-part="object"]').nth(place).focus(),
-          ),
-          Effect.forEach(keys, (key) => attempt(`press ${key}`, () => page.keyboard.press(key)), {
-            discard: true,
-          }),
-        ),
-      start: (item, start) =>
-        attempt("start the PCI", () => {
-          thrown.length = 0;
+        Effect.gen(function* pressed() {
+          const document = yield* framed;
 
-          return page.evaluate<FrameMessage>(startScript(origin, item, start));
+          yield* focusOn(
+            document,
+            attempt,
+            { nth: place, selector: '[data-part="object"]' },
+            attempt(`focus object ${String(place)}`, () =>
+              frame.locator('[data-part="object"]').nth(place).focus(),
+            ),
+          );
+
+          for (const key of keys) {
+            yield* keyInto(
+              document,
+              attempt,
+              key,
+              attempt(`press ${key}`, () => page.keyboard.press(key)),
+            );
+          }
+        }),
+      start: (item, start) =>
+        Effect.gen(function* started() {
+          const message = yield* attempt("start the PCI", () => {
+            thrown.length = 0;
+
+            return page.evaluate<FrameMessage>(startScript(origin, item, start));
+          });
+
+          if (message.kind === "ready") {
+            yield* settledFor(
+              yield* framed,
+              attempt,
+              "start the PCI",
+              (why) => new MarkObjectsFailure({ cause: why, step: "settle the PCI's frame" }),
+            );
+          }
+
+          return message;
         }),
       swipe: (place, by) =>
         Effect.gen(function* swipe() {
-          const step = `find object ${String(place)}`;
-          const box = yield* attempt(step, () =>
-            frame.locator('[data-part="object"]').nth(place).boundingBox(),
-          );
-
-          if (box === null) {
-            return yield* Effect.fail(new MarkObjectsFailure({ cause: "no box", step }));
-          }
-
-          const inner = page.frames().find((each) => each !== page.mainFrame());
-
-          if (inner === undefined) {
-            return yield* Effect.fail(new MarkObjectsFailure({ cause: "no frame", step }));
-          }
-
+          const document = yield* framed;
           const before = yield* whereabouts(page);
           const cancelled = yield* swiped(
             page,
-            inner,
-            { x: box.x + box.width / 2, y: box.y + box.height / 2 },
+            document,
+            {
+              anchor: centred,
+              meant: meantFor(`[data-part="object"][data-place="${String(place)}"]`, 0),
+            },
             by,
           );
           const after = yield* whereabouts(page).pipe(
@@ -1000,32 +1091,35 @@ export const ringPage: Effect.Effect<RingPage, MarkObjectsFailure, Scope.Scope> 
 
           return { after, before, cancelled };
         }),
-      tap: (places, forced = false) =>
-        Effect.forEach(
-          places,
-          (place) =>
-            framed.pipe(
-              Effect.flatMap((document) =>
-                pressInto(
-                  document,
-                  attempt,
-                  `tap object ${String(place)}`,
-                  attempt(`tap object ${String(place)}`, () =>
-                    frame.locator('[data-part="object"]').nth(place).click({ force: forced }),
-                  ),
-                ),
-              ),
-            ),
-          { discard: true },
-        ),
-      thrown: attempt("read what the page threw", async () => {
-        if (thrown.length === 0) {
-          // A page that throws nothing in the wait leaves the list empty, which the rule reads.
-          await page.waitForEvent("pageerror", { timeout: errorWait }).catch(Boolean);
-        }
+      tap: (places) =>
+        Effect.gen(function* tapped() {
+          const document = yield* framed;
 
-        return [...thrown];
-      }),
+          for (const place of places) {
+            const step = `tap object ${String(place)}`;
+
+            yield* pressInto(
+              document,
+              attempt,
+              step,
+              {
+                anchor: centred,
+                meant: meantFor(`[data-part="object"][data-place="${String(place)}"]`, 0),
+              },
+              (aim) => attempt(step, () => page.mouse.click(aim.x, aim.y)),
+            );
+          }
+        }),
+      thrown: framed.pipe(
+        Effect.flatMap((document) =>
+          attempt("read what the page threw", async () => {
+            await document.evaluate(() => null);
+            await page.evaluate(framesIn);
+
+            return [...thrown];
+          }),
+        ),
+      ),
     } satisfies RingPage;
   },
 );

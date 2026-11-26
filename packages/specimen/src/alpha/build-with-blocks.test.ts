@@ -44,9 +44,10 @@
  *   on the piece the first put down; on a piece of the mat it chooses it; on the tray, with a piece
  *   of the mat chosen, it takes back that one piece. The pieces it does not move stay where they
  *   were.
- * - B8, a drag the frame never hears end: a piece dragged out of the frame and let go there, from the
- *   tray or from the mat, stays where it lay, drawn whole, with no copy following the pointer and
- *   no mat ringed, and the response is what the mats show.
+ * - B8, a drag the frame never hears end: a piece dragged out of the frame, lifted there (faded,
+ *   which the rule reads before the release, so a drag that never began cannot pass), and let go
+ *   there, from the tray or from the mat, stays where it lay, drawn whole, with no copy following
+ *   the pointer and no mat ringed, and the response is what the mats show.
  * - B9, a finger (a touch screen, as Chrome's emulation sends it): tap then tap places a piece, a
  *   double tap is one tap, also where its second tap lands on the piece its first set down, a
  *   finger drags a piece onto the mat and back, and a sideways swipe on the tray's floor moves
@@ -84,6 +85,7 @@ import type {
   Box,
   Kind,
   Place,
+  Point,
   Response,
 } from "#specimen/alpha/build-with-blocks.ts";
 
@@ -263,6 +265,15 @@ const inside = (inner: Box, outer: Box): boolean =>
   inner.y >= outer.y &&
   inner.x + inner.width <= outer.x + outer.width &&
   inner.y + inner.height <= outer.y + outer.height;
+
+/**
+ * Give a point from a box's corner, as a press names a point inside the box it is meant for.
+ *
+ * @param point The point.
+ * @param box The box.
+ * @returns The point from the box's corner.
+ */
+const fromCorner = (point: Point, box: Box): Point => ({ x: point.x - box.x, y: point.y - box.y });
 
 /**
  * Open an item's PCI, bound to a response, and take it ready.
@@ -620,12 +631,13 @@ layer(Layer.effect(Pages, blocksPages), { excludeTestServices: true, timeout: ca
               yield* frame.relayed(posted(row.supply, { cubes: 1 }));
 
               const [landing] = yield* frame.boxes("cubes", "mat");
+              const mat = yield* frame.mat("mat");
 
               assert.ok(landing !== undefined, "the cube is on the mat");
               yield* frame.drag("cubes", "mat");
               yield* frame.relayed({ list: null });
               yield* frame.tapPiece("cubes", "tray");
-              yield* frame.doubleTapAt(centreOf(landing));
+              yield* frame.doubleTapAt(fromCorner(centreOf(landing), mat), "mat");
               yield* frame.relayed(posted(row.supply, { cubes: 1 }));
               assert.strictEqual(yield* frame.count("cubes", "mat"), 1);
               assert.strictEqual(yield* frame.chosen("cubes", "mat"), 0);
@@ -686,10 +698,18 @@ layer(Layer.effect(Pages, blocksPages), { excludeTestServices: true, timeout: ca
 
               yield* build(frame, { rods: 2 }, "drag");
               yield* frame.relayed(posted(row.supply, { rods: 2 }));
-              yield* frame.dragOut("rods", "mat");
+              assert.strictEqual(
+                (yield* frame.dragOut("rods", "mat")).lifted,
+                1,
+                "the rod dragged out of the frame was lifted before it was let go",
+              );
               assert.deepStrictEqual(yield* frame.leftovers, { copies: 0, lifted: 0, ready: 0 });
               assert.strictEqual(yield* frame.count("rods", "mat"), 2);
-              yield* frame.dragOut("cubes", "tray");
+              assert.strictEqual(
+                (yield* frame.dragOut("cubes", "tray")).lifted,
+                1,
+                "the cube dragged out of the frame was lifted before it was let go",
+              );
               assert.deepStrictEqual(yield* frame.leftovers, { copies: 0, lifted: 0, ready: 0 });
               assert.strictEqual(yield* frame.count("cubes", "mat"), 0);
               assert.strictEqual(yield* frame.count("cubes", "tray"), row.supply.cubes);
@@ -731,12 +751,13 @@ layer(Layer.effect(Pages, blocksPages), { excludeTestServices: true, timeout: ca
               yield* frame.relayed(posted(row.supply, { cubes: 1, rods: 2 }));
 
               const [landing] = yield* frame.boxes("cubes", "mat");
+              const mat = yield* frame.mat("mat");
 
               assert.ok(landing !== undefined, "the cube is on the mat");
               yield* frame.touchDrag("cubes", "mat");
               yield* frame.relayed(posted(row.supply, { rods: 2 }));
               yield* frame.touchTapPiece("cubes", "tray");
-              yield* frame.touchDoubleTapAt(centreOf(landing));
+              yield* frame.touchDoubleTapAt(fromCorner(centreOf(landing), mat), "mat");
               yield* frame.relayed(posted(row.supply, { cubes: 1, rods: 2 }));
               assert.strictEqual(yield* frame.count("cubes", "mat"), 1);
               assert.strictEqual(yield* frame.chosen("cubes", "mat"), 0);
@@ -763,13 +784,13 @@ layer(Layer.effect(Pages, blocksPages), { excludeTestServices: true, timeout: ca
               const frame = yield* opened(hosted, { list: null });
 
               yield* frame.tapPiece("cubes", "tray");
-              yield* frame.dragBetween(yield* frame.floor("mat"), yield* frame.floor("tray"));
+              yield* frame.dragBetween("mat", "tray");
               assert.strictEqual(yield* frame.count("cubes", "mat"), 0);
               yield* build(frame, { rods: 1 }, "drag");
               yield* frame.relayed(posted(row.supply, { rods: 1 }));
               yield* frame.tapPiece("rods", "mat");
               assert.strictEqual(yield* frame.chosen("rods", "mat"), 1);
-              yield* frame.dragBetween(yield* frame.floor("tray"), yield* frame.floor("mat"));
+              yield* frame.dragBetween("tray", "mat");
               assert.strictEqual(yield* frame.count("rods", "mat"), 1);
               // The rod is still chosen, so the tray it can go to is still ringed, and nothing else.
               assert.strictEqual(yield* frame.chosen("rods", "mat"), 1);

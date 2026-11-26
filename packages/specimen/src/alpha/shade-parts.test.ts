@@ -566,14 +566,14 @@ layer(ShadeLayer, { timeout: Duration.millis(ruleHang) })("the shade-parts PCI",
             holdsShading(golden, yield* Effect.orDie(page.drawn), shadedBy(scripted.taps));
 
             if (golden.shown !== undefined) {
-              const { shownCentres } = yield* Effect.orDie(page.drawn);
+              const { shownSpots } = yield* Effect.orDie(page.drawn);
 
               assert.lengthOf(
-                shownCentres,
+                shownSpots,
                 golden.shown.parts,
                 `${golden.name}: each part of the shown model is hit where it is tapped`,
               );
-              yield* Effect.orDie(page.tapAt(shownCentres));
+              yield* Effect.orDie(page.tapShown(shownSpots));
               holdsShading(golden, yield* Effect.orDie(page.drawn), shadedBy(scripted.taps));
             }
 

@@ -57,8 +57,28 @@ import { Item, standardRenderers } from "@qti-pie/plate/ui";
 import type { ItemProps } from "@qti-pie/plate/ui";
 import { heldOf, Responses } from "@qti-pie/plate/ui/client";
 import { framePage } from "@qti-pie/plate/ui/pci-frame";
-import { pressInto } from "#specimen/alpha/delivered.ts";
-import type { TapNotDelivered } from "#specimen/alpha/delivered.ts";
+import {
+  anchoredAt,
+  besideParts,
+  centred,
+  focusOn,
+  keyInto,
+  liftInto,
+  listening,
+  meantFor,
+  nameOf,
+  pressInto,
+  releaseInto,
+  releasedAt,
+} from "#specimen/alpha/delivered.ts";
+import type {
+  Drop,
+  DropNotDelivered,
+  KeyNotDelivered,
+  Pressed,
+  TapNotDelivered,
+  Target,
+} from "#specimen/alpha/delivered.ts";
 import { clientExports } from "#specimen/ui/clients.ts";
 import { islandsIn } from "#specimen/ui/rendered.ts";
 import type { Island } from "#specimen/ui/rendered.ts";
@@ -90,10 +110,10 @@ const attempt = <A>(step: string, run: () => Promise<A>): Effect.Effect<A, Count
   Effect.tryPromise({ catch: (cause) => new CounterTrayFailure({ cause, step }), try: run });
 
 /**
- * What a gesture can fail by: the harness, or a press the PCI's document never received
+ * What a gesture can fail by: the harness, or a press or a key the PCI's document never received
  * (`#specimen/alpha/delivered.ts`).
  */
-type GestureFailure = CounterTrayFailure | TapNotDelivered;
+type GestureFailure = CounterTrayFailure | DropNotDelivered | KeyNotDelivered | TapNotDelivered;
 
 /**
  * Fail a step the harness checks in Node: plate refused or gave less than the item needs.
@@ -633,27 +653,23 @@ const hostIn = (
 /**
  * Wait in the page until it has painted twice and a timer set after both has fired, so what a
  * gesture changed is laid out and the frame boot's relay, which reads the response in a timer
- * after each input event, has posted.
+ * after each input event, has posted: on the clock the page kept before any of its own scripts ran
+ * (`listening`), which no script of the PCI's can replace.
  *
- * @returns The wait, in the page.
+ * @returns Once it has, in the page; false, waiting for nothing, where the harness's listeners are
+ *   not in it.
  */
-const settled = async (): Promise<void> => {
-  const first = Promise.withResolvers<number>();
+const settled = async (): Promise<boolean> => {
+  const kept = window.harnessKept;
 
-  requestAnimationFrame(first.resolve);
-  await first.promise;
+  if (kept === undefined) {
+    return false;
+  }
 
-  const second = Promise.withResolvers<number>();
+  await kept.frames();
+  await kept.later();
 
-  requestAnimationFrame(second.resolve);
-  await second.promise;
-
-  const fired = Promise.withResolvers<number>();
-
-  setTimeout(() => {
-    fired.resolve(performance.now());
-  }, 0);
-  await fired.promise;
+  return true;
 };
 
 /**
@@ -808,6 +824,116 @@ const pointOf = (page: Page, spot: Spot): Effect.Effect<Point, CounterTrayFailur
   });
 
 /**
+ * The selector of the tray's parts a press can land on, its counters and its two zones, which a
+ * finger resting beside them must miss.
+ */
+const trayParts = "[data-zone-of], [data-zone]";
+
+/**
+ * The selector of the counters the mat shows, in the order the board draws them.
+ */
+const matCounters = '[data-zone-of="mat"][display="inline"]';
+
+/**
+ * What a press at a point of a cell lands on: the place among the mat's shown counters of the one
+ * whose box holds the point, -1 where none does, and the point inside that counter's box, or inside
+ * the mat's.
+ */
+interface Under {
+  readonly held: number;
+  readonly inBox: Point;
+}
+
+/**
+ * Give, in the page, what a press at a point of a cell lands on: the place among the mat's shown
+ * counters of the one whose box holds the point, -1 where none does, and the point inside that
+ * counter's box, or inside the mat's where none does.
+ *
+ * @param at The point.
+ * @returns The counter's place, and the point inside its box or the mat's.
+ */
+const counterUnder = (at: Point): Under => {
+  const counters = [...document.querySelectorAll('[data-zone-of="mat"][display="inline"]')];
+  const held = counters.findIndex((counter) => {
+    const box = counter.getBoundingClientRect();
+
+    return at.x >= box.left && at.x <= box.right && at.y >= box.top && at.y <= box.bottom;
+  });
+  const box = (
+    counters[held] ?? document.querySelector('[data-zone="mat"]')
+  )?.getBoundingClientRect();
+
+  return {
+    held,
+    inBox: { x: at.x - (box?.left ?? Number.NaN), y: at.y - (box?.top ?? Number.NaN) },
+  };
+};
+
+/**
+ * Where a zone is pressed or let go on, inside its box: the middle of its bottom edge, 8 pixels up,
+ * below the counters it holds.
+ */
+const zoneAnchor = anchoredAt(0.5, 1, 0, -8);
+
+/**
+ * Name what a press at a spot is meant for, and where: a counter's own element at its slot, at its
+ * centre; a zone's own, at the middle of its bottom edge; for a cell of the frames, which take no
+ * pointer, the counter the board shows there, its box holding the cell's centre, else the mat, at
+ * that point inside its box; and the page beside the tray's parts, at the spot's point, for a spot
+ * beside, below or between them.
+ *
+ * @param page The page.
+ * @param spot The spot.
+ * @returns The press's target.
+ */
+const aimOf = (page: Page, spot: Spot): Effect.Effect<Target, CounterTrayFailure> =>
+  Effect.gen(function* aimed() {
+    if (spot.kind === "counter") {
+      return {
+        anchor: centred,
+        meant: meantFor(`[data-zone-of="${spot.zone}"][display="inline"]`, spot.at),
+      };
+    }
+
+    if (spot.kind === "zone") {
+      return { anchor: zoneAnchor, meant: meantFor(`[data-zone="${spot.zone}"]`, 0) };
+    }
+
+    const at = yield* pointOf(page, spot);
+
+    if (spot.kind !== "cell") {
+      return { at, meant: besideParts(trayParts) };
+    }
+
+    const { held, inBox } = yield* attempt(`found what cell ${String(spot.at)} holds`, () =>
+      page.evaluate(counterUnder, at),
+    );
+
+    return {
+      anchor: anchoredAt(0, 0, inBox.x, inBox.y),
+      meant: held < 0 ? meantFor('[data-zone="mat"]', 0) : meantFor(matCounters, held),
+    };
+  });
+
+/**
+ * Move a press's target right by a number of pixels.
+ *
+ * @param target The target.
+ * @param by The pixels.
+ * @returns The target moved.
+ */
+const shifted = (target: Target, by: number): Target =>
+  "at" in target
+    ? { at: { x: target.at.x + by, y: target.at.y }, meant: target.meant }
+    : {
+        anchor: {
+          fraction: target.anchor.fraction,
+          pixels: { x: target.anchor.pixels.x + by, y: target.anchor.pixels.y },
+        },
+        meant: target.meant,
+      };
+
+/**
  * The moves a drag is carried in, from the press to the release: enough that the pointer is seen
  * travelling across the board before it lands, as a hand's is.
  */
@@ -830,12 +956,16 @@ const pathOf = (from: Point, to: Point, steps: number): readonly Point[] =>
 /**
  * A pointer the harness moves as a child's hand: a mouse with its left button, or one finger on a
  * touch screen, sent as Chrome's touch events, which Chrome turns into pointer events of type
- * `touch`.
+ * `touch`. A drag ends in `drop`, its release delivered as a press is (`releaseInto`); a tap in
+ * `lift`, its release heard where it pressed (`liftInto`); a press that drifts in `up`, its
+ * release heard where it drifted to (`releasedAt`).
  */
 interface Hand {
-  readonly down: (at: Point) => Effect.Effect<void, GestureFailure>;
+  readonly down: (target: Target) => Effect.Effect<Pressed, GestureFailure>;
+  readonly drop: (drop: Drop) => Effect.Effect<Pressed, GestureFailure>;
+  readonly lift: (pressed: Pressed) => Effect.Effect<void, GestureFailure>;
   readonly move: (to: Point) => Effect.Effect<void, CounterTrayFailure>;
-  readonly up: (at: Point) => Effect.Effect<void, CounterTrayFailure>;
+  readonly up: (to: Pressed) => Effect.Effect<void, GestureFailure>;
 }
 
 /**
@@ -845,22 +975,51 @@ interface Hand {
  * @returns The hand.
  */
 const mouseHand = (page: Page): Hand => ({
-  down: (at) =>
+  down: (target) =>
     pressInto(
       page.mainFrame(),
       attempt,
-      `pressed the mouse at ${String(at.x)},${String(at.y)}`,
-      attempt("pressed the mouse", async () => {
-        await page.mouse.move(at.x, at.y);
-        await page.mouse.down();
-      }),
+      `pressed the mouse on ${nameOf(target.meant)}`,
+      target,
+      (aim) =>
+        attempt("pressed the mouse", async () => {
+          await page.mouse.move(aim.x, aim.y);
+          await page.mouse.down();
+        }),
+    ),
+  drop: (drop) =>
+    releaseInto(
+      page.mainFrame(),
+      attempt,
+      `let the mouse go over ${nameOf(drop.meant)}`,
+      drop,
+      "mouse",
+      (aim) =>
+        attempt("let the mouse go", async () => {
+          await page.mouse.move(aim.x, aim.y);
+          await page.mouse.up();
+        }),
+    ),
+  lift: (pressed) =>
+    liftInto(
+      page.mainFrame(),
+      attempt,
+      "let the mouse go where it pressed",
+      pressed,
+      attempt("let the mouse go", () => page.mouse.up()),
     ),
   move: (to) => attempt("moved the mouse", () => page.mouse.move(to.x, to.y)),
-  up: (at) =>
-    attempt("let the mouse go", async () => {
-      await page.mouse.move(at.x, at.y);
-      await page.mouse.up();
-    }),
+  up: (to) =>
+    releasedAt(
+      page.mainFrame(),
+      attempt,
+      "let the mouse go where it drifted to",
+      to.at,
+      attempt("let the mouse go", async () => {
+        await page.mouse.move(to.aim.x, to.aim.y);
+        await page.mouse.up();
+      }),
+    ),
 });
 
 /**
@@ -876,23 +1035,57 @@ const fingerHand = (page: Page): Effect.Effect<Hand, CounterTrayFailure, Scope.S
       (session) => Effect.promise(() => session.detach()),
     ),
     (session): Hand => ({
-      down: (at) =>
+      down: (target) =>
         pressInto(
           page.mainFrame(),
           attempt,
-          `put a finger down at ${String(at.x)},${String(at.y)}`,
-          attempt("put a finger down", () =>
-            session.send("Input.dispatchTouchEvent", { touchPoints: [at], type: "touchStart" }),
+          `put a finger down on ${nameOf(target.meant)}`,
+          target,
+          (aim) =>
+            attempt("put a finger down", () =>
+              session.send("Input.dispatchTouchEvent", { touchPoints: [aim], type: "touchStart" }),
+            ).pipe(Effect.asVoid),
+        ),
+      drop: (drop) =>
+        releaseInto(
+          page.mainFrame(),
+          attempt,
+          `lifted the finger over ${nameOf(drop.meant)}`,
+          drop,
+          "touch",
+          (aim) =>
+            attempt("lifted the finger", async () => {
+              await session.send("Input.dispatchTouchEvent", {
+                touchPoints: [aim],
+                type: "touchMove",
+              });
+              await session.send("Input.dispatchTouchEvent", { touchPoints: [], type: "touchEnd" });
+            }),
+        ),
+      lift: (pressed) =>
+        liftInto(
+          page.mainFrame(),
+          attempt,
+          "lifted the finger where it went down",
+          pressed,
+          attempt("lifted the finger", () =>
+            session.send("Input.dispatchTouchEvent", { touchPoints: [], type: "touchEnd" }),
           ).pipe(Effect.asVoid),
         ),
       move: (to) =>
         attempt("moved the finger", () =>
           session.send("Input.dispatchTouchEvent", { touchPoints: [to], type: "touchMove" }),
         ).pipe(Effect.asVoid),
-      up: () =>
-        attempt("lifted the finger", () =>
-          session.send("Input.dispatchTouchEvent", { touchPoints: [], type: "touchEnd" }),
-        ).pipe(Effect.asVoid),
+      up: (to) =>
+        releasedAt(
+          page.mainFrame(),
+          attempt,
+          "lifted the finger where it drifted to",
+          to.at,
+          attempt("lifted the finger", () =>
+            session.send("Input.dispatchTouchEvent", { touchPoints: [], type: "touchEnd" }),
+          ).pipe(Effect.asVoid),
+        ),
     }),
   );
 
@@ -910,41 +1103,54 @@ const handOf = (
   by === "mouse" ? Effect.succeed(mouseHand(page)) : fingerHand(page);
 
 /**
- * Carry a hand from one point to another, pressed all the way, and let it go there, running
- * `midway` once the hand is halfway.
+ * Carry a hand from what it presses toward a point, pressed all the way, and let it go over what
+ * the drop is meant for there, running `midway` once the hand is halfway.
  *
  * @param hand The hand.
- * @param from Where it presses.
- * @param to Where it lets go.
+ * @param from What it presses.
+ * @param to Where it heads.
  * @param midway What happens halfway.
  * @returns The drag.
  */
 const carry = (
   hand: Hand,
-  from: Point,
-  to: Point,
+  from: Target,
+  to: { readonly drop: Drop; readonly point: Point },
   midway: Effect.Effect<void, GestureFailure>,
 ): Effect.Effect<void, GestureFailure> =>
   Effect.gen(function* carried() {
-    const points = pathOf(from, to, dragSteps);
+    const { aim } = yield* hand.down(from);
+    const points = pathOf(aim, to.point, dragSteps);
     const half = Math.floor(points.length / 2);
 
-    yield* hand.down(from);
     yield* Effect.forEach(points.slice(0, half), hand.move, { discard: true });
     yield* midway;
     yield* Effect.forEach(points.slice(half), hand.move, { discard: true });
-    yield* hand.up(to);
+    yield* hand.drop(to.drop);
   });
 
 /**
- * Tap a point with a hand: pressed and let go where it went down.
+ * Give where a drag to a spot heads, and what its release is meant for there.
+ *
+ * @param page The page.
+ * @param spot The spot.
+ * @returns The point and the drop.
+ */
+const dropOn = (
+  page: Page,
+  spot: Spot,
+): Effect.Effect<{ readonly drop: Drop; readonly point: Point }, CounterTrayFailure> =>
+  Effect.all({ drop: aimOf(page, spot), point: pointOf(page, spot) });
+
+/**
+ * Tap with a hand: pressed on what it is meant for and let go where it went down.
  *
  * @param hand The hand.
- * @param at The point.
+ * @param target What it presses.
  * @returns The tap.
  */
-const tapWith = (hand: Hand, at: Point): Effect.Effect<void, GestureFailure> =>
-  Effect.andThen(hand.down(at), hand.up(at));
+const tapWith = (hand: Hand, target: Target): Effect.Effect<void, GestureFailure> =>
+  Effect.flatMap(hand.down(target), hand.lift);
 
 /**
  * How a child moves one counter: `drag`, pressing a counter, carrying it and letting it go over
@@ -1369,33 +1575,45 @@ export interface Running {
  * @returns The wait.
  */
 const settle = (page: Page): Effect.Effect<void, CounterTrayFailure> =>
-  attempt("waited for the page to settle", () => page.evaluate(settled));
+  Effect.flatMap(
+    attempt("waited for the page to settle", () => page.evaluate(settled)),
+    (done) =>
+      done
+        ? Effect.void
+        : failed("waited for the page to settle", "the page has none of the harness's listeners"),
+  );
+
+/**
+ * Send one of Chrome's own mouse events at a point, with the buttons held.
+ */
+type MouseSender = (
+  type: "mouseMoved" | "mousePressed" | "mouseReleased",
+  at: Point,
+  buttons: number,
+) => Effect.Effect<void, CounterTrayFailure>;
 
 /**
  * Drive the mouse by Chrome's own input events (CDP `Input.dispatchMouseEvent`), which can send
  * what Playwright's mouse cannot: a release with no move before it, or a move with no button held
- * after a press. The steps get a sender, and the two spots' points; the page has settled after
- * them.
+ * after a press. The mouse moves to the first spot and presses there, the press delivered
+ * (`#specimen/alpha/delivered.ts`); the steps after it get a sender, the point pressed and the
+ * other spot's point; the page has settled after them.
  *
  * @param page The page.
- * @param from Where the steps start.
- * @param to Where they head.
- * @param steps The steps, given the sender and the two points.
+ * @param from Where the mouse presses.
+ * @param to Where the steps head.
+ * @param after The steps after the press.
  * @returns The run.
  */
 const cdpMouse = (
   page: Page,
   from: Spot,
   to: Spot,
-  steps: (
-    mouse: (
-      type: "mouseMoved" | "mousePressed" | "mouseReleased",
-      at: Point,
-      buttons: number,
-    ) => Effect.Effect<unknown, GestureFailure>,
-    start: Point,
-    end: Point,
-  ) => Effect.Effect<void, GestureFailure>,
+  after: (driven: {
+    readonly end: Point;
+    readonly mouse: MouseSender;
+    readonly start: Point;
+  }) => Effect.Effect<void, GestureFailure>,
 ): Effect.Effect<void, GestureFailure> =>
   Effect.scoped(
     Effect.gen(function* driven() {
@@ -1403,14 +1621,9 @@ const cdpMouse = (
         attempt("opened a mouse session", () => page.context().newCDPSession(page)),
         (opened) => Effect.promise(() => opened.detach()),
       );
-      const start = yield* pointOf(page, from);
+      const target = yield* aimOf(page, from);
       const end = yield* pointOf(page, to);
-
-      const sent = (
-        type: "mouseMoved" | "mousePressed" | "mouseReleased",
-        at: Point,
-        buttons: number,
-      ) =>
+      const mouse: MouseSender = (type, at, buttons) =>
         attempt(`sent ${type}`, () =>
           session.send("Input.dispatchMouseEvent", {
             button: type === "mouseMoved" ? "none" : "left",
@@ -1421,20 +1634,15 @@ const cdpMouse = (
             y: at.y,
           }),
         ).pipe(Effect.asVoid);
-
-      yield* steps(
-        (type, at, buttons) =>
-          type === "mousePressed"
-            ? pressInto(
-                page.mainFrame(),
-                attempt,
-                `pressed the mouse at ${String(at.x)},${String(at.y)}`,
-                sent(type, at, buttons),
-              )
-            : sent(type, at, buttons),
-        start,
-        end,
+      const { aim } = yield* pressInto(
+        page.mainFrame(),
+        attempt,
+        `pressed the mouse on ${nameOf(target.meant)}`,
+        target,
+        (point) => Effect.andThen(mouse("mouseMoved", point, 0), mouse("mousePressed", point, 1)),
       );
+
+      yield* after({ end, mouse, start: aim });
       yield* settle(page);
     }),
   );
@@ -1489,16 +1697,30 @@ const tapOn = (
     ? Option.match(focusable(spot), {
         onNone: () => failed("pressed Enter", `${JSON.stringify(spot)} takes no focus`),
         onSome: ({ at, selector }) =>
-          attempt(`pressed Enter on ${selector} #${String(at)}`, async () => {
-            await page.locator(selector).nth(at).focus();
-            await page.keyboard.press("Enter");
-          }),
+          Effect.andThen(
+            focusOn(
+              page.mainFrame(),
+              attempt,
+              { nth: at, selector },
+              attempt(`focused ${selector} #${String(at)}`, () =>
+                page.locator(selector).nth(at).focus(),
+              ),
+            ),
+            keyInto(
+              page.mainFrame(),
+              attempt,
+              "Enter",
+              attempt(`pressed Enter on ${selector} #${String(at)}`, () =>
+                page.keyboard.press("Enter"),
+              ),
+            ),
+          ),
       })
     : Effect.scoped(
         Effect.gen(function* tapped() {
           const hand = yield* handOf(page, by);
 
-          yield* tapWith(hand, yield* pointOf(page, spot));
+          yield* tapWith(hand, yield* aimOf(page, spot));
         }),
       );
 
@@ -1527,8 +1749,8 @@ const act = (
       yield* Effect.scoped(
         Effect.gen(function* dragged() {
           const hand = yield* handOf(page, by);
-          const start = yield* pointOf(page, first);
-          const end = yield* pointOf(page, {
+          const start = yield* aimOf(page, first);
+          const end = yield* dropOn(page, {
             kind: "zone",
             zone: gesture === "back" ? from : other,
           });
@@ -1598,6 +1820,7 @@ const startIn = (
     const thrown: string[] = [];
     const made = yield* launched.page(context);
     const page = yield* attempt("loaded the frame page", async () => {
+      await made.addInitScript(listening);
       made.on("pageerror", (error) => {
         thrown.push(error.message);
       });
@@ -1662,7 +1885,7 @@ const startIn = (
           Effect.gen(function* dragged() {
             const hand = yield* handOf(page, by);
 
-            yield* carry(hand, yield* pointOf(page, from), yield* pointOf(page, to), midway);
+            yield* carry(hand, yield* aimOf(page, from), yield* dropOn(page, to), midway);
             yield* settle(page);
           }),
         );
@@ -1676,23 +1899,31 @@ const startIn = (
         Effect.scoped(
           Effect.gen(function* drifted() {
             const hand = yield* handOf(page, by);
-            const at = yield* pointOf(page, spot);
-            const from = { x: at.x + press, y: at.y };
-            const to = { x: at.x + lift, y: at.y };
+            const pressed = yield* hand.down(shifted(yield* aimOf(page, spot), press));
+            const to = {
+              aim: { x: pressed.aim.x + lift - press, y: pressed.aim.y },
+              at: { x: pressed.at.x + lift - press, y: pressed.at.y },
+            };
 
-            yield* hand.down(from);
-            yield* Effect.forEach(pathOf(from, to, dragSteps), hand.move, { discard: true });
+            yield* Effect.forEach(pathOf(pressed.aim, to.aim, dragSteps), hand.move, {
+              discard: true,
+            });
             yield* hand.up(to);
             yield* settle(page);
           }),
         ),
       jump: (from, to) =>
-        cdpMouse(page, from, to, (mouse, start, end) =>
-          Effect.gen(function* jumped() {
-            yield* mouse("mouseMoved", start, 0);
-            yield* mouse("mousePressed", start, 1);
-            yield* mouse("mouseReleased", end, 0);
-          }),
+        cdpMouse(page, from, to, ({ mouse }) =>
+          Effect.flatMap(aimOf(page, to), (drop) =>
+            releaseInto(
+              page.mainFrame(),
+              attempt,
+              `let the mouse go over ${nameOf(drop.meant)}, with no move before`,
+              drop,
+              "mouse",
+              (aim) => mouse("mouseReleased", aim, 0),
+            ),
+          ).pipe(Effect.asVoid),
         ),
       look: lookNow,
       lookMidDrag: (from, to, by) =>
@@ -1703,8 +1934,8 @@ const startIn = (
 
             yield* carry(
               hand,
-              yield* pointOf(page, from),
-              yield* pointOf(page, to),
+              yield* aimOf(page, from),
+              yield* dropOn(page, to),
               Effect.andThen(lookNow, (look) =>
                 Effect.sync(() => {
                   seen.push(look);
@@ -1719,13 +1950,9 @@ const startIn = (
           }),
         ),
       lostRelease: (from, to, moves) =>
-        cdpMouse(page, from, to, (mouse, start, end) =>
-          Effect.gen(function* lost() {
-            yield* mouse("mouseMoved", start, 0);
-            yield* mouse("mousePressed", start, 1);
-            yield* Effect.forEach(pathOf(start, end, moves), (at) => mouse("mouseMoved", at, 0), {
-              discard: true,
-            });
+        cdpMouse(page, from, to, ({ end, mouse, start }) =>
+          Effect.forEach(pathOf(start, end, moves), (at) => mouse("mouseMoved", at, 0), {
+            discard: true,
           }),
         ),
       posted: Effect.map(heardIn(page), (heard) =>
@@ -1738,26 +1965,39 @@ const startIn = (
         attempt("resized the page", () => page.setViewportSize({ height: 900, width })),
       rightClickMidDrag: (from, to) =>
         Effect.gen(function* rightClicked() {
-          const start = yield* pointOf(page, from);
+          const target = yield* aimOf(page, from);
           const end = yield* pointOf(page, to);
-          const half = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
-
-          yield* pressInto(
+          const { aim: start } = yield* pressInto(
             page.mainFrame(),
             attempt,
-            `pressed the mouse at ${String(start.x)},${String(start.y)}`,
-            attempt("pressed the mouse", async () => {
-              await page.mouse.move(start.x, start.y);
-              await page.mouse.down();
-            }),
+            `pressed the mouse on ${nameOf(target.meant)}`,
+            target,
+            (aim) =>
+              attempt("pressed the mouse", async () => {
+                await page.mouse.move(aim.x, aim.y);
+                await page.mouse.down();
+              }),
           );
+          const half = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+
           yield* attempt("dragged and right-clicked midway", async () => {
             await page.mouse.move(half.x, half.y, { steps: dragSteps / 2 });
             await page.mouse.down({ button: "right" });
             await page.mouse.up({ button: "right" });
             await page.mouse.move(end.x, end.y, { steps: dragSteps / 2 });
-            await page.mouse.up();
           });
+          yield* releaseInto(
+            page.mainFrame(),
+            attempt,
+            "let the mouse go after the right click",
+            yield* aimOf(page, to),
+            "mouse",
+            (aim) =>
+              attempt("let the mouse go", async () => {
+                await page.mouse.move(aim.x, aim.y);
+                await page.mouse.up();
+              }),
+          );
           yield* settle(page);
         }),
       tap: (spot, by) => Effect.andThen(tapOn(page, spot, by), settle(page)),
@@ -1768,7 +2008,7 @@ const startIn = (
               attempt("opened a touch session", () => page.context().newCDPSession(page)),
               (opened) => Effect.promise(() => opened.detach()),
             );
-            const resting = { ...(yield* pointOf(page, rest)), id: 0 };
+            const resting = { at: yield* pointOf(page, rest), meant: besideParts(trayParts) };
             const touch = (
               type: "touchEnd" | "touchStart",
               touchPoints: readonly {
@@ -1776,34 +2016,38 @@ const startIn = (
                 readonly x: number;
                 readonly y: number;
               }[],
-            ) => {
-              const sent = attempt(`sent ${type}`, () =>
+            ) =>
+              attempt(`sent ${type}`, () =>
                 session.send("Input.dispatchTouchEvent", { touchPoints: [...touchPoints], type }),
               ).pipe(Effect.asVoid);
-
-              return type === "touchStart"
-                ? pressInto(
-                    page.mainFrame(),
-                    attempt,
-                    `put finger ${String(touchPoints.length)} down`,
-                    sent,
-                  )
-                : sent;
-            };
+            const fingerDown = (
+              lying: readonly { readonly id: number; readonly x: number; readonly y: number }[],
+              id: number,
+              target: Target,
+            ) =>
+              Effect.map(
+                pressInto(
+                  page.mainFrame(),
+                  attempt,
+                  `put finger ${String(id)} down on ${nameOf(target.meant)}`,
+                  target,
+                  (aim) => touch("touchStart", [...lying, { id, x: aim.x, y: aim.y }]),
+                ),
+                ({ aim }) => ({ id, x: aim.x, y: aim.y }),
+              );
 
             // Chrome's touchEnd releases the points it lists: each tap lifts the tapping finger
             // alone, and the resting finger is lifted last.
-            yield* touch("touchStart", [resting]);
+            const lying = yield* fingerDown([], 0, resting);
 
             for (const spot of taps) {
-              const tapping = { ...(yield* pointOf(page, spot)), id: 1 };
+              const tapping = yield* fingerDown([lying], 1, yield* aimOf(page, spot));
 
-              yield* touch("touchStart", [resting, tapping]);
               yield* touch("touchEnd", [tapping]);
               yield* settle(page);
             }
 
-            yield* touch("touchEnd", [resting]);
+            yield* touch("touchEnd", [lying]);
             yield* settle(page);
           }),
         ),

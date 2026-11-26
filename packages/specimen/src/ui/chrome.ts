@@ -1,10 +1,10 @@
 /**
  * Chrome for the suites, the one module that reaches it: the machine's Google Chrome, through
- * Playwright's `chrome` channel, headless, and every context and page opened in it with
- * Playwright's timeouts at 0, so no verdict rests on how long a load, a navigation or a wait took
- * under the machine's load. A page that never loads is a hang, which the case's work guard and the
- * gate's progress watch judge (2026-11-26: eight harnesses each launched Chrome, five kept
- * Playwright's 30 s default, and `page.goto` timed out at load 300). Every portable custom
+ * Playwright's `chrome` channel, headless, its launch and every context and page opened in it with
+ * Playwright's timeouts at 0, so no verdict rests on how long a start, a load, a navigation or a
+ * wait took under the machine's load. A page that never loads is a hang, which the case's work
+ * guard and the gate's progress watch judge (2026-11-26: eight harnesses each launched Chrome, five
+ * kept Playwright's 30 s default, and `page.goto` timed out at load 300). Every portable custom
  * interaction a harness hosts loads its modules with no wait either ({@link unboundedModuleWait}).
  * Its sound plays to fake audio streams ({@link fakeAudioStreams}), so no recording a page plays
  * fails on the machine's sound server. The lint holds every other module to this one
@@ -104,6 +104,7 @@ export const chromeFor = <E>(fail: (step: string, cause: unknown) => E): Chrome<
             channel: "chrome",
             env: { ...process.env, TMPDIR: temporary },
             headless: true,
+            timeout: 0,
           }),
         ),
       ),

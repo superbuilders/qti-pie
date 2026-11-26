@@ -34,7 +34,7 @@ import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
-import { Data, Effect, Option, Schema, pipe } from "effect";
+import { Data, Effect, Option, Schema } from "effect";
 import type { Scope } from "effect";
 import { Digest } from "effect/crypto";
 import { parseHTML } from "linkedom";
@@ -44,8 +44,18 @@ import { resolvePciModules } from "@qti-pie/plate";
 import type { PciModules } from "@qti-pie/plate";
 import { shadeParts } from "@qti-pie/plate/alpha/pci-modules";
 import { framePage } from "@qti-pie/plate/ui/pci-frame";
-import { pressInto } from "#specimen/alpha/delivered.ts";
-import type { TapNotDelivered } from "#specimen/alpha/delivered.ts";
+import {
+  anchoredAt,
+  focusInto,
+  framesIn,
+  keyInto,
+  listening,
+  meantFor,
+  nameOf,
+  pressInto,
+  settledFor,
+} from "#specimen/alpha/delivered.ts";
+import type { KeyNotDelivered, TapNotDelivered, Target } from "#specimen/alpha/delivered.ts";
 
 /**
  * A step of the harness failed: Chrome, the server, a file of the fixture, or a page's script.
@@ -212,21 +222,6 @@ export const shadeItem = Effect.fn("shadeItem")(function* shadeItem(name: string
 });
 
 /**
- * Name the element that has focus in the frame's document: its accessible name, or its tag where it
- * has none, or nothing.
- *
- * @param frame The frame.
- * @returns The name.
- */
-const focusOf = (frame: Frame): Promise<string | null> =>
-  frame.evaluate(
-    () =>
-      document.activeElement?.getAttribute("aria-label") ??
-      document.activeElement?.localName ??
-      null,
-  );
-
-/**
  * Press a key as the page's keyboard does, or hold it down (`down:<key>`, each further one a
  * repeat) or let it go (`up:<key>`).
  *
@@ -391,13 +386,18 @@ export interface Point {
 /**
  * One tappable part as the frame shows it: its pressed and disabled states, its tab stop, its
  * accessible name, its painted fill and outline, the centre and radius of the largest disc it holds
- * where a tap lands on it, and its area by its fill.
+ * where a tap lands on it, that centre as a point inside its own box, and its area by its fill.
  */
 export interface DrawnPart {
   readonly area: number;
   readonly centre: Point;
   readonly disabled: string | null;
   readonly fill: string;
+  /**
+   * The centre of the largest disc the part holds, from its box's corner: where a tap on it aims,
+   * inside the box the press reads as it aims.
+   */
+  readonly inBox: Point;
   readonly label: string | null;
   readonly pressed: string | null;
   readonly radius: number;
@@ -466,7 +466,8 @@ export interface DrawnPicture {
 /**
  * What the frame shows: the model the child shades and its tappable parts by place; the shown
  * model, when there is one, the fill of each of its parts by place, and the centre of each of its
- * parts where a tap lands on the shown model; and the text of the PCI's `dom`.
+ * parts where a tap lands on the shown model, from the shown model's own box's corner; and the text
+ * of the PCI's `dom`.
  */
 export interface Drawn {
   readonly model: DrawnModel | undefined;
@@ -476,8 +477,8 @@ export interface Drawn {
    */
   readonly pictures: readonly DrawnPicture[];
   readonly shown: DrawnModel | undefined;
-  readonly shownCentres: readonly Point[];
   readonly shownFills: readonly string[];
+  readonly shownSpots: readonly Point[];
   readonly shownTappable: number;
   readonly text: string;
   /**
@@ -535,12 +536,15 @@ export interface ShadePage {
    */
   readonly drawn: Effect.Effect<Drawn, ShadePartsFailure>;
   /**
-   * Press keys in the frame, in order, each as Playwright names it (`Tab`, `Space`, `Enter`). A
-   * `Tab` or `Shift+Tab` returns once focus has moved, or after a bounded wait where it cannot:
-   * focus crosses into the frame's document after the key, so a key pressed at once could reach the
-   * page.
+   * Press keys in the frame, in order, each as Playwright names it (`Tab`, `Space`, `Enter`), each
+   * delivered to the frame's document or failing as `key not delivered`
+   * (`#specimen/alpha/delivered.ts`): a `Tab` or `Shift+Tab` once the document has heard exactly
+   * one `focusin`, since focus crosses into it after the key, so a key pressed at once could reach
+   * the page; any other key once it has heard the key's `keydown`s, or its `keyup`.
    */
-  readonly press: (keys: readonly string[]) => Effect.Effect<void, ShadePartsFailure>;
+  readonly press: (
+    keys: readonly string[],
+  ) => Effect.Effect<void, ShadePartsFailure | KeyNotDelivered>;
   /**
    * Every message the frame posted, in order.
    */
@@ -550,12 +554,12 @@ export interface ShadePage {
    */
   readonly start: (item: ShadeItem, start: Start) => Effect.Effect<FrameMessage, ShadePartsFailure>;
   /**
-   * Put a finger down at a part, by its place, at the centre of the largest disc it holds, and
-   * swipe it sideways by a distance in CSS pixels, then lift it, as a child's swipe does on a touch
-   * screen: a devtools session of its own with touch on for the swipe alone. Give where the host
-   * page stood before and after (after a navigation that took its document, the address
-   * "navigated away"), and how many of the frame's pointers the browser cancelled, taking the
-   * gesture for its own.
+   * Put a finger down at a part, by its place, at the centre of the largest disc it holds,
+   * delivered to the frame's document there (`#specimen/alpha/delivered.ts`), and swipe it sideways
+   * by a distance in CSS pixels, then lift it, as a child's swipe does on a touch screen: a
+   * devtools session of its own with touch on for the swipe alone. Give where the host page stood
+   * before and after (after a navigation that took its document, the address "navigated away"),
+   * and how many of the frame's pointers the browser cancelled, taking the gesture for its own.
    */
   readonly swipe: (
     place: number,
@@ -566,7 +570,7 @@ export interface ShadePage {
       readonly before: Whereabouts;
       readonly cancelled: number;
     },
-    ShadePartsFailure
+    ShadePartsFailure | TapNotDelivered
   >;
   /**
    * Tap parts in order, each by its place, with the pointer at the centre of the largest disc it
@@ -576,13 +580,29 @@ export interface ShadePage {
     places: readonly number[],
   ) => Effect.Effect<void, ShadePartsFailure | TapNotDelivered>;
   /**
-   * Tap points of the frame's document in order, with the pointer, each delivered to it
-   * (`#specimen/alpha/delivered.ts`).
+   * Tap points of the shown model in order, each a point inside its box from its corner, with the
+   * pointer, each meant for the shown model and delivered to it (`#specimen/alpha/delivered.ts`).
    */
-  readonly tapAt: (
-    points: readonly Point[],
+  readonly tapShown: (
+    spots: readonly Point[],
   ) => Effect.Effect<void, ShadePartsFailure | TapNotDelivered>;
 }
+
+/**
+ * The selector of the model's part at a place, from 0, by the accessible name the PCI gives each
+ * part once, when it draws it ("part 1 of 4"), which no other part takes when one goes: each tap is
+ * meant for its own part.
+ *
+ * @param place The part's place, as {@link Drawn} gives the parts.
+ * @returns The selector.
+ */
+const partAt = (place: number): string =>
+  `svg[role="group"] [role="button"][aria-label^="part ${String(place + 1)} of "]`;
+
+/**
+ * The selector of the shown model, which every tap on it is meant for.
+ */
+const shownSelector = 'svg[role="img"]';
 
 /**
  * Give the routes the frame loads for an item: plate's resolution of its module facts, each
@@ -752,12 +772,14 @@ const readDrawn = (): Drawn => {
       const disc =
         geometry === undefined ? { area: 0, centre: { x: 0, y: 0 }, radius: 0 } : measure(geometry);
       const hit = document.elementFromPoint(disc.centre.x, disc.centre.y);
+      const box = part.getBoundingClientRect();
 
       return {
         area: disc.area,
         centre: disc.centre,
         disabled: part.getAttribute("aria-disabled"),
         fill: style.fill,
+        inBox: { x: disc.centre.x - box.x, y: disc.centre.y - box.y },
         label: part.getAttribute("aria-label"),
         pressed: part.getAttribute("aria-pressed"),
         radius: hit === part ? disc.radius : 0,
@@ -780,14 +802,20 @@ const readDrawn = (): Drawn => {
       };
     }),
     shown: modelOf(shown),
-    shownCentres: [...(shown?.children ?? [])].flatMap((part) => {
+    shownFills: [...(shown?.children ?? [])].map((part) => getComputedStyle(part).fill),
+    shownSpots: [...(shown?.children ?? [])].flatMap((part) => {
       const geometry = geometryOf(part);
       const centre = geometry === undefined ? undefined : measure(geometry).centre;
       const hit = centre === undefined ? null : document.elementFromPoint(centre.x, centre.y);
+      const box = shown?.getBoundingClientRect();
 
-      return centre !== undefined && hit !== null && shown?.contains(hit) === true ? [centre] : [];
+      return centre !== undefined &&
+        box !== undefined &&
+        hit !== null &&
+        shown?.contains(hit) === true
+        ? [{ x: centre.x - box.x, y: centre.y - box.y }]
+        : [];
     }),
-    shownFills: [...(shown?.children ?? [])].map((part) => getComputedStyle(part).fill),
     shownTappable: shown?.querySelectorAll('[role="button"], [tabindex]').length ?? 0,
     text: dom?.textContent ?? "",
     wholeTouchAction: Array.from(
@@ -930,23 +958,25 @@ const watchCancels = (): void => {
 const cancelsSeen = (): number => Number(document.documentElement.dataset["cancels"] ?? "0");
 
 /**
- * Swipe one finger sideways from a point of the page, on a devtools session of its own that turns
- * touch on for the swipe alone and is detached with it: down, `swipeSteps` equal moves, up, then
- * two of the page's animation frames. The frame's cancelled pointers are counted meanwhile: none
- * where the PCI kept the whole swipe, and -1 where the frame went with its page.
+ * Swipe one finger sideways from what it is meant to start on, on a devtools session of its own
+ * that turns touch on for the swipe alone and is detached with it: down, delivered to the frame's
+ * document there (`#specimen/alpha/delivered.ts`) or failing as `tap not delivered`, then
+ * `swipeSteps` equal moves from where it went down, up, then two of the page's animation frames.
+ * The frame's cancelled pointers are counted meanwhile: none where the PCI kept the whole swipe,
+ * and -1 where the frame went with its page.
  *
  * @param page The page.
  * @param frame The PCI's frame.
- * @param from Where the finger goes down, in CSS pixels of the page.
+ * @param from What the finger goes down on, and where inside its box.
  * @param by How far it moves sideways, in CSS pixels, to the right where positive.
  * @returns The pointers the browser cancelled.
  */
 const swiped = (
   page: Page,
   frame: Frame,
-  from: { readonly x: number; readonly y: number },
+  from: Target,
   by: number,
-): Effect.Effect<number, ShadePartsFailure> =>
+): Effect.Effect<number, ShadePartsFailure | TapNotDelivered> =>
   Effect.scoped(
     Effect.gen(function* swiping() {
       yield* attempt("count the frame's cancelled pointers", () => frame.evaluate(watchCancels));
@@ -959,15 +989,24 @@ const swiped = (
       yield* attempt("turn touch on", () =>
         session.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 }),
       );
-      yield* attempt("put a finger down", () =>
-        session.send("Input.dispatchTouchEvent", { touchPoints: [from], type: "touchStart" }),
+
+      const { aim } = yield* pressInto(
+        frame,
+        attempt,
+        `put a finger down on ${nameOf(from.meant)}`,
+        from,
+        (point) =>
+          attempt("put a finger down", () =>
+            session.send("Input.dispatchTouchEvent", { touchPoints: [point], type: "touchStart" }),
+          ).pipe(Effect.asVoid),
       );
+
       yield* Effect.forEach(
         Array.from({ length: swipeSteps }, (_unused, step) => step + 1),
         (step) =>
           attempt("move the finger", () =>
             session.send("Input.dispatchTouchEvent", {
-              touchPoints: [{ x: from.x + (by * step) / swipeSteps, y: from.y }],
+              touchPoints: [{ x: aim.x + (by * step) / swipeSteps, y: aim.y }],
               type: "touchMove",
             }),
           ),
@@ -979,20 +1018,7 @@ const swiped = (
       yield* attempt("turn touch off", () =>
         session.send("Emulation.setTouchEmulationEnabled", { enabled: false }),
       );
-      yield* Effect.ignore(
-        attempt("let the page settle", () =>
-          page.evaluate(async () => {
-            const frames = Promise.withResolvers<number>();
-
-            requestAnimationFrame(() => {
-              requestAnimationFrame((time) => {
-                frames.resolve(time);
-              });
-            });
-            await frames.promise;
-          }),
-        ),
-      );
+      yield* Effect.ignore(attempt("let the page settle", () => page.evaluate(framesIn)));
 
       return yield* attempt("read the frame's cancelled pointers", () =>
         frame.evaluate(cancelsSeen),
@@ -1013,6 +1039,9 @@ export const shadePage: Effect.Effect<ShadePage, ShadePartsFailure, Scope.Scope>
       viewport: { height: pageHeight, width: 1280 },
     });
 
+    page.setDefaultTimeout(0);
+    page.setDefaultNavigationTimeout(0);
+    yield* attempt("listen in every document of the page", () => page.addInitScript(listening));
     yield* attempt("load the host page", () => page.goto(`${origin}/`));
 
     /**
@@ -1029,35 +1058,21 @@ export const shadePage: Effect.Effect<ShadePage, ShadePartsFailure, Scope.Scope>
     );
 
     /**
-     * Where the frame's document starts in the page.
+     * Tap elements of the frame's document, in order, each named with where inside its own box the
+     * tap lands, and delivered to it there.
      *
-     * @returns Its offset.
-     */
-    const offset = attempt("find the frame's place", async () => {
-      const box = await page.locator("iframe").boundingBox();
-
-      return box ?? { x: 0, y: 0 };
-    });
-
-    /**
-     * Tap points of the frame's document, in order, each delivered to it.
-     *
-     * @param points The points.
+     * @param targets The elements, each with a point inside its box.
      * @returns Nothing.
      */
-    const tapAt = (points: readonly Point[]) =>
-      Effect.gen(function* tapped() {
+    const tapped = (targets: readonly Target[]) =>
+      Effect.gen(function* tapping() {
         const frame = yield* inner;
-        const at = yield* offset;
 
-        for (const point of points) {
-          const step = `tap ${String(point.x)},${String(point.y)}`;
+        for (const target of targets) {
+          const step = `tap ${nameOf(target.meant)}`;
 
-          yield* pressInto(
-            frame,
-            attempt,
-            step,
-            attempt(step, () => page.mouse.click(at.x + point.x, at.y + point.y)),
+          yield* pressInto(frame, attempt, step, target, (aim) =>
+            attempt(step, () => page.mouse.click(aim.x, aim.y)),
           );
         }
       });
@@ -1075,57 +1090,51 @@ export const shadePage: Effect.Effect<ShadePage, ShadePartsFailure, Scope.Scope>
         page.evaluate<readonly FrameMessage[]>("window.frameMessages"),
       ),
       press: (keys) =>
-        pipe(
-          keys,
-          Effect.forEach((key) =>
-            inner.pipe(
-              Effect.flatMap((frame) =>
-                attempt("read the focus", () => focusOf(frame)).pipe(
-                  Effect.tap(() => attempt(`press ${key}`, () => keyed(page, key))),
-                  // Focus lands in the frame's document after a Tab; a Tab that moves none (a
-                  // broken part) ends the wait at its bound, and the rule's own checks then fail.
-                  Effect.flatMap((before) =>
-                    key === "Tab" || key === "Shift+Tab"
-                      ? attempt("wait for the focus to move", () =>
-                          frame.waitForFunction(
-                            (was) =>
-                              (document.activeElement?.getAttribute("aria-label") ??
-                                document.activeElement?.localName ??
-                                null) !== was,
-                            before,
-                            { polling: 10, timeout: 1000 },
-                          ),
-                        ).pipe(Effect.ignore)
-                      : Effect.void,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Effect.asVoid,
-        ),
+        Effect.gen(function* pressed() {
+          const frame = yield* inner;
+
+          for (const key of keys) {
+            const keyedHere = attempt(`press ${key}`, () => keyed(page, key));
+
+            yield* key === "Tab" || key === "Shift+Tab"
+              ? focusInto(frame, attempt, `press ${key}`, keyedHere)
+              : keyInto(frame, attempt, key, keyedHere);
+          }
+        }),
       start: (item, start) =>
-        attempt("start the PCI", () =>
-          page.evaluate<FrameMessage>(startScript(origin, item, start)),
-        ),
+        Effect.gen(function* started() {
+          const message = yield* attempt("start the PCI", () =>
+            page.evaluate<FrameMessage>(startScript(origin, item, start)),
+          );
+
+          if (message.kind === "ready") {
+            yield* settledFor(
+              yield* inner,
+              attempt,
+              "start the PCI",
+              (why) => new ShadePartsFailure({ cause: why, step: "settle the PCI's frame" }),
+            );
+          }
+
+          return message;
+        }),
       swipe: (place, by) =>
         Effect.gen(function* swipe() {
           const frame = yield* inner;
           const drawn = yield* attempt("read the parts", () => frame.evaluate(readDrawn));
-          const centre = drawn.parts[place]?.centre;
+          const inBox = drawn.parts[place]?.inBox;
 
-          if (centre === undefined) {
+          if (inBox === undefined) {
             return yield* Effect.fail(
               new ShadePartsFailure({ cause: "no part", step: `find part ${String(place)}` }),
             );
           }
 
-          const at = yield* offset;
           const before = yield* whereabouts(page);
           const cancelled = yield* swiped(
             page,
             frame,
-            { x: at.x + centre.x, y: at.y + centre.y },
+            { anchor: anchoredAt(0, 0, inBox.x, inBox.y), meant: meantFor(partAt(place), 0) },
             by,
           );
           const after = yield* whereabouts(page).pipe(
@@ -1138,12 +1147,25 @@ export const shadePage: Effect.Effect<ShadePage, ShadePartsFailure, Scope.Scope>
         inner.pipe(
           Effect.flatMap((frame) => attempt("read the parts", () => frame.evaluate(readDrawn))),
           Effect.flatMap((drawn) =>
-            tapAt(
-              places.map((place) => drawn.parts[place]?.centre ?? { x: Number.NaN, y: Number.NaN }),
+            tapped(
+              places.map((place) => {
+                const inBox = drawn.parts[place]?.inBox ?? { x: Number.NaN, y: Number.NaN };
+
+                return {
+                  anchor: anchoredAt(0, 0, inBox.x, inBox.y),
+                  meant: meantFor(partAt(place), 0),
+                };
+              }),
             ),
           ),
         ),
-      tapAt,
+      tapShown: (spots) =>
+        tapped(
+          spots.map((spot) => ({
+            anchor: anchoredAt(0, 0, spot.x, spot.y),
+            meant: meantFor(shownSelector, 0),
+          })),
+        ),
     } satisfies ShadePage;
   },
 );

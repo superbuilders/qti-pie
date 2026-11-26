@@ -976,7 +976,7 @@ layer(RingLayer, { timeout: Duration.millis(ruleHang) })("the mark-objects PCI",
             `in ${status}, no object takes a tap`,
           );
           holdsRings(golden, before, bound);
-          yield* Effect.orDie(page.tap([0, 5], true));
+          yield* Effect.orDie(page.tap([0, 5]));
           holdsRings(golden, yield* Effect.orDie(page.drawn), bound);
           // The frame relays the PCI's response after any input it sees, when it differs from the last
           // it relayed, the first time included: the bound response may come back, never another.
@@ -994,7 +994,7 @@ layer(RingLayer, { timeout: Duration.millis(ruleHang) })("the mark-objects PCI",
         yield* started(page, item, {});
         yield* Effect.orDie(page.tap([1]));
         assert.deepStrictEqual((yield* finished(page)).response, responseOf(1));
-        yield* Effect.orDie(page.tap([2, 1], true));
+        yield* Effect.orDie(page.tap([2, 1]));
 
         const after = yield* Effect.orDie(page.drawn);
         const kinds = (yield* Effect.orDie(page.messages)).map((message) => message.kind);
