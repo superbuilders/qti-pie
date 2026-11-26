@@ -24,9 +24,9 @@
  *   child presses lands on the copy they picked up.
  * - PO4, a tap on a copy's mark on the stage picks that copy up, as a tap on its control does.
  * - PO9, the arrow keys on the object's button move only a copy that button gave: a copy picked up by
- *   Enter on its control stays where it was while focus moves to the object's button and the arrows
- *   are pressed there, and Enter back on its control puts it down where it was, writing nothing.
- *   The arrows move a copy only on the control whose Enter puts it down.
+ *   Enter on its control stays where it was while focus moves to the object's button and an arrow,
+ *   alone or with Shift, is pressed there, and Enter back on its control puts it down where it was,
+ *   writing nothing. The arrows move a copy only on the control whose Enter puts it down.
  *
  * And on a stage of two objects or more, each its own interaction and response, each placed any
  * number of times, the specimen floor's first such case (`#specimen/floor.ts`), its correct
@@ -61,14 +61,22 @@
  *
  * @module
  */
+import { word } from "@bjornpagen/testing/dictionary";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { noCoverage } from "@bjornpagen/testing/features";
+import { boolean, int } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
 import { assert, layer } from "@effect/vitest";
 import { Array as Arr, Context, Effect, Layer, Option, Schema } from "effect";
 import type { Responses as ResponseValues } from "@qti-pie/plate";
 import { floorCases } from "#specimen/floor.ts";
 import { opened as openedCase } from "#specimen/open.ts";
+import { boxHolds } from "#specimen/test/box.ts";
 import { corpusItems } from "#specimen/ui/corpus.ts";
 import { HydrationFailure, hydratedPages, solved } from "#specimen/ui/hydrated.ts";
 import type { Answering, Hydrated } from "#specimen/ui/hydrated.ts";
+import { arrowKeys } from "#specimen/ui/position-object.dictionary.ts";
 import type { SourceItem } from "#specimen/ui/rules.ts";
 import { itemFactsOf } from "#specimen/ui/source.ts";
 
@@ -392,6 +400,32 @@ const without = (index: number) => placed.filter((_, each) => each !== index);
  */
 const onlyAt = (index: number): readonly boolean[] => placed.map((_, each) => each === index);
 
+/**
+ * A case of PO9's box: the copy picked up, by its place, and the key pressed on the object's
+ * button, an arrow alone or with Shift.
+ */
+interface ArrowOnButton {
+  readonly index: number;
+  readonly key: string;
+}
+
+/**
+ * Draw a case of PO9's box: one of the example's copies, and one of the {@link arrowKeys}, alone or
+ * with Shift, which moves a held copy ten pixels where an arrow alone moves it one.
+ */
+const arrowsOnButton: Gen<ArrowOnButton> = (source) => {
+  const index = source.draw(int(0, placed.length - 1));
+  const arrow = source.draw(word(arrowKeys));
+
+  return { index, key: source.draw(boolean) ? `Shift+${arrow}` : arrow };
+};
+
+/**
+ * How many cases {@link arrowsOnButton} draws: the three copies, by the four arrows, each alone or
+ * with Shift.
+ */
+const ARROWS_ON_BUTTON = placed.length * arrowKeys.length * 2;
+
 layer(shared, { excludeTestServices: true, timeout: harnessHang })(
   "Position Object hydrated in Chrome, on 1EdTech's Airport Locations with its three copies placed",
   (it) => {
@@ -639,35 +673,53 @@ layer(shared, { excludeTestServices: true, timeout: harnessHang })(
     );
 
     it.effect(
-      "PO9: the arrow keys on the object's button move no copy picked up by its control, and Enter on that control puts it down where it was",
-      () =>
-        Effect.scoped(
-          Effect.gen(function* arrowsOnTheButton() {
-            for (const index of placed.keys()) {
-              const hydrated = yield* opened;
+      `PO9: an arrow key on the object's button, alone or with Shift, moves no copy picked up by its control, and Enter on that control puts it down where it was: every copy by every arrow, ${String(ARROWS_ON_BUTTON)}`,
+      (ctx) =>
+        Effect.andThen(
+          boxHolds(arrowsOnButton, ARROWS_ON_BUTTON),
+          searched(
+            ctx,
+            exhaust(
+              {
+                box: "every copy of 1EdTech's example, picked up by Enter on its control, by every arrow key, alone or with Shift, pressed once on the object's button",
+                caseHang,
+                coverage: noCoverage,
+                generator: arrowsOnButton,
+                literal: ({ index, key }) => `copy ${String(index + 1)}, ${key}`,
+                oracle: {
+                  kind: "specification",
+                  name: "PO9 as the suite writes it by hand, from the island's ways (an arrow moves a copy only on the control whose Enter puts it down), over UI Events' arrow keys",
+                },
+                suite: "ui/position-object/arrows-on-button",
+              },
+              ({ index, key }) =>
+                Effect.scoped(
+                  Effect.gen(function* arrowOnTheButton() {
+                    const hydrated = yield* opened;
 
-              yield* step("focused the copy's control", () =>
-                hydrated.page.locator(controls).nth(index).focus(),
-              );
-              yield* step("pressed Enter", () => hydrated.page.keyboard.press("Enter"));
-              yield* hydrated.settle;
-              yield* step("focused the object's button", () =>
-                hydrated.page.locator(objects).first().focus(),
-              );
-
-              for (const key of ["ArrowRight", "ArrowDown", "Shift+ArrowLeft"]) {
-                yield* step(`pressed ${key}`, () => hydrated.page.keyboard.press(key));
-              }
-
-              yield* step("focused the copy's control", () =>
-                hydrated.page.locator(controls).nth(index).focus(),
-              );
-              yield* step("pressed Enter", () => hydrated.page.keyboard.press("Enter"));
-              yield* hydrated.settle;
-              assert.deepStrictEqual((yield* shown(hydrated)).pressed, [false, false, false]);
-              assert.deepStrictEqual(yield* hydrated.changes, []);
-            }
-          }),
+                    yield* step("focused the copy's control", () =>
+                      hydrated.page.locator(controls).nth(index).focus(),
+                    );
+                    yield* step("pressed Enter", () => hydrated.page.keyboard.press("Enter"));
+                    yield* hydrated.settle;
+                    yield* step("focused the object's button", () =>
+                      hydrated.page.locator(objects).first().focus(),
+                    );
+                    yield* step(`pressed ${key}`, () => hydrated.page.keyboard.press(key));
+                    yield* step("focused the copy's control", () =>
+                      hydrated.page.locator(controls).nth(index).focus(),
+                    );
+                    yield* step("pressed Enter", () => hydrated.page.keyboard.press("Enter"));
+                    yield* hydrated.settle;
+                    assert.deepStrictEqual(
+                      (yield* shown(hydrated)).pressed,
+                      placed.map(() => false),
+                    );
+                    assert.deepStrictEqual(yield* hydrated.changes, []);
+                  }),
+                ),
+            ),
+          ),
         ),
       caseHang,
     );
