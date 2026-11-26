@@ -34,7 +34,7 @@ import { floatBits } from "@bjornpagen/grizzle";
 import type { Sha256 } from "@bjornpagen/grizzle";
 import type { ItemRecord, RecordValue, Responses, ResponseValue, Value } from "@qti-pie/plate";
 import type { AnswerMark, Credit, PartMark } from "@qti-pie/plate/ui/props";
-import { Effect, Option, Order, Schema } from "effect";
+import { Effect, Option, Schema } from "effect";
 import { QtiInteger } from "#ledger/scalars.ts";
 
 /**
@@ -602,14 +602,6 @@ const groupOf = <G>(rows: readonly G[]): Effect.Effect<G> =>
   Effect.orDie(Effect.fromOption(Option.fromUndefinedOr(rows[0])));
 
 /**
- * The order of an ordered's rows: by their place.
- */
-const byPlace = Order.mapInput(
-  Order.BigInt,
-  (read: { readonly row: { readonly place: bigint } }) => read.row.place,
-);
-
-/**
  * Give the singles of one variable's rows.
  *
  * @param rows A cardinality's rows, read.
@@ -625,7 +617,9 @@ const rowsOfVariable = <E>(rows: readonly ReadRow<E>[], variable: string) =>
  *
  * @param snapshot The snapshot's value rows.
  * @returns For each cardinality, a variable's values of it: a single's, a multiple's occurrences,
- *   an ordered's in its order and a record's fields.
+ *   an ordered's in its order and a record's fields. An ordered's rows arrive in their key's order,
+ *   by variable and then place (grizzle orders every attached array by its result key), so one
+ *   variable's rows are its values in place order.
  */
 const valuesOf = Effect.fnUntraced(function* valuesOf(snapshot: ValueRows) {
   const single = yield* Effect.flatMap(groupOf(snapshot.single), readGroup);
@@ -639,9 +633,7 @@ const valuesOf = Effect.fnUntraced(function* valuesOf(snapshot: ValueRows) {
         Array.from({ length: Number(read.row.count) }, () => read.single),
       ),
     ordered: (variable: string): readonly Single[] =>
-      rowsOfVariable(ordered, variable)
-        .toSorted(byPlace)
-        .map((read) => read.single),
+      rowsOfVariable(ordered, variable).map((read) => read.single),
     record: (variable: string) =>
       rowsOfVariable(record, variable).map((read) => ({
         identifier: read.row.field,
