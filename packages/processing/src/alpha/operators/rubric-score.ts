@@ -20,7 +20,29 @@
  */
 import { alphaDefinitionPrefix, recordedOperator } from "#processing/operator.ts";
 import { single, textValue } from "#processing/value.ts";
-import type { RecordValue } from "#processing/value.ts";
+import type { RecordValue, Value } from "#processing/value.ts";
+
+/**
+ * A rubric operand: the identifier of the rubric block the essay is graded by; none for NULL or any
+ * other value, which publication refuses, since every application names its rubric.
+ *
+ * @param value - The literal as written.
+ * @returns The identifier, or none.
+ */
+const rubricLiteral = (value: Value): string | undefined =>
+  value.kind === "single" && value.base === "identifier" ? value.value : undefined;
+
+/**
+ * A draw operand: which of the essay's draws the application is, a non-negative integer; none for
+ * NULL or any other value, which publication refuses.
+ *
+ * @param value - The literal as written.
+ * @returns The draw, or none.
+ */
+const drawLiteral = (value: Value): bigint | undefined =>
+  value.kind === "single" && value.base === "integer" && value.value >= 0n
+    ? value.value
+    : undefined;
 
 /**
  * The `rubric-score` operator's registry entry: the essay, the rubric block it is graded by (an
@@ -32,9 +54,19 @@ export const rubricScoreOperator = recordedOperator({
   maximum: 2,
   operands: [
     { form: "expression", name: "response", type: { base: "string", cardinality: "single" } },
-    { form: "expression", name: "rubric", type: { base: "identifier", cardinality: "single" } },
+    {
+      form: "literal",
+      name: "rubric",
+      parse: (value: Value) => rubricLiteral(value),
+      type: { base: "identifier", cardinality: "single" },
+    },
     { form: "expression", name: "maximum", type: { base: "float", cardinality: "single" } },
-    { form: "expression", name: "draw", type: { base: "integer", cardinality: "single" } },
+    {
+      form: "literal",
+      name: "draw",
+      parse: (value: Value) => drawLiteral(value),
+      type: { base: "integer", cardinality: "single" },
+    },
   ],
   result: { cardinality: "record" },
 });
