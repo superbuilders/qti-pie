@@ -5710,3 +5710,61 @@ C2: the oracle's own reader.)
      (`anyNOf` in `src/operators/logic.ts`); plate's engine gave NULL where NULLs stood. It moves a verdict only for a
      document that writes `min` above `max`. This binds `@qti-pie/processing`. This is not a case of documents in
      conflict. (Stated 2026-11-26 by lane QP-PROC-CORE, D11.)
+
+259. [`exact-comparison`] **A comparison of an integer with a float decides on their exact values, never on the
+     integer's nearest double.** `qti-lt`, `qti-gt`, `qti-lte`, `qti-gte` and `qti-equal` in exact mode compare two
+     numbers (sections 2.11.3.3, 2.11.3.22, 2.11.3.23, 2.11.3.26, 2.11.3.27), and the information model names no
+     conversion for an integer beside a float. Converting the integer first would decide on a value neither operand
+     holds: 9007199254740993 converts to the double 9007199254740992, so it would equal that float. The integer is
+     compared at its exact value, and 9007199254740993 is greater than the float 9007199254740992. Arithmetic is another
+     matter: an integer meets a float as its nearest finite double before any float operation (reading
+     `integer-unbounded`, reading `exact-float-sum`). This binds `@qti-pie/processing` (its exact kernel,
+     `src/numbers.ts`). This is not a case of documents in conflict. (Stated 2026-11-26 by lane QP-PROC-OPS through
+     QP-PROC-CORE, D2, D11.)
+
+260. [`exact-statistics`] **A `qti-stats-operator`'s mean, variances and deviations are computed on the members' exact
+     values and rounded once.** The information model gives the five statistics (section 2.11.3.42, StatsOperatorEnum)
+     and no order of computation. The mean and the two variances are the nearest doubles of their exact rationals over
+     the members' binary values (n·Σx² − (Σx)² over n² for the population variance, over n(n − 1) for the sample
+     variance), and a deviation is the correctly rounded square root of its exact variance, so no order of the members
+     and no intermediate rounding moves a result. A NaN member gives NULL; an infinite member leaves only IEEE 754's
+     mean; the variances and deviations need two members or more, a population's too (StatsOperatorEnum). Plate's engine
+     scaled the members and folded in order. This binds `@qti-pie/processing`. This is not a case of documents in
+     conflict. (Stated 2026-11-26 by lane QP-PROC-OPS through QP-PROC-CORE, D2, D11.)
+
+261. [`area-percent-resolved`] **An area's percentage coordinates are resolved when the document is compiled, against
+     the size of the image the area lies on, and a document whose area has a percentage where that image states no size
+     is refused.** QTI's Coords says a coordinate may be a percentage of the image's size (section 7.9), and reading
+     `circle-percentage-radius` takes a circle's radius of the smaller of its width and height; an x coordinate's
+     percentage is of the width and a y coordinate's of the height. `@qti-pie/processing` takes the image of the
+     interaction the area's response binds (a Select Point's image, a Position Object's stage, at the size the document
+     writes) and resolves every area once (`src/compile/area.ts`), so its reader meets an area whose coordinates are
+     integers over one denominator: everywhere, nowhere, a rect with its corners ordered, a circle, an ellipse or a poly
+     of three vertices or more, coordinates that fit no shape read as reading `area-coords-fit` reads them, a point on
+     an edge inside (reading `area-mapping`). A percentage is no length without the image's size, so such a document has
+     no value to grade and publication refuses it. The SQL grader and plate's engine read 50% as 50 pixels; this changes
+     a verdict only for a document that writes a percentage. This binds `@qti-pie/processing` and publication. This is
+     not a case of documents in conflict. (Stated 2026-11-26 by lanes QP-PROC-OPS and QP-PROC-CORE, D11.)
+
+262. [`match-multiset`] **`qti-match` compares a multiple as a multiset, an ordered value position by position, a pair
+     unordered and a record field by field, each member by its value.** The information model says match "takes two
+     sub-expressions which must both have the same base-type and cardinality. The result is a single boolean with a
+     value of true if the two expressions represent the same value" (section 2.11.3.28); a multiple is an unordered
+     container that may hold a value more than once (section 2.4.3.4's example counts duplicates), an ordered container
+     a sequence, and a pair unordered (section 8.14). So two multiples match where each value occurs as often in one as
+     in the other, two ordered values where each position holds the same value, two pairs in either order, and two
+     records where they hold the same fields with the same values. Each member is compared by value (`sameScalar`,
+     `src/value.ts`): a float by `===`, so NaN matches nothing and −0 matches 0, a file by its octets, content type and
+     name. A duration operand is refused (reading `index-and-delete-operands`). This binds `@qti-pie/processing`. This
+     is not a case of documents in conflict. (Stated 2026-11-26 by lane QP-PROC-OPS through QP-PROC-CORE, D11.)
+
+263. [`inline-choice-required`] **Under `validate-responses`, an Inline Choice whose `required` is true refuses an
+     answer that selects no choice.** The information model says of InlineChoiceInteraction's `required` "If 'true' then
+     a choice must be selected by the candidate in order to form a valid response to the interaction" (section 5.74.2),
+     and of `validate-responses` that "the candidates are not allowed to submit the item until they have provided valid
+     responses for all interactions" (section 7.19.7). So an inline choice with `required` true needs at least one
+     choice, as its `min-choices` would ask, and an answer without one is refused before it is graded, under
+     `validate-responses` alone, as a limit that needs a valid response (reading `response-limits` sets them apart from
+     what no control lets the candidate give). `@qti-pie/processing`'s admission refuses so (`src/admission.ts`), as the
+     SQL grader's did. This binds `@qti-pie/processing`. This is not a case of documents in conflict. (Stated 2026-11-26
+     by lane QP-PROC-CORE, D6, D11.)
