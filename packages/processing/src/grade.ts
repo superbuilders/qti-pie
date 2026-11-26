@@ -149,6 +149,11 @@ export interface ClosingMember {
   readonly ref: MemberRef;
   readonly responses: Submitted;
   readonly session: ItemSession;
+  /**
+   * The member's `validate-responses` (§7.19.7), which a candidate's submission applies; a system's
+   * close applies none, and a pending member's answer was admitted when it was given.
+   */
+  readonly validate: boolean;
 }
 
 /**
@@ -184,6 +189,11 @@ export interface SittingInput {
   readonly carried: readonly CarriedMember[];
   readonly closing: readonly ClosingMember[];
   readonly context: ReadonlyMap<string, Value>;
+  /**
+   * Who ended the sitting: the candidate, by a submission `validate-responses` gates (§7.19.7), or
+   * the system (a time limit, a staff or system close), which no validation gates.
+   */
+  readonly endedBy: "candidate" | "system";
   /**
    * The members whose answer is still Pending when the sitting ends (an essay in an individual part
    * awaiting its evaluation), each its attempt as its answer graded it: the same item, responses
@@ -234,6 +244,14 @@ export type SittingGrade =
       readonly demands: readonly (Demand & { readonly ref: MemberRef })[];
       readonly kind: "pending";
       readonly members: readonly MemberGrade[];
+    }
+  | {
+      readonly kind: "refused";
+      /**
+       * Every closing member whose responses its admission refused, with the reasons, so the
+       * candidate is shown each item to complete. A refused submission writes nothing.
+       */
+      readonly refusals: readonly { readonly admission: Admission; readonly ref: MemberRef }[];
     };
 
 /**
@@ -415,6 +433,7 @@ const attemptText = (member: ClosingMember): string =>
     ref: refText(member.ref),
     responses: submittedText(member.responses),
     session: sessionText(member.session),
+    validate: String(member.validate),
   } satisfies Fields<ClosingMember>);
 
 /**
@@ -440,6 +459,7 @@ const sittingDigest = (input: SittingInput): Digest =>
       ),
       closing: membersText(input.closing, attemptText),
       context: valuesText(input.context),
+      endedBy: input.endedBy,
       pending: membersText(input.pending, attemptText),
       readAt: instantText(input.readAt),
       startedAt: instantText(input.startedAt),
@@ -511,6 +531,51 @@ const gradedOf = (submitted: Submitted, shown: ReadonlyMap<string, Value>): Subm
   submitted.kind === "default" ? submitted : { ...submitted, values: shown };
 
 /**
+ * An attempt's responses through admission: its reasons, the values it is graded on (every
+ * response admission hides NULL, §5.148) and the responses as graded.
+ */
+interface Admitted {
+  readonly admission: Admission;
+  readonly graded: Submitted;
+  readonly shown: ReadonlyMap<string, Value>;
+}
+
+/**
+ * Admit an attempt's responses: hide what the values in force close, and judge them against the
+ * interactions' limits, tier (b)'s too where `validate` holds and the attempt counts (reading
+ * `end-attempt-validation`).
+ *
+ * @param item - The attempt's item.
+ * @param session - Its session.
+ * @param submitted - Its responses as submitted.
+ * @param validate - Whether validate-responses applies.
+ * @returns The admission and the responses as graded.
+ */
+const admitted = (
+  item: CompiledItem,
+  session: ItemSession,
+  submitted: Submitted,
+  validate: boolean,
+): Admitted => {
+  const posted = valuesOf(submitted);
+  const admission = admit(
+    item,
+    posted,
+    heldOf(item, session),
+    validate && countsAttempt(item, posted),
+  );
+  const shown = new Map(posted);
+  for (const response of admission.hidden) {
+    const declaration = item.declarations.get(response);
+    if (declaration !== undefined) {
+      shown.set(response, nullOf(declaration.type));
+    }
+  }
+
+  return { admission, graded: gradedOf(submitted, shown), shown };
+};
+
+/**
  * Grade one answer (D14).
  *
  * @param table - The standard operators.
@@ -521,22 +586,11 @@ export const gradeAnswerWith = <K extends ExpressionKind>(
   table: OperatorTable<K>,
   input: AnswerInput,
 ): Failed | Graded<AnswerGrade> => {
-  const posted = valuesOf(input.responses);
-  const admission = admit(
-    input.item,
-    posted,
-    heldOf(input.item, input.session),
-    input.validate && countsAttempt(input.item, posted),
-  );
-  const shown = new Map(posted);
-  for (const response of admission.hidden) {
-    const declaration = input.item.declarations.get(response);
-    if (declaration !== undefined) {
-      shown.set(response, nullOf(declaration.type));
-    }
-  }
-
-  const asGraded = gradedOf(input.responses, shown);
+  const {
+    admission,
+    graded: asGraded,
+    shown,
+  } = admitted(input.item, input.session, input.responses, input.validate);
   const proof: GradeProof = {
     inputDigest: answerDigest({ ...input, responses: asGraded }),
     prior: priorOf(input.session.prior),
@@ -726,6 +780,56 @@ const testOutcomes = <K extends ExpressionKind>(
 };
 
 /**
+ * A sitting through admission: each attempt with its admission, the sitting with its responses as
+ * graded, and the refusals that refuse the candidate's submission.
+ */
+interface AdmittedSitting {
+  readonly attempts: readonly { readonly admission: Admitted; readonly member: ClosingMember }[];
+  readonly graded: SittingInput;
+  readonly refusals: readonly { readonly admission: Admission; readonly ref: MemberRef }[];
+}
+
+/**
+ * A sitting's closing and pending members through admission (one admission, one meaning, as an
+ * answer's): every hidden response NULL; validation where the candidate ended the sitting, by a
+ * closing member's validate-responses (a pending member's answer was admitted when it was given),
+ * and none where the system closed it, every member then graded as it stands.
+ *
+ * @param input - The sitting.
+ * @returns The sitting through admission.
+ */
+const admittedSitting = (input: SittingInput): AdmittedSitting => {
+  const byCandidate = input.endedBy === "candidate";
+  const closing = input.closing.map((member) => ({
+    admission: admitted(
+      member.item,
+      member.session,
+      member.responses,
+      byCandidate && member.validate,
+    ),
+    member,
+  }));
+  const pending = input.pending.map((member) => ({
+    admission: admitted(member.item, member.session, member.responses, false),
+    member,
+  }));
+  const asGraded = (each: (typeof closing)[number]): ClosingMember => ({
+    ...each.member,
+    responses: each.admission.graded,
+  });
+
+  return {
+    attempts: [...closing, ...pending],
+    graded: { ...input, closing: closing.map(asGraded), pending: pending.map(asGraded) },
+    refusals: byCandidate
+      ? closing
+          .filter(({ admission }) => admission.admission.reasons.length > 0)
+          .map(({ admission, member }) => ({ admission: admission.admission, ref: member.ref }))
+      : [],
+  };
+};
+
+/**
  * Grade a sitting, or complete its pending grade: every closing member, then the test.
  *
  * @param table - The standard operators.
@@ -736,11 +840,26 @@ const sittingWith = <K extends ExpressionKind>(
   table: OperatorTable<K>,
   input: SittingInput,
 ): Failed | Graded<SittingGrade> => {
+  const { attempts, graded: sittingGraded, refusals } = admittedSitting(input);
+  const proof: GradeProof = {
+    inputDigest: sittingDigest(sittingGraded),
+    prior: { kind: "none" },
+    program: input.test.digest,
+    readAt: input.readAt,
+    responses: attempts.map(({ admission }) => readOf(admission.graded)),
+  };
+  if (refusals.length > 0) {
+    return mint({ kind: "refused", refusals }, proof);
+  }
+
   const members: MemberGrade[] = [];
   const states: MemberState[] = [];
   const demands: (Demand & { readonly ref: MemberRef })[] = [];
-  for (const member of [...input.closing, ...input.pending]) {
-    const result = attemptWith(table, attemptOf(member, input.context));
+  for (const { admission, member } of attempts) {
+    const result = attemptWith(table, {
+      ...attemptOf(member, input.context),
+      responses: admission.shown,
+    });
     if (result.kind === "failed") {
       return result;
     }
@@ -748,7 +867,7 @@ const sittingWith = <K extends ExpressionKind>(
     members.push({
       prior: priorOf(member.session.prior),
       program: member.item.digest,
-      read: readOf(member.responses),
+      read: readOf(admission.graded),
       ref: member.ref,
       result,
     });
@@ -766,7 +885,7 @@ const sittingWith = <K extends ExpressionKind>(
             numAttempts: result.numAttempts,
             outcomes: result.outcomes,
             ref: member.ref,
-            responses: valuesOf(member.responses),
+            responses: admission.shown,
             take: member.session.take,
           },
           input.test,
@@ -791,13 +910,6 @@ const sittingWith = <K extends ExpressionKind>(
     states.push(memberStateOf(unpresentedSource(member), input.test));
   }
 
-  const proof: GradeProof = {
-    inputDigest: sittingDigest(input),
-    prior: { kind: "none" },
-    program: input.test.digest,
-    readAt: input.readAt,
-    responses: members.map((member) => member.read),
-  };
   if (demands.length > 0) {
     return mint({ demands, kind: "pending", members }, proof);
   }
@@ -847,7 +959,7 @@ export const completePendingWith = <K extends ExpressionKind>(
   input: CompletionInput,
 ): Failed | Graded<SittingGrade> => {
   const pending = proofOf(input.pendingGrade).inputDigest;
-  const given = sittingDigest(input);
+  const given = sittingDigest(admittedSitting(input).graded);
   if (given.sha256 !== pending.sha256) {
     return { failure: { given, kind: "completion-mismatch", pending }, kind: "failed" };
   }

@@ -23,8 +23,8 @@ import { takeWith } from "#processing/session.ts";
 import type { Take } from "#processing/session.ts";
 import { processingSeed } from "#processing/stream.ts";
 import { element, text } from "#processing/test/run.ts";
-import { container, nullOf, single, textValue } from "#processing/value.ts";
-import type { Value } from "#processing/value.ts";
+import { container, isText, nullOf, single, textValue } from "#processing/value.ts";
+import type { Text, Value } from "#processing/value.ts";
 import type { XmlElement } from "#processing/xml.ts";
 
 const table = operatorTable;
@@ -409,9 +409,11 @@ describe("a sitting", () => {
           ref: { identifier: "q1", occurrence: 1n },
           responses: { kind: "default" },
           session: fresh(noTake),
+          validate: false,
         },
       ],
       context: new Map(),
+      endedBy: "system",
       pending: [],
       readAt: { microseconds: 3_000_000n },
       startedAt: { microseconds: 1_000_000n },
@@ -457,6 +459,7 @@ const closingOf = (
   ref: { identifier, occurrence: 1n },
   responses: { kind: "default" },
   session,
+  validate: false,
 });
 
 /**
@@ -485,6 +488,7 @@ const twoMemberSitting = (): SittingInput => {
     carried: [],
     closing: [closingOf("q1", fresh(noTake), new Map()), closingOf("q2", fresh(noTake), new Map())],
     context: new Map(),
+    endedBy: "system",
     pending: [],
     readAt: { microseconds: 3_000_000n },
     startedAt: { microseconds: 1_000_000n },
@@ -513,6 +517,7 @@ const inputDigestOf = (input: SittingInput): string | undefined => {
 interface Departure {
   readonly context: boolean;
   readonly duration: boolean;
+  readonly endedBy: boolean;
   readonly evaluations: boolean;
   readonly numAttempts: boolean;
   readonly pending: boolean;
@@ -524,7 +529,7 @@ interface Departure {
 }
 
 /**
- * Every departure: each of its ten fields either way.
+ * Every departure: each of its eleven fields either way.
  */
 const departures: Gen<Departure> = (source) => {
   const bit = (): boolean => int(0, 1)(source) === 1;
@@ -532,6 +537,7 @@ const departures: Gen<Departure> = (source) => {
   return {
     context: bit(),
     duration: bit(),
+    endedBy: bit(),
     evaluations: bit(),
     numAttempts: bit(),
     pending: bit(),
@@ -568,6 +574,7 @@ const departed = (base: SittingInput, departure: Departure): SittingInput => {
     ...base,
     closing: departure.reordered ? members.toReversed() : members,
     context: departure.context ? new Map([["C", single("integer", 1n)]]) : base.context,
+    endedBy: departure.endedBy ? "candidate" : base.endedBy,
     pending: pendingQ2 ? [q2] : [],
     readAt: departure.readAt ? { microseconds: 3_000_001n } : base.readAt,
     startedAt: departure.startedAt ? { microseconds: 0n } : base.startedAt,
@@ -589,7 +596,7 @@ describe("a sitting's input digest (completePending's check)", () => {
         ctx,
         exhaust(
           {
-            box: "each of ten fields of a two-member sitting either way",
+            box: "each of eleven fields of a two-member sitting either way",
             caseHang: Duration.seconds(30),
             coverage: noCoverage,
             generator: departures,
@@ -602,6 +609,7 @@ describe("a sitting's input digest (completePending's check)", () => {
               const drifted =
                 departure.context ||
                 departure.duration ||
+                departure.endedBy ||
                 departure.numAttempts ||
                 (departure.pending && !departure.unpresented) ||
                 departure.readAt ||
@@ -714,11 +722,13 @@ describe("a sitting with a pending member", () => {
       ref,
       responses: essay,
       session: fresh(noTake),
+      validate: false,
     });
     const sitting: SittingInput = {
       carried: [],
       closing: [],
       context: new Map(),
+      endedBy: "system",
       pending: [member(new Map())],
       readAt: { microseconds: 3_000_000n },
       startedAt: { microseconds: 1_000_000n },
@@ -849,6 +859,161 @@ describe("a pending answer with a hidden response", () => {
   });
 });
 
+/**
+ * A text, which must not be empty.
+ *
+ * @param written - The text.
+ * @returns It, as a Text.
+ */
+const word = (written: string): Text => (isText(written) ? written : assert.fail("empty text"));
+
+/**
+ * An item of a required choice `PICK` (min-choices 1) and a choice `HIDDEN` in a feedback block its
+ * `FB` closes, so admission hides `HIDDEN`; `SEEN` is whether `HIDDEN` reached processing.
+ *
+ * @returns The compiled item.
+ */
+const requiredItem = (): CompiledItem => {
+  const compiled = compileItemWith(
+    element("qti-assessment-item", { adaptive: "false", identifier: "q" }, [
+      element(
+        "qti-response-declaration",
+        { "base-type": "identifier", cardinality: "single", identifier: "HIDDEN" },
+        [],
+      ),
+      element(
+        "qti-response-declaration",
+        { "base-type": "identifier", cardinality: "multiple", identifier: "PICK" },
+        [],
+      ),
+      element(
+        "qti-outcome-declaration",
+        { "base-type": "identifier", cardinality: "single", identifier: "FB" },
+        [],
+      ),
+      element(
+        "qti-outcome-declaration",
+        { "base-type": "boolean", cardinality: "single", identifier: "SEEN" },
+        [],
+      ),
+      element("qti-item-body", {}, [
+        element(
+          "qti-choice-interaction",
+          { "max-choices": "1", "min-choices": "1", "response-identifier": "PICK" },
+          [element("qti-simple-choice", { identifier: "A" }, [])],
+        ),
+        element(
+          "qti-feedback-block",
+          { identifier: "open", "outcome-identifier": "FB", "show-hide": "show" },
+          [
+            element("qti-choice-interaction", { "response-identifier": "HIDDEN" }, [
+              element("qti-simple-choice", { identifier: "B" }, []),
+            ]),
+          ],
+        ),
+      ]),
+      element("qti-response-processing", {}, [
+        setOutcome(
+          "SEEN",
+          element("qti-not", {}, [element("qti-is-null", {}, [variable("HIDDEN")])]),
+        ),
+      ]),
+    ]),
+    digest,
+    table,
+  );
+
+  return compiled.ok ? compiled.value : assert.fail(compiled.refusal.detail);
+};
+
+/**
+ * A sitting of two closing members of {@link requiredItem}, validate-responses on: q1 posts
+ * `HIDDEN` and no `PICK`, which validation refuses; q2 posts its `PICK`.
+ *
+ * @param endedBy - Who ended the sitting.
+ * @returns The sitting.
+ */
+const requiredSitting = (endedBy: SittingInput["endedBy"]): SittingInput => {
+  const item = requiredItem();
+  const compiled = compileTestWith(
+    element("qti-assessment-test", { identifier: "t" }, [
+      element("qti-test-part", { identifier: "p" }, [
+        element("qti-assessment-item-ref", { href: "q1.xml", identifier: "q1" }, []),
+        element("qti-assessment-item-ref", { href: "q2.xml", identifier: "q2" }, []),
+      ]),
+    ]),
+    digest,
+    new Map([
+      ["q1", item],
+      ["q2", item],
+    ]),
+    table,
+  );
+  const member = (identifier: string, values: ReadonlyMap<string, Value>): ClosingMember => ({
+    evaluations: new Map(),
+    item,
+    ref: { identifier, occurrence: 1n },
+    responses: { kind: "posted", values },
+    session: fresh(noTake),
+    validate: true,
+  });
+
+  return {
+    carried: [],
+    closing: [
+      member("q1", new Map([["HIDDEN", textValue("identifier", "B")]])),
+      member("q2", new Map([["PICK", container("multiple", "identifier", [word("A")])]])),
+    ],
+    context: new Map(),
+    endedBy,
+    pending: [],
+    readAt: { microseconds: 3_000_000n },
+    startedAt: { microseconds: 1_000_000n },
+    test: compiled.ok ? compiled.value : assert.fail(compiled.refusal.detail),
+    testSeed: seed,
+    unpresented: [],
+  };
+};
+
+describe("a sitting's admission", () => {
+  it("hides a response in a sitting as in an answer: HIDDEN reaches processing as NULL (§5.148)", () => {
+    const graded = gradeSittingWith(table, requiredSitting("system"));
+    if ("failure" in graded || graded.kind !== "done") {
+      return assert.fail("graded");
+    }
+
+    const [q1] = graded.members;
+    assert.deepStrictEqual(
+      q1?.result.kind === "done" ? q1.result.outcomes.get("SEEN") : undefined,
+      single("boolean", false),
+    );
+    assert.deepStrictEqual(
+      q1?.read.digest,
+      valuesDigest(new Map([["HIDDEN", nullOf({ base: "identifier", cardinality: "single" })]])),
+    );
+  });
+
+  it("refuses a candidate's submission with a member validation refuses, naming each refused member and its reasons (§7.19.7)", () => {
+    const graded = gradeSittingWith(table, requiredSitting("candidate"));
+    if ("failure" in graded || graded.kind !== "refused") {
+      return assert.fail("refused");
+    }
+
+    assert.deepStrictEqual(
+      graded.refusals.map(({ admission, ref }) => ({
+        codes: admission.reasons.map((reason) => reason.code),
+        ref,
+      })),
+      [{ codes: ["atLeast"], ref: { identifier: "q1", occurrence: 1n } }],
+    );
+  });
+
+  it("grades every member as it stands where the system closed the sitting, validating none", () => {
+    const graded = gradeSittingWith(table, requiredSitting("system"));
+    assert.isTrue(!("failure" in graded) && graded.kind === "done");
+  });
+});
+
 describe("a sitting's members", () => {
   it("reads a member's built-ins and counts a selected, unpresented member at its declared start, in the test's order (§2.2.2, §2.11.2)", () => {
     const item = itemOf(false, [scoring]);
@@ -899,9 +1064,11 @@ describe("a sitting's members", () => {
           ref: { identifier: "q1", occurrence: 1n },
           responses: { kind: "default" },
           session: fresh(noTake),
+          validate: false,
         },
       ],
       context: new Map(),
+      endedBy: "system",
       pending: [],
       readAt: { microseconds: 3_000_000n },
       startedAt: { microseconds: 1_000_000n },
