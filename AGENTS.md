@@ -1,6 +1,6 @@
 # qti-pie
 
-qti-pie is edullm's IMS QTI 3.0.1 stack: five packages under `packages/qti-pie/packages/`. Follow edullm's root
+qti-pie is edullm's IMS QTI 3.0.1 stack: six packages under `packages/qti-pie/packages/`. Follow edullm's root
 `AGENTS.md` for everything this file does not say.
 
 This repository is `superbuilders/qti-pie`, a git submodule of edullm at `packages/qti-pie` (and of
@@ -20,6 +20,11 @@ metis). Every qti-pie change is committed here and pushed to `main`; edullm then
 - `ledger` (`@qti-pie/ledger`) holds QTI's session facts as grizzle levels above pantry's: item and test sessions,
   saves, attempts, assertions and operator evaluations, delivery and test outcomes, the SQL grader, and the one item
   opening every application serves (`served-item.ts`).
+- `processing` (`@qti-pie/processing`) is QTI 3.0.1 processing as one pure function: the value model, the typed
+  program compiled from a stored document, every operator (the registry, Alpha's under `src/alpha/`), and response,
+  outcome and template processing. It is effect-free (`toolchain.config.ts`'s `effectFree`): no Effect, Node module,
+  clock, timer, ambient randomness or I/O at run time; seeds and instants are arguments, and its one grade is a
+  `Graded` result only its evaluator mints. The Effect shell that reads its inputs and writes its grade lives outside it.
 - `specimen` (`@qti-pie/specimen`) generates specimen items and the child's responses as data, drawn at random, in
   order or from a test's replay token, for the suites and for headless pages.
 

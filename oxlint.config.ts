@@ -3,6 +3,7 @@ import { defineConfig } from "oxlint";
 import core from "ultracite/oxlint/core";
 import antiSlop from "ultracite/oxlint/anti-slop";
 import { plateClientModulesOf, plateModules } from "#tools/module-graph.ts";
+import toolchain from "#toolchain.config.ts";
 
 /**
  * Matches module declarations and calls without spacing local call groups.
@@ -79,6 +80,76 @@ const plateNodePattern = {
   message: "plate's modules run on any host, so they load no Node built-in.",
   regex: `^${nodeBuiltins}`,
 };
+
+/**
+ * Why an effect-free package refuses what it refuses, by kind, each a message of the rules below.
+ */
+const effectFree = {
+  clock:
+    "An effect-free package reads no clock and sets no timer: an instant is its caller's argument.",
+  effect:
+    "An effect-free package loads no Effect at run time: use its native forms and import Effect's types with `import type`. The Effect shell around it is code outside it.",
+  environment:
+    "An effect-free package reads no environment: what it needs is its caller's argument.",
+  io: "An effect-free package performs no I/O: its caller reads and writes.",
+  node: "An effect-free package loads no Node built-in, so it runs on any host.",
+  randomness:
+    "An effect-free package draws no ambient randomness: a seed is its caller's argument, and its draws are its own keyed stream.",
+  synchronous: "An effect-free package is synchronous: it schedules nothing and awaits nothing.",
+} as const;
+
+/**
+ * The globals an effect-free package never reads, grizzle's engine's list (its `ENGINE_GLOBALS`).
+ */
+const effectFreeGlobals = Object.freeze([
+  { message: effectFree.clock, name: "Date" },
+  { message: effectFree.clock, name: "performance" },
+  { message: effectFree.clock, name: "setTimeout" },
+  { message: effectFree.clock, name: "clearTimeout" },
+  { message: effectFree.clock, name: "setInterval" },
+  { message: effectFree.clock, name: "clearInterval" },
+  { message: effectFree.clock, name: "setImmediate" },
+  { message: effectFree.clock, name: "clearImmediate" },
+  { message: effectFree.synchronous, name: "queueMicrotask" },
+  { message: effectFree.synchronous, name: "Promise" },
+  { message: effectFree.environment, name: "process" },
+  { message: effectFree.io, name: "fetch" },
+  { message: effectFree.io, name: "WebSocket" },
+  { message: effectFree.randomness, name: "crypto" },
+  { message: effectFree.environment, name: "navigator" },
+] as const);
+
+/**
+ * The imports an effect-free package refuses beside every module's: Effect at run time (its types
+ * stay importable), any Node built-in, and PostgreSQL's client.
+ */
+const effectFreeImports = Object.freeze({
+  paths: [{ allowTypeImports: true, message: effectFree.effect, name: "effect" }],
+  patterns: [
+    { allowTypeImports: true, group: ["effect/*", "@effect/*"], message: effectFree.effect },
+    { message: effectFree.node, regex: `^${nodeBuiltins}` },
+    { message: effectFree.io, regex: "^pg(?:/|$)" },
+  ],
+} as const);
+
+/**
+ * The source of each package toolchain.config.ts lists as effect-free, its tests apart: a test
+ * runs under Vitest and Effect, as every package's does. Its override holds it as grizzle holds its
+ * engine: no Effect, Node built-in or PostgreSQL client at run time, none of the clock, timers,
+ * ambient randomness, Promise, process or fetch, and no try, async, console, environment or bare
+ * error. The override stands after the alpha/ ones, so an effect-free package's alpha/ keeps it,
+ * and the one after it lets processing's registry, where its host plugs Alpha's operators in, and
+ * its alpha/ modules import alpha/ under the same bans.
+ */
+const effectFreeSources = toolchain.effectFree.map((directory) => `${directory}/src/**/*.ts`);
+
+/**
+ * The tests of the effect-free packages, which their rules do not hold.
+ */
+const effectFreeTests = toolchain.effectFree.flatMap((directory) => [
+  `${directory}/src/**/*.test.ts`,
+  `${directory}/src/test/**`,
+]);
 
 /**
  * The pattern by which plate defines its UI SDK primitives through its own `definePrimitive`
@@ -507,6 +578,45 @@ export default defineConfig({
         "no-restricted-imports": [
           "error",
           { patterns: [...pathImportPatterns, ...plateCorePatterns] },
+        ],
+      },
+    },
+    {
+      excludeFiles: effectFreeTests,
+      files: effectFreeSources,
+      rules: {
+        "devtools/effect-free-imports": "error",
+        "devtools/no-new-error": "error",
+        "devtools/no-try": "error",
+        "eslint/no-console": "error",
+        "no-restricted-globals": ["error", ...effectFreeGlobals],
+        "no-restricted-imports": [
+          "error",
+          {
+            paths: [...effectFreeImports.paths],
+            patterns: [...sharedImportPatterns, ...effectFreeImports.patterns],
+          },
+        ],
+        "no-restricted-properties": [
+          "error",
+          { message: effectFree.randomness, object: "Math", property: "random" },
+        ],
+        "node/no-process-env": "error",
+        "oxc/no-async-await": "error",
+        "typescript/no-import-type-side-effects": "error",
+        "typescript/strict-boolean-expressions": "error",
+      },
+    },
+    {
+      excludeFiles: effectFreeTests,
+      files: ["packages/processing/src/alpha/**/*.ts", "packages/processing/src/registry.ts"],
+      rules: {
+        "no-restricted-imports": [
+          "error",
+          {
+            paths: [...effectFreeImports.paths],
+            patterns: [...pathImportPatterns, ...effectFreeImports.patterns],
+          },
         ],
       },
     },

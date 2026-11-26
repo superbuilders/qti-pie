@@ -28,6 +28,6 @@
     "incremental": true,
     "tsBuildInfoFile": "${configDir}/node_modules/.cache/tsconfig.tsbuildinfo"
   },
-  "include": ["suites", "tools", "oxlint.config.ts"],
+  "include": ["suites", "tools", "oxlint.config.ts", "toolchain.config.ts"],
   "exclude": ["**/node_modules", "**/work"]
 }

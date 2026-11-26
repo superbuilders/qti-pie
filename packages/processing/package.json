@@ -1,0 +1,26 @@
+{
+  "name": "@qti-pie/processing",
+  "private": true,
+  "description": "QTI 3.0.1 processing as one pure, effect-free TypeScript evaluator: the value model, the typed program compiled from a stored document, every operator, and response, outcome and template processing, whose only grade is a Graded result the evaluator mints.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "imports": {
+    "#processing/*": "./src/*"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "sh -c 'toolchain-typecheck -p src/tsconfig.json \"$@\" & toolchain-typecheck -p tsconfig.json \"$@\"; source=$?; wait $! && exit $source' typecheck",
+    "test": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" NODE_OPTIONS=\"$NODE_OPTIONS --disable-proto=delete --disable-sigusr1\" vitest run"
+  },
+  "devDependencies": {
+    "@bjornpagen/devtools": "workspace:*",
+    "@bjornpagen/testing": "workspace:*",
+    "@effect/vitest": "catalog:",
+    "@types/node": "catalog:",
+    "effect": "catalog:",
+    "vitest": "catalog:"
+  }
+}

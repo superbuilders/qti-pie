@@ -4,7 +4,8 @@
   "license": "MIT",
   "type": "module",
   "imports": {
-    "#tools/*": "./tools/*"
+    "#tools/*": "./tools/*",
+    "#toolchain.config.ts": "./toolchain.config.ts"
   },
   "scripts": {
     "typecheck": "toolchain-typecheck",

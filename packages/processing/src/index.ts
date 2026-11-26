@@ -1,0 +1,63 @@
+/**
+ * `@qti-pie/processing`: QTI 3.0.1 processing as a pure function. It reads no clock, draws no
+ * ambient randomness and performs no I/O: seeds and instants are arguments, and its one grade is a
+ * {@link Graded} result the evaluator mints.
+ *
+ * @module
+ */
+export type { Digest, GradeProof, Graded, Instant, ResponsesRead } from "#processing/graded.ts";
+
+export { proofOf } from "#processing/graded.ts";
+
+export type {
+  ArgumentsOf,
+  CustomOperator,
+  InlineOperator,
+  OperandSpec,
+  PresentOf,
+  RecordedOperator,
+  ResultOf,
+  ResultSpec,
+  TypeSpec,
+} from "#processing/operator.ts";
+
+export { alphaDefinitionPrefix, inlineOperator, recordedOperator } from "#processing/operator.ts";
+
+export type { Definition } from "#processing/registry.ts";
+
+export { customOperatorOf, customOperators, registered } from "#processing/registry.ts";
+
+export type {
+  BaseType,
+  Container,
+  ContainerCardinality,
+  ContainerOf,
+  DirectedPair,
+  NonEmpty,
+  Null,
+  Pair,
+  Point,
+  Present,
+  QtiFile,
+  RecordField,
+  RecordValue,
+  Scalars,
+  ValueType,
+  Single,
+  SingleOf,
+  Text,
+  Value,
+} from "#processing/value.ts";
+
+export {
+  baseTypes,
+  container,
+  isText,
+  nullOf,
+  recordOf,
+  sameScalar,
+  sameValueType,
+  valueTypeOf,
+  single,
+  textValue,
+} from "#processing/value.ts";
