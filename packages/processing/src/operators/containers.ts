@@ -227,7 +227,7 @@ const bases: Bases = {
  * @param base - The base type.
  * @returns Its entry.
  */
-const ofBase = <B extends BaseType>(base: B): OfBase<B> => {
+export const ofBase = <B extends BaseType>(base: B): OfBase<B> => {
   const entry: Bases[B] = bases[base];
 
   return entry;
