@@ -290,7 +290,11 @@ export const attemptWith = <K extends ExpressionKind>(
     } else if (declaration.role === "response") {
       marks.set(
         declaration.identifier,
-        marksOf(value, attempt.take.correct.get(declaration.identifier) ?? declaration.correct),
+        marksOf(
+          value,
+          attempt.take.correct.get(declaration.identifier) ?? declaration.correct,
+          declaration.areaMapping,
+        ),
       );
     }
   }
