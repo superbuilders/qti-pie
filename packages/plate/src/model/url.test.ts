@@ -345,6 +345,24 @@ const directoryCase: Gen<DirectoryCase> = (source) => {
 const DIRECTORY_CASES = 3 * (4 + 4 ** 2 + 4 ** 3) * 2;
 
 /**
+ * Give the situation a reference of the directory box reaches, by the files the oracle resolves it
+ * to: none above the package root, a directory where one ends in a slash or is the root, else a
+ * file.
+ *
+ * @param files The files, from the package root.
+ * @returns The situation.
+ */
+const directorySituationOf = (
+  files: readonly string[],
+): "a directory" | "a file" | "above the root" => {
+  if (files.length === 0) {
+    return "above the root";
+  }
+
+  return files.some((file) => file === "" || file.endsWith("/")) ? "a directory" : "a file";
+};
+
+/**
  * A case of the attribute box: an HTML attribute and the value it holds.
  */
 interface AttributeCase {
@@ -397,6 +415,167 @@ const attributeCase: Gen<AttributeCase> = (source) => {
 const ATTRIBUTE_CASES = 6 * 4 * (1 + 3 + 3 ** 2) * 2 + (6 + 6 * 6);
 
 /**
+ * The components of a URI reference, as RFC 3986 Appendix B's regular expression splits it, an
+ * absent component `undefined`.
+ */
+interface Components {
+  readonly authority: string | undefined;
+  readonly fragment: string | undefined;
+  readonly path: string;
+  readonly query: string | undefined;
+  readonly scheme: string | undefined;
+}
+
+/**
+ * Split a URI reference into its five components (RFC 3986, Appendix B).
+ *
+ * @param reference The reference.
+ * @returns Its components.
+ * @see https://www.rfc-editor.org/rfc/rfc3986#appendix-B
+ */
+const componentsOf = (reference: string): Components => {
+  const {
+    authority,
+    fragment,
+    path = "",
+    query,
+    scheme,
+  } = regex(
+    "^(?:(?<scheme>[^#/:?]+):)?(?://(?<authority>[^#/?]*))?(?<path>[^#?]*)(?:\\?(?<query>[^#]*))?(?:#(?<fragment>.*))?",
+    "u",
+  ).exec(reference)?.groups ?? {};
+
+  return { authority, fragment, path, query, scheme };
+};
+
+/**
+ * Remove a path's dot segments, RFC 3986 section 5.2.4's loop as written.
+ *
+ * @param path The path.
+ * @returns The output buffer.
+ * @see https://www.rfc-editor.org/rfc/rfc3986#section-5.2.4
+ */
+const removeDotSegments = (path: string): string => {
+  let input = path;
+  let output = "";
+  while (input !== "") {
+    if (input.startsWith("../")) {
+      input = input.slice(3);
+    } else if (input.startsWith("./")) {
+      input = input.slice(2);
+    } else if (input.startsWith("/./")) {
+      input = input.slice(2);
+    } else if (input === "/.") {
+      input = "/";
+    } else if (input.startsWith("/../")) {
+      input = input.slice(3);
+      output = output.slice(0, Math.max(0, output.lastIndexOf("/")));
+    } else if (input === "/..") {
+      input = "/";
+      output = output.slice(0, Math.max(0, output.lastIndexOf("/")));
+    } else if (input === "." || input === "..") {
+      input = "";
+    } else {
+      const end = input.indexOf("/", 1);
+      const segment = end === -1 ? input : input.slice(0, end);
+      output += segment;
+      input = input.slice(segment.length);
+    }
+  }
+
+  return output;
+};
+
+/**
+ * Transform a reference's components into its target's, RFC 3986 section 5.2.2's strict
+ * transform with section 5.2.3's merge, as written.
+ *
+ * @param b The base URI's components.
+ * @param r The reference's components.
+ * @returns The target's components.
+ * @see https://www.rfc-editor.org/rfc/rfc3986#section-5.2.2
+ */
+const transformed = (b: Components, r: Components): Components => {
+  if (r.scheme !== undefined) {
+    return { ...r, path: removeDotSegments(r.path) };
+  }
+
+  if (r.authority !== undefined) {
+    return { ...r, path: removeDotSegments(r.path), scheme: b.scheme };
+  }
+
+  if (r.path === "") {
+    return { ...b, fragment: r.fragment, query: r.query ?? b.query };
+  }
+
+  const merged =
+    b.authority !== undefined && b.path === ""
+      ? `/${r.path}`
+      : `${b.path.slice(0, b.path.lastIndexOf("/") + 1)}${r.path}`;
+
+  return {
+    ...b,
+    fragment: r.fragment,
+    path: removeDotSegments(r.path.startsWith("/") ? r.path : merged),
+    query: r.query,
+  };
+};
+
+/**
+ * Resolve a URI reference against a base URI by RFC 3986 section 5.2, then recompose it (section
+ * 5.3). It shares no code with `url.ts` and reads no WHATWG URL.
+ *
+ * @param base The base URI.
+ * @param reference The reference.
+ * @returns The target URI.
+ * @see https://www.rfc-editor.org/rfc/rfc3986#section-5.3
+ */
+const resolveReference = (base: string, reference: string): string => {
+  const target = transformed(componentsOf(base), componentsOf(reference));
+
+  return [
+    target.scheme === undefined ? "" : `${target.scheme}:`,
+    target.authority === undefined ? "" : `//${target.authority}`,
+    target.path,
+    target.query === undefined ? "" : `?${target.query}`,
+    target.fragment === undefined ? "" : `#${target.fragment}`,
+  ].join("");
+};
+
+/**
+ * The directory the oracle places a package's root at. No generated reference spells its name, so
+ * a reference that climbs out of it never climbs back in.
+ */
+const oracleRoot = "http://host/package-root/";
+
+/**
+ * Give the file a relative reference in an item names, by RFC 3986: the reference's percent-encoded
+ * unreserved characters normalized first (section 6.2.2.2, so `%2e` is a `.`), resolved against the
+ * item's URI under {@link oracleRoot}, then each segment percent-decoded (section 2.1). Reading
+ * `href-resolution` states each step for pantry and plate alike: a path that climbs above the
+ * package root resolves outside it, and names no file of it.
+ *
+ * @param location The item's path from the package root.
+ * @param reference The reference, a relative path with no query or fragment.
+ * @returns The file's path from the package root, or none when it leaves the package.
+ */
+const fileByRfc3986 = (location: string, reference: string): readonly string[] => {
+  const unreserved = reference.replaceAll(
+    regex("%(?<hex>[\\dA-Fa-f]{2})", "gu"),
+    (escape, hex: string) => {
+      const character = String.fromCodePoint(Number.parseInt(hex, 16));
+
+      return regex("^[\\w.~-]$", "u").test(character) ? character : escape;
+    },
+  );
+  const target = resolveReference(`${oracleRoot}${location}`, unreserved);
+
+  return target.startsWith(oracleRoot)
+    ? [target.slice(oracleRoot.length).split("/").map(decodeURIComponent).join("/")]
+    : [];
+};
+
+/**
  * Whether a value is a relative path: no scheme (RFC 3986 section 3.1: a letter, then letters,
  * digits, `+`, `-` or `.`, then a colon, before any `/`, `?` or `#`) and no slash first.
  *
@@ -405,15 +584,23 @@ const ATTRIBUTE_CASES = 6 * 4 * (1 + 3 + 3 ** 2) * 2 + (6 + 6 * 6);
  */
 const isRelativePath = (value: string): boolean => {
   const colon = value.indexOf(":");
-  const beforeColon = value.slice(0, Math.max(colon, 0));
+  const beforeColon = new Set(value.slice(0, Math.max(colon, 0)));
   const hasScheme =
-    colon > 0 &&
-    !beforeColon.includes("/") &&
-    !beforeColon.includes("?") &&
-    !beforeColon.includes("#");
+    colon > 0 && !beforeColon.has("/") && !beforeColon.has("?") && !beforeColon.has("#");
 
   return !hasScheme && !value.startsWith("/");
 };
+
+/**
+ * The file a URL value names from `items/q1.xml`, by the oracle: a relative path's, its fragment
+ * apart, as the suite's RFC 3986 transcription resolves it ({@link fileByRfc3986}); none for a
+ * value with a scheme or a slash first.
+ *
+ * @param url The value.
+ * @returns The file, none where it names none.
+ */
+const fileFromItem = (url: string): readonly string[] =>
+  isRelativePath(url) ? fileByRfc3986("items/q1.xml", url.split("#")[0] ?? url) : [];
 
 /**
  * The files an attribute's value names, by the oracle: none for an attribute that holds no URL, a
@@ -426,18 +613,15 @@ const isRelativePath = (value: string): boolean => {
  * @returns The files, from the package root.
  */
 const attributeFiles = (attribute: HtmlAttribute, value: string): readonly string[] => {
-  const fileOf = (url: string): readonly string[] =>
-    isRelativePath(url) ? fileByRfc3986("items/q1.xml", url.split("#")[0] ?? url) : [];
-
   if (attribute.context === "none") {
     return [];
   }
 
   if (attribute.context !== "srcset") {
-    return fileOf(value);
+    return fileFromItem(value);
   }
 
-  const files = value.split(", ").map((entry) => fileOf(entry.split(" ")[0] ?? entry));
+  const files = value.split(", ").map((entry) => fileFromItem(entry.split(" ")[0] ?? entry));
 
   return files.every((named) => named.length === 1) ? files.flat() : [];
 };
@@ -697,13 +881,7 @@ describe("resolution against the item's location", () => {
             ({ location, reference }, c) =>
               Effect.sync(() => {
                 const files = fileByRfc3986(location, reference);
-                c.note(
-                  files.length === 0
-                    ? "above the root"
-                    : files.some((file) => file === "" || file.endsWith("/"))
-                      ? "a directory"
-                      : "a file",
-                );
+                c.note(directorySituationOf(files));
 
                 assert.deepStrictEqual(
                   assetPaths(location, "img", "src", reference),
@@ -843,167 +1021,6 @@ describe("a PCI's module locations", () => {
     );
   });
 });
-
-/**
- * The components of a URI reference, as RFC 3986 Appendix B's regular expression splits it, an
- * absent component `undefined`.
- */
-interface Components {
-  readonly authority: string | undefined;
-  readonly fragment: string | undefined;
-  readonly path: string;
-  readonly query: string | undefined;
-  readonly scheme: string | undefined;
-}
-
-/**
- * Split a URI reference into its five components (RFC 3986, Appendix B).
- *
- * @param reference The reference.
- * @returns Its components.
- * @see https://www.rfc-editor.org/rfc/rfc3986#appendix-B
- */
-const componentsOf = (reference: string): Components => {
-  const {
-    authority,
-    fragment,
-    path = "",
-    query,
-    scheme,
-  } = regex(
-    "^(?:(?<scheme>[^#/:?]+):)?(?://(?<authority>[^#/?]*))?(?<path>[^#?]*)(?:\\?(?<query>[^#]*))?(?:#(?<fragment>.*))?",
-    "u",
-  ).exec(reference)?.groups ?? {};
-
-  return { authority, fragment, path, query, scheme };
-};
-
-/**
- * Remove a path's dot segments, RFC 3986 section 5.2.4's loop as written.
- *
- * @param path The path.
- * @returns The output buffer.
- * @see https://www.rfc-editor.org/rfc/rfc3986#section-5.2.4
- */
-const removeDotSegments = (path: string): string => {
-  let input = path;
-  let output = "";
-  while (input !== "") {
-    if (input.startsWith("../")) {
-      input = input.slice(3);
-    } else if (input.startsWith("./")) {
-      input = input.slice(2);
-    } else if (input.startsWith("/./")) {
-      input = input.slice(2);
-    } else if (input === "/.") {
-      input = "/";
-    } else if (input.startsWith("/../")) {
-      input = input.slice(3);
-      output = output.slice(0, Math.max(0, output.lastIndexOf("/")));
-    } else if (input === "/..") {
-      input = "/";
-      output = output.slice(0, Math.max(0, output.lastIndexOf("/")));
-    } else if (input === "." || input === "..") {
-      input = "";
-    } else {
-      const end = input.indexOf("/", 1);
-      const segment = end === -1 ? input : input.slice(0, end);
-      output += segment;
-      input = input.slice(segment.length);
-    }
-  }
-
-  return output;
-};
-
-/**
- * Transform a reference's components into its target's, RFC 3986 section 5.2.2's strict
- * transform with section 5.2.3's merge, as written.
- *
- * @param b The base URI's components.
- * @param r The reference's components.
- * @returns The target's components.
- * @see https://www.rfc-editor.org/rfc/rfc3986#section-5.2.2
- */
-const transformed = (b: Components, r: Components): Components => {
-  if (r.scheme !== undefined) {
-    return { ...r, path: removeDotSegments(r.path) };
-  }
-
-  if (r.authority !== undefined) {
-    return { ...r, path: removeDotSegments(r.path), scheme: b.scheme };
-  }
-
-  if (r.path === "") {
-    return { ...b, fragment: r.fragment, query: r.query ?? b.query };
-  }
-
-  const merged =
-    b.authority !== undefined && b.path === ""
-      ? `/${r.path}`
-      : `${b.path.slice(0, b.path.lastIndexOf("/") + 1)}${r.path}`;
-
-  return {
-    ...b,
-    fragment: r.fragment,
-    path: removeDotSegments(r.path.startsWith("/") ? r.path : merged),
-    query: r.query,
-  };
-};
-
-/**
- * Resolve a URI reference against a base URI by RFC 3986 section 5.2, then recompose it (section
- * 5.3). It shares no code with `url.ts` and reads no WHATWG URL.
- *
- * @param base The base URI.
- * @param reference The reference.
- * @returns The target URI.
- * @see https://www.rfc-editor.org/rfc/rfc3986#section-5.3
- */
-const resolveReference = (base: string, reference: string): string => {
-  const target = transformed(componentsOf(base), componentsOf(reference));
-
-  return [
-    target.scheme === undefined ? "" : `${target.scheme}:`,
-    target.authority === undefined ? "" : `//${target.authority}`,
-    target.path,
-    target.query === undefined ? "" : `?${target.query}`,
-    target.fragment === undefined ? "" : `#${target.fragment}`,
-  ].join("");
-};
-
-/**
- * The directory the oracle places a package's root at. No generated reference spells its name, so
- * a reference that climbs out of it never climbs back in.
- */
-const oracleRoot = "http://host/package-root/";
-
-/**
- * Give the file a relative reference in an item names, by RFC 3986: the reference's percent-encoded
- * unreserved characters normalized first (section 6.2.2.2, so `%2e` is a `.`), resolved against the
- * item's URI under {@link oracleRoot}, then each segment percent-decoded (section 2.1). Reading
- * `href-resolution` states each step for pantry and plate alike: a path that climbs above the
- * package root resolves outside it, and names no file of it.
- *
- * @param location The item's path from the package root.
- * @param reference The reference, a relative path with no query or fragment.
- * @returns The file's path from the package root, or none when it leaves the package.
- */
-const fileByRfc3986 = (location: string, reference: string): readonly string[] => {
-  const unreserved = reference.replaceAll(
-    regex("%(?<hex>[\\dA-Fa-f]{2})", "gu"),
-    (escape, hex: string) => {
-      const character = String.fromCodePoint(Number.parseInt(hex, 16));
-
-      return regex("^[\\w.~-]$", "u").test(character) ? character : escape;
-    },
-  );
-  const target = resolveReference(`${oracleRoot}${location}`, unreserved);
-
-  return target.startsWith(oracleRoot)
-    ? [target.slice(oracleRoot.length).split("/").map(decodeURIComponent).join("/")]
-    : [];
-};
 
 describe("resolution against the item's location, by RFC 3986", () => {
   it("names, for every path of up to four segments in items at four depths, the file RFC 3986 resolves it to", () => {

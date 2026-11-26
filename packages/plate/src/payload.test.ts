@@ -1743,6 +1743,7 @@ describe("redactItem on template blocks, inlines and choices", () => {
             },
           ],
         );
+
         const hiddenNames = templateNamesOf(
           governedChoice,
           interactionChoices(accepted.item),
@@ -2325,6 +2326,15 @@ const CONTROLS_CASES = (1 + 11 + 1) * 7 * 11;
 const controlCap = 100;
 
 /**
+ * The Controls an ordered Extended Text shows: how many, what each restores, and the notice.
+ */
+interface ExpectedControls {
+  readonly n: number;
+  readonly notice: Option.Option<string>;
+  readonly restores: readonly string[];
+}
+
+/**
  * The Controls an ordered Extended Text shows for a case, as reading `max-strings-zero` and the
  * payload's rule state them: a `min-strings` above the cap leaves none, its notice in their place;
  * else `max-strings` Controls when it restricts (it is not 0, reading `max-strings-zero`) and is at
@@ -2335,13 +2345,7 @@ const controlCap = 100;
  * @param controls The case.
  * @returns How many Controls, what each restores, and the notice.
  */
-const expectedControls = (
-  controls: ControlsCase,
-): {
-  readonly n: number;
-  readonly notice: Option.Option<string>;
-  readonly restores: readonly string[];
-} => {
+const expectedControls = (controls: ControlsCase): ExpectedControls => {
   if (controls.minStrings > BigInt(controlCap)) {
     return { n: 0, notice: Option.some("min-strings>100"), restores: [] };
   }
@@ -3156,9 +3160,9 @@ describe("startingResponses", () => {
               Effect.sync(() => {
                 const shown =
                   showing.showFeedback &&
-                  !showing.record.outcomes["FEEDBACK"]?.values.some(
+                  showing.record.outcomes["FEEDBACK"]?.values.some(
                     (single) => single.baseType === "identifier" && single.value === "clue",
-                  );
+                  ) !== true;
 
                 c.note(shown ? "shown" : "not shown");
 
@@ -3829,6 +3833,7 @@ describe("redactItem on a printed variable whose text passes 1,000,000 character
                       path: repeatedPath,
                     }),
                   );
+
                   return;
                 }
 

@@ -238,7 +238,7 @@ const isXmlSpace = (character: string): boolean =>
  * @returns What stands between its first and its last character that is no XML white space.
  */
 const withoutOuterSpace = (text: string): string => {
-  const characters = Array.from(text);
+  const characters = Arr.fromIterable(text);
   const first = Arr.findFirstIndex(characters, (character) => !isXmlSpace(character));
   const last = Arr.findLastIndex(characters, (character) => !isXmlSpace(character));
 
@@ -256,7 +256,7 @@ const withoutOuterSpace = (text: string): string => {
  */
 const leadingDigits = (text: string): number =>
   Option.getOrElse(
-    Arr.findFirstIndex(Array.from(text), (character) => character < "0" || character > "9"),
+    Arr.findFirstIndex(Arr.fromIterable(text), (character) => character < "0" || character > "9"),
     () => text.length,
   );
 

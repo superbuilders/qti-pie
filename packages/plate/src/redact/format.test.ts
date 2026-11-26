@@ -137,14 +137,15 @@ interface Exact {
 const exactOf = (value: number): Exact => {
   const view = new DataView(new ArrayBuffer(8));
   view.setFloat64(0, Math.abs(value));
+
   const bits = view.getBigUint64(0);
-  const biased = Number(bits >> 52n);
-  const fraction = bits & ((1n << 52n) - 1n);
-  const significand = biased === 0 ? fraction : fraction | (1n << 52n);
+  const biased = Number(bits / 2n ** 52n);
+  const fraction = bits % 2n ** 52n;
+  const significand = biased === 0 ? fraction : fraction + 2n ** 52n;
   const power = (biased === 0 ? 1 : biased) - 1075;
 
   return power >= 0
-    ? { numerator: significand << BigInt(power), places: 0 }
+    ? { numerator: significand * 2n ** BigInt(power), places: 0 }
     : { numerator: significand * 5n ** BigInt(-power), places: -power };
 };
 
@@ -166,6 +167,17 @@ const roundedAt = (exact: Exact, places: number): readonly [bigint, boolean] => 
 };
 
 /**
+ * An exact magnitude rounded to significant digits: the digits, the power of 10 of the first,
+ * whether the rounding met a tie, and whether it carried past the leading digit.
+ */
+interface Significant {
+  readonly carried: boolean;
+  readonly digits: string;
+  readonly power: number;
+  readonly tie: boolean;
+}
+
+/**
  * An exact magnitude rounded to `digits` significant digits, a tie to the even, in scientific
  * form.
  *
@@ -174,15 +186,7 @@ const roundedAt = (exact: Exact, places: number): readonly [bigint, boolean] => 
  * @returns The digits, the power of 10 of the first, whether the rounding met a tie and whether it
  *   carried past the leading digit.
  */
-const significantOf = (
-  exact: Exact,
-  digits: number,
-): {
-  readonly carried: boolean;
-  readonly digits: string;
-  readonly power: number;
-  readonly tie: boolean;
-} => {
+const significantOf = (exact: Exact, digits: number): Significant => {
   if (exact.numerator === 0n) {
     return { carried: false, digits: "0".repeat(digits), power: 0, tie: false };
   }
@@ -225,7 +229,7 @@ const withoutTrailingZeros = (text: string): string => {
   }
 
   const kept = Option.match(
-    Arr.findLastIndex(Array.from(text), (character) => character !== "0"),
+    Arr.findLastIndex(Arr.fromIterable(text), (character) => character !== "0"),
     { onNone: () => text, onSome: (at) => text.slice(0, at + 1) },
   );
 
@@ -273,6 +277,14 @@ const precisionOf = (written: (typeof PRECISIONS)[number]): number =>
   written === "" ? 6 : Number(written.slice(1));
 
 /**
+ * A double printed under a conversion: its text, and the situations its printing reached.
+ */
+interface Printed {
+  readonly situations: readonly RoundingSituation[];
+  readonly text: string;
+}
+
+/**
  * Print a finite double as C's `printf` prints it under `f`, `e` or `g` with no flag and no width,
  * and under the information model's `r`, from the double's exact value (ISO 9899 section 7.21.6.1,
  * Annex F; QTI section 2.3.4): `f` rounds to `precision` places; `e` to `precision` + 1 significant
@@ -286,11 +298,7 @@ const precisionOf = (written: (typeof PRECISIONS)[number]): number =>
  * @param precision The precision.
  * @returns The text, and the situations its printing reached.
  */
-const cPrinted = (
-  value: number,
-  conversion: FloatConversion,
-  precision: number,
-): { readonly situations: readonly RoundingSituation[]; readonly text: string } => {
+const cPrinted = (value: number, conversion: FloatConversion, precision: number): Printed => {
   const exact = exactOf(value);
   const sign = value < 0 || Object.is(value, -0) ? "-" : "";
 

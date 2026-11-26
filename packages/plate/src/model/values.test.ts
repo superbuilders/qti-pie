@@ -6,7 +6,7 @@ import { array, element, int, oneOf } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { growthFactor, growthLimit, growthRatio } from "@qti-pie/crust/test/growth.ts";
-import { Duration, Effect, Formatter, Option, Result } from "effect";
+import { Array as Arr, Duration, Effect, Formatter, Option, Result } from "effect";
 import { format, modelledBaseTypes, parseElementText, parseLexical } from "#plate/model/values.ts";
 import type { ModelledBaseType, Single } from "#plate/model/values.ts";
 import { boxHolds } from "#plate/test/box.ts";
@@ -47,7 +47,7 @@ const PAD_PIECES = ["A", "1"] as const;
  * The base types whose lexical form is two parts separated by whitespace: a pair's and a directed
  * pair's two identifiers, and a point's two integers.
  */
-const TWO_PART: readonly ModelledBaseType[] = ["pair", "directedPair", "point"];
+const TWO_PART: ReadonlySet<ModelledBaseType> = new Set(["pair", "directedPair", "point"]);
 
 /**
  * A case of the padding box: a base type, where the run goes, and the pieces it goes around or
@@ -135,7 +135,7 @@ describe("parseElementText", () => {
                     Option.some(Option.some<Single>({ baseType: "string", value: more })),
                     name,
                   );
-                } else if (padding.placement === "around" || TWO_PART.includes(padding.baseType)) {
+                } else if (padding.placement === "around" || TWO_PART.has(padding.baseType)) {
                   assert.deepStrictEqual(
                     Result.getSuccess(parseElementText(padding.baseType, more)),
                     Result.getSuccess(parseElementText(padding.baseType, unpaddedText(padding))),
@@ -357,7 +357,7 @@ const LEXICAL_CASES = 11 * (1 + 12 + 12 ** 2 + 12 ** 3);
 const isCanonicalInteger = (text: string): boolean => {
   const digits = text.startsWith("-") ? text.slice(1) : text;
   const isDigits =
-    digits !== "" && Array.from(digits).every((digit) => digit >= "0" && digit <= "9");
+    digits !== "" && Arr.fromIterable(digits).every((digit) => digit >= "0" && digit <= "9");
 
   return text === "0" || (isDigits && !digits.startsWith("0"));
 };
@@ -418,7 +418,7 @@ describe("format", () => {
             ({ baseType, text }, c) =>
               Effect.sync(() => {
                 Result.match(parseLexical(baseType, text), {
-                  onFailure: () => undefined,
+                  onFailure: () => {},
                   onSuccess: (single) => {
                     c.note(baseType);
 

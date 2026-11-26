@@ -430,12 +430,11 @@ const durationText: Gen<DurationText> = (source) => {
       durationNumeral,
       (inner) => {
         const literal = inner.draw(element(["INF", "-INF", "NaN"] as const));
-        const seconds =
-          literal === "NaN"
-            ? Number.NaN
-            : literal === "INF"
-              ? Number.POSITIVE_INFINITY
-              : Number.NEGATIVE_INFINITY;
+        const seconds = {
+          "-INF": Number.NEGATIVE_INFINITY,
+          INF: Number.POSITIVE_INFINITY,
+          NaN: Number.NaN,
+        }[literal];
 
         return { seconds, text: literal };
       },
