@@ -94,7 +94,7 @@ const PageData = Schema.Struct({
  * @returns Its stack, else its text.
  */
 const reported = (cause: unknown): string =>
-  cause instanceof Error ? (cause.stack ?? cause.message) : String(cause);
+  Error.isError(cause) ? (cause.stack ?? cause.message) : String(cause);
 
 /**
  * A frame of the page an item stands in: an `iframe` of an empty document of its own, the item's
