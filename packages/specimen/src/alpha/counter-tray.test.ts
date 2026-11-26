@@ -215,7 +215,7 @@ const countWords = new RegExp(`[0-9]|\\b(?:${numberWords.join("|")})\\b`, "iu");
  * type annotation where it stood, so a pattern spans those blanks with `\s*`.
  */
 interface Kill {
-  readonly at: RegExp;
+  readonly at: RegExp | string;
   readonly why: string;
   readonly write: string;
 }
@@ -324,7 +324,7 @@ const kills: readonly Kill[] = [
     write: "choice = undefined; draw(); },",
   },
   {
-    at: /Math\.max\(leastPerRow, Math\.ceil\(supply \/ supplyRows\)\)/gu,
+    at: "Math.max(leastPerRow, Math.ceil(supply / supplyRows))",
     why: "the tray laid five counters a row, whatever its supply",
     write: "leastPerRow",
   },
@@ -339,7 +339,10 @@ const kills: readonly Kill[] = [
  * @returns The file's text with the slip.
  */
 const planted = (module: string, kill: Kill): string => {
-  const matches = [...module.matchAll(kill.at)].length;
+  const matches =
+    kill.at instanceof RegExp
+      ? [...module.matchAll(kill.at)].length
+      : module.split(kill.at).length - 1;
 
   assert.strictEqual(matches, 1, `${kill.why}: its pattern matches the module's file once`);
 
@@ -1687,20 +1690,21 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
                 assert.strictEqual(atStart.tray, played.supply, `${where}: the tray starts full`);
                 twoRows(atStart.trayCentres, `${where}, the tray`);
 
-                if (!played.tenFrame) {
-                  const full = yield* Effect.orDie(
-                    (yield* running(trays, played, integer(played.supply))).look,
-                  );
-
-                  assert.strictEqual(full.mat, played.supply, `${where}: the mat holds them all`);
-                  twoRows(full.matCentres, `${where}, the mat`);
+                if (played.tenFrame) {
+                  return;
                 }
+
+                const full = yield* Effect.orDie(
+                  (yield* running(trays, played, integer(played.supply))).look,
+                );
+
+                assert.strictEqual(full.mat, played.supply, `${where}: the mat holds them all`);
+                twoRows(full.matCentres, `${where}, the mat`);
               }),
             ),
           { concurrency: trayCount, discard: true },
         );
       }),
-    ruleHang,
   );
 
   it.effect(
