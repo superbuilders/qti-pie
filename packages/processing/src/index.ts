@@ -1,7 +1,8 @@
 /**
  * `@qti-pie/processing`: QTI 3.0.1 processing as a pure function. It reads no clock, draws no
  * ambient randomness and performs no I/O: seeds and instants are arguments, and its one grade is a
- * {@link Graded} result the evaluator mints.
+ * {@link Graded} result the evaluator mints. Its values and their lexical forms are the
+ * `@qti-pie/processing/value.ts` entry's, which a page may load without this one.
  *
  * @module
  */
@@ -36,41 +37,6 @@ export { alphaDefinitionPrefix, inlineOperator, recordedOperator } from "#proces
 export type { Definition } from "#processing/registry.ts";
 
 export { customOperatorOf, customOperators, registered } from "#processing/registry.ts";
-
-export type {
-  BaseType,
-  Container,
-  ContainerCardinality,
-  ContainerOf,
-  DirectedPair,
-  NonEmpty,
-  Null,
-  Pair,
-  Point,
-  Present,
-  QtiFile,
-  RecordField,
-  RecordValue,
-  Scalars,
-  ValueType,
-  Single,
-  SingleOf,
-  Text,
-  Value,
-} from "#processing/value.ts";
-
-export {
-  baseTypes,
-  container,
-  isText,
-  nullOf,
-  recordOf,
-  sameScalar,
-  sameValueType,
-  valueTypeOf,
-  single,
-  textValue,
-} from "#processing/value.ts";
 
 export type { Credit, Mark } from "#processing/credit.ts";
 
@@ -111,7 +77,3 @@ export type { XmlAttribute, XmlElement, XmlNode } from "#processing/xml.ts";
 export type { Admission } from "#processing/admission.ts";
 
 export type { Checked, Refusal, RefusalCode } from "#processing/operators/operator.ts";
-
-export type { LexicalRead, Writable } from "#processing/lexical.ts";
-
-export { readValue, writeValue } from "#processing/lexical.ts";

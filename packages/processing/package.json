@@ -9,7 +9,8 @@
     "#processing/*": "./src/*"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./value.ts": "./src/value-entry.ts"
   },
   "scripts": {
     "generate:templates": "node tools/generate-templates.ts && oxfmt src/templates.generated.ts",
