@@ -9,8 +9,15 @@
  * makes the sandboxed frame with its nonce, sends the frame the item's markup and the module routes
  * plate's resolution gives from the item's own module facts (`resolvePciModules`), instantiates the
  * factory with the item's properties, the status and the bound response, and records every message
- * the frame posts. The item is read from its XML as the specification names its parts, never
- * through plate's reader: its `data-*` named as HTML's `dataset` names them.
+ * the frame posts.
+ *
+ * The item is opened as plate's own suites open one, as content the database admitted, through
+ * plate's `admitted` (`@qti-pie/plate/test/admitted`), which fails where the admission run has not
+ * admitted it, and rendered by plate's `<Item>` in answering, with the routes plate's resolution
+ * gives as its host facts. So the markup the frame is sent is what plate's island renders on the
+ * server, each formula as the island writes it, read from the server's HTML where the island reads
+ * it; the properties, the response identifier, the type identifier and the frame's name are what
+ * the island is handed; and the key and the module facts are the accepted item's.
  *
  * What the frame shows is read by the suite's own functions in the frame's document
  * ({@link HostedPage.read}), so each suite states its rules in its own specification's terms. The
@@ -29,15 +36,31 @@ import { createServer } from "node:http";
 import path from "node:path";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { regex } from "arkregex";
-import { Data, Effect, Option, Schema } from "effect";
+import { Data, Effect, Function, Option, Schema } from "effect";
 import type { Scope } from "effect";
 import { Digest } from "effect/crypto";
 import { parseHTML } from "linkedom";
 import type { Frame, Page } from "playwright-core";
+import { createElement, isValidElement } from "react";
+import type { ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { chromeFor, unboundedModuleWait } from "#specimen/ui/chrome.ts";
-import { resolvePciModules } from "@qti-pie/plate";
+import { clientExports } from "#specimen/ui/clients.ts";
+import { islandsIn } from "#specimen/ui/rendered.ts";
+import type { Island } from "#specimen/ui/rendered.ts";
+import {
+  acceptedItem,
+  configure,
+  pciModulesIn,
+  resolvePciModules,
+  startingResponses,
+} from "@qti-pie/plate";
 import type { PciModules } from "@qti-pie/plate";
 import type { AlphaPciModule } from "@qti-pie/plate/alpha/pci-modules";
+import { admitted } from "@qti-pie/plate/test/admitted";
+import { Item, standardRenderers } from "@qti-pie/plate/ui";
+import type { ItemProps } from "@qti-pie/plate/ui";
+import { heldOf, Responses } from "@qti-pie/plate/ui/client";
 import { framePage } from "@qti-pie/plate/ui/pci-frame";
 
 /**
@@ -66,7 +89,7 @@ const attempt = <A>(step: string, run: () => Promise<A>): Effect.Effect<A, Hoste
   Effect.tryPromise({ catch: (cause) => new HostedPciFailure({ cause, step }), try: run });
 
 /**
- * One item as the frame host is handed it, and its key as its declaration writes it.
+ * One item as plate's island hands it its frame, and its key as the accepted item declares it.
  */
 export interface HostedItem {
   /**
@@ -77,60 +100,127 @@ export interface HostedItem {
    * Its `qti-correct-response` values, in order, as integers.
    */
   readonly correct: readonly number[];
+  /**
+   * The markup the island sends the frame: the HTML plate's server shell renders for the PCI's
+   * `qti-interaction-markup`, as the island reads it.
+   */
   readonly markup: string;
+  /**
+   * The PCI's module facts, as plate's accepted item holds them (`pciModulesIn`).
+   */
   readonly modules: PciModules;
-  readonly prompt: string;
+  /**
+   * The properties the island hands the PCI, each `data-*` by its `dataset` name.
+   */
   readonly properties: Readonly<Record<string, string>>;
   readonly responseIdentifier: string;
+  /**
+   * The frame's name, as the island gives it: the text of what names the PCI's group, else its
+   * label, else the island's `frame` label.
+   */
+  readonly title: string;
   readonly typeIdentifier: string;
 }
 
 /**
- * Name a `data-*` attribute as HTML's `dataset` names it.
+ * Fail a step of hosting an item with what it found.
  *
- * @param name The attribute's name, starting with `data-`.
- * @returns The dataset name.
+ * @param step What the step does, as a verb phrase.
+ * @param cause What it found.
+ * @returns The failure.
  */
-const datasetName = (name: string): string =>
-  name
-    .slice("data-".length)
-    .replaceAll(regex("-(?<letter>[a-z])", "gu"), (_match, letter: string) => letter.toUpperCase());
+const unhosted = (step: string, cause: unknown) =>
+  Effect.fail(new HostedPciFailure({ cause, step }));
 
 /**
- * The DOM's `DOMParser`, as linkedom's window gives it.
+ * Where the harness's server serves plate's frame page, the `loader` of the host facts an item is
+ * rendered with.
  */
-const { DOMParser: XmlParser } = parseHTML("<!doctype html><html></html>");
+const loader = "/frame.html";
 
 /**
- * HTML's void elements, the only ones an element written `<name/>` in XML may be written as in
- * HTML.
+ * What the harness reads of the props the server shell hands the PCI's island
+ * (`PortableCustomProps`): its labels' `frame`, its properties, its response identifier and its
+ * type identifier.
  */
-const voids: ReadonlySet<string> = new Set(["br", "hr", "img", "wbr"]);
+const IslandProps = Schema.Struct({
+  labels: Schema.Struct({ frame: Schema.String }),
+  properties: Schema.Array(Schema.Struct({ name: Schema.String, value: Schema.String })),
+  responseIdentifier: Schema.String,
+  typeIdentifier: Schema.String,
+});
 
 /**
- * Give markup an XML serializer wrote as HTML, as a delivery system rebuilds it: each empty element
- * that is no void element written with its end tag, since HTML reads `<span/>` as an open span.
+ * Keep no change: the `onChange` a server render's `<Responses>` is given, which it never calls.
+ */
+const keepNothing: () => void = Function.constVoid;
+
+/**
+ * Tell whether a value is a React node, as a client component's `children` prop holds the server
+ * elements it renders.
  *
- * @param xml The markup as XML.
- * @returns The markup as HTML.
+ * @param value The value.
+ * @returns Whether it is a node.
  */
-const htmlOf = (xml: string): string =>
-  xml.replaceAll(
-    regex("<(?<name>[a-z][a-z0-9-]*)(?<rest>[^<>]*?)\\s*/>", "gu"),
-    (whole, name: string, rest: string) => (voids.has(name) ? whole : `<${name}${rest}></${name}>`),
-  );
+const isNode = (value: unknown): value is ReactNode =>
+  value === null ||
+  value === undefined ||
+  typeof value === "string" ||
+  typeof value === "number" ||
+  typeof value === "boolean" ||
+  isValidElement(value) ||
+  (Array.isArray(value) && value.every(isNode));
 
 /**
- * Read one item of a module's fixture, `fixtures/alpha/<module>/<name>.xml` of the package.
+ * An island's props that hand it server elements to render, its `children`.
+ */
+const WithChildren = Schema.Struct({ children: Schema.declare(isNode) });
+
+/**
+ * Find the Portable Custom Interaction islands in an element tree: the islands the walk stops at,
+ * and within any other island, such as the read-aloud session `<Item>` wraps its body in, the
+ * islands among the server elements it is handed as its `children`.
+ *
+ * @param node The tree.
+ * @param clients Every export of plate's `"use client"` modules, by value, with its name.
+ * @returns Each Portable Custom Interaction island, in tree order.
+ */
+const portableIn = (node: ReactNode, clients: ReadonlyMap<unknown, string>): readonly Island[] =>
+  islandsIn(node, clients).flatMap((island) => {
+    if (island.name.endsWith("#PortableCustom")) {
+      return [island];
+    }
+
+    return Option.match(Schema.decodeUnknownOption(WithChildren)(island.props), {
+      onNone: () => [],
+      onSome: ({ children }) => portableIn(children, clients),
+    });
+  });
+
+/**
+ * A run of HTML's ASCII whitespace, which parts the ids of an IDREF list and which a name's text
+ * collapses.
+ */
+const asciiSpace = regex("[\\t\\n\\f\\r ]+", "gu");
+
+/**
+ * Open one item of a module's fixture, `fixtures/alpha/<module>/<name>.xml` of the package, as
+ * plate's island hands it its frame: open it through `admitted`, resolve its one PCI's modules by
+ * plate's resolution against a package holding the module's file, render it in answering with
+ * those routes as its host facts, find the PCI's island, and read what the island tells its frame
+ * from its props and from the HTML the server rendered for it.
  *
  * @param module The module.
  * @param name The item's name.
- * @returns The item as the frame host is handed it.
+ * @returns The item as the frame host is handed it; a failure where plate accepts no item of it, it
+ *   holds other than one PCI, or the server shell renders no PCI island or markup for it; a defect
+ *   where the database has not admitted it (from `admitted`).
  */
 export const hostedItem = Effect.fn("hostedItem")(function* hostedItem(
   module: AlphaPciModule<string>,
   name: string,
 ) {
+  const location = `${name}.xml`;
   const file = path.resolve(
     import.meta.dirname,
     "..",
@@ -138,53 +228,86 @@ export const hostedItem = Effect.fn("hostedItem")(function* hostedItem(
     "fixtures",
     "alpha",
     module.id,
-    `${name}.xml`,
+    location,
   );
-  const xml = yield* attempt(`read ${file}`, () => readFile(file, "utf-8"));
-  const document = new XmlParser().parseFromString(xml, "text/xml");
-  const pci = document.querySelector("qti-portable-custom-interaction");
-  const markup = pci?.querySelector("qti-interaction-markup");
-  const modules = pci?.querySelector("qti-interaction-modules");
-  const declaration = document.querySelector("qti-response-declaration");
+  const bytes = yield* attempt(`read ${file}`, () => readFile(file));
+  const verdict = yield* admitted(location, bytes);
+  const accepted = yield* Option.match(acceptedItem(verdict), {
+    onNone: () => unhosted(`accept ${location}`, verdict.verdict),
+    onSome: (taken) => Effect.succeed(taken),
+  });
+  const pcis = pciModulesIn(accepted);
+  const [pci] = pcis;
+  const declared = Option.fromUndefinedOr(
+    pci === undefined ? undefined : accepted.item.responses.get(pci.response),
+  );
 
-  if (pci === null || markup === null || markup === undefined) {
-    return yield* new HostedPciFailure({
-      cause: "no qti-portable-custom-interaction with a qti-interaction-markup",
-      step: `read ${file}`,
-    });
+  if (pci === undefined || pcis.length !== 1 || Option.isNone(declared)) {
+    return yield* unhosted(`find ${location}'s one PCI and its declaration`, pcis);
   }
 
-  const attribute = (attributeName: string): Option.Option<string> =>
-    Option.fromNullishOr(pci.getAttribute(attributeName));
+  const { routes } = resolvePciModules(
+    pci.modules,
+    () => Option.none(),
+    (each) => each === module.path,
+  );
+  const configuration = yield* Effect.orDie(configure({ assets: [], seed: "" }));
+  const props: ItemProps = {
+    configuration,
+    host: { pci: { loader, modules: new Map([[pci.response, routes]]) } },
+    instance: "hosted",
+    item: accepted,
+    mode: "answering",
+    showFeedback: false,
+  };
+  const shell = createElement(Item, { ...props, renderers: standardRenderers });
+  const islands = portableIn(shell, yield* clientExports);
+  const [island, ...others] = islands;
+
+  if (island === undefined || others.length > 0) {
+    return yield* unhosted(`find ${location}'s one PCI island`, islands);
+  }
+
+  const told = yield* Effect.mapError(
+    Schema.decodeUnknownEffect(IslandProps)(island.props),
+    (cause) => new HostedPciFailure({ cause, step: `read ${location}'s PCI island` }),
+  );
+  const html = renderToStaticMarkup(
+    createElement(Responses, {
+      children: shell,
+      onChange: keepNothing,
+      value: heldOf(startingResponses(accepted, props)),
+    }),
+  );
+  const { document } = parseHTML(`<!doctype html><html><body>${html}</body></html>`);
+  const root = document.querySelector('[data-slot="plate-portable-custom"]');
+  const markup = root?.querySelector('[data-slot="plate-portable-custom-markup"]') ?? null;
+
+  if (root === null || markup === null) {
+    return yield* unhosted(`find ${location}'s PCI markup on its page`, html);
+  }
+
+  const named = (root.getAttribute("aria-labelledby") ?? "")
+    .split(asciiSpace)
+    .filter((id) => id !== "")
+    .map((id) => document.querySelector(`[id="${id}"]`)?.textContent ?? "")
+    .join(" ")
+    .replaceAll(asciiSpace, " ")
+    .trim();
 
   return {
-    cardinality: declaration?.getAttribute("cardinality") ?? "",
-    correct: [...document.querySelectorAll("qti-correct-response qti-value")].map((value) =>
-      Number(value.textContent),
-    ),
-    markup: htmlOf(markup.innerHTML),
-    modules: {
-      module: attribute("module"),
-      modules: [...pci.querySelectorAll("qti-interaction-module")].map((each) => ({
-        fallbackPath: Option.fromNullishOr(each.getAttribute("fallback-path")),
-        id: each.getAttribute("id") ?? "",
-        primaryPath: Option.fromNullishOr(each.getAttribute("primary-path")),
-      })),
-      primaryConfiguration:
-        modules?.getAttribute("primary-configuration") ?? "modules/module_resolution.js",
-      secondaryConfiguration:
-        modules?.getAttribute("secondary-configuration") ?? "modules/fallback_module_resolution.js",
-    },
-    prompt: pci.previousElementSibling?.textContent.trim() ?? "",
-    properties: Object.fromEntries(
-      [...pci.attributes]
-        .filter((each) => each.name.startsWith("data-"))
-        .map((each) => [datasetName(each.name), each.value] as const),
-    ),
-    responseIdentifier: attribute("response-identifier").pipe(Option.getOrElse(() => "")),
-    typeIdentifier: attribute("custom-interaction-type-identifier").pipe(
-      Option.getOrElse(() => ""),
-    ),
+    cardinality: declared.value.cardinality,
+    correct: Option.match(declared.value.correct, {
+      onNone: () => [],
+      onSome: ({ values }) =>
+        values.flatMap((value) => (value.baseType === "integer" ? [Number(value.value)] : [])),
+    }),
+    markup: markup.innerHTML,
+    modules: pci.modules,
+    properties: Object.fromEntries(told.properties.map((each) => [each.name, each.value])),
+    responseIdentifier: told.responseIdentifier,
+    title: named === "" ? (root.getAttribute("aria-label") ?? told.labels.frame) : named,
+    typeIdentifier: told.typeIdentifier,
   } satisfies HostedItem;
 });
 
@@ -421,7 +544,7 @@ export const hostedPage = (
         markup: item.markup,
         routes: routesOf(item),
         state: start.state,
-        title: item.prompt,
+        title: item.title,
         typeIdentifier: item.typeIdentifier,
       })})`;
 
