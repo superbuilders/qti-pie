@@ -766,7 +766,7 @@ layer(HostedLayer)("the enter-numbers PCI", (it) => {
         "every key disabled",
       );
       yield* typed(page, ["9", ""]).pipe(Effect.ignore);
-      yield* Effect.orDie(page.press(["Tab", "9"]));
+      yield* Effect.orDie(page.press(["9"]));
       assert.deepStrictEqual(yield* boxTexts(page), ["5", "7"]);
     }),
   );

@@ -565,7 +565,7 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
       });
 
       yield* tapped(page, figure, [[1, 1]]);
-      yield* Effect.orDie(page.press(["Tab", "Enter"]));
+      yield* Effect.orDie(page.press(["Enter"]));
 
       const at = placeOf(figure, [3, 6]);
       const after = yield* Effect.orDie(page.read(readFigure));
