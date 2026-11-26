@@ -269,6 +269,35 @@ type Reached =
   | "no feedback, solution"
   | "neither feedback nor solution";
 
+/**
+ * Give the review a session reaches, by whether it shows the item's feedback and its solution.
+ *
+ * @param shows What the review shows.
+ * @returns The review reached.
+ */
+const reachedOf = (shows: ReviewShows): Reached => {
+  if (shows.feedback) {
+    return shows.solution ? "feedback and solution" : "feedback, no solution";
+  }
+
+  return shows.solution ? "no feedback, solution" : "neither feedback nor solution";
+};
+
+/**
+ * Give what a review's marks reveal by the rule: the solution where it shows it, else the
+ * candidate's own answers where it shows marks, else none.
+ *
+ * @param shows What the review shows.
+ * @returns What its marks reveal.
+ */
+const revealsByRule = (shows: ReviewShows): "none" | "own" | "solution" => {
+  if (shows.solution) {
+    return "solution";
+  }
+
+  return shows.marks ? "own" : "none";
+};
+
 describe("what an item session shows is derived from its control and its state", () => {
   it.effect(
     "reviewOf shows of every session of the box what QTI's rule shows: the record its feedback selects, the verdict where it shows marks, and the solution or the candidate's own answers its marks reveal",
@@ -305,15 +334,7 @@ describe("what an item session shows is derived from its control and its state",
                 const named = Formatter.format({ control, state });
                 const props = reviewOf(served, records, judged, facts);
 
-                c.note(
-                  shows.feedback
-                    ? shows.solution
-                      ? "feedback and solution"
-                      : "feedback, no solution"
-                    : shows.solution
-                      ? "no feedback, solution"
-                      : "neither feedback nor solution",
-                );
+                c.note(reachedOf(shows));
                 assert.strictEqual(props.mode, "review", named);
                 assert.deepStrictEqual(props.shows, shows, named);
                 assert.deepStrictEqual(props.session, facts.session, named);
@@ -333,13 +354,12 @@ describe("what an item session shows is derived from its control and its state",
                   shows.marks ? "partial" : undefined,
                   named,
                 );
+
+                const reveals = revealsByRule(shows);
+
                 assert.deepStrictEqual(
                   props.graded?.marks,
-                  shows.solution
-                    ? { parts: judged.marks, reveals: "solution" }
-                    : shows.marks
-                      ? { parts: judged.marks, reveals: "own" }
-                      : undefined,
+                  reveals === "none" ? undefined : { parts: judged.marks, reveals },
                   `${named}: the solution where it shows it, else the candidate's own answers where it shows marks`,
                 );
               }),
