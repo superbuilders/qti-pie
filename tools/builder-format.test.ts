@@ -19,7 +19,20 @@
  */
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { lstatSync, readFileSync, readlinkSync, statSync } from "node:fs";
+import {
+  chmodSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readlinkSync,
+  renameSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { assert, describe, it } from "@effect/vitest";
 
@@ -266,29 +279,160 @@ const rewritten = (
 };
 
 /**
- * Every file git tracks in this repository, plus every file it would track (untracked and not
- * ignored), by path under the root. A submodule is its own repository and is listed only as its
- * gitlink.
+ * Show a name's bytes as text: each byte that is not printable ASCII (or is a backslash) written as
+ * \\xHH.
  *
- * @returns The root and the paths.
+ * @param bytes The name's bytes.
+ * @returns The name, shown.
  */
-const trackedFiles = () => {
-  const root = execFileSync("git", ["rev-parse", "--show-toplevel"], {
-    cwd: import.meta.dirname,
-    encoding: "utf-8",
-  }).trim();
-  const listing = execFileSync(
-    "git",
-    ["ls-files", "-z", "--cached", "--others", "--exclude-standard"],
-    {
-      cwd: root,
-      encoding: "utf-8",
-      maxBuffer: 268_435_456,
-    },
+const shownBytes = (bytes: Uint8Array) =>
+  [...bytes]
+    .map((byte) =>
+      byte >= 0x20 && byte < 0x7f && byte !== 0x5c
+        ? String.fromCodePoint(byte)
+        : `\\x${byte.toString(16).padStart(2, "0")}`,
+    )
+    .join("");
+
+/**
+ * What each tag of git's listing says of its path: whether it is listed (every tag but R, a
+ * deletion, which repeats a path already listed), and whether it may be missing (R, and S:
+ * skip-worktree, which a sparse checkout leaves out). H is tracked, M unmerged, ? would be tracked;
+ * any other tag fails the suite.
+ */
+const TAGS: ReadonlyMap<string, { readonly listed: boolean; readonly missing: boolean }> = new Map([
+  ["H", { listed: true, missing: false }],
+  ["M", { listed: true, missing: false }],
+  ["S", { listed: true, missing: true }],
+  ["?", { listed: true, missing: false }],
+  ["R", { listed: false, missing: true }],
+]);
+
+/**
+ * Read git's one listing of a tree, its entries each a tag, a space and a name's bytes, ended by a
+ * NUL. A name is UTF-8 only if, decoded keeping any leading BOM, it encodes back to the very same
+ * bytes: read as text, a name that is not UTF-8 (each bad byte a U+FFFD) or one led by a BOM
+ * (dropped) would name another file, which a clean file could stand at. Such a name is kept by its
+ * bytes, which the suite stats it by, never by name, and whether git lets it be missing is told by
+ * its bytes too, never by how it is shown.
+ *
+ * @param out What git printed.
+ * @returns Every path listed whose name is UTF-8, once; those that may be missing (deleted, or left
+ *   out of a sparse checkout); and every listed name that is not UTF-8, once, with whether it may
+ *   be.
+ */
+const listingOf = (out: Uint8Array) => {
+  const decoder = new TextDecoder("utf-8", { ignoreBOM: true });
+  const files = new Set<string>();
+  const missing = new Set<string>();
+  const unnamed = new Map<string, { bytes: Uint8Array; shown: string }>();
+  const missingBytes = new Set<string>();
+  let start = 0;
+
+  for (let end = out.indexOf(0); end !== -1; end = out.indexOf(0, start)) {
+    const entry = out.subarray(start, end);
+    const tag = entry[1] === 0x20 ? TAGS.get(String.fromCodePoint(entry[0] ?? 0)) : undefined;
+    const piece = entry.subarray(2);
+    const name = decoder.decode(piece);
+    const utf8 = Buffer.from(name, "utf-8").equals(piece);
+    const bytes = Buffer.from(piece).toString("hex");
+
+    start = end + 1;
+    assert.isDefined(
+      tag,
+      `git's listing holds an entry with no tag it knows: ${shownBytes(entry)}`,
+    );
+    if (tag.listed && utf8) {
+      files.add(name);
+    }
+
+    if (tag.missing && utf8) {
+      missing.add(name);
+    }
+
+    if (tag.listed && !utf8 && !unnamed.has(bytes)) {
+      unnamed.set(bytes, { bytes: piece, shown: shownBytes(piece) });
+    }
+
+    if (tag.missing && !utf8) {
+      missingBytes.add(bytes);
+    }
+  }
+  assert.strictEqual(start, out.length, "git's listing holds bytes after its last NUL");
+
+  return {
+    files: [...files],
+    missing,
+    unnamed: [...unnamed].map(([bytes, name]) => ({
+      ...name,
+      mayBeMissing: missingBytes.has(bytes),
+    })),
+  };
+};
+
+/**
+ * Write one entry of git's listing, as a sample: its tag, a space and a name's bytes, then a NUL.
+ *
+ * @param tag The entry's tag.
+ * @param name The name's bytes.
+ * @returns The entry's bytes.
+ */
+const listingEntry = (tag: string, name: Iterable<number>) => [
+  ...Buffer.from(`${tag} `),
+  ...name,
+  0,
+];
+
+/**
+ * List what git lists under a root, in one listing: every file it tracks, every file it would track
+ * (untracked and not ignored), and every tracked file this checkout deleted.
+ *
+ * @param root The repository's root.
+ * @returns The listed paths, the names that are not UTF-8, and the paths that may be missing.
+ */
+const gitListed = (root: string) =>
+  listingOf(
+    execFileSync(
+      "git",
+      ["ls-files", "-z", "-t", "--cached", "--deleted", "--others", "--exclude-standard"],
+      { cwd: root, maxBuffer: 268_435_456 },
+    ),
   );
 
-  return { files: [...new Set(listing.split("\0").filter((entry) => entry !== ""))], root };
+/**
+ * Tell whether every folder on a listed path's way resolves to a folder, following links as the
+ * kernel does: one missing, or a file where git has a folder (both of which git lists as deleted),
+ * leaves the path missing (ENOENT, ENOTDIR); any other failure to stat (a folder, or the folder a
+ * link names, that cannot be searched; a loop) throws, so it fails the suite rather than reading as
+ * missing. A link to a folder is that folder, never a reason to call the path missing.
+ *
+ * @param root The repository's root.
+ * @param name The path under the root, as bytes: a name that is not UTF-8 is walked by them too.
+ * @returns Whether each folder on its way is a folder.
+ */
+const reachable = (root: string, name: Uint8Array): boolean => {
+  const cut = name.lastIndexOf(0x2f);
+
+  return (
+    cut === -1 ||
+    (reachable(root, name.subarray(0, cut)) &&
+      statSync(Buffer.concat([Buffer.from(`${root}/`), name.subarray(0, cut)]), {
+        throwIfNoEntry: false,
+      })?.isDirectory() === true)
+  );
 };
+
+/**
+ * What a listed path is when it is not there, and git neither lists it as deleted nor leaves it out
+ * of a sparse checkout: a file gone while the suite ran. It is not judged, so it fails.
+ */
+const UNREAD = "is listed but cannot be read: a file gone while the suite ran";
+
+/**
+ * What a listed name is when its bytes are not UTF-8 and it is there: statted by its bytes, never
+ * read by name, it fails, shown by its bytes.
+ */
+const NOT_UTF8 = "is named in bytes that are not UTF-8";
 
 /**
  * Name the encoding a file's text is in: UTF-16 when it starts with that encoding's byte-order
@@ -311,16 +455,23 @@ const encodingOf = (bytes: Buffer): "utf-8" | "utf-16be" | "utf-16le" => {
  *
  * @param root The repository's root.
  * @param file The file's path under the root.
+ * @param missing The listed paths that may be missing: deleted, or left out of a sparse checkout.
  * @returns Each finding, with where it is.
  */
-const scan = (root: string, file: string): readonly string[] => {
+const scan = (root: string, file: string, missing: ReadonlySet<string>): readonly string[] => {
   const found = offences(file).map((what) => `${file}: path holds ${what}`);
   const at = path.join(root, file);
   // A path the index lists but this checkout deleted, or a submodule's gitlink, holds nothing; any
-  // other file that cannot be read fails the suite.
-  const stat = lstatSync(at, { throwIfNoEntry: false });
+  // other listed path that is not there fails the suite (UNREAD).
+  const stat = reachable(root, Buffer.from(file))
+    ? lstatSync(at, { throwIfNoEntry: false })
+    : undefined;
 
-  if (stat?.isSymbolicLink() === true) {
+  if (stat === undefined) {
+    return missing.has(file) ? found : [...found, `${file}: ${UNREAD}`];
+  }
+
+  if (stat.isSymbolicLink()) {
     found.push(
       ...offences(readlinkSync(at)).map((what) => `${file}: symlink target holds ${what}`),
     );
@@ -336,7 +487,7 @@ const scan = (root: string, file: string): readonly string[] => {
     return found;
   }
 
-  if (stat?.isFile() !== true) {
+  if (!stat.isFile()) {
     return found;
   }
 
@@ -371,6 +522,61 @@ const scan = (root: string, file: string): readonly string[] => {
   );
 
   return found;
+};
+
+/**
+ * Name what a listed name that is not UTF-8 is: statted by its bytes as any listed name is, and
+ * never read by name. There, it fails, shown by its bytes; missing, it passes only if git lets it
+ * be missing; a folder on its way that cannot be searched throws, so it fails the suite.
+ *
+ * @param root The repository's root.
+ * @param name The name, as listingOf gives it.
+ * @param name.bytes Its bytes.
+ * @param name.shown How a finding shows it.
+ * @param name.mayBeMissing Whether git lets it be missing.
+ * @returns Its findings.
+ */
+const unnamedFound = (
+  root: string,
+  name: { readonly bytes: Uint8Array; readonly shown: string; readonly mayBeMissing: boolean },
+): readonly string[] => {
+  const at = Buffer.concat([Buffer.from(`${root}/`), name.bytes]);
+  const stat = reachable(root, name.bytes) ? lstatSync(at, { throwIfNoEntry: false }) : undefined;
+
+  if (stat !== undefined) {
+    return [`${name.shown}: ${NOT_UTF8}`];
+  }
+
+  return name.mayBeMissing ? [] : [`${name.shown}: ${UNREAD}`];
+};
+
+/**
+ * Name every finding over what git lists under a root: the names that are not UTF-8, then each
+ * listed file's.
+ *
+ * @param root The repository's root.
+ * @param entries What git lists there, as gitListed gives it.
+ * @returns Each finding, with where it is.
+ */
+const treeFindings = (root: string, entries: ReturnType<typeof gitListed>): readonly string[] => [
+  ...entries.unnamed.flatMap((name) => unnamedFound(root, name)),
+  ...entries.files.flatMap((file) => scan(root, file, entries.missing)),
+];
+
+/**
+ * Every file git tracks in this repository, plus every file it would track (untracked and not
+ * ignored), by path under the root. A submodule is its own repository and is listed only as its
+ * gitlink.
+ *
+ * @returns The root and the paths.
+ */
+const trackedFiles = () => {
+  const root = execFileSync("git", ["rev-parse", "--show-toplevel"], {
+    cwd: import.meta.dirname,
+    encoding: "utf-8",
+  }).trim();
+
+  return { ...gitListed(root), root };
 };
 
 /**
@@ -459,7 +665,8 @@ const CAUGHT = (
 
 describe("a private item builder's draft format and its delivery's files are banned from this repository", () => {
   it("is carried by no tracked file, in its content, path or symlink target, and no file is the delivery's", () => {
-    const { root, files } = trackedFiles();
+    const { root, ...entries } = trackedFiles();
+    const { files } = entries;
 
     // Inside edullm, a tree filled without git would resolve to edullm's root and scan the wrong repository.
     assert.strictEqual(
@@ -469,13 +676,200 @@ describe("a private item builder's draft format and its delivery's files are ban
     );
     assert.isAbove(files.length, 100, `git listed only ${files.length} files under ${root}`);
 
-    const found = files.flatMap((file) => scan(root, file));
+    const found = treeFindings(root, entries);
 
     assert.deepStrictEqual(
       found,
       [],
       `builder format or delivery files found (${found.length}):\n${found.slice(0, 200).join("\n")}`,
     );
+  });
+
+  it("fails a name that is not UTF-8 or led by a BOM even beside a clean twin, a listed path not there, and one in a folder that cannot be searched, and passes one deleted or sparse", (context) => {
+    context.skip(
+      process.platform === "darwin",
+      "APFS refuses names that are not UTF-8, so no file can hide behind one there",
+    );
+
+    const directory = mkdtempSync(path.join(tmpdir(), "builder-format-names-"));
+    const at = (...bytes: readonly number[]) =>
+      Buffer.concat([Buffer.from(`${directory}/`), Buffer.from(bytes)]);
+    const locked = path.join(directory, "locked");
+    const lockedUnnamed = at(0x6c, 0xff);
+    const lockedDeep = path.join(directory, "deep");
+    const outside = mkdtempSync(path.join(tmpdir(), "builder-format-outside-"));
+
+    mkdirSync(locked);
+    mkdirSync(lockedUnnamed);
+    mkdirSync(path.join(lockedDeep, "inner"), { recursive: true });
+    context.onTestFinished(() => {
+      chmodSync(locked, 0o700);
+      chmodSync(lockedUnnamed, 0o700);
+      chmodSync(lockedDeep, 0o700);
+      rmSync(outside, { force: true, recursive: true });
+      rmSync(directory, { force: true, recursive: true });
+    });
+    execFileSync("git", ["init", "-q"], { cwd: directory });
+    writeFileSync(
+      Buffer.concat([
+        Buffer.from(path.join(directory, "o")),
+        Buffer.from([0xff]),
+        Buffer.from(".bin"),
+      ]),
+      "x",
+    );
+    writeFileSync(path.join(directory, "o\uFFFD.bin"), "plain words at the name it reads as\n");
+    writeFileSync(path.join(directory, "\uFEFFp.bin"), "x");
+    writeFileSync(path.join(directory, "p.bin"), "plain words at the name without the BOM\n");
+    writeFileSync(path.join(directory, "gone.txt"), "plain words, tracked and then deleted\n");
+    writeFileSync(path.join(directory, "sparse.txt"), "plain words a sparse checkout leaves out\n");
+    mkdirSync(path.join(directory, "folded"));
+    writeFileSync(
+      path.join(directory, "folded", "x.txt"),
+      "plain words in a folder a file replaces\n",
+    );
+    writeFileSync(path.join(locked, "x.txt"), "plain words in a folder that cannot be searched\n");
+    writeFileSync(
+      path.join(lockedDeep, "inner", "x.txt"),
+      "plain words two folders below a lock\n",
+    );
+    writeFileSync(path.join(directory, "kept.txt"), `${CAUGHT.at(0)?.[1] ?? ""}\n`);
+    mkdirSync(path.join(directory, "linked"));
+    writeFileSync(path.join(directory, "linked", "x.txt"), `${CAUGHT.at(0)?.[1] ?? ""}\n`);
+    writeFileSync(at(0x6c, 0xff, 0x2f, 0x78), "x");
+    writeFileSync(at(0x73, 0xff, 0x2e, 0x62), "x");
+    writeFileSync(at(0x74, 0xfe), "plain words under a name that is not UTF-8, left out\n");
+    mkdirSync(at(0x66, 0xff));
+    writeFileSync(
+      at(0x66, 0xff, 0x2f, 0x78),
+      "plain words in a folder so named that a file replaces\n",
+    );
+    execFileSync("git", ["add", "-A"], { cwd: directory });
+    rmSync(path.join(directory, "gone.txt"));
+    execFileSync("git", ["update-index", "--skip-worktree", "sparse.txt", "kept.txt"], {
+      cwd: directory,
+    });
+    rmSync(path.join(directory, "sparse.txt"));
+    execFileSync("git", ["update-index", "-z", "--skip-worktree", "--stdin"], {
+      cwd: directory,
+      input: Buffer.from([0x73, 0xff, 0x2e, 0x62, 0, 0x74, 0xfe, 0]),
+    });
+    rmSync(at(0x74, 0xfe));
+    rmSync(at(0x66, 0xff), { recursive: true });
+    writeFileSync(at(0x66, 0xff), "plain words where a tracked folder so named was\n");
+    rmSync(path.join(directory, "folded"), { recursive: true });
+    writeFileSync(path.join(directory, "folded"), "plain words where a tracked folder was\n");
+    renameSync(path.join(directory, "linked"), path.join(outside, "linked"));
+    symlinkSync(path.join(outside, "linked"), path.join(directory, "linked"));
+
+    const entries = gitListed(directory);
+    const searchesAnyFolder = process.getuid?.() === 0;
+    const unnamed = [
+      `f\\xff: ${NOT_UTF8}`,
+      `l\\xff/x: ${NOT_UTF8}`,
+      `o\\xff.bin: ${NOT_UTF8}`,
+      `s\\xff.b: ${NOT_UTF8}`,
+    ];
+    const keptSparse = scan(directory, "kept.txt", new Set());
+    const keptLinked = keptSparse.map((finding) => finding.replace("kept.txt", "linked/x.txt"));
+    const kept = [...keptSparse, ...keptLinked];
+
+    assert.includeMembers(entries.files, ["\uFEFFp.bin", "p.bin"], "a leading BOM is dropped");
+    assert.isNotEmpty(keptSparse, "a sample of hers is found");
+    assert.deepStrictEqual(treeFindings(directory, entries), [...unnamed, ...kept]);
+    assert.deepStrictEqual(
+      treeFindings(directory, {
+        ...entries,
+        files: [...entries.files, "absent.txt"],
+        unnamed: [
+          ...entries.unnamed,
+          { bytes: Buffer.from([0x61, 0xfe]), mayBeMissing: false, shown: "a\\xfe" },
+        ],
+      }),
+      [...unnamed, `a\\xfe: ${UNREAD}`, ...kept, `absent.txt: ${UNREAD}`],
+    );
+
+    chmodSync(lockedUnnamed, 0o600);
+
+    const unnamedLocked = gitListed(directory);
+
+    if (!searchesAnyFolder) {
+      assert.throws(() => {
+        treeFindings(directory, unnamedLocked);
+      }, "EACCES");
+    }
+
+    chmodSync(lockedUnnamed, 0o700);
+    chmodSync(locked, 0o600);
+
+    const namedLocked = gitListed(directory);
+
+    if (!searchesAnyFolder) {
+      assert.throws(() => {
+        treeFindings(directory, namedLocked);
+      }, "EACCES");
+    }
+
+    chmodSync(locked, 0o700);
+    chmodSync(lockedDeep, 0o600);
+
+    const deepLocked = gitListed(directory);
+
+    if (!searchesAnyFolder) {
+      assert.throws(() => {
+        treeFindings(directory, deepLocked);
+      }, "EACCES");
+    }
+  });
+
+  it("reads git's listing as git means it, with no git", () => {
+    const o = 0x6f;
+    const listing = listingOf(
+      new Uint8Array([
+        ...listingEntry("H", Buffer.from("a.txt")),
+        ...listingEntry("R", Buffer.from("a.txt")),
+        ...listingEntry("S", Buffer.from("s.txt")),
+        ...listingEntry("?", Buffer.from("u.txt")),
+        ...listingEntry("M", Buffer.from("m.txt")),
+        ...listingEntry("M", Buffer.from("m.txt")),
+        ...listingEntry("H", Buffer.from("\uFEFFp.bin")),
+        ...listingEntry("H", Buffer.from("p.bin")),
+        ...listingEntry("H", [o, 0xff, 0x2e, 0x62]),
+        ...listingEntry("H", [o, 0xfe]),
+        ...listingEntry("R", [o, 0xfe]),
+        ...listingEntry("H", [o, 0xff, 0xfd]),
+        ...listingEntry("H", [o, 0x5c, 0x78, 0x66, 0x66, 0xfd]),
+        ...listingEntry("R", [o, 0x5c, 0x78, 0x66, 0x66, 0xfd]),
+        ...listingEntry("S", [0x73, 0xff]),
+      ]),
+    );
+
+    assert.deepStrictEqual(listing.files, [
+      "a.txt",
+      "s.txt",
+      "u.txt",
+      "m.txt",
+      "\uFEFFp.bin",
+      "p.bin",
+    ]);
+    assert.deepStrictEqual([...listing.missing].toSorted(), ["a.txt", "s.txt"]);
+    assert.deepStrictEqual(
+      listing.unnamed.map(({ shown, mayBeMissing }) => `${shown}:${String(mayBeMissing)}`),
+      ["o\\xff.b:false", "o\\xfe:true", "o\\xff\\xfd:false", "o\\x5cxff\\xfd:true", "s\\xff:true"],
+    );
+    assert.strictEqual(
+      shownBytes(new Uint8Array([0x61, 0x5c, 0xff, 0x7f, 0x20])),
+      "a\\x5c\\xff\\x7f ",
+    );
+    assert.throws(() => {
+      listingOf(new Uint8Array(listingEntry("C", Buffer.from("a.txt"))));
+    });
+    assert.throws(() => {
+      listingOf(new Uint8Array([0x48, 0x61, 0]));
+    });
+    assert.throws(() => {
+      listingOf(new Uint8Array([0x48, 0x20, 0x61]));
+    });
   });
 
   it("catches, with every alternative, a sample of its own", () => {
