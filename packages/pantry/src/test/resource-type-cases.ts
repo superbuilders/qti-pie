@@ -67,6 +67,7 @@ export interface ResourceTypeCase {
     | { readonly verdict: "accepted" }
     | { readonly rule: "attribute-lexical" | "entry-kind"; readonly verdict: "refused" };
 }
+
 /**
  * How many document types a case's resources name: one, two, or one beside a type that spells
  * nothing.
