@@ -41,8 +41,16 @@
  */
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { word } from "@bjornpagen/testing/dictionary";
+import { drawn, explore } from "@bjornpagen/testing/explore";
+import { required } from "@bjornpagen/testing/features";
+import { element, int, option } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { notesOnly } from "@bjornpagen/testing/sense";
+import { completeShrink } from "@bjornpagen/testing/shrink";
+import { searched } from "@bjornpagen/testing/vitest";
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Option } from "effect";
+import { Array as Arr, Effect, Formatter, Option } from "effect";
 import type { Browser } from "playwright-core";
 import { chromeFor } from "#specimen/ui/chrome.ts";
 import { createElement } from "react";
@@ -52,6 +60,13 @@ import { admitted } from "@qti-pie/plate/test/admitted";
 import { Item, standardRenderers } from "@qti-pie/plate/ui";
 import type { ItemProps } from "@qti-pie/plate/ui";
 import { heldOf, Responses } from "@qti-pie/plate/ui/client";
+import {
+  comparisonCards,
+  itemWidths,
+  numberLineCards,
+  numberLineGaps,
+} from "#specimen/ui/alpha-gap-match-layout.dictionary.ts";
+import type { ItemWidth } from "#specimen/ui/alpha-gap-match-layout.dictionary.ts";
 
 /**
  * The supports a host enables for one candidate, `<Item>`'s `supports`.
@@ -323,8 +338,8 @@ const readPage = (): Read => {
     document.querySelector('[data-slot="plate-placement-dock"]'),
     ...gaps,
     ...labels,
-  ].map((element): Edges => {
-    const box = element?.getBoundingClientRect() ?? new DOMRect();
+  ].map((each): Edges => {
+    const box = each?.getBoundingClientRect() ?? new DOMRect();
 
     return [box.left, box.top, box.right, box.bottom];
   });
@@ -576,116 +591,280 @@ const comparisonBroken = (seen: Measured, wide: boolean): readonly string[] =>
   ]);
 
 /**
- * The number line's pages: nothing placed and two cards placed while the child answers, the two
- * placed with a refusal shown, and the two placed in review.
- */
-const numberLinePages = [
-  { edit: "none", mode: "answering", pairs: [] },
-  {
-    edit: "none",
-    mode: "answering",
-    pairs: [
-      ["n36", "position-1"],
-      ["n63", "position-2"],
-    ],
-  },
-  {
-    edit: "refusal",
-    mode: "answering",
-    pairs: [
-      ["n36", "position-1"],
-      ["n63", "position-2"],
-    ],
-  },
-  {
-    edit: "none",
-    mode: "review",
-    pairs: [
-      ["n36", "position-1"],
-      ["n63", "position-2"],
-    ],
-  },
-] as const;
-
-/**
- * The comparison's pages: nothing placed and the key placed while the child answers, and a wrong
- * symbol in review.
- */
-const comparisonPages = [
-  { mode: "answering", pairs: [] },
-  { mode: "answering", pairs: [["lt", "relation"]] },
-  { mode: "review", pairs: [["gt", "relation"]] },
-] as const;
-
-/**
  * The two themes the layouts must hold under.
  */
 const themes = ["plate", "fighting"] as const;
 
 /**
- * The item's widths: a laptop's column, a 768 px tablet at 200% zoom, a phone, and a 320 px phone's
- * item inside metis's card, its padding taken off.
+ * A theme the layouts must hold under.
  */
-const widths = [1000, 384, 320, 288] as const;
+type Theme = (typeof themes)[number];
+
+/**
+ * A screen an item's width stands for, one of {@link itemWidths}.
+ */
+type Screen = ItemWidth["screen"];
+
+/**
+ * The comparison's one gap, as its fixture writes it.
+ */
+const comparisonGap = "relation";
+
+/**
+ * The comparison's key, as its fixture's correct response writes it: the symbol card less, placed
+ * in its gap.
+ */
+const comparisonKey = "lt";
+
+/**
+ * A page either form's search lays out and measures: the theme, the item's width and the screen
+ * it stands for, the mode, the cards placed, each by card and gap, and the edit the page makes.
+ */
+interface Page<E extends Edit> {
+  readonly edit: E;
+  readonly mode: "answering" | "review";
+  readonly pairs: readonly (readonly [string, string])[];
+  readonly screen: Screen;
+  readonly theme: Theme;
+  readonly width: number;
+}
+
+/**
+ * Draw the number line's cards as a child may place them: each card in turn on a gap no card holds
+ * yet, or on none, so each card at most once and each gap holding one, a card drawn on none left
+ * in the bank.
+ */
+const numberLinePairs: Gen<readonly (readonly [string, string])[]> = (source) => {
+  const free: string[] = [...numberLineGaps];
+  const pairs: (readonly [string, string])[] = [];
+
+  for (const card of numberLineCards) {
+    const at = source.draw(int(0, free.length));
+    const gap = free[at - 1];
+
+    if (gap !== undefined) {
+      free.splice(at - 1, 1);
+      pairs.push([card, gap]);
+    }
+  }
+
+  return pairs;
+};
+
+/**
+ * Draw a page of the number line: under either theme, at one of {@link itemWidths}, while the
+ * child answers or in review, its cards placed in any way {@link numberLinePairs} draws, with
+ * plate's latest refusal shown or not.
+ */
+const numberLinePages: Gen<Page<"none" | "refusal">> = (source) => ({
+  ...source.draw(word(itemWidths)),
+  edit: source.draw(element(["none", "refusal"])),
+  mode: source.draw(element(["answering", "review"])),
+  pairs: source.draw(numberLinePairs),
+  theme: source.draw(element(themes)),
+});
+
+/**
+ * Draw a page of the comparison: under either theme, at one of {@link itemWidths}, while the child
+ * answers or in review, its gap empty or holding one of {@link comparisonCards}, with its numerals
+ * as written or four digits each, or plate's latest refusal shown.
+ */
+const comparisonPages: Gen<Page<"four-digits" | "none" | "refusal">> = (source) => ({
+  ...source.draw(word(itemWidths)),
+  edit: source.draw(element(["four-digits", "none", "refusal"])),
+  mode: source.draw(element(["answering", "review"])),
+  pairs: Option.match(source.draw(option(word(comparisonCards))), {
+    onNone: () => [],
+    onSome: (card) => [[card, comparisonGap] as const],
+  }),
+  theme: source.draw(element(themes)),
+});
+
+/**
+ * What a page of the number line places: nothing, some of its cards, or every one.
+ */
+type NumberLinePlaced = "every card placed" | "nothing placed" | "some cards placed";
+
+/**
+ * What a page of the comparison places: nothing, the key, or another symbol.
+ */
+type ComparisonPlaced = "another symbol placed" | "nothing placed" | "the key placed";
+
+/**
+ * A situation of a page the searches note: its theme, its screen, its mode, its edit and what it
+ * places.
+ */
+type Situation<E extends Edit, P extends string> = "answering" | "review" | E | P | Screen | Theme;
+
+/**
+ * Give the situations a page of the number line is: its theme, its screen, its mode, its edit, and
+ * whether it places nothing, some of its cards or every one.
+ *
+ * @param page The page.
+ * @returns Its situations.
+ */
+const numberLineSituations = (
+  page: Page<"none" | "refusal">,
+): readonly Situation<"none" | "refusal", NumberLinePlaced>[] => [
+  page.theme,
+  page.screen,
+  page.mode,
+  page.edit,
+  page.pairs.length === 0
+    ? "nothing placed"
+    : page.pairs.length === numberLineCards.length
+      ? "every card placed"
+      : "some cards placed",
+];
+
+/**
+ * Give the situations a page of the comparison is: its theme, its screen, its mode, its edit, and
+ * whether its gap holds nothing, the key or another symbol.
+ *
+ * @param page The page.
+ * @returns Its situations.
+ */
+const comparisonSituations = (
+  page: Page<"four-digits" | "none" | "refusal">,
+): readonly Situation<"four-digits" | "none" | "refusal", ComparisonPlaced>[] => [
+  page.theme,
+  page.screen,
+  page.mode,
+  page.edit,
+  page.pairs.length === 0
+    ? "nothing placed"
+    : page.pairs.some(([card]) => card === comparisonKey)
+      ? "the key placed"
+      : "another symbol placed",
+];
 
 describe("Alpha's Gap Match layouts, measured in Chrome", () => {
-  it.live.each(themes)(
-    "NL1-NL4: the number line draws its cards above one row of evenly spaced positions, labelled at its ends, at every width, under %s's theme",
-    (theme) =>
+  it.live(
+    "NL1-NL4: the number line draws its cards above one row of evenly spaced positions, labelled at its ends, on every page it shows: under either theme, at every width, in either mode, its cards placed in any way, a refusal shown or not",
+    (ctx) =>
       Effect.gen(function* numberLine() {
         const browser = yield* chrome;
 
-        for (const width of widths) {
-          for (const { edit, mode, pairs } of numberLinePages) {
-            const seen = yield* measured(browser, {
-              alpha: "layered",
-              edit,
-              fixture: "number-line",
-              mode,
-              pairs,
-              theme,
-              width,
-            });
+        return yield* searched(
+          ctx,
+          explore(
+            {
+              caseHang: "5 minutes",
+              coverage: required<Situation<"none" | "refusal", NumberLinePlaced>>(
+                [
+                  ...themes,
+                  ...Arr.map(itemWidths, ({ screen }) => screen),
+                  "answering",
+                  "review",
+                  "none",
+                  "refusal",
+                  "nothing placed",
+                  "some cards placed",
+                  "every card placed",
+                ],
+                { cases: 32, sense: notesOnly },
+              ),
+              draw: drawn(numberLinePages),
+              kept: [],
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "NL1 to NL4 as the suite reads them from Alpha's number line form, never from plate's code",
+              },
+              runs: 32,
+              shrink: completeShrink,
+              steerEvery: 16,
+              suite: "plate-ui/alpha-number-line",
+            },
+            (page, c) =>
+              Effect.gen(function* laidOut() {
+                for (const situation of numberLineSituations(page)) {
+                  c.note(situation);
+                }
 
-            assert.deepStrictEqual(
-              numberLineBroken(seen, mode === "answering"),
-              [],
-              `${theme}, ${String(width)} px, ${mode}, ${edit}, ${String(pairs.length)} placed: ${JSON.stringify(seen)}`,
-            );
-          }
-        }
+                const seen = yield* measured(browser, {
+                  alpha: "layered",
+                  edit: page.edit,
+                  fixture: "number-line",
+                  mode: page.mode,
+                  pairs: page.pairs,
+                  theme: page.theme,
+                  width: page.width,
+                });
+
+                assert.deepStrictEqual(
+                  numberLineBroken(seen, page.mode === "answering"),
+                  [],
+                  `${Formatter.format(page)}: ${JSON.stringify(seen)}`,
+                );
+              }),
+          ),
+        );
       }),
   );
 
-  it.live.each(
-    themes.flatMap((theme) =>
-      (["none", "four-digits", "refusal"] as const).map((edit) => [theme, edit] as const),
-    ),
-  )(
-    "SC1-SC3: the comparison draws its numerals large on one line and its symbol cards below, at every width, under %s's theme, %s",
-    ([theme, edit]) =>
+  it.live(
+    "SC1-SC3: the comparison draws its numerals large on one line and its symbol cards below, on every page it shows: under either theme, at every width, in either mode, its gap empty or holding any symbol, its numerals as written or four digits each, or a refusal shown",
+    (ctx) =>
       Effect.gen(function* comparison() {
         const browser = yield* chrome;
 
-        for (const width of widths) {
-          for (const { mode, pairs } of comparisonPages) {
-            const seen = yield* measured(browser, {
-              alpha: "layered",
-              edit,
-              fixture: "comparison",
-              mode,
-              pairs,
-              theme,
-              width,
-            });
+        return yield* searched(
+          ctx,
+          explore(
+            {
+              caseHang: "5 minutes",
+              coverage: required<Situation<"four-digits" | "none" | "refusal", ComparisonPlaced>>(
+                [
+                  ...themes,
+                  ...Arr.map(itemWidths, ({ screen }) => screen),
+                  "answering",
+                  "review",
+                  "four-digits",
+                  "none",
+                  "refusal",
+                  "nothing placed",
+                  "the key placed",
+                  "another symbol placed",
+                ],
+                { cases: 48, sense: notesOnly },
+              ),
+              draw: drawn(comparisonPages),
+              kept: [],
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "SC1 to SC3 as the suite reads them from Alpha's comparison form, never from plate's code: the numerals at their largest on a laptop's column with the numerals as written",
+              },
+              runs: 64,
+              shrink: completeShrink,
+              steerEvery: 16,
+              suite: "plate-ui/alpha-comparison",
+            },
+            (page, c) =>
+              Effect.gen(function* laidOut() {
+                for (const situation of comparisonSituations(page)) {
+                  c.note(situation);
+                }
 
-            assert.deepStrictEqual(
-              comparisonBroken(seen, width === 1000 && edit === "none"),
-              [],
-              `${theme}, ${String(width)} px, ${mode}, ${edit}, ${String(pairs.length)} placed: ${JSON.stringify(seen)}`,
-            );
-          }
-        }
+                const seen = yield* measured(browser, {
+                  alpha: "layered",
+                  edit: page.edit,
+                  fixture: "comparison",
+                  mode: page.mode,
+                  pairs: page.pairs,
+                  theme: page.theme,
+                  width: page.width,
+                });
+
+                assert.deepStrictEqual(
+                  comparisonBroken(seen, page.screen === "laptop" && page.edit === "none"),
+                  [],
+                  `${Formatter.format(page)}: ${JSON.stringify(seen)}`,
+                );
+              }),
+          ),
+        );
       }),
   );
 });
