@@ -19,11 +19,11 @@
  *   for the same count every time. The set is scaled down to the width its frame gives it, never
  *   up, and never below a 44-pixel picture; no object moves to another row. Nothing else is drawn:
  *   the set replaces the markup, whose picture is all the frame shows before the module has run.
- * - **The interaction.** A tap on an object (or Space or Enter on the focused one) puts a thick
- *   bright blue ring around it, a circle of radius 0.56 and stroke 0.10 of the picture's side that
- *   stays inside its cell; a tap on a ringed object takes the ring away. Keyboard focus is a dashed
- *   square, never a circle or a fill. Any object can be ringed, and any number of them. No count is
- *   ever shown, no object is numbered, and nothing is crossed out, struck through or dragged.
+ * - **The interaction.** A tap on an object (or Space or Enter on the focused one) draws a ring
+ *   around it, a circle that stays wholly inside the object's cell; a tap on a ringed object takes
+ *   the ring away. Keyboard focus is a dashed square, never a circle or a fill. Any object can be
+ *   ringed, and any number of them. No count is ever shown, no object is numbered, and nothing is
+ *   crossed out, struck through or dragged.
  * - **The response.** The number of objects ringed, the Appendix C JSON `{ base: { integer: n } }`,
  *   for the `single` `integer` declaration `match_correct` scores. With no object ringed, whether
  *   never tapped or every ring taken away, the response is NULL, `{ base: null }`: an interaction
@@ -170,8 +170,8 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   const typeIdentifier = "urn:fdc:alpha.school:2026:mark-objects";
 
   /**
-   * The ring's colour, the specification's "thick bright blue ring (`#1d6fd1`) around it, never an
-   * X or a strike-through".
+   * The ring's colour: a strong blue that stands out on white and on the pictures, so a ringed
+   * object reads at a glance.
    *
    * @formatConstant
    */
