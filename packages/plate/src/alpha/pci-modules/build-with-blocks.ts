@@ -13,8 +13,8 @@
  * - **Two mats, side by side.** The tray on the left holds the item's supply, the count of each kind
  *   its properties give (`data-supply-rods="9" data-supply-cubes="12"`, or with
  *   `data-supply-flats="5"` too); the mat on the right starts empty. Both mats are drawn for the
- *   whole supply, so neither changes size, and every piece is drawn to one scale: a rod is ten
- *   cubes long, a flat ten by ten.
+ *   whole supply, so neither changes size, and every piece is drawn to one scale: ten cubes in a
+ *   line match a rod, and ten rods side by side match a flat.
  * - **Moving a piece, tap then tap.** A piece is dragged onto the other mat, or tapped, which chooses
  *   it, and then the other mat tapped, anywhere on it, its pieces included: a piece goes onto the
  *   mat that way and back to the tray the same way, never by a single tap (the owner's ruling,

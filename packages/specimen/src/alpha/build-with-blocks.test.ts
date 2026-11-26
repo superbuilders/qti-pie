@@ -30,8 +30,9 @@
  *   `null`), which plate refuses for an ordered response, fails the frame too.
  * - B5, the drawing: the frame holds nothing before the module draws (the island's markup is empty),
  *   and the PCI's element holds no text at all, so no count and no numeral, before and after the
- *   build; a rod is ten cubes long and a flat ten cubes square, on the screen; the pieces on the
- *   mat sit inside it, grouped by kind, the flats above the rods and the rods left of the cubes.
+ *   build; ten cubes in a line match a rod and ten rods side by side a flat, on the screen; the
+ *   pieces on the mat sit inside it, grouped by kind, the flats above the rods and the rods left of
+ *   the cubes.
  * - B6, the module: the database admitted the item and plate accepts it; plate's resolution of its
  *   module facts against the package gives its `module` as the entry and one route, the module's
  *   file in the package, no fallback (the package holds one copy of the module) and no notice; the
@@ -98,9 +99,8 @@ type Counts = Readonly<Partial<Record<Kind, number>>>;
 
 /**
  * Each fixture's number, its key and its supply, by its name, as its stem and its supply state
- * them: the key is the number's standard decomposition, the one build the supply admits (the
- * specification: "The supply is sized so that the only way to reach the target is the standard
- * decomposition"). `rods-cubes-74` lists its supply's cubes before its rods.
+ * them: the key is the number's standard decomposition, the one build the supply admits: no
+ * other build of the number fits in it. `rods-cubes-74` lists its supply's cubes before its rods.
  */
 const specification = {
   "flats-rods-cubes-153": {
@@ -318,7 +318,7 @@ layer(Layer.effect(Pages, blocksPages), { excludeTestServices: true, timeout: ca
     );
 
     it.effect(
-      "each item's supply admits its key as the one build of its number (the specification: the supply is sized so that the only way to reach the target is the standard decomposition)",
+      "each item's supply admits its key as the one build of its number: no other build of it fits in the supply",
       () =>
         Effect.sync(() => {
           for (const [id, row] of Object.entries(specification)) {
