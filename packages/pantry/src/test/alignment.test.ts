@@ -10,9 +10,11 @@
  * The contract, Bjorn's completion criterion for exact alignment:
  *
  * - No rule is contradicted (`X`): a rule the grammar breaks is either aligned or recorded as a spec
- *   reading (`reading`) or a ruled gap (`R`: reading 2's recorded MathML limits and reading 50),
- *   never left;
- * - The census holds every spec reading the readings file states, and no other;
+ *   reading (`reading`) or a ruled gap (`R`: reading `mathml-validity`'s recorded MathML limits and
+ *   reading `unchecked-xsi-type`), never left;
+ * - The census holds every spec reading the readings file states, by its slug, and no other; the file
+ *   names each reading once, by a slug no other reading bears, numbers its readings by position
+ *   alone, from 1 in order, and holds no list item that is not a reading's;
  * - The unowned count (`U`, XSD-invalid content accepted with no owner) is a ratchet: the goal is
  *   zero, and the number recorded here only goes down, recorded anew each time it moves.
  *
@@ -20,14 +22,15 @@
  * cache-gated tests'. It writes `work/alignment/rules.tsv`, every rule with its status and owner.
  */
 import { regex } from "arkregex";
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
+import { codePointOrder } from "@qti-pie/crust/charset.ts";
 import { assert, describe, layer } from "@effect/vitest";
 import { Console, Effect, FileSystem } from "effect";
 import { census, countsOf, readings, statuses } from "#pantry/test/alignment.ts";
 import type { Rule } from "#pantry/test/alignment.ts";
 import { grammar } from "#pantry/grammar/install.ts";
+import { liveRegister } from "#pantry/test/live-readings.ts";
 
 /**
  * The folder this test writes to, `packages/pantry/work/alignment`.
@@ -35,24 +38,13 @@ import { grammar } from "#pantry/grammar/install.ts";
 const outputRoot = path.resolve(import.meta.dirname, "..", "..", "work", "alignment");
 
 /**
- * The readings file, whose numbered readings the census must hold.
- */
-const readingsFile = path.resolve(
-  import.meta.dirname,
-  "..",
-  "..",
-  "..",
-  "..",
-  "docs",
-  "spec-readings.md",
-);
-
-/**
  * The unowned count of the census, a ratchet: the goal is zero. A change that lowers it records the
  * new count here; a change that raises it names an owner for each new rule instead.
  *
  * Taken on 2026-11-05 on the shared tree, after the attribute grammar's cutover and the unowned
- * readings' laws (2, 3, 9, 39, 41, 42, 43 and 47): every XSD rule and every spec reading is owned.
+ * readings' laws (`mathml-validity`, `ssml-document-is-fragment`, `schematron-intent`,
+ * `ssml-speak-version`, `ssml-meta-name`, `ssml-voice-languages`, `ssml-voice-prosody-attributes`
+ * and `xsi-attributes`): every XSD rule and every spec reading is owned.
  */
 const unownedCeiling = 0;
 
@@ -72,11 +64,8 @@ describe("alignment.test.ts, the census", () => {
         const fs = yield* FileSystem.FileSystem;
         const rules = census(grammar);
         const counts = countsOf(rules);
-        const numbered = [
-          ...readFileSync(readingsFile, "utf-8").matchAll(
-            regex("^(?<number>\\d+)\\. \\*\\*", "gmu"),
-          ),
-        ].map((found) => Number(found.groups?.["number"]));
+        const register = yield* liveRegister();
+        const slugs = register.readings.map(({ slug }) => slug);
 
         yield* fs.makeDirectory(outputRoot, { recursive: true });
         yield* fs.writeFileString(
@@ -112,9 +101,24 @@ describe("alignment.test.ts, the census", () => {
           "no rule is contradicted without a recorded reading or a ruled gap",
         );
         assert.deepStrictEqual(
-          [...readings.keys()].toSorted((left, right) => left - right),
-          numbered.toSorted((left, right) => left - right),
-          "the census holds exactly the readings docs/spec-readings.md states",
+          register.malformed,
+          [],
+          "every list item of docs/spec-readings.md is a reading: its position, its slug in brackets, its headline",
+        );
+        assert.deepStrictEqual(
+          slugs.filter((slug, at) => slugs.indexOf(slug) !== at),
+          [],
+          "no two readings of docs/spec-readings.md share a slug",
+        );
+        assert.deepStrictEqual(
+          register.readings.map(({ position }) => position),
+          slugs.map((_, at) => at + 1),
+          "docs/spec-readings.md numbers its readings by position alone, from 1 in order",
+        );
+        assert.deepStrictEqual(
+          [...readings.keys()].toSorted(codePointOrder),
+          slugs.toSorted(codePointOrder),
+          "the census holds exactly the readings docs/spec-readings.md states, by slug",
         );
         assert.isAtMost(counts.unowned, unownedCeiling, "the unowned count only goes down");
         assert.strictEqual(
