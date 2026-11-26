@@ -13,10 +13,11 @@
  *
  * @module
  */
+import { collapsed, trimmed } from "@bjornpagen/grizzle-text/text";
 import type { Area, Vertex } from "#processing/ir.ts";
 import { checked, refused } from "#processing/operators/operator.ts";
 import type { Checked } from "#processing/operators/operator.ts";
-import { attributeOf, collapseXmlSpace, trimXmlSpace } from "#processing/xml.ts";
+import { attributeOf } from "#processing/xml.ts";
 import type { XmlElement } from "#processing/xml.ts";
 import { regex } from "arkregex";
 
@@ -52,7 +53,7 @@ const coordinate = regex(
  * @returns It, or `undefined` where it is no number.
  */
 const writtenOf = (text: string): Written | undefined => {
-  const parts = coordinate.exec(trimXmlSpace(text))?.groups;
+  const parts = coordinate.exec(trimmed(text))?.groups;
   const whole = parts?.whole ?? "";
   const fraction = parts?.fraction ?? "";
   if (parts === undefined || whole + fraction === "") {
@@ -220,10 +221,10 @@ export const resolveArea = (
   place: number,
 ): Checked<Area> => {
   const geometry = geometries.find(
-    (each) => each === collapseXmlSpace(attributeOf(element, "shape") ?? ""),
+    (each) => each === collapsed(attributeOf(element, "shape") ?? ""),
   );
   const coords = attributeOf(element, "coords") ?? "";
-  const written = trimXmlSpace(coords) === "" ? [] : coords.split(",").map(writtenOf);
+  const written = trimmed(coords) === "" ? [] : coords.split(",").map(writtenOf);
   if (geometry === undefined) {
     return refused(
       "attribute",

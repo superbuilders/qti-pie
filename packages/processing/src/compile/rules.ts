@@ -7,6 +7,7 @@
  *
  * @module
  */
+import { collapsed } from "@bjornpagen/grizzle-text/text";
 import type { Expression, VariableRef } from "#processing/ir.ts";
 import { checked, refused } from "#processing/operators/operator.ts";
 import type { Checked, CompileContext } from "#processing/operators/operator.ts";
@@ -18,7 +19,7 @@ import type {
   ResponseRule,
   TemplateRule,
 } from "#processing/program.ts";
-import { attributeOf, collapseXmlSpace, qtiChildren } from "#processing/xml.ts";
+import { attributeOf, qtiChildren } from "#processing/xml.ts";
 import type { XmlElement } from "#processing/xml.ts";
 
 /**
@@ -72,7 +73,7 @@ const targetOf = (
   settable: readonly Declaration["role"][],
 ): Checked<VariableRef> => {
   const place = rules.placeOf(element);
-  const identifier = collapseXmlSpace(attributeOf(element, "identifier") ?? "");
+  const identifier = collapsed(attributeOf(element, "identifier") ?? "");
   const declaration = rules.declarations.get(identifier);
   const builtInSet = identifier === "completionStatus" && settable.includes("outcome");
   if (declaration === undefined || (!settable.includes(declaration.role) && !builtInSet)) {

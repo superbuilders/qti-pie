@@ -15,6 +15,7 @@
  *
  * @module
  */
+import { collapsed } from "@bjornpagen/grizzle-text/text";
 import { buildNfa } from "@bjornpagen/grizzle-text/regex/nfa";
 import { Matcher } from "@bjornpagen/grizzle-text/regex/match";
 import { xsdPattern } from "@bjornpagen/grizzle-text/regex/xsd";
@@ -22,7 +23,7 @@ import { regex } from "arkregex";
 import { readBoolean, readDouble, readInteger } from "#processing/lexical.ts";
 import type { Declaration } from "#processing/program.ts";
 import type { BaseType } from "#processing/value.ts";
-import { attributeOf, collapseXmlSpace } from "#processing/xml.ts";
+import { attributeOf } from "#processing/xml.ts";
 import type { XmlElement } from "#processing/xml.ts";
 
 /**
@@ -291,7 +292,7 @@ const descendants = (element: XmlElement): readonly XmlElement[] =>
 const written = (element: XmlElement, name: string): string | undefined => {
   const value = attributeOf(element, name);
 
-  return value === undefined ? undefined : collapseXmlSpace(value);
+  return value === undefined ? undefined : collapsed(value);
 };
 
 /**

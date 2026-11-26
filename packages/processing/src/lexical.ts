@@ -14,10 +14,11 @@
  *
  * @module
  */
+import { collapsed, trimmed } from "@bjornpagen/grizzle-text/text";
 import { regex } from "arkregex";
-import { collapseXmlSpace, trimXmlSpace } from "#processing/xml.ts";
+
 import { isText, single, textValue } from "#processing/value.ts";
-import type { BaseType, Null, Single } from "#processing/value.ts";
+import type { BaseType, Null, Single, SingleOf } from "#processing/value.ts";
 
 /**
  * `xs:integer`'s lexical space: an optional sign and ASCII digits.
@@ -81,7 +82,7 @@ export const readBoolean = (lexical: string): boolean | undefined => {
  * @returns The two tokens, or `undefined` unless there are exactly two.
  */
 const twoTokens = (lexical: string): readonly [string, string] | undefined => {
-  const [first, second, ...rest] = collapseXmlSpace(lexical).split(" ");
+  const [first, second, ...rest] = collapsed(lexical).split(" ");
 
   return first === undefined || second === undefined || rest.length > 0
     ? undefined
@@ -136,7 +137,7 @@ export const readSingle = (base: BaseType, text: string): Null | Single | undefi
     return textValue("string", text);
   }
 
-  const lexical = trimXmlSpace(text);
+  const lexical = trimmed(text);
   switch (base) {
     case "boolean": {
       const value = readBoolean(lexical);
@@ -165,6 +166,108 @@ export const readSingle = (base: BaseType, text: string): Null | Single | undefi
     }
     case "file": {
       return undefined;
+    }
+  }
+};
+
+/**
+ * What reading a value's text gives: the value (NULL for an empty string, §2.2.2), or why the text
+ * is no value of its base type: a file has no lexical form, and any other text outside its base
+ * type's lexical space is refused.
+ */
+export type LexicalRead =
+  | {
+      readonly base: BaseType;
+      readonly kind: "refused";
+      readonly reason: "no-lexical-form" | "outside-lexical-space";
+      readonly text: string;
+    }
+  | { readonly kind: "read"; readonly value: Null | Single };
+
+/**
+ * Read a value of a base type from its text, as a document or a candidate writes it: the one reader
+ * of every base type's lexical form (readings `integer-lexical`, `bounded-double`,
+ * `boolean-lexical`, `typed-value-whitespace`).
+ *
+ * @param base - The base type.
+ * @param text - The text as written.
+ * @returns The value, or the refusal with its reason.
+ */
+export const readValue = (base: BaseType, text: string): LexicalRead => {
+  if (base === "file") {
+    return { base, kind: "refused", reason: "no-lexical-form", text };
+  }
+
+  const value = readSingle(base, text);
+
+  return value === undefined
+    ? { base, kind: "refused", reason: "outside-lexical-space", text }
+    : { kind: "read", value };
+};
+
+/**
+ * A single value that has a lexical form: any but a file.
+ */
+export type Writable = Exclude<Single, SingleOf<"file">>;
+
+/**
+ * A float's canonical lexical form in `xs:double`'s space: the shortest digits that read back to
+ * the same double (`String`'s, which `xs:double` admits, `2.5`, `1e+21`), the infinities, NaN and
+ * negative zero by name.
+ *
+ * @param float - The double.
+ * @returns Its text, which {@link readValue} reads back to the same double.
+ */
+const writeDouble = (float: number): string => {
+  if (Number.isNaN(float)) {
+    return "NaN";
+  }
+
+  if (float === Number.POSITIVE_INFINITY) {
+    return "INF";
+  }
+
+  if (float === Number.NEGATIVE_INFINITY) {
+    return "-INF";
+  }
+
+  return Object.is(float, -0) ? "-0" : String(float);
+};
+
+/**
+ * Write a value in its base type's canonical lexical form: an integer's exact decimal digits (no
+ * `+`, no leading zero), a float's and a duration's shortest digits, a boolean `true` or `false`,
+ * a pair's, a directed pair's and a point's two parts separated by one space, a text as it is.
+ * {@link readValue} reads it back to the same value.
+ *
+ * @param value - The value.
+ * @returns Its text.
+ */
+export const writeValue = (value: Writable): string => {
+  switch (value.base) {
+    case "boolean": {
+      return value.value ? "true" : "false";
+    }
+    case "integer": {
+      return value.value.toString(10);
+    }
+    case "float":
+    case "duration": {
+      return writeDouble(value.value);
+    }
+    case "point": {
+      return `${value.value.x.toString(10)} ${value.value.y.toString(10)}`;
+    }
+    case "pair": {
+      return `${value.value.first} ${value.value.second}`;
+    }
+    case "directedPair": {
+      return `${value.value.source} ${value.value.target}`;
+    }
+    case "identifier":
+    case "string":
+    case "uri": {
+      return value.value;
     }
   }
 };

@@ -5,7 +5,6 @@
  *
  * @module
  */
-import { regex } from "arkregex";
 
 /**
  * QTI 3.0.1's namespace, of every element the compiler reads.
@@ -83,47 +82,3 @@ export const qtiChildren = (element: XmlElement): readonly XmlElement[] =>
  */
 export const textOf = (element: XmlElement): string =>
   element.children.map((child) => (child.kind === "text" ? child.value : "")).join("");
-
-/**
- * The four characters XML counts as white space (XML 1.0 production [3]).
- */
-const xmlSpace: ReadonlySet<string> = new Set([" ", "\t", "\n", "\r"]);
-
-/**
- * A run of XML white space.
- */
-const xmlSpaceRun = regex("[\\t\\n\\r ]+", "u");
-
-/**
- * Text with XML white space removed at both ends, as an element's typed text is read (reading
- * `typed-value-whitespace`).
- *
- * @param text - The text.
- * @returns It, trimmed of XML white space alone.
- */
-export const trimXmlSpace = (text: string): string => {
-  let start = 0;
-  let end = text.length;
-  while (start < end && xmlSpace.has(text.charAt(start))) {
-    start += 1;
-  }
-
-  while (end > start && xmlSpace.has(text.charAt(end - 1))) {
-    end -= 1;
-  }
-
-  return text.slice(start, end);
-};
-
-/**
- * Text with XML white space collapsed: each run one space, none at either end, as XML Schema's
- * whiteSpace `collapse` reads an attribute's typed value (reading `typed-value-whitespace`).
- *
- * @param text - The text.
- * @returns It, collapsed.
- */
-export const collapseXmlSpace = (text: string): string =>
-  text
-    .split(xmlSpaceRun)
-    .filter((token) => token.length > 0)
-    .join(" ");

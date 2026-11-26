@@ -6,6 +6,7 @@
  *
  * @module
  */
+import { collapsed } from "@bjornpagen/grizzle-text/text";
 import { regex } from "arkregex";
 import type { Digest } from "#processing/graded.ts";
 import type { Expression, ExpressionKind, VariableRef } from "#processing/ir.ts";
@@ -34,7 +35,7 @@ import type {
 } from "#processing/program.ts";
 import { customOperatorOf } from "#processing/registry.ts";
 import { publishedTemplates } from "#processing/templates.generated.ts";
-import { attributeOf, collapseXmlSpace, qtiChildren, qtiNamespace } from "#processing/xml.ts";
+import { attributeOf, qtiChildren, qtiNamespace } from "#processing/xml.ts";
 import type { XmlElement } from "#processing/xml.ts";
 
 /**
@@ -53,13 +54,13 @@ const templatePrefixes = [
  * @returns The template's `qti-response-processing`, or `undefined` where it names none.
  */
 export const publishedTemplate = (uri: string): XmlElement | undefined => {
-  const collapsed = collapseXmlSpace(uri);
-  const prefix = templatePrefixes.find((each) => collapsed.startsWith(each));
+  const written = collapsed(uri);
+  const prefix = templatePrefixes.find((each) => written.startsWith(each));
   if (prefix === undefined) {
     return undefined;
   }
 
-  const file = collapsed.slice(prefix.length);
+  const file = written.slice(prefix.length);
   const name = file.endsWith(".xml") ? file.slice(0, -".xml".length) : file;
 
   return Object.hasOwn(publishedTemplates, name)
@@ -135,7 +136,7 @@ const imageOfOperand = (
   const [operand] = qtiChildren(element);
 
   return operand?.local === "qti-variable"
-    ? images.get(collapseXmlSpace(attributeOf(operand, "identifier") ?? ""))
+    ? images.get(collapsed(attributeOf(operand, "identifier") ?? ""))
     : undefined;
 };
 
@@ -253,7 +254,7 @@ export const compileItemWith = <K extends ExpressionKind>(
     return responses;
   }
 
-  const adaptive = readBoolean(collapseXmlSpace(attributeOf(root, "adaptive") ?? "false"));
+  const adaptive = readBoolean(collapsed(attributeOf(root, "adaptive") ?? "false"));
 
   return adaptive === undefined
     ? refused("attribute", 0, "write the item's adaptive as true or false")
@@ -261,7 +262,7 @@ export const compileItemWith = <K extends ExpressionKind>(
         adaptive,
         declarations: declared,
         digest,
-        identifier: collapseXmlSpace(attributeOf(root, "identifier") ?? ""),
+        identifier: collapsed(attributeOf(root, "identifier") ?? ""),
         interactions,
         kind: "item",
         responseProcessing: responses.value,
@@ -289,7 +290,7 @@ const itemRefsOf = (
       ? itemRefsOf(
           child,
           child.local === "qti-assessment-section"
-            ? [...sections, collapseXmlSpace(attributeOf(child, "identifier") ?? "")]
+            ? [...sections, collapsed(attributeOf(child, "identifier") ?? "")]
             : sections,
         )
       : [];
@@ -398,7 +399,7 @@ export const compileTestWith = <K extends ExpressionKind>(
   };
   const itemRefs: CompiledItemRef[] = [];
   for (const { element, sections } of itemRefsOf(root, [])) {
-    const identifier = collapseXmlSpace(attributeOf(element, "identifier") ?? "");
+    const identifier = collapsed(attributeOf(element, "identifier") ?? "");
     const item = items.get(identifier);
     if (item === undefined) {
       return refused(
@@ -421,20 +422,20 @@ export const compileTestWith = <K extends ExpressionKind>(
 
       templateDefaults.push({
         expression: expression.value,
-        template: collapseXmlSpace(attributeOf(templateDefault, "template-identifier") ?? ""),
+        template: collapsed(attributeOf(templateDefault, "template-identifier") ?? ""),
       });
     }
 
     const weights = new Map<string, number>();
     for (const weight of childrenNamed(element, "qti-weight")) {
       weights.set(
-        collapseXmlSpace(attributeOf(weight, "identifier") ?? ""),
-        Number(collapseXmlSpace(attributeOf(weight, "value") ?? "1")),
+        collapsed(attributeOf(weight, "identifier") ?? ""),
+        Number(collapsed(attributeOf(weight, "value") ?? "1")),
       );
     }
 
     itemRefs.push({
-      categories: collapseXmlSpace(attributeOf(element, "category") ?? "")
+      categories: collapsed(attributeOf(element, "category") ?? "")
         .split(" ")
         .filter((category) => category !== ""),
       identifier,
@@ -455,7 +456,7 @@ export const compileTestWith = <K extends ExpressionKind>(
     ? checked({
         declarations: declared,
         digest,
-        identifier: collapseXmlSpace(attributeOf(root, "identifier") ?? ""),
+        identifier: collapsed(attributeOf(root, "identifier") ?? ""),
         itemRefs,
         kind: "test",
         outcomeProcessing: outcomes.value,

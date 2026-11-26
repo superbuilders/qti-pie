@@ -111,3 +111,7 @@ export type { XmlAttribute, XmlElement, XmlNode } from "#processing/xml.ts";
 export type { Admission } from "#processing/admission.ts";
 
 export type { Checked, Refusal, RefusalCode } from "#processing/operators/operator.ts";
+
+export type { LexicalRead, Writable } from "#processing/lexical.ts";
+
+export { readValue, writeValue } from "#processing/lexical.ts";

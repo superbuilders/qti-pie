@@ -7,11 +7,12 @@
  *
  * @module
  */
+import { collapsed } from "@bjornpagen/grizzle-text/text";
 import type { LiteralOr } from "#processing/ir.ts";
 import { readBoolean, readDouble, readInteger } from "#processing/lexical.ts";
 import { checked, refused } from "#processing/operators/operator.ts";
 import type { Checked, CompileContext } from "#processing/operators/operator.ts";
-import { attributeOf, collapseXmlSpace } from "#processing/xml.ts";
+import { attributeOf } from "#processing/xml.ts";
 import type { XmlElement } from "#processing/xml.ts";
 
 /**
@@ -37,7 +38,7 @@ export const booleanAttribute = (
       : checked(fallback);
   }
 
-  const value = readBoolean(collapseXmlSpace(written));
+  const value = readBoolean(collapsed(written));
 
   return value === undefined
     ? refused("attribute", place, `write ${name} as true or false`)
@@ -68,7 +69,7 @@ export const enumAttribute = <const V extends string>(
       : checked(fallback);
   }
 
-  const value = values.find((each) => each === collapseXmlSpace(written));
+  const value = values.find((each) => each === collapsed(written));
 
   return value === undefined
     ? refused("attribute", place, `write ${name} as one of ${values.join(", ")}`)
@@ -89,7 +90,7 @@ export const nameAttribute = (
   place: number,
 ): Checked<string> => {
   const written = attributeOf(element, name);
-  const value = written === undefined ? "" : collapseXmlSpace(written);
+  const value = written === undefined ? "" : collapsed(written);
 
   return value === ""
     ? refused("attribute", place, `write the required attribute ${name}`)
@@ -105,7 +106,7 @@ export const nameAttribute = (
  */
 export const optionalName = (element: XmlElement, name: string): string | undefined => {
   const written = attributeOf(element, name);
-  const value = written === undefined ? "" : collapseXmlSpace(written);
+  const value = written === undefined ? "" : collapsed(written);
 
   return value === "" ? undefined : value;
 };
@@ -122,7 +123,7 @@ export const listAttribute = (element: XmlElement, name: string): readonly strin
 
   return written === undefined
     ? []
-    : collapseXmlSpace(written)
+    : collapsed(written)
         .split(" ")
         .filter((token) => token !== "");
 };
@@ -172,7 +173,7 @@ export const integerOrVariable = (
       : checked({ kind: "literal", value: fallback });
   }
 
-  const lexical = collapseXmlSpace(written);
+  const lexical = collapsed(written);
   const value = readInteger(lexical);
 
   return value === undefined
@@ -194,7 +195,7 @@ export const floatOrVariable = (
   context: CompileContext,
   place: number,
 ): Checked<LiteralOr<number>> => {
-  const lexical = collapseXmlSpace(written);
+  const lexical = collapsed(written);
   const value = readDouble(lexical);
 
   return value === undefined

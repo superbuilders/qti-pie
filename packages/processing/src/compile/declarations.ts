@@ -6,6 +6,7 @@
  *
  * @module
  */
+import { collapsed } from "@bjornpagen/grizzle-text/text";
 import type { Area, AreaMapping, MapEntry, Mapping, VariableRole } from "#processing/ir.ts";
 import { regex } from "arkregex";
 import { resolveArea } from "#processing/compile/area.ts";
@@ -16,7 +17,7 @@ import type { Checked } from "#processing/operators/operator.ts";
 import type { Declaration, LookupTable } from "#processing/program.ts";
 import { baseTypes, container, nullOf, recordOf, textValue } from "#processing/value.ts";
 import type { BaseType, RecordField, Single, Value, ValueType } from "#processing/value.ts";
-import { attributeOf, collapseXmlSpace, qtiChildren, textOf } from "#processing/xml.ts";
+import { attributeOf, qtiChildren, textOf } from "#processing/xml.ts";
 import type { XmlElement } from "#processing/xml.ts";
 
 /**
@@ -79,7 +80,7 @@ const doubleAttribute = (
     return checked(fallback);
   }
 
-  const value = readDouble(collapseXmlSpace(written));
+  const value = readDouble(collapsed(written));
 
   return value === undefined
     ? refused("attribute", place, `write ${name} as a float`)
@@ -95,7 +96,7 @@ const doubleAttribute = (
  */
 const declaredType = (element: XmlElement, place: number): Checked<ValueType> => {
   const cardinality = cardinalities.find(
-    (each) => each === collapseXmlSpace(attributeOf(element, "cardinality") ?? ""),
+    (each) => each === collapsed(attributeOf(element, "cardinality") ?? ""),
   );
   if (cardinality === undefined) {
     return refused("attribute", place, "write the declaration's cardinality");
@@ -106,7 +107,7 @@ const declaredType = (element: XmlElement, place: number): Checked<ValueType> =>
   }
 
   const base = baseTypes.find(
-    (each) => each === collapseXmlSpace(attributeOf(element, "base-type") ?? ""),
+    (each) => each === collapsed(attributeOf(element, "base-type") ?? ""),
   );
 
   return base === undefined
@@ -251,9 +252,9 @@ export const valuesOf = (
   if (type.cardinality === "record") {
     const fields: RecordField[] = [];
     for (const value of values) {
-      const name = collapseXmlSpace(attributeOf(value, "field-identifier") ?? "");
+      const name = collapsed(attributeOf(value, "field-identifier") ?? "");
       const base = baseTypes.find(
-        (each) => each === collapseXmlSpace(attributeOf(value, "base-type") ?? ""),
+        (each) => each === collapsed(attributeOf(value, "base-type") ?? ""),
       );
       if (name === "" || base === undefined) {
         return refused(
@@ -327,10 +328,8 @@ const mappingOf = (
       base,
       (attributeOf(entry, "map-key") ?? "").replaceAll(lineBreakOrTab, " "),
     );
-    const value = readDouble(collapseXmlSpace(attributeOf(entry, "mapped-value") ?? ""));
-    const caseSensitive = readBoolean(
-      collapseXmlSpace(attributeOf(entry, "case-sensitive") ?? "false"),
-    );
+    const value = readDouble(collapsed(attributeOf(entry, "mapped-value") ?? ""));
+    const caseSensitive = readBoolean(collapsed(attributeOf(entry, "case-sensitive") ?? "false"));
     if (
       key === undefined ||
       key.kind === "null" ||
@@ -392,7 +391,7 @@ const areaMappingOf = (
   const entries: { readonly area: Area; readonly value: number }[] = [];
   for (const entry of childrenNamed(mapping, "qti-area-map-entry")) {
     const area = resolveArea(entry, image, placeOf(entry));
-    const value = readDouble(collapseXmlSpace(attributeOf(entry, "mapped-value") ?? ""));
+    const value = readDouble(collapsed(attributeOf(entry, "mapped-value") ?? ""));
     if (!area.ok) {
       return area;
     }
@@ -459,7 +458,7 @@ const lookupOf = (
   if (match !== undefined) {
     const entries: { readonly source: bigint; readonly target: Single }[] = [];
     for (const entry of childrenNamed(match, "qti-match-table-entry")) {
-      const source = readInteger(collapseXmlSpace(attributeOf(entry, "source-value") ?? ""));
+      const source = readInteger(collapsed(attributeOf(entry, "source-value") ?? ""));
       const mapped = target(attributeOf(entry, "target-value"));
       if (source === undefined || mapped === undefined) {
         return refused(
@@ -481,9 +480,9 @@ const lookupOf = (
     readonly target: Single;
   }[] = [];
   for (const entry of childrenNamed(table, "qti-interpolation-table-entry")) {
-    const source = readDouble(collapseXmlSpace(attributeOf(entry, "source-value") ?? ""));
+    const source = readDouble(collapsed(attributeOf(entry, "source-value") ?? ""));
     const includeBoundary = readBoolean(
-      collapseXmlSpace(attributeOf(entry, "include-boundary") ?? "true"),
+      collapsed(attributeOf(entry, "include-boundary") ?? "true"),
     );
     const mapped = target(attributeOf(entry, "target-value"));
     if (source === undefined || includeBoundary === undefined || mapped === undefined) {
@@ -560,7 +559,7 @@ const declarationOf = (
 
   const role = roles[element.local];
   const place = placeOf(element);
-  const identifier = collapseXmlSpace(attributeOf(element, "identifier") ?? "");
+  const identifier = collapsed(attributeOf(element, "identifier") ?? "");
   const type = declaredType(element, place);
   if (identifier === "") {
     return refused("attribute", place, "write the declaration's identifier");
