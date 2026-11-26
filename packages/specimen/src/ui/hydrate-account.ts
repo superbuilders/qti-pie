@@ -23,13 +23,16 @@
 /**
  * One recording as the page holds it now: its name, whether it is still in the document, has
  * ended, is muted, is paused and sounds, the file it plays, its control's pressed state and
- * notice, its position, and its length as the page knows it, in seconds: `Infinity` while the page
- * knows no end of it, as of a stream it has not read to its end, `NaN` before its metadata.
+ * notice, its position, its length as the page knows it, in seconds (`Infinity` while the page
+ * knows no end of it, as of a stream it has not read to its end, `NaN` before its metadata), and
+ * the `MediaError` that reached it, its code and Chrome's message naming the cause, none where none
+ * did: a failed `source` alone reaches the element as no `MediaError`.
  */
 export interface Recording {
   readonly detached: boolean;
   readonly duration: number;
   readonly ended: boolean;
+  readonly error: { readonly code: number; readonly message: string } | null;
   readonly label: string;
   readonly muted: boolean;
   readonly notice: string;
@@ -100,10 +103,11 @@ declare global {
      */
     account?: PageAccount;
     /**
-     * Tell the harness that a recording's element let its load go, the harness's binding
-     * (`#specimen/ui/hydrated.ts`): absent where the page runs outside the harness.
+     * Tell the harness that a recording's element let its load go, and how many other elements of
+     * the page still load that address, the harness's binding (`#specimen/ui/hydrated.ts`): absent
+     * where the page runs outside the harness.
      */
-    recordingLetGo?: (address: string) => Promise<void>;
+    recordingLetGo?: (address: string, others: number) => Promise<void>;
   }
 }
 
@@ -189,10 +193,11 @@ const mediaIn = (node: Node): readonly HTMLMediaElement[] => {
 export const installAccount = (): void => {
   const labels = new Map<HTMLMediaElement, string>();
   /**
-   * The address each recording's load reached data from, its request open since: a load that never
-   * reached its metadata, a `preload="none"` one never played among them, may have made no request.
+   * The address each recording's load asks for, from its `loadstart`, when its fetch may begin,
+   * until the page lets it go or a network error ends its fetch. A `preload="none"` load never
+   * played is among them, though it has made no request.
    */
-  const reached = new Map<HTMLMediaElement, string>();
+  const loads = new Map<HTMLMediaElement, string>();
   const sounding = new Set<HTMLMediaElement>();
   const pending = new Set<HTMLMediaElement>();
   const followed = new WeakSet<HTMLMediaElement>();
@@ -282,21 +287,32 @@ export const installAccount = (): void => {
   };
 
   /**
-   * Tell the harness that a recording let its load go, where that load reached data: the element
-   * fires `abort` or `emptied` as the media element load algorithm abandons its fetch, before it
-   * starts its next load, and `error` once its fetch has ended; so the harness hears it before the
-   * next load's request, which Chrome reports before it reports the old one's end.
+   * Tell the harness that a recording let a begun load go, whether or not its data came: the
+   * element fires `abort` or `emptied` as the media element load algorithm abandons its fetch,
+   * before it starts its next load, and `error` for a `MediaError` past its data, a decode's or the
+   * renderer's, as it stops its fetch; so the harness hears it before the next load's request,
+   * which Chrome reports before it reports the old one's end. A `MEDIA_ERR_NETWORK` is no letting
+   * go: its fetch ended first, and Chrome has reported that end already.
+   *
+   * With it goes how many other elements still load the same address: the harness keeps at least
+   * that many of the address's requests counted, so a load let go before it asked for anything
+   * never discounts another element's request of the address.
    *
    * @param element The recording.
    * @see https://html.spec.whatwg.org/multipage/media.html#media-element-load-algorithm
    */
   const lettingGo = (element: HTMLMediaElement): void => {
-    const address = reached.get(element);
+    const address = loads.get(element);
 
-    if (address !== undefined) {
-      reached.delete(element);
-      void Promise.allSettled([window.recordingLetGo?.(address)]);
+    if (address === undefined) {
+      return;
     }
+
+    loads.delete(element);
+
+    const others = [...loads.values()].filter((each) => each === address).length;
+
+    void Promise.allSettled([window.recordingLetGo?.(address, others)]);
   };
 
   /**
@@ -317,17 +333,31 @@ export const installAccount = (): void => {
       );
     }
 
-    element.addEventListener("loadedmetadata", () => {
-      reached.set(element, element.currentSrc);
+    element.addEventListener("loadstart", () => {
+      if (element.currentSrc !== "") {
+        loads.set(element, element.currentSrc);
+      }
     });
 
-    for (const type of ["abort", "emptied", "error"]) {
+    for (const type of ["abort", "emptied"]) {
       element.addEventListener(type, (event) => {
         if (event.target === element) {
           lettingGo(element);
         }
       });
     }
+
+    element.addEventListener("error", (event) => {
+      if (event.target !== element) {
+        return;
+      }
+
+      if (element.error?.code === MediaError.MEDIA_ERR_NETWORK) {
+        loads.delete(element);
+      } else {
+        lettingGo(element);
+      }
+    });
   };
 
   /**
@@ -392,6 +422,10 @@ export const installAccount = (): void => {
           detached: !element.isConnected,
           duration: element.duration,
           ended: element.ended,
+          error:
+            element.error === null
+              ? null
+              : { code: element.error.code, message: element.error.message },
           label: labelOf(element),
           muted: element.muted,
           notice: part?.querySelector("[data-slot=plate-read-aloud-notice]")?.textContent ?? "",

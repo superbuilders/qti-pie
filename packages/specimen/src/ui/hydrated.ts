@@ -801,25 +801,80 @@ const answerRecording = (
 };
 
 /**
+ * What a page's recordings met on the wire, each line written as it is read: every answer the
+ * server gave one, and every request of one that Chrome reports failed.
+ */
+type Traffic = Map<string, (() => string)[]>;
+
+/**
+ * Note a line of what a page's recordings met on the wire, read when the page's faults are told.
+ *
+ * @param traffic What each page's recordings met.
+ * @param page The page's segment.
+ * @param line The line, as it reads at that time.
+ */
+const noted = (traffic: Traffic, page: string, line: () => string): void => {
+  traffic.set(page, [...(traffic.get(page) ?? []), line]);
+};
+
+/**
+ * Note the server's answer to a request for a synthetic recording, as the server knows it when
+ * the line is read: the range Chrome asked for, the status, and whether the answer was written
+ * whole, the page let it go before it was, or it is still open, as an endless one stays.
+ *
+ * @param traffic What each page's recordings met.
+ * @param asked The recording's path.
+ * @param request The request.
+ * @param response Its response.
+ */
+const notedAnswer = (
+  traffic: Traffic,
+  asked: RecordingPath,
+  request: IncomingMessage,
+  response: ServerResponse,
+): void => {
+  const range = request.headers.range ?? "the whole";
+  let ending = "still open";
+
+  response.once("finish", () => {
+    ending = "written whole";
+  });
+  response.once("close", () => {
+    if (!response.writableFinished) {
+      ending = "let go by the page before it was written whole";
+    }
+  });
+  noted(
+    traffic,
+    asked.page,
+    () =>
+      `server: ${asked.name} asked for ${range}, answered ${response.headersSent ? String(response.statusCode) : "not yet"}, ${ending}`,
+  );
+};
+
+/**
  * The pages' server on a port of the loopback the system chose, closed with its scope: each page
- * at `/page/<n>`, each synthetic recording at `/recording/…` ({@link recordingPath}), and every
- * other address Vite's.
+ * at `/page/<n>`, each synthetic recording at `/recording/…` ({@link recordingPath}), each of its
+ * answers noted on its page's wire, and every other address Vite's.
  *
  * @param server Vite.
  * @param pages The pages, by address.
  * @param held The recordings the server holds back.
+ * @param traffic What each page's recordings met on the wire.
  * @returns The server's address.
  */
 const pageServer = (
   server: ViteServer,
   pages: ReadonlyMap<string, Written>,
   held: HeldRecordings,
+  traffic: Traffic,
 ): Effect.Effect<string, HydrationFailure, Scope.Scope> => {
   const serve = (request: IncomingMessage, response: ServerResponse) => {
     const page = pages.get(request.url ?? "");
     const asked = Option.getOrUndefined(recordingPath(request.url ?? ""));
 
     if (asked !== undefined) {
+      notedAnswer(traffic, asked, request, response);
       answerRecording(asked, request, response, held);
 
       return;
@@ -866,7 +921,7 @@ const pageServer = (
 const launched = chromeFor((step, cause) => new HydrationFailure({ cause, step }));
 
 /**
- * The machine's Google Chrome, headless, closed with its scope.
+ * The machine's Google Chrome, headless, its sound to fake streams, closed with its scope.
  */
 const chrome = launched.browser;
 
@@ -1066,14 +1121,14 @@ const openedAt = (
 export const connectionsPerHost = 6;
 
 /**
- * Chrome was asked for more requests of one recording open at once than it opens connections to
- * its host ({@link connectionsPerHost}), so the one past them waits for a connection, and the rule
- * with it, for good: whoever made it, an item's control, a host's media or a rule's own script.
- * Counted from Chrome's own request event, which fires for the request held back too, until the
- * first of its end (`requestfinished`, `requestfailed`) and its element letting its load go
- * (`abort`, `emptied`, `error`), which the page reports through the harness's binding before it
- * starts its next load: Chrome reports a new load's request before the end of the one it replaces,
- * which never waits on it, so its end alone would count both.
+ * Chrome was asked for more requests of one recording open at once than it opens connections to its
+ * host ({@link connectionsPerHost}), so the one past them waits for a connection, and the rule with
+ * it, for good: whoever made it, an item's control, a host's media or a rule's own script. Counted
+ * from Chrome's own request event, which fires for the request held back too, until the first of
+ * its end (`requestfinished`, `requestfailed`) and its element letting its load go (`abort`,
+ * `emptied`, `error`), its data come or not, which the page reports through the harness's binding
+ * before it starts its next load: Chrome reports a new load's request before the end of the one it
+ * replaces, which never waits on it, so its end alone would count both.
  */
 export class CrowdedRecording extends Data.TaggedError("CrowdedRecording")<{
   readonly host: string;
@@ -1105,9 +1160,13 @@ const stepped = (counts: Map<string, number>, key: string, change: 1 | -1): numb
 };
 
 /**
- * The arguments the page's binding is called with: the address of the load it let go.
+ * The arguments the page's binding is called with: the address of the load it let go, and how many
+ * of the page's other elements still load that address.
  */
-const LetGoArguments = Schema.Tuple([Schema.String]);
+const LetGoArguments = Schema.Tuple([
+  Schema.String,
+  Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+]);
 
 /**
  * The host a page's recording is served from: its name under the page's segment under
@@ -1236,6 +1295,13 @@ export interface HydratedScene extends Hydrated {
    */
   readonly crowded: Effect.Effect<never, CrowdedRecording>;
   readonly recordings: Recordings;
+  /**
+   * Read what the page's recordings met on the wire, in order: every answer the server gave one,
+   * its range, its status and whether it was written whole, and every request of one that Chrome
+   * reports failed, with Chrome's reason; so a recording's failure names whether the server or
+   * the browser broke it.
+   */
+  readonly traffic: Effect.Effect<readonly string[]>;
 }
 
 /**
@@ -1287,7 +1353,8 @@ const harness = Effect.gen(function* harness() {
   const server = yield* vite;
   const pages = new Map<string, Written>();
   const held: HeldRecordings = new Map();
-  const base = yield* pageServer(server, pages, held);
+  const traffic: Traffic = new Map();
+  const base = yield* pageServer(server, pages, held, traffic);
   const context = yield* launched.context(yield* chrome, {
     viewport: { height: 900, width: 1200 },
   });
@@ -1331,17 +1398,34 @@ const harness = Effect.gen(function* harness() {
   };
 
   /**
-   * Count a recording load the page let go: one request of its address that Chrome holds open
-   * stops counting, where one does that is not let go already.
+   * Count a recording load the page let go, whether or not its data came: one request of its
+   * address that Chrome holds open stops counting, where more of them are open and not let go
+   * than the page's other elements that still load the address. A load let go before it asked for
+   * anything, as a `preload="none"` one never played, so discounts no other element's request.
+   * Only an endless or held address is discounted ({@link endlessAddress}): a tone's request ends
+   * on its own, and a let-go matched to it by address alone could discount another element's
+   * request of the same tone.
    *
    * @param address The load's address.
+   * @param others How many of the page's other elements still load the address.
+   * @constraint Chrome 158 reports, through Playwright, a media element's let-go (its `abort` or
+   *   `emptied`, through the page's binding), then its next load's `request`, then the abandoned
+   *   request's `requestfailed`, in that order, which no specification states; the count rests on
+   *   it. Were the end to come before the let-go, the let-go would discount the new request, which
+   *   holds its connection for good.
+   * @source COLD h3's probe (order.mjs, FORM-AUDIO's reviews): one of k open endless streams of one
+   *   address restarted (`load()` and `play()`) or given a new address, 12 trials each at k = 1, 3
+   *   and 6, all 72 heard in that order; RC1, RC2 and RC3 of `#specimen/ui/read-aloud-browser.test.ts`
+   *   hold the count both ways on every run, RC3 for loads let go before their first byte.
+   * @verified 2026-11-26
    */
-  const lost = (address: string): void => {
+  const lost = (address: string, others: number): void => {
     const { host, hostname } = new URL(address);
 
     if (
+      endlessAddress(address) &&
       Option.isSome(recordingOfHost(hostname)) &&
-      (openByAddress.get(address) ?? 0) > (letGoByAddress.get(address) ?? 0)
+      (openByAddress.get(address) ?? 0) - (letGoByAddress.get(address) ?? 0) > others
     ) {
       stepped(letGoByAddress, address, 1);
       stepped(liveByHost, host, -1);
@@ -1376,11 +1460,20 @@ const harness = Effect.gen(function* harness() {
   });
   context.on("requestfailed", (request) => {
     ended(request.url());
+
+    const failure = request.failure()?.errorText ?? "no reason given";
+    const { hostname, pathname } = new URL(request.url());
+
+    for (const { name, page } of Option.toArray(recordingOfHost(hostname))) {
+      noted(traffic, page, () => `chrome: ${name} (${pathname}) failed, ${failure}`);
+    }
   });
   yield* attempt("exposed the recordings' binding", () =>
     context.exposeBinding("recordingLetGo", (_page, ...called) => {
-      for (const [address] of Option.toArray(Schema.decodeUnknownOption(LetGoArguments)(called))) {
-        lost(address);
+      for (const [address, others] of Option.toArray(
+        Schema.decodeUnknownOption(LetGoArguments)(called),
+      )) {
+        lost(address, others);
       }
     }),
   );
@@ -1407,6 +1500,7 @@ const harness = Effect.gen(function* harness() {
           ...hydrated,
           crowded: Effect.promise(() => crowding.promise).pipe(Effect.flatMap(Effect.fail)),
           recordings,
+          traffic: Effect.sync(() => (traffic.get(page) ?? []).map((line) => line())),
         };
       });
     });

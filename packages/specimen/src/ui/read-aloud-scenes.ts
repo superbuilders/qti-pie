@@ -356,6 +356,11 @@ export interface Driven {
    * The page.
    */
   readonly page: Page;
+  /**
+   * Read what the page's recordings met on the wire: every answer the server gave one, and every
+   * request of one Chrome reports failed, with its reason.
+   */
+  readonly traffic: Effect.Effect<readonly string[]>;
 }
 
 /**
@@ -647,6 +652,7 @@ const drivenOf = (hydrated: HydratedScene): Driven => {
       attempt(`read the text of ${selector}`, () =>
         page.evaluate((query) => document.querySelector(query)?.textContent ?? "", selector),
       ),
+    traffic: hydrated.traffic,
   };
 };
 

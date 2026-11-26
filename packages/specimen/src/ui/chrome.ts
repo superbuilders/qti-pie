@@ -6,8 +6,9 @@
  * gate's progress watch judge (2026-11-26: eight harnesses each launched Chrome, five kept
  * Playwright's 30 s default, and `page.goto` timed out at load 300). Every portable custom
  * interaction a harness hosts loads its modules with no wait either ({@link unboundedModuleWait}).
- * The lint holds every other module to this one (oxlint.config.ts, `no-restricted-properties` on
- * `chromium.launch`, `newContext` and `newPage`).
+ * Its sound plays to fake audio streams ({@link fakeAudioStreams}), so no recording a page plays
+ * fails on the machine's sound server. The lint holds every other module to this one
+ * (oxlint.config.ts, `no-restricted-properties` on `chromium.launch`, `newContext` and `newPage`).
  */
 import { tmpdir } from "node:os";
 import { Config, Effect } from "effect";
@@ -20,6 +21,17 @@ import type { Browser, BrowserContext, BrowserContextOptions, Page } from "playw
  * path is short enough for a socket; the system's temporary folder where the session has none.
  */
 const runtimeFolder = Config.String("XDG_RUNTIME_DIR").pipe(Config.withDefault(tmpdir()));
+
+/**
+ * Chrome's switch for fake audio streams. A page's recordings play on them in real time, their
+ * media time, events and positions as on a sound card, and reach no sound server, so nothing
+ * outside the harness fails one: a server that drops Chrome's connection while it plays and
+ * refuses the next, as a desktop's past its clients does, fails the element with a `MediaError`
+ * (`PipelineStatus::AUDIO_RENDERER_ERROR`). `--mute-audio` still opens the server's stream.
+ *
+ * @see {@link https://github.com/chromium/chromium/blob/158.0.8127.88/media/base/media_switches.cc#L143-L146 | Chrome 158's media switches: "Forces input and output stream creation to use fake audio streams"}
+ */
+const fakeAudioStreams = "--disable-audio-output";
 
 /**
  * The module wait every hosted portable custom interaction is given, for its primary and its
@@ -88,6 +100,7 @@ export const chromeFor = <E>(fail: (step: string, cause: unknown) => E): Chrome<
       Effect.flatMap(Effect.orDie(runtimeFolder), (temporary) =>
         attempt("started Chrome", () =>
           chromium.launch({
+            args: [fakeAudioStreams],
             channel: "chrome",
             env: { ...process.env, TMPDIR: temporary },
             headless: true,

@@ -104,6 +104,20 @@
  *   its part and its place among the page's controls of that part, once, in the order the page
  *   shows them (reading `read-aloud-controls`).
  *
+ * And four rules of the harness's own, its count of a recording's requests against Chrome's
+ * connections to its host, held both ways:
+ *
+ * - RC1, a restart is no seventh: six open streams of one recording, one of them restarted (its load
+ *   let go and begun again), are six, and the page runs on.
+ * - RC2, a seventh is refused: the same six, restarted, and a seventh asked for besides, fail at once
+ *   as the page's crowding, at the seventh's request, never by a wait on it.
+ * - RC3, a load let go before its first byte is no stream: six held-back streams of one host, their
+ *   requests open with no answer, each given the host's endless address in one task, are six, and
+ *   all six play.
+ * - RC4, a load let go before it asked for anything discounts no other's request: six open streams of
+ *   one recording, a seventh element of its address let go before it ever played, and a seventh
+ *   stream asked for besides, fail at once as the page's crowding.
+ *
  * Kills are in this suite's commit: each rule fails on a slip planted in plate that breaks it.
  *
  * @module
@@ -111,7 +125,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { assert, layer } from "@effect/vitest";
 import { Context, Effect, Layer } from "effect";
-import { endlessName, finiteName } from "#specimen/ui/hydrated.ts";
+import { connectionsPerHost, endlessName, finiteName } from "#specimen/ui/hydrated.ts";
 import type { Endless, Finite, Recordings } from "#specimen/ui/hydrated.ts";
 import { graph, line, media, passage, said } from "#specimen/ui/read-aloud-items.ts";
 import type { Synthetic } from "#specimen/ui/read-aloud-items.ts";
@@ -457,6 +471,7 @@ const inEveryMode = (
               const own = yield* check(page);
               const ended = yield* Effect.as(page.painted, []);
               const { overlaps, recordings, seen } = yield* page.account;
+              const traffic = yield* page.traffic;
               const found = [
                 ...own,
                 ...ended,
@@ -470,6 +485,7 @@ const inEveryMode = (
                   : [
                       `seen: ${seen.map((each) => `${String(each.at)} ${each.label} ${each.event}`).join(", ")}`,
                       `holds: ${JSON.stringify(recordings)}`,
+                      `traffic: ${traffic.join("; ")}`,
                     ]),
               ].map((fault) => `${mode}: ${fault}`);
             }),
@@ -491,6 +507,55 @@ const inEveryMode = (
     );
 
     return faults.flat();
+  });
+
+/**
+ * Check a page refuses a request of a recording past Chrome's connections to its host: in each
+ * mode the rule's check, raced with the page's crowding as every rule's is, ends at the request
+ * one past the cap as the crowding of the recording named, and in no other way.
+ *
+ * @param rule The rule's name.
+ * @param build The scene, from the page's recordings.
+ * @param check The rule, which gives what it saw where no crowding stopped it.
+ * @param name The recording the page must refuse.
+ * @returns The check.
+ */
+const crowds = (
+  rule: string,
+  build: (recordings: Recordings) => SceneSpec,
+  check: (page: Driven) => Effect.Effect<readonly string[], RuleFailure>,
+  name: Endless,
+) =>
+  Effect.gen(function* refusedInEveryMode() {
+    const open = yield* Pages;
+    const faults = yield* Effect.forEach([false, true], (strict) => {
+      const mode = strict ? "strict" : "plain";
+
+      return Effect.scoped(
+        Effect.gen(function* oneMode() {
+          yield* Effect.logInfo(`read-aloud in Chrome: ${rule} starts, ${mode}`);
+
+          const page = yield* open(build, strict);
+          const seen = yield* Effect.raceFirst(check(page), page.crowded);
+
+          return [`${mode}: no request of ${name} was refused: ${seen.join("; ")}`];
+        }).pipe(
+          Effect.catchTags({
+            CrowdedRecording: (failure) =>
+              Effect.succeed(
+                failure.name === name && failure.open === connectionsPerHost + 1
+                  ? []
+                  : [`${mode}: ${failure.message}`],
+              ),
+            DrivingFailure: (failure) => Effect.succeed([`${mode}: ${failure.message}`]),
+            EndedEndless: (failure) => Effect.succeed([`${mode}: ${failure.message}`]),
+            HydrationFailure: (failure) => Effect.succeed([`${mode}: ${failure.message}`]),
+          }),
+        ),
+      );
+    });
+
+    assert.deepStrictEqual(faults.flat(), []);
   });
 
 /**
@@ -580,6 +645,100 @@ const released = (page: Driven, label: string) =>
  */
 const elementNamed = (label: string): string =>
   `[...document.querySelectorAll("audio")].find((each) => (each.getAttribute("src") ?? each.querySelector("source")?.getAttribute("src") ?? "").endsWith("/${label}.wav"))`;
+
+/**
+ * Play as many muted streams of the host's recording as Chrome opens connections to its host, each
+ * the host's own media, and wait until all of them play.
+ *
+ * @param page The page.
+ * @returns The plays.
+ */
+const fullHost = (page: Driven) =>
+  Effect.gen(function* filled() {
+    yield* Effect.forEach(
+      Array.from({ length: connectionsPerHost }),
+      () => page.foreign(page.recordings.endless(recording.host), true, ""),
+      { discard: true },
+    );
+    yield* page.inPage(
+      `Promise.all([...document.querySelectorAll("audio")].filter((each) => each.src.endsWith("/${recording.host}.wav")).map((each) => each.readyState >= 3 && !each.paused ? undefined : new Promise((resolve) => { each.addEventListener("playing", () => { resolve(undefined); }, { once: true }); })))`,
+    );
+  });
+
+/**
+ * Restart one of the host's recording's streams, its load let go and begun again, and wait until
+ * it plays again.
+ *
+ * @param page The page.
+ * @returns The restart.
+ */
+const restartedOne = (page: Driven) =>
+  page.inPage(
+    `new Promise((resolve) => { const element = ${elementNamed(recording.host)}; element.addEventListener("playing", () => { resolve(undefined); }, { once: true }); element.load(); void element.play().catch(() => undefined); })`,
+  );
+
+/**
+ * Play as many muted `preload="none"` streams of the host as Chrome opens connections to it, each
+ * held back at an address of its own, and wait until the server has been asked for every one, so
+ * each request is open with no answer; then give each, in one task, the host's endless address,
+ * and wait until all of them play.
+ *
+ * @param page The page.
+ * @returns The plays.
+ */
+const reAddressedUnanswered = (page: Driven) =>
+  Effect.gen(function* reAddressed() {
+    const names = Array.from(
+      { length: connectionsPerHost },
+      (_, place) => `${recording.host}-${String(place)}`,
+    );
+    const held = page.recordings.held(recording.host);
+    const addresses = names.map((name) => held.replace(`/${recording.host}.wav`, `/${name}.wav`));
+
+    yield* page.inPage(
+      `(() => { for (const address of ${JSON.stringify(addresses)}) { const each = document.createElement("audio"); each.muted = true; each.preload = "none"; each.src = address; document.body.append(each); void each.play().catch(() => undefined); } })()`,
+    );
+    yield* Effect.forEach(names, (name) => page.recordings.requested(name), { discard: true });
+    yield* page.inPage(
+      `Promise.all([...document.querySelectorAll("audio")].filter((each) => ${JSON.stringify(addresses)}.includes(each.getAttribute("src") ?? "")).map((each) => { const playing = new Promise((resolve) => { each.addEventListener("playing", () => { resolve(undefined); }, { once: true }); }); each.src = ${JSON.stringify(page.recordings.endless(recording.host))}; void each.play().catch(() => undefined); return playing; }))`,
+    );
+  });
+
+/**
+ * Put one more element of the host's recording in the page, muted and `preload="none"`, never
+ * played, so it asks for nothing; wait until its load is deferred; then let that load go, and wait
+ * until the element has emptied.
+ *
+ * @param page The page.
+ * @returns The let-go.
+ */
+const letGoUnplayed = (page: Driven) =>
+  page.inPage(
+    `new Promise((resolve) => { const unplayed = document.createElement("audio"); unplayed.muted = true; unplayed.preload = "none"; unplayed.addEventListener("suspend", () => { unplayed.addEventListener("emptied", () => { resolve(undefined); }, { once: true }); unplayed.removeAttribute("src"); unplayed.load(); }, { once: true }); unplayed.src = ${JSON.stringify(page.recordings.endless(recording.host))}; document.body.append(unplayed); })`,
+  );
+
+/**
+ * Ask for a seventh stream of the host, at an address of its own, and wait until Chrome reports
+ * its request.
+ *
+ * @param page The page.
+ * @returns The fault, where no crowding stopped the rule first.
+ */
+const seventhAsked = (page: Driven) =>
+  Effect.gen(function* seventh() {
+    const address = page.recordings
+      .endless(recording.host)
+      .replace(`/${recording.host}.wav`, "/seventh.wav");
+    const asked = page.page.waitForRequest(address);
+
+    yield* page.inPage(
+      `(() => { const seventh = document.createElement("audio"); seventh.muted = true; seventh.src = ${JSON.stringify(address)}; document.body.append(seventh); void seventh.play().catch(() => undefined); })()`,
+    );
+    yield* Effect.promise(() => asked);
+    yield* page.painted;
+
+    return ["Chrome asked for the seventh stream, and no crowding was named"];
+  });
 
 layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) => {
   it.effect("RB1: a prompt's press plays it alone, and nothing plays after it ends", () =>
@@ -1662,6 +1821,71 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
                 : [`the host's media was not paused: ${JSON.stringify(host)}`]),
             ];
           }),
+      ),
+  );
+
+  it.effect(
+    "RC1: six open streams of one recording, one of them restarted, are six, not seven",
+    () =>
+      holds(
+        "RC1",
+        saidAlone((at) => ({ apple: at.endless(recording.a) })),
+        (page) =>
+          Effect.gen(function* restartAtSix() {
+            yield* fullHost(page);
+            yield* restartedOne(page);
+
+            return [];
+          }),
+      ),
+  );
+
+  it.effect(
+    "RC2: the same six, one restarted, and a seventh asked for are refused at once as the page's crowding",
+    () =>
+      crowds(
+        "RC2",
+        saidAlone((at) => ({ apple: at.endless(recording.a) })),
+        (page) =>
+          Effect.gen(function* seventh() {
+            yield* fullHost(page);
+            yield* restartedOne(page);
+
+            return yield* seventhAsked(page);
+          }),
+        recording.host,
+      ),
+  );
+
+  it.effect(
+    "RC3: six held-back streams of one host, each given a new address in one task before its first byte came, are six, not twelve",
+    () =>
+      holds(
+        "RC3",
+        saidAlone((at) => ({ apple: at.endless(recording.a) })),
+        (page) =>
+          Effect.gen(function* unanswered() {
+            yield* reAddressedUnanswered(page);
+
+            return [];
+          }),
+      ),
+  );
+
+  it.effect(
+    "RC4: six open streams of one recording, a seventh element of its address let go unplayed, and a seventh stream asked for are refused at once as the page's crowding",
+    () =>
+      crowds(
+        "RC4",
+        saidAlone((at) => ({ apple: at.endless(recording.a) })),
+        (page) =>
+          Effect.gen(function* unplayed() {
+            yield* fullHost(page);
+            yield* letGoUnplayed(page);
+
+            return yield* seventhAsked(page);
+          }),
+        recording.host,
       ),
   );
 
