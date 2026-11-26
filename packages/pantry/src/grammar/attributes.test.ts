@@ -226,6 +226,20 @@ interface LexicalBox {
 }
 
 /**
+ * Collapse a value's whitespace as XML Schema's `collapse` does (Part 2, §4.3.6): each run of tab,
+ * line feed, carriage return and space one space, and none at either end. JavaScript's `trim`
+ * strips every Unicode space, `U+00A0` among them, which no XML whitespace class touches.
+ *
+ * @param raw - The value as written.
+ * @returns It collapsed.
+ */
+const collapseXml = (raw: string): string =>
+  raw
+    .replaceAll(regex("[\t\n\r ]+", "gu"), " ")
+    .replace(regex("^ ", "u"), "")
+    .replace(regex(" $", "u"), "");
+
+/**
  * Exhaust a lexical box: hold its size to its targets times its forms, then read every form under
  * every target's domain as `matches` does, against the box's oracle.
  *
@@ -235,8 +249,8 @@ interface LexicalBox {
  */
 const exhaustLexical = (ctx: TestContext, lexical: LexicalBox) => {
   const generator: Gen<{ readonly form: string; readonly target: Target }> = (source) => ({
-    target: source.draw(element(lexical.targets)),
     form: source.draw(lexical.forms),
+    target: source.draw(element(lexical.targets)),
   });
 
   return Effect.andThen(
@@ -734,20 +748,6 @@ const mediaTypeFault = (raw: string): MediaTypeFault => {
 };
 
 /**
- * Collapse a value's whitespace as XML Schema's `collapse` does (Part 2, §4.3.6): each run of tab,
- * line feed, carriage return and space one space, and none at either end. JavaScript's `trim`
- * strips every Unicode space, `U+00A0` among them, which no XML whitespace class touches.
- *
- * @param raw - The value as written.
- * @returns It collapsed.
- */
-const collapseXml = (raw: string): string =>
-  raw
-    .replaceAll(regex("[\t\n\r ]+", "gu"), " ")
-    .replace(regex("^ ", "u"), "")
-    .replace(regex(" $", "u"), "");
-
-/**
  * Every rule of RFC 2045's media type a value breaks, where {@link mediaTypeFault} names the first:
  * each character's ({@link pointFault}), and the slash's, none for a media type.
  *
@@ -1091,6 +1091,16 @@ const languagePieces = ["en", "US", "und", "ZXX", "-", ":", "*", " ", "1"] as co
 const nameRange = regex("^[A-Za-z]{1,8}(?:-[A-Za-z0-9]{1,8})*$", "u");
 
 /**
+ * Tell whether a part of a language list is a Language Range ({@link nameRange}) that is not `und`
+ * or `zxx`, without regard to case.
+ *
+ * @param part - The part.
+ * @returns Whether it is.
+ */
+const isLanguageRange = (part: string): boolean =>
+  nameRange.test(part) && part.toLowerCase() !== "und" && part.toLowerCase() !== "zxx";
+
+/**
  * Whether a value is a voice's languages, by SSML 1.1 §3.2.1 and Appendix D: the empty string, as
  * written (the schema's emptystring member, an `xs:string` of length 0), or a list whose collapsed
  * items are each a language or a language and an accent parted by a colon, each an Extended
@@ -1101,8 +1111,6 @@ const nameRange = regex("^[A-Za-z]{1,8}(?:-[A-Za-z0-9]{1,8})*$", "u");
  */
 const isSsmlLanguages = (raw: string): boolean => {
   const collapsed = collapseXml(raw);
-  const isRange = (part: string) =>
-    nameRange.test(part) && part.toLowerCase() !== "und" && part.toLowerCase() !== "zxx";
 
   return (
     raw === "" ||
@@ -1110,7 +1118,7 @@ const isSsmlLanguages = (raw: string): boolean => {
       collapsed.split(" ").every((item) => {
         const parts = item.split(":");
 
-        return parts.length <= 2 && parts.every(isRange);
+        return parts.length <= 2 && parts.every(isLanguageRange);
       }))
   );
 };
