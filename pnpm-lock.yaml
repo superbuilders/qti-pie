@@ -394,6 +394,9 @@ importers:
 
   packages/processing:
     dependencies:
+      '@bjornpagen/grizzle-text':
+        specifier: workspace:*
+        version: link:../../vendor/grizzle/packages/text
       arkregex:
         specifier: 'catalog:'
         version: 0.0.15

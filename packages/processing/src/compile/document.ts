@@ -9,6 +9,7 @@
 import { regex } from "arkregex";
 import type { Digest } from "#processing/graded.ts";
 import type { Expression, ExpressionKind, VariableRef } from "#processing/ir.ts";
+import { interactionsOf } from "#processing/compile/body.ts";
 import { childNamed, childrenNamed, declarationsOf } from "#processing/compile/declarations.ts";
 import { expressionCompiler, placesOf } from "#processing/compile/expression.ts";
 import { outcomeRulesOf, responseRulesOf, templateRulesOf } from "#processing/compile/rules.ts";
@@ -207,6 +208,7 @@ export const compileItemWith = <K extends ExpressionKind>(
         declarations: declared,
         digest,
         identifier: collapseXmlSpace(attributeOf(root, "identifier") ?? ""),
+        interactions: interactionsOf(childNamed(root, "qti-item-body"), declared, placeOf),
         kind: "item",
         responseProcessing: responses.value,
         templateProcessing: templates.value,

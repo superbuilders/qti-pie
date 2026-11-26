@@ -11,6 +11,7 @@ import type {
   VariableRef,
   VariableRole,
 } from "#processing/ir.ts";
+import type { Interaction } from "#processing/compile/body.ts";
 import type { Digest } from "#processing/graded.ts";
 import type { Single, Value, ValueType } from "#processing/value.ts";
 
@@ -169,6 +170,10 @@ export interface CompiledItem {
   readonly declarations: ReadonlyMap<string, Declaration>;
   readonly digest: Digest;
   readonly identifier: string;
+  /**
+   * The interactions of its body that response admission judges (§7.19.7), in document order.
+   */
+  readonly interactions: readonly Interaction[];
   readonly kind: "item";
   readonly responseProcessing: readonly ResponseRule[];
   readonly templateProcessing: readonly TemplateRule[];

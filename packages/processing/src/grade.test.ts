@@ -171,6 +171,7 @@ const answer = (item: CompiledItem, response: Value, session: ItemSession) =>
       values: new Map([["RESPONSE", response]]),
     },
     session,
+    validate: false,
   });
 
 /**
@@ -308,7 +309,12 @@ describe("response processing", () => {
         : undefined,
       single("float", 0),
     );
-    assert.strictEqual("result" in adaptive ? adaptive.result.numAttempts : undefined, 2n);
+    assert.strictEqual(
+      "result" in adaptive && adaptive.result.kind === "done"
+        ? adaptive.result.numAttempts
+        : undefined,
+      2n,
+    );
   });
 });
 

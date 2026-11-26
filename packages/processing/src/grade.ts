@@ -13,6 +13,8 @@
  *
  * @module
  */
+import { admit } from "#processing/admission.ts";
+import type { Admission } from "#processing/admission.ts";
 import { valuesDigest } from "#processing/digest.ts";
 import { runProcessing } from "#processing/engine.ts";
 import { mint } from "#processing/graded.ts";
@@ -58,13 +60,25 @@ export interface AnswerInput {
   readonly readAt: Instant;
   readonly responses: Submitted;
   readonly session: ItemSession;
+  /**
+   * The session's `validate-responses` (§7.19.7): whether tier (b)'s limits refuse the answer too.
+   */
+  readonly validate: boolean;
 }
 
 /**
- * A graded answer: its item's result.
+ * An answer admission refused (§7.19.7, reading 195): its reasons. It writes nothing.
+ */
+export interface Refused {
+  readonly admission: Admission;
+  readonly kind: "refused";
+}
+
+/**
+ * A graded answer: its item's result, or its refusal.
  */
 export interface AnswerGrade {
-  readonly result: ItemResult;
+  readonly result: ItemResult | Refused;
 }
 
 /**
@@ -206,6 +220,30 @@ const priorOf = (prior: Prior): GradeProof["prior"] =>
   prior.kind === "processed" ? { at: prior.at, kind: "processed" } : { kind: "none" };
 
 /**
+ * The values in force an answer's admission reads (the SQL grader's `start_of`): each outcome where
+ * the session's last processed attempt left it, its starting value before the first, and the
+ * session's template values.
+ *
+ * @param item - The item.
+ * @param session - The session.
+ * @returns The values, by identifier.
+ */
+const heldOf = (item: CompiledItem, session: ItemSession): ReadonlyMap<string, Value> => {
+  const held = new Map<string, Value>(session.take.templates);
+  for (const declaration of item.declarations.values()) {
+    if (declaration.role === "outcome") {
+      const carried =
+        session.prior.kind === "processed"
+          ? session.prior.outcomes.get(declaration.identifier)
+          : undefined;
+      held.set(declaration.identifier, carried ?? startOf(declaration, session.take.defaults));
+    }
+  }
+
+  return held;
+};
+
+/**
  * Grade one answer (D14).
  *
  * @param table - The standard operators.
@@ -216,19 +254,32 @@ export const gradeAnswerWith = <K extends ExpressionKind>(
   table: OperatorTable<K>,
   input: AnswerInput,
 ): Failed | Graded<AnswerGrade> => {
-  const result = attemptWith(table, attemptOf(input, input.context));
+  const proof: GradeProof = {
+    prior: priorOf(input.session.prior),
+    program: input.item.digest,
+    readAt: input.readAt,
+    responses: [readOf(input.responses)],
+  };
+  const posted = valuesOf(input.responses);
+  const admission = admit(input.item, posted, heldOf(input.item, input.session), input.validate);
+  if (admission.reasons.length > 0) {
+    return mint({ result: { admission, kind: "refused" } }, proof);
+  }
 
-  return result.kind === "failed"
-    ? result
-    : mint(
-        { result },
-        {
-          prior: priorOf(input.session.prior),
-          program: input.item.digest,
-          readAt: input.readAt,
-          responses: [readOf(input.responses)],
-        },
-      );
+  const shown = new Map(posted);
+  for (const response of admission.hidden) {
+    const declaration = input.item.declarations.get(response);
+    if (declaration !== undefined) {
+      shown.set(response, nullOf(declaration.type));
+    }
+  }
+
+  const result = attemptWith(table, {
+    ...attemptOf(input, input.context),
+    responses: shown,
+  });
+
+  return result.kind === "failed" ? result : mint({ result }, proof);
 };
 
 /**
