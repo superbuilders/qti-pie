@@ -111,7 +111,7 @@ import {
   referenceBaseTypeOf,
   referenceCardinalityOf,
 } from "#pantry/qti/overlay-queries/reference.ts";
-import { NamedItemRef } from "#pantry/qti/overlay-queries/tests.ts";
+import { NamedItemRef, TestMember } from "#pantry/qti/overlay-queries/tests.ts";
 import { AlignDirectionLexical, MathAlignScope } from "#pantry/qti/mathml-align.ts";
 import {
   Instance,
@@ -1541,7 +1541,9 @@ export const BankMember = derived(
  * - **"Item ref identifier"** (QTI §4.1.1: "When an Item is referenced using a
  *   'qti-assesasment-item-ref' the values of the two 'identifier' characteristics MUST be the
  *   same"): each named item ref's identifier, a test's or a bank's, is the identifier of the item
- *   it names (`NamedItemRef` of `#pantry/qti/overlay-queries/tests.ts` into `ObjectIdentifier`).
+ *   it names (`NamedItemRef` of `#pantry/qti/overlay-queries/tests.ts` into `ObjectIdentifier`), so
+ *   no two members of a test name one item document, its refs' identifiers unique within it (Table
+ *   4.2.1): `TestMember` is keyed `(package, path, document)` too.
  */
 const testQueryLawsByName = {
   "E1 derived": declared("E1 derived", [
@@ -1559,6 +1561,7 @@ const testQueryLawsByName = {
       on(NamedItemRef, "package", "item", "identifier"),
       on(ObjectIdentifier, "package", "path", "value"),
     ),
+    key(on(TestMember, "package", "path", "document")),
   ]),
 } as const;
 

@@ -356,7 +356,8 @@ const heldOf = <Names>(
  *
  * - `Item ref identifier` (QTI §4.1.1: "When an Item is referenced using a 'qti-assesasment-item-ref'
  *   the values of the two 'identifier' characteristics MUST be the same"): a named item ref that
- *   names an item writes the item's identifier;
+ *   names an item writes the item's identifier, so no two named item refs of a test document's
+ *   parts name one item document (`TestMember`'s key, its refs' identifiers unique, §4.2.1);
  * - `Weight key` (§7.50.1): no two weights of one item ref share an identifier;
  * - `Variable mapping source` and `Variable mapping target` (§7.48): a mapping of an item ref that
  *   names an item maps an outcome the item declares (A34), onto a name no other variable of the
@@ -426,7 +427,18 @@ const itemRefLawsOf = (
     typedValueOf(rows, node.start, "template-identifier"),
   );
 
-  return [
+  const parts = rows.members.filter(({ kind }) => kind === testKinds.part);
+  const members =
+    document.rootKind === testKinds.test
+      ? document.names.flatMap(({ identifier, node }) =>
+          node.kind === testKinds.itemRef &&
+          parts.some((part) => part.start < node.start && node.start < part.end)
+            ? Option.toArray(itemOf(node)).map((item) => ({ identifier, item, node }))
+            : [],
+        )
+      : [];
+
+  const identifierBreaches = [
     ...document.names
       .filter(({ node }) => node.kind === testKinds.itemRef)
       .flatMap(({ identifier, node }): readonly Breach[] =>
@@ -445,6 +457,16 @@ const itemRefLawsOf = (
               ];
         }),
       ),
+    ...repeatsOf(
+      members,
+      ({ item }) => item.path,
+      ({ identifier, item, node }) =>
+        breachAt(rows, node, "Item ref identifier", { identifier, item: item.path }),
+    ),
+  ];
+
+  return [
+    ...new Map(identifierBreaches.map((breach) => [breach.keys["node"] ?? "", breach])).values(),
     ...repeatsOf(
       weights,
       ({ names, ref }) => `${String(ref.start)} ${names}`,

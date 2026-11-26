@@ -244,6 +244,13 @@ export const TestRoot = derived("TestRoot", testRootRows);
  * test ({@link DeliverableTest}) is delivered in `start` order, every member once. An item ref that
  * names an LTI link, or whose href lies outside the package, names no item document and has no row:
  * its test is not deliverable.
+ *
+ * A test names an item document once, so `(package, path, document)` is a key of {@link TestMember}
+ * too, which "Item ref identifier" holds: a ref's identifier is its item's ("When an Item is
+ * referenced using a 'qti-assesasment-item-ref' the values of the two 'identifier' characteristics
+ * MUST be the same", QTI 3.0.1 Table 4.1.1), and no two refs of a test share one ("The identifier
+ * of the section or item reference must be unique within the test", Table 4.2.1). So a member's
+ * document names it in its test, as the ledger's item sessions read it.
  */
 export const testMemberRows = query(QtiBase).rule((r) => {
   const { package: pkg, path, test } = v(testRootRows, "test");
