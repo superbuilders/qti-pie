@@ -30,6 +30,7 @@ import type {
   ResponseRule,
   TemplateRule,
 } from "#processing/program.ts";
+import { memberVariableOf } from "#processing/run.ts";
 import type { Demand, MemberState, ProcessingFailure, Run } from "#processing/run.ts";
 import { toFloat } from "#processing/numbers.ts";
 import { nullOf, sameValueType, single, valueTypeOf } from "#processing/value.ts";
@@ -121,6 +122,29 @@ const kept = (member: MemberState, filter: ItemFilter): boolean =>
   !filter.excludeCategories.some((category) => member.categories.includes(category));
 
 /**
+ * The value a member holds of a variable: any variable's value, a response's correct response or
+ * default.
+ *
+ * @param member - The member, or `undefined` where the session holds no such occurrence.
+ * @param variable - The variable's identifier.
+ * @param read - Which of the variable's values.
+ * @returns It, or `undefined` where the member holds none.
+ */
+const memberHolds = (
+  member: MemberState | undefined,
+  variable: string,
+  read: "correct" | "default" | "value",
+): Value | undefined => {
+  if (member === undefined) {
+    return undefined;
+  }
+
+  return read === "value"
+    ? memberVariableOf(member, variable)
+    : member.responses.find((each) => each.identifier === variable)?.[read];
+};
+
+/**
  * A member's variable as a prefixed read reads it: its value, or the response's or outcome's; times
  * its weight where the read names one and the value is a single integer or float (a float, 1.0
  * where the ref defines no such weight, §7.47.2).
@@ -135,10 +159,7 @@ const memberValue = (
   variable: Extract<VariableRef, { readonly scope: "member" }>,
   read: "correct" | "default" | "value",
 ): Value => {
-  const response = member?.responses.find((each) => each.identifier === variable.variable);
-  const outcome = member?.outcomes.find((each) => each.identifier === variable.variable);
-  const value =
-    response?.[read] ?? (read === "value" ? outcome?.value : undefined) ?? nullOf(variable.type);
+  const value = memberHolds(member, variable.variable, read) ?? nullOf(variable.type);
   if (variable.weight === undefined || read !== "value" || value.kind !== "single") {
     return value;
   }

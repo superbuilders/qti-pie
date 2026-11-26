@@ -3,7 +3,7 @@ import type { Expression, ItemFilter, StaticType } from "#processing/ir.ts";
 import { testLevelOperators } from "#processing/operators/test-level.ts";
 import type { MemberOutcome, MemberResponse, MemberState } from "#processing/run.ts";
 import { element, nodeOf, testContext, testRun } from "#processing/test/run.ts";
-import { container, isText, nullOf, single } from "#processing/value.ts";
+import { container, isText, nullOf, single, textValue } from "#processing/value.ts";
 import type { Text, Value } from "#processing/value.ts";
 
 /**
@@ -83,6 +83,8 @@ const member = (
   >,
 ): MemberState => ({
   categories: [],
+  completionStatus: textValue("identifier", "completed"),
+  duration: 0,
   identifier: ref,
   numAttempts: state.numAttempts ?? 1n,
   occurrence: 1n,

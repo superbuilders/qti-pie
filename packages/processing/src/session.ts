@@ -259,16 +259,17 @@ const creditOfOutcomes = (
  * through an End Attempt written `count-attempt="false"`, whose response is then true (§5.45), as a
  * hint button ends an attempt without spending one.
  *
- * @param attempt - The attempt.
+ * @param item - The attempt's item.
+ * @param responses - The attempt's responses.
  * @returns Whether `numAttempts` rises by one.
  */
-const countsAttempt = (attempt: Attempt): boolean =>
-  !attempt.item.interactions.some((interaction) => {
+export const countsAttempt = (item: CompiledItem, responses: ReadonlyMap<string, Value>): boolean =>
+  !item.interactions.some((interaction) => {
     if (interaction.kind !== "end-attempt" || interaction.countAttempt) {
       return false;
     }
 
-    const pressed = attempt.responses.get(interaction.response);
+    const pressed = responses.get(interaction.response);
 
     return pressed?.kind === "single" && pressed.base === "boolean" && pressed.value;
   });
@@ -284,7 +285,9 @@ export const attemptWith = <K extends ExpressionKind>(
   table: OperatorTable<K>,
   attempt: Attempt,
 ): Failed | ItemResult => {
-  const numAttempts = countsAttempt(attempt) ? attempt.numAttempts + 1n : attempt.numAttempts;
+  const numAttempts = countsAttempt(attempt.item, attempt.responses)
+    ? attempt.numAttempts + 1n
+    : attempt.numAttempts;
   const variables = startingVariables(attempt, numAttempts);
   const ran = runProcessing(table, attempt.item.responseProcessing, {
     declarations: attempt.item.declarations,

@@ -8,6 +8,7 @@
  */
 import type { Expression, ItemFilter, LiteralOr, VariableRef } from "#processing/ir.ts";
 import { toFloat } from "#processing/numbers.ts";
+import { single } from "#processing/value.ts";
 import type { Value, ValueType } from "#processing/value.ts";
 
 /**
@@ -78,6 +79,14 @@ export interface MemberOutcome {
 export interface MemberState {
   readonly categories: readonly string[];
   /**
+   * The built-in `completionStatus`: where its last attempt left it, `not_attempted` before one.
+   */
+  readonly completionStatus: Value;
+  /**
+   * The built-in `duration`, in seconds (reading `duration-variable-type`).
+   */
+  readonly duration: number;
+  /**
    * The item ref's identifier.
    */
   readonly identifier: string;
@@ -99,6 +108,34 @@ export interface MemberState {
    */
   readonly weights: ReadonlyMap<string, number>;
 }
+
+/**
+ * A member's value of an item variable it names: an outcome's, a response's, or a built-in's
+ * (`numAttempts`, `duration`, `completionStatus`, §2.2.2), one read for every reader of a member.
+ *
+ * @param member - The item session.
+ * @param variable - The variable's identifier.
+ * @returns Its value; `undefined` where the item names no such variable.
+ */
+export const memberVariableOf = (member: MemberState, variable: string): Value | undefined => {
+  switch (variable) {
+    case "completionStatus": {
+      return member.completionStatus;
+    }
+    case "duration": {
+      return single("float", member.duration);
+    }
+    case "numAttempts": {
+      return single("integer", member.numAttempts);
+    }
+    default: {
+      return (
+        member.outcomes.find((held) => held.identifier === variable)?.value ??
+        member.responses.find((held) => held.identifier === variable)?.value
+      );
+    }
+  }
+};
 
 /**
  * A processing run, as an operator reads it.

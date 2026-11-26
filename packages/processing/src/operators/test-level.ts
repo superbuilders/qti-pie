@@ -24,6 +24,7 @@ import type {
   Operator,
   OperatorTable,
 } from "#processing/operators/operator.ts";
+import { memberVariableOf } from "#processing/run.ts";
 import type { MemberResponse, MemberState } from "#processing/run.ts";
 import { baseTypes, container, nullOf, single, valueTypeOf } from "#processing/value.ts";
 import type { BaseType, Null, Single, Value } from "#processing/value.ts";
@@ -175,18 +176,6 @@ export const outcomeBoundsOf = (
 };
 
 /**
- * A member's single value of an item variable it names: an outcome's, else a response's.
- *
- * @param member - The item session.
- * @param variable - The variable's identifier.
- * @returns Its value; `undefined` where it names none ("Items with no matching variable are
- *   ignored", section 7.39.4).
- */
-const memberValue = (member: MemberState, variable: string): Value | undefined =>
-  member.outcomes.find((held) => held.identifier === variable)?.value ??
-  member.responses.find((held) => held.identifier === variable)?.value;
-
-/**
  * A single number's float: an integer through `toFloat` (reading `integer-unbounded`).
  *
  * @param value - The single, an integer or a float.
@@ -223,7 +212,7 @@ export const testVariablesOf = (
 ): Value => {
   const kept: { readonly factor: number | undefined; readonly value: Single }[] = [];
   for (const member of members) {
-    const value = memberValue(member, variable);
+    const value = memberVariableOf(member, variable);
     if (value?.kind !== "single") {
       continue;
     }

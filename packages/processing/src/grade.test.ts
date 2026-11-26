@@ -9,19 +9,17 @@ import {
   templateDefaultsWith,
 } from "#processing/grade.ts";
 import type { ItemSession } from "#processing/grade.ts";
-import { customOperators } from "#processing/operators/custom.ts";
-import { logicOperators } from "#processing/operators/logic.ts";
-import { valuesOperators } from "#processing/operators/values.ts";
+import { operatorTable } from "#processing/operators/table.ts";
 import type { CompiledItem } from "#processing/program.ts";
 import { takeWith } from "#processing/session.ts";
 import type { Take } from "#processing/session.ts";
 import { processingSeed } from "#processing/stream.ts";
 import { element, text } from "#processing/test/run.ts";
-import { single, textValue } from "#processing/value.ts";
+import { container, single, textValue } from "#processing/value.ts";
 import type { Value } from "#processing/value.ts";
 import type { XmlElement } from "#processing/xml.ts";
 
-const table = Object.freeze({ ...customOperators, ...logicOperators, ...valuesOperators });
+const table = operatorTable;
 
 const digest = Object.freeze({ sha256: "1".repeat(64) });
 
@@ -408,6 +406,7 @@ describe("a sitting", () => {
       startedAt: { microseconds: 1_000_000n },
       test,
       testSeed: seed,
+      unpresented: [],
     });
     if (!("kind" in graded) || graded.kind !== "done") {
       return assert.fail("graded");
@@ -415,6 +414,89 @@ describe("a sitting", () => {
 
     assert.deepStrictEqual(graded.test.get("TOTAL"), single("float", 1.5));
     assert.deepStrictEqual(graded.members[0]?.read.saved, { kind: "default" });
+  });
+});
+
+/**
+ * A test's outcome declaration.
+ *
+ * @param identifier - The outcome.
+ * @param base - Its base type.
+ * @param cardinality - Its cardinality.
+ * @returns The element.
+ */
+const outcome = (identifier: string, base: string, cardinality: string): XmlElement =>
+  element("qti-outcome-declaration", { "base-type": base, cardinality, identifier }, []);
+
+describe("a sitting's members", () => {
+  it("reads a member's built-ins and counts a selected, unpresented member at its declared start, in the test's order (§2.2.2, §2.11.2)", () => {
+    const item = itemOf(false, [scoring]);
+    const compiled = compileTestWith(
+      element("qti-assessment-test", { identifier: "t" }, [
+        outcome("AATT", "integer", "single"),
+        outcome("ADUR", "float", "single"),
+        outcome("STATUS", "identifier", "single"),
+        outcome("SELECTED", "integer", "single"),
+        outcome("SCORES", "float", "multiple"),
+        outcome("MAXTOTAL", "float", "single"),
+        element("qti-test-part", { identifier: "p" }, [
+          element("qti-assessment-item-ref", { href: "q2.xml", identifier: "q2" }, []),
+          element("qti-assessment-item-ref", { href: "q1.xml", identifier: "q1" }, []),
+        ]),
+        element("qti-outcome-processing", {}, [
+          setOutcome("AATT", variable("q1.numAttempts")),
+          setOutcome("ADUR", variable("q1.duration")),
+          setOutcome("STATUS", variable("q2.completionStatus")),
+          setOutcome("SELECTED", element("qti-number-selected", {}, [])),
+          setOutcome(
+            "SCORES",
+            element("qti-test-variables", { "variable-identifier": "SCORE" }, []),
+          ),
+          setOutcome(
+            "MAXTOTAL",
+            element("qti-sum", {}, [
+              element("qti-outcome-maximum", { "outcome-identifier": "SCORE" }, []),
+            ]),
+          ),
+        ]),
+      ]),
+      digest,
+      new Map([
+        ["q1", item],
+        ["q2", item],
+      ]),
+      table,
+    );
+    const test = compiled.ok ? compiled.value : assert.fail(compiled.refusal.detail);
+
+    const graded = gradeSittingWith(table, {
+      carried: [],
+      closing: [
+        {
+          evaluations: new Map(),
+          item,
+          ref: { identifier: "q1", occurrence: 1n },
+          responses: { kind: "default" },
+          session: fresh(noTake),
+        },
+      ],
+      context: new Map(),
+      readAt: { microseconds: 3_000_000n },
+      startedAt: { microseconds: 1_000_000n },
+      test,
+      testSeed: seed,
+      unpresented: [{ item, ref: { identifier: "q2", occurrence: 1n } }],
+    });
+    if (!("kind" in graded) || graded.kind !== "done") {
+      return assert.fail("graded");
+    }
+
+    assert.deepStrictEqual(graded.test.get("AATT"), single("integer", 1n));
+    assert.deepStrictEqual(graded.test.get("ADUR"), single("float", 12));
+    assert.deepStrictEqual(graded.test.get("STATUS"), textValue("identifier", "not_attempted"));
+    assert.deepStrictEqual(graded.test.get("SELECTED"), single("integer", 2n));
+    assert.deepStrictEqual(graded.test.get("SCORES"), container("multiple", "float", [0, 0.5]));
+    assert.deepStrictEqual(graded.test.get("MAXTOTAL"), single("float", 4));
   });
 });
 
@@ -463,7 +545,17 @@ const hinted = (countAttempt: string): CompiledItem => {
         { "base-type": "float", cardinality: "single", identifier: "SCORE" },
         [],
       ),
+      element(
+        "qti-response-declaration",
+        { "base-type": "identifier", cardinality: "multiple", identifier: "PICK" },
+        [],
+      ),
       element("qti-item-body", {}, [
+        element(
+          "qti-choice-interaction",
+          { "max-choices": "1", "min-choices": "1", "response-identifier": "PICK" },
+          [element("qti-simple-choice", { identifier: "A" }, [])],
+        ),
         element(
           "qti-end-attempt-interaction",
           { "count-attempt": countAttempt, "response-identifier": "HINT", title: "Hint" },
@@ -479,12 +571,13 @@ const hinted = (countAttempt: string): CompiledItem => {
 };
 
 /**
- * The attempts a press of the hint leaves.
+ * What a press of the hint leaves, nothing picked.
  *
  * @param countAttempt - The End Attempt's `count-attempt`.
- * @returns `numAttempts` after the press.
+ * @param validate - The session's `validate-responses`.
+ * @returns `numAttempts` after the press, or `refused`.
  */
-const pressed = (countAttempt: string): bigint | undefined => {
+const pressed = (countAttempt: string, validate: boolean): bigint | "failed" | "refused" => {
   const item = hinted(countAttempt);
   const graded = gradeAnswerWith(table, {
     context: new Map(),
@@ -497,17 +590,23 @@ const pressed = (countAttempt: string): bigint | undefined => {
       values: new Map([["HINT", single("boolean", true)]]),
     },
     session: fresh(noTake),
-    validate: false,
+    validate,
   });
+  if (!("result" in graded)) {
+    return "failed";
+  }
 
-  return "result" in graded && graded.result.kind === "done"
-    ? graded.result.numAttempts
-    : undefined;
+  return graded.result.kind === "done" ? graded.result.numAttempts : "refused";
 };
 
 describe("an End Attempt's count-attempt", () => {
   it("leaves numAttempts where it was for an attempt ended through one written false, and counts one written true (reading `end-attempt-count`)", () => {
-    assert.strictEqual(pressed("false"), 0n);
-    assert.strictEqual(pressed("true"), 1n);
+    assert.strictEqual(pressed("false", false), 0n);
+    assert.strictEqual(pressed("true", false), 1n);
+  });
+
+  it("validates no attempt ended through one written false, under validate-responses too, but one written true (reading `end-attempt-validation`)", () => {
+    assert.strictEqual(pressed("false", true), 0n);
+    assert.strictEqual(pressed("true", true), "refused");
   });
 });

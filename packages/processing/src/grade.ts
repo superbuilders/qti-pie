@@ -23,11 +23,11 @@ import type { ExpressionKind } from "#processing/ir.ts";
 import type { OperatorTable } from "#processing/operators/operator.ts";
 import type { CompiledItem, CompiledTest } from "#processing/program.ts";
 import type { Demand, MemberOutcome, MemberResponse, MemberState } from "#processing/run.ts";
-import { attemptWith, startOf } from "#processing/session.ts";
+import { attemptWith, countsAttempt, startOf } from "#processing/session.ts";
 import type { Attempt, Failed, ItemResult, Prior, Take } from "#processing/session.ts";
 import { drawStream, responseLabel, templateLabel } from "#processing/stream.ts";
 import type { Seed } from "#processing/stream.ts";
-import { nullOf, single } from "#processing/value.ts";
+import { nullOf, single, textValue } from "#processing/value.ts";
 import type { Value } from "#processing/value.ts";
 
 /**
@@ -95,7 +95,9 @@ export interface AnswerInput {
   readonly responses: Submitted;
   readonly session: ItemSession;
   /**
-   * The session's `validate-responses` (§7.19.7): whether tier (b)'s limits refuse the answer too.
+   * The session's `validate-responses` (§7.19.7): whether tier (b)'s limits refuse the answer too,
+   * but for an attempt ended through an End Attempt written `count-attempt="false"`, which spends
+   * no attempt and so submits nothing to validate (reading `end-attempt-validation`).
    */
   readonly validate: boolean;
 }
@@ -138,6 +140,10 @@ export interface ClosingMember {
  * A member processed before, whose outcomes the test's outcome processing reads as they are.
  */
 export interface CarriedMember {
+  /**
+   * Its built-in `duration`, in seconds.
+   */
+  readonly duration: number;
   readonly item: CompiledItem;
   readonly numAttempts: bigint;
   readonly outcomes: ReadonlyMap<string, Value>;
@@ -147,7 +153,17 @@ export interface CarriedMember {
 }
 
 /**
- * A sitting to grade.
+ * A member selected for the sitting and never presented: no take, no attempt, every variable at its
+ * declared start (§2.11.2.5).
+ */
+export interface UnpresentedMember {
+  readonly item: CompiledItem;
+  readonly ref: MemberRef;
+}
+
+/**
+ * A sitting to grade. Its members are every member selected for it, each once: the closing, the
+ * carried and the unpresented.
  */
 export interface SittingInput {
   readonly carried: readonly CarriedMember[];
@@ -163,6 +179,7 @@ export interface SittingInput {
    * The seed the test's outcome processing draws under.
    */
   readonly testSeed: Seed;
+  readonly unpresented: readonly UnpresentedMember[];
 }
 
 /**
@@ -295,7 +312,12 @@ export const gradeAnswerWith = <K extends ExpressionKind>(
     responses: [readOf(input.responses)],
   };
   const posted = valuesOf(input.responses);
-  const admission = admit(input.item, posted, heldOf(input.item, input.session), input.validate);
+  const admission = admit(
+    input.item,
+    posted,
+    heldOf(input.item, input.session),
+    input.validate && countsAttempt(input.item, posted),
+  );
   if (admission.reasons.length > 0) {
     return mint({ result: { admission, kind: "refused" } }, proof);
   }
@@ -317,26 +339,28 @@ export const gradeAnswerWith = <K extends ExpressionKind>(
 };
 
 /**
+ * What a member's state is read from.
+ */
+interface MemberSource {
+  readonly completionStatus: Value;
+  readonly duration: number;
+  readonly item: CompiledItem;
+  readonly numAttempts: bigint;
+  readonly outcomes: ReadonlyMap<string, Value>;
+  readonly ref: MemberRef;
+  readonly responses: ReadonlyMap<string, Value>;
+  readonly take: Take;
+}
+
+/**
  * A member's state as outcome processing reads it.
  *
- * @param item - The member's item.
- * @param ref - Its ref.
- * @param numAttempts - Its attempts.
- * @param responses - Its responses' values.
- * @param outcomes - Its outcomes' values.
- * @param take - Its take.
+ * @param source - The member.
  * @param test - The test.
  * @returns The state.
  */
-const memberStateOf = (
-  item: CompiledItem,
-  ref: MemberRef,
-  numAttempts: bigint,
-  responses: ReadonlyMap<string, Value>,
-  outcomes: ReadonlyMap<string, Value>,
-  take: Take,
-  test: CompiledTest,
-): MemberState => {
+const memberStateOf = (source: MemberSource, test: CompiledTest): MemberState => {
+  const { item, numAttempts, outcomes, ref, responses, take } = source;
   const itemRef = test.itemRefs.find((each) => each.identifier === ref.identifier);
   const declarations = [...item.declarations.values()];
   const memberResponses: MemberResponse[] = declarations
@@ -361,6 +385,8 @@ const memberStateOf = (
 
   return {
     categories: itemRef?.categories ?? [],
+    completionStatus: source.completionStatus,
+    duration: source.duration,
     identifier: ref.identifier,
     numAttempts,
     occurrence: ref.occurrence,
@@ -371,6 +397,60 @@ const memberStateOf = (
     selected: true,
     weights: itemRef?.weights ?? new Map(),
   };
+};
+
+/**
+ * A take with nothing set: an unpresented member's, whose template processing never ran.
+ */
+const noTake: Take = { correct: noDefaults, defaults: noDefaults, templates: noDefaults };
+
+/**
+ * `completionStatus` before any attempt (§2.2.2.4).
+ */
+const notAttempted = textValue("identifier", "not_attempted");
+
+/**
+ * An unpresented member's source: every outcome at its declared start, no attempt, no time.
+ *
+ * @param member - The member.
+ * @returns Its source.
+ */
+const unpresentedSource = (member: UnpresentedMember): MemberSource => ({
+  completionStatus: notAttempted,
+  duration: 0,
+  item: member.item,
+  numAttempts: 0n,
+  outcomes: new Map(
+    [...member.item.declarations.values()]
+      .filter((declaration) => declaration.role === "outcome")
+      .map((declaration) => [declaration.identifier, startOf(declaration, noDefaults)]),
+  ),
+  ref: member.ref,
+  responses: noDefaults,
+  take: noTake,
+});
+
+/**
+ * Members in the test's order: by their item ref's place in it, then by occurrence (§2.11.2's
+ * `qti-test-variables` gathers values in that order).
+ *
+ * @param states - The members.
+ * @param test - The test.
+ * @returns Them, ordered.
+ */
+const inTestOrder = (states: readonly MemberState[], test: CompiledTest): MemberState[] => {
+  const placeOf = new Map(test.itemRefs.map((each, index) => [each.identifier, index]));
+
+  return states.toSorted((left, right) => {
+    const byRef =
+      (placeOf.get(left.identifier) ?? placeOf.size) -
+      (placeOf.get(right.identifier) ?? placeOf.size);
+    if (byRef !== 0) {
+      return byRef;
+    }
+
+    return left.occurrence < right.occurrence ? -1 : Number(left.occurrence > right.occurrence);
+  });
 };
 
 /**
@@ -461,12 +541,16 @@ const sittingWith = <K extends ExpressionKind>(
     } else {
       states.push(
         memberStateOf(
-          member.item,
-          member.ref,
-          result.numAttempts,
-          valuesOf(member.responses),
-          result.outcomes,
-          member.session.take,
+          {
+            completionStatus: result.completionStatus,
+            duration: member.session.duration,
+            item: member.item,
+            numAttempts: result.numAttempts,
+            outcomes: result.outcomes,
+            ref: member.ref,
+            responses: valuesOf(member.responses),
+            take: member.session.take,
+          },
           input.test,
         ),
       );
@@ -476,15 +560,17 @@ const sittingWith = <K extends ExpressionKind>(
   for (const member of input.carried) {
     states.push(
       memberStateOf(
-        member.item,
-        member.ref,
-        member.numAttempts,
-        member.responses,
-        member.outcomes,
-        member.take,
+        {
+          ...member,
+          completionStatus: member.outcomes.get("completionStatus") ?? notAttempted,
+        },
         input.test,
       ),
     );
+  }
+
+  for (const member of input.unpresented) {
+    states.push(memberStateOf(unpresentedSource(member), input.test));
   }
 
   const proof: GradeProof = {
@@ -497,7 +583,7 @@ const sittingWith = <K extends ExpressionKind>(
     return mint({ demands, kind: "pending", members }, proof);
   }
 
-  const test = testOutcomes(table, input, states);
+  const test = testOutcomes(table, input, inTestOrder(states, input.test));
 
   return test.kind === "failed" ? test : mint({ kind: "done", members, test: test.values }, proof);
 };
