@@ -6,8 +6,8 @@
  *   first refusal; the shell caches a program by its document's digest.
  * - {@link templateDefaults} and {@link takeItem} run an item session's take: the test's template
  *   defaults for the item, then the item's template processing.
- * - {@link gradeAnswer}, {@link gradeSitting} and {@link regrade} mint a `Graded` result, or a
- *   failure, which is never a grade.
+ * - {@link gradeAnswer}, {@link gradeSitting} and {@link completePending} mint a `Graded` result, or
+ *   a failure, which is never a grade.
  *
  * @module
  */
@@ -15,12 +15,13 @@ import { compileItemWith, compileTestWith } from "#processing/compile/document.t
 import {
   gradeAnswerWith,
   gradeSittingWith,
-  regradeWith,
+  completePendingWith,
   templateDefaultsWith,
 } from "#processing/grade.ts";
 import type {
   AnswerGrade,
   AnswerInput,
+  CompletionInput,
   Graded,
   SittingGrade,
   SittingInput,
@@ -111,10 +112,11 @@ export const gradeSitting = (input: SittingInput): Failed | Graded<SittingGrade>
   gradeSittingWith(operatorTable, input);
 
 /**
- * Regrade a sitting's attempts (G5 §5).
+ * Complete a pending grade once the recorded answers it demanded are in (D7, D8). Its input admits
+ * a Pending grade alone, so a settled sitting is never graded again.
  *
- * @param input - The sitting, its closing members the attempts regraded.
- * @returns The grade, or the failure.
+ * @param input - The sitting and its pending grade.
+ * @returns The grade, Done or still Pending, or the failure.
  */
-export const regrade = (input: SittingInput): Failed | Graded<SittingGrade> =>
-  regradeWith(operatorTable, input);
+export const completePending = (input: CompletionInput): Failed | Graded<SittingGrade> =>
+  completePendingWith(operatorTable, input);

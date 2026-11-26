@@ -11,10 +11,10 @@ export { proofOf } from "#processing/grade.ts";
 
 export {
   compileItem,
+  completePending,
   compileTest,
   gradeAnswer,
   gradeSitting,
-  regrade,
   takeItem,
   templateDefaults,
 } from "#processing/entries.ts";
@@ -80,9 +80,11 @@ export type {
   AnswerInput,
   CarriedMember,
   ClosingMember,
+  CompletionInput,
   ItemSession,
   MemberGrade,
   MemberRef,
+  PendingGrade,
   SittingGrade,
   SittingInput,
   Submitted,

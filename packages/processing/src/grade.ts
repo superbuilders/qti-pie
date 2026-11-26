@@ -8,8 +8,9 @@
  * - {@link gradeSittingWith}: a sitting's submit (G5 §3): each closing member's attempt on its saved
  *   or default responses, then the test's outcome processing over every member, from its defaults
  *   (§5.102), in one result: Done, or Pending where a recorded operator's answer is not in (D7).
- * - {@link regradeWith}: the same over attempts already made, each on the processed attempt it
- *   replaces: an evaluation coming in (D8), or a content fix.
+ * - {@link completePendingWith}: a Pending grade completed once the recorded answers it demanded are
+ *   in (D8), over the same attempts; a settled grade has no path back in, since history is never
+ *   regraded (Bjorn, 2026-11-20).
  *
  * @module
  */
@@ -427,7 +428,7 @@ const testOutcomes = <K extends ExpressionKind>(
 };
 
 /**
- * Grade a sitting, or regrade its attempts: every closing member, then the test.
+ * Grade a sitting, or complete its pending grade: every closing member, then the test.
  *
  * @param table - The standard operators.
  * @param input - The sitting.
@@ -514,17 +515,51 @@ export const gradeSittingWith = <K extends ExpressionKind>(
 ): Failed | Graded<SittingGrade> => sittingWith(table, input);
 
 /**
- * Regrade a sitting's attempts: each closing member's session names the processed attempt it
- * replaces as its prior, and its responses are the attempt's own.
+ * A sitting's grade that is Pending: a recorded operator's answer was not in.
+ */
+export type PendingGrade = Extract<SittingGrade, { readonly kind: "pending" }>;
+
+/**
+ * A pending grade to complete: the sitting as it was graded, now with the recorded answers in, and
+ * the pending grade itself, which only an entry could mint, so nothing but a pending grade has a
+ * path back in, and a settled one none (history is never regraded).
+ */
+export interface CompletionInput extends SittingInput {
+  readonly pending: Graded<PendingGrade>;
+}
+
+/**
+ * Complete a pending grade (D7, D8): the same attempts graded again with the recorded answers now
+ * in, every closing member one the pending grade graded, on the same responses.
  *
  * @param table - The standard operators.
- * @param input - The sitting, its closing members the attempts regraded.
- * @returns The grade, or the failure.
+ * @param input - The sitting and the pending grade.
+ * @returns The grade, Done or still Pending, or the failure.
  */
-export const regradeWith = <K extends ExpressionKind>(
+export const completePendingWith = <K extends ExpressionKind>(
   table: OperatorTable<K>,
-  input: SittingInput,
-): Failed | Graded<SittingGrade> => sittingWith(table, input);
+  input: CompletionInput,
+): Failed | Graded<SittingGrade> => {
+  for (const member of input.closing) {
+    const pendingMember = input.pending.members.find(
+      (each) =>
+        each.ref.identifier === member.ref.identifier &&
+        each.ref.occurrence === member.ref.occurrence,
+    );
+    if (pendingMember?.read.digest.sha256 !== readOf(member.responses).digest.sha256) {
+      return {
+        failure: {
+          identifier: member.ref.identifier,
+          kind: "completion-mismatch",
+          occurrence: member.ref.occurrence,
+        },
+        kind: "failed",
+      };
+    }
+  }
+
+  return sittingWith(table, input);
+};
 
 /**
  * The template defaults a test's item ref gives its item's take (§5.152): each

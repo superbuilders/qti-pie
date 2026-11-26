@@ -28,7 +28,16 @@ export type ProcessingFailure =
       readonly kind: "set-type";
       readonly place: number;
     }
-  | { readonly kind: "completion-status"; readonly place: number; readonly value: Value };
+  | { readonly kind: "completion-status"; readonly place: number; readonly value: Value }
+  | {
+      /**
+       * A completion of a pending grade named a member the pending grade did not grade, or the
+       * member's responses as other values than it read.
+       */
+      readonly identifier: string;
+      readonly kind: "completion-mismatch";
+      readonly occurrence: bigint;
+    };
 
 /**
  * A recorded operator the run reached whose answer is not in: what the answer is asked for.
