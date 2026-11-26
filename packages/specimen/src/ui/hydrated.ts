@@ -1161,7 +1161,7 @@ const stepped = (counts: Map<string, number>, key: string, change: 1 | -1): numb
 
 /**
  * The arguments the page's binding is called with: the address of the load it let go, and how many
- * of the page's other elements still load that address.
+ * of the page's other elements load that address and may hold a request of it.
  */
 const LetGoArguments = Schema.Tuple([
   Schema.String,
@@ -1400,14 +1400,17 @@ const harness = Effect.gen(function* harness() {
   /**
    * Count a recording load the page let go, whether or not its data came: one request of its
    * address that Chrome holds open stops counting, where more of them are open and not let go
-   * than the page's other elements that still load the address. A load let go before it asked for
-   * anything, as a `preload="none"` one never played, so discounts no other element's request.
+   * than the page's other elements, in the page or never put in it, that load the address and may
+   * hold a request of it, a deferred `preload="none"` load not among them. A load let go before it
+   * asked for anything, as a `preload="none"` one never played, so discounts no other element's
+   * request.
    * Only an endless or held address is discounted ({@link endlessAddress}): a tone's request ends
    * on its own, and a let-go matched to it by address alone could discount another element's
    * request of the same tone.
    *
    * @param address The load's address.
-   * @param others How many of the page's other elements still load the address.
+   * @param others How many of the page's other elements load the address and may hold a request
+   *   of it.
    * @constraint Chrome 158 reports, through Playwright, a media element's let-go (its `abort` or
    *   `emptied`, through the page's binding), then its next load's `request`, then the abandoned
    *   request's `requestfailed`, in that order, which no specification states; the count rests on
@@ -1415,8 +1418,10 @@ const harness = Effect.gen(function* harness() {
    *   holds its connection for good.
    * @source COLD h3's probe (order.mjs, FORM-AUDIO's reviews): one of k open endless streams of one
    *   address restarted (`load()` and `play()`) or given a new address, 12 trials each at k = 1, 3
-   *   and 6, all 72 heard in that order; RC1, RC2 and RC3 of `#specimen/ui/read-aloud-browser.test.ts`
-   *   hold the count both ways on every run, RC3 for loads let go before their first byte.
+   *   and 6, all 72 heard in that order; RC1 to RC6 of `#specimen/ui/read-aloud-browser.test.ts`
+   *   hold the count both ways on every run: RC3 for loads let go before their first byte, RC4 and
+   *   RC6 for a let-go that asked for nothing beside streams in the page and out of it, RC5 for a
+   *   deferred load beside a restart.
    * @verified 2026-11-26
    */
   const lost = (address: string, others: number): void => {

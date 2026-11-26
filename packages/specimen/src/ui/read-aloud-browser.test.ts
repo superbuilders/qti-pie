@@ -104,8 +104,8 @@
  *   its part and its place among the page's controls of that part, once, in the order the page
  *   shows them (reading `read-aloud-controls`).
  *
- * And four rules of the harness's own, its count of a recording's requests against Chrome's
- * connections to its host, held both ways:
+ * And rules of the harness's own: its count of a recording's requests against Chrome's
+ * connections to its host, held both ways, and its account of a recording's failure.
  *
  * - RC1, a restart is no seventh: six open streams of one recording, one of them restarted (its load
  *   let go and begun again), are six, and the page runs on.
@@ -117,6 +117,15 @@
  * - RC4, a load let go before it asked for anything discounts no other's request: six open streams of
  *   one recording, a seventh element of its address let go before it ever played, and a seventh
  *   stream asked for besides, fail at once as the page's crowding.
+ * - RC5, a deferred load holds no connection: six open streams of one recording, a seventh element of
+ *   its address put in the page unplayed, its load deferred, and one of the six restarted, are six,
+ *   and the page runs on.
+ * - RC6, a stream never put in the page counts: six open streams of one recording, each a script's
+ *   `new Audio`, then a seventh element of its address let go unplayed, and a seventh stream asked
+ *   for besides, fail at once as the page's crowding.
+ * - RA1, a recording's failure stays told: a script's recording the server refuses fires its
+ *   `MediaError`, its next load clears the element's own, and the page's account still holds the
+ *   code it fired.
  *
  * Kills are in this suite's commit: each rule fails on a slip planted in plate that breaks it.
  *
@@ -706,6 +715,18 @@ const reAddressedUnanswered = (page: Driven) =>
 
 /**
  * Put one more element of the host's recording in the page, muted and `preload="none"`, never
+ * played, so it asks for nothing, and wait until Chrome defers its load.
+ *
+ * @param page The page.
+ * @returns The element's deferral.
+ */
+const deferredOne = (page: Driven) =>
+  page.inPage(
+    `new Promise((resolve) => { const unplayed = document.createElement("audio"); unplayed.id = "unplayed"; unplayed.muted = true; unplayed.preload = "none"; unplayed.addEventListener("suspend", () => { resolve(undefined); }, { once: true }); unplayed.src = ${JSON.stringify(page.recordings.endless(recording.host))}; document.body.append(unplayed); })`,
+  );
+
+/**
+ * Put one more element of the host's recording in the page, muted and `preload="none"`, never
  * played, so it asks for nothing; wait until its load is deferred; then let that load go, and wait
  * until the element has emptied.
  *
@@ -713,8 +734,23 @@ const reAddressedUnanswered = (page: Driven) =>
  * @returns The let-go.
  */
 const letGoUnplayed = (page: Driven) =>
+  Effect.andThen(
+    deferredOne(page),
+    page.inPage(
+      `new Promise((resolve) => { const unplayed = document.querySelector("#unplayed"); unplayed.addEventListener("emptied", () => { resolve(undefined); }, { once: true }); unplayed.removeAttribute("src"); unplayed.load(); })`,
+    ),
+  );
+
+/**
+ * Play as many muted streams of the host's recording as Chrome opens connections to its host, each
+ * a script's `new Audio` never put in the page, and wait until all of them play.
+ *
+ * @param page The page.
+ * @returns The plays.
+ */
+const offPageHost = (page: Driven) =>
   page.inPage(
-    `new Promise((resolve) => { const unplayed = document.createElement("audio"); unplayed.muted = true; unplayed.preload = "none"; unplayed.addEventListener("suspend", () => { unplayed.addEventListener("emptied", () => { resolve(undefined); }, { once: true }); unplayed.removeAttribute("src"); unplayed.load(); }, { once: true }); unplayed.src = ${JSON.stringify(page.recordings.endless(recording.host))}; document.body.append(unplayed); })`,
+    `Promise.all((window.offPage = Array.from({ length: ${String(connectionsPerHost)} }, () => { const each = new Audio(${JSON.stringify(page.recordings.endless(recording.host))}); each.muted = true; void each.play().catch(() => undefined); return each; })).map((each) => new Promise((resolve) => { each.addEventListener("playing", () => { resolve(undefined); }, { once: true }); })))`,
   );
 
 /**
@@ -739,6 +775,15 @@ const seventhAsked = (page: Driven) =>
 
     return ["Chrome asked for the seventh stream, and no crowding was named"];
   });
+
+/**
+ * The code of the `MediaError` an element fires for a resource it cannot use, as a refused answer
+ * is.
+ *
+ * @formatConstant
+ * @see https://html.spec.whatwg.org/multipage/media.html#dom-mediaerror-media_err_src_not_supported
+ */
+const sourceNotSupported = 4;
 
 layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) => {
   it.effect("RB1: a prompt's press plays it alone, and nothing plays after it ends", () =>
@@ -1886,6 +1931,75 @@ layer(PagesLayer, { excludeTestServices: true })("read-aloud in Chrome", (it) =>
             return yield* seventhAsked(page);
           }),
         recording.host,
+      ),
+  );
+
+  it.effect(
+    "RC5: six open streams of one recording, a seventh element of its address deferred unplayed, and one of the six restarted, are six, not seven",
+    () =>
+      holds(
+        "RC5",
+        saidAlone((at) => ({ apple: at.endless(recording.a) })),
+        (page) =>
+          Effect.gen(function* deferredBeside() {
+            yield* fullHost(page);
+            yield* deferredOne(page);
+            yield* restartedOne(page);
+
+            return [];
+          }),
+      ),
+  );
+
+  it.effect(
+    "RC6: six open streams of one recording never put in the page, a seventh element of its address let go unplayed, and a seventh stream asked for are refused at once as the page's crowding",
+    () =>
+      crowds(
+        "RC6",
+        saidAlone((at) => ({ apple: at.endless(recording.a) })),
+        (page) =>
+          Effect.gen(function* offPage() {
+            yield* offPageHost(page);
+            yield* letGoUnplayed(page);
+
+            return yield* seventhAsked(page);
+          }),
+        recording.host,
+      ),
+  );
+
+  it.effect(
+    "RA1: the account keeps the MediaError a recording fired, though the element's next load clears its own",
+    () =>
+      holds(
+        "RA1",
+        saidAlone((at) => ({ apple: at.endless(recording.a) })),
+        (page) =>
+          Effect.gen(function* keptError() {
+            const refused = page.recordings.refused(recording.broken);
+            const held = page.recordings.held(recording.c);
+
+            yield* page.inPage(
+              `(() => { const element = new Audio(${JSON.stringify(refused)}); element.muted = true; window.erred = new Promise((resolve) => { element.addEventListener("error", () => { element.src = ${JSON.stringify(held)}; resolve(element.error === null); }, { once: true }); }); void element.play().catch(() => undefined); })()`,
+            );
+            yield* page.recordings.requested(recording.broken);
+            yield* page.recordings.release(recording.broken);
+
+            const cleared = yield* Effect.promise(() => page.page.evaluate("window.erred"));
+            const { recordings } = yield* page.account;
+            const kept = recordings.find((each) => each.label === recording.broken)?.error ?? null;
+
+            return [
+              ...(cleared === true
+                ? []
+                : ["the element's next load left its own MediaError in place"]),
+              ...(kept?.code === sourceNotSupported
+                ? []
+                : [
+                    `the account holds ${JSON.stringify(kept)} for ${recording.broken}, not the MediaError ${String(sourceNotSupported)} it fired`,
+                  ]),
+            ];
+          }),
       ),
   );
 

@@ -12,7 +12,9 @@
  * idle period, which come after every `play` the press caused, then every play asked for settled
  * ({@link PageAccount.idle}); never on a delay. It also tells the harness each recording load the
  * page lets go, so the harness's count of a recording's open requests drops the moment the page
- * abandons one, never later than Chrome reports the next.
+ * abandons one, never later than Chrome reports the next. It follows every media element a script
+ * of the page or of a frame starts a load on, one never put in the page among them, as well as
+ * every one that enters a document it follows.
  *
  * Test support for plate's UI suite under `src/ui/`; it runs in the browser alone.
  *
@@ -25,8 +27,10 @@
  * ended, is muted, is paused and sounds, the file it plays, its control's pressed state and
  * notice, its position, its length as the page knows it, in seconds (`Infinity` while the page
  * knows no end of it, as of a stream it has not read to its end, `NaN` before its metadata), and
- * the `MediaError` that reached it, its code and Chrome's message naming the cause, none where none
- * did: a failed `source` alone reaches the element as no `MediaError`.
+ * the last `MediaError` it fired `error` for, its code and Chrome's message naming the cause, as
+ * they stood at that event: a later load clears the element's own, as plate's retry does, and
+ * leaves this. None where it fired none: a failed `source` alone reaches the element as no
+ * `MediaError`.
  */
 export interface Recording {
   readonly detached: boolean;
@@ -61,7 +65,7 @@ export interface Seen {
 export interface PageAccount {
   /**
    * Follow a frame of the page as the page is followed, from now on: every media element in its
-   * document, and every one that enters it.
+   * document, every one that enters it, and every one a script of its realm starts a load on.
    *
    * @param frame The frame's document.
    */
@@ -104,8 +108,8 @@ declare global {
     account?: PageAccount;
     /**
      * Tell the harness that a recording's element let its load go, and how many other elements of
-     * the page still load that address, the harness's binding (`#specimen/ui/hydrated.ts`): absent
-     * where the page runs outside the harness.
+     * the page may hold a request of that address, the harness's binding
+     * (`#specimen/ui/hydrated.ts`): absent where the page runs outside the harness.
      */
     recordingLetGo?: (address: string, others: number) => Promise<void>;
   }
@@ -187,6 +191,55 @@ const mediaIn = (node: Node): readonly HTMLMediaElement[] => {
 };
 
 /**
+ * Tell whether a recording's load may hold a request now: its fetch is under way, or idle with
+ * its connection kept, and it is no load Chrome defers. A `preload="none"` load idle with nothing
+ * read and no play asked for since is deferred: Chrome makes no request for it until it plays.
+ *
+ * @param element The recording.
+ * @returns Whether its load may hold a request.
+ * @see https://html.spec.whatwg.org/multipage/media.html#concept-media-load-resource
+ */
+const asking = (element: HTMLMediaElement): boolean =>
+  element.networkState === element.NETWORK_LOADING ||
+  (element.networkState === element.NETWORK_IDLE &&
+    !(element.preload === "none" && element.paused && element.readyState === element.HAVE_NOTHING));
+
+/**
+ * Give a prototype's own member by its name, to call on a receiver of the prototype's own.
+ *
+ * @param prototype The prototype.
+ * @param name The member's name.
+ * @returns The member.
+ */
+const memberOf = <T, K extends keyof T>(prototype: T, name: K): T[K] => prototype[name];
+
+/**
+ * Wrap a function of a prototype so that each call, once made, is told what it was made on and
+ * what it gave.
+ *
+ * @param original The function.
+ * @param told What is told of each call.
+ * @returns The wrapped function.
+ */
+const telling = <A extends unknown[], R>(
+  original: (this: Node, ...args: A) => R,
+  told: (self: Node, result: R) => void,
+) =>
+  function wrapped(this: Node, ...args: A): R {
+    const result = original.apply(this, args);
+
+    told(this, result);
+
+    return result;
+  };
+
+/**
+ * How the platform holds a method on its prototype: writable, enumerable and configurable, as a
+ * function put in a method's place is held too.
+ */
+const asMethods = { configurable: true, enumerable: true, writable: true } as const;
+
+/**
  * Install the page's account, from now on: it follows every media element already in the page and
  * every one that enters it, the page's frames' as they are adopted.
  */
@@ -194,10 +247,20 @@ export const installAccount = (): void => {
   const labels = new Map<HTMLMediaElement, string>();
   /**
    * The address each recording's load asks for, from its `loadstart`, when its fetch may begin,
-   * until the page lets it go or a network error ends its fetch. A `preload="none"` load never
+   * until the page lets it go or a network error ends its fetch, read again where a `source` that
+   * failed gives way to the next and where the load's metadata comes. A `preload="none"` load never
    * played is among them, though it has made no request.
    */
   const loads = new Map<HTMLMediaElement, string>();
+  /**
+   * The last `MediaError` each recording fired `error` for, as it stood at that event.
+   */
+  const errors = new Map<HTMLMediaElement, { readonly code: number; readonly message: string }>();
+  /**
+   * The realms whose media elements the account follows from a script's first call that can start
+   * their load, each by its `HTMLMediaElement.prototype`.
+   */
+  const hooked = new WeakSet<object>();
   const sounding = new Set<HTMLMediaElement>();
   const pending = new Set<HTMLMediaElement>();
   const followed = new WeakSet<HTMLMediaElement>();
@@ -294,9 +357,11 @@ export const installAccount = (): void => {
    * which Chrome reports before it reports the old one's end. A `MEDIA_ERR_NETWORK` is no letting
    * go: its fetch ended first, and Chrome has reported that end already.
    *
-   * With it goes how many other elements still load the same address: the harness keeps at least
-   * that many of the address's requests counted, so a load let go before it asked for anything
-   * never discounts another element's request of the address.
+   * With it goes how many other elements the account follows, in the page or out of it, load the
+   * same address and may hold a request of it ({@link asking}): the harness keeps at least that
+   * many of the address's requests counted, so a load let go before it asked for anything never
+   * discounts another element's request of the address, and a deferred load, which holds none,
+   * never keeps one counted.
    *
    * @param element The recording.
    * @see https://html.spec.whatwg.org/multipage/media.html#media-element-load-algorithm
@@ -310,9 +375,23 @@ export const installAccount = (): void => {
 
     loads.delete(element);
 
-    const others = [...loads.values()].filter((each) => each === address).length;
+    const others = [...labels.keys()].filter(
+      (each) => each !== element && loads.get(each) === address && asking(each),
+    ).length;
 
     void Promise.allSettled([window.recordingLetGo?.(address, others)]);
+  };
+
+  /**
+   * Read a recording's load's address again from the element, where it moved on: a `source` that
+   * failed gives way to the next candidate with no `loadstart` of its own.
+   *
+   * @param element The recording.
+   */
+  const renoted = (element: HTMLMediaElement): void => {
+    if (loads.has(element) && element.currentSrc !== "") {
+      loads.set(element, element.currentSrc);
+    }
   };
 
   /**
@@ -338,6 +417,9 @@ export const installAccount = (): void => {
         loads.set(element, element.currentSrc);
       }
     });
+    element.addEventListener("loadedmetadata", () => {
+      renoted(element);
+    });
 
     for (const type of ["abort", "emptied"]) {
       element.addEventListener(type, (event) => {
@@ -347,9 +429,22 @@ export const installAccount = (): void => {
       });
     }
 
+    element.addEventListener(
+      "error",
+      (event) => {
+        if (event.target !== element) {
+          renoted(element);
+        }
+      },
+      { capture: true },
+    );
     element.addEventListener("error", (event) => {
       if (event.target !== element) {
         return;
+      }
+
+      if (element.error !== null) {
+        errors.set(element, { code: element.error.code, message: element.error.message });
       }
 
       if (element.error?.code === MediaError.MEDIA_ERR_NETWORK) {
@@ -361,16 +456,150 @@ export const installAccount = (): void => {
   };
 
   /**
+   * Follow a recording from now on, where the account does not follow it yet.
+   *
+   * @param element The recording.
+   */
+  const met = (element: HTMLMediaElement): void => {
+    if (followed.has(element)) {
+      return;
+    }
+
+    followed.add(element);
+    labelOf(element);
+    follow(element);
+  };
+
+  /**
    * Follow every media element among nodes that entered the page, and inside them.
    *
    * @param nodes What entered the page.
    */
   const entered = (nodes: Iterable<Node>): void => {
-    for (const element of [...nodes].flatMap(mediaIn).filter((each) => !followed.has(each))) {
-      followed.add(element);
-      labelOf(element);
-      follow(element);
+    for (const element of [...nodes].flatMap(mediaIn)) {
+      met(element);
     }
+  };
+
+  /**
+   * Follow every media element a call gave, or that the node it gave holds.
+   *
+   * @param _self The call's receiver.
+   * @param result The node the call gave.
+   */
+  const inResult = (_self: Node, result: Node): void => {
+    entered([result]);
+  };
+
+  /**
+   * Follow, from each call on, every media element a script of a realm can start a load on,
+   * wherever it stands: one never put in the page, as `new Audio(address)` makes, as much as one
+   * in it. A load begins only in the media element load algorithm or its resource selection, which
+   * these run: the `src` and `srcObject` setters, `load()`, `play()`, `setAttribute`, a node
+   * inserted into the element (a `source`), the `Audio` constructor, and a clone or import of an
+   * element with a `src`. Each call reaches the account before its load can ask for anything, so
+   * the element's `loadstart` is heard and its request counts for others of its address. Only an
+   * element the parser makes outside every document the account follows, with a `src` it starts
+   * loading at once, goes unfollowed.
+   *
+   * @param realm The realm: the page's window, or a frame's.
+   * @see https://html.spec.whatwg.org/multipage/media.html#media-element-load-algorithm
+   */
+  const hook = (realm: Window & typeof globalThis): void => {
+    const media = realm.HTMLMediaElement.prototype;
+
+    if (hooked.has(media)) {
+      return;
+    }
+
+    hooked.add(media);
+
+    /**
+     * Follow the media element a call was made on, where it was made on one.
+     *
+     * @param self The call's receiver.
+     */
+    const onSelf = (self: Node): void => {
+      if (self instanceof realm.HTMLMediaElement) {
+        met(self);
+      }
+    };
+
+    for (const name of ["src", "srcObject"] as const) {
+      const described = Object.getOwnPropertyDescriptor(media, name);
+      const get = described === undefined ? undefined : memberOf(described, "get");
+      const set = described === undefined ? undefined : memberOf(described, "set");
+
+      if (get !== undefined && set !== undefined) {
+        Object.defineProperty(media, name, {
+          configurable: true,
+          enumerable: true,
+          get,
+          set: telling(set, onSelf),
+        });
+      }
+    }
+
+    Object.defineProperty(media, "load", {
+      ...asMethods,
+      value: telling(memberOf(media, "load"), onSelf),
+    });
+    Object.defineProperty(media, "play", {
+      ...asMethods,
+      value: telling(memberOf(media, "play"), onSelf),
+    });
+
+    const elements = realm.Element.prototype;
+    const nodes = realm.Node.prototype;
+
+    Object.defineProperty(elements, "setAttribute", {
+      ...asMethods,
+      value: telling(memberOf(elements, "setAttribute"), onSelf),
+    });
+    Object.defineProperty(elements, "append", {
+      ...asMethods,
+      value: telling(memberOf(elements, "append"), onSelf),
+    });
+    Object.defineProperty(elements, "prepend", {
+      ...asMethods,
+      value: telling(memberOf(elements, "prepend"), onSelf),
+    });
+    Object.defineProperty(elements, "replaceChildren", {
+      ...asMethods,
+      value: telling(memberOf(elements, "replaceChildren"), onSelf),
+    });
+    Object.defineProperty(nodes, "appendChild", {
+      ...asMethods,
+      value: telling(memberOf(nodes, "appendChild"), onSelf),
+    });
+    Object.defineProperty(nodes, "insertBefore", {
+      ...asMethods,
+      value: telling(memberOf(nodes, "insertBefore"), onSelf),
+    });
+    Object.defineProperty(nodes, "replaceChild", {
+      ...asMethods,
+      value: telling(memberOf(nodes, "replaceChild"), onSelf),
+    });
+    Object.defineProperty(nodes, "cloneNode", {
+      ...asMethods,
+      value: telling(memberOf(nodes, "cloneNode"), inResult),
+    });
+
+    const documents = realm.Document.prototype;
+
+    Object.defineProperty(documents, "importNode", {
+      ...asMethods,
+      value: telling(memberOf(documents, "importNode"), inResult),
+    });
+    realm.Audio = new Proxy(realm.Audio, {
+      construct: (made, [src]: ConstructorParameters<typeof Audio>): HTMLAudioElement => {
+        const element = new made(src);
+
+        met(element);
+
+        return element;
+      },
+    });
   };
 
   /**
@@ -385,10 +614,19 @@ export const installAccount = (): void => {
     }).observe(page.body, { childList: true, subtree: true });
   };
 
+  hook(window);
   watch(document);
 
   window.account = {
-    adopt: watch,
+    adopt: (frame) => {
+      const realm = frame.defaultView;
+
+      if (realm !== null) {
+        hook(realm);
+      }
+
+      watch(frame);
+    },
     foreign: (src, muted, frame) => {
       const page =
         frame === ""
@@ -422,10 +660,7 @@ export const installAccount = (): void => {
           detached: !element.isConnected,
           duration: element.duration,
           ended: element.ended,
-          error:
-            element.error === null
-              ? null
-              : { code: element.error.code, message: element.error.message },
+          error: errors.get(element) ?? null,
           label: labelOf(element),
           muted: element.muted,
           notice: part?.querySelector("[data-slot=plate-read-aloud-notice]")?.textContent ?? "",
