@@ -93,12 +93,86 @@ const policyOf = (hash: string): string =>
   ].join("; ");
 
 /**
+ * Write declarations as a `style` attribute's text, each `!important`.
+ *
+ * @param declarations The declarations, by property.
+ * @returns The text.
+ */
+const pinnedStyleOf = (declarations: Readonly<Record<string, string>>): string =>
+  Object.entries(declarations)
+    .map(([property, value]) => `${property}:${value}!important`)
+    .join(";");
+
+/**
+ * The root element's geometry, pinned in the page's own markup, so that the root's border box,
+ * which the boot posts as the frame's height, is the extent the document paints and no function of
+ * the frame's own height: each property by which a PCI's stylesheet could set that box apart from
+ * its content, or tie it to the viewport, at its initial value.
+ *
+ * - `margin`, which lies outside the box;
+ * - `height`, `min-height` and `max-height`, a percentage of which is one of the viewport's: a root
+ *   at `height: 50%` halves the frame at each post, and one at `100%` with padding grows it at each
+ *   post without end;
+ * - `position`, whose insets stretch the root to the viewport;
+ * - `contain` and `content-visibility`, whose size containment lays the root out as if it had no
+ *   content;
+ * - `transform`, `translate`, `rotate`, `scale`, `offset-path` and `zoom`, which move or scale what
+ *   the root paints and leave its box as it was;
+ * - `writing-mode`, here and on the body: the root's used writing mode is the body's, or its own
+ *   where either has containment (CSS Writing Modes 4, §8). In a vertical one the box's block size
+ *   is the frame's width, so each post rewraps the text at a new height and the next post swaps the
+ *   two (716, 302, 716, … in Chrome 158).
+ *
+ * The `style` attribute is element-attached, and its `!important` declarations win over every
+ * stylesheet's, its `!important` ones and those of every layer included (CSS Cascade 5, §6.1's
+ * "Element-Attached Styles", which sorts before "Layers"). The values are the properties' initial
+ * ones, so the page lays out as it would without them unless a PCI's stylesheet would have moved
+ * one, and they carry no look: no colour, type or spacing of anything a host's theme styles. A
+ * PCI's own script can still write the root's `style`; that is the PCI's code, not its stylesheet.
+ *
+ * @constraint What the pin leaves: content the root holds that overflows its box (a descendant's
+ *   transform, absolute position or negative margin), and content sized from the viewport's height
+ *   (`vh` units, an orthogonal flow, whose available inline size is the viewport's height), which
+ *   grows the frame at each post by whatever stands beside it.
+ * @source CSS Writing Modes 4, §8 (the principal writing mode); CSS Cascade 5, §6.1 (cascade
+ *   sorting order); CSS Containment 2 (size containment); Chrome 158, probed through this page's
+ *   markup with each property set by a PCI's stylesheet.
+ * @see https://drafts.csswg.org/css-writing-modes-4/#principal-flow
+ * @see https://drafts.csswg.org/css-cascade-5/#cascade-sort
+ * @see https://drafts.csswg.org/css-contain-2/#containment-size
+ */
+const rootPin = pinnedStyleOf({
+  contain: "none",
+  "content-visibility": "visible",
+  height: "auto",
+  margin: "0",
+  "max-height": "none",
+  "min-height": "auto",
+  "offset-path": "none",
+  position: "static",
+  rotate: "none",
+  scale: "none",
+  transform: "none",
+  translate: "none",
+  "writing-mode": "horizontal-tb",
+  zoom: "1",
+});
+
+/**
+ * The body's writing mode, pinned as the root's is ({@link rootPin}): the body's is the one the
+ * root takes as its used writing mode.
+ */
+const bodyPin = pinnedStyleOf({ "writing-mode": "horizontal-tb" });
+
+/**
  * The frame page's HTML, its boot the inline script at the end of its body, where the boot finds
  * the body it writes the PCI's `dom` into. Its colour schemes are a `meta`, which the page reads
  * before any stylesheet a PCI loads, "to aid user agents in rendering the page background with the
- * desired color scheme immediately (rather than waiting for all CSS in the page to load)".
+ * desired color scheme immediately (rather than waiting for all CSS in the page to load)". The
+ * root's and the body's geometry are pinned in their `style` attributes ({@link rootPin}), which
+ * the page's policy allows: its `style-src` carries `'unsafe-inline'`.
  */
-const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><title></title></head><body><script>${script}</script></body></html>`;
+const html = `<!DOCTYPE html><html style="${rootPin}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><title></title></head><body style="${bodyPin}"><script>${script}</script></body></html>`;
 
 /**
  * Give the frame page a host serves for every Portable Custom Interaction, at the URL it names as

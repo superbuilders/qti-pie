@@ -28,7 +28,9 @@
  *    ask. A document the cache keeps may come back, so its PCI stays as it was.
  *
  * Its height follows its content: a `ResizeObserver` on the document's root element posts the
- * whole pixels it takes, which the island writes as the frame's `height` attribute.
+ * whole pixels of its border box's block size, which the island writes as the frame's `height`
+ * attribute. The frame page's markup pins the root's geometry, so that box is the extent the
+ * document paints, at the frame's width, and a post changes no box it observes.
  *
  * Failure travels as a `failed` message while the PCI is not yet running: a route that exhausts
  * its locations, a module that names a dependency no route defines, no factory for the identifier
@@ -857,12 +859,38 @@ export const bootFrame = (): void => {
     document.addEventListener(name, onInput, { capture: true });
   }
 
-  new ResizeObserver(() => {
-    post({
-      kind: "height",
-      nonce,
-      pixels: Math.ceil(document.documentElement.getBoundingClientRect().height),
-    });
-  }).observe(document.documentElement);
+  /**
+   * Post the frame's height: its document element's border box's block size, in CSS pixels
+   * rounded up, as the `ResizeObserver` observing that very box reports it.
+   *
+   * @param entries The observation's entries: the document element's alone.
+   * @constraint The height posted is the box observed, so every change of it has its observation.
+   *   A content-box observation reports no change of the root's own padding or border, and a
+   *   height read from `getBoundingClientRect()` moves with a transform, which no box observation
+   *   reports. Either left the host's frame at a height the document no longer had, its content
+   *   clipped, with nothing posted.
+   * @constraint The block size is the frame's height, and the extent the document paints, because
+   *   the frame page's markup pins the root's geometry and its and the body's writing mode
+   *   (`rootPin` in `#plate/ui/portable-custom/frame-page.ts`): the root is horizontal, so its
+   *   block size is its height, and that height is its content's, at the frame's width, whatever
+   *   the frame's height. So a post sets the frame's height and changes no box the observation
+   *   watches, and the frame posts once for each change of its content. Content sized from the
+   *   viewport's height is the exception the pin's doc names.
+   * @source Resize Observer: `ResizeObserverOptions.box` and its `border-box`, and
+   *   `ResizeObserverEntry.borderBoxSize`.
+   * @see https://drafts.csswg.org/resize-observer/#dom-resizeobserverboxoptions-border-box
+   * @see https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-borderboxsize
+   */
+  const postHeight = (entries: readonly ResizeObserverEntry[]): void => {
+    const [box] = entries[0]?.borderBoxSize ?? [];
+
+    if (box === undefined) {
+      return;
+    }
+
+    post({ kind: "height", nonce, pixels: Math.ceil(box.blockSize) });
+  };
+
+  new ResizeObserver(postHeight).observe(document.documentElement, { box: "border-box" });
   post({ kind: "booted", nonce });
 };
