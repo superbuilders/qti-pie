@@ -750,6 +750,14 @@ export default defineConfig({
     // Off, as before ultracite 8: its one finding is plate's catalog proving its areas disjoint, a `{}` it means.
     "typescript/no-generated-empty-object-type": "off",
     "typescript/promise-function-async": "off",
+    /**
+     * Rejected (edullm-bd, 2026-11-26): ultracite's rule reads every two-argument `forEach` or
+     * `map` call as an array's given a `thisArg`, so it fires on Effect's data-first
+     * `Effect.forEach` and `Record.map`, the forms the core asks for (no restated width of 1, and a
+     * list handed first under eslint/array-callback-return). The core never carried it, and the
+     * cutover deletes ultracite.
+     */
+    "unicorn/no-array-method-this-argument": "off",
     // Relaxed by ultracite 8 too, and kept at ultracite 7's settings.
     "unicorn/no-useless-undefined": "error",
     "unicorn/prefer-export-from": "error",
