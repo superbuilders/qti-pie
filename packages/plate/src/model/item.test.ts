@@ -1,11 +1,12 @@
 import { assert, describe, it } from "@effect/vitest";
+import { word } from "@bjornpagen/testing/dictionary";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
-import { subset } from "@bjornpagen/testing/gen";
+import { array, boolean, element, int, map, oneOf, subset } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { growthFactor } from "@qti-pie/crust/test/growth.ts";
-import { Duration, Effect, Formatter, Option } from "effect";
+import { Array as Arr, Duration, Effect, Formatter, Option, Result } from "effect";
 import { readSource } from "#plate/document/read.ts";
 import { xmlNamespace } from "#plate/document/source.ts";
 import type { SourceAttribute, SourceDocument, SourceElement } from "#plate/document/source.ts";
@@ -14,7 +15,7 @@ import type { ExtendedTextInteraction } from "#plate/interactions/extended-text.
 import type { InlineChoiceInteraction } from "#plate/interactions/inline-choice.ts";
 import type { TextEntryInteraction } from "#plate/interactions/text-entry.ts";
 import type { IntegerOrRef } from "#plate/model/integer-ref.ts";
-import { rubricViews } from "#plate/model/item.dictionary.ts";
+import { containerCardinalities, rubricViews, xsBooleans } from "#plate/model/item.dictionary.ts";
 import { admittedItem } from "#plate/test/admitted.ts";
 import type {
   AreaMapping,
@@ -296,6 +297,158 @@ const viewSet: Gen<readonly string[]> = subset(rubricViews, { max: 6, min: 1 });
  * How many view lists {@link viewSet} draws: every nonempty subset of six views.
  */
 const VIEW_SETS = 2 ** 6 - 1;
+
+/**
+ * A text of the flags box: a literal of xs:boolean's lexical space with whitespace before and
+ * after it.
+ */
+interface FlagText {
+  readonly after: string;
+  readonly before: string;
+  readonly flag: (typeof xsBooleans)[number];
+}
+
+/**
+ * Draw whitespace of the flags box: up to two of the space, the tab and the line feed.
+ */
+const flagPadding: Gen<string> = map(
+  array(element([" ", "\t", "\n"] as const), { max: 2, min: 0 }),
+  (characters) => characters.join(""),
+);
+
+/**
+ * Draw a text of the flags box: every literal of {@link xsBooleans} with every padding of
+ * {@link flagPadding} before and after it.
+ */
+const flagText: Gen<FlagText> = (source) => ({
+  after: source.draw(flagPadding),
+  before: source.draw(flagPadding),
+  flag: source.draw(word(xsBooleans)),
+});
+
+/**
+ * How many texts {@link flagText} draws: 13 paddings either side of 4 literals.
+ */
+const FLAG_TEXTS = 13 * 13 * 4;
+
+/**
+ * The ranges a count of the counts box is drawn from: the least counts, the counts around reading
+ * `max-strings-zero`'s cap of 100, and 10^12, past what a 32-bit integer holds.
+ */
+const COUNT_RANGES = [
+  [0, 2],
+  [99, 102],
+  [1e12, 1e12 + 1],
+] as const;
+
+/**
+ * Draw a count of the counts box no greater than `most`: every count of {@link COUNT_RANGES} up to
+ * it.
+ *
+ * @param most The greatest count to draw, `Infinity` for none.
+ * @returns The generator.
+ */
+const countUpTo = (most: number): Gen<bigint> =>
+  oneOf([
+    map(int(0, Math.min(2, most)), BigInt),
+    ...Arr.filterMap(COUNT_RANGES.slice(1), ([least, greatest]) =>
+      least <= most
+        ? Result.succeed(map(int(least, Math.min(greatest, most)), BigInt))
+        : Result.failVoid,
+    ),
+  ]);
+
+/**
+ * A case of the counts box: the container an Extended Text binds, its `max-strings`, which the
+ * information model requires of an Extended Text bound to a container (section 5.48.6), and its
+ * `min-strings` where written.
+ */
+interface StringCountCase {
+  readonly cardinality: (typeof containerCardinalities)[number];
+  readonly maxStrings: bigint;
+  readonly minStrings: Option.Option<bigint>;
+}
+
+/**
+ * Draw a case of the counts box: each container, `max-strings` any count, and `min-strings` absent
+ * or any count no greater than a nonzero `max-strings`, as the information model asks of it.
+ */
+const stringCountCase: Gen<StringCountCase> = (source) => {
+  const cardinality = source.draw(word(containerCardinalities));
+  const maxStrings = source.draw(countUpTo(Number.POSITIVE_INFINITY));
+  const most = maxStrings > 0n ? Number(maxStrings) : Number.POSITIVE_INFINITY;
+
+  return {
+    cardinality,
+    maxStrings,
+    minStrings: source.draw(boolean) ? Option.some(source.draw(countUpTo(most))) : Option.none(),
+  };
+};
+
+/**
+ * How many cases {@link stringCountCase} draws, for each container: with a `max-strings` of 0,
+ * `min-strings` absent or any of the 9 counts; with each other count, absent or any count up to it.
+ */
+const STRING_COUNT_CASES = 2 * (10 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10);
+
+/**
+ * A text of the duration box: the text a `qti-value` holds, the space around it or none, and the
+ * seconds the oracle computes it names.
+ */
+interface DurationText {
+  readonly padding: "" | " ";
+  readonly seconds: number;
+  readonly text: string;
+}
+
+/**
+ * Draw a numeral of the duration box: a sign or none, a whole number of 0 to 9 and none, a quarter,
+ * a half or three quarters more, with no exponent or `e1`; its seconds are that sum, a sum of
+ * quarters a double holds exactly, of its sign.
+ */
+const durationNumeral: Gen<Omit<DurationText, "padding">> = (source) => {
+  const sign = source.draw(element(["", "-", "+"] as const));
+  const whole = source.draw(int(0, 9));
+  const quarters = source.draw(int(0, 3));
+  const tenfold = source.draw(boolean);
+  const magnitude = (whole + quarters / 4) * (tenfold ? 10 : 1);
+
+  return {
+    seconds: sign === "-" ? -magnitude : magnitude,
+    text: `${sign}${String(whole)}${quarters === 0 ? "" : String(quarters / 4).slice(1)}${tenfold ? "e1" : ""}`,
+  };
+};
+
+/**
+ * Draw a text of the duration box: a numeral of {@link durationNumeral}, or one of xs:double's
+ * other literals, `INF`, `-INF` and `NaN`, bare or padded with a space.
+ */
+const durationText: Gen<DurationText> = (source) => {
+  const padding = source.draw(element(["", " "] as const));
+  const named = source.draw(
+    oneOf<Omit<DurationText, "padding">>([
+      durationNumeral,
+      (inner) => {
+        const literal = inner.draw(element(["INF", "-INF", "NaN"] as const));
+        const seconds =
+          literal === "NaN"
+            ? Number.NaN
+            : literal === "INF"
+              ? Number.POSITIVE_INFINITY
+              : Number.NEGATIVE_INFINITY;
+
+        return { seconds, text: literal };
+      },
+    ]),
+  );
+
+  return { padding, ...named };
+};
+
+/**
+ * How many texts {@link durationText} draws: 240 numerals and 3 literals, each bare or padded.
+ */
+const DURATION_TEXTS = 2 * (3 * 10 * 4 * 2 + 3);
 
 /**
  * Read an item written as XML text, at `items/test.xml`.
@@ -691,37 +844,63 @@ describe("buildItem", () => {
     assert.deepStrictEqual(built.unsupported, []);
   });
 
-  it("reads adaptive and shuffle as true for true or 1 and false for false or 0, marking neither", () => {
-    const cases = [
-      ["true", true],
-      ["1", true],
-      [" 1 ", true],
-      ["false", false],
-      ["0", false],
-    ] as const;
+  it.effect(
+    `reads adaptive and shuffle as xs:boolean, marking neither, over every literal of its lexical space padded by up to two of the space, the tab and the line feed on either side: ${String(FLAG_TEXTS)} texts`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(flagText, FLAG_TEXTS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every literal of xs:boolean's lexical space with 0 to 2 of the space, the tab and the line feed before it and 0 to 2 after",
+              caseHang,
+              coverage: requiredInSpace<"true" | "false">(["true", "false"]),
+              generator: flagText,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the XSD types adaptive and shuffle xs:boolean, whose whiteSpace facet is collapse (XML Schema Part 2 sections 3.2.2 and 4.3.6), so a literal padded with XML whitespace names the value its lexical space gives it, 1 and true true, 0 and false false; neither is a feature plate leaves out",
+              },
+              suite: "plate/item/flags",
+            },
+            ({ before, flag, after }, c) =>
+              Effect.sync(() => {
+                const written = `${before}${flag.literal}${after}`;
+                c.note(flag.value ? "true" : "false");
 
-    for (const [written, on] of cases) {
-      const built = admittedItem(
-        item({
-          attributes: [attr("adaptive", written)],
-          body: [
-            el(
-              "qti-choice-interaction",
-              [attr("response-identifier", "RESPONSE"), attr("shuffle", written)],
-              [choice("A", "Ant"), choice("B", "Bee")],
-            ),
-          ],
-          declarations: [
-            declaration("qti-response-declaration", "RESPONSE", "identifier", "single", []),
-          ],
-        }),
-      );
+                const built = admittedItem(
+                  item({
+                    attributes: [attr("adaptive", written)],
+                    body: [
+                      el(
+                        "qti-choice-interaction",
+                        [attr("response-identifier", "RESPONSE"), attr("shuffle", written)],
+                        [choice("A", "Ant"), choice("B", "Bee")],
+                      ),
+                    ],
+                    declarations: [
+                      declaration(
+                        "qti-response-declaration",
+                        "RESPONSE",
+                        "identifier",
+                        "single",
+                        [],
+                      ),
+                    ],
+                  }),
+                );
 
-      assert.strictEqual(choiceIn(built.body).shuffle, on, written);
-      assert.strictEqual(built.adaptive, on, written);
-      assert.deepStrictEqual(built.unsupported, [], written);
-    }
-  });
+                assert.deepStrictEqual(
+                  [choiceIn(built.body).shuffle, built.adaptive, built.unsupported],
+                  [flag.value, flag.value, []],
+                  JSON.stringify(written),
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 
   it("reads a Choice's aria-label and aria-labelledby, none when absent", () => {
     const named = choiceIn(
@@ -1020,51 +1199,69 @@ describe("buildItem", () => {
     );
   });
 
-  for (const [cardinality, attributes, maxStrings, minStrings] of [
-    ["ordered", [attr("max-strings", "3")], Option.some(3n), 0n],
-    ["multiple", [attr("max-strings", "1000000000000")], Option.some(1_000_000_000_000n), 0n],
-    ["ordered", [attr("max-strings", "200"), attr("min-strings", "100")], Option.some(200n), 100n],
-    ["ordered", [attr("max-strings", "0")], Option.some(0n), 0n],
-  ] as const) {
-    it(`builds an Extended Text bound to ${cardinality} with ${attributes.map((attribute) => `${attribute.local}="${attribute.value}"`).join(" ")}, its counts held exactly, with no notice`, () => {
-      const built = admittedItem(extendedTextItem(cardinality, attributes));
-      const [node] = built.body;
+  it.effect(
+    `builds an Extended Text bound to a container with its max-strings and min-strings held exactly, and shows min-strings>100 in place of its Controls exactly when min-strings passes 100, over the counts box: ${String(STRING_COUNT_CASES)} cases`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(stringCountCase, STRING_COUNT_CASES),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "multiple and ordered, each with max-strings one of 0 to 2, 99 to 102, 10^12 and 10^12 + 1, and min-strings absent or one of them at most a nonzero max-strings",
+              caseHang,
+              coverage: requiredInSpace<"held" | "min-strings>100">(["held", "min-strings>100"]),
+              generator: stringCountCase,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "the information model's max-strings and min-strings (sections 5.48.6 and 5.48.7: max-strings required of an Extended Text bound to a container, min-strings at most the limit a nonzero max-strings imposes, 0 when absent), counts held exactly at any size (reading `count-range` lists neither), and reading `max-strings-zero`'s cap: Controls for at most 100 strings, so a min-strings past 100 shows the notice min-strings>100 in their place",
+              },
+              suite: "plate/item/string-counts",
+            },
+            ({ cardinality, maxStrings, minStrings }, c) =>
+              Effect.sync(() => {
+                const least = Option.getOrElse(minStrings, () => 0n);
+                const capped = least > 100n;
+                c.note(capped ? "min-strings>100" : "held");
 
-      assert.strictEqual(node?.kind, "extended-text");
-      assert.deepStrictEqual(
-        node?.kind === "extended-text" ? [node.cardinality, node.maxStrings, node.minStrings] : [],
-        [cardinality, maxStrings, minStrings],
-      );
-      assert.deepStrictEqual(built.unsupported, []);
-    });
-  }
+                const attributes = [
+                  attr("max-strings", String(maxStrings)),
+                  ...Option.toArray(
+                    Option.map(minStrings, (count) => attr("min-strings", String(count))),
+                  ),
+                ];
+                const built = admittedItem(extendedTextItem(cardinality, attributes));
+                const [node] = built.body;
+                const name = attributes
+                  .map((attribute) => `${attribute.local}="${attribute.value}"`)
+                  .join(" ");
 
-  for (const [attributes, maxStrings, minStrings] of [
-    [[attr("max-strings", "200"), attr("min-strings", "101")], Option.some(200n), 101n],
-    [
-      [attr("max-strings", "1000000000000"), attr("min-strings", "1000000000000")],
-      Option.some(1_000_000_000_000n),
-      1_000_000_000_000n,
-    ],
-  ] as const) {
-    it(`builds an ordered Extended Text with ${attributes.map((attribute) => `${attribute.local}="${attribute.value}"`).join(" ")}, its counts held exactly, and shows min-strings>100 in place of its Controls`, () => {
-      const built = admittedItem(extendedTextItem("ordered", attributes));
-      const [node] = built.body;
-
-      assert.strictEqual(node?.kind, "extended-text");
-      assert.deepStrictEqual(
-        node?.kind === "extended-text" ? [node.cardinality, node.maxStrings, node.minStrings] : [],
-        ["ordered", maxStrings, minStrings],
-      );
-      assert.deepStrictEqual(built.unsupported, [
-        {
-          feature: "min-strings>100",
-          path: `${body}/qti-extended-text-interaction`,
-          shown: "notice",
-        },
-      ]);
-    });
-  }
+                assert.deepStrictEqual(
+                  node?.kind === "extended-text"
+                    ? [node.cardinality, node.maxStrings, node.minStrings]
+                    : [],
+                  [cardinality, Option.some(maxStrings), least],
+                  `${cardinality} ${name}`,
+                );
+                assert.deepStrictEqual(
+                  built.unsupported,
+                  capped
+                    ? [
+                        {
+                          feature: "min-strings>100",
+                          path: `${body}/qti-extended-text-interaction`,
+                          shown: "notice",
+                        },
+                      ]
+                    : [],
+                  `${cardinality} ${name}`,
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 
   it("shows a drawing interaction as a notice", () => {
     const path = `${body}/qti-drawing-interaction`;
@@ -1681,42 +1878,66 @@ describe("buildItem", () => {
     );
   });
 
-  it("reads a duration qti-value as seconds in a double, INF, NaN and a negative included, and holds a file outcome beside it unmarked", () => {
-    const cases: readonly (readonly [string, number])[] = [
-      ["90.5", 90.5],
-      ["89.95", 89.95],
-      [" INF ", Number.POSITIVE_INFINITY],
-      ["-INF", Number.NEGATIVE_INFINITY],
-      ["NaN", Number.NaN],
-      ["-1.5", -1.5],
-    ];
-    for (const [written, seconds] of cases) {
-      const built = admittedItem(
-        item({
-          body: [paragraph],
-          declarations: [
-            declaration("qti-outcome-declaration", "TIME", "duration", "single", [
-              values("qti-default-value", written),
-            ]),
-            declaration("qti-outcome-declaration", "UPLOAD", "file", "single", []),
-          ],
-        }),
-      );
+  it.effect(
+    `reads a duration qti-value as seconds in a double, INF, NaN and a negative included, and holds a file outcome beside it unmarked, over the duration box: ${String(DURATION_TEXTS)} texts`,
+    (ctx) =>
+      Effect.andThen(
+        boxHolds(durationText, DURATION_TEXTS),
+        searched(
+          ctx,
+          exhaust(
+            {
+              box: "every numeral, signed or not, of a whole number of 0 to 9 seconds and none or a half, a quarter or three quarters more, with no exponent or e1, and INF, -INF and NaN, each bare or padded with a space",
+              caseHang,
+              coverage: requiredInSpace<"a number" | "INF or NaN">(["a number", "INF or NaN"]),
+              generator: durationText,
+              literal: Formatter.format,
+              oracle: {
+                kind: "specification",
+                name: "reading `results-duration`: a duration's value is its seconds in xs:double's lexical space, INF, -INF, NaN and a negative among them, its outer whitespace formatting (reading `typed-value-whitespace`); each numeral of the box names a sum of halves and quarters, which a double holds exactly, so its seconds are that sum, computed here; a file outcome with no default holds none",
+              },
+              suite: "plate/item/durations",
+            },
+            ({ padding, seconds, text: written }, c) =>
+              Effect.sync(() => {
+                c.note(Number.isFinite(seconds) ? "a number" : "INF or NaN");
 
-      assert.deepStrictEqual([...built.outcomes.keys()].toSorted(), ["TIME", "UPLOAD"], written);
-      assert.deepStrictEqual(
-        built.outcomes.get("TIME")?.defaultValue,
-        Option.some({
-          baseType: "duration",
-          cardinality: "single",
-          values: [{ baseType: "duration", value: seconds }],
-        }),
-        written,
-      );
-      assert.deepStrictEqual(built.outcomes.get("UPLOAD")?.defaultValue, Option.none());
-      assert.deepStrictEqual(built.unsupported, [], written);
-    }
-  });
+                const built = admittedItem(
+                  item({
+                    body: [paragraph],
+                    declarations: [
+                      declaration("qti-outcome-declaration", "TIME", "duration", "single", [
+                        values("qti-default-value", `${padding}${written}${padding}`),
+                      ]),
+                      declaration("qti-outcome-declaration", "UPLOAD", "file", "single", []),
+                    ],
+                  }),
+                );
+
+                assert.deepStrictEqual(
+                  [
+                    [...built.outcomes.keys()].toSorted(),
+                    built.outcomes.get("TIME")?.defaultValue,
+                    built.outcomes.get("UPLOAD")?.defaultValue,
+                    built.unsupported,
+                  ],
+                  [
+                    ["TIME", "UPLOAD"],
+                    Option.some({
+                      baseType: "duration",
+                      cardinality: "single",
+                      values: [{ baseType: "duration", value: seconds }],
+                    }),
+                    Option.none(),
+                    [],
+                  ],
+                  JSON.stringify(written),
+                );
+              }),
+          ),
+        ),
+      ),
+  );
 
   it("holds each template declaration of a modelled type with its default, param-variable and math-variable, and marks only the others, by their type", () => {
     const built = admittedItem(
