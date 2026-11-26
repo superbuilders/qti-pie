@@ -93,19 +93,31 @@ export interface ServedAction {
 }
 
 /**
- * A unit of a parted statement as the served file holds it: its CTEs' text cut at its placeholders,
- * its parameters, and its arm (a part) or arms (an always unit).
+ * A text cut at its placeholders, as the served file holds it (runtime/write/parted.ts CutText):
+ * its head, then each placeholder's number among its unit's parameters and the text after it.
  */
-interface ServedUnit {
-  readonly kind: "always" | "part";
-  readonly ctes: {
-    readonly head: string;
-    readonly holes: readonly { readonly hole: number; readonly after: string }[];
-  };
-  readonly params: readonly object[];
-  readonly arm?: string;
-  readonly arms?: readonly string[];
+export interface CutText {
+  readonly head: string;
+  readonly holes: readonly { readonly hole: number; readonly after: string }[];
 }
+
+/**
+ * A unit of a parted statement as the served file holds it (runtime/write/parted.ts PartedUnit):
+ * its CTEs' text, its parameters, and its arm (a part) or arms (an always unit), each a cut text.
+ */
+export type ServedUnit =
+  | {
+      readonly kind: "always";
+      readonly ctes: CutText;
+      readonly arms: readonly CutText[];
+      readonly params: readonly object[];
+    }
+  | {
+      readonly kind: "part";
+      readonly ctes: CutText;
+      readonly arm: CutText;
+      readonly params: readonly object[];
+    };
 
 /**
  * A record of the served file's own, neither a list, a map nor a set, whose members the walk reads
@@ -235,17 +247,17 @@ const isStandUp = (value: unknown): value is ServedStandUp =>
     (value["kind"] === "judged" && isNamedText(value["call"])));
 
 /**
- * A unit's CTE text with its placeholders numbered after the units sent before it
- * (runtime/write/parted.ts).
+ * A unit's cut text, its CTEs' or an arm's, with its placeholders numbered after the units sent
+ * before it (runtime/write/parted.ts placed).
  *
- * @param unit - The unit.
+ * @param cut - The cut text.
  * @param before - The parameters the units before it take.
  * @returns Its text.
  */
-const placed = (unit: ServedUnit, before: number): string => {
-  let text = unit.ctes.head;
+const placed = (cut: CutText, before: number): string => {
+  let text = cut.head;
 
-  for (const { after, hole } of unit.ctes.holes) {
+  for (const { after, hole } of cut.holes) {
     text += `$${String(before + hole + 1)}${after}`;
   }
 
@@ -259,18 +271,27 @@ const placed = (unit: ServedUnit, before: number): string => {
  * @param units - Its units, in their order.
  * @returns The text.
  */
-const assembledText = (units: readonly ServedUnit[]): string => {
+export const assembledText = (units: readonly ServedUnit[]): string => {
   const ctes: string[] = [];
   const arms: string[] = [];
   let params = 0;
 
   for (const unit of units) {
-    ctes.push(placed(unit, params));
+    const before = params;
+    const ctesText = placed(unit.ctes, before);
+
+    if (ctesText !== "") {
+      ctes.push(ctesText);
+    }
+
+    for (const arm of unit.kind === "part" ? [unit.arm] : unit.arms) {
+      arms.push(placed(arm, before));
+    }
+
     params += unit.params.length;
-    arms.push(...(unit.kind === "part" && unit.arm !== undefined ? [unit.arm] : (unit.arms ?? [])));
   }
 
-  return `WITH ${ctes.join(",\n")}\n${arms.join("\nUNION ALL\n")}`;
+  return `${ctes.length === 0 ? "" : `WITH ${ctes.join(",\n")}\n`}${arms.join("\nUNION ALL\n")}`;
 };
 
 /**
