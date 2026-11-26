@@ -382,7 +382,9 @@ const collapsed = (text: string): string => text.replaceAll(/[\t\n\r ]+/gu, " ")
 
 /**
  * Read every view of the imported package through the views' reader, and hold each to what the
- * item's text states beside the positions of the database's own tree.
+ * item's text states beside the positions of the database's own tree. Each read comes back in its
+ * result key's order (grizzle's canonical order), a text by code point and a roster's value by its
+ * code, and each table is stated in that order.
  */
 const viewsRead = Effect.gen(function* viewsRead() {
   const db = yield* Db.open((yield* ViewLogin).roles.author, {});
@@ -407,36 +409,39 @@ const viewsRead = Effect.gen(function* viewsRead() {
   const [h1, h3, h2] = [nth("th", 0), nth("th", 1), nth("th", 2)];
   const [outerCell, holdingCell, innerCell] = [nth("td", 0), nth("td", 1), nth("td", 2)];
   const [catalogC, catalogD] = [nth("qti-catalog", 0), nth("qti-catalog", 1)];
+  const [york, yorkAgain, newYork] = [
+    nth("qti-map-entry", 0),
+    nth("qti-map-entry", 1),
+    nth("qti-map-entry", 2),
+  ];
 
   assert.deepStrictEqual(
-    // MapKey states no key, so its whole heading, (key, package, path, start), is its key, which
-    // orders its rows by the map key's text first: the entries' document order is the test's own.
-    [...(yield* db.workload.mapKeys.once(read))]
-      .map(({ key, start }) => [start, key] as const)
-      .toSorted(([a], [b]) => (a < b ? -1 : 1)),
-    startsOf("qti-map-entry").map(
-      (start, at) => [start, (mapKeys[at] ?? "").replaceAll(/[\t\n\r]/gu, " ")] as const,
-    ),
-    "MapKey: one row per map entry, its map-key's value",
+    [...(yield* db.workload.mapKeys.once(read))].map(({ key, start }) => [key, start] as const),
+    [
+      ["New York", newYork],
+      ["York", york],
+      ["York", yorkAgain],
+    ],
+    "MapKey: one row per map entry, its map-key's value, by (key, path, start)",
   );
-  assert.sameDeepMembers(
+  assert.deepStrictEqual(
     [...(yield* db.workload.lookupValues.once(read))].map(({ name, start, value }) => ({
       name,
       start,
       value,
     })),
     [
-      { name: "default-value", start: nth("qti-match-table", 0), value: "0" },
       { name: "target-value", start: nth("qti-match-table-entry", 0), value: "5" },
       {
         name: "target-value",
         start: nth("qti-interpolation-table-entry", 0),
         value: " 2.5 ",
       },
+      { name: "default-value", start: nth("qti-match-table", 0), value: "0" },
     ],
-    "LookupValue: each table's default and each entry's target, as written",
+    "LookupValue: each entry's target and each table's default, as written, by (name, path, start, value), target-value's code before default-value's in the AttributeName roster",
   );
-  assert.sameDeepMembers(
+  assert.deepStrictEqual(
     [...(yield* db.workload.catalogIds.once(read))].map(({ id, idDigest, start }) => ({
       digest: hexOf(idDigest),
       id,
@@ -446,20 +451,20 @@ const viewsRead = Effect.gen(function* viewsRead() {
       { digest: digestOf("C"), id: "C", start: catalogC },
       { digest: digestOf("D"), id: "D", start: catalogD },
     ],
-    "CatalogId: each catalog's id, collapsed",
+    "CatalogId: each catalog's id, collapsed, by (id, idDigest, path, start)",
   );
-  assert.sameDeepMembers(
+  assert.deepStrictEqual(
     [...(yield* db.workload.assembledCatalogs.once(read))].map(({ assembly, idDigest }) => ({
       assembly,
       digest: hexOf(idDigest),
     })),
     [
-      { assembly: "item.xml", digest: digestOf("C") },
       { assembly: "item.xml", digest: digestOf("D") },
+      { assembly: "item.xml", digest: digestOf("C") },
     ],
-    "AssembledCatalog: each catalog bound in the item's assembly",
+    "AssembledCatalog: each catalog bound in the item's assembly, by (assembly, idDigest), D's digest (3f…) before C's (6b…)",
   );
-  assert.sameDeepMembers(
+  assert.deepStrictEqual(
     [...(yield* db.workload.headerTokens.once(read))].map(({ at, start, token, tokenDigest }) => ({
       at,
       digest: hexOf(tokenDigest),
@@ -468,12 +473,12 @@ const viewsRead = Effect.gen(function* viewsRead() {
     })),
     [
       { at: 0n, digest: digestOf("h1"), start: outerCell, token: "h1" },
-      { at: 1n, digest: digestOf("h3"), start: outerCell, token: "h3" },
       { at: 0n, digest: digestOf("h2"), start: innerCell, token: "h2" },
+      { at: 1n, digest: digestOf("h3"), start: outerCell, token: "h3" },
     ],
-    "HeaderToken: each cell's headers split at XML whitespace",
+    "HeaderToken: each cell's headers split at XML whitespace, by (at, path, start, token, tokenDigest)",
   );
-  assert.sameDeepMembers(
+  assert.deepStrictEqual(
     [...(yield* db.workload.cellTables.once(read))]
       .filter(({ path: at }) => at === "item.xml")
       .map(({ start, table }) => ({ start, table })),
@@ -481,9 +486,9 @@ const viewsRead = Effect.gen(function* viewsRead() {
       start,
       table: tableOf(start),
     })),
-    "CellTable: each cell's nearest table",
+    "CellTable: each cell's nearest table, by (path, start, table)",
   );
-  assert.sameDeepMembers(
+  assert.deepStrictEqual(
     [...(yield* db.workload.tableHeaders.once(read))].map(({ id, idDigest, start, table }) => ({
       digest: hexOf(idDigest),
       id,
@@ -492,28 +497,28 @@ const viewsRead = Effect.gen(function* viewsRead() {
     })),
     [
       { digest: digestOf("h1"), id: collapsed(" h1 "), start: h1, table: outer },
-      { digest: digestOf("h3"), id: "h3", start: h3, table: outer },
       { digest: digestOf("h2"), id: "h2", start: h2, table: inner },
+      { digest: digestOf("h3"), id: "h3", start: h3, table: outer },
     ],
-    "TableHeader: each tabled th's id beside its table",
+    "TableHeader: each tabled th's id beside its table, by (id, idDigest, path, start, table)",
   );
-  assert.sameDeepMembers(
+  assert.deepStrictEqual(
     [...(yield* db.workload.roundingModeFigures.once(read))].map(({ figures, mode, start }) => ({
       figures,
       mode,
       start,
     })),
     [
+      { figures: "2", mode: "decimalPlaces", start: nth("qti-round-to", 0) },
       {
         figures: collapsed(" 3 "),
         mode: "significantFigures",
         start: nth("qti-equal-rounded", 0),
       },
-      { figures: "2", mode: "decimalPlaces", start: nth("qti-round-to", 0) },
     ],
-    "RoundingModeFigures: each rounding operator's figures, collapsed, beside its mode in force",
+    "RoundingModeFigures: each rounding operator's figures, collapsed, beside its mode in force, by (figures, mode, path, start)",
   );
-  assert.sameDeepMembers(
+  assert.deepStrictEqual(
     [...(yield* db.workload.toleranceTokens.once(read))].map(({ at, start, token }) => ({
       at,
       start,
@@ -522,9 +527,9 @@ const viewsRead = Effect.gen(function* viewsRead() {
     collapsed(" 0.5\tT ")
       .split(" ")
       .map((token, at) => ({ at: BigInt(at), start: nth("qti-equal", 0), token })),
-    "ToleranceToken: each tolerance's values, split at XML whitespace",
+    "ToleranceToken: each tolerance's values, split at XML whitespace, by (at, path, start, token)",
   );
-  assert.sameDeepMembers(
+  assert.deepStrictEqual(
     [...(yield* db.workload.cnCounts.once(read))].map(({ parts, start, type }) => ({
       parts,
       start,
@@ -536,7 +541,7 @@ const viewsRead = Effect.gen(function* viewsRead() {
       { parts: 1n, start: nth("m:cn", 2), type: "real" },
       { parts: 2n, start: nth("m:cn", 3), type: "rational" },
     ],
-    "CnCount: each cn of a listed type, real where it writes none, with one part more than its separators, whatever its base",
+    "CnCount: each cn of a listed type, real where it writes none, with one part more than its separators, whatever its base, by (path, start, type, parts)",
   );
   assert.deepStrictEqual(
     [...(yield* db.workload.usageValues.once(read))].map(({ baseType, path: at, text }) => ({

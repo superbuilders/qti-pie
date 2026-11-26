@@ -1,6 +1,7 @@
 import path from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";
+import { codePointOrder } from "@qti-pie/crust/charset.ts";
 import { Cause, Effect, Exit, FileSystem, Layer, Schema } from "effect";
 import { describe, inject } from "vitest";
 import { TargetNotEmpty } from "#pantry/cli/args.ts";
@@ -49,7 +50,8 @@ const fresh = Effect.fn("test.export.db.fresh")(function* fresh(name: string) {
 });
 
 /**
- * The files under `folder`, as paths relative to it, in order.
+ * The files under `folder`, as paths relative to it, in code point order: the order of an `Entry`
+ * read's key, by path.
  */
 const filesUnder = Effect.fn("test.export.db.filesUnder")(function* filesUnder(folder: string) {
   const fs = yield* FileSystem.FileSystem;
@@ -62,7 +64,7 @@ const filesUnder = Effect.fn("test.export.db.filesUnder")(function* filesUnder(f
     }
   }
 
-  return files.toSorted();
+  return files.toSorted(codePointOrder);
 });
 
 /**
@@ -104,8 +106,9 @@ describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
 
         assert.isTrue("dry_run" in data);
         assert.deepStrictEqual(
-          data.entries.map((entry) => entry.path).toSorted(),
+          data.entries.map((entry) => entry.path),
           yield* filesUnder(real),
+          "the dry run lists the files a real export writes, in the order its Entry read's key gives them, by path in code point order",
         );
       }),
     );
