@@ -531,6 +531,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
           ctx,
           Effect.gen(function* labelCharacteristics() {
             yield* boxHolds(labelSites, LABEL_SITE_CASES);
+
             const grammar = Result.getOrThrow(composed());
             const laws = lawsOf(grammar);
 

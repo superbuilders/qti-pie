@@ -123,6 +123,21 @@ interface Case extends Added {
 const CODES = ["same", "other"] as const satisfies readonly Codes[];
 
 /**
+ * Name how many times a case declares its name: once where it adds no declaration, twice where it
+ * adds one, three times where it adds two.
+ *
+ * @param added How many declarations it adds.
+ * @returns How many times it declares the name.
+ */
+const timesOf = (added: number): Times => {
+  if (added === 0) {
+    return "declared once";
+  }
+
+  return added === 1 ? "declared twice" : "declared three times";
+};
+
+/**
  * Draw a case: one of the two names, none, one or two added declarations, each of the original's
  * codes or others, and, where it adds any, whether they stand before the original or after it.
  */
@@ -135,12 +150,7 @@ const duplicateCase: Gen<Case> = (source) => {
     before,
     codes,
     name,
-    times:
-      codes.length === 0
-        ? "declared once"
-        : codes.length === 1
-          ? "declared twice"
-          : "declared three times",
+    times: timesOf(codes.length),
   };
 };
 
@@ -224,6 +234,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("a second declaration o
         ctx,
         Effect.gen(function* duplicateDeclarationRuns() {
           yield* boxHolds(duplicateCase, DUPLICATE_CASES);
+
           const directory = yield* scratchDirectory("duplicate-declaration-");
           const bench = { directory, grammar, laws };
           const item = new TextDecoder().decode(base.get(itemPath));

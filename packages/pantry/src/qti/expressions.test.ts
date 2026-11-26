@@ -347,7 +347,11 @@ describe("qti/expressions.ts, arity", () => {
               Effect.sync(() => {
                 const below = count < min;
                 const above = Option.exists(max, (most) => count > most);
-                c.note(below ? "below min" : above ? "above max" : "holds");
+                if (below) {
+                  c.note("below min");
+                } else {
+                  c.note(above ? "above max" : "holds");
+                }
 
                 assert.strictEqual(
                   arityHolds(kind, count),

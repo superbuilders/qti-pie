@@ -12,7 +12,7 @@ import type { ReaderRefusal } from "@qti-pie/crust/errors.ts";
  * itself: the record is keyed by the rule's type, so a rule the reader gains is a type error here
  * until it is named.
  */
-const readerRuleNames: { readonly [R in ReaderRefusal["rule"]]: R } = {
+const readerRuleNames = {
   decode: "decode",
   "element-depth": "element-depth",
   "encoding-mismatch": "encoding-mismatch",
@@ -21,7 +21,7 @@ const readerRuleNames: { readonly [R in ReaderRefusal["rule"]]: R } = {
   nul: "nul",
   "undeclared-entity": "undeclared-entity",
   "unsupported-encoding": "unsupported-encoding",
-};
+} as const satisfies { readonly [R in ReaderRefusal["rule"]]: R };
 
 /**
  * The first of {@link readerRuleNames}, and the rest.

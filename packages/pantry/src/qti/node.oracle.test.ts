@@ -849,11 +849,11 @@ describe("the foreign element laws, by the host oracle", () => {
               Effect.gen(function* foreign() {
                 const { corrupt, lawful } = foreignWitnesses[law];
                 const rows = yield* foldedOf(lawful);
-                const judged = corrupted
-                  ? corrupt._tag === "document"
-                    ? yield* foldedOf(corrupt.xml)
-                    : corrupt.edit(rows)
-                  : rows;
+                const corruptedRows =
+                  corrupt._tag === "document"
+                    ? foldedOf(corrupt.xml)
+                    : Effect.succeed(corrupt.edit(rows));
+                const judged = corrupted ? yield* corruptedRows : rows;
 
                 const found = documentBreaches("case.xml", judged, oracleLaws, judgedAlone)
                   .map((breach) => breach.law)

@@ -1396,13 +1396,13 @@ describe("the refusals made before the database", () => {
               },
               suite: "import/refusal/read-refusals",
             },
-            (error, c) =>
+            (refusal, c) =>
               Effect.sync(() => {
-                c.note(error._tag);
+                c.note(refusal._tag);
                 assert.deepStrictEqual(
-                  ruleOfError(error).rules,
-                  [ruleStated(error)],
-                  Formatter.format(error),
+                  ruleOfError(refusal).rules,
+                  [ruleStated(refusal)],
+                  Formatter.format(refusal),
                 );
               }),
           ),

@@ -1629,7 +1629,7 @@ const srcsetSituationsOf = (
  * @returns Whether it holds nothing else.
  */
 const isSeparation = (text: string): boolean =>
-  Array.from(text).every((character) => "\t\n\f\r ,".includes(character));
+  Arr.fromIterable(text).every((character) => "\t\n\f\r ,".includes(character));
 
 /**
  * Whether a candidate's descriptors hold no comma outside parentheses, where the HTML Standard's
