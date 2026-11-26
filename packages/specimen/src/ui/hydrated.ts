@@ -32,7 +32,7 @@ import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
-import { Brand, Data, Effect, Option, Predicate, Schema } from "effect";
+import { Brand, Data, Effect, Function, Option, Predicate, Schema } from "effect";
 import type { Scope } from "effect";
 import type { BrowserContext, ConsoleMessage, Page } from "playwright-core";
 import { chromeFor } from "#specimen/ui/chrome.ts";
@@ -142,9 +142,7 @@ export interface PageSpec {
 /**
  * Keep no change: the `onChange` a server render's `<Responses>` is given, which it never calls.
  */
-const keepNothing = (): void => {
-  // A server render runs no event handler.
-};
+const keepNothing: () => void = Function.constVoid;
 
 /**
  * Name every island a wired tree holds, in tree order, an island named as often as it stands.
@@ -347,8 +345,10 @@ const viteServer = () =>
         noDiscovery: true,
       },
       root: path.dirname(path.dirname(path.dirname(pageModule))),
-      // A deny list replaces Vite's own, so this is Vite 8.3's (`_serverConfigDefaults.fs.deny`)
-      // with jj's store beside git's, which a page never reads.
+      /**
+       * A deny list replaces Vite's own, so this is Vite 8.3's (`_serverConfigDefaults.fs.deny`)
+       * with jj's store beside git's, which a page never reads.
+       */
       server: {
         fs: {
           deny: [
@@ -986,9 +986,11 @@ const openedAt = (
     });
     yield* attempt("loaded the page", () => page.goto(address));
 
-    // The page hydrates, or something it reported ends the wait at once: a module that failed to
-    // load never hydrates it, and an error React reports to the page's own handlers stops it. The
-    // page's errors read as none while it is still loading, where nothing can be read of it yet.
+    /**
+     * The page's errors now, which end the wait for its hydration at once: a module that failed to
+     * load never hydrates it, and an error React reports to the page's own handlers stops it. The
+     * page's errors read as none while it is still loading, where nothing can be read of it yet.
+     */
     const errorsNow = attempt("read the page's errors", () =>
       page.evaluate(() => window.hydrated?.errors ?? []),
     ).pipe(
