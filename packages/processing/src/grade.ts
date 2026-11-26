@@ -178,12 +178,21 @@ export interface UnpresentedMember {
 
 /**
  * A sitting to grade. Its members are every member selected for it, each once: the closing, the
- * carried and the unpresented.
+ * pending, the carried and the unpresented.
  */
 export interface SittingInput {
   readonly carried: readonly CarriedMember[];
   readonly closing: readonly ClosingMember[];
   readonly context: ReadonlyMap<string, Value>;
+  /**
+   * The members whose answer is still Pending when the sitting ends (an essay in an individual part
+   * awaiting its evaluation), each its attempt as its answer graded it: the same item, responses
+   * and session, and the recorded answers in so far. The sitting grades each attempt again, so its
+   * demands are derived where processing derives every demand (the Demand gradeAnswer's Pending
+   * carries); while any is not in, the sitting's grade is Pending and its outcomes not final, and
+   * completePending, given the answers, completes it as the answer graded with them would be.
+   */
+  readonly pending: readonly ClosingMember[];
   readonly readAt: Instant;
   /**
    * When the test started, so its `duration` is `readAt` less it (D4).
@@ -394,6 +403,21 @@ const membersText = <M extends { readonly ref: MemberRef }>(
     .join("");
 
 /**
+ * A closing or pending member's encoding: its attempt but the recorded answers in.
+ *
+ * @param member - The member.
+ * @returns Its encoding.
+ */
+const attemptText = (member: ClosingMember): string =>
+  fieldsText({
+    evaluations: "",
+    item: member.item.digest.sha256,
+    ref: refText(member.ref),
+    responses: submittedText(member.responses),
+    session: sessionText(member.session),
+  } satisfies Fields<ClosingMember>);
+
+/**
  * The digest of a sitting's input but its recorded answers: every field of the sitting and of its
  * members, the closing members' `evaluations` alone left out, which a completion brings in.
  *
@@ -414,16 +438,9 @@ const sittingDigest = (input: SittingInput): Digest =>
           take: takeText(member.take),
         } satisfies Fields<CarriedMember>),
       ),
-      closing: membersText(input.closing, (member) =>
-        fieldsText({
-          evaluations: "",
-          item: member.item.digest.sha256,
-          ref: refText(member.ref),
-          responses: submittedText(member.responses),
-          session: sessionText(member.session),
-        } satisfies Fields<ClosingMember>),
-      ),
+      closing: membersText(input.closing, attemptText),
       context: valuesText(input.context),
+      pending: membersText(input.pending, attemptText),
       readAt: instantText(input.readAt),
       startedAt: instantText(input.startedAt),
       test: input.test.digest.sha256,
@@ -708,7 +725,7 @@ const sittingWith = <K extends ExpressionKind>(
   const members: MemberGrade[] = [];
   const states: MemberState[] = [];
   const demands: (Demand & { readonly ref: MemberRef })[] = [];
-  for (const member of input.closing) {
+  for (const member of [...input.closing, ...input.pending]) {
     const result = attemptWith(table, attemptOf(member, input.context));
     if (result.kind === "failed") {
       return result;
@@ -799,7 +816,7 @@ export type PendingGrade = Extract<SittingGrade, { readonly kind: "pending" }>;
  * path back in, and a settled one none (history is never regraded).
  */
 export interface CompletionInput extends SittingInput {
-  readonly pending: Graded<PendingGrade>;
+  readonly pendingGrade: Graded<PendingGrade>;
 }
 
 /**
@@ -815,7 +832,7 @@ export const completePendingWith = <K extends ExpressionKind>(
   table: OperatorTable<K>,
   input: CompletionInput,
 ): Failed | Graded<SittingGrade> => {
-  const pending = proofOf(input.pending).inputDigest;
+  const pending = proofOf(input.pendingGrade).inputDigest;
   const given = sittingDigest(input);
   if (given.sha256 !== pending.sha256) {
     return { failure: { given, kind: "completion-mismatch", pending }, kind: "failed" };

@@ -5,16 +5,18 @@ import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { assert, describe, it } from "@effect/vitest";
 import { Duration, Effect } from "effect";
-import { compileItemWith, compileTestWith } from "#processing/compile/document.ts";
+import { compileItemOver, compileItemWith, compileTestWith } from "#processing/compile/document.ts";
 import { valuesDigest } from "#processing/digest.ts";
 import { restartBudget } from "#processing/engine.ts";
 import {
+  completePendingWith,
   gradeAnswerWith,
   gradeSittingWith,
   proofOf,
   templateDefaultsWith,
 } from "#processing/grade.ts";
-import type { ClosingMember, ItemSession, SittingInput } from "#processing/grade.ts";
+import type { ClosingMember, ItemSession, SittingInput, Submitted } from "#processing/grade.ts";
+import { alphaDefinitionPrefix, recordedOperator } from "#processing/operator.ts";
 import { operatorTable } from "#processing/operators/table.ts";
 import type { CompiledItem } from "#processing/program.ts";
 import { takeWith } from "#processing/session.ts";
@@ -410,6 +412,7 @@ describe("a sitting", () => {
         },
       ],
       context: new Map(),
+      pending: [],
       readAt: { microseconds: 3_000_000n },
       startedAt: { microseconds: 1_000_000n },
       test,
@@ -482,6 +485,7 @@ const twoMemberSitting = (): SittingInput => {
     carried: [],
     closing: [closingOf("q1", fresh(noTake), new Map()), closingOf("q2", fresh(noTake), new Map())],
     context: new Map(),
+    pending: [],
     readAt: { microseconds: 3_000_000n },
     startedAt: { microseconds: 1_000_000n },
     test: compiled.ok ? compiled.value : assert.fail(compiled.refusal.detail),
@@ -511,6 +515,7 @@ interface Departure {
   readonly duration: boolean;
   readonly evaluations: boolean;
   readonly numAttempts: boolean;
+  readonly pending: boolean;
   readonly readAt: boolean;
   readonly reordered: boolean;
   readonly startedAt: boolean;
@@ -519,7 +524,7 @@ interface Departure {
 }
 
 /**
- * Every departure: each of its nine fields either way.
+ * Every departure: each of its ten fields either way.
  */
 const departures: Gen<Departure> = (source) => {
   const bit = (): boolean => int(0, 1)(source) === 1;
@@ -529,6 +534,7 @@ const departures: Gen<Departure> = (source) => {
     duration: bit(),
     evaluations: bit(),
     numAttempts: bit(),
+    pending: bit(),
     readAt: bit(),
     reordered: bit(),
     startedAt: bit(),
@@ -555,12 +561,14 @@ const departed = (base: SittingInput, departure: Departure): SittingInput => {
     departure.numAttempts ? { ...fresh(noTake), numAttempts: 1n } : fresh(noTake),
     new Map(),
   );
-  const members = departure.unpresented ? [q1] : [q1, q2];
+  const pendingQ2 = departure.pending && !departure.unpresented;
+  const members = departure.unpresented || pendingQ2 ? [q1] : [q1, q2];
 
   return {
     ...base,
     closing: departure.reordered ? members.toReversed() : members,
     context: departure.context ? new Map([["C", single("integer", 1n)]]) : base.context,
+    pending: pendingQ2 ? [q2] : [],
     readAt: departure.readAt ? { microseconds: 3_000_001n } : base.readAt,
     startedAt: departure.startedAt ? { microseconds: 0n } : base.startedAt,
     testSeed: departure.testSeed ? { key: `${seed.key}0` } : base.testSeed,
@@ -581,7 +589,7 @@ describe("a sitting's input digest (completePending's check)", () => {
         ctx,
         exhaust(
           {
-            box: "each of nine fields of a two-member sitting either way",
+            box: "each of ten fields of a two-member sitting either way",
             caseHang: Duration.seconds(30),
             coverage: noCoverage,
             generator: departures,
@@ -595,6 +603,7 @@ describe("a sitting's input digest (completePending's check)", () => {
                 departure.context ||
                 departure.duration ||
                 departure.numAttempts ||
+                (departure.pending && !departure.unpresented) ||
                 departure.readAt ||
                 departure.startedAt ||
                 departure.testSeed ||
@@ -605,6 +614,167 @@ describe("a sitting's input digest (completePending's check)", () => {
       );
     },
   );
+});
+
+/**
+ * A recorded operator of the tests': an essay's score, out of its maximum.
+ */
+const essayScore = recordedOperator({
+  definition: `${alphaDefinitionPrefix}test-essay-score`,
+  maximum: 1,
+  operands: [
+    { form: "expression", name: "essay", type: { base: "string", cardinality: "single" } },
+    { form: "expression", name: "maximum", type: { base: "float", cardinality: "single" } },
+  ],
+  result: { base: "float", cardinality: "single" },
+});
+
+/**
+ * An essay item: its `SCORE` the recorded score of its `ESSAY`, out of 1.
+ *
+ * @returns The compiled item.
+ */
+const essayItem = (): CompiledItem => {
+  const compiled = compileItemOver(
+    element("qti-assessment-item", { adaptive: "false", identifier: "q1" }, [
+      element(
+        "qti-response-declaration",
+        { "base-type": "string", cardinality: "single", identifier: "ESSAY" },
+        [],
+      ),
+      element(
+        "qti-outcome-declaration",
+        { "base-type": "float", cardinality: "single", identifier: "SCORE" },
+        [],
+      ),
+      element("qti-response-processing", {}, [
+        setOutcome(
+          "SCORE",
+          element("qti-custom-operator", { definition: essayScore.definition }, [
+            variable("ESSAY"),
+            literal("float", "1"),
+          ]),
+        ),
+      ]),
+    ]),
+    digest,
+    table,
+    (definition) => (definition === essayScore.definition ? essayScore : undefined),
+  );
+
+  return compiled.ok ? compiled.value : assert.fail(compiled.refusal.detail);
+};
+
+describe("a sitting with a pending member", () => {
+  it("grades Pending while an essay's evaluation is not in, and completes to the outcomes the essay answered after its evaluation gives (D7)", () => {
+    const item = essayItem();
+    const compiled = compileTestWith(
+      element("qti-assessment-test", { identifier: "t" }, [
+        outcome("TOTAL", "float", "single"),
+        element("qti-test-part", { identifier: "p" }, [
+          element("qti-assessment-item-ref", { href: "q1.xml", identifier: "q1" }, []),
+        ]),
+        element("qti-outcome-processing", {}, [setOutcome("TOTAL", variable("q1.SCORE"))]),
+      ]),
+      digest,
+      new Map([["q1", item]]),
+      table,
+    );
+    const test = compiled.ok ? compiled.value : assert.fail(compiled.refusal.detail);
+    const essay: Submitted = {
+      kind: "posted",
+      values: new Map([["ESSAY", textValue("string", "An essay.")]]),
+    };
+    const ref = { identifier: "q1", occurrence: 1n };
+    const member = (evaluations: ReadonlyMap<number, Value>): ClosingMember => ({
+      evaluations,
+      item,
+      ref,
+      responses: essay,
+      session: fresh(noTake),
+    });
+    const sitting: SittingInput = {
+      carried: [],
+      closing: [],
+      context: new Map(),
+      pending: [member(new Map())],
+      readAt: { microseconds: 3_000_000n },
+      startedAt: { microseconds: 1_000_000n },
+      test,
+      testSeed: seed,
+      unpresented: [],
+    };
+
+    const pendingGrade = gradeSittingWith(table, sitting);
+    if ("failure" in pendingGrade || pendingGrade.kind !== "pending") {
+      return assert.fail("pending");
+    }
+
+    const [demand, ...others] = pendingGrade.demands;
+    if (demand === undefined) {
+      return assert.fail("a demand");
+    }
+
+    assert.deepStrictEqual(others, []);
+    assert.deepStrictEqual(demand.ref, ref);
+    assert.strictEqual(demand.definition, essayScore.definition);
+
+    const evaluations = new Map([[demand.place, single("float", 0.75)]]);
+    const completed = completePendingWith(table, {
+      ...sitting,
+      pending: [member(evaluations)],
+      pendingGrade,
+    });
+    if ("failure" in completed || completed.kind !== "done") {
+      return assert.fail("completed");
+    }
+
+    const answered = gradeAnswerWith(table, {
+      context: new Map(),
+      evaluations,
+      item,
+      readAt: { microseconds: 2_000_000n },
+      responses: essay,
+      session: fresh(noTake),
+      validate: false,
+    });
+    if ("failure" in answered || answered.result.kind !== "done") {
+      return assert.fail("answered");
+    }
+
+    const carried = gradeSittingWith(table, {
+      ...sitting,
+      carried: [
+        {
+          duration: fresh(noTake).duration,
+          item,
+          numAttempts: answered.result.numAttempts,
+          outcomes: answered.result.outcomes,
+          ref,
+          responses: answered.responses,
+          take: noTake,
+        },
+      ],
+      pending: [],
+    });
+    if ("failure" in carried || carried.kind !== "done") {
+      return assert.fail("carried");
+    }
+
+    assert.deepStrictEqual(completed.test.get("TOTAL"), single("float", 0.75));
+    assert.deepStrictEqual(completed.test, carried.test);
+
+    const drifted = completePendingWith(table, {
+      ...sitting,
+      pending: [member(evaluations)],
+      pendingGrade,
+      readAt: { microseconds: 3_000_001n },
+    });
+    assert.strictEqual(
+      "failure" in drifted ? drifted.failure.kind : undefined,
+      "completion-mismatch",
+    );
+  });
 });
 
 describe("a sitting's members", () => {
@@ -660,6 +830,7 @@ describe("a sitting's members", () => {
         },
       ],
       context: new Map(),
+      pending: [],
       readAt: { microseconds: 3_000_000n },
       startedAt: { microseconds: 1_000_000n },
       test,

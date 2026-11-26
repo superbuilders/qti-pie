@@ -33,6 +33,7 @@ import type {
   Declaration,
   ResponseRule,
 } from "#processing/program.ts";
+import type { CustomOperator } from "#processing/operator.ts";
 import { customOperatorOf } from "#processing/registry.ts";
 import { publishedTemplates } from "#processing/templates.generated.ts";
 import { attributeOf, qtiChildren, qtiNamespace } from "#processing/xml.ts";
@@ -154,17 +155,25 @@ const ownRef = (declaration: Declaration): VariableRef => ({
 });
 
 /**
- * Compile an item.
+ * The custom operator a `definition` names, at compile time: the registry's, which every entry
+ * binds; a test binds its own operators.
+ */
+export type CustomOperatorOf = (definition: string) => CustomOperator | undefined;
+
+/**
+ * Compile an item against the custom operators a lookup names.
  *
  * @param root - The item's `qti-assessment-item`.
  * @param digest - The stored document's digest.
  * @param table - The standard operators.
+ * @param customOperator - The custom operator each `definition` names.
  * @returns The compiled item, or the first refusal.
  */
-export const compileItemWith = <K extends ExpressionKind>(
+export const compileItemOver = <K extends ExpressionKind>(
   root: XmlElement,
   digest: Digest,
   table: OperatorTable<K>,
+  customOperator: CustomOperatorOf,
 ): Checked<CompiledItem> => {
   if (root.namespace !== qtiNamespace || root.local !== "qti-assessment-item") {
     return refused("element", 0, "compile a qti-assessment-item");
@@ -194,7 +203,7 @@ export const compileItemWith = <K extends ExpressionKind>(
   const declared = declarations.value;
   const context: CompileContext = {
     area: (element, place) => resolveArea(element, imageOfOperand(element, images), place),
-    customOperator: customOperatorOf,
+    customOperator,
     document: "item",
     response: (identifier) => {
       const declaration = declared.get(identifier);
@@ -269,6 +278,20 @@ export const compileItemWith = <K extends ExpressionKind>(
         templateProcessing: templates.value,
       });
 };
+
+/**
+ * Compile an item against the registry.
+ *
+ * @param root - The item's `qti-assessment-item`.
+ * @param digest - The stored document's digest.
+ * @param table - The standard operators.
+ * @returns The compiled item, or the first refusal.
+ */
+export const compileItemWith = <K extends ExpressionKind>(
+  root: XmlElement,
+  digest: Digest,
+  table: OperatorTable<K>,
+): Checked<CompiledItem> => compileItemOver(root, digest, table, customOperatorOf);
 
 /**
  * Every item ref of a test with the sections that hold it, in document order.
