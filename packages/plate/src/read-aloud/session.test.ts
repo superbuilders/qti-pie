@@ -470,8 +470,6 @@ describe("a press", () => {
 
               const acts = actsIn(room);
 
-              // The first's stop is heard late, as one the browser's own media controls played on
-              // would report it: the second's press stopped it, so nothing follows it.
               hear(room, { control: first, kind: "stopped" });
               deliver(room);
               finish(room);
@@ -494,7 +492,11 @@ describe("a press", () => {
       ),
     );
 
-    assert.deepStrictEqual(wrong, []);
+    assert.deepStrictEqual(
+      wrong,
+      [],
+      "the first's stop is heard late, as one the browser's own media controls played on would report it: the second's press stopped it, so nothing follows it",
+    );
   });
 
   it("of the control the session plays stops it, and a press after plays it again from its start", () => {
@@ -845,7 +847,6 @@ describe("a press that cannot play", () => {
 
             const before = playedIn(room);
 
-            // A broken source refuses the play and fires the element's error both.
             hear(room, { control, kind: "refused", refusal });
             hear(room, { control, kind: "refused", refusal: { kind: "no-source" } });
             finish(room);
@@ -862,7 +863,11 @@ describe("a press that cannot play", () => {
       ),
     );
 
-    assert.deepStrictEqual(wrong, []);
+    assert.deepStrictEqual(
+      wrong,
+      [],
+      "a broken source refuses the play and fires the element's error both, and the refusal is told once",
+    );
   });
 
   it("is told anew at every press, and the notice comes down at the next press", () => {

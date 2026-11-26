@@ -27,10 +27,6 @@ describe("readPnp", () => {
   it.effect(
     "a profile that repeats one feature 10,000 times reads its four hazards, its blocks growing linearly with the children",
     () =>
-      // Oracle: the work, counted: the blocks of JavaScript one read runs (`blockGrowth`, V8's
-      // block coverage, the same on every run and under any load) on 1,250 children and on 8 times
-      // as many, where a reader that compared each child with those before it would run about 64
-      // times the blocks. Bound: one profile of each size.
       Effect.gen(function* repeated() {
         const pnp = yield* read(repeatedProfile(fewerRepeats * growthFactor), {});
 
@@ -46,7 +42,7 @@ describe("readPnp", () => {
         assert.isBelow(
           growth,
           blockGrowthLimit,
-          `8 times the children ran ${growth.toFixed(1)} times the blocks`,
+          `8 times the children ran ${growth.toFixed(1)} times the blocks: the work, counted, is the blocks of JavaScript one read runs (\`blockGrowth\`, V8's block coverage, the same on every run and under any load) on one profile of 1,250 children and one of 8 times as many, where a reader that compared each child with those before it would run about 64 times the blocks`,
         );
       }),
   );
