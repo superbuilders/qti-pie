@@ -84,8 +84,9 @@
  *   what the child left, shows it; its board says it is disabled, no part offers a hand or holds a
  *   tab stop, and no tap, drag or key moves a counter or fires a change. Bound to a value it could
  *   not have left, it shows an empty mat and still fires no change, so it never asks the host to
- *   change a submitted answer. A tray interacting, as every rule starts one, has every part a child
- *   could press as a tab stop.
+ *   change a submitted answer. In a tray interacting, as every rule starts one, every part a child
+ *   could press is a tab stop, and in any status no other HTML, SVG or MathML element the frame
+ *   draws has a tabIndex of 0 or more.
  *
  * Every item is opened by plate's admission, its module resolved to its package's file with no
  * notice, and its frame's module registers exactly the identifier the item writes, so plate's
@@ -409,7 +410,8 @@ const TraysLayer = Layer.effect(TraysService, Effect.orDie(counterTrays));
 
 /**
  * Start a tray and give it running, failing the rule when the frame says it cannot run, and
- * holding that every part a child could press is a tab stop exactly while it is interacting.
+ * holding that every part a child could press is a tab stop exactly while it is interacting, and
+ * that no other HTML, SVG or MathML element the frame draws has a tabIndex of 0 or more.
  *
  * @param trays The trays.
  * @param played The item as played.
@@ -436,6 +438,11 @@ const running = (trays: Trays, played: Played, bound: Bound) =>
       look.tabStops,
       played.hosted.status === "interacting" ? look.mat + look.tray + 2 : 0,
       `${played.item.id} ${played.hosted.status}: every part a child could press is a tab stop exactly while it is interacting`,
+    );
+    assert.strictEqual(
+      look.strayTabStops,
+      0,
+      `${played.item.id} ${played.hosted.status}: nothing else in the frame is a tab stop`,
     );
 
     return started.running;

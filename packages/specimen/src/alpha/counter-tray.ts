@@ -1005,6 +1005,13 @@ export interface Look {
   readonly matDrawing: string;
   readonly rings: number;
   /**
+   * How many HTML, SVG and MathML elements of the frame's document tree the screen draws with a
+   * `tabIndex` of 0 or more that are none of the parts a child could press: a stop on the board
+   * itself, a ten frame's cell or anything else in the frame. No shadow root is walked; the frame
+   * has none.
+   */
+  readonly strayTabStops: number;
+  /**
    * How many of the parts a child could press, the zones' backgrounds and the shown counters, are
    * tab stops (a `tabindex` of 0 or more).
    */
@@ -1088,6 +1095,15 @@ const lookIn = (): Look => {
     ].join(""),
     rings: [...document.querySelectorAll("[data-ring]")].filter(
       (ring) => getComputedStyle(ring).visibility === "visible",
+    ).length,
+    strayTabStops: [...document.querySelectorAll("*")].filter(
+      (element) =>
+        (element instanceof HTMLElement ||
+          element instanceof SVGElement ||
+          element instanceof MathMLElement) &&
+        element.tabIndex >= 0 &&
+        element.getClientRects().length > 0 &&
+        !element.matches('[data-zone], [data-zone-of][display="inline"]'),
     ).length,
     tabStops: [
       ...document.querySelectorAll('[data-zone], [data-zone-of][display="inline"]'),
