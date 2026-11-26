@@ -1196,7 +1196,10 @@ const heardIn = (page: Page): Effect.Effect<readonly FrameMessage[], CounterTray
   );
 
 /**
- * Wait until the page has heard a message of one of some kinds, and give the first.
+ * Wait until the page has heard a message of one of some kinds, and give the first. The wait is a
+ * promise in the page that each message the window hears checks, after {@link listen}'s listener,
+ * registered first, has kept it: never a clock and never a poll, so a busy machine only lengthens
+ * it. A frame that never answers is stopped by the rule's hang guard alone.
  *
  * @param page The page.
  * @param kinds The kinds.
@@ -1208,16 +1211,27 @@ const awaited = <K extends FrameMessage["kind"]>(
 ): Effect.Effect<Extract<FrameMessage, { readonly kind: K }>, CounterTrayFailure> =>
   Effect.gen(function* waited() {
     yield* attempt(`heard ${kinds.join(" or ")}`, () =>
-      page.waitForFunction(
-        (wanted: readonly string[]) =>
+      page.evaluate((wanted: readonly string[]) => {
+        const { promise, resolve } = Promise.withResolvers<true>();
+        const heard = (): boolean =>
           window.trayMessages.some(
             (message) =>
               message instanceof Object &&
               "kind" in message &&
               wanted.includes(String(message.kind)),
-          ),
-        kinds,
-      ),
+          );
+        const check = (): void => {
+          if (heard()) {
+            window.removeEventListener("message", check);
+            resolve(true);
+          }
+        };
+
+        window.addEventListener("message", check);
+        check();
+
+        return promise;
+      }, kinds),
     );
 
     const heard = yield* heardIn(page);
