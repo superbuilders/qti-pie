@@ -350,6 +350,11 @@ export interface HostedPage {
    */
   readonly start: (item: HostedItem, start: Start) => Effect.Effect<FrameMessage, HostedPciFailure>;
   /**
+   * Press Tab, and settle once the frame's document holds the focus: a key pressed before the
+   * browser has moved the keyboard's focus from the page into the frame goes to the page.
+   */
+  readonly tabIn: Effect.Effect<void, HostedPciFailure>;
+  /**
    * Tap points of the frame's document in order, with the pointer.
    */
   readonly tapAt: (points: readonly Point[]) => Effect.Effect<void, HostedPciFailure>;
@@ -456,6 +461,14 @@ export const hostedPage = (
 
           return settled;
         }),
+      tabIn: attempt("press Tab", () => page.keyboard.press("Tab")).pipe(
+        Effect.andThen(inner),
+        Effect.flatMap((frame) =>
+          attempt("wait for the frame to hold the focus", async () => {
+            await frame.waitForFunction(() => document.activeElement !== document.body);
+          }),
+        ),
+      ),
       tapAt: (points) =>
         attempt("find the frame's place", async () => {
           const box = await page.locator("iframe").boundingBox();

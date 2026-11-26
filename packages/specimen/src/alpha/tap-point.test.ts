@@ -523,13 +523,14 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
       const grid = yield* Effect.orDie(hostedItem(tapPoint, "grid-10"));
 
       yield* started(page, line, {});
-      yield* Effect.orDie(page.press(["Tab", "ArrowRight", "ArrowRight", "Enter"]));
+      yield* Effect.orDie(page.tabIn);
+      yield* Effect.orDie(page.press(["ArrowRight", "ArrowRight", "Enter"]));
       assert.deepStrictEqual((yield* finished(page)).response, lineJson(2));
 
       yield* started(page, grid, {});
+      yield* Effect.orDie(page.tabIn);
       yield* Effect.orDie(
         page.press([
-          "Tab",
           ...Array.from({ length: 3 }, () => "ArrowRight"),
           ...Array.from({ length: 6 }, () => "ArrowUp"),
           "Space",
@@ -542,9 +543,9 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
         "Space taps, and taps again",
       );
       yield* started(page, grid, {});
+      yield* Effect.orDie(page.tabIn);
       yield* Effect.orDie(
         page.press([
-          "Tab",
           ...Array.from({ length: 3 }, () => "ArrowRight"),
           ...Array.from({ length: 6 }, () => "ArrowUp"),
           "Space",

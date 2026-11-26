@@ -682,7 +682,8 @@ layer(HostedLayer)("the enter-numbers PCI", (it) => {
         const item = yield* Effect.orDie(hostedItem(enterNumbers, "fraction-sum"));
 
         yield* started(page, item, {});
-        yield* Effect.orDie(page.press(["Tab", "1", "0", "/", "1", "4", "4", "Backspace"]));
+        yield* Effect.orDie(page.tabIn);
+        yield* Effect.orDie(page.press(["1", "0", "/", "1", "4", "4", "Backspace"]));
         assert.deepStrictEqual(yield* boxTexts(page), ["10", "14"]);
         yield* Effect.orDie(page.press(["Shift+Tab", "Backspace", "Backspace", "5"]));
         assert.deepStrictEqual((yield* finished(page)).response, jsonOf([5, 14]));
