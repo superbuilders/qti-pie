@@ -71,6 +71,7 @@ import {
 } from "#pantry/qti/names.ts";
 import { placedDocuments } from "#pantry/qti/overlay-queries/expression.ts";
 import { readDeclarations } from "#pantry/qti/overlay-queries/readings.ts";
+import { Instance } from "#pantry/qti/tests.ts";
 import { expressionKinds, ruleKindHandles } from "#pantry/vocab/terms/expression-types.ts";
 import { itemKind } from "#pantry/vocab/terms/tests.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
@@ -353,113 +354,42 @@ const placedDeclarations = query(QtiViews).rule((r) => {
 const PlacedVariableRefDeclaration = derived("PlacedVariableRefDeclaration", placedDeclarations);
 
 /**
- * The declaration whose variable each placed reference stands for, keyed as the placed reference,
- * with its type there: a declared one's, its assembly's root's ({@link placedDeclarations}), and a
- * read one's, the item's declaration its reading names through an item ref
- * (`readDeclarations` of `#pantry/qti/overlay-queries/readings.ts`), each by the declaration's
- * document `declPath` and place `declStart`. "E1 derived" types each as its declaration.
- */
-const variableDeclarations = query(QtiViews)
-  .rule((r) => {
-    const {
-      assembly,
-      attribute,
-      baseType,
-      cardinality,
-      declaration,
-      instance,
-      package: pkg,
-      path,
-      start,
-    } = v(placedDeclarations, "declared");
-
-    return r
-      .match(placedDeclarations, {
-        assembly,
-        attribute,
-        baseType,
-        cardinality,
-        declaration,
-        instance,
-        package: pkg,
-        path,
-        start,
-      })
-      .find({
-        assembly,
-        attribute,
-        baseType,
-        cardinality,
-        declPath: assembly,
-        declStart: declaration,
-        instance,
-        package: pkg,
-        path,
-        start,
-      });
-  })
-  .rule((r) => {
-    const {
-      assembly,
-      attribute,
-      baseType,
-      cardinality,
-      declPath,
-      declStart,
-      instance,
-      package: pkg,
-      path,
-      start,
-    } = v(readDeclarations, "read");
-
-    return r
-      .match(readDeclarations, {
-        assembly,
-        attribute,
-        baseType,
-        cardinality,
-        declPath,
-        declStart,
-        instance,
-        package: pkg,
-        path,
-        start,
-      })
-      .find({
-        assembly,
-        attribute,
-        baseType,
-        cardinality,
-        declPath,
-        declStart,
-        instance,
-        package: pkg,
-        path,
-        start,
-      });
-  });
-
-/**
- * The declarations {@link variableDeclarations} types placed references as, each with the base type
- * it gives them: a base type other than `unknown` names a declaration that has one, which the law
- * that reads it holds typed. It holds what that law reads, the declaration's place and the base
- * type; the reference and its cardinality stand in {@link variableDeclarations}, which the views
- * that read them read.
+ * The declarations placed references are typed as, each with the base type it gives them: a
+ * declared reference's, its assembly's root's ({@link placedDeclarations}), and a read one's, the
+ * item's declaration its reading names through an item ref (`readDeclarations` of
+ * `#pantry/qti/overlay-queries/readings.ts`), each by the declaration's document `declPath` and
+ * place `declStart`. It holds what the law that reads it reads, the declaration's place and the
+ * base type: a base type other than `unknown` names a declaration that has one, which that law
+ * holds typed.
+ *
+ * Each view of a placed reference's declaration reads the two in a rule each, and no relation is
+ * their union: the union proves no key narrower than its whole heading, three documents (the
+ * assembly, the reference's and the declaration's) beside three places, which one B-tree entry
+ * cannot hold. A read reference's document is its placement's, its instance's in `Instance`.
+ * "E1 derived" types each reference as its declaration.
  */
 const PlacedVariableDeclaration = derived(
   "PlacedVariableDeclaration",
-  query(QtiViews).rule((r) => {
-    const { baseType, declPath, declStart, package: pkg } = v(variableDeclarations, "reference");
+  query(QtiViews)
+    .rule((r) => {
+      const { assembly, baseType, declaration, package: pkg } = v(placedDeclarations, "declared");
 
-    return r
-      .match(variableDeclarations, { baseType, declPath, declStart, package: pkg })
-      .find({ baseType, declPath, declStart, package: pkg });
-  }),
+      return r
+        .match(placedDeclarations, { assembly, baseType, declaration, package: pkg })
+        .find({ baseType, declPath: assembly, declStart: declaration, package: pkg });
+    })
+    .rule((r) => {
+      const { baseType, declPath, declStart, package: pkg } = v(readDeclarations, "read");
+
+      return r
+        .match(readDeclarations, { baseType, declPath, declStart, package: pkg })
+        .find({ baseType, declPath, declStart, package: pkg });
+    }),
 );
 
 /**
- * A placed reference's cardinality beside its declaration's ({@link variableDeclarations}), keyed
- * as the placed reference, where the declaration has one (spec reading `binding-by-name`):
+ * A placed reference's cardinality beside its declaration's ({@link PlacedVariableDeclaration}),
+ * keyed as the placed reference, where the declaration has one (spec reading `binding-by-name`):
  * `cardinality`, the reference's type's, and `declCardinality`, its {@link DeclarationName}'s, whose
  * `ValueCardinalityOf` image "E1 derived" holds the first to. A reference to a declaration whose
  * cardinality is unwritten or spells nothing has none, and no rule reads its type's cardinality:
@@ -468,22 +398,50 @@ const PlacedVariableDeclaration = derived(
  */
 const PlacedVariableCardinality = derived(
   "PlacedVariableCardinality",
-  query(QtiViews).rule((r) => {
-    const {
-      assembly,
-      attribute,
-      cardinality,
-      declPath,
-      declStart,
-      instance,
-      package: pkg,
-      path,
-      start,
-    } = v(variableDeclarations, "reference");
-    const { cardinality: declCardinality } = v(DeclarationName, "name");
+  query(QtiViews)
+    .rule((r) => {
+      const {
+        assembly,
+        attribute,
+        cardinality,
+        declaration,
+        instance,
+        package: pkg,
+        path,
+        start,
+      } = v(placedDeclarations, "declared");
+      const { cardinality: declCardinality } = v(DeclarationName, "name");
 
-    return r
-      .match(variableDeclarations, {
+      return r
+        .match(placedDeclarations, {
+          assembly,
+          attribute,
+          cardinality,
+          declaration,
+          instance,
+          package: pkg,
+          path,
+          start,
+        })
+        .match(DeclarationName, {
+          cardinality: declCardinality,
+          package: pkg,
+          path: assembly,
+          start: declaration,
+        })
+        .find({
+          assembly,
+          attribute,
+          cardinality,
+          declCardinality,
+          instance,
+          package: pkg,
+          path,
+          start,
+        });
+    })
+    .rule((r) => {
+      const {
         assembly,
         attribute,
         cardinality,
@@ -491,54 +449,87 @@ const PlacedVariableCardinality = derived(
         declStart,
         instance,
         package: pkg,
-        path,
         start,
-      })
-      .match(DeclarationName, {
-        cardinality: declCardinality,
-        package: pkg,
-        path: declPath,
-        start: declStart,
-      })
-      .find({
+      } = v(readDeclarations, "read");
+      const { document: path } = v(Instance, "placement");
+      const { cardinality: declCardinality } = v(DeclarationName, "name");
+
+      return r
+        .match(readDeclarations, {
+          assembly,
+          attribute,
+          cardinality,
+          declPath,
+          declStart,
+          instance,
+          package: pkg,
+          start,
+        })
+        .match(Instance, { assembly, document: path, package: pkg, start: instance })
+        .match(DeclarationName, {
+          cardinality: declCardinality,
+          package: pkg,
+          path: declPath,
+          start: declStart,
+        })
+        .find({
+          assembly,
+          attribute,
+          cardinality,
+          declCardinality,
+          instance,
+          package: pkg,
+          path,
+          start,
+        });
+    }),
+);
+
+/**
+ * A placed reference's base type beside its declaration's ({@link PlacedVariableDeclaration}),
+ * keyed as the placed reference, where the declaration has one: `baseType`, the reference's type's,
+ * and `valueBase`, its {@link TypedDeclarationName}'s, the declaration's base type as an
+ * expression's type, which "E1 derived" holds the first to. A reference to a declaration with no
+ * base type has none, and its type's base type is `unknown` (spec reading `unspelled-declaration`),
+ * a record's among them.
+ */
+const PlacedVariableBase = derived(
+  "PlacedVariableBase",
+  query(QtiViews)
+    .rule((r) => {
+      const {
         assembly,
         attribute,
-        cardinality,
-        declCardinality,
+        baseType,
+        declaration,
         instance,
         package: pkg,
         path,
         start,
-      });
-  }),
-);
+      } = v(placedDeclarations, "declared");
+      const { valueBase } = v(TypedDeclarationName, "name");
 
-/**
- * A placed reference's base type beside its declaration's ({@link variableDeclarations}), keyed as
- * the placed reference, where the declaration has one: `baseType`, the reference's type's, and
- * `valueBase`, its {@link TypedDeclarationName}'s, the declaration's base type as an expression's
- * type, which "E1 derived" holds the first to. A reference to a declaration with no base type has
- * none, and its type's base type is `unknown` (spec reading `unspelled-declaration`), a record's
- * among them.
- */
-const PlacedVariableBase = derived(
-  "PlacedVariableBase",
-  query(QtiViews).rule((r) => {
-    const {
-      assembly,
-      attribute,
-      baseType,
-      declPath,
-      declStart,
-      instance,
-      package: pkg,
-      path,
-      start,
-    } = v(variableDeclarations, "reference");
-    const { valueBase } = v(TypedDeclarationName, "name");
-
-    return r
-      .match(variableDeclarations, {
+      return r
+        .match(placedDeclarations, {
+          assembly,
+          attribute,
+          baseType,
+          declaration,
+          instance,
+          package: pkg,
+          path,
+          start,
+        })
+        .match(TypedDeclarationName, {
+          package: pkg,
+          path: assembly,
+          start: declaration,
+          valueBase,
+        })
+        .find({ assembly, attribute, baseType, instance, package: pkg, path, start, valueBase });
+    })
+    .rule((r) => {
+      const {
         assembly,
         attribute,
         baseType,
@@ -546,12 +537,26 @@ const PlacedVariableBase = derived(
         declStart,
         instance,
         package: pkg,
-        path,
         start,
-      })
-      .match(TypedDeclarationName, { package: pkg, path: declPath, start: declStart, valueBase })
-      .find({ assembly, attribute, baseType, instance, package: pkg, path, start, valueBase });
-  }),
+      } = v(readDeclarations, "read");
+      const { document: path } = v(Instance, "placement");
+      const { valueBase } = v(TypedDeclarationName, "name");
+
+      return r
+        .match(readDeclarations, {
+          assembly,
+          attribute,
+          baseType,
+          declPath,
+          declStart,
+          instance,
+          package: pkg,
+          start,
+        })
+        .match(Instance, { assembly, document: path, package: pkg, start: instance })
+        .match(TypedDeclarationName, { package: pkg, path: declPath, start: declStart, valueBase })
+        .find({ assembly, attribute, baseType, instance, package: pkg, path, start, valueBase });
+    }),
 );
 
 /**

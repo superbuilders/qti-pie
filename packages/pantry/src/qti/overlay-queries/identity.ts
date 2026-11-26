@@ -132,16 +132,17 @@ export const AssembledId = derived(
  * (`instanceAnchors`, `#pantry/qti/overlay-queries/tests.ts`): the copy of a section or of the
  * assembly's root that holds it. Its key on `(package, assembly, anchor, idDigest)` is cvc-id
  * clause 2 within a copy, so a fragment placed twice in one item, or in one test's copy, holds its
- * IDs twice, as the merged document does.
+ * IDs twice, as the merged document does. The bound element's document is its instance's, so it is
+ * no field.
  */
 const anchoredIdRows = query(QtiBase).rule((r) => {
   const { anchor, anchorDocument, assembly, instance, package: pkg } = v(instanceAnchors, "anchor");
-  const { idDigest, owner, path } = v(PlacedId, "placed");
+  const { idDigest, owner } = v(PlacedId, "placed");
 
   return r
     .match(instanceAnchors, { anchor, anchorDocument, assembly, instance, package: pkg })
-    .match(PlacedId, { assembly, idDigest, instance, owner, package: pkg, path })
-    .find({ anchor, anchorDocument, assembly, idDigest, instance, owner, package: pkg, path });
+    .match(PlacedId, { assembly, idDigest, instance, owner, package: pkg })
+    .find({ anchor, anchorDocument, assembly, idDigest, instance, owner, package: pkg });
 });
 
 /**

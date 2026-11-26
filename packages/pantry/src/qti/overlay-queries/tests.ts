@@ -1231,8 +1231,10 @@ const BranchResolution = derived("BranchResolution", branchResolutionRows);
  * referred to" (§2.12), and "Adaptive test branch rules can only refer to included or directly
  * referenced sections" (§7.5). It stands where its include stands, so its order is the include's
  * place in the holder's document, and its part and its repetition are its placed root's
- * (`partInstance`, `partPath`, `partStart`, a placement's part being its site's), as every other
- * candidate's are its own.
+ * (`partInstance`, `partStart`, a placement's part being its site's), as every other candidate's
+ * are its own. The rule's document and the placed root's are their instances' documents, so neither
+ * is a field; the target's, `targetPath`, is the one its readers read by, since a pool is a
+ * document's.
  */
 const branchCandidateRows = query(QtiBase)
   .rule((r) => {
@@ -1276,9 +1278,7 @@ const branchCandidateRows = query(QtiBase)
         namedKind,
         package: pkg,
         partInstance: instance,
-        partPath: path,
         partStart: named,
-        path,
         point: source,
         pointEnd: sourceEnd,
         source,
@@ -1358,9 +1358,7 @@ const branchCandidateRows = query(QtiBase)
         namedKind,
         package: pkg,
         partInstance: targetInstance,
-        partPath: targetPath,
         partStart: named,
-        path,
         point,
         pointEnd,
         source,
@@ -1425,9 +1423,7 @@ const branchCandidateRows = query(QtiBase)
         namedKind,
         package: pkg,
         partInstance: included,
-        partPath: includedPath,
         partStart: root,
-        path,
         point: source,
         pointEnd: sourceEnd,
         source,
@@ -1516,9 +1512,7 @@ const branchCandidateRows = query(QtiBase)
         namedKind,
         package: pkg,
         partInstance: included,
-        partPath: includedPath,
         partStart: root,
-        path,
         point,
         pointEnd,
         source,
@@ -1550,7 +1544,8 @@ const branchingKinds = [itemRefKind, sectionKind, sectionRefKind] as const;
  *   whose test part is the source's, never an item ref a replacement can repeat in its placement
  *   ({@link assembledReplaceableRows}).
  *
- * A reserved exit is admitted on every rule, and names no element.
+ * A reserved exit is admitted on every rule, and names no element. The rule's document is its
+ * instance's, so it is no field ({@link branchCandidateRows}).
  */
 const targetedBranchRuleRows = query(QtiBase)
   .rule((r) => {
@@ -1559,7 +1554,6 @@ const targetedBranchRuleRows = query(QtiBase)
       instance,
       named,
       package: pkg,
-      path,
       point,
       pointEnd,
       start,
@@ -1575,7 +1569,6 @@ const targetedBranchRuleRows = query(QtiBase)
         named,
         namedKind: partKind,
         package: pkg,
-        path,
         point,
         pointEnd,
         sourceKind: partKind,
@@ -1590,7 +1583,6 @@ const targetedBranchRuleRows = query(QtiBase)
         instance,
         named,
         package: pkg,
-        path,
         point,
         pointEnd,
         start,
@@ -1607,9 +1599,7 @@ const targetedBranchRuleRows = query(QtiBase)
       namedKind,
       package: pkg,
       partInstance,
-      partPath,
       partStart,
-      path,
       point,
       pointEnd,
       source,
@@ -1629,9 +1619,7 @@ const targetedBranchRuleRows = query(QtiBase)
         namedKind,
         package: pkg,
         partInstance,
-        partPath,
         partStart,
-        path,
         point,
         pointEnd,
         source,
@@ -1641,13 +1629,12 @@ const targetedBranchRuleRows = query(QtiBase)
         targetInstance,
         targetPath,
       })
-      .match(assembledPartRows, { assembly, instance, package: pkg, part, path, start: source })
+      .match(assembledPartRows, { assembly, instance, package: pkg, part, start: source })
       .match(assembledPartRows, {
         assembly,
         instance: partInstance,
         package: pkg,
         part,
-        path: partPath,
         start: partStart,
       })
       .where(
@@ -1657,7 +1644,6 @@ const targetedBranchRuleRows = query(QtiBase)
           assembly,
           instance: partInstance,
           package: pkg,
-          path: partPath,
           start: partStart,
         }),
       )
@@ -1666,7 +1652,6 @@ const targetedBranchRuleRows = query(QtiBase)
         instance,
         named,
         package: pkg,
-        path,
         point,
         pointEnd,
         start,
@@ -2149,7 +2134,6 @@ const ForwardBranchRule = derived(
         instance,
         named,
         package: pkg,
-        path,
         pointEnd,
         start,
       } = v(targetedBranchRuleRows, "rule");
@@ -2160,24 +2144,21 @@ const ForwardBranchRule = derived(
           instance,
           named,
           package: pkg,
-          path,
           pointEnd,
           start,
         })
         .where(r.ge(named, pointEnd))
-        .find({ assembly, instance, package: pkg, path, start });
+        .find({ assembly, instance, package: pkg, start });
     })
     .rule((r) => {
       const {
         assembly,
         instance,
         package: pkg,
-        path,
         point,
         start,
         targetEnd,
         targetInstance,
-        targetPath,
       } = v(targetedBranchRuleRows, "rule");
       const { nearest } = v(commonSectionRows, "common");
 
@@ -2186,26 +2167,23 @@ const ForwardBranchRule = derived(
           assembly,
           instance,
           package: pkg,
-          path,
           point,
           start,
           targetEnd,
           targetInstance,
-          targetPath,
         })
         .match(commonSectionRows, { assembly, instance, nearest, package: pkg, start })
         .match(shuffledSections, {
           assembly,
           instance: targetInstance,
           package: pkg,
-          path: targetPath,
           section: nearest,
         })
         .where(
           r.le(targetEnd, point),
           r.not(fixedBackwardRows, { assembly, instance, package: pkg, start }),
         )
-        .find({ assembly, instance, package: pkg, path, start });
+        .find({ assembly, instance, package: pkg, start });
     }),
 );
 

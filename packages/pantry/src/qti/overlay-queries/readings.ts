@@ -256,9 +256,10 @@ const assembledItems = query(QtiViews).rule((r) => {
 
 /**
  * The variables each item ref of a test's assembly names through its item, by the test, the item
- * ref's placement and the variable's name, with the declaration a declared or mapped one reads:
- * each the item declares (§7.47), and each a variable mapping of the item ref gives one of the
- * item's outcomes (§7.48, reading `variable-mapping-adds-name`).
+ * ref's placement and the variable's name, with the item ref's identifier and the kind of the
+ * declaration a declared or mapped one reads: each the item declares (§7.47), and each a variable
+ * mapping of the item ref gives one of the item's outcomes (§7.48, reading
+ * `variable-mapping-adds-name`). The item ref's document is its placement's, so it is no field.
  */
 const itemVariables = query(QtiViews)
   .rule((r) => {
@@ -268,14 +269,9 @@ const itemVariables = query(QtiViews)
       instance,
       item,
       package: pkg,
-      path,
       start,
     } = v(assembledItems, "ref");
-    const {
-      declarationKind,
-      identifier: variable,
-      start: declaration,
-    } = v(NamedDeclaration, "declaration");
+    const { declarationKind, identifier: variable } = v(NamedDeclaration, "declaration");
 
     return r
       .match(assembledItems, {
@@ -284,7 +280,6 @@ const itemVariables = query(QtiViews)
         instance,
         item,
         package: pkg,
-        path,
         start,
       })
       .match(NamedDeclaration, {
@@ -292,20 +287,8 @@ const itemVariables = query(QtiViews)
         identifier: variable,
         package: pkg,
         path: item,
-        start: declaration,
       })
-      .find({
-        assembly,
-        declaration,
-        declarationKind,
-        instance,
-        item,
-        package: pkg,
-        path,
-        scopeName,
-        start,
-        variable,
-      });
+      .find({ assembly, declarationKind, instance, package: pkg, scopeName, start, variable });
   })
   .rule((r) => {
     const {
@@ -318,7 +301,7 @@ const itemVariables = query(QtiViews)
       start,
     } = v(assembledItems, "ref");
     const { source, target: variable } = v(variableMappingRows, "mapping");
-    const { declarationKind, start: declaration } = v(NamedDeclaration, "declaration");
+    const { declarationKind } = v(NamedDeclaration, "declaration");
 
     return r
       .match(assembledItems, {
@@ -336,16 +319,12 @@ const itemVariables = query(QtiViews)
         identifier: source,
         package: pkg,
         path: item,
-        start: declaration,
       })
       .find({
         assembly,
-        declaration,
         declarationKind,
         instance,
-        item,
         package: pkg,
-        path,
         scopeName,
         start,
         variable: keyedIdentifier(variable),
@@ -381,7 +360,8 @@ const linkScopes = query(QtiViews).rule((r) => {
  * and its variable's name: what "Prefixed reference" keys and "Variable declared" holds every
  * placed reference to (readings `dotted-reference`, `test-identifier-namespace`,
  * `numbered-reference`, `prefixed-built-in-variables`, `variable-mapping-adds-name`,
- * `mapping-and-default-names` and `test-setter-scope`).
+ * `mapping-and-default-names` and `test-setter-scope`). The scope's placement names its document,
+ * so the document is no field ({@link scopedReadingRows}).
  */
 const testReadingRows = query(QtiViews)
   .rule((r) => {
@@ -407,7 +387,6 @@ const testReadingRows = query(QtiViews)
         path,
         scope: 0n,
         scopeInstance: 0n,
-        scopePath: assembly,
         start,
         variable: identifier,
       });
@@ -435,7 +414,6 @@ const testReadingRows = query(QtiViews)
         path,
         scope: 0n,
         scopeInstance: 0n,
-        scopePath: assembly,
         start,
         variable: identifier,
       });
@@ -454,7 +432,6 @@ const testReadingRows = query(QtiViews)
     } = v(prefixingReferences, "reference");
     const {
       instance: scopeInstance,
-      path: scopePath,
       scopeName,
       start: scope,
       variable,
@@ -466,7 +443,6 @@ const testReadingRows = query(QtiViews)
         assembly,
         instance: scopeInstance,
         package: pkg,
-        path: scopePath,
         scopeName,
         start: scope,
         variable,
@@ -479,7 +455,6 @@ const testReadingRows = query(QtiViews)
         path,
         scope,
         scopeInstance,
-        scopePath,
         start,
         variable,
       });
@@ -499,7 +474,6 @@ const testReadingRows = query(QtiViews)
     const {
       identifier: scopeName,
       instance: scopeInstance,
-      path: scopePath,
       start: scope,
     } = v(assembledItems, "ref");
 
@@ -510,7 +484,6 @@ const testReadingRows = query(QtiViews)
         identifier: scopeName,
         instance: scopeInstance,
         package: pkg,
-        path: scopePath,
         start: scope,
       })
       .where(r.eq(identifier, Text.concat(scopeName, ".numAttempts")))
@@ -521,7 +494,6 @@ const testReadingRows = query(QtiViews)
         path,
         scope,
         scopeInstance,
-        scopePath,
         start,
         variable: Type.literal(QtiIdentifier, "numAttempts"),
       });
@@ -541,7 +513,6 @@ const testReadingRows = query(QtiViews)
     const {
       identifier: scopeName,
       instance: scopeInstance,
-      path: scopePath,
       start: scope,
     } = v(assembledItems, "ref");
 
@@ -552,7 +523,6 @@ const testReadingRows = query(QtiViews)
         identifier: scopeName,
         instance: scopeInstance,
         package: pkg,
-        path: scopePath,
         start: scope,
       })
       .where(r.eq(identifier, Text.concat(scopeName, ".duration")))
@@ -563,7 +533,6 @@ const testReadingRows = query(QtiViews)
         path,
         scope,
         scopeInstance,
-        scopePath,
         start,
         variable: Type.literal(QtiIdentifier, "duration"),
       });
@@ -583,7 +552,6 @@ const testReadingRows = query(QtiViews)
     const {
       identifier: scopeName,
       instance: scopeInstance,
-      path: scopePath,
       start: scope,
     } = v(assembledItems, "ref");
 
@@ -594,7 +562,6 @@ const testReadingRows = query(QtiViews)
         identifier: scopeName,
         instance: scopeInstance,
         package: pkg,
-        path: scopePath,
         start: scope,
       })
       .where(r.eq(identifier, Text.concat(scopeName, ".completionStatus")))
@@ -605,7 +572,6 @@ const testReadingRows = query(QtiViews)
         path,
         scope,
         scopeInstance,
-        scopePath,
         start,
         variable: Type.literal(QtiIdentifier, "completionStatus"),
       });
@@ -625,7 +591,6 @@ const testReadingRows = query(QtiViews)
     const {
       identifier: scopeName,
       instance: scopeInstance,
-      path: scopePath,
       start: scope,
     } = v(assembledItems, "ref");
 
@@ -636,7 +601,6 @@ const testReadingRows = query(QtiViews)
         identifier: scopeName,
         instance: scopeInstance,
         package: pkg,
-        path: scopePath,
         start: scope,
       })
       .where(r.eq(identifier, Text.concat(scopeName, ".QTI_CONTEXT")))
@@ -647,7 +611,6 @@ const testReadingRows = query(QtiViews)
         path,
         scope,
         scopeInstance,
-        scopePath,
         start,
         variable: Type.literal(QtiIdentifier, "QTI_CONTEXT"),
       });
@@ -663,7 +626,6 @@ const testReadingRows = query(QtiViews)
       path,
       scope,
       scopeInstance,
-      scopePath,
       start,
       variable,
     } = v(LinkReading, "link");
@@ -676,7 +638,6 @@ const testReadingRows = query(QtiViews)
         path,
         scope,
         scopeInstance,
-        scopePath,
         start,
         variable,
       })
@@ -687,7 +648,6 @@ const testReadingRows = query(QtiViews)
         path,
         scope,
         scopeInstance,
-        scopePath,
         start,
         variable,
       });
@@ -708,7 +668,6 @@ const testReadingRows = query(QtiViews)
       identifier: scopeName,
       instance: scopeInstance,
       kind,
-      path: scopePath,
       start: scope,
     } = v(assembledScopes, "scope");
 
@@ -720,7 +679,6 @@ const testReadingRows = query(QtiViews)
         instance: scopeInstance,
         kind,
         package: pkg,
-        path: scopePath,
         start: scope,
       })
       .where(r.in(kind, durationScopes), r.eq(identifier, Text.concat(scopeName, ".duration")))
@@ -731,7 +689,6 @@ const testReadingRows = query(QtiViews)
         path,
         scope,
         scopeInstance,
-        scopePath,
         start,
         variable: Type.literal(QtiIdentifier, "duration"),
       });
@@ -747,7 +704,6 @@ const testReadingRows = query(QtiViews)
       path,
       scope,
       scopeInstance,
-      scopePath,
       start,
       variable,
     } = v(NumberedReading, "numbered");
@@ -760,7 +716,6 @@ const testReadingRows = query(QtiViews)
         path,
         scope,
         scopeInstance,
-        scopePath,
         start,
         variable,
       })
@@ -771,7 +726,6 @@ const testReadingRows = query(QtiViews)
         path,
         scope,
         scopeInstance,
-        scopePath,
         start,
         variable,
       });
@@ -780,8 +734,8 @@ const testReadingRows = query(QtiViews)
 /**
  * {@link testReadingRows} as a relation of `Qti`, which "Prefixed reference" keys and "Variable
  * declared" holds every placed reference to: each reading's scope by its placement and element
- * alone, since its placement, `scopeInstance`, names the document `scopePath` is, and its variable
- * a `QtiIdentifier`, as every variable a reading names is: an item's or a test's declared
+ * alone, since its placement, `scopeInstance`, names its document, and its variable a
+ * `QtiIdentifier`, as every variable a reading names is: an item's or a test's declared
  * identifier, a built-in, a variable mapping's target ({@link itemVariables}) or a numbered or
  * linked reading's own, each held within `identifierBytes` where a document writes it ("Key text
  * bound").
@@ -825,6 +779,50 @@ const TestReading = derived(
 );
 
 /**
+ * Each reading of {@link testReadingRows} beside its scope's document, `scopePath`, the document
+ * its placement places: what a reading whose scope is an element of that document (an item ref, a
+ * test part, a section or a section ref) is read through. The test document's own placement, 0,
+ * places the test, so an unsplit reading's scope is the test document's node 0.
+ */
+const scopedReadingRows = query(QtiViews).rule((r) => {
+  const {
+    assembly,
+    attribute,
+    package: pkg,
+    path,
+    scope,
+    scopeInstance,
+    start,
+    variable,
+  } = v(testReadingRows, "reading");
+  const { path: scopePath } = v(testInstances, "placement");
+
+  return r
+    .match(testReadingRows, {
+      assembly,
+      attribute,
+      package: pkg,
+      path,
+      scope,
+      scopeInstance,
+      start,
+      variable,
+    })
+    .match(testInstances, { assembly, instance: scopeInstance, package: pkg, path: scopePath })
+    .find({
+      assembly,
+      attribute,
+      package: pkg,
+      path,
+      scope,
+      scopeInstance,
+      scopePath,
+      start,
+      variable,
+    });
+});
+
+/**
  * Each weighted `qti-variable` placed in a test's assembly, by the test and the variable's place:
  * one that writes a `weight-identifier`.
  */
@@ -862,10 +860,18 @@ const ItemScopedReading = derived(
       scope,
       scopePath,
       start,
-    } = v(testReadingRows, "reading");
+    } = v(scopedReadingRows, "reading");
 
     return r
-      .match(testReadingRows, { assembly, attribute, package: pkg, path, scope, scopePath, start })
+      .match(scopedReadingRows, {
+        assembly,
+        attribute,
+        package: pkg,
+        path,
+        scope,
+        scopePath,
+        start,
+      })
       .match(Node, { kind: itemRefKind, package: pkg, path: scopePath, start: scope })
       .where(r.eq(attribute, "identifier"))
       .find({ assembly, package: pkg, path, start });
@@ -1023,7 +1029,6 @@ const NumberedTarget = derived(
           assembly,
           instance: scopeInstance,
           package: pkg,
-          path: scopePath,
           start: scope,
           variable,
         })
@@ -1109,7 +1114,6 @@ const PrefixedDeclaration = derived(
     const {
       declarationKind,
       instance: scopeInstance,
-      path: scopePath,
       scopeName,
       start: scope,
       variable,
@@ -1130,7 +1134,6 @@ const PrefixedDeclaration = derived(
         declarationKind,
         instance: scopeInstance,
         package: pkg,
-        path: scopePath,
         scopeName,
         start: scope,
         variable,
@@ -1165,7 +1168,8 @@ const builtInTypeOf = (root: string, variable: string) => {
 
 /**
  * Each read placed reference of a test's assembly beside each of its readings (`TestReading`), by
- * the placed reference, with its type and the reading's scope and variable: what its proofs read.
+ * the placed reference, with its type and the reading's scope, its placement and document, and
+ * variable: what its proofs read.
  */
 const readRows = query(QtiViews).rule((r) => {
   const {
@@ -1178,7 +1182,7 @@ const readRows = query(QtiViews).rule((r) => {
     path,
     start,
   } = v(PlacedVariableRef, "placed");
-  const { scope, scopePath, variable } = v(testReadingRows, "reading");
+  const { scope, scopeInstance, scopePath, variable } = v(scopedReadingRows, "reading");
 
   return r
     .match(PlacedVariableRef, {
@@ -1192,12 +1196,13 @@ const readRows = query(QtiViews).rule((r) => {
       resolution: "read",
       start,
     })
-    .match(testReadingRows, {
+    .match(scopedReadingRows, {
       assembly,
       attribute,
       package: pkg,
       path,
       scope,
+      scopeInstance,
       scopePath,
       start,
       variable,
@@ -1211,6 +1216,7 @@ const readRows = query(QtiViews).rule((r) => {
       package: pkg,
       path,
       scope,
+      scopeInstance,
       scopePath,
       start,
       variable,
@@ -1221,9 +1227,9 @@ const readRows = query(QtiViews).rule((r) => {
  * Each read placed reference beside its readings through an item ref that names an item document
  * whose variable is a declaration of the item: its own of the name, or else the source declaration
  * a variable mapping of the ref gives the name (§7.48), by the item's path `declPath` and the
- * declaration's place `declStart`, with the reference's type. Exported for the typing of a placed
- * reference as its declaration (`PlacedVariableDeclaration`,
- * `#pantry/qti/overlay-queries/reference.ts`).
+ * declaration's place `declStart`, with the reference's type. The reference's document is its
+ * placement's, so it is no field. Exported for the typing of a placed reference as its declaration
+ * (`PlacedVariableDeclaration`, `#pantry/qti/overlay-queries/reference.ts`).
  */
 export const readDeclarations = query(QtiViews)
   .rule((r) => {
@@ -1234,7 +1240,6 @@ export const readDeclarations = query(QtiViews)
       cardinality,
       instance,
       package: pkg,
-      path,
       scope,
       scopePath,
       start,
@@ -1251,7 +1256,6 @@ export const readDeclarations = query(QtiViews)
         cardinality,
         instance,
         package: pkg,
-        path,
         scope,
         scopePath,
         start,
@@ -1273,7 +1277,6 @@ export const readDeclarations = query(QtiViews)
         declStart: declaration,
         instance,
         package: pkg,
-        path,
         start,
       });
   })
@@ -1285,7 +1288,6 @@ export const readDeclarations = query(QtiViews)
       cardinality,
       instance,
       package: pkg,
-      path,
       scope,
       scopePath,
       start,
@@ -1303,7 +1305,6 @@ export const readDeclarations = query(QtiViews)
         cardinality,
         instance,
         package: pkg,
-        path,
         scope,
         scopePath,
         start,
@@ -1328,7 +1329,6 @@ export const readDeclarations = query(QtiViews)
         declStart: declaration,
         instance,
         package: pkg,
-        path,
         start,
       });
   });
@@ -1446,10 +1446,18 @@ const typedReadingRows = query(QtiViews)
       scope,
       scopePath,
       start,
-    } = v(testReadingRows, "reading");
+    } = v(scopedReadingRows, "reading");
 
     return r
-      .match(testReadingRows, { assembly, attribute, package: pkg, path, scope, scopePath, start })
+      .match(scopedReadingRows, {
+        assembly,
+        attribute,
+        package: pkg,
+        path,
+        scope,
+        scopePath,
+        start,
+      })
       .match(ItemRefDocument, { package: pkg, path: scopePath, start: scope })
       .find({ assembly, attribute, package: pkg, path, start });
   })
@@ -1462,11 +1470,19 @@ const typedReadingRows = query(QtiViews)
       scope,
       scopePath,
       start,
-    } = v(testReadingRows, "reading");
+    } = v(scopedReadingRows, "reading");
     const { kind } = v(Node, "scope");
 
     return r
-      .match(testReadingRows, { assembly, attribute, package: pkg, path, scope, scopePath, start })
+      .match(scopedReadingRows, {
+        assembly,
+        attribute,
+        package: pkg,
+        path,
+        scope,
+        scopePath,
+        start,
+      })
       .match(Node, { kind, package: pkg, path: scopePath, start: scope })
       .where(r.in(kind, durationScopes))
       .find({ assembly, attribute, package: pkg, path, start });
@@ -1485,14 +1501,12 @@ const rivalReadings = query(QtiViews).rule((r) => {
     path,
     scope,
     scopeInstance,
-    scopePath,
     start,
     variable,
   } = v(testReadingRows, "reading");
   const {
     scope: otherScope,
     scopeInstance: otherInstance,
-    scopePath: otherPath,
     variable: otherVariable,
   } = v(testReadingRows, "other");
 
@@ -1504,7 +1518,6 @@ const rivalReadings = query(QtiViews).rule((r) => {
       path,
       scope,
       scopeInstance,
-      scopePath,
       start,
       variable,
     })
@@ -1515,7 +1528,6 @@ const rivalReadings = query(QtiViews).rule((r) => {
       path,
       scope: otherScope,
       scopeInstance: otherInstance,
-      scopePath: otherPath,
       start,
       variable: otherVariable,
     })
@@ -1523,7 +1535,6 @@ const rivalReadings = query(QtiViews).rule((r) => {
       r.or(
         r.ne(scope, otherScope),
         r.ne(scopeInstance, otherInstance),
-        r.ne(scopePath, otherPath),
         r.ne(variable, otherVariable),
       ),
     )
@@ -1602,16 +1613,17 @@ const ItemRefTable = derived(
 );
 
 /**
- * The readings of a test's table readers through an item ref that names an item document, by the
- * reader's element kind: each placed `qti-map-response` or `qti-map-response-point` by `identifier`
- * and each of its readings whose scope is an item ref with an item document, split or numbered, by
- * the scope's place and the variable's name. A reading through a link names a variable no document
- * of the package declares, and is read unchecked (reading `mapping-and-default-names`).
+ * The item variables a test's readers of a kind read through an item's ref, by the ref's place and
+ * the variable: each placed `qti-map-response` or `qti-map-response-point` by `identifier` and each
+ * of its readings whose scope is an item ref with an item document, split or numbered. What "Mapped
+ * response" holds to the ref's tables, the readers' own places standing in the query. A reading
+ * through a link names a variable no document of the package declares, and is read unchecked
+ * (reading `mapping-and-default-names`).
  *
  * @param kind - The reader's kind.
- * @returns The query.
+ * @returns The view's definition.
  */
-const tableReadingsOf = (kind: (typeof mappedReaders)[number]) =>
+const tableReadersOf = (kind: (typeof mappedReaders)[number]) =>
   query(QtiViews).rule((r) => {
     const {
       assembly,
@@ -1622,10 +1634,10 @@ const tableReadingsOf = (kind: (typeof mappedReaders)[number]) =>
       scopePath,
       start,
       variable,
-    } = v(testReadingRows, "reading");
+    } = v(scopedReadingRows, "reading");
 
     return r
-      .match(testReadingRows, {
+      .match(scopedReadingRows, {
         assembly,
         attribute,
         package: pkg,
@@ -1638,24 +1650,6 @@ const tableReadingsOf = (kind: (typeof mappedReaders)[number]) =>
       .match(placedReferences, { assembly, attribute, kind, package: pkg, path, start })
       .match(ItemRefDocument, { package: pkg, path: scopePath, start: scope })
       .where(r.eq(attribute, "identifier"))
-      .find({ assembly, package: pkg, path, scope, scopePath, start, variable });
-  });
-
-/**
- * The item variables a test's readers of a kind read through an item's ref
- * ({@link tableReadingsOf}), by the ref's place and the variable: what "Mapped response" holds to
- * the ref's tables, the readers' own places standing in the query.
- *
- * @param kind - The reader's kind.
- * @returns The view's definition.
- */
-const tableReadersOf = (kind: (typeof mappedReaders)[number]) =>
-  query(QtiViews).rule((r) => {
-    const readings = tableReadingsOf(kind);
-    const { package: pkg, scope, scopePath, variable } = v(readings, "reading");
-
-    return r
-      .match(readings, { package: pkg, scope, scopePath, variable })
       .find({ package: pkg, scope, scopePath, variable });
   });
 
