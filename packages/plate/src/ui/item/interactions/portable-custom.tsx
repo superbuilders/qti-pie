@@ -155,7 +155,7 @@ export const island = (
           frame={frame}
           key={JSON.stringify([frame, posted, properties, responseIdentifier, node.typeIdentifier])}
           labels={labelsOf(portableCustomKeys, context.locale, {})}
-          markup={context.content(node.markup, { position: "flow" })}
+          markup={context.content(node.markup, { formulas: "authored", position: "flow" })}
           naming={groupOf(prompt, node, context)}
           posted={posted}
           prompt={prompt}
@@ -163,7 +163,7 @@ export const island = (
           responseIdentifier={responseIdentifier}
           root={classRootOf(context)}
           templates={node.inertTemplates.map((nodes) =>
-            context.content(nodes, { position: "flow" }),
+            context.content(nodes, { formulas: "authored", position: "flow" }),
           )}
           typeIdentifier={node.typeIdentifier}
         />

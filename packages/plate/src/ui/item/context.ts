@@ -38,6 +38,15 @@ export type ReadsAloud = (catalog: string, part: SpokenPart, key: Key) => Option
 export type Position = "flow" | "phrasing";
 
 /**
+ * How a run of content writes its formulas: `drawn`, as plate draws a formula on its page
+ * (`content` in `#plate/ui/item/contents/mathml.tsx`); `authored`, each `math` element alone as
+ * written, for a Portable Custom Interaction's markup, which QTI 3.0.1 makes available to the PCI's
+ * module at runtime as authored (IM 5.106.4): the module's frame shows it with the browser's own
+ * MathML, and finds in its markup nothing but what its author wrote.
+ */
+export type Formulas = "authored" | "drawn";
+
+/**
  * How {@link IslandContext.content} writes a run of an interaction's own content.
  */
 export interface ContentOptions {
@@ -67,6 +76,10 @@ export interface ContentOptions {
    * `#plate/ui/item/content.tsx`).
    */
   readonly writing?: Writing;
+  /**
+   * How the content writes its formulas, `drawn` by default ({@link Formulas}).
+   */
+  readonly formulas?: Formulas;
 }
 
 /**

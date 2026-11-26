@@ -336,6 +336,7 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
     const walk: Walk = {
       addressing: { ...addressing, writing: options.writing ?? "original" },
       credit,
+      formulas: options.formulas ?? "drawn",
       headingOffset,
       locale: configuration.locale,
       scope: options.own === undefined ? { kind: "plain" } : { kind: "owned", own: options.own },
@@ -395,6 +396,7 @@ export const Item = (props: ItemProps & { readonly renderers: Renderers }): Reac
   const outside: Walk = {
     addressing,
     credit,
+    formulas: "drawn",
     headingOffset,
     locale: configuration.locale,
     scope: { kind: "plain" },

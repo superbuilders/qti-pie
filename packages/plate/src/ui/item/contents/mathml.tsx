@@ -30,7 +30,7 @@
  */
 import { Option, Result } from "effect";
 import { createElement } from "react";
-import type { ReactNode } from "react";
+import type { Key, ReactNode } from "react";
 import type { MathAttribute, MathChild, MathElement } from "#plate/content/mathml.ts";
 import { elementAttributes } from "#plate/content/mathml-attributes.ts";
 import { formulaText } from "#plate/content/text.ts";
@@ -333,6 +333,26 @@ const spokenName = (formula: MathContent["payload"]): string | undefined => {
 };
 
 /**
+ * Write a `math` element's content node as MathML: the `math` element with its attributes, its
+ * descendants by their MathML local names, and each `annotation-xml`'s content as the body's.
+ *
+ * @param node The node, as the MathML module's `copy` gives it.
+ * @param walk Its key, the walk where it stands and the way to write what it holds.
+ * @param props What the element carries beyond its author's attributes.
+ * @returns The `math` element.
+ */
+const written = (
+  node: MathContent,
+  walk: ContentWalk,
+  props: Readonly<Record<string, Key | undefined>>,
+): ReactNode =>
+  createElement(
+    "math",
+    { ...props, ...propsOf("math", node.payload.attributes, walk.walk.addressing) },
+    childrenOf(node.payload.children, walk),
+  );
+
+/**
  * Render a `math` element's content node: `plate-math`, a `span`, holding the formula as MathJax
  * draws it ({@link draw}) and the `math` element as plate writes it, for assistive technology.
  *
@@ -425,16 +445,22 @@ export const content = (node: MathContent, walk: ContentWalk): ReactNode => {
             ),
           ),
     ),
-    createElement(
-      "math",
-      {
-        "aria-label": spokenName(node.payload),
-        ...propsOf("math", node.payload.attributes, addressing),
-      },
-      childrenOf(node.payload.children, walk),
-    ),
+    written(node, walk, { "aria-label": spokenName(node.payload) }),
   );
 };
+
+/**
+ * Render a `math` element's content node as its author wrote it, for a Portable Custom
+ * Interaction's markup (`Formulas` in `#plate/ui/item/context.ts`): the `math` element alone
+ * ({@link written}), with none of plate's drawing, boxes or slots around it and no name of plate's
+ * on it, which the module's frame shows with the browser's own MathML.
+ *
+ * @param node The node, as the MathML module's `copy` gives it.
+ * @param walk Its key, the walk where it stands and the way to write what it holds.
+ * @returns The `math` element.
+ */
+export const authored = (node: MathContent, walk: ContentWalk): ReactNode =>
+  written(node, walk, { key: walk.key });
 
 /**
  * Give the element a child of a tree is for the URL check: an element as itself, an

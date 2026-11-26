@@ -37,11 +37,15 @@ import { heldRun, spokenBefore, spokenInCell, spokenWithin } from "#plate/read-a
 import type { SpokenControl } from "#plate/read-aloud/placement.ts";
 import { feedbackBlockTag } from "#plate/redact/walk.ts";
 import type { Glossary, Glossed } from "#plate/ui/item/contents/catalog.tsx";
-import { content as mathmlContent, missingInMath } from "#plate/ui/item/contents/mathml.tsx";
+import {
+  authored as mathmlAuthored,
+  content as mathmlContent,
+  missingInMath,
+} from "#plate/ui/item/contents/mathml.tsx";
 import { content as rubricContent } from "#plate/ui/item/contents/rubric.tsx";
 import { slotPlan } from "#plate/content/math-slots.ts";
 import type { SlotSize } from "#plate/content/math-slots.ts";
-import type { Credit, Position, ReadsAloud } from "#plate/ui/item/context.ts";
+import type { Credit, Formulas, Position, ReadsAloud } from "#plate/ui/item/context.ts";
 import { NestedInteraction, UnrenderedNode } from "#plate/ui/item/errors.ts";
 import { feedbackBlockOf, isExplanation } from "#plate/ui/item/feedback.tsx";
 import {
@@ -127,6 +131,11 @@ export interface Walk {
    * the redacted item's `credit`.
    */
   readonly credit: Option.Option<Credit>;
+  /**
+   * How the walk writes its formulas ({@link Formulas}): `authored` in a Portable Custom
+   * Interaction's markup, `drawn` everywhere else.
+   */
+  readonly formulas: Formulas;
   /**
    * The amount added to an authored heading's level ({@link headingOffsetOf}).
    */
@@ -951,6 +960,7 @@ const disclosuresAfter = (
   const after: Walk = {
     addressing: walk.addressing,
     credit: walk.credit,
+    formulas: walk.formulas,
     headingOffset: walk.headingOffset,
     locale: walk.locale,
     scope: { kind: "plain" },
@@ -1217,7 +1227,9 @@ const contentNodeOf = (node: ContentNode<RedactedLevel>, key: Key, walk: Walk): 
 
   switch (payload.element) {
     case "math": {
-      return mathmlContent(payload, view);
+      return walk.formulas === "authored"
+        ? mathmlAuthored(payload, view)
+        : mathmlContent(payload, view);
     }
     case "qti-rubric-block": {
       return rubricContent(payload, view);

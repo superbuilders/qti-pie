@@ -310,6 +310,7 @@ export const stimulusArticle = (
   const outside: Walk = {
     addressing,
     credit: Option.none(),
+    formulas: "drawn",
     headingOffset: headingOffsetOf(nodesWritten(shown), setting.headingLevel),
     locale: setting.locale,
     scope: { kind: "plain" },
