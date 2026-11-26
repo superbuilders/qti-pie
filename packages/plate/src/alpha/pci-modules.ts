@@ -1,5 +1,5 @@
 /**
- * Alpha's Portable Custom Interaction modules, the ones the assessment lead's K–2 and Grade 3
+ * Alpha's Portable Custom Interaction modules, the ones the assessment lead's K–5
  * mastery forms name. Each is a module file an item's package holds, at the path the item's
  * `qti-interaction-module` names, which the package's loader writes there from
  * {@link AlphaPciModule.script} (the "Module held" law admits a PCI item only when its module is a
@@ -103,6 +103,16 @@ export const countPlacements: AlphaPciModule<"count-placements"> = alphaPciModul
 );
 
 /**
+ * Type numbers into the boxes of a line: a fraction, a mixed number or a decimal scored on its
+ * value as its numerator and denominator in lowest terms, or two to four whole-number boxes scored
+ * as one answer (`#plate/alpha/pci-modules/enter-numbers.ts`).
+ */
+export const enterNumbers: AlphaPciModule<"enter-numbers"> = alphaPciModule(
+  "enter-numbers",
+  new URL("pci-modules/enter-numbers.js", import.meta.url),
+);
+
+/**
  * Mark objects: identical objects a tap rings and a second tap unrings, its response the count
  * ringed (`#plate/alpha/pci-modules/mark-objects.ts`).
  */
@@ -122,13 +132,25 @@ export const shadeParts: AlphaPciModule<"shade-parts"> = alphaPciModule(
 );
 
 /**
+ * Tap a point: a tick of a number line labelled only at its ends, or an intersection of a
+ * first-quadrant grid, its response the tick's place or the point's coordinates
+ * (`#plate/alpha/pci-modules/tap-point.ts`).
+ */
+export const tapPoint: AlphaPciModule<"tap-point"> = alphaPciModule(
+  "tap-point",
+  new URL("pci-modules/tap-point.js", import.meta.url),
+);
+
+/**
  * Every one of Alpha's PCI modules.
  */
 export const alphaPciModules = [
   buildWithBlocks,
   countPlacements,
+  enterNumbers,
   markObjects,
   shadeParts,
+  tapPoint,
 ] as const satisfies readonly AlphaPciModule<string>[];
 
 /**
