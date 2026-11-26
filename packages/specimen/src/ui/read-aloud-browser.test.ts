@@ -108,6 +108,7 @@
  *
  * @module
  */
+import { isDeepStrictEqual } from "node:util";
 import { assert, layer } from "@effect/vitest";
 import { Context, Effect, Layer } from "effect";
 import { endlessName, finiteName } from "#specimen/ui/hydrated.ts";
@@ -545,9 +546,7 @@ const mediaAlone =
  */
 const countedNow = (page: Driven, step: string, expected: Readonly<Record<string, string>>) =>
   Effect.map(page.posted("m"), (posted) =>
-    JSON.stringify(posted) === JSON.stringify(expected)
-      ? []
-      : [`${step}: posted ${JSON.stringify(posted)}`],
+    isDeepStrictEqual(posted, expected) ? [] : [`${step}: posted ${JSON.stringify(posted)}`],
   );
 
 /**
