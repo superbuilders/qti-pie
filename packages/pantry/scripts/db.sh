@@ -101,12 +101,6 @@ as_owner() {
 		"host=$QTI_PIE_PG_HOST port=$QTI_PIE_PG_PORT dbname=$db user=$owner sslmode=verify-full sslrootcert=$QTI_PIE_PG_CA" "$@"
 }
 
-# The installation's roles, comma-joined for an array literal: '{<roles>}'. grizzle roles connects as the migration
-# identity, so it runs through as_migration.
-installation_roles() {
-	as_migration roles | paste -sd , -
-}
-
 # Exits 1 where the database is missing; stops the script where the server cannot be read.
 exists() {
 	local found
@@ -114,7 +108,7 @@ exists() {
 	[[ -n "$found" ]]
 }
 
-# Usage: as_migration migrate|roles|uninstall. Only this is given the migration identity's password, unless
+# Usage: as_migration migrate|uninstall. Only this is given the migration identity's password, unless
 # QTI_PIE_PG_PASSWORD_COMMAND gives every role its own. It reads the password first either way, so a password command
 # that gives none is refused here, by owner_password's message, before any grizzle command runs; grizzle then runs
 # the command again for each connection it opens. grizzle is the package's own bin, which starts node on grizzle's
@@ -143,15 +137,15 @@ create() {
 
 # grizzle reads no environment variable for where to connect: the config's connection (src/db/connection.ts) reads
 # the settings exported above, the CA among them. A password command gives every login its password, so no login gets
-# a local one.
+# a local one. The logins are the catalog's, in the installation's role space <database>__ as check_clear reads it
+# (below): `grizzle roles` would load the config, and with it the whole composition, again for the same list.
 migrate() {
 	as_migration migrate
 	[[ -z "${QTI_PIE_PG_PASSWORD_COMMAND:-}" ]] || return 0
 	mkdir -p "$QTI_PIE_PG_SECRETS"
 	chmod 700 "$QTI_PIE_PG_SECRETS"
-	local roles logins login file
-	roles="$(installation_roles)"
-	logins="$(as_owner postgres -c "SELECT rolname FROM pg_roles WHERE rolcanlogin AND rolname = ANY ('{$roles}')")"
+	local logins login file
+	logins="$(as_owner postgres -c "SELECT rolname FROM pg_roles WHERE rolcanlogin AND starts_with(rolname, '${QTI_PIE_PG_DATABASE}__') ORDER BY 1")"
 	for login in $logins; do
 		file="$QTI_PIE_PG_SECRETS/$login.password"
 		[[ -f "$file" ]] || (umask 077 && openssl rand -hex 24 > "$file")

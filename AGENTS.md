@@ -81,7 +81,7 @@ scripts/db.sh create    # the database, from QTI_PIE_PG_TEMPLATE, owned by the o
 scripts/db.sh migrate   # grizzle migrate, then give each login its password
 scripts/db.sh reset     # grizzle uninstall (or create, where the database is missing), then migrate
 scripts/db.sh drop      # grizzle uninstall, then drop the database and its password folder
-scripts/db.sh check-clear  # list this installation's roles (grizzle roles) and database left on the server
+scripts/db.sh check-clear  # list this installation's roles (the catalog's ${db}__ role space) and database left on the server
 ```
 
 Run `grizzle migrate` through `scripts/db.sh`, which exports the settings and the owner's password for the config's
