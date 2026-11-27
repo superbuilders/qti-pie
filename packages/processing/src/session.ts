@@ -23,6 +23,7 @@ import type { Variables } from "#processing/engine.ts";
 import type { ExpressionKind } from "#processing/ir.ts";
 import type { OperatorTable } from "#processing/operators/operator.ts";
 import type { Instant } from "#processing/graded.ts";
+import { invariant } from "#processing/invariant.ts";
 import type { CompiledItem, Declaration } from "#processing/program.ts";
 import type { Demand, ProcessingFailure } from "#processing/run.ts";
 import { drawStream, responseLabel, templateLabel } from "#processing/stream.ts";
@@ -194,10 +195,9 @@ const startingVariables = (attempt: Attempt, numAttempts: bigint): Variables => 
     const { identifier } = declaration;
     switch (declaration.role) {
       case "response": {
-        values.set(
-          identifier,
-          attempt.responses.get(identifier) ?? take.defaults.get(identifier) ?? declaration.default,
-        );
+        const response = attempt.responses.get(identifier);
+        invariant(response !== undefined, "an attempt's responses name every declared response");
+        values.set(identifier, response);
         break;
       }
       case "outcome": {

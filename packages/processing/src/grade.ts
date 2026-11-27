@@ -31,6 +31,7 @@ import type { ExpressionKind } from "#processing/ir.ts";
 import type { OperatorTable } from "#processing/operators/operator.ts";
 import type { CompiledItem, CompiledTest } from "#processing/program.ts";
 import type { Demand, MemberOutcome, MemberResponse, MemberState } from "#processing/run.ts";
+import { contract } from "#processing/invariant.ts";
 import { attemptWith, countsAttempt, startOf } from "#processing/session.ts";
 import type { Attempt, Failed, ItemResult, Prior, Take } from "#processing/session.ts";
 import { drawStream, responseLabel, templateLabel } from "#processing/stream.ts";
@@ -289,8 +290,9 @@ const readOf = (submitted: Submitted): ResponsesRead => ({
  * @returns The attempt.
  */
 const attemptOf = (
-  member: Pick<ClosingMember, "evaluations" | "item" | "responses" | "session">,
+  member: Pick<ClosingMember, "evaluations" | "item" | "session">,
   context: ReadonlyMap<string, Value>,
+  responses: ReadonlyMap<string, Value>,
 ): Attempt => ({
   context,
   duration: member.session.duration,
@@ -298,7 +300,7 @@ const attemptOf = (
   item: member.item,
   numAttempts: member.session.numAttempts,
   prior: member.session.prior,
-  responses: valuesOf(member.responses),
+  responses,
   seed: member.session.seed,
   take: member.session.take,
 });
@@ -531,6 +533,45 @@ const gradedOf = (submitted: Submitted, shown: ReadonlyMap<string, Value>): Subm
   submitted.kind === "default" ? submitted : { ...submitted, values: shown };
 
 /**
+ * An attempt's responses, one value for every response its item declares: a default
+ * submission's the begun record (each response at its default, §2.2.2.1), where alone QTI puts a
+ * response's default; a save's or a post's its values, which must name every declared response,
+ * an unanswered one NULL. A missing response is a broken contract, never a default, so an absent
+ * response and a NULL one are never two meanings.
+ *
+ * @param item - The item.
+ * @param take - The take whose defaults the begun record holds.
+ * @param submitted - The responses as submitted.
+ * @returns The values, by identifier.
+ */
+const responsesOf = (
+  item: CompiledItem,
+  take: Take,
+  submitted: Submitted,
+): ReadonlyMap<string, Value> => {
+  const declared = [...item.declarations.values()].filter(
+    (declaration) => declaration.role === "response",
+  );
+  if (submitted.kind === "default") {
+    return new Map(
+      declared.map((declaration) => [
+        declaration.identifier,
+        take.defaults.get(declaration.identifier) ?? declaration.default,
+      ]),
+    );
+  }
+
+  for (const declaration of declared) {
+    contract(
+      submitted.values.has(declaration.identifier),
+      `a ${submitted.kind}'s values name every response the item declares, an unanswered one NULL; they name no ${declaration.identifier}`,
+    );
+  }
+
+  return submitted.values;
+};
+
+/**
  * An attempt's responses through admission: its reasons, the values it is graded on (every
  * response admission hides NULL, §5.148) and the responses as graded.
  */
@@ -557,7 +598,7 @@ const admitted = (
   submitted: Submitted,
   validate: boolean,
 ): Admitted => {
-  const posted = valuesOf(submitted);
+  const posted = responsesOf(item, session.take, submitted);
   const admission = admit(
     item,
     posted,
@@ -602,10 +643,7 @@ export const gradeAnswerWith = <K extends ExpressionKind>(
     return mint({ responses: shown, result: { admission, kind: "refused" } }, proof);
   }
 
-  const result = attemptWith(table, {
-    ...attemptOf(input, input.context),
-    responses: shown,
-  });
+  const result = attemptWith(table, attemptOf(input, input.context, shown));
 
   return result.kind === "failed" ? result : mint({ responses: shown, result }, proof);
 };
@@ -625,6 +663,24 @@ interface MemberSource {
 }
 
 /**
+ * A member's response, which its map names, as every map of a member's responses names each
+ * declared response.
+ *
+ * @param responses - The member's responses.
+ * @param identifier - The response.
+ * @returns Its value.
+ */
+const heldResponse = (responses: ReadonlyMap<string, Value>, identifier: string): Value => {
+  const value = responses.get(identifier);
+  contract(
+    value !== undefined,
+    `a member's responses name every response its item declares; they name no ${identifier}`,
+  );
+
+  return value;
+};
+
+/**
  * A member's state as outcome processing reads it.
  *
  * @param source - The member.
@@ -641,10 +697,7 @@ const memberStateOf = (source: MemberSource, test: CompiledTest): MemberState =>
       correct: take.correct.get(declaration.identifier) ?? declaration.correct,
       default: take.defaults.get(declaration.identifier) ?? declaration.default,
       identifier: declaration.identifier,
-      value:
-        responses.get(declaration.identifier) ??
-        take.defaults.get(declaration.identifier) ??
-        declaration.default,
+      value: heldResponse(responses, declaration.identifier),
     }));
   const memberOutcomes: MemberOutcome[] = declarations
     .filter((declaration) => declaration.role === "outcome")
@@ -698,7 +751,7 @@ const unpresentedSource = (member: UnpresentedMember): MemberSource => ({
       .map((declaration) => [declaration.identifier, startOf(declaration, noDefaults)]),
   ),
   ref: member.ref,
-  responses: noDefaults,
+  responses: responsesOf(member.item, noTake, { kind: "default" }),
   take: noTake,
 });
 
@@ -856,10 +909,7 @@ const sittingWith = <K extends ExpressionKind>(
   const states: MemberState[] = [];
   const demands: (Demand & { readonly ref: MemberRef })[] = [];
   for (const { admission, member } of attempts) {
-    const result = attemptWith(table, {
-      ...attemptOf(member, input.context),
-      responses: admission.shown,
-    });
+    const result = attemptWith(table, attemptOf(member, input.context, admission.shown));
     if (result.kind === "failed") {
       return result;
     }

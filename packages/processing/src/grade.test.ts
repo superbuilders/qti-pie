@@ -8,6 +8,7 @@ import { Duration, Effect } from "effect";
 import { compileItemOver, compileItemWith, compileTestWith } from "#processing/compile/document.ts";
 import { valuesDigest } from "#processing/digest.ts";
 import { restartBudget } from "#processing/engine.ts";
+import { BrokenContractError } from "#processing/invariant.ts";
 import {
   completePendingWith,
   gradeAnswerWith,
@@ -713,7 +714,10 @@ describe("a sitting with a pending member", () => {
     const test = compiled.ok ? compiled.value : assert.fail(compiled.refusal.detail);
     const essay: Submitted = {
       kind: "posted",
-      values: new Map([["ESSAY", textValue("string", "An essay.")]]),
+      values: new Map<string, Value>([
+        ["ESSAY", textValue("string", "An essay.")],
+        ["PICK", nullOf({ base: "identifier", cardinality: "single" })],
+      ]),
     };
     const ref = { identifier: "q1", occurrence: 1n };
     const member = (evaluations: ReadonlyMap<number, Value>): ClosingMember => ({
@@ -810,7 +814,7 @@ describe("a sitting with a pending member", () => {
 });
 
 describe("a pending answer with a hidden response", () => {
-  it("proves the responses as graded, so the answer rebuilt from what its write stored digests alike and completes without mismatch", () => {
+  it("proves the responses as graded, so the answer rebuilt from the map its write stored (every declared response, the hidden one NULL) digests alike and completes without mismatch", () => {
     const item = essayItem();
     const answerOf = (
       values: ReadonlyMap<string, Value>,
@@ -847,8 +851,7 @@ describe("a pending answer with a hidden response", () => {
       return assert.fail("a demand");
     }
 
-    const stored = new Map([...first.responses].filter(([, held]) => held.kind !== "null"));
-    const rebuilt = answerOf(stored, new Map([[demand.place, single("float", 0.5)]]));
+    const rebuilt = answerOf(first.responses, new Map([[demand.place, single("float", 0.5)]]));
     if ("failure" in rebuilt || rebuilt.result.kind !== "done") {
       return assert.fail("completed");
     }
@@ -961,8 +964,20 @@ const requiredSitting = (endedBy: SittingInput["endedBy"]): SittingInput => {
   return {
     carried: [],
     closing: [
-      member("q1", new Map([["HIDDEN", textValue("identifier", "B")]])),
-      member("q2", new Map([["PICK", container("multiple", "identifier", [word("A")])]])),
+      member(
+        "q1",
+        new Map<string, Value>([
+          ["HIDDEN", textValue("identifier", "B")],
+          ["PICK", nullOf({ base: "identifier", cardinality: "multiple" })],
+        ]),
+      ),
+      member(
+        "q2",
+        new Map<string, Value>([
+          ["HIDDEN", nullOf({ base: "identifier", cardinality: "single" })],
+          ["PICK", container("multiple", "identifier", [word("A")])],
+        ]),
+      ),
     ],
     context: new Map(),
     endedBy,
@@ -989,7 +1004,12 @@ describe("a sitting's admission", () => {
     );
     assert.deepStrictEqual(
       q1?.read.digest,
-      valuesDigest(new Map([["HIDDEN", nullOf({ base: "identifier", cardinality: "single" })]])),
+      valuesDigest(
+        new Map<string, Value>([
+          ["HIDDEN", nullOf({ base: "identifier", cardinality: "single" })],
+          ["PICK", nullOf({ base: "identifier", cardinality: "multiple" })],
+        ]),
+      ),
     );
   });
 
@@ -1005,6 +1025,38 @@ describe("a sitting's admission", () => {
         ref,
       })),
       [{ codes: ["atLeast"], ref: { identifier: "q1", occurrence: 1n } }],
+    );
+  });
+
+  it("holds a posted map to every declared response: a map missing one is a broken contract and dies, and one naming it NULL grades it as NULL", () => {
+    const item = requiredItem();
+    const answerOf = (values: ReadonlyMap<string, Value>) =>
+      gradeAnswerWith(table, {
+        context: new Map(),
+        evaluations: new Map(),
+        item,
+        readAt: { microseconds: 2n },
+        responses: { kind: "posted", values },
+        session: fresh(noTake),
+        validate: false,
+      });
+
+    const missing = new Map([["PICK", nullOf({ base: "identifier", cardinality: "multiple" })]]);
+    assert.throws(() => {
+      answerOf(missing);
+    }, BrokenContractError);
+
+    const graded = answerOf(
+      new Map<string, Value>([
+        ["HIDDEN", nullOf({ base: "identifier", cardinality: "single" })],
+        ["PICK", nullOf({ base: "identifier", cardinality: "multiple" })],
+      ]),
+    );
+    assert.deepStrictEqual(
+      "result" in graded && graded.result.kind === "done"
+        ? graded.result.outcomes.get("SEEN")
+        : undefined,
+      single("boolean", false),
     );
   });
 
@@ -1176,7 +1228,10 @@ const pressed = (countAttempt: string, validate: boolean): bigint | "failed" | "
     responses: {
       at: { microseconds: 1n },
       kind: "save",
-      values: new Map([["HINT", single("boolean", true)]]),
+      values: new Map<string, Value>([
+        ["HINT", single("boolean", true)],
+        ["PICK", nullOf({ base: "identifier", cardinality: "multiple" })],
+      ]),
     },
     session: fresh(noTake),
     validate,
