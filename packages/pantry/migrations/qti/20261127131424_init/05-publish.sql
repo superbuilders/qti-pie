@@ -584,12 +584,12 @@ CREATE VIEW "__qti_queries"."dependency_resolved" ("package", "resource", "start
 SELECT "r1"."package", "r1"."resource", "r1"."start", "r1"."target"
 FROM "qti_queries"."dependency_resolved" AS "r1";
 
-CREATE VIEW "__qti_queries"."described_assembled_lang" ("general", "package", "path", "value") AS
-SELECT "r1"."general", "r1"."package", "r1"."path", "r1"."value"
+CREATE VIEW "__qti_queries"."described_assembled_lang" ("assembly", "form", "general", "instance", "package", "path", "value") AS
+SELECT "r1"."assembly", "r1"."form", "r1"."general", "r1"."instance", "r1"."package", "r1"."path", "r1"."value"
 FROM "qti_queries"."described_assembled_lang" AS "r1";
 
-CREATE VIEW "__qti_queries"."described_lang" ("general", "package", "path", "value") AS
-SELECT "r1"."general", "r1"."package", "r1"."path", "r1"."value"
+CREATE VIEW "__qti_queries"."described_lang" ("document", "form", "general", "package", "path", "value") AS
+SELECT "r1"."document", "r1"."form", "r1"."general", "r1"."package", "r1"."path", "r1"."value"
 FROM "qti_queries"."described_lang" AS "r1";
 
 CREATE VIEW "__qti_queries"."entry_file_target" ("package", "target") AS
@@ -4225,9 +4225,9 @@ COMMENT ON CONSTRAINT "__weighted_read_key_assembly_instance_package_path_zzzoln
 
 COMMENT ON CONSTRAINT "__record_node_key_package_path_start_x2a5pznqdf" ON "qti_views"."record_node" IS 'key RecordNode(package, path, start)';
 
-COMMENT ON CONSTRAINT "__described_assembled_lang_key_general_package_path_yq4mwf74w7" ON "qti_queries"."described_assembled_lang" IS 'key DescribedAssembledLang(general, package, path, value)';
+COMMENT ON CONSTRAINT "__described_assembled_lang_key_form_general_instance_c7yy5up43t" ON "qti_queries"."described_assembled_lang" IS 'key DescribedAssembledLang(form, general, instance, package, path)';
 
-COMMENT ON CONSTRAINT "__described_lang_key_general_package_path_value_3pt5jqomsx" ON "qti_queries"."described_lang" IS 'key DescribedLang(general, package, path, value)';
+COMMENT ON CONSTRAINT "__described_lang_key_form_general_package_path_juppavslea" ON "qti_queries"."described_lang" IS 'key DescribedLang(form, general, package, path)';
 
 COMMENT ON CONSTRAINT "__forbidden_resource_type_key_package_path_type_jxu54nomx6" ON "qti_queries"."forbidden_resource_type" IS 'key ForbiddenResourceType(package, path, type)';
 
@@ -5153,9 +5153,9 @@ COMMENT ON FUNCTION "qti"."__reader_news_dependency_az7buf4vy6"() IS 'the reader
 
 COMMENT ON FUNCTION "qti"."__reader_olds_dependency_resolved_37eefbu2al"() IS 'the reader of the delta of olds of DependencyResolved';
 
-COMMENT ON FUNCTION "qti"."__reader_news_described_assembled_lang_6xqyupc226"() IS 'the reader of the delta of news of DescribedAssembledLang';
+COMMENT ON FUNCTION "qti"."__reader_news_described_assembled_lang_lt72g4zouj"() IS 'the reader of the delta of news of DescribedAssembledLang';
 
-COMMENT ON FUNCTION "qti"."__reader_news_described_lang_r4vqz562zj"() IS 'the reader of the delta of news of DescribedLang';
+COMMENT ON FUNCTION "qti"."__reader_news_described_lang_n7lm7uy3tp"() IS 'the reader of the delta of news of DescribedLang';
 
 COMMENT ON FUNCTION "qti"."__reader_news_doctype_5pchhc2abt"() IS 'the reader of the delta of news of Doctype';
 
@@ -7525,7 +7525,7 @@ COMMENT ON FUNCTION "qti"."__judge_data_ssml_nwrnj3vksd"("pg_catalog"."text"[]) 
 
 COMMENT ON FUNCTION "qti"."__judge_dependency_zpk2eyiyar"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Dependency and the relations its rules join it to';
 
-COMMENT ON FUNCTION "qti"."__judge_described_assembled_lang_j5slplntad"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of DescribedAssembledLang and the relations its rules join it to';
+COMMENT ON FUNCTION "qti"."__judge_described_assembled_lang_amjqccaa4x"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of DescribedAssembledLang and the relations its rules join it to';
 
 COMMENT ON FUNCTION "qti"."__judge_doctype_o3ckpdftex"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Doctype and the relations its rules join it to';
 
