@@ -1543,14 +1543,25 @@ const styleOf =
   };
 
 /**
+ * A height media query of a case's content: the height its block takes once the viewport is at
+ * least as tall as the query's `min-height`.
+ */
+interface HeightQuery {
+  readonly height: number;
+  readonly minHeight: number;
+}
+
+/**
  * What the frame's document holds: a block of a given height; a run of text of a given advance,
- * which breaks into lines 20 px apart; a block of a given height above blocks each as tall as the
- * viewport, as `100vh` sizes them; or a block of a given height that a height media query lays out
- * at another, `matched`, once the viewport is at least as tall as the query's `minHeight`.
+ * which breaks into lines 20 px apart; a block of a given height above blocks each a given part of
+ * the viewport's height, as `vh` sizes them (`100vh` one, `50vh` a half); a block of a given
+ * height that height media queries lay out at another, the last query that matches the viewport's;
+ * or such a block above blocks a given part of the viewport's height.
  */
 type Content =
   | { readonly block: number }
-  | { readonly block: number; readonly matched: number; readonly minHeight: number }
+  | { readonly block: number; readonly queries: readonly HeightQuery[] }
+  | { readonly block: number; readonly queries: readonly HeightQuery[]; readonly screens: number }
   | { readonly block: number; readonly screens: number }
   | { readonly text: number };
 
@@ -1604,8 +1615,8 @@ interface Flow {
 }
 
 /**
- * Give the height the content takes: a block's own, with each screen the viewport's height, or the
- * text's lines at the body's inline size.
+ * Give the height the content takes: a block's own, or the height its last matching query gives
+ * it, with each screen the viewport's height; or the text's lines at the body's inline size.
  *
  * @param content The content.
  * @param inline The root's inline size.
@@ -1613,12 +1624,15 @@ interface Flow {
  * @returns The height.
  */
 const contentHeightOf = (content: Content, inline: number, viewport: number): number => {
-  if ("screens" in content) {
-    return content.block + content.screens * viewport;
+  if ("queries" in content) {
+    const block =
+      content.queries.findLast(({ minHeight }) => viewport >= minHeight)?.height ?? content.block;
+
+    return "screens" in content ? block + content.screens * viewport : block;
   }
 
-  if ("minHeight" in content) {
-    return viewport >= content.minHeight ? content.matched : content.block;
+  if ("screens" in content) {
+    return content.block + content.screens * viewport;
   }
 
   return "block" in content
@@ -2175,12 +2189,23 @@ const unfittedCases: readonly HeightCase[] = [
 ];
 
 /**
+ * COLD i5's two-step query: 600 px once the viewport is 400 tall, 800 once it is 600, over 400.
+ */
+const twoSteps: readonly HeightQuery[] = [
+  { height: 600, minHeight: 400 },
+  { height: 800, minHeight: 600 },
+];
+
+/**
  * The cases whose height a height media query, or the viewport's own height, sets, each with what
  * the frame posts once it stops, then after each of three content signals that change nothing:
  * COLD i3's 400 px that `@media (min-height: 400px)` grows by 200, whose fixed point is one post
- * away; RED i3's `.x { height: 400px }` that `@media (min-height: 600px)` hides, which flips at
- * each post; a heading over a full-height block, `V + c`; and RED's two stacked full-height
- * panels, `2V + c`.
+ * away; COLD i5's two steps, 600 at a `min-height` of 400 and 800 at 600, each landing in an echo,
+ * which stop one post short, the two echoes' growth as even as `V + c`'s; RED i3's
+ * `.x { height: 400px }` that `@media (min-height: 600px)` hides, which flips at each post; COLD
+ * i5's contraction, `50vh` over 300 px, whose fixed point, 632, the line through two echoes gives;
+ * a heading over a full-height block, `V + c`; and RED's two stacked full-height panels, `2V + c`,
+ * neither of which has a fixed point.
  */
 const queryCases: readonly {
   readonly content: Content;
@@ -2188,14 +2213,24 @@ const queryCases: readonly {
   readonly posts: readonly string[];
 }[] = [
   {
-    content: { block: 400, matched: 600, minHeight: 400 },
+    content: { block: 400, queries: [{ height: 600, minHeight: 400 }] },
     name: "COLD's 400 px grown by 200 at a min-height of 400",
     posts: ["416, 616", "416, 616", "416, 616", "416, 616"],
   },
   {
-    content: { block: 861, matched: 461, minHeight: 600 },
+    content: { block: 400, queries: twoSteps },
+    name: "COLD's two steps, each landing in an echo",
+    posts: ["416, 616", "416, 616", "416, 616", "416, 616"],
+  },
+  {
+    content: { block: 861, queries: [{ height: 461, minHeight: 600 }] },
     name: "RED's 400 px hidden at a min-height of 600",
     posts: ["877, 477", "877, 477, 877", "877, 477, 877", "877, 477, 877"],
+  },
+  {
+    content: { block: 300, screens: 0.5 },
+    name: "COLD's contraction, 50vh over 300 px",
+    posts: ["466, 549, 632", "466, 549, 632", "466, 549, 632", "466, 549, 632"],
   },
   {
     content: { block: 72, screens: 1 },
@@ -2206,6 +2241,83 @@ const queryCases: readonly {
     content: { block: 0, screens: 2 },
     name: "RED's two stacked full-height panels",
     posts: ["616, 1248", "616, 1248, 2512", "616, 1248, 2512", "616, 1248, 2512"],
+  },
+];
+
+/**
+ * Toggle a frame's content a number of times, each at the frame's fixed viewport: the toggle, its
+ * mutation, the document laid out again at the frame's height and its observations delivered,
+ * then the frame's posts followed as the island follows them.
+ *
+ * @param booting The frame.
+ * @param layout The document's layout.
+ * @param toggle The toggle of the content.
+ * @param toggles How many times to toggle it.
+ */
+const toggled = (booting: Booted, layout: Layout, toggle: () => void, toggles: number): void => {
+  if (toggles === 0) {
+    return;
+  }
+
+  const shown = heightsOf(booting.island).at(-1) ?? iframe.firstHeight;
+
+  toggle();
+  booting.mutated();
+  followed(booting, layout, shown, shown);
+  toggled(booting, layout, toggle, toggles - 1);
+};
+
+/**
+ * The height Chrome gives an iframe that sets none, 150 px, at which COLD i6's probe frame starts:
+ * from there `50vh` over 300 px samples its echoes at 391 and 512, and a step at a `min-height` of
+ * 500 lands between them.
+ */
+const unsizedFrameHeight = 150;
+
+/**
+ * The cases whose two echoes a step lies between, so the line through them is no description of
+ * the content, each with what the frame posts: COLD i6's `50vh` over 300 px with 60 px more at a
+ * `min-height` of 500, and with 30 px more; COLD's F18, 60 px at 500 and 100 px more at 900, a
+ * step in each pair of samples; and RED i6's uneven staircase, 400 px grown to 600 at a
+ * `min-height` of 400 and to 798 at 600, which reads a slope of 0.99.
+ */
+const misfitCases: readonly {
+  readonly content: Content;
+  readonly name: string;
+  readonly posts: readonly number[];
+}[] = [
+  {
+    content: { block: 300, queries: [{ height: 360, minHeight: 500 }], screens: 0.5 },
+    name: "COLD's 60 px step at a min-height of 500 on 50vh over 300 px",
+    posts: [391, 512, 1144, 752],
+  },
+  {
+    content: { block: 300, queries: [{ height: 330, minHeight: 500 }], screens: 0.5 },
+    name: "COLD's 30 px step",
+    posts: [391, 512, 870, 692],
+  },
+  {
+    content: {
+      block: 300,
+      queries: [
+        { height: 360, minHeight: 500 },
+        { height: 460, minHeight: 900 },
+      ],
+      screens: 0.5,
+    },
+    name: "COLD's F18: 60 px at a min-height of 500 and 100 px more at 900",
+    posts: [391, 512, 1144, 864, 808, 752],
+  },
+  {
+    content: {
+      block: 400,
+      queries: [
+        { height: 600, minHeight: 400 },
+        { height: 798, minHeight: 600 },
+      ],
+    },
+    name: "RED's uneven staircase",
+    posts: [416, 616, 1430, 814],
   },
 ];
 
@@ -2285,7 +2397,7 @@ const scriptedCases: readonly {
     writes: "each frame",
   },
   {
-    content: { block: 861, matched: 461, minHeight: 600 },
+    content: { block: 861, queries: [{ height: 461, minHeight: 600 }] },
     name: "RED's flip, animated by script",
     posts: [877, 477, 877],
     writes: "each frame",
@@ -2438,8 +2550,8 @@ describe("content sized from its own viewport, which no height fits", () => {
         stopped: Math.ceil(stopped.block),
         within: heightsOf(same.booting.island),
       },
-      { after: [326, 352, 478, 604], stopped: 378, within: [326, 452] },
-      "the frame stops at 352 with 378 to show; a picture 100 px tall that loads once it has stopped is posted, 478, then once more for its echo; one whose load, a content signal, lands just before the observation that echoes the frame's resize to 326 is posted as that echo, 452, and the echo of that post is dropped",
+      { after: [326, 352, 452], stopped: 378, within: [326, 452] },
+      "the frame stops at 352 with 378 to show; a picture 100 px tall that loads once it has stopped is a change at a fixed viewport, which the slope the frame measured, 1, follows: 452, the viewport plus the change, whose echo grows as that slope says; one whose load, a content signal, lands just before the observation that echoes the frame's resize to 326 is posted as that echo, 452, and the echo of that post is dropped",
     );
   });
 
@@ -2460,6 +2572,35 @@ describe("content sized from its own viewport, which no height fits", () => {
       runs.map(({ actual }) => actual),
       runs.map(({ expected }) => expected),
       "a signal before every observation leaves each echo an echo, so each case posts what it posts with no script, and nothing more through forty frames: a heading over a full-height block 388 and 476, the flip 877, 477 and then, at the signal after its dropped echo, 877",
+    );
+  });
+
+  it("reaches a two-step query's fixed point where each step lands after the frame has looked at its viewport", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const queried: Content = { block: 400, queries: twoSteps };
+    let seen: number = iframe.firstHeight;
+    const { booting, layout } = bootedOn(page.html, { body: "", root: "" }, () => ({
+      block: contentHeightOf(queried, iframe.width, seen),
+    }));
+    const lookedAt = (frameHeight: number): void => {
+      layout.layOut(frameHeight);
+      booting.resized();
+      booting.later();
+      seen = frameHeight;
+      layout.layOut(frameHeight);
+      booting.later();
+    };
+
+    layout.layOut(iframe.firstHeight);
+    booting.later();
+    lookedAt(416);
+    lookedAt(616);
+    lookedAt(816);
+
+    assert.deepStrictEqual(
+      heightsOf(booting.island),
+      [416, 616, 816],
+      "each step of the query lands in a rendering after the one the frame's resize brought, once the frame has looked at its viewport, so it is no echo, and is posted; at 816 the query matches as it did, and nothing more is posted",
     );
   });
 
@@ -2514,6 +2655,106 @@ describe("content sized from its own viewport, which no height fits", () => {
       heightsOf(late.booting.island),
       [326, 352, 478],
       "a PCI that draws its figure in the echo of the frame's second post signals by its mutation before that observation, as a MutationObserver's callback runs before the rendering, and raises none after; the echo, which grows as no `V + c` echo does, is posted at once, 478, and the echo of that post is dropped",
+    );
+  });
+
+  it("checks an estimate at its own echo and refits once, so a step between the two echoes ends where the content fits, never at the estimate, and no post is above the content plus its viewport", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const runs = misfitCases.map(({ content, name, posts }) => {
+      const { booting, layout } = bootedOn(page.html, { body: "", root: "" }, () => content);
+
+      followed(booting, layout, unsizedFrameHeight, unsizedFrameHeight);
+
+      const heights = heightsOf(booting.island);
+      const above = heights.filter((height, at) => {
+        const viewport = heights[at - 1] ?? unsizedFrameHeight;
+        const observed = contentHeightOf(content, iframe.width, viewport) + 2 * bodyMargin;
+
+        return height > Math.ceil(observed) + viewport;
+      });
+
+      return {
+        actual: `${name}: ${heights.join(", ")}; above the content plus its viewport: ${above.join(", ")}`,
+        expected: `${name}: ${posts.join(", ")}; above the content plus its viewport: `,
+      };
+    });
+
+    assert.deepStrictEqual(
+      runs.map(({ actual }) => actual),
+      runs.map(({ expected }) => expected),
+      "COLD i6's 60 px step skews the line through the two echoes to a slope of 0.996, whose estimate, 29,553 px, the bound holds at 1144, the content plus its viewport; its echo does not fit, and the line through the second echo and that one, both past the step, gives 752, which fits, the fourth post; the 30 px step's estimate, 870, is within the bound, and its refit gives 692. F18's second step, between the estimate and its check, leaves the refit, 864, off by that step; its own height, 808, is checked against the kept slope and fitted from its own two samples, 752, which fits. RED's uneven staircase reads a slope of 0.99, an estimate of 20,416, held at 1430; the refit is flat, so the content's own height, 814, is posted, and fits",
+    );
+  });
+
+  it("posts a picture laid out between the two echoes of content that contracts, its load a signal, at the fixed point its drop and that post's echo give", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    let picture = 0;
+    const { booting, layout } = bootedOn(page.html, { body: "", root: "" }, () => ({
+      block: 20 + picture,
+      screens: 0.5,
+    }));
+
+    layout.layOut(iframe.firstHeight);
+    booting.later();
+    layout.layOut(186);
+    booting.resized();
+    booting.later();
+    picture = 60;
+    layout.layOut(129);
+    booting.resized();
+    booting.later();
+
+    const dropped = heightsOf(booting.island);
+
+    booting.signalled("load");
+    followed(booting, layout, heightsOf(booting.island).at(-1) ?? iframe.firstHeight, 129);
+
+    assert.deepStrictEqual(
+      { dropped, posted: heightsOf(booting.island) },
+      { dropped: [186, 129], posted: [186, 129, 161, 192] },
+      "RED i6's picture between the echoes: 50vh over 20 px posts 186 and 129; a 60 px picture laid out in the echo of 129 reads a slope of -0.55, so that echo is dropped and kept; the picture's load posts it, 161, whose echo, 176.5, is off that slope, and the line through the drop and that echo, both past the picture, gives the fixed point, 192, which fits. Before, that echo was dropped as spent, the frame left at 161 for 176.5",
+    );
+  });
+
+  it("follows a change at a fixed viewport by the slope its content measured: COLD's T1 toggle beside V + c stays within 20 px of its first stop, and a contraction's toggle moves to its new fixed point", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const toggling = (content: (shown: number) => Content) => {
+      let shown = 0;
+      const { booting, layout } = bootedOn(page.html, { body: "", root: "" }, () => content(shown));
+
+      followed(booting, layout, iframe.firstHeight, iframe.firstHeight);
+
+      const stops = heightsOf(booting.island).length;
+
+      toggled(
+        booting,
+        layout,
+        () => {
+          shown = 20 - shown;
+        },
+        10,
+      );
+
+      return {
+        stop: heightsOf(booting.island).at(stops - 1),
+        toggled: heightsOf(booting.island).slice(stops),
+      };
+    };
+    const t1 = toggling((shown) => ({ block: 72 + shown, screens: 1 }));
+    const half = toggling((shown) => ({ block: 300 + shown, screens: 0.5 }));
+
+    assert.deepStrictEqual(
+      {
+        half,
+        strayed: t1.toggled.filter((posted) => Math.abs(posted - (t1.stop ?? 0)) > 20),
+        t1,
+      },
+      {
+        half: { stop: 632, toggled: [672, 632, 672, 632, 672, 632, 672, 632, 672, 632] },
+        strayed: [],
+        t1: { stop: 476, toggled: [496, 476, 496, 476, 496, 476, 496, 476, 496, 476] },
+      },
+      "COLD's T1: a heading over a 100vh block, beside 20 px shown and hidden ten times, each a change at the frame's fixed viewport; the slope its chain measured, 1, is kept, so each is followed by the viewport plus the change, 496 and 476, the 88 px of overflow scrolling as before, where each had started a chain that added the overflow again, 88 px a toggle. 50vh over 300 px, its slope 0.5 kept, moves between its two fixed points, 632 and 672, one post each",
     );
   });
 
@@ -3207,11 +3448,24 @@ const ranLast = (run: Run): void => {
  * `ondone`, observations of the root (an entry with no box, an echo of the frame's own resize,
  * posted once more, and the echo of that post, dropped, as `V + c` grows and as other content does,
  * a change a mutation signals, a signal that posts a dropped echo, a signal's post whose echo is
- * dropped, and a mutation before an echo the frame drops, which posts it at once), a style sheet
- * put before the pins and the pins removed, each with the mutation that puts them back first, a
- * `resize`, an uncaught error, unhandled rejections, a message the frame posts itself, a `pagehide`
- * the back/forward cache keeps, `complete` twice, and the `pagehide` that unloads it. Each event
- * names the frame's window where a browser's would.
+ * dropped, a signal with nothing to post, content that contracts, `V / 2 + 750`, whose fixed point,
+ * 1500, is posted and fits, a mutation before an echo the frame drops, which posts it at once, an
+ * estimate a step skews, refitted to a point that fits, an estimate whose refit has no fixed point,
+ * which posts the content's own height, whose echo does not fit and is kept for a signal, a refit
+ * that does not fit either, which posts the content's own height, an estimate the bound holds at
+ * the content plus its viewport, whose echo no observation brings, as the root's box does not
+ * change, so the timer after the `resize` checks it, and changes at a fixed viewport: followed by
+ * the kept slope beside `V + c`, its echo as the slope says and off it; with no slope kept; a
+ * contraction's, posted at the kept slope's fixed point; one the slope cannot follow; a followed
+ * change the timer checks; and one after the frame's width changed, which forgets the slope; and
+ * dropped echoes a signal posts, whose echoes are off the kept slope, refitted through the drop
+ * and the echo, and, where that refit is the change's second, dropped; and a followed change off
+ * the slope refitted to an estimate whose own height, posted with no slope to check, does not fit
+ * and is kept), a style sheet put before
+ * the pins and the pins removed, each with the mutation that puts them back first, a `resize`, an
+ * uncaught error, unhandled rejections, a message the frame posts itself, a `pagehide` the
+ * back/forward cache keeps, `complete` twice, and the `pagehide` that unloads it. Each event names
+ * the frame's window where a browser's would.
  *
  * @param run The run, its script evaluated.
  * @returns Once the run has been driven.
@@ -3293,6 +3547,7 @@ const wholeLife = async (run: Run): Promise<void> => {
       mutated();
     }
 
+    run.viewport.height = 0;
     observer([{ borderBoxSize: [{ blockSize: 400, inlineSize: 600 }] }]);
     run.viewport.height = 400;
     observer([{ borderBoxSize: [{ blockSize: 500, inlineSize: 600 }] }]);
@@ -3305,16 +3560,150 @@ const wholeLife = async (run: Run): Promise<void> => {
 
     run.viewport.height = 700;
     observer([{ borderBoxSize: [{ blockSize: 1000, inlineSize: 600 }] }]);
-    observer([{ borderBoxSize: [{ blockSize: 1100, inlineSize: 600 }] }]);
-    run.viewport.height = 1100;
-    observer([{ borderBoxSize: [{ blockSize: 1200, inlineSize: 600 }] }]);
 
     for (const mutated of run.mutations) {
       mutated();
     }
 
-    run.viewport.height = 1200;
+    run.viewport.height = 1000;
+    observer([{ borderBoxSize: [{ blockSize: 1050, inlineSize: 600 }] }]);
+    run.viewport.height = 0;
+    observer([{ borderBoxSize: [{ blockSize: 1100, inlineSize: 600 }] }]);
+    run.viewport.height = 1100;
+    observer([{ borderBoxSize: [{ blockSize: 1300, inlineSize: 600 }] }]);
+    run.viewport.height = 1300;
     observer([{ borderBoxSize: [{ blockSize: 1400, inlineSize: 600 }] }]);
+    run.viewport.height = 1500;
+    observer([{ borderBoxSize: [{ blockSize: 1500, inlineSize: 600 }] }]);
+    run.viewport.height = 0;
+    observer([{ borderBoxSize: [{ blockSize: 1600, inlineSize: 600 }] }]);
+    run.viewport.height = 1600;
+    observer([{ borderBoxSize: [{ blockSize: 1700, inlineSize: 600 }] }]);
+
+    for (const mutated of run.mutations) {
+      mutated();
+    }
+
+    run.viewport.height = 1700;
+    observer([{ borderBoxSize: [{ blockSize: 1900, inlineSize: 600 }] }]);
+    run.viewport.height = 1900;
+    observer([{ borderBoxSize: [{ blockSize: 2000, inlineSize: 600 }] }]);
+    run.viewport.height = 0;
+    observer([{ borderBoxSize: [{ blockSize: 2050, inlineSize: 600 }] }]);
+    run.viewport.height = 2050;
+    observer([{ borderBoxSize: [{ blockSize: 2125, inlineSize: 600 }] }]);
+    run.viewport.height = 2125;
+    observer([{ borderBoxSize: [{ blockSize: 2181.25, inlineSize: 600 }] }]);
+    run.viewport.height = 2350;
+    observer([{ borderBoxSize: [{ blockSize: 2293.75, inlineSize: 600 }] }]);
+    run.viewport.height = 2238;
+    observer([{ borderBoxSize: [{ blockSize: 2237.75, inlineSize: 600 }] }]);
+    run.viewport.height = 0;
+    observer([{ borderBoxSize: [{ blockSize: 3000, inlineSize: 600 }] }]);
+    run.viewport.height = 3000;
+    observer([{ borderBoxSize: [{ blockSize: 3100, inlineSize: 600 }] }]);
+    run.viewport.height = 3100;
+    observer([{ borderBoxSize: [{ blockSize: 3150, inlineSize: 600 }] }]);
+    run.viewport.height = 3200;
+    observer([{ borderBoxSize: [{ blockSize: 3700, inlineSize: 600 }] }]);
+    run.viewport.height = 3700;
+    observer([{ borderBoxSize: [{ blockSize: 3950, inlineSize: 600 }] }]);
+
+    for (const mutated of run.mutations) {
+      mutated();
+    }
+
+    run.viewport.height = 3950;
+    observer([{ borderBoxSize: [{ blockSize: 3975, inlineSize: 600 }] }]);
+    run.viewport.height = 0;
+    observer([{ borderBoxSize: [{ blockSize: 4500, inlineSize: 600 }] }]);
+    run.viewport.height = 4500;
+    observer([{ borderBoxSize: [{ blockSize: 4650, inlineSize: 600 }] }]);
+    run.viewport.height = 4650;
+    observer([{ borderBoxSize: [{ blockSize: 4755, inlineSize: 600 }] }]);
+    run.viewport.height = 5000;
+    observer([{ borderBoxSize: [{ blockSize: 4930, inlineSize: 600 }] }]);
+    run.viewport.height = 4860;
+    observer([{ borderBoxSize: [{ blockSize: 4960, inlineSize: 600 }] }]);
+    run.viewport.height = 4960;
+    observer([{ borderBoxSize: [{ blockSize: 4960, inlineSize: 600 }] }]);
+    run.viewport.height = 0;
+    observer([{ borderBoxSize: [{ blockSize: 5000, inlineSize: 600 }] }]);
+    run.viewport.height = 5000;
+    observer([{ borderBoxSize: [{ blockSize: 5200, inlineSize: 600 }] }]);
+    run.viewport.height = 5200;
+    observer([{ borderBoxSize: [{ blockSize: 5398, inlineSize: 600 }] }]);
+    run.viewport.height = 10_598;
+    dispatch(run.on, "resize", {});
+    ranOut(run);
+    run.viewport.height = 0;
+    observer([{ borderBoxSize: [{ blockSize: 6000, inlineSize: 600 }] }]);
+    run.viewport.height = 6000;
+    observer([{ borderBoxSize: [{ blockSize: 6100, inlineSize: 600 }] }]);
+    run.viewport.height = 6100;
+    observer([{ borderBoxSize: [{ blockSize: 6200, inlineSize: 600 }] }]);
+    observer([{ borderBoxSize: [{ blockSize: 6220, inlineSize: 600 }] }]);
+    run.viewport.height = 6120;
+    observer([{ borderBoxSize: [{ blockSize: 6240, inlineSize: 600 }] }]);
+    observer([{ borderBoxSize: [{ blockSize: 6200, inlineSize: 600 }] }]);
+    run.viewport.height = 6080;
+    observer([{ borderBoxSize: [{ blockSize: 6300, inlineSize: 600 }] }]);
+    run.viewport.height = 6300;
+    dispatch(run.on, "resize", {});
+    ranOut(run);
+    observer([{ borderBoxSize: [{ blockSize: 6350, inlineSize: 600 }] }]);
+    run.viewport.height = 0;
+    observer([{ borderBoxSize: [{ blockSize: 7000, inlineSize: 600 }] }]);
+    run.viewport.height = 7000;
+    observer([{ borderBoxSize: [{ blockSize: 7500, inlineSize: 600 }] }]);
+    run.viewport.height = 7500;
+    observer([{ borderBoxSize: [{ blockSize: 7750, inlineSize: 600 }] }]);
+    run.viewport.height = 8000;
+    observer([{ borderBoxSize: [{ blockSize: 8000, inlineSize: 600 }] }]);
+    observer([{ borderBoxSize: [{ blockSize: 8020, inlineSize: 600 }] }]);
+    run.viewport.height = 8040;
+    observer([{ borderBoxSize: [{ blockSize: 8040, inlineSize: 600 }] }]);
+    run.viewport.height = 0;
+    observer([{ borderBoxSize: [{ blockSize: 9000, inlineSize: 600 }] }]);
+    run.viewport.height = 9000;
+    observer([{ borderBoxSize: [{ blockSize: 9100, inlineSize: 600 }] }]);
+    run.viewport.height = 9100;
+    observer([{ borderBoxSize: [{ blockSize: 9200, inlineSize: 600 }] }]);
+    observer([{ borderBoxSize: [{ blockSize: 50, inlineSize: 600 }] }]);
+    run.viewport.height = 0;
+    observer([{ borderBoxSize: [{ blockSize: 9500, inlineSize: 600 }] }]);
+    run.viewport.height = 9500;
+    observer([{ borderBoxSize: [{ blockSize: 9600, inlineSize: 600 }] }]);
+    run.viewport.height = 9600;
+    observer([{ borderBoxSize: [{ blockSize: 9700, inlineSize: 600 }] }]);
+    observer([{ borderBoxSize: [{ blockSize: 9720, inlineSize: 600 }] }]);
+    run.viewport.height = 9620;
+    dispatch(run.on, "resize", {});
+    ranOut(run);
+    run.viewport.height = 0;
+    observer([{ borderBoxSize: [{ blockSize: 10_000, inlineSize: 600 }] }]);
+    run.viewport.height = 10_000;
+    observer([{ borderBoxSize: [{ blockSize: 10_100, inlineSize: 600 }] }]);
+    run.viewport.height = 10_100;
+    observer([{ borderBoxSize: [{ blockSize: 10_200, inlineSize: 600 }] }]);
+    observer([{ borderBoxSize: [{ blockSize: 10_300.5, inlineSize: 601 }] }]);
+    run.viewport.height = 10_301;
+    dispatch(run.on, "resize", {});
+    ranOut(run);
+    observer([{ borderBoxSize: [{ blockSize: 10_420, inlineSize: 601 }] }]);
+    run.viewport.height = 0;
+    observer([{ borderBoxSize: [{ blockSize: 20_000, inlineSize: 601 }] }]);
+    run.viewport.height = 20_000;
+    observer([{ borderBoxSize: [{ blockSize: 20_100, inlineSize: 601 }] }]);
+    run.viewport.height = 20_100;
+    observer([{ borderBoxSize: [{ blockSize: 20_200, inlineSize: 601 }] }]);
+    observer([{ borderBoxSize: [{ blockSize: 20_220, inlineSize: 601 }] }]);
+    run.viewport.height = 20_120;
+    observer([{ borderBoxSize: [{ blockSize: 20_230, inlineSize: 601 }] }]);
+    run.viewport.height = 20_340;
+    observer([{ borderBoxSize: [{ blockSize: 20_500, inlineSize: 601 }] }]);
+    run.viewport.height = 20_500;
+    observer([{ borderBoxSize: [{ blockSize: 20_600, inlineSize: 601 }] }]);
   }
 
   dispatch(run.on, "error", atWindow(run, { message: "thrown" }));
@@ -3625,7 +4014,7 @@ describe("the frame's boot, run", () => {
 
     assert.deepStrictEqual(posts, [
       "no nonce: ",
-      'its whole life: booted, registered, failed (No registered factory serves the type identifier "urn:qti-pie:test:unregistered", or its getInstance returned no interaction.), ready, changed, changed, changed, changed, changed, done, height 216, height 240, height 300, height 324, height 400, height 500, height 700, height 1100, height 1200, height 1400, completed',
+      'its whole life: booted, registered, failed (No registered factory serves the type identifier "urn:qti-pie:test:unregistered", or its getInstance returned no interaction.), ready, changed, changed, changed, changed, changed, done, height 216, height 240, height 300, height 324, height 400, height 500, height 700, height 1000, height 1100, height 1300, height 1500, height 1600, height 1700, height 1900, height 2100, height 2050, height 2125, height 2350, height 2238, height 3000, height 3100, height 3200, height 3700, height 4200, height 3975, height 4500, height 4650, height 5000, height 4860, height 4960, height 5000, height 5200, height 10598, height 5398, height 6000, height 6100, height 6120, height 6080, height 6350, height 7000, height 7500, height 8000, height 8040, height 9000, height 9100, height 50, height 9500, height 9600, height 9620, height 10000, height 10100, height 10301, height 10420, height 20000, height 20100, height 20120, height 20340, height 20500, completed',
       "a fallback: booted, registered, completed",
       "a route exhausted: booted, failed (The module script at modules/a.js did not load.)",
       'a wait run out: booted, failed (The module script at modules/a.js defined no module "a" within 5 seconds.)',

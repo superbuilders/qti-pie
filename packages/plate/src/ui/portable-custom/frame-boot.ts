@@ -31,8 +31,9 @@
  * pixels of its border box's block size, which the island writes as the frame's `height` attribute.
  * The frame page's own stylesheet pins the root's geometry, so that box is the extent the document
  * paints, at the frame's width, and a post changes no box it observes. A height media query reaches
- * its fixed point one post on, and content sized from the viewport's own height, which no height
- * fits, stops within two posts and scrolls the rest.
+ * its fixed point one post on, content that contracts with the viewport (`50vh` over fixed content)
+ * reaches its own by a line through two echoes, and content sized from the viewport's own height,
+ * which no height fits, stops within two posts and scrolls the rest.
  *
  * Failure travels as a `failed` message while the PCI is not yet running: a route that exhausts
  * its locations, a module that names a dependency no route defines, no factory for the identifier
@@ -185,20 +186,51 @@ interface Loading {
 }
 
 /**
+ * An echo the frame posted for: the viewport's height it was observed at, the height posted
+ * before it, and the root's block size it observed there, unrounded.
+ */
+interface Echoed {
+  readonly content: number;
+  readonly viewport: number;
+}
+
+/**
+ * Where the frame stands in fitting a line to its echoes since the last post that was no echo's:
+ * it has posted for the first, and samples it; it has posted the fixed point of the line through
+ * two, and samples the second; it has posted the fixed point of the line through that and the
+ * estimate's own echo, and samples the estimate's; it has followed a change by the slope its
+ * content measured, posting the viewport plus a change at a fixed viewport or a dropped echo a
+ * signal posted, and samples the change;
+ * or it has stopped, at a height that fits or at its content's own (`postHeight`).
+ */
+type Fit =
+  | { readonly sample: Echoed; readonly stage: "estimated" }
+  | { readonly sample: Echoed; readonly slope: number; readonly stage: "followed" }
+  | { readonly sample: Echoed; readonly stage: "refitted" }
+  | { readonly sample: Echoed; readonly stage: "sampled" }
+  | { readonly stage: "stopped" };
+
+/**
  * What the frame keeps of the heights it posts: the last, none before its first; whether the
- * viewport stood at it when the frame last looked; the root's inline size at the last observation;
- * how much the echo it last posted for grew the root, none since a post that was no echo's; the
- * height of an echo it dropped, for the next content signal to post, none where there is none to
- * post; whether a content signal has come since the last post; and whether a signal has posted a
- * dropped echo since the last post that was no echo's.
+ * viewport stood at it when the frame last looked; the root's block size, unrounded, and inline
+ * size at the last observation; the stage of the line it fits to its echoes since the last post
+ * that was no echo's (`Fit`), none before the first; the height of an echo it dropped, for the next
+ * content signal to post, none where there is none to post; whether a content signal has come
+ * since the last post; the slope of its content in the viewport's height that its last line
+ * measured, kept until the frame's width changes or its content is found off it, none before;
+ * whether the chain started because a post's echo was off that slope; and whether a signal has
+ * posted a dropped echo since the last post that was no echo's.
  */
 interface Followed {
   atPosted: boolean;
-  dropped: number | undefined;
-  echoGrowth: number | undefined;
+  block: number | undefined;
+  dropped: Echoed | undefined;
+  fit: Fit | undefined;
   inline: number | undefined;
   posted: number | undefined;
+  rechained: boolean;
   signalled: boolean;
+  slope: number | undefined;
   spent: boolean;
 }
 
@@ -901,11 +933,14 @@ export const bootFrame = (): void => {
    */
   const height: Followed = {
     atPosted: false,
+    block: undefined,
     dropped: undefined,
-    echoGrowth: undefined,
+    fit: undefined,
     inline: undefined,
     posted: undefined,
+    rechained: false,
     signalled: false,
+    slope: undefined,
     spent: false,
   };
 
@@ -919,13 +954,6 @@ export const bootFrame = (): void => {
    */
   const viewportAt = (pixels: number): boolean =>
     matchMedia(`(height: ${String(pixels)}px)`).matches;
-
-  /**
-   * Look at the viewport: note whether it stands at the height last posted.
-   */
-  const look = (): void => {
-    height.atPosted = height.posted !== undefined && viewportAt(height.posted);
-  };
 
   /**
    * Post a height, and note it as the last posted, with the viewport where it stands now and no
@@ -942,14 +970,15 @@ export const bootFrame = (): void => {
 
   /**
    * Take a content signal, a sign that the document's content changed, and note it: where the
-   * frame dropped an echo whose growth was no `V + c`, post that echo's height, once until the next
-   * post that is no echo's (`postHeight`). A signal decides no echo: a PCI that writes the document
-   * every frame would leave none.
+   * frame dropped an echo that may hold a change of its own, post that echo's height, once until
+   * the next post that is no echo's, its echo checked against the kept slope where one is kept and
+   * the chain did not start off it (`postHeight`). A signal decides no echo: a PCI that writes the
+   * document every frame would leave none.
    */
   const signal = (): void => {
     height.signalled = true;
 
-    const { dropped } = height;
+    const { dropped, rechained, slope } = height;
 
     if (dropped === undefined) {
       return;
@@ -957,15 +986,264 @@ export const bootFrame = (): void => {
 
     height.dropped = undefined;
     height.spent = true;
-    postPixels(dropped);
+    height.fit =
+      slope === undefined || rechained
+        ? { stage: "stopped" }
+        : { sample: dropped, slope, stage: "followed" };
+    postPixels(Math.ceil(dropped.content));
+  };
+
+  /**
+   * The slope of the line through two echoes: how much the content grows for each pixel of the
+   * viewport's height.
+   *
+   * @param from The earlier echo.
+   * @param to The later echo.
+   * @returns The slope.
+   */
+  const slopeOf = (from: Echoed, to: Echoed): number =>
+    (to.content - from.content) / (to.viewport - from.viewport);
+
+  /**
+   * The fixed point of the line of a slope through an echo, `c / (1 − a)`, where the slope `a`
+   * lies between 0 and 1 and the point is above 0; none otherwise.
+   *
+   * @param slope The line's slope.
+   * @param through An echo the line passes through.
+   * @returns The fixed point, in CSS pixels, unrounded.
+   */
+  const fixedPoint = (slope: number, through: Echoed): number | undefined => {
+    const fixed = (through.content - slope * through.viewport) / (1 - slope);
+
+    return slope > 0 && slope < 1 && fixed > 0 ? fixed : undefined;
+  };
+
+  /**
+   * The height to post for an estimate: the estimate, rounded up, but never above the content
+   * observed plus the viewport it was observed in.
+   *
+   * @param fixed The estimate, in CSS pixels, unrounded.
+   * @param sample The echo the estimate is posted from.
+   * @returns The height, in CSS pixels.
+   */
+  const bounded = (fixed: number, sample: Echoed): number =>
+    Math.min(Math.ceil(fixed), Math.ceil(sample.content) + sample.viewport);
+
+  /**
+   * Post a dropped echo at once where a content signal has come since the last post: a PCI's own
+   * drawing signals before the observation it lands in, and raises none after (`postHeight`).
+   */
+  const held = (): void => {
+    if (height.signalled) {
+      signal();
+    }
+  };
+
+  /**
+   * Post a height that starts a chain of echoes: no fit yet, no drop, no signal spent.
+   *
+   * @param pixels The height, in CSS pixels.
+   * @param off Whether the chain starts because a post's echo was off the kept slope; such a
+   *   chain's signalled drop is not checked against a slope again, so a content no line describes
+   *   starts at most one chain more for each change.
+   */
+  const chained = (pixels: number, off: boolean): void => {
+    height.dropped = undefined;
+    height.fit = undefined;
+    height.rechained = off;
+    height.spent = false;
+    postPixels(pixels);
+  };
+
+  /**
+   * At the echo of the first echo's post, fit the line through the two, and keep its slope: post
+   * its fixed point where the content contracts, or drop the echo, kept for a signal unless its
+   * content grows as fast as the viewport, `V + c`.
+   *
+   * @param first The first echo.
+   * @param sample This echo.
+   */
+  const fitted = (first: Echoed, sample: Echoed): void => {
+    const slope = slopeOf(first, sample);
+    const fixed = fixedPoint(slope, sample);
+
+    height.slope = slope;
+
+    if (fixed !== undefined) {
+      height.fit = { sample, stage: "estimated" };
+      postPixels(bounded(fixed, sample));
+
+      return;
+    }
+
+    height.dropped = slope === 1 ? undefined : sample;
+    held();
+  };
+
+  /**
+   * At the echo of an estimate, check it: where the content fits the posted height, stop; where
+   * it does not, refit once, through the echo the estimate came from and this one, keeping that
+   * slope, and post that fixed point, or the content's own height where the line has none or the
+   * refit did not fit either; that post's echo is checked against the kept slope as a followed
+   * change's is, so a change that came with this echo is fitted from its own two samples.
+   *
+   * @param fit The fit, an estimate or a refit posted.
+   * @param sample This echo.
+   * @param pixels This echo's content, rounded up.
+   */
+  const checked = (
+    fit: { readonly sample: Echoed; readonly stage: "estimated" | "refitted" },
+    sample: Echoed,
+    pixels: number,
+  ): void => {
+    if (pixels === sample.viewport) {
+      height.fit = { stage: "stopped" };
+
+      return;
+    }
+
+    const slope = fit.stage === "estimated" ? slopeOf(fit.sample, sample) : undefined;
+    const fixed = slope === undefined ? undefined : fixedPoint(slope, sample);
+    const kept = slope ?? height.slope;
+
+    height.slope = kept;
+
+    if (fixed !== undefined) {
+      height.fit = { sample, stage: "refitted" };
+      postPixels(bounded(fixed, sample));
+
+      return;
+    }
+
+    height.fit =
+      kept === undefined || height.rechained
+        ? { stage: "stopped" }
+        : { sample, slope: kept, stage: "followed" };
+    postPixels(pixels);
+  };
+
+  /**
+   * At the echo of a post that followed a change by the kept slope, a change at a fixed viewport
+   * or a dropped echo a signal posted, check that the content grew with the viewport as the slope
+   * says, to within the pixel a post rounds to: then stop; or, where it did not, its content is no
+   * longer that line, and the change's sample and this echo, both past the change, give the line it
+   * is: fit it, once for the change, as the first two echoes are fitted (RED i6: a picture laid out
+   * between the two echoes of `50vh` content skews the slope, and its `load` posted a height whose
+   * echo was dropped, the frame left 34 to 50 px short in 13 trials of 24).
+   *
+   * @param fit The fit, the change followed.
+   * @param sample This echo.
+   */
+  const matched = (
+    fit: { readonly sample: Echoed; readonly slope: number },
+    sample: Echoed,
+  ): void => {
+    const expected = fit.sample.content + fit.slope * (sample.viewport - fit.sample.viewport);
+
+    if (Math.abs(sample.content - expected) < 1) {
+      height.fit = { stage: "stopped" };
+
+      return;
+    }
+
+    height.fit = { stage: "stopped" };
+    height.rechained = true;
+    height.spent = false;
+    fitted(fit.sample, sample);
+  };
+
+  /**
+   * Follow a change of the content at a fixed viewport, the frame's width as it was, by the slope
+   * its last line measured, starting no chain: where the content contracts, post the fixed point
+   * of the line of that slope through the content now, which its echo checks as an estimate's;
+   * otherwise post the viewport plus the change, which keeps the overflow content sized from the
+   * viewport has, `c` of `V + c`, as it was, and which its echo checks against the slope. Where
+   * that height is none, the content is no longer that line: forget the slope and start a chain.
+   *
+   * @param slope The kept slope.
+   * @param sample The content now, at the viewport it stands in.
+   * @param before The content at the last observation, unrounded.
+   * @param pixels The content now, rounded up.
+   */
+  const changed = (slope: number, sample: Echoed, before: number, pixels: number): void => {
+    const fixed = fixedPoint(slope, sample);
+    const followed = Math.ceil(sample.viewport + sample.content - before);
+
+    height.dropped = undefined;
+    height.rechained = false;
+    height.spent = false;
+
+    if (fixed !== undefined) {
+      height.fit = { sample, stage: "estimated" };
+      postPixels(bounded(fixed, sample));
+
+      return;
+    }
+
+    if (followed > 0) {
+      height.fit = { sample, slope, stage: "followed" };
+      postPixels(followed);
+
+      return;
+    }
+
+    height.slope = undefined;
+    chained(pixels, false);
+  };
+
+  /**
+   * Take an echo that checks a post: an estimate's or a refit's (`checked`), or a followed
+   * change's (`matched`).
+   *
+   * @param fit The fit, a post to check.
+   * @param sample This echo.
+   * @param pixels This echo's content, rounded up.
+   */
+  const verified = (
+    fit: Exclude<Fit, { readonly stage: "sampled" | "stopped" }>,
+    sample: Echoed,
+    pixels: number,
+  ): void => {
+    if (fit.stage === "followed") {
+      matched(fit, sample);
+
+      return;
+    }
+
+    checked(fit, sample, pixels);
+  };
+
+  /**
+   * Look at the viewport: note whether it stands at the height last posted. Where it has come to
+   * stand at a post to check with no observation, the root's box did not change there, so that
+   * post's echo is the content last observed, which is checked as an observed echo is.
+   */
+  const look = (): void => {
+    const { atPosted, block, fit, posted } = height;
+
+    height.atPosted = posted !== undefined && viewportAt(posted);
+
+    if (
+      atPosted ||
+      !height.atPosted ||
+      posted === undefined ||
+      block === undefined ||
+      fit === undefined ||
+      fit.stage === "sampled" ||
+      fit.stage === "stopped"
+    ) {
+      return;
+    }
+
+    verified(fit, { content: block, viewport: posted }, Math.ceil(block));
   };
 
   /**
    * Post the frame's height: its document element's border box's block size, in CSS pixels
    * rounded up, as the `ResizeObserver` observing that very box reports it, once the island's
-   * `load` has written the PCI's markup; except for the echo of a post the frame made for an echo.
-   * Before the markup the document holds nothing, and its height, its body's margins, would shrink
-   * the frame for nothing.
+   * `load` has written the PCI's markup; except that the echo of a post the frame made for an echo
+   * posts a contracting content's fixed point, or nothing. Before the markup the document holds
+   * nothing, and its height, its body's margins, would shrink the frame for nothing.
    *
    * @param entries The observation's entries: the document element's alone.
    * @constraint The height posted is the box observed, so every change of it has its observation.
@@ -980,8 +1258,8 @@ export const bootFrame = (): void => {
    *   sets the frame's height and changes no box the observation watches, and the frame posts once
    *   for each change of its content.
    * @constraint Content sized from the viewport's own height (`vh` units, an orthogonal flow, whose
-   *   available inline size is the viewport's height) has no height to post: at a viewport of `V`
-   *   it is `V + c` (or `2V + c`, two stacked full-height panels), so each post would grow the
+   *   available inline size is the viewport's height) may have no height to post: at a viewport of
+   *   `V` it is `V + c` (or `2V + c`, two stacked full-height panels), so each post would grow the
    *   frame without end. The viewport's height changes only when the island applies the frame's
    *   own post, so the first observation made once the viewport has come to stand at the height
    *   last posted, the frame's width as it was, is that post's echo, whatever content signals came
@@ -991,41 +1269,93 @@ export const bootFrame = (): void => {
    *   i5: a heading over `100vh` under a script's animation grew to 103,104 px). A height media
    *   query also changes only in an echo, since it reads the viewport, and has a fixed point one
    *   post away: 400 px of content that a `(min-height: 400px)` query grows by 200 is 616 once the
-   *   frame is 416. So the first echo after a post that was no echo's is posted, once more, and
-   *   the echo of that post is dropped: a step query has reached its height and raises no
-   *   observation, and content sized from the viewport stops after two posts, its root, which the
-   *   pin scrolls, scrolling its overflow. In Chrome the observation of a rendering update comes
-   *   before that update's `resize`, so the viewport is looked at again in a timer after each
-   *   `resize`, never in its listener.
-   * @constraint A dropped echo whose growth is not the posted echo's own, which `V + c` repeats, may
-   *   hold a change that came with it: a picture whose layout lands in that very rendering, whose
-   *   `load` comes after the observation (Chrome 158 delivers the observation of a picture's new
-   *   size before its `load`, and of a font face's swap before `loadingdone`); or a PCI's own
-   *   drawing, whose mutation signals before the observation, as a `MutationObserver`'s callback
-   *   runs in the microtask after the script that mutated, before the rendering, and which raises
-   *   no signal after it. So the echo's height is posted at the next content signal, or at once
-   *   where a signal has come since the last post; once until the next post that is no echo's.
-   *   `V + c` content's dropped echo grows as the posted one did, so it posts nothing, and other
-   *   content sized from the viewport grows the frame at most once more (specimen's shade-parts
-   *   suite on a rule that waited for a later signal: a tap missed `rectangle-vertical-2`'s first
-   *   part in 2 runs of 4; `logs22/i6b-alpha/` in the lane's directory).
+   *   frame is 416. So the first echo after a post that was no echo's is posted, once more: a step
+   *   query has reached its height and raises no observation. In Chrome the observation of a
+   *   rendering update comes before that update's `resize`, so the viewport is looked at again in a
+   *   timer after each `resize`, never in its listener.
+   * @constraint At the echo of that post, the two echoes' viewports and the root's unrounded block
+   *   sizes there give the content as a line, `a·V + c`, which content sized from the viewport is,
+   *   since a viewport length is a fixed fraction of the viewport's height. Where `0 < a < 1` the
+   *   content contracts and has a fixed point, `c / (1 − a)`, which is posted: `50vh` over 300 px
+   *   of content, with the body's margins, is 632 once the frame is 632, a height no number of
+   *   echoes reaches. Where `a ≥ 1`, `V + c` and `2V + c`, there is none, and the echo is dropped:
+   *   the frame stops after two posts, its root, which the pin scrolls, scrolling its overflow.
+   * @constraint A change between the two echoes, a step query whose threshold lies between them, a
+   *   script's write or a picture laid out in that rendering, makes the line no description of the
+   *   content, and its error grows as `1 / (1 − a)`: `50vh` over 300 px with 60 px more at
+   *   `(min-height: 500px)` reads `a = 0.996`, a fixed point of 29,553 px for content whose own is
+   *   752 (COLD i6). So the estimate's own echo checks it: where the content there does not fit the
+   *   posted height, the line through the second echo and this one, both past the step, is fitted
+   *   once more and its fixed point posted, or, where its slope is not between 0 and 1, the
+   *   content's own height; and where that post does not fit either, the content's own height.
+   *   Where the root's box does not change at the estimate, no observation comes, so the timer
+   *   after its `resize` checks it against the content last observed. The frame ends at a height
+   *   that fits, or at its content's own, never at an estimate that does not fit: exact within
+   *   four posts for content that is a line on each side of one step, and at most nine for a
+   *   change, the content's own height checked against the kept slope and refitted once from its
+   *   own two samples, with one more at a later signal. No post is above the content observed
+   *   plus the viewport it was observed in: an estimate beyond that posts that, which its echo
+   *   checks (RED i6's uneven staircase, 416 px with 200 more at one height and 198 at another,
+   *   reads `a = 0.99` and would post 20,416 for 814).
+   * @constraint A dropped echo whose content does not grow as fast as the viewport (`a ≠ 1`,
+   *   which `V + c` is not) may hold a change that came with it: a picture whose layout lands in
+   *   that very rendering, whose `load` comes after the observation (Chrome 158 delivers the
+   *   observation of a picture's new size before its `load`, and of a font face's swap before
+   *   `loadingdone`); or a PCI's own drawing, whose mutation signals before the observation, as a
+   *   `MutationObserver`'s callback runs in the microtask after the script that mutated, before the
+   *   rendering, and which raises no signal after it. So the echo's height is posted at the next
+   *   content signal, or at once where a signal has come since the last post; once until the next
+   *   post that is no echo's. `V + c` content posts nothing, and other content sized from the
+   *   viewport grows the frame at most once more (specimen's shade-parts suite on a rule that
+   *   waited for a later signal: a tap missed `rectangle-vertical-2`'s first part in 2 runs of 4;
+   *   `logs22/i6b-alpha/` in the lane's directory).
+   * @constraint A change of the content at a fixed viewport, the frame's width as it was, is no
+   *   echo, and a new chain for it re-adds the overflow content sized from the viewport has: COLD
+   *   i6's T1, a heading over `100vh` beside 20 px shown and hidden every 400 ms, grew 88 px a
+   *   toggle, 3286 px in 6 s. So the slope a line measured is kept, a fact of the content, until
+   *   the frame's width changes or the content is found off it; and a change at a fixed viewport
+   *   starts no chain. Where the slope contracts, the fixed point of the line of that slope through
+   *   the content now is posted, an estimate its echo checks; otherwise the viewport plus the
+   *   change, which keeps `c` of `V + c` as it was, the frame moving as the content did; and a
+   *   dropped echo a signal posts is followed so too. That post's echo must grow as the slope says,
+   *   to within the pixel a post rounds to. Where it does not, the change's sample and the echo,
+   *   both past the change, give the content's line, which is fitted as the first two echoes are,
+   *   once for each change: RED i6's picture laid out between the two echoes of `50vh` content
+   *   read a slope of -0.55, and its `load` posted a height whose echo was dropped, 34 to 50 px
+   *   short in 13 trials of 24. Where the post would be none, the slope is forgotten and a chain
+   *   starts from the content's own height.
    * @constraint What is left:
    *   - a media query that flips at the posted height, `.x { height: 400px }` under
-   *     `@media (min-height: 600px) { .x { height: 0 } }`: the frame stops short with its content
-   *     scrolling (477 for 877), or, after a later signal, tall with blank space below the content
-   *     (877 for 477);
-   *   - a query whose fixed point is more than one post away stops one post short, scrolling;
+   *     `@media (min-height: 600px) { .x { height: 0 } }`, whose content shrinks as the frame grows
+   *     (`a < 0`, as content that subtracts a viewport length does): the frame stops short with its
+   *     content scrolling (477 for 877), or, after a later signal, tall with blank space below the
+   *     content (877 for 477);
+   *   - a query whose fixed point is more than one post away may stop one post short, scrolling,
+   *     where its later steps land in the echoes: their growth, as even as `V + c`'s, gives `a = 1`;
+   *     a step that lands after the frame has looked at its viewport is a change of its own, and
+   *     posted;
    *   - a change no signal reports (a stylesheet rule changed through the CSSOM, a hover) that lands
    *     in a dropped echo is not posted until the content next changes;
-   *   - each content change that lands outside an echo starts a new chain of at most three posts,
-   *     so content sized from the viewport grows by its overflow at each, as two stacked
-   *     full-height panels do (about ×4 for each later change).
+   *   - a change that lands while a post is on its way, the viewport not yet at it, starts a
+   *     chain, which re-adds the overflow of content sized from the viewport once; and a dropped
+   *     echo in a chain refitted off the kept slope is posted at a signal with no check;
+   *   - a second step between an estimate and its check leaves the refit off by that step; the
+   *     content's own height posted then is checked against the kept slope and fitted from its own
+   *     two samples, so COLD i6's F18, 60 px at `(min-height: 500px)` and 100 px at 900 on `50vh`
+   *     over 300 px, ends at 752, fitting, in six posts, where it had stopped at 808 for 780; a
+   *     third step there would leave that fit off by it;
+   *   - content that shrinks as the viewport grows (`calc(900px − 50vh)`, `a < 0`) has a fixed
+   *     point the rule leaves unreached, stopping with blank space or scrolling (COLD i6);
+   *   - content that contracts with a slope near 1 (`99vh` over 300 px) has a fixed point far above
+   *     its content (31,550 px from a viewport of 777), which the bound holds each post below, so
+   *     the frame stops at its content's own height after five posts, 4300, scrolling 273 px.
    * @source Resize Observer: `ResizeObserverOptions.box` and its `border-box`, and
    *   `ResizeObserverEntry.borderBoxSize`; Chrome 158, probed through this frame page
    *   (`car-i2/probe/order-probe.mjs` and `echo-probe.mts` in the lane's directory): the
    *   observation before the `resize`, each case of content sized from the viewport ending within
-   *   two posts, the step query reaching 616 and the flipping query stopping (`car-i5/probe/` in
-   *   the lane's directory).
+   *   two posts, the step query reaching 616, the flipping query stopping (`car-i5/probe/`),
+   *   `50vh` over 300 px reaching 632, a step between its echoes ending at 752, and T1 staying
+   *   within 20 px of its first stop (`car-i6/probe/`, in the lane's directory).
    * @see https://drafts.csswg.org/resize-observer/#dom-resizeobserverboxoptions-border-box
    * @see https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-borderboxsize
    * @see https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering
@@ -1037,36 +1367,68 @@ export const bootFrame = (): void => {
       return;
     }
 
-    const { posted } = height;
+    const { atPosted, block, posted, slope } = height;
     const now = posted !== undefined && viewportAt(posted);
-    const echo = now && !height.atPosted && box.inlineSize === height.inline;
+    const wide = box.inlineSize === height.inline;
     const pixels = Math.ceil(box.blockSize);
 
     height.atPosted = now;
+    height.block = box.blockSize;
     height.inline = box.inlineSize;
+    height.slope = wide ? slope : undefined;
 
-    if (posted === undefined || !echo) {
+    if (posted === undefined || !now || !wide) {
+      chained(pixels, false);
+
+      return;
+    }
+
+    const sample = { content: box.blockSize, viewport: posted };
+
+    if (atPosted) {
+      if (slope === undefined || block === undefined) {
+        chained(pixels, false);
+
+        return;
+      }
+
+      changed(slope, sample, block, pixels);
+
+      return;
+    }
+
+    const { fit } = height;
+
+    if (fit === undefined) {
+      height.fit = { sample, stage: "sampled" };
+      postPixels(pixels);
+
+      return;
+    }
+
+    if (height.spent && fit.stage !== "followed") {
       height.dropped = undefined;
-      height.echoGrowth = undefined;
-      height.spent = false;
-      postPixels(pixels);
 
       return;
     }
 
-    const growth = pixels - posted;
+    height.dropped = undefined;
 
-    if (height.echoGrowth === undefined) {
-      height.echoGrowth = growth;
-      postPixels(pixels);
+    if (fit.stage === "sampled") {
+      fitted(fit.sample, sample);
 
       return;
     }
 
-    height.dropped = growth === height.echoGrowth || height.spent ? undefined : pixels;
+    if (fit.stage !== "stopped") {
+      verified(fit, sample, pixels);
 
-    if (height.signalled) {
-      signal();
+      return;
+    }
+
+    if (pixels !== posted) {
+      height.dropped = sample;
+      held();
     }
   };
 
