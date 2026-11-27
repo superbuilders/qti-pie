@@ -10,7 +10,8 @@ import path from "node:path";
 import { Effect, FileSystem } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import type { Element } from "@qti-pie/crust/tree.ts";
-import type { XmlElement, XmlNode } from "#processing/xml.ts";
+import { numbered } from "#processing/test/numbered.ts";
+import type { XmlElement } from "#processing/xml.ts";
 
 /**
  * The templates' names, as their files are named.
@@ -31,28 +32,12 @@ const folder = path.resolve(import.meta.dirname, "..", "..", "templates");
 
 /**
  * The compiler's view of a crust element: names, attributes and children, every other node kept by
- * its kind.
+ * its kind, numbered as a document's root.
  *
  * @param element - The element.
  * @returns Its view.
  */
-export const viewOf = (element: Element): XmlElement => ({
-  attributes: element.attributes.map((attribute) => ({
-    local: attribute.local,
-    namespace: attribute.namespace,
-    value: attribute.value,
-  })),
-  children: element.children.map((child): XmlNode => {
-    if (child.kind === "element") {
-      return viewOf(child);
-    }
-
-    return child.kind === "text" ? { kind: "text", value: child.value } : { kind: child.kind };
-  }),
-  kind: "element",
-  local: element.local,
-  namespace: element.namespace,
-});
+export const viewOf = (element: Element): XmlElement => numbered(element);
 
 /**
  * Read every published template's file.

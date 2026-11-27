@@ -380,6 +380,7 @@ const pointItem = (imageAttributes: Readonly<Record<string, string>>) =>
             kind: "element",
             local: "img",
             namespace: "http://www.w3.org/1999/xhtml",
+            start: 0,
           },
         ]),
       ]),

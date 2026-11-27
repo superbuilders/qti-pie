@@ -21,29 +21,6 @@ import { qtiChildren, qtiNamespace } from "#processing/xml.ts";
 import type { XmlElement } from "#processing/xml.ts";
 
 /**
- * Where each element of a document stands: its index among the document's elements in document
- * order.
- *
- * @param root - The document's root element.
- * @returns The place of every element.
- */
-export const placesOf = (root: XmlElement): ReadonlyMap<XmlElement, number> => {
-  const places = new Map<XmlElement, number>();
-  const pending: XmlElement[] = [root];
-  for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
-    places.set(next, places.size);
-
-    for (const child of next.children.toReversed()) {
-      if (child.kind === "element") {
-        pending.push(child);
-      }
-    }
-  }
-
-  return places;
-};
-
-/**
  * Whether a name is a kind a table holds.
  *
  * @param table - The operators.
@@ -70,16 +47,14 @@ const isExpression = <P extends ExpressionKind>(
  *
  * @param table - The operators, by kind.
  * @param context - The document's declarations.
- * @param places - Where each of the document's elements stands.
+ * @param placeOf - Where each of the document's elements stands.
  * @returns The compiler of one expression element.
  */
 export const expressionCompiler = <K extends ExpressionKind>(
   table: OperatorTable<K>,
   context: CompileContext,
-  places: ReadonlyMap<XmlElement, number>,
+  placeOf: (element: XmlElement) => number,
 ): ((element: XmlElement) => Checked<Expression>) => {
-  const placeOf = (element: XmlElement): number => places.get(element) ?? -1;
-
   /**
    * Compile an element of a kind.
    *

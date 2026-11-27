@@ -29,6 +29,7 @@ import { customOperatorOf } from "#processing/registry.ts";
 import type { Demand, MemberState, ProcessingFailure, Run } from "#processing/run.ts";
 import { nullOf, valueTypeOf } from "#processing/value.ts";
 import type { Null, Single, Value, ValueType } from "#processing/value.ts";
+import { numbered } from "#processing/test/numbered.ts";
 import { qtiNamespace } from "#processing/xml.ts";
 import type { XmlElement, XmlNode } from "#processing/xml.ts";
 
@@ -182,7 +183,8 @@ export const ownVariable = (identifier: string, type: ValueType): VariableRef =>
 });
 
 /**
- * An element of QTI's namespace, as a stored document holds it.
+ * An element of QTI's namespace, as a stored document holds it, numbered as a document's root
+ * (`numbered`): a tree built of these is numbered whole by its root, the last one built.
  *
  * @param local - Its local name, `qti-` included.
  * @param attributes - Its attributes in no namespace.
@@ -193,17 +195,18 @@ export const element = (
   local: string,
   attributes: Readonly<Record<string, string>>,
   children: readonly XmlNode[],
-): XmlElement => ({
-  attributes: Object.entries(attributes).map(([name, value]) => ({
-    local: name,
-    namespace: "",
-    value,
-  })),
-  children,
-  kind: "element",
-  local,
-  namespace: qtiNamespace,
-});
+): XmlElement =>
+  numbered({
+    attributes: Object.entries(attributes).map(([name, value]) => ({
+      local: name,
+      namespace: "",
+      value,
+    })),
+    children,
+    kind: "element",
+    local,
+    namespace: qtiNamespace,
+  });
 
 /**
  * Character data.

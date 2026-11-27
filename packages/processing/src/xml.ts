@@ -1,7 +1,7 @@
 /**
- * The document as the compiler reads it: a structural view of an XML element tree, so crust's
- * `Element` (the reader every stored document goes through) is an input as it stands, with the
- * readers of an element's attributes and children that every expression and rule reader shares.
+ * The document as the compiler reads it: a structural view of an XML element tree, each element
+ * carrying pantry's `start`, which the ledger builds from the document's rows, with the readers of
+ * an element's attributes and children that every expression and rule reader shares.
  *
  * @module
  */
@@ -37,7 +37,7 @@ export interface XmlOther {
 }
 
 /**
- * An element: its name, attributes in document order and children in document order.
+ * An element: its name, attributes in document order, children in document order, and its start.
  */
 export interface XmlElement {
   readonly attributes: readonly XmlAttribute[];
@@ -45,6 +45,13 @@ export interface XmlElement {
   readonly kind: "element";
   readonly local: string;
   readonly namespace: string;
+  /**
+   * The element's place: pantry's `Node.start`, its pre-order position among its document's nodes
+   * (the document at 0), read from the rows the document is stored as. Every place the package
+   * names (a refusal's, a recorded operator's demand and its answer's key) is this number, so the
+   * package and the ledger number a document one way, by construction.
+   */
+  readonly start: number;
 }
 
 /**

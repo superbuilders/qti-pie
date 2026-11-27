@@ -15,7 +15,7 @@ import { resolveArea } from "#processing/compile/area.ts";
 import type { ImageSize } from "#processing/compile/area.ts";
 import type { Interaction } from "#processing/compile/body.ts";
 import { childNamed, childrenNamed, declarationsOf } from "#processing/compile/declarations.ts";
-import { expressionCompiler, placesOf } from "#processing/compile/expression.ts";
+import { expressionCompiler } from "#processing/compile/expression.ts";
 import { outcomeRulesOf, responseRulesOf, templateRulesOf } from "#processing/compile/rules.ts";
 import type { RulesContext } from "#processing/compile/rules.ts";
 import { readBoolean } from "#processing/lexical.ts";
@@ -111,7 +111,38 @@ const unresolvedProcessing = (
 };
 
 /**
- * Where each element stands, a published template's elements placed after the document's own.
+ * Where a test's element stands: its `start`, pantry's.
+ *
+ * @param element - The element.
+ * @returns Its place.
+ */
+const placeAtStart = (element: XmlElement): number => element.start;
+
+/**
+ * Every element of a tree, itself among them.
+ *
+ * @param root - The tree's root.
+ * @returns Its elements.
+ */
+const elementsOf = (root: XmlElement): ReadonlySet<XmlElement> => {
+  const elements = new Set<XmlElement>();
+  const pending: XmlElement[] = [root];
+  for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+    elements.add(next);
+    for (const child of next.children) {
+      if (child.kind === "element") {
+        pending.push(child);
+      }
+    }
+  }
+
+  return elements;
+};
+
+/**
+ * Where each element stands: a document's element at its `start`, pantry's, and a published
+ * template's elements, which no stored document holds, after the document's every element, each
+ * at its own start past the document's last.
  *
  * @param root - The document's root.
  * @param template - The published template its response processing names, if any.
@@ -121,10 +152,14 @@ const placesWith = (
   root: XmlElement,
   template: XmlElement | undefined,
 ): ((element: XmlElement) => number) => {
-  const own = placesOf(root);
-  const borrowed = template === undefined ? new Map<XmlElement, number>() : placesOf(template);
+  const own = elementsOf(root);
+  let past = 0;
+  for (const element of own) {
+    past = Math.max(past, element.start + 1);
+  }
 
-  return (element) => own.get(element) ?? own.size + (borrowed.get(element) ?? 0);
+  return (element) =>
+    own.has(element) || template === undefined ? element.start : past + element.start;
 };
 
 /**
@@ -228,13 +263,7 @@ export const compileItemOver = <K extends ExpressionKind>(
   const unresolved =
     processing === undefined
       ? undefined
-      : unresolvedProcessing(
-          processing,
-          placesOf(root).get(processing) ?? 0,
-          rules.length,
-          templateUri,
-          template,
-        );
+      : unresolvedProcessing(processing, processing.start, rules.length, templateUri, template);
   if (unresolved !== undefined) {
     return unresolved;
   }
@@ -279,27 +308,11 @@ export const compileItemOver = <K extends ExpressionKind>(
     weightedVariable: () => noVariable,
   };
   const rulesContext: RulesContext = {
-    compileExpression: expressionCompiler(table, context, placesOf(root)),
+    compileExpression: expressionCompiler(table, context, placeOf),
     context,
     declarations: declared,
     placeOf,
   };
-  const templateRulesContext: RulesContext =
-    template === undefined
-      ? rulesContext
-      : {
-          ...rulesContext,
-          compileExpression: expressionCompiler(
-            table,
-            context,
-            new Map(
-              [...placesOf(template)].map(([element, place]) => [
-                element,
-                placesOf(root).size + place,
-              ]),
-            ),
-          ),
-        };
   const templateProcessing = childNamed(root, "qti-template-processing");
   const templates = templateRulesOf(
     templateProcessing === undefined ? [] : qtiChildren(templateProcessing),
@@ -313,7 +326,7 @@ export const compileItemOver = <K extends ExpressionKind>(
   const responses: Checked<readonly ResponseRule[]> =
     template === undefined
       ? responseRulesOf(rules, rulesContext)
-      : responseRulesOf(qtiChildren(template), templateRulesContext);
+      : responseRulesOf(qtiChildren(template), rulesContext);
   if (!responses.ok) {
     return responses;
   }
@@ -446,9 +459,7 @@ export const compileTestWith = <K extends ExpressionKind>(
     return refused("element", 0, "compile a qti-assessment-test");
   }
 
-  const places = placesOf(root);
-  const placeOf = (element: XmlElement): number => places.get(element) ?? -1;
-  const declarations = declarationsOf(root, "test", placeOf, { kind: "skip" });
+  const declarations = declarationsOf(root, "test", placeAtStart, { kind: "skip" });
   if (!declarations.ok) {
     return declarations;
   }
@@ -468,12 +479,12 @@ export const compileTestWith = <K extends ExpressionKind>(
     },
     weightedVariable: (identifier, weight) => memberRef(identifier, items, weight),
   };
-  const compileExpression = expressionCompiler(table, context, places);
+  const compileExpression = expressionCompiler(table, context, placeAtStart);
   const rulesContext: RulesContext = {
     compileExpression,
     context,
     declarations: declared,
-    placeOf,
+    placeOf: placeAtStart,
   };
   const itemRefs: CompiledItemRef[] = [];
   for (const { element, sections } of itemRefsOf(root, [])) {
@@ -482,7 +493,7 @@ export const compileTestWith = <K extends ExpressionKind>(
     if (item === undefined) {
       return refused(
         "unknown-identifier",
-        placeOf(element),
+        placeAtStart(element),
         `compile the item ${identifier} refers to first`,
       );
     }
@@ -492,7 +503,11 @@ export const compileTestWith = <K extends ExpressionKind>(
       const [expressionElement] = qtiChildren(templateDefault);
       const expression: Checked<Expression> =
         expressionElement === undefined
-          ? refused("arity", placeOf(templateDefault), "give the template default its expression")
+          ? refused(
+              "arity",
+              placeAtStart(templateDefault),
+              "give the template default its expression",
+            )
           : compileExpression(expressionElement);
       if (!expression.ok) {
         return expression;

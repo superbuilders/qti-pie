@@ -21,6 +21,7 @@ import {
   startOf,
   takeItem,
 } from "@qti-pie/processing";
+import { numbered } from "@qti-pie/processing/testing.ts";
 import { recordOf, single } from "@qti-pie/processing/value.ts";
 import type {
   CompiledItem,
@@ -54,7 +55,8 @@ import { recordedOf, recordedValuesOf, valuesOf } from "#processing-oracle/value
 const epoch = { microseconds: 0n } as const;
 
 /**
- * A stored document read, or why it is none.
+ * A stored document read, or why it is none: its tree numbered as pantry numbers a document's nodes
+ * (`numbered`), which the oracle, reading text, needs only be consistent with itself.
  *
  * @param bytes The document's bytes.
  * @returns Its root element, or a refusal.
@@ -63,7 +65,7 @@ const rootOf = (bytes: Uint8Array): Refused | XmlElement => {
   const exit = Effect.runSyncExit(readXml(bytes));
 
   return Exit.isSuccess(exit)
-    ? exit.value.root
+    ? numbered(exit.value.root)
     : { kind: "refused", reason: "the document is not well-formed XML" };
 };
 
@@ -79,22 +81,19 @@ const digestOf = (bytes: Uint8Array): Digest => ({
 
 /**
  * The places of a document's recorded operators in document order: each `qti-custom-operator`
- * whose definition the registry holds as recorded, by its element's pre-order index from the root
- * at 0, the place the package keys their answers and demands by.
+ * whose definition the registry holds as recorded, at its element's `start`, the place the package
+ * keys their answers and demands by.
  *
  * @param root The document's root.
  * @returns The places, the first recorded operator's first.
  */
 const recordedPlaces = (root: XmlElement): readonly number[] => {
   const places: number[] = [];
-  let next = 0;
   const visit = (element: XmlElement): void => {
-    const place = next;
-    next += 1;
     if (element.local === "qti-custom-operator") {
       const definition = element.attributes.find((a) => a.local === "definition")?.value ?? "";
       if (customOperatorOf(definition)?.kind === "recorded") {
-        places.push(place);
+        places.push(element.start);
       }
     }
 
