@@ -71,10 +71,12 @@ export const publishedTemplate = (uri: string): XmlElement | undefined => {
 
 /**
  * The refusal of a response processing the package cannot resolve, so no item is served with its
- * outcomes left at their defaults: a `template-location` (the package fetches nothing), and a
- * `template` that names none of QTI 3.0.1's published templates where no rules are written inline
- * (reading `built-in-templates`). Rules written inline compile as written; a published template
- * compiles to its rules; no response processing at all is no rules.
+ * outcomes left at their defaults: where no rules are written inline and `template` names none of
+ * QTI 3.0.1's published templates, a `template-location` (where to fetch the rules of a template
+ * the delivery system does not know; the package fetches nothing), else the unknown `template`
+ * (reading `built-in-templates`). A published template compiles to its rules, its
+ * `template-location` a hint the package never needs; rules written inline compile as written;
+ * no response processing at all is no rules.
  *
  * @param processing - The item's `qti-response-processing`.
  * @param place - Where it stands.
@@ -91,7 +93,7 @@ const unresolvedProcessing = (
   template: XmlElement | undefined,
 ): Checked<CompiledItem> | undefined => {
   const location = attributeOf(processing, "template-location");
-  if (location !== undefined) {
+  if (location !== undefined && inline === 0 && template === undefined) {
     return refused(
       "template-location",
       place,

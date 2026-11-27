@@ -249,17 +249,26 @@ describe("the document compiler", () => {
     assert.isUndefined(publishedTemplate("http://example.com/match_correct"));
   });
 
-  it("refuses a response processing it cannot resolve, an unknown template's URI and any template-location, and compiles a published template to its rules (reading `built-in-templates`)", () => {
+  it("refuses a response processing it cannot resolve, an unknown template's URI and a template-location to fetch it from, and compiles a published template to its rules, its template-location a hint it never needs (reading `built-in-templates`)", () => {
     const prefix = "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/";
 
     const unknown = processed({ template: `${prefix}unknown` });
     assert.strictEqual(unknown.ok ? undefined : unknown.refusal.code, "unknown-template");
 
     const located = processed({
+      template: `${prefix}unknown`,
+      "template-location": "https://example.org/unknown.xml",
+    });
+    assert.strictEqual(located.ok ? undefined : located.refusal.code, "template-location");
+
+    const hinted = processed({
       template: `${prefix}match_correct`,
       "template-location": "https://example.org/match_correct.xml",
     });
-    assert.strictEqual(located.ok ? undefined : located.refusal.code, "template-location");
+    assert.isTrue(
+      hinted.ok && hinted.value.responseProcessing.length > 0,
+      hinted.ok ? "no rules" : hinted.refusal.detail,
+    );
 
     const matched = processed({ template: `${prefix}match_correct` });
     assert.isTrue(
