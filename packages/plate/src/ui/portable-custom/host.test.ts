@@ -10,7 +10,8 @@
  * the frame element's height just before the island applied it and just after, and the page's
  * ratio; and a `PageSettled` the height the element read the same in two consecutive animation
  * frames. The page's animation frames and the frame element's laid-out height are the test's: the
- * element takes a written height at once, or as a host's script tweens it frame by frame.
+ * element takes a written height at once, or as a host's script tweens it frame by frame; its
+ * border adds to its border box, and a transform scales the box as painted, never as laid out.
  *
  * @module
  * @see https://html.spec.whatwg.org/multipage/imagebitmap-and-animations.html#animation-frames
@@ -37,6 +38,21 @@ interface FrameEvent {
  * at once.
  */
 type Tween = (written: number, now: number) => number | undefined;
+
+/**
+ * How the host shows the frame element: its border's width on each side, and whether an infinite
+ * animation pulses its `transform` between `scale(1)` and `scale(1.03)`, a frame each, which scales
+ * the box `getBoundingClientRect()` gives and leaves its used height as it was.
+ */
+interface Shown {
+  readonly border: number;
+  readonly pulsing: boolean;
+}
+
+/**
+ * A frame element with no border and no transform.
+ */
+const plainly: Shown = { border: 0, pulsing: false };
 
 /**
  * The page and the frame end as the test holds them: the frame element's `height` attribute as the
@@ -86,9 +102,10 @@ const defaultHeight = 150;
  * boot.
  *
  * @param tween The host's own script's tween of the element's height, `null` for no tween.
+ * @param shown How the host shows the element.
  * @returns The page and the frame end.
  */
-const hosted = (tween: Tween | null): Hosted => {
+const hosted = (tween: Tween | null, shown: Shown): Hosted => {
   const told: PageMessage[] = [];
   const listeners = new Map<string, (event: FrameEvent) => void>();
   const queued: (() => void)[] = [];
@@ -99,10 +116,11 @@ const hosted = (tween: Tween | null): Hosted => {
   };
   let attribute = "";
   let laid = defaultHeight;
+  let scale = 1;
   const frame = {
     contentWindow,
     dataset: {},
-    getBoundingClientRect: () => ({ height: laid }),
+    getBoundingClientRect: () => ({ height: (laid + 2 * shown.border) * scale }),
     get height() {
       return attribute;
     },
@@ -131,6 +149,14 @@ const hosted = (tween: Tween | null): Hosted => {
   };
 
   vi.stubGlobal("requestAnimationFrame", (rendered: () => void) => queued.push(rendered));
+  vi.stubGlobal("getComputedStyle", () => ({
+    borderBottomWidth: `${String(shown.border)}px`,
+    borderTopWidth: `${String(shown.border)}px`,
+    boxSizing: "content-box",
+    height: `${String(laid)}px`,
+    paddingBottom: "0px",
+    paddingTop: "0px",
+  }));
   vi.stubGlobal("document", {
     baseURI: "https://host.test/item",
     body: { append: () => {}, ownerDocument },
@@ -153,6 +179,7 @@ const hosted = (tween: Tween | null): Hosted => {
     attribute: () => attribute,
     frame: () => {
       laid = tween?.(Number(attribute), laid) ?? laid;
+      scale = shown.pulsing && scale === 1 ? 1.03 : 1;
 
       for (const rendered of queued.splice(0)) {
         rendered();
@@ -188,7 +215,7 @@ describe("plate's island, as it answers its frame", () => {
   });
 
   it("sends the frame its load with the page's device pixel ratio", () => {
-    const page = hosted(null);
+    const page = hosted(null, plainly);
 
     assert.deepStrictEqual(
       page.told.map((message) => (message.kind === "load" ? message.ratio : message.kind)),
@@ -198,7 +225,7 @@ describe("plate's island, as it answers its frame", () => {
   });
 
   it("writes each height the frame posts whole, acknowledges it as it applies it, and says it settled once two animation frames read the element's height the same", () => {
-    const page = hosted(null);
+    const page = hosted(null, plainly);
 
     page.from({ kind: "height", nonce: page.nonce, pixels: 400.4 });
 
@@ -237,7 +264,7 @@ describe("plate's island, as it answers its frame", () => {
   });
 
   it("settles a height a host's script tweens frame by frame only once the tween has stopped: RED i7″'s script-animated host", () => {
-    const page = hosted((written, now) => Math.min(written, now + 50));
+    const page = hosted((written, now) => Math.min(written, now + 50), plainly);
 
     page.from({ kind: "height", nonce: page.nonce, pixels: 400 });
 
@@ -253,7 +280,7 @@ describe("plate's island, as it answers its frame", () => {
   });
 
   it("settles beside an animation that never ends and moves no box, since only the height is read: CLEAN i7″'s and RED i7″'s infinite outline-colour pulse", () => {
-    const page = hosted(null);
+    const page = hosted(null, plainly);
 
     page.from({ kind: "height", nonce: page.nonce, pixels: 400 });
     page.frame();
@@ -263,6 +290,20 @@ describe("plate's island, as it answers its frame", () => {
       landingsIn(page),
       ["landed 400", "settled 400"],
       "an acknowledgment that waited for every animation's end never came beside one that runs for ever, and the frame stood at its first post for good",
+    );
+  });
+
+  it("reads the element's border box as laid out, which no transform moves, so it settles beside a host's infinite scale pulse on the element: RED i7‴'s infscale", () => {
+    const page = hosted(null, { border: 2, pulsing: true });
+
+    page.from({ kind: "height", nonce: page.nonce, pixels: 400 });
+    page.frame();
+    page.frame();
+
+    assert.deepStrictEqual(
+      landingsIn(page),
+      ["landed 404", "settled 404"],
+      "the element's 400 px and its two 2 px borders, as the rectangle reads them with no transform; read through the rectangle, scaled by 1.03 every other frame, no two frames read the same, nothing settled, and the frame stood at its first post (391 for 512 px)",
     );
   });
 });

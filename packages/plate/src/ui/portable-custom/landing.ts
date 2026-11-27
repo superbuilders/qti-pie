@@ -52,7 +52,51 @@ export const landHeight = (
   written: number,
   tell: (message: Omit<PageLanded, "nonce"> | Omit<PageSettled, "nonce">) => void,
 ): void => {
-  const from = frame.getBoundingClientRect().height;
+  /**
+   * Read the element's border-box height as laid out, in its own CSS pixels: its used `height`,
+   * which its computed style resolves to, with its padding and border where it sizes its content
+   * box, each resolved in pixels; 0 where the element is laid out at no height a length names, as
+   * a box not rendered.
+   *
+   * @returns The height.
+   * @constraint No transform moves the read. `getBoundingClientRect()` is the box as painted, so
+   *   it moves with `transform`, `scale`, `rotate` and `translate`: beside a host's infinite pulse
+   *   of `transform: scale(1)` to `scale(1.03)` on the frame element it never read the same in two
+   *   animation frames, no post settled, and the frame stood at its first post for good (RED i7‴'s
+   *   `infscale`: 391 for 512 px, 316 for 1516). A used height is layout's, which no transform
+   *   changes.
+   * @constraint With no transform and no zoom it is the rectangle's height: Chrome 158 read both
+   *   the same for plate's own frame element (`content-box`, a 2 px border), 1 px of padding added,
+   *   and a `border-box` one, at heights 300, 301, 457 and 1234 px, on device ratios of 1 and 2
+   *   exactly and of 1.25 to the rectangle's single precision, and under `scale(1.03)` and
+   *   `rotate(3deg)` it moved in none of 192 reads (`car-i10/i8b/measure.mjs` in the lane's
+   *   directory). Under a CSS `zoom` on the element or
+   *   an ancestor it is in the element's own pixels, the rectangle's divided by the zoom, so a
+   *   frame reading whether its post moved the element reads the same.
+   * @see https://drafts.csswg.org/cssom/#resolved-values
+   * @see https://drafts.csswg.org/css-transforms-1/#transform-rendering
+   */
+  const heightOf = (): number => {
+    const style = getComputedStyle(frame);
+    const lengths =
+      style.boxSizing === "border-box"
+        ? [style.height]
+        : [
+            style.height,
+            style.paddingTop,
+            style.paddingBottom,
+            style.borderTopWidth,
+            style.borderBottomWidth,
+          ];
+    let box = 0;
+
+    for (const length of lengths) {
+      box += Number(length.slice(0, -"px".length));
+    }
+
+    return Number.isFinite(box) ? box : 0;
+  };
+  const from = heightOf();
 
   frame.height = String(written);
 
@@ -64,7 +108,7 @@ export const landHeight = (
    */
   const settling = (before: number): void => {
     requestAnimationFrame(() => {
-      const now = frame.getBoundingClientRect().height;
+      const now = heightOf();
 
       if (now === before) {
         tell({ height: now, kind: "settled", pixels });
@@ -74,10 +118,10 @@ export const landHeight = (
     });
   };
 
-  const applied = frame.getBoundingClientRect().height;
+  const applied = heightOf();
 
   tell({ from, height: applied, kind: "landed", pixels, ratio: devicePixelRatio });
   requestAnimationFrame(() => {
-    settling(frame.getBoundingClientRect().height);
+    settling(heightOf());
   });
 };
