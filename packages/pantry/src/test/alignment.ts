@@ -1765,6 +1765,142 @@ export const readings: ReadonlyMap<string, ReadingEntry> = new Map<string, Readi
       status: "G",
     },
   ],
+  [
+    "string-match-substring",
+    {
+      owner:
+        "`@qti-pie/processing`'s `qti-string-match`, `substring` true where the first string contains the second (`src/operators/strings.ts`); pantry stores the attribute as written",
+      status: "G",
+    },
+  ],
+  [
+    "non-finite-result-null",
+    {
+      owner:
+        "`@qti-pie/processing`'s `qti-divide` and `qti-power`, NULL where the result is no finite double (`src/operators/arithmetic.ts`); pantry runs no processing",
+      status: "G",
+    },
+  ],
+  [
+    "empty-is-null",
+    {
+      owner:
+        "`@qti-pie/processing`'s value model, whose constructors make an empty string and an empty container NULL (`src/value.ts`); pantry stores values as written",
+      status: "G",
+    },
+  ],
+  [
+    "failed-run-typed",
+    {
+      owner:
+        "`@qti-pie/processing`'s `ProcessingFailure`, a failed run a typed failure and never a grade (`src/run.ts`, `src/session.ts`); pantry runs no processing",
+      status: "G",
+    },
+  ],
+  [
+    "exact-float-sum",
+    {
+      owner:
+        "`@qti-pie/processing`'s sums of floats, the exact sum rounded once, for `qti-sum`, `qti-map-response`, `qti-test-variables` and the statistics (`src/numbers.ts`, `src/operators/arithmetic.ts`); pantry runs no processing",
+      status: "G",
+    },
+  ],
+  [
+    "min-max-nan-null",
+    {
+      owner:
+        "`@qti-pie/processing`'s `qti-min` and `qti-max`, NULL of a NaN operand (`src/operators/arithmetic.ts`); pantry runs no processing",
+      status: "G",
+    },
+  ],
+  [
+    "round-to-finite",
+    {
+      owner:
+        "`@qti-pie/processing`'s `qti-round-to`, finite of a finite value (`src/operators/arithmetic.ts`); pantry stores `figures` and `rounding-mode` as written",
+      status: "G",
+    },
+  ],
+  [
+    "log-of-zero-null",
+    {
+      owner:
+        "`@qti-pie/processing`'s `qti-math-operator` `ln` and `log`, NULL of 0 (`src/operators/functions.ts`); pantry runs no processing",
+      status: "G",
+    },
+  ],
+  [
+    "draw-stream",
+    {
+      owner:
+        "`@qti-pie/processing`'s keyed draw stream, its seeds and labels, drawn in evaluation order (`src/stream.ts`, `src/draws.ts`); pantry runs no processing",
+      status: "G",
+    },
+  ],
+  [
+    "host-fold-and-math",
+    {
+      owner:
+        "`@qti-pie/processing`'s case folding and math functions, the host's JavaScript ones directly (`src/operators/strings.ts`, `src/operators/functions.ts`); pantry runs no processing",
+      status: "G",
+    },
+  ],
+  [
+    "any-n-empty-range",
+    {
+      owner:
+        "`@qti-pie/processing`'s `qti-any-n`, false with `min` above `max` (`src/operators/logic.ts`); pantry stores `min` and `max` as written",
+      status: "G",
+    },
+  ],
+  [
+    "exact-comparison",
+    {
+      owner:
+        "`@qti-pie/processing`'s comparisons, an integer against a float decided on their exact values (`src/numbers.ts`, `src/operators/comparison.ts`); pantry runs no processing",
+      status: "G",
+    },
+  ],
+  [
+    "exact-statistics",
+    {
+      owner:
+        "`@qti-pie/processing`'s `qti-stats-operator`, on the members' exact values rounded once (`src/operators/functions.ts`); pantry runs no processing",
+      status: "G",
+    },
+  ],
+  [
+    "area-percent-resolved",
+    {
+      owner:
+        "`@qti-pie/processing`'s compiler, every percentage coordinate resolved against its interaction's image at compile time (`src/compile/area.ts`); pantry stores `coords` as written",
+      status: "G",
+    },
+  ],
+  [
+    "match-multiset",
+    {
+      owner:
+        "`@qti-pie/processing`'s `qti-match`, a multiple as a multiset and an ordered value position by position (`src/value.ts` `sameSingle`, `src/operators/comparison.ts`); pantry runs no processing",
+      status: "G",
+    },
+  ],
+  [
+    "inline-choice-required",
+    {
+      owner:
+        "`@qti-pie/processing`'s admission, an Inline Choice with `required` true refusing no choice under `validate-responses` (`src/admission.ts`); pantry stores `required` as written",
+      status: "G",
+    },
+  ],
+  [
+    "end-attempt-validation",
+    {
+      owner:
+        "`@qti-pie/processing`'s `gradeAnswer` and sitting admission, `validate-responses` applied only where the attempt counts (`src/grade.ts`, `countsAttempt` in `src/session.ts`); pantry stores `count-attempt` as written",
+      status: "G",
+    },
+  ],
 ]);
 
 /**
