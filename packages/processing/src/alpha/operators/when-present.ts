@@ -9,12 +9,25 @@
  * @module
  */
 import { alphaDefinitionPrefix, inlineOperator } from "#processing/operator.ts";
+import { nullOf, valueTypeOf } from "#processing/value.ts";
+import type { Value } from "#processing/value.ts";
+
+/**
+ * `when-present` over values: `value` where `probe` is not NULL, and NULL of `value`'s type where
+ * it is.
+ *
+ * @param probe - The probe.
+ * @param value - The value.
+ * @returns `value`, or its NULL.
+ */
+export const whenPresent = (probe: Value, value: Value): Value =>
+  probe.kind === "null" ? nullOf(valueTypeOf(value)) : value;
 
 /**
  * The `when-present` operator's registry entry.
  */
 export const whenPresentOperator = inlineOperator({
-  apply: ([, value]) => value,
+  apply: ([probe, value]) => whenPresent(probe, value),
   definition: `${alphaDefinitionPrefix}when-present`,
   operands: [
     { form: "expression", name: "probe", type: { cardinality: "any" } },
