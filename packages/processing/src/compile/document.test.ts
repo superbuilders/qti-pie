@@ -7,6 +7,7 @@ import {
 import { customOperators } from "#processing/operators/custom.ts";
 import { logicOperators } from "#processing/operators/logic.ts";
 import { valuesOperators } from "#processing/operators/values.ts";
+import { operatorTable } from "#processing/operators/table.ts";
 import type { CompiledItem } from "#processing/program.ts";
 import { element, text } from "#processing/test/run.ts";
 import { nullOf, single, textValue } from "#processing/value.ts";
@@ -104,6 +105,19 @@ const declarations: readonly XmlElement[] = [
     [element("qti-default-value", {}, [value("")])],
   ),
 ];
+
+/**
+ * Compile the item of {@link declarations} with an empty response processing of these attributes.
+ *
+ * @param attributes - The `qti-response-processing`'s attributes.
+ * @returns The compiled item, or the refusal.
+ */
+const processed = (attributes: Readonly<Record<string, string>>) =>
+  compileItemWith(
+    item([...declarations, element("qti-response-processing", attributes, [])]),
+    digest,
+    operatorTable,
+  );
 
 describe("the document compiler", () => {
   it("reads declarations with QTI's defaults: a mapping's bounds, an entry's case sensitivity, a table's boundaries, an empty string NULL", () => {
@@ -233,6 +247,25 @@ describe("the document compiler", () => {
       publishedTemplate("https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/unknown"),
     );
     assert.isUndefined(publishedTemplate("http://example.com/match_correct"));
+  });
+
+  it("refuses a response processing it cannot resolve, an unknown template's URI and any template-location, and compiles a published template to its rules (reading `built-in-templates`)", () => {
+    const prefix = "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/";
+
+    const unknown = processed({ template: `${prefix}unknown` });
+    assert.strictEqual(unknown.ok ? undefined : unknown.refusal.code, "unknown-template");
+
+    const located = processed({
+      template: `${prefix}match_correct`,
+      "template-location": "https://example.org/match_correct.xml",
+    });
+    assert.strictEqual(located.ok ? undefined : located.refusal.code, "template-location");
+
+    const matched = processed({ template: `${prefix}match_correct` });
+    assert.isTrue(
+      matched.ok && matched.value.responseProcessing.length > 0,
+      matched.ok ? "no rules" : matched.refusal.detail,
+    );
   });
 
   it("resolves a test's prefixed references to its items' variables, a numbered occurrence and a weight among them (reading `numbered-reference`, §7.47.2)", () => {

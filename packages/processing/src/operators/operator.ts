@@ -53,8 +53,10 @@ export type RefusalCode =
   | "attribute"
   | "element"
   | "operand-type"
+  | "template-location"
   | "unknown-identifier"
-  | "unknown-operator";
+  | "unknown-operator"
+  | "unknown-template";
 
 /**
  * A refusal: why, where, and a sentence that names what to change.

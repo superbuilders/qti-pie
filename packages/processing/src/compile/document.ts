@@ -70,6 +70,45 @@ export const publishedTemplate = (uri: string): XmlElement | undefined => {
 };
 
 /**
+ * The refusal of a response processing the package cannot resolve, so no item is served with its
+ * outcomes left at their defaults: a `template-location` (the package fetches nothing), and a
+ * `template` that names none of QTI 3.0.1's published templates where no rules are written inline
+ * (reading `built-in-templates`). Rules written inline compile as written; a published template
+ * compiles to its rules; no response processing at all is no rules.
+ *
+ * @param processing - The item's `qti-response-processing`.
+ * @param place - Where it stands.
+ * @param inline - How many rules it writes.
+ * @param uri - Its `template`, if any.
+ * @param template - The published template `uri` names, if any.
+ * @returns The refusal, or `undefined` where the processing resolves.
+ */
+const unresolvedProcessing = (
+  processing: XmlElement,
+  place: number,
+  inline: number,
+  uri: string | undefined,
+  template: XmlElement | undefined,
+): Checked<CompiledItem> | undefined => {
+  const location = attributeOf(processing, "template-location");
+  if (location !== undefined) {
+    return refused(
+      "template-location",
+      place,
+      `write the response processing inline or name a published template: the package fetches no template-location (${location})`,
+    );
+  }
+
+  return inline === 0 && uri !== undefined && template === undefined
+    ? refused(
+        "unknown-template",
+        place,
+        `name one of QTI 3.0.1's published response processing templates, or write the rules inline: ${uri} is none`,
+      )
+    : undefined;
+};
+
+/**
  * Where each element stands, a published template's elements placed after the document's own.
  *
  * @param root - The document's root.
@@ -184,6 +223,20 @@ export const compileItemOver = <K extends ExpressionKind>(
   const templateUri = processing === undefined ? undefined : attributeOf(processing, "template");
   const template =
     rules.length === 0 && templateUri !== undefined ? publishedTemplate(templateUri) : undefined;
+  const unresolved =
+    processing === undefined
+      ? undefined
+      : unresolvedProcessing(
+          processing,
+          placesOf(root).get(processing) ?? 0,
+          rules.length,
+          templateUri,
+          template,
+        );
+  if (unresolved !== undefined) {
+    return unresolved;
+  }
+
   const placeOf = placesWith(root, template);
   const typed = declarationsOf(root, "item", placeOf, { kind: "skip" });
   if (!typed.ok) {
