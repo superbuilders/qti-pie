@@ -628,8 +628,8 @@ CREATE VIEW "__qti_queries"."forbidden_resource_type" ("package", "path", "type"
 SELECT "r1"."package", "r1"."path", "r1"."type"
 FROM "qti_queries"."forbidden_resource_type" AS "r1";
 
-CREATE VIEW "__qti_queries"."forward_branch_rule" ("assembly", "instance", "package", "path", "start") AS
-SELECT "r1"."assembly", "r1"."instance", "r1"."package", "r1"."path", "r1"."start"
+CREATE VIEW "__qti_queries"."forward_branch_rule" ("assembly", "instance", "package", "start") AS
+SELECT "r1"."assembly", "r1"."instance", "r1"."package", "r1"."start"
 FROM "qti_queries"."forward_branch_rule" AS "r1";
 
 CREATE VIEW "__qti_queries"."free_mapping_target" ("package", "path", "start") AS
@@ -3865,7 +3865,7 @@ COMMENT ON CONSTRAINT "__expression_operand_key_package_path_start_3fr7qp3usv" O
 
 COMMENT ON CONSTRAINT "__filtered_section_key_assembly_instance_package_nwc7er2lsl" ON "qti_queries"."filtered_section" IS 'key FilteredSection(assembly, instance, package, path, start)';
 
-COMMENT ON CONSTRAINT "__forward_branch_rule_key_assembly_instance_package_ym7zxvg7jg" ON "qti_queries"."forward_branch_rule" IS 'key ForwardBranchRule(assembly, instance, package, path, start)';
+COMMENT ON CONSTRAINT "__forward_branch_rule_key_assembly_instance_package_rabxe6px4z" ON "qti_queries"."forward_branch_rule" IS 'key ForwardBranchRule(assembly, instance, package, start)';
 
 COMMENT ON CONSTRAINT "__head_document_key_package_path_b7zpp2j6lw" ON "qti_queries"."head_document" IS 'key HeadDocument(package, path)';
 
@@ -4427,11 +4427,13 @@ COMMENT ON INDEX "qti"."__item_ref_document_ix_package_target_path_start_ib4pwlp
 
 COMMENT ON INDEX "qti"."__label_use_ix_package_path_root_kind_gkglyfua6p" IS 'btree index LabelUse(package, path, rootKind)';
 
-COMMENT ON INDEX "qti"."__named_ix_package_identifier_poryqrycn2" IS 'btree index Named(package, identifier)';
+COMMENT ON INDEX "qti"."__named_ix_package_identifier_start_wc6xxyiksv" IS 'btree index Named(package, identifier, start)';
+
+COMMENT ON INDEX "qti"."__named_ix_package_start_path_7f3qws5tbb" IS 'btree index Named(package, start, path)';
 
 COMMENT ON INDEX "qti"."__node_ix_package_end_path_kind_parent_j4wpst3jjn" IS 'btree index Node(package, end, path, kind, parent)';
 
-COMMENT ON INDEX "qti"."__node_ix_package_kind_path_start_lmpqq2vqbz" IS 'btree index Node(package, kind, path, start)';
+COMMENT ON INDEX "qti"."__node_ix_package_kind_start_parent_edwlyi4oks" IS 'btree index Node(package, kind, start, parent)';
 
 COMMENT ON INDEX "qti"."__node_ix_package_parent_kind_kind_element_children_ilct6rhmkh" IS 'btree index Node(package, parentKind, kind, elementChildren, path)';
 
@@ -4445,9 +4447,11 @@ COMMENT ON INDEX "qti"."__node_ix_package_path_parent_at_3js7ucei5d" IS 'btree i
 
 COMMENT ON INDEX "qti"."__node_ix_package_path_parent_kind_kind_element_j4bvncolbi" IS 'btree index Node(package, path, parentKind, kind, elementChildren)';
 
-COMMENT ON INDEX "qti"."__node_ix_package_start_kind_path_wfqsgvcv6x" IS 'btree index Node(package, start, kind, path)';
+COMMENT ON INDEX "qti"."__node_ix_package_start_parent_kind_path_6fvamsy2ua" IS 'btree index Node(package, start, parentKind, path)';
 
-COMMENT ON INDEX "qti"."__numbered_reading_ix_package_assembly_scope_qxyrq3en3a" IS 'btree index NumberedReading(package, assembly, scopeInstance, scopePath, variable, scope)';
+COMMENT ON INDEX "qti"."__numbered_reading_ix_package_assembly_scope_scope_7yycpnglom" IS 'btree index NumberedReading(package, assembly, scope, scopeInstance, variable)';
+
+COMMENT ON INDEX "qti"."__numbered_reading_ix_package_assembly_scope_bnbqdanqao" IS 'btree index NumberedReading(package, assembly, scopeInstance, scopePath, variable)';
 
 COMMENT ON INDEX "qti"."__open_attribute_ix_element_namespace_kind_package_miiko3525k" IS 'btree index OpenAttribute(elementNamespace, kind, package, path, start)';
 
@@ -5311,7 +5315,7 @@ COMMENT ON FUNCTION "qti"."__reader_olds_filtered_section_djlguxp3lm"() IS 'the 
 
 COMMENT ON FUNCTION "qti"."__reader_news_forbidden_resource_type_ygwomyzmjd"() IS 'the reader of the delta of news of ForbiddenResourceType';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_forward_branch_rule_5tzwqzv4lr"() IS 'the reader of the delta of olds of ForwardBranchRule';
+COMMENT ON FUNCTION "qti"."__reader_olds_forward_branch_rule_ujj46hssh3"() IS 'the reader of the delta of olds of ForwardBranchRule';
 
 COMMENT ON FUNCTION "qti"."__reader_news_fragment_context_ref_353nzeantj"() IS 'the reader of the delta of news of FragmentContextRef';
 
@@ -6453,7 +6457,7 @@ COMMENT ON FUNCTION "qti"."__reader_news_required_ssml_property_qlbzknwa3n"() IS
 
 COMMENT ON FUNCTION "qti"."__reader_olds_requirement_met_65zlmk2nff"() IS 'the reader of the delta of olds of RequirementMet';
 
-COMMENT ON FUNCTION "qti"."__reader_news_resolved_branch_rule_5ldawf2ttc"() IS 'the reader of the delta of news of ResolvedBranchRule';
+COMMENT ON FUNCTION "qti"."__reader_news_resolved_branch_rule_gdbas2f3d2"() IS 'the reader of the delta of news of ResolvedBranchRule';
 
 COMMENT ON FUNCTION "qti"."__reader_olds_resolved_branch_rule_2k4pvtxsha"() IS 'the reader of the delta of olds of ResolvedBranchRule';
 
@@ -7691,7 +7695,7 @@ COMMENT ON FUNCTION "qti"."__judge_required_parts_fvfdsrd5kg"("pg_catalog"."text
 
 COMMENT ON FUNCTION "qti"."__judge_required_ssml_property_bfx4ktqtdw"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of RequiredSsmlProperty and the relations its rules join it to';
 
-COMMENT ON FUNCTION "qti"."__judge_resolved_branch_rule_j7aijwhukg"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of ResolvedBranchRule and the relations its rules join it to';
+COMMENT ON FUNCTION "qti"."__judge_resolved_branch_rule_cuyut7acii"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of ResolvedBranchRule and the relations its rules join it to';
 
 COMMENT ON FUNCTION "qti"."__judge_resource_document_zf6habkcok"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of ResourceDocument and the relations its rules join it to';
 
