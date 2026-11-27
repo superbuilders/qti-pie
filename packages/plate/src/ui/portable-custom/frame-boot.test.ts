@@ -4352,6 +4352,23 @@ describe("the frame's boot, run", () => {
     );
   });
 
+  it("leaves first, as frame-page.ts names, a sheet a PCI puts first after the last look's move and before the timer that ends it", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const run = ran(scriptOf(page.html), `#${nonce}`, true);
+
+    prepended(run);
+    prepended(run);
+    run.timers.set(Number.MAX_SAFE_INTEGER, () => {
+      prepended(run);
+    });
+    ranOut(run);
+
+    assert.isFalse(
+      run.sheets[0]?.ownerNode === run.pins,
+      "COLD i5's residue: a sheet, the pins moved ahead of it; a second after an await, in the same task, which the timer ending the task's bound looks at and moves the pins ahead of; and a third in a 0 ms timer the PCI set after another await, queued after that look and before the timer that ends the look's own bound, which looks no more: the third keeps its place, the pins second. A look that looked again would trade moves with a fight timer after timer, and no bound on it but a tuned count is known",
+    );
+  });
+
   it("records a read the syntax scan cannot see: through `this`, a value, an event's window, a computed member", async () => {
     const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
     const planted = [

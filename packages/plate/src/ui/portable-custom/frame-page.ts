@@ -153,7 +153,12 @@ const pinnedRuleOf = (selector: string, declarations: Readonly<Record<string, st
  * node that comes back before them keeps its place. What still can: a script that puts a
  * stylesheet back before the pins once they have passed it, or puts a new one before them in
  * answer to that last look, a fight that costs the boot two moves for each change while the page
- * renders on; that edits the pins' own
+ * renders on; that puts a sheet first after the last look's move and before the timer that ends
+ * it, answering nothing, as a 0 ms timer set after an `await` in the moved task is queued, after
+ * that look and before its timer (COLD i5: a sheet, a second after an `await`, a third in such a
+ * timer, the pins left second, the root's `overflow-y` hidden; a look that looked again would
+ * trade moves with a fight, and no bound on that but a tuned count is known); that edits the pins'
+ * own
  * sheet through the CSSOM (`insertRule`, a rule's `style.setProperty`); that writes a pinned
  * property with `setProperty(…, "important")`, whose element-attached `!important` declaration
  * sorts before every layer; or that attaches a shadow root to the body and styles the body from
