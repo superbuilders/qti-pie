@@ -121,7 +121,7 @@ export const inequalityOf = (inequality: Inequality, left: Value, right: Value):
 /**
  * The value of `qti-duration-lt` or `qti-duration-gte`: whether the first single duration is
  * shorter than the second, or not shorter, its seconds compared as the doubles they are (reading
- * 216, item 9).
+ * `null-results`, item 9).
  *
  * @param which - Which.
  * @param left - The first operand's value.

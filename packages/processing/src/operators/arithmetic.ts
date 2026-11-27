@@ -608,7 +608,7 @@ export const roundedOf = (
 /**
  * The value of `qti-round-to`: the float nearest the rounded number, an infinity itself. A finite
  * number whose rounding passes the largest finite double gives that double of its sign, as reading
- * 45 makes no infinity from a finite value.
+ * `round-to-finite` makes no infinity from a finite value.
  *
  * @param value - The operand's value.
  * @param mode - How the figures count.

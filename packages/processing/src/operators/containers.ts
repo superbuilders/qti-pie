@@ -274,7 +274,7 @@ export const baseOf = (value: Value): BaseType | undefined => {
  * @param within - The computation bound.
  * @param none - The NULL of the operator's static type.
  * @returns The container; NULL where one operand is of another base type or a record (reading
- *   212), or where the bound is passed.
+ *   `container-operands`), or where the bound is passed.
  */
 const builtOf = (
   kind: ContainerCardinality,
