@@ -68,6 +68,8 @@ export type { Demand, ProcessingFailure } from "#processing/run.ts";
 
 export type { Failed, ItemResult, Prior, Take } from "#processing/session.ts";
 
+export { startOf } from "#processing/session.ts";
+
 export type { Seed } from "#processing/stream.ts";
 
 export { processingSeed, responseLabel, templateLabel } from "#processing/stream.ts";
