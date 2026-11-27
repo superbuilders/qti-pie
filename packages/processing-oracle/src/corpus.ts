@@ -20,10 +20,11 @@ import { SqlTruthLineSchema } from "#processing-oracle/sqltruth.ts";
 
 /**
  * The SHA-256 of the oracle corpus's `SHA256SUMS`, as `freeze-corpus.sh` printed it when it froze
- * the corpus (lane QP-PROC-DIFF, 2026-11-26), re-frozen with the K2 items metis 6c3cc9d7 serves.
+ * the corpus (lane QP-PROC-DIFF, 2026-11-26), whose K2 items are those children are served (v2,
+ * all-or-nothing: Bjorn kept them so on 2026-11-27).
  */
 export const oracleCorpusDigest =
-  "8de40a8e72986b13349e09b8176c4762d250eae360e711d0fc67468a459131a6";
+  "01594eaa98a98b424e1accab419b01a8da13a5167bcc00e3d2f987f1c2f67444";
 
 /**
  * The oracle corpus's directory: `.cache/qti-pie/processing-oracle/<digest>` under `HOME`.

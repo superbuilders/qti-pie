@@ -441,100 +441,100 @@
   },
   {
     "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
     "key": "k2|1/F1.21|1/F1.21#00",
-    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
     "reading": {
-      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
-      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
     },
     "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
   },
   {
     "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
     "key": "k2|1/F1.21|1/F1.21#03",
-    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
     "reading": {
-      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
-      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
     },
     "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
   },
   {
     "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
     "key": "k2|1/F1.21|1/F1.21#04",
-    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
     "reading": {
-      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
-      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
     },
     "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
   },
   {
     "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6666666666666666\"]}",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
     "key": "k2|1/F1.21|1/F1.21#06",
-    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
     "reading": {
-      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
-      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
     },
     "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.67\"]}"
   },
   {
     "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6666666666666666\"]}",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
     "key": "k2|1/F1.21|1/F1.21#07",
-    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
     "reading": {
-      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
-      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
     },
     "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.67\"]}"
   },
   {
     "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6666666666666666\"]}",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
     "key": "k2|1/F1.21|1/F1.21#08",
-    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
     "reading": {
-      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
-      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
     },
     "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.67\"]}"
   },
   {
     "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
     "key": "k2|1/F1.21|1/F1.21#09",
-    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
     "reading": {
-      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
-      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
     },
     "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
   },
   {
     "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
     "key": "k2|1/F1.21|1/F1.21#10",
-    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
     "reading": {
-      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
-      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
     },
     "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
   },
   {
     "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
     "key": "k2|1/F1.21|1/F1.21#11",
-    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
     "reading": {
-      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
-      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
     },
     "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
   },
@@ -650,34 +650,34 @@
   },
   {
     "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
     "key": "k2|1/F2.26|1/F2.26#01",
-    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
     "reading": {
-      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
-      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
     },
     "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
   },
   {
     "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
     "key": "k2|1/F2.26|1/F2.26#02",
-    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
     "reading": {
-      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
-      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
     },
     "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
   },
   {
     "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.3333333333333333\"]}",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
     "key": "k2|1/F2.26|1/F2.26#05",
-    "mom": "The same credit the child had from AlphaTest, without the rounding (edullm-bd: exactly 1/n, not AlphaTest's 2 dp).",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
     "reading": {
-      "section": "the item's processing (metis 6c3cc9d7, M-GRADERMAP): SCORE = divide(map-response or the per-position count, n); qti-divide §6.9.17 gives the double nearest k/n",
-      "text": "the share of correct values is exact k/n (1/3 = 0.3333333333333333); AlphaTest reports it rounded to 2 dp (0.33)"
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
     },
     "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.33\"]}"
   },
@@ -724,6 +724,204 @@
       "text": "a base-ten-blocks answer with the wrong number (e.g. 6 rods 0 cubes for 64) scores 0; AlphaTest credited any answer whose first count was right"
     },
     "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#01",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#02",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#03",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#04",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#05",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#06",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#07",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#08",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#09",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#10",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#11",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#12",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#13",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#14",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#15",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#16",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#17",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.4\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|1/F3.21|1/F3.21#18",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6\"]}"
   },
   {
     "field": "outcomes.SCORE",
@@ -1131,6 +1329,204 @@
       "text": "a value the mapping credits (an accepted alternative) scores its mapped value; AlphaTest's grader failed it"
     },
     "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#01",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#02",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#03",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#04",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#05",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#06",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#07",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#08",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#09",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#10",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#11",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#12",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#13",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#14",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#15",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#16",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.8\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#17",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.6\"]}"
+  },
+  {
+    "field": "outcomes.SCORE",
+    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0\"]}",
+    "key": "k2|K/F2.24|K/F2.24#18",
+    "mom": "Bjorn kept these items all-or-nothing on 2026-11-27 (the K-2 partial credit dropped, metis 7c559cbc reverted): the item's processing is the grade children are served.",
+    "reading": {
+      "section": "rptemplates/match_correct.xml: match(RESPONSE, correct), all-or-nothing",
+      "text": "the item's own processing gives no partial credit; AlphaTest gave the share of correct pairs or positions"
+    },
+    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.4\"]}"
   },
   {
     "field": "kind",
