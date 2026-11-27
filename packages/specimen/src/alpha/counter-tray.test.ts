@@ -74,12 +74,12 @@
  * - CT15, the board takes every touch: on every item the board's computed `touch-action` is `none`,
  *   so a touch that starts on it is the child's alone (CT1's finger drags and taps), never a pan of
  *   the page or the browser's swipe back.
- * - CT16, two rows at most: for every supply from 1 to 20, on the open mat and the double ten frame,
- *   the tray as it starts shows the whole supply in at most two rows, and one of five or fewer in
- *   one; and the open mat holding the whole supply shows it in at most two rows. The board, as it
- *   starts and with the open mat full, is drawn no taller than for a supply of ten, so a tray under
- *   a picture to match stays in a laptop's 1366 by 768 window wherever a supply of ten did, and a
- *   third row once fell below it.
+ * - CT16, rows of five: for every supply from 1 to 20, on the open mat and the double ten frame, the
+ *   tray as it starts shows the whole supply in rows of five, the last holding the rest, so a
+ *   second row begins at the sixth counter; and the open mat holding the whole supply shows it the
+ *   same way. The board, as it starts and with the open mat full, is drawn no taller than for a
+ *   supply of ten, so a tray under a picture to match stays in a 1280 by 800 window wherever a
+ *   supply of ten did: a supply that takes a third or a fourth row is drawn smaller.
  * - CT17, not interacting: a tray the host shows in review (a submitted test) or closed, bound to
  *   what the child left, shows it; its board says it is disabled, no part offers a hand or holds a
  *   tab stop, and no tap, drag or key moves a counter or fires a change. Bound to a value it could
@@ -105,7 +105,10 @@
  * press left standing when its release is lost before it moves, a press left standing when its
  * pointer loses the board's capture, the chosen ring left behind when its counter is dragged, a
  * completion that leaves the tray listening, one that leaves the drag under way, the tray laid
- * five counters a row, whatever its supply, and a tray not interacting that takes input, takes it
+ * in two wide rows past ten, a board past ten drawn at its picture's own size and so taller than a
+ * supply of ten's, a board past ten filling its column and so taller than ten's in a column
+ * narrower than its greatest width, a tap's travel half the picture's side where the board draws
+ * the counter smaller, and a tray not interacting that takes input, takes it
  * in any status but review, does not say it is disabled, keeps its tab stops, offers a hand, or
  * fires a change for a stored answer it cannot read, and a tray interacting whose counters are no
  * tab stops.
@@ -273,7 +276,7 @@ const kills: readonly Kill[] = [
     write: "document.elementFromPoint(board.getBoundingClientRect().left + 30, event.clientY)",
   },
   {
-    at: /const tapTravel = face\.side \/ 2;/gu,
+    at: /const tapTravel = \(face\.side \* fit\) \/ 2;/gu,
     why: "a press that is a drag as soon as it moves",
     write: "const tapTravel = 0;",
   },
@@ -370,9 +373,24 @@ const kills: readonly Kill[] = [
     write: "choice = undefined; draw(); },",
   },
   {
-    at: "Math.max(leastPerRow, Math.ceil(supply / supplyRows))",
-    why: "the tray laid five counters a row, whatever its supply",
-    write: "leastPerRow",
+    at: "const rows = (count        , inside        )                   => {",
+    why: "the tray laid in two wide rows past ten",
+    write: "const rows = (count, inside, perRow = Math.max(5, Math.ceil(count / 2))) => {",
+  },
+  {
+    at: "Math.min(height, boardHeightOf(zoneHeightsOf(tenFrame, fullSizeRows)))",
+    why: "a board past ten drawn at its picture's own size, taller than a supply of ten's",
+    write: "height",
+  },
+  {
+    at: "const tapTravel = (face.side * fit) / 2;",
+    why: "a tap's travel half the picture's side, where the board draws the counter smaller",
+    write: "const tapTravel = face.side / 2;",
+  },
+  {
+    at: "String(100 * fit)",
+    why: "a board past ten filling its column, taller than ten's where the column is the narrower",
+    write: "String(100)",
   },
 ];
 
@@ -489,25 +507,80 @@ const firstCells = (look: Look, where: string): void => {
 };
 
 /**
- * The rows counters stand in: their centres' distinct heights.
+ * A played item with its counter's picture at the greatest size an item may give it, 64 CSS pixels,
+ * where the board is wider than the harness's frame, so the board fills the frame and its height
+ * follows the frame's width (the item's own picture, smaller, draws it at its greatest width).
  *
- * @param centres The counters' centres.
- * @returns How many rows.
+ * @param played The item as played.
+ * @returns The item with its picture at 64 pixels.
  */
-const rowCount = (centres: readonly Point[]): number =>
-  new Set(centres.map((centre) => centre.y.toFixed(1))).size;
+const largest = (played: Played): Played => {
+  const from = played.hosted.markup.indexOf('width="') + 'width="'.length;
+  const side = played.hosted.markup.slice(from, played.hosted.markup.indexOf('"', from));
+  const markup = played.hosted.markup
+    .replaceAll(`width="${side}"`, 'width="64"')
+    .replaceAll(`height="${side}"`, 'height="64"');
+
+  assert.notStrictEqual(markup, played.hosted.markup, `${played.item.id}: the picture is resized`);
+
+  return { ...played, hosted: { ...played.hosted, markup } };
+};
 
 /**
- * Hold counters to CT16: they stand in at most two rows, and in one when they are five or fewer.
+ * The page's width for a picture at 64 pixels: narrower than a double ten frame of ten drawn at
+ * that size, so its board fills the column, as a 1280 by 800 window's question column narrows it,
+ * and a board drawn in a column's full width would stand taller than ten's.
+ */
+const narrowPage = 800;
+
+/**
+ * Look at a running tray as CT16 holds it: at its own picture on the harness's page, and at 64
+ * pixels on a page {@link narrowPage} pixels wide.
+ *
+ * @param tray The running tray.
+ * @param played The item as played.
+ * @returns The look.
+ */
+const lookIn = (tray: Running, played: Played) =>
+  played.hosted.markup.includes('width="64"')
+    ? Effect.andThen(tray.resize(narrowPage), tray.look)
+    : tray.look;
+
+/**
+ * CT16's cases for an item: every supply from 1 to 20, at the item's own picture and at 64 pixels.
+ *
+ * @param played The item as played.
+ * @returns The cases.
+ */
+const suppliesOf = (played: Played): readonly Played[] =>
+  [played, largest(played)].flatMap((sized) =>
+    Array.from({ length: 20 }, (_, at): Played => ({
+      ...sized,
+      hosted: {
+        ...sized.hosted,
+        properties: { ...sized.hosted.properties, supply: String(at + 1) },
+      },
+      supply: at + 1,
+    })),
+  );
+
+/**
+ * Hold counters to CT16: they stand in rows of five, top to bottom, the last row holding the rest.
  *
  * @param centres The counters' centres.
  * @param where The item, the zone and the supply, for the message.
  */
-const twoRows = (centres: readonly Point[], where: string): void => {
-  assert.isAtMost(
-    rowCount(centres),
-    centres.length <= 5 ? 1 : 2,
-    `${where}: CT16, ${String(centres.length)} counters stand in at most ${centres.length <= 5 ? "one row" : "two rows"}`,
+const rowsOfFive = (centres: readonly Point[], where: string): void => {
+  const tops = [...new Set(centres.map((centre) => centre.y.toFixed(1)))].toSorted(
+    (one, other) => Number(one) - Number(other),
+  );
+
+  assert.deepStrictEqual(
+    tops.map((top) => centres.filter((centre) => centre.y.toFixed(1) === top).length),
+    Array.from({ length: Math.ceil(centres.length / 5) }, (_, row) =>
+      Math.min(5, centres.length - row * 5),
+    ),
+    `${where}: CT16, ${String(centres.length)} counters stand in rows of five`,
   );
 };
 
@@ -887,10 +960,12 @@ const ringGoes = (trays: Trays, played: Played) =>
 /**
  * The rules' checks a kill is held to, on one module file: CT1 and CT2 on `open-mat` by mouse taps
  * to three counters and back to two; CT1 and CT3 on the double ten frame (`ten-frame`) to three and
- * a counter taken back from the middle, each tray's supply in two rows at most (CT16); CT4's drag
- * let go over its own zone and choice let go,
- * CT8's drop beside the mat, CT9's drifting taps on a counter and on the mat's background, and
- * CT10's completion mid-drag, by mouse, on `open-mat`; and CT12 to CT14 on `open-mat`.
+ * a counter taken back from the middle, each tray's supply in rows of five, and the double ten
+ * frame's tray of more than ten drawn no taller than for ten, at its picture and at 64 px on a page
+ * 800 px wide (CT16), and its 18 px drift on a counter a drag (CT9);
+ * CT4's drag let go over its own zone and choice let go, CT8's drop beside the mat, CT9's drifting
+ * taps on a counter and on the mat's background, and CT10's completion mid-drag, by mouse, on
+ * `open-mat`; and CT12 to CT14 on `open-mat`.
  *
  * @param trays The trays.
  * @param module The module file's text.
@@ -909,7 +984,7 @@ const battery = (trays: Trays, module: string) =>
           const tray = yield* running(trays, played, empty);
           const firstLook = yield* Effect.orDie(tray.look);
 
-          twoRows(firstLook.trayCentres, `${played.item.id}'s tray at the start`);
+          rowsOfFive(firstLook.trayCentres, `${played.item.id}'s tray at the start`);
 
           for (const placed of [1, 2, 3]) {
             yield* movedTo(tray, played, taps, "tray", placed, firstLook);
@@ -933,6 +1008,50 @@ const battery = (trays: Trays, module: string) =>
         }),
       );
     }
+
+    const tenFrameOfTen: Played = {
+      ...tenFrame,
+      hosted: {
+        ...tenFrame.hosted,
+        properties: { ...tenFrame.hosted.properties, supply: "10" },
+      },
+      supply: 10,
+    };
+    const startHeight = (played: Played) =>
+      Effect.scoped(
+        Effect.gen(function* started() {
+          return (yield* Effect.orDie(lookIn(yield* running(trays, played, empty), played)))
+            .boardHeight;
+        }),
+      );
+    const tallest = yield* startHeight(tenFrame);
+    const ofTen = yield* startHeight(tenFrameOfTen);
+    const tallestLarge = yield* startHeight(largest(tenFrame));
+    const ofTenLarge = yield* startHeight(largest(tenFrameOfTen));
+
+    assert.isAtMost(
+      tallest,
+      ofTen + 0.5,
+      `${tenFrame.item.id}: CT16, a tray of ${String(tenFrame.supply)} drawn no taller than one of ten`,
+    );
+    yield* Effect.scoped(
+      Effect.gen(function* farDrift() {
+        const tray = yield* running(trays, tenFrame, empty);
+
+        yield* Effect.orDie(tray.drift({ at: 0, kind: "counter", zone: "tray" }, 0, 18, "touch"));
+        yield* Effect.orDie(tray.tap({ kind: "zone", zone: "mat" }, "touch"));
+        assert.strictEqual(
+          (yield* Effect.orDie(tray.look)).mat,
+          0,
+          `${tenFrame.item.id}: CT9, a finger drifting 18 px on a counter drawn smaller than its picture drags it, past half the counter as drawn`,
+        );
+      }),
+    );
+    assert.isAtMost(
+      tallestLarge,
+      ofTenLarge + 0.5,
+      `${tenFrame.item.id}: CT16, at 64 px a tray of ${String(tenFrame.supply)} drawn no taller than one of ten`,
+    );
 
     for (const [gesture, way] of [
       ["back", drag],
@@ -1780,7 +1899,7 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
   );
 
   it.effect(
-    "CT16: every supply from 1 to 20 stands in at most two rows, in the tray and on the open mat",
+    "CT16: every supply from 1 to 20 stands in rows of five, in the tray and on the open mat, no taller than ten",
     () =>
       Effect.gen(function* rowsRule() {
         const trays = yield* TraysService;
@@ -1788,16 +1907,7 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
           yield* playing(trays, "open-mat", trays.module),
           yield* playing(trays, "ten-frame", trays.module),
         ];
-        const cases = items.flatMap((played) =>
-          Array.from({ length: 20 }, (_, at): Played => ({
-            ...played,
-            hosted: {
-              ...played.hosted,
-              properties: { ...played.hosted.properties, supply: String(at + 1) },
-            },
-            supply: at + 1,
-          })),
-        );
+        const cases = items.flatMap((played) => suppliesOf(played));
 
         const heights = yield* Effect.forEach(
           cases,
@@ -1805,21 +1915,23 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
             Effect.scoped(
               Effect.gen(function* laid() {
                 const where = `${played.item.id} with a supply of ${String(played.supply)}`;
-                const atStart = yield* Effect.orDie((yield* running(trays, played, empty)).look);
+                const atStart = yield* Effect.orDie(
+                  lookIn(yield* running(trays, played, empty), played),
+                );
 
                 assert.strictEqual(atStart.tray, played.supply, `${where}: the tray starts full`);
-                twoRows(atStart.trayCentres, `${where}, the tray`);
+                rowsOfFive(atStart.trayCentres, `${where}, the tray`);
 
                 if (played.tenFrame) {
                   return { full: atStart.boardHeight, played, start: atStart.boardHeight };
                 }
 
                 const full = yield* Effect.orDie(
-                  (yield* running(trays, played, integer(played.supply))).look,
+                  lookIn(yield* running(trays, played, integer(played.supply)), played),
                 );
 
                 assert.strictEqual(full.mat, played.supply, `${where}: the mat holds them all`);
-                twoRows(full.matCentres, `${where}, the mat`);
+                rowsOfFive(full.matCentres, `${where}, the mat`);
 
                 return { full: full.boardHeight, played, start: atStart.boardHeight };
               }),
@@ -1829,9 +1941,12 @@ layer(TraysLayer, { timeout: Duration.millis(ruleHang) })("the counter tray", (i
 
         for (const { full, played, start } of heights) {
           const ten = heights.find(
-            (each) => each.played.item.id === played.item.id && each.played.supply === 10,
+            (each) =>
+              each.played.item.id === played.item.id &&
+              each.played.hosted.markup === played.hosted.markup &&
+              each.played.supply === 10,
           );
-          const where = `${played.item.id} with a supply of ${String(played.supply)}`;
+          const where = `${played.item.id} with a supply of ${String(played.supply)}, ${played.hosted.markup.includes('width="64"') ? "its picture at 64 px" : "its own picture"}`;
 
           assert.isAtMost(
             start,

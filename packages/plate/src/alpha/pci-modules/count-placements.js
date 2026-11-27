@@ -18,18 +18,20 @@
  *   up; and the tray, which starts with `supply` identical counters. A counter is a picture, the
  *   item's: the interaction's markup is exactly one `img`, the counter, which the module shows as
  *   every counter at the picture's own size (its `width`, equal to its `height`, 32 to 64 CSS
- *   pixels, the board drawn to that scale), and never as a counter of its own. A picture the child
- *   is asked to match is the item body's, before the interaction, never the module's.
+ *   pixels, the board drawn to that scale, or smaller for a supply over ten, as the state says),
+ *   and never as a counter of its own. A picture the child is asked to match is the item body's,
+ *   before the interaction, never the module's.
  * - **The state is a count.** The one fact the tray holds is how many counters stand on the mat, from
  *   none to the whole supply; every counter is the same, so which one moved is no fact. The screen
  *   is drawn from the count alone: the mat shows that many counters and the tray the rest, each in
- *   rows as wide as lay the whole supply in at most two (five at least), every row centred, the
- *   rows centred top to bottom, so the board is as tall for a supply of twenty as for one of ten
- *   and stays in a laptop's window under a picture to match; on the double ten frame the counters
- *   fill the first cells, frame one before frame two, each top row first, left to right. A gap on
- *   the mat, or frame two begun while frame one has an empty cell, cannot be drawn. The double ten
- *   frame holds twenty counters, and a supply is at most twenty, so every counter of the tray has a
- *   cell: no mat is ever full while the tray holds one.
+ *   rows of five, the group a child counts by, so a second row begins at the sixth counter, every
+ *   row centred, the rows centred top to bottom; a supply over ten takes a third and a fourth row,
+ *   and its board is then drawn smaller, as tall as a supply of ten's and never taller, so under a
+ *   picture to match it stays in a 1280 by 800 window wherever a supply of ten did; on the double
+ *   ten frame the counters fill the first cells, frame one before frame two, each top row first,
+ *   left to right. A gap on the mat, or frame two begun while frame one has an empty cell, cannot
+ *   be drawn. The double ten frame holds twenty counters, and a supply is at most twenty, so every
+ *   counter of the tray has a cell: no mat is ever full while the tray holds one.
  * - **Moving a counter.** Drag it from the tray and drop it on the mat, or tap it and then tap the
  *   mat; a counter on the mat goes back to the tray the same two ways. Mouse, touch and pen are one
  *   pointer, one gesture at a time (a finger resting off the board takes no part), read by one
@@ -130,7 +132,8 @@ define(["qtiCustomInteractionContext"], (context) => {
   /**
    * A counter's side, on the mat, in a cell of the double ten frame and in the tray, and the gap
    * between two counters, in board units. The board is drawn so that a counter's side is the
-   * counter's picture's own size in CSS pixels (its `width`), so every other length scales with it.
+   * counter's picture's own size in CSS pixels (its `width`), times the board's fit for a supply
+   * past ten ({@link fullSizeRows}), so every other length scales with it.
    */
   const counterSide = 100;
   const gap = 36;
@@ -157,7 +160,7 @@ define(["qtiCustomInteractionContext"], (context) => {
   /**
    * A zone's border and padding, its corner radius, and its least size, in board units: the open
    * mat two rows high and the tray one, the ten-frame mat its two frames and a margin. The open mat
-   * and the tray are as wide as their rows ({@link rowWidth}).
+   * and the tray are as wide as their rows ({@link rowZoneWidth}).
    */
   const border = 10;
   const padding = 40;
@@ -186,32 +189,60 @@ define(["qtiCustomInteractionContext"], (context) => {
   const tenFrameCells = frameCount * frameCells;
 
   /**
-   * The rows the tray and the open mat lay a supply in, at most, and the counters a row holds at
-   * least. A supply over ten widens every row rather than adding a third, so the board stands no
-   * taller for twenty counters than for ten (a third tray row, under a picture to match, pushed the
-   * tray below a 1366 by 768 window, where the child must scroll to find a counter).
+   * The counters a row of the tray or the open mat holds: five, the group a child counts by, so a
+   * second row begins at the sixth counter whatever the supply: a row of six reads as six, not as
+   * five and one more.
    */
-  const supplyRows = 2;
-  const leastPerRow = 5;
+  const perRow = 5;
 
   /**
-   * The counters a row of the tray or the open mat holds for a supply: as many as lay it in
-   * {@link supplyRows} rows, five at least.
-   *
-   * @param supply The counters in the tray as it starts.
-   * @returns The counters a row holds.
+   * The rows a board holds in a zone at its picture's own size: a supply of ten's. A board whose
+   * supply takes more rows is drawn smaller, as tall as a supply of ten's ({@link boardHeightOf}),
+   * so a tray under a picture to match stays in a 1280 by 800 window wherever a supply of ten did
+   * (a taller board pushed the counters, and the question's own buttons, out of the window).
    */
-  const perRowOf = (supply        )         =>
-    Math.max(leastPerRow, Math.ceil(supply / supplyRows));
+  const fullSizeRows = 2;
 
   /**
-   * The width of the tray, and of the open mat, whose rows hold `perRow` counters: the row at the
-   * counters' pitch and the zone's inset either side.
-   *
-   * @param perRow The counters a row holds.
-   * @returns The zone's width, in board units.
+   * The heights of a board's mat and tray, in board units.
    */
-  const rowWidth = (perRow        )         => perRow * pitch - gap + 2 * inset;
+                         
+                         
+                          
+   
+
+  /**
+   * The heights of the mat and the tray, in board units, when their counters stand in `rowsHigh`
+   * rows: the open mat and the tray as tall as their rows, the ten-frame mat its frames.
+   *
+   * @param tenFrame Whether the mat is the double ten frame.
+   * @param rowsHigh The rows the zone's counters stand in.
+   * @returns The mat's and the tray's heights.
+   */
+  const zoneHeightsOf = (tenFrame         , rowsHigh        )              => {
+    const block = rowsHigh * pitch - gap + 2 * inset;
+
+    return {
+      mat: tenFrame ? tenFrameHeight : Math.max(openHeight, block),
+      tray: Math.max(trayHeight, block),
+    };
+  };
+
+  /**
+   * The board's height, in board units: the mat, the arrow and the tray, a gap either side of the
+   * arrow and half a border at the top and the bottom.
+   *
+   * @param heights The mat's and the tray's heights.
+   * @returns The board's height.
+   */
+  const boardHeightOf = (heights             )         =>
+    border / 2 + heights.mat + gap + arrowLength + gap + heights.tray + border / 2;
+
+  /**
+   * The width of the tray, and of the open mat, in board units: a row of {@link perRow} counters at
+   * their pitch and the zone's inset either side.
+   */
+  const rowZoneWidth = perRow * pitch - gap + 2 * inset;
 
   /**
    * The board's two zones, the one list every zone-wide reading walks.
@@ -441,15 +472,14 @@ define(["qtiCustomInteractionContext"], (context) => {
   };
 
   /**
-   * Lay out counters in a zone's inside as a centred wrap: rows of `perRow`, each row centred
+   * Lay out counters in a zone's inside as a centred wrap: rows of {@link perRow}, each row centred
    * across, the rows centred top to bottom.
    *
    * @param count The counters.
    * @param inside The zone's inside.
-   * @param perRow The counters a row holds.
    * @returns Each counter's centre, in reading order.
    */
-  const rows = (count        , inside        , perRow        )                   => {
+  const rows = (count        , inside        )                   => {
     const first =
       inside.top +
       (inside.height - (Math.ceil(count / perRow) * pitch - gap)) / 2 +
@@ -527,29 +557,35 @@ define(["qtiCustomInteractionContext"], (context) => {
 
     face.img.remove();
 
-    /**
-     * How far a press travels on the screen, in CSS pixels, before it is no tap: half a counter as
-     * the picture's size draws it. It is measured on the screen, not on the board, since a finger
-     * drifts as far whatever the board's scale; nearer, the press taps, so a finger that drifts
-     * while it taps still taps. The other zone stands an arrow's length and two gaps (192 board
-     * units, nearly two counters) past any counter's own zone, so no drag that could move a counter
-     * reads as a tap while the board is drawn at more than about a quarter of its size.
-     */
-    const tapTravel = face.side / 2;
-
-    const perRow = perRowOf(supply);
-    const rowZoneWidth = rowWidth(perRow);
     const width = tenFrame ? Math.max(tenFrameWidth, rowZoneWidth) : rowZoneWidth;
     const rowsHigh = Math.ceil(supply / perRow);
-    const matHeight = tenFrame
-      ? tenFrameHeight
-      : Math.max(openHeight, rowsHigh * pitch - gap + 2 * inset);
-    const trayZoneHeight = Math.max(trayHeight, rowsHigh * pitch - gap + 2 * inset);
+    const zoneHeights = zoneHeightsOf(tenFrame, rowsHigh);
+    const matHeight = zoneHeights.mat;
+    const trayZoneHeight = zoneHeights.tray;
     const matTop = border / 2;
     const arrowTop = matTop + matHeight + gap;
     const trayTop = arrowTop + arrowLength + gap;
     const trayLeft = (width - rowZoneWidth) / 2;
-    const height = trayTop + trayZoneHeight + border / 2;
+    const height = boardHeightOf(zoneHeights);
+
+    /**
+     * The share of its full size the board is drawn at: 1, or less where the supply takes more than
+     * {@link fullSizeRows} rows, so the board is as tall as a supply of ten's. The board's width,
+     * its share of the column and its greatest width both, is scaled by it, so in any column it is
+     * no taller than ten's: the two are as wide in board units, a row of five or the ten frames.
+     */
+    const fit = Math.min(height, boardHeightOf(zoneHeightsOf(tenFrame, fullSizeRows))) / height;
+
+    /**
+     * How far a press travels on the screen, in CSS pixels, before it is no tap: half the picture's
+     * side times the board's {@link fit}, as the board draws a counter at its greatest width. It is
+     * measured on the screen, not on the board, since a finger drifts as far whatever the board's
+     * scale; nearer, the press taps, so a finger that drifts while it taps still taps. The other
+     * zone stands an arrow's length and two gaps (192 board units, nearly two counters) past any
+     * counter's own zone, so no drag that could move a counter reads as a tap while the board is
+     * drawn at more than about a quarter of its size.
+     */
+    const tapTravel = (face.side * fit) / 2;
 
     const frameWidth = frameColumns * cell;
     const framesLeft = (width - (2 * frameWidth + frameGap)) / 2;
@@ -579,8 +615,8 @@ define(["qtiCustomInteractionContext"], (context) => {
      * rows, the tray's in its rows.
      */
     const standing                                                    = {
-      mat: tenFrame ? (count) => cells.slice(0, count) : (count) => rows(count, matInside, perRow),
-      tray: (count) => rows(count, trayInside, perRow),
+      mat: tenFrame ? (count) => cells.slice(0, count) : (count) => rows(count, matInside),
+      tray: (count) => rows(count, trayInside),
     };
 
     /**
@@ -626,7 +662,7 @@ define(["qtiCustomInteractionContext"], (context) => {
     const style = document.createElement("style");
 
     style.textContent = [
-      `[data-board] { display: block; width: 100%; max-width: ${String((width * face.side) / counterSide)}px; height: auto; touch-action: none; user-select: none; -webkit-user-select: none; }`,
+      `[data-board] { display: block; width: ${String(100 * fit)}%; max-width: ${String((width * face.side * fit) / counterSide)}px; height: auto; touch-action: none; user-select: none; -webkit-user-select: none; }`,
       "[data-board] [data-slot] { cursor: grab; }",
       "[data-board] [data-zone] { cursor: pointer; }",
       `[data-board] :focus { outline: none; } [data-board] :focus-visible { outline: 3px solid ${chosen}; outline-offset: 2px; }`,
