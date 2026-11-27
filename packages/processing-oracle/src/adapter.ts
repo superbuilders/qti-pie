@@ -20,7 +20,7 @@ import {
   processingSeed,
   takeItem,
 } from "@qti-pie/processing";
-import { recordOf, single } from "@qti-pie/processing/value.ts";
+import { nullOf, recordOf, single } from "@qti-pie/processing/value.ts";
 import type {
   CompiledItem,
   Digest,
@@ -160,15 +160,28 @@ const sessionOf = (seed: ItemSeed, take: TakeView, view: SessionView): ItemSessi
 });
 
 /**
- * Responses as one save at the epoch, or the defaults where none was saved.
+ * Responses as one save at the epoch, total over the item's declared responses as the ledger's
+ * boundary builds every saved map (a response the recording does not name is unanswered, NULL),
+ * or the default submission where none was saved.
  *
+ * @param item The item.
  * @param responses The responses.
  * @returns What the attempt submits.
  */
-const submittedOf = (responses: RecordedValues | undefined): Submitted =>
-  responses === undefined
-    ? { kind: "default" }
-    : { at: epoch, kind: "save", values: valuesOf(responses) };
+const submittedOf = (item: CompiledItem, responses: RecordedValues | undefined): Submitted => {
+  if (responses === undefined) {
+    return { kind: "default" };
+  }
+
+  const values = new Map(valuesOf(responses));
+  for (const declaration of item.declarations.values()) {
+    if (declaration.role === "response" && !values.has(declaration.identifier)) {
+      values.set(declaration.identifier, nullOf(declaration.type));
+    }
+  }
+
+  return { at: epoch, kind: "save", values };
+};
 
 /**
  * An item result in the oracle's view: a pending result's demands by their recorded operator's
@@ -254,7 +267,7 @@ const itemEngineOf = (item: CompiledItem, places: readonly number[]): ItemEngine
       evaluations: evaluationsOf(input.recorded, places),
       item,
       readAt: epoch,
-      responses: submittedOf(input.responses),
+      responses: submittedOf(item, input.responses),
       session: sessionOf(input.seed, input.take, input.session),
       validate: input.validate,
     });
@@ -368,7 +381,7 @@ const testEngineOf = (
             evaluations: new Map<number, Value>(),
             item: held.item,
             ref: { identifier: member.ref, occurrence: 0n },
-            responses: submittedOf(member.responses),
+            responses: submittedOf(held.item, member.responses),
             session: {
               duration: member.duration,
               numAttempts: 0n,

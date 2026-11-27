@@ -5,7 +5,7 @@
     "key": "bank-chemistry|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -16,7 +16,7 @@
     "key": "bank-ram|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -27,7 +27,7 @@
     "key": "bank-ram|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -38,7 +38,7 @@
     "key": "bank-ram|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -159,7 +159,7 @@
     "key": "bank-shadows|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -170,7 +170,7 @@
     "key": "bank-shadows|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -181,7 +181,7 @@
     "key": "corpus|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -192,7 +192,7 @@
     "key": "corpus|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -203,7 +203,7 @@
     "key": "corpus|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -214,7 +214,7 @@
     "key": "corpus|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -225,7 +225,7 @@
     "key": "corpus|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -236,7 +236,7 @@
     "key": "corpus|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -247,7 +247,7 @@
     "key": "corpus|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1138,7 +1138,7 @@
     "key": "pantry-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1171,7 +1171,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1182,7 +1182,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1193,7 +1193,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1204,7 +1204,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1215,7 +1215,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1226,7 +1226,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1237,7 +1237,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1248,7 +1248,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1259,7 +1259,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1270,7 +1270,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1281,7 +1281,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1292,7 +1292,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1303,7 +1303,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1314,7 +1314,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1325,7 +1325,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1336,7 +1336,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1347,7 +1347,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1358,7 +1358,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1369,7 +1369,7 @@
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings 18, 54, 195, 244)",
+      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
@@ -1446,7 +1446,7 @@
     "key": "sql|sqltruth-crafted-itemdur|test.xml|alternate",
     "mom": "A finish that crashes is worse than one that grades (edullm-bd ruling A4).",
     "reading": {
-      "section": "§5.48 built-in duration of every item session (reading 29, 150)",
+      "section": "§5.48 built-in duration of every item session (readings `duration-variable-type`, `duration-without-time-dependence`)",
       "text": "an item whose response processing reads duration is graded; the SQL grader failed the finish with 'undeclared variable duration'"
     },
     "recorded": "\"failed: Error: the write failed: undeclared variable duration {}\""
@@ -1457,7 +1457,7 @@
     "key": "sql|sqltruth-crafted-itemdur|test.xml|correct",
     "mom": "A finish that crashes is worse than one that grades (edullm-bd ruling A4).",
     "reading": {
-      "section": "§5.48 built-in duration of every item session (reading 29, 150)",
+      "section": "§5.48 built-in duration of every item session (readings `duration-variable-type`, `duration-without-time-dependence`)",
       "text": "an item whose response processing reads duration is graded; the SQL grader failed the finish with 'undeclared variable duration'"
     },
     "recorded": "\"failed: Error: the write failed: undeclared variable duration {}\""
@@ -1468,7 +1468,7 @@
     "key": "sql|sqltruth-crafted-itemdur|test.xml|first",
     "mom": "A finish that crashes is worse than one that grades (edullm-bd ruling A4).",
     "reading": {
-      "section": "§5.48 built-in duration of every item session (reading 29, 150)",
+      "section": "§5.48 built-in duration of every item session (readings `duration-variable-type`, `duration-without-time-dependence`)",
       "text": "an item whose response processing reads duration is graded; the SQL grader failed the finish with 'undeclared variable duration'"
     },
     "recorded": "\"failed: Error: the write failed: undeclared variable duration {}\""
@@ -1479,7 +1479,7 @@
     "key": "sql|sqltruth-crafted-itemdur|test.xml|none",
     "mom": "A finish that crashes is worse than one that grades (edullm-bd ruling A4).",
     "reading": {
-      "section": "§5.48 built-in duration of every item session (reading 29, 150)",
+      "section": "§5.48 built-in duration of every item session (readings `duration-variable-type`, `duration-without-time-dependence`)",
       "text": "an item whose response processing reads duration is graded; the SQL grader failed the finish with 'undeclared variable duration'"
     },
     "recorded": "\"failed: Error: the write failed: undeclared variable duration {}\""
