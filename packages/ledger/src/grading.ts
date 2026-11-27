@@ -16793,7 +16793,7 @@ export const admissionOne = fn("admissionOne", {
   -- a renderer draws; Text Entry and Extended Text: a pattern-mask every string matches, by XML Schema's regular
   -- expressions (QTI 3.0.1 §5.48.4, Appendix F of XML Schema Part 2), by the machine's matcher; a mask that is no
   -- Appendix F expression compiles to NULL and matches as NULL: no reason, as QTI gives such a mask no meaning. An
-  -- xhtml Extended Text's strings are matched on their text (p3.xhtml_text, reading 244), every other as posted.
+  -- xhtml Extended Text's strings are matched on their text (p3.xhtml_text, reading \`xhtml-pattern-mask-text\`), every other as posted.
   texts as (
     select i.start, i.response, i.kind, coalesce(g.n, 0) as n, trim_xml(t => e.max_strings)::numeric as most,
       coalesce(trim_xml(t => e.min_strings)::numeric, 0) as least, e.pattern_mask,

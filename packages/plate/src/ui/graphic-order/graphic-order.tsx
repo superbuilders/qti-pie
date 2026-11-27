@@ -112,10 +112,10 @@ export interface GraphicOrderProps extends Authored<NameAttributes> {
   readonly response: Declared<"identifier", "ordered">;
   /**
    * How many positions the Graphic Order shows, which the server derives from `max-choices` and
-   * `min-choices` as it does an Order's (plate's reading 18): with a `min-choices`, the
-   * `max-choices` written beside it, or one per hotspot when there is none, since "If unspecified,
-   * all of the choices may be ordered" (5.61.2); without one, one per hotspot, since then "all of
-   * the choices must be ordered and max-choices is ignored" (5.61.1).
+   * `min-choices` as it does an Order's (plate's reading `order-min-choices`): with a
+   * `min-choices`, the `max-choices` written beside it, or one per hotspot when there is none,
+   * since "If unspecified, all of the choices may be ordered" (5.61.2); without one, one per
+   * hotspot, since then "all of the choices must be ordered and max-choices is ignored" (5.61.1).
    */
   readonly positions: number;
   /**

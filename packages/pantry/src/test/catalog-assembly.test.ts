@@ -1,12 +1,12 @@
 /**
- * A catalog reference over each assembly (spec readings 117 and R9-a): a `data-catalog-idref` names
- * a `qti-catalog` of the document it is judged in, and a fragment an item includes is judged in the
- * item it is spliced into, so a fragment's reference may name its item's catalog, and a fragment
- * two items include is judged once for each. The law oracle judges the spliced item
- * (`#pantry/test/oracle.ts`); the import's rows are judged by the schema's own laws on the host
- * (`#pantry/test/host-judge.ts`), and "Catalog reference" itself, two rules over a query the host
- * judge leaves to the database, by {@link unresolvedReference}'s restatement of them over the same
- * rows; the two verdicts must be one.
+ * A catalog reference over each assembly (spec reading `fragment-placement` and R9-a): a
+ * `data-catalog-idref` names a `qti-catalog` of the document it is judged in, and a fragment an
+ * item includes is judged in the item it is spliced into, so a fragment's reference may name its
+ * item's catalog, and a fragment two items include is judged once for each. The law oracle judges
+ * the spliced item (`#pantry/test/oracle.ts`); the import's rows are judged by the schema's own
+ * laws on the host (`#pantry/test/host-judge.ts`), and "Catalog reference" itself, two rules over a
+ * query the host judge leaves to the database, by {@link unresolvedReference}'s restatement of them
+ * over the same rows; the two verdicts must be one.
  *
  * The cases are the audit's `ccat` inputs (F2), built here, and a fragment two items include whose
  * catalog only one of them holds.

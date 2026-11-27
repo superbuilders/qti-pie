@@ -442,7 +442,7 @@ const binaryOrUnary: readonly (readonly [string, string])[] = [
  * `Qualifier`), `interval` among them since `DomainQ` admits it: an `m:apply` holding one beside
  * an operator here, other than the operator's own, is a binding or qualified application whose
  * argument count no class states, and `interval` may be read as an argument or a qualifier, so
- * spec reading 2's arity law does not judge it.
+ * spec reading `mathml-validity`'s arity law does not judge it.
  */
 export const mathQualifiers: ReadonlySet<string> = new Set([
   "m:bvar",
@@ -509,9 +509,9 @@ export const mathHeadQualifiers: readonly HeadQualifier[] = [
 ];
 
 /**
- * Each Content MathML operator's argument count under `m:apply` (spec reading 2, MathML 3 §4.3.4.5
- * and §4.3.4.6, and §4.1.5: the Class row "indicate[s] how many arguments the operator represented
- * by this element takes"), by its kind.
+ * Each Content MathML operator's argument count under `m:apply` (spec reading `mathml-validity`,
+ * MathML 3 §4.3.4.5 and §4.3.4.6, and §4.1.5: the Class row "indicate[s] how many arguments the
+ * operator represented by this element takes"), by its kind.
  *
  * @formatConstant MathML 3's operator classes: each operator's least and most arguments, as its
  *   syntax table states them.
@@ -827,14 +827,15 @@ export type Language = (typeof languages)[number];
 
 /**
  * How a processing reference names its variable under a placement, in code order: the
- * `ReferenceResolution` roster's handles, each read in the placement's assembly (spec reading 117).
- * `declared`, a declaration of the assembly's root document; `builtIn`, one of that root's built-in
- * variables (`BuiltInVariable`); `read`, under a test, the one reading of a name its scope
- * prefixes, an item's variable through an item ref that names an item document or a scope's
- * `duration` (spec readings 48 and 167); `unresolved`, none of them, which only a root that is no
- * item may leave: a response processing template's parameters in its own placement, and a test's
- * name read through an item ref that names no item document (reading 110) or read more than once
- * (reading 86).
+ * `ReferenceResolution` roster's handles, each read in the placement's assembly (spec reading
+ * `fragment-placement`). `declared`, a declaration of the assembly's root document; `builtIn`, one
+ * of that root's built-in variables (`BuiltInVariable`); `read`, under a test, the one reading of a
+ * name its scope prefixes, an item's variable through an item ref that names an item document or a
+ * scope's `duration` (spec readings `dotted-reference` and `weighted-test-variables`);
+ * `unresolved`, none of them, which only a root that is no item may leave: a response processing
+ * template's parameters in its own placement, and a test's name read through an item ref that names
+ * no item document (reading `mapping-and-default-names`) or read more than once (reading
+ * `test-identifier-namespace`).
  */
 export const resolutions = ["declared", "builtIn", "read", "unresolved"] as const;
 
@@ -1051,9 +1052,10 @@ const outcomeBounds = ["qti-outcome-maximum", "qti-outcome-minimum"] as const;
  * which this replaces. A `qti-index` takes an ordered container, since a multiple one is a bag and
  * has no nth value (§6.9.22), where `qti-random` takes either (§6.9.16); and neither operand of a
  * `qti-delete` is a duration, Member's restriction, which Delete carries (§6.9.20, §6.9.33; spec
- * reading 189). A leaf whose table leaves its type open (`qti-null`, `qti-test-variables`
- * with no `base-type` and no `weight-identifier`) is typed `unknown`, and a weighted
- * `qti-test-variables` with no `base-type` float (§7.39.5; spec reading 167).
+ * reading `index-and-delete-operands`). A leaf whose table leaves its type open (`qti-null`,
+ * `qti-test-variables` with no `base-type` and no `weight-identifier`) is typed `unknown`, and a
+ * weighted `qti-test-variables` with no `base-type` float (§7.39.5; spec reading
+ * `weighted-test-variables`).
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Expr3 | QTI 3.0 information model, §2.11.3 Operators}
  */
@@ -1416,6 +1418,6 @@ export const integerMathOperators = ["signum", "floor", "ceil"] as const;
  * tan, take one argument in radians ... Other functions take one numerical argument. Further
  * functions might take more than one numerical argument, e.g. atan2 (two argument arc tan)"
  * (§5.91, MathOperator), and each of §8.25's other tokens is a function of "the argument" (spec
- * reading 242). The name is compared exactly, as {@link integerMathOperators} is.
+ * reading `math-operator-arity`). The name is compared exactly, as {@link integerMathOperators} is.
  */
 export const binaryMathOperators = ["atan2"] as const;

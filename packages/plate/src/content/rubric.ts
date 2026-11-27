@@ -3,16 +3,16 @@
  * its `view` names, and for no other; the server shell writes it as one `div`
  * (`#plate/ui/item/contents/rubric.tsx`).
  *
- * The block is shown only to the views its `view` list names (reading 65: "Each block is shown only
- * to the views its `view` names"): the item model holds only the blocks the candidate's view names
- * (`inCandidateView` in `#plate/model/body.ts`), and the redaction keeps a block when the view the
- * item is shown to is among them and drops it otherwise, withholding its content, so a scorer's
- * rubric is in neither a candidate's page nor the redacted copy a host sends to a page. The item is
- * shown to the candidate's view when the host names none, so a candidate render holds no scorer,
- * proctor, tutor, author or test-constructor rubric. A block the view names is placed in document
- * order, where it stands in the body, whatever its `use`; a block that carries
- * `qti-rubric-discretionary-placement` is placed there too, since the class gives the delivery
- * leave to place the block for its view actors elsewhere and does not oblige it.
+ * The block is shown only to the views its `view` list names (reading `section-rubric-display`:
+ * "Each block is shown only to the views its `view` names"): the item model holds only the blocks
+ * the candidate's view names (`inCandidateView` in `#plate/model/body.ts`), and the redaction keeps
+ * a block when the view the item is shown to is among them and drops it otherwise, withholding its
+ * content, so a scorer's rubric is in neither a candidate's page nor the redacted copy a host sends
+ * to a page. The item is shown to the candidate's view when the host names none, so a candidate
+ * render holds no scorer, proctor, tutor, author or test-constructor rubric. A block the view names
+ * is placed in document order, where it stands in the body, whatever its `use`; a block that
+ * carries `qti-rubric-discretionary-placement` is placed there too, since the class gives the
+ * delivery leave to place the block for its view actors elsewhere and does not oblige it.
  *
  * A rubric's `qti-stylesheet` and `qti-catalog-info` children are read past: each is recorded as a
  * mark on the verdict and renders nothing, since plate applies no stylesheet and resolves only the

@@ -3,7 +3,7 @@
 -- defined to be a response which does not satisfy the constraints imposed by the interaction with which it is
 -- associated ... When validate-responses is turned on (true) then the candidates are not allowed to submit the item
 -- until they have provided valid responses for all interactions. When turned off (false) invalid responses may be
--- accepted by the system." Each interaction's limits are of two kinds (plate's reading 195): tier (a), a response no
+-- accepted by the system." Each interaction's limits are of two kinds (plate's reading `response-limits`): tier (a), a response no
 -- interaction's controls let the candidate give (an identifier no presented choice carries, a choice given twice, more
 -- than a nonzero max-choices, max-strings or max-associations, a pair outside a match-group, a value off a slider's
 -- range or step), refused whatever validate-responses says; and tier (b), what a valid response needs (min-choices,
@@ -171,7 +171,7 @@ create function p3.xhtml_blocks(y text) returns text language sql immutable as $
 $$;
 
 -- The text of an xhtml Extended Text's value, the text its box shows, as plate reads a value (`textOfXhtml` in plate's
--- interactions/xhtml-text.ts; reading 244): each `br` a line feed, each block boundary read by p3.xhtml_blocks (a blank
+-- interactions/xhtml-text.ts; reading `xhtml-pattern-mask-text`): each `br` a line feed, each block boundary read by p3.xhtml_blocks (a blank
 -- line between two paragraphs, a line feed between other blocks), every other tag removed, then each character
 -- reference resolved in one pass (p3.xhtml_reference), so `&amp;lt;` reads `&lt;`. White space inside a tag is
 -- JavaScript's `\s`, as plate's expressions read it. A value plate wrote reads back exactly as the text typed. An xhtml
@@ -647,7 +647,7 @@ returns p3.admission language sql immutable as $$
   -- a renderer draws; Text Entry and Extended Text: a pattern-mask every string matches, by XML Schema's regular
   -- expressions (QTI 3.0.1 §5.48.4, Appendix F of XML Schema Part 2), by the machine's matcher; a mask that is no
   -- Appendix F expression compiles to NULL and matches as NULL: no reason, as QTI gives such a mask no meaning. An
-  -- xhtml Extended Text's strings are matched on their text (p3.xhtml_text, reading 244), every other as posted.
+  -- xhtml Extended Text's strings are matched on their text (p3.xhtml_text, reading `xhtml-pattern-mask-text`), every other as posted.
   texts as (
     select i.start, i.response, i.kind, coalesce(g.n, 0) as n, trim_xml(t => e.max_strings)::numeric as most,
       coalesce(trim_xml(t => e.min_strings)::numeric, 0) as least, e.pattern_mask,

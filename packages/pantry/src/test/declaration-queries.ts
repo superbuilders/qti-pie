@@ -13,8 +13,8 @@
  * attributes', read as the views read them (`#pantry/qti/names.ts`): a name its `identifier`
  * collapsed, a code its lexical form where that spells one. A name is read only where it names
  * something: the database judges no rule over a query over one that does not, since AL1's
- * `value_domain` refuses the write that holds it first (spec reading 152), and the host judge
- * names AL1 alone.
+ * `value_domain` refuses the write that holds it first (spec reading `ncname-names`), and the host
+ * judge names AL1 alone.
  */
 import { regex } from "arkregex";
 import type { PreviewRows } from "@bjornpagen/grizzle";
@@ -323,17 +323,17 @@ const declarationKindAt = (index: Index, place: string): string | undefined => {
 
 /**
  * The built-in response variables, by `root variable`: none declares a mapping or an area mapping
- * (decision 431, spec reading 166).
+ * (decision 431, spec reading `test-prefixed-response-reads`).
  */
 const builtInResponseNames: ReadonlySet<string> = new Set(
   builtInResponses.map(({ root, variable }) => `${root} ${variable}`),
 );
 
 /**
- * State "Mapped response" over a query, under each placement (spec reading 117): a map response or
- * map response point by `identifier` names no built-in response, and a declared one names a
- * response declaration of its assembly's root whose node holds its table, a map response point's
- * of base type point or one its typing leaves silent.
+ * State "Mapped response" over a query, under each placement (spec reading `fragment-placement`): a
+ * map response or map response point by `identifier` names no built-in response, and a declared one
+ * names a response declaration of its assembly's root whose node holds its table, a map response
+ * point's of base type point or one its typing leaves silent.
  *
  * @param index - The index.
  * @returns Whether it holds.
@@ -538,7 +538,7 @@ const lookupCardinalityHolds = (index: Index): boolean =>
 /**
  * State that an attribute's typed value is a lexical form of a base type, as
  * `Typed_attribute_value` reads it: it matches the base type's `BaseTypePattern`, as written for
- * `string` and collapsed for every other base type (reading 7).
+ * `string` and collapsed for every other base type (reading `typed-value-whitespace`).
  *
  * @param baseType - The base type.
  * @param written - The value as written, its field's text (`#pantry/test/host-judge.ts`
@@ -701,7 +701,8 @@ const typedValueHolds = (index: Index): boolean =>
 
 /**
  * State "Reserved type" over a query: QTI_CONTEXT is a context declaration and, where it has a
- * cardinality, a record (reading 74), each name beside its declaration's kind and cardinality.
+ * cardinality, a record (reading `identifier-names-one-variable`), each name beside its
+ * declaration's kind and cardinality.
  *
  * @param index - The index.
  * @returns Whether it holds.
@@ -798,8 +799,9 @@ const doubleOf = (lexical: string | undefined): Option.Option<number> => {
  * State "Mastery range" over a query: each pair of an outcome's scale, its normal minimum's and its
  * mastery value's (`MasteryFloor`) and its mastery value's and its normal maximum's
  * (`MasteryCeiling`), each the double its attribute names as the views read it, the minimum the
- * XSD's default where the declaration writes none (spec reading 149), holds `Mastery_range`'s check
- * as grizzle's evaluator judges it (`#pantry/test/row-evaluation.ts` `brokenIn`).
+ * XSD's default where the declaration writes none (spec reading `normal-minimum-default`), holds
+ * `Mastery_range`'s check as grizzle's evaluator judges it (`#pantry/test/row-evaluation.ts`
+ * `brokenIn`).
  *
  * @param index - The index.
  * @returns Whether it holds.

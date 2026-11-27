@@ -8,12 +8,12 @@
  * anything is read ({@link BadPackageName}). Its manifest is decoded and shredded. Its `identifier`
  * is the package's data, which the database holds to its laws as it holds every attribute, never
  * its key. The documents it names are the (href, type) pairs of its resources whose type
- * `RootOfType` maps (spec reading 93, `namedDocuments`), and each path one names that an entry
- * holds is shredded once: the manifest's path is the manifest's alone, no resource's document
- * (reading 146). A named href no entry holds is shredded as nothing: the package's laws refuse it
- * in the database (`entry-kind`). Each document's references are then resolved as the import
- * resolves them (`referenceRowsOf`), so the package names every path the import writes a
- * `ReferencePath` or a `TextReferencePath` of.
+ * `RootOfType` maps (spec reading `resource-href`, `namedDocuments`), and each path one names that
+ * an entry holds is shredded once: the manifest's path is the manifest's alone, no resource's
+ * document (reading `manifest-document`). A named href no entry holds is shredded as nothing: the
+ * package's laws refuse it in the database (`entry-kind`). Each document's references are then
+ * resolved as the import resolves them (`referenceRowsOf`), so the package names every path the
+ * import writes a `ReferencePath` or a `TextReferencePath` of.
  *
  * {@link readPackage} judges no law: what it refuses is what the reader, the container and the codec
  * refuse, and every law is the database's, met when `importPackage` (`#pantry/import/package.ts`)
@@ -77,7 +77,8 @@ const packagePath = Brand.nominal<PackagePath>();
  * - `manifest`: the manifest, `imsmanifest.xml` at the package root, shredded, of the document type
  *   `manifest`.
  * - `documents`: every other document its resources name that an entry holds, one per path, in the
- *   manifest's order, each shredded once, of the type its resource names (readings 93 and 162).
+ *   manifest's order, each shredded once, of the type its resource names (readings `resource-href`
+ *   and `path-document-type`).
  * - `files`: every entry, in listing order (sorted by path), each as a `File` whose `name` is its
  *   path and whose bytes are the entry's, read once: a document's are shredded, and every other
  *   entry's are a media file's, which the import puts in its content-addressed store under their
@@ -138,11 +139,11 @@ const shredFile = (file: PackageFile) =>
 
 /**
  * Choose the type a path's document is read as, of the types its resources name it under (spec
- * readings 93 and 162): the first, in the manifest's order, whose `RootOfType` pair holds the
- * root's kind, and the first of all where none does. Every other type's href then names no document
- * of its type, which "Document entry" refuses; and `RootOfType` refuses a root only where no type
- * its resources name bears it out, whatever order they are listed in. The sort is stable, so the
- * types the root bears out come first, each group in the manifest's order.
+ * readings `resource-href` and `path-document-type`): the first, in the manifest's order, whose
+ * `RootOfType` pair holds the root's kind, and the first of all where none does. Every other type's
+ * href then names no document of its type, which "Document entry" refuses; and `RootOfType` refuses
+ * a root only where no type its resources name bears it out, whatever order they are listed in. The
+ * sort is stable, so the types the root bears out come first, each group in the manifest's order.
  *
  * @param types - The types, in the manifest's order.
  * @param rootKind - The kind of the document's root.
@@ -187,11 +188,11 @@ const listDocuments = Effect.fn("import.listDocuments")(function* listDocuments(
     typedPathsOf(packageRowsOf(manifestView, { package: name }), resourceTypesOf(manifestView)),
   );
   /**
-   * A path is one document, of one type (reading 93): the manifest's, `manifest`, read before any
-   * resource names a path (reading 146), else the type its root bears out among those resources
-   * name it under (reading 162). Another type's href, the manifest's path's included, then names
-   * no document of its type, which "Document entry" refuses, and the document is read once and
-   * judged where its sites place it.
+   * A path is one document, of one type (reading `resource-href`): the manifest's, `manifest`, read
+   * before any resource names a path (reading `manifest-document`), else the type its root bears
+   * out among those resources name it under (reading `path-document-type`). Another type's href,
+   * the manifest's path's included, then names no document of its type, which "Document entry"
+   * refuses, and the document is read once and judged where its sites place it.
    */
   const pairs = [...named.values()];
   const manifest: ListedDocument = {

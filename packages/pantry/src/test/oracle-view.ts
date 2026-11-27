@@ -467,9 +467,9 @@ export const breachAt = <Law extends string>(
 });
 
 /**
- * An href resolved as the package laws read it (readings 102 and 103): its resolution by the
- * oracle's own resolver (`#pantry/test/resolution.ts`), and the path it is compared by, the entry
- * path in the package and its path as read otherwise.
+ * An href resolved as the package laws read it (readings `href-resolution` and `file-references`):
+ * its resolution by the oracle's own resolver (`#pantry/test/resolution.ts`), and the path it is
+ * compared by, the entry path in the package and its path as read otherwise.
  */
 export interface ResolvedHref {
   readonly path: string;
@@ -490,8 +490,8 @@ const basesAt = (view: View, node: bigint): readonly string[] =>
     .flatMap(({ start }) => Option.toArray(valueOf(view, start, "xml:base")));
 
 /**
- * Resolve an attribute of a node as an href (readings 102 and 103), with the `xml:base` values in
- * scope at the node, by the oracle's own resolver.
+ * Resolve an attribute of a node as an href (readings `href-resolution` and `file-references`),
+ * with the `xml:base` values in scope at the node, by the oracle's own resolver.
  *
  * @param view - The node's document.
  * @param node - The node.
@@ -516,9 +516,9 @@ export const resolvedAt = (
 };
 
 /**
- * Resolve an element's `href` as a package path (readings 102 and 103): its `xs:anyURI` value
- * collapsed and resolved against its document's path and the `xml:base` values in scope, and the
- * path it is compared by.
+ * Resolve an element's `href` as a package path (readings `href-resolution` and `file-references`):
+ * its `xs:anyURI` value collapsed and resolved against its document's path and the `xml:base`
+ * values in scope, and the path it is compared by.
  *
  * @param view - The document.
  * @param node - The element.
@@ -545,8 +545,9 @@ export interface ListedRows {
  * A package as the package-level producers read it: its manifest, the documents it lists that
  * folded, in manifest order, which of them are assembled, its entries' paths, the sites that place
  * their targets, and `spliced`, each listed document's path with the paths of the documents its
- * includes splice in place (spec reading 117), as the oracle's `standsFor` reads an include: under
- * a parent whose include splices its fragment, and standing for that fragment's root.
+ * includes splice in place (spec reading `fragment-placement`), as the oracle's `standsFor` reads
+ * an include: under a parent whose include splices its fragment, and standing for that fragment's
+ * root.
  */
 export interface PackageRows {
   /**
@@ -560,9 +561,9 @@ export interface PackageRows {
   readonly manifest: View;
   /**
    * Each listed document's path with the sites of it that place their target in its assemblies
-   * (reading 85, the schema's `SiteTarget.places`): a section ref whose target's root is a section,
-   * and an include that may stand for its target's root, each with its node's `start` and the path
-   * of the document it places, in document order.
+   * (reading `inclusion-cycles`, the schema's `SiteTarget.places`): a section ref whose target's
+   * root is a section, and an include that may stand for its target's root, each with its node's
+   * `start` and the path of the document it places, in document order.
    */
   readonly placements: ReadonlyMap<string, readonly Placement[]>;
   readonly spliced: ReadonlyMap<string, readonly string[]>;

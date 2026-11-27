@@ -1,13 +1,14 @@
 /**
- * Reading 93's law over a resource's type, as a small exhausted box: {one type, two types, a type
- * that spells nothing} × {one path, two paths}, each an edit of `simple`'s manifest.
+ * Reading `resource-href`'s law over a resource's type, as a small exhausted box: {one type, two
+ * types, a type that spells nothing} × {one path, two paths}, each an edit of `simple`'s manifest.
  *
  * A document has one type, the one its root bears out among those its resources name (spec reading
- * 162), so a path two resources name under two document types is refused under "Document entry"
- * (`entry-kind`) alone, never under RootOfType (package.ts's P3), in either order; a resource whose
- * `type` spells no handle names no type at all, so AL1's value domain refuses its `type` alone
- * (`attribute-lexical`, spec reading 67). The law oracle (`resource-types.oracle.test.ts`) and
- * PostgreSQL (`program.oracle.db.test.ts`) are each held to the verdicts here.
+ * `path-document-type`), so a path two resources name under two document types is refused under
+ * "Document entry" (`entry-kind`) alone, never under RootOfType (package.ts's P3), in either order;
+ * a resource whose `type` spells no handle names no type at all, so AL1's value domain refuses its
+ * `type` alone (`attribute-lexical`, spec reading `manifest-profile`). The law oracle
+ * (`resource-types.oracle.test.ts`) and PostgreSQL (`program.oracle.db.test.ts`) are each held to
+ * the verdicts here.
  */
 import type { Edit } from "#pantry/test/fixtures.ts";
 
@@ -69,9 +70,10 @@ export interface ResourceTypeCase {
 
 /**
  * The seven cases: the box's six, and one path under two types with the stimulus listed first. The
- * document is typed by the listing its item root bears out in either order (reading 162), so
- * Document entry breaks alone, in its rule over the typed hrefs (the other type's href names no
- * document of its type), and the verdict never turns on the order the resources are listed in.
+ * document is typed by the listing its item root bears out in either order (reading
+ * `path-document-type`), so Document entry breaks alone, in its rule over the typed hrefs (the
+ * other type's href names no document of its type), and the verdict never turns on the order the
+ * resources are listed in.
  */
 export const resourceTypeCases: readonly ResourceTypeCase[] = [
   {

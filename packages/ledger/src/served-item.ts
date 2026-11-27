@@ -325,9 +325,9 @@ const xmlOf = (read: DocumentRead) =>
 /**
  * Give the path in the package that a location of a PCI's module facts names, as plate's resolution
  * passes it on, a module's with its `.js` already given (R1, plate's `scriptLocationOf`): its file
- * by reading 201. It is a path from the package's root, percent-decoded, whatever the item's
- * directory, its query and fragment set aside, as plate resolves all four of a PCI's module
- * attributes (`assetPaths`, which sets the item's location aside for them).
+ * by reading `pci-module-locations`. It is a path from the package's root, percent-decoded,
+ * whatever the item's directory, its query and fragment set aside, as plate resolves all four of a
+ * PCI's module attributes (`assetPaths`, which sets the item's location aside for them).
  *
  * @param item The item's path in its package.
  * @param location The location as the item writes it.
@@ -420,14 +420,14 @@ const servedAt = (
  * and the item's files, each location then mapped to where the frame loads it (`servedAt`). A
  * configuration file the item references is read from the store by its digest, for its waits alone:
  * plate's resolution routes a module only from its own `primary-path` and `fallback-path`, never
- * from a configuration's `paths` (plate's R2, reading 246), the locations "Module held" holds to
- * files the delivery serves, and the law holds every configuration a PCI writes to one too, so a
- * stated wait is always read; one the item references no file at, the schema's default, is absent
- * and waits 7. The manifest lists each file the item references, the only files whose digest the
- * application holds, so those are the files it calls listed. Each of the resolution's notices is
- * logged as a warning, naming the item and the response. An item with no PCI reads nothing.
- * Exported as the one routing of an item's PCIs, which the delivery level's "Module held" is held
- * to by its test (`#ledger/module-held.db.test.ts`).
+ * from a configuration's `paths` (plate's R2, reading `pci-configuration-waits`), the locations
+ * "Module held" holds to files the delivery serves, and the law holds every configuration a PCI
+ * writes to one too, so a stated wait is always read; one the item references no file at, the
+ * schema's default, is absent and waits 7. The manifest lists each file the item references, the
+ * only files whose digest the application holds, so those are the files it calls listed. Each of
+ * the resolution's notices is logged as a warning, naming the item and the response. An item with
+ * no PCI reads nothing. Exported as the one routing of an item's PCIs, which the delivery level's
+ * "Module held" is held to by its test (`#ledger/module-held.db.test.ts`).
  *
  * @param host The application's addresses.
  * @param accepted The item, accepted.
@@ -696,15 +696,16 @@ const laidOver = (start: Responses, values: Responses): Responses =>
 
 /**
  * Give the responses an attempt's islands start from, plate's `startingResponses` under the record
- * the attempt starts from (spec reading 183): every response the page shows at its start, a Choice
- * and an End Attempt empty whatever their default, every other island at its response's default,
- * the record's own where template processing set one, else its declaration's, so a slider with a
- * default shows it and the answer posts it until the child changes it; and every End Attempt
- * response of the item at `false`, the one whose press ends the attempt posting `true`. Every
- * attempt starts so, as a reload does: no draft is kept, and an End Attempt's press, a hint's, is
- * how its attempt ended, no response to carry into the next. A host starts its `<Responses>` from
- * plate's `heldOf` of these. The page shows them under the session's control ({@link showingOf}),
- * as {@link answeringOf} shows the item, so the responses it starts from are those it shows.
+ * the attempt starts from (spec reading `response-default`): every response the page shows at its
+ * start, a Choice and an End Attempt empty whatever their default, every other island at its
+ * response's default, the record's own where template processing set one, else its declaration's,
+ * so a slider with a default shows it and the answer posts it until the child changes it; and every
+ * End Attempt response of the item at `false`, the one whose press ends the attempt posting `true`.
+ * Every attempt starts so, as a reload does: no draft is kept, and an End Attempt's press, a
+ * hint's, is how its attempt ended, no response to carry into the next. A host starts its
+ * `<Responses>` from plate's `heldOf` of these. The page shows them under the session's control
+ * ({@link showingOf}), as {@link answeringOf} shows the item, so the responses it starts from are
+ * those it shows.
  *
  * @param served The session's item.
  * @param record The database's record the attempt starts from.

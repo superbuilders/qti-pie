@@ -18,21 +18,21 @@
  *   is a key over the designating `default` attributes, each beside its card, its node's parent,
  *   which the attribute holds. An entry that writes no `default`, or one whose value is `false` or
  *   `0`, is none of them; the XSD's default of `false` designates nothing.
- * - **Catalog reference** (rule `idref-target`; info §5.28.1, §5.15.9; spec reading 117): a
- *   `data-catalog-idref` names a `qti-catalog` of its document, not any ID of it. The attribute is
- *   typed `xs:IDREF`, so "Idref target" (`#pantry/qti/identity.ts`) alone refuses a token that
- *   names no ID, and accepts one that names an HTML `id` or a declaration. A reference is such an
- *   attribute that holds a token, as "Idref target" reads only an attribute the schema checks as
- *   IDREF and only its tokens (an unchecked one, or an empty or blank one, names nothing): the
- *   references `catalogReferences` reads (`#pantry/qti/overlay-queries/catalog.ts`), each such
- *   attribute's `Idref` pieces' tokens, one for a lawful `xs:IDREF`, its value collapsed. A
- *   document in no assembly resolves each token among its own catalogs' `id`s (`CatalogId`, a view
- *   of `Attribute`, `#pantry/qti/names.ts`); a document in an assembly resolves it once per
- *   instance, as "Idref target" does its IDREFs (`PlacedIdref`, `#pantry/qti/identity.ts`), among
- *   its assembly's catalogs' bindings (`AssembledCatalog`,
- *   `#pantry/qti/overlay-queries/catalog.ts`): a fragment's reference names a catalog of the item
- *   it is included in, and a fragment two items include is judged in each. No row stores the tokens
- *   or counts them: the joins are complete by their definition.
+ * - **Catalog reference** (rule `idref-target`; info §5.28.1, §5.15.9; spec reading
+ *   `fragment-placement`): a `data-catalog-idref` names a `qti-catalog` of its document, not any ID
+ *   of it. The attribute is typed `xs:IDREF`, so "Idref target" (`#pantry/qti/identity.ts`) alone
+ *   refuses a token that names no ID, and accepts one that names an HTML `id` or a declaration. A
+ *   reference is such an attribute that holds a token, as "Idref target" reads only an attribute
+ *   the schema checks as IDREF and only its tokens (an unchecked one, or an empty or blank one,
+ *   names nothing): the references `catalogReferences` reads
+ *   (`#pantry/qti/overlay-queries/catalog.ts`), each such attribute's `Idref` pieces' tokens, one
+ *   for a lawful `xs:IDREF`, its value collapsed. A document in no assembly resolves each token
+ *   among its own catalogs' `id`s (`CatalogId`, a view of `Attribute`, `#pantry/qti/names.ts`); a
+ *   document in an assembly resolves it once per instance, as "Idref target" does its IDREFs
+ *   (`PlacedIdref`, `#pantry/qti/identity.ts`), among its assembly's catalogs' bindings
+ *   (`AssembledCatalog`, `#pantry/qti/overlay-queries/catalog.ts`): a fragment's reference names a
+ *   catalog of the item it is included in, and a fragment two items include is judged in each. No
+ *   row stores the tokens or counts them: the joins are complete by their definition.
  *
  * No row copies a card's `support`, an entry's `default`, a catalog's `id` or a reference's token:
  * each is its attribute's `value` or its `Idref` piece (C18), read where it stands.

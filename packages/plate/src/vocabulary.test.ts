@@ -81,7 +81,7 @@ describe("the closed value sets", () => {
 describe("the class an interaction's root carries", () => {
   it("leaves qti-unselected-hidden off a Graphic Gap Match exactly when the PNP shows low vision, and nowhere else", () => {
     // Shared vocabulary 1.2.10.3: "If a candidate is known to have low-vision indications in their
-    // PNP, the class should be ignored"; reading 192 names the indications. Hotspot's and Hot
+    // PNP, the class should be ignored"; reading `pnp-low-vision` names the indications. Hotspot's and Hot
     // Text's sections of the class (1.2.5.1, 1.2.6.3) say nothing of the PNP.
     const written = Option.some("qti-selections-dark qti-unselected-hidden");
     const lowVision: readonly Supports[] = [

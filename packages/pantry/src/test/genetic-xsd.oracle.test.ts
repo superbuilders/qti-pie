@@ -12,16 +12,16 @@
  * record of `#pantry/test/xsd-differential.ts` matches is a bug in one of the two, reported with
  * its document reduced by hierarchical delta debugging and the edits that bred it.
  *
- * Seeds are rooted where `xmllint` judges: a root only an included fragment has (reading 114) has
- * no global declaration, so `xmllint` assesses nothing below it and the case compares nothing. The
- * lawful seeds come first (`#pantry/test/gen/genetic/lawful.ts`): documents built from the
- * grammar's content automata that both oracles should accept, each root model's accepting states
- * probed by a path stopped at each of its positions, and every position its models reach passed by
- * a covering document, so one edit of a lawful seed is the only cause of what it breaks, and a
- * lawful document the grammar refuses shows. The drawn seeds follow (the XDM generator's), lawful
- * in their content and attribute admission only. A seed holds no doctype and so no unexpanded
- * entity reference, since an entity declared only in an external subset no processor here reads
- * leaves no infoset to compare.
+ * Seeds are rooted where `xmllint` judges: a root only an included fragment has (reading
+ * `include-as-information-model`) has no global declaration, so `xmllint` assesses nothing below it
+ * and the case compares nothing. The lawful seeds come first
+ * (`#pantry/test/gen/genetic/lawful.ts`): documents built from the grammar's content automata that
+ * both oracles should accept, each root model's accepting states probed by a path stopped at each
+ * of its positions, and every position its models reach passed by a covering document, so one edit
+ * of a lawful seed is the only cause of what it breaks, and a lawful document the grammar refuses
+ * shows. The drawn seeds follow (the XDM generator's), lawful in their content and attribute
+ * admission only. A seed holds no doctype and so no unexpanded entity reference, since an entity
+ * declared only in an external subset no processor here reads leaves no infoset to compare.
  *
  * The free suite replays, the same on every run: every lawful seed and the drawn seeds of the
  * suite's floor stream, judged as built, and the kept documents, each a reduced case a ruling or a
@@ -326,52 +326,54 @@ const judgeAll = Effect.fn("test.geneticXsd.judgeAll")(function* judgeAll(input:
 /**
  * The documents the replay judges as written: the reduced cases a ruling or a record settled, each
  * of which both oracles must judge alike from then on. The template inline's and the template
- * block's are VD's ruling of 2026-11-07 (spec reading 143: an interaction a template inline's
- * HTML holds is valid; only a template block refuses one at any depth, §5.145). The padded
- * `xsi:type`'s is libxml2's on both sides (`paddedTypeRecord`, `paddedTypeLaw`): a lawful-seed run
- * bred it from a drawn seed, `xsitype:ENTITY ` on a lax foreign element. The item lacking its
- * required attributes beside a nested item of its name is VD's run's (TEST_SEED=3143817330, drawn
- * seed #5, no edit): both oracles refuse the root, and the element grain read xmllint's messages on
- * the root as the nested item's. The two stimuli holding an item in a math element's lax content
- * are TD-B's run's (TEST_SEED=2298271331, drawn seed #32, unedited and with two missing required
- * children): xmllint refuses the nested item's attributes and its text, which reading 6 keeps
- * foreign, and the element grain named every such message "(foreign)", so reading 6's record could
- * not see it stood within a nested root. The two LOM roots are JAN's run's (TEST_SEED=2990697775)
- * and CRUST's (TEST_SEED=2420825299): below an element laxly assessed with an xsi:type that names
- * no type of the set, a descendant typed by a built-in simple type it breaks, which the law oracle
- * refuses (reading 60: the children are assessed laxly in turn) and libxml2 never assesses, after
- * cvc-type clause 1 (`skippedContentRecord`).
+ * block's are VD's ruling of 2026-11-07 (spec reading `interaction-in-template`: an interaction a
+ * template inline's HTML holds is valid; only a template block refuses one at any depth, §5.145).
+ * The padded `xsi:type`'s is libxml2's on both sides (`paddedTypeRecord`, `paddedTypeLaw`): a
+ * lawful-seed run bred it from a drawn seed, `xsitype:ENTITY ` on a lax foreign element. The item
+ * lacking its required attributes beside a nested item of its name is VD's run's
+ * (TEST_SEED=3143817330, drawn seed #5, no edit): both oracles refuse the root, and the element
+ * grain read xmllint's messages on the root as the nested item's. The two stimuli holding an item
+ * in a math element's lax content are TD-B's run's (TEST_SEED=2298271331, drawn seed #32, unedited
+ * and with two missing required children): xmllint refuses the nested item's attributes and its
+ * text, which reading `nested-root-in-wildcard` keeps foreign, and the element grain named every
+ * such message "(foreign)", so reading `nested-root-in-wildcard`'s record could not see it stood
+ * within a nested root. The two LOM roots are JAN's run's (TEST_SEED=2990697775) and CRUST's
+ * (TEST_SEED=2420825299): below an element laxly assessed with an xsi:type that names no type of
+ * the set, a descendant typed by a built-in simple type it breaks, which the law oracle refuses
+ * (reading `wildcard-xsi-type`: the children are assessed laxly in turn) and libxml2 never
+ * assesses, after cvc-type clause 1 (`skippedContentRecord`).
  *
  * The six after the template block's are the shapes Aiden's runs of the free suite met (PR #46,
  * comment 6701102861), each a document's only kind of fault. A blank media URL is refused under
- * reading 124, or 125 for a track's `src`, where the XSD's `URLDType` admits it; its srcset value
- * is TEST_SEED=505's drawn seed #12's. A template variable and a context variable that nothing
- * declares, `é`, are refused beyond the XSD, which resolves neither name (the `template-ref` and
- * `context-variable-ref` records). A manifest's `xsi:type` naming `cp:ResourcesDType` resolves to
- * the type both oracles read; and a section holding
- * only a branch rule is valid in both oracles since reading 26's rule was withdrawn (7858a46c). At
- * Aiden's head (1ee51d8d) the law oracle refused the manifest under `xsi-type`, a class xmllint's
- * refusal does not share, and the section under `child-set`, where xmllint accepts it.
+ * readings `source-attributes` and `track-srclang` for a track's `src`, where the XSD's `URLDType`
+ * admits it; its srcset value is TEST_SEED=505's drawn seed #12's. A template variable and a
+ * context variable that nothing declares, `é`, are refused beyond the XSD, which resolves neither
+ * name (the `template-ref` and `context-variable-ref` records). A manifest's `xsi:type` naming
+ * `cp:ResourcesDType` resolves to the type both oracles read; and a section holding only a branch
+ * rule is valid in both oracles since reading `section-without-parts`'s rule was withdrawn
+ * (7858a46c). At Aiden's head (1ee51d8d) the law oracle refused the manifest under `xsi-type`, a
+ * class xmllint's refusal does not share, and the section under `child-set`, where xmllint accepts
+ * it.
  *
- * The next is TEST_SEED=101's drawn seed #60, unedited, reduced to its one context declaration:
- * one that writes no identifier and no cardinality, whose default value's second value writes a
+ * The next is TEST_SEED=101's drawn seed #60, unedited, reduced to its one context declaration: one
+ * that writes no identifier and no cardinality, whose default value's second value writes a
  * `base-type` spelling nothing and no `field-identifier`. Both oracles refuse the missing
  * attributes and the base type's form, and the law oracle refuses Value cardinality beyond the XSD,
- * since a value writes both or neither whatever its declaration's cardinality spells (reading 158);
- * the search had no record of the rule (`value-cardinality` in `generatedRecorded`), and the law's
- * explanation named the absent cardinality `""`.
+ * since a value writes both or neither whatever its declaration's cardinality spells (reading
+ * `unspelled-declaration`); the search had no record of the rule (`value-cardinality` in
+ * `generatedRecorded`), and the law's explanation named the absent cardinality `""`.
  *
  * The next three are drawn seeds of rotating streams, each reduced to its one difference. The empty
  * tolerance is TEST_SEED=555's drawn seed #59's, a `qti-equal` with `tolerance=""`: xmllint accepts
  * it, since the XSD's list of a union of xs:string and xs:double admits an empty list, and the law
- * oracle refuses it under `P36`, as reading 121 reads every tolerance as one or two values; the
- * search had no record of the rule. The target-value's line end is TEST_SEED=3003's drawn seed
+ * oracle refuses it under `P36`, as reading `tolerance` reads every tolerance as one or two values;
+ * the search had no record of the rule. The target-value's line end is TEST_SEED=3003's drawn seed
  * #38's: xmllint refuses a match table entry's `target-value` of `a`, a line end and `b` as no
- * base-type name, which reading 8 sets aside, and reading 8's record read the value with a `.` that
- * stops at a line end. The empty `xs:ENTITIES` element is TEST_SEED=65535's drawn seed #33's: the
- * law oracle refuses it, a list of no item where the type's minLength is 1, and libxml2 accepts it,
- * as it does a blank `xs:NMTOKENS` or `xs:IDREFS` element (`blankListRecord`), whose pattern named
- * those two types alone.
+ * base-type name, which reading `match-table-target-value` sets aside, and reading
+ * `match-table-target-value`'s record read the value with a `.` that stops at a line end. The empty
+ * `xs:ENTITIES` element is TEST_SEED=65535's drawn seed #33's: the law oracle refuses it, a list of
+ * no item where the type's minLength is 1, and libxml2 accepts it, as it does a blank `xs:NMTOKENS`
+ * or `xs:IDREFS` element (`blankListRecord`), whose pattern named those two types alone.
  *
  * The next is the genetic repair's R-X1: an interaction in a modal feedback's content body, which
  * the law oracle refuses under N6 (§5.93: the content of a modal feedback contains no interaction)
@@ -388,9 +390,10 @@ const judgeAll = Effect.fn("test.geneticXsd.judgeAll")(function* judgeAll(input:
  * The next two are the genetic repair's R-X3b and R-X3: two interactions of an item that bind one
  * response variable, two text entry interactions in one paragraph and a text entry interaction
  * beside a custom interaction. The law oracle refuses the second binding under Binding unique
- * (reading 92, §2.2.2.2: a response variable is bound to one interaction only), which reading 172
- * widened to every interaction kind, and xmllint accepts both, as the XSD resolves no binding;
- * their `beyond` record sits beside reading 75's.
+ * (reading `binding-and-count-sentences`, §2.2.2.2: a response variable is bound to one interaction
+ * only), which reading `order-binding` widened to every interaction kind, and xmllint accepts both,
+ * as the XSD resolves no binding; their `beyond` record sits beside reading
+ * `response-identifier-declared`'s.
  *
  * The next four are the genetic repair's R-X4 and R-X5, each beside its control, below an element
  * of an XInclude's content whose `xsi:type` names `xs:ENTITIES`. Once that element holds an element
@@ -406,36 +409,38 @@ const judgeAll = Effect.fn("test.geneticXsd.judgeAll")(function* judgeAll(input:
  * which the law oracle's "DocumentId key" refuses and xmllint accepts. The first two are an
  * external LOM file holding one `xml:id` twice, padded and plain: the loose LOM binding's set
  * declares no `xml:id`, so XML Schema keys nothing there, while the grammar types it as a
- * manifest's set does (reading 81's limit, `outsideSet`). The last two are a section's selection
- * whose two foreign elements hold `v` and its padded form, and one padded form twice: the ASI set
- * declares `xml:id`, and libxml2 keys it by its raw value at parse time (`paddedIdRecord`). With
- * `v` twice there both refuse, which gr-lom-1's controls showed and the replay cannot: it reports
- * no agreement.
+ * manifest's set does (reading `wildcard-global-declarations`'s limit, `outsideSet`). The last two
+ * are a section's selection whose two foreign elements hold `v` and its padded form, and one padded
+ * form twice: the ASI set declares `xml:id`, and libxml2 keys it by its raw value at parse time
+ * (`paddedIdRecord`). With `v` twice there both refuse, which gr-lom-1's controls showed and the
+ * replay cannot: it reports no agreement.
  *
  * The next six are genetic repair round 4's X1, X2 and X3a, each a reading that refuses more than
  * the XSD. The two context declarations sharing an identifier, in a test and in an item, are
- * reading 74's: a context's identifier is unique among its document's IDs, which the 3.0.1 XSD
- * types `IdentifierDType`, no `xs:ID`, so xmllint keys nothing there. The three sources without
- * their attribute are reading 124's: a source in a video or an audio carries `src`, and one in a
- * picture `srcset`, where the XSD makes both optional; reading 124's earlier records held only a
- * blank value. The stylesheet's type opening with a space is reading 135's: a MIME type is two RFC
- * 2045 tokens, where the XSD's `MimeTypeDType` pattern admits a space.
+ * reading `identifier-names-one-variable`'s: a context's identifier is unique among its document's
+ * IDs, which the 3.0.1 XSD types `IdentifierDType`, no `xs:ID`, so xmllint keys nothing there. The
+ * three sources without their attribute are reading `source-attributes`'s: a source in a video or
+ * an audio carries `src`, and one in a picture `srcset`, where the XSD makes both optional; reading
+ * `source-attributes`'s earlier records held only a blank value. The stylesheet's type opening with
+ * a space is reading `mime-type`'s: a MIME type is two RFC 2045 tokens, where the XSD's
+ * `MimeTypeDType` pattern admits a space.
  *
  * The last eight are genetic repair round 4's X3b, X4a, X4b and X5: the search's reduced document
  * of each, verbatim, beside the trace's reduction of it to its cause (X3b, X4a, X4b) or a plain
  * item that shows it (X5). An SSML speak whose version is no `1.1`, in a paragraph, is reading
- * 39's: SSML 1.1 says the version is `1.1`, where QTI's XSD types it `xs:NMTOKEN`; in an include's
- * content it is reading 118's, which ignores that content, where xmllint assesses it laxly and
- * refuses the speak for its missing `xml:lang` (`ignoredIncludeContent`). Whitespace in a MathML
- * `exists` beside text in a nested item, in one include, is two recorded classes in one difference,
- * reading 2's whitespace and reading 6's nested root (`nestedRootBesideMath`). A truncate whose
+ * `ssml-speak-version`'s: SSML 1.1 says the version is `1.1`, where QTI's XSD types it
+ * `xs:NMTOKEN`; in an include's content it is reading `include-fallback`'s, which ignores that
+ * content, where xmllint assesses it laxly and refuses the speak for its missing `xml:lang`
+ * (`ignoredIncludeContent`). Whitespace in a MathML `exists` beside text in a nested item, in one
+ * include, is two recorded classes in one difference, reading `mathml-validity`'s whitespace and
+ * reading `nested-root-in-wildcard`'s nested root (`nestedRootBesideMath`). A truncate whose
  * `xsi:type` admits one expression and holds two, beneath a no-namespace element of an include, is
- * reading 50's limit: the law oracle accepts a laxly held element whose `xsi:type` names a complex
- * type without checking it against the type, and xmllint checks it (`laxComplexType`). An
- * interaction beneath a hottext through SSML and HTML wrappers is the specification's (§5.65: a
- * hottext holds no nested interaction), a ban the XSD loses beneath a foreign element's lax
- * wildcard; the reduced stimulus holds a custom interaction, and the item's text entry interaction
- * shows it too.
+ * reading `unchecked-xsi-type`'s limit: the law oracle accepts a laxly held element whose
+ * `xsi:type` names a complex type without checking it against the type, and xmllint checks it
+ * (`laxComplexType`). An interaction beneath a hottext through SSML and HTML wrappers is the
+ * specification's (§5.65: a hottext holds no nested interaction), a ban the XSD loses beneath a
+ * foreign element's lax wildcard; the reduced stimulus holds a custom interaction, and the item's
+ * text entry interaction shows it too.
  */
 const keptDocuments: readonly { readonly name: string; readonly text: string }[] = [
   {
@@ -649,7 +654,7 @@ const keptGenomes = Effect.forEach(keptDocuments, ({ text }) =>
 
 /**
  * Whether a root kind's documents are judged: `xmllint` judges every root but one only an included
- * fragment has (reading 114).
+ * fragment has (reading `include-as-information-model`).
  *
  * @param kind - The root's kind.
  * @returns Whether its documents seed the search.
@@ -916,9 +921,7 @@ describe("genetic-xsd.oracle.test.ts, the records' readings", () => {
           const readings = yield* liveReadings();
           const stale = everyRecord.flatMap(({ reason }) =>
             reason._tag === "reading" && !stillSays(readings, reason.reading, reason.says)
-              ? [
-                  `reading ${String(reason.reading)} no longer says "${reason.says}" (${reason.why})`,
-                ]
+              ? [`reading \`${reason.reading}\` no longer says "${reason.says}" (${reason.why})`]
               : [],
           );
 
@@ -928,16 +931,16 @@ describe("genetic-xsd.oracle.test.ts, the records' readings", () => {
   });
 });
 
-describe("genetic-xsd.oracle.test.ts, reading 129's record", () => {
+describe("genetic-xsd.oracle.test.ts, reading `language-tags`'s record", () => {
   unit(
     "holds for a language value RFC 5646 refuses, as each attribute and element reads it, and never for one it admits",
     () => {
       const record = everyRecord.find(
-        ({ reason }) => reason._tag === "reading" && reason.reading === 129,
+        ({ reason }) => reason._tag === "reading" && reason.reading === "language-tags",
       );
       const matches = ([place, attribute, value]: readonly [string, string, string]): boolean =>
         record?.detail?.test(
-          `value domain at /${place}: ${attribute}: "${value}" is outside qti-assessment-item@xml:lang (reading 129) (2), whose pattern is ^x$`,
+          `value domain at /${place}: ${attribute}: "${value}" is outside qti-assessment-item@xml:lang (language-tags) (2), whose pattern is ^x$`,
         ) ?? false;
       /**
        * RFC 5646 section 2.1's Language-Tag, one of each production; the empty value where the
@@ -985,7 +988,7 @@ describe("genetic-xsd.oracle.test.ts, reading 129's record", () => {
       assert.deepStrictEqual(
         [...admitted.filter(matches), ...refused.filter((held) => !matches(held))],
         [],
-        "the record matches exactly the values reading 129 refuses",
+        "the record matches exactly the values reading `language-tags` refuses",
       );
     },
   );

@@ -101,8 +101,8 @@ interface CutEdit {
  * (`imsqti_test_xmlv3p0`, `imsqti_section_xmlv3p0`, `imsqti_item_xmlv3p0`,
  * `imsqti_stimulus_xmlv3p0`), each referenced file listed under the resource whose document
  * references it. A document an `xi:include` names is kept too, as a resource of its own of type
- * `imsqti_fragment_xmlv3p0` (readings 93 and 115), not as a file of the including resource. It
- * applies after the {@link FileEdit}s and {@link TextEdit}s of its spec.
+ * `imsqti_fragment_xmlv3p0` (readings `resource-href` and `include-target`), not as a file of the
+ * including resource. It applies after the {@link FileEdit}s and {@link TextEdit}s of its spec.
  */
 interface CutTestEdit {
   readonly _tag: "cutTest";
@@ -117,11 +117,11 @@ interface CutTestEdit {
  * item `href` of the test, from `simple`'s item as the template, at that `href`. A stub's
  * identifier is the item ref's identifier and it declares `RESPONSE` (identifier, single), `SCORE`
  * (float, single; left out when a `qti-variable-mapping` inside that item ref targets `SCORE`,
- * which reading 97 forbids an item that declares it) and every other variable the test prefixes
- * with that identifier or names in a `qti-variable-mapping` `source-identifier` inside that item
- * ref, as a float single outcome. It writes a manifest declaring `schemaversion` 3.0.1 of one test
- * resource and one item resource per stub, and deletes every other entry. It applies last, after
- * the spec's {@link FileEdit}s and {@link TextEdit}s.
+ * which reading `variable-mapping-target` forbids an item that declares it) and every other
+ * variable the test prefixes with that identifier or names in a `qti-variable-mapping`
+ * `source-identifier` inside that item ref, as a float single outcome. It writes a manifest
+ * declaring `schemaversion` 3.0.1 of one test resource and one item resource per stub, and deletes
+ * every other entry. It applies last, after the spec's {@link FileEdit}s and {@link TextEdit}s.
  */
 interface LooseTestEdit {
   readonly _tag: "looseTest";
@@ -338,9 +338,9 @@ const testNames = [
 /**
  * The names of the negative fixtures over phase 5's positives, each a data-only edit set over one
  * of {@link testNames} or `rtest01` that breaks the laws of one rule: phase 5's that state a law
- * pantry still holds, and those of spec reading 228's banks, each a bank added to `stimulus-shared`
- * (`withBank`), with `test-document`, a test added to it whose item ref names its item under
- * another identifier, refused under "Item ref identifier" alone.
+ * pantry still holds, and those of spec reading `tests-stored-as-defined`'s banks, each a bank
+ * added to `stimulus-shared` (`withBank`), with `test-document`, a test added to it whose item ref
+ * names its item under another identifier, refused under "Item ref identifier" alone.
  */
 export const negativeNames = [
   "bank-duplicate-identifier",
@@ -396,11 +396,12 @@ const assemblyNames = [
 
 /**
  * The names of the weighted test variables fixtures over `test-mapping`, whose item refs carry
- * `rtest04.xml`'s weights (decision 434, spec reading 167): `weighted-sum-float` sets a float
- * single outcome from `rtest04.xml`'s weighted sum of a `qti-test-variables` that writes no
- * `base-type` (accepted: the weighted test variables is float, its sum float), and
- * `weighted-variables-integer` sets an integer multiple outcome from the same test variables
- * (refused under "Set type": a weighted test variables with no `base-type` is float, §7.39.5).
+ * `rtest04.xml`'s weights (decision 434, spec reading `weighted-test-variables`):
+ * `weighted-sum-float` sets a float single outcome from `rtest04.xml`'s weighted sum of a
+ * `qti-test-variables` that writes no `base-type` (accepted: the weighted test variables is float,
+ * its sum float), and `weighted-variables-integer` sets an integer multiple outcome from the same
+ * test variables (refused under "Set type": a weighted test variables with no `base-type` is float,
+ * §7.39.5).
  */
 export const weightedNames = ["weighted-sum-float", "weighted-variables-integer"] as const;
 
@@ -499,8 +500,8 @@ const catalogNegativeNames = [
  * - The two element-text negatives (`calculator-Basic`, `increment-text`) are the text-domain rule,
  *   `text-copy`; the attribute ones (`default-default`, `support-case`, `support-ext-empty`,
  *   `unit-case`) are `attribute-lexical`.
- * - `card-file-undescribed` is `file-listed` (reading 103: a file a document references is described
- *   in the manifest).
+ * - `card-file-undescribed` is `file-listed` (reading `file-references`: a file a document references
+ *   is described in the manifest).
  */
 export const catalogVerdicts: readonly (readonly [
   (typeof catalogNegativeNames)[number],
@@ -584,8 +585,8 @@ const ssmlNames = [
  * `data-*` attributes, cut; `data-custom` puts the name class through `simple` (every host kind,
  * every name shape, every value shape); `data-entity` holds an entity reference in a value; The
  * negatives break the name language, `data-non-ascii` (a name with a non-ASCII letter, which the
- * information model's pattern bars, reading 13), `data-uppercase` and `data-bare-prefix`, or name a
- * host that does not admit the class, `data-item-body`.
+ * information model's pattern bars, reading `data-attribute-name`), `data-uppercase` and
+ * `data-bare-prefix`, or name a host that does not admit the class, `data-item-body`.
  */
 const dataNames = [
   "cut-data-dash",
@@ -685,13 +686,15 @@ export const pciNegativeNames = [
  * - `pci-context-undeclared` may be named `idref-target` by the reader's declared-variable rule as
  *   well as `context-variable-ref`; `pci-context-undeclared-3-0-1` only `context-variable-ref`.
  * - `pci-markup-text` is the automaton's character-data rule, predicted `admission`.
- * - `template-outside` is `unmodeled-vocabulary`, reading 57's rule: an HTML `template` is admitted
- *   only inside a PCI's markup.
- * - `custom-attribute` is reading 90's refusal of an undeclared attribute in no namespace on the
- *   custom interaction: its `extension`, a `NamespaceLax` (information model §5.36.1), is the XSD's
- *   `##other` wildcard, which admits a namespaced attribute (SV-LAW-05) and none in no namespace.
- * - `pci-items-fallback` is reading 11; `pci-configuration-missing` is `file-exists`, or the
- *   description rule (reading 103: `file-listed`) when the missing path is also unlisted.
+ * - `template-outside` is `unmodeled-vocabulary`, reading `lax-content-prose-rules`'s rule: an HTML
+ *   `template` is admitted only inside a PCI's markup.
+ * - `custom-attribute` is reading `extension-attribute-lists`'s refusal of an undeclared attribute in
+ *   no namespace on the custom interaction: its `extension`, a `NamespaceLax` (information model
+ *   §5.36.1), is the XSD's `##other` wildcard, which admits a namespaced attribute (SV-LAW-05) and
+ *   none in no namespace.
+ * - `pci-items-fallback` is reading `pci-secondary-configuration`; `pci-configuration-missing` is
+ *   `file-exists`, or the description rule (reading `file-references`: `file-listed`) when the
+ *   missing path is also unlisted.
  */
 export const pciVerdicts: readonly (readonly [FixtureName, readonly string[]])[] = [
   ["pci-no-module", ["pci-module-source"]],
@@ -735,8 +738,8 @@ export const pciVerdicts: readonly (readonly [FixtureName, readonly string[]])[]
  * {@link catalogNegativeNames}, the ten PCI positives of {@link pciNames}, the 28 PCI negatives of
  * {@link pciNegativeNames}, the ten wildcard fixtures of {@link wildcardNames}, the nine SSML and
  * `data-ssml` positives of {@link ssmlNames}, the eight `data-*` fixtures of {@link dataNames}, and
- * `rtest01`, the examples' included fragment in place (spec reading 117), with one negative per
- * include law.
+ * `rtest01`, the examples' included fragment in place (spec reading `fragment-placement`), with one
+ * negative per include law.
  */
 const fixtureNames = [
   "simple",
@@ -2382,7 +2385,8 @@ const rtest01Include = '<xi:include href="rtest01-fragment.xml" parse="xml"/>';
 
 /**
  * A fragment of hottexts alone, which `rtest01-fragment-context` places inside two items'
- * interactions, the second placement unplaced (spec reading 117, `UnplacedInclude`'s `context`).
+ * interactions, the second placement unplaced (spec reading `fragment-placement`,
+ * `UnplacedInclude`'s `context`).
  */
 const rtest01Words: BytesResource = {
   href: `${rtest01Directory}/rtest01-words.xml`,
@@ -2395,7 +2399,8 @@ const rtest01Words: BytesResource = {
 
 /**
  * A response rule fragment that sets an outcome no `rtest01` set item declares, which
- * `rtest01-rule-variable` includes in an item's response processing (spec reading 117).
+ * `rtest01-rule-variable` includes in an item's response processing (spec reading
+ * `fragment-placement`).
  */
 const rtest01Rules: BytesResource = {
   href: `${rtest01Directory}/rtest01-rules.xml`,
@@ -2409,7 +2414,7 @@ const rtest01Rules: BytesResource = {
 /**
  * The edits that give the second and third set items identifiers of their own: the examples write
  * `RTEST-01-SET-01` in all three, and "Item key" keys an item by its package and its identifier
- * (spec reading 228), so each set item writes its own number.
+ * (spec reading `tests-stored-as-defined`), so each set item writes its own number.
  */
 const rtest01Identifiers: readonly Edit[] = (["02", "03"] as const).map((set) =>
   replaceIn(
@@ -2803,7 +2808,7 @@ const addExample = (file: string, member: string): FileEdit => ({
  * @param identifier - The item's identifier and title.
  * @param outcomes - Each further outcome's identifier and base type, declared single.
  * @param scored - Whether the stub declares `SCORE`; `false` for an item a mapping targets
- *   `SCORE` of (reading 97).
+ *   `SCORE` of (reading `variable-mapping-target`).
  * @returns The item's text.
  */
 const stubItem = (
@@ -3043,12 +3048,13 @@ const setOutcome = (outcome: string, expression: string): string =>
  *
  * It names the three prefixed sources (the mapping target `SCORE`, a declaration of an item,
  * `item160.SCORE`, and `I.duration` of a stub the generator declares time-dependent); `I.2.SCORE`
- * and the non-canonical `I.02.SCORE`; `PART.duration` with `RTEST-26-A` the part; `I.A.B` of a
- * stub declaring a float outcome `A.B` (reading 37); and, of decision 189, the item refs `J` and
- * `J.K` that name one stub declaring `SCORE` and no `K.SCORE`, so that `J.K.SCORE` has one
+ * and the non-canonical `I.02.SCORE`; `PART.duration` with `RTEST-26-A` the part; `I.A.B` of a stub
+ * declaring a float outcome `A.B` (reading `identifier-dot`); and, of decision 189, the item refs
+ * `J` and `J.K` that name one stub declaring `SCORE` and no `K.SCORE`, so that `J.K.SCORE` has one
  * resolving reading, `J.K` with `SCORE`. `item034`, whose mapping targets `SCORE`, is a stub that
- * does not declare it (reading 97), and `I` sits in a section whose selection is with replacement,
- * the one place a numbered reference `I.2.SCORE` resolves (reading 88).
+ * does not declare it (reading `variable-mapping-target`), and `I` sits in a section whose
+ * selection is with replacement, the one place a numbered reference `I.2.SCORE` resolves (reading
+ * `numbered-reference`).
  */
 const testMappingEdits: readonly Edit[] = [
   replaceIn("rtest26.xml", "Ã¯tem065.xml", "item065.xml"),
@@ -3336,11 +3342,12 @@ const adaptiveFiles: readonly Edit[] = ["engine", "settings", "usagedata", "meta
 );
 
 /**
- * `basicFeedbackTest`'s test with its four items' content removed (`id-a360e0fa63e6` holds
- * MathML, which no language phase has landed), the items kept as stubs of the same identifiers.
- * The test gains a test rubric, part and section rubrics with and without `use`, a stylesheet, a
- * context declaration, a `during` feedback with a `title`, and its manifest the test resource's LOM
- * `language`. The test root states no language: reading 90 refuses an `xml:lang` on it.
+ * `basicFeedbackTest`'s test with its four items' content removed (`id-a360e0fa63e6` holds MathML,
+ * which no language phase has landed), the items kept as stubs of the same identifiers. The test
+ * gains a test rubric, part and section rubrics with and without `use`, a stylesheet, a context
+ * declaration, a `during` feedback with a `title`, and its manifest the test resource's LOM
+ * `language`. The test root states no language: reading `extension-attribute-lists` refuses an
+ * `xml:lang` on it.
  */
 const testContentEdits: readonly Edit[] = [
   ...[
@@ -3980,7 +3987,7 @@ const listedResource = (identifier: string, type: string, href: string): string 
  * The spec of a negative that adds a bank, a standalone section document `bank.xml`, to
  * `stimulus-shared`, whose items are `exemplar06.xml` (`Item1`), `exemplar04.xml` (`Item2`) and
  * `exemplar05.xml` (`Item3`) and whose stimulus is `passages/unbelievableNight.xml` (spec reading
- * 228).
+ * `tests-stored-as-defined`).
  *
  * @param name - The negative's name.
  * @param bank - The bank's text.
@@ -4478,9 +4485,10 @@ const catalogSpecs: Readonly<Record<(typeof catalogNames)[number], FixtureSpec>>
     ),
   ]),
   /**
-   * The MIME type is not padded (decision 447): `MimeTypeDType` is an `xs:normalizedString`,
-   * whose whitespace is replaced and never collapsed, so a space or a tab in it stays and reading
-   * 135 refuses it. The other padded values (`id`, `default`, the href) are of types that collapse.
+   * The MIME type is not padded (decision 447): `MimeTypeDType` is an `xs:normalizedString`, whose
+   * whitespace is replaced and never collapsed, so a space or a tab in it stays and reading
+   * `mime-type` refuses it. The other padded values (`id`, `default`, the href) are of types that
+   * collapse.
    */
   "catalog-padded": overSimple(
     "catalog-padded",
@@ -5566,7 +5574,7 @@ const validCorrectResponses = (file: string): readonly TextEdit[] => [
  * corpus writes `1` and `6` and the identifier type refuses, written `N1` and `N6`
  * ({@link validCorrectResponses}). The corpus manifest lists `modules/lib/raphael.js` and its zip
  * holds no such file, so the package is given one: a module location names a file the package must
- * hold (spec reading 201).
+ * hold (spec reading `pci-module-locations`).
  *
  * @param configurations - The attributes of the `qti-interaction-modules` start tag, as written.
  * @returns The edits, in the order the positive applies them.
@@ -5977,7 +5985,7 @@ const dataTen = `<p ${Array.from({ length: 10 }, (_, index) => `data-k${String(i
  * - `data-entity` is `doctype` with `data-org="&org;"` on the prompt, the entity declared in the
  *   internal subset.
  * - `data-non-ascii` is `data-é="x"` on a `p`, a name with a non-ASCII letter, which the information
- *   model's pattern bars (reading 13).
+ *   model's pattern bars (reading `data-attribute-name`).
  * - `data-uppercase` is `data-Group="g"` on `qti-choice-interaction`, `data-bare-prefix` is
  *   `data-="x"` on a `p`, and `data-item-body` is `data-x="1"` on `qti-item-body`.
  */
@@ -6577,8 +6585,9 @@ const writtenSpecs: Readonly<Record<FixtureName, FixtureSpec>> = {
     replaceIn("example.xml", "<value>0.87</value>", '<value baseType="float"> 0.87 </value>'),
   ]),
   /**
-   * `<value baseType="integer">0.87</value>`, outside a record: a `baseType` is no base type
-   * there (reading 105), so the value is untyped text, and the package imports and round-trips.
+   * `<value baseType="integer">0.87</value>`, outside a record: a `baseType` is no base type there
+   * (reading `usage-statistic-value`), so the value is untyped text, and the package imports and
+   * round-trips.
    */
   "usage3-integer-float": overUsage("usage3-integer-float", [
     replaceIn("example.xml", "<value>0.87</value>", '<value baseType="integer">0.87</value>'),
@@ -7667,8 +7676,8 @@ const timedProcessing = [
  * Each stub is `simple`'s `choice.xml` with its identifier and title set to the item ref's
  * identifier, its picture paragraph removed (a stub names no file) and one further float single
  * outcome declaration for each variable {@link stubsOf} names. An unscored stub names no template,
- * since match_correct sets SCORE (reading 233). A fresh `imsmanifest.xml` of the test's resource
- * and one item resource per stub replaces the package's own.
+ * since match_correct sets SCORE (reading `template-declares-variables`). A fresh `imsmanifest.xml`
+ * of the test's resource and one item resource per stub replaces the package's own.
  *
  * @param pkg - The extracted package directory, holding the loose test at its root.
  * @param tmp - The temporary directory that holds it.

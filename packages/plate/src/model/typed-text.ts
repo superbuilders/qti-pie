@@ -10,9 +10,9 @@
  *
  * A box writes a `string`, an `integer` in the interaction's `base`, a `float`, or, for a record
  * response, the record QTI gives a string interaction's text (information model 2.4.2.2, spec
- * reading 191). Text that is no value of its base type, `abc` or a bare `-` in an integer box, is
- * {@link UnreadReason}: no response can carry it, so the island holds it as typed and its response
- * posts none of it.
+ * reading `record-number-fields`). Text that is no value of its base type, `abc` or a bare `-` in
+ * an integer box, is {@link UnreadReason}: no response can carry it, so the island holds it as typed
+ * and its response posts none of it.
  *
  * @module
  */
@@ -86,7 +86,8 @@ export type UnreadReason = "character" | "number";
 
 /**
  * Read the text a typed number holds: the text with its outer XML white space shed, as XSD's
- * collapse facet reads a number (spec reading 7), none where nothing is left, which is no answer.
+ * collapse facet reads a number (spec reading `typed-value-whitespace`), none where nothing is
+ * left, which is no answer.
  *
  * @param text The box's text.
  * @returns The number's lexical form, none for blank text.
@@ -216,7 +217,8 @@ const notANumber = (): UnreadReason => "number";
  * only. An integer is read exactly in `base`, then its decimal digits take the value model's one
  * path, so a typed integer is the value the same digits are in content. A float is the value
  * model's reading of the text, and is unread when it is not finite: `INF`, `-INF`, `NaN`, and a
- * decimal beyond the largest double, which reads as an infinity of its sign (reading 144).
+ * decimal beyond the largest double, which reads as an infinity of its sign (reading
+ * `bounded-double`).
  *
  * @param text The box's text, as typed.
  * @param reading How the box's text is read.
@@ -289,13 +291,13 @@ const integerField = (identifier: string, value: bigint): RecordField => ({
  *
  * The text is trimmed of XML whitespace only, so a no-break space keeps it from being a number.
  * `floatValue` is the value model's reading of a float, so past the largest double it is an
- * infinity of its sign (reading 144). `integerValue` is the exact integer, present only when no
- * fractional digit and no exponent is written (`5.` gives 5). `leftDigits` and `rightDigits` count
- * the digits written before and after the point, leading and trailing zeros included, the sign
- * not. `ndp` is `rightDigits` minus the exponent, and may be negative. `nsf` counts from the first
- * non-zero digit to the last digit written; a zero value has the digits after the point, at least
- * one. `exponent` is present only when written. Every integer is exact at any size, and each count
- * is one scan of the text.
+ * infinity of its sign (reading `bounded-double`). `integerValue` is the exact integer, present
+ * only when no fractional digit and no exponent is written (`5.` gives 5). `leftDigits` and
+ * `rightDigits` count the digits written before and after the point, leading and trailing zeros
+ * included, the sign not. `ndp` is `rightDigits` minus the exponent, and may be negative. `nsf`
+ * counts from the first non-zero digit to the last digit written; a zero value has the digits after
+ * the point, at least one. `exponent` is present only when written. Every integer is exact at any
+ * size, and each count is one scan of the text.
  *
  * @param text The box's text, as typed.
  * @returns The fields, or none when the trimmed text is not a number.
@@ -334,7 +336,7 @@ const numberFields = (text: string): readonly RecordField[] => {
 
 /**
  * Read a record response from the one box's text a string interaction bound to it holds (QTI 3.0.1
- * information model 2.4.2.2; spec reading 191).
+ * information model 2.4.2.2; spec reading `record-number-fields`).
  *
  * The text is read as a `string` box reads one: unread when it holds a character XML cannot carry,
  * no answer when empty, and under `blankIsEmpty` when it holds XML white space alone, and with CRLF

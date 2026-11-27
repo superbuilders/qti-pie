@@ -66,7 +66,7 @@ const namedFloats: Readonly<Record<typeof FloatNames.Type, number>> = {
 /**
  * A check that a number the stored form writes as a JSON number is not negative zero, the number
  * `JSON.parse("-0")` gives: zero has one spelling, `0`, and negative zero, where it is a value of
- * its own, is written by name (spec reading 247).
+ * its own, is written by name (spec reading `integer-lexical`).
  *
  * @param issue What to change, in words, when the number is negative zero.
  * @returns The check.
@@ -116,7 +116,8 @@ const canonicalInteger = /^(?:0|-?[1-9][0-9]*)$/u;
  * that form and no other, so a stored or posted integer has one spelling, as a float has ({@link
  * FloatFromJson}). It decodes plate's own output, a value the host already holds as an integer,
  * never text a candidate typed: a box's text is read by `readTyped`, which reads QTI's lexical
- * space, `+7`, `007` and ` 7` among it, before any value is posted (spec reading 247).
+ * space, `+7`, `007` and ` 7` among it, before any value is posted (spec reading
+ * `integer-lexical`).
  */
 const IntegerFromDigits = Schema.String.check(
   Schema.makeFilter((digits: string) =>

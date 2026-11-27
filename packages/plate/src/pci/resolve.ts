@@ -5,41 +5,41 @@
  * {@link PciNotice} for each route that cannot resolve. The frame host (issue pci-04) consumes the
  * {@link PciResolution}; nothing here loads or fetches a URL.
  *
- * The QTI 3 module-resolution rules, from the implementation guide and the information model: a
- * PCI names its module with the `module` attribute or lists its modules in
- * `qti-interaction-modules`, whose `primary-configuration` (default
- * `modules/module_resolution.js`) and `secondary-configuration` (default
- * `modules/fallback_module_resolution.js`) name two configuration files, and whose
- * `qti-interaction-module` children each carry an `id` and may carry a `primary-path` and a
- * `fallback-path`. A module `N` loads from its own `primary-path`; on a timeout or a fatal error it
- * loads from its own `fallback-path`. The guide (informative, reading 82) lets a configuration's
- * `paths[N]` stand in for either; this delivery reads none (R2). A configuration file is a JSON
- * document despite its `.js` name: `waitSeconds`, how long to wait for each file before falling
- * back (default 7; 0 is no timeout), and `paths`, module name to location without a file
- * extension. A location that starts with a protocol is fetched from there; any other is a path
- * relative to the content package's base. A delivery engine may ignore a package-relative location
- * the manifest does not list, and may apply security rules to the URLs it loads script from.
+ * The QTI 3 module-resolution rules, from the implementation guide and the information model: a PCI
+ * names its module with the `module` attribute or lists its modules in `qti-interaction-modules`,
+ * whose `primary-configuration` (default `modules/module_resolution.js`) and
+ * `secondary-configuration` (default `modules/fallback_module_resolution.js`) name two
+ * configuration files, and whose `qti-interaction-module` children each carry an `id` and may carry
+ * a `primary-path` and a `fallback-path`. A module `N` loads from its own `primary-path`; on a
+ * timeout or a fatal error it loads from its own `fallback-path`. The guide (informative, reading
+ * `response-processing-resource-type`) lets a configuration's `paths[N]` stand in for either; this
+ * delivery reads none (R2). A configuration file is a JSON document despite its `.js` name:
+ * `waitSeconds`, how long to wait for each file before falling back (default 7; 0 is no timeout),
+ * and `paths`, module name to location without a file extension. A location that starts with a
+ * protocol is fetched from there; any other is a path relative to the content package's base. A
+ * delivery engine may ignore a package-relative location the manifest does not list, and may apply
+ * security rules to the URLs it loads script from.
  *
- * Reading 11 binds the attribute names: **A PCI's secondary module configuration is
- * `secondary-configuration`.** An item writing `fallback-configuration` is refused before it
- * reaches here, and that attribute is never read.
+ * Reading `pci-secondary-configuration` binds the attribute names: **A PCI's secondary module
+ * configuration is `secondary-configuration`.** An item writing `fallback-configuration` is refused
+ * before it reaches here, and that attribute is never read.
  *
  * Where the sources are silent, these defaults apply, each named where it is applied:
  *
  * - **R1** `.js` is appended to a location's path unless the file it names already ends in `.js`, so
- *   it is never doubled (reading 201): the path is the location before its query and fragment, the
- *   file is that path resolved from the package root and percent-decoded, as the package names its
- *   files (`resolveIn`, the database's `moduleFileOf` reads it the same way), and `.js` goes after
- *   the path, before the query and the fragment, which name no part of the file; a path whose last
- *   segment is a dot segment names a directory, so `.js` names a file of it (`modules/b/..` names
- *   `modules/.js`), as the database appends `.js` to the resolved path.
+ *   it is never doubled (reading `pci-module-locations`): the path is the location before its query
+ *   and fragment, the file is that path resolved from the package root and percent-decoded, as the
+ *   package names its files (`resolveIn`, the database's `moduleFileOf` reads it the same way), and
+ *   `.js` goes after the path, before the query and the fragment, which name no part of the file; a
+ *   path whose last segment is a dot segment names a directory, so `.js` names a file of it
+ *   (`modules/b/..` names `modules/.js`), as the database appends `.js` to the resolved path.
  * - **R2** A configuration contributes its `waitSeconds` alone, never a location: its `paths` and
  *   every other member are passed over, so a module loads only from its own `primary-path` and
- *   `fallback-path` (reading 246: the information model gives a configuration "to use", and the
- *   guide, informative, lets the delivery "apply security rules to the URLs from which it will load
- *   Javascript files"). A configuration file absent from the package contributes nothing and no
- *   notice; one present but not a JSON object with, where written, a non-negative finite
- *   `waitSeconds` gives `pci-configuration-invalid` and contributes nothing.
+ *   `fallback-path` (reading `pci-configuration-waits`: the information model gives a configuration
+ *   "to use", and the guide, informative, lets the delivery "apply security rules to the URLs from
+ *   which it will load Javascript files"). A configuration file absent from the package contributes
+ *   nothing and no notice; one present but not a JSON object with, where written, a non-negative
+ *   finite `waitSeconds` gives `pci-configuration-invalid` and contributes nothing.
  * - **R3** The timeout is the primary configuration's `waitSeconds` for primary loads and the
  *   secondary's for fallback loads, 7 when absent.
  * - **R4** A module with no location at all, primary or fallback, gives `pci-module-unresolved`; one

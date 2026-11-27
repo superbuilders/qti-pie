@@ -63,7 +63,7 @@ const markers = [
 
 /**
  * The default of {@link item}'s `NAMED`, which a Text Entry binds: the value the response starts
- * at, which the redacted item keeps and the payload never holds (spec reading 183).
+ * at, which the redacted item keeps and the payload never holds (spec reading `response-default`).
  */
 const responseDefault = "MarkerResponseDefault";
 
@@ -1727,7 +1727,8 @@ describe("redactItem on template blocks, inlines and choices", () => {
 /**
  * Build a paragraph holding a template inline of `T`, shown when `T` holds its identifier, whose
  * `span` holds a Text Entry bound to the response given. A template block may hold no interaction
- * (reading 143), so the interaction a template shows or hides sits in a template inline.
+ * (reading `interaction-in-template`), so the interaction a template shows or hides sits in a
+ * template inline.
  *
  * @param identifier The inline's identifier.
  * @param response The response its Text Entry binds.
@@ -2522,7 +2523,7 @@ describe("startingResponses", () => {
       CAPITAL: nullSingle("identifier"),
       ESSAY: nullSingle("string"),
       FIRST: nullSingle("string"),
-      // A Text Entry starts at its response's default (spec reading 183).
+      // A Text Entry starts at its response's default (spec reading `response-default`).
       NAMED: one({ baseType: "string", value: responseDefault }),
       SECOND: nullSingle("string"),
     });
@@ -3165,10 +3166,10 @@ const repeatedStrings = (value: string, count: number): Value => ({
 });
 
 /**
- * The accepted items whose printed variable's whole text passes 1,000,000 characters, each with
- * the value its template processing sets: 600 integers printed under `%999999i`, and 1,000,000
- * strings of 400 characters printed in the default form (a string a document writes holds at most
- * the 428 bytes a key holds, reading 1's key-text bound, so the database admits it).
+ * The accepted items whose printed variable's whole text passes 1,000,000 characters, each with the
+ * value its template processing sets: 600 integers printed under `%999999i`, and 1,000,000 strings
+ * of 400 characters printed in the default form (a string a document writes holds at most the 428
+ * bytes a key holds, reading `nothing-valid-refused`'s key-text bound, so the database admits it).
  */
 const oversizedPrinting: readonly (readonly [SourceDocument, Value])[] = [
   [

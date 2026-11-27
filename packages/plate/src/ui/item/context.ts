@@ -177,9 +177,9 @@ export type Credit = "full" | "none" | "partial";
  * after it; `own`, none of it, so only the candidate's own answers are marked, each right or wrong,
  * and no correct response they did not give appears. "A review that hides the solution marks only
  * the candidate's own response, right or wrong, and never reveals a correct response" (Bjorn's
- * restatement of plate's UI suite's M2, 2026-11-18; spec reading 230). The host shows the solution
- * only where the item session control lets the candidate see it (`show-solution`, information
- * model 7.19.4).
+ * restatement of plate's UI suite's M2, 2026-11-18; spec reading `review-without-solution`). The
+ * host shows the solution only where the item session control lets the candidate see it
+ * (`show-solution`, information model 7.19.4).
  */
 export type Reveals = "own" | "solution";
 

@@ -11,10 +11,11 @@
  *   specified by a default value for the associated response variable" (QTI 3.0 information model
  *   5.134). It shows the number its response holds, which is its default as the attempt starts
  *   where the response declares one: the host's `<Responses>` starts from the server's start (spec
- *   reading 183), so what the slider shows is always what the item posts. With no number held, its
- *   root is `data-empty`, the thumb says the `empty` label in place of a number, and the response
- *   stays NULL. The first press or key that sets it answers, the press or key that leaves the thumb
- *   at the lower bound included, so the child can choose the lower bound as any other value.
+ *   reading `response-default`), so what the slider shows is always what the item posts. With no
+ *   number held, its root is `data-empty`, the thumb says the `empty` label in place of a number,
+ *   and the response stays NULL. The first press or key that sets it answers, the press or key that
+ *   leaves the thumb at the lower bound included, so the child can choose the lower bound as any
+ *   other value.
  * - **No inline style in server markup.** UI SDK places the thumb and the fill with inline styles.
  *   The page's markup carries none, so the island renders UI SDK's slider only once hydrated, where
  *   React writes those styles through the CSSOM, which a content security policy allows. The server

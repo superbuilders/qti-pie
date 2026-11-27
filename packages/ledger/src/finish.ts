@@ -19,11 +19,12 @@
  *     none, with its declared defaults (a `DefaultSubmission`: a skipped item's "response variables
  *     are submitted with their default value or are NULL", Table 7.19.6);
  *   - An individual nonlinear part: every presented member with no attempt, the same way: its attempt
- *     began when it was presented (spec reading 3, "An attempt begins at first presentation"), and
- *     the end ends it; and an unlimited member (its item ref's `max-attempts` 0, Table 7.19.1) saved
- *     since its last attempt, from that save: its next attempt began when its last ended. Navigating
- *     submits nothing, and the end is no candidate's submission, so its item ref's validate-responses
- *     does not hold the end's attempt back (§2.2.4, Table 7.19.7);
+ *     began when it was presented (spec reading `ssml-document-is-fragment`, "An attempt begins at
+ *     first presentation"), and the end ends it; and an unlimited member (its item ref's
+ *     `max-attempts` 0, Table 7.19.1) saved since its last attempt, from that save: its next attempt
+ *     began when its last ended. Navigating submits nothing, and the end is no candidate's
+ *     submission, so its item ref's validate-responses does not hold the end's attempt back (§2.2.4,
+ *     Table 7.19.7);
  *   - An individual linear part: only the member on screen, the sitting's latest presentation, where
  *     its attempt is in progress (none yet, or an unlimited member's saved since its last) and its
  *     latest save holds a value; every member before it has its attempt already ("In turn": moving on

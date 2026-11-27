@@ -743,10 +743,10 @@ describe("the installed relations", () => {
     );
 
     /**
-     * Oracle: the content grammar's own rows. A cap (spec reading 130) is a set row of Capped,
-     * which a family may hold several of; a count is CountedOf's, its greatest CountedMax's, and
-     * the generators state one counted and one barred position per family, which a function of
-     * the parent needs.
+     * Oracle: the content grammar's own rows. A cap (spec reading `lom-repetition`) is a set row of
+     * Capped, which a family may hold several of; a count is CountedOf's, its greatest
+     * CountedMax's, and the generators state one counted and one barred position per family, which
+     * a function of the parent needs.
      */
     const capped = grammar.content.capped.rows;
     const counted = grammar.content.counted.rows;
@@ -779,7 +779,7 @@ describe("the installed relations", () => {
     assert.strictEqual(
       capped.length,
       83,
-      "the loose LOM binding's 82 capped (parent, kind) pairs, and a figure's caption (spec reading 252)",
+      "the loose LOM binding's 82 capped (parent, kind) pairs, and a figure's caption (spec reading `single-figcaption`)",
     );
     assert.deepStrictEqual(
       new Set(
@@ -886,7 +886,7 @@ describe("the rosters", () => {
     assert.lengthOf(
       handlesOf("SharedModel"),
       25,
-      "spec reading 118's include model is a model of its own, and names the ignored elements' wildcards at two positions; spec reading 22's template branches, restated without a qti-template-constraint, are one more",
+      "spec reading `include-fallback`'s include model is a model of its own, and names the ignored elements' wildcards at two positions; spec reading `template-constraint-placement`'s template branches, restated without a qti-template-constraint, are one more",
     );
     assert.lengthOf(handlesOf("ContentModel"), 114);
   });

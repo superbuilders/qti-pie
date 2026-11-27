@@ -117,7 +117,8 @@ const lawModelOracle: Oracle = {
  */
 const unconstructed = {
   "AL3 required": "the required attributes, which the generator draws a subset of",
-  "AL5 attribute count": "spec readings 41 and 43's attribute counts",
+  "AL5 attribute count":
+    "spec readings `ssml-meta-name` and `ssml-voice-prosody-attributes`'s attribute counts",
   "Adaptive feedback":
     "an interaction's place under feedback in an item's mode, drawn without reading",
   "AreaMapping base type": "a declaration's base type, a value drawn without reading",
@@ -136,7 +137,7 @@ const unconstructed = {
   "Condition type": "a condition's type, over expressions drawn without typing",
   "Context variable reference": "a reference, over identifiers drawn without reading",
   "Data SSML":
-    "a data-ssml's JSON object (Data-SSML 1.0 §3.4, reading 177), a lexical form drawn without reading",
+    "a data-ssml's JSON object (Data-SSML 1.0 §3.4, reading `data-ssml-judgement`), a lexical form drawn without reading",
   "Declaration base type":
     "a declaration's base type against its cardinality, values drawn without reading",
   "Declaration key": "a declaration's identifier, a value drawn without reading",
@@ -144,7 +145,7 @@ const unconstructed = {
   "Document entry": "a package's law",
   "DocumentId key": "an ID's uniqueness, over values drawn without reading",
   "Equal tolerance":
-    "a qti-equal's tolerance mode and values (reading 121), over lexical forms drawn without reading",
+    "a qti-equal's tolerance mode and values (reading `tolerance`), over lexical forms drawn without reading",
   "Feedback outcome type": "a reference, over identifiers drawn without reading",
   "Feedback reference": "a reference, over identifiers drawn without reading",
   "File listed": "a package's law",
@@ -180,7 +181,7 @@ const unconstructed = {
   "N7 Counted": "the counts of 2…n the content automaton relaxes",
   "N7 barred by": "the children an attribute bars",
   "N8 nearest":
-    "its choice clause, a choice that writes its identifier in an interaction (reading 38), a place the generator draws without reading, as it draws N6's; fold's copy of the nearest interaction, its other clause, is the naive recomputation's",
+    "its choice clause, a choice that writes its identifier in an interaction (reading `gap-and-hottext-placement`), a place the generator draws without reading, as it draws N6's; fold's copy of the nearest interaction, its other clause, is the naive recomputation's",
   "One base": "an operator's operand types, over expressions drawn without typing",
   "Operand fit": "an operator's operand types, over expressions drawn without typing",
   "Outcome only": "a test operator's processing language, over expressions drawn without reading",
@@ -197,7 +198,7 @@ const unconstructed = {
   "Set type": "a setter's expression type, over expressions drawn without typing",
   "Slider bounds": "a slider's bounds, values drawn without reading",
   "Table headers":
-    "a cell's header tokens against its table's th ids (reading 126), over identifiers drawn without reading",
+    "a cell's header tokens against its table's th ids (reading `cell-headers`), over identifiers drawn without reading",
   "Template reads": "what template processing reads, over identifiers drawn without reading",
   "Template reference": "a reference, over identifiers drawn without reading",
   "Template variable type": "a reference's declared type, over identifiers drawn without reading",
@@ -333,28 +334,28 @@ const itemHolding = (body: Built): Built => ({
  * The trees that broke an unconstructed law in a search that named it constructed, each shrunk by
  * its run:
  *
- * - Four write a td whose headers name `v`, which no th of its table has as its id (reading 126). The
- *   first, a td no table holds, so takes part in none, was the free suite's red at 9b3a28a1
- *   (TEST_SEED=2144430066, the rotating stream's case 199), from 4d7eed2f, which stated "Table
- *   headers" without naming it among the unconstructed. The other three are the reds Aiden found at
- *   1ee51d8d (PR #46, comment 6701102861): a table's thead, a td under ssml:audio and a table-less
- *   tfoot. The thead's is kept twice: as a td a table holds, the nearest a search found, since the
- *   generator draws a table's thead (7 of 4,000 trees) but no search of 20,000 cases drew one whose
- *   td names a header; and as a hand-built tree whose thead td names a header no th of its table
- *   has, which pins the thead path of the fold, where a td reads its table through its row and its
- *   thead.
+ * - Four write a td whose headers name `v`, which no th of its table has as its id (reading
+ *   `cell-headers`). The first, a td no table holds, so takes part in none, was the free suite's
+ *   red at 9b3a28a1 (TEST_SEED=2144430066, the rotating stream's case 199), from 4d7eed2f, which
+ *   stated "Table headers" without naming it among the unconstructed. The other three are the reds
+ *   Aiden found at 1ee51d8d (PR #46, comment 6701102861): a table's thead, a td under ssml:audio
+ *   and a table-less tfoot. The thead's is kept twice: as a td a table holds, the nearest a search
+ *   found, since the generator draws a table's thead (7 of 4,000 trees) but no search of 20,000
+ *   cases drew one whose td names a header; and as a hand-built tree whose thead td names a header
+ *   no th of its table has, which pins the thead path of the fold, where a td reads its table
+ *   through its row and its thead.
  * - One writes a qti-equal whose tolerance is empty, which holds no value where a tolerance holds one
- *   or two (reading 121): Aiden's red at TEST_SEED=3952699438, with "Equal tolerance" stated over a
- *   lexical form drawn without reading but not named among the unconstructed.
+ *   or two (reading `tolerance`): Aiden's red at TEST_SEED=3952699438, with "Equal tolerance"
+ *   stated over a lexical form drawn without reading but not named among the unconstructed.
  * - One writes a pre whose data-ssml is empty, no JSON object, so it has no `DataSsml` row (reading
- *   177): the free suite's red at 9b91f27e, replayed here at TEST_SEED=593086602, from c91aec18,
- *   which stated "Data SSML" over a lexical form drawn without reading but did not name it among
- *   the unconstructed.
+ *   `data-ssml-judgement`): the free suite's red at 9b91f27e, replayed here at TEST_SEED=593086602,
+ *   from c91aec18, which stated "Data SSML" over a lexical form drawn without reading but did not
+ *   name it among the unconstructed.
  * - One is a qti-gap that writes its identifier where no qti-gap-match-interaction encloses it, so
- *   its nearest is no interaction (reading 38): the free suite's red at a1c8e7e2e and at its
- *   parent, TEST_SEED=1134801326 (the rotating stream's case 97), from "N8 nearest"'s choice
- *   clause, a place the generator draws without reading, under a law it named constructed for its
- *   other clause, fold's nearest copy.
+ *   its nearest is no interaction (reading `gap-and-hottext-placement`): the free suite's red at
+ *   a1c8e7e2e and at its parent, TEST_SEED=1134801326 (the rotating stream's case 97), from "N8
+ *   nearest"'s choice clause, a place the generator draws without reading, under a law it named
+ *   constructed for its other clause, fold's nearest copy.
  *
  * A tape is the generator's draws, each an index into the candidates it reads from the grammar in
  * that grammar's order, so a tape keeps its tree only while that order holds. So each case is kept

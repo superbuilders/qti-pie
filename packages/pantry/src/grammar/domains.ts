@@ -1710,11 +1710,11 @@ const hexBinaryLexical = star(twoOf("0-9A-Fa-f", "0-9A-Fa-f"));
 /**
  * The lexical space of each XSD primitive this compiler reads, in the form XSD reads it after the
  * primitive's whitespace class. `anyURI`'s is every string here: its lexical space (spec reading
- * 71, XML Schema 1.0's RFC 2396 as RFC 2732 amends it, after XLink's escaping) is the pattern the
- * leaf states of the built-in, which the compiler reads like any other. `NOTATION`'s value space is
- * the QNames of the notations the schema declares (XML Schema Part 2, 3.2.19), and no pinned XSD
- * declares one, so it is empty: an `xsi:type` may name the built-in (spec reading 60), and no text
- * is valid for it.
+ * `anyuri-lexical`, XML Schema 1.0's RFC 2396 as RFC 2732 amends it, after XLink's escaping) is the
+ * pattern the leaf states of the built-in, which the compiler reads like any other. `NOTATION`'s
+ * value space is the QNames of the notations the schema declares (XML Schema Part 2, 3.2.19), and
+ * no pinned XSD declares one, so it is empty: an `xsi:type` may name the built-in (spec reading
+ * `wildcard-xsi-type`), and no text is valid for it.
  */
 const primitives: Readonly<Record<Primitive, Regex>> = {
   NOTATION: nothing,
@@ -4045,8 +4045,9 @@ const hidesIn = (domain: Domain, reader: (member: Domain) => Option.Option<unkno
   domain.members.some((member) => Option.isSome(reader(member)) || hidesIn(member, reader));
 
 /**
- * How a value's whitespace is read: as its type's class says, or exactly, as spec reading 7 reads
- * a typed QTI value in an attribute, where outer whitespace makes the value invalid.
+ * How a value's whitespace is read: as its type's class says, or exactly, as spec reading
+ * `typed-value-whitespace` reads a typed QTI value in an attribute, where outer whitespace makes
+ * the value invalid.
  */
 export type Reading = "exact" | "xsd";
 
@@ -4055,7 +4056,7 @@ export type Reading = "exact" | "xsd";
  * {@link ncName}'s language, `xs:NCName`'s lexical space as the value domains compile it, which
  * `IdentifierDType` restricts. It is the one test of whether a value names something: a variable
  * reference's or a binding's name, a declaration's or a record field's identifier. Any other value
- * names nothing, and its value domain refuses it alone (spec reading 152).
+ * names nothing, and its value domain refuses it alone (spec reading `ncname-names`).
  */
 export const ncNamePattern = `(?:${emit(ncName)})`;
 
@@ -4063,9 +4064,9 @@ export const ncNamePattern = `(?:${emit(ncName)})`;
  * The pattern of a lexical form that names something once collapsed: an NCName ({@link
  * ncNamePattern}) with XML whitespace around it, which collapsing strips. Only such a form names
  * something: a declaration's, a record field's or a test structure's identifier and a dependency's
- * `identifierref` (spec reading 152), and an ID-typed attribute's or text's ID value, `xs:ID` being
- * a restriction of `xs:NCName` (spec reading 156). Any other form names nothing, and its value
- * domain refuses it alone.
+ * `identifierref` (spec reading `ncname-names`), and an ID-typed attribute's or text's ID value,
+ * `xs:ID` being a restriction of `xs:NCName` (spec reading `id-is-ncname`). Any other form names
+ * nothing, and its value domain refuses it alone.
  */
 export const namingText = `^[\\t\\n\\r ]*${ncNamePattern}[\\t\\n\\r ]*$`;
 
@@ -4098,7 +4099,7 @@ const membersOf = (domain: Domain): readonly Domain[] =>
  * member normalizes it (Part 2, §2.5.1.3; Part 1, §3.14.4), and members of one class normalize a
  * form alike, so the members are read in runs of one class: one run is `uniform`, and a union whose
  * members change class once is `mixed`, its leading run's pattern telling the forms it holds. A
- * value read exactly (spec reading 7) is the form as written.
+ * value read exactly (spec reading `typed-value-whitespace`) is the form as written.
  *
  * @param domain - The definition.
  * @param reading - How its whitespace is read.
@@ -4249,11 +4250,11 @@ const escape = "%[0-9A-Fa-f]{2}";
 const charOrEscape = (excluded: string): string => `([^${excluded}%]|${escape})`;
 
 /**
- * `xs:anyURI`'s lexical space as XML Schema 1.0 defines it (spec reading 71), as an XML Schema
- * regular expression matched against the collapsed value: a string that, once XLink 1.0, section
- * 5.4, escapes its disallowed characters, is RFC 2396's `URI-reference` as RFC 2732 amends it, the
- * IPv6 address of RFC 2373's Appendix B or its section 2.2 text forms. Its parts are named for
- * their productions in RFC 2396 Appendix A as RFC 2732, section 3, amends it.
+ * `xs:anyURI`'s lexical space as XML Schema 1.0 defines it (spec reading `anyuri-lexical`), as an
+ * XML Schema regular expression matched against the collapsed value: a string that, once XLink 1.0,
+ * section 5.4, escapes its disallowed characters, is RFC 2396's `URI-reference` as RFC 2732 amends
+ * it, the IPv6 address of RFC 2373's Appendix B or its section 2.2 text forms. Its parts are named
+ * for their productions in RFC 2396 Appendix A as RFC 2732, section 3, amends it.
  *
  * The pattern judges the collapsed value, so it never allows whitespace at its ends: a leading
  * space would read as a `rel_segment` character and admit `" ?q"`, whose collapsed form `?q` is no

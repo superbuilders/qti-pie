@@ -22,9 +22,10 @@ import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
  * constraint it checks first: `extmeta-item-href` breaks `Href listed`, `LomObjectIdentifier`,
  * `LomObjectTitle`, `Document lang` and, since its item and its record name one file under two
  * types, `Document entry`; the file's `lom:lom` root is a record's, so the file is read as the
- * record's document and `RootOfType` holds (spec reading 162; judged again on 2026-11-07). A second
- * `GUID` (`csm-two-guids`) or a second set (`csm-two-sets`) breaks its particle's at-most-once,
- * which the content automaton holds (`N5 Follow`), so its rule is `ordering`.
+ * record's document and `RootOfType` holds (spec reading `path-document-type`; judged again on
+ * 2026-11-07). A second `GUID` (`csm-two-guids`) or a second set (`csm-two-sets`) breaks its
+ * particle's at-most-once, which the content automaton holds (`N5 Follow`), so its rule is
+ * `ordering`.
  *
  * One fixture per rule stays, 7 of the 26: the other 15 named a rule one of these already names,
  * the four of a `cpx:variant` hold an element QTI 3.0.1's content packaging forbids

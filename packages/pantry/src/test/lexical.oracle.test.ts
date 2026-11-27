@@ -150,7 +150,7 @@ describe("lexical.oracle.test.ts, the records' readings", () => {
         const readings = yield* liveReadings();
         const dead = recorded.flatMap(({ reason }) =>
           reason._tag === "reading" && !stillSays(readings, reason.reading, reason.says)
-            ? [`reading ${String(reason.reading)} no longer says: ${reason.says}`]
+            ? [`reading \`${reason.reading}\` no longer says: ${reason.says}`]
             : [],
         );
 

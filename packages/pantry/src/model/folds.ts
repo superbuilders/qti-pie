@@ -102,7 +102,7 @@ export interface ChildKey<V extends XdmVocabulary> {
 /**
  * An attribute's name under its element's kind and governing type: the key an attribute's
  * position is read under, `GovernedAttribute`'s where the element's governing type
- * is a governor of its kind, else `AttributeAdmission`'s (spec reading 84).
+ * is a governor of its kind, else `AttributeAdmission`'s (spec reading `governing-type`).
  */
 export interface AttributeKey<V extends XdmVocabulary> {
   readonly governs: Option.Option<string>;
@@ -269,7 +269,7 @@ export interface FoldedNode<V extends XdmVocabulary> extends NodeRow<V> {
   /**
    * The first code point of the node's own characters ({@link charactersOf}), empty when it holds
    * none: `Node.first`, which `E1_derived` proves and the `q` quotation law reads (spec reading
-   * 127).
+   * `quotation-around-q`).
    */
   readonly first: string;
   /**
@@ -317,7 +317,7 @@ export interface FoldedNode<V extends XdmVocabulary> extends NodeRow<V> {
 interface OwnerCopies<V extends XdmVocabulary> {
   /**
    * The owner's governing type, which with its kind decides the attribute's position and domain
-   * (spec reading 84), none where no named type governs it.
+   * (spec reading `governing-type`), none where no named type governs it.
    */
   readonly governs: Option.Option<string>;
   readonly kind: XdmKind<V>;

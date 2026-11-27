@@ -23,18 +23,18 @@
  *   settled rule for media. The author's choice stands: when `autostart="true"` and the controls
  *   are gone, nothing pauses the media (WCAG 1.4.2, 2.2.2), which an item's verdict does not mark
  *   and a reviewer should.
- * - `min-plays` and `max-plays` default to 0; `max-plays="0"` is no limit (reading 76), and the
- *   Schematron's least-at-most rule is the database's. "Failure to play the media object the
- *   minimum number of times constitutes an invalid response" (information model 5.92.2), so the QTI
- *   database refuses a count under `min-plays` in tier (b), under `validate-responses` alone, and
- *   NULL, a response that reports no play, counts as 0 (reading 186). "It must not be possible for
- *   the candidate to play the media object more than max-play times" (5.92.3), so a count over a
- *   `max-plays` that is not 0 is none a candidate can have played, and is refused in tier (a). A
- *   negative count is no number of times, and is refused in tier (a) as malformed, with the message
- *   a text that is no number earns.
+ * - `min-plays` and `max-plays` default to 0; `max-plays="0"` is no limit (reading
+ *   `least-at-most-most`), and the Schematron's least-at-most rule is the database's. "Failure to
+ *   play the media object the minimum number of times constitutes an invalid response" (information
+ *   model 5.92.2), so the QTI database refuses a count under `min-plays` in tier (b), under
+ *   `validate-responses` alone, and NULL, a response that reports no play, counts as 0 (reading
+ *   `media-no-play`). "It must not be possible for the candidate to play the media object more than
+ *   max-play times" (5.92.3), so a count over a `max-plays` that is not 0 is none a candidate can
+ *   have played, and is refused in tier (a). A negative count is no number of times, and is refused
+ *   in tier (a) as malformed, with the message a text that is no number earns.
  * - A Media never played writes nothing, and its response stays where the attempt started it, at its
- *   default, else NULL, never 0 (reading 203), so the module gives no `absentValue`: only its
- *   admission reads NULL as no play.
+ *   default, else NULL, never 0 (reading `media-unplayed`), so the module gives no `absentValue`:
+ *   only its admission reads NULL as no play.
  * - `coords`, the deprecated rectangle of an `object`'s place, is read and ignored with a mark, and
  *   so is the deprecated `object` element, written as the author wrote it: a browser cannot report
  *   plays of one, so its count is never written.

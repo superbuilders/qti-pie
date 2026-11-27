@@ -365,10 +365,11 @@ const underMark = (...attributes: readonly string[]): string =>
     .join("")}</ssml:mark>`;
 
 /**
- * An item whose companion materials hold an SSML `mark`, whose content is a `##other` lax
- * wildcard, holding the given content, with the `xsi` prefix bound. The item's schema set holds
- * the ASI XSD, MathML and SSML (spec reading 81), so a global element of either beneath the mark is
- * assessed against its declaration, and an element no XSD of the set declares against nothing.
+ * An item whose companion materials hold an SSML `mark`, whose content is a `##other` lax wildcard,
+ * holding the given content, with the `xsi` prefix bound. The item's schema set holds the ASI XSD,
+ * MathML and SSML (spec reading `wildcard-global-declarations`), so a global element of either
+ * beneath the mark is assessed against its declaration, and an element no XSD of the set declares
+ * against nothing.
  *
  * @param content - The mark's content, as written, in the ASI namespace unless it says otherwise.
  * @returns The item's text.
@@ -392,7 +393,7 @@ const locatedTest = (attribute: string): string =>
  * A test whose one section's selection carries the given attribute, every attribute it needs
  * besides. The Schematron's extension rules cover `qti-test-part` and not `qti-selection`, so an
  * `xml:` name `qti-selection`'s `##other` wildcard admits is still read by its declaration there,
- * where spec reading 90 refuses one on the test part outright.
+ * where spec reading `extension-attribute-lists` refuses one on the test part outright.
  *
  * @param attribute - The attribute, as written.
  * @returns The test's text.
@@ -516,7 +517,7 @@ const controlled = Effect.fn("test.controlled")(function* controlled(
 });
 
 describe.skipIf(!settings.corpusRequested)(
-  "xsd.corpus.oracle.test.ts, the libxml2 classes and reading 6 on their controls, and xmllint on a retyped element",
+  "xsd.corpus.oracle.test.ts, the libxml2 classes and reading `nested-root-in-wildcard` on their controls, and xmllint on a retyped element",
   () => {
     beforeAll(xsdCachePresent);
 
@@ -564,7 +565,7 @@ describe.skipIf(!settings.corpusRequested)(
         );
 
         it.effect(
-          "each document root's schema set, read from the XSDs' own imports, is reading 81's",
+          "each document root's schema set, read from the XSDs' own imports, is reading `wildcard-global-declarations`'s",
           () =>
             Effect.gen(function* schemaSets() {
               const asi = "http://www.imsglobal.org/xsd/imsqtiasi_v3p0";
@@ -685,7 +686,7 @@ describe.skipIf(!settings.corpusRequested)(
                   "xmllint only",
                   "accepted by both",
                 ],
-                "xmllint refuses a base64 value of two letters, an xml:id twice and xml:base's value, as the law oracle does, and accepts a stray character in base64, an xml:id beside its padded form, an empty IDREFS, a blank NMTOKENS element, an empty ENTITIES element, the two xsi: locations' values and a lax xsi:nil's, which the law oracle refuses; it refuses a padded xsi:type, whose QName collapses to one it accepts unpadded, and an xsi:type naming no type on a lax element, which the law oracle accepts (reading 60); it refuses an xs:ENTITIES element holding an element, an xsi:nil on a division and an untyped element's aria-level, as the law oracle does, and assesses nothing within the first",
+                "xmllint refuses a base64 value of two letters, an xml:id twice and xml:base's value, as the law oracle does, and accepts a stray character in base64, an xml:id beside its padded form, an empty IDREFS, a blank NMTOKENS element, an empty ENTITIES element, the two xsi: locations' values and a lax xsi:nil's, which the law oracle refuses; it refuses a padded xsi:type, whose QName collapses to one it accepts unpadded, and an xsi:type naming no type on a lax element, which the law oracle accepts (reading `wildcard-xsi-type`); it refuses an xs:ENTITIES element holding an element, an xsi:nil on a division and an untyped element's aria-level, as the law oracle does, and assesses nothing within the first",
               );
               assert.deepStrictEqual(
                 held.map(({ records }) => records),
@@ -714,13 +715,13 @@ describe.skipIf(!settings.corpusRequested)(
                   [laxXsiType, absentTypeRecord],
                   [],
                 ],
-                "each libxml2 record matches exactly its control's differences, and reading 60's the unresolved xsi:type's; a gated record matches only where the document holds its shape, so a repeated id that is no xml:id is the skipped content's and not a padded xml:id's, and a false xsi:nil is no unchecked value",
+                "each libxml2 record matches exactly its control's differences, and reading `wildcard-xsi-type`'s the unresolved xsi:type's; a gated record matches only where the document holds its shape, so a repeated id that is no xml:id is the skipped content's and not a padded xml:id's, and a false xsi:nil is no unchecked value",
               );
             }),
         );
 
         it.effect(
-          "a QTI root nested in an item's lax wildcard content: xmllint assesses it, and the law oracle keeps it foreign (reading 6)",
+          "a QTI root nested in an item's lax wildcard content: xmllint assesses it, and the law oracle keeps it foreign (reading `nested-root-in-wildcard`)",
           () =>
             Effect.gen(function* nested() {
               const held = yield* controlled("nested", {
@@ -741,7 +742,7 @@ describe.skipIf(!settings.corpusRequested)(
               assert.deepStrictEqual(
                 held.map(({ records }) => records),
                 [[nestedRoot, nestedRoot], []],
-                "reading 6's class matches every difference the nested item makes",
+                "reading `nested-root-in-wildcard`'s class matches every difference the nested item makes",
               );
             }),
         );
@@ -750,12 +751,13 @@ describe.skipIf(!settings.corpusRequested)(
          * Two defects the law oracle shares with the grammar and the codec, left unrecorded, so a
          * generated document that shows one fails the generated test until its owner's fix lands;
          * this control states xmllint's verdict alone. An element an xsi:type retypes is assessed
-         * against the type it names (XML Schema 1.0 Part 1, 3.3.4, cvc-elt clause 4, as reading 47
-         * has it), so its attributes are that type's, but the grammar's attribute admission is by
-         * kind, so a qti-exit-response typed TrackDType is accepted without TrackDType's required
-         * src. An xsi:type whose prefix no declaration binds is no QName (Part 2, 3.2.18), which
-         * its built-in declaration (Part 1, 3.2.7) refuses wherever the element sits, but the codec
-         * refuses it only on an element a declaration assesses (shred's type-unresolved).
+         * against the type it names (XML Schema 1.0 Part 1, 3.3.4, cvc-elt clause 4, as reading
+         * `xsi-attributes` has it), so its attributes are that type's, but the grammar's attribute
+         * admission is by kind, so a qti-exit-response typed TrackDType is accepted without
+         * TrackDType's required src. An xsi:type whose prefix no declaration binds is no QName
+         * (Part 2, 3.2.18), which its built-in declaration (Part 1, 3.2.7) refuses wherever the
+         * element sits, but the codec refuses it only on an element a declaration assesses (shred's
+         * type-unresolved).
          */
         const retyped = Effect.gen(function* retyped() {
           const held = yield* controlled("retyped", {
@@ -832,7 +834,7 @@ const xsdOnly = (detail: string): Difference => ({
   rule: "",
 });
 
-describe("xsd.corpus.oracle.test.ts, reading 6's class", () => {
+describe("xsd.corpus.oracle.test.ts, reading `nested-root-in-wildcard`'s class", () => {
   unit(
     "matches an xsd-only difference whose every message is on an element within a nested root",
     () => {
@@ -915,7 +917,7 @@ describe("xsd.corpus.oracle.test.ts, reading 6's class", () => {
         assert.deepStrictEqual(
           differences.filter((difference) => !isNestedRoot(difference, new Set([item]))),
           [],
-          "every element-grain difference of the nested root is reading 6's",
+          "every element-grain difference of the nested root is reading `nested-root-in-wildcard`'s",
         );
       }),
   );
@@ -926,11 +928,12 @@ describe("xsd.corpus.oracle.test.ts, reading 6's class", () => {
       Effect.gen(function* sharedName() {
         /**
          * Kept from VD's run of the XSD search (TEST_SEED=3143817330, lawful seed #5, no edit): an
-         * item root lacking its required attributes, with an item of the same expanded name
-         * nested in a modal feedback's SSML content, lax, which the rows keep foreign (reading
-         * 6). xmllint names both by that name, and refuses both; the law oracle refuses the root.
-         * The element grain read every message of the name as the foreign element's, so the
-         * root's refusal stood unmatched, oracle-only, though xmllint had refused it too.
+         * item root lacking its required attributes, with an item of the same expanded name nested
+         * in a modal feedback's SSML content, lax, which the rows keep foreign (reading
+         * `nested-root-in-wildcard`). xmllint names both by that name, and refuses both; the law
+         * oracle refuses the root. The element grain read every message of the name as the foreign
+         * element's, so the root's refusal stood unmatched, oracle-only, though xmllint had refused
+         * it too.
          */
         const grammar = Result.getOrThrow(composed());
         const item = "{http://www.imsglobal.org/xsd/imsqtiasi_v3p0}qti-assessment-item";
@@ -980,7 +983,7 @@ describe("xsd.corpus.oracle.test.ts, reading 6's class", () => {
   );
 });
 
-describe("xsd.corpus.oracle.test.ts, reading 60's class of a lax xsi:type", () => {
+describe("xsd.corpus.oracle.test.ts, reading `wildcard-xsi-type`'s class of a lax xsi:type", () => {
   unit(
     "matches an unresolvable xsi:type on a laxly assessed element, and never a strictly assessed one",
     () => {

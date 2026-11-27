@@ -9,7 +9,7 @@
  *   resolved as its `ReferencePath` is (`#pantry/import/overlays/package.ts`).
  * - {@link assembledRowsOf} reads every document's rows of one package into the assemblies: one
  *   instance tree per document that heads one, every assembled document no include splices in place
- *   (`splicingParents` and `IncludeRoot`, spec reading 117).
+ *   (`splicingParents` and `IncludeRoot`, spec reading `fragment-placement`).
  *
  * The rows restate what the documents say and nothing else, and the database proves every one of
  * them (`testLaws`), so a row a builder gets wrong is refused, never accepted. Where a document
@@ -129,14 +129,14 @@ const byElement = <Row extends ElementPlace>(rows: readonly Row[]): ReadonlyMap<
 const among = (kinds: readonly string[], kind: string): boolean => kinds.includes(kind);
 
 /**
- * Decide whether a site places the document it names (`SiteTarget.places`, spec readings 85 and
- * 117): a section ref whose target's root is a section (information model §7.5: "The only
- * documents that can be refered to by qti-assessment-section-ref are XML documents that contain a
- * single qti-assessment-section as a single root"), or an include that may stand for that
- * document's root (`IncludeRoot`, reading 114), whatever its parent. A section ref to a document of
- * any other root names it but places nothing, and "Section ref target" refuses it; an include that
- * may not stand for its target's root names it but places nothing, and "Include root" alone
- * refuses it.
+ * Decide whether a site places the document it names (`SiteTarget.places`, spec readings
+ * `inclusion-cycles` and `fragment-placement`): a section ref whose target's root is a section
+ * (information model §7.5: "The only documents that can be refered to by qti-assessment-section-ref
+ * are XML documents that contain a single qti-assessment-section as a single root"), or an include
+ * that may stand for that document's root (`IncludeRoot`, reading `include-as-information-model`),
+ * whatever its parent. A section ref to a document of any other root names it but places nothing,
+ * and "Section ref target" refuses it; an include that may not stand for its target's root names it
+ * but places nothing, and "Include root" alone refuses it.
  *
  * @param site - The site: its kind and its parent's kind.
  * @param root - The root kind of the document its href names.
@@ -157,9 +157,9 @@ const placesAt = (
 
 /**
  * Decide whether a site splices the document it names in place (`Inclusion.splices`, spec reading
- * 117): it is an include under one of `splicingParents` that places that document, as
- * {@link placesAt} decides. An include under a section places its target whole, as a section ref
- * places its section document (reading 117).
+ * `fragment-placement`): it is an include under one of `splicingParents` that places that document,
+ * as {@link placesAt} decides. An include under a section places its target whole, as a section ref
+ * places its section document (reading `fragment-placement`).
  *
  * @param site - The site: its kind and its parent's kind.
  * @param root - The root kind of the document its href names.
@@ -309,9 +309,9 @@ type TokenOf = (node: NodeRow<Composed>) => Option.Option<string>;
 /**
  * Write a document's names: a bank's root section and each item ref whose identifier names
  * something, with its identifier. One that writes none names nothing, so it has no row, and AL3
- * refuses it alone (spec reading 147). One whose identifier is no NCName ({@link namedBy}) names
- * nothing either, so it has no row, and its value domain refuses it alone
- * (spec reading 152, decision 457 (2)).
+ * refuses it alone (spec reading `unidentified-parts`). One whose identifier is no NCName ({@link
+ * namedBy}) names nothing either, so it has no row, and its value domain refuses it alone (spec
+ * reading `ncname-names`, decision 457 (2)).
  *
  * @param view - The document.
  * @param token - Each node's identifier.
@@ -331,8 +331,8 @@ const namedOf = (view: View, token: TokenOf): ReadonlyMap<string, Addition<typeo
 
 /**
  * Whether a node is a site: an include under a parent whose model holds an explicit include
- * particle (spec reading 114), that pantry reads (spec reading 85, `isSite` of
- * `#pantry/import/context.ts`).
+ * particle (spec reading `include-as-information-model`), that pantry reads (spec reading
+ * `inclusion-cycles`, `isSite` of `#pantry/import/context.ts`).
  *
  * @param view - The document.
  * @param node - The node.
@@ -345,10 +345,10 @@ const isSite = (view: View, node: NodeRow<Composed>): boolean =>
  * An item ref's or a site's href, resolved as its `ReferencePath` is: its element (`package`,
  * `path`, `start`) and kind, `target`, the path it is compared by, in the element's own package,
  * whether that is the entry path it names (`resolved`), and whether it resolves outside the package
- * (`external`), as its `Reference`'s scope says. An href
- * this representation does not resolve is compared by its path as written, as a manifest href is
- * (`comparedPathOf`, reading 102), and no `ReferencePath` holds it, so "Href form" refuses an item
- * ref's; a site's has no {@link SitePath}, and an external one marks its {@link Site} `external`.
+ * (`external`), as its `Reference`'s scope says. An href this representation does not resolve is
+ * compared by its path as written, as a manifest href is (`comparedPathOf`, reading
+ * `href-resolution`), and no `ReferencePath` holds it, so "Href form" refuses an item ref's; a
+ * site's has no {@link SitePath}, and an external one marks its {@link Site} `external`.
  */
 export interface ResolvedHref {
   readonly external: boolean;
@@ -364,7 +364,7 @@ export interface ResolvedHref {
  * Resolve a document's hrefs: each item ref's and site's that writes one, against the base in
  * scope, as `referenceRowsOf` resolves a `ReferencePath`. An item ref or a site with no href
  * has none: AL3 refuses an item ref without one, and an include without one names no document,
- * which its site's existence law refuses ("Include target", spec reading 115).
+ * which its site's existence law refuses ("Include target", spec reading `include-target`).
  *
  * @param view - The document.
  * @returns The hrefs, by their element's start.
@@ -444,7 +444,7 @@ const sitesOf = (
  * Write each site's {@link SitePath}: its href's path, and whether the package holds an entry
  * there, a row only where the site writes an href that resolves to a path of the package.
  * An href that resolves outside the package has none: its site is marked `external`, stored as
- * written and never fetched (spec reading 115).
+ * written and never fetched (spec reading `include-target`).
  *
  * @param view - The document.
  * @param sites - The document's sites.
@@ -556,7 +556,7 @@ const inclusionsOf = (
 /**
  * Write a document's stimulus refs, each with its identifier ({@link TokenOf}), whatever the
  * document's root: a stimulus ref sits in an item. One that writes no identifier has no row, and
- * AL3 refuses it alone (spec reading 147).
+ * AL3 refuses it alone (spec reading `unidentified-parts`).
  *
  * @param view - The document.
  * @param token - Each node's identifier.
@@ -729,9 +729,9 @@ const place = (
 
 /**
  * Build a package's assemblies from its documents' rows: one tree per document that heads one. A
- * document heads an assembly unless an include that splices it names it (`SiteTarget.splices`,
- * spec reading 117): a fragment such an include splices is judged where it is included, in the
- * assemblies of the documents that place it, and never alone. Every instance is named by its
+ * document heads an assembly unless an include that splices it names it (`SiteTarget.splices`, spec
+ * reading `fragment-placement`): a fragment such an include splices is judged where it is included,
+ * in the assemblies of the documents that place it, and never alone. Every instance is named by its
  * assembly's path and its pre-order start, so the build is a function of the documents alone.
  *
  * @param documents - Every document's rows ({@link rowsOf}) of one package, each beside its root's

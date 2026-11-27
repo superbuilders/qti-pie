@@ -1,9 +1,9 @@
 /**
  * A second declaration of a name is refused by `Declaration key` alone, on the import's rows as in
- * the law oracle (spec reading 74): what a reference or a reading reads of a document's names is a
- * name view over its declarations' `identifier` attributes (`NamedDeclaration` of
- * `#pantry/qti/names.ts`), which states the key no second time, so a second declaration breaks no
- * law beside the key, "E1 derived" among them.
+ * the law oracle (spec reading `identifier-names-one-variable`): what a reference or a reading
+ * reads of a document's names is a name view over its declarations' `identifier` attributes
+ * (`NamedDeclaration` of `#pantry/qti/names.ts`), which states the key no second time, so a second
+ * declaration breaks no law beside the key, "E1 derived" among them.
  *
  * Oracle: a second implementation, the law oracle (`#pantry/test/oracle.ts` `judge`), against the
  * laws the import's rows break on the host (`#pantry/test/gen/genetic/judge.ts` `judgeOne`): no

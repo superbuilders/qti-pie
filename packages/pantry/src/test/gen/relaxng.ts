@@ -1,8 +1,9 @@
 /**
- * The MathML 3 RelaxNG's content models where spec reading 2 follows it over the XSD, written as
- * recognizers from the RelaxNG's compact text (https://www.w3.org/Math/RelaxNG/mathml3/, fetched
- * 2026-11-05 into `~/.cache/qti-pie/mathml3-rng/`), and nothing else: the grammar's restated
- * particles (`src/grammar/facets.ts`) are what they check, so none of them is read here.
+ * The MathML 3 RelaxNG's content models where spec reading `mathml-validity` follows it over the
+ * XSD, written as recognizers from the RelaxNG's compact text
+ * (https://www.w3.org/Math/RelaxNG/mathml3/, fetched 2026-11-05 into
+ * `~/.cache/qti-pie/mathml3-rng/`), and nothing else: the grammar's restated particles
+ * (`src/grammar/facets.ts`) are what they check, so none of them is read here.
  *
  * Each recognizer decides a family of child kinds the way the RelaxNG's pattern does, by trying
  * every way to split the family among the pattern's parts, so an ambiguous pattern (an `interval`
@@ -16,7 +17,7 @@
  *
  * - `anyElement`: whether a kind outside MathML stands for an element `anyElement`
  *   (`mathml3-common.rnc` line 61) matches under the parent, an element its wildcard reads, which
- *   spec reading 81 bounds by the parent's schema set;
+ *   spec reading `wildcard-global-declarations` bounds by the parent's schema set;
  * - `content`: the RelaxNG's `ContExp` (`mathml3-strict-content.rnc` line 14), the XSD's `ContExp`
  *   and `semantics-contexp`, the kind `m:semantics.contexp`;
  * - `math`: the RelaxNG's `MathExpression` (`mathml3-common.rnc` line 18, extended in the content and
@@ -248,8 +249,8 @@ const contentExpressions =
     children.length === count && children.every((kind) => classes.content.has(kind));
 
 /**
- * The RelaxNG's language of every model spec reading 2 restates or edits, by the kind whose model
- * it is, each from its line of the RelaxNG:
+ * The RelaxNG's language of every model spec reading `mathml-validity` restates or edits, by the
+ * kind whose model it is, each from its line of the RelaxNG:
  *
  * - `bvar`, `((ci | semantics-ci) & degree?)` (`mathml3-content.rnc` line 23), and `piecewise`,
  *   `(piece* & otherwise?)` (line 60), the two interleaves;

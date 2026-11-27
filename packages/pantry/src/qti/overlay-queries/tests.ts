@@ -10,11 +10,11 @@
  *
  * **A test is its document, assembled.** A test document (`imsqti_test_xmlv3p0`) is its root
  * `qti-assessment-test` and everything under it, the head of its own assembly, which its section
- * refs and its sections' includes extend (reading 85); the laws read that assembled test. Each view
- * below reads the test document itself, `(package, path)`, which is the whole of a test that places
- * nothing ({@link DeliverableTest} names those), and nothing is copied: the test's identity
- * ({@link TestRoot}), its item refs in document order ({@link TestMember}), its parts' modes
- * ({@link TestPart}), its scopes' time limits ({@link MaxTime}, {@link MinTime},
+ * refs and its sections' includes extend (reading `inclusion-cycles`); the laws read that assembled
+ * test. Each view below reads the test document itself, `(package, path)`, which is the whole of a
+ * test that places nothing ({@link DeliverableTest} names those), and nothing is copied: the test's
+ * identity ({@link TestRoot}), its item refs in document order ({@link TestMember}), its parts'
+ * modes ({@link TestPart}), its scopes' time limits ({@link MaxTime}, {@link MinTime},
  * {@link LateSubmission}) and item session control ({@link SessionControl}, {@link MaxAttempts}),
  * its sections' selection and ordering ({@link SectionSelection}, {@link SectionReplacement},
  * {@link SectionShuffle}). A scope is the element a `qti-time-limits` or a
@@ -127,10 +127,10 @@ export const structureNodeRows = query(QtiBase).rule((r) => {
 const StructureNode = derived("StructureNode", structureNodeRows);
 
 /**
- * The identifiers of an assembled document's parts, sections, section refs and item refs
- * ({@link namedKinds}), by their element's place: each such element, and only it, has its
- * {@link Named} row. AL1 holds each to its domain, `IdentifierDType`, an NCName once collapsed, so
- * each names something (spec reading 152, decision 457 (2)). A test, a section document and every
+ * The identifiers of an assembled document's parts, sections, section refs and item refs ({@link
+ * namedKinds}), by their element's place: each such element, and only it, has its {@link Named} row.
+ * AL1 holds each to its domain, `IdentifierDType`, an NCName once collapsed, so each names
+ * something (spec reading `ncname-names`, decision 457 (2)). A test, a section document and every
  * document a site places is assembled, which holds every document a test's structure stands in.
  */
 const structureNamingRows = query(QtiBase).rule((r) => {
@@ -520,7 +520,8 @@ const sessionSettings = [
  * part unless the setting is overridden at the qti-assessment-section level or ultimately at the
  * individual qti-assessment-item-ref. The defaults for an qti-Item-session-control are used only in
  * the absence of any applicable constraint" (§7.19), so the setting in force for an item ref is the
- * nearest scope's that writes it, and the XSD's default only where none does (spec reading 63).
+ * nearest scope's that writes it, and the XSD's default only where none does (spec reading
+ * `item-session-control-resolution`).
  */
 const sessionControlRows = query(QtiBase)
   .rule((r) => {
@@ -569,10 +570,10 @@ export const SessionControl = derived("SessionControl", sessionControlRows);
 const attemptValues = attributeValues("max-attempts", [sessionControlKind]);
 
 /**
- * The `max-attempts` an item session control writes, by its scope's place, an `xs:int` (§7.19.1:
- * "A value of 0 indicates no limit. If it is unspecified it is treated as 1 for non-adaptive
- * items"; a negative value sets no limit either, spec reading 219). A scope that writes none has no
- * row.
+ * The `max-attempts` an item session control writes, by its scope's place, an `xs:int` (§7.19.1: "A
+ * value of 0 indicates no limit. If it is unspecified it is treated as 1 for non-adaptive items"; a
+ * negative value sets no limit either, spec reading `negative-max-attempts`). A scope that writes
+ * none has no row.
  */
 const maxAttemptsRows = query(QtiBase).rule((r) => {
   const { package: pkg, path, start, value } = v(attemptValues, "attempts");
@@ -729,9 +730,10 @@ const sectionPartNodes = query(QtiBase).rule((r) => {
 });
 
 /**
- * Each selecting section that holds parts, by the section's place, with its count of them,
- * `parts`: "Sub-sections always count as 1, regardless of how many child elements they have and
- * whether or not they are visible" (§5.129.1), so each part counts once (spec reading 79).
+ * Each selecting section that holds parts, by the section's place, with its count of them, `parts`:
+ * "Sub-sections always count as 1, regardless of how many child elements they have and whether or
+ * not they are visible" (§5.129.1), so each part counts once (spec reading
+ * `selection-without-replacement`).
  */
 const selectedPartsRows = query(QtiBase).rule((r) => {
   const { package: pkg, path, section, select: count } = v(sectionSelectionRows, "selection");
@@ -896,10 +898,10 @@ const namingBranchRuleRows = query(QtiBase).rule((r) => {
 
 /**
  * Each placement of a document in a test's assembly, by the assembly and the instance's place in
- * its tree (`Instance`, spec readings 5 and 85): `path`, the document it places; `end`, its
- * instance interval's end; `parent`, its parent instance; and `site` and `siteDocument`, the
- * element of its parent's document that places it, a section ref or an include, the root's own
- * document and 0 for the test's own instance, `instance` 0.
+ * its tree (`Instance`, spec readings `section-document` and `inclusion-cycles`): `path`, the
+ * document it places; `end`, its instance interval's end; `parent`, its parent instance; and `site`
+ * and `siteDocument`, the element of its parent's document that places it, a section ref or an
+ * include, the root's own document and 0 for the test's own instance, `instance` 0.
  */
 export const testInstances = query(QtiBase).rule((r) => {
   const {
@@ -931,12 +933,12 @@ export const testInstances = query(QtiBase).rule((r) => {
 /**
  * Each instance of an assembly with its anchor, by the assembly and the instance: the instance
  * itself where it is the assembly's root or a section ref places it, and else its parent's, an
- * include splicing its target into its parent's copy (spec readings 85 and 86). A test "may refer
- * to the same section multiple times within a test" (information model §7.5.3), each reference the
- * facade of its section (§7.5), so two instances a section ref places with one document are two
- * copies of one section, and the instances below each anchor are its copy's; an include placing one
- * fragment twice makes two elements of one copy, as XInclude's merged document holds them.
- * `anchorDocument` is the anchor's document.
+ * include splicing its target into its parent's copy (spec readings `inclusion-cycles` and
+ * `test-identifier-namespace`). A test "may refer to the same section multiple times within a test"
+ * (information model §7.5.3), each reference the facade of its section (§7.5), so two instances a
+ * section ref places with one document are two copies of one section, and the instances below each
+ * anchor are its copy's; an include placing one fragment twice makes two elements of one copy, as
+ * XInclude's merged document holds them. `anchorDocument` is the anchor's document.
  */
 export const instanceAnchors = query(QtiBase).recursive("InstanceAnchor", {
   base: [
@@ -993,8 +995,8 @@ export const instanceAnchors = query(QtiBase).recursive("InstanceAnchor", {
 
 /**
  * Each name a test's assembly holds, by the test, its anchor ({@link instanceAnchors}) and the
- * named element's instance and place, with its identifier (spec reading 86): every name of every
- * document an instance of the test places.
+ * named element's instance and place, with its identifier (spec reading
+ * `test-identifier-namespace`): every name of every document an instance of the test places.
  */
 const anchoredNameRows = query(QtiBase).rule((r) => {
   const { anchor, anchorDocument, assembly, instance, package: pkg } = v(instanceAnchors, "anchor");
@@ -1190,8 +1192,8 @@ export const assembledReplaceableRows = query(QtiBase)
 
 /**
  * Each branch rule that names no exit, placed in a test's assembly, by the test, the instance that
- * places its document and the rule's place (spec reading 87: each rule resolves once for each
- * placement of its document).
+ * places its document and the rule's place (spec reading `branch-rule-targets`: each rule resolves
+ * once for each placement of its document).
  */
 const branchResolutionRows = query(QtiBase).rule((r) => {
   const { assembly, instance, package: pkg, path } = v(testInstances, "instance");
@@ -1218,19 +1220,19 @@ const BranchResolution = derived("BranchResolution", branchResolutionRows);
 
 /**
  * Each element a placed branch rule's target names in an instance that holds the rule's (spec
- * reading 87): its own instance's document, or a document an ancestor instance places. From
- * outside a section document a ref places, no target lies inside it: "branching rules should
- * treat referred sections as leaf nodes, that have no children that are amenable to branching
- * separately from their immediate parent" (§7.5). Each row carries the target's instance and place,
- * its kind and interval, and `point` and `pointEnd`, the source's interval in the target's
- * document: the source's own where the two are one instance, and else the site in the target's
- * document that places the source's chain. An included fragment's root is a target too: an include
- * "is treated as if it was actually an instance of the root element of the fragment referred to"
- * (§2.12), and "Adaptive test branch rules can only refer to included or directly referenced
- * sections" (§7.5). It stands where its include stands, so its order is the include's place in the
- * holder's document, and its part and its repetition are its placed root's (`partInstance`,
- * `partPath`, `partStart`, a placement's part being its site's), as every other candidate's are
- * its own.
+ * reading `branch-rule-targets`): its own instance's document, or a document an ancestor instance
+ * places. From outside a section document a ref places, no target lies inside it: "branching rules
+ * should treat referred sections as leaf nodes, that have no children that are amenable to
+ * branching separately from their immediate parent" (§7.5). Each row carries the target's instance
+ * and place, its kind and interval, and `point` and `pointEnd`, the source's interval in the
+ * target's document: the source's own where the two are one instance, and else the site in the
+ * target's document that places the source's chain. An included fragment's root is a target too: an
+ * include "is treated as if it was actually an instance of the root element of the fragment
+ * referred to" (§2.12), and "Adaptive test branch rules can only refer to included or directly
+ * referenced sections" (§7.5). It stands where its include stands, so its order is the include's
+ * place in the holder's document, and its part and its repetition are its placed root's
+ * (`partInstance`, `partPath`, `partStart`, a placement's part being its site's), as every other
+ * candidate's are its own.
  */
 const branchCandidateRows = query(QtiBase)
   .rule((r) => {
@@ -1540,7 +1542,8 @@ const branchingKinds = [itemRefKind, sectionKind, sectionRefKind] as const;
  * and the rule's place, with the target's (§5.23: "In the case of an item or section, the target
  * must refer to an item or section in the same test-part ... For test-parts, the target must refer
  * to another test-part"; §5.98: "It is therefore an error to make such an item the target of a
- * branch-rule", of an item ref a selection with replacement can repeat; spec reading 87):
+ * branch-rule", of an item ref a selection with replacement can repeat; spec reading
+ * `branch-rule-targets`):
  *
  * - A test part's rule names another test part;
  * - An item ref's, a section's or a section ref's rule names an item ref, a section or a section ref
@@ -1689,14 +1692,14 @@ const ResolvedBranchRule = derived(
 );
 
 /**
- * The sections whose children a shuffle can reorder in each placement of their document in a
- * test's assembly, by the test, the instance and the section's place: a section that shuffles; a
- * section an invisible section that is not kept together mixes its children into, its children
- * then "mixed into the parent's selection prior to shuffling" (§5.98; spec readings 87 and 173), at
- * any depth; and the root section of a document a section ref places under such a section, where
- * that root is itself invisible and not kept together, since a section ref is the facade of its
- * section (§7.5). A section's visibility is its own `visible` alone, read only where written
- * (reading 173).
+ * The sections whose children a shuffle can reorder in each placement of their document in a test's
+ * assembly, by the test, the instance and the section's place: a section that shuffles; a section
+ * an invisible section that is not kept together mixes its children into, its children then "mixed
+ * into the parent's selection prior to shuffling" (§5.98; spec readings `branch-rule-targets` and
+ * `section-visibility`), at any depth; and the root section of a document a section ref places
+ * under such a section, where that root is itself invisible and not kept together, since a section
+ * ref is the facade of its section (§7.5). A section's visibility is its own `visible` alone, read
+ * only where written (reading `section-visibility`).
  */
 const shuffledSections = query(QtiBase).recursive("ShuffledSection", {
   base: [
@@ -2129,7 +2132,7 @@ const fixedBackwardRows = query(QtiBase)
 /**
  * Each targeted branch rule whose target comes after its source in every sequence a delivery can
  * draw, by the test, the instance and the rule's place (§5.23: the target "has not yet been
- * presented"; §2.8.3.2: "cycles are not allowed"; spec reading 87):
+ * presented"; §2.8.3.2: "cycles are not allowed"; spec reading `branch-rule-targets`):
  *
  * - Its target starts at or after its source's point's end in the target's document, so it is neither
  *   the source, nor an ancestor, nor a descendant of it;
@@ -2229,7 +2232,8 @@ const sectionFilters = attributeValues("section-identifier", sectionFilterKinds)
 
 /**
  * Each section filter placed in a test's assembly, by the test and the filter's place, with the
- * identifier it names: it resolves once for each test that places its document (spec reading 5).
+ * identifier it names: it resolves once for each test that places its document (spec reading
+ * `section-document`).
  */
 const placedFilterRows = query(QtiBase).rule((r) => {
   const { assembly, package: pkg, path } = v(testInstances, "instance");
@@ -2247,10 +2251,10 @@ const placedFilterRows = query(QtiBase).rule((r) => {
 const PlacedFilter = derived("PlacedFilter", placedFilterRows);
 
 /**
- * The sections and section refs a placed section filter names, by the test, the filter's place
- * and the section's placement: the instance and the element, one row for each placement of a
- * section document placed twice (reading 86), so a filter it names twice has two. A section ref,
- * the facade of its placement (§7.5), names it as a section does.
+ * The sections and section refs a placed section filter names, by the test, the filter's place and
+ * the section's placement: the instance and the element, one row for each placement of a section
+ * document placed twice (reading `test-identifier-namespace`), so a filter it names twice has two.
+ * A section ref, the facade of its placement (§7.5), names it as a section does.
  */
 const FilteredSection = derived(
   "FilteredSection",
@@ -2403,7 +2407,7 @@ export const VariableMapping = derived("VariableMapping", variableMappingRows);
 /**
  * Each variable mapping of an item ref that names an item, with the item's document, `item`
  * (`ItemRefDocument`). A mapping under an item ref that names an LTI link names no item, and is
- * accepted unchecked (spec reading 110).
+ * accepted unchecked (spec reading `mapping-and-default-names`).
  */
 const itemMappingRows = query(QtiBase).rule((r) => {
   const { package: pkg, path, ref, source, start, target } = v(variableMappingRows, "mapping");
@@ -2435,8 +2439,9 @@ const templateNames = select(NamedDeclaration, (d) =>
 );
 
 /**
- * The item mappings whose target names no other variable of their item (spec reading 97): its
- * target is its own source, or the item declares nothing of the target's name.
+ * The item mappings whose target names no other variable of their item (spec reading
+ * `variable-mapping-target`): its target is its own source, or the item declares nothing of the
+ * target's name.
  */
 const freeMappingTargetRows = query(QtiViews)
   .rule((r) => {
@@ -2481,9 +2486,10 @@ const templateDefaultRows = query(QtiBase).rule((r) => {
 
 /**
  * Each template default whose item ref's href names a path of the package, an item's or an LTI
- * link's: an LTI link is no QTI item and has no template variable to override (spec reading 110),
- * so it names none, which "Template default target" refuses; an item ref whose href lies outside
- * the package names an item the package does not hold, which no law reads (SV-LAW-02).
+ * link's: an LTI link is no QTI item and has no template variable to override (spec reading
+ * `mapping-and-default-names`), so it names none, which "Template default target" refuses; an item
+ * ref whose href lies outside the package names an item the package does not hold, which no law
+ * reads (SV-LAW-02).
  */
 const PackagedTemplateDefault = derived(
   "PackagedTemplateDefault",
@@ -2617,7 +2623,8 @@ const parses = attributeValues("parse", [includeKind]);
  * "the use of the XInclude feature" (§9.4.1), and XInclude and its XSD admit both (`XInclude.xsd`
  * lines 22 to 24). Valid content a system does not support is ignored, never refused (QTI 3.0
  * Conformance §3: "the applications must be able to ignore or remove the unsupported data"), so
- * such an include is stored as written, no site, and never included (spec reading 85).
+ * such an include is stored as written, no site, and never included (spec reading
+ * `inclusion-cycles`).
  */
 const unreadIncludes = query(QtiBase)
   .rule((r) => {
@@ -2634,11 +2641,11 @@ const unreadIncludes = query(QtiBase)
   });
 
 /**
- * The includes pantry reads, each a site ({@link Site}), by the include's place: every
- * `xi:include` under a parent whose content model holds an explicit include particle (spec reading
- * 114) but one pantry does not read ({@link unreadIncludes}). "Test overlay" holds the two to one
- * another, so an include is a site exactly when pantry reads it; a section ref is a site of its own
- * (§7.5).
+ * The includes pantry reads, each a site ({@link Site}), by the include's place: every `xi:include`
+ * under a parent whose content model holds an explicit include particle (spec reading
+ * `include-as-information-model`) but one pantry does not read ({@link unreadIncludes}). "Test
+ * overlay" holds the two to one another, so an include is a site exactly when pantry reads it; a
+ * section ref is a site of its own (§7.5).
  */
 const ReadInclude = derived(
   "ReadInclude",
@@ -2674,14 +2681,13 @@ const fallbackIncludes = query(QtiBase).rule((r) => {
 
 /**
  * The hrefs of the includes whose path an entry holds and that hold no `xi:fallback`, by the
- * include's place: "Include target" holds each to its {@link SiteTarget}, a document of the
- * package (spec reading 115). An include that holds a fallback and names an entry that is no
- * document meets a resource error, "Resources that are unavailable for any reason (for example
- * the resource doesn't exist ... the resource is determined through implementation-specific
- * mechanisms not to be XML ...) result in a resource error", and "When a resource error is
- * encountered, the xi:include element is replaced with the contents of the xi:fallback element"
- * (XInclude 1.0 Second Edition, §4.2 and §3.2): valid, so admitted, unplaced
- * ({@link UnplacedInclude}).
+ * include's place: "Include target" holds each to its {@link SiteTarget}, a document of the package
+ * (spec reading `include-target`). An include that holds a fallback and names an entry that is no
+ * document meets a resource error, "Resources that are unavailable for any reason (for example the
+ * resource doesn't exist ... the resource is determined through implementation-specific mechanisms
+ * not to be XML ...) result in a resource error", and "When a resource error is encountered, the
+ * xi:include element is replaced with the contents of the xi:fallback element" (XInclude 1.0 Second
+ * Edition, §4.2 and §3.2): valid, so admitted, unplaced ({@link UnplacedInclude}).
  */
 const PlacedIncludePath = derived(
   "PlacedIncludePath",
@@ -2703,14 +2709,16 @@ const PlacedIncludePath = derived(
  * delivers (the Delivery verdict's to read):
  *
  * - `external`: an include whose href resolves outside the package, stored as written and never
- *   fetched (spec reading 115), so neither its content nor the IDs it may hold are read;
+ *   fetched (spec reading `include-target`), so neither its content nor the IDs it may hold are
+ *   read;
  * - `fallback`: an include holding an `xi:fallback` whose href names an entry that is no document
  *   ({@link PlacedIncludePath}), which XInclude replaces by the fallback's content;
  * - `root`: an include whose target's root is a kind the composition splits by context, under a
- *   parent that admits only the split kind (`Inclusion.places` false, spec reading 116);
+ *   parent that admits only the split kind (`Inclusion.places` false, spec reading
+ *   `fragment-root`);
  * - `context`: a site placing its target under another nearest interaction than the one the target's
- *   rows were judged under, its document's context (spec reading 117): one written element is one
- *   row, judged in one context.
+ *   rows were judged under, its document's context (spec reading `fragment-placement`): one written
+ *   element is one row, judged in one context.
  */
 export const UnplacedInclude = derived(
   "UnplacedInclude",
@@ -2806,18 +2814,21 @@ const PointerParse = derived(
  *   name ({@link StructureNaming}), and each name's and each stimulus ref's identifier is its
  *   attribute's value ({@link TestIdentifier}); and the includes that are sites are exactly the
  *   includes pantry reads ({@link ReadInclude});
- * - **"Selection bound"** (§5.129.1, reading 79) and **"Selection required"** (§4.2.2, §5.6.2);
- * - **"Branch target"** and **"Branch forward"** (§5.23, §5.98, reading 87): each branch rule that
- *   names no exit names an element it may jump to, after its source;
+ * - **"Selection bound"** (§5.129.1, reading `selection-without-replacement`) and **"Selection
+ *   required"** (§4.2.2, §5.6.2);
+ * - **"Branch target"** and **"Branch forward"** (§5.23, §5.98, reading `branch-rule-targets`): each
+ *   branch rule that names no exit names an element it may jump to, after its source;
  * - **"Section identifier target"** (§7.27.1, §7.28.1, §7.39.1): a `section-identifier` names a
  *   section of its document's test;
- * - **"Weighted base"** (§7.39.5, reading 167): a weighted test variables writes no `base-type` but
- *   float;
- * - **"Weight key"** (§7.50.1, reading 74's reasoning): no two weights of one item ref share an
- *   identifier;
- * - **"Variable mapping source"** and **"Variable mapping target"** (§7.48, readings 97 and 110);
- * - **"Template default target"** (§5.152.1, readings 108 and 110): a template default's item ref
- *   names an item, and its `template-identifier` a template declaration of that item.
+ * - **"Weighted base"** (§7.39.5, reading `weighted-test-variables`): a weighted test variables
+ *   writes no `base-type` but float;
+ * - **"Weight key"** (§7.50.1, reading `identifier-names-one-variable`'s reasoning): no two weights
+ *   of one item ref share an identifier;
+ * - **"Variable mapping source"** and **"Variable mapping target"** (§7.48, readings
+ *   `variable-mapping-target` and `mapping-and-default-names`);
+ * - **"Template default target"** (§5.152.1, readings `template-default` and
+ *   `mapping-and-default-names`): a template default's item ref names an item, and its
+ *   `template-identifier` a template declaration of that item.
  */
 export const testOverlayLawsByName = {
   "Branch forward": declared("Branch forward", [

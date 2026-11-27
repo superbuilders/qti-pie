@@ -177,8 +177,9 @@ const eachEdit =
  */
 export const testMutations = {
   /**
-   * Branch forward (§5.23, §2.8.3.2, reading 87): an item ref's rule names itself, or the second
-   * item ref's names the first, which comes before it in every order a delivery draws.
+   * Branch forward (§5.23, §2.8.3.2, reading `branch-rule-targets`): an item ref's rule names
+   * itself, or the second item ref's names the first, which comes before it in every order a
+   * delivery draws.
    */
   "Branch forward": {
     law: "Branch forward",
@@ -194,7 +195,8 @@ export const testMutations = {
     over: "package",
   },
   /**
-   * Branch target (§5.23, reading 87): an item ref's rule names nothing, or a test part.
+   * Branch target (§5.23, reading `branch-rule-targets`): an item ref's rule names nothing, or a
+   * test part.
    */
   "Branch target": {
     law: "Branch target",
@@ -263,7 +265,8 @@ export const testMutations = {
     over: "package",
   },
   /**
-   * Prefixed reference (reading 48): the test declares the name a prefixed reading also reads.
+   * Prefixed reference (reading `dotted-reference`): the test declares the name a prefixed reading
+   * also reads.
    */
   "Prefixed reference": {
     law: "Prefixed reference",
@@ -303,8 +306,8 @@ export const testMutations = {
     over: "package",
   },
   /**
-   * Selection bound (§5.129.1, reading 79): the section selects more than its two parts, without
-   * replacement.
+   * Selection bound (§5.129.1, reading `selection-without-replacement`): the section selects more
+   * than its two parts, without replacement.
    */
   "Selection bound": {
     law: "Selection bound",
@@ -352,8 +355,8 @@ export const testMutations = {
     over: "package",
   },
   /**
-   * Structure identifier (reading 86): a second item ref of the bank under a member's identifier,
-   * naming that member's item, written after the bank's last item ref.
+   * Structure identifier (reading `test-identifier-namespace`): a second item ref of the bank under
+   * a member's identifier, naming that member's item, written after the bank's last item ref.
    */
   "Structure identifier": {
     law: "Structure identifier",
@@ -384,8 +387,8 @@ export const testMutations = {
     over: "package",
   },
   /**
-   * Test name key (reading 86): the test places the bank by a section ref, whose item refs share
-   * the test's own item refs' identifiers.
+   * Test name key (reading `test-identifier-namespace`): the test places the bank by a section ref,
+   * whose item refs share the test's own item refs' identifiers.
    */
   "Test name key": {
     law: "Test name key",
@@ -410,8 +413,9 @@ export const testMutations = {
     over: "package",
   },
   /**
-   * Variable mapping target (§7.48, readings 97 and 110): a mapping targets a session variable,
-   * another variable of its item, or another mapping's target.
+   * Variable mapping target (§7.48, readings `variable-mapping-target` and
+   * `mapping-and-default-names`): a mapping targets a session variable, another variable of its
+   * item, or another mapping's target.
    */
   "Variable mapping target": {
     law: "Variable mapping target",
@@ -443,8 +447,8 @@ export const testMutations = {
     over: "package",
   },
   /**
-   * Weighted base (§7.39.5, reading 167): a weighted test variables writes a base type other than
-   * float.
+   * Weighted base (§7.39.5, reading `weighted-test-variables`): a weighted test variables writes a
+   * base type other than float.
    */
   "Weighted base": {
     law: "Weighted base",
@@ -460,9 +464,9 @@ export const testMutations = {
   },
   /**
    * Weighted variable (§7.47.2): a weighted variable reads the test's own variable, or a part's
-   * duration, through no item ref.
-   * Each read is set into an outcome of its own type, so no Set type stands ahead: the test's float
-   * TOTAL, and a part's duration, the test's duration built-in (spec reading 167), into a duration.
+   * duration, through no item ref. Each read is set into an outcome of its own type, so no Set type
+   * stands ahead: the test's float TOTAL, and a part's duration, the test's duration built-in (spec
+   * reading `weighted-test-variables`), into a duration.
    */
   "Weighted variable": {
     law: "Weighted variable",

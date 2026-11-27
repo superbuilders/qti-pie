@@ -66,7 +66,7 @@ export type Reason =
   | { readonly _tag: "libxml2"; readonly why: string }
   | {
       readonly _tag: "reading";
-      readonly reading: number;
+      readonly reading: string;
       /**
        * A sentence the reading states, word for word, which a test holds to the reading as
        * `docs/spec-readings.md` states it today (`#pantry/test/live-readings.ts`), so a reading
@@ -426,11 +426,11 @@ export const holdsPaddedId = (
  * not allowed, because the type definition is simple.": an element child of an element a simple
  * type governs). `xmlSchemaValidateElem` sets `skipDepth` on the first, and
  * `xmlSchemaValidateChildElem` on the second, after which the element's remaining content, its
- * descendants and its simple value are never assessed. XML Schema assesses them all (Part 1,
- * 3.3.4, Schema-Validity Assessment (Element), clause 2: every child, laxly where no type governs
- * its parent, as spec reading 60 reads it), and so does the law oracle, so each law refusal there
- * is the law oracle's alone: one of a node below such an element, of the element itself under
- * cvc-type clause 1, and of its simple value under clause 3.1.2.
+ * descendants and its simple value are never assessed. XML Schema assesses them all (Part 1, 3.3.4,
+ * Schema-Validity Assessment (Element), clause 2: every child, laxly where no type governs its
+ * parent, as spec reading `wildcard-xsi-type` reads it), and so does the law oracle, so each law
+ * refusal there is the law oracle's alone: one of a node below such an element, of the element
+ * itself under cvc-type clause 1, and of its simple value under clause 3.1.2.
  *
  * Only an element a wildcard or the codec leaves to lax assessment reaches such a refusal, since
  * the codec refuses a strictly assessed element whose `xsi:type` names no type, so the detail is a
@@ -481,7 +481,7 @@ export const libxml2Count = (matches: readonly (Recorded | undefined)[]): number
   matches.filter((match) => match !== undefined && libxml2Records.includes(match)).length;
 
 /**
- * The class of disagreement spec reading 60 rules on, once open question B3 of
+ * The class of disagreement spec reading `wildcard-xsi-type` rules on, once open question B3 of
  * `docs/rfc/for-sterling.md`: an element no declaration of its document's schema set names,
  * assessed laxly under a wildcard, whose `xsi:type` is a QName that names no type of the schemas.
  * XML Schema's clause 1.2 fails there and lax assessment applies, which reads as valid, and
@@ -490,17 +490,17 @@ export const libxml2Count = (matches: readonly (Recorded | undefined)[]): number
  *
  * Only a laxly assessed element is this class, decided from the law oracle's own rows: it is one of
  * the foreign kinds, whose `OpenElementName` row holds its expanded name, or of a kind whose
- * namespace the document's schema set does not declare (reading 81). A strictly assessed
- * element whose `xsi:type` resolves to no type definition fails Element Locally Valid (Element),
- * cvc-elt clause 4.2 (XML Schema 1.0 Part 1 §3.3.4): it is invalid, so the law oracle accepting it
- * is a defect and stays unrecorded.
+ * namespace the document's schema set does not declare (reading `wildcard-global-declarations`). A
+ * strictly assessed element whose `xsi:type` resolves to no type definition fails Element Locally
+ * Valid (Element), cvc-elt clause 4.2 (XML Schema 1.0 Part 1 §3.3.4): it is invalid, so the law
+ * oracle accepting it is a defect and stays unrecorded.
  */
 export const laxXsiType: Recorded = {
   class: "attribute-value",
   direction: "xsd-only",
   reason: {
     _tag: "reading",
-    reading: 60,
+    reading: "wildcard-xsi-type",
     says: "a name the schemas do not define leaves it to lax assessment under `lax`",
     why: "an xsi:type naming no type, on an element laxly assessed under a wildcard: XML Schema's clause 1.2 fails and lax assessment applies, which reads as valid; xmllint refuses it",
   },
@@ -516,11 +516,11 @@ const unresolvedXsiType = regex.as<string, { names: Record<string, string | unde
 );
 
 /**
- * Decide whether a difference is reading 60's class ({@link laxXsiType}): every message `xmllint`
- * gave for it says an `xsi:type` resolves to no type definition, each on an element the law
- * oracle's rows hold as laxly assessed. A padded value is libxml2's ({@link paddedTypeRecord}),
- * since its collapsed QName may name a type. xmllint names an element in no namespace by its local
- * name alone, which the rows write `{}` before.
+ * Decide whether a difference is reading `wildcard-xsi-type`'s class ({@link laxXsiType}): every
+ * message `xmllint` gave for it says an `xsi:type` resolves to no type definition, each on an
+ * element the law oracle's rows hold as laxly assessed. A padded value is libxml2's ({@link
+ * paddedTypeRecord}), since its collapsed QName may name a type. xmllint names an element in no
+ * namespace by its local name alone, which the rows write `{}` before.
  *
  * @param difference - The difference.
  * @param laxNames - The document's laxly assessed elements' expanded names.
@@ -536,9 +536,10 @@ export const isLaxXsiType = (difference: Difference, laxNames: ReadonlySet<strin
   });
 
 /**
- * Decide whether one `xmllint` message is on an element of a set: within a nested root (reading 6)
- * or within an element whose `xsi:type` names a complex type (reading 50). `xmllint` names an
- * element in no namespace by its local name alone, which the rows write `{}` before.
+ * Decide whether one `xmllint` message is on an element of a set: within a nested root (reading
+ * `nested-root-in-wildcard`) or within an element whose `xsi:type` names a complex type (reading
+ * `unchecked-xsi-type`). `xmllint` names an element in no namespace by its local name alone, which
+ * the rows write `{}` before.
  *
  * @param message - The message, as {@link compareJudgments} writes it.
  * @param names - The expanded names of the elements.
@@ -551,11 +552,12 @@ const isMessageOn = (message: string, names: ReadonlySet<string>): boolean => {
 };
 
 /**
- * The class of disagreement spec reading 50 states as its known limit: an element laxly assessed
- * under a wildcard whose `xsi:type` names a complex type of its schema set is assessed strictly
- * against that type by XML Schema (Part 1, 3.3.4, Schema-Validity Assessment (Element), clause
- * 1.2), as `xmllint` does, while the law oracle accepts it without checking it against the type: a
- * child the type does not expect, or one it misses, is `xmllint`'s refusal alone.
+ * The class of disagreement spec reading `unchecked-xsi-type` states as its known limit: an element
+ * laxly assessed under a wildcard whose `xsi:type` names a complex type of its schema set is
+ * assessed strictly against that type by XML Schema (Part 1, 3.3.4, Schema-Validity Assessment
+ * (Element), clause 1.2), as `xmllint` does, while the law oracle accepts it without checking it
+ * against the type: a child the type does not expect, or one it misses, is `xmllint`'s refusal
+ * alone.
  *
  * Only such an element and what it holds is this class, decided from the law oracle's own rows: a
  * foreign element in a foreign element's content, which the ur-type's lax wildcard holds, whose
@@ -567,16 +569,16 @@ export const laxComplexType: Recorded = {
   direction: "xsd-only",
   reason: {
     _tag: "reading",
-    reading: 50,
+    reading: "unchecked-xsi-type",
     says: "Under a `lax` wildcard, foreign content whose `xsi:type` names a resolved complex type is accepted without being checked against that type.",
     why: "an element laxly held under a wildcard whose xsi:type names a complex type is accepted without a check against that type, a known limit; xmllint assesses it strictly against the type",
   },
 };
 
 /**
- * Decide whether a difference is reading 50's class ({@link laxComplexType}): every message
- * `xmllint` gave for it is on an element at or within a laxly held element whose `xsi:type`
- * names a complex type.
+ * Decide whether a difference is reading `unchecked-xsi-type`'s class ({@link laxComplexType}):
+ * every message `xmllint` gave for it is on an element at or within a laxly held element whose
+ * `xsi:type` names a complex type.
  *
  * @param difference - The difference.
  * @param laxComplex - The expanded names of those elements.
@@ -590,12 +592,12 @@ export const isLaxComplexType = (
   difference.detail.split(" | ").every((message) => isMessageOn(message, laxComplex));
 
 /**
- * The class of disagreement spec reading 118 departs from the XSD by: an include's content other
- * than its `xi:fallback` is ignored ("Other content ... is not constrained by this specification
- * and is ignored by the XInclude processor", XInclude 1.0 Second Edition §3.1), skipped and never
- * assessed, where `XInclude.xsd`'s `includeType` holds it under a `lax` wildcard, which finds each
- * element's global declaration and assesses it (XML Schema Part 1, 3.10.4), so `xmllint` refuses
- * whatever in it the declaration does not admit.
+ * The class of disagreement spec reading `include-fallback` departs from the XSD by: an include's
+ * content other than its `xi:fallback` is ignored ("Other content ... is not constrained by this
+ * specification and is ignored by the XInclude processor", XInclude 1.0 Second Edition §3.1),
+ * skipped and never assessed, where `XInclude.xsd`'s `includeType` holds it under a `lax` wildcard,
+ * which finds each element's global declaration and assesses it (XML Schema Part 1, 3.10.4), so
+ * `xmllint` refuses whatever in it the declaration does not admit.
  *
  * Only that content is this class, decided from the law oracle's own rows: each child of an
  * include that is no fallback, and every element within it ({@link ForeignNames}' `ignored`).
@@ -604,15 +606,16 @@ export const ignoredIncludeContent: Recorded = {
   direction: "xsd-only",
   reason: {
     _tag: "reading",
-    reading: 118,
+    reading: "include-fallback",
     says: "the content of an include other than its `xi:fallback` is ignored: skipped, never assessed laxly, as `XInclude.xsd`'s wildcard would assess it, and never refused, by the importer (`ignoredContent`, `src/grammar/facets.ts`) and the law oracle alike.",
     why: "an include's content other than its fallback is ignored, never assessed; xmllint assesses it laxly under XInclude.xsd's wildcard",
   },
 };
 
 /**
- * Decide whether a difference is reading 118's class ({@link ignoredIncludeContent}): every message
- * `xmllint` gave for it is on an element at or within an include's ignored content.
+ * Decide whether a difference is reading `include-fallback`'s class ({@link
+ * ignoredIncludeContent}): every message `xmllint` gave for it is on an element at or within an
+ * include's ignored content.
  *
  * @param difference - The difference.
  * @param ignored - The expanded names of those elements.
@@ -626,10 +629,10 @@ export const isIgnoredIncludeContent = (
   difference.detail.split(" | ").every((message) => isMessageOn(message, ignored));
 
 /**
- * The class of disagreement spec reading 6 departs from the XSD by: a QTI root, processing root or
- * manifest nested inside `lax` wildcard content is valid and kept as foreign content, while XML
- * Schema finds its global declaration there and assesses it strictly (Part 1, 3.10.4), so
- * `xmllint` refuses whatever in it the declaration does not admit.
+ * The class of disagreement spec reading `nested-root-in-wildcard` departs from the XSD by: a QTI
+ * root, processing root or manifest nested inside `lax` wildcard content is valid and kept as
+ * foreign content, while XML Schema finds its global declaration there and assesses it strictly
+ * (Part 1, 3.10.4), so `xmllint` refuses whatever in it the declaration does not admit.
  *
  * Only such a root and what it holds is this class, decided from the law oracle's own rows: a
  * foreign element named as one of `foreignRoots`' kinds is, and so is every element within it.
@@ -638,15 +641,15 @@ export const nestedRoot: Recorded = {
   direction: "xsd-only",
   reason: {
     _tag: "reading",
-    reading: 6,
+    reading: "nested-root-in-wildcard",
     says: "It is kept as foreign content like any other element",
     why: "a QTI root nested in lax wildcard content is valid and kept as foreign content; xmllint assesses it against its global declaration",
   },
 };
 
 /**
- * Decide whether a difference is reading 6's class ({@link nestedRoot}): every message `xmllint`
- * gave for it is on an element within a nested root.
+ * Decide whether a difference is reading `nested-root-in-wildcard`'s class ({@link nestedRoot}):
+ * every message `xmllint` gave for it is on an element within a nested root.
  *
  * @param difference - The difference.
  * @param nested - The expanded names of the document's elements within a nested root.
@@ -657,12 +660,13 @@ export const isNestedRoot = (difference: Difference, nested: ReadonlySet<string>
   difference.detail.split(" | ").every((message) => isMessageOn(message, nested));
 
 /**
- * The class of disagreement spec reading 81 states as its known limit: the grammar is one for every
- * schema set, not one per set, so a kind that stands in documents of more than one set (LOM's,
- * in a manifest and in an external LOM file, and the foreign kinds, in every document) reads an
- * element under its `lax` wildcards as the declaration any of those sets gives it, and judges it
- * so, while XML Schema assesses an element the document's own set does not declare against
- * nothing. A `drd:hazard` beneath a LOM element in an external LOM file is the reading's example.
+ * The class of disagreement spec reading `wildcard-global-declarations` states as its known limit:
+ * the grammar is one for every schema set, not one per set, so a kind that stands in documents of
+ * more than one set (LOM's, in a manifest and in an external LOM file, and the foreign kinds, in
+ * every document) reads an element under its `lax` wildcards as the declaration any of those sets
+ * gives it, and judges it so, while XML Schema assesses an element the document's own set does not
+ * declare against nothing. A `drd:hazard` beneath a LOM element in an external LOM file is the
+ * reading's example.
  *
  * Only a refusal of an element or attribute in a namespace outside the document's set is this
  * class, decided from the law oracle's own rows and the XSDs' imports ({@link isOutsideSet}). An
@@ -673,32 +677,34 @@ export const outsideSet: Recorded = {
   direction: "oracle-only",
   reason: {
     _tag: "reading",
-    reading: 81,
+    reading: "wildcard-global-declarations",
     says: "One limit follows from the grammar being one for every schema set, not one per set.",
     why: "the grammar, one for every schema set, judges an element or attribute its document's schema set does not declare as another set declares it; XML Schema assesses it against nothing",
   },
 };
 
 /**
- * A document whose root is only an included fragment's (spec reading 114): its root is any kind an
- * include stands for, which the XSDs declare locally, so `xmllint`, validating the document alone,
- * finds no global declaration for its validation root and judges nothing below it, while the law
- * oracle judges the document as a fragment's, its root admitted, the package's `RootOfType`
- * judging it by its resource type. Every difference of such a document is this one's.
+ * A document whose root is only an included fragment's (spec reading
+ * `include-as-information-model`): its root is any kind an include stands for, which the XSDs
+ * declare locally, so `xmllint`, validating the document alone, finds no global declaration for its
+ * validation root and judges nothing below it, while the law oracle judges the document as a
+ * fragment's, its root admitted, the package's `RootOfType` judging it by its resource type. Every
+ * difference of such a document is this one's.
  */
 export const fragmentRoot: Recorded = {
   direction: "xsd-only",
   reason: {
     _tag: "reading",
-    reading: 114,
+    reading: "include-as-information-model",
     says: "there it stands for its fragment's root",
     why: "a fragment's document roots at a kind an include stands for, which the XSDs declare locally; xmllint, validating it alone, finds no global declaration for the root",
   },
 };
 
 /**
- * The kinds of the roots only a fragment's document has (spec reading 114): every kind an include
- * stands for that no resource type lists as its root, the manifest aside.
+ * The kinds of the roots only a fragment's document has (spec reading
+ * `include-as-information-model`): every kind an include stands for that no resource type lists as
+ * its root, the manifest aside.
  */
 export const fragmentOnlyKinds: ReadonlySet<string> = (() => {
   const grammar = Result.getOrThrow(composed());
@@ -729,9 +735,10 @@ export const fragmentOnlyRoots: ReadonlySet<string> = (() => {
 })();
 
 /**
- * The namespaces of the global attributes reading 81's limit types by the union of a kind's schema
- * sets, by the prefix the law table names them with: `xml.xsd`'s four, which the ASI and
- * content-packaging sets import, and XLink's ten, which the content-packaging set alone imports.
+ * The namespaces of the global attributes reading `wildcard-global-declarations`'s limit types by
+ * the union of a kind's schema sets, by the prefix the law table names them with: `xml.xsd`'s four,
+ * which the ASI and content-packaging sets import, and XLink's ten, which the content-packaging set
+ * alone imports.
  */
 const globalAttributeNamespaces: ReadonlyMap<string, string> = new Map([
   ["xml:", XML_NAMESPACE],
@@ -744,18 +751,19 @@ const globalAttributeNamespaces: ReadonlyMap<string, string> = new Map([
 const breachDetail = regex("^(?<law>.+?) at (?<path>/\\S*): (?<rest>[\\s\\S]*)$", "u");
 
 /**
- * Reading 6's class from the law oracle's side: a nested root kept as foreign content is judged as
- * foreign content, its text and attributes by the type its `xsi:type` names where that type
- * resolves (reading 60), while `xmllint` assesses the same element against its global
- * declaration, under which the `xsi:type` is no valid derivation and the text is not read so.
+ * Reading `nested-root-in-wildcard`'s class from the law oracle's side: a nested root kept as
+ * foreign content is judged as foreign content, its text and attributes by the type its `xsi:type`
+ * names where that type resolves (reading `wildcard-xsi-type`), while `xmllint` assesses the same
+ * element against its global declaration, under which the `xsi:type` is no valid derivation and the
+ * text is not read so.
  */
 export const nestedRootLaw: Recorded = {
   direction: "oracle-only",
   reason: {
     _tag: "reading",
-    reading: 6,
+    reading: "nested-root-in-wildcard",
     says: "It is kept as foreign content like any other element",
-    why: "a QTI root nested in lax wildcard content is kept as foreign content and judged so, by its xsi:type (reading 60); xmllint assesses it against its global declaration",
+    why: "a QTI root nested in lax wildcard content is kept as foreign content and judged so, by its xsi:type (reading `wildcard-xsi-type`); xmllint assesses it against its global declaration",
   },
 };
 
@@ -868,16 +876,17 @@ export const gateHolds = (
   (held !== paddedIdRecord || holdsPaddedId(difference, names));
 
 /**
- * Decide whether a difference is reading 81's limit ({@link outsideSet}): the law oracle refuses an
- * element whose kind's namespace, or an `xml:` or XLink attribute whose namespace, the document's
- * schema set does not declare, and a kind that stands in more than one set read it: a foreign
- * element above the element, or holding the attribute, whose wildcard reads every set, or, in an
- * external LOM file, LOM's kinds reading a manifest's set. An `xsi:` attribute is XML Schema's own,
- * which every set declares, and a foreign kind names no namespace of its own, so neither is this
- * class. An element outside the set that no such kind read is not the limit but the grammar reading
- * it where reading 81 makes it foreign, a defect, and stays unrecorded. A "DocumentId key" breach
- * names the elements that hold the ID, not the attribute, so one whose two holders both carry an
- * `xml:id` is read as an `xml:` attribute's.
+ * Decide whether a difference is reading `wildcard-global-declarations`'s limit ({@link
+ * outsideSet}): the law oracle refuses an element whose kind's namespace, or an `xml:` or XLink
+ * attribute whose namespace, the document's schema set does not declare, and a kind that stands in
+ * more than one set read it: a foreign element above the element, or holding the attribute, whose
+ * wildcard reads every set, or, in an external LOM file, LOM's kinds reading a manifest's set. An
+ * `xsi:` attribute is XML Schema's own, which every set declares, and a foreign kind names no
+ * namespace of its own, so neither is this class. An element outside the set that no such kind read
+ * is not the limit but the grammar reading it where reading `wildcard-global-declarations` makes it
+ * foreign, a defect, and stays unrecorded. A "DocumentId key" breach names the elements that hold
+ * the ID, not the attribute, so one whose two holders both carry an `xml:id` is read as an `xml:`
+ * attribute's.
  *
  * @param difference - The difference.
  * @param names - The document's names, its schema set and what LOM's kinds read beyond it.
@@ -933,11 +942,11 @@ export const isOutsideSet = (
 };
 
 /**
- * The class of disagreement spec reading 90 departs from the XSD by: on an element the Schematron's
- * extension rules cover (`coveredElements`), an attribute its XSD does not declare is a `data-`
- * name in no namespace or the document is refused, while `xmllint`, which runs no Schematron,
- * admits it under the element's `##any` `lax` wildcard. The codec refuses it as an attribute its
- * kind admits under no name or open class.
+ * The class of disagreement spec reading `extension-attribute-lists` departs from the XSD by: on an
+ * element the Schematron's extension rules cover (`coveredElements`), an attribute its XSD does not
+ * declare is a `data-` name in no namespace or the document is refused, while `xmllint`, which runs
+ * no Schematron, admits it under the element's `##any` `lax` wildcard. The codec refuses it as an
+ * attribute its kind admits under no name or open class.
  */
 const extensionAttribute: Recorded = {
   class: "attribute-allowed",
@@ -950,7 +959,7 @@ const extensionAttribute: Recorded = {
   direction: "oracle-only",
   reason: {
     _tag: "reading",
-    reading: 90,
+    reading: "extension-attribute-lists",
     says: "an attribute its XSD does not declare is a `data-` attribute, or the document is refused.",
     why: "the Schematron's extension rules admit no undeclared attribute but a data- one on the elements they cover; xmllint runs no Schematron and admits it under the ##any lax wildcard",
   },
@@ -958,13 +967,13 @@ const extensionAttribute: Recorded = {
 };
 
 /**
- * Decide whether a bred document's difference is reading 81's limit ({@link outsideSet}) by where
- * its edits were made: the law oracle stopped at the codec or a fold, refusing what an edit made at
- * an element whose namespace the document's schema set does not declare, which only a kind
- * standing in more than one set reads as its declaration, so the law oracle refuses what XML
- * Schema assesses against nothing. The codec refuses such an edit before any law reads a row, so
- * {@link isOutsideSet}, which reads the oracle's rows, cannot see it; a judgment the oracle did
- * not stop is left to {@link isOutsideSet}.
+ * Decide whether a bred document's difference is reading `wildcard-global-declarations`'s limit
+ * ({@link outsideSet}) by where its edits were made: the law oracle stopped at the codec or a fold,
+ * refusing what an edit made at an element whose namespace the document's schema set does not
+ * declare, which only a kind standing in more than one set reads as its declaration, so the law
+ * oracle refuses what XML Schema assesses against nothing. The codec refuses such an edit before
+ * any law reads a row, so {@link isOutsideSet}, which reads the oracle's rows, cannot see it; a
+ * judgment the oracle did not stop is left to {@link isOutsideSet}.
  *
  * @param difference - The difference.
  * @param stopped - Whether the law oracle stopped at the reader, the codec or a fold.
@@ -996,7 +1005,7 @@ export const recorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 72,
+      reading: "completion-status-name",
       says: "The built-in outcome variable is `completionStatus`, spelled exactly",
       why: "the built-in outcome is completionStatus, compared exactly; adaptive.xml sets completion_status, which nothing declares",
     },
@@ -1020,7 +1029,7 @@ export const recorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 128,
+      reading: "label-tool",
       says: "A `label` asks for the tool that labelled it where its own characteristic's description says so",
       why: "if an item uses labels then its root carries tool-name and tool-version; the XSD makes all three optional and relates none",
     },
@@ -1031,7 +1040,7 @@ export const recorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 104,
+      reading: "choice-identifier-scope",
       says: 'A choice\'s identifier is used by no other element of its own noun in its document, a "choice" by no other choice of any class',
       why: "no two elements of one choice class in a document share an identifier, and a simple, inline, hotspot or simple associable choice shares one with no other choice of any class, whichever interactions hold them; the XSD states no key over choice identifiers",
     },
@@ -1079,10 +1088,10 @@ const bcp47Space = String.raw`(?:\\[tnr]| )*`;
 
 /**
  * A well-formed BCP 47 language tag, RFC 5646 section 2.1's `Language-Tag` (case-insensitive),
- * written from the RFC's ABNF and not from the grammar's domain, so the reading 129 record below
- * holds only for a value the RFC itself refuses: a `langtag` (language with up to three extlangs,
- * script, region, variants, extensions and a private use), a private use alone, or one of the
- * grandfathered tags.
+ * written from the RFC's ABNF and not from the grammar's domain, so the reading `language-tags`
+ * record below holds only for a value the RFC itself refuses: a `langtag` (language with up to
+ * three extlangs, script, region, variants, extensions and a private use), a private use alone, or
+ * one of the grandfathered tags.
  */
 const bcp47Tag = [
   String.raw`(?:[A-Za-z]{2,3}(?:-[A-Za-z]{3}){0,3}|[A-Za-z]{4}|[A-Za-z]{5,8})(?:-[A-Za-z]{4})?(?:-(?:[A-Za-z]{2}|[0-9]{3}))?(?:-(?:[A-Za-z0-9]{5,8}|[0-9][A-Za-z0-9]{3}))*(?:-[0-9A-WYZa-wyz](?:-[A-Za-z0-9]{2,8})+)*(?:-[Xx](?:-[A-Za-z0-9]{1,8})+)?`,
@@ -1144,10 +1153,10 @@ const srclangBreach = String.raw`|\S*\/track(?:\[\d+\])?: srclang: "(?!(?:${bcp4
 const langBreach = String.raw`|\S+: lang: "(?!(?:${bcp47Tag})?")`;
 
 /**
- * The two messages of xmllint's that reading 2 records on MathML content, each as one `line N
- * {MathML}name: ...` segment: an element whose XSD content type is empty holding text, and a
- * `semantics` where the XSD's content expression, `apply` through `piecewise` and perhaps more
- * members, does not name it. A document's message joins its segments with " | ", and only a
+ * The two messages of xmllint's that reading `mathml-validity` records on MathML content, each as
+ * one `line N {MathML}name: ...` segment: an element whose XSD content type is empty holding text,
+ * and a `semantics` where the XSD's content expression, `apply` through `piecewise` and perhaps
+ * more members, does not name it. A document's message joins its segments with " | ", and only a
  * document every segment of which matches is covered.
  */
 const mathmlSegment = (() => {
@@ -1174,8 +1183,8 @@ const coveredMessages = regex.as(String.raw`^${mathmlSegment}(?: \| ${mathmlSegm
 
 /**
  * One message of xmllint's refusing an element at a `##other` wildcard of QTI's namespace, which
- * spec reading 61 reads as `##any` at `qti-ordering`: `line N`, the element's name, in braces with
- * its namespace where it has one, and the wildcard's expectation.
+ * spec reading `ordering-extension-slot` reads as `##any` at `qti-ordering`: `line N`, the
+ * element's name, in braces with its namespace where it has one, and the wildcard's expectation.
  */
 const orderingSlotSegment = String.raw`line \d+ (?:\{[^}]*\})?[^\s:]+: This element is not expected\. Expected is \( ##other\{http:\/\/www\.imsglobal\.org\/xsd\/imsqtiasi_v3p0\}\* \)\.`;
 
@@ -1188,33 +1197,34 @@ const orderingSlotMessages = regex.as(
 );
 
 /**
- * One message of reading 2's MathML classes ({@link mathmlSegment}), alone.
+ * One message of reading `mathml-validity`'s MathML classes ({@link mathmlSegment}), alone.
  */
 const mathmlMessage = regex.as(String.raw`^${mathmlSegment}$`, "u");
 
 /**
  * Two reading classes in one difference: `xmllint` gives one content difference for a document, so
- * a MathML element that holds only whitespace (reading 2's records above) and a nested root that
- * holds text (reading 6, {@link nestedRoot}) in one document show as one difference, which neither
- * class matches alone, since each needs every message to be its own. The nested root is reading 6's
- * and the MathML element reading 2's, wherever the document holds them, an include's content
- * among them.
+ * a MathML element that holds only whitespace (reading `mathml-validity`'s records above) and a
+ * nested root that holds text (reading `nested-root-in-wildcard`, {@link nestedRoot}) in one
+ * document show as one difference, which neither class matches alone, since each needs every
+ * message to be its own. The nested root is reading `nested-root-in-wildcard`'s and the MathML
+ * element reading `mathml-validity`'s, wherever the document holds them, an include's content among
+ * them.
  */
 export const nestedRootBesideMath: Recorded = {
   class: "content",
   direction: "xsd-only",
   reason: {
     _tag: "reading",
-    reading: 6,
+    reading: "nested-root-in-wildcard",
     says: "It is kept as foreign content like any other element",
-    why: "two recorded classes in one content difference: a QTI root nested in lax wildcard content is kept as foreign content, and a MathML element whose RelaxNG content is empty admits whitespace-only text (reading 2); xmllint assesses the root against its global declaration and the MathML element against QTI's bundled XSD",
+    why: "two recorded classes in one content difference: a QTI root nested in lax wildcard content is kept as foreign content, and a MathML element whose RelaxNG content is empty admits whitespace-only text (reading `mathml-validity`); xmllint assesses the root against its global declaration and the MathML element against QTI's bundled XSD",
   },
 };
 
 /**
- * Decide whether a difference is {@link nestedRootBesideMath}'s: every message `xmllint` gave for
- * it is reading 2's on MathML content or on an element within a nested root, and it holds one of
- * each, since a difference of one class alone is that class's record.
+ * Decide whether a difference is {@link nestedRootBesideMath}'s: every message `xmllint` gave for it
+ * is reading `mathml-validity`'s on MathML content or on an element within a nested root, and it
+ * holds one of each, since a difference of one class alone is that class's record.
  *
  * @param difference - The difference.
  * @param nested - The expanded names of the document's elements within a nested root.
@@ -1256,7 +1266,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "xsd-only",
     reason: {
       _tag: "reading",
-      reading: 61,
+      reading: "ordering-extension-slot",
       says: "An element in QTI's own namespace inside `qti-ordering`'s extension slot is valid.",
       why: "the information model says the ordering's extension child tags 'may be new tags and reused QTI ASI tags' (§5.98.3), so the slot reads as ##any, laxly; the XSD writes ##other there, and xmllint refuses an element of QTI's namespace or of none. Every message must be that refusal: the grammar keeps ##other at every other slot, so it shows only where qti-ordering holds the element",
     },
@@ -1270,7 +1280,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 123,
+      reading: "bdo-dir",
       says: "A `bdo` carries `dir`, and its value is `ltr` or `rtl`.",
       why: "the information model requires a bdo's dir; the XSD declares it optional, so xmllint accepts a bdo without it",
     },
@@ -1285,14 +1295,14 @@ export const generatedRecorded: readonly Recorded[] = [
         languageBreach,
         srclangBreach,
         langBreach,
-        `)(?:[^"\\\\]|\\\\.)*" is outside \\S+ \\(reading 129\\)(?: \\(\\d+\\))?, whose pattern is `,
+        `)(?:[^"\\\\]|\\\\.)*" is outside \\S+ \\(language-tags\\)(?: \\(\\d+\\))?, whose pattern is `,
       ].join(""),
       "u",
     ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 129,
+      reading: "language-tags",
       says: "`xml:lang`, `lang` and a track's `srclang` hold BCP 47 language tags, well-formed as RFC 5646 defines them.",
       why: "xml:lang is a BCP 47 tag or empty (XML 1.0 2.12), never empty on an item or a stimulus, a lang a tag or empty and a track's srclang a tag, both as written; xml.xsd types xml:lang as xs:language, RFC 3066's pattern, or empty, and the XSD lang and srclang as xs:normalizedString",
     },
@@ -1301,13 +1311,13 @@ export const generatedRecorded: readonly Recorded[] = [
   {
     class: "attribute-value",
     detail: regex.as(
-      '^value domain at \\S+: (?:mime-type|type): "(?:[^"\\\\]|\\\\.)*" is outside MimeTypeDType \\(reading 135\\)',
+      '^value domain at \\S+: (?:mime-type|type): "(?:[^"\\\\]|\\\\.)*" is outside MimeTypeDType \\(mime-type\\)',
       "u",
     ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 135,
+      reading: "mime-type",
       says: "A MIME type is RFC 2045's type and subtype: two tokens joined by a slash.",
       why: "a MIME type is two RFC 2045 tokens joined by a slash, and a token holds no space; the XSD's MimeTypeDType pattern admits a space",
     },
@@ -1322,7 +1332,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 39,
+      reading: "ssml-speak-version",
       says: "An SSML `speak/@version` is `1.1`.",
       why: "SSML 1.1 says a speak's version must have the value 1.1, wherever the speak stands; QTI's core XSD types it xs:NMTOKEN, which admits any token",
     },
@@ -1382,7 +1392,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 130,
+      reading: "lom-repetition",
       says: "A LOM element repeats no more than the loose binding's Schematron allows.",
       why: "the loose LOM binding's Schematron caps each LOM element's repeats; its XSD leaves them unbounded",
     },
@@ -1394,13 +1404,13 @@ export const generatedRecorded: readonly Recorded[] = [
      * The media URLs share one domain, whose handle names the reading that compiled it first.
      */
     detail: regex.as(
-      '^value domain at \\S*\\/(?:(?:audio|source|video)(?:\\[\\d+\\])?: src|video(?:\\[\\d+\\])?: poster|source(?:\\[\\d+\\])?: srcset): "(?:\\\\[tnr]| )*" is outside URLDType \\(reading 12[45]\\)',
+      '^value domain at \\S*\\/(?:(?:audio|source|video)(?:\\[\\d+\\])?: src|video(?:\\[\\d+\\])?: poster|source(?:\\[\\d+\\])?: srcset): "(?:\\\\[tnr]| )*" is outside URLDType \\((?:source-attributes|track-srclang)\\)',
       "u",
     ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 124,
+      reading: "source-attributes",
       says: 'Each media URL the information model describes as "a valid non-empty URL potentially surrounded by spaces" holds a character other than a space',
       why: "the information model says an audio's and a video's src, a video's poster and a source's src each hold a valid non-empty URL potentially surrounded by spaces (5.9.1, 5.166.1, 5.166.9, 5.135.1), and the HTML Standard that a srcset holds one or more image candidate strings, each a valid non-empty URL; the XSD types each URLDType, an xs:normalizedString that may be empty or blank",
     },
@@ -1409,13 +1419,13 @@ export const generatedRecorded: readonly Recorded[] = [
   {
     class: "attribute-value",
     detail: regex.as(
-      '^value domain at \\S*\\/track(?:\\[\\d+\\])?: src: "(?:\\\\[tnr]| )*" is outside URLDType \\(reading 12[45]\\)',
+      '^value domain at \\S*\\/track(?:\\[\\d+\\])?: src: "(?:\\\\[tnr]| )*" is outside URLDType \\((?:source-attributes|track-srclang)\\)',
       "u",
     ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 125,
+      reading: "track-srclang",
       says: "A `track`'s `src`, which the XSD already requires, holds a character other than a space",
       why: "the information model says a track's src is a valid non-empty URL potentially surrounded by spaces (5.163.2); the XSD types it URLDType, an xs:normalizedString that may be empty or blank",
     },
@@ -1426,7 +1436,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 124,
+      reading: "source-attributes",
       says: "A `source` in a `picture` carries `srcset`, and one in an `audio` or a `video` carries `src`.",
       why: "a source in an audio or a video carries src, as the HTML Standard decides the information model's 5.135.1; the XSD makes src optional",
     },
@@ -1437,7 +1447,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 124,
+      reading: "source-attributes",
       says: "A `source` in a `picture` carries `srcset`, and one in an `audio` or a `video` carries `src`.",
       why: "a source in a picture carries srcset, which the information model requires there (5.135.3); the XSD makes srcset optional",
     },
@@ -1452,7 +1462,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: "`math` is MathML's one root",
       why: "MathML content stands only inside m:math, as the MathML 3 RelaxNG's start and anyElement state; the XSD declares each MathML element globally, so a lax wildcard assesses one alone against its declaration",
     },
@@ -1464,7 +1474,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "xsd-only",
     reason: {
       _tag: "reading",
-      reading: 8,
+      reading: "match-table-target-value",
       says: "A match table entry's `target-value` is a value of the outcome's base type.",
       why: "a match table entry's target-value is a value of the outcome's base type; the XSD types it as one of the base-type names",
     },
@@ -1478,7 +1488,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 38,
+      reading: "gap-and-hottext-placement",
       says: "A `qti-gap` appears only within a gap-match interaction",
       why: "a qti-gap appears only within a gap-match interaction; the XSD admits it in any phrasing container",
     },
@@ -1493,7 +1503,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 38,
+      reading: "gap-and-hottext-placement",
       says: "A `qti-gap` appears only within a gap-match interaction",
       why: "a qti-gap lies in a gap-match interaction, its nearest; the XSD admits it in any phrasing container, where it may lie in no interaction",
     },
@@ -1508,7 +1518,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 74,
+      reading: "identifier-names-one-variable",
       says: "For a context's identifier among the document's IDs it is one, and the information model is followed over the XSD.",
       why: "a context declaration's identifier is unique among its document's IDs as a response declaration's is; 3.0.1's XSD types it IdentifierDType, no xs:ID, so xmllint keys nothing there",
     },
@@ -1519,7 +1529,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 74,
+      reading: "identifier-names-one-variable",
       says: "An identifier names one variable among the declarations of its document.",
       why: "a variable's identifier is declared once in its item or test; the XSD states no key over declarations",
     },
@@ -1530,9 +1540,9 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 41,
+      reading: "ssml-meta-name",
       says: "An SSML `meta` has exactly one of `name` and `http-equiv`.",
-      why: "SSML's meta takes a name or an http-equiv and not both, and its voice and prosody at least one attribute (readings 41 and 43); the SSML XSD makes each optional",
+      why: "SSML's meta takes a name or an http-equiv and not both, and its voice and prosody at least one attribute (readings `ssml-meta-name` and `ssml-voice-prosody-attributes`); the SSML XSD makes each optional",
     },
     rule: "attribute-count",
   },
@@ -1541,7 +1551,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: "such as an operator applied to the wrong number of arguments",
       why: "a MathML operator takes the arguments its class states (MathML 3, 4.3.4); the XSD's apply takes any number",
     },
@@ -1556,7 +1566,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: 'qualifiers appear in the order "bvar, lowlimit, uplimit, interval, condition, domainofapplication, degree, momentabout, logbase"',
       why: "MathML's qualifiers stand in the order bvar, lowlimit, uplimit, interval, condition, domainofapplication, degree, momentabout, logbase, a condition only after a bvar (MathML 3, 4.3.3 and 4.3.3.1), and a bind's bound variables come before its body (4.2.6.1); the XSD's apply and bind take their qualifiers in any order",
     },
@@ -1568,7 +1578,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: "It is an error for mscarries to be the last element of an mstack or mlongdiv element",
       why: "an mscarries is not the last element of an mstack or an mlongdiv, and a bind holds at least one bvar (MathML 3, 3.6.5.1 and 4.2.6.1); both schemas repeat those children in any order, so the automaton's last-position law states it",
     },
@@ -1580,7 +1590,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: "for an `apply` that holds no qualifier but its operator's own",
       why: "spec reading R6-head-qualifiers: an apply's operator takes only the qualifiers its MathML 3 syntax table lists (degree with root, logbase with log, momentabout with moment, 4.4); the XSD's apply takes any qualifier beside any operator",
     },
@@ -1592,7 +1602,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: "`cn`'s content has the form its `type` implies",
       why: "spec reading R6-hexdouble: a cn's content has the form its type implies, split at m:sep, with digits read in its base (MathML 3, 4.2.1); the XSD types the content as mixed text",
     },
@@ -1604,7 +1614,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: "an `maction`'s `selection` names one of its children",
       why: "an maction's selection names one of its children, and one with no child selects none (MathML 3, 3.7.1.1: 'If the value specified is out of range, it is an error'); the XSD types selection a positive integer and counts no children",
     },
@@ -1616,7 +1626,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: "an `maligngroup` inside a table cell stands only where §3.5.5.2 lets it",
       why: "an maligngroup in a table cell stands only where MathML 3, 3.5.5.2 lets it (an mrow or mstyle that changes no direction, mphantom, mfenced, the selected child of an maction, semantics); the XSD admits it under any presentation element",
     },
@@ -1628,7 +1638,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: "the cell's first complete element is a group",
       why: "a table cell holding an alignment group starts with one (MathML 3, 3.5.5.2: 'the first complete element must be an maligngroup element'); the XSD's mtd takes its children in any order",
     },
@@ -1640,7 +1650,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: 'no element dominates itself: "An element may not dominate itself"',
       why: "no element dominates itself, and a share's same-document src names the element it stands for (MathML 3, 4.2.7: 'An element may not dominate itself'); the XSD types src xs:anyURI and follows no reference",
     },
@@ -1652,7 +1662,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: "a `share`'s `#id` names an element of its document",
       why: "a share's src, a same-document fragment '#id', names an element of its document (MathML 3, 4.2.7); the XSD types src xs:anyURI and resolves it nowhere",
     },
@@ -1667,7 +1677,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "xsd-only",
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: "RELAX NG matches a whitespace-only text against `empty`",
       why: "a MathML element whose RelaxNG content is empty admits whitespace-only text, as RELAX NG matches it against empty; the normative MathML 3 RelaxNG is followed over QTI's bundled XSD, whose empty types refuse it (xmllint's XSD validator)",
     },
@@ -1684,7 +1694,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "xsd-only",
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: "a `semantics` stands wherever a content expression does",
       why: 'a semantics stands wherever a MathML 3 content expression does, as the RelaxNG\'s ContExp names semantics-contexp; the XSD drops it ("Ambiguous content model altered (ContExp)", mathml3-strict-content.xsd line 8), so xmllint refuses it there',
     },
@@ -1695,7 +1705,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 3,
+      reading: "ssml-document-is-fragment",
       says: 'In SSML, "the document" is each `speak` fragment.',
       why: "an SSML startmark or endmark names a mark of its speak once, and a lookup's ref a lexicon of it (SSML 1.1, 3.1.1.1 and 3.1.5); the XSD types them as tokens",
     },
@@ -1706,7 +1716,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 78,
+      reading: "mapping-base-type",
       says: "A mapping maps a base type other than `file` and `duration`, of a variable that is not a record.",
       why: "a mapping maps a base type other than file and duration, of a variable that is not a record, so a declaration with no base type maps none; the XSD admits a mapping in any response declaration",
     },
@@ -1717,7 +1727,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 100,
+      reading: "lookup-sets-single-outcome",
       says: "A lookup table sets a single outcome.",
       why: "a match or interpolation table sets a single outcome, so one under a multiple, ordered or record outcome declaration is refused; the XSD admits the tables under any outcome declaration",
     },
@@ -1728,7 +1738,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 75,
+      reading: "response-identifier-declared",
       says: "An interaction's `response-identifier` names a declared response variable.",
       why: "an interaction's response-identifier names a response its item declares; the XSD types it an identifier and resolves it nowhere",
     },
@@ -1739,7 +1749,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 92,
+      reading: "binding-and-count-sentences",
       says: "Each response variable declared may be bound to one and only one interaction",
       why: "each response variable is bound to one interaction only (information model §2.2.2.2), so two interactions of an item that name one response are refused; the XSD resolves no binding",
     },
@@ -1748,15 +1758,15 @@ export const generatedRecorded: readonly Recorded[] = [
   {
     class: "attribute-value",
     detail: regex.as(
-      '^value domain at \\S+: (?:src|poster|srcset): "(?: |\\\\[nrt])*" is outside URLDType \\(reading [^)]*\\b12[45]\\b',
+      '^value domain at \\S+: (?:src|poster|srcset): "(?: |\\\\[nrt])*" is outside URLDType \\([^)]*\\b(?:source-attributes|track-srclang)\\b',
       "u",
     ),
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 124,
+      reading: "source-attributes",
       says: 'Each media URL the information model describes as "a valid non-empty URL potentially surrounded by spaces" holds a character other than a space',
-      why: 'a media URL "must contain a valid non-empty URL potentially surrounded by spaces" (information model §5.9.1, §5.135.1, §5.163.2, §5.166.1, §5.166.9; reading 125 for track), so an empty or blank src, poster or srcset is refused; the XSD\'s URLDType is any xs:normalizedString',
+      why: 'a media URL "must contain a valid non-empty URL potentially surrounded by spaces" (information model §5.9.1, §5.135.1, §5.163.2, §5.166.1, §5.166.9; reading `track-srclang` for track), so an empty or blank src, poster or srcset is refused; the XSD\'s URLDType is any xs:normalizedString',
     },
     rule: "attribute-lexical",
   },
@@ -1766,7 +1776,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "oracle-only",
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: "`xref` names an `id` of its document, an `xs:IDREF`",
       why: "MathML 3's xref names an id of its document (an xs:IDREF, §5.4.2), where QTI's bundled MathML XSD types it xs:anySimpleType, so text that is no IDREF is refused",
     },
@@ -1833,7 +1843,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 23,
+      reading: "outcome-only-expressions",
       says: "The eight outcome-only expressions are forbidden outside outcome processing.",
       why: "the test operators stand only in outcome processing; the XSD admits them in any expression, response processing's included",
     },
@@ -1866,7 +1876,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 77,
+      reading: "feedback-and-printed-variable-names",
       says: "A response variable, declared or built in, is refused for both",
       why: "a feedback element's outcome-identifier names a declared outcome; the XSD types it an identifier and resolves it nowhere",
     },
@@ -1877,7 +1887,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 77,
+      reading: "feedback-and-printed-variable-names",
       says: "The outcome variable or template variable must have been defined.",
       why: "a printed variable names a declared outcome or template variable; the XSD types its identifier and resolves it nowhere",
     },
@@ -1899,7 +1909,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 92,
+      reading: "binding-and-count-sentences",
       says: "A PCI's `qti-context-variable` names a context variable",
       why: "a PCI's qti-context-variable names QTI_CONTEXT or a context variable its item declares; the XSD types its identifier and resolves it nowhere",
     },
@@ -1921,7 +1931,7 @@ export const generatedRecorded: readonly Recorded[] = [
     direction: "beyond",
     reason: {
       _tag: "reading",
-      reading: 121,
+      reading: "tolerance",
       says: "Under `tolerance-mode` absolute or relative, a `qti-equal` carries a `tolerance`; every `tolerance` is one or two values, each number among them above 0.",
       why: 'an absolute or relative qti-equal names its tolerance, and every tolerance, in exact mode too, is one or two values, each number among them above 0, so tolerance="" holds none and is refused; the XSD types tolerance as an unbounded list of a union of xs:string and xs:double, which admits any value, and requires none',
     },
@@ -1943,24 +1953,26 @@ export const generatedRecorded: readonly Recorded[] = [
 /**
  * What a document's rows say of the elements XML Schema assesses laxly or not at all, each name as
  * `{namespace}local`: every foreign element (`lax`); every element within a nested root that
- * reading 6 keeps foreign (`nested`, {@link nestedRoot}), and each such node's place as the law
- * oracle writes it (`nestedPaths`, {@link nestedRootLaw}); every element of a kind whose namespace
- * the document's schema set does not declare (`outside`, reading 81), which a wildcard can only
- * assess laxly; that set's namespaces (`set`); and the namespaces LOM's kinds read beyond it
- * (`lomReads`): in an external LOM file, a manifest's set, since LOM's kinds stand in manifests too
- * (reading 81's limit), and none in any other document; and each `xml:id`'s lexical form by its
- * holder's place (`xmlIds`), which a "DocumentId key" breach names ({@link paddedIdRecord}).
+ * reading `nested-root-in-wildcard` keeps foreign (`nested`, {@link nestedRoot}), and each such
+ * node's place as the law oracle writes it (`nestedPaths`, {@link nestedRootLaw}); every element of
+ * a kind whose namespace the document's schema set does not declare (`outside`, reading
+ * `wildcard-global-declarations`), which a wildcard can only assess laxly; that set's namespaces
+ * (`set`); and the namespaces LOM's kinds read beyond it (`lomReads`): in an external LOM file, a
+ * manifest's set, since LOM's kinds stand in manifests too (reading
+ * `wildcard-global-declarations`'s limit), and none in any other document; and each `xml:id`'s
+ * lexical form by its holder's place (`xmlIds`), which a "DocumentId key" breach names ({@link
+ * paddedIdRecord}).
  */
 export interface ForeignNames {
   /**
    * The expanded names of the elements at or within an include's content other than its
-   * fallback, which reading 118 ignores ({@link ignoredIncludeContent}).
+   * fallback, which reading `include-fallback` ignores ({@link ignoredIncludeContent}).
    */
   readonly ignored: ReadonlySet<string>;
   readonly lax: ReadonlySet<string>;
   /**
    * The expanded names of the elements at or within a foreign element in a foreign element's
-   * content whose governing type is complex, which reading 50 leaves unchecked
+   * content whose governing type is complex, which reading `unchecked-xsi-type` leaves unchecked
    * ({@link laxComplexType}).
    */
   readonly laxComplex: ReadonlySet<string>;
@@ -2130,7 +2142,8 @@ export const foreignNamesOf = Effect.fn("test.foreignNamesOf")(function* foreign
       isForeignKind(byStart.get(node.parent)?.kind ?? ""),
   );
   /**
-   * XInclude ignores an include's children but its fallback, and what they hold (reading 118).
+   * XInclude ignores an include's children but its fallback, and what they hold (reading
+   * `include-fallback`).
    */
   const ignoredChildren = rows.nodes.filter(
     (node) => byStart.get(node.parent)?.kind === includeKind && node.kind !== fallbackKind,
@@ -2225,17 +2238,17 @@ export const judgeDocument = Effect.fn("test.judgeDocument")(function* judgeDocu
     const cls = ((): LawClass => {
       if (failure.kind === "attribute") {
         /**
-         * An attribute no handle names, one its kind admits under neither its closed handle nor
-         * its open class, an xml: or xsi: attribute its kind does not admit, and a data-* name
-         * outside the data class's language (reading 13) are attributes the element does not
-         * allow (cvc-complex-type clause 3), as xmllint's "is not allowed" says. An xsi:type that
-         * is no QName in scope, or names no type, is a value its attribute's declaration refuses
-         * (cvc-elt clauses 4.1 and 4.2), which xmllint reports on the attribute. A namespace name
-         * behind an entity reference is no schema rule's. A strictly held element no type assesses
-         * is an element's refusal, never an attribute's, which xmllint reports as "demanded by the
-         * strict wildcard"; so is MathML content outside m:math, which the MathML 3 RelaxNG's start
-         * and anyElement refuse (reading 2), where xmllint assesses the element against its global
-         * declaration.
+         * An attribute no handle names, one its kind admits under neither its closed handle nor its
+         * open class, an xml: or xsi: attribute its kind does not admit, and a data-* name outside
+         * the data class's language (reading `data-attribute-name`) are attributes the element does
+         * not allow (cvc-complex-type clause 3), as xmllint's "is not allowed" says. An xsi:type
+         * that is no QName in scope, or names no type, is a value its attribute's declaration
+         * refuses (cvc-elt clauses 4.1 and 4.2), which xmllint reports on the attribute. A
+         * namespace name behind an entity reference is no schema rule's. A strictly held element no
+         * type assesses is an element's refusal, never an attribute's, which xmllint reports as
+         * "demanded by the strict wildcard"; so is MathML content outside m:math, which the MathML
+         * 3 RelaxNG's start and anyElement refuse (reading `mathml-validity`), where xmllint
+         * assesses the element against its global declaration.
          */
         const { reason } = failure;
         switch (reason) {
@@ -2350,7 +2363,7 @@ export const reasonText = (reason: Reason): string => {
       return `libxml2: ${reason.why}`;
     }
     case "reading": {
-      return `reading ${String(reason.reading)}: ${reason.why}`;
+      return `reading \`${reason.reading}\`: ${reason.why}`;
     }
     case "specification": {
       return `${reason.source}: ${reason.why}`;
@@ -2360,8 +2373,9 @@ export const reasonText = (reason: Reason): string => {
 
 /**
  * Validate documents with `xmllint`, each against its root's schema set (spec reading
- * 81): grouped by the namespace of their root, each group with that namespace's root driver, the
- * groups' processes at once, since each spends its time compiling its own schema set.
+ * `wildcard-global-declarations`): grouped by the namespace of their root, each group with that
+ * namespace's root driver, the groups' processes at once, since each spends its time compiling its
+ * own schema set.
  *
  * @param oracle - What `writeXsdOracle` wrote.
  * @param documents - Each document's bytes and the file it was written to.
@@ -2462,9 +2476,9 @@ const kindOfNode = (node: string): string =>
  *
  * `xmllint` names an element by its expanded name alone, so a name both a kind's element and a
  * foreign element of the document have, a QTI root nested in lax content beside the kind's own
- * element (reading 6), could be either: a message on it is matched by a refusal of either, and a
- * refusal of either by such a message. Where both have it, the element grain cannot tell them
- * apart, and compares their messages and refusals as one.
+ * element (reading `nested-root-in-wildcard`), could be either: a message on it is matched by a
+ * refusal of either, and a refusal of either by such a message. Where both have it, the element
+ * grain cannot tell them apart, and compares their messages and refusals as one.
  *
  * @param xsd - `xmllint`'s verdict.
  * @param law - The law oracle's judgment.
@@ -2541,8 +2555,9 @@ export const elementGrainDifferences = (
       ...[...said].map(([, held]): Difference => ({
         class: cls,
         /**
-         * Each message names its own element, never the group's, so a classifier that reads
-         * where a message stands (reading 6's nested roots, reading 81's sets) still can.
+         * Each message names its own element, never the group's, so a classifier that reads where a
+         * message stands (reading `nested-root-in-wildcard`'s nested roots, reading
+         * `wildcard-global-declarations`'s sets) still can.
          */
         detail: held
           .map(
@@ -2583,7 +2598,7 @@ export interface GeneratedContext {
   readonly names: ForeignNames;
   readonly root: Element;
   /**
-   * The namespaces of the document's schema set (reading 81).
+   * The namespaces of the document's schema set (reading `wildcard-global-declarations`).
    */
   readonly set: ReadonlySet<string>;
   /**
@@ -2593,11 +2608,13 @@ export interface GeneratedContext {
 }
 
 /**
- * Find the record a generated or bred document's difference matches: reading 114's fragment root,
- * reading 6's nested roots on `xmllint`'s side, alone and beside reading 2's MathML whitespace, and
- * on the law oracle's side, reading 81's schema set by the rows or by an edit the codec refused,
- * reading 60's lax `xsi:type`, reading 50's lax complex type, and then the corpus's, libxml2's and
- * the generated records, each held to its gate ({@link gateHolds}).
+ * Find the record a generated or bred document's difference matches: reading
+ * `include-as-information-model`'s fragment root, reading `nested-root-in-wildcard`'s nested roots
+ * on `xmllint`'s side, alone and beside reading `mathml-validity`'s MathML whitespace, and on the
+ * law oracle's side, reading `wildcard-global-declarations`'s schema set by the rows or by an edit
+ * the codec refused, reading `wildcard-xsi-type`'s lax `xsi:type`, reading `unchecked-xsi-type`'s
+ * lax complex type, and then the corpus's, libxml2's and the generated records, each held to its
+ * gate ({@link gateHolds}).
  *
  * @param difference - The difference.
  * @param context - What the classes read of the document.

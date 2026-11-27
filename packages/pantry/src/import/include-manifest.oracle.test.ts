@@ -1,14 +1,15 @@
 /**
  * A site names a document a resource names, never the manifest, which is no resource's document
- * (spec reading 115: "Fragments are packaged as separate resources"; reading 146): an include whose
- * href resolves to `imsmanifest.xml` names no document, holds no `xi:fallback`, and is refused
- * under "Include target" (`include-target`) on the import's rows as in the law oracle, never under
- * "Include root" as an include of a `cp:manifest` root. GEN-A's differential found the import
- * taking the manifest as the target (`#pantry/import/write.ts` `targetAt`), so its rows broke
- * "Include root", which the oracle does not raise, and held "Include target", which it does. An
- * include that names an entry is held to its target through the query `PlacedIncludePath`, which
- * leaves out one that holds a fallback (spec reading 115), so the law is the database's, which the
- * host leaves unjudged, and it is restated over the rows (`#pantry/test/placed-includes.ts`).
+ * (spec reading `include-target`: "Fragments are packaged as separate resources"; reading
+ * `manifest-document`): an include whose href resolves to `imsmanifest.xml` names no document,
+ * holds no `xi:fallback`, and is refused under "Include target" (`include-target`) on the import's
+ * rows as in the law oracle, never under "Include root" as an include of a `cp:manifest` root.
+ * GEN-A's differential found the import taking the manifest as the target
+ * (`#pantry/import/write.ts` `targetAt`), so its rows broke "Include root", which the oracle does
+ * not raise, and held "Include target", which it does. An include that names an entry is held to
+ * its target through the query `PlacedIncludePath`, which leaves out one that holds a fallback
+ * (spec reading `include-target`), so the law is the database's, which the host leaves unjudged,
+ * and it is restated over the rows (`#pantry/test/placed-includes.ts`).
  *
  * Oracle: a second implementation, the law oracle (`#pantry/test/oracle.ts` `judge`), against the
  * laws the import's rows break on the host (`#pantry/test/gen/genetic/judge.ts` `judgeOne`), and

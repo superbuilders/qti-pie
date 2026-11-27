@@ -6,6 +6,6 @@
 
 /**
  * The path of a package's manifest, the one entry no `cp:file` need list and the one document that
- * is no resource's (spec reading 146).
+ * is no resource's (spec reading `manifest-document`).
  */
 export const manifestPath = "imsmanifest.xml";

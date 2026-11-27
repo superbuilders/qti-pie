@@ -10,11 +10,11 @@
  *   start of each attempt" (§2.2.2.1, info:4702), but for an attempt the candidate ended through an
  *   End Attempt whose `count-attempt` is false: the attribute "Defines the number of attempts that
  *   a user can make using the 'endAttemptInteraction' mechanism (this can be used to limit the
- *   number of hints, etc.)" (Table 5.45.3), a boolean (spec readings 27 and 204: false leaves
- *   `numAttempts` unchanged for the attempt ended through that button), and "If the candidate
- *   invokes response processing using an endAttemptInteraction then the associated response
- *   variable is set to 'true'" (Table 5.45), so the attempt's value of that response is `true`
- *   exactly when the candidate ended it there.
+ *   number of hints, etc.)" (Table 5.45.3), a boolean (spec readings `count-attempt-boolean` and
+ *   `end-attempt-count`: false leaves `numAttempts` unchanged for the attempt ended through that
+ *   button), and "If the candidate invokes response processing using an endAttemptInteraction then
+ *   the associated response variable is set to 'true'" (Table 5.45), so the attempt's value of that
+ *   response is `true` exactly when the candidate ended it there.
  * - **CompletedSession**: each item session of an adaptive item one of whose attempts' response
  *   processing set the built-in `completionStatus` to `completed`: "For adaptive items, the value
  *   of max-attempts is ignored as the number of attempts is limited by the value of the

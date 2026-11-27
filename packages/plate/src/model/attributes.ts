@@ -327,10 +327,10 @@ export const requiredValue = (build: ModelWalk, element: SourceElement, name: st
  * the root's, a declaration's and a choice's `identifier`, an interaction's `response-identifier`,
  * and the `identifier` an expression or a response rule names. Their whitespace facet is
  * `collapse`, and an NCName holds no inner whitespace, so collapsing is removing the outer XML
- * whitespace. Reading 7 keeps an attribute's outer whitespace only for the base-typed attributes
- * the XSD types as strings, which no identifier is, so `" RESPONSE "` names `RESPONSE`, and
- * refusing it would refuse valid content (reading 1). The database reads these attributes the same
- * way.
+ * whitespace. Reading `typed-value-whitespace` keeps an attribute's outer whitespace only for the
+ * base-typed attributes the XSD types as strings, which no identifier is, so `" RESPONSE "` names
+ * `RESPONSE`, and refusing it would refuse valid content (reading `nothing-valid-refused`). The
+ * database reads these attributes the same way.
  *
  * @param written The attribute's value as written.
  * @returns The identifier it names.
@@ -461,8 +461,8 @@ export const xsInt = (
 
 /**
  * Read a count attribute, an `xs:nonNegativeInteger` such as `max-choices`, exactly through
- * {@link xsIntegerOf}, at any size. Reading 46 holds eight of the counts to the signed 64-bit
- * range, which the database judges for all eight, so the model holds what it reads.
+ * {@link xsIntegerOf}, at any size. Reading `count-range` holds eight of the counts to the signed
+ * 64-bit range, which the database judges for all eight, so the model holds what it reads.
  *
  * @param build The build.
  * @param element The element.
@@ -598,10 +598,10 @@ export const coordsOf = (
 };
 
 /**
- * Read an `xs:double` attribute as the XSD reads it, by reading 7 and reading 144: outer whitespace
- * goes, then the literal reads as its IEEE double, rounded to nearest by XML Schema 1.1's
- * doubleLexicalMap (Part 2 §3.3.5.2), so one beyond the largest finite double is an infinity of its
- * sign.
+ * Read an `xs:double` attribute as the XSD reads it, by reading `typed-value-whitespace` and
+ * reading `bounded-double`: outer whitespace goes, then the literal reads as its IEEE double,
+ * rounded to nearest by XML Schema 1.1's doubleLexicalMap (Part 2 §3.3.5.2), so one beyond the
+ * largest finite double is an infinity of its sign.
  *
  * @param element The element.
  * @param name The attribute's name.

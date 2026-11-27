@@ -1,6 +1,6 @@
 /**
- * The quotation law of spec reading 127: no quotation punctuation immediately before, after or
- * inside a `q`, since the user agent draws the quotes itself.
+ * The quotation law of spec reading `quotation-around-q`: no quotation punctuation immediately
+ * before, after or inside a `q`, since the user agent draws the quotes itself.
  *
  * The information model says of Q: "Quotation punctuation (such as quotation marks) that is
  * quoting the contents of the tag must not appear immediately before, after, or inside q tags;

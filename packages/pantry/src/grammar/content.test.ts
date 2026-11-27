@@ -73,10 +73,11 @@ interface SchematronCap {
 
 /**
  * Read the loose LOM binding's Schematron from the binding's own text, apart from every reader and
- * from the facets (spec reading 130): each rule's context, an absolute path from `lom:lom`,
- * resolved step by step to the kind of its last step, and each assert `count(lom:X) = 0 or
- * count(lom:X) = 1` as the kind `X` names there. A rule whose path resolves to no kind, an assert
- * of another form and an assert whose element resolves to no kind are each reported as unread.
+ * from the facets (spec reading `lom-repetition`): each rule's context, an absolute path from
+ * `lom:lom`, resolved step by step to the kind of its last step, and each assert `count(lom:X) = 0
+ * or count(lom:X) = 1` as the kind `X` names there. A rule whose path resolves to no kind, an
+ * assert of another form and an assert whose element resolves to no kind are each reported as
+ * unread.
  *
  * @param composedGrammar - The grammar whose kinds the names resolve to.
  * @returns The caps, and each line read as neither.
@@ -198,9 +199,10 @@ const alphabetOf =
   ];
 
 /**
- * Read spec reading 2's classes from a schema's own reading of the XSD: the content expressions,
- * the XSD's `ContExp` as `m:condition`'s model names it with the RelaxNG's `semantics-contexp`, and
- * the math expressions, as `m:mrow`'s model names them (`#pantry/test/gen/relaxng.ts`).
+ * Read spec reading `mathml-validity`'s classes from a schema's own reading of the XSD: the content
+ * expressions, the XSD's `ContExp` as `m:condition`'s model names it with the RelaxNG's
+ * `semantics-contexp`, and the math expressions, as `m:mrow`'s model names them
+ * (`#pantry/test/gen/relaxng.ts`).
  *
  * @param contents - The schema's contents, by kind.
  * @param resolve - The grammar's name resolution under a parent.
@@ -249,16 +251,18 @@ const sequencesOf = (alphabet: readonly string[], length: number): readonly (rea
 
 /**
  * The spec readings each parent's content edits state, in the facets production composes: an edit
- * whose source cites "spec reading N" states reading N at its parent.
+ * whose source cites a spec reading by its slug states that reading at its parent.
  */
-const statedReadings: ReadonlyMap<string, ReadonlySet<number>> = (() => {
-  const stated = new Map<string, Set<number>>();
+const statedReadings: ReadonlyMap<string, ReadonlySet<string>> = (() => {
+  const stated = new Map<string, Set<string>>();
   for (const facets of [...Object.values(vocabularyFacets), documentLayer, openVocabulary]) {
     for (const edit of facets.content.edits) {
-      const cited = /^spec reading (?<reading>\d+)\b/u.exec(edit.source)?.groups?.["reading"];
+      const cited = /^spec reading `(?<reading>[a-z][a-z0-9-]*)`/u.exec(edit.source)?.groups?.[
+        "reading"
+      ];
       if (cited !== undefined) {
-        const readings = stated.get(edit.parent) ?? new Set<number>();
-        readings.add(Number(cited));
+        const readings = stated.get(edit.parent) ?? new Set<string>();
+        readings.add(cited);
         stated.set(edit.parent, readings);
       }
     }
@@ -269,18 +273,19 @@ const statedReadings: ReadonlyMap<string, ReadonlySet<number>> = (() => {
 
 /**
  * Every exemption the differentials below rule a disagreement by, each keyed to the reading it
- * cites and the parents it holds at: reading 2 under the MathML models the RelaxNG decides,
- * reading 44 where `ssml:token` and `ssml:w` drop `voice`, reading 61 at `qti-ordering`'s extension
- * slot, which it reads as `##any` where the XSD writes `##other`, and reading 118 at an include's
- * fallbacks. Reading 96 is libxml2's departure, not the grammar's.
+ * cites and the parents it holds at: reading `mathml-validity` under the MathML models the RelaxNG
+ * decides, reading `ssml-token-without-voice` where `ssml:token` and `ssml:w` drop `voice`, reading
+ * `ordering-extension-slot` at `qti-ordering`'s extension slot, which it reads as `##any` where the
+ * XSD writes `##other`, and reading `include-fallback` at an include's fallbacks. Reading
+ * `repeated-wildcard-order` is libxml2's departure, not the grammar's.
  */
-const exemptions: readonly { readonly parents: readonly string[]; readonly reading: number }[] = [
-  { parents: [...relaxNgModels.keys()], reading: 2 },
-  { parents: ["ssml:token", "ssml:w"], reading: 44 },
-  { parents: ["qti-ordering"], reading: 61 },
-  { parents: ["xi:include"], reading: 118 },
-  { parents: ["table"], reading: 240 },
-  { parents: ["figure"], reading: 241 },
+const exemptions: readonly { readonly parents: readonly string[]; readonly reading: string }[] = [
+  { parents: [...relaxNgModels.keys()], reading: "mathml-validity" },
+  { parents: ["ssml:token", "ssml:w"], reading: "ssml-token-without-voice" },
+  { parents: ["qti-ordering"], reading: "ordering-extension-slot" },
+  { parents: ["xi:include"], reading: "include-fallback" },
+  { parents: ["table"], reading: "col-or-colgroup" },
+  { parents: ["figure"], reading: "single-figcaption" },
 ];
 
 /**
@@ -293,25 +298,29 @@ const exemptions: readonly { readonly parents: readonly string[]; readonly readi
  * @param parent - The family's parent.
  * @returns Whether the reading exempts the family.
  */
-const exempts = (reading: number, parent: string): boolean =>
+const exempts = (reading: string, parent: string): boolean =>
   statedReadings.get(parent)?.has(reading) === true &&
   exemptions.some((row) => row.reading === reading && row.parents.includes(parent));
 
 /**
- * Whether a spec reading narrows the XSD to refuse a family it accepts. Reading 44: an SSML `token`
- * or `w` holds no `voice` (SSML 1.1 §3.1.8.2), where `tokenType` admits one. Reading 118: an
- * include holds at most one fallback (XInclude 1.0 §3.1), where its XSD admits any number, so an
- * include's family that holds two.
+ * Whether a spec reading narrows the XSD to refuse a family it accepts. Reading
+ * `ssml-token-without-voice`: an SSML `token` or `w` holds no `voice` (SSML 1.1 §3.1.8.2), where
+ * `tokenType` admits one. Reading `include-fallback`: an include holds at most one fallback
+ * (XInclude 1.0 §3.1), where its XSD admits any number, so an include's family that holds two.
  *
  * @param parent - The family's parent.
  * @param children - The family.
  * @returns Whether a reading narrows it.
  */
 const narrowedByReading = (parent: string, children: readonly string[]): boolean =>
-  (exempts(44, parent) && children.includes("ssml:voice")) ||
-  (exempts(118, parent) && children.filter((child) => child === "xi:fallback").length > 1) ||
-  (exempts(240, parent) && children.includes("col") && children.includes("colgroup")) ||
-  (exempts(241, parent) && children.filter((child) => child === "figcaption").length > 1);
+  (exempts("ssml-token-without-voice", parent) && children.includes("ssml:voice")) ||
+  (exempts("include-fallback", parent) &&
+    children.filter((child) => child === "xi:fallback").length > 1) ||
+  (exempts("col-or-colgroup", parent) &&
+    children.includes("col") &&
+    children.includes("colgroup")) ||
+  (exempts("single-figcaption", parent) &&
+    children.filter((child) => child === "figcaption").length > 1);
 
 describe("the content automata against the XSD", () => {
   beforeAll(xsdCachePresent);
@@ -320,7 +329,7 @@ describe("the content automata against the XSD", () => {
     "accept exactly the child sequences the independent reading's automaton accepts, every model with one content: every sequence of at most 2 children (3 over an alphabet of at most 4) over at most 4 kinds it names, one only its wildcard admits and one it refuses, drawn from the run seed",
     (ctx) =>
       // Oracle: a second implementation, the tests' own automaton of each XSD particle
-      // (`acceptorOf`), with spec readings 2, 44, 118, 240 and 241 ruled where they narrow the
+      // (`acceptorOf`), with spec readings `mathml-validity`, `ssml-token-without-voice`, `include-fallback`, `col-or-colgroup` and `single-figcaption` ruled where they narrow the
       // XSD.
       // Bound: namedBound of the kinds a model names (every one where it names at most that many),
       // one kind only its wildcard admits and one element kind it does not admit, each a fresh draw
@@ -388,9 +397,11 @@ describe("the content automata against the XSD", () => {
                 const installed = accepts(composedGrammar, parent, children);
                 const xsd = oracle(children);
                 const narrowed = xsd && !installed && narrowedByReading(parent, children);
-                // Spec reading 2: under the models it restates or edits, the MathML 3 RelaxNG
+                // Spec reading `mathml-validity`: under the models it restates or edits, the MathML 3 RelaxNG
                 // decides, in both directions, and where the XSD differs it is the reading's.
-                const rng = exempts(2, parent) ? relaxNgModels.get(parent) : undefined;
+                const rng = exempts("mathml-validity", parent)
+                  ? relaxNgModels.get(parent)
+                  : undefined;
                 if (rng !== undefined) {
                   if (
                     installed !==
@@ -416,7 +427,7 @@ describe("the content automata against the XSD", () => {
 
         yield* Effect.promise(() =>
           ctx.annotate(
-            `${models} models (${drawnFrom} naming more than ${namedBound} kinds, whose ${namedBound} the run seed drew), ${compared} sequences, ${ruled} ruled by readings 2, 44, 118, 240 and 241; ${skipped} kinds skipped for holding more than one content`,
+            `${models} models (${drawnFrom} naming more than ${namedBound} kinds, whose ${namedBound} the run seed drew), ${compared} sequences, ${ruled} ruled by readings \`mathml-validity\`, \`ssml-token-without-voice\`, \`include-fallback\`, \`col-or-colgroup\` and \`single-figcaption\`; ${skipped} kinds skipped for holding more than one content`,
             "bound",
           ),
         );
@@ -472,7 +483,7 @@ describe("the occurrence bounds the automata relax", () => {
       // content's, and which only holds as a total where no enclosing group may repeat or be
       // absent. A group's bound is OperatorArity's (min, max) exactly, and each of its repeats one
       // element child. Each Schematron assert caps its element at one in its context's family
-      // (spec reading 130), Capped's at the element's position.
+      // (spec reading `lom-repetition`), Capped's at the element's position.
       Effect.gen(function* relaxed() {
         const composedGrammar = yield* grammar;
         const { admission, content, kinds, operatorArity } = composedGrammar;
@@ -529,7 +540,7 @@ describe("the occurrence bounds the automata relax", () => {
           counted(parent, child, 0, 1);
         }
 
-        // Spec reading 241: a figure's caption has multiplicity [0..1] (information model §5.54.1),
+        // Spec reading `single-figcaption`: a figure's caption has multiplicity [0..1] (information model §5.54.1),
         // which the XSD's unbounded choice repeats.
         counted("figure", "figcaption", 0, 1);
 

@@ -28,7 +28,7 @@ export interface BuiltInType {
  */
 export interface BuiltIn {
   /**
-   * Its identifier, spelled exactly (reading 72).
+   * Its identifier, spelled exactly (reading `completion-status-name`).
    */
   readonly identifier: string;
   /**
@@ -68,7 +68,8 @@ export type ItemBuiltIn = keyof typeof itemBuiltInTypes;
 /**
  * The four values the built-in `completionStatus` may hold: "There are four permitted values"
  * (section 2.2.2.3), `completed`, `incomplete`, `not_attempted` and `unknown`. A rule that sets it
- * to any other fails its run, and the database refuses a literal outside them (reading 213).
+ * to any other fails its run, and the database refuses a literal outside them (reading
+ * `completion-status-values`).
  */
 export const completionStatusValues: ReadonlySet<string> = new Set<CompletionStatus>([
   "completed",
@@ -104,7 +105,7 @@ const record: BuiltInType = { baseType: Option.none(), cardinality: "record" };
  * - `completionStatus`: "Delivery Engines must maintain the value of the built-in outcome variable
  *   completionStatus, a single identifier" (section 2.2.2.3), an item session's.
  * - `duration`: "a single float that records the accumulated time (in seconds) of all Candidate
- *   Sessions for all Attempts" in an item (section 2.2.2.2, reading 29).
+ *   Sessions for all Attempts" in an item (section 2.2.2.2, reading `duration-variable-type`).
  * - `numAttempts`: "a single integer that records the number of attempts at each item the candidate
  *   has taken" (section 2.2.2.2), an item session's.
  * - `QTI_CONTEXT`: "There is one built-in context variable: 'QTI_CONTEXT', which has record

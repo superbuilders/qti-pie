@@ -382,7 +382,7 @@ describe("buildItem", () => {
     assert.deepStrictEqual(inline.unsupported, []);
   });
 
-  it("reads a padded xs:double mapped-value and source-value with its whitespace collapsed, as the XSD does (reading 7)", () => {
+  it("reads a padded xs:double mapped-value and source-value with its whitespace collapsed, as the XSD does (reading `typed-value-whitespace`)", () => {
     // XML Schema 1.0 Part 2 §4.3.6: xs:double's whiteSpace facet is collapse, fixed.
     const built = admittedItem(
       item({
@@ -1819,7 +1819,7 @@ describe("buildItem", () => {
     );
   });
 
-  it("reads a match table's entries and default-value into its outcome's declaration (readings 7 and 8)", () => {
+  it("reads a match table's entries and default-value into its outcome's declaration (readings `typed-value-whitespace` and `match-table-target-value`)", () => {
     const built = admittedItem(
       item({
         body: [paragraph],

@@ -13,8 +13,9 @@
  * class some package can show, a law the host judges, which the replay's guard holds every entry
  * to.
  *
- * A class spec reading 1 lists as a stated limit waits on no fix: its entry's owner is the decision
- * that states it, its fix what would lift it, and it stays while the limit stands.
+ * A class spec reading `nothing-valid-refused` lists as a stated limit waits on no fix: its entry's
+ * owner is the decision that states it, its fix what would lift it, and it stays while the limit
+ * stands.
  *
  * The host's judge is a fast pre-filter (`#pantry/test/gen/genetic/host-laws.ts`, the owner's Q4
  * ruling): a class it reports becomes an entry only once its package reproduces it on PostgreSQL.
@@ -104,7 +105,7 @@ export const known: readonly Known[] = [
   // - "import-only-law: check Reserved_type on DeclarationName", NIL's (B11: an absent or unspelled
   //   base type or cardinality is no row);
   // - "import-only-law: contained TemplateRef(not a built-in) in TemplateRefDeclaration",
-  //   FIX-NCNAME's (spec reading 152: a value names something only where it is an NCName).
+  //   FIX-NCNAME's (spec reading `ncname-names`: a value names something only where it is an NCName).
   // Three went with the declaration counts' lift (C18, decision S3), when a declaration's
   // cardinality and base type became its attributes' codes (`DeclarationCardinality` and
   // `DeclarationBaseType` of `#pantry/qti/names.ts`) and `Declaration` went: each guarded a stored
@@ -145,7 +146,7 @@ export const known: readonly Known[] = [
         '<?xml version="1.0" encoding="UTF-8"?>\n<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xi="http://www.w3.org/2001/XInclude"><qti-item-body><xi:include href="fragment.xml"/></qti-item-body></qti-assessment-item>',
       ],
     ],
-    fix: "a stated limit (spec reading 1): one fragment holding a portable custom interaction is placed in two items, once inside qti-feedback-inline, and Adaptive feedback's PlacedBinding containment is judged per node, not per placement (spec reading 117's fragment-context kin); Binding declared refuses it on both sides; lifted by judging a fragment's feedback context per placement",
+    fix: "a stated limit (spec reading `nothing-valid-refused`): one fragment holding a portable custom interaction is placed in two items, once inside qti-feedback-inline, and Adaptive feedback's PlacedBinding containment is judged per node, not per placement (spec reading `fragment-placement`'s fragment-context kin); Binding declared refuses it on both sides; lifted by judging a fragment's feedback context per placement",
     owner: "decision 463",
     signature: {
       kind: "import-only-law",
@@ -248,7 +249,7 @@ export const known: readonly Known[] = [
         '<?xml version="1.0" encoding="UTF-8"?>\n<div xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xi="http://www.w3.org/2001/XInclude"><xi:include href="rtest01-fragment.xml"/><qti-hottext-interaction><p><qti-hottext identifier="-0"/></p></qti-hottext-interaction></div>',
       ],
     ],
-    fix: "a stated limit (spec reading 1): in a fragment that includes itself the import still judges an attribute's value domain, while the law oracle reads no value domain there (decision 451's kin); Inclusion cycle refuses it on both sides; lifted by judging no value domain in a document an inclusion cycle refuses",
+    fix: "a stated limit (spec reading `nothing-valid-refused`): in a fragment that includes itself the import still judges an attribute's value domain, while the law oracle reads no value domain there (decision 451's kin); Inclusion cycle refuses it on both sides; lifted by judging no value domain in a document an inclusion cycle refuses",
     owner: "decision 463",
     signature: {
       kind: "import-only-law",
@@ -270,7 +271,7 @@ export const known: readonly Known[] = [
       ],
       ["test.xml", "xml", '<?xml version="1.0" encoding="UTF-8"?>\n<qti-assessment-test/>'],
     ],
-    fix: "a stated limit (spec reading 1): two documents fail the codec differently (a binary file typed as a fragment, a namespace-less root), and each side names the first in manifest order (the law oracle's judge in src/test/oracle.ts, the import's listDocuments in src/import/read.ts), so the rule named moves with resource order; the codec refuses it on both sides; lifted by a codec precedence that names one rule whatever the order",
+    fix: "a stated limit (spec reading `nothing-valid-refused`): two documents fail the codec differently (a binary file typed as a fragment, a namespace-less root), and each side names the first in manifest order (the law oracle's judge in src/test/oracle.ts, the import's listDocuments in src/import/read.ts), so the rule named moves with resource order; the codec refuses it on both sides; lifted by a codec precedence that names one rule whatever the order",
     noised: { noise: "resource-order", salt: 90 },
     owner: "decision 463",
     signature: { kind: "noise-moved", noise: "resource-order", side: "import" },
@@ -289,7 +290,7 @@ export const known: readonly Known[] = [
       ],
       ["test.xml", "xml", '<?xml version="1.0" encoding="UTF-8"?>\n<qti-assessment-test/>'],
     ],
-    fix: "a stated limit (spec reading 1): two documents fail the codec differently (a binary file typed as a fragment, a namespace-less root), and each side names the first in manifest order (the law oracle's judge in src/test/oracle.ts, the import's listDocuments in src/import/read.ts), so the rule named moves with resource order; the codec refuses it on both sides; lifted by a codec precedence that names one rule whatever the order",
+    fix: "a stated limit (spec reading `nothing-valid-refused`): two documents fail the codec differently (a binary file typed as a fragment, a namespace-less root), and each side names the first in manifest order (the law oracle's judge in src/test/oracle.ts, the import's listDocuments in src/import/read.ts), so the rule named moves with resource order; the codec refuses it on both sides; lifted by a codec precedence that names one rule whatever the order",
     noised: { noise: "resource-order", salt: 90 },
     owner: "decision 463",
     signature: { kind: "noise-moved", noise: "resource-order", side: "oracle" },
@@ -319,7 +320,7 @@ export const fixed: readonly Known[] = [
         '<?xml version="1.0" encoding="UTF-8"?>\n<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xi="http://www.w3.org/2001/XInclude"><qti-item-body><xi:include href="rtest01-fragment.xml"><p><qti-template-inline template-identifier="Kxx𝔸xéé語語語語éééxé𝔸x𝔸ééééx𝔸𝔸語語é𝔸𝔸xxé𝔸𝔸éxx𝔸x𝔸𝔸ééé語x語é語𝔸éé𝔸語𝔸xé語xéxx語𝔸𝔸xééxxéxx𝔸𝔸𝔸éé語𝔸𝔸x語éé語é𝔸𝔸𝔸x語xé語語é𝔸語xéxx𝔸éx語語x語語ééxé語語xxx語語é𝔸xéé𝔸𝔸語語ééé𝔸é𝔸𝔸𝔸語語𝔸語xx𝔸𝔸xé語xx語語x𝔸x𝔸x語xéé語éxxééxé語𝔸éxx𝔸x語é語xx𝔸éx𝔸𝔸語x𝔸語xxéx語éxéx𝔸𝔸é語語語é語é𝔸𝔸𝔸ééx𝔸é語𝔸xx𝔸語語ééééé𝔸𝔸𝔸éé語x𝔸éx語xé𝔸語é𝔸𝔸éé語語𝔸xxé𝔸éxxx𝔸é語xéé𝔸éx𝔸xéé𝔸é𝔸éééx𝔸é語x語éxéx𝔸𝔸語x𝔸語éééé𝔸語xxé語éé語xx𝔸é語éééx𝔸𝔸𝔸ééé𝔸語x𝔸xxéx語xx語x語x語語𝔸𝔸語語xxxéx語x語𝔸x𝔸𝔸語é𝔸語𝔸語𝔸xx語語é𝔸𝔸𝔸𝔸xé𝔸é𝔸𝔸ééééé𝔸𝔸é語xééx語𝔸é語xé𝔸ééx𝔸𝔸𝔸語𝔸x𝔸語𝔸語x𝔸𝔸語xéé𝔸𝔸éxéx語𝔸𝔸éé語éx語x𝔸éxxéx語ééx語xé𝔸x𝔸x𝔸𝔸xé𝔸語語語é語éxx語𝔸𝔸語ééxéx語é𝔸é𝔸𝔸é𝔸é𝔸ééx語éx𝔸語xx𝔸語x𝔸éx𝔸é𝔸xx語語語éé𝔸語ééxxxxéx語語𝔸éé語語𝔸𝔸𝔸𝔸語𝔸ééx𝔸𝔸x𝔸x語𝔸語éx語𝔸éé𝔸xéxé𝔸語𝔸語𝔸𝔸語𝔸é語𝔸é𝔸語éxx𝔸é𝔸𝔸é𝔸𝔸x語xé𝔸xéé𝔸x𝔸𝔸xéé語語語語é語é語語xxéx𝔸éxx𝔸éx語語語語語𝔸é語𝔸xxééxéxx𝔸xx語𝔸x𝔸𝔸éééxéxx語éé𝔸語語語語xxé語xx𝔸éx語語𝔸𝔸𝔸語xxxé語𝔸𝔸ééx𝔸語𝔸xxx𝔸語語é𝔸語éxéxéxé𝔸𝔸𝔸𝔸𝔸𝔸𝔸éx𝔸xééééxx語é語x語語𝔸語x語xéx𝔸𝔸語語xx𝔸𝔸éx語x語𝔸𝔸語語é𝔸𝔸é語𝔸語x語xx𝔸éxé𝔸x𝔸𝔸𝔸x語語𝔸x𝔸x語𝔸x語語語語x語語xéxé語é語語𝔸𝔸é𝔸x𝔸x𝔸𝔸𝔸𝔸x語語語x語éé𝔸xx語xxx語xxééx𝔸é語語語é𝔸𝔸語x語𝔸語xxéééé𝔸x𝔸xé語x語é語語𝔸é語語語𝔸𝔸𝔸語語é語x𝔸語語語x𝔸𝔸𝔸𝔸語𝔸語語𝔸語x𝔸xé𝔸語𝔸é語𝔸𝔸𝔸語𝔸éé語𝔸é語𝔸é𝔸𝔸xéx語x語xx𝔸x𝔸𝔸éx𝔸x語é𝔸𝔸語語語𝔸𝔸ééé𝔸𝔸é𝔸𝔸é語語語é𝔸é語語xx語xxx𝔸𝔸𝔸𝔸𝔸é𝔸xé𝔸𝔸é語𝔸é語𝔸xé𝔸語xxxéé𝔸é𝔸x𝔸語𝔸𝔸𝔸ééx𝔸éxxé語語𝔸𝔸語é𝔸𝔸𝔸𝔸é𝔸x語é𝔸𝔸語𝔸xxééx語語x語"/></p></xi:include></qti-item-body></qti-assessment-item>',
       ],
     ],
-    fix: "reading 118 lifted under J1 (2026-11-20): the content of a resolving include outside its xi:fallback is skipped, never assessed (facets.ts ignoredContent, XInclude 1.0 section 3.1), as the law oracle ignores it (#66)",
+    fix: "reading `include-fallback` lifted under J1 (2026-11-20): the content of a resolving include outside its xi:fallback is skipped, never assessed (facets.ts ignoredContent, XInclude 1.0 section 3.1), as the law oracle ignores it (#66)",
     owner: "lane PANTRY-CONFORM",
     signature: {
       kind: "import-only-law",
@@ -344,7 +345,7 @@ export const fixed: readonly Known[] = [
         '<?xml version="1.0" encoding="UTF-8"?>\n<qti-assessment-test xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"><qti-test-part><qti-assessment-section><qti-assessment-section><qti-assessment-section-ref href="d0.xml"/><qti-assessment-section><qti-assessment-section-ref href="d0.xml"/></qti-assessment-section></qti-assessment-section></qti-assessment-section></qti-test-part></qti-assessment-test>',
       ],
     ],
-    fix: "decision 463's limit lifted (spec reading 1): a section ref places its target only where the target's root is a test's or a section's (assembledRoots), as the law oracle places only those, so a document whose root its section type refuses is placed in no assembly and none of its references or choices is read there; Document entry and RootOfType refuse it on both sides",
+    fix: "decision 463's limit lifted (spec reading `nothing-valid-refused`): a section ref places its target only where the target's root is a test's or a section's (assembledRoots), as the law oracle places only those, so a document whose root its section type refuses is placed in no assembly and none of its references or choices is read there; Document entry and RootOfType refuse it on both sides",
     owner: "P-SCHEMA",
     signature: {
       kind: "import-only-law",
@@ -456,7 +457,7 @@ export const fixed: readonly Known[] = [
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="i" title="t" adaptive="false" time-dependent="false"><qti-item-body><p>a <qti-gap identifier="G1"/> b</p></qti-item-body></qti-assessment-item>`,
       ],
     ],
-    fix: "N8: the oracle states the choice law the schema does, every choice that writes its identifier in an interaction, its nearest (the information model's parents of each choice class, §5.55's gap, reading 38), so a qti-gap outside every qti-gap-match-interaction breaks N8 beside N6 on both sides",
+    fix: "N8: the oracle states the choice law the schema does, every choice that writes its identifier in an interaction, its nearest (the information model's parents of each choice class, §5.55's gap, reading `gap-and-hottext-placement`), so a qti-gap outside every qti-gap-match-interaction breaks N8 beside N6 on both sides",
     owner: "OL",
     signature: {
       kind: "import-only-law",
@@ -498,7 +499,7 @@ export const fixed: readonly Known[] = [
 <qti-assessment-test xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"><qti-test-part><qti-assessment-section identifier="1x"/><qti-assessment-section identifier="1x"/></qti-test-part></qti-assessment-test>`,
       ],
     ],
-    fix: "spec reading 152 and decision 457 (2): a test part's, section's, section ref's or item ref's identifier that is no NCName once collapsed names nothing, so it writes no Named row and its value domain refuses it alone, where the import wrote one for each and two such identifiers collided in Named's key",
+    fix: "spec reading `ncname-names` and decision 457 (2): a test part's, section's, section ref's or item ref's identifier that is no NCName once collapsed names nothing, so it writes no Named row and its value domain refuses it alone, where the import wrote one for each and two such identifiers collided in Named's key",
     owner: "genetic-repair-2 gr2-3",
     signature: {
       kind: "import-only-law",
@@ -744,7 +745,7 @@ export const fixed: readonly Known[] = [
 </qti-assessment-test>`,
       ],
     ],
-    fix: "spec reading 155: an item ref that writes no href names nothing, so the schema demands no ItemRefTarget, ReferencePath or NameLookup type of it and AL3 alone refuses it, and the law oracle judges an item ref's laws whether or not it, its sections or its part write an identifier",
+    fix: "spec reading `item-ref-without-href`: an item ref that writes no href names nothing, so the schema demands no ItemRefTarget, ReferencePath or NameLookup type of it and AL3 alone refuses it, and the law oracle judges an item ref's laws whether or not it, its sections or its part write an identifier",
     owner: "FIX-ITEMREF",
     signature: {
       importRule: "item-ref-target",
@@ -894,7 +895,7 @@ export const fixed: readonly Known[] = [
 <qti-assessment-test xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"><qti-test-part/><qti-test-part/></qti-assessment-test>`,
       ],
     ],
-    fix: "efafab06, reading 147: an element that writes no identifier has no name in the law oracle, which read it as the empty one before, so two of one document, two test parts that write none, broke Structure identifier beside AL3 in the oracle alone (folded from import/overlays/unwritten-identifier.oracle.test.ts, unrun under the moratorium)",
+    fix: "efafab06, reading `unidentified-parts`: an element that writes no identifier has no name in the law oracle, which read it as the empty one before, so two of one document, two test parts that write none, broke Structure identifier beside AL3 in the oracle alone (folded from import/overlays/unwritten-identifier.oracle.test.ts, unrun under the moratorium)",
     owner: "FB-TESTS",
     signature: { kind: "oracle-only-law", law: "Structure identifier" },
   },

@@ -122,8 +122,8 @@ type ProofName = keyof typeof proofs;
  *
  * - `reading`: a spec reading departs from the XSD on purpose. `says` is a sentence of the reading as
  *   `docs/spec-readings.md` writes it, which must still be there: a reading rewritten or withdrawn
- *   so that it no longer says it turns the record stale, as reading 26's reversal should have
- *   turned its exemption;
+ *   so that it no longer says it turns the record stale, as reading `section-without-parts`'s
+ *   reversal should have turned its exemption;
  * - `libxml2`: libxml2 departs from XML Schema, shown by the {@link proofs} case `proof` names, which
  *   `lexical.oracle.test.ts`'s proof test runs on the libxml2 at hand, so a libxml2 that stops
  *   departing fails it.
@@ -134,7 +134,7 @@ type ProofName = keyof typeof proofs;
 export type Reason =
   | {
       readonly _tag: "reading";
-      readonly reading: number;
+      readonly reading: string;
       readonly says: string;
       readonly why: string;
     }
@@ -275,7 +275,7 @@ export const recorded: readonly Recorded[] = [
     kind: arkregex("^qti-match-table-entry$", "u"),
     reason: {
       _tag: "reading",
-      reading: 8,
+      reading: "match-table-target-value",
       says: "A match table entry's `target-value` is a value of the outcome's base type.",
       why: "the XSD types target-value as the base-type names; the reading makes it a value of the outcome's base type, so the domain admits any normalized string here",
     },
@@ -283,21 +283,21 @@ export const recorded: readonly Recorded[] = [
     xsd: "invalid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b16\\b", "u"),
+    domain: arkregex("\\([^)]*\\bnormal-maximum-positive\\b", "u"),
     holds: (value) => isNumeral(value) && Number(value) === 0,
     reason: {
       _tag: "reading",
-      reading: 16,
+      reading: "normal-maximum-positive",
       says: "`normal-maximum` is greater than zero.",
       why: "normal-maximum is greater than zero, and a value is zero as its xs:double is: every spelling of zero, and a literal below half the least subnormal, which rounds to zero (Part 2, 3.2.5)",
     },
     xsd: "valid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b18\\b", "u"),
+    domain: arkregex("\\([^)]*\\border-min-choices\\b", "u"),
     reason: {
       _tag: "reading",
-      reading: 18,
+      reading: "order-min-choices",
       says: "If specified, min-choices must be 1 or greater",
       why: "an order interaction's min-choices is at least 1, so zero is refused however its collapsed form is padded",
     },
@@ -305,10 +305,10 @@ export const recorded: readonly Recorded[] = [
     xsd: "valid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b39\\b", "u"),
+    domain: arkregex("\\([^)]*\\bssml-speak-version\\b", "u"),
     reason: {
       _tag: "reading",
-      reading: 39,
+      reading: "ssml-speak-version",
       says: "An SSML `speak/@version` is `1.1`.",
       why: 'SSML 1.1 says speak\'s version "must have the value "1.1"", where the XSD types it xs:NMTOKEN, so every other NMTOKEN is refused',
     },
@@ -316,31 +316,31 @@ export const recorded: readonly Recorded[] = [
     xsd: "valid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b42\\b", "u"),
+    domain: arkregex("\\([^)]*\\bssml-voice-languages\\b", "u"),
     reason: {
       _tag: "reading",
-      reading: 42,
+      reading: "ssml-voice-languages",
       says: "An SSML `voice/@languages` holds language ranges, and `und` and `zxx` are refused.",
       why: "SSML 1.1 makes each of voice's languages an Extended Language Range (RFC 4647, 2.2), where the XSD types the list xs:NMTOKENS, so an NMTOKEN that is no such range is refused",
     },
     xsd: "valid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b46\\b", "u"),
+    domain: arkregex("\\([^)]*\\bcount-range\\b", "u"),
     holds: (value) => beyondInt64(value),
     reason: {
       _tag: "reading",
-      reading: 46,
+      reading: "count-range",
       says: "A count attribute holds a signed 64-bit integer.",
       why: "a count is a signed 64-bit integer, so an integer beyond -9223372036854775808 to 9223372036854775807 is refused where xs:nonNegativeInteger bounds nothing",
     },
     xsd: "valid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b120\\b", "u"),
+    domain: arkregex("\\([^)]*\\bindex-n-positive\\b", "u"),
     reason: {
       _tag: "reading",
-      reading: 120,
+      reading: "index-n-positive",
       says: "A `qti-index`'s `n` is at least 1 where it is a number.",
       why: "the information model says \"'n' must be a positive integer\" (§5.72, Index), where the XSD's xs:int member admits 0 and negatives",
     },
@@ -348,10 +348,10 @@ export const recorded: readonly Recorded[] = [
     xsd: "valid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b123\\b", "u"),
+    domain: arkregex("\\([^)]*\\bbdo-dir\\b", "u"),
     reason: {
       _tag: "reading",
-      reading: 123,
+      reading: "bdo-dir",
       says: "The auto value must not be specified",
       why: 'the information model says of bdo "The auto value must not be specified" (§5.11), which the XSD lists and defaults to',
     },
@@ -359,32 +359,32 @@ export const recorded: readonly Recorded[] = [
     xsd: "valid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b12[45]\\b", "u"),
+    domain: arkregex("\\([^)]*\\b(?:source-attributes|track-srclang)\\b", "u"),
     reason: {
       _tag: "reading",
-      reading: 124,
+      reading: "source-attributes",
       says: "The value must be a valid non-empty URL potentially surrounded by spaces",
-      why: 'a media URL "must contain a valid non-empty URL potentially surrounded by spaces" (information model §5.9.1, §5.135.1, §5.163.2, §5.166.1, §5.166.9; reading 125 for track), where the XSD\'s URLDType is any xs:normalizedString',
+      why: 'a media URL "must contain a valid non-empty URL potentially surrounded by spaces" (information model §5.9.1, §5.135.1, §5.163.2, §5.166.1, §5.166.9; reading `track-srclang` for track), where the XSD\'s URLDType is any xs:normalizedString',
     },
     value: arkregex("^[\t\n\r ]*$", "u"),
     xsd: "valid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b129\\b", "u"),
+    domain: arkregex("\\([^)]*\\blanguage-tags\\b", "u"),
     reason: {
       _tag: "reading",
-      reading: 129,
+      reading: "language-tags",
       says: "hold BCP 47 language tags, well-formed as RFC 5646 defines them.",
       why: "xml:lang, lang and srclang are BCP 47 language tags (XML 1.0 §2.12; information model §4.1.4, §5.15.3, §5.163.3), where the XSD types lang and srclang xs:normalizedString and xml:lang RFC 3066's xs:language or empty; the values set aside are those RFC 5646's ABNF refuses, which attributes.test.ts checks against its own recogniser",
     },
     xsd: "valid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b9\\b", "u"),
+    domain: arkregex("\\([^)]*\\bschematron-intent\\b", "u"),
     kind: arkregex("^h1$", "u"),
     reason: {
       _tag: "reading",
-      reading: 9,
+      reading: "schematron-intent",
       says: "The 'h1' tag may have an ARIA role value of 'heading' or 'tab' or 'presentation' only",
       why: "the Schematron's RULE ARIA ROLE 1b says \"The 'h1' tag may have an ARIA role value of 'heading' or 'tab' or 'presentation' only\" (ASI binding §5.3.1, whose section 5 is normative), where the XSD lists 74 ARIA roles for h1's role",
     },
@@ -396,7 +396,7 @@ export const recorded: readonly Recorded[] = [
     kind: arkregex("^m:cn$", "u"),
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: "is a base 10 positive integer giving the value of base in which the text content of the cn is to be interpreted",
       why: 'MathML 3 says a cn\'s base "is a base 10 positive integer" (§4.2.1.3), the positive-integer notation of §2.1.5.1, where the XSD leaves the attribute untyped',
     },
@@ -407,7 +407,7 @@ export const recorded: readonly Recorded[] = [
     kind: arkregex("^m:", "u"),
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: "`xref` names an `id` of its document, an `xs:IDREF`",
       why: "MathML 3's xref names an id of its document (an xs:IDREF, §5.4.2), where QTI's bundled MathML XSD types it xs:anySimpleType, so text that is no IDREF is refused",
     },
@@ -417,7 +417,7 @@ export const recorded: readonly Recorded[] = [
   {
     reason: {
       _tag: "reading",
-      reading: 47,
+      reading: "xsi-attributes",
       says: "`xsi:type` is valid only when it names the declared type or a type derived from it.",
       why: "an xsi:type's QName is valid only when it names a type, which the codec decides (shred's type-unknown) and no pattern over the value states; its prefix's binding the harness judges as the codec does, with the probe's bindings in scope (resolves)",
     },
@@ -456,10 +456,10 @@ export const recorded: readonly Recorded[] = [
     xsd: "invalid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b17\\b", "u"),
+    domain: arkregex("\\([^)]*\\brubric-view-list\\b", "u"),
     reason: {
       _tag: "reading",
-      reading: 17,
+      reading: "rubric-view-list",
       says: "A rubric block's `view` list has at least one view; an outcome declaration's may have none.",
       why: "the information model gives a rubric block's view the multiplicity [1] (§5.120.2, §5.160.1), where the XSD admits an empty list",
     },
@@ -467,10 +467,10 @@ export const recorded: readonly Recorded[] = [
     xsd: "valid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b232\\b", "u"),
+    domain: arkregex("\\([^)]*\\bcenter-point\\b", "u"),
     reason: {
       _tag: "reading",
-      reading: 232,
+      reading: "center-point",
       says: "A position object interaction's `center-point` is two integers, its horizontal offset then its vertical.",
       why: "the information model's center-point is an offset 'in horizontal, vertical order' (§5.107.1), two Int values, where the XSD's list of xs:int admits any length",
     },
@@ -481,10 +481,10 @@ export const recorded: readonly Recorded[] = [
     xsd: "valid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b239\\b", "u"),
+    domain: arkregex("\\([^)]*\\bcol-span-positive\\b", "u"),
     reason: {
       _tag: "reading",
-      reading: 239,
+      reading: "col-span-positive",
       says: "A `col`'s and a `colgroup`'s `span` is at least 1.",
       why: "the information model's Col and ColGroup say a span's 'value must be a valid non-negative integer greater than zero' (§5.31, §5.32), where the XSD's xs:int admits 0 and every negative",
     },
@@ -520,12 +520,12 @@ export const recorded: readonly Recorded[] = [
     xsd: "valid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b132\\b", "u"),
+    domain: arkregex("\\([^)]*\\bprinted-variable-format\\b", "u"),
     reason: {
       _tag: "reading",
-      reading: 132,
-      says: "The rest of this reading stands: each specifier ends in one of the listed codes, and `%q`, `2f%` and `%` are still refused under `attribute-lexical`; reading 171 adds `d` to the listed codes.",
-      why: "the information model's printf grammar (§2.3.4) refuses a `%` that begins neither the escape `%%` nor a conversion specifier over its listed codes, `d` a listed code by reading 171, where the XSD types format xs:normalizedString; a format of any number of well-formed specifiers is admitted (reading 161), so its refusal stays unrecorded",
+      reading: "printed-variable-format",
+      says: "The rest of this reading stands: each specifier ends in one of the listed codes, and `%q`, `2f%` and `%` are still refused under `attribute-lexical`; reading `format-d-conversion` adds `d` to the listed codes.",
+      why: "the information model's printf grammar (§2.3.4) refuses a `%` that begins neither the escape `%%` nor a conversion specifier over its listed codes, `d` a listed code by reading `format-d-conversion`, where the XSD types format xs:normalizedString; a format of any number of well-formed specifiers is admitted (reading `format-conversion-count`), so its refusal stays unrecorded",
     },
     /**
      * The value read from the left as C reads a format: text, `%%` and well-formed specifiers, then
@@ -539,10 +539,10 @@ export const recorded: readonly Recorded[] = [
     xsd: "valid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b135\\b", "u"),
+    domain: arkregex("\\([^)]*\\bmime-type\\b", "u"),
     reason: {
       _tag: "reading",
-      reading: 135,
+      reading: "mime-type",
       says: "A MIME type is RFC 2045's type and subtype: two tokens joined by a slash.",
       why: "RFC 2045's two tokens and a slash, with no whitespace or control character, where the XSD's MimeTypeDType pattern admits a space, U+007F and, under replace, a tab or a line break",
     },
@@ -552,7 +552,7 @@ export const recorded: readonly Recorded[] = [
     primitive: "anyURI",
     reason: {
       _tag: "reading",
-      reading: 71,
+      reading: "anyuri-lexical",
       says: "`xs:anyURI` is XML Schema 1.0's: a value is valid when XLink's escaping makes it an RFC 2396 URI reference as RFC 2732 amends it, and libxml2's verdict, which follows RFC 3986, is set aside where the two differ.",
       why: "xs:anyURI is XML Schema 1.0's, RFC 2396 as RFC 2732 amends it after XLink's escaping; libxml2 judges by RFC 3986 with departures of its own and accepts %zz, a second #, and, once escaped, a space or tab before a second #, which RFC 2396's URI-reference refuses",
     },
@@ -562,31 +562,31 @@ export const recorded: readonly Recorded[] = [
     primitive: "anyURI",
     reason: {
       _tag: "reading",
-      reading: 71,
+      reading: "anyuri-lexical",
       says: "An authority that is a registry name holding a `:` or `@` beyond a host and a port (`http://h:abc/`, `http://a@b@c/`), and an empty port (`http://h:/`): RFC 2396 admits them, and libxml2 refuses them.",
       why: "xs:anyURI is XML Schema 1.0's, RFC 2396 as RFC 2732 amends it; libxml2 judges by RFC 3986 and refuses what RFC 2396 admits: a registry-name authority with : or @ beyond a host and a port, an empty port, a port above 2147483647, and [ or ] in a query or after an opaque part's first character",
     },
     xsd: "invalid",
   },
   {
-    domain: arkregex("\\(reading [^)]*\\b2\\b", "u"),
+    domain: arkregex("\\([^)]*\\bmathml-validity\\b", "u"),
     reason: {
       _tag: "reading",
-      reading: 2,
+      reading: "mathml-validity",
       says: "An explicit plus sign ('+') is not allowed as part of a numerical value except when it is specifically listed in the syntax",
-      why: 'MathML 3 §2.1.5.1 writes unsigned-integer as "a string of decimal-digits", positive-integer as one "not consisting solely of "0"s", integer as "an optional "-" ... followed by a string of decimal digits" and number as "an optional prefix of "-" ... followed by an unsigned number", with no +, which xs:unsignedLong (by reading 73), xs:positiveInteger, xs:integer and xs:decimal admit',
+      why: 'MathML 3 §2.1.5.1 writes unsigned-integer as "a string of decimal-digits", positive-integer as one "not consisting solely of "0"s", integer as "an optional "-" ... followed by a string of decimal digits" and number as "an optional prefix of "-" ... followed by an unsigned number", with no +, which xs:unsignedLong (by reading `unsigned-sign`), xs:positiveInteger, xs:integer and xs:decimal admit',
     },
     value: arkregex("^[\t\n\r ]*\\+", "u"),
     xsd: "valid",
   },
   {
     builtin: arkregex("^unsignedLong$", "u"),
-    domain: arkregex("\\(reading [^)]*\\b2\\b", "u"),
+    domain: arkregex("\\([^)]*\\bmathml-validity\\b", "u"),
     reason: {
       _tag: "reading",
-      reading: 2,
-      says: "which admit a `+`, and `-0` for the first (reading 73)",
-      why: 'MathML 3 §2.1.5.1 writes unsigned-integer as "a string of decimal-digits", with no sign, where the XSD types it xs:unsignedLong, which admits -0 by reading 73',
+      reading: "mathml-validity",
+      says: "which admit a `+`, and `-0` for the first (reading `unsigned-sign`)",
+      why: 'MathML 3 §2.1.5.1 writes unsigned-integer as "a string of decimal-digits", with no sign, where the XSD types it xs:unsignedLong, which admits -0 by reading `unsigned-sign`',
     },
     value: arkregex("^[\t\n\r ]*-0+[\t\n\r ]*$", "u"),
     xsd: "valid",
@@ -600,7 +600,7 @@ export const recorded: readonly Recorded[] = [
     reason: {
       _tag: "libxml2",
       proof: "fifthEditionNames",
-      why: "libxml2 reads the name types, xs:NCName and the types derived from it, xs:Name, xs:QName and xs:NMTOKEN with their lists, by XML 1.0 Fifth Edition's NameStartChar and NameChar, so it accepts a name that holds a character no XML 1.0 Second Edition table holds (U+20AC, U+3400, U+10000, U+0132) or that begins with one the Second Edition admits only after the first (U+02D0); XML Schema 1.0 takes the name characters from the Second Edition (Part 2, 3.3.7 and Appendix F.1.1), as reading 94 reads it",
+      why: "libxml2 reads the name types, xs:NCName and the types derived from it, xs:Name, xs:QName and xs:NMTOKEN with their lists, by XML 1.0 Fifth Edition's NameStartChar and NameChar, so it accepts a name that holds a character no XML 1.0 Second Edition table holds (U+20AC, U+3400, U+10000, U+0132) or that begins with one the Second Edition admits only after the first (U+02D0); XML Schema 1.0 takes the name characters from the Second Edition (Part 2, 3.3.7 and Appendix F.1.1), as reading `ncname-characters` reads it",
     },
     xsd: "valid",
   },
@@ -1262,7 +1262,7 @@ export const reasonText = (reason: Reason): string => {
       return `libxml2 (${reason.proof}): ${reason.why}`;
     }
     case "reading": {
-      return `reading ${String(reason.reading)}: ${reason.why}`;
+      return `reading \`${reason.reading}\`: ${reason.why}`;
     }
   }
 };
@@ -1312,8 +1312,8 @@ export const targetsOf = Effect.fn("lexical.targetsOf")(function* targetsOf(
   const contents = new Map<string, { readonly type: string; readonly name: XsdName }[]>();
   /**
    * A global declaration's kind is the one `globalKinds` lists under its name, not one read off
-   * where a wildcard admits it: spec reading 2 lets a wildcard admit MathML's root alone, and
-   * every MathML global still declares its kind's attributes and text.
+   * where a wildcard admits it: spec reading `mathml-validity` lets a wildcard admit MathML's root
+   * alone, and every MathML global still declares its kind's attributes and text.
    */
   const globalKindOf = new Map<string, string>(
     globalKinds.flatMap(({ kind }) =>

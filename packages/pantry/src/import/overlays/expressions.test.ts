@@ -291,9 +291,9 @@ type TypedReference = (ExpressionRows["VariableRef"] extends ReadonlyMap<string,
 
 /**
  * A document's rows beside each node's facts and attributes, by its start: its expression rows,
- * each expression and reference typed under the document's own placement, a document in no
- * assembly (spec reading 117), and its declarations' attributes, which a reference resolves its
- * name against.
+ * each expression and reference typed under the document's own placement, a document in no assembly
+ * (spec reading `fragment-placement`), and its declarations' attributes, which a reference resolves
+ * its name against.
  */
 type Rows = Omit<ExpressionRows, "Expression" | "VariableRef"> & {
   readonly attributes: ReadonlyMap<bigint, ReadonlyMap<string, string>>;
@@ -688,9 +688,10 @@ const spells = (v: Reference): boolean =>
  * its name resolves to, which a reference has exactly where it is declared. A declared variable
  * with no base type, a record, is `unknown`; one with a base type has its declaration's, which
  * `PlacedVariableBase` reads. Its cardinality is its declaration's image where it has one (spec
- * reading 159); one with none is refused by AL3 or its value domain alone, since `cardinality` is
- * required and enumerated. A read one's type is its one reading's under a test (spec reading 167),
- * which `overlay-queries/readings.ts` states; its name is neither declared nor built in there.
+ * reading `binding-by-name`); one with none is refused by AL3 or its value domain alone, since
+ * `cardinality` is required and enumerated. A read one's type is its one reading's under a test
+ * (spec reading `weighted-test-variables`), which `overlay-queries/readings.ts` states; its name is
+ * neither declared nor built in there.
  *
  * @param v - The reference.
  * @param rows - The rows.
@@ -1201,7 +1202,7 @@ describe("import/overlays/expressions.ts, a braced pattern that names no variabl
   );
 });
 
-// The readings of a test's references (spec readings 48 and 88; representation-gaps.md §4).
+// The readings of a test's references (spec readings `dotted-reference` and `numbered-reference`; representation-gaps.md §4).
 
 /**
  * An element of a kind, with its attributes as (name, lexical) pairs and its children.
@@ -1283,7 +1284,7 @@ const declarationsInTree = (tree: XdmDocument<Composed>): ReadonlySet<string> =>
   return declared;
 };
 
-describe("import/overlays/expressions.ts, the claims a reference proves, a test's references read as spec readings 48 and 88 read them (representation-gaps.md §4)", () => {
+describe("import/overlays/expressions.ts, the claims a reference proves, a test's references read as spec readings `dotted-reference` and `numbered-reference` read them (representation-gaps.md §4)", () => {
   it("types a test variables that writes no base-type unknown, or float where it is weighted", () => {
     for (const [written, weighted] of [
       [false, false],

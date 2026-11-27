@@ -1,15 +1,16 @@
 /**
- * A declaration whose identifier names nothing is still a declaration (spec reading 157): its
- * `identifier` unwritten, empty, whitespace alone or no NCName (reading 152) leaves it no name, so
- * AL3 or its value domain refuses it alone, and nothing references it by name, while its row, its
- * values, its mapping and its map keys are read and judged as any other declaration's. The
- * import wrote no `Declaration` row for it before, so "Declaration overlay"'s copy of its
- * cardinality broke beside the value domain the law oracle alone raised, and a map key past the
- * key-text bound, a repeated key or one outside its base type went unjudged on the import's rows
- * where the oracle named "Key text bound", "Map key" or "Typed attribute value"; the oracle in turn
- * read two such declarations as one name and raised "Declaration key", and judged none of the laws
- * over a nameless declaration's type and values. No row stands for a declaration or a map key now
- * (C18): each is a view, so no law can refuse one's absence.
+ * A declaration whose identifier names nothing is still a declaration (spec reading
+ * `unnamed-declaration`): its `identifier` unwritten, empty, whitespace alone or no NCName (reading
+ * `ncname-names`) leaves it no name, so AL3 or its value domain refuses it alone, and nothing
+ * references it by name, while its row, its values, its mapping and its map keys are read and
+ * judged as any other declaration's. The import wrote no `Declaration` row for it before, so
+ * "Declaration overlay"'s copy of its cardinality broke beside the value domain the law oracle
+ * alone raised, and a map key past the key-text bound, a repeated key or one outside its base type
+ * went unjudged on the import's rows where the oracle named "Key text bound", "Map key" or "Typed
+ * attribute value"; the oracle in turn read two such declarations as one name and raised
+ * "Declaration key", and judged none of the laws over a nameless declaration's type and values. No
+ * row stands for a declaration or a map key now (C18): each is a view, so no law can refuse one's
+ * absence.
  *
  * Oracle: a second implementation, the law oracle (`#pantry/test/oracle.ts` `judge`), against the
  * laws the import's rows break on the host (`#pantry/test/gen/genetic/judge.ts` `judgeOne`): no
@@ -76,10 +77,10 @@ const longKey = "q".repeat(keyTextBytes([]) + 1);
 
 /**
  * The mappings the declaration holds, each with its cardinality and base type and what the law
- * oracle judges of it: one lawful key; a key written twice, lawful too (spec reading 165); a key
- * past every B-tree entry, lawful too ({@link longKey}); a key outside its base type ("Typed
- * attribute value", beside its correct response's "Typed value"); and a record's mapping
- * ("MappableBaseType").
+ * oracle judges of it: one lawful key; a key written twice, lawful too (spec reading
+ * `string-map-key-case`); a key past every B-tree entry, lawful too ({@link longKey}); a key
+ * outside its base type ("Typed attribute value", beside its correct response's "Typed value"); and
+ * a record's mapping ("MappableBaseType").
  */
 const mappings: readonly {
   readonly keys: readonly string[];

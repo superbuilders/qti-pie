@@ -65,7 +65,7 @@ export interface ExtendedTextProps extends Authored<Named> {
   /**
    * How many boxes show, which the server derives from the bound response's cardinality,
    * `max-strings` (5.48.6) and `min-strings` (5.48.7, 0 when the author wrote none, the XSD's
-   * default), where an absent or 0 `max-strings` is no limit (plate's reading 53):
+   * default), where an absent or 0 `max-strings` is no limit (plate's reading `max-strings-zero`):
    *
    * - A `single` or `record` response takes one string: `shown` and `most` are 1.
    * - A `multiple` or `ordered` response takes a string per box. `shown` is `max-strings` when it is

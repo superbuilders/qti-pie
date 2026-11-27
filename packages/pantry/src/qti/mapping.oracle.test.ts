@@ -1,7 +1,8 @@
 /**
  * The mapping overlays' free tests: the law oracle's mapping laws, which admit a repeated key (spec
- * reading 165) and a typed value written with whitespace its simple type collapses (reading 7), and
- * refuse a typed value no lexical form of its base type spells.
+ * reading `string-map-key-case`) and a typed value written with whitespace its simple type
+ * collapses (reading `typed-value-whitespace`), and refuse a typed value no lexical form of its
+ * base type spells.
  *
  * The views the laws read are `#pantry/qti/attribute-views.db.test.ts`'s.
  */
@@ -136,7 +137,7 @@ describe("qti/mapping.ts, the oracle's mapping laws", () => {
           assert.deepStrictEqual(
             found.map((breach) => breach.split(" {")[0]),
             [...breaks],
-            `${name}: ${found.join("; ")}: QTI's XSD holds no xs:unique or xs:key over a mapping's entries, and the first entry that matches a value gives it (reading 165), so a repeat is lawful whatever its base type; readings 7, 8, 34 and 45 spell each base type's lexical form`,
+            `${name}: ${found.join("; ")}: QTI's XSD holds no xs:unique or xs:key over a mapping's entries, and the first entry that matches a value gives it (reading \`string-map-key-case\`), so a repeat is lawful whatever its base type; readings \`typed-value-whitespace\`, \`match-table-target-value\`, \`boolean-lexical\` and \`integer-unbounded\` spell each base type's lexical form`,
           );
         }
 
@@ -150,7 +151,7 @@ describe("qti/mapping.ts, the oracle's mapping laws", () => {
           assert.deepStrictEqual(
             yield* mappingBreachesOf(mappedItem("string", keys, "7", caseSensitive)),
             [],
-            `${label}: a repeat is lawful whatever its case or its case-sensitive (reading 165)`,
+            `${label}: a repeat is lawful whatever its case or its case-sensitive (reading \`string-map-key-case\`)`,
           );
         }
 
@@ -200,7 +201,7 @@ describe("qti/mapping.ts, a typed map key read collapsed", () => {
           literal: (text) => JSON.stringify(text),
           oracle: {
             kind: "specification",
-            name: "XML Schema 1.0 Part 2 §4.3.6, xs:integer's whiteSpace collapse, and §3.3.13's lexical space, an optional sign and digits: a key is an integer exactly where its text, its XML whitespace at either end removed and each inner run one space, is that (reading 7)",
+            name: "XML Schema 1.0 Part 2 §4.3.6, xs:integer's whiteSpace collapse, and §3.3.13's lexical space, an optional sign and digits: a key is an integer exactly where its text, its XML whitespace at either end removed and each inner run one space, is that (reading `typed-value-whitespace`)",
           },
           suite: "qti/mapping-collapsed-key",
         },

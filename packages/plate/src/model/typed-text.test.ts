@@ -1,14 +1,14 @@
 /**
  * Plate's one reading of the text a child types into a box (`#plate/model/typed-text.ts`), against
  * the value model's lexical rules, QTI's `TextFormatEnum`, the information model's record fields of
- * a string interaction (2.4.2.2, spec reading 191) and the integers a Text Entry's `base` names,
- * every case a value written from the rule: an integer exact at any size and in every base, a float
- * finite, a string's line breaks a textarea's, and a character XML cannot carry unread; and the
- * texts a whole-number box takes, with no `pattern-mask` against a grammar of how an integer is
- * written, and under a mask against a brute force over every answer the mask's own matcher admits,
- * the K–2 forms' entries among the masks (their product spec: whole numbers, "leading zeros
- * rejected", a lone 0 valid, Kindergarten 0 to 20, Grades 1 and 2 up to three and four digits,
- * raised where a listed wrong answer is longer).
+ * a string interaction (2.4.2.2, spec reading `record-number-fields`) and the integers a Text
+ * Entry's `base` names, every case a value written from the rule: an integer exact at any size and
+ * in every base, a float finite, a string's line breaks a textarea's, and a character XML cannot
+ * carry unread; and the texts a whole-number box takes, with no `pattern-mask` against a grammar of
+ * how an integer is written, and under a mask against a brute force over every answer the mask's
+ * own matcher admits, the K–2 forms' entries among the masks (their product spec: whole numbers,
+ * "leading zeros rejected", a lone 0 valid, Kindergarten 0 to 20, Grades 1 and 2 up to three and
+ * four digits, raised where a listed wrong answer is longer).
  *
  * @module
  */

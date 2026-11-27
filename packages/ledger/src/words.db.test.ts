@@ -3,11 +3,11 @@
  * (`@qti-pie/plate/words`, the one definition a page shows beside an essay): under
  * validate-responses an Extended Text's answer is refused unless its `pattern-mask` matches it
  * (admission.sql's patternMismatch), an `xhtml` one matched against its text (`p3.xhtml_text`,
- * reading 244) and a plain one as posted; so for every answer and every word minimum, the machine's
- * own XML Schema matcher (`p3.xsd_compile`, `p3.xsd_run`, machine/xsd.sql) must accept the
- * minimum's pattern (`wordPatternOf`) exactly when `wordsIn` counts at least its least, or a child
- * who sees enough words is refused, or one who sees too few is not. This suite holds the
- * database's.
+ * reading `xhtml-pattern-mask-text`) and a plain one as posted; so for every answer and every word
+ * minimum, the machine's own XML Schema matcher (`p3.xsd_compile`, `p3.xsd_run`, machine/xsd.sql)
+ * must accept the minimum's pattern (`wordPatternOf`) exactly when `wordsIn` counts at least its
+ * least, or a child who sees enough words is refused, or one who sees too few is not. This suite
+ * holds the database's.
  *
  * The answers are drawn from words (letters, digits, hyphens, punctuation), every space a count
  * reads (XML's four, U+00A0, U+3000, U+FEFF) and the zero-width U+200B, and, for a rich answer,

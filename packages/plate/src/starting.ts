@@ -40,8 +40,8 @@ const firstBinding = (body: RedactedFields["body"]): ReadonlyMap<string, Interac
  * the value the interaction's module gives a response no control wrote (`absentValueOf`), End
  * Attempt's `false`, whatever its default (QTI 3.0.1 information model §5.45: "The default value of
  * the response variable is always ignored"); else the binding's start, its default where the
- * interaction starts at it, a Choice starting empty whatever its default (spec reading 183); else
- * NULL.
+ * interaction starts at it, a Choice starting empty whatever its default (spec reading
+ * `response-default`); else NULL.
  *
  * @param binding The response's binding.
  * @param interaction The first interaction that binds it.

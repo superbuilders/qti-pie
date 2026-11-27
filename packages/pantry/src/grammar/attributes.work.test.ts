@@ -296,8 +296,9 @@ const toyLeafNames = ["lower", "lowerCopy", "digits"] as const;
 
 /**
  * The (kind, attribute) pairs a toy declaration is drawn over, each read by the spec readings it
- * names: none, reading 129 everywhere (`lang`), reading 129 twice (`xml:lang` everywhere, then on
- * an item's root), reading 129 on a track (`srclang`), and reading 7, whose whitespace is exact.
+ * names: none, reading `language-tags` everywhere (`lang`), reading `language-tags` twice
+ * (`xml:lang` everywhere, then on an item's root), reading `language-tags` on a track (`srclang`),
+ * and reading `typed-value-whitespace`, whose whitespace is exact.
  */
 const toyPairs = {
   "k@a": { kind: "k", name: "a" },

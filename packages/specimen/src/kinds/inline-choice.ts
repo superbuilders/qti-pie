@@ -37,7 +37,8 @@ interface InlineChoiceSettings {
 const responseOf = (at: number): string => `RESPONSE_${String(at + 1)}`;
 
 /**
- * A menu's value's identifier, unique in the item, as every choice's is (reading 104).
+ * A menu's value's identifier, unique in the item, as every choice's is (reading
+ * `choice-identifier-scope`).
  *
  * @param menu The menu's place, from 0.
  * @param at The value's place in it, from 0.

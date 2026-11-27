@@ -1,6 +1,6 @@
 /**
- * The MathML cn overlay's rows (spec reading 2, §C's `rowsOf`): from one document's view
- * (`DocumentView` of `#pantry/import/fold.ts`), the rows of every relation
+ * The MathML cn overlay's rows (spec reading `mathml-validity`, §C's `rowsOf`): from one document's
+ * view (`DocumentView` of `#pantry/import/fold.ts`), the rows of every relation
  * `#pantry/qti/mathml-cn.ts` declares.
  *
  * - **`MathCn`**, one row for every `m:cn` whose `type` {@link cnForms} lists (`real` where it writes

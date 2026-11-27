@@ -1,8 +1,8 @@
 /**
- * The HTML laws over views (`#pantry/qti/html.ts`, spec reading 126): a cell's `headers` tokens
- * ({@link HeaderToken}), its table ({@link CellTable}) and each tabled `th`'s `id`
- * ({@link TableHeader}) are projections of `Attribute` and `Node` no row copies (C18), so the laws
- * over them are rules over a query.
+ * The HTML laws over views (`#pantry/qti/html.ts`, spec reading `cell-headers`): a cell's `headers`
+ * tokens ({@link HeaderToken}), its table ({@link CellTable}) and each tabled `th`'s `id` ({@link
+ * TableHeader}) are projections of `Attribute` and `Node` no row copies (C18), so the laws over
+ * them are rules over a query.
  */
 import { contained, derived, key, on, query, v } from "@bjornpagen/grizzle";
 import { Attribute } from "#pantry/qti/attributes.ts";
@@ -15,8 +15,9 @@ import { declared } from "#pantry/qti/law-entries.ts";
  * its {@link CellTable}'s: its `id`, the attribute's `value` (an `xs:ID` collapsed, the ID's value
  * as `IdValue` holds it), and `idDigest`, that value's SHA-256, by which "DocumentId key" keys a
  * table's headers and "Table headers" resolves a cell's tokens among them, since XML Schema bounds
- * no `xs:ID`. AL1 holds the form to an NCName once collapsed where it is written (spec readings 152
- * and 156). A `th` no `table` holds is a header of no table, which no token can name.
+ * no `xs:ID`. AL1 holds the form to an NCName once collapsed where it is written (spec readings
+ * `ncname-names` and `id-is-ncname`). A `th` no `table` holds is a header of no table, which no
+ * token can name.
  */
 export const TableHeader = derived(
   "TableHeader",
@@ -54,11 +55,11 @@ const CellToken = derived(
  *
  * - **"DocumentId key":** one header per (table, id) among those in a table, which an ID held twice
  *   in a document already breaks;
- * - **"Table headers"** (reading 126, info §5.140.1): a cell's tokens are unique, and each token of a
- *   cell's `headers` is the `id` of a `th` taking part in the cell's table. It refuses a token that
- *   names no ID, one that names a `td` or another element, and one that names a `th` of another
- *   table, nested or enclosing; a cell no `table` holds has its document node as its table, which
- *   no header in a table has, so every token it writes is refused.
+ * - **"Table headers"** (reading `cell-headers`, info §5.140.1): a cell's tokens are unique, and each
+ *   token of a cell's `headers` is the `id` of a `th` taking part in the cell's table. It refuses a
+ *   token that names no ID, one that names a `td` or another element, and one that names a `th` of
+ *   another table, nested or enclosing; a cell no `table` holds has its document node as its table,
+ *   which no header in a table has, so every token it writes is refused.
  */
 export const htmlOverlayLawsByName = {
   "DocumentId key": declared("DocumentId key", [

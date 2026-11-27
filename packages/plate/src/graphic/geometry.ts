@@ -10,14 +10,14 @@
  * `ellipse`'s radii each on its own axis, and a `circle`'s radius of the smaller of the two, since
  * "When the radius value is a percentage value, user agents should calculate the final radius value
  * based on the associated object's width and height. The radius should be the smaller value of the
- * two" (7.9; spec-readings reading 180).
+ * two" (7.9; spec-readings reading `circle-percentage-radius`).
  *
  * Which points an area holds is `areaHolds` (`#plate/graphic/holds.ts`), the exact test the QTI
- * database's scoring states too: its boundary included (reading 52), and coordinates that do not
- * fit the shape read as HTML's image-map processing reads them (reading 59). Where areas overlap,
- * the one listed first holds the point, since "If hotspots overlap then those listed first hide
- * overlapping hotspots that appear later" (5.67), and a `default` area holds only what no other
- * area holds, wherever it is listed.
+ * database's scoring states too: its boundary included (reading `area-mapping`), and coordinates
+ * that do not fit the shape read as HTML's image-map processing reads them (reading
+ * `area-coords-fit`). Where areas overlap, the one listed first holds the point, since "If hotspots
+ * overlap then those listed first hide overlapping hotspots that appear later" (5.67), and a
+ * `default` area holds only what no other area holds, wherever it is listed.
  *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Coords

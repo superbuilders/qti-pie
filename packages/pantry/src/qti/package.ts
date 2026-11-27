@@ -1,6 +1,6 @@
 /**
  * The package and its entries, and the manifest's overlays (plan §1.6; the W5 amendment's C17 and
- * C18; the orchestrator's rulings of 2026-11-06 and spec reading 93).
+ * C18; the orchestrator's rulings of 2026-11-06 and spec reading `resource-href`).
  *
  * {@link Package} is keyed by its name, and holds its {@link Entry} rows, a set keyed by path: the
  * package's files (IMS Content Packaging 1.2: every file is an entry of its package), none holding
@@ -30,27 +30,28 @@
  * node's parent), and the resource a dependency names are queries (`#pantry/qti/overlay-queries/
  * package.ts`), and "File listed", "Href listed", "Dependency target" and "Self dependency" are
  * rules over them, since a file may be listed by several resources and twice by one (spec reading
- * 36), so no file href is a key. The hrefs of the typed resources are a query too, `TypedHref`
- * (`#pantry/qti/queries.ts`): the laws over a typed href, and over the (path, type) pairs the
- * package's resources name, are rules over it.
+ * `repeated-file-listings`), so no file href is a key. The hrefs of the typed resources are a query
+ * too, `TypedHref` (`#pantry/qti/queries.ts`): the laws over a typed href, and over the (path,
+ * type) pairs the package's resources name, are rules over it.
  *
- * A resource names a document only through its `href` (reading 93): a resource of a type
- * `RootOfType` maps names the document at its `href`, and every other document is the manifest.
+ * A resource names a document only through its `href` (reading `resource-href`): a resource of a
+ * type `RootOfType` maps names the document at its `href`, and every other document is the
+ * manifest.
  *
- * An href is read in two written pieces, `path ‖ params` (reading 102): `params` is empty or starts
- * at the first `?` or `#`, a query or a fragment, and only `path` names a file. So a resource's
- * `href` may carry launch parameters its file's `href` does not (IMS Content Packaging 1.2,
- * §6.6.2), and a reference may carry a media fragment.
+ * An href is read in two written pieces, `path ‖ params` (reading `href-resolution`): `params` is
+ * empty or starts at the first `?` or `#`, a query or a fragment, and only `path` names a file. So
+ * a resource's `href` may carry launch parameters its file's `href` does not (IMS Content Packaging
+ * 1.2, §6.6.2), and a reference may carry a media fragment.
  *
- * The importer resolves every href before it writes a row (readings 102 and 103,
- * `#pantry/import/overlays/package.ts` `resolveIn`): it reads the value by its attribute's
- * whitespace class, merges the path with its base, the document's own path or the `xml:base` in
- * scope, removes its dot segments and percent-decodes it (RFC 3986, §2.1 and §5.2). Each row holds
- * the outcome as its {@link HrefScope} and, in the package, the entry path it names, which the laws
- * compare with `Entry`. No relation can percent-decode a name, so the resolution is the importer's,
- * and the law oracle's own resolver (`#pantry/test/resolution.ts`) is its differential; the
- * database proves what a row can: a resolved path holds no dot segment
- * ({@link resolvedPathPattern}), and a reference with a scheme or a leading `/` is external.
+ * The importer resolves every href before it writes a row (readings `href-resolution` and
+ * `file-references`, `#pantry/import/overlays/package.ts` `resolveIn`): it reads the value by its
+ * attribute's whitespace class, merges the path with its base, the document's own path or the
+ * `xml:base` in scope, removes its dot segments and percent-decodes it (RFC 3986, §2.1 and §5.2).
+ * Each row holds the outcome as its {@link HrefScope} and, in the package, the entry path it names,
+ * which the laws compare with `Entry`. No relation can percent-decode a name, so the resolution is
+ * the importer's, and the law oracle's own resolver (`#pantry/test/resolution.ts`) is its
+ * differential; the database proves what a row can: a resolved path holds no dot segment ({@link
+ * resolvedPathPattern}), and a reference with a scheme or a leading `/` is external.
  *
  * Every in-package file a manifest or a document names is an entry (IMS Content Packaging 1.2,
  * InterchangePackage (b) and (d)): a `cp:file`'s resolved path (`file-exists`), and each
@@ -136,11 +137,11 @@ export const Package = law(
  * every level above that keys its rows by a package first. A publish writes one package's rows, so
  * it holds that package alone, exclusively; a call that reads a package it does not write holds it
  * shared; and calls of different packages never meet. A package's rows are one index range of each
- * relation, and every law over them stays inside one package (spec reading 115: an include that
- * resolves outside the package is stored as written and never fetched). It is sealed at founding: a
- * package's rows are inserted by the one transaction that founds it and never written after, so
- * grizzle stores every derived relation over a package's content. Its seal is the law "Package
- * sealed", which {@link packageLawsByName} states with the module's other laws.
+ * relation, and every law over them stays inside one package (spec reading `include-target`: an
+ * include that resolves outside the package is stored as written and never fetched). It is sealed
+ * at founding: a package's rows are inserted by the one transaction that founds it and never
+ * written after, so grizzle stores every derived relation over a package's content. Its seal is the
+ * law "Package sealed", which {@link packageLawsByName} states with the module's other laws.
  */
 export const PackageUnit = law(
   entryOf("Package sealed"),
@@ -184,9 +185,10 @@ export const Media = law(
 );
 
 /**
- * The pattern of an href's `params` piece (reading 102): empty, or a query or a fragment, from the
- * first `?` or `#` to the end (RFC 3986, §3.4 and §3.5, which end a path at either). The `path`
- * before it holds neither ({@link hrefPathPattern}), so the split of an href is one.
+ * The pattern of an href's `params` piece (reading `href-resolution`): empty, or a query or a
+ * fragment, from the first `?` or `#` to the end (RFC 3986, §3.4 and §3.5, which end a path at
+ * either). The `path` before it holds neither ({@link hrefPathPattern}), so the split of an href is
+ * one.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-3.4 | RFC 3986, §3.4}
  */
@@ -198,17 +200,18 @@ export const hrefParamsPattern = "^(?:[?#].*)?$";
 export const hrefPathPattern = Text.pattern("^[^?#]*$");
 
 /**
- * An href's `params` piece, its query or fragment (reading 102): text no key holds and no law
- * compares but "Include fragment identifier", written beside the reference's target it follows so
- * the pieces concatenate to the lexical form.
+ * An href's `params` piece, its query or fragment (reading `href-resolution`): text no key holds
+ * and no law compares but "Include fragment identifier", written beside the reference's target it
+ * follows so the pieces concatenate to the lexical form.
  */
 export const HrefParams = law(entryOf("E1 derived"), str.regex(hrefParamsPattern, "su"));
 
 /**
  * An external href, which names no package entry and is never resolved: a URI with a scheme
- * (reading 35's absolute href), an inline `data:` URI among them, or a reference that starts with
- * `/`, a network path or an absolute path, which resolves against the location a package is read
- * from rather than within it (reading 102). The pattern reads the start of the href alone.
+ * (reading `absolute-hrefs`'s absolute href), an inline `data:` URI among them, or a reference that
+ * starts with `/`, a network path or an absolute path, which resolves against the location a
+ * package is read from rather than within it (reading `href-resolution`). The pattern reads the
+ * start of the href alone.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-4.2 | RFC 3986, §4.2}
  */
@@ -253,7 +256,7 @@ const srcsetSeparator = Text.pattern("^[\\t\\n\\r ]*,[\\t\\n\\r ,]*$");
 
 /**
  * An image candidate's descriptors as written: empty, or whitespace and the rest of the candidate
- * up to the comma that ends it, which no law reads (spec reading 124).
+ * up to the comma that ends it, which no law reads (spec reading `source-attributes`).
  */
 export const SrcsetDescriptor = law(
   entryOf("E1 derived"),
@@ -261,15 +264,16 @@ export const SrcsetDescriptor = law(
 );
 
 /**
- * How an href resolves (readings 102 and 103), the outcome the importer writes on every href's row:
+ * How an href resolves (readings `href-resolution` and `file-references`), the outcome the importer
+ * writes on every href's row:
  *
  * - `entry`: a path in the package, which names the entry the row holds as its `path`;
  * - `external`: no reference into the package, whatever its scheme, admitted as written and never
- *   resolved: a URI with a scheme (reading 35), an inline `data:` URI (RFC 2397) among them, a
- *   network or absolute path (a leading `/`, reading 102), a path whose `..` segments climb above
- *   the package root, and any relative href in the scope of an `xml:base` that is one of those. It
- *   names no entry, so no file of the package is served for it, and nothing here reads it as a
- *   remote location: an inline `data:` URI is its own content;
+ *   resolved: a URI with a scheme (reading `absolute-hrefs`), an inline `data:` URI (RFC 2397)
+ *   among them, a network or absolute path (a leading `/`, reading `href-resolution`), a path whose
+ *   `..` segments climb above the package root, and any relative href in the scope of an `xml:base`
+ *   that is one of those. It names no entry, so no file of the package is served for it, and
+ *   nothing here reads it as a remote location: an inline `data:` URI is its own content;
  * - `document`: its own document, admitted and never resolved: a path that is empty, as the empty
  *   reference, a query alone and a fragment alone have (RFC 3986, §4.4, a same-document reference,
  *   whose dereference "should not result in a new retrieval action");
@@ -313,8 +317,9 @@ export const ResourceHref = law(
 
 /**
  * A resource's `href` that resolves in the package, keyed by the resource's node: `target`, the
- * entry path it resolves to (RFC 3986, §5.2; readings 102 and 103), what it is compared by with its
- * resource's files and with an item ref's target, and the document a document-typed resource names.
+ * entry path it resolves to (RFC 3986, §5.2; readings `href-resolution` and `file-references`),
+ * what it is compared by with its resource's files and with an item ref's target, and the document
+ * a document-typed resource names.
  */
 export const ResourceHrefPath = law(
   entryOf("Manifest overlay"),
@@ -327,10 +332,10 @@ export const ResourceHrefPath = law(
 
 /**
  * A resource's `href` outside the package, keyed by the resource's node: `target`, its path as
- * written, its launch parameters aside (CP 1.2 §6.6.2, reading 102), of no bound, which is how it
- * is compared with its resource's files. `targetDigest`, its SHA-256, is what "Href listed" pays
- * for: its outside comparison, of a text no key bound fits, finds a file by the digest first and
- * the text after it.
+ * written, its launch parameters aside (CP 1.2 §6.6.2, reading `href-resolution`), of no bound,
+ * which is how it is compared with its resource's files. `targetDigest`, its SHA-256, is what "Href
+ * listed" pays for: its outside comparison, of a text no key bound fits, finds a file by the digest
+ * first and the text after it.
  */
 export const ResourceHrefOutside = law(
   entryOf("Manifest overlay"),
@@ -346,10 +351,10 @@ export const ResourceHrefOutside = law(
 
 /**
  * A document a resource of its package lists, keyed by its document, `(package, path)`: the type of
- * that resource
- * (IMS Content Packaging 1.2: a resource's file; spec reading 176). The package's manifest is no
- * resource's document (spec reading 146) and has no row: its type is `manifest`, its `Document`'s
- * `documentType`, and every other document's is the type here, by `ResourceDocumentType`.
+ * that resource (IMS Content Packaging 1.2: a resource's file; spec reading `document-type-total`).
+ * The package's manifest is no resource's document (spec reading `manifest-document`) and has no
+ * row: its type is `manifest`, its `Document`'s `documentType`, and every other document's is the
+ * type here, by `ResourceDocumentType`.
  *
  * - **the host's:** `type`, the type its listing names it under (`#pantry/import/program.ts`); and
  *   its `Document`'s key and `rootKind`, which "E1 derived" proves;
@@ -426,21 +431,21 @@ export const FileOutside = law(
 
 /**
  * A reference attribute's value, keyed by its element and its attribute's name: every attribute of
- * the reference census (`ReferenceAttribute`, the grammar's, spec reading 103), its element's kind
- * copied from `Attribute`, and the split of the attribute's lexical form, which no row copies
- * (C18): its outer whitespace, which a URL "potentially surrounded by spaces" and an `xs:anyURI`
- * both set aside, then its path and its query or fragment (reading 102). `params` is what "Include
- * fragment identifier" reads. `E1_derived` holds the attribute's `lexical` to
- * `lead ‖ target ‖ params ‖ trail` by a rule over the join of the two (`ReferenceLexical`,
- * `#pantry/qti/queries.ts`), which builds no text.
+ * the reference census (`ReferenceAttribute`, the grammar's, spec reading `file-references`), its
+ * element's kind copied from `Attribute`, and the split of the attribute's lexical form, which no
+ * row copies (C18): its outer whitespace, which a URL "potentially surrounded by spaces" and an
+ * `xs:anyURI` both set aside, then its path and its query or fragment (reading `href-resolution`).
+ * `params` is what "Include fragment identifier" reads. `E1_derived` holds the attribute's
+ * `lexical` to `lead ‖ target ‖ params ‖ trail` by a rule over the join of the two
+ * (`ReferenceLexical`, `#pantry/qti/queries.ts`), which builds no text.
  *
  * `target` has no byte bound: QTI bounds no URL (a `data:` URI, a signed address), and no key holds
  * it; only a target resolved in the package, its {@link ReferencePath}'s `EntryPath`, is bounded.
  *
- * Its {@link HrefScope} is the importer's resolution of its value (readings 102 and 103): a
- * reference in the package has its {@link ReferencePath}, and no other reference has one.
- * `E1_derived` holds what the written form decides: a target with a scheme or a leading `/` is
- * external, and only an empty target names its own document.
+ * Its {@link HrefScope} is the importer's resolution of its value (readings `href-resolution` and
+ * `file-references`): a reference in the package has its {@link ReferencePath}, and no other
+ * reference has one. `E1_derived` holds what the written form decides: a target with a scheme or a
+ * leading `/` is external, and only an empty target names its own document.
  */
 export const Reference = law(
   entryOf("Reference overlay"),
@@ -465,7 +470,7 @@ export const Reference = law(
 /**
  * A reference resolved in the package, keyed by its element and its attribute's name: its
  * {@link Reference}'s element kind, and `target`, the entry path the importer resolved it to in the
- * row's own package (RFC 3986, §5.2 and §2.1; readings 102 and 103).
+ * row's own package (RFC 3986, §5.2 and §2.1; readings `href-resolution` and `file-references`).
  *
  * Every in-package file a document references is an entry (`file-exists`, IMS Content Packaging
  * 1.2, InterchangePackage (d)), and a law that reads what a reference names (an item ref's item,
@@ -493,11 +498,12 @@ export const ReferencePath = law(
  * string value, `Node.stringValue`, which no row copies (C18). `E1_derived` holds the string value
  * to `lead ‖ target ‖ params ‖ trail` as it holds a {@link Reference}'s attribute to its split, by
  * a rule over the join of the two (`TextReferenceStringValue`, `#pantry/qti/queries.ts`; reading
- * 102). The census names elements, not attributes, so no attribute name keys it, and no `srcset`
- * form applies.
+ * `href-resolution`). The census names elements, not attributes, so no attribute name keys it, and
+ * no `srcset` form applies.
  *
- * Its {@link HrefScope} is the importer's resolution of its text (readings 102 and 103): a text
- * reference in the package has its {@link TextReferencePath}, and no other has one.
+ * Its {@link HrefScope} is the importer's resolution of its text (readings `href-resolution` and
+ * `file-references`): a text reference in the package has its {@link TextReferencePath}, and no
+ * other has one.
  */
 export const TextReference = law(
   entryOf("Reference overlay"),
@@ -521,8 +527,8 @@ export const TextReference = law(
 /**
  * A text reference resolved in the package, keyed by its element: its {@link TextReference}'s
  * element kind, and `target`, the entry path the importer resolved it to in the row's own package
- * (RFC 3986, §5.2 and §2.1; readings 102 and 103), which rides the containment into `Entry` as a
- * {@link ReferencePath}'s does.
+ * (RFC 3986, §5.2 and §2.1; readings `href-resolution` and `file-references`), which rides the
+ * containment into `Entry` as a {@link ReferencePath}'s does.
  */
 export const TextReferencePath = law(
   entryOf("Reference overlay"),
@@ -540,11 +546,11 @@ export const TextReferencePath = law(
 );
 
 /**
- * A `srcset`'s split, keyed by its element (spec reading 103's census, form `srcset`), a row
- * exactly where the element writes one ({@link srcsetAttributes}): its image candidates
- * ({@link SrcsetCandidate}, HTML's "image candidate strings"), counted by `tokens`, and `trail`,
- * the whitespace and commas after the last. The form as written is its `Attribute` row's alone,
- * which no row copies (C18): `E1_derived` over the query `SrcsetForm`
+ * A `srcset`'s split, keyed by its element (spec reading `file-references`'s census, form
+ * `srcset`), a row exactly where the element writes one ({@link srcsetAttributes}): its image
+ * candidates ({@link SrcsetCandidate}, HTML's "image candidate strings"), counted by `tokens`, and
+ * `trail`, the whitespace and commas after the last. The form as written is its `Attribute` row's
+ * alone, which no row copies (C18): `E1_derived` over the query `SrcsetForm`
  * (`#pantry/qti/overlay-queries/package.ts`), which reads the attribute's `lexical` beside the
  * split, proves the candidates' pieces in order, `tokenText`, then `trail`, are the form. A
  * `srcset` names a file by each candidate's URL alone, so it has no {@link Reference}.
@@ -579,9 +585,9 @@ export const Srcset = law(
  * `srcsetCandidatesOf` of `#pantry/import/pieces.ts`): `lead`, the whitespace and commas before its
  * URL; `url`, at most `matchedTextBytes` UTF-8 bytes ({@link SrcsetCandidateUrl}), since its check
  * reads it by `Text.matches` (the `srcset`'s stated limit); and `descriptor`, the rest of the
- * candidate. Its URL is resolved as an href is
- * (readings 102 and 103), its outcome its {@link HrefScope}, and one resolved in the package has
- * its {@link CandidatePath}.
+ * candidate. Its URL is resolved as an href is (readings `href-resolution` and `file-references`),
+ * its outcome its {@link HrefScope}, and one resolved in the package has its
+ * {@link CandidatePath}.
  *
  * - **the host's:** `lead`, `url`, `descriptor` and `scope`;
  * - **generated:** `piece`, `lead ‖ url ‖ descriptor`, the concatenation's step, and
@@ -698,9 +704,9 @@ const nodesOf = (kind: "cp:file" | "cp:resource") => select(Node, (n) => n.eq(n.
 export const listedEntries = select(Entry, (e) => e.ne(e.path, manifestPath));
 
 /**
- * The attributes of the reference census (`ReferenceAttribute`, spec reading 103) of the forms that
- * name one file, `uri`, `package` and `module`: each an attribute by which an element of its kind
- * names one file. Each is a {@link Reference}'s copy (C18), and every
+ * The attributes of the reference census (`ReferenceAttribute`, spec reading `file-references`) of
+ * the forms that name one file, `uri`, `package` and `module`: each an attribute by which an
+ * element of its kind names one file. Each is a {@link Reference}'s copy (C18), and every
  * {@link Reference} is one's, a containment into this selection at `(package, path, start, name)`,
  * `Attribute`'s key.
  */
@@ -710,7 +716,7 @@ const censusAttributes = select(Attribute, (a) =>
 
 /**
  * The kinds whose `srcset` the reference census reads as a list of image candidates: its rows of
- * the form `srcset` (`ReferenceAttribute`, spec reading 103).
+ * the form `srcset` (`ReferenceAttribute`, spec reading `file-references`).
  */
 const srcsetKinds = ReferenceAttribute.rows.flatMap(({ form, kind, name }) =>
   form === "srcset" && name === "srcset" ? [kind] : [],
@@ -784,23 +790,25 @@ export const hrefPaths = select(ReferencePath, (p) => p.eq(p.name, "href"));
  *   copy of it; and a file's resource is its node's parent, which `Node` holds. The manifest's
  *   identifier, the resources' identifiers, one per identifier, and a dependency's resource are
  *   queries (`#pantry/qti/overlay-queries/package.ts`).
- * - **P1 (spec reading 67):** a resource's type is one the content-packaging XSD enumerates, which
- *   the attribute's value domain states (`attribute-lexical`), and nothing here.
+ * - **P1 (spec reading `manifest-profile`):** a resource's type is one the content-packaging XSD
+ *   enumerates, which the attribute's value domain states (`attribute-lexical`), and nothing here.
  * - **P2 `root-type-reverse` ("RootOfType"):** a document's (resource type, root kind) is a row of
  *   the set `RootOfType`, where it is a resource's, its {@link ResourceDocument} (an included
- *   fragment's type holds every kind an include stands for, spec reading 114); and every document
- *   is the manifest exactly where it is at the manifest's path, `imsmanifest.xml` (IMS Content
- *   Packaging 1.2, §6.3; spec reading 146), and otherwise one a resource names, of the type it
- *   names (spec reading 167).
+ *   fragment's type holds every kind an include stands for, spec reading
+ *   `include-as-information-model`); and every document is the manifest exactly where it is at the
+ *   manifest's path, `imsmanifest.xml` (IMS Content Packaging 1.2, §6.3; spec reading
+ *   `manifest-document`), and otherwise one a resource names, of the type it names (spec reading
+ *   `weighted-test-variables`).
  * - **P3 `file-listed` ("File listed"), `href-listed` ("Href listed") and `entry-kind` ("Document
  *   entry"):** every entry but the manifest is the resolved path of a file; a resource's href names
  *   the file one of its own files names, compared by resolved path in the package and as written
- *   outside it (reading 102); every document-typed href resolves in the package, to an entry, and
- *   names the one document there, of the href's type (reading 93), so a path with no entry, or one
- *   listed under two document types, is refused here and never under `root-type-reverse`. The
- *   halves of P2 and P3 that read a typed href are rules over the query `TypedHref`, stated under
- *   the same names in `#pantry/qti/queries.ts`, and "File listed" and "Href listed" are rules over
- *   the files' targets, stated in `#pantry/qti/overlay-queries/package.ts`.
+ *   outside it (reading `href-resolution`); every document-typed href resolves in the package, to
+ *   an entry, and names the one document there, of the href's type (reading `resource-href`), so a
+ *   path with no entry, or one listed under two document types, is refused here and never under
+ *   `root-type-reverse`. The halves of P2 and P3 that read a typed href are rules over the query
+ *   `TypedHref`, stated under the same names in `#pantry/qti/queries.ts`, and "File listed" and
+ *   "Href listed" are rules over the files' targets, stated in
+ *   `#pantry/qti/overlay-queries/package.ts`.
  * - **P4, one identifier space:** no resource's identifier is its manifest's, and no two resources
  *   share one: each is an `xs:ID` of the manifest, so "DocumentId key", the key of the manifest's
  *   ID/IDREF table (`IdBinding` of `#pantry/qti/overlay-queries/identity.ts`, cvc-id clause 2),
@@ -818,12 +826,12 @@ export const hrefPaths = select(ReferencePath, (p) => p.eq(p.name, "href"));
  *   `srcset`, is one the importer reads no name from (`unresolved`).
  * - **`include-href` ("Include fragment identifier"):** an `xi:include`'s href carries no fragment
  *   identifier, wherever its `#` stands in its params (XInclude 1.0 Second Edition, §3.1: "Fragment
- *   identifiers must not be used; their appearance is a fatal error"; spec reading 115). Its query
- *   is admitted and names no other file (reading 102).
- * - **the references:** every attribute of the reference census (`ReferenceAttribute`, spec reading 103)
- *   of the form `uri` is one {@link Reference}, at its attribute both ways; each resolved in the
- *   package has its {@link ReferencePath} and no other has one. Every `srcset` is one
- *   {@link Srcset}, the two mirrored at the element's place, its image candidates its ordered
+ *   identifiers must not be used; their appearance is a fatal error"; spec reading
+ *   `include-target`). Its query is admitted and names no other file (reading `href-resolution`).
+ * - **the references:** every attribute of the reference census (`ReferenceAttribute`, spec reading
+ *   `file-references`) of the form `uri` is one {@link Reference}, at its attribute both ways; each
+ *   resolved in the package has its {@link ReferencePath} and no other has one. Every `srcset` is
+ *   one {@link Srcset}, the two mirrored at the element's place, its image candidates its ordered
  *   family, whose pieces concatenate to its form (a rule over the query `SrcsetForm`,
  *   `#pantry/qti/overlay-queries/package.ts`), and each candidate resolved in the package has its
  *   {@link CandidatePath}. Every element of the text census (`textReferenceKinds`, spec reading
@@ -835,8 +843,8 @@ export const hrefPaths = select(ReferencePath, (p) => p.eq(p.name, "href"));
  * - **`stimulus-ref-target` ("Stimulus ref target"):** a stimulus ref's href that resolves in the
  *   package names a document whose root is a stimulus (information model §7.6: the structure
  *   "enables reference to a 'qti-assessment-stimulus' instance", its href "The uri used to refer to
- *   the stimulus file"); an external one is not resolved (reading 35's reading of an absolute
- *   URI).
+ *   the stimulus file"); an external one is not resolved (reading `absolute-hrefs`'s reading of an
+ *   absolute URI).
  * - **a dependency names a resource:** its collapsed `identifierref` is a collapsed resource
  *   identifier of its package (IMS Content Packaging 1.2, `dependency`, §6.11.5; decision 457 (3)),
  *   the resources' identifiers distinct per package, so it is resolved (the query

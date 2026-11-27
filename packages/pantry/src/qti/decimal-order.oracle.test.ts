@@ -1,8 +1,8 @@
 /**
  * The order of an element's ARIA range, `Aria value range` (information model §5.2.31: "Authors
  * MUST ensure the value of 'aria-valuemax' is greater than or equal to the value of
- * 'aria-valuemin'"; spec reading 91), judged three ways alike over decimals at and past grizzle's
- * former bounded form of numeric, 256 integer and 255 fraction digits:
+ * 'aria-valuemin'"; spec reading `no-advisory-reading`), judged three ways alike over decimals at
+ * and past grizzle's former bounded form of numeric, 256 integer and 255 fraction digits:
  *
  * - **The schema's check**, `Aria_value_range` (`#pantry/qti/interactions.ts`), as `Qti` states it,
  *   evaluated over the case's `AriaBounds` row by grizzle's own host evaluator as PostgreSQL

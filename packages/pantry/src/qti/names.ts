@@ -4,8 +4,8 @@
  * table, never restated. Its name views are the one definition of what a declared name names. A
  * binding, a content reference and a variable reference each name a declaration by its identifier,
  * and resolve to it in their document's declarations, or, placed, in their assembly's item's,
- * whatever the declaration's cardinality spells (spec reading 159). No row holds the resolution,
- * nor any fact of a declaration (decision S3): the name is its `identifier`'s value
+ * whatever the declaration's cardinality spells (spec reading `binding-by-name`). No row holds the
+ * resolution, nor any fact of a declaration (decision S3): the name is its `identifier`'s value
  * ({@link declarationIdentifiers}), its kind its element's kind as a `DeclarationKind`, and its
  * cardinality and base type its attributes' codes, {@link DeclarationCardinality} and
  * {@link DeclarationBaseType}, which every law that reads a declaration's type matches.
@@ -126,10 +126,10 @@ export const namedIn = (
  * State that an attribute a rule over a query matches is ID-typed: its domain under its element's
  * governor (`AttributeGrammar` of its governor's `AttributeModelOf`) has the `ValueIdentity` `ID`,
  * or it is one of `idSpaceAttributes` (`#pantry/vocab/terms/identity.ts`), a context declaration's
- * `identifier` (spec reading 74), by {@link namedIn}. The query's twin of `idTyped`
- * (`#pantry/qti/identity.ts`), the stored level's statement of the same attributes, reading the
- * same closed relations and roster, and the one statement of it in a query, which {@link IdValue}
- * reads.
+ * `identifier` (spec reading `identifier-names-one-variable`), by {@link namedIn}. The query's twin
+ * of `idTyped` (`#pantry/qti/identity.ts`), the stored level's statement of the same attributes,
+ * reading the same closed relations and roster, and the one statement of it in a query, which
+ * {@link IdValue} reads.
  *
  * @param attribute - The row's variables.
  * @returns The condition.
@@ -271,15 +271,17 @@ const minimumAttributes = attributeValues("normal-minimum", [outcomeKind]);
 
 /**
  * The XSD's `normal-minimum` default as the double it names (`normalMinimumDefault`, "0.0":
- * information model Table 4.5.8, "It is set to 0 by default"; spec reading 149).
+ * information model Table 4.5.8, "It is set to 0 by default"; spec reading
+ * `normal-minimum-default`).
  */
 const defaultMinimum = Type.literal(pg["double precision"], Number(normalMinimumDefault));
 
 /**
  * Each outcome declaration's normal minimum, by its declaration's place, as a double: its
  * `normal-minimum` where it writes one that is an `xs:double`, and the XSD's default where it
- * writes none (spec reading 149), so every outcome declaration whose minimum has a value has one
- * row. A written minimum that is no double is its value domain's to refuse, and has no row.
+ * writes none (spec reading `normal-minimum-default`), so every outcome declaration whose minimum
+ * has a value has one row. A written minimum that is no double is its value domain's to refuse, and
+ * has no row.
  */
 export const NormalMinimum = derived(
   "NormalMinimum",
@@ -477,19 +479,20 @@ export const PlacedVariableRefNode = derived(
 /**
  * Each declaration's `identifier`, by its declaration's place, its `value` the lexical form
  * collapsed (`IdentifierDType`'s class, C18): the name a binding, a reference and a choice's name
- * resolve against, whatever the declaration's cardinality spells (spec reading 159). No row copies
- * it. A declaration that writes no `identifier` has none, and AL3 refuses it (spec reading 157). A
- * value that is no NCName names nothing (spec reading 152), and no rule reads one: AL1's
- * `value_domain` is a row check of the attribute, so the write that holds it is refused at its own
- * insert, before any rule over a query is judged at COMMIT, and the selection matches no pattern.
+ * resolve against, whatever the declaration's cardinality spells (spec reading `binding-by-name`).
+ * No row copies it. A declaration that writes no `identifier` has none, and AL3 refuses it (spec
+ * reading `unnamed-declaration`). A value that is no NCName names nothing (spec reading
+ * `ncname-names`), and no rule reads one: AL1's `value_domain` is a row check of the attribute, so
+ * the write that holds it is refused at its own insert, before any rule over a query is judged at
+ * COMMIT, and the selection matches no pattern.
  */
 const declarationIdentifiers = attributeValues("identifier", declarationKinds);
 
 /**
  * Each declaration's `cardinality`, by its declaration's place, where its `value` spells a code:
  * `code`, the `Cardinality` it spells (C17, {@link attributeCodes}). A `cardinality` that is
- * unwritten or spells nothing, a padded form among them, since the attribute restricts
- * `xs:string`, has no row, and AL3 or its value domain refuses it alone (spec reading 158).
+ * unwritten or spells nothing, a padded form among them, since the attribute restricts `xs:string`,
+ * has no row, and AL3 or its value domain refuses it alone (spec reading `unspelled-declaration`).
  */
 const declarationCardinalities = attributeCodes(
   "cardinality",
@@ -536,7 +539,7 @@ export const valueBasesOf = (
  * writes none ("Variables with record cardinality have no base-type", QTI 3.0 information model,
  * tables 4.5.3, 5.34.3, 5.115.3 and 5.151.3), and "Declaration base type" refuses one that does. A
  * declaration whose `base-type` is unwritten or spells nothing has no row, and its value domain
- * refuses one that spells nothing alone (spec reading 158).
+ * refuses one that spells nothing alone (spec reading `unspelled-declaration`).
  */
 const declarationBaseTypes = valueBasesOf("base-type", declarationKinds);
 
@@ -589,7 +592,7 @@ const declaredNames = query(QtiBase).rule((r) => {
 /**
  * Each declared name beside its declaration's kind, by the declaration's place
  * ({@link declaredNames}). Every declaration whose identifier names something has a row, whatever
- * its cardinality spells (spec reading 159).
+ * its cardinality spells (spec reading `binding-by-name`).
  */
 export const NamedDeclaration = derived(
   "NamedDeclaration",
@@ -607,7 +610,7 @@ export const NamedDeclaration = derived(
  * declaration's place, where the declaration has both a name and a cardinality: its
  * {@link declarationCardinalities}' code. A named declaration whose cardinality is unwritten or
  * spells nothing has no row, so no law reads a cardinality it does not have, and AL3 or its value
- * domain refuses it alone (spec reading 158).
+ * domain refuses it alone (spec reading `unspelled-declaration`).
  */
 export const DeclarationName = derived(
   "DeclarationName",
@@ -663,14 +666,14 @@ export const RecordNode = derived(
 );
 
 /**
- * The SSML attributes reading 3's laws read (`ssmlReads` of `#pantry/vocab/terms/identity.ts`),
- * each by its element's place, with its element's kind, its `valueDigest`, the SHA-256 of its
- * lexical form collapsed (its domain's class, `collapse` for each; `Attribute`'s generated digest),
- * since a name has no bound, and its fragment, its element's `SsmlScope`'s: the names each
- * fragment's `lexicon`s and `mark`s define, and those its `lookup`s and its `speak`'s trims name,
- * each by its digest. No row copies them (C18). Each kind carries one part in the laws, so a law
- * reads a part by its kind alone. "SSML lexicon reference" and "SSML trim mark" read it, and
- * `TrimmedMark` matches it twice, so it is a view.
+ * The SSML attributes reading `ssml-document-is-fragment`'s laws read (`ssmlReads` of
+ * `#pantry/vocab/terms/identity.ts`), each by its element's place, with its element's kind, its
+ * `valueDigest`, the SHA-256 of its lexical form collapsed (its domain's class, `collapse` for
+ * each; `Attribute`'s generated digest), since a name has no bound, and its fragment, its element's
+ * `SsmlScope`'s: the names each fragment's `lexicon`s and `mark`s define, and those its `lookup`s
+ * and its `speak`'s trims name, each by its digest. No row copies them (C18). Each kind carries one
+ * part in the laws, so a law reads a part by its kind alone. "SSML lexicon reference" and "SSML
+ * trim mark" read it, and `TrimmedMark` matches it twice, so it is a view.
  */
 export const SsmlValue = derived(
   "SsmlValue",
@@ -700,12 +703,13 @@ export const SsmlValue = derived(
  *   position.
  *
  * Every ID has a row, whatever its form: its value domain (AL1) or TextDomain refuses a form that
- * is no NCName once collapsed where it is written (spec readings 152 and 156). The document's
- * ID/IDREF table (`IdBinding`), a placed ID's, a `th`'s `TableHeader`'s and a catalog's
- * `CatalogId`'s value each read it (`#pantry/qti/overlay-queries/`), so it is a view. It holds an
- * ID by its SHA-256, `idDigest`, never as itself, since XML Schema bounds no `xs:ID`: an
- * attribute's `Attribute.valueDigest`, a text's computed here, the digest every relation that keys
- * an ID keys it by (`PlacedId.idDigest`, `tokenDigest`), so no ID is refused for its length.
+ * is no NCName once collapsed where it is written (spec readings `ncname-names` and
+ * `id-is-ncname`). The document's ID/IDREF table (`IdBinding`), a placed ID's, a `th`'s
+ * `TableHeader`'s and a catalog's `CatalogId`'s value each read it
+ * (`#pantry/qti/overlay-queries/`), so it is a view. It holds an ID by its SHA-256, `idDigest`,
+ * never as itself, since XML Schema bounds no `xs:ID`: an attribute's `Attribute.valueDigest`, a
+ * text's computed here, the digest every relation that keys an ID keys it by (`PlacedId.idDigest`,
+ * `tokenDigest`), so no ID is refused for its length.
  */
 export const IdValue = derived(
   "IdValue",
@@ -750,15 +754,15 @@ export const IdValue = derived(
 /**
  * Each `xml:lang` that states a language, by its element's place, with its element's
  * {@link CatalogScope}'s `scope` and `value`, the language it states as R26 and `lom-title` compare
- * it: the attribute's `value`
- * (its lexical form normalized in its domain's class, `Attribute`'s generated field) case-folded
- * (`Text.lowerAscii`, RFC 5646 §2.1.1), an XML text as `Attribute`'s `value` is, read where it
- * stands, which no row copies (C18). A form states a language exactly where its value is not empty
- * (XML 1.0 §2.12: an empty `xml:lang` states none). That is a selection of the forms AL1 admits,
- * not a restatement of AL1: the empty form is a body element's valid form, and every other form AL1
- * admits has a tag for its value, since each of the three `xml:lang` domains lies inside a tag with
- * XML whitespace around it, or the empty form (`#pantry/qti/identity.ts`, "Language equality"; spec
- * readings 129 and 174). `MatchedTitle`, `DescribedLang` and `DescribedAssembledLang` read it
+ * it: the attribute's `value` (its lexical form normalized in its domain's class, `Attribute`'s
+ * generated field) case-folded (`Text.lowerAscii`, RFC 5646 §2.1.1), an XML text as `Attribute`'s
+ * `value` is, read where it stands, which no row copies (C18). A form states a language exactly
+ * where its value is not empty (XML 1.0 §2.12: an empty `xml:lang` states none). That is a
+ * selection of the forms AL1 admits, not a restatement of AL1: the empty form is a body element's
+ * valid form, and every other form AL1 admits has a tag for its value, since each of the three
+ * `xml:lang` domains lies inside a tag with XML whitespace around it, or the empty form
+ * (`#pantry/qti/identity.ts`, "Language equality"; spec readings `language-tags` and
+ * `lang-outside-tag`). `MatchedTitle`, `DescribedLang` and `DescribedAssembledLang` read it
  * (`#pantry/qti/queries.ts`).
  */
 export const LangValue = derived(
@@ -798,20 +802,20 @@ const responseProcessingKind = "qti-response-processing";
  *   obtained from the external template may be used instead of the rules defined within the item
  *   itself, though if both are given the internal rules are still preferred" (§4.6.1), so a
  *   processing with rules runs them, and its template's are run nowhere;
- * - Its `template` is unwritten or names no published template (spec reading 51): "If a delivery
- *   system is able to determine the correct behaviour from the template identifier alone the
- *   template-location should be ignored" (§4.6.2), so a published template's own rules, which
- *   "Template needs" holds its item to, are the ones run;
+ * - Its `template` is unwritten or names no published template (spec reading `built-in-templates`):
+ *   "If a delivery system is able to determine the correct behaviour from the template identifier
+ *   alone the template-location should be ignored" (§4.6.2), so a published template's own rules,
+ *   which "Template needs" holds its item to, are the ones run;
  * - Its `template-location` resolves to a document of the package (its `ReferencePath`), whose root
  *   is a `qti-response-processing`: the template, a `ResponseProcessing` root class (§4.6).
  *
  * The template's rules run as the item's own response processing, so its references name the item's
  * variables (§6.9.40: "an itemVariable that has been declared in a corresponding
  * variableDeclaration or is one of the built-in variables"), as an included rules fragment's do
- * (spec reading 117): the item's own placement places the template beside the item's document
- * (`placedDocuments` of `#pantry/qti/overlay-queries/expression.ts`), so every law over a placed
- * expression or reference judges the template's in the item. An item has one response processing
- * and it one location, so the item's document keys a row.
+ * (spec reading `fragment-placement`): the item's own placement places the template beside the
+ * item's document (`placedDocuments` of `#pantry/qti/overlay-queries/expression.ts`), so every law
+ * over a placed expression or reference judges the template's in the item. An item has one response
+ * processing and it one location, so the item's document keys a row.
  */
 export const LocatedTemplate = derived(
   "LocatedTemplate",
@@ -875,10 +879,11 @@ export const LocatedTemplate = derived(
 /**
  * Each `qti-catalog` that carries an ID, by its element's place (spec reading R9-a,
  * `#pantry/qti/catalog.ts`): its `id`, the attribute's `value` (an `xs:ID` collapsed), the ID's
- * value as {@link IdValue} holds it, and `idDigest`, that value's SHA-256, by which "DocumentId
- * key" keys a document's catalogs and "Catalog reference" resolves a token among them
+ * value as {@link IdValue} holds it, and `idDigest`, that value's SHA-256, by which "DocumentId key"
+ * keys a document's catalogs and "Catalog reference" resolves a token among them
  * (`#pantry/qti/overlay-queries/catalog.ts`), since XML Schema bounds no `xs:ID`. AL1 holds the
- * form to an NCName once collapsed where it is written (spec readings 152 and 156).
+ * form to an NCName once collapsed where it is written (spec readings `ncname-names` and
+ * `id-is-ncname`).
  */
 export const CatalogId = derived(
   "CatalogId",
@@ -900,13 +905,13 @@ export const CatalogId = derived(
 );
 
 /**
- * Each token of a table cell's `headers` (spec reading 126), by the cell's place and the token's
- * place among them, `at`, from 0: the attribute's lexical form collapsed and split at its spaces,
- * grizzle's whitespace list split (`r.tokens`), so the split is true by definition and no row
- * holds it. `tokenDigest` is the token's SHA-256, by which "Table headers" keys a cell's tokens
+ * Each token of a table cell's `headers` (spec reading `cell-headers`), by the cell's place and the
+ * token's place among them, `at`, from 0: the attribute's lexical form collapsed and split at its
+ * spaces, grizzle's whitespace list split (`r.tokens`), so the split is true by definition and no
+ * row holds it. `tokenDigest` is the token's SHA-256, by which "Table headers" keys a cell's tokens
  * (the tokens are a set, "an unordered set of unique space-separated tokens", info §5.140.1) and
- * resolves each among its table's headers (`#pantry/qti/overlay-queries/html.ts`), since a token
- * is of any length. A form of whitespace alone has no token.
+ * resolves each among its table's headers (`#pantry/qti/overlay-queries/html.ts`), since a token is
+ * of any length. A form of whitespace alone has no token.
  */
 export const HeaderToken = derived(
   "HeaderToken",
@@ -924,10 +929,10 @@ export const HeaderToken = derived(
 );
 
 /**
- * The walk from each table cell up to the table it takes part in (spec reading 126), each step by
- * the cell's place and the element it has reached, `at`: the cell itself, then each parent while
- * the element reached is no `table` and has a parent element, so the walk ends at the cell's
- * nearest `table` or at its document's root element.
+ * The walk from each table cell up to the table it takes part in (spec reading `cell-headers`),
+ * each step by the cell's place and the element it has reached, `at`: the cell itself, then each
+ * parent while the element reached is no `table` and has a parent element, so the walk ends at the
+ * cell's nearest `table` or at its document's root element.
  */
 const tableWalk = query(QtiBase).recursive("TableWalk", {
   base: [
@@ -957,10 +962,10 @@ const tableWalk = query(QtiBase).recursive("TableWalk", {
 });
 
 /**
- * Each table cell beside the table it takes part in, by the cell's place (spec reading 126): its
- * nearest `table`, nested tables included, where its walk up the tree ({@link tableWalk}) reaches
- * one, and the document node where it reaches its document's root element and that is no `table`,
- * so a cell no `table` holds takes part in no table. "Table headers" reads it
+ * Each table cell beside the table it takes part in, by the cell's place (spec reading
+ * `cell-headers`): its nearest `table`, nested tables included, where its walk up the tree ({@link
+ * tableWalk}) reaches one, and the document node where it reaches its document's root element and
+ * that is no `table`, so a cell no `table` holds takes part in no table. "Table headers" reads it
  * (`#pantry/qti/overlay-queries/html.ts`).
  */
 export const CellTable = derived(

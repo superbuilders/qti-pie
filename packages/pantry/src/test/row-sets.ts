@@ -1,8 +1,8 @@
 /**
  * The one comparison of two XDM documents up to the order of their sets. An element's attributes
  * and namespace declarations have no position (XML Information Set §2.2, [attributes] and
- * [namespace attributes] unordered; spec reading 137 as superseded on 2026-11-11), so the read
- * (`#pantry/model/assemble.ts`) lists them in an order of its own and the export
+ * [namespace attributes] unordered; spec reading `attribute-sets` as superseded on 2026-11-11), so
+ * the read (`#pantry/model/assemble.ts`) lists them in an order of its own and the export
  * (`#pantry/model/unshred.ts`) in Canonical XML's. A round trip therefore compares documents as row
  * sets, never as trees whose lists carry an order no row states.
  */

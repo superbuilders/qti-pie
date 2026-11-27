@@ -35,7 +35,8 @@
  *   (README, "Closed relations"). {@link CountedOf}, {@link BarredOf}, {@link SharedModelOf},
  *   {@link ValueIdentity} and {@link TextDomain} are read so.
  * - An element's attributes and text are read under its governor ({@link GoverningOf}): its kind, or
- *   the type an `xsi:type` makes govern it (spec readings 60 and 84).
+ *   the type an `xsi:type` makes govern it (spec readings `wildcard-xsi-type` and
+ *   `governing-type`).
  *
  * Its declarations run in sections, in this order:
  *
@@ -45,12 +46,13 @@
  * - The content grammar (N5, N7).
  * - Ancestry (N6, C7).
  * - Types (N12).
- * - Attributes and texts under their governor (AL1 to AL3, text-copy; spec readings 60 and 84).
+ * - Attributes and texts under their governor (AL1 to AL3, text-copy; spec readings
+ *   `wildcard-xsi-type` and `governing-type`).
  * - Foreign names (C8, C15, C36; `names.ts`).
- * - Files (spec reading 103).
+ * - Files (spec reading `file-references`).
  * - Expressions and interactions (O3 to O5).
  * - The package (P1, P2).
- * - Includes (spec readings 85 and 114).
+ * - Includes (spec readings `inclusion-cycles` and `include-as-information-model`).
  * - Variables and references (O2 to O7, `references.ts`).
  * - Lexical forms of coded enumerations (C17).
  */
@@ -201,8 +203,8 @@ export const openElementClasses = [
 
 /**
  * The kinds whose `label` asks for its tool, the item's `tool-name` and `tool-version` (spec
- * reading 128): those whose declared type takes its `label` from a type whose characteristic states
- * the sentence (`labels.ts`), `in(kind, toolLabelKinds)`.
+ * reading `label-tool`): those whose declared type takes its `label` from a type whose
+ * characteristic states the sentence (`labels.ts`), `in(kind, toolLabelKinds)`.
  */
 export const toolLabelKinds: readonly Kind[] = toolLabelKindsOf({
   declaredType: grammar.xsi.declaredType,
@@ -212,7 +214,7 @@ export const toolLabelKinds: readonly Kind[] = toolLabelKindsOf({
 
 /**
  * The `DocumentType` handle of the package's manifest, the IMS Content Packaging manifest document,
- * which is no resource's (spec readings 146 and 176).
+ * which is no resource's (spec readings `manifest-document` and `document-type-total`).
  */
 const manifestDocument = "manifest";
 
@@ -275,9 +277,9 @@ export const ResourceType = closed.unordered(
  * The `DocumentType` roster: the type of a document of a package, its `Document`'s, which no node
  * or attribute of the document copies (decision S3): `manifest`, the package's manifest document,
  * then the 21 types a `cp:resource` may name, the type of the resource that lists the document (IMS
- * Content Packaging 1.2 sets the manifest apart from the resources it declares; spec reading 176).
- * Every document is one or the other, so the type is total and names no absence. Nothing orders by
- * a document type, so the roster states no order.
+ * Content Packaging 1.2 sets the manifest apart from the resources it declares; spec reading
+ * `document-type-total`). Every document is one or the other, so the type is total and names no
+ * absence. Nothing orders by a document type, so the roster states no order.
  */
 export const DocumentType = closed.unordered(
   "DocumentType",
@@ -371,10 +373,10 @@ export const Identity = closed.ordered(
  * The `Governor` roster: what an element's attributes and text are read under. Each `NodeKind`
  * handle first, in code order, a kind governing its own elements by its declared type; then each
  * (kind, type) where the type governs an element of the kind in place of its declared type, or a
- * simple type governs a foreign element's text (spec readings 60 and 84), spelled `<kind> <type>`
- * (`attributes.ts`). A kind's handle holds no space, so no two spellings meet. The pairs follow
- * the attribute grammar's order; codes are history, so `grizzle generate` refuses a reorder of
- * either part.
+ * simple type governs a foreign element's text (spec readings `wildcard-xsi-type` and
+ * `governing-type`), spelled `<kind> <type>` (`attributes.ts`). A kind's handle holds no space, so
+ * no two spellings meet. The pairs follow the attribute grammar's order; codes are history, so
+ * `grizzle generate` refuses a reorder of either part.
  */
 export const Governor = closed.ordered(
   "Governor",
@@ -411,7 +413,7 @@ export const ReferenceSpelling = closed.ordered(
 
 /**
  * The `ReferenceForm` roster: how a file reference's value names its files, one URI reference or an
- * image candidate list (spec reading 103).
+ * image candidate list (spec reading `file-references`).
  */
 export const ReferenceForm = closed.ordered(
   "ReferenceForm",
@@ -677,10 +679,10 @@ export const CountedMax = closed.relation(
 );
 
 /**
- * `Capped`: the set of (parent, position) where at most one child of a family stands, the
- * `Capped` rows of the content grammar (spec reading 130: the loose LOM binding's Schematron caps).
- * A family may hold several, so they are no total function of the family as {@link CountedOf} is:
- * `node.ts` holds them by a key over each family's children at a capped position, `(parent,
+ * `Capped`: the set of (parent, position) where at most one child of a family stands, the `Capped`
+ * rows of the content grammar (spec reading `lom-repetition`: the loose LOM binding's Schematron
+ * caps). A family may hold several, so they are no total function of the family as {@link CountedOf}
+ * is: `node.ts` holds them by a key over each family's children at a capped position, `(parent,
  * state)`, which no count fold needs. It is keyed by the family, not by its {@link ContentModel} as
  * {@link FollowSetOf} is: a model is an automaton, whose positions name no kind, so families of
  * other kinds share a LOM category's model, and a cap keyed by model would cap them too.
@@ -723,7 +725,7 @@ export const BarredOf = closed.relation(
 /**
  * `StrictlyHeld`: the set of (parent, child) where only `strict` wildcards of the parent's
  * model admit the foreign kind, so the child stands only under an `xsi:type` its document's schema
- * set resolves (spec reading 81).
+ * set resolves (spec reading `wildcard-global-declarations`).
  */
 export const StrictlyHeld = closed.relation(
   "StrictlyHeld",
@@ -1009,11 +1011,11 @@ export const Required = closed.relation(
 );
 
 /**
- * The attribute models a count of `attributeCounts` judges (spec readings 41 and 43), each with
- * its count: the model each element of a counted kind reads under its governor, its counted slots
- * the slots of the count's names the model admits, and its bounds, an unbounded `max` written as
- * the number of those slots, which no count exceeds. A name a model does not admit has no slot, so
- * it counts nothing, as the oracle reads it.
+ * The attribute models a count of `attributeCounts` judges (spec readings `ssml-meta-name` and
+ * `ssml-voice-prosody-attributes`), each with its count: the model each element of a counted kind
+ * reads under its governor, its counted slots the slots of the count's names the model admits, and
+ * its bounds, an unbounded `max` written as the number of those slots, which no count exceeds. A
+ * name a model does not admit has no slot, so it counts nothing, as the oracle reads it.
  *
  * A model is shared by every governor of one attribute grammar, so a counted model
  * another kind reads, or two counts read, would judge that kind by a count that is not its own:
@@ -1081,8 +1083,9 @@ export const CountedSlot = closed.relation(
 
 /**
  * `AttributeCountOf`: model → (min, max), how many of its `CountedSlot` attributes an element under
- * a governor of the model carries (spec readings 41 and 43), a model of no count having no row,
- * which AL5 reads through `AttributeCountOf.has`.
+ * a governor of the model carries (spec readings `ssml-meta-name` and
+ * `ssml-voice-prosody-attributes`), a model of no count having no row, which AL5 reads through
+ * `AttributeCountOf.has`.
  */
 export const AttributeCountOf = closed.relation(
   "AttributeCountOf",
@@ -1283,12 +1286,13 @@ export const KindByNameUnder = closed.relation(
 /**
  * `HeldRootsUnder`: parent → names, for every parent that holds a foreign element only under
  * `strict` wildcards (`StrictlyHeld`): the pattern of the expanded names, `namespace}local`, of
- * spec reading 6's roots its strict wildcards assess against the global declarations of its
- * documents' schema set (C13, `cp:manifest` under `drd:accessForAllResource`), `^$` where there is
- * none. Such a root is stored as a foreign element and governed by no type, and Strictly held lets
- * it stand: the foreign elements that need a type, which hold an `OpenElementType`, are those with
- * `StrictlyHeld(parentKind, kind) ∧ ¬Text.matches(Text.concat(Text.concat(namespace, "}"),
- * local), HeldRootsUnder.at("names", parentKind))`.
+ * spec reading `nested-root-in-wildcard`'s roots its strict wildcards assess against the global
+ * declarations of its documents' schema set (C13, `cp:manifest` under `drd:accessForAllResource`),
+ * `^$` where there is none. Such a root is stored as a foreign element and governed by no type, and
+ * Strictly held lets it stand: the foreign elements that need a type, which hold an
+ * `OpenElementType`, are those with `StrictlyHeld(parentKind, kind) ∧
+ * ¬Text.matches(Text.concat(Text.concat(namespace, "}"), local), HeldRootsUnder.at("names",
+ * parentKind))`.
  */
 export const HeldRootsUnder = closed.relation(
   "HeldRootsUnder",
@@ -1300,11 +1304,11 @@ export const HeldRootsUnder = closed.relation(
 /**
  * `TypeAvailable`: type → namespaces, total over `TypeName`: the pattern of the vocabulary
  * namespaces under whose elements an element's `xsi:type` may name the type, every namespace for
- * XML Schema's own types (spec readings 60 and 81; C15, C36). An element whose parent's namespace
- * is no vocabulary's stands in documents of every schema set, so it may name any type: the law
- * over a foreign element's `OpenElementType` is `Text.matches(parentNamespace,
- * TypeAvailable.at("namespaces", type)) ∨ ¬Text.matches(parentNamespace,
- * vocabularyNamespacePattern)`.
+ * XML Schema's own types (spec readings `wildcard-xsi-type` and `wildcard-global-declarations`;
+ * C15, C36). An element whose parent's namespace is no vocabulary's stands in documents of every
+ * schema set, so it may name any type: the law over a foreign element's `OpenElementType` is
+ * `Text.matches(parentNamespace, TypeAvailable.at("namespaces", type)) ∨
+ * ¬Text.matches(parentNamespace, vocabularyNamespacePattern)`.
  */
 export const TypeAvailable = closed.relation(
   "TypeAvailable",
@@ -1326,8 +1330,8 @@ export const vocabularyNamespaceNames: readonly string[] = [
 /**
  * `ReferenceAttribute`: (kind, name) → form, every attribute by which an element of a kind names a
  * file of its package, and how its value names it: R6's census, IMS Content Packaging 1.2's
- * InterchangePackage (d) (spec reading 103). A law reads it as `ReferenceAttribute.at("form", kind,
- * name)`, absent for an attribute of no census row.
+ * InterchangePackage (d) (spec reading `file-references`). A law reads it as
+ * `ReferenceAttribute.at("form", kind, name)`, absent for an attribute of no census row.
  */
 export const ReferenceAttribute = closed.relation(
   "ReferenceAttribute",
@@ -1530,7 +1534,7 @@ export const CnTypeLexical = closed.relation(
 /**
  * `CnBaseSpelling`: base → pattern, what spells each {@link CnBase} as the raw value of a `cn`'s
  * `base` attribute: its numeral with any leading zeros, in XML whitespace, `cn/@base` being a
- * positive integer (spec reading 2).
+ * positive integer (spec reading `mathml-validity`).
  */
 export const CnBaseSpelling = closed.relation(
   "CnBaseSpelling",
@@ -1584,9 +1588,10 @@ export const MappableBaseType = closed.relation(
 );
 
 /**
- * `RootOfType`: the set of (type, root), each root element kind the documents a resource type
- * lists may have; a type with no row lists no document. Each type but an included fragment's has
- * one root, and the fragment's type has every kind an include stands for (spec reading 114).
+ * `RootOfType`: the set of (type, root), each root element kind the documents a resource type lists
+ * may have; a type with no row lists no document. Each type but an included fragment's has one
+ * root, and the fragment's type has every kind an include stands for (spec reading
+ * `include-as-information-model`).
  */
 export const RootOfType = closed.relation(
   "RootOfType",
@@ -1650,8 +1655,8 @@ const isNodeKind = (kind: string): kind is (typeof NodeKind.handles)[number] =>
 
 /**
  * The kinds an include stands for that the composition splits by context, by the kind of the same
- * name (spec reading 116): `qti-template-block.rubric`, `qti-template-inline.rubric` and
- * `qti-feedback-block.template`, whose fragment, rooted at its document's root, is read by its
+ * name (spec reading `fragment-root`): `qti-template-block.rubric`, `qti-template-inline.rubric`
+ * and `qti-feedback-block.template`, whose fragment, rooted at its document's root, is read by its
  * name alone as the kind of that name. Every split kind an include set holds, with the kind its
  * handle's name before its `.` is, one split per name.
  */
@@ -1700,11 +1705,11 @@ export const Declares = closed.relation(
 /**
  * `BuiltInVariable`: (root, variable) → (declaration, cardinality), each built-in variable the
  * processing of a document's root holds, with the declaration kind and cardinality it stands as
- * there (spec reading 29, the UP audit's A63): an item's and a response processing template's
- * `numAttempts`, `duration` and `completionStatus`, a test's and a section's `duration`, and
- * `QTI_CONTEXT`, a record, under all four. A reference to it reads as one to a declaration of that
- * kind, and a name with no row under its document's root is no built-in there. The base type each
- * but the record stands as is {@link builtInBaseTypes}'.
+ * there (spec reading `duration-variable-type`, the UP audit's A63): an item's and a response
+ * processing template's `numAttempts`, `duration` and `completionStatus`, a test's and a section's
+ * `duration`, and `QTI_CONTEXT`, a record, under all four. A reference to it reads as one to a
+ * declaration of that kind, and a name with no row under its document's root is no built-in there.
+ * The base type each but the record stands as is {@link builtInBaseTypes}'.
  */
 export const BuiltInVariable = closed.relation(
   "BuiltInVariable",
@@ -1812,7 +1817,7 @@ export const lastWhereRules = grammar.lastWhere.map(({ kind, parents, ...rule })
 
 /**
  * `ChoiceCount`: kind → choice, the kind of the children whose number bounds both of the kind's
- * counts (spec reading 18).
+ * counts (spec reading `order-min-choices`).
  */
 export const ChoiceCount = closed.relation(
   "ChoiceCount",

@@ -15,13 +15,13 @@
  * and `named`), and an assembly is named by its head document's path, `assembly`, an instance by
  * its place in that assembly's instance tree.
  *
- * An expression is typed per placement (spec reading 117): a placement is an instance of an
- * assembly, or a document in no assembly, its own one placement, and its documents are the one it
- * places and, at an item's own placement, the response processing template the item locates
- * (`placedDocuments` of `#pantry/qti/overlay-queries/expression.ts`). A document placed twice may
- * be typed twice, differently, and every type law reads the placed rows, so each placement is
- * judged where it stands: two tests placing one section document, two items splicing one rules
- * fragment, an item and the template it locates.
+ * An expression is typed per placement (spec reading `fragment-placement`): a placement is an
+ * instance of an assembly, or a document in no assembly, its own one placement, and its documents
+ * are the one it places and, at an item's own placement, the response processing template the item
+ * locates (`placedDocuments` of `#pantry/qti/overlay-queries/expression.ts`). A document placed
+ * twice may be typed twice, differently, and every type law reads the placed rows, so each
+ * placement is judged where it stands: two tests placing one section document, two items splicing
+ * one rules fragment, an item and the template it locates.
  *
  * - **{@link Expression}**, one row per expression element, with the processing language it is
  *   written in, its document's fact. Its type is its {@link PlacedExpression}'s, one per placement
@@ -36,15 +36,15 @@
  *   attribute spells and its element's language, its document's facts. Its resolution and its
  *   variable's type are its {@link PlacedVariableRef}'s, one per placement of its document, read in
  *   the placement's assembly: a declaration of the assembly's root, its `NamedDeclaration` of the
- *   name, whatever the declaration's cardinality spells (spec reading 159), a built-in variable of
- *   that root (the installed `BuiltInVariable`, A63), under a test the one reading of a prefixed
- *   name (`TestReading`, spec reading 48), or nothing, which only a root that is no item may leave.
- *   Every law over the declaration a reference names, its kind, cardinality or base type, joins the
- *   placed reference to it by its name, a rule over a query
- *   (`#pantry/qti/overlay-queries/reference.ts`), and so does every law over the table it reads of
- *   it (`#pantry/qti/overlay-queries/declaration.ts`). The type a setter or a lookup sets its
- *   variable to is a query, `HeldType`. Its element's kind and its attribute's lexical form are the
- *   attribute's, which no row copies (C18): every law that reads them is a rule over the views
+ *   name, whatever the declaration's cardinality spells (spec reading `binding-by-name`), a
+ *   built-in variable of that root (the installed `BuiltInVariable`, A63), under a test the one
+ *   reading of a prefixed name (`TestReading`, spec reading `dotted-reference`), or nothing, which
+ *   only a root that is no item may leave. Every law over the declaration a reference names, its
+ *   kind, cardinality or base type, joins the placed reference to it by its name, a rule over a
+ *   query (`#pantry/qti/overlay-queries/reference.ts`), and so does every law over the table it
+ *   reads of it (`#pantry/qti/overlay-queries/declaration.ts`). The type a setter or a lookup sets
+ *   its variable to is a query, `HeldType`. Its element's kind and its attribute's lexical form are
+ *   the attribute's, which no row copies (C18): every law that reads them is a rule over the views
  *   `VariableRefNode` and `PlacedVariableRefNode` (`#pantry/qti/names.ts`).
  * - **{@link Literal}** carries a base value's text and type. The attributes an expression's type
  *   follows from (`base-type`, `name`) are read where they are written, through the query
@@ -149,11 +149,11 @@ export const Expression = law(
 );
 
 /**
- * One expression of a placed document under one placement (spec reading 117), keyed by the
- * placement, its assembly's head path `assembly` and its place in that assembly's instance tree
- * `instance` (0 for a document in no assembly, its own one placement), and the expression's place:
- * the type the host gives its value there. One row stands for every expression of every document
- * of every placement, and for nothing else (`PlacedExpressionSite`,
+ * One expression of a placed document under one placement (spec reading `fragment-placement`),
+ * keyed by the placement, its assembly's head path `assembly` and its place in that assembly's
+ * instance tree `instance` (0 for a document in no assembly, its own one placement), and the
+ * expression's place: the type the host gives its value there. One row stands for every expression
+ * of every document of every placement, and for nothing else (`PlacedExpressionSite`,
  * `#pantry/qti/overlay-queries/expression.ts`).
  *
  * - **the host's:** `baseType` and `cardinality`, each proved by `E1_derived`, `ResultBase` and
@@ -246,26 +246,28 @@ export const VariableRef = law(
 );
 
 /**
- * One variable reference of a placed document under one placement (spec reading 117), keyed by the
- * placement (its assembly's head path, `assembly`, and its place in that assembly's instance tree,
- * `instance`, as {@link PlacedExpression}'s) and the reference's element place and attribute: a
- * {@link VariableRef} of a document of the placement, whose path is the reference's `path`, its
- * name copied, resolved in the assembly (`resolution`) and typed as what it names there
- * (`baseType` and `cardinality`). `rootKind` is the assembly's root's. Each field is the host's:
+ * One variable reference of a placed document under one placement (spec reading
+ * `fragment-placement`), keyed by the placement (its assembly's head path, `assembly`, and its
+ * place in that assembly's instance tree, `instance`, as {@link PlacedExpression}'s) and the
+ * reference's element place and attribute: a {@link VariableRef} of a document of the placement,
+ * whose path is the reference's `path`, its name copied, resolved in the assembly (`resolution`)
+ * and typed as what it names there (`baseType` and `cardinality`). `rootKind` is the assembly's
+ * root's. Each field is the host's:
  *
  * - `declared`: the assembly's root's `NamedDeclaration` of its name, whatever its cardinality spells
- *   (spec reading 159), so a rules fragment's references name its item's variables and a located
- *   template's the item's (§4.6.1); typed as the declaration, its cardinality's
+ *   (spec reading `binding-by-name`), so a rules fragment's references name its item's variables
+ *   and a located template's the item's (§4.6.1); typed as the declaration, its cardinality's
  *   `ValueCardinalityOf` image and its base type's `ValueBaseOf` image, `unknown` for one it does
  *   not have, a record's base type among them (lane NIL's audit, B12);
  * - `builtIn`: else one of the root's built-in variables, typed as it stands ({@link builtIns});
  * - `read`: else, under a test, the one reading of its name through a scope (`TestReading` of
- *   `#pantry/qti/overlay-queries/readings.ts`, spec reading 48): an item's variable through an item
- *   ref that names an item document, its declaration, a variable mapping's source declaration or an
- *   item's built-in, or a scope's `duration`, typed as that variable;
+ *   `#pantry/qti/overlay-queries/readings.ts`, spec reading `dotted-reference`): an item's variable
+ *   through an item ref that names an item document, its declaration, a variable mapping's source
+ *   declaration or an item's built-in, or a scope's `duration`, typed as that variable;
  * - `unresolved`: else nothing, `unknown`, which only a root that is no item may leave: a response
  *   processing template's parameters in its own placement, and a test's name read through an item
- *   ref that names no item document (reading 110) or read more than once (reading 86).
+ *   ref that names no item document (reading `mapping-and-default-names`) or read more than once
+ *   (reading `test-identifier-namespace`).
  *
  * Its element's kind is its node's, which no row copies (decision S3): every law that reads it
  * matches the view `PlacedVariableRefNode` (`#pantry/qti/names.ts`), the placed reference beside
@@ -446,10 +448,11 @@ export const anyKindStandIns = [
 
 /**
  * The built-in variables, as the installed `BuiltInVariable` holds them (the UP audit's A63; spec
- * reading 29): each root's variables with the expression-typing codes of the base type and the
- * cardinality each stands as there, `ValueBaseOf`'s and `ValueCardinalityOf`'s images of its
- * declaration codes ({@link valueBaseOf}, {@link valueCardinalityOf}), and `unknown` for the base
- * type of the record `QTI_CONTEXT`, which has none (`builtInBaseTypes` holds no row for it).
+ * reading `duration-variable-type`): each root's variables with the expression-typing codes of the
+ * base type and the cardinality each stands as there, `ValueBaseOf`'s and `ValueCardinalityOf`'s
+ * images of its declaration codes ({@link valueBaseOf}, {@link valueCardinalityOf}), and `unknown`
+ * for the base type of the record `QTI_CONTEXT`, which has none (`builtInBaseTypes` holds no row
+ * for it).
  */
 export const builtIns = BuiltInVariable.rows.map(
   ({ cardinality, declaration, root, variable }) => ({
@@ -493,18 +496,18 @@ const namesNoBuiltIn = (v: PlacedVariableRefRow) =>
  * State the type a placed reference's resolution gives it: a declared variable's, which "E1
  * derived" states over the declaration it names, a rule over a query
  * (`#pantry/qti/overlay-queries/reference.ts`): its cardinality its `DeclarationCardinality`'s
- * image through `ValueCardinalityOf` where the declaration has one (spec reading 159), and its base
- * type `unknown` where it has none, a record's (lane NIL's audit, B12), and else its
- * `DeclarationBaseType`'s `valueBase`; a built-in's by its name, among its root's built-ins; a read
- * one's, its one reading's variable's, stated over its reading, which is exactly where it is read
- * (`SoleReading`, `#pantry/qti/overlay-queries/readings.ts`, spec reading 167); and nothing for an
- * unresolved one. The resolutions are thereby proved both ways, each by one law: a name the root
- * declares is `declared` and a `declared` one names a declaration of it (`DeclaredPlacement`,
- * `#pantry/qti/queries.ts`, and "Variable declared"); a name that is one of the root's built-ins is
- * never `unresolved` here, and never `read`, since a test's built-in has an unsplit reading of its
- * own (`TestReading`) and so no sole reading through a scope, so it is `builtIn` where its root
- * does not declare it; and `read` is its readings' (`SoleReading`). So `unresolved` is exactly the
- * rest.
+ * image through `ValueCardinalityOf` where the declaration has one (spec reading
+ * `binding-by-name`), and its base type `unknown` where it has none, a record's (lane NIL's audit,
+ * B12), and else its `DeclarationBaseType`'s `valueBase`; a built-in's by its name, among its
+ * root's built-ins; a read one's, its one reading's variable's, stated over its reading, which is
+ * exactly where it is read (`SoleReading`, `#pantry/qti/overlay-queries/readings.ts`, spec reading
+ * `weighted-test-variables`); and nothing for an unresolved one. The resolutions are thereby proved
+ * both ways, each by one law: a name the root declares is `declared` and a `declared` one names a
+ * declaration of it (`DeclaredPlacement`, `#pantry/qti/queries.ts`, and "Variable declared"); a
+ * name that is one of the root's built-ins is never `unresolved` here, and never `read`, since a
+ * test's built-in has an unsplit reading of its own (`TestReading`) and so no sole reading through
+ * a scope, so it is `builtIn` where its root does not declare it; and `read` is its readings'
+ * (`SoleReading`). So `unresolved` is exactly the rest.
  *
  * @param v - The row.
  * @returns The predicate.
@@ -542,9 +545,10 @@ export const mappedKinds = ["qti-map-response", "qti-map-response-point"] as con
 
 /**
  * Each built-in variable with the kinds whose element may name it by `identifier`: those whose
- * `ReferenceDeclaration` admits the declaration kind it stands as (reading 29), so a reference to a
- * built-in is judged under "Variable kind" as a declared one is. Exported for the rule over a
- * reference's view (`#pantry/qti/overlay-queries/reference.ts`), which judges it alike.
+ * `ReferenceDeclaration` admits the declaration kind it stands as (reading
+ * `duration-variable-type`), so a reference to a built-in is judged under "Variable kind" as a
+ * declared one is. Exported for the rule over a reference's view
+ * (`#pantry/qti/overlay-queries/reference.ts`), which judges it alike.
  */
 export const builtInReferrers = builtIns.flatMap(({ declaration, root, variable }) => {
   const kinds = referenceDeclarations.flatMap(({ declarations, kind }) =>
@@ -557,8 +561,9 @@ export const builtInReferrers = builtIns.flatMap(({ declaration, root, variable 
 /**
  * The built-in response variables, each with the root it is built into, as the installed
  * `BuiltInVariable` holds them: an item's numAttempts and duration among them. None has a
- * declaration, so none holds a mapping or an area mapping (decision 431, spec reading 166).
- * Exported for the rule over a reference's view (`#pantry/qti/overlay-queries/reference.ts`).
+ * declaration, so none holds a mapping or an area mapping (decision 431, spec reading
+ * `test-prefixed-response-reads`). Exported for the rule over a reference's view
+ * (`#pantry/qti/overlay-queries/reference.ts`).
  */
 export const builtInResponses = builtIns.filter(
   ({ declaration }) => declaration === "qti-response-declaration",
@@ -580,9 +585,9 @@ export const builtInResponses = builtIns.filter(
  *   Every law that reads its element's kind or its attribute's form, its element's language and its
  *   form's spelling among them, is a rule over the view `VariableRefNode`
  *   (overlay-queries/reference.ts).
- * - `PlacedVariableRef` (spec reading 117): each placement's references, its documents', resolved and
- *   typed in its assembly. Each is exactly a reference of a placed document, a rule over a query
- *   (overlay-queries/reference.ts), and its root is its assembly's.
+ * - `PlacedVariableRef` (spec reading `fragment-placement`): each placement's references, its
+ *   documents', resolved and typed in its assembly. Each is exactly a reference of a placed
+ *   document, a rule over a query (overlay-queries/reference.ts), and its root is its assembly's.
  * - `Literal`: a base value's text, and its code where its `base-type` spells one. The base type a
  *   typing attribute gives its expression in each placement, and the literal's type there, are
  *   rules over queries (queries.ts `ExpressionAttribute`, overlay-queries/expression.ts).

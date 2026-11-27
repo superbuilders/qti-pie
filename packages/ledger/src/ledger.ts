@@ -381,11 +381,12 @@ export const ledgerOf = (qti: RegistryLevel) => {
 
   /**
    * An item's built-in session variable, by its name among QTI's (pantry's `BuiltIn` roster), as a
-   * declaration of its kind stands (spec reading 111, "a processing element's `identifier` names a
-   * variable of the kind the element reads or sets"): its declaration kind and cardinality pantry's
-   * installed `BuiltInVariable` gives under the item root, read where the rule runs, so a name
-   * pantry holds no row of there names nothing; and its base type, which pantry holds on the host
-   * alone (`builtInBaseTypes`), never in a relation a query reads, so the rule states it.
+   * declaration of its kind stands (spec reading `processing-identifier-kind`, "a processing
+   * element's `identifier` names a variable of the kind the element reads or sets"): its
+   * declaration kind and cardinality pantry's installed `BuiltInVariable` gives under the item
+   * root, read where the rule runs, so a name pantry holds no row of there names nothing; and its
+   * base type, which pantry holds on the host alone (`builtInBaseTypes`), never in a relation a
+   * query reads, so the rule states it.
    */
   const builtInVariable =
     (variable: (typeof BuiltIn.handles)[number], baseType: (typeof BaseType.handles)[number]) =>
@@ -2693,14 +2694,14 @@ export const ledgerOf = (qti: RegistryLevel) => {
   );
 
   /**
-   * The published response processing templates (spec reading 51, pantry's `publishedTemplates`),
-   * whose rules the SQL grader runs where an item's processing names one and holds no rule of its
-   * own (§4.6.1, §4.6.2), and each one's document as the reference package stores it
-   * (**PublishedTemplateDocument**: `#ledger/template-package.ts`'s package, `<name>.xml`, whose
-   * root is the template's `qti-response-processing`), published as any package is: information
-   * model §4.6.1, "If a template identifier is given it may be used to locate an externally defined
-   * responseProcessing template", and a processor that knows a template "from the template
-   * identifier alone" ignores its `template-location` (§4.6.2).
+   * The published response processing templates (spec reading `built-in-templates`, pantry's
+   * `publishedTemplates`), whose rules the SQL grader runs where an item's processing names one and
+   * holds no rule of its own (§4.6.1, §4.6.2), and each one's document as the reference package
+   * stores it (**PublishedTemplateDocument**: `#ledger/template-package.ts`'s package,
+   * `<name>.xml`, whose root is the template's `qti-response-processing`), published as any package
+   * is: information model §4.6.1, "If a template identifier is given it may be used to locate an
+   * externally defined responseProcessing template", and a processor that knows a template "from
+   * the template identifier alone" ignores its `template-location` (§4.6.2).
    */
   const PublishedTemplate = closed.ordered("PublishedTemplate", publishedTemplates);
   const PublishedTemplateDocument = closed.relation(

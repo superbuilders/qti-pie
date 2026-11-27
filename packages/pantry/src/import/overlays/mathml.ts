@@ -1,7 +1,8 @@
 /**
- * The MathML overlays' rows (spec reading 2, §C's `rowsOf`): the three families' builders run over
- * one document and their rows merged, one keyed set per relation `#pantry/qti/mathml.ts` declares.
- * The apply laws store no row: they read the tree through queries.
+ * The MathML overlays' rows (spec reading `mathml-validity`, §C's `rowsOf`): the three families'
+ * builders run over one document and their rows merged, one keyed set per relation
+ * `#pantry/qti/mathml.ts` declares. The apply laws store no row: they read the tree through
+ * queries.
  */
 import type { DocumentView } from "#pantry/import/fold.ts";
 import type { IdentityIds } from "#pantry/import/overlays/identity.ts";

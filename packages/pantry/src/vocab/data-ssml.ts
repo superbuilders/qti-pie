@@ -1,15 +1,15 @@
 /**
- * Read a `data-ssml` value into the rows the database judges it by (spec reading 177, over R7-a):
- * the members of one JSON object, in the order written, each an object of string properties, each
- * property's name and decoded value in the order written. The database holds those rows to
- * Data-SSML 1.0's JSON Schema (`#pantry/qti/data-ssml.ts`, law "Data SSML"): which members and
- * properties it lists, the enumerated and the normalized values, and the required properties.
- * This module judges none of that. It reads the JSON into rows, which no grizzle term derives from
- * a text: grizzle has no JSON type and no scalar term that splits a text (grizzle's README,
- * "Tables and types", and TODO, "A Text split"), so the rows the laws read
- * are the importer's to write, as a document's XML is. A value that is not one JSON object of
- * objects of strings has no rows, so the database refuses its attribute under "Data SSML", which
- * requires every closed `data-ssml` to have them.
+ * Read a `data-ssml` value into the rows the database judges it by (spec reading
+ * `data-ssml-judgement`, over R7-a): the members of one JSON object, in the order written, each an
+ * object of string properties, each property's name and decoded value in the order written. The
+ * database holds those rows to Data-SSML 1.0's JSON Schema (`#pantry/qti/data-ssml.ts`, law "Data
+ * SSML"): which members and properties it lists, the enumerated and the normalized values, and the
+ * required properties. This module judges none of that. It reads the JSON into rows, which no
+ * grizzle term derives from a text: grizzle has no JSON type and no scalar term that splits a text
+ * (grizzle's README, "Tables and types", and TODO, "A Text split"), so the rows the laws read are
+ * the importer's to write, as a document's XML is. A value that is not one JSON object of objects
+ * of strings has no rows, so the database refuses its attribute under "Data SSML", which requires
+ * every closed `data-ssml` to have them.
  *
  * The value is read as written, as RFC 8259 reads it, one grammar for the text. A name written
  * twice in one object is kept twice (RFC 8259 §4: names "SHOULD be unique"), each value its own

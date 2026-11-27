@@ -28,16 +28,17 @@
  *   them, take the voice, which pauses a recording read aloud or another media sounding; a play
  *   past the limit, refused, takes nothing. A read-aloud press or another media that starts to play
  *   pauses it: a playback that sounded keeps the play it counted, and the control's next press
- *   resumes it and spends none; one that never sounded is no play (spec reading 245).
+ *   resumes it and spends none; one that never sounded is no play (spec reading
+ *   `media-play-under-one-voice`).
  * - **The control.** UI SDK's Button: Play, or Pause while the media plays or still loads, so media
  *   that starts by itself can always be paused, with or without the native controls (WCAG 1.4.2,
  *   2.2.2). Pressed, it calls the element's `play()` and announces `loading` politely where the
  *   media has yet to load; the button never waits on that `play()`, so its Pause stops a play still
  *   loading, before it sounded, which is no play: the media is at rest again and the count stands
- *   (spec reading 245). Once the plays reach `max-plays` and the media is at rest it is disabled,
- *   kept focusable so a child on it is not dropped, and described by the plays left. A play the
- *   native controls ask for past the limit is paused at once and announced assertively; the
- *   plays-left text beside the control shows the same.
+ *   (spec reading `media-play-under-one-voice`). Once the plays reach `max-plays` and the media is
+ *   at rest it is disabled, kept focusable so a child on it is not dropped, and described by the
+ *   plays left. A play the native controls ask for past the limit is paused at once and announced
+ *   assertively; the plays-left text beside the control shows the same.
  * - **A failure.** A media that cannot play, every `source` failed or a `MediaError` reached it, ends
  *   its playback at rest, counting what it counted (`failed` in `#plate/media/plays.ts`): the
  *   island pauses it, so the control is its Play again, and tells the child beside the control, an

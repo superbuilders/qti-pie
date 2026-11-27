@@ -1,8 +1,8 @@
 /**
- * The MathML laws (spec reading 2, MathML 3 validity), composed from the three families that store
- * rows: cn (the form of a number's content), align (action selection and alignment groups) and
- * share (the `share` cycle). The apply laws, "MathML arity" and "MathML head qualifier", read the
- * tree alone, so they are rules over queries and store nothing
+ * The MathML laws (spec reading `mathml-validity`, MathML 3 validity), composed from the three
+ * families that store rows: cn (the form of a number's content), align (action selection and
+ * alignment groups) and share (the `share` cycle). The apply laws, "MathML arity" and "MathML head
+ * qualifier", read the tree alone, so they are rules over queries and store nothing
  * (`#pantry/qti/overlay-queries/expression.ts`).
  *
  * {@link mathmlRelations} and {@link mathmlLaws} are `#pantry/qti/schema.ts`'s MathML members: the

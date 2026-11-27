@@ -136,7 +136,7 @@ export const tokensOf = (text: string): readonly Token[] => {
 };
 
 /**
- * An href's two written pieces (reading 102), `href = path ‖ params`.
+ * An href's two written pieces (reading `href-resolution`), `href = path ‖ params`.
  */
 export interface HrefPieces {
   readonly params: Params;
@@ -170,8 +170,8 @@ const paramsOf = (text: string): Params => {
 };
 
 /**
- * Split an href into its two written pieces (reading 102): `path`, up to its first `?` or `#`, and
- * `params`, the query or fragment from there, so `href = path ‖ params`.
+ * Split an href into its two written pieces (reading `href-resolution`): `path`, up to its first
+ * `?` or `#`, and `params`, the query or fragment from there, so `href = path ‖ params`.
  *
  * @param href - The href, as written.
  * @returns Its pieces.
@@ -295,7 +295,7 @@ const isSpaceAt = (character: string | undefined): boolean =>
  * Every piece is a stretch of the value: `lead ‖ url ‖ descriptor` of each candidate in order, then
  * `trail`, is the value, which the database proves (`E1_derived` over `SrcsetForm`). The
  * descriptors are kept as written and never read: a candidate's URL alone names a file (spec
- * reading 124).
+ * reading `source-attributes`).
  *
  * @param lexical - The `srcset` as written.
  * @returns Its candidates in order, and its trail.

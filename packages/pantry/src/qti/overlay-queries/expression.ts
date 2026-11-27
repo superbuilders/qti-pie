@@ -7,9 +7,9 @@
  * `figures` beside its mode in force ({@link RoundingModeFigures}) and a tolerance's values
  * ({@link ToleranceToken}).
  *
- * The placements (spec reading 117) are stated here once, {@link placedDocuments}: every type law
- * reads an expression's type where a placement gives it, `PlacedExpression`, so each law is stated
- * once over the placed rows and judges each placement of a document on its own.
+ * The placements (spec reading `fragment-placement`) are stated here once, {@link placedDocuments}:
+ * every type law reads an expression's type where a placement gives it, `PlacedExpression`, so each
+ * law is stated once over the placed rows and judges each placement of a document on its own.
  */
 import type { RelationName } from "@bjornpagen/grizzle";
 import {
@@ -109,8 +109,9 @@ import {
 import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
- * Each document in no assembly as its own one placement (spec reading 117), by its path: numbered
- * as an assembly's root instance is, its `instance` the place of its document node, 0, its site.
+ * Each document in no assembly as its own one placement (spec reading `fragment-placement`), by its
+ * path: numbered as an assembly's root instance is, its `instance` the place of its document node,
+ * 0, its site.
  */
 const standalonePlacements = query(QtiBase).rule((r) => {
   const { package: pkg, path } = v(Document, "document");
@@ -145,15 +146,15 @@ const ownPlacements = query(QtiBase)
 
 /**
  * Each document each placement types, by the placement, `(package, assembly, instance)`, and the
- * document's path (spec reading 117): the one document an instance of an assembly places
- * (`Instance`); a document in no assembly under its own one placement, its path its assembly's
- * ({@link standalonePlacements}); and, under an item's own placement, the response processing
- * template the item locates (`LocatedTemplate`, information model §4.6.1: "The rules obtained from
- * the external template may be used instead of the rules defined within the item itself"), whose
- * rules run as the item's own. Every type law reads a placed expression or reference, so a document
- * placed twice is judged under each placement: two tests that place one section document, two items
- * that splice one rules fragment, and an item and the template it locates, each typed in the
- * assembly that places it.
+ * document's path (spec reading `fragment-placement`): the one document an instance of an assembly
+ * places (`Instance`); a document in no assembly under its own one placement, its path its
+ * assembly's ({@link standalonePlacements}); and, under an item's own placement, the response
+ * processing template the item locates (`LocatedTemplate`, information model §4.6.1: "The rules
+ * obtained from the external template may be used instead of the rules defined within the item
+ * itself"), whose rules run as the item's own. Every type law reads a placed expression or
+ * reference, so a document placed twice is judged under each placement: two tests that place one
+ * section document, two items that splice one rules fragment, and an item and the template it
+ * locates, each typed in the assembly that places it.
  */
 export const placedDocuments = query(QtiViews)
   .rule((r) => {
@@ -702,7 +703,8 @@ const mathOperatorNames = attributeValues("name", ["qti-math-operator"]);
 /**
  * Each operand of a math operator, by its operator's place and its rank, with the operator's
  * `name`: "Arity" holds its rank to 2 where the name is one of `binaryMathOperators`
- * (`#pantry/grammar/expression.ts`) and to 1 under every other (spec reading 242).
+ * (`#pantry/grammar/expression.ts`) and to 1 under every other (spec reading
+ * `math-operator-arity`).
  */
 const MathOperand = derived(
   "MathOperand",
@@ -719,7 +721,7 @@ const MathOperand = derived(
 
 /**
  * Each math operator whose `name` takes two sub-expressions (`binaryMathOperators`), by its
- * element's place: "Arity" holds each to an operand of rank 2 (spec reading 242).
+ * element's place: "Arity" holds each to an operand of rank 2 (spec reading `math-operator-arity`).
  */
 const BinaryMathOperator = derived(
   "BinaryMathOperator",
@@ -745,13 +747,13 @@ const baseTypedKinds = [...containerKinds, ...firstKinds] as const;
 const writtenModes = attributeValues("rounding-mode", roundingKinds);
 
 /**
- * Each rounding operator's `figures` beside its mode in force (reading 119), by its element's
- * place, where it has both: `figures`, the attribute's `value` (the form collapsed, decision 123),
- * and `mode`, its `rounding-mode` where it writes one, else, on a `qti-equal-rounded` that writes
- * none, the XSD's default, {@link equalRoundedMode}. A `qti-round-to` that writes no mode, and an
- * operator with no `figures`, is AL3's, and has no row. No row copies either attribute (C18). It
- * stores nothing: a check over a stored view that reads a pattern does not compile at the pin
- * (`docs/grizzle-findings.md`).
+ * Each rounding operator's `figures` beside its mode in force (reading `rounding-figures`), by its
+ * element's place, where it has both: `figures`, the attribute's `value` (the form collapsed,
+ * decision 123), and `mode`, its `rounding-mode` where it writes one, else, on a
+ * `qti-equal-rounded` that writes none, the XSD's default, {@link equalRoundedMode}. A
+ * `qti-round-to` that writes no mode, and an operator with no `figures`, is AL3's, and has no row.
+ * No row copies either attribute (C18). It stores nothing: a check over a stored view that reads a
+ * pattern does not compile at the pin (`docs/grizzle-findings.md`).
  */
 export const RoundingModeFigures = derived(
   "RoundingModeFigures",
@@ -784,10 +786,11 @@ export const RoundingModeFigures = derived(
 );
 
 /**
- * Each value of a `qti-equal`'s `tolerance` (reading 121), by the element's place and the value's
- * place among them, `at`, from 0: the attribute's lexical form collapsed and split at its spaces,
- * grizzle's whitespace list split (`r.tokens`), so the split is true by definition and no row holds
- * it. A form of whitespace alone has none. It stores nothing, as {@link RoundingModeFigures}.
+ * Each value of a `qti-equal`'s `tolerance` (reading `tolerance`), by the element's place and the
+ * value's place among them, `at`, from 0: the attribute's lexical form collapsed and split at its
+ * spaces, grizzle's whitespace list split (`r.tokens`), so the split is true by definition and no
+ * row holds it. A form of whitespace alone has none. It stores nothing, as
+ * {@link RoundingModeFigures}.
  */
 export const ToleranceToken = derived(
   "ToleranceToken",
@@ -816,20 +819,20 @@ export const ToleranceToken = derived(
 const firstTolerances = select(ToleranceToken, (t) => t.eq(t.at, 0n));
 
 /**
- * The least `figures` each rounding mode admits (reading 119; info §5.47.2 and §5.119.2): 1 under
- * `significantFigures`, "a non-zero positive integer", and 0 under `decimalPlaces`, "an integer
- * greater than or equal to zero".
+ * The least `figures` each rounding mode admits (reading `rounding-figures`; info §5.47.2 and
+ * §5.119.2): 1 under `significantFigures`, "a non-zero positive integer", and 0 under
+ * `decimalPlaces`, "an integer greater than or equal to zero".
  */
 const leastFigures = { decimalPlaces: 0n, significantFigures: 1n } as const;
 
 /**
- * Reading 119 (law "Rounding figures", rule `P10`; info §5.47.2 and §5.119.2): a `figures` that is
- * an integer is at least its mode's {@link leastFigures}. A variable's name is no integer, and a
- * mode outside the enumeration (AL1's) binds no bound; an operator with no `figures` or no mode is
- * AL3's, and has no {@link RoundingModeFigures} row to judge. The cast reads only an integer's
- * form, which the guard proves, so its `otherwise` is the least itself, which the bound admits. QTI
- * bounds no `figures`, and a form past what PostgreSQL's regex engine reads (`matchedTextBytes`)
- * is no form the law can read, and is refused.
+ * Reading `rounding-figures` (law "Rounding figures", rule `P10`; info §5.47.2 and §5.119.2): a
+ * `figures` that is an integer is at least its mode's {@link leastFigures}. A variable's name is no
+ * integer, and a mode outside the enumeration (AL1's) binds no bound; an operator with no `figures`
+ * or no mode is AL3's, and has no {@link RoundingModeFigures} row to judge. The cast reads only an
+ * integer's form, which the guard proves, so its `otherwise` is the least itself, which the bound
+ * admits. QTI bounds no `figures`, and a form past what PostgreSQL's regex engine reads
+ * (`matchedTextBytes`) is no form the law can read, and is refused.
  */
 const roundingFigures = check("Rounding_figures", RoundingModeFigures, (m) =>
   m.eq(
@@ -865,9 +868,9 @@ const roundingFigures = check("Rounding_figures", RoundingModeFigures, (m) =>
 );
 
 /**
- * Reading 121's count (law "Equal tolerance", rule `P36`; info §5.46.2: "The tolerance consists of
- * two positive numbers, t0 and t1 ... If only one value is given it is used for both"): a
- * `tolerance` holds one value or two, so it has a first value ({@link firstTolerances}).
+ * Reading `tolerance`'s count (law "Equal tolerance", rule `P36`; info §5.46.2: "The tolerance
+ * consists of two positive numbers, t0 and t1 ... If only one value is given it is used for both"):
+ * a `tolerance` holds one value or two, so it has a first value ({@link firstTolerances}).
  */
 const toleranceFirst = contained(
   on(toleranceAttributes, "package", "path", "start"),
@@ -875,11 +878,11 @@ const toleranceFirst = contained(
 );
 
 /**
- * Reading 121's count and sign over each value (law "Equal tolerance", rule `P36`; info §5.46.2,
- * "two positive numbers"): no value stands at place 2 or after, and a value in `xs:double`'s
- * lexical space is positive, a string naming a variable read at run time, and a value past what
- * PostgreSQL's regex engine reads (`matchedTextBytes`) is no form the law can read, and is refused.
- * One check states both, since a relation's checks are named apart.
+ * Reading `tolerance`'s count and sign over each value (law "Equal tolerance", rule `P36`; info
+ * §5.46.2, "two positive numbers"): no value stands at place 2 or after, and a value in
+ * `xs:double`'s lexical space is positive, a string naming a variable read at run time, and a value
+ * past what PostgreSQL's regex engine reads (`matchedTextBytes`) is no form the law can read, and
+ * is refused. One check states both, since a relation's checks are named apart.
  */
 const toleranceValue = check("Equal_tolerance", ToleranceToken, (x) =>
   x.and(
@@ -1582,28 +1585,29 @@ const operandExpressions = select(ExpressionNode, (e) => e.in(e.parentKind, expr
 /**
  * The expression, operator and MathML laws that read an overlay's node's kind, parent or parent's
  * kind (`#pantry/qti/expressions.ts`, `#pantry/qti/operators.ts`, `#pantry/qti/mathml-share.ts`),
- * each named by its oracle law: `Arity` (P2; a math operator's count by its name, spec reading 241,
- * over {@link ExpressionOperand}, {@link MathOperand} and {@link BinaryMathOperator}),
- * `Condition_type` (P21) over {@link PlacedExpressionNode}, `One_base` and `Operand_fit` (P23) over
- * {@link OperandOf}, and `Outcome_only` (P25) over {@link ExpressionNode}; and `E1_derived`, each
- * placement's expressions exactly its documents' ({@link PlacedExpressionSite}), the result type
- * each kind derives under each placement, a base value's its literal's, each expression's language
- * its parent's or a rule's root's, every operand's row, each operand's operator and rank its
- * node's, and each ranked MathML element's rank below its parent's; "Equal tolerance" and
- * "Rounding figures" (readings 121 and 119) over {@link ToleranceToken} and
- * {@link RoundingModeFigures}; `MathML_share_cycle`, a share's rank above its target's; "MathML
- * arity" (MathML 3 §4.3.4.5 and §4.3.4.6, each operator's class from its §4.4
- * syntax table): a judged application, one whose every qualifier its head owns, holds at least one
- * argument where its class takes one and a pair of them where it takes two, and at most one
- * argument where its class takes one and one pair where it takes two, so no count is stored; and
- * "MathML head qualifier" (spec reading R6-head-qualifiers): each head qualifier beside a head
- * operator is a pair its syntax table lists.
+ * each named by its oracle law: `Arity` (P2; a math operator's count by its name, spec reading
+ * `single-figcaption`, over {@link ExpressionOperand}, {@link MathOperand} and
+ * {@link BinaryMathOperator}), `Condition_type` (P21) over {@link PlacedExpressionNode}, `One_base`
+ * and `Operand_fit` (P23) over {@link OperandOf}, and `Outcome_only` (P25) over
+ * {@link ExpressionNode}; and `E1_derived`, each placement's expressions exactly its documents'
+ * ({@link PlacedExpressionSite}), the result type each kind derives under each placement, a base
+ * value's its literal's, each expression's language its parent's or a rule's root's, every
+ * operand's row, each operand's operator and rank its node's, and each ranked MathML element's rank
+ * below its parent's; "Equal tolerance" and "Rounding figures" (readings `tolerance` and
+ * `rounding-figures`) over {@link ToleranceToken} and {@link RoundingModeFigures};
+ * `MathML_share_cycle`, a share's rank above its target's; "MathML arity" (MathML 3 §4.3.4.5 and
+ * §4.3.4.6, each operator's class from its §4.4 syntax table): a judged application, one whose
+ * every qualifier its head owns, holds at least one argument where its class takes one and a pair
+ * of them where it takes two, and at most one argument where its class takes one and one pair where
+ * it takes two, so no count is stored; and "MathML head qualifier" (spec reading
+ * R6-head-qualifiers): each head qualifier beside a head operator is a pair its syntax table
+ * lists.
  *
  * The statements of the laws that take several, in order:
  *
  * - **Arity:** at least its least number, an operand of that rank; at most its greatest, no operand
- *   past it; and a math operator's name fixes its count (spec reading 242), two sub-expressions for
- *   atan2, one for every other name.
+ *   past it; and a math operator's name fixes its count (spec reading `math-operator-arity`), two
+ *   sub-expressions for atan2, one for every other name.
  * - **E1 derived:** the result type each dependent typing derives from its operands, operand by
  *   operand: a numeric aggregate is unknown where an operand is, integer only where every operand
  *   is integer or any; a container's, an Index's or a Random's base is each operand's that is not

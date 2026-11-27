@@ -30,7 +30,7 @@ begin
 end $$;
 -- A typed lexical value: every atomic XML Schema type but string fixes whiteSpace=collapse (Part 2 §4.3.6), so a
 -- non-string value is read collapsed, its XML white space stripped at both ends and each inner run one space (spec
--- reading 7 as ruled; plate's typedLexicalOf); a string keeps its text. An absent value is no single.
+-- reading `typed-value-whitespace` as ruled; plate's typedLexicalOf); a string keeps its text. An absent value is no single.
 create function p3.xml_single(base text, txt text) returns p3.single language sql immutable as $$
   select case when txt is not null
     then parse(base => base, lexical => case when base = 'string' then txt else regexp_replace(trim_xml(t => txt), '[ \t\n\r]+', ' ', 'g') end) end

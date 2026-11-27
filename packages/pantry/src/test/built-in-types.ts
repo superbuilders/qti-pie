@@ -6,10 +6,10 @@ import type { ValueBase, ValueCardinality } from "#pantry/grammar/expression.ts"
 
 /**
  * The built-in variables each root holds, with the type a reference to one has (information model
- * §2.2.2, Item Variables, and §2.2.2.1, Context Variable; spec reading 29): an item's
- * `numAttempts`, `duration` (a float of seconds), `completionStatus` and `QTI_CONTEXT`; a test's
- * or a section's `duration` (a duration) and `QTI_CONTEXT`. `test` marks the second. It states
- * again what references.ts's `builtIns` state, so a test can hold the installed rows to it.
+ * §2.2.2, Item Variables, and §2.2.2.1, Context Variable; spec reading `duration-variable-type`):
+ * an item's `numAttempts`, `duration` (a float of seconds), `completionStatus` and `QTI_CONTEXT`; a
+ * test's or a section's `duration` (a duration) and `QTI_CONTEXT`. `test` marks the second. It
+ * states again what references.ts's `builtIns` state, so a test can hold the installed rows to it.
  */
 export const builtInTypes = [
   { baseType: "integer", cardinality: "single", test: false, variable: "numAttempts" },

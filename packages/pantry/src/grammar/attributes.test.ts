@@ -7,12 +7,14 @@
  *   exactly those, with the XSD's use, beside the document layer's names.
  * - **The spec readings' text.** Each reading of `docs/spec-readings.md` that narrows a value is
  *   checked on every attribute it names, and the XSD's own reading of the same type is checked
- *   everywhere else; readings 10, 9 and 85, and 123, which add, take away and require an attribute,
- *   are restated beside the XSD reading, and reading 90 beside the document layer's `xml:` names,
- *   its covered elements from the Schematron's leaf, which its own test reads against the XSDs' raw
- *   text. Reading 9's two ARIA role rules are read from the XSDs' raw text too, reading 135's MIME
- *   types against an RFC 2045 reader by exhaustion and by a swarm-weighted search, and reading
- *   136's `coords`, which follows the XSD, against a reader of `CoordsDType`.
+ *   everywhere else; readings `aria-keyshorts`, `schematron-intent`, `inclusion-cycles` and
+ *   `bdo-dir`, which add, take away and require an attribute, are restated beside the XSD reading,
+ *   and reading `extension-attribute-lists` beside the document layer's `xml:` names, its covered
+ *   elements from the Schematron's leaf, which its own test reads against the XSDs' raw text.
+ *   Reading `schematron-intent`'s two ARIA role rules are read from the XSDs' raw text too, reading
+ *   `mime-type`'s MIME types against an RFC 2045 reader by exhaustion and by a swarm-weighted
+ *   search, and reading `default-shape-coords`'s `coords`, which follows the XSD, against a reader
+ *   of `CoordsDType`.
  * - **The XSD's values, for the departures of the old grammar.** Each value the XSD admits and the
  *   old grammar refused is admitted, read from the leaf's own resolution of the XSD.
  * - **Structural laws:** positions a bijection onto 0..n−1 in `AttributeName` order; `TextDomain` a
@@ -33,6 +35,7 @@ import type { Swarm } from "@bjornpagen/testing/swarm";
 import { searched } from "@bjornpagen/testing/vitest";
 import { agree, exact, set as setOf, structuralHash } from "@bjornpagen/testing/oracle";
 import { Array as Arr, Duration, Effect, FileSystem, Formatter, Option, Result } from "effect";
+import { codePointOrder } from "@qti-pie/crust/charset.ts";
 import { XML_NAMESPACE } from "@qti-pie/crust/tree.ts";
 import {
   attributeCounts,
@@ -158,13 +161,13 @@ describe("The departures from the XSD", () => {
     assert.deepStrictEqual(step.bound, Option.some({ facet: "minInclusive", value: 0 }));
   });
 
-  it("are gone: a cell's headers are a plain list of identifiers in the attribute grammar, with no IDREF identity, since reading 126's same-table rule is an overlay's law", () => {
+  it("are gone: a cell's headers are a plain list of identifiers in the attribute grammar, with no IDREF identity, since reading `cell-headers`'s same-table rule is an overlay's law", () => {
     for (const kind of ["td", "th"]) {
       const headers = Option.getOrThrow(domainAt(kind, "headers"));
 
       assert.isTrue(
         matches(headers, "a b  c"),
-        `${kind}'s headers are a list of identifiers: reading 126's rule, each token unique and the id of a th of the cell's own table, is src/qti/overlay-queries/html.ts's (HeaderToken's key and CellToken's containment in TableHeader, over the tokens HeaderToken splits from the lexical form), and the grammar reads no reference on them`,
+        `${kind}'s headers are a list of identifiers: reading \`cell-headers\`'s rule, each token unique and the id of a th of the cell's own table, is src/qti/overlay-queries/html.ts's (HeaderToken's key and CellToken's containment in TableHeader, over the tokens HeaderToken splits from the lexical form), and the grammar reads no reference on them`,
       );
       assert.deepStrictEqual(headers.identity, Option.none());
     }
@@ -356,8 +359,9 @@ const printfSpecifiers = (value: string): readonly boolean[] => {
 
 /**
  * Whether a value is a printf format string over the information model's conversion codes (§2.3.4):
- * every specifier it writes is well-formed ({@link printfSpecifiers}), however many it writes,
- * none included (spec reading 161 sets aside reading 132's one).
+ * every specifier it writes is well-formed ({@link printfSpecifiers}), however many it writes, none
+ * included (spec reading `format-conversion-count` sets aside reading `printed-variable-format`'s
+ * one).
  *
  * @param value - The value.
  * @returns Whether it is a format.
@@ -369,9 +373,10 @@ const isPrintfFormat = (value: string): boolean => printfSpecifiers(value).every
  * two or several, and whether one of them is malformed. A format of none has no specifier to
  * break, so the search must reach the six others, each count well-formed and malformed.
  *
- * Reading 161 (PR #46, comment 6701102861): a format with two or more conversions is accepted and
- * stored as written; reading 132's codes still judge each one. So a domain that refuses a second
- * conversion, or admits a malformed one beside a well-formed one, fails the search.
+ * Reading `format-conversion-count` (PR #46, comment 6701102861): a format with two or more
+ * conversions is accepted and stored as written; reading `printed-variable-format`'s codes still
+ * judge each one. So a domain that refuses a second conversion, or admits a malformed one beside a
+ * well-formed one, fails the search.
  */
 const printfNotes = [
   "none",
@@ -896,12 +901,12 @@ const spaced = [" 1", "1 ", "\t1\n"] as const;
 describe("The spec readings", () => {
   it("read 7: a typed QTI value a string-typed attribute carries is exact, its outer whitespace kept, and one the XSD types xs:double is collapsed, as the XSD reads it", () => {
     /**
-     * Oracle: reading 7 as amended (docs/spec-readings.md): map-key, the two tables'
-     * default-value and an interpolation entry's target-value are string-typed and exact; the
-     * xs:double typed-value attributes read as XML Schema Part 2 §4.3.6 reads xs:double,
+     * Oracle: reading `typed-value-whitespace` as amended (docs/spec-readings.md): map-key, the two
+     * tables' default-value and an interpolation entry's target-value are string-typed and exact;
+     * the xs:double typed-value attributes read as XML Schema Part 2 §4.3.6 reads xs:double,
      * whitespace collapsed.
      */
-    const listed = specReadings.filter(({ reading }) => reading === 7);
+    const listed = specReadings.filter(({ reading }) => reading === "typed-value-whitespace");
     assert.isAbove(listed.length, 0);
     for (const reading of listed) {
       for (const kind of Option.getOrElse(reading.kinds, () => [])) {
@@ -1014,8 +1019,9 @@ describe("The spec readings", () => {
 
   it("read 18 and 92: an order, graphic-order or position object interaction's min-choices is at least 1, every other kind's at least 0", () => {
     /**
-     * Reading 18: "If specified, min-choices must be 1 or greater" of the order interactions
-     * (§5.97.2, §5.61.1); reading 92: the same sentence of the position object (§5.107.2).
+     * Reading `order-min-choices`: "If specified, min-choices must be 1 or greater" of the order
+     * interactions (§5.97.2, §5.61.1); reading `binding-and-count-sentences`: the same sentence of
+     * the position object (§5.107.2).
      */
     const floored = new Set([
       "qti-order-interaction",
@@ -1185,7 +1191,7 @@ describe("The spec readings", () => {
   it("read 120: a qti-index's n is at least 1 where it is a number, any NCName otherwise", () => {
     /**
      * Information model §5.72, Index: "'n' must be a positive integer"; the XSD's xs:int member
-     * admits 0 and negatives, and reading 46 keeps no larger range for it.
+     * admits 0 and negatives, and reading `count-range` keeps no larger range for it.
      */
     const n = Option.getOrThrow(domainAt("qti-index", "n"));
 
@@ -1216,7 +1222,7 @@ describe("The spec readings", () => {
       read.filter(({ name }) => name === "dir").map((declared) => declared.default),
       [Option.none()],
     );
-    assert.deepStrictEqual(readingUses, [{ kind: "bdo", name: "dir", reading: 123 }]);
+    assert.deepStrictEqual(readingUses, [{ kind: "bdo", name: "dir", reading: "bdo-dir" }]);
 
     const dir = Option.getOrThrow(domainAt("bdo", "dir"));
     const span = Option.getOrThrow(domainAt("span", "dir"));
@@ -1325,12 +1331,13 @@ describe("The spec readings", () => {
     /**
      * Information model §2.3.4: each conversion specifier is "%", flags of "#", "0", "-", " " and
      * "+", an optional width, an optional precision ("." and zero or more digits), and one of E, e,
-     * f, G, g, r, R, i, o, X or x; the rest of a C format string is text and "%%". Reading 161 sets
-     * aside reading 132's one specifier: QTI bans no second conversion (PR #46, comment
-     * 6701102861), so a format holds any number, none included, and is stored as written.
-     * Oracle: `isPrintfFormat`, a left-to-right walk of the string that reads each specifier, not
-     * the pattern. Bound: every string of one to four pieces (30,940), which reaches each count of
-     * specifiers, none to several, well-formed and malformed.
+     * f, G, g, r, R, i, o, X or x; the rest of a C format string is text and "%%". Reading
+     * `format-conversion-count` sets aside reading `printed-variable-format`'s one specifier: QTI
+     * bans no second conversion (PR #46, comment 6701102861), so a format holds any number, none
+     * included, and is stored as written. Oracle: `isPrintfFormat`, a left-to-right walk of the
+     * string that reads each specifier, not the pattern. Bound: every string of one to four pieces
+     * (30,940), which reaches each count of specifiers, none to several, well-formed and
+     * malformed.
      */
     const pieces = ["%", "%%", "%i", "d", "f", ".", "5", " ", "#", "-", "x", "q", "é"];
     const strings = [
@@ -1462,8 +1469,8 @@ describe("The spec readings", () => {
     /**
      * ASI binding §5.3.1, RULE ARIA ROLE 1a: "The 'source' tag must not have an ARIA role
      * attribute", where the XSD declares it; an `xi:include`'s `xpointer`, which the XSD declares,
-     * is kept (reading 85). Oracle: the leaf's declarations, every one, against those
-     * `readDeclarations` keeps.
+     * is kept (reading `inclusion-cycles`). Oracle: the leaf's declarations, every one, against
+     * those `readDeclarations` keeps.
      */
     const kept = new Set(
       readDeclarations(attributeDeclarations).map(({ kind, name }) => `${kind} ${name}`),
@@ -1479,8 +1486,9 @@ describe("The spec readings", () => {
 
   /**
    * Oracle: the composed grammar's rows themselves, every governor's and every open class's,
-   * against the rule; spec reading 90 leaves `source`, which the Schematron's extension rules
-   * cover, the `data-*` class alone, so a `role` there is no name it admits.
+   * against the rule; spec reading `extension-attribute-lists` leaves `source`, which the
+   * Schematron's extension rules cover, the `data-*` class alone, so a `role` there is no name it
+   * admits.
    */
   const sourceHasNoRole = Effect.gen(function* sourceHasNoRole() {
     const { attributes } = yield* Effect.fromResult(composed());
@@ -1765,14 +1773,14 @@ const identityOf = (domain: Domain): Option.Option<string> => {
 };
 
 /**
- * The spec readings that apply to a kind's attribute, by number: those naming the attribute on
+ * The spec readings that apply to a kind's attribute, by slug: those naming the attribute on
  * every kind that declares it, or on this kind.
  *
  * @param kind - The kind.
  * @param name - The attribute.
- * @returns The readings' numbers, ascending.
+ * @returns The readings' slugs, in code-point order.
  */
-const readingNumbersOf = (kind: string, name: string): readonly number[] =>
+const readingSlugsOf = (kind: string, name: string): readonly string[] =>
   [
     ...new Set(
       specReadings
@@ -1783,22 +1791,24 @@ const readingNumbersOf = (kind: string, name: string): readonly number[] =>
         )
         .map(({ reading }) => reading),
     ),
-  ].toSorted((left, right) => left - right);
+  ].toSorted(codePointOrder);
 
 /**
- * The readings a domain's handle names: the numbers in its ` (reading …)` part, none without one.
+ * The readings a domain's handle names: the slugs of its ` (…)` part, none without one.
  *
  * @param handle - The handle.
- * @returns The numbers, ascending.
+ * @returns The slugs, in code-point order.
  */
-const readingsNamed = (handle: string): readonly number[] =>
+const readingsNamed = (handle: string): readonly string[] =>
   Option.match(
-    Option.fromNullishOr(regex(" \\(reading (?<numbers>[\\d, ]+)\\)", "u").exec(handle)?.groups),
+    Option.fromNullishOr(
+      regex(" \\((?<slugs>[a-z][a-z0-9-]*(?:, [a-z][a-z0-9-]*)*)\\)", "u").exec(handle)?.groups,
+    ),
     {
       onNone: () => [],
-      onSome: ({ numbers }) => numbers.split(", ").map(Number),
+      onSome: ({ slugs }) => slugs.split(", "),
     },
-  ).toSorted((left, right) => left - right);
+  ).toSorted(codePointOrder);
 
 describe("The value domains' names", () => {
   it("name the spec readings of an attribute each was compiled for, and only those, every domain of the leaf", () => {
@@ -1809,14 +1819,14 @@ describe("The value domains' names", () => {
      * is some unread attribute's or text's domain.
      */
     const readingsOfDomain = new Map<string, Set<string>>();
-    const add = (domain: string, readings: readonly number[]) => {
+    const add = (domain: string, readings: readonly string[]) => {
       readingsOfDomain.set(
         domain,
         (readingsOfDomain.get(domain) ?? new Set<string>()).add(readings.join(", ")),
       );
     };
     for (const { domain, kind, name } of leafGrammar.admission.rows) {
-      add(domain, readingNumbersOf(kind, name));
+      add(domain, readingSlugsOf(kind, name));
     }
 
     for (const { domain } of leafGrammar.text.rows) {
@@ -1894,8 +1904,8 @@ describe("The attribute grammar's structure", () => {
   it("derives each domain's identity from the built-in its type restricts, and from nothing else", () => {
     for (const declared of attributeDeclarations) {
       /**
-       * Whether reading 2 reads the declaration as other than its type: MathML's `xref`, an
-       * IDREF.
+       * Whether reading `mathml-validity` reads the declaration as other than its type: MathML's
+       * `xref`, an IDREF.
        */
       const readAsOther = declared.kind.startsWith("m:") && declared.name === "xref";
       if (!readAsOther) {
@@ -2072,10 +2082,10 @@ describe("The XSD's attribute uses", () => {
             }
 
             /**
-             * Whether spec reading 9 takes the kind's `role` away: a `source` carries none (the
-             * Schematron's RULE ARIA ROLE 1a). Spec reading 10 keeps the XSD's `aria-keyshorts`
-             * alone, no second spelling beside it, and spec reading 123 makes a `bdo` carry `dir`
-             * (§5.11, `readingUses` below).
+             * Whether spec reading `schematron-intent` takes the kind's `role` away: a `source`
+             * carries none (the Schematron's RULE ARIA ROLE 1a). Spec reading `aria-keyshorts`
+             * keeps the XSD's `aria-keyshorts` alone, no second spelling beside it, and spec
+             * reading `bdo-dir` makes a `bdo` carry `dir` (§5.11, `readingUses` below).
              */
             const roleless = kind === "source";
             if (roleless) {
@@ -2140,10 +2150,10 @@ describe("The document layer", () => {
         const { attributes, kinds } = yield* Effect.fromResult(composed());
         const byHandle = new Map(attributes.domains.map((domain) => [domain.handle, domain]));
         /**
-         * Spec reading 90: on an element the Schematron's extension rules cover, an `xml:` name
-         * the kind does not declare is no `data-` extension, so it is refused there; but on
-         * `qti-custom-interaction`, whose `extension` characteristic is a `NamespaceLax`
-         * (information model §5.36.1), it is one of that characteristic's.
+         * Spec reading `extension-attribute-lists`: on an element the Schematron's extension rules
+         * cover, an `xml:` name the kind does not declare is no `data-` extension, so it is refused
+         * there; but on `qti-custom-interaction`, whose `extension` characteristic is a
+         * `NamespaceLax` (information model §5.36.1), it is one of that characteristic's.
          */
         const covered = new Set(
           coveredElements
@@ -2162,9 +2172,9 @@ describe("The document layer", () => {
         )) {
           for (const global of xmlGlobals) {
             /**
-             * Whether XML Schema 1.0 Part 1 §3.4.4 clause 5.2 (spec reading 109) bars the
-             * attribute: a custom interaction declares an ID-typed `id`, so its `##other` wildcard
-             * admits no wild `xml:id`.
+             * Whether XML Schema 1.0 Part 1 §3.4.4 clause 5.2 (spec reading `wildcard-xml-id`) bars
+             * the attribute: a custom interaction declares an ID-typed `id`, so its `##other`
+             * wildcard admits no wild `xml:id`.
              */
             const wildId = wildcard.kind === "qti-custom-interaction" && global.name === "xml:id";
             if (wildId) {
@@ -2180,7 +2190,7 @@ describe("The document layer", () => {
               refused += 1;
               if (Option.isSome(row)) {
                 missing.push(
-                  `${wildcard.kind}@${global.name} is admitted, though reading 90 refuses it`,
+                  `${wildcard.kind}@${global.name} is admitted, though reading \`extension-attribute-lists\` refuses it`,
                 );
               }
             } else if (Option.isNone(row)) {
@@ -2207,8 +2217,9 @@ describe("The document layer", () => {
         assert.deepStrictEqual(missing, []);
 
         /**
-         * A lax wildcard's kind (LOM's string) and a skip one's (MathML's): spec reading 129, XML
-         * 1.0 §2.12, makes every xml:lang a BCP 47 tag or empty under both alike.
+         * A lax wildcard's kind (LOM's string) and a skip one's (MathML's): spec reading
+         * `language-tags`, XML 1.0 §2.12, makes every xml:lang a BCP 47 tag or empty under both
+         * alike.
          */
         const wildcardKinds = ["lom:string", "m:mi"];
         for (const kind of wildcardKinds) {
@@ -2259,9 +2270,9 @@ describe("The Schematron's ARIA role rules", () => {
   beforeAll(xsdCachePresent);
 
   /**
-   * Oracle: the pinned XSDs as text, read by regular expressions and no XML reader (spec
-   * reading 9): RULE ARIA ROLE 1a's test, `count(@role)=0` on `//qti:source`, and RULE ARIA
-   * ROLE 1b's, `count(@role)=0 or (count(@role)=1 and (@role='…' or …))` on `//qti:h1`.
+   * Oracle: the pinned XSDs as text, read by regular expressions and no XML reader (spec reading
+   * `schematron-intent`): RULE ARIA ROLE 1a's test, `count(@role)=0` on `//qti:source`, and RULE
+   * ARIA ROLE 1b's, `count(@role)=0 or (count(@role)=1 and (@role='…' or …))` on `//qti:h1`.
    */
   const ariaRolesFromTheText = Effect.gen(function* ariaRolesFromTheText() {
     const fs = yield* FileSystem.FileSystem;

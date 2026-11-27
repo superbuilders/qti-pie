@@ -13,7 +13,7 @@
  * What this module does not do, each the ruling of a reading or a stated limit:
  *
  * - It judges no rule of MathML's: the database admitted the `math` (pantry's MathML laws, reading
- *   2), and plate renders what admission accepted.
+ *   `mathml-validity`), and plate renders what admission accepted.
  * - It keeps attributes in no namespace only, each under the name the HTML parser reads it by:
  *   `xlink:href`, `xml:lang` and any attribute of another namespace are dropped, neither refused
  *   nor rendered (MathML 3 deprecates `xlink:href` for `href`, section 2.1.6).
@@ -25,8 +25,8 @@
  *   R6-hexdouble in `docs/spec-readings.md`).
  * - It substitutes a `math-variable` template variable into an `mi` or `ci` only, as the information
  *   model's section 2.3.3 asks: each that names one the values hold becomes an `mn` or a `cn`
- *   holding its value (reading 206, {@link substituted}). Every other element is given as the tree
- *   holds it.
+ *   holding its value (reading `math-variable`, {@link substituted}). Every other element is given
+ *   as the tree holds it.
  *
  * @module
  */
@@ -386,8 +386,8 @@ const tokenName = <C>(token: MathElement<C>): Option.Option<string> => {
 /**
  * Replace each `mi` and `ci` that names a `math-variable` template variable the values hold with
  * the `mn` or `cn` holding the variable's text, its attributes kept, and nothing in it for NULL
- * (reading 206); every other element is kept, its children walked. An `annotation-xml`'s content is
- * body content, which the walk prints on its own.
+ * (reading `math-variable`); every other element is kept, its children walked. An
+ * `annotation-xml`'s content is body content, which the walk prints on its own.
  *
  * @template C The content nodes.
  * @param node The element.
@@ -474,7 +474,7 @@ export const mathmlModule: BodyContentModule<
   normalise: normaliseElement,
   /**
    * Read the `math` element into its tree, its marks recorded once. The database admitted it
-   * (reading 2), so the tree is what plate renders, judged by nothing here.
+   * (reading `mathml-validity`), so the tree is what plate renders, judged by nothing here.
    */
   parse: (source, context) => {
     context.read.markElement(source);

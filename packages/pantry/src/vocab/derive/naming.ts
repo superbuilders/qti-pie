@@ -106,8 +106,8 @@ const typedHandles: readonly TypedHandle[] = [
     /**
      * MathML's `semantics` in its group `semantics-contexp`, a content expression's, whose first
      * child is a content expression (`mathml3-strict-content.xsd` line 84, the MathML 3 RelaxNG's
-     * `semantics-contexp`, `mathml3-strict-content.rnc` lines 14 and 23, which spec reading 2
-     * admits wherever a content expression stands).
+     * `semantics-contexp`, `mathml3-strict-content.rnc` lines 14 and 23, which spec reading
+     * `mathml-validity` admits wherever a content expression stands).
      */
     "m:semantics.contexp": ["semantics", "anonymous in group semantics-contexp"],
   }),

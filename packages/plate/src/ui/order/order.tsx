@@ -89,7 +89,8 @@ export interface OrderProps extends Authored<NameAttributes> {
    * choice; else from `max-choices` and `min-choices`, with a `min-choices` the `max-choices`
    * written beside it, or one per choice when there is none, since "If unspecified, all of the
    * choices may be ordered" (5.97.3), and without one, one per choice, since then "all of the
-   * choices must be ordered and max-choices is ignored" (5.97.2, plate's reading 18).
+   * choices must be ordered and max-choices is ignored" (5.97.2, plate's reading
+   * `order-min-choices`).
    */
   readonly positions: readonly Shown[];
   /**

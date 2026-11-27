@@ -119,7 +119,8 @@ const itemText = [
 
 /**
  * A usage data file: a statistic of two values that write a `baseType`, one in a record (it writes
- * a `fieldIdentifier`) and one outside, which states no base type (spec reading 105).
+ * a `fieldIdentifier`) and one outside, which states no base type (spec reading
+ * `usage-statistic-value`).
  */
 const usageText = [
   '<usageData xmlns="http://www.imsglobal.org/xsd/imsqti_usagedata_v3p0">',

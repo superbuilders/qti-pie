@@ -19,8 +19,8 @@ import type { Closed, IdField, Indexed, NonEmptyRoster, Roster } from "#pantry/g
  * The ancestry flags in code order. A flag's code is its bit's position in the `bit(10)`, the first
  * flag leftmost, so a kind's row of each set reads as an ancestry does. Codes are append-only:
  * `test`, the content of a test's rubric block or feedback, comes after the eight an item's kinds
- * enter, and `math`, the content of a MathML `m:math`, after it (spec reading 2: one `m:math` may
- * not contain another, MathML 3 §2.2).
+ * enter, and `math`, the content of a MathML `m:math`, after it (spec reading `mathml-validity`:
+ * one `m:math` may not contain another, MathML 3 §2.2).
  */
 export const flags = [
   "fb",
@@ -105,9 +105,9 @@ export interface AncestryFacet {
 /**
  * The flags under which an interaction may not sit: no interaction inside another, nor inside a
  * choice, a hottext, a rubric block, a template block, a modal feedback, or a test's rubric block
- * or feedback (spec reading 25; information model §5.157: test feedback "must not contain an
- * interaction object, either directly or indirectly", §2.8.6: rubric blocks "MUST NOT contain
- * interactions").
+ * or feedback (spec reading `test-rubric-feedback-content`; information model §5.157: test feedback
+ * "must not contain an interaction object, either directly or indirectly", §2.8.6: rubric blocks
+ * "MUST NOT contain interactions").
  */
 const interactionBans = [
   "int",

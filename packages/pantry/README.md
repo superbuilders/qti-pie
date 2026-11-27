@@ -45,7 +45,7 @@ const outcome = yield* db.workload.insertWrite.once({ facts: { insert }, params:
 
 A package is stored under the name `readPackage` is given (an NCName of any length, refused as `BadPackageName`
 before anything is read where it is no NCName), never under its manifest's identifier, which IMS Content Packaging makes
-unique within one manifest alone (spec reading 178). A name is one revision for as long as it stands: a package under a
+unique within one manifest alone (spec reading `package-name`). A name is one revision for as long as it stands: a package under a
 new name is `accepted`, the same package again under its name is `unchanged`, and another package under a stored name
 is refused on the keys the two share. A refusal is grizzle's `refused` call error; `rulesOf(error.refused.laws)` names
 its QTI rules.
@@ -112,7 +112,7 @@ Every input is a path. Nothing is read from standard input. `--dry-run` reads an
 needs `--yes` to replace a directory that already has content. `--output json` prints one JSON value. `--help` is the reference for the flags and the exit codes.
 
 An item ref may name an LTI link instead of an item. pantry accepts it and does not check the variable mappings or the
-item-prefixed names that pass through it, because the package declares nothing the tool reports (spec reading 110).
+item-prefixed names that pass through it, because the package declares nothing the tool reports (spec reading `mapping-and-default-names`).
 
 `scripts/db.sh reset` drops the database and this package's roles, then creates and migrates again.
 

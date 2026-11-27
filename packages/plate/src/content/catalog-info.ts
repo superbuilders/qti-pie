@@ -32,9 +32,10 @@
  *    kept catalog's active cards and how many body elements reference it, and the shell presents
  *    them: a `glossary-on-screen` card beside each body element that references its catalog, a
  *    `spoken` card that gives audio ({@link spokenAudioOf}) as read-aloud's control beside each
- *    part that references its catalog while the candidate answers (spec reading 237), and every
- *    other card in a listing after the body. A body element's, a prompt's and a choice's references
- *    are the body's alike (spec reading 236).
+ *    part that references its catalog while the candidate answers (spec reading
+ *    `read-aloud-controls`), and every other card in a listing after the body. A body element's, a
+ *    prompt's and a choice's references are the body's alike (spec reading
+ *    `prompt-and-choice-catalogs`).
  * 9. Dormant otherwise: a card of a support the host did not enable, an entry not chosen and a catalog
  *    no reference names are in neither the page nor the redacted copy, withheld through the
  *    redaction kit.

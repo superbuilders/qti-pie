@@ -13,11 +13,11 @@
  * shred, the codec, which refuses `unmodeled-vocabulary`, `attribute-admission` (an attribute its
  * kind admits under no name) and `xml-version`, and nothing else ({@link CodecRefusal}): a closed
  * `data-ssml` value Data-SSML does not admit is the law "Data SSML"'s, over the document's rows
- * (spec reading 177). The documents that shred are folded. A fold that meets a child or an
- * attribute with no cell has no rows, and its refusal is the one breach of its document; every law
- * is evaluated over the rows of the documents that fold, each breach reported with the law, the
- * rule the law keeps from the guard or schema rule it replaces, and where it broke
- * ({@link Breach}).
+ * (spec reading `data-ssml-judgement`). The documents that shred are folded. A fold that meets a
+ * child or an attribute with no cell has no rows, and its refusal is the one breach of its
+ * document; every law is evaluated over the rows of the documents that fold, each breach reported
+ * with the law, the rule the law keeps from the guard or schema rule it replaces, and where it
+ * broke ({@link Breach}).
  *
  * The laws, in the plan's order:
  *
@@ -35,18 +35,20 @@
  * - **§1.6:** `root-type-reverse`, `file-listed`, `href-listed` and `entry-kind`; the manifest's and
  *   its resources' identifiers are IDs of the manifest, held apart by `document-key` as every
  *   document's are; a resource's type outside the enumeration is the attribute's value domain's
- *   (spec reading 67).
- * - **§1.7, the overlays the grammar's relations state today:** O1 `document-key` over reading 101's
- *   bindings, an ID-typed element text's id bound to its parent, a cell's `headers` naming the
- *   `th`s of its own table (`table-headers`, reading 126: the information model states the rule
- *   over the XSD's plain identifier list, and the stricter source is the rule), and R26's
- *   `document-lang`; the HTML element laws `source-srcset`, `source-src` and `track-srclang`
- *   (readings 124 and 125); O2 `declaration-key`; O3 `binding-declared`, `binding-fit` with
- *   `record-binding-fit`, `choice-bounds`, `choice-identifier-distinct` (reading 104), and the
- *   feedback, template and printed-variable references; O4 arity (`P2`), undeclared references
- *   (`P8`), a rounding operator's `figures` (`P10`, reading 119) and an equality's `tolerance`
- *   (`P36`, reading 121); O5 `mapping-base-type`; O6 `lom-identifier`, a usage value's base type
- *   (reading 105) and `lom-learning-resource-type` (reading 122); O7 a selection's bound.
+ *   (spec reading `manifest-profile`).
+ * - **§1.7, the overlays the grammar's relations state today:** O1 `document-key` over reading
+ *   `text-id-binding`'s bindings, an ID-typed element text's id bound to its parent, a cell's
+ *   `headers` naming the `th`s of its own table (`table-headers`, reading `cell-headers`: the
+ *   information model states the rule over the XSD's plain identifier list, and the stricter source
+ *   is the rule), and R26's `document-lang`; the HTML element laws `source-srcset`, `source-src`
+ *   and `track-srclang` (readings `source-attributes` and `track-srclang`); O2 `declaration-key`;
+ *   O3 `binding-declared`, `binding-fit` with `record-binding-fit`, `choice-bounds`,
+ *   `choice-identifier-distinct` (reading `choice-identifier-scope`), and the feedback, template
+ *   and printed-variable references; O4 arity (`P2`), undeclared references (`P8`), a rounding
+ *   operator's `figures` (`P10`, reading `rounding-figures`) and an equality's `tolerance` (`P36`,
+ *   reading `tolerance`); O5 `mapping-base-type`; O6 `lom-identifier`, a usage value's base type
+ *   (reading `usage-statistic-value`) and `lom-learning-resource-type` (reading
+ *   `lom-learning-resource-type`); O7 a selection's bound.
  *
  * The laws R87 found the oracle declared and never raised, and the laws the schema states that it
  * had not declared, are stated by `#pantry/test/oracle-laws.ts` (lane OL): the declarations (O2),
@@ -411,8 +413,9 @@ const caseFolded = (tag: string): string =>
 
 /**
  * A well-formed BCP 47 language tag as a whole text, RFC 5646's `Language-Tag` as the grammar reads
- * it (`languageTag`, spec reading 129): the value of an `xml:lang` that states a language. A form
- * whose collapsed value is no tag identifies no language (RFC 5646 §2.1; spec reading 174).
+ * it (`languageTag`, spec reading `language-tags`): the value of an `xml:lang` that states a
+ * language. A form whose collapsed value is no tag identifies no language (RFC 5646 §2.1; spec
+ * reading `lang-outside-tag`).
  */
 const languageTagForm = arkregex.as(`^(?:${languageTag})$`, patternFlags);
 
@@ -980,7 +983,7 @@ const cnPartsOf = (
  * `rtl`, `ltr` once the walk passes an `m:math` that writes neither. MathML 3 §2.2.1 says "the dir
  * attribute defaults to "ltr" on the math element (but inherits on all other elements which accept
  * the dir attribute)", and §3.1.5.1 sets a formula's direction by its `math` element, so an HTML
- * ancestor's `dir` above it is not read (reading 164).
+ * ancestor's `dir` above it is not read (reading `mathml-direction`).
  *
  * @param view - The document.
  * @param node - The element.
@@ -1004,7 +1007,7 @@ const inheritedDirectionOf = (view: View, node: FoldedNode<Composed>): string =>
 /**
  * Tell whether an element writes a `dir` other than the one it inherits, so `mrow dir="ltr"` in a
  * left-to-right formula changes none (operator decision 321). A `dir` that spells neither `ltr` nor
- * `rtl` changes nothing (MathML 3 §2.2.1 lists only those two; reading 164).
+ * `rtl` changes nothing (MathML 3 §2.2.1 lists only those two; reading `mathml-direction`).
  *
  * @param view - The document.
  * @param node - The element.
@@ -1162,9 +1165,10 @@ const contentOfCell = (
 };
 
 /**
- * Find the SSML fragment a node sits in, spec reading 3's "document": its nearest `ssml:speak`,
- * itself included. SSML's fragment removal removes a non-SSML element with everything below it
- * (SSML 1.1, §2.2.1), so a `speak` nested in foreign content beneath another is its own fragment.
+ * Find the SSML fragment a node sits in, spec reading `ssml-document-is-fragment`'s "document": its
+ * nearest `ssml:speak`, itself included. SSML's fragment removal removes a non-SSML element with
+ * everything below it (SSML 1.1, §2.2.1), so a `speak` nested in foreign content beneath another is
+ * its own fragment.
  *
  * @param view - The document.
  * @param node - The node.
@@ -1233,7 +1237,8 @@ const fragmentsOf = (view: View): ReadonlyMap<bigint, Fragment> => {
 };
 
 /**
- * Find the table a node takes part in (spec reading 126): its nearest `table`, itself included.
+ * Find the table a node takes part in (spec reading `cell-headers`): its nearest `table`, itself
+ * included.
  *
  * @param view - The document.
  * @param node - The node.
@@ -1263,7 +1268,7 @@ const tableHeaderCache = new WeakMap<View, ReadonlyMap<bigint, ReadonlySet<strin
  * Collect the ids of the `th`s that take part in each table of a document, by the table's `start`,
  * each id collapsed (an `xs:ID`'s whiteSpace) and an NCName ({@link nameForm}): an `id` outside
  * `xs:ID`'s lexical space is no ID value, so a cell's `headers` token names no header by it (spec
- * reading 156).
+ * reading `id-is-ncname`).
  *
  * @param view - The document.
  * @returns Each table's header ids; a table no `th` with an ID takes part in holds none.
@@ -1292,11 +1297,11 @@ const tableHeadersOf = (view: View): ReadonlyMap<bigint, ReadonlySet<string>> =>
 };
 
 /**
- * Decide whether a foreign element is one of spec reading 6's roots whose global declaration its
- * parent's `strict` wildcards find (C13): its expanded name, `namespace}local`, matches
- * `HeldRootsUnder`'s pattern for its parent kind. Such an element is assessed against
- * that declaration, so the law "Strictly held" does not ask it for an `xsi:type`, and reading 6
- * keeps it foreign.
+ * Decide whether a foreign element is one of spec reading `nested-root-in-wildcard`'s roots whose
+ * global declaration its parent's `strict` wildcards find (C13): its expanded name,
+ * `namespace}local`, matches `HeldRootsUnder`'s pattern for its parent kind. Such an element is
+ * assessed against that declaration, so the law "Strictly held" does not ask it for an `xsi:type`,
+ * and reading `nested-root-in-wildcard` keeps it foreign.
  *
  * @param grammar - The composed grammar.
  * @param view - The document.
@@ -1319,14 +1324,15 @@ const heldRoot = (grammar: ComposedGrammar, view: View, node: FoldedNode<Compose
 /**
  * The choices an interaction encloses, which N8's choice clause reads: each a choice class's
  * element whose parents in the information model are interactions, or for a gap one that "must only
- * appear within a 'gapMatchInteraction'" (reading 38). A simple choice's are the choice and order
- * interactions (§5.132), a simple associable choice's the associate interaction and the simple
- * match set (§5.131), which the match interaction holds (§5.133), a hotspot choice's the graphic
- * order and hotspot interactions (§5.67), an associable hotspot's the graphic associate and graphic
- * gap match interactions (§5.7), a gap text's and a gap image's the gap choice (§5.58, §5.56),
- * which the gap match and graphic gap match interactions hold (§6.17), and an inline choice's the
- * inline choice interaction (§5.73); the gap's is §5.55's sentence. A hottext may stand outside a
- * hottext interaction (reading 38), so it is none of them.
+ * appear within a 'gapMatchInteraction'" (reading `gap-and-hottext-placement`). A simple choice's
+ * are the choice and order interactions (§5.132), a simple associable choice's the associate
+ * interaction and the simple match set (§5.131), which the match interaction holds (§5.133), a
+ * hotspot choice's the graphic order and hotspot interactions (§5.67), an associable hotspot's the
+ * graphic associate and graphic gap match interactions (§5.7), a gap text's and a gap image's the
+ * gap choice (§5.58, §5.56), which the gap match and graphic gap match interactions hold (§6.17),
+ * and an inline choice's the inline choice interaction (§5.73); the gap's is §5.55's sentence. A
+ * hottext may stand outside a hottext interaction (reading `gap-and-hottext-placement`), so it is
+ * none of them.
  *
  * The clause reads a choice that writes its `identifier` (multiplicity [1] in each class), the
  * value its interaction's response names: one that writes none breaks AL3, and the content model
@@ -1562,7 +1568,8 @@ const nodeLaws: readonly NodeLaw[] = [
       const derived = derivationOf(node, grammar);
       const written = stringValueOf(view, node);
       /**
-       * Reading 127's ends: the first and last code points of the node's own characters.
+       * Reading `quotation-around-q`'s ends: the first and last code points of the node's own
+       * characters.
        */
       const own = Array.from(ownCharactersOf(view, node), String);
       const first = own[0] ?? "";
@@ -1879,8 +1886,8 @@ const nodeLaws: readonly NodeLaw[] = [
   },
   {
     /**
-     * Reading 124: "This attribute is required when 'source' is used in 'picture'" (info
-     * §5.135.3).
+     * Reading `source-attributes`: "This attribute is required when 'source' is used in 'picture'"
+     * (info §5.135.3).
      */
     breaks: (node, view) =>
       unless(
@@ -1894,8 +1901,8 @@ const nodeLaws: readonly NodeLaw[] = [
   },
   {
     /**
-     * Reading 124: a media element's source names its resource, §5.135.1's "This characteristic
-     * must be present" read where HTML states it, in an audio or a video.
+     * Reading `source-attributes`: a media element's source names its resource, §5.135.1's "This
+     * characteristic must be present" read where HTML states it, in an audio or a video.
      */
     breaks: (node, view) =>
       unless(
@@ -1909,8 +1916,8 @@ const nodeLaws: readonly NodeLaw[] = [
   },
   {
     /**
-     * Reading 125: a track in the subtitles state carries srclang (info §5.163.3), a track that
-     * writes no kind being in it, HTML's missing value default.
+     * Reading `track-srclang`: a track in the subtitles state carries srclang (info §5.163.3), a
+     * track that writes no kind being in it, HTML's missing value default.
      */
     breaks: (node, view) => {
       if (node.kind !== "track") {
@@ -2197,7 +2204,7 @@ const nodeLaws: readonly NodeLaw[] = [
  * Read a lexical form as its typed value, which a bound judges and a float map key is compared by:
  * an `xs:double` or `xs:float` by XML Schema's rules, `INF`, `-INF` and `NaN` included, after the
  * `collapse` class those primitives read their forms under, a decimal by JavaScript's `Number`,
- * which rounds it once to the nearest double (reading 144).
+ * which rounds it once to the nearest double (reading `bounded-double`).
  *
  * @param form - The lexical form, which the domain's pattern has matched.
  * @returns The value; `NaN` for `NaN`, which no bound holds.
@@ -2478,11 +2485,11 @@ const declaredWhiteSpaceOf = (attribute: FoldedAttribute<Composed>): OracleWhite
 
 /**
  * Read an attribute as its type reads it, the one read every law past AL1 makes of a typed
- * attribute (spec reading 1, XSD 1.1 Part 2, §4.3.6). A form inside its value domain, as AL1 judges
- * it ({@link inDomain}), is its value after its type's whitespace class: a `preserve` type's as
- * written, a `replace` type's with each tab, line feed and carriage return a space, a `collapse`
- * type's collapsed. A form outside its domain, or a name its owner does not admit, has none, so AL1
- * refuses it alone and no law reads a value the document never wrote.
+ * attribute (spec reading `nothing-valid-refused`, XSD 1.1 Part 2, §4.3.6). A form inside its value
+ * domain, as AL1 judges it ({@link inDomain}), is its value after its type's whitespace class: a
+ * `preserve` type's as written, a `replace` type's with each tab, line feed and carriage return a
+ * space, a `collapse` type's collapsed. A form outside its domain, or a name its owner does not
+ * admit, has none, so AL1 refuses it alone and no law reads a value the document never wrote.
  *
  * @param laws - The grammar's tables.
  * @returns The reading: each attribute's value, or none.
@@ -2497,10 +2504,10 @@ export const typedReadingOf =
     );
 
 /**
- * Decide whether an attribute is a context declaration's `identifier`, which spec reading 74 counts
- * among its document's IDs: the information model makes it a UniqueIdentifier (§5.34.1), "unique
- * within the scope of the instance" (§7.43), and outranks the XSD, which types it an
- * `IdentifierDType`, an `xs:NCName` no ID table holds.
+ * Decide whether an attribute is a context declaration's `identifier`, which spec reading
+ * `identifier-names-one-variable` counts among its document's IDs: the information model makes it a
+ * UniqueIdentifier (§5.34.1), "unique within the scope of the instance" (§7.43), and outranks the
+ * XSD, which types it an `IdentifierDType`, an `xs:NCName` no ID table holds.
  *
  * @param attribute - The attribute row.
  * @returns Whether its kind is `qti-context-declaration` and its name `identifier`.
@@ -2532,8 +2539,8 @@ const checkedTextOf = (laws: Laws, node: FoldedNode<Composed>) => {
 
 /**
  * One ID-typed form of a document: its collapsed value, the node that carries it, the element its
- * ID/IDREF binding names (reading 101: an attribute's element, a text's parent), and whether its
- * domain holds it.
+ * ID/IDREF binding names (reading `text-id-binding`: an attribute's element, a text's parent), and
+ * whether its domain holds it.
  */
 interface IdForm {
   readonly id: string;
@@ -2592,7 +2599,7 @@ const idsOf = (view: View, laws: Laws): readonly IdForm[] =>
 /**
  * Read the fragment a `src` names within its own document: the characters after a leading `#`,
  * one or more of them (MathML 3 §4.2.7). A `src` that is no fragment is a file reference (reading
- * 103), which no law of this document reads.
+ * `file-references`), which no law of this document reads.
  *
  * @param src - A `src`, collapsed.
  * @returns The characters after the `#`, none for any other `src`.
@@ -2748,12 +2755,13 @@ const referencesOf = (
  *
  * An element's breaches are listed law by law, in the order an attribute's laws are evaluated, and
  * each law's in attribute order, closed attributes before open ones, so an element's first breach,
- * whose rule {@link verdictOf} names, is a function of its attributes as a set (spec reading 137).
+ * whose rule {@link verdictOf} names, is a function of its attributes as a set (spec reading
+ * `attribute-sets`).
  *
  * @param view - The document.
  * @param laws - The grammar's tables.
  * @param assembled - The ids of the document's assembly beyond its own, which its IDREFs may name
- *   (spec reading 117).
+ *   (spec reading `fragment-placement`).
  * @returns The breaches, element by element, each element's law by law.
  */
 const attributeBreaches = (
@@ -2877,11 +2885,11 @@ const manifestEntry = "imsmanifest.xml";
 
 /**
  * A document's type, as its `Document` holds it (`Document.documentType`): `manifest` for the
- * package's manifest, its one `imsmanifest.xml`, which is no resource's document (readings 146 and
- * 176), and for every other document the type of the resource that lists it, the type `RootOfType`
- * pairs with its root's kind, which is the type a resource lists it under wherever `RootOfType`
- * holds: an external record file's root, a `lom:lom`, gives `resourcemetadata/xml`. A root no type
- * pairs gives the empty text, which is no type.
+ * package's manifest, its one `imsmanifest.xml`, which is no resource's document (readings
+ * `manifest-document` and `document-type-total`), and for every other document the type of the
+ * resource that lists it, the type `RootOfType` pairs with its root's kind, which is the type a
+ * resource lists it under wherever `RootOfType` holds: an external record file's root, a `lom:lom`,
+ * gives `resourcemetadata/xml`. A root no type pairs gives the empty text, which is no type.
  *
  * @param view - The document.
  * @param laws - The grammar's tables.
@@ -2990,18 +2998,18 @@ const ariaFields: ReadonlyMap<string, string> = new Map([
 ]);
 
 /**
- * The sources, collapsed, of the LOM vocabulary's terms (reading 122): LOMv1.0, and the empty
- * source, which the loose binding's default="LOMv1.0" fills (imsmd_loose_v1p3p2.xsd:1288). A term
- * that writes no source reads as the empty one.
+ * The sources, collapsed, of the LOM vocabulary's terms (reading `lom-learning-resource-type`):
+ * LOMv1.0, and the empty source, which the loose binding's default="LOMv1.0" fills
+ * (imsmd_loose_v1p3p2.xsd:1288). A term that writes no source reads as the empty one.
  */
 const lomVocabulary: ReadonlySet<string> = new Set(["", "LOMv1.0"]);
 
 /**
  * The choice classes, each of whose identifier "must not be used by any other" element of its noun
  * "or item variable" (information model §5.132.1, §5.7.1, §5.55.1, §5.56.1, §5.58.1, §5.65.1,
- * §5.67.1, §5.73.1 and §5.131.1). Spec reading 104 as amended reads each sentence's noun: two
- * elements of one class never share an identifier, and across classes only a "choice" bars,
- * {@link choiceNouns}' classes barring every other choice ({@link barredByChoice}).
+ * §5.67.1, §5.73.1 and §5.131.1). Spec reading `choice-identifier-scope` as amended reads each
+ * sentence's noun: two elements of one class never share an identifier, and across classes only a
+ * "choice" bars, {@link choiceNouns}' classes barring every other choice ({@link barredByChoice}).
  */
 const choiceClasses: ReadonlySet<string> = new Set([
   "qti-associable-hotspot",
@@ -3348,7 +3356,7 @@ const openKey = ({ local, start, uri }: Pick<OpenAttributeRow, "local" | "start"
  * @param view - The document.
  * @param laws - The grammar's tables.
  * @param assembled - The ids of the document's assembly beyond its own, which its IDREF texts may
- *   name (spec reading 117).
+ *   name (spec reading `fragment-placement`).
  * @returns The breaches.
  */
 const wholeBreaches = (
@@ -3413,8 +3421,9 @@ const wholeBreaches = (
   );
 
   /**
-   * Reading 131: a namespace declaration's normalized value is an RFC 3986 URI reference
-   * (Namespaces in XML 1.0 §3, §2.1), judged by the oracle's own reading of Appendix A's grammar.
+   * Reading `namespace-uri`: a namespace declaration's normalized value is an RFC 3986 URI
+   * reference (Namespaces in XML 1.0 §3, §2.1), judged by the oracle's own reading of Appendix A's
+   * grammar.
    */
   const namespaceNames = rows.namespaces
     .filter(({ uri }) => !isUriReference(uri))
@@ -3639,17 +3648,17 @@ interface Finding {
 /**
  * Read the base type a declaration writes, as its type reads it ({@link typedValueOf}): the type
  * every law that reads one judges, a binding's fit, a mapping's or an area mapping's type, a map
- * key's or a table value's form, and a feedback outcome's type. An unwritten `base-type` is no
- * type at all: a record has none ("Variables with record cardinality have no base-type",
- * information model tables 4.5.3 and 5.115.3), so a law about a record's whole value judges its
- * cardinality alone, and any other variable that writes none is refused by Declaration base type
- * alone, never by a law over a type it does not have (the orchestrator's ruling of 2026-11-06: one
- * cause is refused under one rule; lane NIL's audit, B12). One written outside its value domain
- * types nothing either: that domain refuses it alone, and every law over the declaration's type
- * judges it as one with no base type, as the schema's rows, which hold no `DeclarationBaseType`
- * for it, judge it (spec reading 158). Its type enumerates a restriction of `xs:string`, whose
- * whiteSpace is `preserve`, so a padded form lies outside it (`imsqti_asiv3p0p1_v1p0.xsd`, each
- * declaration's `base-type`).
+ * key's or a table value's form, and a feedback outcome's type. An unwritten `base-type` is no type
+ * at all: a record has none ("Variables with record cardinality have no base-type", information
+ * model tables 4.5.3 and 5.115.3), so a law about a record's whole value judges its cardinality
+ * alone, and any other variable that writes none is refused by Declaration base type alone, never
+ * by a law over a type it does not have (the orchestrator's ruling of 2026-11-06: one cause is
+ * refused under one rule; lane NIL's audit, B12). One written outside its value domain types
+ * nothing either: that domain refuses it alone, and every law over the declaration's type judges it
+ * as one with no base type, as the schema's rows, which hold no `DeclarationBaseType` for it, judge
+ * it (spec reading `unspelled-declaration`). Its type enumerates a restriction of `xs:string`,
+ * whose whiteSpace is `preserve`, so a padded form lies outside it (`imsqti_asiv3p0p1_v1p0.xsd`,
+ * each declaration's `base-type`).
  *
  * @param overlay - The item.
  * @param declaration - The declaration, or none where the node it types has no declaration parent.
@@ -3690,9 +3699,9 @@ const typeBreach = (
  * empty one, and one cause is refused under one rule). The schema's fit laws read the declaration's
  * `DeclarationCardinality` through a binding's name (`BindingCardinalityNode`,
  * `#pantry/qti/overlay-queries/interaction.ts`), which such a declaration does not have, while its
- * binding is still declared (spec readings 158 and 159). Its type enumerates a restriction of
- * `xs:string`, whose whiteSpace is `preserve`, so a padded form lies outside it
- * (`imsqti_asiv3p0p1_v1p0.xsd`, each declaration's `cardinality`).
+ * binding is still declared (spec readings `unspelled-declaration` and `binding-by-name`). Its type
+ * enumerates a restriction of `xs:string`, whose whiteSpace is `preserve`, so a padded form lies
+ * outside it (`imsqti_asiv3p0p1_v1p0.xsd`, each declaration's `cardinality`).
  *
  * @param overlay - The item.
  * @param declaration - The declaration.
@@ -3737,8 +3746,8 @@ const xsDoubleForm = arkregex(
 );
 
 /**
- * `xs:double`'s special values as XML Schema 1.0 spells them, reading 71's edition, in which `+INF`
- * is no lexical form.
+ * `xs:double`'s special values as XML Schema 1.0 spells them, reading `anyuri-lexical`'s edition,
+ * in which `+INF` is no lexical form.
  */
 const doubleSpecials: ReadonlySet<string> = new Set(["INF", "-INF", "NaN"]);
 
@@ -3754,8 +3763,8 @@ const isDoubleForm = (form: string): boolean => doubleSpecials.has(form) || xsDo
 
 /**
  * Compile a built-in XSD type's lexical space as an attribute's typed value is read: exactly, its
- * whitespace class applied to nothing (reading 7), the pattern's anchors dropped so a list can
- * repeat it.
+ * whitespace class applied to nothing (reading `typed-value-whitespace`), the pattern's anchors
+ * dropped so a list can repeat it.
  *
  * @param local - The type's local name.
  * @returns The pattern's body.
@@ -3768,12 +3777,12 @@ const exactBodyOf = (local: string): string =>
 
 /**
  * Each base type's lexical form as an attribute writes its value, with no whitespace around it
- * (reading 7): boolean `xs:boolean`'s `true`, `false`, `1` or `0` (reading 34), integer
- * `xs:integer` (reading 45), float
- * and duration `xs:double`, identifier `IdentifierDType` (`xs:NCName`), uri `xs:anyURI` (reading
- * 71), a point two integers and a pair or directed pair two identifiers, one whitespace character
- * between them (as `BaseTypePattern` reads them); a base type absent here, `string` and `file`,
- * reads any text.
+ * (reading `typed-value-whitespace`): boolean `xs:boolean`'s `true`, `false`, `1` or `0` (reading
+ * `boolean-lexical`), integer `xs:integer` (reading `integer-unbounded`), float and duration
+ * `xs:double`, identifier `IdentifierDType` (`xs:NCName`), uri `xs:anyURI` (reading
+ * `anyuri-lexical`), a point two integers and a pair or directed pair two identifiers, one
+ * whitespace character between them (as `BaseTypePattern` reads them); a base type absent here,
+ * `string` and `file`, reads any text.
  */
 const typedAttributeForms: ReadonlyMap<string, RegExp> = new Map(
   [
@@ -3803,10 +3812,11 @@ const typedFormHolds = (baseType: string, text: string): boolean =>
  * Decide whether an attribute's typed value is a lexical form of its base type (Typed attribute
  * value): a map key, a table entry's target or a table's default, read as written for `string` and
  * for every other base type after XML Schema's `collapse`, the whitespace facet each typed simple
- * type fixes (XML Schema 1.0 Part 2 §4.3.6; reading 7), so `" 3 "` is the integer 3. QTI bounds
- * no such value; the database holds each as a `LiteralText` (`MapKey`, `LookupValue`), a text past
- * `literalTextBytes` the empty text of its byte guard, which "Key text bound" refuses beside this
- * law ({@link keyTexts}), and the law reads that text as the database holds it.
+ * type fixes (XML Schema 1.0 Part 2 §4.3.6; reading `typed-value-whitespace`), so `" 3 "` is the
+ * integer 3. QTI bounds no such value; the database holds each as a `LiteralText` (`MapKey`,
+ * `LookupValue`), a text past `literalTextBytes` the empty text of its byte guard, which "Key text
+ * bound" refuses beside this law ({@link keyTexts}), and the law reads that text as the database
+ * holds it.
  *
  * @param baseType - The value's base type, its declaration's.
  * @param text - The attribute's lexical form.
@@ -3819,10 +3829,11 @@ const typedAttributeHolds = (baseType: string, text: string): boolean => {
 };
 
 /**
- * Decide whether an element's text is a lexical form of a base type, as reading 7 reads a typed
- * value written as element content (Usage typed value): its outer XML whitespace is formatting,
- * and a uri's inner runs collapse as `xs:anyURI`'s `collapse` reads them, so the rest is
- * {@link typedFormHolds}'s form; `string` and `file` hold any text, whitespace included.
+ * Decide whether an element's text is a lexical form of a base type, as reading
+ * `typed-value-whitespace` reads a typed value written as element content (Usage typed value): its
+ * outer XML whitespace is formatting, and a uri's inner runs collapse as `xs:anyURI`'s `collapse`
+ * reads them, so the rest is {@link typedFormHolds}'s form; `string` and `file` hold any text,
+ * whitespace included.
  *
  * @param baseType - The value's base type.
  * @param text - The element's string value.
@@ -3888,12 +3899,12 @@ const countAttribute = (
       );
 
 /**
- * Hold an extended-text interaction bound to a response that is no container to a `min-strings`
- * of at most 1 (spec reading 193; information model §5.48.7: "If the interaction is not bound to a
- * container then there is a special case in which min-strings may be 1"): the breach of "Choice
- * bounds" where the item's response its `response-identifier` names is `single` or `record` and
- * the least is above 1, none otherwise. A response with no cardinality is judged by AL3 or its
- * value domain alone.
+ * Hold an extended-text interaction bound to a response that is no container to a `min-strings` of
+ * at most 1 (spec reading `extended-text-min-strings`; information model §5.48.7: "If the
+ * interaction is not bound to a container then there is a special case in which min-strings may be
+ * 1"): the breach of "Choice bounds" where the item's response its `response-identifier` names is
+ * `single` or `record` and the least is above 1, none otherwise. A response with no cardinality is
+ * judged by AL3 or its value domain alone.
  *
  * @param overlay - The document.
  * @param node - The node, of a kind `ChoiceBound` pairs.
@@ -3965,7 +3976,7 @@ const namedBy = (
  * "If max-choices is greater than 1 (or 0) then the interaction must be bound to a response with
  * multiple cardinality" (information model §5.30.2, and §5.66.1, §5.68.2, §5.107.3 and §5.128.2),
  * and the same sentence of `max-associations` (§5.8.2, §5.57.3, §5.59.2, §5.60.2 and §5.89.2):
- * spec reading 92, which found the select point interaction's.
+ * spec reading `binding-and-count-sentences`, which found the select point interaction's.
  */
 const cardinalityBounds: ReadonlyMap<string, string> = new Map([
   ["qti-associate-interaction", "max-associations"],
@@ -3981,9 +3992,10 @@ const cardinalityBounds: ReadonlyMap<string, string> = new Map([
 ]);
 
 /**
- * The quotation punctuation of reading 127, main's set: the double quote, the single and double
- * curly and low quotes but the right single quotation mark, and the guillemets. The apostrophes
- * `'` and `’` are left out, since a possessive or an elision beside a `q` quotes nothing.
+ * The quotation punctuation of reading `quotation-around-q`, main's set: the double quote, the
+ * single and double curly and low quotes but the right single quotation mark, and the guillemets.
+ * The apostrophes `'` and `’` are left out, since a possessive or an elision beside a `q` quotes
+ * nothing.
  */
 const quotationMarks: ReadonlySet<string> = new Set([
   '"',
@@ -4001,9 +4013,9 @@ const quotationMarks: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * The least `figures` each rounding mode admits (reading 119; info §5.47.2 and §5.119.2): a
- * "non-zero positive integer" under `significantFigures`, "an integer greater than or equal to
- * zero" under `decimalPlaces`.
+ * The least `figures` each rounding mode admits (reading `rounding-figures`; info §5.47.2 and
+ * §5.119.2): a "non-zero positive integer" under `significantFigures`, "an integer greater than or
+ * equal to zero" under `decimalPlaces`.
  */
 const roundingLeast: ReadonlyMap<string, bigint> = new Map([
   ["decimalPlaces", 0n],
@@ -4012,7 +4024,7 @@ const roundingLeast: ReadonlyMap<string, bigint> = new Map([
 
 /**
  * Read a collapsed `figures` as an integer: an `xs:integer` within the signed 64-bit range spec
- * reading 46 holds it to; anything else names a variable, or breaks the value domain.
+ * reading `count-range` holds it to; anything else names a variable, or breaks the value domain.
  *
  * @param form - The collapsed form.
  * @returns The integer, or none for a form that is no such integer.
@@ -4024,9 +4036,9 @@ const figuresInteger = (form: string): Option.Option<bigint> =>
   );
 
 /**
- * Read a tolerance value's sign as reading 121 does: a value in `xs:double`'s lexical space is a
- * number, positive where its mantissa has no minus and a digit other than 0, or it is `INF`; any
- * other value is a string, which names a variable read at run time.
+ * Read a tolerance value's sign as reading `tolerance` does: a value in `xs:double`'s lexical space
+ * is a number, positive where its mantissa has no minus and a digit other than 0, or it is `INF`;
+ * any other value is a string, which names a variable read at run time.
  *
  * @param value - The value, one item of the list.
  * @returns `positive`, `not positive` for `NaN`, `-INF` and every zero or negative, or `string`.
@@ -4052,25 +4064,27 @@ const toleranceSignOf = (value: string): "not positive" | "positive" | "string" 
 };
 
 /**
- * The learning resource types reading 122 forbids of the LOM vocabulary, as their values collapse:
- * "the LOM-defined values self assessment and exam are forbidden" (QTI 3.0 Metadata §2.7.5.1).
+ * The learning resource types reading `lom-learning-resource-type` forbids of the LOM vocabulary,
+ * as their values collapse: "the LOM-defined values self assessment and exam are forbidden" (QTI
+ * 3.0 Metadata §2.7.5.1).
  */
 const lomForbidden: ReadonlySet<string> = new Set(["exam", "self assessment"]);
 
 /**
  * The types of the documents a package's records are read from, as {@link documentTypeOf} types
  * them: the package's own manifest (`manifest`) and an external record file, whose root is a
- * `lom:lom` (`resourcemetadata/xml`, reading 81). A `cp:metadata` of any other document describes
- * no part of the package, so its `lom:*` elements are no record's (ruling `170356bd`).
+ * `lom:lom` (`resourcemetadata/xml`, reading `wildcard-global-declarations`). A `cp:metadata` of
+ * any other document describes no part of the package, so its `lom:*` elements are no record's
+ * (ruling `170356bd`).
  */
 const recordTypes: ReadonlySet<string> = new Set(["manifest", "resourcemetadata/xml"]);
 
 /**
- * The kinds of an item whose `label` is text for a reader and asks for no tool (spec reading 128):
- * the information model describes `ItemFileInfo`'s, the type of `qti-calculator-info` and
- * `qti-digital-material`, as "A human readable label/short description for the file" (§5.80.2),
- * and `PrintedVariable`'s as one "appropriate for a tooltip" (§7.30.4), and
- * neither states the tool sentence the other label characteristics state.
+ * The kinds of an item whose `label` is text for a reader and asks for no tool (spec reading
+ * `label-tool`): the information model describes `ItemFileInfo`'s, the type of
+ * `qti-calculator-info` and `qti-digital-material`, as "A human readable label/short description
+ * for the file" (§5.80.2), and `PrintedVariable`'s as one "appropriate for a tooltip" (§7.30.4),
+ * and neither states the tool sentence the other label characteristics state.
  */
 const readerLabels: ReadonlySet<string> = new Set([
   "qti-calculator-info",
@@ -4084,8 +4098,8 @@ const readerLabels: ReadonlySet<string> = new Set([
 type OverlayLaw = (node: FoldedNode<Composed>, overlay: Overlay) => readonly Finding[];
 
 /**
- * Reading 126: a cell's headers are "an unordered set of unique space-separated tokens ...,
- * each of which must have the value of an ID of a 'th' tag taking part in the same table"
+ * Reading `cell-headers`: a cell's headers are "an unordered set of unique space-separated tokens
+ * ..., each of which must have the value of an ID of a 'th' tag taking part in the same table"
  * (info §5.140.1), the table its nearest; a cell no table holds takes part in none.
  */
 const cellHeaders: OverlayLaw = (node, overlay) =>
@@ -4116,9 +4130,9 @@ const cellHeaders: OverlayLaw = (node, overlay) =>
     : [];
 
 /**
- * Reading 127: "Quotation punctuation (such as quotation marks) that is quoting the contents
- * of the tag must not appear immediately before, after, or inside q tags" (§5.111), read at
- * the four characters beside and inside a q, each its neighbour's own, none for a neighbour
+ * Reading `quotation-around-q`: "Quotation punctuation (such as quotation marks) that is quoting
+ * the contents of the tag must not appear immediately before, after, or inside q tags" (§5.111),
+ * read at the four characters beside and inside a q, each its neighbour's own, none for a neighbour
  * that holds no characters.
  */
 const quotationBesideQ: OverlayLaw = (node, { view }) => {
@@ -4145,9 +4159,10 @@ const quotationBesideQ: OverlayLaw = (node, { view }) => {
 };
 
 /**
- * Reading 105: a usage value that names its base type holds a lexical form of it, read as
- * element content is (reading 7), where it forms part of a record, that is, writes a
- * fieldIdentifier (usage data binding §2.6.5.1); one outside a record is untyped text.
+ * Reading `usage-statistic-value`: a usage value that names its base type holds a lexical form of
+ * it, read as element content is (reading `typed-value-whitespace`), where it forms part of a
+ * record, that is, writes a fieldIdentifier (usage data binding §2.6.5.1); one outside a record is
+ * untyped text.
  */
 const usageValueForm: OverlayLaw = (node, overlay) =>
   node.kind === "ud:value" && Option.isSome(valueOf(overlay.view, node.start, "fieldIdentifier"))
@@ -4161,11 +4176,11 @@ const usageValueForm: OverlayLaw = (node, overlay) =>
     : [];
 
 /**
- * Reading 122: "the LOM-defined values self assessment and exam are forbidden" (QTI 3.0
- * Metadata §2.7.5.1), of a term of the LOM vocabulary: its source LOMv1.0, or empty, which
- * the loose binding's default="LOMv1.0" fills, or not written; both compared collapsed. The
- * first value and the first source stand for the type, as the binding caps each at one (N7).
- * It reads a type only in a record's document (`recordTypes`, ruling `170356bd`).
+ * Reading `lom-learning-resource-type`: "the LOM-defined values self assessment and exam are
+ * forbidden" (QTI 3.0 Metadata §2.7.5.1), of a term of the LOM vocabulary: its source LOMv1.0, or
+ * empty, which the loose binding's default="LOMv1.0" fills, or not written; both compared
+ * collapsed. The first value and the first source stand for the type, as the binding caps each at
+ * one (N7). It reads a type only in a record's document (`recordTypes`, ruling `170356bd`).
  */
 const forbiddenResourceTypes: OverlayLaw = (node, { laws, view }) => {
   if (node.kind !== "lom:learningResourceType" || !recordTypes.has(documentTypeOf(view, laws))) {
@@ -4202,9 +4217,9 @@ const customInteractionModule: OverlayLaw = (node, overlay) =>
     : [];
 
 /**
- * Spec reading 242: a math operator's name fixes its count, two sub-expressions for atan2 and
- * one for every other name (information model §5.91 and §8.25), past the one or more its class
- * admits.
+ * Spec reading `math-operator-arity`: a math operator's name fixes its count, two sub-expressions
+ * for atan2 and one for every other name (information model §5.91 and §8.25), past the one or more
+ * its class admits.
  */
 const mathOperatorArity: OverlayLaw = (node, overlay) =>
   node.kind === "qti-math-operator"
@@ -4216,12 +4231,13 @@ const mathOperatorArity: OverlayLaw = (node, overlay) =>
     : [];
 
 /**
- * Reading 78: a mapping maps "a source set of any base-type (except file and duration)" (§5.88)
- * of a variable that is not a record (§2.11.1.5: "cannot be applied to variables of record
- * cardinality"). A record has no base type, so it is judged by its cardinality alone, and a
- * variable is judged by its base type where it has one. Each half reads one attribute, so a
- * declaration whose cardinality or base type is unwritten or outside its domain is judged by
- * the other half alone, since its own law refuses the attribute (spec reading 158).
+ * Reading `mapping-base-type`: a mapping maps "a source set of any base-type (except file and
+ * duration)" (§5.88) of a variable that is not a record (§2.11.1.5: "cannot be applied to variables
+ * of record cardinality"). A record has no base type, so it is judged by its cardinality alone, and
+ * a variable is judged by its base type where it has one. Each half reads one attribute, so a
+ * declaration whose cardinality or base type is unwritten or outside its domain is judged by the
+ * other half alone, since its own law refuses the attribute (spec reading
+ * `unspelled-declaration`).
  */
 const mappingSource: OverlayLaw = (node, overlay) => {
   if (
@@ -4242,10 +4258,10 @@ const mappingSource: OverlayLaw = (node, overlay) => {
 };
 
 /**
- * Reading 9, the Schematron's 14Ba: "not(@upper-bound < @lower-bound)", each bound collapsed
- * and read where it is in xs:double's lexical space (reading 71's edition), as the double it
- * names (reading 144); a bound that is no xs:double has no value, and NaN orders against
- * nothing.
+ * Reading `schematron-intent`, the Schematron's 14Ba: "not(@upper-bound < @lower-bound)", each
+ * bound collapsed and read where it is in xs:double's lexical space (reading `anyuri-lexical`'s
+ * edition), as the double it names (reading `bounded-double`); a bound that is no xs:double has no
+ * value, and NaN orders against nothing.
  */
 const sliderBounds: OverlayLaw = (node, overlay) => {
   if (node.kind !== "qti-slider-interaction") {
@@ -4267,8 +4283,8 @@ const sliderBounds: OverlayLaw = (node, overlay) => {
 };
 
 /**
- * Reading 119: "If roundingMode= 'significantFigures', the value of figures must be a
- * non-zero positive integer. If roundingMode='decimalPlaces', the value of figures must be an
+ * Reading `rounding-figures`: "If roundingMode= 'significantFigures', the value of figures must be
+ * a non-zero positive integer. If roundingMode='decimalPlaces', the value of figures must be an
  * integer greater than or equal to zero" (info §5.47.2, §5.119.2), the mode written or
  * EqualRounded's default (§5.47.1); a variable's name is read at run time.
  */
@@ -4293,7 +4309,7 @@ const roundingFigures: OverlayLaw = (node, overlay) => {
 };
 
 /**
- * Reading 121: "If the tolerance mode is absolute or relative then the tolerance must be
+ * Reading `tolerance`: "If the tolerance mode is absolute or relative then the tolerance must be
  * specified. The tolerance consists of two positive numbers, t0 and t1, ... If only one value
  * is given it is used for both" (info §5.46.2), each value a number where it is in
  * xs:double's lexical space and else a string naming a variable (§9.1.5).
@@ -4347,7 +4363,7 @@ const ariaValueBounds: OverlayLaw = (node, overlay) =>
 /**
  * §5.162.5, §5.48.4 and §5.104.1: a pattern-mask, and a qti-pattern-match's pattern that names
  * no variable in braces, is a regular expression of XML Schema 1.0 Part 2's Appendix F, `{`
- * and `}` metacharacters (reading 58), read by grizzle-text's own grammar of it.
+ * and `}` metacharacters (reading `pattern-mask-braces`), read by grizzle-text's own grammar of it.
  */
 const writtenPattern: OverlayLaw = (node, overlay) =>
   Option.match(writtenPatternOf(overlay.view, node), {
@@ -4393,16 +4409,16 @@ const undeclaredVariables: OverlayLaw = (node, overlay) =>
 /**
  * §5.5: an area mapping maps "a source set of point values": a record, which has no base type,
  * is judged by its cardinality alone, and a variable by its base type where it has one, each
- * half where its attribute has a value (spec reading 158).
+ * half where its attribute has a value (spec reading `unspelled-declaration`).
  */
 const areaMappingSource: OverlayLaw = (node, overlay) => {
   const children = overlay.view.childrenOf.get(node.start) ?? [];
   const baseType = baseTypeOf(overlay, node);
   /**
    * A declaration whose cardinality is unwritten or outside its domain has its tables, but no
-   * cardinality for a law over them to read (the declarations overlay's `typedDeclarationOf`;
-   * spec reading 158), so its own laws refuse it (AL3's required attribute, the value domain)
-   * and neither AreaMapping base type nor Lookup table cardinality does again.
+   * cardinality for a law over them to read (the declarations overlay's `typedDeclarationOf`; spec
+   * reading `unspelled-declaration`), so its own laws refuse it (AL3's required attribute, the
+   * value domain) and neither AreaMapping base type nor Lookup table cardinality does again.
    */
   const cardinality = cardinalityOf(overlay, node);
   const tables = children.filter(
@@ -4516,9 +4532,9 @@ const overlayLaws: readonly OverlayLaw[] = [
     return Option.toArray(choiceBound.lookup({ kind: node.kind })).flatMap(
       ({ max, min, zero }): readonly Finding[] => {
         /**
-         * Reading 18: a counted bound binds only where its least is written, and then a most of
-         * 0 is a count below it; every other bound reads an unwritten least as its default, or 0,
-         * and a most of 0 as no limit (reading 76).
+         * Reading `order-min-choices`: a counted bound binds only where its least is written, and
+         * then a most of 0 is a count below it; every other bound reads an unwritten least as its
+         * default, or 0, and a most of 0 as no limit (reading `least-at-most-most`).
          */
         const written = Option.isSome(valueOf(overlay.view, node.start, min));
         if (zero === "counted" && !written) {
@@ -4571,8 +4587,9 @@ const overlayLaws: readonly OverlayLaw[] = [
     /**
      * A mapping of a declaration with no base type, a record's or one whose base type spells
      * nothing, reads its keys in none: each is its lexical form alone, and no type judges it (lane
-     * NIL's audit, B12; spec reading 158). A key may repeat: the first entry that matches a value
-     * gives it (spec reading 165), so no repeat is a finding.
+     * NIL's audit, B12; spec reading `unspelled-declaration`). A key may repeat: the first entry
+     * that matches a value gives it (spec reading `string-map-key-case`), so no repeat is a
+     * finding.
      */
     const baseType = baseTypeOf(overlay, overlay.view.byStart.get(node.parent));
 
@@ -4645,11 +4662,12 @@ const overlayLaws: readonly OverlayLaw[] = [
     }
 
     /**
-     * Reading 169: "The GapMatchInteraction must be bound to a response variable with base-type
-     * directedPair and either single or multiple cardinality, depending on the number of gaps"
-     * (info §5.57): each gap takes a pair of its own, so two or more gaps take a multiple response.
-     * The gaps are the ones the interaction is nearest to, an included fragment's among them, as
-     * the spliced view holds them, each with its identifier, which a choice is read by.
+     * Reading `gap-match-cardinality`: "The GapMatchInteraction must be bound to a response
+     * variable with base-type directedPair and either single or multiple cardinality, depending on
+     * the number of gaps" (info §5.57): each gap takes a pair of its own, so two or more gaps take
+     * a multiple response. The gaps are the ones the interaction is nearest to, an included
+     * fragment's among them, as the spliced view holds them, each with its identifier, which a
+     * choice is read by.
      */
     const gaps =
       node.kind === "qti-gap-match-interaction"
@@ -4679,14 +4697,14 @@ const overlayLaws: readonly OverlayLaw[] = [
 ];
 
 /**
- * Evaluate the overlay laws of §1.7 a document states alone: O1's id key and an item's label
- * tools, O2's declaration key, O3's one binding per response (reading 92), and
+ * Evaluate the overlay laws of §1.7 a document states alone: O1's id key and an item's label tools,
+ * O2's declaration key, O3's one binding per response (reading `binding-and-count-sentences`), and
  * {@link overlayLaws} over every node.
  *
  * @param view - The document.
  * @param laws - The grammar's tables.
  * @param assembledCatalogs - The ids of the `qti-catalog`s its assembly places beyond its own
- *   (spec reading 117), none for a document judged alone.
+ *   (spec reading `fragment-placement`), none for a document judged alone.
  * @returns The breaches.
  */
 const overlayBreaches = (
@@ -4697,7 +4715,8 @@ const overlayBreaches = (
   /**
    * A declaration whose identifier is unwritten, or outside its value domain, names no variable:
    * AL3 or that domain refuses it alone, and it shares no name with another declaration that names
-   * nothing (spec readings 152 and 157). A name is the identifier as its type reads it, collapsed.
+   * nothing (spec readings `ncname-names` and `unnamed-declaration`). A name is the identifier as
+   * its type reads it, collapsed.
    */
   const declarations = view.members.flatMap((node) =>
     laws.grammar.references.declarationKind.has(node.kind)
@@ -4730,8 +4749,8 @@ const overlayBreaches = (
   /**
    * Label tools: "If an item uses labels then values for the associated toolName and toolVersion
    * characteristics must also be provided", of each label whose characteristic's description says
-   * so (reading 128): every element's but the ones of readerLabels, and the item root's own (QTI
-   * 3.0.1's §4.1.3 says it of the item's own label).
+   * so (reading `label-tool`): every element's but the ones of readerLabels, and the item root's
+   * own (QTI 3.0.1's §4.1.3 says it of the item's own label).
    */
   const missingTools =
     overlay.isItem && root !== undefined
@@ -4792,8 +4811,8 @@ const overlayBreaches = (
     ...assembledCatalogs,
   ]);
   /**
-   * Reading 177: a closed `data-ssml` holds one JSON object Data-SSML 1.0 admits, which the
-   * database judges over the rows the importer reads the value into ("Data SSML").
+   * Reading `data-ssml-judgement`: a closed `data-ssml` holds one JSON object Data-SSML 1.0 admits,
+   * which the database judges over the rows the importer reads the value into ("Data SSML").
    */
   const ssmlValues = view.members.flatMap((node) =>
     (view.attributesOf.get(node.start) ?? [])
@@ -4811,12 +4830,13 @@ const overlayBreaches = (
       .filter(({ token }) => !catalogIds.has(token)),
   );
   /**
-   * Reading 92: "Each response variable declared may be bound to one and only one interaction",
-   * so in an item no two of the bindings Binding declared reads, each interaction's
-   * `response-identifier` and `string-identifier` whatever the types it binds (readings 75 and
-   * 172), name one response. A string identifier binds "a second response variable" (§5.48.2,
-   * §5.162.3), so one that names its interaction's response binds it twice, as the schema's key
-   * over `BoundVariable` counts it (the old `string-identifier-distinct`).
+   * Reading `binding-and-count-sentences`: "Each response variable declared may be bound to one and
+   * only one interaction", so in an item no two of the bindings Binding declared reads, each
+   * interaction's `response-identifier` and `string-identifier` whatever the types it binds
+   * (readings `response-identifier-declared` and `order-binding`), name one response. A string
+   * identifier binds "a second response variable" (§5.48.2, §5.162.3), so one that names its
+   * interaction's response binds it twice, as the schema's key over `BoundVariable` counts it (the
+   * old `string-identifier-distinct`).
    */
   const bindings = overlay.isItem
     ? Map.groupBy(
@@ -4837,10 +4857,10 @@ const overlayBreaches = (
         readonly { readonly identifier: string; readonly node: FoldedNode<Composed> }[]
       >();
   /**
-   * Reading 104 as amended: a choice's identifier names one element of its class in its document,
-   * whichever interactions hold them; one of the four "choice" classes names no other element the
-   * information model calls a choice, of any class; and none names an item variable: no
-   * declaration of its document and, in an item, no built-in variable.
+   * Reading `choice-identifier-scope` as amended: a choice's identifier names one element of its
+   * class in its document, whichever interactions hold them; one of the four "choice" classes names
+   * no other element the information model calls a choice, of any class; and none names an item
+   * variable: no declaration of its document and, in an item, no built-in variable.
    */
   const choices = view.members.flatMap((node) =>
     choiceClasses.has(node.kind)
@@ -4876,8 +4896,9 @@ const overlayBreaches = (
   };
 
   /**
-   * Reading 101: an id's binding is the set of elements that purport it, an attribute's element
-   * or an ID-typed text's parent, and cvc-id.2 refuses a binding of more than one member.
+   * Reading `text-id-binding`: an id's binding is the set of elements that purport it, an
+   * attribute's element or an ID-typed text's parent, and cvc-id.2 refuses a binding of more than
+   * one member.
    */
   const idBindings = [...ids].flatMap(([id, held]) => {
     const owners = [...new Set(held.map(({ owner }) => owner))];
@@ -4966,9 +4987,9 @@ const overlayBreaches = (
 
 /**
  * Where a document is judged: the ids of its assembly beyond its own, which its IDREFs may name
- * (spec reading 117); those of them whose owner is a `qti-catalog`, which its `data-catalog-idref`s
- * may name (spec reading 117); and, where it heads a test, its readings of a reference through a
- * scope (spec reading 167).
+ * (spec reading `fragment-placement`); those of them whose owner is a `qti-catalog`, which its
+ * `data-catalog-idref`s may name (spec reading `fragment-placement`); and, where it heads a test,
+ * its readings of a reference through a scope (spec reading `weighted-test-variables`).
  */
 export interface Standing {
   readonly assembled: ReadonlySet<string>;
@@ -5043,7 +5064,7 @@ interface Listed {
   readonly identifier: Option.Option<string>;
   readonly path: string;
   /**
-   * The resource whose type it is read as ({@link typingResource}, reading 162).
+   * The resource whose type it is read as ({@link typingResource}, reading `path-document-type`).
    */
   readonly resource: ResourceOf;
   /**
@@ -5056,7 +5077,8 @@ interface Listed {
    */
   readonly rootKind: string;
   /**
-   * Its XDM tree as shred gives it, which an including document splices in place (reading 117).
+   * Its XDM tree as shred gives it, which an including document splices in place (reading
+   * `fragment-placement`).
    */
   readonly tree: XdmDocument<Composed>;
 }
@@ -5075,8 +5097,8 @@ interface ResourceOf {
   readonly identifier: string;
   readonly node: FoldedNode<Composed>;
   /**
-   * Its href resolved (reading 102: its launch parameters name no other file), none for a resource
-   * with no href.
+   * Its href resolved (reading `href-resolution`: its launch parameters name no other file), none
+   * for a resource with no href.
    */
   readonly resolved: Option.Option<ResolvedHref>;
   readonly type: string;
@@ -5145,9 +5167,9 @@ const resourcesOf = (manifest: View, grammar: ComposedGrammar): readonly Resourc
 
 /**
  * Name the documents a manifest lists: each resource whose type `RootOfType` maps to a root kind,
- * through the entry path its `href` resolves to (readings 93 and 102). A resource with no `href`
- * names no document, and one whose `href` resolves outside the package names none either, which
- * "Document entry" refuses ({@link packageBreaches}).
+ * through the entry path its `href` resolves to (readings `resource-href` and `href-resolution`). A
+ * resource with no `href` names no document, and one whose `href` resolves outside the package
+ * names none either, which "Document entry" refuses ({@link packageBreaches}).
  *
  * @param resources - The manifest's resources.
  * @param grammar - The composed grammar.
@@ -5171,12 +5193,13 @@ const documentsOf = (
   });
 
 /**
- * Choose the resource whose type a path's document is read as, of those that name it (readings 93
- * and 162): the first, in the manifest's order, whose type `RootOfType` pairs with the root's kind,
- * and the first of all where none does. Every other type's href then names no document of its
- * type, "Document entry" alone, and RootOfType breaks only where no resource that names the path
- * bears its root out, whatever order they are listed in. The sort is stable, so the resources
- * whose type the root bears out come first, each group in the manifest's order.
+ * Choose the resource whose type a path's document is read as, of those that name it (readings
+ * `resource-href` and `path-document-type`): the first, in the manifest's order, whose type
+ * `RootOfType` pairs with the root's kind, and the first of all where none does. Every other type's
+ * href then names no document of its type, "Document entry" alone, and RootOfType breaks only where
+ * no resource that names the path bears its root out, whatever order they are listed in. The sort
+ * is stable, so the resources whose type the root bears out come first, each group in the
+ * manifest's order.
  *
  * @param resources - The resources that name the path, in the manifest's order.
  * @param rootKind - The kind of the document's root.
@@ -5205,9 +5228,10 @@ const typingResource = (
  * @param view - The document.
  * @param node - The ancestor.
  * @param kind - The descendants' kind.
- * @returns Their text content, collapsed, in document order. An `entry` names its document, so
- *   the law reads it in the document identifier's value space (`UniqueIdentifierDType`, an `xs:ID`,
- *   whose whitespace collapses), not as the `CharacterString` it is written as (reading 62).
+ * @returns Their text content, collapsed, in document order. An `entry` names its document, so the
+ *   law reads it in the document identifier's value space (`UniqueIdentifierDType`, an `xs:ID`,
+ *   whose whitespace collapses), not as the `CharacterString` it is written as (reading
+ *   `identity-from-lom`).
  */
 const descendantTexts = (view: View, node: FoldedNode<Composed>, kind: string): readonly string[] =>
   view.members
@@ -5215,15 +5239,17 @@ const descendantTexts = (view: View, node: FoldedNode<Composed>, kind: string): 
     .map(({ start }) => collapsed(contentOf(view, start)));
 
 /**
- * The kinds whose `href` names a document merged into the one that holds it (reading 85): a
- * section ref, a facade for the section it names (information model §7.5), and an XInclude,
- * "treated as if it was actually an instance of the root element of the fragment" (§2.12).
+ * The kinds whose `href` names a document merged into the one that holds it (reading
+ * `inclusion-cycles`): a section ref, a facade for the section it names (information model §7.5),
+ * and an XInclude, "treated as if it was actually an instance of the root element of the fragment"
+ * (§2.12).
  */
 const including: ReadonlySet<string> = new Set(["qti-assessment-section-ref", "xi:include"]);
 
 /**
- * The kinds an include is the information model's Include under (reading 114): the parents whose
- * content model holds an explicit `xi:include` particle, by the composed grammar.
+ * The kinds an include is the information model's Include under (reading
+ * `include-as-information-model`): the parents whose content model holds an explicit `xi:include`
+ * particle, by the composed grammar.
  */
 const includeParentsCache = new WeakMap<ComposedGrammar, ReadonlySet<string>>();
 
@@ -5246,9 +5272,10 @@ const includeParentsOf = (grammar: ComposedGrammar): ReadonlySet<string> => {
 };
 
 /**
- * Whether a node merges the document its href names into its own (reading 85): a section ref, or an
- * include under a parent the information model gives an Include (reading 114). An include in
- * wildcard content is foreign content, read as written.
+ * Whether a node merges the document its href names into its own (reading `inclusion-cycles`): a
+ * section ref, or an include under a parent the information model gives an Include (reading
+ * `include-as-information-model`). An include in wildcard content is foreign content, read as
+ * written.
  *
  * @param grammar - The composed grammar.
  * @param node - The node.
@@ -5266,10 +5293,10 @@ const merges = (
 /**
  * Whether an include is one no processor of the oracle's reads, by the specification: it writes an
  * `xpointer`, which names a part of its resource by an XPointer, or a `parse` of `text`, which
- * includes its resource "as the character information items" (XInclude 1.0 Second Edition,
- * §3.1), each valid XInclude, which the information model's Include is (§9.4.1). Valid content a
- * system does not support is ignored, never refused (QTI 3.0 Conformance §3), so such an include
- * merges nothing and is judged by no include law but its own attributes' (reading 85).
+ * includes its resource "as the character information items" (XInclude 1.0 Second Edition, §3.1),
+ * each valid XInclude, which the information model's Include is (§9.4.1). Valid content a system
+ * does not support is ignored, never refused (QTI 3.0 Conformance §3), so such an include merges
+ * nothing and is judged by no include law but its own attributes' (reading `inclusion-cycles`).
  *
  * @param view - The include's document.
  * @param start - The include's `start`.
@@ -5280,11 +5307,12 @@ const unreadInclude = (view: View, start: bigint): boolean =>
   Option.exists(valueOf(view, start, "parse"), (parse) => collapsed(parse) === "text");
 
 /**
- * Find the inclusion cycles among a package's documents (reading 85): each chain of section refs
- * and includes, in any mix, that leads from a listed document back to it, over the documents the
- * manifest lists. Each cycle is found once, from its least path, and two refs of one document that
- * are not nested are no cycle. An include counts where the information model gives its parent an
- * Include (reading 114); one in wildcard content is read as written.
+ * Find the inclusion cycles among a package's documents (reading `inclusion-cycles`): each chain of
+ * section refs and includes, in any mix, that leads from a listed document back to it, over the
+ * documents the manifest lists. Each cycle is found once, from its least path, and two refs of one
+ * document that are not nested are no cycle. An include counts where the information model gives
+ * its parent an Include (reading `include-as-information-model`); one in wildcard content is read
+ * as written.
  *
  * @param documents - The documents the manifest lists, read.
  * @param grammar - The composed grammar, whose include parents an include counts under.
@@ -5332,11 +5360,12 @@ const inclusionCycles = (
 };
 
 /**
- * Resolve a PCI's module attribute as spec reading 201 reads it: against the package's
- * root, as the manifest's own hrefs are, whatever the document's path or the `xml:base` in scope
- * ("Relative URLs indicate relative paths in the QTI content package", information model §5.77.1);
- * and a module location (form `module`) to the file the loader loads, its path with `.js` appended
- * unless its name ends in `.js` ("'.js' will be assumed", the implementation guide's appendix D).
+ * Resolve a PCI's module attribute as spec reading `pci-module-locations` reads it: against the
+ * package's root, as the manifest's own hrefs are, whatever the document's path or the `xml:base`
+ * in scope ("Relative URLs indicate relative paths in the QTI content package", information model
+ * §5.77.1); and a module location (form `module`) to the file the loader loads, its path with `.js`
+ * appended unless its name ends in `.js` ("'.js' will be assumed", the implementation guide's
+ * appendix D).
  *
  * @param form - The attribute's census form.
  * @param lexical - Its lexical form.
@@ -5356,17 +5385,17 @@ const rootedResolutionOf = (
 };
 
 /**
- * Evaluate R6 and the reference half of the stated limit over each listed document (readings 102
- * and 103): every attribute of the grammar's reference census, and the string value of every
- * element of its text census (`textReferenceKinds`, spec reading R9-b), is resolved with the
- * `xml:base` values in scope ({@link resolvedAt}), a `srcset`'s each image candidate's URL ({@link
- * oracleSrcsetOf}); one the representation reads no name from breaks "Href form"; and each that
- * resolves in the package names an entry ("File exists", IMS Content Packaging 1.2,
- * InterchangePackage (d)), and a stimulus ref's a stimulus. Each path a reference resolves to in
- * the package is held in a key as an entry's path is, of at most `entryPathBytes`, a stated limit
- * of the representation ("Key text bound", the field that holds it).
+ * Evaluate R6 and the reference half of the stated limit over each listed document (readings
+ * `href-resolution` and `file-references`): every attribute of the grammar's reference census, and
+ * the string value of every element of its text census (`textReferenceKinds`, spec reading R9-b),
+ * is resolved with the `xml:base` values in scope ({@link resolvedAt}), a `srcset`'s each image
+ * candidate's URL ({@link oracleSrcsetOf}); one the representation reads no name from breaks "Href
+ * form"; and each that resolves in the package names an entry ("File exists", IMS Content Packaging
+ * 1.2, InterchangePackage (d)), and a stimulus ref's a stimulus. Each path a reference resolves to
+ * in the package is held in a key as an entry's path is, of at most `entryPathBytes`, a stated
+ * limit of the representation ("Key text bound", the field that holds it).
  *
- * A `srcset` names a file by each image candidate's URL (spec reading 102).
+ * A `srcset` names a file by each image candidate's URL (spec reading `href-resolution`).
  *
  * @param documents - The documents the manifest lists, read.
  * @param entries - The package's entry paths.
@@ -5558,9 +5587,9 @@ const signatureOf = (grammar: ComposedGrammar, model: string, position: string):
 };
 
 /**
- * Decide whether an include under a parent may stand for a root kind (reading 114), independently
- * of the grammar's choice-group reading: the root takes a position of the parent's model whose
- * signature is the include's own.
+ * Decide whether an include under a parent may stand for a root kind (reading
+ * `include-as-information-model`), independently of the grammar's choice-group reading: the root
+ * takes a position of the parent's model whose signature is the include's own.
  *
  * @param grammar - The composed grammar.
  * @param parent - The include's parent's kind.
@@ -5584,8 +5613,8 @@ const standsFor = (grammar: ComposedGrammar, parent: string, root: string): bool
 };
 
 /**
- * Decide whether an include's fragment root is a kind the composition splits by context whose
- * split kind the include may stand for (spec reading 116): an element kind named `root` and a
+ * Decide whether an include's fragment root is a kind the composition splits by context whose split
+ * kind the include may stand for (spec reading `fragment-root`): an element kind named `root` and a
  * suffix after a `.`, such as `qti-template-inline.rubric`, that {@link standsFor} admits under the
  * parent. The fragment, read by its name at its document's root, is the kind of that name, so the
  * include places it nowhere, and is admitted, unplaced (QTI 3.0 Conformance §3).
@@ -5601,9 +5630,9 @@ const standsSplit = (grammar: ComposedGrammar, parent: string, root: string): bo
   );
 
 /**
- * One site of a listed document (reading 85): a section ref or an include the information model
- * reads, its href as written, whether that href resolves outside the package, the path it resolves
- * to and the listed document there.
+ * One site of a listed document (reading `inclusion-cycles`): a section ref or an include the
+ * information model reads, its href as written, whether that href resolves outside the package, the
+ * path it resolves to and the listed document there.
  */
 interface SiteOf {
   readonly document: Listed;
@@ -5655,11 +5684,12 @@ const sitesOf = (documents: readonly Listed[], grammar: ComposedGrammar): readon
 };
 
 /**
- * The include parents whose include splices its fragment in place, as the oracle reads reading 117
- * itself: every parent the composed grammar gives an Include (reading 114) but a section, since an
- * include in a section follows reading 86's rule for a section document ("includes in a section
- * follow it"), a site of the test's assembly that writes each element once, so its document is
- * judged as written. The schema states its own list (`#pantry/qti/tests.ts` `splicingParents`).
+ * The include parents whose include splices its fragment in place, as the oracle reads reading
+ * `fragment-placement` itself: every parent the composed grammar gives an Include (reading
+ * `include-as-information-model`) but a section, since an include in a section follows reading
+ * `test-identifier-namespace`'s rule for a section document ("includes in a section follow it"), a
+ * site of the test's assembly that writes each element once, so its document is judged as written.
+ * The schema states its own list (`#pantry/qti/tests.ts` `splicingParents`).
  *
  * @param grammar - The composed grammar.
  * @returns The parents' kinds.
@@ -5693,9 +5723,10 @@ const splicedTarget = (grammar: ComposedGrammar, site: SiteOf): Option.Option<Li
     : Option.none();
 
 /**
- * Map each listed document to the documents its includes splice in place (reading 117,
- * {@link splicedTarget}), the package-level producers' reading of the merged document: a test's
- * references read every fragment the test or a section document it places splices.
+ * Map each listed document to the documents its includes splice in place (reading
+ * `fragment-placement`, {@link splicedTarget}), the package-level producers' reading of the merged
+ * document: a test's references read every fragment the test or a section document it places
+ * splices.
  *
  * @param documents - The documents the manifest lists, read.
  * @param grammar - The composed grammar.
@@ -5716,10 +5747,10 @@ const splicedPathsOf = (
 };
 
 /**
- * Map each listed document to its sites that place their target in its assemblies (reading 85, the
- * schema's `SiteTarget.places`): a section ref whose target's root is a section (information model
- * §7.5), and an include that may stand for its target's root ({@link standsFor}), whether it
- * splices it in place or places it whole.
+ * Map each listed document to its sites that place their target in its assemblies (reading
+ * `inclusion-cycles`, the schema's `SiteTarget.places`): a section ref whose target's root is a
+ * section (information model §7.5), and an include that may stand for its target's root ({@link
+ * standsFor}), whether it splices it in place or places it whole.
  *
  * @param documents - The documents the manifest lists, read.
  * @param grammar - The composed grammar.
@@ -5775,34 +5806,36 @@ const holdsFallback = (site: SiteOf): boolean =>
   (site.view.childrenOf.get(site.node.start) ?? []).some(({ kind }) => kind === "xi:fallback");
 
 /**
- * Evaluate the include laws over the listed documents (readings 114, 115 and 117):
+ * Evaluate the include laws over the listed documents (readings `include-as-information-model`,
+ * `include-target` and `fragment-placement`):
  *
  * - **"Include target":** an include the information model reads names, by an href this
  *   representation resolves, a document the manifest lists; an href that resolves outside the
  *   package (a scheme, a leading `/`, a climb above the root) names nothing to list, is stored and
- *   never fetched, and is judged no further (reading 115); an href that resolves to a path no entry
- *   holds is "File exists"'s alone (the references' law), which the import's `SitePath` refuses as
- *   its row is inserted, so it breaks no include law; an include that holds an `xi:fallback` and
- *   whose href names an entry that is no document is replaced by its fallback (XInclude 1.0 §3.2),
- *   admitted and placed nowhere ({@link holdsFallback});
+ *   never fetched, and is judged no further (reading `include-target`); an href that resolves to a
+ *   path no entry holds is "File exists"'s alone (the references' law), which the import's
+ *   `SitePath` refuses as its row is inserted, so it breaks no include law; an include that holds
+ *   an `xi:fallback` and whose href names an entry that is no document is replaced by its fallback
+ *   (XInclude 1.0 §3.2), admitted and placed nowhere ({@link holdsFallback});
  * - **"Include root":** that document's root is a kind the include may stand for ({@link standsFor}),
  *   or one the composition splits by context whose split kind it may stand for, admitted and placed
- *   nowhere ({@link standsSplit}, reading 116);
+ *   nowhere ({@link standsSplit}, reading `fragment-root`);
  * - **"Section ref target":** a section ref whose href stays in the package names a document the
  *   manifest lists whose root is a section (information model §7.5); one whose href resolves
- *   outside the package is stored as written and never fetched (reading 115), and one whose path no
- *   entry holds is "File exists"'s alone;
+ *   outside the package is stored as written and never fetched (reading `include-target`), and one
+ *   whose path no entry holds is "File exists"'s alone;
  * - **"Include fragment identifier":** no include's href carries a `#` after its path (XInclude 1.0
  *   §3.1), wherever the include stands;
  * - **"Include parse":** no include that writes an `xpointer` has a `parse` of `text` ("The xpointer
  *   attribute must not be present when parse="text"", XInclude 1.0 §3.1), wherever it stands;
  * - A fragment that sites place under different nearest interactions is admitted, judged under the
- *   first (reading 117), and its other placements are placed nowhere the database judged.
+ *   first (reading `fragment-placement`), and its other placements are placed nowhere the database
+ *   judged.
  *
  * A section ref names a listed document whose root is a section, which it places (§7.5:
  * "The only documents that can be refered to by qti-assessment-section-ref are XML documents
  * that contain a single qti-assessment-section as a single root"); one whose href resolves
- * outside the package is stored as written and never fetched (reading 115).
+ * outside the package is stored as written and never fetched (reading `include-target`).
  *
  * @param documents - The documents the manifest lists, read.
  * @param grammar - The composed grammar.
@@ -5916,10 +5949,10 @@ const closedValueOf = (
   );
 
 /**
- * Splice a document's includes in place (reading 117, XInclude's result infoset): each include the
- * information model reads outside a section whose target is listed and whose root the include may
- * stand for is replaced by its target's root element, its own includes spliced in turn, unless the
- * target is already on the chain, which "Inclusion cycle" refuses.
+ * Splice a document's includes in place (reading `fragment-placement`, XInclude's result infoset):
+ * each include the information model reads outside a section whose target is listed and whose root
+ * the include may stand for is replaced by its target's root element, its own includes spliced in
+ * turn, unless the target is already on the chain, which "Inclusion cycle" refuses.
  *
  * @param grammar - The composed grammar.
  * @param byPath - The listed documents by path.
@@ -5988,8 +6021,9 @@ const splicedElement = <E extends XdmClosedElement<Composed>>(
 };
 
 /**
- * Collect the documents a merged document is written in (spec reading 117): the listed documents
- * themselves, and every document their includes splice in, transitively, each once.
+ * Collect the documents a merged document is written in (spec reading `fragment-placement`): the
+ * listed documents themselves, and every document their includes splice in, transitively, each
+ * once.
  *
  * @param listed - The documents at one path.
  * @param spliced - Each document's spliced targets, by its path.
@@ -6031,20 +6065,21 @@ const inCatalog = (view: View, id: bigint): boolean => {
 };
 
 /**
- * Evaluate R26, `document-lang` (law "Document lang"; QTI 3.0 Metadata §2.7.1.3: "There must be
- * one value for each of the languages referred to by the language attributes on the associated
+ * Evaluate R26, `document-lang` (law "Document lang"; QTI 3.0 Metadata §2.7.1.3: "There must be one
+ * value for each of the languages referred to by the language attributes on the associated
  * assessmentItem, test or object bank and its 'bodyElements'"): each language an item's or a test's
  * `xml:lang` states is listed by every general category of each record that is a child of the
  * `cp:metadata` of a resource whose `href` names the document, as every listed document's resource
- * does (`documentsOf`, readings 93 and 102). An item's `xml:lang` forms are its merged document's
- * (spec reading 117): its own, and those of every fragment its includes splice in; a fragment a
- * test places is a known under-refusal, which reading 117 lists.
+ * does (`documentsOf`, readings `resource-href` and `href-resolution`). An item's `xml:lang` forms
+ * are its merged document's (spec reading `fragment-placement`): its own, and those of every
+ * fragment its includes splice in; a fragment a test places is a known under-refusal, which reading
+ * `fragment-placement` lists.
  *
  * An `xml:lang` is read by its value, its form collapsed, and states a language only where that
  * value is a language tag: an empty one or one of whitespace alone states none (XML 1.0 §2.12), and
  * one that is no tag identifies none (RFC 5646 §2.1), so its value domain refuses it alone (spec
- * reading 174); a LOM `language` is its text as written. The two compare as tags, without regard to
- * case (RFC 5646 §2.1.1).
+ * reading `lang-outside-tag`); a LOM `language` is its text as written. The two compare as tags,
+ * without regard to case (RFC 5646 §2.1.1).
  *
  * @param documents - The documents the manifest lists that shredded.
  * @param manifest - The manifest's view.
@@ -6132,9 +6167,9 @@ const documentLangBreaches = (
  * Evaluate the laws of §1.6 and O6 over a package: the stated limits, each entry's path within
  * `entryPathBytes` (`key-text-bound`) and `href-form`, first, then `root-type-reverse`,
  * `file-listed`, `href-listed`, `entry-kind`, `file-exists`, `self-dependency` and
- * `lom-identifier`, and reading 85's `inclusion-cycle` ({@link inclusionCycles}), then R26's
- * `document-lang` ({@link documentLangBreaches}). A resource's or a file's target as written is
- * of any length, held in no key.
+ * `lom-identifier`, and reading `inclusion-cycles`'s `inclusion-cycle` ({@link inclusionCycles}),
+ * then R26's `document-lang` ({@link documentLangBreaches}). A resource's or a file's target as
+ * written is of any length, held in no key.
  *
  * An unresolved href has no arm to list ("Href form" refuses it alone); every other
  * scope's is compared with its resource's files of its scope.
@@ -6182,8 +6217,8 @@ const packageBreaches = (
       grammar.package.rootOfType.rows.some((row) => row.type === type),
     );
   /**
-   * The types each path is read under: the manifest's own, `manifest` (readings 146 and 176), then
-   * each type a resource names the path under.
+   * The types each path is read under: the manifest's own, `manifest` (readings `manifest-document`
+   * and `document-type-total`), then each type a resource names the path under.
    */
   const typesAt = new Map<string, ReadonlySet<string>>([[manifest.path, new Set(["manifest"])]]);
   for (const { path, resource } of documentsOf(resources, grammar)) {
@@ -6207,9 +6242,9 @@ const packageBreaches = (
 
   /**
    * A path two types name, the manifest's `manifest` among them, is one document, of the type its
-   * root bears out where one does (readings 93, 146 and 162), so another's href names no document
-   * of its type: "Document entry" alone, and the document is judged once, where its sites place
-   * it.
+   * root bears out where one does (readings `resource-href`, `manifest-document` and
+   * `path-document-type`), so another's href names no document of its type: "Document entry" alone,
+   * and the document is judged once, where its sites place it.
    */
   const doublyTypedPaths = Iterator.from(typesAt)
     .filter(([, types]) => types.size > 1)
@@ -6349,10 +6384,10 @@ const packageBreaches = (
     ...dependencyTargets,
     ...input.documents.flatMap((document): readonly Breach[] => {
       /**
-       * The records of each item or test resource that lists the document, whatever type it is
-       * read as (reading 162), each a `lom:lom` of the resource's own `cp:metadata` (spec reading
-       * 62): a `cp:file`'s record describes the file ("The scope of Metadata is the parent
-       * container class only", IMS Content Packaging 1.2 §6.7).
+       * The records of each item or test resource that lists the document, whatever type it is read
+       * as (reading `path-document-type`), each a `lom:lom` of the resource's own `cp:metadata`
+       * (spec reading `identity-from-lom`): a `cp:file`'s record describes the file ("The scope of
+       * Metadata is the parent container class only", IMS Content Packaging 1.2 §6.7).
        */
       const owners = new Set(
         document.resources.flatMap(({ node, type }) => (lomNamedTypes.has(type) ? [node] : [])),
@@ -6368,10 +6403,10 @@ const packageBreaches = (
         );
       });
       /**
-       * The record's object is the document its resource names where its root is an item or a
-       * test, whatever the resource's type, which RootOfType judges on its own (QTI 3.0 Metadata
-       * §2.7.1.1: "the identifier of the associated item, test or object bank"; reading 93); a
-       * document of another root is no object, and no entry matches it.
+       * The record's object is the document its resource names where its root is an item or a test,
+       * whatever the resource's type, which RootOfType judges on its own (QTI 3.0 Metadata
+       * §2.7.1.1: "the identifier of the associated item, test or object bank"; reading
+       * `resource-href`); a document of another root is no object, and no entry matches it.
        */
       const identifier = objectRoots.has(document.rootKind) ? document.identifier : Option.none();
 
@@ -6663,12 +6698,13 @@ const rootIdentifierOf = (tree: XdmDocument<Composed>): Option.Option<string> =>
   ).pipe(Option.map(({ lexical }) => collapsed(lexical)));
 
 /**
- * One judged document's assembly, as Q5.13's instances place it (spec reading 117): the ids of the
- * documents its section refs and its sections' includes place, at any depth, beyond its own, which
- * its IDREFs may name ("Idref target" over the assembly), those of them whose owner is a
- * `qti-catalog`, which its `data-catalog-idref`s may name ("Catalog reference" over the assembly),
- * and the breaches of "DocumentId key" across its instances: each writes its document's elements
- * once more within its copy, and two copies of one section document write them once (§7.5.3).
+ * One judged document's assembly, as Q5.13's instances place it (spec reading
+ * `fragment-placement`): the ids of the documents its section refs and its sections' includes
+ * place, at any depth, beyond its own, which its IDREFs may name ("Idref target" over the
+ * assembly), those of them whose owner is a `qti-catalog`, which its `data-catalog-idref`s may name
+ * ("Catalog reference" over the assembly), and the breaches of "DocumentId key" across its
+ * instances: each writes its document's elements once more within its copy, and two copies of one
+ * section document write them once (§7.5.3).
  */
 interface Assembly {
   readonly breaches: readonly Breach[];
@@ -6703,13 +6739,13 @@ const dedupedBreaches = (breaches: readonly Breach[]): readonly Breach[] => [
 ];
 
 /**
- * Find the documents whose assembly holds an external include, by path: each document an include
- * of which resolves outside the package, stored and never fetched (reading 115), and each document
- * a site of which places one of them, as an assembly's instances place their targets (a section
- * ref its section, an include the fragment it may stand for). Such an assembly merges a resource
- * no one fetched, whose IDs its IDREFs may name, so pantry judges none of its IDREFs by "Idref
- * target": it is admitted, and its include is `UnplacedInclude`'s `external` (QTI 3.0 Conformance
- * §3).
+ * Find the documents whose assembly holds an external include, by path: each document an include of
+ * which resolves outside the package, stored and never fetched (reading `include-target`), and each
+ * document a site of which places one of them, as an assembly's instances place their targets (a
+ * section ref its section, an include the fragment it may stand for). Such an assembly merges a
+ * resource no one fetched, whose IDs its IDREFs may name, so pantry judges none of its IDREFs by
+ * "Idref target": it is admitted, and its include is `UnplacedInclude`'s `external` (QTI 3.0
+ * Conformance §3).
  *
  * @param grammar - The composed grammar.
  * @param sites - Every site of the package.
@@ -6914,7 +6950,7 @@ const assembliesOf = (
 /**
  * The paths of the listed documents in an assembly, as the importer's contexts read them
  * (`Document.assembled`, `#pantry/import/context.ts`): a test, a section document (a bank among
- * them, reading 86), one that holds a site, and one that a site names.
+ * them, reading `test-identifier-namespace`), one that holds a site, and one that a site names.
  *
  * @param documents - The documents the manifest lists, read.
  * @param sites - Every site of the package.
@@ -6938,12 +6974,13 @@ const assembledPathsOf = (
  * Judge the own attributes of each include a splicing document replaces by its target's root
  * ({@link splicedTarget}), by the attribute laws of any element ({@link attributeBreaches}), over
  * the document's unspliced view. The merged tree holds the target's root in the include's place, so
- * the include's attributes are judged nowhere else, while the import keeps them as rows (reading 85
- * binds `parse` to `xml`; reading 117 places the target and says nothing of the include's own
- * attributes). An include of its own document is never replaced, the chain always holding the
- * document, so it stands in the merged tree and is judged there. A placed fragment's include of a
- * document further up its chain is not replaced either, so its breaches are listed twice, in place
- * and here: the same laws, in a package "Inclusion cycle" refuses.
+ * the include's attributes are judged nowhere else, while the import keeps them as rows (reading
+ * `inclusion-cycles` binds `parse` to `xml`; reading `fragment-placement` places the target and
+ * says nothing of the include's own attributes). An include of its own document is never replaced,
+ * the chain always holding the document, so it stands in the merged tree and is judged there. A
+ * placed fragment's include of a document further up its chain is not replaced either, so its
+ * breaches are listed twice, in place and here: the same laws, in a package "Inclusion cycle"
+ * refuses.
  *
  * @param sites - Every site of the package.
  * @param grammar - The composed grammar.
@@ -7019,11 +7056,11 @@ const locatedTemplateOf = (item: View, read: ReadonlyMap<string, View>): Option.
 /**
  * Judge each located response processing template in its item's own placement, where its rules run
  * as the item's own response processing (information model §4.6.1 and §4.6.2; the schema's
- * `placedDocuments`, spec reading 117): each reference resolves among the item's declarations, else
- * its built-in variables, else to nothing (§6.9.40: "an itemVariable that has been declared in a
- * corresponding variableDeclaration or is one of the built-in variables"), and every law over a
- * placed expression or reference judges the template's there, "Variable declared" among them. Each
- * breach is reported in the template's document.
+ * `placedDocuments`, spec reading `fragment-placement`): each reference resolves among the item's
+ * declarations, else its built-in variables, else to nothing (§6.9.40: "an itemVariable that has
+ * been declared in a corresponding variableDeclaration or is one of the built-in variables"), and
+ * every law over a placed expression or reference judges the template's there, "Variable declared"
+ * among them. Each breach is reported in the template's document.
  *
  * @param read - Every listed document's view, by its path.
  * @param grammar - The composed grammar.
@@ -7045,11 +7082,12 @@ const locatedTemplateBreaches = (
   );
 
 /**
- * Judge every listed document's own laws in place (reading 117): a document an include splices into
- * another is judged inside each document that splices it, and not alone; every other document is
- * judged with its includes spliced, as XInclude's result infoset reads it, so its included
- * fragments' content stands where it is included, binding its item's responses and counting among
- * its IDs. A fold's refusals are breaches beside the rest of the document's ({@link foldedOf}).
+ * Judge every listed document's own laws in place (reading `fragment-placement`): a document an
+ * include splices into another is judged inside each document that splices it, and not alone; every
+ * other document is judged with its includes spliced, as XInclude's result infoset reads it, so its
+ * included fragments' content stands where it is included, binding its item's responses and
+ * counting among its IDs. A fold's refusals are breaches beside the rest of the document's ({@link
+ * foldedOf}).
  *
  * Breaches inside spliced content are reported against the including document, at their path in
  * its merged tree.
@@ -7058,8 +7096,8 @@ const locatedTemplateBreaches = (
  * @param grammar - The composed grammar.
  * @param foldGrammar - The closed relations the folds read.
  * @param laws - The law tables.
- * @param readsOf - Each test's readings of a reference through a scope (spec reading 167), by its
- *   path.
+ * @param readsOf - Each test's readings of a reference through a scope (spec reading
+ *   `weighted-test-variables`), by its path.
  * @returns The breaches, document by document in manifest order.
  */
 const inPlaceBreaches = (
@@ -7189,9 +7227,9 @@ export const judge = Effect.fn("oracle.judge")(function* judge(
     const documents: Listed[] = [];
     const missing: string[] = [];
     /**
-     * A path is one document (reading 93), of the type its root bears out (reading 162), and the
-     * manifest's is the manifest, read above (reading 146), so a resource naming it reads nothing
-     * more.
+     * A path is one document (reading `resource-href`), of the type its root bears out (reading
+     * `path-document-type`), and the manifest's is the manifest, read above (reading
+     * `manifest-document`), so a resource naming it reads nothing more.
      */
     const read = new Set<string>([manifestFile.path]);
     for (const [index, { path, resource }] of listing.entries()) {
@@ -7477,7 +7515,7 @@ const ownLaws = {
   },
   "AL4 data name": {
     explain: (keys) =>
-      `the ${field(keys, "class")} attribute ${field(keys, "local")} of ${field(keys, "kind")} is a name outside reading 13's data- language`,
+      `the ${field(keys, "class")} attribute ${field(keys, "local")} of ${field(keys, "kind")} is a name outside reading \`data-attribute-name\`'s data- language`,
   },
   "AL4 declared data name": {
     explain: (keys) =>
@@ -7498,7 +7536,7 @@ const ownLaws = {
         {
           onNone: () => `${field(keys, "kind")} counts no attributes`,
           onSome: ({ max, min, names, reading }) =>
-            `${field(keys, "kind")} carries ${inBraces(membersOf(keys["held"]))} of ${inBraces([...names])}, where reading ${String(reading)} asks for ${Number.isFinite(max) ? `${String(min)} to ${String(max)}` : `at least ${String(min)}`}`,
+            `${field(keys, "kind")} carries ${inBraces(membersOf(keys["held"]))} of ${inBraces([...names])}, where reading \`${reading}\` asks for ${Number.isFinite(max) ? `${String(min)} to ${String(max)}` : `at least ${String(min)}`}`,
         },
       ),
     node: true,

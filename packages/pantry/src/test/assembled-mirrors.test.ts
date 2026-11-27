@@ -6,14 +6,14 @@
  * grizzle's evaluator's (`#pantry/test/host-judge.ts`). The law oracle accepts the package, so no
  * law may break, and the host judges every law it reads: none is skipped.
  *
- * Its assembled documents are a test, a section, two items with includes, a fragment of content
- * and a fragment of response rules (spec readings 5 and 117). A fragment an item's include splices
- * heads no assembly of its own (`#pantry/qti/tests.ts` `splicingParents`), so its IDREFs resolve
- * among the item's IDs alone. The heads are mirrored with the assemblies' roots both ways, and
- * every document of a test or a section is one some instance places, by rules over the queries
- * `HeadDocument` and `InstanceDocument` (`#pantry/qti/queries.ts`), which the host does not judge:
- * PostgreSQL alone does, the importer's every-relation package accepted and the unplaced cycles
- * refused.
+ * Its assembled documents are a test, a section, two items with includes, a fragment of content and
+ * a fragment of response rules (spec readings `section-document` and `fragment-placement`). A
+ * fragment an item's include splices heads no assembly of its own (`#pantry/qti/tests.ts`
+ * `splicingParents`), so its IDREFs resolve among the item's IDs alone. The heads are mirrored with
+ * the assemblies' roots both ways, and every document of a test or a section is one some instance
+ * places, by rules over the queries `HeadDocument` and `InstanceDocument`
+ * (`#pantry/qti/queries.ts`), which the host does not judge: PostgreSQL alone does, the importer's
+ * every-relation package accepted and the unplaced cycles refused.
  */
 import type { Law, LawSide } from "@bjornpagen/grizzle";
 import * as NodeServices from "@effect/platform-node/NodeServices";

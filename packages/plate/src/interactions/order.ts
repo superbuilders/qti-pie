@@ -4,17 +4,17 @@
  *
  * Two readings of `docs/spec-readings.md` bind this module.
  *
- * - Reading 18, "An order or graphic-order interaction's `min-choices`, where written, is from 1 to
- *   its number of choices, and a `max-choices` written beside it is from `min-choices` to its
- *   number of choices." the database refuses a bound that breaks it. With no `min-choices` every
- *   choice must be ordered and `max-choices` is ignored, so the effective bounds are the number of
- *   choices; with one, the bounds are `min-choices` and `max-choices`, which is the number of
- *   choices when it is not written.
- * - Reading 172, "An order interaction may be bound to a response variable of any base type and
- *   cardinality: its class description states no binding." the database admits any binding. This
- *   module renders the one whose meaning the information model describes, an `identifier` response
- *   of `ordered` cardinality ({@link binding}), and the body walk gives the notice for any other,
- *   naming the binding, as for every kind.
+ * - Reading `order-min-choices`, "An order or graphic-order interaction's `min-choices`, where
+ *   written, is from 1 to its number of choices, and a `max-choices` written beside it is from
+ *   `min-choices` to its number of choices." the database refuses a bound that breaks it. With no
+ *   `min-choices` every choice must be ordered and `max-choices` is ignored, so the effective
+ *   bounds are the number of choices; with one, the bounds are `min-choices` and `max-choices`,
+ *   which is the number of choices when it is not written.
+ * - Reading `order-binding`, "An order interaction may be bound to a response variable of any base
+ *   type and cardinality: its class description states no binding." the database admits any
+ *   binding. This module renders the one whose meaning the information model describes, an
+ *   `identifier` response of `ordered` cardinality ({@link binding}), and the body walk gives the
+ *   notice for any other, naming the binding, as for every kind.
  *
  * {@link orderModule}'s `redact` gives the page the choices in presented order, the bounds the
  * response is held to, the identifiers the response places, in order, and the width of its choices'
@@ -59,7 +59,7 @@ const element = "qti-order-interaction";
 
 /**
  * The binding Order renders with: an `identifier` response of `ordered` cardinality, the one whose
- * meaning the information model describes (reading 172).
+ * meaning the information model describes (reading `order-binding`).
  */
 const binding = { baseTypes: ["identifier"], cardinalities: ["ordered"] } as const;
 
@@ -182,7 +182,7 @@ const smaller = (left: bigint, right: bigint): bigint => (left < right ? left : 
 const larger = (left: bigint, right: bigint): bigint => (left > right ? left : right);
 
 /**
- * The fewest and the most choices a response to an Order places (reading 18).
+ * The fewest and the most choices a response to an Order places (reading `order-min-choices`).
  */
 interface Bounds {
   readonly least: bigint;
@@ -220,9 +220,9 @@ const boundsOf = (interaction: OrderInteraction): Bounds => {
 };
 
 /**
- * Read an Order from its element, which the body walk has bound to an ordered identifier
- * response (reading 172, {@link binding}): `shuffle`, `min-choices` and `max-choices`, its Prompt,
- * its choices and its authored hints, `data-choices-container-width` among them.
+ * Read an Order from its element, which the body walk has bound to an ordered identifier response
+ * (reading `order-binding`, {@link binding}): `shuffle`, `min-choices` and `max-choices`, its
+ * Prompt, its choices and its authored hints, `data-choices-container-width` among them.
  *
  * A `template-identifier` on a choice is recorded as not rendered: the redacted copy holds no
  * template value to decide it by, so the choice is always shown.
@@ -352,7 +352,7 @@ const redactOrder = (
 /**
  * The Order module (kind `order`): it reads a `qti-order-interaction` bound to an `identifier`
  * response of `ordered` cardinality, renders it, restores and solves it, binds its response, and
- * gives the notice for any other binding (reading 172).
+ * gives the notice for any other binding (reading `order-binding`).
  */
 export const orderModule: InteractionModule<"order", OrderByLevel, OrderPayload> = {
   binding,

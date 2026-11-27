@@ -272,8 +272,9 @@ export type BoundDeclaration =
 /**
  * The responses a module renders an interaction bound to: the base types and cardinalities of a
  * declaration it takes, or `any` for a module that takes a declared response of any type, as a
- * Portable Custom Interaction does (reading 75). A `record` declaration has no base type of its
- * own, so a binding whose cardinalities hold `record` takes one whatever base types it lists.
+ * Portable Custom Interaction does (reading `response-identifier-declared`). A `record` declaration
+ * has no base type of its own, so a binding whose cardinalities hold `record` takes one whatever
+ * base types it lists.
  */
 export type ModuleBinding =
   | "any"
@@ -684,8 +685,9 @@ export interface ChoicesShownBy<C> {
 
 /**
  * Give the region of each choice of a list a model node holds, in document order, each finding its
- * choice again by its identifier, which no other choice of the item shares (reading 104), and, for
- * a choice a template variable shows or hides, deciding it by dropping or settling that choice.
+ * choice again by its identifier, which no other choice of the item shares (reading
+ * `choice-identifier-scope`), and, for a choice a template variable shows or hides, deciding it by
+ * dropping or settling that choice.
  *
  * @template I The model node.
  * @template N The node its content holds.

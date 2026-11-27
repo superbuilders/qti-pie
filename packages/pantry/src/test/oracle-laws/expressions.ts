@@ -4,12 +4,13 @@
  * the schema's statement of it in `src/qti/expressions.ts`, over the grammar's typing of every
  * expression kind (`#pantry/grammar/expression.ts` `expressionTypings`).
  *
- * Each document is typed as the schema types it, once in each of its placements (spec reading 117):
- * every expression's value has a base type and a cardinality, `unknown` for a variable no
- * declaration types, which every rule passes; every processing element and expression is written in
- * the language its processing root opens, `none` outside any; and every variable reference resolves
- * among the placement's root's declarations, else among the root's built-in variables, else, under
- * a test, as its one reading through a scope (spec reading 167), else to nothing.
+ * Each document is typed as the schema types it, once in each of its placements (spec reading
+ * `fragment-placement`): every expression's value has a base type and a cardinality, `unknown` for
+ * a variable no declaration types, which every rule passes; every processing element and expression
+ * is written in the language its processing root opens, `none` outside any; and every variable
+ * reference resolves among the placement's root's declarations, else among the root's built-in
+ * variables, else, under a test, as its one reading through a scope (spec reading
+ * `weighted-test-variables`), else to nothing.
  *
  * A document that heads its assembly, or is in none, is typed in its own placement with what it
  * splices: {@link expressionDocumentBreaches}. A document a test places beyond its own copy is
@@ -190,9 +191,10 @@ interface Declaration {
 
 /**
  * One variable reference a processing element makes, resolved in its placement (spec reading
- * 117): the attribute, the name, the declaration it names or the built-in it is, and its type.
- * `declarationKind` is the declaration's kind, or the kind a built-in stands as, and none for a
- * name that resolves to nothing or that a test reads through a scope (`read`, spec reading 167).
+ * `fragment-placement`): the attribute, the name, the declaration it names or the built-in it is,
+ * and its type. `declarationKind` is the declaration's kind, or the kind a built-in stands as, and
+ * none for a name that resolves to nothing or that a test reads through a scope (`read`, spec
+ * reading `weighted-test-variables`).
  */
 interface Reference {
   readonly attribute: string;
@@ -215,11 +217,12 @@ export interface ScopedReference {
 }
 
 /**
- * Where a placement resolves its documents' references (spec reading 117, `PlacedVariableRef`):
- * its assembly's root's declarations, by name, the first of a name; the root's kind, whose
- * built-in variables a name may be; and, under a test, the type of a reference's one reading
- * through a scope, none where it has none, two, or one through an item ref that names no item
- * document (readings 48, 110 and 167).
+ * Where a placement resolves its documents' references (spec reading `fragment-placement`,
+ * `PlacedVariableRef`): its assembly's root's declarations, by name, the first of a name; the
+ * root's kind, whose built-in variables a name may be; and, under a test, the type of a reference's
+ * one reading through a scope, none where it has none, two, or one through an item ref that names
+ * no item document (readings `dotted-reference`, `mapping-and-default-names` and
+ * `weighted-test-variables`).
  */
 export interface PlacementScope {
   readonly declarations: ReadonlyMap<string, Declaration>;
@@ -300,9 +303,9 @@ const spelledName = (lexical: string, spelling: string, kind: string): Option.Op
  * outside the type's lexical space, a type no law can know; a test variables that writes no
  * `base-type`, float where it writes a `weight-identifier` (information model §7.39.5: "When a
  * weighting is specified the result of the expression always has base-type float"), and `unknown`
- * where it writes none, a type its document alone does not give (§7.39.6; spec reading 167); a math
- * operator's `name`, `integer` for `signum`, `floor` and `ceil` and `float` for every other
- * (information model §2.11.3.32).
+ * where it writes none, a type its document alone does not give (§7.39.6; spec reading
+ * `weighted-test-variables`); a math operator's `name`, `integer` for `signum`, `floor` and `ceil`
+ * and `float` for every other (information model §2.11.3.32).
  *
  * @param rows - The document.
  * @param node - The expression.
@@ -635,11 +638,11 @@ export const typedOf = (rows: View, grammar: ComposedGrammar, scope: PlacementSc
 };
 
 /**
- * Judge each expression of a typed document by the operand laws (P23, P21, P25): its operands'
- * base types and cardinalities, first and later, are among those its kind takes; a kind that takes
- * one base type or one cardinality gets one; a condition is boolean and single; a test-only
- * operator, and a `qti-variable` that writes a `weight-identifier` (spec reading 199), stands in
- * outcome processing.
+ * Judge each expression of a typed document by the operand laws (P23, P21, P25): its operands' base
+ * types and cardinalities, first and later, are among those its kind takes; a kind that takes one
+ * base type or one cardinality gets one; a condition is boolean and single; a test-only operator,
+ * and a `qti-variable` that writes a `weight-identifier` (spec reading
+ * `weight-identifier-placement`), stands in outcome processing.
  *
  * @param typed - The document.
  * @returns The breaches.
@@ -684,7 +687,8 @@ const expressionBreachesOf = (typed: Typed): readonly Breach[] =>
     /**
      * Whether the expression stands only in outcome processing: its kind's typing says so, or it is
      * a weighted variable, which stands only in a test's outcome processing (§7.47.2: "Weights are
-     * defined only in the test context (and hence only in outcomes processing)"; spec reading 199).
+     * defined only in the test context (and hence only in outcomes processing)"; spec reading
+     * `weight-identifier-placement`).
      */
     const outcomeOnly =
       typing.outcomeOnly ||
@@ -782,11 +786,11 @@ const fits = (held: Type, wanted: Type): boolean =>
  * §8.24, §8.25, §8.42, §2.8, §2.11.3.29, §2.11.3.30), by the law it breaks.
  *
  * - Lookup type: a built-in has no declaration, so it holds no lookup table to look a value up in
- *   (spec reading 197).
+ *   (spec reading `lookup-outcome-table`).
  * - Reference type: a reference a test reads through a scope names no declaration or built-in of its
  *   placement's root, so its reading's type is judged by the readings' laws alone.
  * - Mapped response: a built-in response declares no table, so it holds none (decision 431, reading
- *   166).
+ *   `test-prefixed-response-reads`).
  */
 const referenceLaws: readonly (readonly [ExpressionLaw, (read: Read) => boolean])[] = [
   [
@@ -986,10 +990,10 @@ const undeclaredBreachesOf = (typed: Typed, grammar: ComposedGrammar): readonly 
   );
 
 /**
- * Judge one document under one placement (spec reading 117): its expressions typed bottom-up and
- * its references resolved in the placement's assembly ({@link PlacementScope}), each type law
- * stated over them, and, under a placement whose own laws hold its unresolved references to a
- * declaration, an item's, "Variable declared".
+ * Judge one document under one placement (spec reading `fragment-placement`): its expressions typed
+ * bottom-up and its references resolved in the placement's assembly ({@link PlacementScope}), each
+ * type law stated over them, and, under a placement whose own laws hold its unresolved references
+ * to a declaration, an item's, "Variable declared".
  *
  * @param rows - The document, merged with what it splices.
  * @param grammar - The composed grammar.
@@ -1033,11 +1037,11 @@ export const expressionDocumentBreaches = (
 
 /**
  * Judge every document a test places outside its own merged document in each test that places it
- * (spec reading 117, `PlacedExpression` and `PlacedVariableRef`): a section document a section ref
- * places, a fragment a section includes and each fragment those splice, each over its own rows in
- * the test's scope, the test's declarations, its built-ins and its readings through a scope. A
- * document two tests place is judged in each, and one a test places twice is judged alike in each
- * placement, so once; a breach two tests raise alike is one.
+ * (spec reading `fragment-placement`, `PlacedExpression` and `PlacedVariableRef`): a section
+ * document a section ref places, a fragment a section includes and each fragment those splice, each
+ * over its own rows in the test's scope, the test's declarations, its built-ins and its readings
+ * through a scope. A document two tests place is judged in each, and one a test places twice is
+ * judged alike in each placement, so once; a breach two tests raise alike is one.
  *
  * @param input - The package.
  * @param grammar - The composed grammar.

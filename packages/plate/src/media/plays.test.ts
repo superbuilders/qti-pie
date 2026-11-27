@@ -4,8 +4,8 @@
  * the island makes), under no `max-plays` and under `max-plays` 1, 2 and 3. QTI counts "the number
  * of times the media object was experienced" and forbids playing it "more than max-play times"
  * (information model 5.92 and 5.92.3); plate counts a play when a playback begun at rest first
- * sounds, or when the position comes back to the start while it sounds (spec readings 188 and 245).
- * At every report of every sequence:
+ * sounds, or when the position comes back to the start while it sounds (spec readings
+ * `media-play-counting` and `media-play-under-one-voice`). At every report of every sequence:
  *
  * - **never past the limit:** the count never passes `max-plays`;
  * - **only what sounded:** the count rises only by one, and only as the media sounds: at the first
@@ -19,13 +19,13 @@
  * - **every sound is counted:** under the limit, a playback begun at rest that sounds is counted;
  * - **a failure ends at rest:** a media that cannot play is at rest, its count as it was.
  *
- * And reading 245's cases, as one sequence each. Kills, each failing the rule its words name: a
- * step that counts as a playback begins (only what sounded), one that leaves a playback paused
- * before its sound paused rather than at rest (a pause before the sound), one that makes a resumed
- * playback a new play (a resume), one that refuses nothing at the limit (never past it), one that
- * refuses a resume at the limit (a refusal only where a play begins), one that counts an end, one
- * that takes a looping media's wrap for no play (every sound counted), and one that leaves a failed
- * playback pending (a failure ends at rest).
+ * And reading `media-play-under-one-voice`'s cases, as one sequence each. Kills, each failing the
+ * rule its words name: a step that counts as a playback begins (only what sounded), one that leaves
+ * a playback paused before its sound paused rather than at rest (a pause before the sound), one
+ * that makes a resumed playback a new play (a resume), one that refuses nothing at the limit (never
+ * past it), one that refuses a resume at the limit (a refusal only where a play begins), one that
+ * counts an end, one that takes a looping media's wrap for no play (every sound counted), and one
+ * that leaves a failed playback pending (a failure ends at rest).
  *
  * @module
  */
@@ -302,9 +302,12 @@ describe("a Media's plays", () => {
       ["play", "pause", "play", "ended"],
       0,
     ],
-  ] as const)("count reading 245's case: %s", (_name, limit, sequence, count) => {
-    const { faults, plays } = run(sequence, limit, true);
+  ] as const)(
+    "count reading `media-play-under-one-voice`'s case: %s",
+    (_name, limit, sequence, count) => {
+      const { faults, plays } = run(sequence, limit, true);
 
-    assert.deepStrictEqual({ count: plays.count, faults }, { count, faults: [] });
-  });
+      assert.deepStrictEqual({ count: plays.count, faults }, { count, faults: [] });
+    },
+  );
 });

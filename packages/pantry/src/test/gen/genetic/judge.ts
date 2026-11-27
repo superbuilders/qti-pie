@@ -126,9 +126,9 @@ export type Disagreement = (
 ) & { readonly limit?: Limit };
 
 /**
- * A limit a package can fall under ({@link limitOf}): a stated limit of spec reading 1, refused on
- * both sides by a law the oracle raises or a shape the package manifest writes, or an oracle defect
- * deferred to the issue the limit names.
+ * A limit a package can fall under ({@link limitOf}): a stated limit of spec reading
+ * `nothing-valid-refused`, refused on both sides by a law the oracle raises or a shape the package
+ * manifest writes, or an oracle defect deferred to the issue the limit names.
  */
 export type Limit =
   | "a forbidden ancestor"
@@ -205,7 +205,7 @@ const lomTitled = (resource: Element): boolean =>
  * 2. `a forbidden ancestor`: the oracle raises "N5 admitted" (decision 452's kin);
  * 3. `an inclusion cycle`: the oracle raises "Inclusion cycle" (decision 451's kin);
  * 4. `xml:base on a cp:resource`: the package manifest writes `xml:base` on a `cp:resource` (reading
- *    1's family I);
+ *    `nothing-valid-refused`'s family I);
  * 5. `a resource href the oracle reads unresolved (#65)`: a `cp:resource` whose own `cp:metadata`
  *    holds a LOM `general` title has an href, its query and fragment aside, that is not in normal
  *    form (a `.` segment, or a percent-escape of an unreserved character or a space, RFC 3986

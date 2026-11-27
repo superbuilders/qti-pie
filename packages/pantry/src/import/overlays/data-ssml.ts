@@ -1,7 +1,8 @@
 /**
- * The `data-ssml` overlay's rows (spec reading 177, `#pantry/qti/data-ssml.ts`): from one
- * document's view (`DocumentView` of `#pantry/import/fold.ts`), each closed `data-ssml` read into
- * its members and their properties as written (`dataSsmlOf` of `#pantry/vocab/data-ssml.ts`).
+ * The `data-ssml` overlay's rows (spec reading `data-ssml-judgement`, `#pantry/qti/data-ssml.ts`):
+ * from one document's view (`DocumentView` of `#pantry/import/fold.ts`), each closed `data-ssml`
+ * read into its members and their properties as written (`dataSsmlOf` of
+ * `#pantry/vocab/data-ssml.ts`).
  *
  * The rows restate what the value says and nothing else, and judge none of it: an unknown member,
  * an unknown property, a value outside its enumeration, a normalized value with a tab and a missing

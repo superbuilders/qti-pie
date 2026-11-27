@@ -1,25 +1,25 @@
 /**
  * The identity overlays (plan §1.7 O1; the W5 amendment's C3, C18 and C25; the tier-1 addendum's
- * "Text in keys"): each document's IDs, the ID/IDREF
- * table's bindings and the IDREF tokens that name them, the `xml:lang` forms a document carries and
- * the languages each LOM general category lists, each as a set, with R26 between the two; SSML's
- * marks and lexicons named within their fragment (spec reading 3); and an item's tool
- * identification where its body uses labels.
+ * "Text in keys"): each document's IDs, the ID/IDREF table's bindings and the IDREF tokens that
+ * name them, the `xml:lang` forms a document carries and the languages each LOM general category
+ * lists, each as a set, with R26 between the two; SSML's marks and lexicons named within their
+ * fragment (spec reading `ssml-document-is-fragment`); and an item's tool identification where its
+ * body uses labels.
  *
  * - **{@link DocumentId}** holds one row per element that carries an ID: an attribute whose value
- *   domain's identity is `xs:ID`, a context declaration's `identifier`, which spec reading 74
- *   counts among its document's IDs though 3.0.1's XSD types it an `IdentifierDType`, or the
- *   element's own text, where its governing type's text domain is an `xs:ID` (C50, an
- *   {@link IdentityText}). Its `owner` is the element the ID/IDREF table binds the ID to: the
- *   element that carries the attribute, or the parent of the element whose text it is (XML Schema
- *   1.0 Part 1 §3.15.5, `[binding]`: "an attribute information item in its [attributes] or an
- *   element information item in its [children]"). The ID's value is no row's: `IdValue`
+ *   domain's identity is `xs:ID`, a context declaration's `identifier`, which spec reading
+ *   `identifier-names-one-variable` counts among its document's IDs though 3.0.1's XSD types it an
+ *   `IdentifierDType`, or the element's own text, where its governing type's text domain is an
+ *   `xs:ID` (C50, an {@link IdentityText}). Its `owner` is the element the ID/IDREF table binds the
+ *   ID to: the element that carries the attribute, or the parent of the element whose text it is
+ *   (XML Schema 1.0 Part 1 §3.15.5, `[binding]`: "an attribute information item in its [attributes]
+ *   or an element information item in its [children]"). The ID's value is no row's: `IdValue`
  *   (`#pantry/qti/names.ts`) reads it where it stands, an attribute's `value` or a text's string
  *   value collapsed (an `xs:ID` is an `xs:NCName`, whose whiteSpace is `collapse`). Every ID-typed
  *   attribute and every ID text has its row, whatever its form: its value domain (AL1) or
- *   TextDomain holds the form to an NCName once collapsed where it is written (spec readings 152
- *   and 156), so a form that names nothing, empty, whitespace alone or holding whitespace inside,
- *   is refused there, and no law here restates that domain.
+ *   TextDomain holds the form to an NCName once collapsed where it is written (spec readings
+ *   `ncname-names` and `id-is-ncname`), so a form that names nothing, empty, whitespace alone or
+ *   holding whitespace inside, is refused there, and no law here restates that domain.
  * - **The ID/IDREF table** is the projection of the IDs onto (package, path, id, owner), a query
  *   (`IdBinding`, `#pantry/qti/overlay-queries/identity.ts`) no table stores, and its key on
  *   (package, path, id) over the bindings of admitted elements is cvc-id clause 2, "no ID/IDREF
@@ -31,12 +31,12 @@
  *   `(package, path, start)`, is XML Schema's one ID attribute per element.
  * - **Idref target** (rule `idref-target`): every `Idref` token, Q5.05's split of an IDREF or IDREFS
  *   attribute value, and every {@link TextIdref} token, this module's split of an IDREF or IDREFS
- *   element's text (C50), is an id of its document. Spec reading 14 follows the XSD, so a
- *   text-entry interaction's `response-identifier` and `string-identifier` are IDREFs, and a
- *   response declaration's `identifier`, an `xs:ID`, is what they name; the grammar's value domains
- *   carry it, and nothing here names a kind. A MathML `share`'s `src` of the form `#id` is no token
- *   but names an element of its document all the same (MathML 3 §4.2.7), so each such `src` is a
- *   {@link ShareFragment}, and its id is an id of its document under this rule.
+ *   element's text (C50), is an id of its document. Spec reading `text-entry-idrefs` follows the
+ *   XSD, so a text-entry interaction's `response-identifier` and `string-identifier` are IDREFs,
+ *   and a response declaration's `identifier`, an `xs:ID`, is what they name; the grammar's value
+ *   domains carry it, and nothing here names a kind. A MathML `share`'s `src` of the form `#id` is
+ *   no token but names an element of its document all the same (MathML 3 §4.2.7), so each such
+ *   `src` is a {@link ShareFragment}, and its id is an id of its document under this rule.
  * - **A document's `xml:lang` forms** are its `xml:lang` attributes whose element's
  *   {@link CatalogScope} is its document node, read where they stand (`LangValue`,
  *   `#pantry/qti/names.ts`), so the set is no stored projection and no overlay row copies or counts
@@ -53,30 +53,30 @@
  *   is a universal over pairs, which the database states as a rule over a query (`DescribedLang`,
  *   `#pantry/qti/queries.ts`): each form that states a language, under each category describing its
  *   document, has its compared value (`LangValue`'s `value`, `#pantry/qti/names.ts`) among the
- *   languages the category lists (`ListedLang`). In place (spec reading 117), an included
- *   fragment's elements are its item's body elements: each form of the document of each instance of
- *   an item's assembly is a form the assembly states, a join of the instance and the form that no
- *   row stores, and every category that describes the item lists it (`DescribedAssembledLang`). The
- *   binding counts "the associated assessmentItem ... and its 'bodyElements'", and a catalog is
- *   "outside the content body node" (information model §5.28), so R26 counts no `xml:lang` under a
- *   `qti-catalog-info` (reading R9-c): each `xml:lang`'s element has its {@link CatalogScope}, read
- *   up the tree as {@link SsmlScope} reads a fragment, and R26 reads only the forms whose scope is
- *   their document.
- * - **Reading 3** (rule `ssml-fragment`): SSML's "document" is each `speak` fragment. A `speak`'s
- *   `startmark` and `endmark` name a `mark` its fragment defines exactly once (law "SSML trim
- *   mark", SSML 1.1 §3.1.1.1), and a `lookup`'s `ref` a `lexicon` of its fragment (law "SSML
- *   lexicon reference", §3.1.5.1); a mark name may otherwise repeat, and fragments see none of each
- *   other's names. `ssmlReads` (`#pantry/vocab/terms/identity.ts`) names the attributes the two
- *   laws read, which they read where they stand, by their `value`, the lexical form collapsed (each
- *   an `xs:token`, an `xs:ID` or an `xs:IDREF`, of whiteSpace `collapse`, SSML 1.1 §3.3.2), so no
- *   overlay copies them (C18), each in its element's fragment (`SsmlValue` of
+ *   languages the category lists (`ListedLang`). In place (spec reading `fragment-placement`), an
+ *   included fragment's elements are its item's body elements: each form of the document of each
+ *   instance of an item's assembly is a form the assembly states, a join of the instance and the
+ *   form that no row stores, and every category that describes the item lists it
+ *   (`DescribedAssembledLang`). The binding counts "the associated assessmentItem ... and its
+ *   'bodyElements'", and a catalog is "outside the content body node" (information model §5.28), so
+ *   R26 counts no `xml:lang` under a `qti-catalog-info` (reading R9-c): each `xml:lang`'s element
+ *   has its {@link CatalogScope}, read up the tree as {@link SsmlScope} reads a fragment, and R26
+ *   reads only the forms whose scope is their document.
+ * - **Reading `ssml-document-is-fragment`** (rule `ssml-fragment`): SSML's "document" is each `speak`
+ *   fragment. A `speak`'s `startmark` and `endmark` name a `mark` its fragment defines exactly once
+ *   (law "SSML trim mark", SSML 1.1 §3.1.1.1), and a `lookup`'s `ref` a `lexicon` of its fragment
+ *   (law "SSML lexicon reference", §3.1.5.1); a mark name may otherwise repeat, and fragments see
+ *   none of each other's names. `ssmlReads` (`#pantry/vocab/terms/identity.ts`) names the
+ *   attributes the two laws read, which they read where they stand, by their `value`, the lexical
+ *   form collapsed (each an `xs:token`, an `xs:ID` or an `xs:IDREF`, of whiteSpace `collapse`, SSML
+ *   1.1 §3.3.2), so no overlay copies them (C18), each in its element's fragment (`SsmlValue` of
  *   `#pantry/qti/names.ts`). {@link SsmlScope} holds each element's fragment, read up the tree from
  *   the elements those attributes stand on, so `Node` carries no copy of it.
  * - **Label tools** (rule `label-tool`): an item that labels an element of its content names the tool
  *   that labelled it, by both `tool-name` and `tool-version` on its root ({@link LabelUse}), where
  *   the element's `label` characteristic says so, as BasePromptInteraction's, the BaseSequence
  *   family's, ItemBody's and the item root's own do ({@link toolLabelKinds}; QTI 3.0.1's §4.1.3,
- *   spec reading 128), and an `ItemFileInfo`'s or a printed variable's does not.
+ *   spec reading `label-tool`), and an `ItemFileInfo`'s or a printed variable's does not.
  *
  * **Language equality.** A language is the one a tag names: `xml:lang` is compared by its value,
  * `Attribute`'s `value`, its lexical form normalized in its domain's class (`LangValue` of
@@ -84,17 +84,17 @@
  * written; BCP 47 compares tags without regard to case ("At all times, language tags and their
  * subtags … are to be treated as case insensitive", RFC 5646 §2.1.1, which XML 1.0 §2.12 names for
  * `xml:lang`). A tag's subtags are ASCII letters, digits and hyphens (RFC 5646 §2.1), so its case
- * is ASCII's, and both sides compare by `Text.lowerAscii`: `ListedLang`'s `lang` and
- * `LangValue`'s `value`. A form states a language exactly where its value is not empty. An empty
- * `xml:lang` states none ("there is no language information available", XML 1.0 §2.12), and every
- * form AL1 admits has a tag or the empty text for its value, since each of the three `xml:lang`
- * domains the grammar installs (spec reading 129) lies inside a tag with XML whitespace around it,
- * or the empty form: an item's and a stimulus's root's, an `xs:language` (whiteSpace `collapse`),
- * a tag with whitespace around it; a body element's, a union (whiteSpace `preserve`) of that
+ * is ASCII's, and both sides compare by `Text.lowerAscii`: `ListedLang`'s `lang` and `LangValue`'s
+ * `value`. A form states a language exactly where its value is not empty. An empty `xml:lang`
+ * states none ("there is no language information available", XML 1.0 §2.12), and every form AL1
+ * admits has a tag or the empty text for its value, since each of the three `xml:lang` domains the
+ * grammar installs (spec reading `language-tags`) lies inside a tag with XML whitespace around it,
+ * or the empty form: an item's and a stimulus's root's, an `xs:language` (whiteSpace `collapse`), a
+ * tag with whitespace around it; a body element's, a union (whiteSpace `preserve`) of that
  * (`collapse`) and the empty form; and an `xs:anySimpleType` one's, a tag or the empty form as
  * written. So a form of whitespace alone, or one that is no tag once collapsed, which identifies no
  * language (RFC 5646 §2.1), is outside its domain, which AL1 refuses where it is written (spec
- * reading 174), before any rule over a query is judged.
+ * reading `lang-outside-tag`), before any rule over a query is judged.
  *
  * Every copy of an attribute into an overlay follows C18 the other way round, from
  * `select(Attribute, φ)` into the overlay, keyed by `Attribute`'s own key, `(package, path, start,
@@ -230,8 +230,8 @@ export const IdentityText = law(
 export const TextIdref = law(entryOf("E1 derived"), listTokens("TextIdref"));
 
 /**
- * One `label` on an element of a document that asks for its tool, keyed by the element
- * ({@link labelAttributes}, spec reading 128), with its document's root kind, which says whether
+ * One `label` on an element of a document that asks for its tool, keyed by the element ({@link
+ * labelAttributes}, spec reading `label-tool`), with its document's root kind, which says whether
  * Label tools binds it.
  */
 export const LabelUse = law(
@@ -250,12 +250,12 @@ export const LabelUse = law(
 
 /**
  * One element on the way from an element an SSML law reads up to its SSML fragment, keyed by the
- * element (spec reading 3: "the document" is each `speak` fragment): `fragment`, the position of
- * its nearest `ssml:speak`, itself included, or of the document node for an element no `speak`
- * holds. A `speak` is its own fragment, a document's root the document's where it is no `speak`,
- * and every other element its parent's, so a fragment is read up the tree with no copy on `Node`.
- * The element's kind and parent are its node's, which the scope's laws read through `Node`
- * (`#pantry/qti/overlay-queries/identity.ts`).
+ * element (spec reading `ssml-document-is-fragment`: "the document" is each `speak` fragment):
+ * `fragment`, the position of its nearest `ssml:speak`, itself included, or of the document node
+ * for an element no `speak` holds. A `speak` is its own fragment, a document's root the document's
+ * where it is no `speak`, and every other element its parent's, so a fragment is read up the tree
+ * with no copy on `Node`. The element's kind and parent are its node's, which the scope's laws read
+ * through `Node` (`#pantry/qti/overlay-queries/identity.ts`).
  */
 export const SsmlScope = law(
   entryOf("E1 derived"),
@@ -285,11 +285,12 @@ export const CatalogScope = law(
 );
 
 /**
- * An id a document's IDREF tokens name, a projection keyed by its heading (spec reading 117): every
- * `Idref` and `TextIdref` token's value, of any length, keyed by its SHA-256, `idDigest`, which the
- * import writes and "E1 derived" holds to the value, with its document's `assembled`. A document in
- * no assembly resolves each in its own IDs; one in an assembly, in its assembly's, once per
- * instance ({@link PlacedIdref}). Its rows count as `Document.idrefTargets`.
+ * An id a document's IDREF tokens name, a projection keyed by its heading (spec reading
+ * `fragment-placement`): every `Idref` and `TextIdref` token's value, of any length, keyed by its
+ * SHA-256, `idDigest`, which the import writes and "E1 derived" holds to the value, with its
+ * document's `assembled`. A document in no assembly resolves each in its own IDs; one in an
+ * assembly, in its assembly's, once per instance ({@link PlacedIdref}). Its rows count as
+ * `Document.idrefTargets`.
  */
 export const IdrefTarget = law(
   entryOf("E1 derived"),
@@ -343,13 +344,13 @@ export const ShareFragment = law(
 );
 
 /**
- * One ID of an instance of an assembly (Q5.13's `Instance`, spec reading 117), keyed by the
- * instance, `(package, assembly, instance)`, and the position `start` of the element that carries
- * it in the instance's document, `path`: an ID of that document, its {@link DocumentId}'s value
- * and owner as `IdValue` (`#pantry/qti/names.ts`) holds them, with the instance's assembly kind.
- * The instance is the copy of the document's elements the assembly's merged document holds it in,
- * so a fragment placed twice holds its IDs twice. `idDigest`, the id's SHA-256, is what a law that
- * finds a placed ID by its value reads, since the id has no bound.
+ * One ID of an instance of an assembly (Q5.13's `Instance`, spec reading `fragment-placement`),
+ * keyed by the instance, `(package, assembly, instance)`, and the position `start` of the element
+ * that carries it in the instance's document, `path`: an ID of that document, its
+ * {@link DocumentId}'s value and owner as `IdValue` (`#pantry/qti/names.ts`) holds them, with the
+ * instance's assembly kind. The instance is the copy of the document's elements the assembly's
+ * merged document holds it in, so a fragment placed twice holds its IDs twice. `idDigest`, the id's
+ * SHA-256, is what a law that finds a placed ID by its value reads, since the id has no bound.
  */
 export const PlacedId = law(
   entryOf("E1 derived"),
@@ -371,10 +372,10 @@ export const PlacedId = law(
 );
 
 /**
- * One id an instance's document's IDREFs name (spec reading 117), keyed by the instance and the
- * id's SHA-256, `idDigest`, which the import writes and "E1 derived" holds to the id: an
- * {@link IdrefTarget} of the instance's document, `path`, which resolves among its assembly's IDs
- * ("Idref target").
+ * One id an instance's document's IDREFs name (spec reading `fragment-placement`), keyed by the
+ * instance and the id's SHA-256, `idDigest`, which the import writes and "E1 derived" holds to the
+ * id: an {@link IdrefTarget} of the instance's document, `path`, which resolves among its assembly's
+ * IDs ("Idref target").
  */
 export const PlacedIdref = law(
   entryOf("E1 derived"),
@@ -457,8 +458,9 @@ export const textIdentityOf = (governor: Parameters<typeof TextDomain.at>[1]) =>
 
 /**
  * State that an attribute is ID-typed: its domain is an `xs:ID` one, or it is one of
- * {@link idSpaceAttributes}, a context declaration's `identifier` (spec reading 74). A rule over a
- * query states it through its twin, `idTypedIn` (`#pantry/qti/names.ts`).
+ * {@link idSpaceAttributes}, a context declaration's `identifier` (spec reading
+ * `identifier-names-one-variable`). A rule over a query states it through its twin, `idTypedIn`
+ * (`#pantry/qti/names.ts`).
  *
  * Each kind of {@link idSpaceAttributes} is an equality, not `namedOn`'s membership: the key over
  * {@link idAttributes} and its columns were shipped under this selection's equalities, and grizzle
@@ -482,12 +484,13 @@ const idTyped = (a: AttributeRow) =>
   );
 
 /**
- * The ID-typed attributes, each the source of a {@link DocumentId}, which the key over their
- * element holds to one per element: XML Schema gives a valid element at most one attribute of an ID
- * type (cvc-complex-type clause 5), a statement of types, not of values. Each one's value is one of
- * its document's IDs, since AL1 holds its form to its domain, an NCName once collapsed: the
+ * The ID-typed attributes, each the source of a {@link DocumentId}, which the key over their element
+ * holds to one per element: XML Schema gives a valid element at most one attribute of an ID type
+ * (cvc-complex-type clause 5), a statement of types, not of values. Each one's value is one of its
+ * document's IDs, since AL1 holds its form to its domain, an NCName once collapsed: the
  * `IdentifierDType` and `UniqueIdentifierDType` patterns of every ID-typed attribute the grammar
- * installs are `xs:NCName`'s with XML whitespace around it (spec readings 152 and 156).
+ * installs are `xs:NCName`'s with XML whitespace around it (spec readings `ncname-names` and
+ * `id-is-ncname`).
  */
 export const idAttributes = select(Attribute, idTyped);
 
@@ -499,7 +502,7 @@ const identityNodes = select(Node, (n) => n.in(textIdentityOf(n.governor), Ident
 /**
  * The elements whose text is an ID, each the source of a {@link DocumentId}: those whose text is
  * of an `xs:ID` domain, bound to their parent. TextDomain holds the text to an NCName once
- * collapsed (spec readings 152 and 156), as AL1 holds an attribute's form.
+ * collapsed (spec readings `ncname-names` and `id-is-ncname`), as AL1 holds an attribute's form.
  */
 const idTextNodes = select(Node, (n) => n.in(textIdentityOf(n.governor), ["ID"]));
 
@@ -547,10 +550,10 @@ const langAttributes = select(Attribute, (a) => a.eq(a.name, "xml:lang"));
 export const unassembledTargets = select(IdrefTarget, (t) => t.eq(t.assembled, false));
 
 /**
- * Every `label` that asks for its tool, the source of {@link LabelUse} (spec reading 128): one of
- * the kinds whose declared type takes its `label` from a characteristic that states the sentence
- * ({@link toolLabelKinds}), the item root's own among them: QTI 3.0.1's §4.1.3 says of the item's
- * `label` "If an item uses labels then values for the associated toolName and toolVersion
+ * Every `label` that asks for its tool, the source of {@link LabelUse} (spec reading `label-tool`):
+ * one of the kinds whose declared type takes its `label` from a characteristic that states the
+ * sentence ({@link toolLabelKinds}), the item root's own among them: QTI 3.0.1's §4.1.3 says of the
+ * item's `label` "If an item uses labels then values for the associated toolName and toolVersion
  * attributes must also be provided". An `ItemFileInfo`'s label (`qti-digital-material`,
  * `qti-calculator-info`, §5.80.2) and a printed variable's (§7.30.4) are text for a reader, and ask
  * for no tool.
@@ -572,8 +575,8 @@ const toolVersions = select(Attribute, (a) =>
 );
 
 /**
- * The SSML attributes reading 3's laws read (`ssmlReads`), each of whose elements has its
- * {@link SsmlScope}.
+ * The SSML attributes reading `ssml-document-is-fragment`'s laws read (`ssmlReads`), each of whose
+ * elements has its {@link SsmlScope}.
  */
 const ssmlAttributes = select(Attribute, (a) =>
   a.or(...ssmlReads.map(([name, kinds]) => namedOn(a, name, kinds))),
@@ -600,8 +603,8 @@ const itemLabels = select(LabelUse, (l) => l.eq(l.rootKind, itemKind));
  * - **Idref target:** each IDREF token, an attribute's or a text's, names one of its document's
  *   {@link IdrefTarget} rows, each an id an admitted element of its document binds where the
  *   document is in no assembly;
- * - **in place** (spec reading 117): under each instance of each assembly, as many {@link PlacedId}
- *   and {@link PlacedIdref} rows as its document has IDs and IDREF targets, each
+ * - **in place** (spec reading `fragment-placement`): under each instance of each assembly, as many
+ *   {@link PlacedId} and {@link PlacedIdref} rows as its document has IDs and IDREF targets, each
  *   {@link PlacedIdref} its document's; each {@link PlacedId} an ID of its document (its value and
  *   owner `IdValue`'s), "DocumentId key" over the assembly's bindings (a fragment's ID distinct
  *   from its item's, and a fragment placed twice in one item holding its IDs twice) and "Idref
@@ -613,11 +616,12 @@ const itemLabels = select(LabelUse, (l) => l.eq(l.rootKind, itemKind));
  *   (`#pantry/qti/overlay-queries/identity.ts`);
  * - **R26:** it reads the documents the records name and, in place, the instances of each item's
  *   assembly, so it is a rule over a query (`identityQueryLawsByName`, `#pantry/qti/queries.ts`);
- * - **Reading 3:** each read SSML attribute's element has its {@link SsmlScope}, which places the
- *   attribute in its fragment; each scope at a node; a `speak` its own fragment, a root that is no
- *   `speak` the document node's and every other element its parent's, rules over a query over its
- *   node's kind and parent; and "SSML trim mark" and "SSML lexicon reference", rules over the
- *   fragments' values (`#pantry/qti/overlay-queries/identity.ts`);
+ * - **Reading `ssml-document-is-fragment`:** each read SSML attribute's element has its
+ *   {@link SsmlScope}, which places the attribute in its fragment; each scope at a node; a `speak`
+ *   its own fragment, a root that is no `speak` the document node's and every other element its
+ *   parent's, rules over a query over its node's kind and parent; and "SSML trim mark" and "SSML
+ *   lexicon reference", rules over the fragments' values
+ *   (`#pantry/qti/overlay-queries/identity.ts`);
  * - **Label tools:** each `label` that asks for its tool copied into its `LabelUse` row and each row
  *   a label's, its root kind its document's, and in an item each label's document one whose root
  *   carries `tool-name` and `tool-version`.

@@ -26,7 +26,7 @@
  * wildcard content. And absence (hot spot 8): a present value equal to a sentinel the import or the
  * schema spells (empty, `0`, `none`, `single`, the document's own identifier). And a
  * wild attribute: one or two names no kind admits, or that name an open class no name of which they
- * are, on one element, the order of whose refusals no law may read (reading 137).
+ * are, on one element, the order of whose refusals no law may read (reading `attribute-sets`).
  *
  * Which operators a run draws, and how often, is its swarm (`@bjornpagen/testing/swarm`): drawn per
  * run, one operator always on, so no run is left with nothing to breed by.

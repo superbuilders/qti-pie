@@ -6,14 +6,14 @@
  * A binding resolves by its name to the response declaration of its item that holds it, whatever
  * the declaration's cardinality spells, and one whose name none holds resolves to none, which
  * "Binding declared" refuses (`#pantry/qti/overlay-queries/reference.ts`; lane NIL's audit, B1 and
- * B2; spec reading 159). The fit laws read that declaration's `DeclarationCardinality`, which only
- * a declaration whose cardinality spells a code has, through a query
- * (`#pantry/qti/overlay-queries/interaction.ts`), so they judge only a variable of a cardinality.
- * No row copies the resolution (decision S3), so this check resolves each binding over the import's
- * rows as those queries read them. Before it, an
- * item binding `RESP`, which no declaration names, was written beside a nil declaration of no base
- * type and cardinality `single`, and refused by the database under BindingFit and by the oracle
- * under "Binding declared" (lane N2's tier at dadbbbd4, the `undeclared-response` fixture).
+ * B2; spec reading `binding-by-name`). The fit laws read that declaration's
+ * `DeclarationCardinality`, which only a declaration whose cardinality spells a code has, through a
+ * query (`#pantry/qti/overlay-queries/interaction.ts`), so they judge only a variable of a
+ * cardinality. No row copies the resolution (decision S3), so this check resolves each binding over
+ * the import's rows as those queries read them. Before it, an item binding `RESP`, which no
+ * declaration names, was written beside a nil declaration of no base type and cardinality `single`,
+ * and refused by the database under BindingFit and by the oracle under "Binding declared" (lane
+ * N2's tier at dadbbbd4, the `undeclared-response` fixture).
  *
  * For every site and every state:
  *
@@ -28,12 +28,13 @@
  * - Over one that writes none or none spelled, the oracle raises no fit law (the orchestrator's
  *   ruling of 2026-11-06), and the importer writes no `DeclarationCardinality` row for it and no
  *   cardinality row beside its bindings, so no law reads a cardinality it does not have (spec
- *   readings 158 and 159: a missing value is a row of its own relation, never a sentinel).
+ *   readings `unspelled-declaration` and `binding-by-name`: a missing value is a row of its own
+ *   relation, never a sentinel).
  *
  * A gap match interaction with two or more gaps binds a response of multiple cardinality (spec
- * reading 169, information model §5.57): the law oracle and the schema's laws over the import's
- * rows (`#pantry/test/host-judge.ts`) break "Binding cardinality" together exactly where a gap
- * match of two gaps binds a single response, whatever its `max-associations`.
+ * reading `gap-match-cardinality`, information model §5.57): the law oracle and the schema's laws
+ * over the import's rows (`#pantry/test/host-judge.ts`) break "Binding cardinality" together
+ * exactly where a gap match of two gaps binds a single response, whatever its `max-associations`.
  */
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, layer } from "@effect/vitest";
@@ -347,8 +348,8 @@ describe("the bindings the fit laws judge", () => {
 
 /**
  * One gap match case: its gaps, its `max-associations` where written, the cardinality of the
- * response it binds, and whether "Binding cardinality" breaks, by hand from reading 169 and
- * reading 92.
+ * response it binds, and whether "Binding cardinality" breaks, by hand from reading
+ * `gap-match-cardinality` and reading `binding-and-count-sentences`.
  */
 interface GapCase {
   readonly breaks: boolean;
@@ -418,9 +419,9 @@ const gapPackageOf = (drawn: GapCase): PackageEntries => {
 describe("a gap match interaction's gaps", () => {
   layer(NodeServices.layer, { excludeTestServices: true })("over a one-item package", (it) => {
     /**
-     * Oracle: two implementations side by side, the law oracle's binding laws and the schema's
-     * laws over the import's rows, and reading 169's verdict written by hand. Bound: a gap
-     * match of one or two gaps bound single or multiple, with max-associations unwritten or 2.
+     * Oracle: two implementations side by side, the law oracle's binding laws and the schema's laws
+     * over the import's rows, and reading `gap-match-cardinality`'s verdict written by hand. Bound:
+     * a gap match of one or two gaps bound single or multiple, with max-associations unwritten or 2.
      */
     const everyGapCase = Effect.forEach(
       gapCases,

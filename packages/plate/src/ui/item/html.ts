@@ -109,9 +109,9 @@ const keyShortcuts = "aria-keyshortcuts";
 
 /**
  * The XSD's misspelling of {@link keyShortcuts}, which it declares on the empty elements in its
- * place, as the information model's ARIABaseEmpty does (§7.1.44). Reading 10 admits it alone
- * there, and the shell writes it as ARIA's, so a screen reader announces it (operator ruling
- * `96840ced`).
+ * place, as the information model's ARIABaseEmpty does (§7.1.44). Reading `aria-keyshorts` admits
+ * it alone there, and the shell writes it as ARIA's, so a screen reader announces it (operator
+ * ruling `96840ced`).
  */
 const keyShortcutsMisspelt = "aria-keyshorts";
 

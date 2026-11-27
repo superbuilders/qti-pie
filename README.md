@@ -61,11 +61,11 @@ $ node src/qti-import.ts ./my-package my-package
 
 ## Stated limits
 
-pantry refuses valid QTI 3.0.1 content, or accepts content that is not valid, only under a stated limit. Reading 1 in
+pantry refuses valid QTI 3.0.1 content, or accepts content that is not valid, only under a stated limit. Reading `nothing-valid-refused` in
 [`docs/spec-readings.md`](docs/spec-readings.md#validity) lists each limit with its cause and what would lift it. A
-refusal or acceptance that reading 1 does not list is a bug.
+refusal or acceptance that reading `nothing-valid-refused` does not list is a bug.
 
-Two known defects sit outside reading 1. Composite typing in an included rules fragment is checked in the fragment, so
+Two known defects sit outside reading `nothing-valid-refused`. Composite typing in an included rules fragment is checked in the fragment, so
 the import can accept a type error in the item that places it. And pantry's randomized differential test keeps finding
 outlandish packages that pantry and its reference oracle both refuse while naming different broken rules.
 

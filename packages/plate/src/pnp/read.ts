@@ -905,7 +905,7 @@ const profileOf = (
  * PNP does not set takes `noPnpSupports`' value, and the result satisfies `PnpSupportsSchema`.
  *
  * The three sets read as the AfA PNP 3.0 Information Model defines them (4.1.49 to 4.1.51;
- * spec-readings reading 181): the features the system activates at start, the features the
+ * spec-readings reading `pnp-sets`): the features the system activates at start, the features the
  * candidate may activate during the test, and the features that are not available. A feature named
  * in `activate-at-initialization-set` is active at start, with or without an element of its own,
  * and a feature without one reads with the Schema's defaults. A feature named in

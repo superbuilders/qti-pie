@@ -133,13 +133,13 @@ export const ValueCardinalityOf = closed.relation(
 /**
  * The base types whose values a value domain's pattern judges, and that domain: QTI's base types
  * that are XML Schema's types, as `ValueDomainOf` compiles them with their `whiteSpace` collapse,
- * so outer whitespace is formatting (spec reading 7).
+ * so outer whitespace is formatting (spec reading `typed-value-whitespace`).
  *
- * - `integer`: `xs:integer`, unbounded (spec reading 45).
+ * - `integer`: `xs:integer`, unbounded (spec reading `integer-unbounded`).
  * - `float` and `duration`: `xs:double` (information model §8.13: a duration is "represented as a
  *   single float that records time in seconds ... using the 'xsd:double' datatype").
  * - `identifier`: QTI's identifier class, `IdentifierDType`.
- * - `uri`: `xs:anyURI` (spec reading 71).
+ * - `uri`: `xs:anyURI` (spec reading `anyuri-lexical`).
  *
  * Stated with Q5.08's `Typed_value` law, whose single source this module is.
  */
@@ -155,10 +155,10 @@ export const domainValues = [
 
 /**
  * The pattern of a boolean value's text: `xs:boolean`'s lexical space, `true`, `false`, `1` or `0`
- * (spec reading 34: the information model's boolean base type is "the same as the set of values
- * defined by the boolean primitiveType", §8.14, and the binding types that primitive `xs:boolean`,
- * whose lexical space "{true, false, 1, 0}" is, XML Schema Part 2 §3.2.2.1), outer whitespace
- * formatting (spec reading 7). `1` is `true` and `0` is `false`.
+ * (spec reading `boolean-lexical`: the information model's boolean base type is "the same as the
+ * set of values defined by the boolean primitiveType", §8.14, and the binding types that primitive
+ * `xs:boolean`, whose lexical space "{true, false, 1, 0}" is, XML Schema Part 2 §3.2.2.1), outer
+ * whitespace formatting (spec reading `typed-value-whitespace`). `1` is `true` and `0` is `false`.
  */
 export const booleanValuePattern = "^[\\t\\n\\r ]*(?:true|false|1|0)[\\t\\n\\r ]*$";
 
@@ -173,13 +173,14 @@ export const pointValuePattern =
  * The pattern of a pair's or a directed pair's text: two identifiers (information model §8.13),
  * separated by one whitespace character. An identifier is `IdentifierDType`, an `xs:NCName`, so
  * each is the grammar's one NCName ({@link ncNamePattern}), under XML 1.0 Second Edition's name
- * characters (spec reading 94).
+ * characters (spec reading `ncname-characters`).
  */
 export const pairValuePattern = `^[\\t\\n\\r ]*${ncNamePattern}[\\t\\n\\r ]${ncNamePattern}[\\t\\n\\r ]*$`;
 
 /**
- * The base types every text is a value of: `string`, whose whitespace is part of the value
- * (spec reading 7), and `file`, whose octets and content type no text of a value spells.
+ * The base types every text is a value of: `string`, whose whitespace is part of the value (spec
+ * reading `typed-value-whitespace`), and `file`, whose octets and content type no text of a value
+ * spells.
  */
 export const unjudgedBaseTypes = [
   "string",

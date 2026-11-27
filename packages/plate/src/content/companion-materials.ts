@@ -15,8 +15,8 @@
  * itself (`checkIsland` in `#plate/content/modules.ts`), and the module neither lists nor marks any
  * element it does not read. The names are read as the XSD and the information model spell them, in
  * lowercase: `scientific`, `qti-rule-system-si`, `qti-increment-us` ("Companion-material names are
- * lowercase.", reading 12, which sets aside the implementation guide's `Scientific` and
- * `qti-rule-system-SI`).
+ * lowercase.", reading `companion-material-names`, which sets aside the implementation guide's
+ * `Scientific` and `qti-rule-system-SI`).
  *
  * @module
  */
@@ -387,8 +387,8 @@ const materialsOf = (read: ReaderKit, source: SourceElement): readonly Material[
 /**
  * The Companion Materials module: it reads the item's `qti-companion-materials-info` and keeps the
  * materials the page may know. It reads the names as the XSD spells them, in lowercase
- * ("Companion-material names are lowercase.", reading 12), and gives a calculator's type and a
- * rule's system as it read them.
+ * ("Companion-material names are lowercase.", reading `companion-material-names`), and gives a
+ * calculator's type and a rule's system as it read them.
  */
 export const companionMaterialsModule: ItemContentModule<
   typeof element,

@@ -18,14 +18,15 @@
  *   author's `aria-label` and `aria-labelledby` name it only when a blank `title` gives it no text:
  *   a name that left the visible text out would break WCAG 2.5.3.
  *
- * **`count-attempt` is a boolean** (reading 27 of `docs/spec-readings.md`). The information model's
- * description of the attribute on `qti-end-attempt-interaction` reads as a count of attempts, but
- * its type is boolean in both the XSD and the information model's own attribute table, and the type
- * is followed. As a boolean it means, by reading 204: `true`, or absent, counts the attempt and
- * ends it, as any submission does; any other value, `false`, leaves `numAttempts` unchanged for the
- * attempt the candidate ended through this button. A submission without the button counts as any
- * submission does, whatever `count-attempt` says. The QTI database counts attempts by it, from
- * the stored document; plate only carries it to the payload.
+ * **`count-attempt` is a boolean** (reading `count-attempt-boolean` of `docs/spec-readings.md`).
+ * The information model's description of the attribute on `qti-end-attempt-interaction` reads as a
+ * count of attempts, but its type is boolean in both the XSD and the information model's own
+ * attribute table, and the type is followed. As a boolean it means, by reading `end-attempt-count`:
+ * `true`, or absent, counts the attempt and ends it, as any submission does; any other value,
+ * `false`, leaves `numAttempts` unchanged for the attempt the candidate ended through this button.
+ * A submission without the button counts as any submission does, whatever `count-attempt` says. The
+ * QTI database counts attempts by it, from the stored document; plate only carries it to the
+ * payload.
  *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Root_EndAttemptInteraction
@@ -148,8 +149,8 @@ export const endAttemptModule: InteractionModule<
    * Read a `qti-end-attempt-interaction` into its model node, or its notice.
    *
    * The body walk has bound it to a single `boolean` response ({@link binding}). `title` is
-   * required, and kept as written. `count-attempt` reads as `xs:boolean` (reading 27) and is true
-   * when absent.
+   * required, and kept as written. `count-attempt` reads as `xs:boolean` (reading
+   * `count-attempt-boolean`) and is true when absent.
    */
   parse: (source, { bound, path, read }) => {
     const title = read.requiredValue(source, "title");

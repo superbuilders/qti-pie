@@ -1,7 +1,7 @@
 /**
- * The MathML align laws (spec reading 2, MathML 3 validity): the laws "MathML maction selection",
- * "MathML align placement" and "MathML align first", stated over `m:maction` and the table cells
- * (`m:mtd`) whose alignment groups (`m:maligngroup`) MathML 3 §3.5.5 places.
+ * The MathML align laws (spec reading `mathml-validity`, MathML 3 validity): the laws "MathML
+ * maction selection", "MathML align placement" and "MathML align first", stated over `m:maction`
+ * and the table cells (`m:mtd`) whose alignment groups (`m:maligngroup`) MathML 3 §3.5.5 places.
  *
  * An `maction` shows one child, the one its `selection` numbers (MathML 3 §3.7.1.1, "If the value
  * specified is out of range, it is an error"). In a table cell, an alignment group stands directly

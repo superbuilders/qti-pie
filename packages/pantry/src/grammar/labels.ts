@@ -1,6 +1,6 @@
 /**
- * The kinds whose `label` asks for the tool that labelled it (spec reading 128), read from the
- * types the ASI XSDs declare.
+ * The kinds whose `label` asks for the tool that labelled it (spec reading `label-tool`), read from
+ * the types the ASI XSDs declare.
  *
  * The QTI 3.0.1 information model states the sentence "If an item uses labels then values for the
  * associated toolName and toolVersion characteristics must also be provided" in the description

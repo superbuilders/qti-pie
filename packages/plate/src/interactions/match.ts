@@ -9,9 +9,9 @@
  * `directedPair` response of `single` or `multiple` cardinality, and a pair joins a choice of the
  * first set to one of the second. `max-associations` defaults to 1 and `min-associations` to 0, as
  * the XSD declares them, the most a cap in tier (a) and the least judged only under
- * `validate-responses` (reading 190), and 0 is no limit (reading 53). A `match-max` is required on
- * each choice and 0 is no limit; `match-min` defaults to 0; `match-group` lists the identifiers a
- * choice may pair with, any when absent.
+ * `validate-responses` (reading `max-associations`), and 0 is no limit (reading
+ * `max-strings-zero`). A `match-max` is required on each choice and 0 is no limit; `match-min`
+ * defaults to 0; `match-group` lists the identifiers a choice may pair with, any when absent.
  *
  * {@link matchModule}'s `redact` gives the page each set in its presented order, each choice with
  * its `match-group` and `match-max`, the declaration of the `directedPair` response its island
@@ -129,8 +129,8 @@ interface MatchInteraction<L extends Level = ModelLevel> extends ModuleInteracti
    */
   readonly firstColumnHeader: Option.Option<string>;
   /**
-   * `max-associations`, 1 when absent (the default the ASI XSD gives it, reading 190): the most
-   * pairs a response may hold; 0 is no limit.
+   * `max-associations`, 1 when absent (the default the ASI XSD gives it, reading
+   * `max-associations`): the most pairs a response may hold; 0 is no limit.
    */
   readonly maxAssociations: bigint;
   /**

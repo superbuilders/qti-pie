@@ -67,7 +67,7 @@ export const indexesOf = (grammar: ComposedGrammar): GrammarIndexes =>
 /**
  * A family position's count bounds as the count laws read them: a `Counted` position's least count
  * and its `CountedMax` greatest, `Infinity` where its particle states none, or a `Capped`
- * position's 0 to 1 (spec reading 130).
+ * position's 0 to 1 (spec reading `lom-repetition`).
  */
 export interface CountBounds {
   readonly max: number;

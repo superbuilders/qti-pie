@@ -2,7 +2,7 @@
  * The expression and processing overlays' rows (plan §1.7 O4, §C's `rowsOf`): from one document's
  * view (`DocumentView` of `#pantry/import/fold.ts`), the rows of every document relation
  * `#pantry/qti/expressions.ts` declares, each relation's rows a keyed set; and, over a whole
- * package, each placement's rows (spec reading 117, {@link placedRowsOf}).
+ * package, each placement's rows (spec reading `fragment-placement`, {@link placedRowsOf}).
  *
  * The rows restate what the tree says and nothing else: each element's key, each processing
  * element's language as its root opens it, and each reference as its attribute spells it; and,
@@ -100,7 +100,7 @@ const baseOf = (baseType: Option.Option<(typeof BaseType.handles)[number]>): Val
 
 /**
  * Read a variable's cardinality as an expression's: its declaration code's `ValueCardinality`, and
- * `unknown` where it has none, unwritten or spelling nothing (spec reading 159), as
+ * `unknown` where it has none, unwritten or spelling nothing (spec reading `binding-by-name`), as
  * {@link baseOf} reads a base type.
  *
  * @param cardinality - The variable's cardinality, none where it has none.
@@ -117,7 +117,8 @@ const cardinalityOf = (
 /**
  * One declaration of the document as a reference resolves to it: its codes, its base type none
  * where it has none, a record's or one that spells nothing (lane NIL's audit, B12), and its
- * cardinality none where it has none, unwritten or spelling nothing (spec reading 159).
+ * cardinality none where it has none, unwritten or spelling nothing (spec reading
+ * `binding-by-name`).
  */
 interface DeclarationEntry {
   readonly baseType: Option.Option<(typeof BaseType.handles)[number]>;
@@ -303,14 +304,14 @@ const spelledBases: readonly ValueBase[] = valueBases.filter(
 
 /**
  * The base type an expression's own attribute gives (`E1_derived` over the query
- * `ExpressionAttribute`, `#pantry/qti/queries.ts`): a
- * math operator's `integer` where its `name` is one of the integer operators and `float` for every
- * other (information model §2.11.3.32), an unwritten one among them, as the law oracle reads it;
- * a base value's and a test variables' the base its `base-type` spells exactly, and `unknown`, the
- * type of no type, where the one written spells none, a form AL1 refuses alone and no law types;
- * and a test variables that writes no `base-type` float where it
- * writes a `weight-identifier` (§7.39.5: "When a weighting is specified the result of the
- * expression always has base-type float"), `unknown` where it writes none (spec reading 167).
+ * `ExpressionAttribute`, `#pantry/qti/queries.ts`): a math operator's `integer` where its `name` is
+ * one of the integer operators and `float` for every other (information model §2.11.3.32), an
+ * unwritten one among them, as the law oracle reads it; a base value's and a test variables' the
+ * base its `base-type` spells exactly, and `unknown`, the type of no type, where the one written
+ * spells none, a form AL1 refuses alone and no law types; and a test variables that writes no
+ * `base-type` float where it writes a `weight-identifier` (§7.39.5: "When a weighting is specified
+ * the result of the expression always has base-type float"), `unknown` where it writes none (spec
+ * reading `weighted-test-variables`).
  *
  * @param kind - The expression's kind.
  * @param inputs - Its `base-type`, `name` and `weight-identifier`, each if written.
@@ -610,13 +611,13 @@ const languagesOf = (rows: FlatRows<Composed>, tree: Tree): ((node: bigint) => L
 };
 
 /**
- * The document's declarations by name: each that has a name (`typedDeclarationOf`), its
- * identifier naming something, whatever its cardinality and base type spell (spec reading 159),
+ * The document's declarations by name: each that has a name (`typedDeclarationOf`), its identifier
+ * naming something, whatever its cardinality and base type spell (spec reading `binding-by-name`),
  * the first of a repeated one (which `Declaration key` refuses), with its codes, each none where it
  * has none. A reference to a name whose declaration has no cardinality resolves to it, and only a
  * law over the cardinality reads none: AL3 or the value domain refuses the declaration's attribute
- * alone (spec reading 158). A declaration whose identifier is unwritten or names nothing has no
- * name, so no reference resolves to it (spec reading 157).
+ * alone (spec reading `unspelled-declaration`). A declaration whose identifier is unwritten or
+ * names nothing has no name, so no reference resolves to it (spec reading `unnamed-declaration`).
  *
  * @param rows - The document's flat rows.
  * @param attributes - Each element's attributes.
@@ -647,8 +648,8 @@ const declarationsOf = (
  * Read a document for the builder.
  *
  * @param view - The document's view: its rows, and their folds under its context (spec reading
- *   117), its own for a document no site names, while an included fragment's nodes take the
- *   interaction their includes stand in as their nearest.
+ *   `fragment-placement`), its own for a document no site names, while an included fragment's nodes
+ *   take the interaction their includes stand in as their nearest.
  * @param place - Where the document stands in its package.
  * @returns The document, indexed.
  */
@@ -984,10 +985,10 @@ const instancesIn = (root: InstanceRoot): readonly Placed[] =>
  * href's path, where the href resolves to an entry of the package, and none for one that does not
  * (an empty href, which names its own document, an external one, or one the importer cannot
  * resolve), which "Item ref target" refuses through its href's containment in `ItemRefHref`
- * (reading 155); for an item, the document there, and none where the package holds no document at
- * that path. Its target's type is read as the database derives it (the query `ItemRefTarget`,
- * `#pantry/qti/queries.ts`): the item type where a resource of it names the path, else the first
- * LTI type one names, and none where neither does.
+ * (reading `item-ref-without-href`); for an item, the document there, and none where the package
+ * holds no document at that path. Its target's type is read as the database derives it (the query
+ * `ItemRefTarget`, `#pantry/qti/queries.ts`): the item type where a resource of it names the path,
+ * else the first LTI type one names, and none where neither does.
  *
  * @param documents - Every document of the package.
  * @param resources - The package's resources of a type the importer reads.
@@ -1028,8 +1029,8 @@ export const assembledExpressionRowsOf = (
 };
 
 /**
- * A package's rows under each placement (spec reading 117): each expression typed and each
- * reference resolved and typed there.
+ * A package's rows under each placement (spec reading `fragment-placement`): each expression typed
+ * and each reference resolved and typed there.
  */
 export interface PlacedRows {
   readonly PlacedExpression: ReadonlyMap<string, Addition<typeof PlacedExpression>>;
@@ -1085,7 +1086,8 @@ const publishedUris: ReadonlySet<string> = new Set(urisOf(publishedTemplates));
  * each `qti-response-processing` of the item's root that holds no element, the document its
  * `template-location` resolves to in the package (its `ReferencePath`), where that document's root
  * is a `qti-response-processing` and the processing's `template` is unwritten or names no published
- * template (§4.6.1, §4.6.2, spec reading 51). A document that is no item locates none.
+ * template (§4.6.1, §4.6.2, spec reading `built-in-templates`). A document that is no item locates
+ * none.
  *
  * @param doc - The document.
  * @param locations - Each `template-location`'s resolved path, by its element's place.
@@ -1168,11 +1170,11 @@ export const declaredTypeIn = (
   );
 
 /**
- * One placement (spec reading 117): its assembly's head path, its place in the assembly's instance
- * tree, the document at the head, the root whose declarations and built-ins its references resolve
- * among, and the documents it types: an instance's document, a document in no assembly as its own,
- * and beside an item's own the templates the item locates (`placedDocuments` of
- * `#pantry/qti/overlay-queries/expression.ts`).
+ * One placement (spec reading `fragment-placement`): its assembly's head path, its place in the
+ * assembly's instance tree, the document at the head, the root whose declarations and built-ins its
+ * references resolve among, and the documents it types: an instance's document, a document in no
+ * assembly as its own, and beside an item's own the templates the item locates (`placedDocuments`
+ * of `#pantry/qti/overlay-queries/expression.ts`).
  */
 interface Placement {
   readonly assembly: string;
@@ -1231,9 +1233,10 @@ interface Resolved {
 /**
  * Resolve a reference in a placement's assembly: among its root's declarations, else its root's
  * built-in variables, else, under a test, the one reading of its name through a scope that gives it
- * a type (spec readings 48 and 167), else to nothing. A reading through an item ref that names no
- * item document gives none (reading 110), and a name read twice is "Prefixed reference"'s to
- * refuse (reading 86), unresolved here.
+ * a type (spec readings `dotted-reference` and `weighted-test-variables`), else to nothing. A
+ * reading through an item ref that names no item document gives none (reading
+ * `mapping-and-default-names`), and a name read twice is "Prefixed reference"'s to refuse (reading
+ * `test-identifier-namespace`), unresolved here.
  *
  * @param placement - The placement.
  * @param reference - The reference.
@@ -1280,10 +1283,10 @@ export interface PlacedTypingInput {
 }
 
 /**
- * Build a package's rows under each placement (spec reading 117): for each placement and each of
- * its documents, every reference of the document resolved and typed in the placement's assembly
- * ({@link resolvedIn}), and every expression typed bottom-up with them ({@link typesOf}), the one
- * typing every placement shares.
+ * Build a package's rows under each placement (spec reading `fragment-placement`): for each
+ * placement and each of its documents, every reference of the document resolved and typed in the
+ * placement's assembly ({@link resolvedIn}), and every expression typed bottom-up with them ({@link
+ * typesOf}), the one typing every placement shares.
  *
  * @param input - The package's rows the placements read.
  * @returns The rows.

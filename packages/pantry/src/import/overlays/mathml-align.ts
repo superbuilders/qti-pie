@@ -1,6 +1,6 @@
 /**
- * The MathML align overlay's rows (spec reading 2, §C's `rowsOf`): from one document's view
- * (`DocumentView` of `#pantry/import/fold.ts`), the rows of every relation
+ * The MathML align overlay's rows (spec reading `mathml-validity`, §C's `rowsOf`): from one
+ * document's view (`DocumentView` of `#pantry/import/fold.ts`), the rows of every relation
  * `#pantry/qti/mathml-align.ts` declares.
  *
  * - **`MathAction`**, one row for every `m:maction`: its element rank and element count, the lexical
@@ -25,13 +25,13 @@
  *   in another is its own cell with no leaf, not a leaf of the outer one, as the oracle's
  *   `contentOfCell` (`#pantry/test/oracle.ts`) reads it too.
  *
- * A direction is the `dir` an element writes where its value is `ltr` or `rtl`, and else
- * the one its parent holds, except that an `m:math` that writes neither holds `ltr` (MathML 3
- * §2.2.1 and §3.1.5.1, reading 164). A `dir` of any other form, HTML's `auto` among them, has no
- * `AlignDirection`, so the element changes no direction. A cell's root takes the direction of the
- * nearest ancestor up to its `m:math` that writes `ltr` or `rtl`, else `ltr`, the host's statement
- * (audit items 1 and 2). An HTML ancestor's `dir` is not read. No row copies a `dir`: the database
- * reads each scoped element's own from the attribute where it stands (C18).
+ * A direction is the `dir` an element writes where its value is `ltr` or `rtl`, and else the one
+ * its parent holds, except that an `m:math` that writes neither holds `ltr` (MathML 3 §2.2.1 and
+ * §3.1.5.1, reading `mathml-direction`). A `dir` of any other form, HTML's `auto` among them, has
+ * no `AlignDirection`, so the element changes no direction. A cell's root takes the direction of
+ * the nearest ancestor up to its `m:math` that writes `ltr` or `rtl`, else `ltr`, the host's
+ * statement (audit items 1 and 2). An HTML ancestor's `dir` is not read. No row copies a `dir`: the
+ * database reads each scoped element's own from the attribute where it stands (C18).
  *
  * The rows are built in one pass over the nodes in document order, each parent's before its
  * children's, appending to its lists in place, so a document with one element of many children

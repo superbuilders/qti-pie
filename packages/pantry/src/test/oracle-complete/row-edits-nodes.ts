@@ -293,9 +293,9 @@ export const nodeEdits = {
     };
   }),
   /**
-   * Text arm (§1.4): a text node with no Text row, drawn among the texts no m:cn holds. A cn's
-   * text emptied is refused by "MathML cn form" (an empty part is no number of its type, spec
-   * reading 2), a law the oracle raises ahead of text-copy, and that law is not weakened
+   * Text arm (§1.4): a text node with no Text row, drawn among the texts no m:cn holds. A cn's text
+   * emptied is refused by "MathML cn form" (an empty part is no number of its type, spec reading
+   * `mathml-validity`), a law the oracle raises ahead of text-copy, and that law is not weakened
    * (decision 355): the arm proves text-copy alone, so it leaves a cn's text to the cn form arm.
    */
   "text arm": editingRows("text arm", item, (rows) => (source) => {

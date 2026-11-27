@@ -97,8 +97,8 @@ export const rowEdits = {
     );
   }),
   /**
-   * AL4 data name (AL4): a `data-*` attribute's name outside reading 13's language: an upper-case
-   * letter in it, or nothing after the prefix.
+   * AL4 data name (AL4): a `data-*` attribute's name outside reading `data-attribute-name`'s
+   * language: an upper-case letter in it, or nothing after the prefix.
    */
   "AL4 data name": editingRows("AL4 data name", item, (rows) => (source) => {
     const names = rows.openAttributes.filter((open) => open.class === "data-*");

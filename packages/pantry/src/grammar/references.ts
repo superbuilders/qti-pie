@@ -2,7 +2,7 @@
  * The closed relations of variables and the references to them: `DeclarationKind`, `Declares`,
  * `BuiltInVariable`, `VariableReference`, `ContentReference`, `ChoiceBound`, `ChoiceCount` and
  * `SectionPart` (fin.md §14, §17; review R9); and of the references a document makes to the files
- * of its package, `ReferenceAttribute` (spec reading 103).
+ * of its package, `ReferenceAttribute` (spec reading `file-references`).
  *
  * Each is a priori, a fact of QTI's vocabulary, so it is a closed relation. The rows are a
  * vocabulary's facet ({@link ReferenceFacet}), and {@link references} codes the facets of a
@@ -95,11 +95,13 @@ interface BuiltInRow {
 /**
  * What a most of 0 means in a count bound, in code order: the `BoundZero` roster's handles.
  *
- * - `unbounded`: a most of 0 imposes no limit, so any least meets it (spec readings 53 and 76: "If
- *   max-choices is 0 then there is no restriction", information model §5.30.2).
+ * - `unbounded`: a most of 0 imposes no limit, so any least meets it (spec readings
+ *   `max-strings-zero` and `least-at-most-most`: "If max-choices is 0 then there is no
+ *   restriction", information model §5.30.2).
  * - `counted`: 0 is a count like any other, below every least of at least 1, and the pair binds only
- *   where the least is written (spec reading 18: the order interactions give 0 no meaning of its
- *   own, and "If unspecified, all of the choices must be ordered and max-choices is ignored").
+ *   where the least is written (spec reading `order-min-choices`: the order interactions give 0 no
+ *   meaning of its own, and "If unspecified, all of the choices must be ordered and max-choices is
+ *   ignored").
  */
 export const boundZeros = ["unbounded", "counted"] as const;
 
@@ -149,7 +151,7 @@ export type ReferenceForm = (typeof referenceForms)[number];
 
 /**
  * One attribute by which an element of a kind names a file of its package, and how its value names
- * it (spec reading 103).
+ * it (spec reading `file-references`).
  */
 interface FileReferenceRow {
   readonly form: ReferenceForm;
@@ -195,9 +197,9 @@ type CensusKinds =
   | { readonly _tag: "prefixed"; readonly prefix: string };
 
 /**
- * One entry of spec reading 103's census: an attribute that names a file, on the listed kinds, or
- * on every kind of the vocabulary that declares it where none are listed, how its value names the
- * file, and the source that makes its value a reference to a file.
+ * One entry of spec reading `file-references`'s census: an attribute that names a file, on the
+ * listed kinds, or on every kind of the vocabulary that declares it where none are listed, how its
+ * value names the file, and the source that makes its value a reference to a file.
  */
 interface CensusEntry {
   readonly form: ReferenceForm;
@@ -223,14 +225,14 @@ const onKinds = (
 ): CensusEntry => ({ form, kinds: { _tag: "listed", kinds }, name, source });
 
 /**
- * Spec reading 103's census in the ASI vocabulary: the attributes of QTI's HTML subset whose HTML
- * definition is a URL its element links to, cites, embeds or loads, and QTI's own attributes the
- * information model defines as the location of a file. IMS Content Packaging 1.2's
+ * Spec reading `file-references`'s census in the ASI vocabulary: the attributes of QTI's HTML
+ * subset whose HTML definition is a URL its element links to, cites, embeds or loads, and QTI's own
+ * attributes the information model defines as the location of a file. IMS Content Packaging 1.2's
  * InterchangePackage (d) then requires every file such a value resolves to within the package to be
  * one the manifest describes (`imscp_infov1p2pd2.txt:411`). A PCI's four module attributes resolve
- * against the package's root (spec reading 201): its configurations as written (form
- * `package`), and each module's `primary-path` and `fallback-path` as the file the loader loads,
- * the path with `.js` appended unless it ends in `.js` (form `module`).
+ * against the package's root (spec reading `pci-module-locations`): its configurations as written
+ * (form `package`), and each module's `primary-path` and `fallback-path` as the file the loader
+ * loads, the path with `.js` appended unless it ends in `.js` (form `module`).
  *
  * Left out, each because its value names no file as written: `cp:file` and `cp:resource`'s `href`,
  * the manifest's own file list, which InterchangePackage (b) binds through `File`; `xml:base`,
@@ -289,7 +291,7 @@ export const asiCensus: readonly CensusEntry[] = [
   onKinds(
     "secondary-configuration",
     ["qti-interaction-modules"],
-    "information model §5.77.2 (spec reading 11): a fallback module configuration file, relative to the package's root",
+    "information model §5.77.2 (spec reading `pci-secondary-configuration`): a fallback module configuration file, relative to the package's root",
     "package",
   ),
   onKinds(
@@ -320,8 +322,8 @@ export const asiCensus: readonly CensusEntry[] = [
 
 /**
  * An attribute of the ASI vocabulary whose value is a URI, or a location a loader completes, that
- * spec reading 103 leaves out of its census because the value names no file as written: its name,
- * the kinds that carry it, and why.
+ * spec reading `file-references` leaves out of its census because the value names no file as
+ * written: its name, the kinds that carry it, and why.
  */
 interface LeftOutEntry {
   readonly kinds: readonly [string, ...string[]];
@@ -330,17 +332,18 @@ interface LeftOutEntry {
 }
 
 /**
- * Spec reading 103's "Left out" list in the ASI vocabulary, the attributes no {@link asiCensus}
- * entry names though a renderer may read a location from them: a census attribute's value must
- * resolve to a file the manifest describes (IMS Content Packaging 1.2, InterchangePackage (d)), and
- * none of these values names one as written. A check that pairs a renderer's URL attributes with
- * the census reads this list for the attributes the census leaves out on purpose.
+ * Spec reading `file-references`'s "Left out" list in the ASI vocabulary, the attributes no
+ * {@link asiCensus} entry names though a renderer may read a location from them: a census
+ * attribute's value must resolve to a file the manifest describes (IMS Content Packaging 1.2,
+ * InterchangePackage (d)), and none of these values names one as written. A check that pairs a
+ * renderer's URL attributes with the census reads this list for the attributes the census leaves
+ * out on purpose.
  */
 export const asiLeftOut: readonly LeftOutEntry[] = [
   {
     kinds: ["qti-response-processing"],
     name: "template",
-    why: "the identifier of a published template, not its location (spec reading 51)",
+    why: "the identifier of a published template, not its location (spec reading `built-in-templates`)",
   },
   {
     kinds: ["qti-custom-operator"],
@@ -423,8 +426,8 @@ export const textReferenceKinds: readonly TextReferenceKind[] = [
 ];
 
 /**
- * Spec reading 103's census in XInclude: `xi:include`'s `href`, "a URI reference ... the location
- * of the resource to include" (XInclude 1.0 §3.1).
+ * Spec reading `file-references`'s census in XInclude: `xi:include`'s `href`, "a URI reference ...
+ * the location of the resource to include" (XInclude 1.0 §3.1).
  */
 export const xiCensus: readonly CensusEntry[] = [
   onKinds(
@@ -436,10 +439,10 @@ export const xiCensus: readonly CensusEntry[] = [
 ];
 
 /**
- * Spec reading 103's census in MathML 3: `href`, which makes any element a hyperlink (§2.1.6);
- * `math`'s `altimg`, its fallback image, and `cdgroup`, a content dictionary group file (§2.2.1);
- * `mglyph`'s `src`, the glyph's image (§3.2.1.2); `share`'s `src`, the shared expression (§4.2.7);
- * and the `src` of `annotation` and `annotation-xml`, the annotation's location (§5.1.2).
+ * Spec reading `file-references`'s census in MathML 3: `href`, which makes any element a hyperlink
+ * (§2.1.6); `math`'s `altimg`, its fallback image, and `cdgroup`, a content dictionary group file
+ * (§2.2.1); `mglyph`'s `src`, the glyph's image (§3.2.1.2); `share`'s `src`, the shared expression
+ * (§4.2.7); and the `src` of `annotation` and `annotation-xml`, the annotation's location (§5.1.2).
  * `definitionURL` identifies a symbol's definition and names no file, so it is left out.
  */
 export const mathmlCensus: readonly CensusEntry[] = [
@@ -462,8 +465,8 @@ export const mathmlCensus: readonly CensusEntry[] = [
 ];
 
 /**
- * Spec reading 103's census in SSML 1.1: `audio`'s `src`, the audio file (§3.3.1), and `lexicon`'s
- * `uri`, the pronunciation lexicon document (§3.1.4).
+ * Spec reading `file-references`'s census in SSML 1.1: `audio`'s `src`, the audio file (§3.3.1),
+ * and `lexicon`'s `uri`, the pronunciation lexicon document (§3.1.4).
  */
 export const ssmlCensus: readonly CensusEntry[] = [
   onKinds("src", ["ssml:audio"], "SSML 1.1 §3.3.1: the audio file", "uri"),
@@ -514,15 +517,16 @@ export const itemRoots = ["qti-assessment-item", "qti-response-processing"] as c
 
 /**
  * The roots whose processing holds a test's built-in variables: a test's, and a section's, whose
- * processing a test reaches (information model §2.2.2, the test-level `duration`; spec reading 29).
+ * processing a test reaches (information model §2.2.2, the test-level `duration`; spec reading
+ * `duration-variable-type`).
  */
 export const testRoots = ["qti-assessment-test", "qti-assessment-section"] as const;
 
 /**
  * The variables QTI declares itself, which a document's processing names without declaring them,
  * each by the roots that hold it, with the declaration kind, base type and cardinality it stands as
- * there (information model §2.2.2, Item Variables, and §2.2.2.1, Context Variable; spec reading 29,
- * the UP audit's A63; `info.txt` lines 8462 to 8468 and 9214):
+ * there (information model §2.2.2, Item Variables, and §2.2.2.1, Context Variable; spec reading
+ * `duration-variable-type`, the UP audit's A63; `info.txt` lines 8462 to 8468 and 9214):
  *
  * - An item's built-in response variables `numAttempts`, a single integer, and `duration`, "a single
  *   float that records the accumulated time (in seconds)", and its built-in outcome variable
@@ -608,8 +612,9 @@ const itemRoot = "qti-assessment-item";
  * `outcome-identifier`, "The identifier of an outcome variable that must have a base-type of
  * identifier and be of either single or multiple cardinality. The visibility of the test feedback
  * is controlled by assigning a value (or values) to this outcome variable during Outcomes
- * Processing" (information model §5.157.2, TestFeedback; the UP audit's A43, spec reading 77). It
- * names an outcome the test declares, read as the bare identifier.
+ * Processing" (information model §5.157.2, TestFeedback; the UP audit's A43, spec reading
+ * `feedback-and-printed-variable-names`). It names an outcome the test declares, read as the bare
+ * identifier.
  */
 const testFeedback = {
   attribute: "outcome-identifier",
@@ -655,7 +660,7 @@ const contentNames: ReadonlyMap<string, Arr.NonEmptyReadonlyArray<string>> = new
  * holds a `base` or `index` reference to a single integer variable (information model §9.3.3,
  * `#pantry/qti/queries.ts`). A portable custom interaction's context
  * variable names the built-in `QTI_CONTEXT` or a declared context variable (information model
- * §2.2.2.1, Context Variable; the Schematron's rule 20Ba, spec reading 9).
+ * §2.2.2.1, Context Variable; the Schematron's rule 20Ba, spec reading `schematron-intent`).
  */
 const printing: ReadonlyMap<
   string,
@@ -684,9 +689,9 @@ const printing: ReadonlyMap<
  * The pairs of count attributes whose least may not exceed their most: the choices, the
  * associations, a choice's matches, a medium's plays and an extended text's strings (information
  * model, each interaction's and choice's `min-*` and `max-*`, `match-min` and `match-max`, and
- * §5.48.7's `min-strings`; spec readings 53 and 76; the rule `choice-bounds`). The kinds that carry
- * a pair are the XSD's: every kind declaring both. A most of 0 bounds nothing there, but on the
- * kinds {@link orderedChoices} names.
+ * §5.48.7's `min-strings`; spec readings `max-strings-zero` and `least-at-most-most`; the rule
+ * `choice-bounds`). The kinds that carry a pair are the XSD's: every kind declaring both. A most of
+ * 0 bounds nothing there, but on the kinds {@link orderedChoices} names.
  */
 const boundPairs: readonly Omit<BoundRow, "kind" | "zero">[] = [
   { max: "max-choices", min: "min-choices" },
@@ -697,14 +702,15 @@ const boundPairs: readonly Omit<BoundRow, "kind" | "zero">[] = [
 ];
 
 /**
- * The order interactions, each with the kind of its choices: spec reading 18, from the information
- * model's "If specified, min-choices must be 1 or greater but must not exceed the number of choices
- * available. If unspecified, all of the choices must be ordered and max-choices is ignored" and
- * "Used in conjunction with min-choices, if specified, max-choices must be greater than or equal to
- * min-choices and must not exceed the number of choices available" (§5.97.2 and §5.97.3,
- * OrderInteraction; §5.61.1 and §5.61.2, GraphicOrderInteraction). Neither gives a `max-choices` of
- * 0 a meaning of its own, so their bound is `counted`, and their choices bound both counts. The
- * number of choices is the interaction's `qti-simple-choice` or `qti-hotspot-choice` children.
+ * The order interactions, each with the kind of its choices: spec reading `order-min-choices`, from
+ * the information model's "If specified, min-choices must be 1 or greater but must not exceed the
+ * number of choices available. If unspecified, all of the choices must be ordered and max-choices
+ * is ignored" and "Used in conjunction with min-choices, if specified, max-choices must be greater
+ * than or equal to min-choices and must not exceed the number of choices available" (§5.97.2 and
+ * §5.97.3, OrderInteraction; §5.61.1 and §5.61.2, GraphicOrderInteraction). Neither gives a
+ * `max-choices` of 0 a meaning of its own, so their bound is `counted`, and their choices bound
+ * both counts. The number of choices is the interaction's `qti-simple-choice` or
+ * `qti-hotspot-choice` children.
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_OrderInteraction.Attr_min-choices | QTI 3.0 information model, 5.97.2 OrderInteraction min-choices}
  */
@@ -1106,7 +1112,7 @@ export interface References<K extends string = string, N extends string = string
   >;
   /**
    * `ChoiceCount`: kind → choice, the kind of the children whose number bounds both of the kind's
-   * counts where its least is written (spec reading 18).
+   * counts where its least is written (spec reading `order-min-choices`).
    */
   readonly choiceCount: Closed<readonly [KindField<K>], readonly [IdField<"choice", K>]>;
   /**
@@ -1136,7 +1142,7 @@ export interface References<K extends string = string, N extends string = string
   readonly sectionPart: Closed<readonly [KindField<K>], readonly []>;
   /**
    * `ReferenceAttribute`: (kind, name) → form, every attribute by which an element of a kind names
-   * a file of its package, and how its value names it (spec reading 103).
+   * a file of its package, and how its value names it (spec reading `file-references`).
    */
   readonly referenceAttribute: Indexed<
     readonly [KindField<K>, AttributeField<"name", N>],

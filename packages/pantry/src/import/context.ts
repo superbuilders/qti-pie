@@ -1,6 +1,7 @@
 /**
- * The context each listed document is judged in (spec readings 85 and 117): the ancestry and the
- * nearest interaction its document node holds, which every node below it inherits.
+ * The context each listed document is judged in (spec readings `inclusion-cycles` and
+ * `fragment-placement`): the ancestry and the nearest interaction its document node holds, which
+ * every node below it inherits.
  *
  * A document no site names is judged as it stands: no ancestry, its own document node as its
  * nearest interaction. A document sites name, an included fragment, is judged where it is placed:
@@ -12,13 +13,13 @@
  * row, judged in one context.
  *
  * A site is an `xi:include` under a parent whose model holds an explicit include particle (spec
- * reading 114), whose href resolves, as its `ReferencePath` does, to a listed document a resource
- * names: never the manifest, which is no resource's document (reading 115:
- * "Fragments are packaged as separate resources"; reading 146: a resource whose href names the
- * manifest names no document), so a site whose href names it names no document. The contexts are
- * a fixpoint over the sites: a fragment a fragment includes inherits through the includer's own
- * context, and a chain that returns to a document on it, which the database refuses as an
- * inclusion cycle, is cut where the walk meets the bound.
+ * reading `include-as-information-model`), whose href resolves, as its `ReferencePath` does, to a
+ * listed document a resource names: never the manifest, which is no resource's document (reading
+ * `include-target`: "Fragments are packaged as separate resources"; reading `manifest-document`: a
+ * resource whose href names the manifest names no document), so a site whose href names it names no
+ * document. The contexts are a fixpoint over the sites: a fragment a fragment includes inherits
+ * through the includer's own context, and a chain that returns to a document on it, which the
+ * database refuses as an inclusion cycle, is cut where the walk meets the bound.
  */
 import { Array as Arr, Equal, Option } from "effect";
 import type { Kind } from "#pantry/grammar/compose.ts";
@@ -61,19 +62,19 @@ export interface ListedTarget {
 }
 
 /**
- * The kinds an include is a site under (spec reading 114).
+ * The kinds an include is a site under (spec reading `include-as-information-model`).
  */
 const includeParents: ReadonlySet<string> = new Set(includeParentKinds);
 
 /**
  * Whether a node is a site: a section ref, which places the section document it refers to in its
  * test's assembly (information model §7.5: it "functions as a facade for the qti-assessment-section
- * to which it refers"; spec reading 85), or an include under a parent that holds an explicit
- * include particle (spec reading 114), that pantry reads. An include that writes an `xpointer`, or
- * a `parse` of `text`, is valid XInclude (XInclude 1.0 Second Edition, §3.1), which pantry neither
- * evaluates nor holds the bytes for, so it is stored as written, no site, and never included (spec
- * reading 85; QTI 3.0 Conformance §3, "ignore or remove the unsupported data"), as the database's
- * `ReadInclude` reads it.
+ * to which it refers"; spec reading `inclusion-cycles`), or an include under a parent that holds an
+ * explicit include particle (spec reading `include-as-information-model`), that pantry reads. An
+ * include that writes an `xpointer`, or a `parse` of `text`, is valid XInclude (XInclude 1.0 Second
+ * Edition, §3.1), which pantry neither evaluates nor holds the bytes for, so it is stored as
+ * written, no site, and never included (spec reading `inclusion-cycles`; QTI 3.0 Conformance §3,
+ * "ignore or remove the unsupported data"), as the database's `ReadInclude` reads it.
  *
  * @param document - The node's document, by its attributes' index.
  * @param node - The node.
@@ -98,7 +99,7 @@ export const isSite = (
 interface Listed extends FlatDocument {
   /**
    * Whether the document is a resource's, so a site may name it: every listed document but the
-   * manifest, which is no resource's (spec reading 146).
+   * manifest, which is no resource's (spec reading `manifest-document`).
    */
   readonly named: boolean;
   readonly path: string;
@@ -128,7 +129,7 @@ export interface Judged<L extends Listed> {
   /**
    * Whether a site names the document, so it is an instance under every document that places it
    * (Q5.13's `Instance`), and the root of an assembly of its own unless an include splices it in
-   * place (`splicingParents`, spec reading 117).
+   * place (`splicingParents`, spec reading `fragment-placement`).
    */
   readonly targeted: boolean;
 }

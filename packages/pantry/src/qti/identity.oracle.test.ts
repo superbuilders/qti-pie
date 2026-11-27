@@ -101,7 +101,7 @@ describe("test/oracle.ts, Label tools", () => {
             literal: (drawn) => JSON.stringify(drawn),
             oracle: {
               kind: "specification",
-              name: 'the QTI 3.0.1 information model\'s label characteristic (§5.16.5: "If an item uses labels then values for the associated toolName and toolVersion characteristics must also be provided"), and the item\'s own label (§4.1.3 says the same of it, "attributes" for "characteristics"; spec reading 128)',
+              name: 'the QTI 3.0.1 information model\'s label characteristic (§5.16.5: "If an item uses labels then values for the associated toolName and toolVersion characteristics must also be provided"), and the item\'s own label (§4.1.3 says the same of it, "attributes" for "characteristics"; spec reading `label-tool`)',
             },
             suite: "test/oracle-label-tools",
           },
@@ -213,7 +213,7 @@ describe("test/oracle.ts, DocumentId key and Idref target over typed texts (C50)
             literal: (drawn) => JSON.stringify(drawn),
             oracle: {
               kind: "specification",
-              name: "XML Schema 1.0 Part 1 §3.15.5 and cvc-id (reading 101): an element text's ID is bound to its parent, no id's binding has two members, and an IDREF names an id of its document",
+              name: "XML Schema 1.0 Part 1 §3.15.5 and cvc-id (reading `text-id-binding`): an element text's ID is bound to its parent, no id's binding has two members, and an IDREF names an id of its document",
             },
             suite: "test/oracle-typed-ids",
           },
@@ -305,9 +305,9 @@ describe("test/oracle.ts, DocumentId key and Idref target over typed texts (C50)
 });
 
 /**
- * One choice of the Document lang box: the item root's `xml:lang`, whether its resource names it
- * by `href` (else by its one file, which names no document under reading 93), and the languages
- * of each general category of the resource's record.
+ * One choice of the Document lang box: the item root's `xml:lang`, whether its resource names it by
+ * `href` (else by its one file, which names no document under reading `resource-href`), and the
+ * languages of each general category of the resource's record.
  */
 interface DocumentLangCase {
   readonly generals: readonly (readonly string[])[];
@@ -318,7 +318,7 @@ interface DocumentLangCase {
 /**
  * The LOM languages a general category of the Document lang box lists: `en`, `fr`, `EN` (`en` in
  * another case) and ` en ` (`en` padded, an `xs:string` whose spaces are part of its value, so no
- * language tag: spec reading 134).
+ * language tag: spec reading `languages-by-records`).
  */
 const lomLanguages = ["en", "fr", "EN", " en "] as const;
 
@@ -391,7 +391,7 @@ describe("test/oracle.ts, Document lang (R26)", () => {
             literal: (drawn) => JSON.stringify(drawn),
             oracle: {
               kind: "specification",
-              name: 'QTI 3.0 Metadata §2.7.1.3 ("There must be one value for each of the languages referred to by the language attributes on the associated assessmentItem, test or object bank and its \'bodyElements\'"), over a resource that names its item by href (reading 93), an xml:lang by its collapsed value, the empty one stating none (XML 1.0 §2.12), compared with each listed language as a tag, without regard to case (RFC 5646 §2.1.1); a LOM language is an xs:string, read as written, so one with spaces around it is no tag ("Whitespace is not permitted in a language tag", §2.1; reading 134)',
+              name: 'QTI 3.0 Metadata §2.7.1.3 ("There must be one value for each of the languages referred to by the language attributes on the associated assessmentItem, test or object bank and its \'bodyElements\'"), over a resource that names its item by href (reading `resource-href`), an xml:lang by its collapsed value, the empty one stating none (XML 1.0 §2.12), compared with each listed language as a tag, without regard to case (RFC 5646 §2.1.1); a LOM language is an xs:string, read as written, so one with spaces around it is no tag ("Whitespace is not permitted in a language tag", §2.1; reading `languages-by-records`)',
             },
             suite: "test/oracle-document-lang",
           },
@@ -568,7 +568,7 @@ type SsmlLawSituation =
   | "lookup in its own speak"
   | "lookup across speaks";
 
-describe("test/oracle.ts, SSML trim mark and SSML lexicon reference (reading 3)", () => {
+describe("test/oracle.ts, SSML trim mark and SSML lexicon reference (reading `ssml-document-is-fragment`)", () => {
   it.effect(
     "breaks SSML trim mark exactly where a startmark names a mark its own speak defines other than once, names compared collapsed, and SSML lexicon reference exactly where a lookup's lexicon is in another speak",
     (ctx) =>
@@ -591,7 +591,7 @@ describe("test/oracle.ts, SSML trim mark and SSML lexicon reference (reading 3)"
             literal: (drawn) => JSON.stringify(drawn),
             oracle: {
               kind: "specification",
-              name: 'SSML 1.1 §3.1.1.1 ("Only markers defined once in the document, i.e. that are unique, are permitted as the value of either startmark or endmark") and §3.1.5.1 ("The scope of this name is the current SSML document"), read under spec reading 3: "the document" is each speak fragment, a name compared by its value, collapsed (mark@name, startmark and endmark are xsd:tokens, SSML 1.1 §3.3.2, whose whiteSpace is collapse, XML Schema Part 2 §4.3.6), so a  b and a b are one name',
+              name: 'SSML 1.1 §3.1.1.1 ("Only markers defined once in the document, i.e. that are unique, are permitted as the value of either startmark or endmark") and §3.1.5.1 ("The scope of this name is the current SSML document"), read under spec reading `ssml-document-is-fragment`: "the document" is each speak fragment, a name compared by its value, collapsed (mark@name, startmark and endmark are xsd:tokens, SSML 1.1 §3.3.2, whose whiteSpace is collapse, XML Schema Part 2 §4.3.6), so a  b and a b are one name',
             },
             suite: "test/oracle-ssml-fragment",
           },

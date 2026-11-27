@@ -20,9 +20,9 @@
 --     declared responses' and outcomes' defaults in force (the declared ones, or those its template processing set),
 --     each empty where none is;
 --   - `member_bounds`: each member's outcome declarations' `normal-minimum`, which every one has ("It is set to 0 by
---     default", Table 4.5.8; pantry's NormalMinimum, spec reading 149), and `normal-maximum`, where written (Table
+--     default", Table 4.5.8; pantry's NormalMinimum, spec reading `normal-minimum-default`), and `normal-maximum`, where written (Table
 --     4.5.7 states no default).
--- An item's own processing holds every one of them empty, and "Outcome only" (pantry, spec reading 23) keeps every
+-- An item's own processing holds every one of them empty, and "Outcome only" (pantry, spec reading `outcome-only-expressions`) keeps every
 -- kind below out of it, so an item's run never reaches one. A test whose processing the machine cannot grade exactly to
 -- the information model (GRADING-SQL's "gradable", the delivered test's limit) never reaches it; one that does and
 -- breaks a contract here raises, as a defect.
@@ -37,7 +37,7 @@
 --     none;
 --   - then its `exclude-category`'s: "If specified, only variables from items with no matching category are included"
 --     (7.39.3, info:82711); one shared category excludes a member.
--- An absent characteristic keeps every member (spec reading 216.4, plate's `keptItems`, restated here).
+-- An absent characteristic keeps every member (spec reading `null-results`, point 4, plate's `keptItems`, restated here).
 create function p3.kept(inp p3.inputs, nd p3.walk_node) returns setof p3.member language sql immutable as $$
   select m.place, m.ref from unnest(inp.members) m
   where (not exists (select 1 from unnest(nd.sections) p)
@@ -93,7 +93,7 @@ $$;
 -- Whether a member was responded to: "items for which at least one declared response has a value that differs from its
 -- declared default (typically NULL)" (Table 6.9.61, info:57715), the default its template processing set where it set one
 -- (`member_defaults`); a value and a default differ unless both are NULL or they match as qti-match compares them, a
--- record by its fields (spec reading 216's `respondedTo`).
+-- record by its fields (spec reading `null-results`'s `respondedTo`).
 create function p3.responded(inp p3.inputs, r text) returns boolean language sql immutable as $$
   select exists (
     select 1 from declared_responses(inp => inp, r => r) mv
@@ -106,7 +106,7 @@ $$;
 -- A member judged against its correct responses, as qti-number-correct and qti-number-incorrect read it: NULL where it
 -- is not considered, "Only items for which all declared response variables have correct responses defined are
 -- considered" (Table 6.9.58, info:57592), each the correct response in force (`member_correct`), and an item that declares
--- no response is not considered either (spec reading 216.5: "An item that declares none has no response to judge correct
+-- no response is not considered either (spec reading `null-results`, point 5: "An item that declares none has no response to judge correct
 -- or incorrect, so it is not considered, rather than counted correct by an empty 'all'"); else whether every declared
 -- response matches its correct response as qti-match compares them, a NULL response matching none.
 create function p3.judged(inp p3.inputs, r text) returns boolean language sql immutable as $$
@@ -171,7 +171,7 @@ $$;
 -- have no declared maximum the result is NULL, otherwise the result has cardinality multiple and base-type float"
 -- (Table 6.9.64, info:57838). Every outcome declaration has a minimum, its default 0 where it writes none (Table 4.5.8: "It is set to 0
 -- by default"), so the minimum ignores only a member whose name names no outcome of its item: nothing, or a response, a
--- template variable or a built-in, none of which declares a bound (spec reading 216.6). The bounds in the session's
+-- template variable or a built-in, none of which declares a bound (spec reading `null-results`, point 6). The bounds in the session's
 -- sequence; none is NULL.
 create function p3.outcome_bounds(inp p3.inputs, kind text, nd p3.walk_node) returns p3.val language plpgsql immutable as $$
 declare m member; mv member_var; x float8; acc single[] := '{}';
@@ -244,10 +244,10 @@ end $$;
 -- qti-default "item identifier prefixing (see variable) may be used" (Tables 7.10 and 7.12, info:78132, info:78355). A
 -- name has
 -- one reading for each dot it splits at, the item ref before it and the variable after it, through the ref's
--- mappings; exactly one must resolve (plate's spec reading 48: "a dotted reference is accepted when exactly one reading
+-- mappings; exactly one must resolve (plate's spec reading `dotted-reference`: "a dotted reference is accepted when exactly one reading
 -- names a real item ref, test part or section and its variable"), else the reference, which the import resolves, is a
 -- defect, and raises. A numbered reading, `REF.N.VAR`, names occurrence N of an item ref "allowed to be replaced (i.e.
--- that have the with-replacement attribute set to 'true')" (Table 7.47) and nothing else (plate's spec reading 88); a
+-- that have the with-replacement attribute set to 'true')" (Table 7.47) and nothing else (plate's spec reading `numbered-reference`); a
 -- test session's members are one item session per item ref, since the ledger keys an item session by its stage and
 -- item and the delivered test's stated limit (IMPL-TESTPLAYER's DeliveredTest) refuses a selection, so no member
 -- repeats and a numbered reading resolves through none: it is never read as a variable `N.VAR`, which no identifier

@@ -80,8 +80,9 @@ export interface InlineChoiceInteraction<
    */
   readonly messages: { readonly min: Option.Option<string> };
   /**
-   * `min-choices`, 0 when absent: a count, 0 to 2^63-1, held exactly (reading 46). One above 1 is
-   * kept as written, so under `validate-responses` no response of a single binding meets it.
+   * `min-choices`, 0 when absent: a count, 0 to 2^63-1, held exactly (reading `count-range`). One
+   * above 1 is kept as written, so under `validate-responses` no response of a single binding meets
+   * it.
    */
   readonly minChoices: bigint;
   /**
@@ -179,8 +180,8 @@ const labelRegion = <L extends Level>(
  * `data-prompt`, and its choices, each read as a Choice's is.
  *
  * `min-choices`, `required`, `shuffle` and each choice's `fixed` are read as their XSD types read
- * them, their outer whitespace gone (reading 7): `required=" true "` is true. The body walk has
- * bound it to a single identifier response ({@link binding}).
+ * them, their outer whitespace gone (reading `typed-value-whitespace`): `required=" true "` is
+ * true. The body walk has bound it to a single identifier response ({@link binding}).
  *
  * @param source The `qti-inline-choice-interaction` element.
  * @param context What the body walk hands a module: the path, the kit and the declaration.

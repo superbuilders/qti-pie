@@ -159,7 +159,8 @@ const unavailableTypes = (grammar: ComposedGrammar, node: Node): readonly string
  */
 export const foreignEdits = {
   /**
-   * MathML foreign element (reading 6): a foreign element named in MathML's namespace.
+   * MathML foreign element (reading `nested-root-in-wildcard`): a foreign element named in MathML's
+   * namespace.
    */
   "MathML foreign element": editingRows("MathML foreign element", item, (rows) =>
     nameEdited(rows, (name) => (source) => ({
@@ -197,8 +198,8 @@ export const foreignEdits = {
     };
   }),
   /**
-   * OpenElementName canonical (reading 6): a foreign element named as a closed kind its parent
-   * admits.
+   * OpenElementName canonical (reading `nested-root-in-wildcard`): a foreign element named as a
+   * closed kind its parent admits.
    */
   "OpenElementName canonical": editingRows("OpenElementName canonical", item, (rows, grammar) =>
     nameEdited(rows, (name, node) => (source) => {
@@ -210,8 +211,8 @@ export const foreignEdits = {
     }),
   ),
   /**
-   * Strictly held (reading 6): a foreign element with no type under a kind whose wildcard is
-   * strict, its nearest interaction its new parent's.
+   * Strictly held (reading `nested-root-in-wildcard`): a foreign element with no type under a kind
+   * whose wildcard is strict, its nearest interaction its new parent's.
    */
   "Strictly held": editingRows("Strictly held", item, (rows, grammar) => (source) => {
     const foreign = source.draw(
@@ -249,8 +250,9 @@ export const foreignEdits = {
     "<qti-calculator-type>basic standard</qti-calculator-type>",
   ]),
   /**
-   * XsiType available (readings 60 and 81): a foreign element governed by a pinned type of a
-   * namespace no set its parent's documents are assessed against holds.
+   * XsiType available (readings `wildcard-xsi-type` and `wildcard-global-declarations`): a foreign
+   * element governed by a pinned type of a namespace no set its parent's documents are assessed
+   * against holds.
    */
   "XsiType available": editingRows("XsiType available", item, (rows, grammar) => (source) => {
     const foreign = source.draw(

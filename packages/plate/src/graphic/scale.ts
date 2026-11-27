@@ -17,7 +17,7 @@
  * author's own size where its container's width and the host's height budget allow, smaller where
  * they do not and never larger, the image's proportions kept (the stage's sizing,
  * `#plate/ui/graphic/frame.tsx`), and the stage's own region scrolls across where the container is
- * narrower than the floor, the page never (spec-readings reading 184).
+ * narrower than the floor, the page never (spec-readings reading `image-coordinate-space`).
  *
  * @module
  * @see https://www.w3.org/TR/WCAG22/#target-size-enhanced

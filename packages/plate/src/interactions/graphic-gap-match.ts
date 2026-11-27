@@ -101,7 +101,7 @@ const binding = { baseTypes: ["directedPair"], cardinalities: ["multiple"] } as 
 
 /**
  * The shape of an associable hotspot that draws an area: every value of `shape` but `default`,
- * which the database refuses on this interaction (reading 80).
+ * which the database refuses on this interaction (reading `default-hotspot`).
  */
 type HotspotGeometry = Exclude<AreaGeometry, "default">;
 
@@ -223,8 +223,8 @@ interface GraphicGapMatchInteraction<
    */
   readonly image: Nodes<L>;
   /**
-   * `max-associations`, 1 when absent (the default the ASI XSD gives it, reading 190): the
-   * most pairs a response may hold; 0 is no limit.
+   * `max-associations`, 1 when absent (the default the ASI XSD gives it, reading
+   * `max-associations`): the most pairs a response may hold; 0 is no limit.
    */
   readonly maxAssociations: bigint;
   /**

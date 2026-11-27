@@ -1,7 +1,7 @@
 /**
- * The reference package of the response processing templates QTI 3.0.1 publishes (spec reading 51,
- * pantry's `publishedTemplates`): 1EdTech's six template documents, byte for byte as
- * `https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/<name>.xml` serves them, each at
+ * The reference package of the response processing templates QTI 3.0.1 publishes (spec reading
+ * `built-in-templates`, pantry's `publishedTemplates`): 1EdTech's six template documents, byte for
+ * byte as `https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/<name>.xml` serves them, each at
  * `<name>.xml` and listed by its manifest as an `imsqti_rptemplate_xmlv3p0` resource, whose root is
  * the template's `qti-response-processing`. It is content like any other package: pantry admits it,
  * an installation's content load publishes it under {@link templatePackage}, before any item that

@@ -47,7 +47,7 @@ export const spelledBaseTypeOf = (lexical: Option.Option<string>): Option.Option
  * as written, since the enumeration restricts `xs:string`, whose whitespace is preserved. It is the
  * one reading of a cardinality, so a declaration whose `cardinality` spells none has no
  * `DeclarationCardinality` and no law reads a cardinality of it (lane NIL's audit, B11; spec
- * reading 158).
+ * reading `unspelled-declaration`).
  *
  * @param lexical - The lexical form, none where the attribute is unwritten.
  * @returns The handle it spells, none where it is unwritten or spells none, which AL3 or its value
@@ -86,13 +86,13 @@ export interface TypedDeclaration {
  * preserved, so a padded one spells none), and its name, its `identifier`'s value, where that is
  * written and names something ({@link namedBy}).
  *
- * Every declaration is judged whatever the three spell (spec readings 157 and 158): each that is
- * unwritten or spells nothing is only absent from its view, a missing value being no sentinel (lane
- * NIL's audit, B10 and B11). AL3 (a required `identifier` or `cardinality` unwritten) or the
- * attribute's value domain (written and spelling nothing) refuses it alone (the orchestrator's
- * ruling of 2026-11-06), and no law reads a type or a name the declaration does not have. The
- * builders that read declarations, the references' among them, read them through this, so they
- * agree on which have which.
+ * Every declaration is judged whatever the three spell (spec readings `unnamed-declaration` and
+ * `unspelled-declaration`): each that is unwritten or spells nothing is only absent from its view,
+ * a missing value being no sentinel (lane NIL's audit, B10 and B11). AL3 (a required `identifier`
+ * or `cardinality` unwritten) or the attribute's value domain (written and spelling nothing)
+ * refuses it alone (the orchestrator's ruling of 2026-11-06), and no law reads a type or a name the
+ * declaration does not have. The builders that read declarations, the references' among them, read
+ * them through this, so they agree on which have which.
  *
  * @param attributes - Its `base-type` and `cardinality` as written and its `identifier`'s value.
  * @returns The declaration.

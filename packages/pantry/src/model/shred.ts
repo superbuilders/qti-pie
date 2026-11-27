@@ -16,9 +16,9 @@
  * `xs:anyType`, whose content is a `##any` `lax` wildcard (XML Schema 1.0 Part 1, §3.4.7, and
  * §3.10.4, clause 1), so its children are read the same way under it: one a global declaration
  * names is of that kind, and any other is passed over as foreign while its own children are read in
- * turn (spec readings 30 and 57). The admission relation already says which parents admit which
- * classes of foreign element and which kinds a wildcard's processing validates, so shred reads no
- * wildcard.
+ * turn (spec readings `qti-in-annotation-xml` and `lax-content-prose-rules`). The admission
+ * relation already says which parents admit which classes of foreign element and which kinds a
+ * wildcard's processing validates, so shred reads no wildcard.
  *
  * An attribute is read under its closed `AttributeName` handle where its element's kind admits that
  * handle, and otherwise under the open class its name falls in (`openClassOf` of
@@ -89,8 +89,9 @@ export interface ShredGrammar<V extends XdmVocabulary> {
     child: ElementKind<V> | ForeignKind,
   ) => boolean;
   /**
-   * Whether an element admits an attribute name: a row of its governor's `GovernedAttribute`
-   * where a governor governs it, else of its kind's `AttributeAdmission` (spec reading 84).
+   * Whether an element admits an attribute name: a row of its governor's `GovernedAttribute` where
+   * a governor governs it, else of its kind's `AttributeAdmission` (spec reading
+   * `governing-type`).
    *
    * @param kind - The kind of the attribute's element, a foreign kind for a foreign element.
    * @param governs - The element's governing type, its `TypeName` handle, none where no named type
@@ -145,11 +146,11 @@ export interface ShredGrammar<V extends XdmVocabulary> {
   readonly closedName: (spelling: string) => Option.Option<ClosedName<V>>;
   /**
    * Whether a parent's `strict` wildcards find the global declaration of an element that spec
-   * reading 6 keeps foreign (`foreignRoots` of `#pantry/vocab/open.ts`): a row of
-   * `HeldRootsUnder`, whose pattern matches the element's expanded name. Such an element is
+   * reading `nested-root-in-wildcard` keeps foreign (`foreignRoots` of `#pantry/vocab/open.ts`): a
+   * row of `HeldRootsUnder`, whose pattern matches the element's expanded name. Such an element is
    * assessed against that declaration (XML Schema 1.0 Part 1, §3.10.4 clause 2, §3.3.4 clause
-   * 1.1.1.3.2), so it is no element the wildcard holds without one, and reading 6 keeps it as
-   * foreign content, unrefused, as under `lax` (C13).
+   * 1.1.1.3.2), so it is no element the wildcard holds without one, and reading
+   * `nested-root-in-wildcard` keeps it as foreign content, unrefused, as under `lax` (C13).
    *
    * @param parent - The kind of the element's parent.
    * @param name - The element's expanded name.
@@ -189,9 +190,10 @@ export interface ShredGrammar<V extends XdmVocabulary> {
     parent: ElementKind<V> | ForeignKind | "document",
   ) => Option.Option<ElementKind<V>>;
   /**
-   * Whether only a `strict` wildcard of a parent admits a foreign kind: a row of `StrictlyHeld`.
-   * An element read as that kind there has no declaration its document's schema set gives it, so
-   * it stands only with an `xsi:type` naming a type that set holds or a built-in (spec reading 81).
+   * Whether only a `strict` wildcard of a parent admits a foreign kind: a row of `StrictlyHeld`. An
+   * element read as that kind there has no declaration its document's schema set gives it, so it
+   * stands only with an `xsi:type` naming a type that set holds or a built-in (spec reading
+   * `wildcard-global-declarations`).
    *
    * @param parent - The kind of the element's parent.
    * @param kind - The foreign kind of the element's namespace class.
@@ -224,29 +226,30 @@ type ValueSite<V extends XdmVocabulary> =
  * - `declared`: an `xml:` or `xsi:` attribute its kind does not admit that `xml.xsd` or XML Schema
  *   declares, which no open class holds, since the model reads it under its closed handle only;
  * - `data-name`: a no-namespace attribute named `data-…` outside the data class's language (reading
- *   13 of `docs/spec-readings.md`);
+ *   `data-attribute-name` of `docs/spec-readings.md`);
  * - `namespace-entity`: a namespace declaration whose namespace name holds an unexpanded entity
  *   reference, so no namespace name can be read from it;
  * - `type-unresolved`: an `xsi:type` whose value is no QName whose prefix is in scope, on an element
  *   of a kind or a foreign one alike, since XML Schema assesses the attribute against its own
  *   declaration where no element declaration is found (XML Schema 1.0 Part 1, §3.3.4 clause 4.1,
- *   §3.2.4 clause 1.2, §3.15.3; spec reading 83);
+ *   §3.2.4 clause 1.2, §3.15.3; spec reading `prefix-binding`);
  * - `prefix-unbound`: a value of a QName type (`Qualified`), an attribute's other than `xsi:type` or
  *   an element's text, one of whose QNames has a prefix no declaration in scope binds, so it has no
- *   value (XML Schema 1.0 Part 2, §3.2.18; spec reading 83): the codec reads it with the bindings
- *   in scope, as it reads `xsi:type`'s, since no row holds them ({@link resolvesIn});
+ *   value (XML Schema 1.0 Part 2, §3.2.18; spec reading `prefix-binding`): the codec reads it with
+ *   the bindings in scope, as it reads `xsi:type`'s, since no row holds them ({@link resolvesIn});
  * - `type-unknown`: an `xsi:type` on an element of a kind whose QName names no type of the pinned
  *   schemas (clause 4.2); on a foreign element such a name leaves it to lax assessment, or under
- *   `strict` is `strict-undeclared` (spec reading 60);
+ *   `strict` is `strict-undeclared` (spec reading `wildcard-xsi-type`);
  * - `strict-undeclared`: an element a `strict` wildcard holds that no global declaration of its
  *   document's schema set names, with no `xsi:type` naming a type of that set or a built-in, so XML
- *   Schema cannot assess it (§3.10.4 clause 2, §3.3.4 clause 1.2; spec reading 81).
+ *   Schema cannot assess it (§3.10.4 clause 2, §3.3.4 clause 1.2; spec reading
+ *   `wildcard-global-declarations`).
  * - `mathml-foreign`: an element in the MathML namespace that would be read as a foreign element, or
  *   that is a MathML kind its parent does not admit, where no MathML kind its parent admits takes
  *   its name. MathML's grammar starts at `math` and its `anyElement` excludes MathML's own
  *   namespace (MathML 3 RelaxNG, `mathml3-common.rnc` lines 15 and 61), and "all other MathML
  *   content must be contained in a math element" (MathML 3 §2.2), so no foreign element is in that
- *   namespace (law "MathML foreign element", spec reading 2).
+ *   namespace (law "MathML foreign element", spec reading `mathml-validity`).
  *
  * `declared` and `data-name` are `openClassOf`'s own refusals (`openClassRefusals` of
  * `#pantry/vocab/open.ts`), passed through under their names.
@@ -392,8 +395,8 @@ type Reading<V extends XdmVocabulary> =
       readonly parent: Element;
       /**
        * Whether only a `strict` wildcard of the parent holds the element and it finds no
-       * declaration of it there: a root reading 6 keeps foreign whose declaration it finds is
-       * held laxly ({@link ShredGrammar.heldRoot}).
+       * declaration of it there: a root reading `nested-root-in-wildcard` keeps foreign whose
+       * declaration it finds is held laxly ({@link ShredGrammar.heldRoot}).
        */
       readonly strict: boolean;
     };
@@ -496,7 +499,7 @@ const scopeOf = (outer: Scope, declarations: readonly XdmNamespace[]): Scope =>
 /**
  * Read an `xsi:type` value as the expanded name it is: once its whitespace is collapsed
  * ({@link collapse}), a QName resolved against the bindings in scope, an unprefixed name taking the
- * default namespace (XML Schema 1.0 Part 1, §3.15.3; spec reading 83).
+ * default namespace (XML Schema 1.0 Part 1, §3.15.3; spec reading `prefix-binding`).
  *
  * @param typed - The `xsi:type` attribute.
  * @param element - The element that carries it.
@@ -554,15 +557,16 @@ const resolvesIn = (
  * A foreign element has no declaration, and its `xsi:type` is still assessed against XML Schema's
  * own declaration of the attribute (§3.2.4 clause 1.2, reached through the ur-type's `lax`
  * attribute wildcard), so a value that is no QName in scope is `type-unresolved` there too (spec
- * reading 83). A QName that names a type its document's schema set holds, or a built-in
- * (`typeAvailable`, spec reading 81), governs the element, which is then assessed against
- * that type (§3.3.4, Schema-Validity Assessment (Element), clause 1.2): a simple type's text is
- * checked by the law that reads the governing type, a complex one is reading 50's unchecked limit.
- * With no `xsi:type`, or one that names no such type, no type governs it (none): under `lax` it
- * is laxly assessed against the ur-type, its children in turn, and under `strict`, whose
- * declaration is `mustFind`, it is refused as `strict-undeclared` (§3.10.4 clause 2, §3.3.5
- * [validity] clause 1.1.3; spec reading 60). No pinned XSD writes a `skip` element wildcard, so
- * every foreign element stands under `lax` or `strict`.
+ * reading `prefix-binding`). A QName that names a type its document's schema set holds, or a
+ * built-in (`typeAvailable`, spec reading `wildcard-global-declarations`), governs the element,
+ * which is then assessed against that type (§3.3.4, Schema-Validity Assessment (Element), clause
+ * 1.2): a simple type's text is checked by the law that reads the governing type, a complex one is
+ * reading `unchecked-xsi-type`'s unchecked limit. With no `xsi:type`, or one that names no such
+ * type, no type governs it (none): under `lax` it is laxly assessed against the ur-type, its
+ * children in turn, and under `strict`, whose declaration is `mustFind`, it is refused as
+ * `strict-undeclared` (§3.10.4 clause 2, §3.3.5 [validity] clause 1.1.3; spec reading
+ * `wildcard-xsi-type`). No pinned XSD writes a `skip` element wildcard, so every foreign element
+ * stands under `lax` or `strict`.
  *
  * @param reading - How the element is read.
  * @param scope - The bindings in scope at it.
@@ -645,9 +649,10 @@ const rootReadingOf = <V extends XdmVocabulary>(
  * namespace class, its namespace against the parent's (`namespaceClassOf`), any other name is a
  * foreign element of that class: an element no vocabulary names, one a lax wildcard finds no global
  * declaration for, as a `qti-printed-variable` directly inside `m:annotation-xml` is (spec reading
- * 30), and a QTI root inside a custom interaction (reading 6). Under a foreign element the same
- * holds, since its content is a `##any` `lax` wildcard: a globally declared element is read as its
- * kind, and any other as foreign, its children read in turn (reading 57). The admission relation
+ * `qti-in-annotation-xml`), and a QTI root inside a custom interaction (reading
+ * `nested-root-in-wildcard`). Under a foreign element the same holds, since its content is a
+ * `##any` `lax` wildcard: a globally declared element is read as its kind, and any other as
+ * foreign, its children read in turn (reading `lax-content-prose-rules`). The admission relation
  * has already followed each wildcard's namespace constraint and processing (XML Schema 1.0,
  * §3.10.4), so this is the whole decision. Anywhere else the element is the kind its name resolves
  * to, which the database's admission law refuses where the parent does not admit it, and it is
@@ -660,8 +665,8 @@ const rootReadingOf = <V extends XdmVocabulary>(
  * kind either; a MathML name no kind takes is `unnamed`.
  *
  * Under a `strict` wildcard a foreign element stands only with an `xsi:type` its document's schema
- * set resolves, unless it is one of reading 6's roots whose declaration the wildcard finds there,
- * which stands as foreign content, as it would under `lax` (C13).
+ * set resolves, unless it is one of reading `nested-root-in-wildcard`'s roots whose declaration the
+ * wildcard finds there, which stands as foreign content, as it would under `lax` (C13).
  *
  * @param element - The element.
  * @param parent - How its parent is read.
@@ -792,7 +797,7 @@ const attributeOf = <V extends XdmVocabulary>(
  * The order an element's refused attributes are reported in: by namespace name, then by local name,
  * each in code point order, the keys Canonical XML sorts an element's attributes by (Canonical XML
  * 1.0, §2.2), never the order they are written in, which is not significant (XML 1.0, §3.1; spec
- * reading 137).
+ * reading `attribute-sets`).
  */
 const refusalOrder = Order.combine(
   Order.mapInput(
@@ -886,9 +891,10 @@ const miscOf = (misc: Misc): XdmMisc =>
  * A run of an element whose text is an `xs:normalizedString` ({@link ShredGrammar.replacesText}) is
  * stored as its normalized value, each tab, line feed and carriage return a space, nothing trimmed
  * (XML Schema 1.0 Part 2, §4.3.6): the value the schema gives it, which every reader of the tree,
- * the database's laws, plate and the grader, reads as stored (spec reading 7). So a `qti-value`
- * of base type string, a `ValueDType`, an extension of `xs:normalizedString` (the ASI XSD's
- * `ValueDType`), holds its value, and its export writes that value back.
+ * the database's laws, plate and the grader, reads as stored (spec reading
+ * `typed-value-whitespace`). So a `qti-value` of base type string, a `ValueDType`, an extension of
+ * `xs:normalizedString` (the ASI XSD's `ValueDType`), holds its value, and its export writes that
+ * value back.
  *
  * @param child - The child as crust read it, a run never empty after {@link joinRuns}.
  * @param replaced - Whether its element's text is an `xs:normalizedString`.
@@ -932,8 +938,8 @@ interface Opened<V extends XdmVocabulary> {
  * next; then its text, as one value, where its governing type or its kind gives the text a QName
  * domain, which {@link resolvesIn} reads with the same bindings as the attributes. The namespace
  * declarations bind the `xsi:type` QName, and the governing type decides which attributes the
- * element admits (spec reading 84), so an attribute its declared type does not declare but its
- * governing type does is read, and one its governing type does not declare is not.
+ * element admits (spec reading `governing-type`), so an attribute its declared type does not
+ * declare but its governing type does is read, and one its governing type does not declare is not.
  *
  * @param reading - How the element is read.
  * @param parent - The element it sits in, none for the root, which a refusal of its text names.

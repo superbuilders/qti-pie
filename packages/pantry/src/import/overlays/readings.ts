@@ -1,20 +1,21 @@
 /**
- * The numbered readings of a test's variable references (information model §7.47; spec reading 88),
- * and its split readings through an item ref that names no item document (reading 110), which the
- * database cannot enumerate itself and proves once stated
- * (`#pantry/qti/overlay-queries/readings.ts`): a package-level pass over every test's assembly. And
- * each reference's readings through a scope, with the type each gives, which the per-placement
- * typing reads under each test ({@link scopedReadingsOf}, spec reading 167).
+ * The numbered readings of a test's variable references (information model §7.47; spec reading
+ * `numbered-reference`), and its split readings through an item ref that names no item document
+ * (reading `mapping-and-default-names`), which the database cannot enumerate itself and proves once
+ * stated (`#pantry/qti/overlay-queries/readings.ts`): a package-level pass over every test's
+ * assembly. And each reference's readings through a scope, with the type each gives, which the
+ * per-placement typing reads under each test ({@link scopedReadingsOf}, spec reading
+ * `weighted-test-variables`).
  *
  * A reference `SCOPE.N.VAR` written in a document a test places reads, through each placement of
  * an item ref `SCOPE` a selection with replacement can repeat, instance `N` (all digits, at least
  *
  * 1. Of its item and that item's variable `VAR`: one the item declares, one of an item's built-ins, a
  *    name one of the item ref's variable mappings gives one of the item's outcomes, or any name
- *    through an item ref that names no item document (spec reading 110). A setter's `identifier`
- *    names its own document's variable alone (reading 112), so it has no numbered reading. Each one
- *    that resolves is a row, keyed by its test, its reference, and its scope's placement and
- *    number.
+ *    through an item ref that names no item document (spec reading `mapping-and-default-names`). A
+ *    setter's `identifier` names its own document's variable alone (reading `test-setter-scope`),
+ *    so it has no numbered reading. Each one that resolves is a row, keyed by its test, its
+ *    reference, and its scope's placement and number.
  */
 import { Option } from "effect";
 import type { Addition } from "@bjornpagen/grizzle";
@@ -64,19 +65,20 @@ export interface ReadingDocument {
 
 /**
  * An item's built-in variables, which a prefixed reading reaches through its item ref (spec reading
- * 106).
+ * `prefixed-built-in-variables`).
  */
 const itemBuiltIns: ReadonlySet<string> = new Set(
   BuiltInVariable.rows.filter((row) => row.root === itemKind).map(({ variable }) => variable),
 );
 
 /**
- * The setter kinds, whose `identifier` names its own document's variable alone (reading 112).
+ * The setter kinds, whose `identifier` names its own document's variable alone (reading
+ * `test-setter-scope`).
  */
 const setters: ReadonlySet<string> = new Set(setterKinds);
 
 /**
- * An instance number: all digits, and at least 1 (reading 88).
+ * An instance number: all digits, and at least 1 (reading `numbered-reference`).
  */
 const instanceNumber = /^0*[1-9][0-9]*$/u;
 
@@ -153,7 +155,7 @@ const placementsOf = (
 /**
  * The names an item ref's item gives its variables through the ref: each the item declares, each of
  * an item's built-ins, and each a mapping of the ref gives one of the item's outcomes, none where
- * the ref names no item document, whose names are any (reading 110).
+ * the ref names no item document, whose names are any (reading `mapping-and-default-names`).
  *
  * @param holder - The item ref's document.
  * @param ref - The item ref's place.
@@ -227,8 +229,9 @@ const scopesOf = (
 /**
  * The link reading of one reference through one item ref that names no item document, where its
  * name is the item ref's identifier, a period and a name the linked item may declare (spec reading
- * 110): an NCName, since every variable's identifier is one (`IdentifierDType`, §4.5.1), so
- * `X.1.SCORE` through a repeated item ref is its numbered reading alone (reading 88).
+ * `mapping-and-default-names`): an NCName, since every variable's identifier is one
+ * (`IdentifierDType`, §4.5.1), so `X.1.SCORE` through a repeated item ref is its numbered reading
+ * alone (reading `numbered-reference`).
  *
  * @param root - The test's assembly.
  * @param reference - The reference.
@@ -261,7 +264,7 @@ const linkReadingOf = (
 /**
  * The numbered reading of one reference through one repeatable item ref, where its name is the item
  * ref's identifier, a period, an instance number at least 1, a period and a variable the item names
- * (reading 88).
+ * (reading `numbered-reference`).
  *
  * @param root - The test's assembly.
  * @param reference - The reference.
@@ -306,7 +309,7 @@ const numberedReadingOf = (
 
 /**
  * The references of a placement that read prefixes: every one but a setter's `identifier` (reading
- * 112).
+ * `test-setter-scope`).
  *
  * @param holder - The placement's document.
  * @returns The references.
@@ -398,7 +401,8 @@ interface ReadingType {
 
 /**
  * The scopes whose `duration` a test's reading names through its name and a period (§2.8.5): a test
- * part, a section, and a section ref, the facade of its placement (§7.5, reading 86).
+ * part, a section, and a section ref, the facade of its placement (§7.5, reading
+ * `test-identifier-namespace`).
  */
 const durationKinds: ReadonlySet<string> = new Set([partKind, sectionKind, sectionRefKind]);
 
@@ -470,7 +474,7 @@ interface TypedAssembly<Type extends ReadingType> {
 
 /**
  * A reading's type, `undefined` for a reading that gives none: through an item ref that names no
- * item document (reading 110), or a stated numbered reading of one.
+ * item document (reading `mapping-and-default-names`), or a stated numbered reading of one.
  */
 type Reading<Type> = Type | undefined;
 
@@ -562,7 +566,7 @@ const numberedReadingsOf = <Type extends ReadingType>(
  * or a built-in's to resolve first, never a reading here.
  *
  * @param assembly - The assembly.
- * @param prefixing - Whether the reference's name may be prefixed (reading 112).
+ * @param prefixing - Whether the reference's name may be prefixed (reading `test-setter-scope`).
  * @param reference - The reference.
  * @returns Its readings.
  */
@@ -584,8 +588,8 @@ const referenceReadingsOf = <Type extends ReadingType>(
  * reads them (`TestReading`, `#pantry/qti/overlay-queries/readings.ts`): through an item ref, the
  * item's declaration, mapped source or built-in of the rest; a scope's `duration`; and each stated
  * numbered reading; each with the type it gives, none for one through an item ref that names no
- * item document (reading 110). The per-placement typing reads a reference as its one reading's
- * variable (spec reading 167).
+ * item document (reading `mapping-and-default-names`). The per-placement typing reads a reference
+ * as its one reading's variable (spec reading `weighted-test-variables`).
  *
  * @param input - The package's rows the pass reads.
  * @param input.documents - Every document of the package, as the pass reads it.

@@ -31,7 +31,7 @@ import type { Key } from "#plate/ui/text-entry/keypad.ts";
  * change wrote, by identifier. A write names its response even when it leaves the response's value
  * as it was, so a host tells a response the child has changed from one still at the value it
  * started at, as a default the child never touched (QTI 3.0 information model 2.2.2.2; spec reading
- * 183).
+ * `response-default`).
  */
 type OnChange = (next: Held, written: readonly string[]) => void;
 

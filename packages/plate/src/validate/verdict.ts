@@ -59,10 +59,10 @@ import { isAuthorData } from "#plate/vocabulary.ts";
 import type { RootMark } from "#plate/vocabulary.ts";
 
 /**
- * Why a valid document is left unchecked: it holds SSML (reading 3), whose validity plate cannot
- * judge, an XInclude `include`, whose inclusion plate neither performs nor judges, an entity
- * reference the reader kept unexpanded, or a root that is not an item, a section or a stimulus, a
- * test among them. `path` is the element or attribute at issue.
+ * Why a valid document is left unchecked: it holds SSML (reading `ssml-document-is-fragment`),
+ * whose validity plate cannot judge, an XInclude `include`, whose inclusion plate neither performs
+ * nor judges, an entity reference the reader kept unexpanded, or a root that is not an item, a
+ * section or a stimulus, a test among them. `path` is the element or attribute at issue.
  */
 export interface UncheckedReason {
   readonly path: string;
@@ -289,8 +289,8 @@ const isLangOrBase = (attribute: SourceAttribute): boolean =>
  * `xsi:noNamespaceSchemaLocation`), `xsi:type` and `xsi:nil` ({@link isInstanceAttribute}), and,
  * beyond those, `xml:lang` and `xml:base` ({@link isLangOrBase}).
  *
- * The database judges `xsi:type` and `xsi:nil` on every element XML Schema assesses (reading 47),
- * so a valid `xsi:type` is kept, never marked.
+ * The database judges `xsi:type` and `xsi:nil` on every element XML Schema assesses (reading
+ * `xsi-attributes`), so a valid `xsi:type` is kept, never marked.
  *
  * @param attribute The attribute.
  * @returns Whether it is an allowance.
@@ -340,13 +340,13 @@ const isProperty = (local: string, attribute: SourceAttribute): boolean =>
  * author `data-*` ({@link isAuthorData}): a name in the reading's form that plate does not reserve,
  * on any element a wildcard lets carry one. A reserved name the XSD does not declare (`data-slot`,
  * `data-mode`, anything under `data-qti-` but the shared vocabulary's `data-qti-aria-*` and
- * `data-qti-a11y-content-role`, reading 200) is removed and marked, so an author's attribute never
- * reaches plate's own marker; `data-ssml`, `data-qti-suppress-tts` and `data-catalog-idref` are the
- * XSD's own, and the table keeps them first. On a `qti-portable-custom-interaction` every `data-*`
- * is kept, reserved or not, as one of its properties ({@link isProperty}). Reading 10 admits
- * `aria-keyshorts` alone where the table declares it (the empty elements, information model
- * §7.1.44), so an `aria-keyshortcuts` there is removed as any undeclared name is. Names compare
- * exactly, as XML's do.
+ * `data-qti-a11y-content-role`, reading `shared-vocabulary-data-attributes`) is removed and marked,
+ * so an author's attribute never reaches plate's own marker; `data-ssml`, `data-qti-suppress-tts`
+ * and `data-catalog-idref` are the XSD's own, and the table keeps them first. On a
+ * `qti-portable-custom-interaction` every `data-*` is kept, reserved or not, as one of its
+ * properties ({@link isProperty}). Reading `aria-keyshorts` admits `aria-keyshorts` alone where the
+ * table declares it (the empty elements, information model §7.1.44), so an `aria-keyshortcuts`
+ * there is removed as any undeclared name is. Names compare exactly, as XML's do.
  *
  * @param local The element's local name.
  * @param table The table that governs the element, none when no declaration governs it, as in
@@ -680,13 +680,13 @@ const complete = (built: Item, secured: Secured, visits: readonly Visit[]): Item
  * unchecked), each XInclude element whose parent is outside its namespace, each attribute whose
  * value holds an unexpanded entity reference, and each element with one among its children.
  *
- * An XInclude `include` is a reason in every root, a section's as an item's: an
- * included fragment is judged in place, as its merged document holds it (reading 117), and plate
- * never fetches the fragment, so it can judge neither the fragment nor the document that places
- * it. An include with an external `href`, which reading 115 ("An include names a document of its
- * package or a resource outside it") admits, is only a reason here. One with an `xpointer` or with
- * a `parse` other than `xml` never reaches here: admission refuses it (reading 85, "an included
- * fragment is read in place, as XML, with no `xpointer`").
+ * An XInclude `include` is a reason in every root, a section's as an item's: an included fragment
+ * is judged in place, as its merged document holds it (reading `fragment-placement`), and plate
+ * never fetches the fragment, so it can judge neither the fragment nor the document that places it.
+ * An include with an external `href`, which reading `include-target` ("An include names a document
+ * of its package or a resource outside it") admits, is only a reason here. One with an `xpointer`
+ * or with a `parse` other than `xml` never reaches here: admission refuses it (reading
+ * `inclusion-cycles`, "an included fragment is read in place, as XML, with no `xpointer`").
  *
  * @param visits The walk of an item, a section or a stimulus.
  * @returns The reasons, empty when plate can judge all of it.

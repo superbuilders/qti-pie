@@ -115,7 +115,7 @@ describe.skipIf(!hasLease)("import/package.test.ts, on the lease", () => {
     );
 
     it.effect(
-      "stores two packages that share a manifest identifier under their two names, and neither replaces the other (spec reading 178)",
+      "stores two packages that share a manifest identifier under their two names, and neither replaces the other (spec reading `package-name`)",
       () =>
         Effect.gen(function* sharedIdentifier() {
           const stored = yield* importDir(fixtures.simple, "shared-identifier-a");

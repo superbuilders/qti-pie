@@ -45,7 +45,7 @@ import { nameOf } from "#pantry/test/package-name.ts";
 import { searchWidth } from "#pantry/test/settings.ts";
 
 describe("qti/declarations.ts, reserved names", () => {
-  it("reserves exactly the built-in session variables, spelled exactly with no alias (spec reading 72)", () => {
+  it("reserves exactly the built-in session variables, spelled exactly with no alias (spec reading `completion-status-name`)", () => {
     assert.sameMembers(
       [...sessionVariables],
       ["completionStatus", "duration", "numAttempts"],
@@ -66,7 +66,7 @@ describe("qti/declarations.ts, reserved names", () => {
       assert.notInclude(
         sessionVariables,
         alias,
-        `${alias}: reading 72 adds no alias, so it names an ordinary variable`,
+        `${alias}: reading \`completion-status-name\` adds no alias, so it names an ordinary variable`,
       );
       assert.notInclude(BuiltIn.handles, alias, alias);
     }
@@ -75,7 +75,8 @@ describe("qti/declarations.ts, reserved names", () => {
 
 /**
  * The base types `Typed_value` judges by a pattern: every handle but those every text is a value
- * of, and `uri`, whose pattern is spec reading 71's (`value domain`'s, Q5.05), checked apart.
+ * of, and `uri`, whose pattern is spec reading `anyuri-lexical`'s (`value domain`'s, Q5.05),
+ * checked apart.
  */
 const judgedBaseTypes = BaseType.handles.filter(
   (handle) => !unjudgedBaseTypes.some((unjudged) => unjudged === handle) && handle !== "uri",
@@ -108,10 +109,11 @@ const patternOf = (baseType: string): RegExp => {
 
 /**
  * The texts of the typed-value box, each with the base types it is a value of, constructed from the
- * specification rather than read off a pattern: reading 7's outer whitespace, reading 34's
- * booleans, reading 45's unbounded integers, `xs:double`'s forms for float and duration (XML
- * Schema 1.0 writes no `+INF`), NCNames for identifiers (`true`, `INF` and `NaN` among them), and
- * the pairs and points of §8.13; then texts no base type of the box admits.
+ * specification rather than read off a pattern: reading `typed-value-whitespace`'s outer
+ * whitespace, reading `boolean-lexical`'s booleans, reading `integer-unbounded`'s unbounded
+ * integers, `xs:double`'s forms for float and duration (XML Schema 1.0 writes no `+INF`), NCNames
+ * for identifiers (`true`, `INF` and `NaN` among them), and the pairs and points of §8.13; then
+ * texts no base type of the box admits.
  */
 const texts: readonly { readonly text: string; readonly values: readonly string[] }[] = [
   { text: "true", values: ["boolean", "identifier"] },
@@ -162,9 +164,9 @@ const typedCases = ((): readonly [TypedCase, ...TypedCase[]] => {
 })();
 
 /**
- * A situation the box must reach: an admitted and a refused text, and the texts that tell
- * reading 34, `xs:boolean`'s four literals, and reading 45 apart from `true`/`false` alone and a
- * bounded integer.
+ * A situation the box must reach: an admitted and a refused text, and the texts that tell reading
+ * `boolean-lexical`, `xs:boolean`'s four literals, and reading `integer-unbounded` apart from
+ * `true`/`false` alone and a bounded integer.
  */
 type TypedSituation = "admitted" | "refused" | "boolean 1 admitted" | "long integer admitted";
 
@@ -189,7 +191,7 @@ describe("qti/declarations.ts, typed values", () => {
             literal: ({ baseType, text }: TypedCase) => `${baseType} ${JSON.stringify(text)}`,
             oracle: {
               kind: "specification",
-              name: "each text's base types, constructed from readings 7, 34 and 45, xs:double's lexical space and §8.13's pairs and points, against the pattern Typed_value reads for the base type, read by a JavaScript host",
+              name: "each text's base types, constructed from readings `typed-value-whitespace`, `boolean-lexical` and `integer-unbounded`, xs:double's lexical space and §8.13's pairs and points, against the pattern Typed_value reads for the base type, read by a JavaScript host",
             },
             suite: "qti/declarations-typed-value",
           },
@@ -212,10 +214,11 @@ describe("qti/declarations.ts, typed values", () => {
       ),
   );
 
-  it("admits a uri's text by xs:anyURI's pattern, spec reading 71's", () => {
+  it("admits a uri's text by xs:anyURI's pattern, spec reading `anyuri-lexical`'s", () => {
     /**
-     * Oracle: the specification as a checker, RFC 2396 by way of reading 71: an absolute URI and a
-     * relative reference are values, and a percent sign not followed by two hex digits is not.
+     * Oracle: the specification as a checker, RFC 2396 by way of reading `anyuri-lexical`: an
+     * absolute URI and a relative reference are values, and a percent sign not followed by two hex
+     * digits is not.
      */
     const uri = patternOf("uri");
     for (const text of ["http://example.com/a?b#c", "a/b.xml", " urn:x:y "]) {
@@ -280,7 +283,7 @@ const declaringPackage = (identifier: string): PackageEntries =>
 const hostLaws = judgedLaws(Qti);
 
 describe("qti/declarations.ts, Declaration not reserved", () => {
-  it("reserves an item's three session variables (reading 168)", () => {
+  it("reserves an item's three session variables (reading `test-reserved-names`)", () => {
     assert.sameMembers(
       [...itemSessionVariables],
       ["completionStatus", "duration", "numAttempts"],

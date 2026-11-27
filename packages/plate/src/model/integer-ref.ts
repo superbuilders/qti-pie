@@ -9,8 +9,8 @@ import { parseLexical, trimXmlSpace } from "#plate/model/values.ts";
 
 /**
  * An integer attribute that may name a variable: a `literal`, an exact integer at any size (reading
- * 45), or a `ref`, the identifier of the single integer outcome or template variable whose value
- * stands in for it where the page prints it.
+ * `integer-unbounded`), or a `ref`, the identifier of the single integer outcome or template
+ * variable whose value stands in for it where the page prints it.
  *
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#IT_Use
  */

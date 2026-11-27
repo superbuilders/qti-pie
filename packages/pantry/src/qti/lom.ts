@@ -25,11 +25,11 @@
  *   purpose's `value` whose vocabulary is LOM's own is one of that vocabulary's tokens exactly. Its
  *   vocabulary is LOM's when its `source` is `LOMv1.0`, empty or not written, which the loose
  *   binding defaults to `LOMv1.0` (`imsmd_loose_v1p3p2.xsd` lines 1260, 1392, 1468 and 1513; spec
- *   reading 122); a term of any other source is that vocabulary's, which the binding "does not
- *   enforce" (QTI 3.0 Metadata §3.6), and no law reads it ({@link otherVocabularies}). The tokens
- *   are LOM 2.2's ({@link LifeCycleStatus}), 2.3.1's and 3.2.1's ({@link ContributeRole},
- *   {@link metaMetadataRoles}), 7.1's with QTI 3.0 Metadata §2.7.7.1's `precludes`
- *   ({@link RelationKind}), and 9.1's ({@link ClassificationPurpose}).
+ *   reading `lom-learning-resource-type`); a term of any other source is that vocabulary's, which
+ *   the binding "does not enforce" (QTI 3.0 Metadata §3.6), and no law reads it
+ *   ({@link otherVocabularies}). The tokens are LOM 2.2's ({@link LifeCycleStatus}), 2.3.1's and
+ *   3.2.1's ({@link ContributeRole}, {@link metaMetadataRoles}), 7.1's with QTI 3.0 Metadata
+ *   §2.7.7.1's `precludes` ({@link RelationKind}), and 9.1's ({@link ClassificationPurpose}).
  * - **LOM vCard** (LOM 2.3.2 and 3.2.2, "vCard, as defined by IMC vCard 3.0 (RFC 2425, RFC 2426)"):
  *   every contribute's entity is a vCard 3.0, its `BEGIN:VCARD` and `END:VCARD` around a
  *   `VERSION:3.0`, an `N` and an `FN`, the properties RFC 2426 says "MUST be present" (§3.1.1,

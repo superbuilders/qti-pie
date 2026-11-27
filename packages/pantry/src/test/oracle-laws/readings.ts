@@ -5,34 +5,39 @@
  * reads and the references `#pantry/test/oracle-laws/expressions.ts` types.
  *
  * A reference written in a document a test places resolves once for each test that places it
- * (reading 5), and names, by reading 48, exactly one of:
+ * (reading `section-document`), and names, by reading `dotted-reference`, exactly one of:
  *
- * - **unsplit**, a variable of the test: one the test declares, or one of its built-ins (reading 29);
+ * - **unsplit**, a variable of the test: one the test declares, or one of its built-ins (reading
+ *   `duration-variable-type`);
  * - **split**, `SCOPE.VAR`: an item ref of the test and a variable of its item, one the item
- *   declares, one of an item's built-ins (reading 106) or a name a variable mapping of the item ref
- *   gives one of the item's outcomes (reading 107), and any identifier through an item ref that
- *   names no item document (reading 110); or a test part, a section or a section ref and its
- *   built-in `duration` (§2.8.5);
+ *   declares, one of an item's built-ins (reading `prefixed-built-in-variables`) or a name a
+ *   variable mapping of the item ref gives one of the item's outcomes (reading
+ *   `variable-mapping-adds-name`), and any identifier through an item ref that names no item
+ *   document (reading `mapping-and-default-names`); or a test part, a section or a section ref and
+ *   its built-in `duration` (§2.8.5);
  * - **numbered**, `SCOPE.N.VAR`: an item ref a selection with replacement can repeat in its
- *   placement, an instance number at least 1 and a variable of its item (reading 88).
+ *   placement, an instance number at least 1 and a variable of its item (reading
+ *   `numbered-reference`).
  *
  * Each placement of a scope is a reading of its own, so a name a section document placed twice
- * supplies is read twice (reading 86). A setter's `identifier` names a variable of its own document
- * alone, so its split and numbered readings count for nothing (reading 112).
+ * supplies is read twice (reading `test-identifier-namespace`). A setter's `identifier` names a
+ * variable of its own document alone, so its split and numbered readings count for nothing (reading
+ * `test-setter-scope`).
  *
- * - `Prefixed reference` (reading 48): no placed reference has two readings;
+ * - `Prefixed reference` (reading `dotted-reference`): no placed reference has two readings;
  * - `Variable declared` (P8, over a test's assembly): every placed reference that is not braced, a
  *   string value where it names nothing (reading R15-k), has one;
- * - `Variable kind` (reading 166): a prefixed reading by `identifier` names an item declaration of a
- *   kind its element may name;
+ * - `Variable kind` (reading `test-prefixed-response-reads`): a prefixed reading by `identifier`
+ *   names an item declaration of a kind its element may name;
  * - `Weighted variable` (§7.47.2: "Weights are defined only in the test context ... and only when the
  *   item identifier prefixing technique (see above) is being used to look up the value of an item
  *   variable"): a weighted variable has a reading through an item ref;
- * - `Mapped response` (reading 166; §7.22: a map response "transforms it using the associated
- *   mapping, which must have been declared"; §6.9.46, a map response point's area mapping): a
- *   prefixed map response's reading through an item ref that names an item document names a
- *   variable whose declaration holds a `qti-mapping`, under its own name or a mapping of the ref's,
- *   and a map response point's one that holds a `qti-area-mapping`; an item built-in holds none.
+ * - `Mapped response` (reading `test-prefixed-response-reads`; §7.22: a map response "transforms it
+ *   using the associated mapping, which must have been declared"; §6.9.46, a map response point's
+ *   area mapping): a prefixed map response's reading through an item ref that names an item
+ *   document names a variable whose declaration holds a `qti-mapping`, under its own name or a
+ *   mapping of the ref's, and a map response point's one that holds a `qti-area-mapping`; an item
+ *   built-in holds none.
  */
 import { regex } from "arkregex";
 import { Option } from "effect";
@@ -85,7 +90,8 @@ type Reference = Typed["references"][number];
 
 /**
  * The processing kinds whose `identifier` names the variable they set (information model §5.87.1,
- * §6.32.3, §6.50.1, §6.50.4, §6.50.5), which only an unsplit reading resolves (reading 112).
+ * §6.32.3, §6.50.1, §6.50.4, §6.50.5), which only an unsplit reading resolves (reading
+ * `test-setter-scope`).
  */
 const setterKinds: ReadonlySet<string> = new Set([
   "qti-lookup-outcome-value",
@@ -97,7 +103,7 @@ const setterKinds: ReadonlySet<string> = new Set([
 
 /**
  * The scopes whose `duration` a prefixed reading names (§2.8.5): a test part, a section, and a
- * section ref, the facade of its placement (§7.5, reading 86).
+ * section ref, the facade of its placement (§7.5, reading `test-identifier-namespace`).
  */
 const durationScopes: ReadonlySet<string> = new Set([
   testKinds.part,
@@ -106,8 +112,8 @@ const durationScopes: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * An instance number: all digits, and at least 1 (reading 88: "its number is all digits and at
- * least 1, the first instance being 1").
+ * An instance number: all digits, and at least 1 (reading `numbered-reference`: "its number is all
+ * digits and at least 1, the first instance being 1").
  */
 const instanceNumber = regex("^0*[1-9][0-9]*$", "u");
 
@@ -256,8 +262,9 @@ const readingsOf = (
     scopes,
     testDeclared: declaredNamesOf(test.listed.rows, grammar),
     /**
-     * The variables an item ref names through its item (§7.47, §7.48, reading 107): each the item
-     * declares, and each a mapping of the item ref gives one of the item's declarations.
+     * The variables an item ref names through its item (§7.47, §7.48, reading
+     * `variable-mapping-adds-name`): each the item declares, and each a mapping of the item ref
+     * gives one of the item's declarations.
      */
     variablesOf: ({ instance, item, name }) =>
       Option.match(item, {
@@ -432,8 +439,8 @@ const testReadingsOf = (
         Option.filter(() => attribute === "identifier"),
       );
       /**
-       * Reading 166: each reading through an item's ref claims the item variable's table, which a
-       * built-in variable never holds.
+       * Reading `test-prefixed-response-reads`: each reading through an item's ref claims the item
+       * variable's table, which a built-in variable never holds.
        */
       const unmapped = Option.toArray(table).flatMap((claimed) =>
         readings
@@ -550,7 +557,7 @@ const declaredTypesOf = (rows: View, grammar: ComposedGrammar): ReadonlyMap<stri
 
 /**
  * What one reading of a reference through a scope gives its type: a type, or `untyped` for one
- * through an item ref that names no item document (reading 110).
+ * through an item ref that names no item document (reading `mapping-and-default-names`).
  */
 type ReadingTypeOf = Type | "untyped";
 
@@ -559,12 +566,13 @@ type ReadingTypeOf = Type | "untyped";
  * `#pantry/import/overlays/readings.ts`) and the database's `TestReading` holds them: through an
  * item ref that names an item document, the item's declaration of the rest, a variable mapping's
  * source declaration for its target, or an item built-in; through one that names none, an untyped
- * reading where the rest is a name; a part's, a section's or a section ref's `duration`, the
- * test's built-in; and each numbered reading, its item's variable the same way, untyped through a
- * link. Each placement of a scope is a reading of its own. A test's own declaration or built-in of
- * the whole name is no reading here: its placements resolve those first (spec reading 117). A
- * reference is read as its one reading's variable where it has exactly one, typed (spec reading
- * 167): none, two, or an untyped one leave it unresolved.
+ * reading where the rest is a name; a part's, a section's or a section ref's `duration`, the test's
+ * built-in; and each numbered reading, its item's variable the same way, untyped through a link.
+ * Each placement of a scope is a reading of its own. A test's own declaration or built-in of the
+ * whole name is no reading here: its placements resolve those first (spec reading
+ * `fragment-placement`). A reference is read as its one reading's variable where it has exactly
+ * one, typed (spec reading `weighted-test-variables`): none, two, or an untyped one leave it
+ * unresolved.
  *
  * @param input - The package.
  * @param grammar - The composed grammar.

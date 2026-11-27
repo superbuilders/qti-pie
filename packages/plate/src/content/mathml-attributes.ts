@@ -1,7 +1,8 @@
 /**
  * The attributes plate writes on each MathML element: MathML 3's own, by the attribute groups of
  * its schemas, read by the server shell's MathML writer (`#plate/ui/item/contents/mathml.tsx`) as
- * its allow-list. It judges nothing: the database admitted the MathML (pantry's laws, reading 2).
+ * its allow-list. It judges nothing: the database admitted the MathML (pantry's laws, reading
+ * `mathml-validity`).
  *
  * @module
  */

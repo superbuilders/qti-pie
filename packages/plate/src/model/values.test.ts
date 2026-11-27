@@ -66,7 +66,7 @@ describe("parseLexical", () => {
   });
 
   it.effect(
-    "reads a float beyond the largest double as an infinity of its sign, as XML Schema 1.1's doubleLexicalMap does (reading 144)",
+    "reads a float beyond the largest double as an infinity of its sign, as XML Schema 1.1's doubleLexicalMap does (reading `bounded-double`)",
     () =>
       Effect.gen(function* floatOverflowIsInfinite() {
         const cases: readonly (readonly [string, number])[] = [

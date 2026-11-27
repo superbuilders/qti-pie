@@ -5,15 +5,15 @@
  * rows, those placed under each assembly ({@link placedIdRowsOf}).
  *
  * The rows restate what the tree says and nothing else: each element that carries an ID, with the
- * element its binding names; each element's text of an identity type and
- * its IDREF tokens; each `label`'s element, each `xml:lang`'s element's catalog scope and each
- * element on the way up to it (reading R9-c), each element on the way up from an SSML
- * attribute reading 3 reads to its fragment, and the projections those rows carry,
- * each value once (sets ruling 2). A LOM record is no row's: the database reads its languages from
- * the tree (R26's rule over a query, `#pantry/qti/queries.ts`). The database proves every one of
- * them (`identityLaws`), so a row this builder gets wrong is refused, never accepted. An ID's value
- * is no row's either: the host reads it as the database's `IdValue` does ({@link idValuesOf}),
- * where the placements copy it.
+ * element its binding names; each element's text of an identity type and its IDREF tokens; each
+ * `label`'s element, each `xml:lang`'s element's catalog scope and each element on the way up to it
+ * (reading R9-c), each element on the way up from an SSML attribute reading
+ * `ssml-document-is-fragment` reads to its fragment, and the projections those rows carry, each
+ * value once (sets ruling 2). A LOM record is no row's: the database reads its languages from the
+ * tree (R26's rule over a query, `#pantry/qti/queries.ts`). The database proves every one of them
+ * (`identityLaws`), so a row this builder gets wrong is refused, never accepted. An ID's value is
+ * no row's either: the host reads it as the database's `IdValue` does ({@link idValuesOf}), where
+ * the placements copy it.
  */
 import type { Addition } from "@bjornpagen/grizzle";
 import { Option } from "effect";
@@ -53,7 +53,8 @@ import type { InstanceMember, InstanceRoot } from "#pantry/import/overlays/tests
 /**
  * Where a document stands in its package, as this builder reads it: the part of the importer's
  * `DocumentPlace` it needs beside the document's view. `assembled` says whether its IDREFs resolve
- * per instance (spec reading 117); `package` and `path`, its {@link Place}, are every row's.
+ * per instance (spec reading `fragment-placement`); `package` and `path`, its {@link Place}, are
+ * every row's.
  */
 export type IdentityIds = Pick<DocumentPlace, "assembled" | "package" | "path">;
 
@@ -87,7 +88,7 @@ export interface IdentityRows {
 
 /**
  * A package's IDs and IDREF targets placed under each instance of each assembly (spec reading
- * 117), one keyed set per relation.
+ * `fragment-placement`), one keyed set per relation.
  */
 export interface PlacedIdRows {
   readonly PlacedId: ReadonlyMap<string, Addition<typeof PlacedId>>;
@@ -147,7 +148,7 @@ const textIdentityAt: ReadonlyMap<string, string> = new Map(
 
 /**
  * The kinds whose `label` is a `LabelUse`, as `#pantry/qti/identity.ts` selects them: those whose
- * label characteristic asks for its tool (spec reading 128).
+ * label characteristic asks for its tool (spec reading `label-tool`).
  */
 const toolLabelled: ReadonlySet<string> = new Set(toolLabelKinds);
 
@@ -184,7 +185,8 @@ const attributeIdentityOf = (
 /**
  * Decide whether an attribute's value is one of its document's IDs, as `identity.ts`'s
  * `idAttributes` selects it: its domain's identity under its element's governor is `xs:ID`, or it
- * is one of {@link idSpaceAttributes}, a context declaration's `identifier` (spec reading 74).
+ * is one of {@link idSpaceAttributes}, a context declaration's `identifier` (spec reading
+ * `identifier-names-one-variable`).
  *
  * @param attribute - The attribute row.
  * @param element - Its element's node row.
@@ -261,8 +263,8 @@ const admitted = (tree: Tree, element: NodeRow<Composed>): boolean =>
  * Write an ID's `DocumentId` row, bound to an owner, and whether its element is {@link admitted}.
  * Every ID-typed attribute and every ID text has its row, whatever its form: its value domain or
  * TextDomain refuses a form that is no NCName once collapsed where it is written (spec readings
- * 152 and 156), and the row holds no copy of the value, which `IdValue` reads where it stands
- * ({@link idValuesOf}).
+ * `ncname-names` and `id-is-ncname`), and the row holds no copy of the value, which `IdValue` reads
+ * where it stands ({@link idValuesOf}).
  *
  * @param tree - The document's tree.
  * @param element - The element that carries the ID.
@@ -395,8 +397,8 @@ interface ScopeWalk {
 
 /**
  * Walk from an element up to its scope: the element, then each parent, ending at the first element
- * of the scope's kind or at the document's root. A fragment is an SSML `speak`'s (spec reading 3),
- * a catalog a `qti-catalog-info`'s (reading R9-c).
+ * of the scope's kind or at the document's root. A fragment is an SSML `speak`'s (spec reading
+ * `ssml-document-is-fragment`), a catalog a `qti-catalog-info`'s (reading R9-c).
  *
  * @param tree - The document's tree.
  * @param element - The element.
@@ -419,7 +421,8 @@ const scopeWalkOf = (tree: Tree, element: NodeRow<Composed>, scopeKind: string):
 };
 
 /**
- * Whether an element writes an SSML attribute reading 3's laws read ({@link ssmlReads}).
+ * Whether an element writes an SSML attribute reading `ssml-document-is-fragment`'s laws read
+ * ({@link ssmlReads}).
  *
  * @param tree - The document's tree.
  * @param element - The element.
@@ -432,9 +435,10 @@ const writesSsmlRead = (tree: Tree, element: NodeRow<Composed>): boolean =>
   );
 
 /**
- * Build the rows a document's SSML attributes give (spec reading 3): the `SsmlScope` of each
- * element on the walk up from an element that writes an attribute reading 3 reads to its fragment.
- * The database reads the attributes where they stand, in the fragment their element's scope names.
+ * Build the rows a document's SSML attributes give (spec reading `ssml-document-is-fragment`): the
+ * `SsmlScope` of each element on the walk up from an element that writes an attribute reading
+ * `ssml-document-is-fragment` reads to its fragment. The database reads the attributes where they
+ * stand, in the fragment their element's scope names.
  *
  * @param tree - The document's tree.
  * @returns The rows, each by its key text.
@@ -739,9 +743,9 @@ const placementKey = (placement: Placement): string =>
   documentKey({ package: placement.package, path: placement.document });
 
 /**
- * Build a package's placed IDs and IDREF targets (spec reading 117): under each instance of each
- * assembly, every ID and every `IdrefTarget` of the instance's document, a placed ID's `id` its
- * document ID's value, as `IdValue` holds it.
+ * Build a package's placed IDs and IDREF targets (spec reading `fragment-placement`): under each
+ * instance of each assembly, every ID and every `IdrefTarget` of the instance's document, a placed
+ * ID's `id` its document ID's value, as `IdValue` holds it.
  *
  * @param input - The package's rows the placements read.
  * @param input.ids - Every document's IDs beside their values ({@link idValuesOf}).

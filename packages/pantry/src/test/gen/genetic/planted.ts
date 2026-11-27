@@ -8,7 +8,7 @@
  * - A test part's `qti-time-limits` with `min-time="-1"`, under `NonNegativeDoubleDType`'s
  *   `minInclusive="0.0"`;
  * - A slider's `step="-1"`, under the same bound;
- * - An outcome's `normal-maximum="0"`, under reading 16's `minExclusive="0"`.
+ * - An outcome's `normal-maximum="0"`, under reading `normal-maximum-positive`'s `minExclusive="0"`.
  *
  * They are judged every run (`src/test/genetic.oracle.test.ts`), and the two sides agree on each:
  * none waits on a fix.

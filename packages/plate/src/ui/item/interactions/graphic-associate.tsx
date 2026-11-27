@@ -60,7 +60,8 @@ const areasOf = (
  *
  * The island's `maxAssociations` is the payload's `max-associations` (5.59.2), the XSD's default of
  * 1 where the author wrote none and 0 no limit: an item bound to a `single` response opens only
- * with 1 there (plate's reading 92), so the island never posts a `single` response twice.
+ * with 1 there (plate's reading `binding-and-count-sentences`), so the island never posts a
+ * `single` response twice.
  *
  * @param paired The Graphic Associate and its payload node.
  * @param paired.payload Its payload node: its image, hotspots, `max-associations`, prompt and

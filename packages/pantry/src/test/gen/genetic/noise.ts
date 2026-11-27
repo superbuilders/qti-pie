@@ -5,7 +5,7 @@
  * a refusal named by which statement happened to fire, not by the cause (the history's hot spot 1).
  *
  * - `attribute-order`: every element's attributes, namespace declarations included, reversed (reading
- *   137: no law reads attribute order);
+ *   `attribute-sets`: no law reads attribute order);
  * - `prefix-rename`: each prefix a document declares renamed to one it does not use;
  * - `resource-order`: the manifest's resources reversed;
  * - `path-rename`: one document renamed within its directory, every href that names it rewritten to

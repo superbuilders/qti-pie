@@ -1,7 +1,7 @@
 /**
  * A fragment's references resolve where it is included, once per placement, as its merged document
- * holds them (spec reading 117): a fragment an item splices resolves its feedback and printed
- * variables in the item's declarations.
+ * holds them (spec reading `fragment-placement`): a fragment an item splices resolves its feedback
+ * and printed variables in the item's declarations.
  *
  * The box is the every-relation package with a fragment spliced into the body of its third item.
  * The fragment makes one reference, a printed variable or a feedback outcome, which names a

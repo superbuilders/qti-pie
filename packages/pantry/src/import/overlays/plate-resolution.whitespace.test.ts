@@ -7,12 +7,12 @@
  * The importer reads an attribute's value by its whitespace class (`valueReadingOf`, the ASI XSD's
  * type: an `xs:anyURI` collapses, a `URLDType` replaces, `object@data`'s `xs:string` preserves; XML
  * Schema 1.0 Part 2 §4.3.6), sets the whitespace around it aside (`hrefTextOf`), and resolves what
- * remains (spec reading 102). Plate reads the same value (`urlValueOf` of `#plate/model/url.ts`)
- * before the URL parser does, which alone would keep an `xs:anyURI`'s inner run of spaces and
- * remove a tab a `URLDType` replaces, so the two must name one file for every form here. The
- * corpus holds no such value (`plate-resolution.corpus.test.ts`), so this box stands beside it, and
- * a planted resolver that reads the lexical form raw, its inner runs kept, shows the box tells the
- * two apart.
+ * remains (spec reading `href-resolution`). Plate reads the same value (`urlValueOf` of
+ * `#plate/model/url.ts`) before the URL parser does, which alone would keep an `xs:anyURI`'s inner
+ * run of spaces and remove a tab a `URLDType` replaces, so the two must name one file for every
+ * form here. The corpus holds no such value (`plate-resolution.corpus.test.ts`), so this box stands
+ * beside it, and a planted resolver that reads the lexical form raw, its inner runs kept, shows the
+ * box tells the two apart.
  *
  * Free: it opens no database and reads no corpus. plate is a devDependency of this package only,
  * so plate never depends on pantry.

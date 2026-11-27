@@ -169,8 +169,9 @@ const namingOf = (
 
 /**
  * Render a Slider's island. The value it shows is the one its response holds in the host's
- * `<Responses>`: its default as the attempt starts (the server's start, spec reading 183), else
- * nothing until the child sets it. The payload node's `start` is the value a review shows.
+ * `<Responses>`: its default as the attempt starts (the server's start, spec reading
+ * `response-default`), else nothing until the child sets it. The payload node's `start` is the
+ * value a review shows.
  *
  * @param paired The Slider and its payload node.
  * @param paired.model The redacted model node the payload node was given for.

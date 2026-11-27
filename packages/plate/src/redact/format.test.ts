@@ -40,7 +40,7 @@ const optionsOf = ({ format, index, ...rest }: Written): PrintOptions => ({
 const printed = (value: Value, written: Written): string =>
   Option.getOrThrow(formatPrinted(value, optionsOf(written), textBound));
 
-describe("formatPrinted: a float's exact value rounds to the nearest, a tie to the even digit, as C's printf does (reading 209)", () => {
+describe("formatPrinted: a float's exact value rounds to the nearest, a tie to the even digit, as C's printf does (reading `format-float-rounding`)", () => {
   const cases: readonly (readonly [string, number, string])[] = [
     ["%.1f", 0.25, "0.2"],
     ["%.1f", -0.25, "-0.2"],
@@ -63,7 +63,7 @@ describe("formatPrinted: a float's exact value rounds to the nearest, a tie to t
   }
 });
 
-describe("formatPrinted: power-form rewrites every exponent a float prints in (reading 209)", () => {
+describe("formatPrinted: power-form rewrites every exponent a float prints in (reading `format-float-rounding`)", () => {
   it("writes the exponent of e, E, g and r output so too, its power with no sign or leading zero", () => {
     assert.strictEqual(
       printed(float(12_345), { format: "%e", powerForm: true }),
@@ -81,7 +81,7 @@ describe("formatPrinted: power-form rewrites every exponent a float prints in (r
 });
 
 describe("formatPrinted: the conversions beyond the worked table", () => {
-  it("truncates a float's exact value under an integer conversion, as C converts a double to an integer (reading 209)", () => {
+  it("truncates a float's exact value under an integer conversion, as C converts a double to an integer (reading `format-float-rounding`)", () => {
     assert.strictEqual(printed(float(1e23), { format: "%i" }), "99999999999999991611392");
     assert.strictEqual(printed(float(1e23), { format: "%.0f" }), "99999999999999991611392");
     assert.strictEqual(

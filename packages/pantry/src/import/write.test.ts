@@ -1167,14 +1167,14 @@ layer(NodeServices.layer, { excludeTestServices: true })("nodeIdsOf", (suite) =>
             assert.deepStrictEqual(
               ids.documentAt(ids.path),
               Option.some(ids.path),
-              `${label}: a path is one document (reading 93): the import lists a resource's path once, and the manifest again where a resource names it (#pantry/import/program.ts), so documentAt names the document at every listed path`,
+              `${label}: a path is one document (reading \`resource-href\`): the import lists a resource's path once, and the manifest again where a resource names it (#pantry/import/program.ts), so documentAt names the document at every listed path`,
             );
             assert.strictEqual(
               Option.isSome(ids.targetAt(ids.path)),
               placed.some(
                 (other) => other.ids.path === ids.path && other.listed.documentType !== "manifest",
               ),
-              `${label}: targetAt names only a path some listing names under a resource type, never the manifest's own listing, which names none (reading 115)`,
+              `${label}: targetAt names only a path some listing names under a resource type, never the manifest's own listing, which names none (reading \`include-target\`)`,
             );
           }
         }

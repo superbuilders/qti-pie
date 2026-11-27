@@ -16,10 +16,10 @@
  *   is the notice, as the shipped kinds give one. A `pair` is unordered, so `A B` and `B A` are one
  *   pair, which the value model's equality already holds.
  * - `max-associations` defaults to 1 and `min-associations` to 0 (`imsqti_asiv3p0p1_v1p0.xsd:24927`,
- *   `:24928`). Reading 53 gives `max-associations="0"` and `match-max="0"` the meaning of no
- *   restriction, and reading 76 holds a least count at most its most unless the most is 0. Reading
- *   92 binds a count above 1, or 0, to a `multiple` response, which the database enforces before
- *   this module reads the element.
+ *   `:24928`). Reading `max-strings-zero` gives `max-associations="0"` and `match-max="0"` the
+ *   meaning of no restriction, and reading `least-at-most-most` holds a least count at most its
+ *   most unless the most is 0. Reading `binding-and-count-sentences` binds a count above 1, or 0,
+ *   to a `multiple` response, which the database enforces before this module reads the element.
  * - A choice's `match-max` is the most pairs it may be in, and its `match-min` the fewest (default
  *   0); its `match-group` lists the choices it may pair with, and an absent one means any.
  *

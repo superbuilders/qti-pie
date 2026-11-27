@@ -6,7 +6,7 @@
  *
  * The test is one part of one section that places the package's first two items by their own
  * identifiers (QTI §4.1.1) and sets its outcome from the first by a prefixed reading (spec reading
- * 48), so it breaks no law as written.
+ * `dotted-reference`), so it breaks no law as written.
  */
 
 /**

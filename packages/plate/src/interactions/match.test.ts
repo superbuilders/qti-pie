@@ -4,7 +4,7 @@
  * The binding is held to the class descriptions' sentences: "The MatchInteraction must be bound to
  * a response variable with base-type directedPair and either single or multiple cardinality"
  * (section 5.89), and the GapMatchInteraction the same "depending on the number of gaps" (section
- * 5.57), which reading 169 reads for two or more gaps.
+ * 5.57), which reading `gap-match-cardinality` reads for two or more gaps.
  *
  * @module
  */

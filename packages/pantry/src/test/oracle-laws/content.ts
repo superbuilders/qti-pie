@@ -5,7 +5,8 @@
  * declarations of the document that holds the reference's scope, as the schema resolves them
  * (`ContentReference`, `#pantry/qti/interactions.ts`; `#pantry/qti/overlay-queries/reference.ts`).
  *
- * A reference's scope is the assembly root whose declarations it names (spec readings 117 and 145):
+ * A reference's scope is the assembly root whose declarations it names (spec readings
+ * `fragment-placement` and `spliced-fragment`):
  *
  * - An item's or a test's own references, a fragment it splices among them, resolve in its own
  *   declarations (`referringRoots`, `#pantry/vocab/terms/interactions.ts`): a test's feedback names
@@ -19,9 +20,9 @@
  * The laws: `Feedback reference`, `Template reference`, `Printed variable reference` and `Context
  * variable reference`, a reference names a declaration of a kind its attribute may name, or a
  * built-in of its scope's root that stands as one; `Feedback outcome type` and `Template variable
- * type`, the variable it names is single or multiple, of base type identifier (§5.49.1, reading 77,
- * decision 432); and `Printed variable type`, a printed variable's `base` or `index` that names a
- * variable names a single integer one (§9.3.3).
+ * type`, the variable it names is single or multiple, of base type identifier (§5.49.1, reading
+ * `feedback-and-printed-variable-names`, decision 432); and `Printed variable type`, a printed
+ * variable's `base` or `index` that names a variable names a single integer one (§9.3.3).
  */
 import { regex } from "arkregex";
 import { Option } from "effect";
@@ -68,7 +69,7 @@ type Breach = LawBreach<ContentLaw>;
 /**
  * The declarations a document's content references resolve in: its scope's root's declarations by
  * identifier, the document that holds them, and the root's kind, whose built-in variables a
- * reference may name (`BuiltInVariable`, spec reading 29).
+ * reference may name (`BuiltInVariable`, spec reading `duration-variable-type`).
  */
 export interface ContentScope {
   readonly declared: ReadonlyMap<string, readonly Row[]>;
@@ -180,7 +181,8 @@ const declarationOf = (
 
 /**
  * Hold a declared variable to a single or multiple identifier, where each half spells something
- * (spec readings 158 and 159): the keys of the breach it is, none where it holds.
+ * (spec readings `unspelled-declaration` and `binding-by-name`): the keys of the breach it is, none
+ * where it holds.
  *
  * @param scope - The scope that declares it.
  * @param declaration - The declaration.
@@ -225,12 +227,13 @@ const printable: ReadonlySet<string> = new Set([...outcomes, ...templates]);
  *
  * - An `outcome-identifier` names, by §5.49.1, "an outcome variable that must have a base-type of
  *   identifier and be of either single or multiple cardinality", a built-in by the type its name
- *   has (reading 77).
+ *   has (reading `feedback-and-printed-variable-names`).
  * - A `template-identifier` names a single or multiple identifier (decision 432), but on a portable
  *   custom interaction's `qti-template-variable`, which states no type.
  * - A printed variable's `base` and `index` are, by §9.3.3, "attributes of integer type that may be
  *   replaced with the value of a template or outcome variable of base type integer and single
- *   cardinality", each half where it spells something (spec readings 158 and 159).
+ *   cardinality", each half where it spells something (spec readings `unspelled-declaration` and
+ *   `binding-by-name`).
  *
  * @param rows - The node's document.
  * @param node - The node.
@@ -370,10 +373,10 @@ export const contentDocumentBreaches = (rows: View, grammar: ComposedGrammar): r
   });
 
 /**
- * Judge the content references of every document a test places whole, once per test, in the
- * test's own declarations (spec reading 145): each instance of its assembly whose document is no
- * item or test and lies outside the test's own merged document, judged over the document's own
- * rows, each fragment it splices an instance of its own.
+ * Judge the content references of every document a test places whole, once per test, in the test's
+ * own declarations (spec reading `spliced-fragment`): each instance of its assembly whose document
+ * is no item or test and lies outside the test's own merged document, judged over the document's
+ * own rows, each fragment it splices an instance of its own.
  *
  * @param input - The package.
  * @param grammar - The composed grammar.

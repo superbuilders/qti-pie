@@ -10,18 +10,18 @@
  * package relative path" (implementation guide §3.7.12.2), and a module named only in a
  * configuration file's JSON `paths` is resolved there. It also lets the delivery engine narrow
  * that: "A delivery engine MAY ignore any package relative locations which are not defined in the
- * manifest of the QTI content package. A delivery engine MAY apply security rules to the URLs
- * from which it will load Javascript files" (§3.7.12.2), for "a high stakes secure browser context
- * where access is permitted only to files included in the QTI content package" (§3.7.12.1). This
- * one loads no script from outside the package (plate's resolution, R5, `#plate/pci/resolve.ts`),
- * reads no configuration file's `paths` for a file it serves, and serves an item's PCIs only the
- * files the item document names that its media policy lists (`pciFactsOf` and `servedAt`,
+ * manifest of the QTI content package. A delivery engine MAY apply security rules to the URLs from
+ * which it will load Javascript files" (§3.7.12.2), for "a high stakes secure browser context where
+ * access is permitted only to files included in the QTI content package" (§3.7.12.1). This one
+ * loads no script from outside the package (plate's resolution, R5, `#plate/pci/resolve.ts`), reads
+ * no configuration file's `paths` for a file it serves, and serves an item's PCIs only the files
+ * the item document names that its media policy lists (`pciFactsOf` and `servedAt`,
  * `#ledger/served-item.ts`; pantry's `ServedFile`), so a module it can load is exactly one a
  * `qti-interaction-module` of the item locates in the package, by its `primary-path` or its
- * `fallback-path` (reading 201), whose file the item's `ServedFile` rows name. A package whose
- * item's PCI names a module of no such location could never render it, and a package is closed,
- * never changed, so it would never be served: it is refused at its publish, naming this law, as
- * "Template held" refuses an item whose template the store does not hold
+ * `fallback-path` (reading `pci-module-locations`), whose file the item's `ServedFile` rows name. A
+ * package whose item's PCI names a module of no such location could never render it, and a package
+ * is closed, never changed, so it would never be served: it is refused at its publish, naming this
+ * law, as "Template held" refuses an item whose template the store does not hold
  * (`#ledger/response-programs.ts`).
  *
  * The law's two sides:
@@ -40,10 +40,10 @@
  * A configuration a PCI's modules child writes (`primary-configuration`, `secondary-configuration`,
  * information model §5.77.1–2: "a JSON configuration file which describes the PCI module
  * configuration to use for this interaction instance") gives its loads' waits, never a location
- * (plate's R2, reading 246), and the law holds it as it holds a module: every configuration a PCI
- * of an item document writes names one of the item's `ServedFile` rows, so the delivery can always
- * read a stated wait ({@link ServedConfiguration}). One the PCI does not write, the schema's
- * default, is no row of `Attribute`, and nothing holds it.
+ * (plate's R2, reading `pci-configuration-waits`), and the law holds it as it holds a module: every
+ * configuration a PCI of an item document writes names one of the item's `ServedFile` rows, so the
+ * delivery can always read a stated wait ({@link ServedConfiguration}). One the PCI does not write,
+ * the schema's default, is no row of `Attribute`, and nothing holds it.
  *
  * Three narrowings of QTI 3.0.1 follow from the delivery's rule, each refused under this law: a PCI
  * that writes no `module` (information model §5.106.2 lets the modules child name every module it
@@ -53,8 +53,9 @@
  * the policy withholds (one a library module of the entry's, which the frame could never load).
  *
  * A PCI of a document that is no item is not held: the delivery opens an item document alone,
- * performing no include (reading 217), and shows an interaction of a stimulus as a notice, never
- * running it, so no module of a stimulus's or a fragment's PCI is ever loaded.
+ * performing no include (reading `include-before-judgement`), and shows an interaction of a
+ * stimulus as a notice, never running it, so no module of a stimulus's or a fragment's PCI is ever
+ * loaded.
  *
  * The response a PCI binds is its own response declaration's, and its grading is the item's
  * response processing, which the SQL grader runs: nothing here reads either.
@@ -163,7 +164,8 @@ export const moduleHeldOf = (ledger: LedgerLevel) => {
    * a `primary-path` (§7.17.2, "the primary location from which to load the Javascript module") or
    * a `fallback-path` (§7.17.3, "the location from which to load the Javascript module if the
    * module can't be loaded from the primary location") the importer resolved in the package
-   * (pantry's `ReferencePath`, reading 201), whose target is one of the document's `ServedFile`s.
+   * (pantry's `ReferencePath`, reading `pci-module-locations`), whose target is one of the
+   * document's `ServedFile`s.
    */
   const LocatedModule = derived(
     "LocatedModule",
@@ -202,7 +204,7 @@ export const moduleHeldOf = (ledger: LedgerLevel) => {
 
   /**
    * Each configuration a PCI of an item document writes, by its modules child's place and its
-   * name: a wait the delivery reads (reading 246).
+   * name: a wait the delivery reads (reading `pci-configuration-waits`).
    */
   const ItemConfiguration = derived(
     "ItemConfiguration",
@@ -219,8 +221,8 @@ export const moduleHeldOf = (ledger: LedgerLevel) => {
 
   /**
    * Each configuration the importer resolved in the package (pantry's `ReferencePath`, reading
-   * 201) whose target is one of its document's `ServedFile`s, by its modules child's place and its
-   * name.
+   * `pci-module-locations`) whose target is one of its document's `ServedFile`s, by its modules
+   * child's place and its name.
    */
   const ServedConfiguration = derived(
     "ServedConfiguration",

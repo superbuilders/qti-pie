@@ -13,21 +13,20 @@
  * page's interactions write, and `startingResponses` gives the responses an attempt starts from,
  * which a host's `<Responses>` holds. A host posts them typed, as `PostedResponses` in
  * `@qti-pie/plate/codec` encodes them, and its server decodes them once with the same Schema.
- * `format` writes a value
- * in its base type's lexical form, which `parseLexical` reads back, and `readIeeeDouble` reads an
- * `xs:double` as plate reads every one. The QTI database admits or refuses the answers in the
- * statement that grades them, and `refusalMessages` words a refused answer's reasons for its page.
- * `textOfXhtml` reads an `xhtml` Extended Text's value back as the text its box shows, the text the
- * QTI database matches its `pattern-mask` against (reading 244). `typedResponseOf` reads a typed
- * response from its boxes' texts as a Text Entry's and an Extended Text's islands do, by
- * `readTyped` and `readRecord`, one box's reading, so server code reads typed text as a page does,
- * and `typedEntry` and `takesTyped` say which texts a box takes at all, its `pattern-mask`
- * among what decides it, as a page's boxes refuse the rest.
- * `restore` reads a record's shown values back, and `solution` gives the item's correct responses
- * as its interactions show them. `assetPaths` names the package files an item body's URL attribute
- * names. `Supports` is the accessibility supports a host enables for one candidate, `<Item>`'s
- * `supports`, and `noSupports` enables none, from which a host enables the spoken support at a
- * reading type, as a candidate's read-aloud setting asks.
+ * `format` writes a value in its base type's lexical form, which `parseLexical` reads back, and
+ * `readIeeeDouble` reads an `xs:double` as plate reads every one. The QTI database admits or
+ * refuses the answers in the statement that grades them, and `refusalMessages` words a refused
+ * answer's reasons for its page. `textOfXhtml` reads an `xhtml` Extended Text's value back as the
+ * text its box shows, the text the QTI database matches its `pattern-mask` against (reading
+ * `xhtml-pattern-mask-text`). `typedResponseOf` reads a typed response from its boxes' texts as a
+ * Text Entry's and an Extended Text's islands do, by `readTyped` and `readRecord`, one box's
+ * reading, so server code reads typed text as a page does, and `typedEntry` and `takesTyped` say
+ * which texts a box takes at all, its `pattern-mask` among what decides it, as a page's boxes
+ * refuse the rest. `restore` reads a record's shown values back, and `solution` gives the item's
+ * correct responses as its interactions show them. `assetPaths` names the package files an item
+ * body's URL attribute names. `Supports` is the accessibility supports a host enables for one
+ * candidate, `<Item>`'s `supports`, and `noSupports` enables none, from which a host enables the
+ * spoken support at a reading type, as a candidate's read-aloud setting asks.
  *
  * A Portable Custom Interaction runs where the host says: `pciModulesIn` gives each PCI of an item
  * with its module facts as written, `resolvePciModules` resolves them against the package's files

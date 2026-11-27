@@ -173,7 +173,7 @@ const anyDeclaration: readonly DeclarationHandle[] = [
  * set" (§5.87.1) or "the variable to be set" (§5.130.1, SetValue), and an item's variables reach
  * a test only to be read: "values taken from an individual item session can be looked up by
  * prefixing the name of the item variable" (§2.11.1.2). So a prefixed reading never resolves a
- * setter (spec reading 112).
+ * setter (spec reading `test-setter-scope`).
  */
 export const referenceDeclarations: readonly {
   readonly declarations: readonly DeclarationHandle[];

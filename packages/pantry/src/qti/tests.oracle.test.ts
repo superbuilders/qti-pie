@@ -194,10 +194,10 @@ const containmentsOf = (
 describe("qti/tests.ts, an external include", () => {
   it("judges Include target and the href's entry path only of a site whose href stays in the package, and proves the mark by the include's href reference", () => {
     /**
-     * Oracle: reading 115 and the href scopes of readings 35 and 102: an include whose href
-     * resolves outside the package is stored as written and never fetched, so it names no
-     * document and breaks no law; one in the package names a listed document or is refused
-     * "Include target".
+     * Oracle: reading `include-target` and the href scopes of readings `absolute-hrefs` and
+     * `href-resolution`: an include whose href resolves outside the package is stored as written
+     * and never fetched, so it names no document and breaks no law; one in the package names a
+     * listed document or is refused "Include target".
      */
     const include = { external: false, kind: "xi:include" };
     const external = { ...include, external: true };
@@ -303,7 +303,7 @@ const fragmentInclude = '<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" 
 /**
  * A section document at the package's root, `limited.xml`: a section of the third item whose
  * pre-condition reads the test's `LIMIT` against a float, so each test that places it types the
- * comparison by its own declaration of `LIMIT` (spec reading 117).
+ * comparison by its own declaration of `LIMIT` (spec reading `fragment-placement`).
  */
 const limitedSection: ListedDocument = {
   path: "limited.xml",
@@ -640,7 +640,7 @@ const structureCases = {
   },
   /**
    * A variable's name is an identifier (§4.5.1), so `remote.1.SCORE` reads no variable `1.SCORE`
-   * through the link, only its numbered reading (reading 88).
+   * through the link, only its numbered reading (reading `numbered-reference`).
    */
   "a numbered reading through a repeated item ref outside the package": {
     laws: [],
@@ -662,8 +662,8 @@ const structureCases = {
     }),
   },
   /**
-   * Reading 166, §7.22: a map response "transforms it using the associated mapping, which must have
-   * been declared", through the item ref as in the item.
+   * Reading `test-prefixed-response-reads`, §7.22: a map response "transforms it using the
+   * associated mapping, which must have been declared", through the item ref as in the item.
    */
   "a prefixed map response of a mapped response": {
     laws: [],
@@ -713,8 +713,8 @@ const structureCases = {
     }),
   },
   /**
-   * Spec reading 145: a section document a test references resolves its references in the test's
-   * declarations, once per placement.
+   * Spec reading `spliced-fragment`: a section document a test references resolves its references
+   * in the test's declarations, once per placement.
    */
   "a referenced section's rubric printing no variable": {
     documents: [sharedSection('>So far: <qti-printed-variable identifier="NOPE"/>')],
@@ -743,8 +743,8 @@ const structureCases = {
     }),
   },
   /**
-   * Spec reading 117: a section document two tests place is typed in each, by that test's own
-   * declaration of what it reads.
+   * Spec reading `fragment-placement`: a section document two tests place is typed in each, by that
+   * test's own declaration of what it reads.
    */
   "a section document two tests place, its limit a float in each": {
     documents: [limitedSection, limitingTest("float")],
@@ -763,8 +763,8 @@ const structureCases = {
     }),
   },
   /**
-   * Spec reading 167: a section's duration reads the test's duration built-in, typed duration, so
-   * it sets a duration outcome and no float one.
+   * Spec reading `weighted-test-variables`: a section's duration reads the test's duration
+   * built-in, typed duration, so it sets a duration outcome and no float one.
    */
   "a section's duration": {
     laws: [],
@@ -831,8 +831,8 @@ const structureCases = {
     test: Option.some({ declarations: verdictDeclaration, feedback: testFeedback("VERDICT") }),
   },
   /**
-   * The bank's item refs share the test's identifiers (reading 86), so the test's `item1.SCORE`
-   * reads through two item refs, ambiguous (reading 48).
+   * The bank's item refs share the test's identifiers (reading `test-identifier-namespace`), so the
+   * test's `item1.SCORE` reads through two item refs, ambiguous (reading `dotted-reference`).
    */
   "a test placing the bank by a section ref": {
     laws: ["Prefixed reference", "Test name key"],
@@ -885,7 +885,8 @@ const structureCases = {
     }),
   },
   /**
-   * Spec reading 167: a test types its prefixed references by the readings its assembly gives them.
+   * Spec reading `weighted-test-variables`: a test types its prefixed references by the readings
+   * its assembly gives them.
    */
   "an integer outcome set from an item's float outcome": {
     laws: ["Set type"],
@@ -895,8 +896,8 @@ const structureCases = {
     }),
   },
   /**
-   * Spec readings 106 and 167: an item's built-in through its item ref is typed as the item's
-   * built-in, `numAttempts` a single integer.
+   * Spec readings `prefixed-built-in-variables` and `weighted-test-variables`: an item's built-in
+   * through its item ref is typed as the item's built-in, `numAttempts` a single integer.
    */
   "an item's built-in through its item ref": {
     laws: [],
@@ -1162,7 +1163,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               literal: shownSelection,
               oracle: {
                 kind: "specification",
-                name: 'the information model\'s selection bounds by hand, against the law oracle: §5.129.1, "The number of children to select may exceed the number of child elements defined only if with-replacement is true", each part counted once (reading 79); and §4.2.2, "It is an error if a section contains a selection rule that selects fewer child elements than the number of required elements it contains"',
+                name: 'the information model\'s selection bounds by hand, against the law oracle: §5.129.1, "The number of children to select may exceed the number of child elements defined only if with-replacement is true", each part counted once (reading `selection-without-replacement`); and §4.2.2, "It is an error if a section contains a selection rule that selects fewer child elements than the number of required elements it contains"',
               },
               runs: 40,
               shrink: completeShrink,

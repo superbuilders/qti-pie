@@ -6,27 +6,28 @@
  *
  * - **One document** ({@link documentLawsOf}, {@link stimulusRefKeyOf}): `Structure identifier`, the
  *   key `(document, identifier)` over its names (A4); `Selection bound` and `Selection required`, a
- *   section selects at most its parts without replacement (§5.129.1, reading 79) and at least its
- *   required parts (§4.2.2); `Weight key`, no two weights of one item ref share an identifier
- *   (§7.50.1); `Weighted base`, a weighted test variables writes no `base-type` but float (§7.39.5,
- *   reading 167); `Stimulus ref key`, no two stimulus refs of one item share an identifier
- *   (§7.6.2).
+ *   section selects at most its parts without replacement (§5.129.1, reading
+ *   `selection-without-replacement`) and at least its required parts (§4.2.2); `Weight key`, no two
+ *   weights of one item ref share an identifier (§7.50.1); `Weighted base`, a weighted test
+ *   variables writes no `base-type` but float (§7.39.5, reading `weighted-test-variables`);
+ *   `Stimulus ref key`, no two stimulus refs of one item share an identifier (§7.6.2).
  * - **The items an item ref names** ({@link itemRefTargetsOf}, {@link itemRefLawsOf}): `Item ref
  *   target`, its href names an item or an LTI link of the package (B2, B3); `Item ref identifier`,
  *   a named item ref's identifier is its item's (QTI §4.1.1); `Variable mapping source` and
  *   `Variable mapping target`, a mapping maps an outcome its item declares onto a name no other
  *   variable of the item holds, no session variable and no other mapping's target (§7.48, readings
- *   97 and 110); `Template default target`, a template default's item ref, where its href names a
- *   path of the package, names an item that declares its template (§5.152.1, readings 108 and 110;
+ *   `variable-mapping-target` and `mapping-and-default-names`); `Template default target`, a
+ *   template default's item ref, where its href names a path of the package, names an item that
+ *   declares its template (§5.152.1, readings `template-default` and `mapping-and-default-names`;
  *   SV-LAW-02).
  * - **Each test's assembly** ({@link assemblyLawsOf}): `Test name key`, no two elements of one copy
  *   share an identifier, a fragment included twice there among them, and no two distinct elements
  *   of the test do, a section document a test references twice counting once (§4.2.1, §7.5.3,
- *   reading 86); `Branch target` and `Branch forward`, each branch rule that names no exit names,
- *   in each placement of its document, an element it may jump to after it, or the root of a
- *   fragment an include places (§2.12, §5.23, §5.98, §7.5, reading 87); `Section identifier
- *   target`, a `section-identifier` names exactly one section or section ref placement of the test
- *   (§7.27.1, §7.28.1, §7.39.1).
+ *   reading `test-identifier-namespace`); `Branch target` and `Branch forward`, each branch rule
+ *   that names no exit names, in each placement of its document, an element it may jump to after
+ *   it, or the root of a fragment an include places (§2.12, §5.23, §5.98, §7.5, reading
+ *   `branch-rule-targets`); `Section identifier target`, a `section-identifier` names exactly one
+ *   section or section ref placement of the test (§7.27.1, §7.28.1, §7.39.1).
  */
 import { Option } from "effect";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
@@ -124,7 +125,7 @@ const filteredKinds: ReadonlySet<string> = new Set([testKinds.section, testKinds
 
 /**
  * The sites whose target a shuffle above them mixes in where its root is loose: a section ref and
- * an include (§7.5, reading 87).
+ * an include (§7.5, reading `branch-rule-targets`).
  */
 const mixingSites: ReadonlySet<string> = new Set([testKinds.sectionRef, testKinds.include]);
 
@@ -166,10 +167,11 @@ const documentLawsOf = (document: AssembledDocument): readonly Breach[] =>
 
 /**
  * Judge each section of a document that selects: without replacement it selects at most its parts
- * (§5.129.1: "The number of children to select may exceed the number of child elements defined
- * only if with-replacement is true"), each part counted once (reading 79), and it selects at least
- * its parts that write `required` true (§4.2.2: "It is an error if a section contains a selection
- * rule that selects fewer child elements than the number of required elements it contains").
+ * (§5.129.1: "The number of children to select may exceed the number of child elements defined only
+ * if with-replacement is true"), each part counted once (reading `selection-without-replacement`),
+ * and it selects at least its parts that write `required` true (§4.2.2: "It is an error if a
+ * section contains a selection rule that selects fewer child elements than the number of required
+ * elements it contains").
  *
  * @param document - The document.
  * @returns The breaches.
@@ -254,7 +256,8 @@ const stimulusRefKeyOf = (listed: ListedRows): readonly Breach[] => {
 /**
  * Judge what each item ref of a listed document names, whether or not it writes an identifier: its
  * href, where it writes one inside the package, names an item or an LTI link of the package (B2,
- * B3), and one that writes none names nothing, which AL3 alone refuses (spec reading 155).
+ * B3), and one that writes none names nothing, which AL3 alone refuses (spec reading
+ * `item-ref-without-href`).
  *
  * @param input - The package.
  * @param listed - The document.
@@ -357,10 +360,12 @@ const heldOf = <Names>(
  * - `Weight key` (§7.50.1): no two weights of one item ref share an identifier;
  * - `Variable mapping source` and `Variable mapping target` (§7.48): a mapping of an item ref that
  *   names an item maps an outcome the item declares (A34), onto a name no other variable of the
- *   item holds (reading 97); no two mappings of one item ref share a target, and none targets an
- *   item session variable, whatever the ref names (reading 110);
- * - `Template default target` (§5.152.1): a template default's item ref names an item (reading 108:
- *   an LTI link has no template variable to default), which declares its template.
+ *   item holds (reading `variable-mapping-target`); no two mappings of one item ref share a target,
+ *   and none targets an item session variable, whatever the ref names (reading
+ *   `mapping-and-default-names`);
+ * - `Template default target` (§5.152.1): a template default's item ref names an item (reading
+ *   `template-default`: an LTI link has no template variable to default), which declares its
+ *   template.
  *
  * @param input - The package.
  * @param document - The document.
@@ -494,14 +499,14 @@ const itemRefLawsOf = (
 
 /**
  * One element a placed branch rule's target names in an instance that holds the rule's (spec
- * reading 87): where it stands, `named`, in the target's instance and document, with its kind; the
- * source's point in that document, the rule's owner where the two are one instance and else the
- * site there that places the source's chain; and the element whose test part and repetition are
- * the target's, `part`. From outside a section document a ref places, no target lies inside it
- * (§7.5: "branching rules should treat referred sections as leaf nodes"). An included fragment's
- * root stands at its include, an include being "treated as if it was actually an instance of the
- * root element of the fragment referred to" (§2.12), so its order is the include's place in the
- * holder's document, and its part and its repetition are its placed root's.
+ * reading `branch-rule-targets`): where it stands, `named`, in the target's instance and document,
+ * with its kind; the source's point in that document, the rule's owner where the two are one
+ * instance and else the site there that places the source's chain; and the element whose test part
+ * and repetition are the target's, `part`. From outside a section document a ref places, no target
+ * lies inside it (§7.5: "branching rules should treat referred sections as leaf nodes"). An
+ * included fragment's root stands at its include, an include being "treated as if it was actually
+ * an instance of the root element of the fragment referred to" (§2.12), so its order is the
+ * include's place in the holder's document, and its part and its repetition are its placed root's.
  */
 interface Candidate {
   readonly kind: string;
@@ -740,11 +745,11 @@ const fixedBackward = (
   );
 
 /**
- * The sections of each instance whose children a shuffle can reorder in that placement (§5.98,
- * spec readings 87 and 173): a section that shuffles; a loose section under one, its children
- * "mixed into the parent's selection prior to shuffling"; and the loose root section of a document
- * a section ref or an include places directly under one, since a section ref is the facade of its
- * section (§7.5).
+ * The sections of each instance whose children a shuffle can reorder in that placement (§5.98, spec
+ * readings `branch-rule-targets` and `section-visibility`): a section that shuffles; a loose
+ * section under one, its children "mixed into the parent's selection prior to shuffling"; and the
+ * loose root section of a document a section ref or an include places directly under one, since a
+ * section ref is the facade of its section (§7.5).
  *
  * @param instances - The assembly, in pre-order.
  * @returns Each instance's shuffled sections' starts, by the instance's place.

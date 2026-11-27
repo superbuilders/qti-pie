@@ -3,13 +3,14 @@
  * load whose script defines no module fails once its stated wait runs out, and a wait of 0, or one
  * longer than a browser's timer holds, is no limit.
  *
- * The oracle is reading 246 (docs/spec-readings.md) and the implementation guide's `waitSeconds`
- * (§3.7.12.2: "how long the delivery engine should wait for each Javascript file to load before
- * timing out. A setting of 0 indicates that no timeout should be used"), written by hand: a stated
- * wait is never dropped, and HTML's `setTimeout` takes its delay as a WebIDL `long`, milliseconds
- * in a 32-bit signed integer, so a wait past 2,147,483.647 seconds is longer than any session and
- * no timer can hold it. The frame runs against a document of the test's own, its timers vitest's
- * fake ones, and a script that never loads, so only the wait can fail the load.
+ * The oracle is reading `pci-configuration-waits` (docs/spec-readings.md) and the implementation
+ * guide's `waitSeconds` (§3.7.12.2: "how long the delivery engine should wait for each Javascript
+ * file to load before timing out. A setting of 0 indicates that no timeout should be used"),
+ * written by hand: a stated wait is never dropped, and HTML's `setTimeout` takes its delay as a
+ * WebIDL `long`, milliseconds in a 32-bit signed integer, so a wait past 2,147,483.647 seconds is
+ * longer than any session and no timer can hold it. The frame runs against a document of the test's
+ * own, its timers vitest's fake ones, and a script that never loads, so only the wait can fail the
+ * load.
  *
  * @module
  */

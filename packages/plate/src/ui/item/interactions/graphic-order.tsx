@@ -41,8 +41,8 @@ import { PromptPart } from "#plate/ui/prompt.tsx";
  * @param paired The Graphic Order and its payload node.
  * @param paired.model The redacted model node: its `data-*`.
  * @param paired.payload Its payload node: its image, hotspots, binding, prompt and names, and its
- *   effective `max-choices` and `min-choices` (plate's reading 18), the positions it shows and the
- *   fewest it fills.
+ *   effective `max-choices` and `min-choices` (plate's reading `order-min-choices`), the positions
+ *   it shows and the fewest it fills.
  * @param context What the page may know of the render.
  * @returns The island.
  */

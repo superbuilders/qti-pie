@@ -24,11 +24,11 @@ import type {
 
 /**
  * The most elements a document may hold open at once. crust's reader refuses the start tag that
- * passes it, under rule `element-depth` (spec reading 1's "Element depth"), as the tree is built:
- * neither XML 1.0 nor QTI bounds an element's depth, a QTI package comes from outside, and plate's
- * walks over a tree recurse on the call stack, so a hostile document nested deeper would exhaust
- * the stack of the process that judges or renders it. The number is libxml2's default, so a
- * document `xmllint` reads within its default limits crust reads too.
+ * passes it, under rule `element-depth` (spec reading `nothing-valid-refused`'s "Element depth"),
+ * as the tree is built: neither XML 1.0 nor QTI bounds an element's depth, a QTI package comes from
+ * outside, and plate's walks over a tree recurse on the call stack, so a hostile document nested
+ * deeper would exhaust the stack of the process that judges or renders it. The number is libxml2's
+ * default, so a document `xmllint` reads within its default limits crust reads too.
  *
  * @limitKind published
  * @owner libxml2 v2.15.2's parser (parser.c, xmlParseElementStart), whose default crust's reader (src/read.ts) adopts
@@ -211,10 +211,10 @@ const toAttribute = ([qname, value]: readonly [string, string]): UnresolvedAttri
 
 /**
  * The most elements a document may hold open at once: {@link elementDepthMax}, 256, libxml2's
- * default and the stated limit "Element depth" of spec reading 1's list, past which the document
- * is refused under rule `element-depth`. Neither XML 1.0 nor QTI bounds an element's depth
- * (production [39] of section 3 and [43] of section 3.1), no official package comes near it, and
- * the bound keeps plate's recursive walks over a tree within their stacks.
+ * default and the stated limit "Element depth" of spec reading `nothing-valid-refused`'s list, past
+ * which the document is refused under rule `element-depth`. Neither XML 1.0 nor QTI bounds an
+ * element's depth (production [39] of section 3 and [43] of section 3.1), no official package comes
+ * near it, and the bound keeps plate's recursive walks over a tree within their stacks.
  */
 const ELEMENT_DEPTH = elementDepthMax;
 

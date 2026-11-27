@@ -1,9 +1,9 @@
 /**
- * The law oracle's reading 62 over generated packages: over
- * generated packages and the `metaData` fixture, the law oracle (`#pantry/test/oracle.ts`) refuses
- * exactly the records reading 62 refuses, `lom-identifier` and `lom-title`, which the database
- * holds by rules over queries over `Node` (`#pantry/qti/queries.ts`), since a LOM record has no
- * overlay. A usage value's typed row is the view `UsageValueBaseType`'s
+ * The law oracle's reading `identity-from-lom` over generated packages: over generated packages and
+ * the `metaData` fixture, the law oracle (`#pantry/test/oracle.ts`) refuses exactly the records
+ * reading `identity-from-lom` refuses, `lom-identifier` and `lom-title`, which the database holds
+ * by rules over queries over `Node` (`#pantry/qti/queries.ts`), since a LOM record has no overlay.
+ * A usage value's typed row is the view `UsageValueBaseType`'s
  * (`#pantry/qti/attribute-views.db.test.ts`).
  */
 import { regex } from "arkregex";
@@ -76,7 +76,8 @@ const asciiFolded = (tag: string): string =>
   tag.replaceAll(regex("[A-Z]", "gu"), (c) => c.toLowerCase());
 
 /**
- * Count the breaches of one of reading 62's laws the law oracle finds in a package.
+ * Count the breaches of one of reading `identity-from-lom`'s laws the law oracle finds in a
+ * package.
  *
  * @param files - The package's entries.
  * @param law - The law: `LomObjectIdentifier` or `LomObjectTitle`.
@@ -325,7 +326,7 @@ const pathOf = (resource: ResourceSketch, at: number): string =>
  * Write a sketched package's files: its manifest, and each resource's document, an item root
  * whose identifier is `choice` between the sketch's padding, whose title is {@link objectTitle} and
  * whose `xml:lang` is the sketch's, or a web page. A record names an item alone, since pantry
- * stores no test (spec reading 228).
+ * stores no test (spec reading `tests-stored-as-defined`).
  *
  * A resource with no `href` lists no file, so no reading takes one of its files for its document.
  *
@@ -386,8 +387,8 @@ const namingOf = (sketch: PackageSketch): readonly { readonly record: RecordSket
   );
 
 /**
- * Count the records reading 62's identifier half refuses in a sketch: each naming record that lists
- * a general entry, none of whose entries collapses to `choice`.
+ * Count the records reading `identity-from-lom`'s identifier half refuses in a sketch: each naming
+ * record that lists a general entry, none of whose entries collapses to `choice`.
  *
  * @param sketch - The package.
  * @returns The count.
@@ -400,10 +401,11 @@ const sketchIdentifierBreaches = (sketch: PackageSketch): number =>
   }).length;
 
 /**
- * Count the records reading 62's title half refuses in a sketch: each naming record with a general
- * title none of whose strings in the object's language holds the object's title, under the
- * binding's comparisons (`strict`: `xs:normalizedString`'s value space, the `xml:lang` collapsed,
- * and tags without regard to case) or exact ones, which the situations compare it with.
+ * Count the records reading `identity-from-lom`'s title half refuses in a sketch: each naming
+ * record with a general title none of whose strings in the object's language holds the object's
+ * title, under the binding's comparisons (`strict`: `xs:normalizedString`'s value space, the
+ * `xml:lang` collapsed, and tags without regard to case) or exact ones, which the situations
+ * compare it with.
  *
  * @param sketch - The package.
  * @param strict - Whether to compare as the binding does.
@@ -541,9 +543,9 @@ const reached = required<SketchSituation>(
   { cases: 200, sense: notesOnly },
 );
 
-describe("the law oracle's reading 62, generated packages", () => {
+describe("the law oracle's reading `identity-from-lom`, generated packages", () => {
   it.effect(
-    "refuses exactly the records reading 62 refuses: the identifier compared collapsed, the title in its value space with tags compared without regard to case; up to 2 resources of 3 kinds, each with up to 2 records of up to 2 general and 1 meta-metadata identifiers of up to 2 entries over 4 values and 3 paddings, and up to 1 title of up to 2 strings over 5 texts and 5 languages, 300 cases",
+    "refuses exactly the records reading `identity-from-lom` refuses: the identifier compared collapsed, the title in its value space with tags compared without regard to case; up to 2 resources of 3 kinds, each with up to 2 records of up to 2 general and 1 meta-metadata identifiers of up to 2 entries over 4 values and 3 paddings, and up to 1 title of up to 2 strings over 5 texts and 5 languages, 300 cases",
     (ctx) =>
       searched(
         ctx,
@@ -556,7 +558,7 @@ describe("the law oracle's reading 62, generated packages", () => {
             literal: Formatter.format,
             oracle: {
               kind: "specification",
-              name: "reading 62 over the package's sketch: a naming record that lists general entries names its document's collapsed identifier (QTI 3.0 Metadata §2.7.1.1), and one with a general title names its document's title, as xs:normalizedString values, in its language, the root's xml:lang collapsed and tags compared without regard to case (§2.7.1.2, RFC 5646 §2.1.1); against the law oracle's LomObjectIdentifier and LomObjectTitle over the shredded and folded package, since the database holds both laws by rules over queries over Node (#pantry/qti/queries.ts), which only a database judges",
+              name: "reading `identity-from-lom` over the package's sketch: a naming record that lists general entries names its document's collapsed identifier (QTI 3.0 Metadata §2.7.1.1), and one with a general title names its document's title, as xs:normalizedString values, in its language, the root's xml:lang collapsed and tags compared without regard to case (§2.7.1.2, RFC 5646 §2.1.1); against the law oracle's LomObjectIdentifier and LomObjectTitle over the shredded and folded package, since the database holds both laws by rules over queries over Node (#pantry/qti/queries.ts), which only a database judges",
             },
             runs: 300,
             shrink: completeShrink,
@@ -624,7 +626,7 @@ const withManifestText = (
 const withEntry = (files: readonly PackageFile[], entry: string): readonly PackageFile[] =>
   withManifestText(files, metaDataEntry, `<imsmd:entry>${entry}</imsmd:entry>`);
 
-describe("the law oracle's reading 62, the metaData fixture", () => {
+describe("the law oracle's reading `identity-from-lom`, the metaData fixture", () => {
   it.effect(
     "refuses metaData's record, whose entry names another item, and accepts it naming choice, padded or not",
     () =>

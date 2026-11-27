@@ -1,9 +1,10 @@
 /**
  * The `match-group` of a choice, a gap or a hotspot, the one reading every interaction that
  * associates choices shares: whether it admits any identifier or only those it lists. Absent and
- * empty mean one thing, any (reading 179: "If no matchGroup is given, or if it is empty, then all
- * other choices may be associated with this one subject to their own matching constraints"), so
- * both read as {@link MatchGroup}'s `any`, and `only` lists at least one identifier.
+ * empty mean one thing, any (reading `match-group-both-sides`: "If no matchGroup is given, or if it
+ * is empty, then all other choices may be associated with this one subject to their own matching
+ * constraints"), so both read as {@link MatchGroup}'s `any`, and `only` lists at least one
+ * identifier.
  *
  * @module
  */

@@ -4,9 +4,10 @@
  * its source and the schema's statement of it.
  *
  * - **The declarations** (`src/qti/declarations.ts` `declarationLaws`): `Declaration not reserved`
- *   (reading 72), `Reserved type` (§2.2.2.1, §2.2.2.3), `Declaration base type` (§4.5.3), `Value
- *   cardinality` and `Record field key` (§8.16, §7.46), `Typed value` (§7.46, §8.13) and `Mastery
- *   range` (reading 9), over each declaration element, its value sets and their values.
+ *   (reading `completion-status-name`), `Reserved type` (§2.2.2.1, §2.2.2.3), `Declaration base
+ *   type` (§4.5.3), `Value cardinality` and `Record field key` (§8.16, §7.46), `Typed value`
+ *   (§7.46, §8.13) and `Mastery range` (reading `schematron-intent`), over each declaration
+ *   element, its value sets and their values.
  * - **The LOM title** (`src/qti/metadata.ts` `lom-title`, QTI 3.0 Metadata §2.7.1.2): a record that
  *   names a document and has a general title holds a title string with the document's title, in its
  *   language.
@@ -105,16 +106,17 @@ const valueSetKinds: ReadonlySet<string> = new Set(["qti-default-value", "qti-co
 /**
  * /**
  * The root of a test document, whose declarations the reserved names bind as a test's (spec
- * readings 163 and 168).
+ * readings `score-rules` and `test-reserved-names`).
  */
 const testRootKind = "qti-assessment-test";
 
 /**
- * `xs:double`'s lexical space as XML Schema 1.0 writes it (Part 2 §3.2.5.1, reading 71's edition,
- * in which `+INF` is no form): a decimal mantissa of any digits with an optional exponent of any
- * digits, `INF`, `-INF` or `NaN`. A mastery value or a normal bound is read collapsed, as
- * `xs:double`'s whiteSpace collapses it (Part 2 §4.3.6; reading 7), and one outside it once
- * collapsed is not judged: a form that is no `xs:double` has no value.
+ * `xs:double`'s lexical space as XML Schema 1.0 writes it (Part 2 §3.2.5.1, reading
+ * `anyuri-lexical`'s edition, in which `+INF` is no form): a decimal mantissa of any digits with an
+ * optional exponent of any digits, `INF`, `-INF` or `NaN`. A mastery value or a normal bound is
+ * read collapsed, as `xs:double`'s whiteSpace collapses it (Part 2 §4.3.6; reading
+ * `typed-value-whitespace`), and one outside it once collapsed is not judged: a form that is no
+ * `xs:double` has no value.
  *
  * @see {@link https://www.w3.org/TR/xmlschema-2/#double | XML Schema Part 2, 3.2.5 double}
  */
@@ -127,8 +129,8 @@ const doubleForm = regex(
  * Read a scale attribute as a double for an order that sets aside what it cannot read: where its
  * form, collapsed, is in {@link doubleForm}, the double it names, `INF` and `-INF` infinite and a
  * decimal the double nearest it, which JavaScript's `Number` rounds to as XML Schema 1.1's
- * doubleLexicalMap does (Part 2 §3.3.5.2, reading 144), of any digits and any exponent; the bound
- * that holds the order otherwise.
+ * doubleLexicalMap does (Part 2 §3.3.5.2, reading `bounded-double`), of any digits and any
+ * exponent; the bound that holds the order otherwise.
  *
  * @param lexical - The attribute's form, collapsed.
  * @param otherwise - The value an unread form stands as.
@@ -147,9 +149,9 @@ const scaleOf = (lexical: string, otherwise: number): number => {
 };
 
 /**
- * The normal minimum of an outcome declaration that writes no `normal-minimum` (reading 149): QTI
- * 3.0.1's information model gives it "Default = "0.0"" and says "It is set to 0 by default"
- * (§4.5.8), and its ASI XSD declares it `default="0.0"`.
+ * The normal minimum of an outcome declaration that writes no `normal-minimum` (reading
+ * `normal-minimum-default`): QTI 3.0.1's information model gives it "Default = "0.0"" and says "It
+ * is set to 0 by default" (§4.5.8), and its ASI XSD declares it `default="0.0"`.
  */
 const normalMinimumByDefault = "0.0";
 
@@ -176,12 +178,11 @@ const below = (left: Option.Option<string>, right: Option.Option<string>): boole
   });
 
 /**
- * Judge `Mastery_range` over an outcome declaration's scale (reading 9, the Schematron's RULE
- * SPECIFIC CLASS OUTCOMEDEC 1): its mastery value lies in its normal range, each pair judged where
- * both are present, each value collapsed, `NaN` ordered against nothing, a form outside
- * {@link doubleForm} not judged.
- * Its normal minimum is the one it writes, or else the default (reading 149,
- * {@link normalMinimumByDefault}).
+ * Judge `Mastery_range` over an outcome declaration's scale (reading `schematron-intent`, the
+ * Schematron's RULE SPECIFIC CLASS OUTCOMEDEC 1): its mastery value lies in its normal range, each
+ * pair judged where both are present, each value collapsed, `NaN` ordered against nothing, a form
+ * outside {@link doubleForm} not judged. Its normal minimum is the one it writes, or else the
+ * default (reading `normal-minimum-default`, {@link normalMinimumByDefault}).
  *
  * @param rows - The document.
  * @param node - The declaration.
@@ -214,7 +215,7 @@ const masteryRangeOf = (rows: View, node: Row): readonly Breach[] => {
  * own identifier and having its own base-type"); a value of any other set may write either, which
  * names and types nothing there (§7.46.1, §7.46.2: each "is only used for" a value that forms part
  * of a record). Every law reads the cardinality, so a set of a declaration whose cardinality is
- * unwritten or spells nothing is judged by none of them (spec reading 158).
+ * unwritten or spells nothing is judged by none of them (spec reading `unspelled-declaration`).
  *
  * @param rows - The document.
  * @param set - The value set.
@@ -286,7 +287,7 @@ const valueSetLawsOf = (
        * own base type, and any other value in its declaration's. A type or a cardinality that is
        * unwritten, or outside its domain, types nothing: the declaration's own law or that domain
        * refuses it alone (the ruling of 2026-11-06; lane NIL's audit, B11 and B12; spec reading
-       * 158).
+       * `unspelled-declaration`).
        */
       const typed = cardinality.pipe(
         Option.flatMap((held) =>
@@ -313,7 +314,7 @@ const valueSetLawsOf = (
  * @param node - The declaration.
  * @param sessionVariables - The built-in session variables of the document's root, which no
  *   declaration may name
- *   (reading 168).
+ *   (reading `test-reserved-names`).
  * @param grammar - The composed grammar.
  * @returns The breaches.
  */
@@ -324,13 +325,13 @@ const declarationLawsOf = (
   grammar: ComposedGrammar,
 ): readonly Breach[] => {
   /**
-   * A declaration whose identifier or cardinality is unwritten, or whose identifier, cardinality
-   * or base type lies outside its value domain, is refused by AL3 ("required-attribute") or that
+   * A declaration whose identifier or cardinality is unwritten, or whose identifier, cardinality or
+   * base type lies outside its value domain, is refused by AL3 ("required-attribute") or that
    * domain ("attribute-lexical") alone: an absent attribute is no empty one, and the laws that read
    * the attribute do not read it, while every other law judges the declaration as any other (lane
-   * NIL's audit, B11; spec readings 157 and 158). Each is read as its type reads it, and
-   * `base-type` and `cardinality` enumerate a restriction of `xs:string`, whose whiteSpace is
-   * `preserve`, so a padded form lies outside its domain.
+   * NIL's audit, B11; spec readings `unnamed-declaration` and `unspelled-declaration`). Each is
+   * read as its type reads it, and `base-type` and `cardinality` enumerate a restriction of
+   * `xs:string`, whose whiteSpace is `preserve`, so a padded form lies outside its domain.
    */
   const cardinality = typedValueOf(rows, node.start, "cardinality");
   const baseType = typedValueOf(rows, node.start, "base-type");
@@ -341,12 +342,12 @@ const declarationLawsOf = (
     ...Option.match(cardinality, { onNone: () => ({}), onSome: (held) => ({ cardinality: held }) }),
   };
   /**
-   * QTI_CONTEXT is declared as the context record (reading 74). SCORE, MAXSCORE and PASSED are
-   * typed by no normative rule (§4.5's "needs to be" is no RFC 2119 keyword, §1.3; §2.2.2.3 is NOT
-   * NORMATIVE), so each is admitted of any type (J1). A record has no base type, and every variable
-   * of another cardinality writes one (tables 4.5.3, 5.34.3, 5.115.3 and 5.151.3): one that writes
-   * none is Declaration base type's (lane NIL's audit, B12), and one that writes a form spelling
-   * nothing its value domain's alone.
+   * QTI_CONTEXT is declared as the context record (reading `identifier-names-one-variable`). SCORE,
+   * MAXSCORE and PASSED are typed by no normative rule (§4.5's "needs to be" is no RFC 2119
+   * keyword, §1.3; §2.2.2.3 is NOT NORMATIVE), so each is admitted of any type (J1). A record has
+   * no base type, and every variable of another cardinality writes one (tables 4.5.3, 5.34.3,
+   * 5.115.3 and 5.151.3): one that writes none is Declaration base type's (lane NIL's audit, B12),
+   * and one that writes a form spelling nothing its value domain's alone.
    */
   const isRecord = cardinality.pipe(Option.map((held) => held === "record"));
   const reservedBroken = Option.exists(
@@ -443,9 +444,10 @@ const interactionLawsOf = (rows: View, grammar: ComposedGrammar): readonly Breac
 };
 
 /**
- * The URI prefixes a published response processing template is named under (spec reading 51: the
- * information model's `https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/` and the
- * implementation guide's examples' `https://www.imsglobal.org/question/qti_v3p0/rptemplates/`).
+ * The URI prefixes a published response processing template is named under (spec reading
+ * `built-in-templates`: the information model's
+ * `https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/` and the implementation guide's examples'
+ * `https://www.imsglobal.org/question/qti_v3p0/rptemplates/`).
  */
 const templatePrefixes = [
   "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/",
@@ -526,9 +528,9 @@ const publishedNeeds: ReadonlyMap<
 const mappingTemplates: ReadonlySet<string> = new Set(["map_response", "CC2_map_response"]);
 
 /**
- * Read the published template a `template` URI names (spec reading 51): with its whitespace
- * collapsed, as `xs:anyURI`'s is, one of {@link templatePrefixes} then the template's name, with or
- * without `.xml`.
+ * Read the published template a `template` URI names (spec reading `built-in-templates`): with its
+ * whitespace collapsed, as `xs:anyURI`'s is, one of {@link templatePrefixes} then the template's
+ * name, with or without `.xml`.
  *
  * @param uri - The `template` attribute as written.
  * @returns The template's name, none for a URI that names no published template.
@@ -716,8 +718,9 @@ export const documentDocumentBreaches = (
   grammar: ComposedGrammar,
 ): readonly Breach[] => {
   /**
-   * A declaration may not name a built-in session variable of its document's root (readings 72 and
-   * 168): an item's three in any document but a test, and a test's `duration` alone in a test.
+   * A declaration may not name a built-in session variable of its document's root (readings
+   * `completion-status-name` and `test-reserved-names`): an item's three in any document but a
+   * test, and a test's `duration` alone in a test.
    */
   const root = Option.exists(rows.root, ({ kind }) => kind === testRootKind)
     ? testRootKind
@@ -744,19 +747,19 @@ export const documentDocumentBreaches = (
 
 /**
  * The resource types whose LOM record names its document by identifier and title (QTI 3.0 Metadata
- * §2.7.1; reading 62): an item's and a test's, as the implementation guide's LOM profile says "the
- * test or item identifier should be present as an identifier in the LOM metadata", a
- * recommendation Bjorn rules binding.
+ * §2.7.1; reading `identity-from-lom`): an item's and a test's, as the implementation guide's LOM
+ * profile says "the test or item identifier should be present as an identifier in the LOM
+ * metadata", a recommendation Bjorn rules binding.
  */
 export const lomNamedTypes: ReadonlySet<string> = new Set(["imsqti_item_xmlv3p0"]);
 
 /**
  * The roots of an assessment object, "the associated item, test or object bank" whose identifier a
  * record's entry matches and whose title its string matches (QTI 3.0 Metadata §2.7.1.1 and
- * §2.7.1.2): an item's, since pantry stores no test (reading 228). The object is the document the
- * record's resource names (reading 93), whatever type the resource is listed under, which
- * `RootOfType` judges on its own; a document of any other root is no object, so no entry and no
- * title string matches it.
+ * §2.7.1.2): an item's, since pantry stores no test (reading `tests-stored-as-defined`). The object
+ * is the document the record's resource names (reading `resource-href`), whatever type the resource
+ * is listed under, which `RootOfType` judges on its own; a document of any other root is no object,
+ * so no entry and no title string matches it.
  */
 export const objectRoots: ReadonlySet<string> = new Set(["qti-assessment-item"]);
 
@@ -794,11 +797,11 @@ const statedLanguage = (form: Option.Option<string>): Option.Option<string> =>
 
 /**
  * Name the entry a resource's `href` resolves to, by the resolution every package law reads a
- * resource's document through (readings 102 and 103, `ResourceOf.resolved` in
- * `#pantry/test/oracle.ts`): the value collapsed and resolved against the manifest's path and the
- * `xml:base` values in scope, its dot segments removed and its percent-escapes decoded, its query
- * and fragment aside. An `href` outside the package, or one the resolver reads under a limit,
- * names no entry.
+ * resource's document through (readings `href-resolution` and `file-references`,
+ * `ResourceOf.resolved` in `#pantry/test/oracle.ts`): the value collapsed and resolved against the
+ * manifest's path and the `xml:base` values in scope, its dot segments removed and its
+ * percent-escapes decoded, its query and fragment aside. An `href` outside the package, or one the
+ * resolver reads under a limit, names no entry.
  *
  * @param manifest - The manifest.
  * @param resource - The `cp:resource`.
@@ -814,20 +817,21 @@ const entryPathOf = (manifest: View, resource: Row): Option.Option<string> =>
 
 /**
  * Judge `lom-title` over a package (QTI 3.0 Metadata §2.7.1.2): every record of an item's or a
- * test's resource, a `lom:lom` of the resource's own `cp:metadata` (spec reading 62; a `cp:file`'s
- * record describes the file: "The scope of Metadata is the parent container class only", IMS
- * Content Packaging 1.2 §6.7), whose general category has a title holds a title string whose value
- * is its object's `title`, in the object's language: a string whose `language` is the root's
- * `xml:lang`, without regard to case, or one with no `language`, or any string where the root
- * states no language. The root's language is its `xml:lang`'s value as its type reads it, and it
- * states none where it writes none, where the value is empty (XML 1.0 §2.12), and where AL1
- * refuses the attribute, outside its value domain or on a root that does not admit it, so that no
- * value is read (spec reading 151): the title is then judged without a language. The object is the
- * document at the entry the resource's href resolves to ({@link entryPathOf}), so
- * `./items/item.xml`, `items/it%65m.xml` and `items/item.xml` name one document however the href
- * is spelled, and whatever the resource's type, where that document's root is an item or a test
- * ({@link objectRoots}); a document of another root is no object, and a record with a title breaks
- * the law; so does one whose object writes no `title`, which no string matches.
+ * test's resource, a `lom:lom` of the resource's own `cp:metadata` (spec reading
+ * `identity-from-lom`; a `cp:file`'s record describes the file: "The scope of Metadata is the
+ * parent container class only", IMS Content Packaging 1.2 §6.7), whose general category has a title
+ * holds a title string whose value is its object's `title`, in the object's language: a string
+ * whose `language` is the root's `xml:lang`, without regard to case, or one with no `language`, or
+ * any string where the root states no language. The root's language is its `xml:lang`'s value as
+ * its type reads it, and it states none where it writes none, where the value is empty (XML 1.0
+ * §2.12), and where AL1 refuses the attribute, outside its value domain or on a root that does not
+ * admit it, so that no value is read (spec reading `item-lang-outside-domain`): the title is then
+ * judged without a language. The object is the document at the entry the resource's href resolves
+ * to ({@link entryPathOf}), so `./items/item.xml`, `items/it%65m.xml` and `items/item.xml` name one
+ * document however the href is spelled, and whatever the resource's type, where that document's
+ * root is an item or a test ({@link objectRoots}); a document of another root is no object, and a
+ * record with a title breaks the law; so does one whose object writes no `title`, which no string
+ * matches.
  *
  * @param input - The package.
  * @returns The breaches, each at the record.
@@ -854,7 +858,7 @@ const lomTitleLawsOf = (input: PackageRows): readonly Breach[] => {
      * §2.7.1.2: "The title must have a value that matches the value of the title attribute of the
      * associated item, test or object bank"), so no string names it either. An `xml:lang` AL1
      * refuses has no value to read, so it states no language, as an unwritten one states none
-     * (spec reading 151).
+     * (spec reading `item-lang-outside-domain`).
      */
     const object = objectRoots.has(root.kind);
     const title = Option.map(valueOf(document.rows, root.start, "title"), replaced);

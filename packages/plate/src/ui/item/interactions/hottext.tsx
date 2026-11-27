@@ -3,11 +3,11 @@
  * island in `answering` and its server markup in `review` and `solution`.
  *
  * Its passage is the author's block content, written through the shell's walk with every hottext
- * where the author put it, at any depth (plate's reading 38): the walk hands this file each
- * hottext ({@link hottextTag}), an element outside the HTML subset, through `own`, and the payload
- * gives each one's part by its path (`HottextPart` in `#plate/interactions/hottext.ts`): a choice
- * the child may pick, or plain text, "simply part of the surrounding material" (QTI 3.0
- * information model 5.65).
+ * where the author put it, at any depth (plate's reading `gap-and-hottext-placement`): the walk
+ * hands this file each hottext ({@link hottextTag}), an element outside the HTML subset, through
+ * `own`, and the payload gives each one's part by its path (`HottextPart` in
+ * `#plate/interactions/hottext.ts`): a choice the child may pick, or plain text, "simply part of
+ * the surrounding material" (QTI 3.0 information model 5.65).
  *
  * @module
  */

@@ -315,7 +315,7 @@ const SHUFFLED_LOOSE_TEST = "shuffled-loose.xml";
  * Tests of a shuffling section this runtime does not deliver: one that holds a section, one whose
  * item ref is fixed, one whose ordering holds an extension element of another namespace, and one
  * whose ordering holds QTI's own HTML `span`, which pantry reads as its declaration, no foreign
- * element (§5.98.1, §5.98.3, docs/spec-readings.md reading 61).
+ * element (§5.98.1, §5.98.3, docs/spec-readings.md reading `ordering-extension-slot`).
  */
 const SHUFFLED_NESTED_TEST = "shuffled-nested.xml";
 

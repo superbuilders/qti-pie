@@ -1,6 +1,7 @@
 /**
- * The MathML share law (spec reading 2, MathML 3 validity): the law "MathML share cycle", stated
- * over the elements of a MathML tree and the `m:share` elements that name one of them.
+ * The MathML share law (spec reading `mathml-validity`, MathML 3 validity): the law "MathML share
+ * cycle", stated over the elements of a MathML tree and the `m:share` elements that name one of
+ * them.
  *
  * "An element may not dominate itself" (MathML 3 §4.2.7): an element dominates its children and,
  * through a `share`, the element its `src` names. grizzle plans no recursion, so the module states
@@ -25,7 +26,7 @@
  *   {@link MathRank} rows: the share's rank is above its target's.
  *
  * A document in an assembly resolves its shares in its assembly, once per instance (spec reading
- * 117), as its IDREFs do, so the two scopes are stated apart:
+ * `fragment-placement`), as its IDREFs do, so the two scopes are stated apart:
  *
  * - **{@link PlacedMathRank}**, {@link MathRank} per instance, keyed by the instance `(package,
  *   assembly, instance)` and the node's `start` in the instance's document. The host ranks each
@@ -125,8 +126,8 @@ export const ShareTarget = law(
  * One MathML element of an instance of an assembly that a placed share stands on or names, or that
  * lies on such an element's chain, keyed by the instance, `(package, assembly, instance)`, and the
  * element's `start` in the instance's document, `path`. It is {@link MathRank} per instance (spec
- * reading 117): the same element is ranked once under each instance of its document, in that
- * instance's assembly.
+ * reading `fragment-placement`): the same element is ranked once under each instance of its
+ * document, in that instance's assembly.
  *
  * - **the host's:** the node's `package`, `path` and `start`, its node's key, the `instance` (its
  *   pre-order position in its assembly's instance tree) and its `assembly`, proved against
@@ -200,8 +201,8 @@ const unassembledShares = select(ShareFragment, (f) => f.eq(f.assembled, false))
  * A share of a document in no assembly resolves: it has its {@link ShareTarget}, whose target is an
  * owner of its id under the query `IdBinding`. A share whose id names nothing has none, and this is
  * the one statement it breaks beside "Idref target"'s own, so it is stated under that law (spec
- * reading 2; decision 428): a dangling share is refused by "Idref target" alone, and every share of
- * a document that law accepts has its target, the one the cycle check reads.
+ * reading `mathml-validity`; decision 428): a dangling share is refused by "Idref target" alone,
+ * and every share of a document that law accepts has its target, the one the cycle check reads.
  */
 export const shareResolution = contained(
   on(unassembledShares, "package", "path", "start", "idDigest"),

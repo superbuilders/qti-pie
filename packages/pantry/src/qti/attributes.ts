@@ -10,14 +10,14 @@
  * An attribute is read under its element's governor, `Node.governor`: the kind itself where its
  * declared type governs it or no named type does, or the (kind, type) pair where an `xsi:type`
  * names a type derived from the declared one, or a simple type governs a foreign element (spec
- * readings 60, 83 and 84; `GoverningOf` of the element's type, `typeGovernorOf` of
- * `#pantry/qti/node.ts`). The governor's attribute model, `AttributeModelOf(governor)`, then gives
- * the name's slot, value domain and use, `AttributeGrammar(model, name)`. `Attribute` and
- * `OpenAttribute` copy `kind` and `governor` from their element along their family's
- * owner axis, so every law below reads its governor inline, and `Attribute` copies its element's
- * `parent` the same way ("E1 derived"), so a key of one attribute among its element's siblings'
- * ("Weight key", "Variable mapping target", "Card support", "Card default entry") is the table's
- * own.
+ * readings `wildcard-xsi-type`, `prefix-binding` and `governing-type`; `GoverningOf` of the
+ * element's type, `typeGovernorOf` of `#pantry/qti/node.ts`). The governor's attribute model,
+ * `AttributeModelOf(governor)`, then gives the name's slot, value domain and use,
+ * `AttributeGrammar(model, name)`. `Attribute` and `OpenAttribute` copy `kind` and `governor` from
+ * their element along their family's owner axis, so every law below reads its governor inline, and
+ * `Attribute` copies its element's `parent` the same way ("E1 derived"), so a key of one attribute
+ * among its element's siblings' ("Weight key", "Variable mapping target", "Card support", "Card
+ * default entry") is the table's own.
  *
  * - **AL1, admission** (`AL1_admission`, rule `attribute-admission`): the name is one its element's
  *   governor admits, `{name} ⊆ AttributeGrammar.row(model)`, with `{name}` the name's
@@ -49,26 +49,29 @@
  *   `attrs`.
  * - **AL5** (`AL5_attribute_count`, a check on `Node`, rule `attribute-count`): an element whose
  *   governor's model has an `AttributeCountOf` row carries from `min` to `max` of its `CountedSlot`
- *   attributes, `|attrs ∩ CountedSlot.row(model)|` (spec readings 41 and 43); a model of no count
- *   states nothing. `attrs` holds only the attributes written, so a defaulted one counts nothing.
+ *   attributes, `|attrs ∩ CountedSlot.row(model)|` (spec readings `ssml-meta-name` and
+ *   `ssml-voice-prosody-attributes`); a model of no count states nothing. `attrs` holds only the
+ *   attributes written, so a defaulted one counts nothing.
  * - **AL4** (C14): an `Attribute`'s name is no open class and an `OpenAttribute`'s class is one, each
  *   column's type (`closedId(AttributeName, { except: openClasses })` and `{ only: openClasses }`,
  *   whose column CHECK holds a direct writer to it and whose codec refuses any other handle); open
  *   names are distinct by expanded name on an element, `OpenAttribute`'s key `(package, path,
  *   start, uri, local)`; and `Foreign_attribute_class` holds each open name's stored namespace to
  *   its class against its element's namespace (XML Schema 1.0 Part 1 §3.10.4); and `AL4_data_name`
- *   holds a `data-*` name to reading 13's language (`dataName` of `#pantry/vocab/open.ts`, matched
- *   by its source) and a no-namespace name of an element that is not foreign to not begin `data-`;
- *   and `AL4_declared_data_name` keeps a `data-*` name from being a custom one where the element's
- *   governor admits it as a declared attribute (goal part E): a declared name is its closed
- *   attribute, never an open name beside or instead of it. An element an `xsi:type` governs is
- *   judged by its governor, the element's `governor`, which its kind and its named type give.
+ *   holds a `data-*` name to reading `data-attribute-name`'s language (`dataName` of
+ *   `#pantry/vocab/open.ts`, matched by its source) and a no-namespace name of an element that is
+ *   not foreign to not begin `data-`; and `AL4_declared_data_name` keeps a `data-*` name from being
+ *   a custom one where the element's governor admits it as a declared attribute (goal part E): a
+ *   declared name is its closed attribute, never an open name beside or instead of it. An element
+ *   an `xsi:type` governs is judged by its governor, the element's `governor`, which its kind and
+ *   its named type give.
  * - **The prefix** (`Attribute_prefix`, C54): every attribute keeps the prefix its name is written
- *   with, so the export writes it back byte for byte (spec reading 47), and the prefix agrees with
- *   the namespace its name is in: none for a name in no namespace, `xml` for the XML namespace's,
- *   and a declared one, never `xml` or `xmlns`, for XML Schema's instance names, XLink's and the
- *   namespaced open classes (Namespaces in XML 1.0, §3 and §6.2). Whether the prefix is bound to
- *   that namespace in scope is not stated: no relation holds the bindings in scope at an element.
+ *   with, so the export writes it back byte for byte (spec reading `xsi-attributes`), and the
+ *   prefix agrees with the namespace its name is in: none for a name in no namespace, `xml` for the
+ *   XML namespace's, and a declared one, never `xml` or `xmlns`, for XML Schema's instance names,
+ *   XLink's and the namespaced open classes (Namespaces in XML 1.0, §3 and §6.2). Whether the
+ *   prefix is bound to that namespace in scope is not stated: no relation holds the bindings in
+ *   scope at an element.
  * - **IDREF tokens** (C3, with grizzle's `Monoid.concat`): an IDREF or IDREFS attribute's `Idref`
  *   pieces, each a token with the whitespace written around it, concatenate to its lexical form,
  *   and each token after the first follows whitespace, so the tokens are exactly the lexical form's
@@ -78,7 +81,7 @@
  *   governor reads its text in a domain that is not universal, `Node.stringValue` (Q5.03's
  *   concatenation of its character data), matches that domain's pattern: a foreign element whose
  *   `xsi:type` names `xs:NOTATION`, whose domain's pattern is the empty language's, is refused
- *   whatever its text (spec reading 60). It is stated under Q5.03's own predicate,
+ *   whatever its text (spec reading `wildcard-xsi-type`). It is stated under Q5.03's own predicate,
  *   `holdsCheckedText`, the one its fold steps under, so the two cannot drift: a universal domain
  *   states nothing, and a checked value past `matchedText`'s byte bound is refused by the fold's
  *   own accumulator type.
@@ -86,9 +89,9 @@
  * Every check is named by its oracle law (`#pantry/test/oracle.ts` `LawName`) with spaces written
  * as underscores, since a check's name is an identifier; no law name holds an underscore.
  *
- * Coords by shape states nothing here beyond AL1's lexical half over `CoordsDType`: spec reading 59
- * reads coordinates that do not fit their shape by the HTML Standard's image-map processing model,
- * so they are valid.
+ * Coords by shape states nothing here beyond AL1's lexical half over `CoordsDType`: spec reading
+ * `area-coords-fit` reads coordinates that do not fit their shape by the HTML Standard's image-map
+ * processing model, so they are valid.
  */
 import {
   accumulated,
@@ -154,16 +157,16 @@ import { entryOf } from "#pantry/vocab/laws.ts";
 /**
  * A lexical form that names something once collapsed, an NCName with XML whitespace around it
  * (`namingText` of `#pantry/grammar/domains.ts`): a declaration's, a record field's or a test
- * structure's identifier and a dependency's `identifierref` (spec reading 152), and an ID-typed
- * attribute's or text's ID value, `xs:ID` being a restriction of `xs:NCName` (spec reading 156).
- * Any other form names nothing, and its value domain refuses it alone. Every module of the schema
- * reads it here, one pattern.
+ * structure's identifier and a dependency's `identifierref` (spec reading `ncname-names`), and an
+ * ID-typed attribute's or text's ID value, `xs:ID` being a restriction of `xs:NCName` (spec reading
+ * `id-is-ncname`). Any other form names nothing, and its value domain refuses it alone. Every
+ * module of the schema reads it here, one pattern.
  */
 export const namingPattern = Text.pattern<string>(namingText);
 
 /**
- * Reading 13's `data-*` names (`dataName` of `#pantry/vocab/open.ts`), as the pattern
- * `Text.matches` reads, made once from the host's expression's source.
+ * Reading `data-attribute-name`'s `data-*` names (`dataName` of `#pantry/vocab/open.ts`), as the
+ * pattern `Text.matches` reads, made once from the host's expression's source.
  */
 const dataNamePattern = Text.pattern(dataName.source);
 
@@ -184,11 +187,11 @@ const ncChar = `\\-.0-9\\u{B7}\\u{300}-\\u{36F}\\u{203F}-\\u{2040}${ncStart}`;
 
 /**
  * An open attribute's local name: an NCName of any length, since XML puts no bound on a name
- * (reading 94), so {@link OpenAttribute} keys it by its SHA-256 and no key holds it as itself. No
- * ordered read orders by it, since an element's attributes are a set the model orders on the host
- * (`#pantry/model/assemble.ts`). Its pattern is read under `su`, which reads an NCName exactly as
- * `u` does (it holds no `.`), as {@link EntityName} writes the same NCName under `u`. Exported for
- * `src/import/refusal.ts`, which names its pattern law.
+ * (reading `ncname-characters`), so {@link OpenAttribute} keys it by its SHA-256 and no key holds it
+ * as itself. No ordered read orders by it, since an element's attributes are a set the model orders
+ * on the host (`#pantry/model/assemble.ts`). Its pattern is read under `su`, which reads an NCName
+ * exactly as `u` does (it holds no `.`), as {@link EntityName} writes the same NCName under `u`.
+ * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
 export const OpenLocal = law(
   entryOf("XML production"),
@@ -699,11 +702,11 @@ const textDomainOf = (n: NodeRow) => TextDomain.at("domain", n.governor);
  *   **AL2** the fold, **AL3** required, **AL4** open names and the foreign attribute class, **AL5**
  *   the attribute count, the prefix, and **TextDomain**, as the module's header states them. AL2's
  *   distinctness and AL4's open name key are `Attribute`'s and `OpenAttribute`'s primary keys;
- * - **Double bound** (reading 144): an admitted attribute's, or a checked element text's, value in a
- *   bounded domain's lexical space is judged by the domain's `DoubleBound` on the double PostgreSQL
- *   reads from its collapsed form by grizzle's `Text.parseDouble`, XML Schema 1.1's
- *   doubleLexicalMap (Part 2 §3.3.5.2): the decimal rounded once to the nearest double, ties to
- *   even, an overflow an infinity of its sign and an underflow a zero of its sign, `-0` equal to 0.
+ * - **Double bound** (reading `bounded-double`): an admitted attribute's, or a checked element
+ *   text's, value in a bounded domain's lexical space is judged by the domain's `DoubleBound` on
+ *   the double PostgreSQL reads from its collapsed form by grizzle's `Text.parseDouble`, XML Schema
+ *   1.1's doubleLexicalMap (Part 2 §3.3.5.2): the decimal rounded once to the nearest double, ties
+ *   to even, an overflow an infinity of its sign and an underflow a zero of its sign, `-0` equal to 0.
  *   The domain's lexical space lies inside grizzle's `doubleText`, so the match the parse's guard
  *   restates holds of every value the check judges, and no row holds the guard's third argument. No
  *   row holds the value: the check reads it from the lexical form it judges.

@@ -7,8 +7,9 @@
  * - `ancestry`, its parent's with the flags its kind enters (`E1_derived`), the document node's its
  *   context's;
  * - `nearest`, `nearestPath` and `nearestKind`, its parent where the parent is an interaction, else
- *   its parent's (N8), the document node's its context's (spec reading 117): a position in the
- *   folded document, or in the document at `nearestPath` where the context gives it;
+ *   its parent's (N8), the document node's its context's (spec reading `fragment-placement`): a
+ *   position in the folded document, or in the document at `nearestPath` where the context gives
+ *   it;
  * - `state`, its content-automaton state (C5, N5), the document node's 0;
  * - `elements`, the elements among its parent's children up to it, itself included where it is one,
  *   the document node's 0, and `elementChildren`, the elements among its own children, which the
@@ -261,7 +262,7 @@ export const foldAt = (folds: Folds, start: bigint): Folded => {
 /**
  * GRIZZLE-PENDING: Q11, folds stepped by a closed relation, lets the database draw state. ancestry
  * and nearest stay the host's: a document node's are its Document's context, from outside its tree
- * (spec reading 117), and grizzle pins a root's copies at their start.
+ * (spec reading `fragment-placement`), and grizzle pins a root's copies at their start.
  */
 export const foldOf = (nodes: readonly NodeRow<Composed>[], context: DocumentContext): Folds => {
   const folded = new Map<bigint, { readonly held: Held; readonly under: Under }>();
@@ -405,7 +406,7 @@ export const lexicalOf = (
  *
  * @param tree - The document's tree, as shred gives it.
  * @param flat - The document flattened ({@link flatDocumentOf} of the tree).
- * @param context - The context it is judged in (spec reading 117).
+ * @param context - The context it is judged in (spec reading `fragment-placement`).
  * @returns Its view.
  */
 export const viewOf = (

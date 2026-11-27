@@ -27,9 +27,10 @@
  *   every member's item, as P4's tree builder crosses them;
  * - Each member's state now, by its item session in the sitting (held `value`): an attempted member's
  *   latest attempt, through P4's snapshot builder; its built-ins, `numAttempts` (1 once presented:
- *   "An attempt begins at first presentation", spec reading 3) and `duration` (`ItemDuration`,
- *   seconds), and `completionStatus` `not_attempted` for a member never presented (§2.2.2.3: "The
- *   value of completionStatus is set to not_attempted at the start of the session");
+ *   "An attempt begins at first presentation", spec reading `ssml-document-is-fragment`) and
+ *   `duration` (`ItemDuration`, seconds), and `completionStatus` `not_attempted` for a member never
+ *   presented (§2.2.2.3: "The value of completionStatus is set to not_attempted at the start of the
+ *   session");
  * - The test's own values, by the test session: each context value the application bound for the
  *   sitting, `SessionContextFloat`, `SessionContextInteger` and `SessionContextBoolean` (child,
  *   stage, identifier, value), a value only it knows (TIME_LIMIT's applied limit, an assignment's

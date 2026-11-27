@@ -16,19 +16,19 @@ import { itemKind, testKind } from "#pantry/vocab/terms/tests.ts";
  * item's and a test's (`itemKind` and `testKind` of `#pantry/vocab/terms/tests.ts`). A test's
  * feedback names "an outcome variable" (information model §5.157.2) and a printed variable in its
  * rubric "The outcome variable or template variable [that] must have been defined" (§7.30.6), each
- * one the test declares (spec reading 1's former under-refusal, closed 2026-11-20). Every other
- * document's resolve once per assembly that places it: an included fragment's in each item's or
- * test's that includes it, and a section document's in each test's that references it (spec
- * readings 117 and 145).
+ * one the test declares (spec reading `nothing-valid-refused`'s former under-refusal, closed
+ * 2026-11-20). Every other document's resolve once per assembly that places it: an included
+ * fragment's in each item's or test's that includes it, and a section document's in each test's
+ * that references it (spec readings `fragment-placement` and `spliced-fragment`).
  */
 export const referringRoots = [itemKind, testKind] as const satisfies readonly Kind[];
 
 /**
  * The choices: the kinds whose `identifier` names a value of their interaction's response, each a
- * child of its interaction or, for a gap, inside a gap-match interaction (reading 38), so its
- * nearest interaction (N8) is the interaction it is a choice of. A hottext may sit outside a
- * hottext interaction (reading 38's "hottext placement"), so it is `Hottext`'s
- * (`#pantry/qti/interactions.ts`).
+ * child of its interaction or, for a gap, inside a gap-match interaction (reading
+ * `gap-and-hottext-placement`), so its nearest interaction (N8) is the interaction it is a choice
+ * of. A hottext may sit outside a hottext interaction (reading `gap-and-hottext-placement`'s
+ * "hottext placement"), so it is `Hottext`'s (`#pantry/qti/interactions.ts`).
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_SimpleChoice | QTI 3.0 information model, §5.132 SimpleChoice}
  */
@@ -52,7 +52,7 @@ export const hottextKind = "qti-hottext" satisfies Kind;
  * The choice classes whose identifier "must not be used by any other choice or item variable"
  * (information model §5.132.1 SimpleChoice, §5.73.1 InlineChoice, §5.67.1 HotspotChoice and
  * §5.131.1 SimpleAssociableChoice): the four whose sentence names the noun "choice", and so bars
- * every element the information model calls a choice (spec reading 104).
+ * every element the information model calls a choice (spec reading `choice-identifier-scope`).
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_SimpleChoice.Attr_identifier | QTI 3.0 information model, §5.132.1}
  */
@@ -71,7 +71,8 @@ export const choiceNounKinds = [
  * graphic image" (§5.59), "any other hotspot" (§5.7.1); and a hottext, a "hottext choice"
  * (§5.65.1), held by `Hottext` beside them. A {@link choiceNounKinds} element bars each, and none
  * bars another's class. A gap, "any other gap" (§5.55.1), is no choice: a gap match interaction's
- * gaps are filled "from an associated set of choices" (§5.57) (spec reading 104).
+ * gaps are filled "from an associated set of choices" (§5.57) (spec reading
+ * `choice-identifier-scope`).
  */
 export const otherChoiceKinds = [
   "qti-associable-hotspot",
@@ -80,7 +81,7 @@ export const otherChoiceKinds = [
 ] as const satisfies readonly Kind[];
 
 /**
- * The kinds that carry a `shape` the default-hotspot laws read (reading 80).
+ * The kinds that carry a `shape` the default-hotspot laws read (reading `default-hotspot`).
  */
 export const hotspotKinds = [
   "qti-hotspot-choice",
@@ -94,7 +95,7 @@ export const sliderKind = "qti-slider-interaction" satisfies Kind;
 
 /**
  * The extended text interaction, which needs `max-strings` when bound to a container (reading
- * 19).
+ * `extended-text-max-strings`).
  */
 export const extendedTextKind = "qti-extended-text-interaction" satisfies Kind;
 

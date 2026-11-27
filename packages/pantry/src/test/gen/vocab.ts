@@ -640,7 +640,7 @@ type AttributeClass = (typeof attributeClasses)[number];
 /**
  * The spellings each class of undeclared name is tried with, exhaustively: the box the admission
  * suite enumerates (testing doctrine, rule 9). The `data-` spellings sit on both sides of spec
- * reading 13's pattern.
+ * reading `data-attribute-name`'s pattern.
  */
 export const spellings: Readonly<
   Record<
@@ -660,8 +660,8 @@ export const spellings: Readonly<
 
 /**
  * Whether a spelling is one XML allows as an attribute's local name, so a probe can carry it: the
- * names with a space cannot be written, and stand for spec reading 13's refusal only through
- * `dataName` (`src/vocab/open.ts`).
+ * names with a space cannot be written, and stand for spec reading `data-attribute-name`'s refusal
+ * only through `dataName` (`src/vocab/open.ts`).
  *
  * @param local - The local name.
  * @returns Whether it is an NCName the probes can write.

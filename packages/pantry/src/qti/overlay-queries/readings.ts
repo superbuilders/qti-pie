@@ -1,42 +1,46 @@
 /**
  * The readings of a test's variable references (information model §7.47 and §2.8.5; spec readings
- * 4, 5, 48, 86, 88, 106, 107, 110 and 112): what each name a test's processing makes names, read
- * over the assembled test.
+ * `prefixed-variable-references`, `section-document`, `dotted-reference`,
+ * `test-identifier-namespace`, `numbered-reference`, `prefixed-built-in-variables`,
+ * `variable-mapping-adds-name`, `mapping-and-default-names` and `test-setter-scope`): what each
+ * name a test's processing makes names, read over the assembled test.
  *
  * A reference written in a document a test places (the test itself, a section document a section
  * ref places, a rule fragment an include splices) resolves once for each test that places it
- * (reading 5). It names, by reading 48, exactly one of:
+ * (reading `section-document`). It names, by reading `dotted-reference`, exactly one of:
  *
  * - **unsplit**, a variable of the test: one the test declares, or one of its built-ins (`duration`
- *   and `QTI_CONTEXT`, reading 29);
+ *   and `QTI_CONTEXT`, reading `duration-variable-type`);
  * - **split**, `SCOPE.VAR`: an item ref of the test and a variable of its item, one the item
- *   declares, one of an item's built-ins (reading 106) or a name a variable mapping of the item ref
- *   gives one of the item's outcomes (reading 107), any name through an item ref that names no item
- *   document, an LTI link or an href outside the package, read unchecked (reading 110); or a test
- *   part, a section or a section ref and its built-in `duration` (§2.8.5: "The values of these
+ *   declares, one of an item's built-ins (reading `prefixed-built-in-variables`) or a name a
+ *   variable mapping of the item ref gives one of the item's outcomes (reading
+ *   `variable-mapping-adds-name`), any name through an item ref that names no item document, an LTI
+ *   link or an href outside the package, read unchecked (reading `mapping-and-default-names`); or a
+ *   test part, a section or a section ref and its built-in `duration` (§2.8.5: "The values of these
  *   durations can be refered to during outcome-processing by using the variable name duration
  *   prefixed with the identifier of the part or section followed by the period character");
  * - **numbered**, `SCOPE.N.VAR`: an item ref a selection with replacement can repeat, an instance
- *   number at least 1 and a variable of its item (reading 88), as the importer states it
- *   (`NumberedReading`).
+ *   number at least 1 and a variable of its item (reading `numbered-reference`), as the importer
+ *   states it (`NumberedReading`).
  *
  * Each placement of a name's scope is a reading of its own, so a name a section document placed
- * twice supplies is read twice, and refused as ambiguous (reading 86). A setter's `identifier`
- * names a variable of its own document alone, so its split and numbered readings count for
- * nothing (reading 112). A braced reference that names no variable is a string value (reading
- * R15-k), and needs no reading.
+ * twice supplies is read twice, and refused as ambiguous (reading `test-identifier-namespace`). A
+ * setter's `identifier` names a variable of its own document alone, so its split and numbered
+ * readings count for nothing (reading `test-setter-scope`). A braced reference that names no
+ * variable is a string value (reading R15-k), and needs no reading.
  *
- * The laws: **"Prefixed reference"** (reading 48), at most one reading of each placed reference;
- * **"Variable declared"** (P8) over a test's assembly, at least one; **"Variable kind"** over an
- * item variable a prefixed reading names (reading 166); **"Weighted variable"**, a weight only on
- * a reading through an item ref (§7.47.2: "Weights are defined only in the test context ... and
- * only when the item identifier prefixing technique (see above) is being used to look up the value
- * of an item variable"); and the proofs of every stated numbered and link reading.
+ * The laws: **"Prefixed reference"** (reading `dotted-reference`), at most one reading of each
+ * placed reference; **"Variable declared"** (P8) over a test's assembly, at least one; **"Variable
+ * kind"** over an item variable a prefixed reading names (reading `test-prefixed-response-reads`);
+ * **"Weighted variable"**, a weight only on a reading through an item ref (§7.47.2: "Weights are
+ * defined only in the test context ... and only when the item identifier prefixing technique (see
+ * above) is being used to look up the value of an item variable"); and the proofs of every stated
+ * numbered and link reading.
  *
- * A placed reference's one reading through a scope types it under the test (spec reading 167): it
- * is `read` (`PlacedVariableRef` of `#pantry/qti/expressions.ts`), typed as the variable its
- * reading names, an item's declaration of it or a variable mapping's source declaration
- * (`readDeclarations`, which `PlacedVariableDeclaration` of
+ * A placed reference's one reading through a scope types it under the test (spec reading
+ * `weighted-test-variables`): it is `read` (`PlacedVariableRef` of `#pantry/qti/expressions.ts`),
+ * typed as the variable its reading names, an item's declaration of it or a variable mapping's
+ * source declaration (`readDeclarations`, which `PlacedVariableDeclaration` of
  * `#pantry/qti/overlay-queries/reference.ts` types it by), an item's built-in ({@link ItemRead}) or
  * a scope's `duration` ({@link ScopeDurationRead}), each under each placement of its document, so a
  * document two tests place is typed in each.
@@ -82,7 +86,8 @@ import { declared } from "#pantry/qti/law-entries.ts";
 import { keyedIdentifier, QtiIdentifier } from "#pantry/qti/limits.ts";
 
 /**
- * The built-in variables of a root's processing, by name (`BuiltInVariable`, reading 29).
+ * The built-in variables of a root's processing, by name (`BuiltInVariable`, reading
+ * `duration-variable-type`).
  *
  * @param root - The root kind.
  * @returns The names.
@@ -97,7 +102,7 @@ const testBuiltIns = builtInsOf(testKind);
 
 /**
  * An item's built-in variables, which a prefixed reading reaches through its item ref (reading
- * 106): `numAttempts`, `duration`, `completionStatus` and `QTI_CONTEXT`.
+ * `prefixed-built-in-variables`): `numAttempts`, `duration`, `completionStatus` and `QTI_CONTEXT`.
  */
 const itemBuiltIns = builtInsOf(itemKind);
 
@@ -119,7 +124,7 @@ if (
 
 /**
  * The scopes whose `duration` a prefixed reading names (§2.8.5): a test part, a section, and a
- * section ref, the facade of its placement (§7.5, reading 86).
+ * section ref, the facade of its placement (§7.5, reading `test-identifier-namespace`).
  */
 const durationScopes = [partKind, sectionKind, sectionRefKind] as const;
 
@@ -175,7 +180,8 @@ const PlacedTestReference = derived(
 );
 
 /**
- * The placed references that read prefixes, every one but a setter's `identifier` (reading 112).
+ * The placed references that read prefixes, every one but a setter's `identifier` (reading
+ * `test-setter-scope`).
  */
 const prefixingReferences = query(QtiViews)
   .rule((r) => {
@@ -252,7 +258,7 @@ const assembledItems = query(QtiViews).rule((r) => {
  * The variables each item ref of a test's assembly names through its item, by the test, the item
  * ref's placement and the variable's name, with the declaration a declared or mapped one reads:
  * each the item declares (§7.47), and each a variable mapping of the item ref gives one of the
- * item's outcomes (§7.48, reading 107).
+ * item's outcomes (§7.48, reading `variable-mapping-adds-name`).
  */
 const itemVariables = query(QtiViews)
   .rule((r) => {
@@ -347,9 +353,10 @@ const itemVariables = query(QtiViews)
   });
 
 /**
- * The item refs of a test's assembly that name no item document, an LTI link or an href outside
- * the package, by the test and the item ref's placement: a prefixed reading through one names a
- * variable the package declares nowhere, and is read unchecked (spec reading 110).
+ * The item refs of a test's assembly that name no item document, an LTI link or an href outside the
+ * package, by the test and the item ref's placement: a prefixed reading through one names a
+ * variable the package declares nowhere, and is read unchecked (spec reading
+ * `mapping-and-default-names`).
  */
 const linkScopes = query(QtiViews).rule((r) => {
   const { assembly, identifier, instance, package: pkg, path, start } = v(assembledScopes, "ref");
@@ -372,7 +379,9 @@ const linkScopes = query(QtiViews).rule((r) => {
  * Every reading of every placed reference that resolves, by the test, the reference, and the
  * reading's scope (its placement and element, the test document's node 0 for an unsplit reading)
  * and its variable's name: what "Prefixed reference" keys and "Variable declared" holds every
- * placed reference to (readings 48, 86, 88, 106, 107, 110 and 112).
+ * placed reference to (readings `dotted-reference`, `test-identifier-namespace`,
+ * `numbered-reference`, `prefixed-built-in-variables`, `variable-mapping-adds-name`,
+ * `mapping-and-default-names` and `test-setter-scope`).
  */
 const testReadingRows = query(QtiViews)
   .rule((r) => {
@@ -986,7 +995,7 @@ const LinkScope = derived("LinkScope", linkScopes);
 /**
  * The variables a stated numbered reading may name through its item ref: each its item declares
  * or a mapping names ({@link itemVariables}), each of an item's built-ins, and any through an item
- * ref that names no item document (reading 110).
+ * ref that names no item document (reading `mapping-and-default-names`).
  */
 const NumberedTarget = derived(
   "NumberedTarget",
@@ -1081,9 +1090,9 @@ const NumberedTarget = derived(
 
 /**
  * The prefixed readings of a reference by `identifier` that name an item variable a declaration
- * declares, by the test and the reference, with the reference's element kind and the
- * declaration's kind: what "Variable kind" holds to the declaration kinds the element may name
- * (reading 166: it "binds a prefixed name as it binds an unprefixed one").
+ * declares, by the test and the reference, with the reference's element kind and the declaration's
+ * kind: what "Variable kind" holds to the declaration kinds the element may name (reading
+ * `test-prefixed-response-reads`: it "binds a prefixed name as it binds an unprefixed one").
  */
 const PrefixedDeclaration = derived(
   "PrefixedDeclaration",
@@ -1325,9 +1334,10 @@ export const readDeclarations = query(QtiViews)
   });
 
 /**
- * Each read placed reference beside its readings through an item ref that names an item document
- * of a variable no mapping of the ref names, an item's built-in (reading 106), with the variable's
- * name and the reference's type: "E1 derived" types each as the built-in stands.
+ * Each read placed reference beside its readings through an item ref that names an item document of
+ * a variable no mapping of the ref names, an item's built-in (reading
+ * `prefixed-built-in-variables`), with the variable's name and the reference's type: "E1 derived"
+ * types each as the built-in stands.
  */
 const ItemRead = derived(
   "ItemRead",
@@ -1465,7 +1475,7 @@ const typedReadingRows = query(QtiViews)
 /**
  * The placed references read twice, by the test and the reference: two readings that differ in
  * their scope's placement or element or in their variable's name, which "Prefixed reference"
- * refuses (reading 86).
+ * refuses (reading `test-identifier-namespace`).
  */
 const rivalReadings = query(QtiViews).rule((r) => {
   const {
@@ -1523,10 +1533,10 @@ const rivalReadings = query(QtiViews).rule((r) => {
 /**
  * Each placed reference of a test's placement whose one reading types it, by the placement and the
  * reference (`placedDocuments` of `#pantry/qti/overlay-queries/expression.ts`): exactly the `read`
- * ones, which "E1 derived" holds to it both ways (spec reading 167). A name the test declares, or
- * one of its built-ins, has an unsplit reading of its own, so a reference that resolves before any
- * scope is never one of these; and a reference read twice is none either, so "Prefixed reference"
- * alone refuses it.
+ * ones, which "E1 derived" holds to it both ways (spec reading `weighted-test-variables`). A name
+ * the test declares, or one of its built-ins, has an unsplit reading of its own, so a reference
+ * that resolves before any scope is never one of these; and a reference read twice is none either,
+ * so "Prefixed reference" alone refuses it.
  */
 const SoleReading = derived(
   "SoleReading",
@@ -1593,10 +1603,10 @@ const ItemRefTable = derived(
 
 /**
  * The readings of a test's table readers through an item ref that names an item document, by the
- * reader's element kind: each placed `qti-map-response` or `qti-map-response-point` by
- * `identifier` and each of its readings whose scope is an item ref with an item document, split or
- * numbered, by the scope's place and the variable's name. A reading through a link names a
- * variable no document of the package declares, and is read unchecked (reading 110).
+ * reader's element kind: each placed `qti-map-response` or `qti-map-response-point` by `identifier`
+ * and each of its readings whose scope is an item ref with an item document, split or numbered, by
+ * the scope's place and the variable's name. A reading through a link names a variable no document
+ * of the package declares, and is read unchecked (reading `mapping-and-default-names`).
  *
  * @param kind - The reader's kind.
  * @returns The query.
@@ -1650,14 +1660,16 @@ const tableReadersOf = (kind: (typeof mappedReaders)[number]) =>
   });
 
 /**
- * The item variables the prefixed map responses read through an item's ref
- * ({@link tableReadersOf}), each of which claims the variable's `qti-mapping` (reading 166).
+ * The item variables the prefixed map responses read through an item's ref ({@link
+ * tableReadersOf}), each of which claims the variable's `qti-mapping` (reading
+ * `test-prefixed-response-reads`).
  */
 const PrefixedMapResponse = derived("PrefixedMapResponse", tableReadersOf("qti-map-response"));
 
 /**
- * The item variables the prefixed map response points read through an item's ref
- * ({@link tableReadersOf}), each of which claims the variable's `qti-area-mapping` (reading 166).
+ * The item variables the prefixed map response points read through an item's ref ({@link
+ * tableReadersOf}), each of which claims the variable's `qti-area-mapping` (reading
+ * `test-prefixed-response-reads`).
  */
 const PrefixedMapResponsePoint = derived(
   "PrefixedMapResponsePoint",
@@ -1665,8 +1677,8 @@ const PrefixedMapResponsePoint = derived(
 );
 
 /**
- * The patterns of a numbered reading's instance number: all digits, and at least 1 (reading 88:
- * "its number is all digits and at least 1, the first instance being 1").
+ * The patterns of a numbered reading's instance number: all digits, and at least 1 (reading
+ * `numbered-reference`: "its number is all digits and at least 1, the first instance being 1").
  */
 const instanceNumber = Text.pattern("^0*[1-9][0-9]*$");
 
@@ -1679,19 +1691,20 @@ const AssembledReplaceable = derived("AssembledReplaceable", assembledReplaceabl
 /**
  * The readings' laws, each named by its law:
  *
- * - **"Prefixed reference"** (reading 48): no placed reference has two readings that resolve;
+ * - **"Prefixed reference"** (reading `dotted-reference`): no placed reference has two readings that
+ *   resolve;
  * - **"Variable declared"** (P8, over a test's assembly): every placed reference that is no braced
  *   string has one;
- * - **"Variable kind"** (reading 166): a prefixed reference by `identifier` names a declaration of a
- *   kind its element may name;
- * - **"Mapped response"** (reading 166, §7.22: a map response "transforms it using the associated
- *   mapping, which must have been declared"): a prefixed map response's reading through an item's
- *   ref names a variable whose declaration holds a `qti-mapping`, and a map response point's one
- *   that holds a `qti-area-mapping`, a built-in variable none;
+ * - **"Variable kind"** (reading `test-prefixed-response-reads`): a prefixed reference by
+ *   `identifier` names a declaration of a kind its element may name;
+ * - **"Mapped response"** (reading `test-prefixed-response-reads`, §7.22: a map response "transforms
+ *   it using the associated mapping, which must have been declared"): a prefixed map response's
+ *   reading through an item's ref names a variable whose declaration holds a `qti-mapping`, and a
+ *   map response point's one that holds a `qti-area-mapping`, a built-in variable none;
  * - **"E1 derived"**: a placed reference is read exactly where its one reading types it, and is typed
- *   as its variable (spec reading 167): as a declaration over `readDeclarations`
- *   (overlay-queries/reference.ts), and here as an item's built-in or a scope's `duration` it
- *   reads; and each stated numbered reading is a placed reference's, spelled
+ *   as its variable (spec reading `weighted-test-variables`): as a declaration over
+ *   `readDeclarations` (overlay-queries/reference.ts), and here as an item's built-in or a scope's
+ *   `duration` it reads; and each stated numbered reading is a placed reference's, spelled
  *   `SCOPE.NUMBER.VARIABLE`, its number at least 1, its item ref one a replacement can repeat in
  *   its placement, and its variable one its item names.
  */

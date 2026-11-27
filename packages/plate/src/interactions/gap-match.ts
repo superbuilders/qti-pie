@@ -2,23 +2,23 @@
  * Gap Match: its model node, parse and redaction, on the module shape the interaction-module
  * contract states. The QTI database judges its responses when an answer is posted.
  *
- * Three readings of `docs/spec-readings.md` bind it. Reading 38, "A `qti-gap` appears only within a
- * gap-match interaction, and a `qti-hottext` may appear in any flow or inline …": the database
- * refuses a gap outside this interaction, so {@link gapMatchModule}'s `parse` reads `qti-gap` only
- * inside its own element, as an element of the gapped content the kit's body walk lets through.
- * Reading 169, "A gap match interaction with two or more gaps binds a response of multiple
- * cardinality.": the database enforces it, so `parse` reads the declared cardinality, `single` or
- * `multiple`; any other, like any base type but `directedPair`, the database refuses as
- * "BindingFit" before an item is built, and the body walk gives its notice in place of the
- * interaction.
+ * Three readings of `docs/spec-readings.md` bind it. Reading `gap-and-hottext-placement`, "A
+ * `qti-gap` appears only within a gap-match interaction, and a `qti-hottext` may appear in any flow
+ * or inline …": the database refuses a gap outside this interaction, so {@link gapMatchModule}'s
+ * `parse` reads `qti-gap` only inside its own element, as an element of the gapped content the
+ * kit's body walk lets through. Reading `gap-match-cardinality`, "A gap match interaction with two
+ * or more gaps binds a response of multiple cardinality.": the database enforces it, so `parse`
+ * reads the declared cardinality, `single` or `multiple`; any other, like any base type but
+ * `directedPair`, the database refuses as "BindingFit" before an item is built, and the body walk
+ * gives its notice in place of the interaction.
  *
- * Reading 190, "An unwritten `max-associations` is 1, and a response holding more associations
- * than its `max-associations` is refused whatever `validate-responses` says": the XSD's default 1
- * caps the pairs in tier (a), and `min-associations`, which `GapMatchInteractionDType` gives no
- * default, is a least only under `validate-responses`; reading 53 keeps `0` as no limit. So the
- * correct response of an item that writes several pairs and no `max-associations`, such as the
- * 1EdTech examples `jumble-gapMatch.xml` and `multi-input.xml`, is refused as any response over the
- * cap is.
+ * Reading `max-associations`, "An unwritten `max-associations` is 1, and a response holding more
+ * associations than its `max-associations` is refused whatever `validate-responses` says": the
+ * XSD's default 1 caps the pairs in tier (a), and `min-associations`, which
+ * `GapMatchInteractionDType` gives no default, is a least only under `validate-responses`; reading
+ * `max-strings-zero` keeps `0` as no limit. So the correct response of an item that writes several
+ * pairs and no `max-associations`, such as the 1EdTech examples `jumble-gapMatch.xml` and
+ * `multi-input.xml`, is refused as any response over the cap is.
  *
  * {@link gapMatchModule}'s `redact` gives the page the choices in presented order, the author's
  * gapped content with each `qti-gap` kept as an element, the gaps in document order, the
@@ -133,8 +133,8 @@ interface GapMatchInteraction<L extends Level = ModelLevel> extends ModuleIntera
    */
   readonly gapped: Nodes<L>;
   /**
-   * `max-associations`, 1 when absent (the default the ASI XSD gives it, reading 190): the
-   * most pairs a response may hold; 0 is no limit.
+   * `max-associations`, 1 when absent (the default the ASI XSD gives it, reading
+   * `max-associations`): the most pairs a response may hold; 0 is no limit.
    */
   readonly maxAssociations: bigint;
   /**

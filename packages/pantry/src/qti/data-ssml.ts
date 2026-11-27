@@ -1,7 +1,8 @@
 /**
- * The `data-ssml` law (spec reading 177, over R7-a): a closed `data-ssml`, on an element whose kind
- * declares it, holds one JSON object that Data-SSML 1.0's JSON Schema admits, and the database
- * judges it, over the rows the importer reads the value into (`#pantry/vocab/data-ssml.ts`).
+ * The `data-ssml` law (spec reading `data-ssml-judgement`, over R7-a): a closed `data-ssml`, on an
+ * element whose kind declares it, holds one JSON object that Data-SSML 1.0's JSON Schema admits,
+ * and the database judges it, over the rows the importer reads the value into
+ * (`#pantry/vocab/data-ssml.ts`).
  *
  * - **The rows:** {@link DataSsml}, one per element whose `data-ssml` is one JSON object of objects
  *   of strings; {@link DataSsmlMember}, each member of the object as written, by its place; and

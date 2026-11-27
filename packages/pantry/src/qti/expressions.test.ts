@@ -83,12 +83,13 @@ describe("qti/expressions.ts, its typing tables", () => {
     }
   });
 
-  it("reads each root's built-in variables from the installed BuiltInVariable, as reading 29 types them", () => {
+  it("reads each root's built-in variables from the installed BuiltInVariable, as reading `duration-variable-type` types them", () => {
     /**
-     * Oracle: a second statement of the same facts, `builtInTypes` (spec reading 29: an item's
-     * and a response processing template's `duration` a float, a test's and a section's a
-     * `duration`; the UP audit's A63), against the installed relation's rows, each declaration
-     * code read through `ValueBaseOf` and `ValueCardinalityOf`. Bound: every row of both.
+     * Oracle: a second statement of the same facts, `builtInTypes` (spec reading
+     * `duration-variable-type`: an item's and a response processing template's `duration` a float,
+     * a test's and a section's a `duration`; the UP audit's A63), against the installed relation's
+     * rows, each declaration code read through `ValueBaseOf` and `ValueCardinalityOf`. Bound: every
+     * row of both.
      */
     const itemRoots = new Set(["qti-assessment-item", "qti-response-processing"]);
     const testRoots = new Set(["qti-assessment-test", "qti-assessment-section"]);
@@ -202,17 +203,17 @@ describe("qti/expressions.ts, its typing tables", () => {
     assert.deepStrictEqual([...unjudgedBaseTypes].toSorted(), ["file", "string"]);
   });
 
-  it("reads reading 34's boolean and reading 45's integer", () => {
+  it("reads reading `boolean-lexical`'s boolean and reading `integer-unbounded`'s integer", () => {
     assert.deepStrictEqual(
       ["true", "false", " true ", "1", "0", " 0 ", "TRUE", "2", "yes"].map((form) =>
         patternOf("boolean").test(form),
       ),
       [true, true, true, true, true, true, false, false, false],
-      "reading 34: xs:boolean's true, false, 1 and 0 (XML Schema Part 2 §3.2.2.1)",
+      "reading `boolean-lexical`: xs:boolean's true, false, 1 and 0 (XML Schema Part 2 §3.2.2.1)",
     );
     assert.isTrue(
       patternOf("integer").test("1000000000000000000000000000001"),
-      "reading 45: no bound on an integer",
+      "reading `integer-unbounded`: no bound on an integer",
     );
     assert.deepStrictEqual(
       ["3 4", " 3 4 ", "3", "3 4 5", "a b"].map((form) => patternOf("point").test(form)),

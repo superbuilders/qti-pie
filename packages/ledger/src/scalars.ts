@@ -25,12 +25,12 @@ import { named } from "#ledger/laws.ts";
 export const integerDigits = 825;
 
 /**
- * QTI's integer, exact: plate holds every integer as a `bigint` at any size (its reading 45: QTI
- * 3.0 states no range for the integer base type), so the ledger holds one as an integral numeric of
- * {@link integerDigits} digits, never a 64-bit integer that would refuse one plate computed past
- * 2^63. At scale 0 grizzle holds the column to no NaN and gives it as a `bigint`, so a value read
- * is plate's integer as it is. One precision for every integer and point coordinate, so the app
- * mints one type.
+ * QTI's integer, exact: plate holds every integer as a `bigint` at any size (its reading
+ * `integer-unbounded`: QTI 3.0 states no range for the integer base type), so the ledger holds one
+ * as an integral numeric of {@link integerDigits} digits, never a 64-bit integer that would refuse
+ * one plate computed past 2^63. At scale 0 grizzle holds the column to no NaN and gives it as a
+ * `bigint`, so a value read is plate's integer as it is. One precision for every integer and point
+ * coordinate, so the app mints one type.
  */
 export const QtiInteger = named(
   "QTI integer",

@@ -63,9 +63,9 @@ const element = "qti-portable-custom-interaction";
 /**
  * One `qti-interaction-module` of a Portable Custom Interaction (Q-16): its `id`, an `xs:NCName`
  * read as `identifierOf` reads it, and its `primary-path` and `fallback-path`, each an `xs:anyURI`
- * with its whitespace collapsed (reading 7, as the database reads all three), each none when
- * absent. The module resolves no path (issue pci-01's `resolvePciModules` does); it carries them to
- * the frame host.
+ * with its whitespace collapsed (reading `typed-value-whitespace`, as the database reads all
+ * three), each none when absent. The module resolves no path (issue pci-01's `resolvePciModules`
+ * does); it carries them to the frame host.
  */
 interface PortableCustomModuleRef {
   readonly fallbackPath: Option.Option<string>;
@@ -152,7 +152,7 @@ export interface PortableCustomInteraction<L extends Level = ModelLevel> extends
   readonly markup: Nodes<L>;
   /**
    * The `module` attribute, the AMD module id, an `xs:NCName` read as `identifierOf` reads it
-   * (reading 7), none when absent (then `modules` names it).
+   * (reading `typed-value-whitespace`), none when absent (then `modules` names it).
    */
   readonly module: Option.Option<string>;
   readonly modules: PortableCustomModules;
@@ -454,7 +454,7 @@ export const portableCustomModule: InteractionModule<
 > = {
   /**
    * Any declared response: the Portable Custom Interaction's class states no binding (reading
-   * 75), and the PCI decides what it posts.
+   * `response-identifier-declared`), and the PCI decides what it posts.
    */
   binding: "any",
   element,

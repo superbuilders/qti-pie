@@ -28,7 +28,8 @@
  *   another page's frame, is neither paused nor heard.
  *
  * A media element that loses the voice is paused, nothing more: each player hears its own pause,
- * read-aloud's item session resting and a Media keeping the play it counted (spec reading 245).
+ * read-aloud's item session resting and a Media keeping the play it counted (spec reading
+ * `media-play-under-one-voice`).
  *
  * @module
  * @see {@link https://html.spec.whatwg.org/multipage/media.html#event-media-play | HTML, the media element's `play` event}

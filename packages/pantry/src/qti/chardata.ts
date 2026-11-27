@@ -254,9 +254,9 @@ export const XmlStandalone = closed.ordered("XmlStandalone", ["yes", "no"]);
 /**
  * A namespace declaration's prefix as written: an NCName, or empty for a default declaration
  * (`xmlns="…"`), of any length: Namespaces in XML 1.0 makes a prefix an NCName (§4), which XML puts
- * no bound on (reading 94), so {@link Namespace} keys it by its SHA-256 and no key holds it as
- * itself. No ordered read orders by one: an element's declarations are a set, which the model
- * orders by prefix on the host (`#pantry/model/assemble.ts`).
+ * no bound on (reading `ncname-characters`), so {@link Namespace} keys it by its SHA-256 and no key
+ * holds it as itself. No ordered read orders by one: an element's declarations are a set, which the
+ * model orders by prefix on the host (`#pantry/model/assemble.ts`).
  *
  * @see {@link https://www.w3.org/TR/xml-names/#ns-decl | Namespaces in XML 1.0, §3 Declaring Namespaces}
  *
@@ -269,18 +269,18 @@ export const NamespacePrefix = law(
 
 /**
  * A namespace declaration's value as read, after attribute-value normalization: an RFC 3986
- * `URI-reference` (spec reading 131), which Namespaces in XML 1.0 (Third Edition) asks of it ("The
- * attribute's normalized value MUST be either a URI reference — the namespace name identifying the
- * namespace — or an empty string", §3; "An XML namespace is identified by a URI reference
- * [RFC3986]", §2.1). The empty string is one, a `relative-ref` of an empty path; the reader admits
- * it only where an unprefixed declaration undeclares the default namespace. A relative reference is
- * deprecated (§2.2), not refused. Its characters are US-ASCII, so a space, a `%` with no two hex
- * digits after it and any character beyond ASCII are refused, as is an IP literal that is no IPv6
- * or IPvFuture address and a port that is not digits. The foreign names' namespaces
- * (`ForeignNamespace`, the open names' `uri`) come from these declarations, so they need no pattern
- * of their own. The pattern's source is crust's `uriReference`, the one crust's reader holds an XML
- * 1.0 namespace name to (`@qti-pie/crust/uri.ts`). `chardata.oracle.test.ts` judges the pattern
- * against the law oracle's own recogniser of Appendix A's grammar
+ * `URI-reference` (spec reading `namespace-uri`), which Namespaces in XML 1.0 (Third Edition) asks
+ * of it ("The attribute's normalized value MUST be either a URI reference — the namespace name
+ * identifying the namespace — or an empty string", §3; "An XML namespace is identified by a URI
+ * reference [RFC3986]", §2.1). The empty string is one, a `relative-ref` of an empty path; the
+ * reader admits it only where an unprefixed declaration undeclares the default namespace. A
+ * relative reference is deprecated (§2.2), not refused. Its characters are US-ASCII, so a space, a
+ * `%` with no two hex digits after it and any character beyond ASCII are refused, as is an IP
+ * literal that is no IPv6 or IPvFuture address and a port that is not digits. The foreign names'
+ * namespaces (`ForeignNamespace`, the open names' `uri`) come from these declarations, so they need
+ * no pattern of their own. The pattern's source is crust's `uriReference`, the one crust's reader
+ * holds an XML 1.0 namespace name to (`@qti-pie/crust/uri.ts`). `chardata.oracle.test.ts` judges
+ * the pattern against the law oracle's own recogniser of Appendix A's grammar
  * (`#pantry/test/uri-reference.ts`).
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
@@ -303,7 +303,7 @@ export const ForeignNamespace = law(entryOf("Key text bound"), str.bytes(foreign
 
 /**
  * A foreign element's local name: an NCName of at most `foreignNameBytes` UTF-8 bytes
- * (`#pantry/qti/limits.ts`): XML puts no bound on a name (reading 94), and its
+ * (`#pantry/qti/limits.ts`): XML puts no bound on a name (reading `ncname-characters`), and its
  * {@link OpenElementName}'s `expanded` spelling is matched in a query, which grizzle reads only
  * over a text of at most the regex engine's bytes, so a longer one is refused as a stated limit of
  * the representation, "Key text bound". An open attribute's local name is matched by no query and
@@ -376,29 +376,31 @@ export const Doctype = law(
  * - `package` and `path` are its `Entry`'s, its key, which Q5.06's P3 states.
  * - `rootKind` is a `NodeKind` handle, the root element's kind, which a containment from the root
  *   element proves. `RootOfType`'s payload is over `NodeKind` too, so P2 compares them directly.
- * - `documentType` is the document's type in its package (spec reading 176): `manifest` for the
- *   package's manifest, which no resource lists, else the type of the resource that lists it, whose
- *   `ResourceDocument` row Q5.06's P1 and P2 judge. It is the one row that holds it: a law that
- *   tells the manifest's elements, or a record file's, from another document's matches this row at
- *   the element's `(package, path)` (decision S3), or reads the manifest's path, which `RootOfType`
- *   holds to be the manifest's alone.
- * - **its context** (spec readings 85 and 117): the ancestry and nearest interaction its document
- *   node holds, which every node below it inherits along the tree's owner axis, so an included
- *   fragment's content is judged where it is included. `context` is the union of the ancestries of
- *   the sites that name the document (Q5.13's `Site`, counted by `targetedBy` and folded by
- *   `Monoid.or`), empty where none does: a ban is a disjointness, so the union is exact for every
- *   placement. `contextPath`, `contextNearest` and `contextNearestKind` are the host's: its own
- *   path, its document node's position, 0, and `document`, or the document and position of the one
- *   interaction the first site that names the document stands in; a site that stands in another
- *   places it unjudged, `UnplacedInclude`'s `context` (spec reading 117).
- * - **its assembly** (spec readings 85 and 117): `assembled`, the host's, whether the document is in
- *   an assembly (it has a Q5.13 `AssembledDocument` row: a test or a section, or a document that
- *   holds a site or that a site names), so its IDREFs resolve per instance of its assemblies rather
- *   than in it alone (Q5.07), and it heads an assembly of its own exactly where no include splices
- *   it in place (the query `HeadDocument` of `#pantry/qti/queries.ts`, spec reading 117); and the
- *   counts its instances copy, drawn: `bindings`, `choices` and `hottexts` (Q5.09's `BindingName`,
- *   `Choice` and `Hottext` rows), `ids` (Q5.07's `DocumentId` rows) and `idrefTargets` (Q5.07's
- *   `IdrefTarget` rows).
+ * - `documentType` is the document's type in its package (spec reading `document-type-total`):
+ *   `manifest` for the package's manifest, which no resource lists, else the type of the resource
+ *   that lists it, whose `ResourceDocument` row Q5.06's P1 and P2 judge. It is the one row that
+ *   holds it: a law that tells the manifest's elements, or a record file's, from another document's
+ *   matches this row at the element's `(package, path)` (decision S3), or reads the manifest's
+ *   path, which `RootOfType` holds to be the manifest's alone.
+ * - **its context** (spec readings `inclusion-cycles` and `fragment-placement`): the ancestry and
+ *   nearest interaction its document node holds, which every node below it inherits along the
+ *   tree's owner axis, so an included fragment's content is judged where it is included. `context`
+ *   is the union of the ancestries of the sites that name the document (Q5.13's `Site`, counted by
+ *   `targetedBy` and folded by `Monoid.or`), empty where none does: a ban is a disjointness, so the
+ *   union is exact for every placement. `contextPath`, `contextNearest` and `contextNearestKind`
+ *   are the host's: its own path, its document node's position, 0, and `document`, or the document
+ *   and position of the one interaction the first site that names the document stands in; a site
+ *   that stands in another places it unjudged, `UnplacedInclude`'s `context` (spec reading
+ *   `fragment-placement`).
+ * - **its assembly** (spec readings `inclusion-cycles` and `fragment-placement`): `assembled`, the
+ *   host's, whether the document is in an assembly (it has a Q5.13 `AssembledDocument` row: a test
+ *   or a section, or a document that holds a site or that a site names), so its IDREFs resolve per
+ *   instance of its assemblies rather than in it alone (Q5.07), and it heads an assembly of its own
+ *   exactly where no include splices it in place (the query `HeadDocument` of
+ *   `#pantry/qti/queries.ts`, spec reading `fragment-placement`); and the counts its instances
+ *   copy, drawn: `bindings`, `choices` and `hottexts` (Q5.09's `BindingName`, `Choice` and
+ *   `Hottext` rows), `ids` (Q5.07's `DocumentId` rows) and `idrefTargets` (Q5.07's `IdrefTarget`
+ *   rows).
  * - **its document node's copies:** `nodeChildren`, the document node's own, so the row states the
  *   node's context. What every document node holds alike is no field: the containment's target is
  *   the document nodes, governed by and of kind `document` under a `document` parent, at start 0,
@@ -544,8 +546,8 @@ export const OpenElementName = law(
  * A foreign element's governing type, keyed by its node, where its `xsi:type` gives it one: the
  * type its `xsi:type` names, where that resolves to a type its document's schema set holds or a
  * built-in (XML Schema 1.0 Part 1, §3.3.4, Schema-Validity Assessment (Element), clause 1.2; spec
- * readings 60 and 81). A foreign element with no `xsi:type`, or one naming no such type, is
- * assessed laxly and has none.
+ * readings `wildcard-xsi-type` and `wildcard-global-declarations`). A foreign element with no
+ * `xsi:type`, or one naming no such type, is assessed laxly and has none.
  *
  * - **the host's:** `type`, the shred's reading of the `xsi:type`. Its node's governor and kind and
  *   its parent's namespace, which `TypeAvailable` reads the type against, are read through `Node`
@@ -586,10 +588,10 @@ const documentNodes = select(Node, (n) => n.and(n.eq(n.kind, "document"), n.eq(n
  * - **"Document":** one row per document node, both ways; its root kind is its root element's; its
  *   XML declaration, where it writes one, is a document's; and an `encoding` or a `standalone` is a
  *   declaration's, since neither is written outside one (XML 1.0 §2.8, `XMLDecl`).
- * - **its context** (spec reading 117): its document node's ancestry and nearest interaction are its
- *   `context`, `contextNearest` and `contextNearestKind`, through a containment into the document
- *   node its target fixes; and (`E1_derived`) the nearest is the document node itself, at 0 in its
- *   own path, unless sites name the document from inside one interaction.
+ * - **its context** (spec reading `fragment-placement`): its document node's ancestry and nearest
+ *   interaction are its `context`, `contextNearest` and `contextNearestKind`, through a containment
+ *   into the document node its target fixes; and (`E1_derived`) the nearest is the document node
+ *   itself, at 0 in its own path, unless sites name the document from inside one interaction.
  * - **"Namespace family":** each element's declarations stand at its node, one per prefix by the key
  *   (Namespaces in XML 1.0, §3: a prefix is declared once on an element, since an element's
  *   attributes are distinct by name).
@@ -612,20 +614,23 @@ const documentNodes = select(Node, (n) => n.and(n.eq(n.kind, "document"), n.eq(n
  *   §3.3.4 clauses 1.1.1.2 and 1.1.1.3.2, with §3.10.4 clause 2; shred reads it so).
  *   `KindByNameUnder` holds each parent's names as one pattern over `namespace}local`, the subject
  *   built by `Text.concat`, since a closed relation's key is closed ids only.
- * - **"XsiType available"** (C15, C36; spec readings 60 and 81): a foreign element's governing type,
- *   its {@link OpenElementType} where it has one, is one its document's schema set holds or XML
+ * - **"XsiType available"** (C15, C36; spec readings `wildcard-xsi-type` and
+ *   `wildcard-global-declarations`): a foreign element's governing type, its
+ *   {@link OpenElementType} where it has one, is one its document's schema set holds or XML
  *   Schema's own, read from its parent's namespace through `TypeAvailable`; under a parent of no
  *   vocabulary's namespace, which stands in documents of every set, any type stands. Which set a
  *   document is assessed against is not on `Node`, so the parent's namespace stands for it: reading
- *   81's recorded limit.
- * - **"Strictly held"** (C44, C13; spec readings 6 and 81): a foreign element its parent's model
- *   holds only by `strict` wildcards (`StrictlyHeld`) has a governing type, its
- *   {@link OpenElementType}, since without one XML Schema cannot assess it (§3.10.4 clause 2,
- *   §3.3.5 [validity] clause 1.1.3), unless its expanded name is one of reading 6's roots its
- *   documents' schema set declares there (`HeldRootsUnder`), which the wildcard assesses against
- *   that declaration (`cp:manifest` under `drd:accessForAllResource`). shred refuses the rest as
+ *   `wildcard-global-declarations`'s recorded limit.
+ * - **"Strictly held"** (C44, C13; spec readings `nested-root-in-wildcard` and
+ *   `wildcard-global-declarations`): a foreign element its parent's model holds only by `strict`
+ *   wildcards (`StrictlyHeld`) has a governing type, its {@link OpenElementType}, since without one
+ *   XML Schema cannot assess it (§3.10.4 clause 2, §3.3.5 [validity] clause 1.1.3), unless its
+ *   expanded name is one of reading `nested-root-in-wildcard`'s roots its documents' schema set
+ *   declares there (`HeldRootsUnder`), which the wildcard assesses against that declaration
+ *   (`cp:manifest` under `drd:accessForAllResource`). shred refuses the rest as
  *   `strict-undeclared`.
- * - **"MathML foreign element"** (reading 2): no foreign element is in MathML's namespace.
+ * - **"MathML foreign element"** (reading `mathml-validity`): no foreign element is in MathML's
+ *   namespace.
  *
  * Every law over a foreign element's name or type that reads its node's kind, parent or governor,
  * or its parent's kind or namespace, is a rule over a query

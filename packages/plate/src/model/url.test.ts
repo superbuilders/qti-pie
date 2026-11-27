@@ -319,7 +319,7 @@ describe("assetPaths", () => {
 });
 
 describe("a PCI's module locations", () => {
-  it("are paths from the package root for an item in a subfolder, by reading 201", () => {
+  it("are paths from the package root for an item in a subfolder, by reading `pci-module-locations`", () => {
     // Implementation guide §3.7.12.2: "Otherwise it should be assumed to be a QTI content package
     // relative path", the default configuration read from "<content package base
     // href>/modules/module_resolution.js". Information model §5.77.1: "Relative URLs indicate
@@ -484,11 +484,11 @@ const resolveReference = (base: string, reference: string): string => {
 const oracleRoot = "http://host/package-root/";
 
 /**
- * Give the file a relative reference in an item names, by RFC 3986: the reference's
- * percent-encoded unreserved characters normalized first (section 6.2.2.2, so `%2e` is a `.`),
- * resolved against the item's URI under {@link oracleRoot}, then each segment percent-decoded
- * (section 2.1). Reading 102 states each step for pantry and plate alike: a path that climbs above
- * the package root resolves outside it, and names no file of it.
+ * Give the file a relative reference in an item names, by RFC 3986: the reference's percent-encoded
+ * unreserved characters normalized first (section 6.2.2.2, so `%2e` is a `.`), resolved against the
+ * item's URI under {@link oracleRoot}, then each segment percent-decoded (section 2.1). Reading
+ * `href-resolution` states each step for pantry and plate alike: a path that climbs above the
+ * package root resolves outside it, and names no file of it.
  *
  * @param location The item's path from the package root.
  * @param reference The reference, a relative path with no query or fragment.
@@ -588,7 +588,7 @@ describe("a URL attribute's value, read by its type's whiteSpace facet", () => {
       ),
     );
     // An `xs:string` that holds a tab, a line feed or a carriage return inside names no file: the
-    // database refuses it under "Href form" (pantry's spec reading 102), so plate never meets one.
+    // database refuses it under "Href form" (pantry's spec reading `href-resolution`), so plate never meets one.
     const held = (facet: keyof typeof facets, lexical: string): boolean =>
       facet !== "preserve" ||
       !/[\t\n\r]/u.test(lexical.replaceAll(/^[\t\n\r ]+|[\t\n\r ]+$/gu, ""));

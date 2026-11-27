@@ -17,7 +17,8 @@
  * after it (`&f;`) breaks section 4.1's "the declaration of a general entity MUST precede any
  * reference to it which appears in a default value", a validity constraint beside an external
  * subset, which libxml2 without `--valid` reports only as the warning "Entity 'f' not defined".
- * Crust refuses it in every context, as reading 1 refuses content that is not valid.
+ * Crust refuses it in every context, as reading `nothing-valid-refused` refuses content that is not
+ * valid.
  */
 import { regex } from "arkregex";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";

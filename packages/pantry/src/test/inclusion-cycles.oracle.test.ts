@@ -1,12 +1,13 @@
 /**
- * Inclusion cycles through `rtest01`'s fragment, judged by the law oracle, by the keys the
- * import's rows break (`key-breaches.ts`), and by every law the host judges over those rows
+ * Inclusion cycles through `rtest01`'s fragment, judged by the law oracle, by the keys the import's
+ * rows break (`key-breaches.ts`), and by every law the host judges over those rows
  * (`host-judge.ts`): a cycle is refused by "Inclusion cycle" alone, since the import cuts it where
- * it closes and no instance repeats a document, whose placements would break the assembly's keys
- * (a binding per response, a hottext per identifier) before the cycle's law. A cycle no item
- * places, and a fragment only that cycle places, are in no assembly at all, which the containment
- * of every `AssembledDocument` into the query `InstanceDocument` refuses under the same law (spec
- * readings 85 and 117), a rule over a query that the database alone judges.
+ * it closes and no instance repeats a document, whose placements would break the assembly's keys (a
+ * binding per response, a hottext per identifier) before the cycle's law. A cycle no item places,
+ * and a fragment only that cycle places, are in no assembly at all, which the containment of every
+ * `AssembledDocument` into the query `InstanceDocument` refuses under the same law (spec readings
+ * `inclusion-cycles` and `fragment-placement`), a rule over a query that the database alone
+ * judges.
  *
  * Oracle: the inclusion graph as each case writes it, a cycle or none, so no expected verdict is
  * computed by the import's walk or the oracle's.
@@ -142,7 +143,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                  */
                 oracle: {
                   kind: "specification",
-                  name: "XInclude 1.0 §4.5 (an inclusion loop is a fatal error) and spec reading 85, over the case's inclusion graph",
+                  name: "XInclude 1.0 §4.5 (an inclusion loop is a fatal error) and spec reading `inclusion-cycles`, over the case's inclusion graph",
                 },
                 suite: "test/inclusion-cycles",
               },

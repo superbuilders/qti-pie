@@ -54,11 +54,11 @@ const posts = (text: string, reading: TypedReading): boolean =>
 /**
  * Decide whether a box's text fails a `pattern-mask`, as the database's admission checks it.
  *
- * The text is read as the box's base type and matched in the value's lexical form (reading 54): a
- * `string` as typed, its line breaks made LF; an `integer`, read in `base`, as its decimal digits;
- * a `float` as the shortest decimal that reads back to it. A text that is no value of a numeric
- * base type fails, as it is no number the mask could match. A text that is no answer fails
- * nothing.
+ * The text is read as the box's base type and matched in the value's lexical form (reading
+ * `pattern-mask-numeric`): a `string` as typed, its line breaks made LF; an `integer`, read in
+ * `base`, as its decimal digits; a `float` as the shortest decimal that reads back to it. A text
+ * that is no value of a numeric base type fails, as it is no number the mask could match. A text
+ * that is no answer fails nothing.
  *
  * @param matcher The `pattern-mask`, compiled.
  * @param text The box's text, as typed.

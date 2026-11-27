@@ -6,7 +6,7 @@
  * relation's. A binding's variable is its item's response declaration of its name: a query over a
  * binding matches a name view of `QtiViews` (`#pantry/qti/names.ts`) by `(package, path,
  * identifier)`, of kind `qti-response-declaration` (decision S3), the placed binding's in its
- * assembly's item (spec reading 117).
+ * assembly's item (spec reading `fragment-placement`).
  */
 import {
   check,
@@ -236,9 +236,10 @@ const MostCountNode = derived(
 );
 
 /**
- * Each least count of an interaction whose choices bound its counts (`ChoiceCount`, reading 18)
- * beside the interaction's choices, by its place: its {@link LeastCount} row's integer, whether its
- * bound writes it, its node's kind, and its {@link Interaction}'s count of choices.
+ * Each least count of an interaction whose choices bound its counts (`ChoiceCount`, reading
+ * `order-min-choices`) beside the interaction's choices, by its place: its {@link LeastCount} row's
+ * integer, whether its bound writes it, its node's kind, and its {@link Interaction}'s count of
+ * choices.
  */
 const LeastChoiceBound = derived(
   "LeastChoiceBound",
@@ -303,8 +304,8 @@ const BoundRange = derived(
 
 /**
  * Each binding of a single response by an interaction whose response cardinality its most count
- * decides (spec reading 92, {@link cardinalityKinds}), where that most has a value, by the
- * binding's place and attribute: the {@link MostCount} row's integer.
+ * decides (spec reading `binding-and-count-sentences`, {@link cardinalityKinds}), where that most
+ * has a value, by the binding's place and attribute: the {@link MostCount} row's integer.
  */
 const SingleBindingMost = derived(
   "SingleBindingMost",
@@ -378,7 +379,7 @@ const PlacedSingleBindingMost = derived(
  * attribute, where its response declaration has a cardinality: its {@link DeclarationName}'s. A
  * binding to a declaration whose cardinality is unwritten or spells nothing has none, so no fit law
  * reads a cardinality it does not have, and AL3 or its value domain refuses it alone (spec readings
- * 158 and 159).
+ * `unspelled-declaration` and `binding-by-name`).
  */
 const BindingCardinalityNode = derived(
   "BindingCardinalityNode",
@@ -448,7 +449,7 @@ const PlacedBindingCardinalityNode = derived(
  * binding's place and attribute, where its response declaration has a cardinality and a base type:
  * its {@link DeclarationName}'s and {@link TypedDeclarationName}'s, the triple "BindingFit" judges
  * with the kind. A record has no base type, and its binding no row; nor has a binding to a
- * declaration with no cardinality, which no fit law judges (spec reading 159).
+ * declaration with no cardinality, which no fit law judges (spec reading `binding-by-name`).
  */
 const BindingBaseTypeNode = derived(
   "BindingBaseTypeNode",
@@ -518,10 +519,10 @@ const PlacedBindingBaseTypeNode = derived(
 );
 
 /**
- * Each gap a gap match interaction bound to a single response encloses (spec reading 169), by the
- * binding's place: the gap's place, its own document's or that of a fragment an include places in
- * the interaction, through its {@link ChoiceInteraction}. "Binding cardinality" keys these rows by
- * the binding, so such an interaction holds at most one gap.
+ * Each gap a gap match interaction bound to a single response encloses (spec reading
+ * `gap-match-cardinality`), by the binding's place: the gap's place, its own document's or that of
+ * a fragment an include places in the interaction, through its {@link ChoiceInteraction}. "Binding
+ * cardinality" keys these rows by the binding, so such an interaction holds at most one gap.
  */
 const SingleResponseGap = derived(
   "SingleResponseGap",
@@ -681,8 +682,9 @@ const hasDefault = (b: RowScalars<typeof CountBoundNode>, defaulted: typeof defa
   b.or(...defaulted.map(({ kinds }) => b.in(b.kind, kinds)));
 
 /**
- * State "Choice bounds" over a least count where the law reads it alone (reading 18): a counted
- * bound whose least is written, of a kind `ChoiceCount` names, has a least of at most its choices.
+ * State "Choice bounds" over a least count where the law reads it alone (reading
+ * `order-min-choices`): a counted bound whose least is written, of a kind `ChoiceCount` names, has
+ * a least of at most its choices.
  *
  * @param l - The row.
  * @returns The predicate.
@@ -696,8 +698,9 @@ const leastBounds = (l: RowScalars<typeof LeastChoiceBound>) =>
   );
 
 /**
- * State "Choice bounds" over a most count where the law reads it alone (reading 18): a counted
- * bound whose least is written, of a kind `ChoiceCount` names, has a most of at most its choices.
+ * State "Choice bounds" over a most count where the law reads it alone (reading
+ * `order-min-choices`): a counted bound whose least is written, of a kind `ChoiceCount` names, has
+ * a most of at most its choices.
  *
  * @param m - The row.
  * @returns The predicate.
@@ -712,12 +715,12 @@ const mostBounds = (m: RowScalars<typeof MostChoiceBound>) =>
 
 /**
  * State "Choice bounds" over a bound both of whose counts have a value, as the oracle reads
- * readings 18 and 76:
+ * readings `order-min-choices` and `least-at-most-most`:
  *
  * - Where `ChoiceBound`'s zero is `unbounded`, a most of 0 bounds nothing, and otherwise the least is
  *   at most the most;
- * - Where it is `counted` (the order interactions, reading 18), the law binds only where the least is
- *   written, and then the least is at most the most.
+ * - Where it is `counted` (the order interactions, reading `order-min-choices`), the law binds only
+ *   where the least is written, and then the least is at most the most.
  *
  * A bound one of whose counts has no value is judged by neither arm: an unwritten least with no
  * default is no bound, and a count written as no integer is its value domain's.
@@ -738,10 +741,9 @@ const rangeBounds = (r: RowScalars<typeof BoundRange>) =>
   );
 
 /**
- * State the default-hotspot law of each `LastWhere` rule over `shape` (reading 80): a hotspot of
- * the rule's kind, under one of its parents, whose shape is the rule's
- * value, is its parent's last element child, so whitespace, comments and instructions after it do
- * not count.
+ * State the default-hotspot law of each `LastWhere` rule over `shape` (reading `default-hotspot`):
+ * a hotspot of the rule's kind, under one of its parents, whose shape is the rule's value, is its
+ * parent's last element child, so whitespace, comments and instructions after it do not count.
  *
  * @param h - The row.
  * @returns The predicate.
@@ -825,38 +827,40 @@ export const PatternText = derived(
 /**
  * The interaction overlays' rules over their node, each named by its oracle law:
  *
- * - **"Aria value range"** (§5.2.31, reading 91) and **"Slider bounds"** (reading 9) over each
- *   element's two read bounds; and **"Key text bound"** over a pair's ARIA bound that is an
- *   `xs:decimal` past the bytes `Text.parseDecimal` reads (`parsedDecimalBytes`), which can name a
- *   decimal PostgreSQL's numeric does not hold: a stated limit of the representation, where "Aria
- *   value range" holds by its own arm.
- * - **"Binding cardinality"** (reading 92): a single response bound by an interaction whose most
- *   count decides its cardinality takes a most of 1, where that most has a value; and a gap match
- *   bound to a single response encloses at most one gap (spec reading 169), a key over its gaps.
+ * - **"Aria value range"** (§5.2.31, reading `no-advisory-reading`) and **"Slider bounds"** (reading
+ *   `schematron-intent`) over each element's two read bounds; and **"Key text bound"** over a
+ *   pair's ARIA bound that is an `xs:decimal` past the bytes `Text.parseDecimal` reads
+ *   (`parsedDecimalBytes`), which can name a decimal PostgreSQL's numeric does not hold: a stated
+ *   limit of the representation, where "Aria value range" holds by its own arm.
+ * - **"Binding cardinality"** (reading `binding-and-count-sentences`): a single response bound by an
+ *   interaction whose most count decides its cardinality takes a most of 1, where that most has a
+ *   value; and a gap match bound to a single response encloses at most one gap (spec reading
+ *   `gap-match-cardinality`), a key over its gaps.
  * - **"BindingFit"** and **"RecordBindingFit"** over each typed binding's base type, cardinality and
  *   interaction kind: a string identifier's variable is "of base-type string" (§5.48.2, §5.162.3),
  *   which a record, having no base type, is not, so its whole value is judged by its cardinality
  *   alone, and a typed variable's base type by its declaration's; and **"Max strings required"**
- *   (reading 19) over an extended text bound to a container.
+ *   (reading `extended-text-max-strings`) over an extended text bound to a container.
  * - **"E1 derived":** an interaction's and a choice's node is of their kinds; every interaction and
  *   choice of a kind `ChoiceBound` pairs has its {@link CountBound}, whose counts' names are its
  *   kind's, each of whose unwritten counts with an XSD default has its {@link LeastCount} or
  *   {@link MostCount}, of that default, and each of whose written counts that is an integer is its
  *   count's value, both ways; and a hottext's nearest interaction is one, or its document node.
  * - **"Choice identifier key":** a choice's identifier is distinct among its document's choices of
- *   its kind, and among its assembly's (reading 104).
- * - **"Choice bounds"** (readings 18 and 76) over each count of an interaction whose choices bound
- *   it, beside its interaction's choices, and over each bound both of whose counts have a value.
+ *   its kind, and among its assembly's (reading `choice-identifier-scope`).
+ * - **"Choice bounds"** (readings `order-min-choices` and `least-at-most-most`) over each count of an
+ *   interaction whose choices bound it, beside its interaction's choices, and over each bound both
+ *   of whose counts have a value.
  * - **"N8 nearest":** a choice's interaction is its node's nearest; a hottext's nearest interaction
  *   has its {@link Interaction} of that kind, and a hottext whose nearest stands in another
  *   document names its document's context.
  * - **"PCI module source"** (R10-a): a portable custom interaction names its module in some form.
  * - **"Pattern language"** (information model §5.162.5, §5.48.4 and §5.104.1): every `pattern-mask`
  *   and every literal `qti-pattern-match` `pattern` is a regular expression of XML Schema 1.0 Part
- *   2's Appendix F, `{` and `}` metacharacters (reading 58), judged by grizzle's `Xml.isPattern`
- *   over {@link PatternText}.
- * - **the default hotspot** (reading 80): "Graphic gap match default hotspot" and "default hotspot
- *   last slot" over each hotspot's shape, its rank and its parent's count.
+ *   2's Appendix F, `{` and `}` metacharacters (reading `pattern-mask-braces`), judged by grizzle's
+ *   `Xml.isPattern` over {@link PatternText}.
+ * - **the default hotspot** (reading `default-hotspot`): "Graphic gap match default hotspot" and
+ *   "default hotspot last slot" over each hotspot's shape, its rank and its parent's count.
  */
 export const interactionOverlayLawsByName = {
   "Aria value range": declared("Aria value range", [

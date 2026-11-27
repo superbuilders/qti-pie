@@ -90,8 +90,9 @@ interface Typing {
 
 /**
  * How an attribute row is typed by the copy of its owner it holds: the domain its (kind, governing
- * type) admits its name in, none where none admits it, and that domain's identity, `ID`
- * for a context declaration's `identifier` as the oracle's ID table reads it (spec reading 74).
+ * type) admits its name in, none where none admits it, and that domain's identity, `ID` for a
+ * context declaration's `identifier` as the oracle's ID table reads it (spec reading
+ * `identifier-names-one-variable`).
  *
  * @param grammar - The composed grammar.
  * @param attribute - The attribute row.

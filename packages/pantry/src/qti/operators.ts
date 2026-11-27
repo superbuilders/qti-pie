@@ -1,27 +1,27 @@
 /**
- * The operator attribute laws (spec readings 119 and 121):
+ * The operator attribute laws (spec readings `rounding-figures` and `tolerance`):
  * what the information model asks of a rounding operator's `figures` and of an equality's
  * `tolerance` beyond the XSD, which types the one as `xs:integer` or a variable name and the other
  * as an unbounded list of `xs:string` or `xs:double`. Where the two differ, the stricter source is
- * the rule (readings 16 and 17).
+ * the rule (readings `normal-maximum-positive` and `rubric-view-list`).
  *
- * - **Reading 119** (rule `P10`): a `qti-equal-rounded`'s or a `qti-round-to`'s `figures` that is an
- *   integer is at least 1 under `significantFigures` and at least 0 under `decimalPlaces` ("If
- *   roundingMode= 'significantFigures', the value of figures must be a non-zero positive integer.
- *   If roundingMode='decimalPlaces', the value of figures must be an integer greater than or equal
- *   to zero", info §5.47.2 and §5.119.2). `rounding-mode` defaults to `significantFigures` on
- *   `qti-equal-rounded` (§5.47.1) and is required on `qti-round-to` (§5.119.1, AL3's). A `figures`
- *   that names a variable is read at run time, so it is not judged. The view `RoundingModeFigures`
- *   (`#pantry/qti/overlay-queries/expression.ts`) holds each operator's `figures` beside its mode
- *   in force, the written `rounding-mode` or `qti-equal-rounded`'s default, which no row copies
- *   (C18).
- * - **Reading 121** (rule `P36`): under `tolerance-mode` `absolute` or `relative` a `qti-equal`
- *   carries a `tolerance` ("If the tolerance mode is absolute or relative then the tolerance must
- *   be specified", info §5.46.2), and every `tolerance` is one or two values ("The tolerance
- *   consists of two positive numbers, t0 and t1 ... If only one value is given it is used for
- *   both"), each that is a number above 0. A value is a number where it is written in `xs:double`'s
- *   lexical space, and otherwise a string, which names a variable read at run time (§9.1.5,
- *   ToleranceList: "a space separated list of either strings (must not contain a space) or
+ * - **Reading `rounding-figures`** (rule `P10`): a `qti-equal-rounded`'s or a `qti-round-to`'s
+ *   `figures` that is an integer is at least 1 under `significantFigures` and at least 0 under
+ *   `decimalPlaces` ("If roundingMode= 'significantFigures', the value of figures must be a
+ *   non-zero positive integer. If roundingMode='decimalPlaces', the value of figures must be an
+ *   integer greater than or equal to zero", info §5.47.2 and §5.119.2). `rounding-mode` defaults to
+ *   `significantFigures` on `qti-equal-rounded` (§5.47.1) and is required on `qti-round-to`
+ *   (§5.119.1, AL3's). A `figures` that names a variable is read at run time, so it is not judged.
+ *   The view `RoundingModeFigures` (`#pantry/qti/overlay-queries/expression.ts`) holds each
+ *   operator's `figures` beside its mode in force, the written `rounding-mode` or
+ *   `qti-equal-rounded`'s default, which no row copies (C18).
+ * - **Reading `tolerance`** (rule `P36`): under `tolerance-mode` `absolute` or `relative` a
+ *   `qti-equal` carries a `tolerance` ("If the tolerance mode is absolute or relative then the
+ *   tolerance must be specified", info §5.46.2), and every `tolerance` is one or two values ("The
+ *   tolerance consists of two positive numbers, t0 and t1 ... If only one value is given it is used
+ *   for both"), each that is a number above 0. A value is a number where it is written in
+ *   `xs:double`'s lexical space, and otherwise a string, which names a variable read at run time
+ *   (§9.1.5, ToleranceList: "a space separated list of either strings (must not contain a space) or
  *   numbers"). The view `ToleranceToken` (`#pantry/qti/overlay-queries/expression.ts`) splits each
  *   `tolerance` into its values.
  *
@@ -50,16 +50,18 @@ const rangeModes = ["absolute", "relative"] as const;
 
 /**
  * `xs:double`'s lexical space, pantry's one statement of it: XML Schema 1.0's (Part 2 §3.2.5.1),
- * the edition QTI 3.0's XSDs are written in (spec reading 71), a decimal mantissa of any digits
- * with an optional exponent of any digits, `INF`, `-INF` or `NaN`. XML Schema 1.1's adds `+INF`,
- * which this space refuses, the stricter of the two (readings 144 and 154).
+ * the edition QTI 3.0's XSDs are written in (spec reading `anyuri-lexical`), a decimal mantissa of
+ * any digits with an optional exponent of any digits, `INF`, `-INF` or `NaN`. XML Schema 1.1's adds
+ * `+INF`, which this space refuses, the stricter of the two (readings `bounded-double` and
+ * `float-map-keys`).
  *
  * It lies inside grizzle's `doubleText`, 1.1's grammar, which is this pattern with `+INF`, so
- * `Text.parseDouble` reads every form of it total: a value of it is the double that parse maps
- * it to, XML Schema 1.1's doubleLexicalMap (Part 2 §3.3.5.2, reading 144), and every double pantry
- * reads from a form in the database is read by that parse, guarded by this pattern or typed by it
- * (`Slider_bounds`, `Mastery_range`, `MapKeyFloat`). A tolerance value in it is a number; any other
- * is a string, which names a variable read at run time (spec reading 121).
+ * `Text.parseDouble` reads every form of it total: a value of it is the double that parse maps it
+ * to, XML Schema 1.1's doubleLexicalMap (Part 2 §3.3.5.2, reading `bounded-double`), and every
+ * double pantry reads from a form in the database is read by that parse, guarded by this pattern or
+ * typed by it (`Slider_bounds`, `Mastery_range`, `MapKeyFloat`). A tolerance value in it is a
+ * number; any other is a string, which names a variable read at run time (spec reading
+ * `tolerance`).
  *
  * @see {@link https://www.w3.org/TR/xmlschema-2/#double | XML Schema Part 2, 3.2.5 double}
  */
@@ -94,9 +96,9 @@ const rangeModeAttributes = select(Attribute, (a) =>
 );
 
 /**
- * Reading 121's presence (law "Equal tolerance", rule `P36`; info §5.46.2: "If the tolerance mode
- * is absolute or relative then the tolerance must be specified"): a `qti-equal` whose
- * `tolerance-mode` is `absolute` or `relative` writes `tolerance`.
+ * Reading `tolerance`'s presence (law "Equal tolerance", rule `P36`; info §5.46.2: "If the
+ * tolerance mode is absolute or relative then the tolerance must be specified"): a `qti-equal`
+ * whose `tolerance-mode` is `absolute` or `relative` writes `tolerance`.
  */
 export const toleranceRequired = contained(
   on(rangeModeAttributes, "package", "path", "start"),
@@ -104,10 +106,10 @@ export const toleranceRequired = contained(
 );
 
 /**
- * Every statement over the operators' attributes, each named by its oracle law: reading 121's
- * presence, {@link toleranceRequired}, whose target is keyed by `Attribute`'s own key at its fixed
- * name. Reading 121's count and sign, and reading 119, read views, so they are rules over a query
- * (`#pantry/qti/overlay-queries/expression.ts`).
+ * Every statement over the operators' attributes, each named by its oracle law: reading
+ * `tolerance`'s presence, {@link toleranceRequired}, whose target is keyed by `Attribute`'s own key
+ * at its fixed name. Reading `tolerance`'s count and sign, and reading `rounding-figures`, read
+ * views, so they are rules over a query (`#pantry/qti/overlay-queries/expression.ts`).
  */
 export const operatorLawsByName = {
   "Equal tolerance": declared("Equal tolerance", [toleranceRequired]),

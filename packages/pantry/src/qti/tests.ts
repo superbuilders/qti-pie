@@ -1,7 +1,9 @@
 /**
  * Tests, sections, and the assemblies their section refs and includes make (plan §1.7 O7, N11 and
  * D13; the W5 amendment's C2, C15, C17, C18 and C21; `representation-gaps.md` RG3; spec readings
- * 5, 85 to 88 and 114 to 117).
+ * `section-document`, `inclusion-cycles`, `test-identifier-namespace`, `branch-rule-targets`,
+ * `numbered-reference`, `include-as-information-model`, `include-target`, `fragment-root` and
+ * `fragment-placement`).
  *
  * Pantry stores every valid QTI 3.0.1 document (owner, 2026-11-20: "we follow the spec"; the
  * database never refuses valid QTI, conformance §3 and §4.4). A **test** is a test document, whose
@@ -12,9 +14,9 @@
  * single root. There are no other restrictions on the referenced qti-assessment-section document");
  * a **bank** is such a document, read by its path and the item refs it holds. A test's section refs
  * and the includes its sections hold are sites that place their target in the test's assembly
- * (reading 85), so the test a law reads is the assembled test (reading 5): its documents' names,
- * branch rules and references are judged across every placement
- * (`#pantry/qti/overlay-queries/tests.ts`).
+ * (reading `inclusion-cycles`), so the test a law reads is the assembled test (reading
+ * `section-document`): its documents' names, branch rules and references are judged across every
+ * placement (`#pantry/qti/overlay-queries/tests.ts`).
  *
  * A bank is `(package, path)`, its section document, as an item is (SV-KEY-01): QTI makes a
  * section's identifier unique only within its test (§4.2.1), so two banks of one package may share
@@ -27,17 +29,17 @@
  * and of its names ({@link Named}, a bank's root section and each item ref), each a row at it. Each
  * href of an item ref or a site resolves, against its document's path or the `xml:base` in scope,
  * to an entry of the package through its `ReferencePath` (`#pantry/qti/package.ts` `hrefPaths`,
- * spec readings 102 and 103).
+ * spec readings `href-resolution` and `file-references`).
  *
- * **The assembly** (RG3, reading 117). {@link Instance} is a tree: its root is a document that
- * heads an assembly, every assembled document no include splices in place
+ * **The assembly** (RG3, reading `fragment-placement`). {@link Instance} is a tree: its root is a
+ * document that heads an assembly, every assembled document no include splices in place
  * ({@link splicingParents}), and each instance has exactly one child per site of its document that
  * places its target, the instance of the document that include names, whatever its parent
  * ({@link sitesFold}). A chain of includes that returns to a document already on it would need
  * infinitely many instances, so no finite tree holds it: the count law `children = sites` refuses
  * one a head reaches, and the containment of every `AssembledDocument` into the documents some
  * instance places (the query `InstanceDocument`, `#pantry/qti/queries.ts`) one no head reaches
- * (reading 85). A bank heads a trivial assembly of its own.
+ * (reading `inclusion-cycles`). A bank heads a trivial assembly of its own.
  *
  * Beside them: an item's stimulus refs ({@link StimulusRef}), keyed by its element with its law a
  * key, and the item each item ref names ({@link ItemRefHref} and {@link ItemRefDocument}, with the
@@ -141,9 +143,9 @@ export const AssembledDocument = law(
 /**
  * A bank's root section or one of its item refs that writes an identifier, keyed by its element:
  * the elements whose identifiers are a bank's identity and its members'. One that writes none names
- * nothing and has no row: AL3 refuses it alone (reading 147). AL1 holds a written identifier to its
- * domain, `IdentifierDType`, an NCName once collapsed, so every one names something (spec reading
- * 152, decision 457 (2)).
+ * nothing and has no row: AL3 refuses it alone (reading `unidentified-parts`). AL1 holds a written
+ * identifier to its domain, `IdentifierDType`, an NCName once collapsed, so every one names
+ * something (spec reading `ncname-names`, decision 457 (2)).
  *
  * - **the host's:** `identifier`, its collapsed identifier, its attribute's `value`
  *   (`TestIdentifier`, `#pantry/qti/overlay-queries/tests.ts`). Its kind, parent and parent's kind
@@ -162,9 +164,9 @@ export const Named = law(
 );
 
 /**
- * An include under a parent the information model gives an Include (spec reading 114), keyed by
- * its element: the place where the document it names is merged into its own (information model
- * §2.12).
+ * An include under a parent the information model gives an Include (spec reading
+ * `include-as-information-model`), keyed by its element: the place where the document it names is
+ * merged into its own (information model §2.12).
  *
  * - **the host's:** its node's context, the {@link nodeContext} tuple (`package`, `path`, `start`,
  *   `children`, `ancestry`, `governor`, `kind`, `nearest`, `nearestKind`, `nearestPath`,
@@ -174,7 +176,7 @@ export const Named = law(
  *
  * Its href's path is its {@link SitePath}, a row of its own, since an include may write no href;
  * and the document that path names is its {@link SiteTarget}, a row of its own, since a path may
- * name none (spec reading 115).
+ * name none (spec reading `include-target`).
  */
 export const Site = law(
   entryOf("Test overlay"),
@@ -207,9 +209,9 @@ export const Site = law(
  *
  * - An include may write none (XInclude 1.0 §3.1, the href "absent when parse="xml""), or one that
  *   names its own document, and names no document of the package then, so it has no row and
- *   "Include target" refuses it alone (spec reading 115); one whose href resolves outside the
- *   package has no row either, and its site is marked `external`, stored as written and never
- *   fetched.
+ *   "Include target" refuses it alone (spec reading `include-target`); one whose href resolves
+ *   outside the package has no row either, and its site is marked `external`, stored as written and
+ *   never fetched.
  * - A path no entry holds is `entry` false, which `File_exists` refuses as the row is inserted,
  *   before any deferred key: an href naming an absent file is refused under "File exists" alone,
  *   whatever its site is, and the site's document laws read only paths an entry holds.
@@ -233,11 +235,11 @@ export const SitePath = law(
 /**
  * A site's target, keyed by the site's element: the document its href names, a row only where the
  * href names a document of the package, so a site whose href names none has no row, and "Include
- * target" refuses it (spec readings 114 and 115), unless it is an include that holds an
- * `xi:fallback`, which XInclude puts in its place, admitted and unplaced (`UnplacedInclude`). It is
- * the member of the family of the sites that name a document ({@link siteTargetFamily}), so every
- * member's owner is a document the package writes, and of its own document's ({@link siteFamily}),
- * so a site that names none places nothing.
+ * target" refuses it (spec readings `include-as-information-model` and `include-target`), unless it
+ * is an include that holds an `xi:fallback`, which XInclude puts in its place, admitted and
+ * unplaced (`UnplacedInclude`). It is the member of the family of the sites that name a document
+ * ({@link siteTargetFamily}), so every member's owner is a document the package writes, and of its
+ * own document's ({@link siteFamily}), so a site that names none places nothing.
  *
  * - **the host's:** `target`, the document's path, with its root kind (`targetRoot`) and its
  *   context's nearest interaction, the document and position that hold it and its kind
@@ -245,7 +247,7 @@ export const SitePath = law(
  * - **the site's copies:** its {@link SitePath}'s `target`; its `kind` and `parentKind`; its own
  *   context's nearest interaction (`nearest`, `nearestKind`), in its own document; and its
  *   `ancestry`, its part of the target's context (`Document.context`, the union over the sites that
- *   name a document, spec reading 117);
+ *   name a document, spec reading `fragment-placement`);
  * - **its include's:** `splices`, whether it splices its target in place, and `places`, whether it
  *   places its target at all, its {@link Inclusion}'s.
  */
@@ -275,15 +277,16 @@ export const SiteTarget = law(
 );
 
 /**
- * An include's site as an include, keyed by its element: its parent's kind, which keys
- * its family's `IncludeSetOf` row, its target's root kind, the kind the include stands for (spec
- * reading 114), and `splices`, whether it splices that document in place: its parent is one of
- * {@link splicingParents} and it may stand for the root (`IncludeRoot`), as the law oracle's
- * `standsFor` judges. An include that may not stand for its target's root splices nothing, so its
- * target is judged as no fragment of its document's; and `places`, whether it places that document
- * at all: it may stand for the root, whatever its parent. One that may not places nothing: "Include
- * root" refuses it, unless its root is the name of a kind the composition splits by context whose
- * split kind it may stand for (spec reading 116), admitted and `UnplacedInclude`'s `root`.
+ * An include's site as an include, keyed by its element: its parent's kind, which keys its family's
+ * `IncludeSetOf` row, its target's root kind, the kind the include stands for (spec reading
+ * `include-as-information-model`), and `splices`, whether it splices that document in place: its
+ * parent is one of {@link splicingParents} and it may stand for the root (`IncludeRoot`), as the law
+ * oracle's `standsFor` judges. An include that may not stand for its target's root splices nothing,
+ * so its target is judged as no fragment of its document's; and `places`, whether it places that
+ * document at all: it may stand for the root, whatever its parent. One that may not places nothing:
+ * "Include root" refuses it, unless its root is the name of a kind the composition splits by
+ * context whose split kind it may stand for (spec reading `fragment-root`), admitted and
+ * `UnplacedInclude`'s `root`.
  */
 export const Inclusion = law(
   entryOf("Test overlay"),
@@ -313,11 +316,11 @@ export const Inclusion = law(
  *   root's; and its site, `(siteDocument, site)`, the document of its parent and the start of the
  *   include there it is placed at (the root's own document and 0, its document node);
  * - **drawn:** the tree's `parent`, `at`, `children`, `start` and `end`; and the counts of its
- *   document's rows it places (spec reading 117): `bindings`, Q5.09's `PlacedBinding` rows, under
- *   an item's assembly alone; `choices` and `hottexts`, Q5.09's `PlacedChoice` and `PlacedHottext`
- *   rows; and `ids` and `idrefTargets`, Q5.07's `PlacedId` and `PlacedIdref` rows, each its
- *   document's count. What a placement types, its expressions and references, is a rule over a
- *   query (`PlacedExpressionSite` and `PlacedReferenceSite`,
+ *   document's rows it places (spec reading `fragment-placement`): `bindings`, Q5.09's
+ *   `PlacedBinding` rows, under an item's assembly alone; `choices` and `hottexts`, Q5.09's
+ *   `PlacedChoice` and `PlacedHottext` rows; and `ids` and `idrefTargets`, Q5.07's `PlacedId` and
+ *   `PlacedIdref` rows, each its document's count. What a placement types, its expressions and
+ *   references, is a rule over a query (`PlacedExpressionSite` and `PlacedReferenceSite`,
  *   `#pantry/qti/overlay-queries/expression.ts` and `reference.ts`), since an item's own placement
  *   types the template it locates beside its own document.
  */
@@ -350,7 +353,8 @@ export const Instance = law(
 
 /**
  * An item's stimulus ref that writes an identifier, keyed by its element (information model §7.6):
- * its collapsed `identifier`. One that writes none has no row: AL3 refuses it alone (reading 147).
+ * its collapsed `identifier`. One that writes none has no row: AL3 refuses it alone (reading
+ * `unidentified-parts`).
  */
 export const StimulusRef = law(
   entryOf("Test overlay"),
@@ -367,13 +371,13 @@ export const StimulusRef = law(
  * `hrefPaths`). What it names is the query `ItemRefTarget` (`#pantry/qti/queries.ts`): the type of
  * a resource of the package whose href's path that is, of the item type or else an LTI type, which
  * "Item ref target" judges. An item ref with no target (`UntargetedItemRef` there) must name a path
- * a resource of an unread type names (`UnreadTypeHref`, spec reading 67): the type of what it names
- * is unread, so the law oracle names it no target to judge (its `itemRefTargetOf`). An unread type
- * is itself a refusal, AL1's value domain, so this narrows the law set, never a verdict. An item
- * ref that writes no href has none, which AL3 alone refuses (spec reading 155), and so has one
- * whose href resolves to no entry, an empty one, which names its own document (reading 102), an
- * external one or one the importer cannot resolve: "Item ref target" refuses it through its href's
- * containment here.
+ * a resource of an unread type names (`UnreadTypeHref`, spec reading `manifest-profile`): the type
+ * of what it names is unread, so the law oracle names it no target to judge (its
+ * `itemRefTargetOf`). An unread type is itself a refusal, AL1's value domain, so this narrows the
+ * law set, never a verdict. An item ref that writes no href has none, which AL3 alone refuses (spec
+ * reading `item-ref-without-href`), and so has one whose href resolves to no entry, an empty one,
+ * which names its own document (reading `href-resolution`), an external one or one the importer
+ * cannot resolve: "Item ref target" refuses it through its href's containment here.
  */
 export const ItemRefHref = law(
   entryOf("Item ref target"),
@@ -405,16 +409,17 @@ export const ItemRefDocument = law(
  * number (information model §7.47: "In adaptive tests that contain items that are allowed to be
  * replaced ... a number that denotes the instance's place in the sequence of the item's
  * instantiation is inserted between the item variable identifier and the item variable, separated
- * by a period character"; spec reading 88): `scopeInstance`, `scopePath` and `scope`, the placement
- * and the element of the item ref the reading names, `number`, the instance number as written, a
- * stretch of the reference's own identifier and so a `QtiIdentifier` within its bound, which no
- * number refuses on its own, and `variable`, the item variable it names. The importer states one
- * row for each numbered reading that resolves, and the database proves each one: its spelling, its
- * item ref a selection with replacement can repeat, its number at least 1, and its variable one the
- * item names (`#pantry/qti/overlay-queries/readings.ts`). The database enumerates every other
- * reading itself; a numbered one it cannot, since no text operation it has splits a name at a
- * period (a grizzle ask of 2026-11-20), so a name whose only readings are two numbered ones is the
- * importer's to tell apart, a recorded under-refusal (spec reading 88).
+ * by a period character"; spec reading `numbered-reference`): `scopeInstance`, `scopePath` and
+ * `scope`, the placement and the element of the item ref the reading names, `number`, the instance
+ * number as written, a stretch of the reference's own identifier and so a `QtiIdentifier` within
+ * its bound, which no number refuses on its own, and `variable`, the item variable it names. The
+ * importer states one row for each numbered reading that resolves, and the database proves each
+ * one: its spelling, its item ref a selection with replacement can repeat, its number at least 1,
+ * and its variable one the item names (`#pantry/qti/overlay-queries/readings.ts`). The database
+ * enumerates every other reading itself; a numbered one it cannot, since no text operation it has
+ * splits a name at a period (a grizzle ask of 2026-11-20), so a name whose only readings are two
+ * numbered ones is the importer's to tell apart, a recorded under-refusal (spec reading
+ * `numbered-reference`).
  */
 export const NumberedReading = law(
   entryOf("E1 derived"),
@@ -441,11 +446,11 @@ export const NumberedReading = law(
  * names no item document, an LTI link or an href outside the package, as the importer finds it,
  * keyed by the test, the reference and the scope's placement: `variable`, the name after the
  * scope's identifier and its period, which no declaration of the package can check (spec reading
- * 110), but which is an NCName, as every variable's identifier is ("E1 derived", `namePattern`), so
- * a numbered name through a repeated link is no link reading. The database proves its spelling and
- * its scope (`#pantry/qti/overlay-queries/readings.ts`);
- * it cannot find one itself, since no text operation it has takes what follows a name's prefix in
- * a query (the grizzle ask of 2026-11-20).
+ * `mapping-and-default-names`), but which is an NCName, as every variable's identifier is ("E1
+ * derived", `namePattern`), so a numbered name through a repeated link is no link reading. The
+ * database proves its spelling and its scope (`#pantry/qti/overlay-queries/readings.ts`); it cannot
+ * find one itself, since no text operation it has takes what follows a name's prefix in a query
+ * (the grizzle ask of 2026-11-20).
  */
 export const LinkReading = law(
   entryOf("E1 derived"),
@@ -470,12 +475,13 @@ export const LinkReading = law(
  * Why an include of a valid package is admitted but places its target nowhere the database judged,
  * so a player cannot deliver the item that holds it (QTI 3.0 Conformance §3: an application "must
  * be able to ignore or remove the unsupported data"): `external`, an href outside the package,
- * whose resource pantry never fetches (reading 115); `fallback`, an href naming an entry that is no
- * document, which XInclude replaces by its `xi:fallback`'s content on that resource error (XInclude
- * 1.0 §3.2), which no site places; `root`, a fragment rooted at a kind the composition splits by
- * context, under a parent that admits only the split kind (reading 116); and `context`, a placement
- * under another nearest interaction than the one the fragment's rows were judged under (reading
- * 117). `UnplacedInclude` (`#pantry/qti/overlay-queries/tests.ts`) names each such include.
+ * whose resource pantry never fetches (reading `include-target`); `fallback`, an href naming an
+ * entry that is no document, which XInclude replaces by its `xi:fallback`'s content on that
+ * resource error (XInclude 1.0 §3.2), which no site places; `root`, a fragment rooted at a kind the
+ * composition splits by context, under a parent that admits only the split kind (reading
+ * `fragment-root`); and `context`, a placement under another nearest interaction than the one the
+ * fragment's rows were judged under (reading `fragment-placement`). `UnplacedInclude`
+ * (`#pantry/qti/overlay-queries/tests.ts`) names each such include.
  */
 export const UnplacedCause = closed.ordered("UnplacedCause", [
   "external",
@@ -550,24 +556,25 @@ export const testRelations = [
 
 /**
  * Each document's sites that name a document, counted by `AssembledDocument.targets`. A site that
- * names none places nothing, and "Include target" alone refuses it (reading 115), unless it is an
- * include that holds an `xi:fallback`.
+ * names none places nothing, and "Include target" alone refuses it (reading `include-target`),
+ * unless it is an include that holds an `xi:fallback`.
  */
 const siteFamily = counted(on(SiteTarget, "package", "path"), fin(AssembledDocument, "targets"));
 
 /**
  * The sites that place their target (`SiteTarget.places`): each include that may stand for its
- * target's root (`IncludeRoot`, reading 114), whatever its parent.
+ * target's root (`IncludeRoot`, reading `include-as-information-model`), whatever its parent.
  */
 const placingSites = select(SiteTarget, (s) => s.eq(s.places, true));
 
 /**
  * Each document's sites that place their target, counted into `AssembledDocument.sites`: the
- * children each of its instances holds (reading 85), one per site that places its target. An
- * include that may not stand for its target's root names it (`Document.targetedBy`, reading 117's
- * context) but places nothing, and "Include root" alone refuses it, unless its root names a kind
- * split by context (reading 116), admitted and `UnplacedInclude`'s `root`. A family's member is a
- * whole relation, which no selection narrows, so the count is a fold over {@link siteFamily}.
+ * children each of its instances holds (reading `inclusion-cycles`), one per site that places its
+ * target. An include that may not stand for its target's root names it (`Document.targetedBy`,
+ * reading `fragment-placement`'s context) but places nothing, and "Include root" alone refuses it,
+ * unless its root names a kind split by context (reading `fragment-root`), admitted and
+ * `UnplacedInclude`'s `root`. A family's member is a whole relation, which no selection narrows, so
+ * the count is a fold over {@link siteFamily}.
  */
 const sitesFold = fold(
   siteFamily,
@@ -577,7 +584,8 @@ const sitesFold = fold(
 );
 
 /**
- * The sites that name each document, counted by `Document.targetedBy` (spec reading 117).
+ * The sites that name each document, counted by `Document.targetedBy` (spec reading
+ * `fragment-placement`).
  */
 const siteTargetFamily = counted(on(SiteTarget, "package", "target"), fin(Document, "targetedBy"));
 
@@ -585,7 +593,7 @@ const siteTargetFamily = counted(on(SiteTarget, "package", "target"), fin(Docume
  * A document's context: the union of the ancestries of the sites that name it, `Document.context`,
  * empty where none does. Every node below the document node inherits it, so the existing N6 judges
  * an included fragment's content under every placement at once: a ban is a disjointness, and a
- * flag no placement holds is banned under none (spec reading 117).
+ * flag no placement holds is banned under none (spec reading `fragment-placement`).
  */
 const contextFold = fold(
   siteTargetFamily,
@@ -612,13 +620,13 @@ const documentInstanceFamily = counted(
 
 /**
  * The documents in an assembly: each has its `AssembledDocument` row, and its IDREFs resolve per
- * instance (spec reading 117).
+ * instance (spec reading `fragment-placement`).
  */
 const assembledDocuments = select(Document, (d) => d.eq(d.assembled, true));
 
 /**
  * The instances of an item's assembly, each of which places its document's bindings (Q5.09's
- * `PlacedBinding`, spec reading 117).
+ * `PlacedBinding`, spec reading `fragment-placement`).
  */
 export const itemInstances = select(Instance, (i) => i.eq(i.assemblyKind, itemKind));
 
@@ -629,15 +637,15 @@ const entryPaths = select(SitePath, (s) => s.eq(s.entry, true));
 
 /**
  * The includes whose href stays in the package, each with an href that names a path of the package
- * (spec reading 115). An include whose href resolves outside it is stored as written and never
- * fetched, so it names none.
+ * (spec reading `include-target`). An include whose href resolves outside it is stored as written
+ * and never fetched, so it names none.
  */
 const includeSites = select(Site, (s) => s.and(s.eq(s.kind, includeKind), s.eq(s.external, false)));
 
 /**
  * The section refs whose href stays in the package, each with an href that names a path of the
  * package: a section ref whose href resolves outside it is stored as written and never fetched
- * (spec reading 115), and no section of the package stands for it.
+ * (spec reading `include-target`), and no section of the package stands for it.
  */
 const sectionRefSites = select(Site, (s) =>
   s.and(s.eq(s.kind, sectionRefKind), s.eq(s.external, false)),
@@ -654,10 +662,10 @@ const sectionRefPaths = select(SitePath, (s) =>
  * The item refs' `href` references that resolve inside the package, or that the importer resolves
  * nowhere, one per element: each names an entry path its {@link ItemRefHref} holds, or is refused
  * for want of one. An item ref whose href resolves outside the package (a scheme, a leading `/`, a
- * climb above the root, reading 102) names an item no package entry holds: "The URI used to refer
- * to the item's file (e.g., elsewhere in the same content package)" (§5.6.5) gives the package as
- * an example only, so it is stored as written and never fetched, as a stimulus ref's external href
- * is (reading 35), and no law reads its item (SV-LAW-02).
+ * climb above the root, reading `href-resolution`) names an item no package entry holds: "The URI
+ * used to refer to the item's file (e.g., elsewhere in the same content package)" (§5.6.5) gives
+ * the package as an example only, so it is stored as written and never fetched, as a stimulus ref's
+ * external href is (reading `absolute-hrefs`), and no law reads its item (SV-LAW-02).
  */
 const internalItemRefHrefs = select(Reference, (r) =>
   r.and(r.eq(r.name, "href"), r.eq(r.kind, itemRefKind), r.ne(r.scope, "external")),
@@ -675,7 +683,8 @@ const externalSites = select(Site, (s) => s.eq(s.external, true));
 
 /**
  * The `href` references that resolve outside the package, one per element, a constant selection
- * keyed by its element: the side a site's external mark is proven by (readings 35 and 102).
+ * keyed by its element: the side a site's external mark is proven by (readings `absolute-hrefs` and
+ * `href-resolution`).
  */
 const externalHrefs = select(Reference, (r) =>
   r.and(r.eq(r.name, "href"), r.eq(r.scope, "external")),
@@ -687,9 +696,10 @@ const externalHrefs = select(Reference, (r) =>
 type InclusionRow = RowScalars<typeof Inclusion>;
 
 /**
- * State that an include may stand for its target's root (spec reading 114): the root is among the
- * kinds its parent's family's include set holds, `{root} ⊆ IncludeMember.row(IncludeSetOf.at("set",
- * parent))`, and a family of no set holds none.
+ * State that an include may stand for its target's root (spec reading
+ * `include-as-information-model`): the root is among the kinds its parent's family's include set
+ * holds, `{root} ⊆ IncludeMember.row(IncludeSetOf.at("set", parent))`, and a family of no set holds
+ * none.
  *
  * @param i - The include's row.
  * @returns The predicate.
@@ -705,12 +715,12 @@ const standsFor = (i: InclusionRow) =>
 
 /**
  * State that an include's target root is a kind the composition splits by context whose split kind
- * its parent's include set holds (spec reading 116, {@link SplitRoot}): the fragment, read by its
- * name at its document's root, is the kind of that name, which the parent does not admit, though a
- * valid package may write it, since XInclude merges the fragment's infoset in the include's place
- * (XInclude 1.0 §4) and the merged element is then of the split kind. Such an include places
- * nothing and is admitted, unplaced (QTI 3.0 Conformance §3: an application "must be able to
- * ignore or remove the unsupported data"), as `UnplacedInclude` reads it
+ * its parent's include set holds (spec reading `fragment-root`, {@link SplitRoot}): the fragment,
+ * read by its name at its document's root, is the kind of that name, which the parent does not
+ * admit, though a valid package may write it, since XInclude merges the fragment's infoset in the
+ * include's place (XInclude 1.0 §4) and the merged element is then of the split kind. Such an
+ * include places nothing and is admitted, unplaced (QTI 3.0 Conformance §3: an application "must be
+ * able to ignore or remove the unsupported data"), as `UnplacedInclude` reads it
  * (`#pantry/qti/overlay-queries/tests.ts`).
  *
  * @param i - The include's row.
@@ -762,7 +772,7 @@ const itemDocuments = select(Document, (d) => d.eq(d.rootKind, itemKind));
  * - (the stated limits on a test's structure are gone: every valid structure is stored, and its laws
  *   read the assembled test): containments of elements and attributes into the documents of a type,
  *   by their `(package, path)`, since a document's type is its `Document`'s alone (spec reading
- *   176, decision S3);
+ *   `document-type-total`, decision S3);
  * - **"Item ref identifier"** (QTI §4.1.1): a bank member's identifier is its item's, a rule over the
  *   query `BankMember`, stated under the same name in `#pantry/qti/queries.ts`;
  * - **"Structure identifier"** (A4): no two names of one document share an identifier, so no two
@@ -776,22 +786,23 @@ const itemDocuments = select(Document, (d) => d.eq(d.rootKind, itemKind));
  *   stated limit `Href_form`, but an include whose href resolves outside the package, marked
  *   `external` as its href's `Reference` proves; an item ref's is its target's (below);
  * - **the sites** ({@link Site}, {@link SiteTarget}): each names a document of the package, its
- *   target, a row of its own ("Include target", reading 115), but an external include, stored as
- *   written and never fetched, and an include holding an `xi:fallback` whose href names an entry
- *   that is no document, admitted unplaced (`UnplacedInclude`);
+ *   target, a row of its own ("Include target", reading `include-target`), but an external include,
+ *   stored as written and never fetched, and an include holding an `xi:fallback` whose href names
+ *   an entry that is no document, admitted unplaced (`UnplacedInclude`);
  * - **the stimulus refs** ({@link StimulusRef}): one per stimulus ref that writes an identifier
- *   (reading 147), no two of one item sharing an identifier (B16);
+ *   (reading `unidentified-parts`), no two of one item sharing an identifier (B16);
  * - **the assembly** ({@link Instance}): one tree per assembled document that heads one, one child
- *   per site that places its target, so an inclusion cycle has no finite tree (reading 85);
+ *   per site that places its target, so an inclusion cycle has no finite tree (reading
+ *   `inclusion-cycles`);
  * - **the items** ({@link ItemRefHref}, {@link ItemRefDocument}): each item ref's href resolved, and
  *   the item document it names (B2, B3, "Item ref target"); what it names, an item document of the
  *   package or an LTI link unless only a resource of an unread type names it, is a rule over the
  *   query `ItemRefTarget`, stated under the same name in `#pantry/qti/queries.ts`.
  *
- * The statements of reading 85's law, "Inclusion cycle": the instance tree, each instance's copy of
- * its site, one child per site that places its target ({@link sitesFold}), one root per head and
- * none for any other document, and two counts that make a chain returning to a document on it
- * unrepresentable.
+ * The statements of reading `inclusion-cycles`'s law, "Inclusion cycle": the instance tree, each
+ * instance's copy of its site, one child per site that places its target ({@link sitesFold}), one
+ * root per head and none for any other document, and two counts that make a chain returning to a
+ * document on it unrepresentable.
  *
  * - **A chain a head reaches:** the deferred foreign key `Instance(package, document, children) →
  *   AssembledDocument(package, path, sites)`, since no finite tree has one child per site that
@@ -807,14 +818,14 @@ const itemDocuments = select(Document, (d) => d.eq(d.rootKind, itemKind));
  * (`#pantry/qti/queries.ts`), each assembled document no include splices in place, mirrored with
  * the roots both ways by its rules there. Its `E1_derived` pins the root's fields.
  *
- * The statements of B2's and B3's law, "Item ref target": each item ref that writes an href has
- * one {@link ItemRefHref}, its href's path, and no other element has one; and each
+ * The statements of B2's and B3's law, "Item ref target": each item ref that writes an href has one
+ * {@link ItemRefHref}, its href's path, and no other element has one; and each
  * {@link ItemRefDocument} is the document at its path, whose root is an item. Its target, named by
  * a resource of the package of the item type or an LTI type, is the query `ItemRefTarget`, whose
  * rules (`#pantry/qti/queries.ts`) hold an item ref with none to a path a resource of an unread
  * type names, and an item ref names an item exactly where it has its {@link ItemRefDocument}. An
- * item ref that writes no href names nothing, and AL3 alone refuses it (spec reading 155), named
- * or not (reading 147).
+ * item ref that writes no href names nothing, and AL3 alone refuses it (spec reading
+ * `item-ref-without-href`), named or not (reading `unidentified-parts`).
  */
 export const testLawsByName = {
   "E1 derived": declared("E1 derived", [

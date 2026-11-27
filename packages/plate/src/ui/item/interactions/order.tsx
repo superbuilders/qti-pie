@@ -8,10 +8,10 @@
  * orientation, its choices' container width (`data-choices-container-width`, QTI 3.0 shared
  * vocabulary 1.2.9.4), and its positions, each labelled as its root's label classes ask (1.2.9.1,
  * 1.2.9.2, `positionsOf`), and how many of them its response requires, the payload's bounds
- * (reading 18), which `redact` counts once. The review shows each answer once: the positions,
- * labelled the same, holding the choices the response places, each position marked by the host's
- * marks, the right choice standing in a position whose answer is not it, and a bank of only the
- * choices the response leaves out, none when it leaves none out.
+ * (reading `order-min-choices`), which `redact` counts once. The review shows each answer once: the
+ * positions, labelled the same, holding the choices the response places, each position marked by
+ * the host's marks, the right choice standing in a position whose answer is not it, and a bank of
+ * only the choices the response leaves out, none when it leaves none out.
  *
  * @module
  */

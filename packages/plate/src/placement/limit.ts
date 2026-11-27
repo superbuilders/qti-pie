@@ -10,7 +10,7 @@
  * `{ kind: "at-most", n }` for any other count, so no island reads a 0. A picks group's
  * `max-choices` is not a `Limit` but part of its `Picks` (`#plate/interactions/picks.ts`), where a
  * limit of 1 is one pick; an Order's is not one either: QTI gives its 0 no such meaning (plate's
- * reading 18), and the server sends an Order its positions instead.
+ * reading `order-min-choices`), and the server sends an Order its positions instead.
  *
  * @module
  */

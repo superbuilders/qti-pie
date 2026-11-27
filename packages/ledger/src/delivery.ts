@@ -721,10 +721,10 @@ export const deliveryOf = (ledger: LedgerLevel) => {
    * past its candidate session's deadline. A member's next presentation is stamped in the call that
    * ends its predecessor's attempt, so a linear part's spans meet with no gap and their sum is the
    * part's time (research/14 §3.6). Every member has one, read whether or not its item is time
-   * dependent (pantry's spec reading 150; §2.2.2.2's "must not be used" stands in a section the
-   * information model marks not normative, info:4599). Each rule sums a member's spans in an
-   * interior stage and holds the sum as a {@link Micros} ({@link asMicros}): a sum of spans of one
-   * sitting, each within the sitting's time.
+   * dependent (pantry's spec reading `duration-without-time-dependence`; §2.2.2.2's "must not be
+   * used" stands in a section the information model marks not normative, info:4599). Each rule sums
+   * a member's spans in an interior stage and holds the sum as a {@link Micros} ({@link asMicros}):
+   * a sum of spans of one sitting, each within the sitting's time.
    */
   const ItemDuration = derived(
     "ItemDuration",

@@ -1,9 +1,9 @@
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 /**
- * Every response starts at its default (spec reading 183), held over real items against the
- * information model and each item's own declarations, through what a host starts a fresh attempt
- * from, `startingResponses` (`#plate/starting.ts`):
+ * Every response starts at its default (spec reading `response-default`), held over real items
+ * against the information model and each item's own declarations, through what a host starts a
+ * fresh attempt from, `startingResponses` (`#plate/starting.ts`):
  *
  * - **The start is the default.** Each response starts at its declared `qti-default-value`, "set to
  *   this value at the start of the first attempt" (information model 2.2.2.2). A Choice, which "is

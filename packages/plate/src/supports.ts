@@ -12,7 +12,7 @@
  * program's choice for every candidate, or by hand.
  *
  * Beside the contract, {@link PnpSupports} widens it with the preferences a PNP gives that no
- * reader reads yet, as `readPnp` reads them (reading 181): answer masking, alternative text,
+ * reader reads yet, as `readPnp` reads them (reading `pnp-sets`): answer masking, alternative text,
  * captions, breaks, the long description's visibility, text-to-speech suppression, the tools, and
  * the display preferences beyond the three the contract keeps. {@link noPnpSupports} sets none of
  * them. When a reader comes to read one of those preferences, it moves into {@link Supports}.
@@ -365,7 +365,7 @@ export type DisplayPreferences = typeof displayPreferences.Type;
 /**
  * The {@link DisplayPreferences} a reader reads, the display preferences the contract carries:
  * keyword emphasis, which `<Item>` writes on the item's root, and magnification and inverted
- * display polarity, which show low-vision indications (reading 192, `carriedClass` in
+ * display polarity, which show low-vision indications (reading `pnp-low-vision`, `carriedClass` in
  * `#plate/vocabulary.ts`).
  */
 const displaySupports = displayPreferences.mapFields((fields) => ({
@@ -536,7 +536,7 @@ export const PnpSupportsSchema = Schema.Struct({
  * it, and the preferences a PNP gives that no renderer reads yet. A `PnpSupports` is a `Supports`,
  * so a host passes it to `<Item>` and `redact` as it is, and they read only the contract's fields.
  *
- * The profile's sets decide which features are active (spec-readings reading 181). A feature
+ * The profile's sets decide which features are active (spec-readings reading `pnp-sets`). A feature
  * `activate-at-initialization-set` names is active whether or not the profile assigns it; a
  * feature the profile assigns is active unless `activate-as-option-set` names it and the
  * at-initialization set does not, which leaves it off at start; and `prohibit-set` wins over both

@@ -138,11 +138,11 @@ import { keyedLangText, keyedTemplateUri, langTextBytes } from "#pantry/qti/limi
  * A resource's type, by the resource's place, where its `type` spells a `ResourceType` handle
  * (C17): its attribute's `value`, the form as written (the attribute's type is an `xs:string`
  * enumeration, whose whitespace is preserved, XSD 1.1 Part 2, §4.3.6), joined to
- * `ResourceTypeLexical` for its `code` ({@link attributeCodes}). No row copies it (C18). A
- * resource whose `type` spells none, or that writes none, has no row and names no type anywhere,
- * so AL1's value domain, or AL3, refuses its `type` alone (spec reading 67), and no law reads a
- * type it does not have. Every rule that reads it meets it at a {@link ResourceHref}, a resource
- * of the package's manifest.
+ * `ResourceTypeLexical` for its `code` ({@link attributeCodes}). No row copies it (C18). A resource
+ * whose `type` spells none, or that writes none, has no row and names no type anywhere, so AL1's
+ * value domain, or AL3, refuses its `type` alone (spec reading `manifest-profile`), and no law
+ * reads a type it does not have. Every rule that reads it meets it at a {@link ResourceHref}, a
+ * resource of the package's manifest.
  */
 const resourceTypes = attributeCodes("type", ["cp:resource"], ResourceTypeLexical);
 
@@ -199,13 +199,13 @@ const TypedPath = derived("TypedPath", typedPaths);
  * The href of a resource whose `type` is written and spells no `ResourceType` handle, by the
  * resource's place: its {@link ResourceHrefPath}'s `target`, where the resource's manifest `type` is
  * nonempty and the resource has no type code ({@link resourceTypes}), whose rows are exactly the
- * resources whose `type` spells a handle (spec reading 67: AL1's value domain refuses the `type`
- * alone). The two conditions are two filters, the `type` nonempty and no code for the resource, so
- * the query reads no pattern over the attribute's unbounded lexical form. A resource that writes no
- * `type` has none (AL3 refuses it alone), and neither has one that writes no `href`, which names no
- * path. Its rows are a join no table stores, which "Item ref target" reads: an item ref with no
- * target ({@link UntargetedItemRef}) names a path one of these names, or is refused (the oracle's
- * `itemRefTargetOf` names no target there).
+ * resources whose `type` spells a handle (spec reading `manifest-profile`: AL1's value domain
+ * refuses the `type` alone). The two conditions are two filters, the `type` nonempty and no code
+ * for the resource, so the query reads no pattern over the attribute's unbounded lexical form. A
+ * resource that writes no `type` has none (AL3 refuses it alone), and neither has one that writes
+ * no `href`, which names no path. Its rows are a join no table stores, which "Item ref target"
+ * reads: an item ref with no target ({@link UntargetedItemRef}) names a path one of these names, or
+ * is refused (the oracle's `itemRefTargetOf` names no target there).
  */
 const UnreadTypeHref = derived(
   "UnreadTypeHref",
@@ -257,7 +257,7 @@ const targetHrefs = query(QtiBase).rule((r) => {
  * holds it to one a resource of an unread type names ({@link UntargetedItemRef}): a path
  * only a resource of another type the importer reads names, a test's or a stimulus's, is refused
  * there. One that writes no href has no {@link ItemRefHref} and names nothing, which AL3 alone
- * refuses (spec reading 155).
+ * refuses (spec reading `item-ref-without-href`).
  *
  * In the corpus, feedbackTest's item ref `Example03-feedbackBlock-solution/...` names no file of
  * its package, which "Item ref target" refuses (`item-ref-target`, the verdict file's rule for
@@ -381,14 +381,14 @@ const TextReferenceStringValue = derived(
  * underscores, the halves of P2 and P3 that `#pantry/qti/package.ts` states over the tables:
  *
  * - **P3 `entry-kind` ("Document entry"):** every document-typed href resolves in the package and
- *   names the one document at its target, of the href's type (reading 93). That document is an
- *   entry by `ResourceDocument`'s copy of its `Document` and the `Document`'s containment into
- *   `Entry`, so no rule here restates it.
+ *   names the one document at its target, of the href's type (reading `resource-href`). That
+ *   document is an entry by `ResourceDocument`'s copy of its `Document` and the `Document`'s
+ *   containment into `Entry`, so no rule here restates it.
  * - **P2 `root-type-reverse` ("RootOfType"):** every document a resource lists is at the target of a
- *   typed href of its type (spec reading 176).
+ *   typed href of its type (spec reading `document-type-total`).
  * - **"E1 derived":** a reference's split, in order, is its attribute's form as written
  *   ({@link ReferenceLexical}), and a text reference's its element's string value
- *   ({@link TextReferenceStringValue}; reading 102).
+ *   ({@link TextReferenceStringValue}; reading `href-resolution`).
  * - **B2 and B3 ("Item ref target"):** an item ref with no target names a path an unread-type
  *   resource names ({@link UntargetedItemRef}, {@link UnreadTypeHref}); an item ref names an item
  *   exactly where it has its `ItemRefDocument`, the document at its target.
@@ -426,7 +426,7 @@ const packageQueryLawsByName = {
   "Item ref target": declared("Item ref target", [
     // An item ref whose href names no resource of the item type or an LTI type names a path a
     // resource of an unread type names, so the type of what it names is unread, and nothing
-    // judges it (spec reading 67).
+    // judges it (spec reading `manifest-profile`).
     contained(on(UntargetedItemRef, "package", "target"), on(UnreadTypeHref, "package", "target")),
     contained(
       on(itemTargets, "package", "path", "start", "target"),
@@ -446,14 +446,14 @@ const packageQueryLawsByName = {
 } as const;
 
 /**
- * The records that name a document, each with that document (spec reading 62): a `lom:lom` of a
- * resource's `cp:metadata`, a node of a record document ({@link RecordNode}), its resource of an
- * item's or a test's type, and the document a resource
- * lists at the target the resource's `href` names ({@link ResourceDocument}), whatever type it is
- * read as (reading 162). A record whose resource has no `href`, no such type, or an `href` that
+ * The records that name a document, each with that document (spec reading `identity-from-lom`): a
+ * `lom:lom` of a resource's `cp:metadata`, a node of a record document ({@link RecordNode}), its
+ * resource of an item's or a test's type, and the document a resource lists at the target the
+ * resource's `href` names ({@link ResourceDocument}), whatever type it is read as (reading
+ * `path-document-type`). A record whose resource has no `href`, no such type, or an `href` that
  * names no listed document names none, and no law reads it: "Document entry" refuses that `href`
- * (reading 93). The manifest is no resource's document (reading 146), so an `href` that names it
- * names none (NS6).
+ * (reading `resource-href`). The manifest is no resource's document (reading `manifest-document`),
+ * so an `href` that names it names none (NS6).
  *
  * A row is the record's place, `(package, path, record)`, its `record` its `start` in the
  * manifest, and `document`, the path of the document it names: the record's parent is its
@@ -562,13 +562,13 @@ export const ObjectIdentifier = derived(
 const usageBaseTypes = attributeCodes("baseType", [usageValueKind], BaseTypeLexical);
 
 /**
- * Each usage value that forms part of a record and names a base type (spec reading 105), by its
- * `ud:value` node: one that writes a `fieldIdentifier` and a `baseType` whose form spells a
- * `BaseType` code, `baseType` that code and `text` its node's string value (`Node.stringValue`). A
- * value outside a record, or one that writes no `baseType`, is untyped text, and one whose
- * `baseType` spells no code has no row, its value domain refusing it alone (decision 427). No row
- * copies any of it (C18). It stores nothing: a check over a stored view that reads a pattern does
- * not compile at the pin (`docs/grizzle-findings.md`).
+ * Each usage value that forms part of a record and names a base type (spec reading
+ * `usage-statistic-value`), by its `ud:value` node: one that writes a `fieldIdentifier` and a
+ * `baseType` whose form spells a `BaseType` code, `baseType` that code and `text` its node's string
+ * value (`Node.stringValue`). A value outside a record, or one that writes no `baseType`, is
+ * untyped text, and one whose `baseType` spells no code has no row, its value domain refusing it
+ * alone (decision 427). No row copies any of it (C18). It stores nothing: a check over a stored
+ * view that reads a pattern does not compile at the pin (`docs/grizzle-findings.md`).
  */
 export const UsageValueBaseType = derived(
   "UsageValueBaseType",
@@ -706,9 +706,9 @@ const titledStrings = query(QtiViews).rule((r) => {
  * states no language or whose string is in the root's. Four rules state it, one for each state of
  * the root's optional `xml:lang` (its `Attribute` at the root, and the language it states, its
  * {@link LangValue}) and the string's optional `language` attribute: where the root writes one, it
- * states no language, its value empty (spec reading 151), or the string writes no `language`, or
- * one that is empty, or the two are one tag without regard to case (RFC 5646 §2.1.1); and where it
- * writes none, any string is in its language.
+ * states no language, its value empty (spec reading `item-lang-outside-domain`), or the string
+ * writes no `language`, or one that is empty, or the two are one tag without regard to case (RFC
+ * 5646 §2.1.1); and where it writes none, any string is in its language.
  */
 const MatchedTitle = derived(
   "MatchedTitle",
@@ -759,7 +759,7 @@ const MatchedTitle = derived(
  * document carries outside every catalog that states a language, a {@link LangValue} whose scope
  * is the document node, which R26 asks the category to list. A form that states no language, the
  * empty one, asks nothing, so it is lawful beside an empty `lom:language`, and one outside its
- * domain AL1 refuses where it is written (spec reading 174).
+ * domain AL1 refuses where it is written (spec reading `lang-outside-tag`).
  */
 const DescribedLang = derived(
   "DescribedLang",
@@ -775,9 +775,9 @@ const DescribedLang = derived(
 );
 
 /**
- * Each language an item's assembly states in place (spec reading 117), under each general
- * category that describes the item, as `DescribedLang` is a document's: the compared value of each
- * form outside every catalog that states a language, a {@link LangValue} whose scope is its
+ * Each language an item's assembly states in place (spec reading `fragment-placement`), under each
+ * general category that describes the item, as `DescribedLang` is a document's: the compared value
+ * of each form outside every catalog that states a language, a {@link LangValue} whose scope is its
  * document node, of the document of each instance of the item's assembly, the instance and the form
  * joined by the instance's document, which no row stores.
  */
@@ -860,7 +860,7 @@ const identityQueryLawsByName = {
  * `lom:value` of a learning resource type in a record document ({@link RecordNode}), its folded
  * string value (`copiedTextKinds` of `#pantry/qti/node.ts`) compared collapsed, which no row
  * holds. Each needs a source of another vocabulary. The binding's Schematron caps each term at one
- * per type (N7, spec reading 130).
+ * per type (N7, spec reading `lom-repetition`).
  */
 const ForbiddenResourceType = derived(
   "ForbiddenResourceType",
@@ -910,8 +910,8 @@ const OtherVocabularyType = derived(
 );
 
 /**
- * The metadata overlays' rules over a query, each named by its oracle law (spec readings 62 and
- * 122):
+ * The metadata overlays' rules over a query, each named by its oracle law (spec readings
+ * `identity-from-lom` and `lom-learning-resource-type`):
  *
  * - **`lom-identifier`:** a record that names a document and lists a general identifier names that
  *   document's identifier ("LomObjectIdentifier");
@@ -919,8 +919,9 @@ const OtherVocabularyType = derived(
  *   title in its language ("LomObjectTitle");
  * - **`lom-learning-resource-type`:** a learning resource type whose value collapses to `exam` or
  *   `self assessment` has a source that names another vocabulary ("LOM learning resource type").
- * - **"Usage typed value"** (reading 105): a record's usage value's text is a lexical form of its
- *   base type ({@link UsageValueBaseType}), read as a `qti-value`'s is, by `BaseTypePattern`.
+ * - **"Usage typed value"** (reading `usage-statistic-value`): a record's usage value's text is a
+ *   lexical form of its base type ({@link UsageValueBaseType}), read as a `qti-value`'s is, by
+ *   `BaseTypePattern`.
  */
 const metadataQueryLawsByName = {
   "LOM learning resource type": declared("LOM learning resource type", [
@@ -960,9 +961,9 @@ const metadataQueryLawsByName = {
  * allows one expression, and a second breaks N5's `Follow`, so a lawful setter or lookup has one
  * row per placement. `Set_type` (P20) and `Lookup_type` (P22) read it.
  *
- * A setter whose `identifier` names no variable, unwritten or no NCName (spec reading 152), has
- * no reference, and one that holds no expression holds no type, so neither has a row, and AL3,
- * its value domain or its content model refuses it alone.
+ * A setter whose `identifier` names no variable, unwritten or no NCName (spec reading
+ * `ncname-names`), has no reference, and one that holds no expression holds no type, so neither has
+ * a row, and AL3, its value domain or its content model refuses it alone.
  */
 const heldTypes = query(QtiViews).rule((r) => {
   const {
@@ -1065,11 +1066,11 @@ const InterpolatedLookup = derived(
 );
 
 /**
- * A placed reference to a name its assembly's root declares (spec reading 117): each
- * `PlacedVariableRef` joined with the root's `NamedDeclaration` of the name it spells, the root the
- * document at the assembly's path, every row `declared`: a name the root declares names its
- * declaration, before any built-in or reading. A row is the placed reference: its element's place,
- * its instance in its assembly, and its attribute.
+ * A placed reference to a name its assembly's root declares (spec reading `fragment-placement`):
+ * each `PlacedVariableRef` joined with the root's `NamedDeclaration` of the name it spells, the
+ * root the document at the assembly's path, every row `declared`: a name the root declares names
+ * its declaration, before any built-in or reading. A row is the placed reference: its element's
+ * place, its instance in its assembly, and its attribute.
  */
 const DeclaredPlacement = derived(
   "DeclaredPlacement",
@@ -1104,8 +1105,9 @@ const DeclaredPlacement = derived(
 /**
  * Each `qti-variable` that writes a `weight-identifier`, by the variable's place: a weighted
  * variable, which stands only in a test's outcome processing ("Weights are defined only in the test
- * context (and hence only in outcomes processing)", information model §7.47.2; spec reading 199).
- * "Outcome only" holds each to an expression of the outcome language.
+ * context (and hence only in outcomes processing)", information model §7.47.2; spec reading
+ * `weight-identifier-placement`). "Outcome only" holds each to an expression of the outcome
+ * language.
  */
 const WeightedVariable = derived(
   "WeightedVariable",
@@ -1203,7 +1205,7 @@ const ExpressionAttribute = derived(
  * The test variables that write neither a `base-type` nor a `weight-identifier`, each with its
  * base type under each placement, by the placement and its place: no attribute types it, so its
  * type is `unknown`, which matches every integer and float variable (information model §7.39.6;
- * spec reading 167).
+ * spec reading `weighted-test-variables`).
  */
 const UntypedUnweighted = derived(
   "UntypedUnweighted",
@@ -1329,14 +1331,15 @@ const mappingTemplates: readonly PublishedTemplate[] = ["map_response", "CC2_map
 
 /**
  * The declarations each published template's rules read or set, as its published file writes them
- * (the `rptemplates/` documents; spec readings 51 and 198), each with the declaration kinds that
- * may hold it: every template reads `RESPONSE` as a response variable (`qti-variable`,
- * `qti-correct`, `qti-map-response` or `qti-map-response-point`, information model §6.9.40,
- * §6.9.27, §6.9.47, §6.9.46) and sets `SCORE` as an outcome (`qti-set-outcome-value`, §6.39.4: it
- * "sets the value of an outcome variable"); `CC2_map_response` sets `FEEDBACK` and
- * `CC2_match_basic` `FEEDBACKBASIC`, and both read `MAXSCORE` through a `qti-variable`, which names
- * "an itemVariable that has been declared in a corresponding variableDeclaration or is one of the
- * built-in variables" (§6.9.40), of which `MAXSCORE` is none.
+ * (the `rptemplates/` documents; spec readings `built-in-templates` and `template-rules`), each
+ * with the declaration kinds that may hold it: every template reads `RESPONSE` as a response
+ * variable (`qti-variable`, `qti-correct`, `qti-map-response` or `qti-map-response-point`,
+ * information model §6.9.40, §6.9.27, §6.9.47, §6.9.46) and sets `SCORE` as an outcome
+ * (`qti-set-outcome-value`, §6.39.4: it "sets the value of an outcome variable");
+ * `CC2_map_response` sets `FEEDBACK` and `CC2_match_basic` `FEEDBACKBASIC`, and both read
+ * `MAXSCORE` through a `qti-variable`, which names "an itemVariable that has been declared in a
+ * corresponding variableDeclaration or is one of the built-in variables" (§6.9.40), of which
+ * `MAXSCORE` is none.
  */
 const templateNeeds: readonly {
   readonly identifier: string;
@@ -1456,13 +1459,13 @@ const expressionQueryLawsByName = {
 } as const;
 
 /**
- * The documents that head an assembly, by the document's package and path (spec reading 117): each
- * assembled document (`Document.assembled`, it has its `AssembledDocument`) that no include splices
- * in place, no `SiteTarget` that splices naming it as its `target` (`Inclusion.splices`: an include
- * under one of `splicingParents` that may stand for its target's root). An included fragment is
- * judged where it is included and not alone, and every other assembled document, a test, a section,
- * an item, a stimulus, a response processing template or a fragment no include splices, is judged
- * as its own merged document.
+ * The documents that head an assembly, by the document's package and path (spec reading
+ * `fragment-placement`): each assembled document (`Document.assembled`, it has its
+ * `AssembledDocument`) that no include splices in place, no `SiteTarget` that splices naming it as
+ * its `target` (`Inclusion.splices`: an include under one of `splicingParents` that may stand for
+ * its target's root). An included fragment is judged where it is included and not alone, and every
+ * other assembled document, a test, a section, an item, a stimulus, a response processing template
+ * or a fragment no include splices, is judged as its own merged document.
  */
 const HeadDocument = derived(
   "HeadDocument",
@@ -1480,7 +1483,7 @@ const HeadDocument = derived(
  * The documents some instance of an assembly places, by the document's package and path: the
  * projection of `Instance` on its `package` and `document`. A chain of includes that returns to a
  * document already on it, and that no head reaches, places none of its documents in any assembly,
- * so its documents are none of these (reading 85).
+ * so its documents are none of these (reading `inclusion-cycles`).
  */
 const InstanceDocument = derived(
   "InstanceDocument",
@@ -1492,16 +1495,16 @@ const InstanceDocument = derived(
 );
 
 /**
- * The members of the banks (the placement mandate, ruling 2; spec reading 228): each item ref a
- * section document holds, at any depth, that names something, by its package, the bank's path
- * (`bank`, the section document's: a bank is `(package, path)`, as an item is, SV-KEY-01, since
- * QTI makes a section's identifier unique only within its test, §4.2.1) and the ref's identifier
- * (`identifier`), with the path of the item document it names (`item`, its `ItemRefDocument`'s
- * target). QTI puts no restriction on a section document's shape (§7.5), so a member may sit in a
- * nested section. "Item ref identifier" holds its identifier to its item's, and "Structure
- * identifier" makes `(package, bank, identifier)` a key. Every column is its rows' own, never a
- * copy: a bank's members are read here, from the names, their nodes' kind and document, and the
- * items the import already writes.
+ * The members of the banks (the placement mandate, ruling 2; spec reading
+ * `tests-stored-as-defined`): each item ref a section document holds, at any depth, that names
+ * something, by its package, the bank's path (`bank`, the section document's: a bank is `(package,
+ * path)`, as an item is, SV-KEY-01, since QTI makes a section's identifier unique only within its
+ * test, §4.2.1) and the ref's identifier (`identifier`), with the path of the item document it
+ * names (`item`, its `ItemRefDocument`'s target). QTI puts no restriction on a section document's
+ * shape (§7.5), so a member may sit in a nested section. "Item ref identifier" holds its identifier
+ * to its item's, and "Structure identifier" makes `(package, bank, identifier)` a key. Every column
+ * is its rows' own, never a copy: a bank's members are read here, from the names, their nodes' kind
+ * and document, and the items the import already writes.
  */
 export const BankMember = derived(
   "BankMember",
@@ -1523,9 +1526,9 @@ export const BankMember = derived(
  * The tests overlays' rules over a query, each named by its oracle law:
  *
  * - **"E1 derived":** each assembly's root is a document that heads one ({@link HeadDocument});
- * - **"Inclusion cycle"** (reading 85): each document that heads an assembly is the root of one, and
- *   every assembled document is one some instance places ({@link InstanceDocument}), so a chain no
- *   head reaches is refused;
+ * - **"Inclusion cycle"** (reading `inclusion-cycles`): each document that heads an assembly is the
+ *   root of one, and every assembled document is one some instance places
+ *   ({@link InstanceDocument}), so a chain no head reaches is refused;
  * - **"Item ref identifier"** (QTI §4.1.1: "When an Item is referenced using a
  *   'qti-assesasment-item-ref' the values of the two 'identifier' characteristics MUST be the
  *   same"): each named item ref's identifier, a test's or a bank's, is the identifier of the item
@@ -1578,8 +1581,9 @@ const ChoiceOrHottext = derived("ChoiceOrHottext", choicesAndHottexts);
 
 /**
  * Each choice and each hottext an assembly places, by its assembly, its instance there and its
- * element's place, with the identifier it bears (spec reading 117): an included fragment's choices
- * are its item's, and a fragment placed twice in one item names each of its choices twice.
+ * element's place, with the identifier it bears (spec reading `fragment-placement`): an included
+ * fragment's choices are its item's, and a fragment placed twice in one item names each of its
+ * choices twice.
  */
 const placedChoicesAndHottexts = query(QtiBase)
   .rule((r) => {
@@ -1641,16 +1645,17 @@ const placedNounChoices = query(QtiBase).rule((r) => {
 });
 
 /**
- * The names a "choice" bars in its document (spec reading 104 as amended): every choice of the four
- * classes whose sentence bars "any other choice" ({@link nounChoices}), and every other element the
- * information model calls a choice (`otherChoiceKinds` of `#pantry/vocab/terms/interactions.ts`,
- * and a hottext) that bears the identifier of one of them, by its place, with the identifier.
- * "Choice identifier key" keys it by (package, path, identifier), so a choice of the four bears a
- * name no other choice of its document bears, of its class or of another. Two elements of the other
- * classes that share a name no choice of the four bears are not here: neither's sentence bars the
- * other's class (a gap text's "any other text", a hottext's "any other hottext choice"), and each
- * class's own key holds its own. A gap is no choice (§5.57: gaps filled "from an associated set of
- * choices"), so a gap and a gap text of one gap match may share a name.
+ * The names a "choice" bars in its document (spec reading `choice-identifier-scope` as amended):
+ * every choice of the four classes whose sentence bars "any other choice" ({@link nounChoices}),
+ * and every other element the information model calls a choice (`otherChoiceKinds` of
+ * `#pantry/vocab/terms/interactions.ts`, and a hottext) that bears the identifier of one of them,
+ * by its place, with the identifier. "Choice identifier key" keys it by (package, path,
+ * identifier), so a choice of the four bears a name no other choice of its document bears, of its
+ * class or of another. Two elements of the other classes that share a name no choice of the four
+ * bears are not here: neither's sentence bars the other's class (a gap text's "any other text", a
+ * hottext's "any other hottext choice"), and each class's own key holds its own. A gap is no choice
+ * (§5.57: gaps filled "from an associated set of choices"), so a gap and a gap text of one gap
+ * match may share a name.
  */
 const ChoiceSpaceName = derived(
   "ChoiceSpaceName",
@@ -1684,10 +1689,11 @@ const ChoiceSpaceName = derived(
 );
 
 /**
- * The names a "choice" bars over its assembly (spec reading 117), as {@link ChoiceSpaceName} reads a
- * document's: every choice of the four an assembly places, and every other choice or hottext it
- * places that bears the identifier of one of them, by the assembly, the instance and the element's
- * place. "Choice identifier key" keys it by (package, assembly, identifier).
+ * The names a "choice" bars over its assembly (spec reading `fragment-placement`), as
+ * {@link ChoiceSpaceName} reads a document's: every choice of the four an assembly places, and every
+ * other choice or hottext it places that bears the identifier of one of them, by the assembly, the
+ * instance and the element's place. "Choice identifier key" keys it by (package, assembly,
+ * identifier).
  */
 const PlacedChoiceSpaceName = derived(
   "PlacedChoiceSpaceName",
@@ -1745,11 +1751,11 @@ const PlacedChoiceSpaceName = derived(
  * The names a document's choices and hottexts bear, and those its assembly places, that no item
  * variable of the document bears, by (package, path, identifier), an assembly's under its head
  * document's path: no `NamedDeclaration` of the document (`#pantry/qti/names.ts`) names it,
- * whatever the declaration's cardinality spells (spec reading 159), and in an item no built-in
- * variable does ({@link itemBuiltInNames}), since the built-ins "are declared
- * implicitly" (§2.2.2). An assembly's placed names are its root document's, whose own
- * declarations they are held to (spec reading 117): a fragment declares nothing. "Choice not
- * variable" holds every choice's and hottext's name to one of these.
+ * whatever the declaration's cardinality spells (spec reading `binding-by-name`), and in an item no
+ * built-in variable does ({@link itemBuiltInNames}), since the built-ins "are declared implicitly"
+ * (§2.2.2). An assembly's placed names are its root document's, whose own declarations they are
+ * held to (spec reading `fragment-placement`): a fragment declares nothing. "Choice not variable"
+ * holds every choice's and hottext's name to one of these.
  */
 const UnclaimedName = derived(
   "UnclaimedName",
@@ -1782,10 +1788,10 @@ const UnclaimedName = derived(
  * The least count of each extended-text interaction bound to a response that is no container, by
  * the interaction's place: its `min-strings` value ({@link LeastCount}) beside the cardinality of
  * the response its `response-identifier` binds, `single` or `record`, in the item's own document
- * or, under a placement, in its assembly's item, the response declaration of its name. Spec
- * reading 193 holds it to 0 or 1: such a response holds one string, and the information model
- * names 1 as the one value above 0 its `min-strings` may take (§5.48.7, §5.48.6). A `min-strings`
- * that is no integer has no least count, so its value domain refuses it alone.
+ * or, under a placement, in its assembly's item, the response declaration of its name. Spec reading
+ * `extended-text-min-strings` holds it to 0 or 1: such a response holds one string, and the
+ * information model names 1 as the one value above 0 its `min-strings` may take (§5.48.7, §5.48.6).
+ * A `min-strings` that is no integer has no least count, so its value domain refuses it alone.
  */
 const NonContainerStrings = derived(
   "NonContainerStrings",
@@ -1851,11 +1857,11 @@ const printedIntegers = ["base", "index"] as const;
 
 /**
  * Each printed variable's reference that names an outcome or a template declaration, beside that
- * declaration's cardinality, where it has one (spec reading 159), by the reference's place and
- * attribute (`referenceCardinalityOf` of `#pantry/qti/overlay-queries/reference.ts`): an item's own
- * reference against its own declarations, and a fragment's under each placement against its
- * assembly's (spec reading 117). "Printed variable type" holds a `base`'s or an `index`'s
- * ({@link printedIntegers}) to single.
+ * declaration's cardinality, where it has one (spec reading `binding-by-name`), by the reference's
+ * place and attribute (`referenceCardinalityOf` of `#pantry/qti/overlay-queries/reference.ts`): an
+ * item's own reference against its own declarations, and a fragment's under each placement against
+ * its assembly's (spec reading `fragment-placement`). "Printed variable type" holds a `base`'s or
+ * an `index`'s ({@link printedIntegers}) to single.
  */
 const PrintedIntegerCardinality = referenceCardinalityOf(
   "PrintedIntegerCardinality",
@@ -1865,7 +1871,7 @@ const PrintedIntegerCardinality = referenceCardinalityOf(
 
 /**
  * Each printed variable's reference that names an outcome or a template declaration, beside that
- * declaration's base type, where it has one (spec reading 158), keyed as
+ * declaration's base type, where it has one (spec reading `unspelled-declaration`), keyed as
  * {@link PrintedIntegerCardinality} is (`referenceBaseTypeOf` of
  * `#pantry/qti/overlay-queries/reference.ts`). "Printed variable type" holds a `base`'s or an
  * `index`'s to integer.
@@ -1877,17 +1883,19 @@ const PrintedIntegerBaseType = referenceBaseTypeOf(
 );
 
 /**
- * The interaction overlays' rules over a query, each named by its oracle law (spec reading 104):
+ * The interaction overlays' rules over a query, each named by its oracle law (spec reading
+ * `choice-identifier-scope`):
  *
- * - **"Choice bounds"** (spec reading 193): an extended-text interaction bound to a response that is
- *   no container has a `min-strings` of at most 1 ({@link NonContainerStrings});
+ * - **"Choice bounds"** (spec reading `extended-text-min-strings`): an extended-text interaction
+ *   bound to a response that is no container has a `min-strings` of at most 1
+ *   ({@link NonContainerStrings});
  * - **"Printed variable type"** (information model §9.3.3): a printed variable's `base` or `index`
  *   that names a variable names a single integer one ({@link PrintedIntegerCardinality},
  *   {@link PrintedIntegerBaseType});
- * - **"Choice identifier key"** (reading 104 as amended): a choice of the four classes whose sentence
- *   bars "any other choice" bears a name no other choice or hottext of its document bears, and none
- *   its assembly places ({@link ChoiceSpaceName}, {@link PlacedChoiceSpaceName}); the per-class
- *   keys are `#pantry/qti/interactions.ts`'s;
+ * - **"Choice identifier key"** (reading `choice-identifier-scope` as amended): a choice of the four
+ *   classes whose sentence bars "any other choice" bears a name no other choice or hottext of its
+ *   document bears, and none its assembly places ({@link ChoiceSpaceName},
+ *   {@link PlacedChoiceSpaceName}); the per-class keys are `#pantry/qti/interactions.ts`'s;
  * - **"Choice not variable"**: every name a choice or a hottext bears, its document's own or one its
  *   assembly places, is one no item variable of the document bears ({@link UnclaimedName}).
  */
@@ -1999,12 +2007,12 @@ const CellChild = derived(
  * scope row's `own`: its `dir`'s `value` is the direction's lexical form (`AlignDirectionLexical`,
  * C17), read from the attribute where it stands, which no overlay copies (C18). Each `dir` domain's
  * valid forms are exactly a direction's lexical form or HTML's `auto` once normalized in its class:
- * the HTML `dir`s of the 3.0.1 ASI and `bdo`'s (reading 123) are `xs:string` enumerations, whose
- * forms AL1 holds as written, and MathML 3's are `xs:token` (mathml3-presentation.xsd), so `value`
- * is collapsed. An element that writes no `dir`, or one that spells no direction (`auto`), has no
- * row. The scope row fixes the element, so the attribute is read at its key whatever the element's
- * kind: every element of a cell has a scope row, and every kind that admits a `dir` may stand in a
- * cell.
+ * the HTML `dir`s of the 3.0.1 ASI and `bdo`'s (reading `bdo-dir`) are `xs:string` enumerations,
+ * whose forms AL1 holds as written, and MathML 3's are `xs:token` (mathml3-presentation.xsd), so
+ * `value` is collapsed. An element that writes no `dir`, or one that spells no direction (`auto`),
+ * has no row. The scope row fixes the element, so the attribute is read at its key whatever the
+ * element's kind: every element of a cell has a scope row, and every kind that admits a `dir` may
+ * stand in a cell.
  */
 const ScopedDir = derived(
   "ScopedDir",

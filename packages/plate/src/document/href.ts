@@ -31,11 +31,11 @@ const escapedSlash = /(?<slash>%2F)/iu;
  * segment whose escapes are malformed as it is written.
  *
  * An escaped `/` is data inside its segment, never a separator (RFC 3986 section 2.2: a
- * percent-encoded reserved character is not equivalent to the character; reading 102). A package
- * keys a file by one text whose segments `/` separates, which cannot hold a `/` inside a segment,
- * so the escape keeps its place in the segment: `a%2Fb.xml` names the key `a%2Fb.xml`, never the
- * file `b.xml` in the directory `a`. Its limit, a case no corpus package has: `a%2Fb.xml` and
- * `a%252Fb.xml` name one key, the file whose name is spelled `a%2Fb.xml`.
+ * percent-encoded reserved character is not equivalent to the character; reading
+ * `href-resolution`). A package keys a file by one text whose segments `/` separates, which cannot
+ * hold a `/` inside a segment, so the escape keeps its place in the segment: `a%2Fb.xml` names the
+ * key `a%2Fb.xml`, never the file `b.xml` in the directory `a`. Its limit, a case no corpus package
+ * has: `a%2Fb.xml` and `a%252Fb.xml` name one key, the file whose name is spelled `a%2Fb.xml`.
  *
  * @param segment The segment.
  * @returns The segment decoded.

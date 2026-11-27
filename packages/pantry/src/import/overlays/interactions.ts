@@ -117,7 +117,7 @@ const interactions: ReadonlySet<string> = new Set(interactionKinds);
 const integerParts = regex("^(?<sign>[+-]?)(?<digits>[0-9]+)$", "u");
 
 /**
- * The largest count a package holds, the signed 64-bit integer's (spec reading 46).
+ * The largest count a package holds, the signed 64-bit integer's (spec reading `count-range`).
  */
 const countMost = 2n ** 63n - 1n;
 
@@ -125,10 +125,10 @@ const countMost = 2n ** 63n - 1n;
  * Read a count's form as its value: the import's own lexical mapping, apart from the law oracle's.
  * An `xs:integer` form is an optional sign and its digits, whose value is the digits' negated after
  * a `-` (XML Schema 1.1 Part 2 §3.3.13), so `0`, `+0`, `-0` and `00` all read 0 (§3.3.20). A count
- * is an `xs:nonNegativeInteger` held to the signed 64-bit range (reading 46), so a form whose value
- * lies outside it, `-1` or past 2^63 − 1, has none, as a form that is no integer's has none: its
- * value domain is its law. The database's own reading of the same forms is `integerReadOf` in
- * `#pantry/qti/interactions.ts`.
+ * is an `xs:nonNegativeInteger` held to the signed 64-bit range (reading `count-range`), so a form
+ * whose value lies outside it, `-1` or past 2^63 − 1, has none, as a form that is no integer's has
+ * none: its value domain is its law. The database's own reading of the same forms is
+ * `integerReadOf` in `#pantry/qti/interactions.ts`.
  *
  * @param form - The count's collapsed form.
  * @returns Its value, or none.
@@ -207,8 +207,8 @@ interface Context {
  * Read the name an element's attribute gives, its value ({@link valueAt}) where that names
  * something ({@link namedBy}), the test `namedBinding` of `#pantry/qti/interactions.ts` states: a
  * value that names nothing has no `BindingName` and no `BoundVariable`, so "Binding declared" never
- * judges it beside its value domain (spec reading 152). Whitespace inside a value is kept, one
- * space a run, so a value with some names nothing.
+ * judges it beside its value domain (spec reading `ncname-names`). Whitespace inside a value is
+ * kept, one space a run, so a value with some names nothing.
  *
  * @param context - The document.
  * @param element - The element.
@@ -627,7 +627,7 @@ const boundsOf = (context: Context) => {
  * kinds that names a variable ({@link namedBy}), in an item, under its document's root kind, the
  * root of its own assembly. The declaration it names is its document's of its name, which the laws
  * read through a query (`#pantry/qti/overlay-queries/reference.ts`). A value that is no NCName
- * names nothing and has no row, so its value domain refuses it alone (spec reading 152).
+ * names nothing and has no row, so its value domain refuses it alone (spec reading `ncname-names`).
  *
  * The NCName test decides which value is a reference, as each relation's source does
  * (`referenceSources` of `#pantry/qti/interactions.ts`), and the schema holds the source forward
@@ -678,9 +678,9 @@ const referencesOf = (
 /**
  * Build an included fragment's references of one class: each read attribute of the class's names
  * and kinds that names a variable ({@link namedBy}), unresolved, since a fragment declares nothing;
- * each resolves once per assembly that places the document (spec reading 117). The NCName test
- * stays for the reasons {@link referencesOf} gives, each relation's source being `fragmentSources`
- * of `#pantry/qti/interactions.ts`.
+ * each resolves once per assembly that places the document (spec reading `fragment-placement`). The
+ * NCName test stays for the reasons {@link referencesOf} gives, each relation's source being
+ * `fragmentSources` of `#pantry/qti/interactions.ts`.
  *
  * @param context - The document.
  * @param read - The document's read attributes.
@@ -750,10 +750,10 @@ const fragmentPrints = [references.printed, references.variable] as const;
  * they name: what a name resolves to is its document's declaration of it, which the laws read
  * through a query, so a name no declaration it may name holds is refused by its law, and a name of
  * a declaration with no cardinality is judged by no law over the cardinality, that declaration's
- * own law refusing it alone (spec readings 158 and 159).
+ * own law refusing it alone (spec readings `unspelled-declaration` and `binding-by-name`).
  *
  * @param view - The document's view: its rows, and their folds under its context (spec reading
- *   117), whose interaction an included fragment's nodes take as their nearest.
+ *   `fragment-placement`), whose interaction an included fragment's nodes take as their nearest.
  * @param ids - Where the document stands in its package, whose package and path every row holds.
  * @returns Every overlay's rows.
  */
@@ -909,7 +909,7 @@ const placedDocumentKeyOf = (placement: Placement): string =>
 /**
  * Decide whether an instance is a placement `FragmentScope` holds: an instance of an item's or a
  * test's assembly whose document is neither (`referringRoots`), an included fragment or a section
- * document a test references (spec readings 117 and 145).
+ * document a test references (spec readings `fragment-placement` and `spliced-fragment`).
  *
  * @param placement - The instance's placement.
  * @returns Whether its references resolve under it.
@@ -920,11 +920,11 @@ const resolvesUnder = (placement: Placement): boolean =>
 
 /**
  * Build a package's placements: one per instance of an included fragment or a referenced section
- * document under an item or a test (`resolvesUnder`), and under
- * it each of the document's references of each class, under the assembly's root kind. What each
- * resolves to among the assembly's declarations, whatever its cardinality spells, is read through a
- * query (spec reading 159, decision 432): a built-in of the assembly's root names none, and its law
- * reads `BuiltInVariable`; a name no allowed declaration holds is refused by its law.
+ * document under an item or a test (`resolvesUnder`), and under it each of the document's
+ * references of each class, under the assembly's root kind. What each resolves to among the
+ * assembly's declarations, whatever its cardinality spells, is read through a query (spec reading
+ * `binding-by-name`, decision 432): a built-in of the assembly's root names none, and its law reads
+ * `BuiltInVariable`; a name no allowed declaration holds is refused by its law.
  *
  * @param input - The package's rows the placements read.
  * @param input.contexts - Every fragment's context variable references
@@ -991,11 +991,11 @@ export interface PlacedBindingRows {
 }
 
 /**
- * Build each instance of an item's assembly's bindings (spec reading 117): under the item's own
- * instance and each fragment it places, every binding attribute of the instance's document,
- * carrying the item's `adaptive`. The response declaration it names is the item's of its name,
- * whatever its cardinality spells, read through a query as a `BoundVariable`'s is (spec reading
- * 159): a name none holds is refused by "Binding declared". Under each
+ * Build each instance of an item's assembly's bindings (spec reading `fragment-placement`): under
+ * the item's own instance and each fragment it places, every binding attribute of the instance's
+ * document, carrying the item's `adaptive`. The response declaration it names is the item's of its
+ * name, whatever its cardinality spells, read through a query as a `BoundVariable`'s is (spec
+ * reading `binding-by-name`): a name none holds is refused by "Binding declared". Under each
  * instance of every assembly, its document's choices and hottexts, which count among the
  * assembly's: "Choice not variable" holds each identifier they bear to the declarations of the
  * assembly's root document (`UnclaimedName`, `#pantry/qti/queries.ts`).

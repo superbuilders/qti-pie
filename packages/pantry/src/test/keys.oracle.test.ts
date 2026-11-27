@@ -446,9 +446,9 @@ const freeSites: ReadonlySet<Site> = new Set(["free attribute", "free text"]);
 /**
  * The scripts a text is written in, by the UTF-8 bytes of their one character: `a`, `é`, `中` and
  * U+10000. The first three are name characters of XML 1.0 Second Edition, so every place an NCName
- * goes takes them; U+10000 is none (reading 94), so a text in it past its leading letter names
- * nothing at any length, and its import writes no row of the name (reading 152), as its twin's
- * does ({@link twinOf}).
+ * goes takes them; U+10000 is none (reading `ncname-characters`), so a text in it past its leading
+ * letter names nothing at any length, and its import writes no row of the name (reading
+ * `ncname-names`), as its twin's does ({@link twinOf}).
  */
 const scripts = ["1-byte", "2-byte", "3-byte", "4-byte"] as const;
 
@@ -819,7 +819,7 @@ type Situation =
  * each a copy an overlay leaves out because its text is past its field's bound, which the copy's
  * containment then refuses for the row it lacks. The twin differs from the package in its texts'
  * lengths alone, so a row an overlay leaves out of both, a name's that names nothing (reading
- * 152), is no copy the bound left out.
+ * `ncname-names`), is no copy the bound left out.
  *
  * @param long - The package's rows, counted by relation.
  * @param short - Its twin's.
@@ -869,8 +869,8 @@ const twinCount = 2;
 
 /**
  * A package's twin: each drawn text at {@link twinCount} characters of its own script, or as it is
- * where it is shorter. An NCName's production states no length (reading 94), so a text and its
- * twin name the same, and only the bound tells their imports apart.
+ * where it is shorter. An NCName's production states no length (reading `ncname-characters`), so a
+ * text and its twin name the same, and only the bound tells their imports apart.
  *
  * @param sketch - The package.
  * @returns Its twin.

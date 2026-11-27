@@ -1,12 +1,13 @@
 /**
- * The names of read-aloud's controls on an item's page (spec reading 237): one namer for the whole
- * page, the item's own content and its passages', which names every control as the page makes it,
- * by the part it reads and its place among the page's controls of that part, from 1, so no two
- * controls of the page share a name (WCAG 2.4.6). A control is made only through the page's one
- * read-aloud (`readAloudOf` in `#plate/ui/item/contents/catalog.tsx`), which takes each name from
- * the page's namer: a place never restarts at an interaction, a run or a document. The page makes
- * its controls in document order, the passages a pane shows before the question, so each part's
- * places run in the order the child meets them. Pure, and safe to import on the server.
+ * The names of read-aloud's controls on an item's page (spec reading `read-aloud-controls`): one
+ * namer for the whole page, the item's own content and its passages', which names every control as
+ * the page makes it, by the part it reads and its place among the page's controls of that part,
+ * from 1, so no two controls of the page share a name (WCAG 2.4.6). A control is made only through
+ * the page's one read-aloud (`readAloudOf` in `#plate/ui/item/contents/catalog.tsx`), which takes
+ * each name from the page's namer: a place never restarts at an interaction, a run or a document.
+ * The page makes its controls in document order, the passages a pane shows before the question, so
+ * each part's places run in the order the child meets them. Pure, and safe to import on the
+ * server.
  *
  * @module
  */

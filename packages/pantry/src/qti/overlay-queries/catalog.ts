@@ -80,10 +80,11 @@ const PlacedReference = derived(
 );
 
 /**
- * Each catalog's binding in its assembly's ID table (spec reading 117), by the assembly and the
- * id's SHA-256: every `PlacedId` of the assembly whose owner is a {@link CatalogId}'s element, so a
- * catalog of a fragment two items include is bound in each item's assembly, and a catalog placed
- * twice in one assembly is one binding. Its `idDigest` is the catalog's.
+ * Each catalog's binding in its assembly's ID table (spec reading `fragment-placement`), by the
+ * assembly and the id's SHA-256: every `PlacedId` of the assembly whose owner is a
+ * {@link CatalogId}'s element, so a catalog of a fragment two items include is bound in each item's
+ * assembly, and a catalog placed twice in one assembly is one binding. Its `idDigest` is the
+ * catalog's.
  */
 export const AssembledCatalog = derived(
   "AssembledCatalog",

@@ -419,9 +419,10 @@ export { decimalTextMaxBytes as parsedDecimalBytes } from "@bjornpagen/grizzle";
  * The most UTF-8 bytes a foreign element's namespace name and its local name each hold: what
  * {@link matchedTextBytes} leaves beside the `}` between them, shared evenly, since a query matches
  * the two as one text, `namespace}local` (`OpenElementName.expanded`, `#pantry/qti/chardata.ts`),
- * against its parent's name patterns. XML puts no bound on a name (reading 94), so a longer one is
- * refused as a stated limit of the representation, the regex engine's. No other name or prefix is
- * bounded: none is a text a query reads by a pattern, and no index orders by one.
+ * against its parent's name patterns. XML puts no bound on a name (reading `ncname-characters`), so
+ * a longer one is refused as a stated limit of the representation, the regex engine's. No other
+ * name or prefix is bounded: none is a text a query reads by a pattern, and no index orders by
+ * one.
  */
 export const foreignNameBytes = Math.floor((matchedTextBytes - 1) / 2);
 
@@ -455,8 +456,9 @@ export const isLomText = (text: string): boolean =>
 
 /**
  * The most UTF-8 bytes a published response processing template's URI holds: the longest of the
- * spellings that name one (`urisOf` of `#pantry/qti/templates.ts`, spec reading 51), the only
- * `template` values `TemplateProcessing` holds (`#pantry/qti/queries.ts`).
+ * spellings that name one (`urisOf` of `#pantry/qti/templates.ts`, spec reading
+ * `built-in-templates`), the only `template` values `TemplateProcessing` holds
+ * (`#pantry/qti/queries.ts`).
  */
 const templateUriBytes = Arr.reduce(
   urisOf(publishedTemplates).map(utf8Length),
@@ -501,11 +503,10 @@ export const isPackageName = (name: string): boolean =>
 
 /**
  * The lexical form of an integer `Type.cast` reads exactly: `xs:integer`'s, within PostgreSQL's
- * signed 64-bit range, a stated limit of the representation. Spec
- * reading 46 holds a `qti-equal-rounded` `figures` to that range, so every integer AL1's lexical
- * half admits is in it, and a MathML alignment `selection` outside it counts as 0, which no child
- * has. The schema's casts (`#pantry/qti/operators.ts`, `#pantry/qti/mathml-align.ts`) and the
- * importer's reading of a selection (`#pantry/import/overlays/mathml-align.ts`) share this one
- * statement.
+ * signed 64-bit range, a stated limit of the representation. Spec reading `count-range` holds a
+ * `qti-equal-rounded` `figures` to that range, so every integer AL1's lexical half admits is in it,
+ * and a MathML alignment `selection` outside it counts as 0, which no child has. The schema's casts
+ * (`#pantry/qti/operators.ts`, `#pantry/qti/mathml-align.ts`) and the importer's reading of a
+ * selection (`#pantry/import/overlays/mathml-align.ts`) share this one statement.
  */
 export const integerForm = lexicalForm(pg.bigint);

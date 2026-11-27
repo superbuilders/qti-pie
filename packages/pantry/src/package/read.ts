@@ -21,9 +21,9 @@ const INSPECT_CONCURRENCY = availableParallelism();
  * The directory or an entry path cannot be read as part of a package, under the named rule.
  *
  * `manifest-root` is a directory that has no `imsmanifest.xml` at its root. `entry-path` is a path
- * that is no entry path by the rule a zip's entry names meet too (`unsafeEntryPath`, reading 138),
- * or not a regular file inside the package directory. `dir` is the package directory and `path`
- * the entry path concerned, `imsmanifest.xml` for `manifest-root`.
+ * that is no entry path by the rule a zip's entry names meet too (`unsafeEntryPath`, reading
+ * `entry-path-backslash`), or not a regular file inside the package directory. `dir` is the package
+ * directory and `path` the entry path concerned, `imsmanifest.xml` for `manifest-root`.
  */
 export class PackageReadError extends Schema.TaggedError<PackageReadError>()("PackageReadError", {
   dir: Schema.String,

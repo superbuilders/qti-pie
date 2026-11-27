@@ -219,10 +219,10 @@ export const processingFixtureNames = [
 /**
  * The package whose include names no document: `response.xml`'s rules, with `shared-rules.xml`
  * written and listed only as a file of `choice.xml`'s resource and the include's `xi:fallback`
- * taken out ({@link listedFileEdits}), so "Include target" refuses it (spec reading 115). With its
- * fallback the include would be admitted unplaced, XInclude putting the fallback in its place
- * (XInclude 1.0 §3.2; `UnplacedCause` `fallback` of `#pantry/qti/tests.ts`). It has no frozen
- * processing verdict, so it is none of {@link processingFixtureNames}.
+ * taken out ({@link listedFileEdits}), so "Include target" refuses it (spec reading
+ * `include-target`). With its fallback the include would be admitted unplaced, XInclude putting the
+ * fallback in its place (XInclude 1.0 §3.2; `UnplacedCause` `fallback` of `#pantry/qti/tests.ts`).
+ * It has no frozen processing verdict, so it is none of {@link processingFixtureNames}.
  */
 export const danglingIncludeName = "dangling-include";
 
@@ -271,7 +271,8 @@ const simpleItemName: ProcessingEdit = {
  * The edits that give a package the document `response.xml`'s `xi:include` names:
  * `valid/shared-rules.xml` written at the package root as `shared-rules.xml`, and listed by a
  * resource of its own of type `imsqti_fragment_xmlv3p0`, so it is a document the manifest lists
- * (spec readings 114 and 115). The `xi:fallback` does not lift that rule.
+ * (spec readings `include-as-information-model` and `include-target`). The `xi:fallback` does not
+ * lift that rule.
  */
 const sharedRulesEdits: readonly ProcessingEdit[] = [
   { _tag: "replaceFile", fromFile: "valid/shared-rules.xml", path: "shared-rules.xml" },
@@ -287,9 +288,9 @@ const sharedRulesEdits: readonly ProcessingEdit[] = [
  * The edits that give a package the file `response.xml`'s `xi:include` names, listed only as a
  * `file` of `choice.xml`'s resource (R6: a referenced in-package file is described in the
  * manifest): a file of the package that no resource lists as a document, so the include names no
- * document; and that take the include's `xi:fallback` out, since XInclude replaces an include
- * whose resource is missing by its fallback (XInclude 1.0 §3.2), so only an include with none is
- * refused, under "Include target" (spec reading 115). The manifest's lines end `\r\n`, as
+ * document; and that take the include's `xi:fallback` out, since XInclude replaces an include whose
+ * resource is missing by its fallback (XInclude 1.0 §3.2), so only an include with none is refused,
+ * under "Include target" (spec reading `include-target`). The manifest's lines end `\r\n`, as
  * `simple`'s do; `response.xml`'s end `\n`.
  */
 const listedFileEdits: readonly ProcessingEdit[] = [

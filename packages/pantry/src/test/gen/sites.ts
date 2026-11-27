@@ -1,8 +1,8 @@
 /**
- * The site generator (lane NIL, the SitePath fix; spec readings 114 and 115): the every-relation
- * package (`#pantry/test/gen/every-relation.ts`) with each of its two sites drawn by name, so the
- * box exhausts every way a site's href can stand: the item body's include of `fragment.xml` and
- * the response processing's include of `rules.xml`.
+ * The site generator (lane NIL, the SitePath fix; spec readings `include-as-information-model` and
+ * `include-target`): the every-relation package (`#pantry/test/gen/every-relation.ts`) with each of
+ * its two sites drawn by name, so the box exhausts every way a site's href can stand: the item
+ * body's include of `fragment.xml` and the response processing's include of `rules.xml`.
  *
  * Each site writes its href as the package writes it (`listed`, a document the manifest lists),
  * names a file the package does not hold (`absent`), names an entry the package holds but lists as
@@ -154,10 +154,10 @@ export const sitePackage = (box: SiteBox): PackageEntries => {
 };
 
 /**
- * The rule a site's case breaks, by reading 115, none for a listed one: an href naming a file the
- * package does not hold, "File exists"; an include naming no document of the package, by an entry
- * it lists as none or no href, "Include target", and none for one naming a file outside it, which
- * is stored as written and never fetched (reading 115).
+ * The rule a site's case breaks, by reading `include-target`, none for a listed one: an href naming
+ * a file the package does not hold, "File exists"; an include naming no document of the package, by
+ * an entry it lists as none or no href, "Include target", and none for one naming a file outside
+ * it, which is stored as written and never fetched (reading `include-target`).
  *
  * @param href - Its case.
  * @returns The rule, or none.

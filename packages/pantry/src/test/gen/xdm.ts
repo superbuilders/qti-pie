@@ -216,7 +216,7 @@ export interface Index {
    * `xsi:type` may be drawn with, each with the governing type it gives the element: for a kind of
    * a vocabulary the types `XsiType` admits; for a foreign kind `xs:anyType`, each built-in simple
    * type that governs a foreign element, and a name no schema defines, which leaves it to lax
-   * assessment (spec reading 60).
+   * assessment (spec reading `wildcard-xsi-type`).
    */
   readonly governing: ReadonlyMap<
     string,
@@ -335,7 +335,8 @@ const nextOf = (
 
 /**
  * The local names a foreign element is drawn with: names no vocabulary holds, and the names of real
- * kinds, which are foreign where their parent admits no kind of that name (spec reading 30).
+ * kinds, which are foreign where their parent admits no kind of that name (spec reading
+ * `qti-in-annotation-xml`).
  */
 const foreignLocals = [
   "widget",
@@ -352,7 +353,7 @@ const foreignLocals = [
  * none, and ASI's. MathML's is never one, a MathML parent's own included: MathML's grammar starts
  * at `math` and its `anyElement` excludes MathML's own namespace (MathML 3 RelaxNG,
  * `mathml3-common.rnc` lines 15 and 61; MathML 3 §2.2), so no foreign element is in it, and the
- * law "MathML foreign element" refuses one (spec reading 2).
+ * law "MathML foreign element" refuses one (spec reading `mathml-validity`).
  *
  * @see {@link https://www.w3.org/TR/MathML3/chapter2.html#fund.math | MathML 3, 2.2 The Top-Level math Element}
  */
@@ -523,9 +524,9 @@ const childrenOf = (grammar: ComposedGrammar): ReadonlyMap<string, readonly Cand
   )) {
     /**
      * A foreign element only a strict wildcard holds stands only with an xsi:type its document's
-     * schema set resolves (spec reading 81, `StrictlyHeld`). A foreign element's xsi:type is drawn
-     * with no regard to the wildcard that holds it, a name no schema defines among them, so none
-     * is drawn there.
+     * schema set resolves (spec reading `wildcard-global-declarations`, `StrictlyHeld`). A foreign
+     * element's xsi:type is drawn with no regard to the wildcard that holds it, a name no schema
+     * defines among them, so none is drawn there.
      */
     const strict = Option.isSome(grammar.content.strictlyHeld.lookup({ child, parent }));
     const kind = grammar.kinds.nodeKind.has(child) && !strict ? Option.some(child) : Option.none();
@@ -687,7 +688,7 @@ interface Typing {
 /**
  * The name a foreign element's `xsi:type` is drawn with that names no type: in a bound namespace
  * no schema of the composition targets, so it resolves and names nothing, and the element stays
- * laxly assessed (spec reading 60).
+ * laxly assessed (spec reading `wildcard-xsi-type`).
  */
 const unknownType: Typing = {
   governs: Option.none(),
@@ -785,7 +786,7 @@ const typePrefix = "xsitype";
  * The prefix a closed name in XML Schema's instance namespace or in XLink's is written with where
  * the swarm keeps `boundPrefix`, in place of its handle's own: one per namespace, which no other
  * drawn name uses, so it never rebinds one. A document may bind any prefix to either namespace, so
- * `zs:nil` is the handle `xsi:nil` (spec reading 47).
+ * `zs:nil` is the handle `xsi:nil` (spec reading `xsi-attributes`).
  */
 const boundPrefixes: ReadonlyMap<string, string> = new Map([
   [xsiNamespace, "zs"],
@@ -1221,10 +1222,11 @@ const openNamesOf = (
 
 /**
  * The closed attributes an HTML element law requires of an element under its parent (spec readings
- * 124 and 125, `#pantry/qti/html.ts`), which the generator writes whatever its bound and swarm
- * draw: a `source` in a `picture` carries `srcset`, a `source` in an `audio` or a `video` carries
- * `src`, and a `track` carries `srclang`, which a track in the subtitles state needs and any other
- * track may carry. Each is written only where the element admits it.
+ * `source-attributes` and `track-srclang`, `#pantry/qti/html.ts`), which the generator writes
+ * whatever its bound and swarm draw: a `source` in a `picture` carries `srcset`, a `source` in an
+ * `audio` or a `video` carries `src`, and a `track` carries `srclang`, which a track in the
+ * subtitles state needs and any other track may carry. Each is written only where the element
+ * admits it.
  *
  * @param kind - The element's kind.
  * @param parent - Its parent's kind.
@@ -1255,9 +1257,10 @@ export const requiredUnder = (kind: string, parent: string): readonly string[] =
  * element's namespace under its own prefix, so an element in no namespace draws none.
  *
  * The governing type is the declared one, or the type a drawn `xsi:type` names, which then governs
- * the element: its attributes are its governor's where the type is one (spec reading 84), and a
- * foreign element's `xsi:type` is drawn among {@link Index.governing}'s names, so it always
- * resolves, as shred reads it (spec readings 60 and 83).
+ * the element: its attributes are its governor's where the type is one (spec reading
+ * `governing-type`), and a foreign element's `xsi:type` is drawn among {@link Index.governing}'s
+ * names, so it always resolves, as shred reads it (spec readings `wildcard-xsi-type` and
+ * `prefix-binding`).
  *
  * @param context - The case.
  * @param kind - The element's kind, a foreign kind for a foreign element.
@@ -1298,7 +1301,8 @@ const attributesOf =
     const open = context.index.open.get(key) ?? new Set<OpenClass>();
     const spelled = new Set<string>(closed);
     /**
-     * Every element admits `xsi:type` (spec reading 47), under its governor as under its kind.
+     * Every element admits `xsi:type` (spec reading `xsi-attributes`), under its governor as under
+     * its kind.
      */
     const xsiType = Option.fromNullishOr(admitted.find((handle) => isXsiType(handle)));
     for (const [{ name }, handle] of Option.toArray(
@@ -1746,8 +1750,8 @@ interface Owner {
   /**
    * Whether a simple type governs the element: a foreign element whose `xsi:type` names one of its
    * kind's governors, which holds character data and no element child (XML Schema 1.0 Part 1
-   * §3.3.4, Element Locally Valid (Type), clause 3.1.2; spec reading 60), as the law "Foreign
-   * simple content" states.
+   * §3.3.4, Element Locally Valid (Type), clause 3.1.2; spec reading `wildcard-xsi-type`), as the
+   * law "Foreign simple content" states.
    */
   readonly simple: boolean;
 }

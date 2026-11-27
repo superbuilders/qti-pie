@@ -1,18 +1,19 @@
 /**
  * The printed-value formatter: the text a `qti-printed-variable` writes for a value of the value
  * model ({@link formatPrinted}), through the attribute's `format` when it has one and in a default
- * form when it does not, as reading 209 reads the information model's section 2.3.4 and its
- * `PrintedVariable` (section 7.30).
+ * form when it does not, as reading `format-float-rounding` reads the information model's section
+ * 2.3.4 and its `PrintedVariable` (section 7.30).
  *
  * A conversion is C's (ISO 9899), on the double's exact value: a float reaches decimal digits as
  * the exact decimal it is ({@link exactDecimal}), and is rounded to the nearest, a tie to the even
  * digit ({@link rounded}), as C's correctly rounded conversions are, so `%.2f` of 2.675, whose
  * double lies below it, prints `2.67`. `power-form` rewrites every exponent a float prints in
- * ({@link powerFormed}). C's `d` prints as `i` does (reading 171), a conversion after the first
- * prints as written and `%%` prints `%` (readings 132 and 161 admit `%%` and any number of
- * conversions). The points the information model leaves open are reading 209's: the default form,
- * `index` counted from 1, a `base` outside 2 to 36, a negative under `o`, `x` or `X`, an infinity
- * or NaN under an integer conversion, and a float under one.
+ * ({@link powerFormed}). C's `d` prints as `i` does (reading `format-d-conversion`), a conversion
+ * after the first prints as written and `%%` prints `%` (readings `printed-variable-format` and
+ * `format-conversion-count` admit `%%` and any number of conversions). The points the information
+ * model leaves open are reading `format-float-rounding`'s: the default form, `index` counted from
+ * 1, a `base` outside 2 to 36, a negative under `o`, `x` or `X`, an infinity or NaN under an
+ * integer conversion, and a float under one.
  *
  * Two size bounds hold: a text that would pass {@link fieldBound} or {@link textBound} is not
  * printed at all, and {@link formatPrinted} says so, so its caller can fail rather than show a
@@ -35,13 +36,13 @@ import type { ModelledBaseType, Single, Value } from "#plate/model/values.ts";
  * - `format`: the conversion specifier, with any text around it; none, the value prints in its
  *   default form.
  * - `base`: the radix of the `i` and `d` conversions; a base outside 2 to 36 writes base 10 (reading
- *   209).
- * - `index`: the member of an `ordered` value to print, counting from 1 (reading 209); none or out of
- *   range, every member prints. The information model scopes it to `ordered`, so another
- *   cardinality ignores it.
+ *   `format-float-rounding`).
+ * - `index`: the member of an `ordered` value to print, counting from 1 (reading
+ *   `format-float-rounding`); none or out of range, every member prints. The information model
+ *   scopes it to `ordered`, so another cardinality ignores it.
  * - `powerForm`: when true, every exponent a float prints in, `e+n`, is written `x 10 to the power
  *   n`, with an ASCII `x` as the information model writes it, under a `format` or not (reading
- *   209).
+ *   `format-float-rounding`).
  * - `delimiter`: the text between a container's printed members.
  *
  * A record's `mapping-indicator` has no place here: the formatter prints a {@link Value}, never a
@@ -60,7 +61,7 @@ export interface PrintOptions {
  * The options of a value printed as a `qti-printed-variable` that writes no attribute but its
  * `identifier` prints it: each attribute at its XSD default (`base` 10, `delimiter` `;`,
  * `power-form` false), no `format` and no `index`. A math variable's value and, with its `format`,
- * a parameter's are printed so (readings 202 and 206).
+ * a parameter's are printed so (readings `param-variable-containers` and `math-variable`).
  */
 export const plainPrinting: PrintOptions = {
   base: 10n,
@@ -91,8 +92,8 @@ const isFormatted = (single: Single): single is Formatted =>
   formattedBaseTypes.has(single.baseType);
 
 /**
- * The conversion letters a value is printed under (section 2.3.4). C's `d`, which reading 171
- * admits, is read as `i` ({@link codeOf}); C's `u` is not admitted.
+ * The conversion letters a value is printed under (section 2.3.4). C's `d`, which reading
+ * `format-d-conversion` admits, is read as `i` ({@link codeOf}); C's `u` is not admitted.
  */
 const codes = ["E", "e", "f", "G", "g", "r", "R", "i", "o", "X", "x"] as const;
 
@@ -111,8 +112,8 @@ const isCode = (letter: string): letter is Code => codes.some((code) => code ===
 
 /**
  * Read a specifier's conversion letter as the letter it prints under: `d` as `i`, which C's
- * `printf` treats alike, so `%d` prints as `%i` would, `base` included (reading 171); each of
- * {@link codes} as itself.
+ * `printf` treats alike, so `%d` prints as `%i` would, `base` included (reading
+ * `format-d-conversion`); each of {@link codes} as itself.
  *
  * @param letter The letter {@link conversionPattern} matched.
  * @returns The letter, or none for one that is no conversion letter.
@@ -276,10 +277,10 @@ const exactDecimal = (x: number): Decimal => {
 
 /**
  * Round a decimal to a number of significant digits, to the nearest, a tie to the even digit, as
- * C's correctly rounded conversions round a double's exact value (reading 209): digits dropped
- * above half a unit of the last kept raise it, a tie raises it only when it is odd, and so
- * `2.675`'s double rounds to `2.67` and 2.5 to `2`. The decimal holds no trailing zero, so a tie is
- * a dropped `5` alone.
+ * C's correctly rounded conversions round a double's exact value (reading `format-float-rounding`):
+ * digits dropped above half a unit of the last kept raise it, a tie raises it only when it is odd,
+ * and so `2.675`'s double rounds to `2.67` and 2.5 to `2`. The decimal holds no trailing zero, so a
+ * tie is a dropped `5` alone.
  *
  * @param decimal The decimal.
  * @param keep How many leading digits stay. Below 0 the value rounds to zero; at 0 it rounds to
@@ -423,11 +424,11 @@ const general = (decimal: Decimal, conversion: Conversion): string => {
 const exponentPattern = /[eE](?<sign>[+-])(?<power>[0-9]+)$/u;
 
 /**
- * Write a float's text with its exponent as a power of 10, as `power-form` asks: "the form "e+n"
- * is changed to "x 10 to the power n"" (section 7.30.10, reading 209), the power an integer with no
- * `+` and no leading zero, so `1.5e+21` is `1.5 x 10 to the power 21`, `1.234500e+04` is
- * `1.234500 x 10 to the power 4` and `9.9E-05` is `9.9 x 10 to the power -5`. A text with no
- * exponent is as it was.
+ * Write a float's text with its exponent as a power of 10, as `power-form` asks: "the form "e+n" is
+ * changed to "x 10 to the power n"" (section 7.30.10, reading `format-float-rounding`), the power
+ * an integer with no `+` and no leading zero, so `1.5e+21` is `1.5 x 10 to the power 21`,
+ * `1.234500e+04` is `1.234500 x 10 to the power 4` and `9.9E-05` is `9.9 x 10 to the power -5`. A
+ * text with no exponent is as it was.
  *
  * @param text The float's text.
  * @returns The text, its exponent rewritten.
@@ -484,7 +485,7 @@ const floatingField = (
 /**
  * Choose the radix of an integer conversion: 8 for `o`, 16 for `x` and `X`, and for `i`, which `d`
  * is read as, the base given, or 10 when it is outside 2 to 36, which have no digits to write it in
- * (reading 209).
+ * (reading `format-float-rounding`).
  *
  * @param conversion The conversion, one of `i o x X`.
  * @param base The resolved `base`.
@@ -505,8 +506,8 @@ const radixOf = (conversion: Conversion, base: bigint): number => {
 /**
  * Convert an integer under an integer conversion, `i o x X`: `i` in the base given, `o` in octal,
  * `x` and `X` in hexadecimal. A negative writes `-` and its magnitude's digits; under `o`, `x` and
- * `X`, which C reads as unsigned, that is reading 209's, since an unbounded integer has no two's
- * complement to write.
+ * `X`, which C reads as unsigned, that is reading `format-float-rounding`'s, since an unbounded
+ * integer has no two's complement to write.
  *
  * The precision is the least number of digits, so `%.0i` of 0 writes none; `#` makes octal start
  * with `0` and puts `0x` or `0X` before a hexadecimal other than 0.
@@ -541,7 +542,8 @@ const integerField = (integer: bigint, conversion: Conversion, base: bigint): Fi
 /**
  * Convert an infinity or NaN, under any conversion, as C writes them under a floating one: `inf`
  * and `nan`, in upper case for `E G R X`, never padded with zeros. Under `i o x X`, where C gives
- * no value, it prints `inf`, `-inf` or `nan` the same way, upper case under `X` (reading 209).
+ * no value, it prints `inf`, `-inf` or `nan` the same way, upper case under `X` (reading
+ * `format-float-rounding`).
  *
  * @param x The infinity or NaN.
  * @param conversion The conversion.
@@ -575,9 +577,9 @@ const truncated = (x: number): bigint => {
 /**
  * Convert a number under a conversion. An integer under a floating conversion writes its exact
  * decimal; a float under an integer conversion is truncated toward zero first, as C converts a
- * double to an integer type ({@link truncated}, reading 209), so `%i` and `%.0f` of `1e23` print
- * the same digits. QTI says floats "should only" take the floating conversions, and states neither
- * case. A duration converts as a float of its seconds.
+ * double to an integer type ({@link truncated}, reading `format-float-rounding`), so `%i` and
+ * `%.0f` of `1e23` print the same digits. QTI says floats "should only" take the floating
+ * conversions, and states neither case. A duration converts as a float of its seconds.
  *
  * @param single The integer, float or duration.
  * @param conversion The conversion.
@@ -666,8 +668,8 @@ const fitted = (field: Field, conversion: Conversion): string => {
  * Read how a `format` lays out a value, left to right: the value fills its first conversion, the
  * text around that conversion prints as written but for each `%%`, which prints `%`, and so does
  * any later conversion, so `%i of %i` of 3 prints `3 of %i` and `Score: %i%%` prints `Score: 3%`
- * (readings 132 and 161). A format with no conversion prints its text, so `100%%` prints `100%` and
- * `%%i` prints `%i`.
+ * (readings `printed-variable-format` and `format-conversion-count`). A format with no conversion
+ * prints its text, so `100%%` prints `100%` and `%%i` prints `%i`.
  *
  * @param format The `format` attribute.
  * @returns The layout.
@@ -716,10 +718,10 @@ const layoutOf = (format: string): Layout => {
 };
 
 /**
- * Write a value in its default form, with no `format` (reading 209): an integer as its decimal
- * digits; a float, and a duration's seconds, as reading 54 writes a float, its shortest decimal
- * (`1.5`, `1e+21`), with `-0`, `INF`, `-INF` and `NaN` by name; every other base type as the value
- * model writes it.
+ * Write a value in its default form, with no `format` (reading `format-float-rounding`): an integer
+ * as its decimal digits; a float, and a duration's seconds, as reading `pattern-mask-numeric`
+ * writes a float, its shortest decimal (`1.5`, `1e+21`), with `-0`, `INF`, `-INF` and `NaN` by
+ * name; every other base type as the value model writes it.
  *
  * @param single The value.
  * @param powerForm Whether a float's or a duration's exponent `e+n` is written `x 10 to the power
@@ -798,7 +800,7 @@ const printerOf = (
 
 /**
  * Pick the members of a value to print: an `ordered` value's `index`-th member, counting from 1,
- * when `index` names one; otherwise every member (reading 209).
+ * when `index` names one; otherwise every member (reading `format-float-rounding`).
  *
  * @param value The value.
  * @param index The resolved `index`, none when absent.

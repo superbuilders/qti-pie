@@ -1,10 +1,10 @@
 /**
- * The importer's resolution of an href (`#pantry/import/overlays/package.ts`, readings 102 and 103)
- * against the law oracle's own (`#pantry/test/resolution.ts`), a differential of two
- * implementations of RFC 3986 that share no code: the importer resolves by grizzle-text's
- * resolution within a base (`resolveWithin`) and decodes with the platform's strict UTF-8 decoder,
- * the oracle runs §5.2.4's five rules over text below a sentinel root and decodes with a UTF-8
- * decoder of its own.
+ * The importer's resolution of an href (`#pantry/import/overlays/package.ts`, readings
+ * `href-resolution` and `file-references`) against the law oracle's own
+ * (`#pantry/test/resolution.ts`), a differential of two implementations of RFC 3986 that share no
+ * code: the importer resolves by grizzle-text's resolution within a base (`resolveWithin`) and
+ * decodes with the platform's strict UTF-8 decoder, the oracle runs §5.2.4's five rules over text
+ * below a sentinel root and decodes with a UTF-8 decoder of its own.
  *
  * The search is brutal in Bjorn's sense: generated hrefs, bases and documents under a swarm
  * that turns each kind of segment on or off per case, the adversarial cases drawn by name, the
@@ -103,7 +103,7 @@ const asciiDecoded = (value: string): string =>
  * The planted bugs, each the importer with one slip: decoding before splitting, so `a%2Fb`
  * names `a/b`; the platform decoder's default, which drops a leading U+FEFF as a byte order mark;
  * reading no `xml:base`; and resolving a fragment alone against an `xml:base`, as RFC 3986's
- * §5.2.2 would, where reading 102 follows §4.4.
+ * §5.2.2 would, where reading `href-resolution` follows §4.4.
  */
 const planted: readonly Planted[] = [
   {
@@ -140,7 +140,7 @@ const planted: readonly Planted[] = [
  * The adversarial cases, each drawn by name: the climbs past the root, the encodings of `/`, `%`
  * and `.`, a malformed `%`, octets that are no UTF-8, a byte order mark, mixed `xml:base` chains,
  * a document whose name holds what a URI reads as a delimiter (`%`, `?`, `#`), and the
- * same-document and whitespace corners reading 102 states.
+ * same-document and whitespace corners reading `href-resolution` states.
  */
 const adversarial = [
   { input: { bases: [], document: "i.xml", lexical: "../a.png" }, name: ".. past the root" },

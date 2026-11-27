@@ -4,14 +4,14 @@
  *
  * Every attribute an O3 law reads is copied once, from one selection of `Attribute`, into
  * {@link InteractionAttribute}, keyed by its element's place and its name, with its lexical form
- * and its value, the form collapsed (`Text.collapse`, XML Schema Part 2 §4.3.6). Every
- * identifier, count, number and flag these laws read is an atomic XSD type whose whiteSpace is
- * `collapse` (spec reading 7: "An attribute the XSD itself types ... is read as the XSD reads it,
- * outer whitespace collapsed"), so the value is the form its type's lexical space is read on, the
- * one a declared name's `value` holds. The copy claims no type of it: a value with
- * whitespace inside (`max-choices="1 2"`) is in no such type's lexical space, and its value domain
- * alone refuses it. One selection of `Attribute` costs one UNIQUE on it (the addendum's "Text in
- * keys"), so the overlays below read `InteractionAttribute` and never `Attribute`.
+ * and its value, the form collapsed (`Text.collapse`, XML Schema Part 2 §4.3.6). Every identifier,
+ * count, number and flag these laws read is an atomic XSD type whose whiteSpace is `collapse` (spec
+ * reading `typed-value-whitespace`: "An attribute the XSD itself types ... is read as the XSD reads
+ * it, outer whitespace collapsed"), so the value is the form its type's lexical space is read on,
+ * the one a declared name's `value` holds. The copy claims no type of it: a value with whitespace
+ * inside (`max-choices="1 2"`) is in no such type's lexical space, and its value domain alone
+ * refuses it. One selection of `Attribute` costs one UNIQUE on it (the addendum's "Text in keys"),
+ * so the overlays below read `InteractionAttribute` and never `Attribute`.
  *
  * Every row is keyed by QTI's own identity: an element by its place,
  * `(package, path, start)`, its package's name, its document's path in the package
@@ -24,10 +24,10 @@
  *
  * - {@link Interaction}: every interaction element, in every document, owning its choices'
  *   {@link ChoiceInteraction} rows as a counted family (C15), its gaps those of them whose node is
- *   a gap, which "Binding cardinality" reads through a query (spec reading 169). A stimulus body
- *   holds interactions too (information model §5.137, StimulusBody: "The stimulus body contains the
- *   text, graphics, media objects and interactions"), so the item-only laws read
- *   {@link BoundVariable}.
+ *   a gap, which "Binding cardinality" reads through a query (spec reading
+ *   `gap-match-cardinality`). A stimulus body holds interactions too (information model §5.137,
+ *   StimulusBody: "The stimulus body contains the text, graphics, media objects and interactions"),
+ *   so the item-only laws read {@link BoundVariable}.
  * - An interaction's binding: its read `response-identifier` (`InteractionAttribute`), its optional
  *   part, which only an interaction that writes one has, and AL3 refuses one that writes none.
  * - {@link PciModuleForm}: each form in which a portable custom interaction names its module, its
@@ -36,56 +36,62 @@
  * - {@link BoundVariable}: each attribute by which an item's interaction binds a response variable,
  *   its `response-identifier` and its `string-identifier` (§5.48.2, §5.162.3: "binding the
  *   interaction to a second response variable (of base-type string)"), which names a response
- *   declaration of the item, whatever its cardinality spells (spec reading 159): "Binding declared"
- *   joins the binding to the item's `NamedDeclaration` by its name, a rule over a query
- *   (`#pantry/qti/overlay-queries/reference.ts`). The fit laws read the declaration's cardinality
- *   and base type through the same join, which a declaration with no cardinality leaves the binding
- *   none of, so they judge only a variable whose cardinality spells a code. `key(document,
- *   identifier)` is "Binding unique" (reading 92: "Each response variable declared may be bound to
- *   one and only one interaction"), so an interaction whose string identifier is its response
- *   identifier, the old `string-identifier-distinct`, breaks that key.
+ *   declaration of the item, whatever its cardinality spells (spec reading `binding-by-name`):
+ *   "Binding declared" joins the binding to the item's `NamedDeclaration` by its name, a rule over
+ *   a query (`#pantry/qti/overlay-queries/reference.ts`). The fit laws read the declaration's
+ *   cardinality and base type through the same join, which a declaration with no cardinality leaves
+ *   the binding none of, so they judge only a variable whose cardinality spells a code.
+ *   `key(document, identifier)` is "Binding unique" (reading `binding-and-count-sentences`: "Each
+ *   response variable declared may be bound to one and only one interaction"), so an interaction
+ *   whose string identifier is its response identifier, the old `string-identifier-distinct`,
+ *   breaks that key.
  * - {@link Choice}: every choice, with its identifier distinct among its document's choices of its
  *   kind, and its {@link ChoiceInteraction}, its nearest interaction (N8) (§5.132.1 and the other
  *   choice classes': "This identifier must not be used by any other choice or item variable"; spec
- *   reading 104: the item is the scope, as §7.16 reads an identifier, "a logical reference to
- *   another object in the item, such as an itemVariable or choice"). Across the classes, a key over
- *   the query `ChoiceOrHottext` (`#pantry/qti/queries.ts`) holds it distinct among every choice and
- *   hottext of its document.
+ *   reading `choice-identifier-scope`: the item is the scope, as §7.16 reads an identifier, "a
+ *   logical reference to another object in the item, such as an itemVariable or choice"). Across
+ *   the classes, a key over the query `ChoiceOrHottext` (`#pantry/qti/queries.ts`) holds it
+ *   distinct among every choice and hottext of its document.
  * - {@link Hottext}: every hottext, its nearest interaction's kind, so a hottext interaction's
- *   hottexts are its choices; elsewhere a hottext is valid and owned by none (reading 38). Its
- *   identifier is distinct among its document's hottexts (§5.65.1, reading 104), and among its
- *   document's choices by that key.
+ *   hottexts are its choices; elsewhere a hottext is valid and owned by none (reading
+ *   `gap-and-hottext-placement`). Its identifier is distinct among its document's hottexts
+ *   (§5.65.1, reading `choice-identifier-scope`), and among its document's choices by that key.
  * - **choice names**, rules over queries (`#pantry/qti/queries.ts`): each class's sentence bars its
  *   own noun, and a simple, inline, hotspot or simple associable choice bears a name no other
  *   choice or hottext of its document or its assembly bears ("Choice identifier key"), a gap being
  *   no choice; and a choice's identifier is no item variable's: no declaration's of its document,
- *   and in an item no built-in variable's (reading 104, "Choice not variable").
+ *   and in an item no built-in variable's (reading `choice-identifier-scope`, "Choice not
+ *   variable").
  * - The hotspot choices and associable hotspots: their read `shape`, which the default-hotspot laws
- *   read beside their node's element rank and their parent's element count (reading 80).
+ *   read beside their node's element rank and their parent's element count (reading
+ *   `default-hotspot`).
  * - {@link CountBound}: every element whose counts `ChoiceBound` pairs, and whether it writes each;
  *   its least and most, where each has a value, written as an integer or its XSD default, typed by
  *   G-parse ({@link LeastCount}, {@link MostCount}; a bound both of whose counts have one is the
- *   two rows together, which "Choice bounds" reads through a query); "Choice bounds" (readings 18
- *   and 76) and "Binding cardinality" (reading 92) read the values, and `max-strings-required`
- *   (reading 19) whether `max-strings` is written.
- * - A slider's two bounds (reading 9, the Schematron's 14Ba) and an element's two ARIA range bounds
- *   (§5.2.31: "Authors MUST ensure the value of 'aria-valuemax' is greater than or equal to the
- *   value of 'aria-valuemin'"), each pair read from {@link InteractionAttribute} through a query
- *   (`#pantry/qti/overlay-queries/interaction.ts`); and {@link ItemMode}, an item's `adaptive`,
- *   which "AdaptiveFeedback" reads (§5.49, §5.52: "A feedback element that forms part of a
- *   Non-adaptive Item must not contain an interaction object, either directly or indirectly").
+ *   two rows together, which "Choice bounds" reads through a query); "Choice bounds" (readings
+ *   `order-min-choices` and `least-at-most-most`) and "Binding cardinality" (reading
+ *   `binding-and-count-sentences`) read the values, and `max-strings-required` (reading
+ *   `extended-text-max-strings`) whether `max-strings` is written.
+ * - A slider's two bounds (reading `schematron-intent`, the Schematron's 14Ba) and an element's two
+ *   ARIA range bounds (§5.2.31: "Authors MUST ensure the value of 'aria-valuemax' is greater than
+ *   or equal to the value of 'aria-valuemin'"), each pair read from {@link InteractionAttribute}
+ *   through a query (`#pantry/qti/overlay-queries/interaction.ts`); and {@link ItemMode}, an item's
+ *   `adaptive`, which "AdaptiveFeedback" reads (§5.49, §5.52: "A feedback element that forms part
+ *   of a Non-adaptive Item must not contain an interaction object, either directly or
+ *   indirectly").
  * - The content references: {@link FeedbackRef}, {@link TemplateRef}, {@link PrintedVariableRef} (a
  *   printed variable's name, and its `base` or `index` where that names a variable) and
  *   {@link ContextRef}, each naming a declaration of a kind `ContentReference` allows, its
- *   document's `NamedDeclaration` of its name, whatever its cardinality spells (spec reading 159),
- *   read by a rule over a query (`#pantry/qti/overlay-queries/reference.ts`), or a built-in
- *   variable that stands as one (reading 77), in an item's own declarations, each built-in one its
- *   root holds (spec reading 29), so each reference carries the root kind it resolves under. A
+ *   document's `NamedDeclaration` of its name, whatever its cardinality spells (spec reading
+ *   `binding-by-name`), read by a rule over a query (`#pantry/qti/overlay-queries/reference.ts`),
+ *   or a built-in variable that stands as one (reading `feedback-and-printed-variable-names`), in
+ *   an item's own declarations, each built-in one its root holds (spec reading
+ *   `duration-variable-type`), so each reference carries the root kind it resolves under. A
  *   reference that names neither is refused by its law (never a sentinel).
  * - An included fragment's feedback, printed, template and context variables
  *   ({@link FragmentFeedbackName}, {@link FragmentPrintedName}, {@link FragmentTemplateName},
  *   {@link FragmentContextName}) resolve once per placement in each item that includes it (spec
- *   reading 117: {@link FragmentFeedbackRef}, {@link FragmentPrintedRef},
+ *   reading `fragment-placement`: {@link FragmentFeedbackRef}, {@link FragmentPrintedRef},
  *   {@link FragmentTemplateRef}, {@link FragmentContextRef}), each resolved by its name in its
  *   assembly's item's declarations, as an own reference is in its document's, every one of them
  *   under each placement ({@link FragmentScope}, whose counts of resolutions are its document's
@@ -182,8 +188,8 @@ type Name = (typeof AttributeName.handles)[number];
 export const hottextInteraction = "qti-hottext-interaction" satisfies Kind;
 
 /**
- * The graphic gap match interaction, whose hotspots have no default (reading 80, §5.60.9: "The
- * default hotspot must not be defined").
+ * The graphic gap match interaction, whose hotspots have no default (reading `default-hotspot`,
+ * §5.60.9: "The default hotspot must not be defined").
  */
 export const graphicGapMatch = "qti-graphic-gap-match-interaction" satisfies Kind;
 
@@ -200,13 +206,14 @@ export const defaultArea = "default";
 const feedbackKind = "qti-feedback-block" satisfies Kind;
 
 /**
- * The interactions whose response cardinality their most count decides, spec reading 92: "If
- * max-choices is greater than 1 (or 0) then the interaction must be bound to a response with
- * multiple cardinality", of the `max-choices` of the choice (§5.30.2), hottext (§5.66.1), hotspot
- * (§5.68.2), position object (§5.107.3) and select point (§5.128.2) interactions, and the same
- * sentence of `max-associations` on the associate (§5.8.2), gap match (§5.57.3), graphic associate
- * (§5.59.2), graphic gap match (§5.60.2) and match (§5.89.2) interactions. A gap match's gaps
- * decide it too ({@link gapMatchKind}, spec reading 169).
+ * The interactions whose response cardinality their most count decides, spec reading
+ * `binding-and-count-sentences`: "If max-choices is greater than 1 (or 0) then the interaction must
+ * be bound to a response with multiple cardinality", of the `max-choices` of the choice (§5.30.2),
+ * hottext (§5.66.1), hotspot (§5.68.2), position object (§5.107.3) and select point (§5.128.2)
+ * interactions, and the same sentence of `max-associations` on the associate (§5.8.2), gap match
+ * (§5.57.3), graphic associate (§5.59.2), graphic gap match (§5.60.2) and match (§5.89.2)
+ * interactions. A gap match's gaps decide it too ({@link gapMatchKind}, spec reading
+ * `gap-match-cardinality`).
  */
 export const cardinalityKinds = [
   "qti-choice-interaction",
@@ -223,10 +230,10 @@ export const cardinalityKinds = [
 
 /**
  * The gap match interaction's kind, whose response cardinality its count of gaps decides beside its
- * most, spec reading 169: "The GapMatchInteraction must be bound to a response variable with
- * base-type directedPair and either single or multiple cardinality, depending on the number of
- * gaps" (§5.57). Each gap takes a pair of its own and a single response holds one pair, so a gap
- * match with two or more gaps binds a response of multiple cardinality.
+ * most, spec reading `gap-match-cardinality`: "The GapMatchInteraction must be bound to a response
+ * variable with base-type directedPair and either single or multiple cardinality, depending on the
+ * number of gaps" (§5.57). Each gap takes a pair of its own and a single response holds one pair,
+ * so a gap match with two or more gaps binds a response of multiple cardinality.
  */
 export const gapMatchKind = "qti-gap-match-interaction" satisfies Kind;
 
@@ -234,7 +241,8 @@ export const gapMatchKind = "qti-gap-match-interaction" satisfies Kind;
  * The interactions of any response type: those neither `BindingFit` nor `RecordBindingFit` names,
  * the custom, portable custom and order interactions, whose class descriptions (§5.36, §5.106 and
  * §5.97) state no binding, so each binds a declared response variable of any base type and
- * cardinality (reading 75 binds them all; spec reading 172 the order interaction).
+ * cardinality (reading `response-identifier-declared` binds them all; spec reading `order-binding`
+ * the order interaction).
  */
 export const anyTypeKinds: readonly Kind[] = interactionKinds.filter(
   (kind) =>
@@ -258,7 +266,8 @@ export const minNames: readonly Name[] = [...new Set(ChoiceBound.rows.map(({ min
 export const maxNames: readonly Name[] = [...new Set(ChoiceBound.rows.map(({ max }) => max))];
 
 /**
- * The kinds whose choices bound both of their counts (reading 18), `ChoiceCount`'s keys.
+ * The kinds whose choices bound both of their counts (reading `order-min-choices`), `ChoiceCount`'s
+ * keys.
  */
 export const choiceCountKinds: readonly Kind[] = ChoiceCount.rows.map(({ kind }) => kind);
 
@@ -337,7 +346,7 @@ export const Interaction = law(
  * One binding of an item's interaction to a response variable, keyed by the interaction's place
  * and the attribute that binds it: `response-identifier`, or `string-identifier`'s second variable,
  * where its value names a variable, an NCName ({@link namePattern}). Any other value binds nothing,
- * and its value domain refuses it alone (spec reading 152).
+ * and its value domain refuses it alone (spec reading `ncname-names`).
  *
  * Its fields, every one written by the host:
  *
@@ -368,11 +377,10 @@ export const BoundVariable = law(
 
 /**
  * One attribute by which an interaction of any document binds a response variable, keyed by the
- * interaction's place and the attribute (spec reading 117), where its value names a variable:
- * `identifier`, the attribute's value collapsed. A
- * fragment's interactions bind no variable of their own document, which declares none, but one of
- * each item that places the fragment ({@link PlacedBinding}); its rows count as
- * `Document.bindings`.
+ * interaction's place and the attribute (spec reading `fragment-placement`), where its value names
+ * a variable: `identifier`, the attribute's value collapsed. A fragment's interactions bind no
+ * variable of their own document, which declares none, but one of each item that places the
+ * fragment ({@link PlacedBinding}); its rows count as `Document.bindings`.
  *
  * The import writes its rows where its form names something (`namedBy` of
  * `#pantry/import/names.ts`, which lists every such relation), until it is a query over
@@ -394,13 +402,13 @@ export const BindingName = law(
 );
 
 /**
- * One binding of an instance of an item's assembly (Q5.13's `Instance`, spec reading 117), keyed by
- * the instance (`package`, `assembly`, `instance`), the interaction's `start` in the instance's
- * document and the attribute: the item's own bindings under its root instance, and an included
- * fragment's under each instance that places it, so each placement binds the item's responses as
- * its merged document would ("interactions included from fragments must be correctly bound to
- * response variables declared in the items", information model §2.12). The instance names its
- * document, so `path` is no part of the key.
+ * One binding of an instance of an item's assembly (Q5.13's `Instance`, spec reading
+ * `fragment-placement`), keyed by the instance (`package`, `assembly`, `instance`), the
+ * interaction's `start` in the instance's document and the attribute: the item's own bindings under
+ * its root instance, and an included fragment's under each instance that places it, so each
+ * placement binds the item's responses as its merged document would ("interactions included from
+ * fragments must be correctly bound to response variables declared in the items", information model
+ * §2.12). The instance names its document, so `path` is no part of the key.
  *
  * Its fields, every one written by the host: `package`, `assembly` and `instance`, the instance's,
  * and `path`, its document's; `start`, `attribute` and `identifier`, its {@link BindingName}'s; and
@@ -426,14 +434,15 @@ export const PlacedBinding = law(
 );
 
 /**
- * One choice of an instance of an assembly (Q5.13's `Instance`, spec reading 117), keyed by the
- * instance and the choice's `start`: a {@link Choice} of the instance's document, `path`, under the
- * assembly, so an included fragment's choices count among its item's ("Choice identifier key" over
- * the assembly: "This identifier must not be used by any other choice", information model
- * §5.132.1, read across the nine choice classes by spec reading 104, so a key over the query
- * `PlacedChoiceOrHottext`, `#pantry/qti/queries.ts`, holds a name to one of them), and a fragment
- * placed twice in one item holds its choices twice. Its kind is its choice's node's, so "Choice
- * identifier key" keys an assembly's choices of one kind by the table itself.
+ * One choice of an instance of an assembly (Q5.13's `Instance`, spec reading `fragment-placement`),
+ * keyed by the instance and the choice's `start`: a {@link Choice} of the instance's document,
+ * `path`, under the assembly, so an included fragment's choices count among its item's ("Choice
+ * identifier key" over the assembly: "This identifier must not be used by any other choice",
+ * information model §5.132.1, read across the nine choice classes by spec reading
+ * `choice-identifier-scope`, so a key over the query `PlacedChoiceOrHottext`,
+ * `#pantry/qti/queries.ts`, holds a name to one of them), and a fragment placed twice in one item
+ * holds its choices twice. Its kind is its choice's node's, so "Choice identifier key" keys an
+ * assembly's choices of one kind by the table itself.
  */
 export const PlacedChoice = law(
   entryOf("E1 derived"),
@@ -517,7 +526,7 @@ export const Choice = law(
  * `interaction` is the choice's `nearest`, a position; `interactionPath` is the document it is a
  * position in: the choice's own `path` where an interaction of its document encloses it, else its
  * document's context (`Document.contextPath` and `contextNearest`), the interaction its fragment's
- * include stands in (spec reading 117).
+ * include stands in (spec reading `fragment-placement`).
  */
 export const ChoiceInteraction = law(
   entryOf("E1 derived"),
@@ -688,7 +697,7 @@ export const CountBound = law(
  * as no integer (`max-choices="1abc"`) has none, and its attribute's value domain refuses it alone;
  * an unwritten count with no default has none, and no law reads it (the law oracle's
  * `countAttribute`). A count is an `xs:nonNegativeInteger` held to the signed 64-bit range (reading
- * 46), so its value is in `lexicalForm(pg.bigint)`, which `E1_derived` requires.
+ * `count-range`), so its value is in `lexicalForm(pg.bigint)`, which `E1_derived` requires.
  */
 export const LeastCount = law(
   entryOf("E1 derived"),
@@ -740,12 +749,12 @@ export const ItemMode = law(
 /**
  * The fields of a content reference: the referring element's place and kind, the root kind of the
  * assembly it resolves in, which for an item's own reference is its document's own root kind, the
- * attribute it refers by, and the name it refers to, collapsed. A value that is no NCName
- * ({@link namePattern}) names nothing and has no row: its value domain refuses it alone (spec
- * reading 152). The name resolves to its document's declaration of it, which a rule over a query
+ * attribute it refers by, and the name it refers to, collapsed. A value that is no NCName ({@link
+ * namePattern}) names nothing and has no row: its value domain refuses it alone (spec reading
+ * `ncname-names`). The name resolves to its document's declaration of it, which a rule over a query
  * reads (`#pantry/qti/overlay-queries/reference.ts`), or to a built-in variable of that root, as
- * the installed `BuiltInVariable` holds each under its root (spec reading 29), or to nothing, which
- * its law refuses.
+ * the installed `BuiltInVariable` holds each under its root (spec reading
+ * `duration-variable-type`), or to nothing, which its law refuses.
  */
 const referenceFields = {
   assemblyKind: closedId(NodeKind),
@@ -759,7 +768,7 @@ const referenceFields = {
 
 /**
  * A feedback element's outcome, keyed by its element's place and `outcome-identifier` (reading
- * 77).
+ * `feedback-and-printed-variable-names`).
  */
 export const FeedbackRef = law(
   entryOf("E1 derived"),
@@ -791,8 +800,8 @@ export const PrintedVariableRef = law(
 
 /**
  * The context variable a PCI's `qti-context-variable` binds, keyed by its element's place and
- * `identifier`
- * (reading 92: "the context variables are the declared ones and the built-in QTI_CONTEXT").
+ * `identifier` (reading `binding-and-count-sentences`: "the context variables are the declared ones
+ * and the built-in QTI_CONTEXT").
  */
 export const ContextRef = law(
   entryOf("E1 derived"),
@@ -802,7 +811,8 @@ export const ContextRef = law(
 /**
  * The fields of a reference an included fragment makes: its element's place and kind, the attribute
  * it refers by, and its name collapsed. It resolves in no declaration of its own document, since a
- * fragment declares nothing, but once per item that includes it (spec reading 117).
+ * fragment declares nothing, but once per item that includes it (spec reading
+ * `fragment-placement`).
  */
 const fragmentNameFields = {
   attribute: closedId(AttributeName),
@@ -815,7 +825,7 @@ const fragmentNameFields = {
 
 /**
  * An included fragment's feedback outcome reference, a feedback element's `outcome-identifier`,
- * keyed by its element's place and attribute (spec reading 117).
+ * keyed by its element's place and attribute (spec reading `fragment-placement`).
  */
 export const FragmentFeedbackName = law(
   entryOf("E1 derived"),
@@ -825,7 +835,7 @@ export const FragmentFeedbackName = law(
 /**
  * An included fragment's printed variable reference, a printed variable's `identifier`, or its
  * `base` or `index` where it names a variable, keyed by its element's place and attribute (spec
- * reading 117).
+ * reading `fragment-placement`).
  */
 export const FragmentPrintedName = law(
   entryOf("E1 derived"),
@@ -834,7 +844,8 @@ export const FragmentPrintedName = law(
 
 /**
  * An included fragment's template variable reference, a template element's or a choice's
- * `template-identifier`, keyed by its element's place and attribute (spec reading 117).
+ * `template-identifier`, keyed by its element's place and attribute (spec reading
+ * `fragment-placement`).
  */
 export const FragmentTemplateName = law(
   entryOf("E1 derived"),
@@ -843,7 +854,7 @@ export const FragmentTemplateName = law(
 
 /**
  * An included fragment's context variable reference, a `qti-context-variable`'s `identifier`,
- * keyed by its element's place and attribute (spec reading 117).
+ * keyed by its element's place and attribute (spec reading `fragment-placement`).
  */
 export const FragmentContextName = law(
   entryOf("E1 derived"),
@@ -908,7 +919,7 @@ const fragmentContextNameFamily = counted(
 
 /**
  * One placement of an included fragment, or of a section document a test references, under an item
- * or a test (spec readings 117 and 145), keyed by its `Instance`
+ * or a test (spec readings `fragment-placement` and `spliced-fragment`), keyed by its `Instance`
  * (`package`, `assembly`, `instance`): the document it places, `document`, the instance's, and the
  * assembly's root kind, whose built-in variables its references read, and its counts
  * of {@link FragmentFeedbackRef}, {@link FragmentPrintedRef}, {@link FragmentTemplateRef} and
@@ -1169,7 +1180,7 @@ const referenceReadOf = (names: readonly Name[], kinds: readonly Kind[]) =>
 
 /**
  * The lexical form of a count that `Type.cast` reads exactly: `xs:integer`'s, within the signed
- * 64-bit range a count is held to (reading 46). A count's value is copied text, an
+ * 64-bit range a count is held to (reading `count-range`). A count's value is copied text, an
  * {@link InteractionAttribute}'s `matchedText`, whose form's leading zeros bound no length, so the
  * cast is guarded by the form and the form is required beside it.
  */
@@ -1179,10 +1190,10 @@ const bigintForm = lexicalForm(pg.bigint);
  * The sign a count's form may carry beside {@link bigintForm}: none, a `+`, or a `-` before a zero
  * alone (`-0`, `-00`), which XML Schema 1.1 Part 2 §3.3.20 reads as 0. The two together are the
  * database's reading of which counts have a value: an `xs:nonNegativeInteger` within the signed
- * 64-bit range (reading 46). A count written as no such form, `1abc`, `-1` or past the range, has
- * none: its value domain is its law, and no other law reads it. The import reads the same forms by
- * its own map (`countValueOf` in `#pantry/import/overlays/interactions.ts`), and the law oracle by
- * its own (`integerOf` in `#pantry/test/oracle-view.ts`).
+ * 64-bit range (reading `count-range`). A count written as no such form, `1abc`, `-1` or past the
+ * range, has none: its value domain is its law, and no other law reads it. The import reads the
+ * same forms by its own map (`countValueOf` in `#pantry/import/overlays/interactions.ts`), and the
+ * law oracle by its own (`integerOf` in `#pantry/test/oracle-view.ts`).
  */
 const countSign = Text.pattern("^(?:[^-]|-0+$)");
 
@@ -1272,7 +1283,7 @@ const referenceSources = {
 /**
  * Select the read attributes a fragment's references of one class are: the class's attributes on
  * its kinds that name a variable ({@link namePattern}), in a document that is no item, so each
- * resolves once per assembly that places it (spec reading 117).
+ * resolves once per assembly that places it (spec reading `fragment-placement`).
  *
  * @param reference - The class's attributes and kinds.
  * @returns The selection of `InteractionAttribute`.
@@ -1307,8 +1318,8 @@ const fragmentSources = {
  * The placements `FragmentScope` holds: every instance of an assembly whose root's references
  * resolve in its own declarations, an item's or a test's ({@link referringRoots}), whose document's
  * resolve in no declarations of its own: an included fragment's, and a section document's a test
- * references, one per placement (spec readings 117 and 145). A bank heads its own assembly, which
- * resolves nothing.
+ * references, one per placement (spec readings `fragment-placement` and `spliced-fragment`). A bank
+ * heads its own assembly, which resolves nothing.
  */
 const fragmentPlacements = select(Instance, (i) =>
   i.and(i.in(i.assemblyKind, referringRoots), i.not(i.in(i.rootKind, referringRoots))),
@@ -1360,7 +1371,7 @@ type ReferenceRow = RowScalars<{ readonly heading: typeof referenceFields; reado
 
 /**
  * The roots that hold built-in variables, each with the names of its built-ins, as the installed
- * `BuiltInVariable` holds them (spec reading 29).
+ * `BuiltInVariable` holds them (spec reading `duration-variable-type`).
  */
 const builtInRoots: readonly (readonly [Kind, readonly string[]])[] = [
   ...Map.groupBy(BuiltInVariable.rows, ({ root }) => root),
@@ -1450,8 +1461,8 @@ const contentReferenceLaws = ({ check: rule, names, own, placed }: ContentRefere
 export const feedbackCardinalities = ["single", "multiple"] as const;
 
 /**
- * A document's context interaction (spec reading 117): the document, then the document and
- * position its context's nearest interaction stands at, `Document.contextPath` and
+ * A document's context interaction (spec reading `fragment-placement`): the document, then the
+ * document and position its context's nearest interaction stands at, `Document.contextPath` and
  * `contextNearest`. A choice's or a hottext's nearest is a position in its own document, or, where
  * no interaction of its document encloses it, its document's context's: so a row that names its
  * nearest in another document names its document's context.
@@ -1466,76 +1477,79 @@ const onContext = on(Document, "package", "path", "contextPath", "contextNearest
  * - **the read attributes:** one copy from `Attribute` with the key that serves it, and the copy's
  *   reverse, so `InteractionAttribute` holds exactly the attributes O3 reads; each one's root kind
  *   its document's; `E1_derived`, its value its lexical form collapsed.
- * - **bindings in place** (spec reading 117): each interaction's binding attributes in every document
- *   ({@link BindingName}), counted per document; under each instance of an item's assembly, as many
- *   {@link PlacedBinding} rows as its document has binding attributes, each its document's and
- *   resolved among the item's declarations, under the item's own laws: "Binding declared",
- *   "BindingFit", "Binding unique" over the assembly (a fragment placed twice in one item binds its
- *   responses twice, as its merged document does), "Binding cardinality" and "AdaptiveFeedback",
- *   whose feedback ancestry an included fragment inherits from its context.
+ * - **bindings in place** (spec reading `fragment-placement`): each interaction's binding attributes
+ *   in every document ({@link BindingName}), counted per document; under each instance of an item's
+ *   assembly, as many {@link PlacedBinding} rows as its document has binding attributes, each its
+ *   document's and resolved among the item's declarations, under the item's own laws: "Binding
+ *   declared", "BindingFit", "Binding unique" over the assembly (a fragment placed twice in one
+ *   item binds its responses twice, as its merged document does), "Binding cardinality" and
+ *   "AdaptiveFeedback", whose feedback ancestry an included fragment inherits from its context.
  * - **interactions:** each interaction's {@link Interaction} (a node's, of an interaction kind), the
  *   owner of its choices.
  * - **bindings:** each interaction's read `response-identifier`, where it writes one, the part of its
  *   {@link Interaction}, and the one every binding attribute of the interaction names; each item
  *   binding's {@link BoundVariable}, which names a response declaration of its item whatever its
- *   cardinality spells ("Binding declared", reading 75, reading 159); each declaration of a type
- *   `BindingFit` or `RecordBindingFit` admits, the custom, portable custom and order interactions
- *   of any type (spec reading 172), and a string binding's of base type string ("BindingFit"), each
- *   fit law over the declaration's cardinality and base type rows alone, read through its name, a
- *   rule over a query (`#pantry/qti/overlay-queries/reference.ts` and
- *   `#pantry/qti/overlay-queries/interaction.ts`); "Binding unique" (`key(package, path,
- *   identifier)`); "Binding cardinality" (a single response takes a most of 1, where its
- *   interaction's most has a value, and a gap match of at most one gap, its cardinality row's
- *   `gaps` copied from `Interaction`, spec reading 169); `max-strings-required`, its containment
- *   into `CountBound` over the place alone, a statement of its own beside "Binding cardinality"'s,
- *   which reads `MostCount` (a refusal names a law by its relations and terms, never its selection,
- *   C22); and "AdaptiveFeedback", an interaction inside feedback is in an adaptive item.
+ *   cardinality spells ("Binding declared", reading `response-identifier-declared`, reading
+ *   `binding-by-name`); each declaration of a type `BindingFit` or `RecordBindingFit` admits, the
+ *   custom, portable custom and order interactions of any type (spec reading `order-binding`), and
+ *   a string binding's of base type string ("BindingFit"), each fit law over the declaration's
+ *   cardinality and base type rows alone, read through its name, a rule over a query
+ *   (`#pantry/qti/overlay-queries/reference.ts` and `#pantry/qti/overlay-queries/interaction.ts`);
+ *   "Binding unique" (`key(package, path, identifier)`); "Binding cardinality" (a single response
+ *   takes a most of 1, where its interaction's most has a value, and a gap match of at most one
+ *   gap, its cardinality row's `gaps` copied from `Interaction`, spec reading
+ *   `gap-match-cardinality`); `max-strings-required`, its containment into `CountBound` over the
+ *   place alone, a statement of its own beside "Binding cardinality"'s, which reads `MostCount` (a
+ *   refusal names a law by its relations and terms, never its selection, C22); and
+ *   "AdaptiveFeedback", an interaction inside feedback is in an adaptive item.
  * - **choices:** each choice's {@link ChoiceInteraction}, which every choice has ("N8 nearest"), its
  *   interaction the choice's nearest, in its own document or its document's context
- *   (`Document.contextPath` and `contextNearest`, spec reading 117), the counted family under
- *   `Interaction`, a gap's among them; its identifier distinct among its document's choices of its
- *   kind; each hottext's identifier distinct among its document's hottexts (reading 104); and in
- *   place (spec reading 117), under each instance of each assembly, as many {@link PlacedChoice}
- *   and {@link PlacedHottext} rows as its document has choices and hottexts, each its document's,
- *   their identifiers distinct over the assembly. Across the classes, "Choice identifier key" holds
- *   a "choice"'s name to no other choice or hottext, in the document and over its assembly, and
- *   "Choice not variable" each to no variable of its document, both rules over queries
- *   (`#pantry/qti/queries.ts`, reading 104).
- * - **the default hotspot** (reading 80): each hotspot's read shape, which
+ *   (`Document.contextPath` and `contextNearest`, spec reading `fragment-placement`), the counted
+ *   family under `Interaction`, a gap's among them; its identifier distinct among its document's
+ *   choices of its kind; each hottext's identifier distinct among its document's hottexts (reading
+ *   `choice-identifier-scope`); and in place (spec reading `fragment-placement`), under each
+ *   instance of each assembly, as many {@link PlacedChoice} and {@link PlacedHottext} rows as its
+ *   document has choices and hottexts, each its document's, their identifiers distinct over the
+ *   assembly. Across the classes, "Choice identifier key" holds a "choice"'s name to no other
+ *   choice or hottext, in the document and over its assembly, and "Choice not variable" each to no
+ *   variable of its document, both rules over queries (`#pantry/qti/queries.ts`, reading
+ *   `choice-identifier-scope`).
+ * - **the default hotspot** (reading `default-hotspot`): each hotspot's read shape, which
  *   `default_hotspot_last_slot` and `Graphic_gap_match_default_hotspot` read beside its node's rank
  *   and its parent's count, rules over a query.
  * - **counts:** each bound's counts written or defaulted, a row of its own where it has a value,
  *   typed by G-parse (`E1_derived`), and "Choice bounds" over the values a count has.
- * - **ranges**, rules over a query of each element's two read bounds: "Slider bounds" (reading 9, the
- *   Schematron's 14Ba), the bounds collapsed and ordered as `xs:double` values by `doublesInOrder`
- *   of `#pantry/qti/declarations.ts`. And "Aria value range" over the elements that carry both ARIA
- *   bounds, each value collapsed and read where it is in `xs:decimal`'s lexical space, grizzle's
- *   `decimalText`, the language pantry's own value domain admits (`decimalLexical` of
- *   `#pantry/grammar/domains.ts`): the decimal it names, exactly and of any digits, by grizzle's
- *   `Text.parseDecimal` (XML Schema 1.1's decimalLexicalMap, Part 2 §3.3.3.1), so a value past 256
- *   integer or 255 fraction digits is ordered as any other. A pair with a value that is no
- *   `xs:decimal` holds the law by its own arm, since its value domain alone refuses it; each
- *   parse's otherwise is never read, since that arm holds wherever its guard fails. The parse reads
- *   a text of at most grizzle's `decimalTextMaxBytes`, 16,384 (grizzle's README, "Parsing text",
- *   `Text.parseDecimal`), each value a `matchedText` of any length, so the parse stands under its
- *   own byte guard, and an ARIA bound past it, which names a decimal PostgreSQL's numeric may not
- *   hold, holds "Aria value range" by its own arm and is refused under "Key text bound", a stated
- *   limit of the representation.
+ * - **ranges**, rules over a query of each element's two read bounds: "Slider bounds" (reading
+ *   `schematron-intent`, the Schematron's 14Ba), the bounds collapsed and ordered as `xs:double`
+ *   values by `doublesInOrder` of `#pantry/qti/declarations.ts`. And "Aria value range" over the
+ *   elements that carry both ARIA bounds, each value collapsed and read where it is in
+ *   `xs:decimal`'s lexical space, grizzle's `decimalText`, the language pantry's own value domain
+ *   admits (`decimalLexical` of `#pantry/grammar/domains.ts`): the decimal it names, exactly and of
+ *   any digits, by grizzle's `Text.parseDecimal` (XML Schema 1.1's decimalLexicalMap, Part 2
+ *   §3.3.3.1), so a value past 256 integer or 255 fraction digits is ordered as any other. A pair
+ *   with a value that is no `xs:decimal` holds the law by its own arm, since its value domain alone
+ *   refuses it; each parse's otherwise is never read, since that arm holds wherever its guard
+ *   fails. The parse reads a text of at most grizzle's `decimalTextMaxBytes`, 16,384 (grizzle's
+ *   README, "Parsing text", `Text.parseDecimal`), each value a `matchedText` of any length, so the
+ *   parse stands under its own byte guard, and an ARIA bound past it, which names a decimal
+ *   PostgreSQL's numeric may not hold, holds "Aria value range" by its own arm and is refused under
+ *   "Key text bound", a stated limit of the representation.
  * - **fragments' references:** each one's row, counted per document and class; one placement row per
  *   instance of an item's assembly whose document is no item, an included fragment's (spec reading
- *   117), counting as many resolutions of each class as its document has references; each
- *   resolution its placement's and its reference's, resolved in the assembly's declarations or to a
- *   built-in of its root, its kind `FragmentScope.assemblyKind`, `Instance`'s, under "Feedback
- *   reference", "Printed variable reference", "Template reference" or "Context variable
- *   reference".
+ *   `fragment-placement`), counting as many resolutions of each class as its document has
+ *   references; each resolution its placement's and its reference's, resolved in the assembly's
+ *   declarations or to a built-in of its root, its kind `FragmentScope.assemblyKind`, `Instance`'s,
+ *   under "Feedback reference", "Printed variable reference", "Template reference" or "Context
+ *   variable reference".
  * - **content references:** each relation's rows are its source's, its `assemblyKind` its document's
  *   root kind; a name that is a built-in's of that root is one its kind and attribute may name
  *   there, under its reference's law ("Feedback reference", "Template reference", "Printed variable
  *   reference", "Context variable reference"). A name that is no built-in's of that root names a
  *   declaration of a kind `ContentReference` allows for its kind and attribute, whatever its
- *   cardinality spells (spec reading 159), and "Feedback outcome type" (reading 77) and "Template
- *   variable type" (reading R15-l, decision 432) read that declaration's cardinality and base type,
- *   each a rule over a query (`#pantry/qti/overlay-queries/reference.ts`).
+ *   cardinality spells (spec reading `binding-by-name`), and "Feedback outcome type" (reading
+ *   `feedback-and-printed-variable-names`) and "Template variable type" (reading R15-l, decision 432)
+ *   read that declaration's cardinality and base type, each a rule over a query
+ *   (`#pantry/qti/overlay-queries/reference.ts`).
  */
 export const interactionLawsByName = {
   ...pipe(

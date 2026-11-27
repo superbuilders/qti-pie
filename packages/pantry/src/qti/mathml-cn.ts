@@ -1,6 +1,6 @@
 /**
- * The MathML cn laws (spec reading 2, MathML 3 validity): the law "MathML cn form", stated over
- * the `m:cn` elements of Content MathML.
+ * The MathML cn laws (spec reading `mathml-validity`, MathML 3 validity): the law "MathML cn form",
+ * stated over the `m:cn` elements of Content MathML.
  *
  * The content of a `cn` has the form its `type` implies (MathML 3 §4.2.1): the parts a `type`
  * lists, split at `m:sep`, each in the lexical space of its form, its digits read in the `cn`'s

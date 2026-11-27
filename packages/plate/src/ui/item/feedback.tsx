@@ -1,9 +1,10 @@
 /**
- * The parts of a review's feedback panel that are plate's own rather than the item's: the verdict
- * a review opens its feedback with, written from the credit the host graded the attempt by, and
- * the "Why" that titles the item's explanation. The body walk (`#plate/ui/item/content.tsx`) and
- * the shell (`#plate/ui/item/item.tsx`) place them in plate's Feedback part, beside the feedback
- * blocks the record shows, whose content and visibility stay the item's (spec reading 231).
+ * The parts of a review's feedback panel that are plate's own rather than the item's: the verdict a
+ * review opens its feedback with, written from the credit the host graded the attempt by, and the
+ * "Why" that titles the item's explanation. The body walk (`#plate/ui/item/content.tsx`) and the
+ * shell (`#plate/ui/item/item.tsx`) place them in plate's Feedback part, beside the feedback blocks
+ * the record shows, whose content and visibility stay the item's (spec reading
+ * `review-feedback-panels`).
  *
  * @module
  */
@@ -44,7 +45,8 @@ export const verdictOf = (credit: Credit, locale: Locale): ReactNode =>
 /**
  * The identifier of the feedback block that holds an item's general explanation, the rule its
  * answer rests on, which every answer shows: the content's convention, not QTI's, since QTI gives a
- * feedback block's identifier no meaning (Bjorn's ruling of 2026-11-18, spec reading 231).
+ * feedback block's identifier no meaning (Bjorn's ruling of 2026-11-18, spec reading
+ * `review-feedback-panels`).
  */
 const explanationIdentifier = "explanation";
 

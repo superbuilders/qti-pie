@@ -130,7 +130,7 @@ describe("the module facts of an item's Portable Custom Interactions", () => {
   );
 
   it("route a module from its own locations alone, its configurations giving its waits and never a location", () => {
-    // Oracle: reading 246 (docs/spec-readings.md), written by hand: a configuration gives its
+    // Oracle: reading `pci-configuration-waits` (docs/spec-readings.md), written by hand: a configuration gives its
     // loads' waits, the primary configuration's to primary loads and the secondary's to fallback
     // loads, 0 meaning no timeout, and never a location, so `paths` routes nothing, a module named
     // by `module` alone has no location (R4), and a configuration that writes no `paths` is valid.
@@ -192,17 +192,17 @@ describe("the module facts of an item's Portable Custom Interactions", () => {
     );
   });
 
-  it("route each module location to the file reading 201 names, its query and fragment kept apart, its path decoded", () => {
-    // Oracle: reading 201 (docs/spec-readings.md), written by hand: a location names its path with
+  it("route each module location to the file reading `pci-module-locations` names, its query and fragment kept apart, its path decoded", () => {
+    // Oracle: reading `pci-module-locations` (docs/spec-readings.md), written by hand: a location names its path with
     // `.js` appended unless the file already ends in `.js`, resolved from the package root; its
-    // query and fragment are read as reading 102 reads any href, apart from the file; and its path
+    // query and fragment are read as reading `href-resolution` reads any href, apart from the file; and its path
     // is percent-decoded as the package names its files (RFC 3986 §2.1), so `%2E` is `.`. A file
     // name is case-sensitive, so `a.JS` does not end in `.js`; a path whose last segment is a dot
     // segment names a directory (RFC 3986 §5.2.4), so `.js` names a file of it, as the database
     // appends `.js` to the resolved path (pantry's `moduleFileOf`); a path climbing above the root
-    // names no file of the package (reading 102); and an absolute URL is dropped (R5). Each routed
+    // names no file of the package (reading `href-resolution`); and an absolute URL is dropped (R5). Each routed
     // form names the file the database resolves.
-    // Bound: each form reading 201 distinguishes, as a primary and as a fallback path.
+    // Bound: each form reading `pci-module-locations` distinguishes, as a primary and as a fallback path.
     const forms = [
       ["modules/a", Option.some("modules/a.js"), ["modules/a.js"]],
       ["modules/a.js", Option.some("modules/a.js"), ["modules/a.js"]],

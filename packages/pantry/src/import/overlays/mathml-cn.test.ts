@@ -145,7 +145,7 @@ const reference: XdmEntityRef = { _tag: "entityRef", name: "amp" };
  */
 const keysOf = (rows: ReadonlyMap<string, unknown>): string[] => [...rows.keys()];
 
-describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
+describe("import/overlays/mathml-cn.ts, the cn rows (spec reading `mathml-validity`)", () => {
   it("gives a base-40 rational of three parts no MathCn or CnPartText, its digits being application specific", () => {
     /**
      * Nodes: 0 document, 1 math, 2 cn, 3 text, 4 sep, 5 text, 6 sep, 7 text.

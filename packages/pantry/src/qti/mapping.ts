@@ -23,29 +23,30 @@
  *
  * The laws, by the rule each states, all rules over a query:
  *
- * - **`mapping-base-type`** (reading 78): a mapping is no record's ("cannot be applied to variables
- *   of record cardinality", information model §2.11.1.5), and its base type is in
- *   `MappableBaseType`, so `file` and `duration` are refused; an area mapping is no record's, and
- *   its base type is `point` (information model §5.5, "a mapping from a source set of point
+ * - **`mapping-base-type`** (reading `mapping-base-type`): a mapping is no record's ("cannot be
+ *   applied to variables of record cardinality", information model §2.11.1.5), and its base type is
+ *   in `MappableBaseType`, so `file` and `duration` are refused; an area mapping is no record's,
+ *   and its base type is `point` (information model §5.5, "a mapping from a source set of point
  *   values"). A record has no base type, so its mapping is judged by its cardinality alone, where
  *   the declaration has one: a record declaration holds no mapping and no area mapping.
- * - **Map keys may repeat** (reading 165): QTI bans no repeat, neither its XSD, which holds no
- *   `xs:unique` or `xs:key`, nor §5.88.4, which says each entry "maps a single value from the
- *   source set onto a single float", and the first entry the mapping lists that matches a value
- *   gives its value, so a repeated key, its case or its spelling included, is a lawful entry that a
- *   value an earlier entry matches never reaches.
+ * - **Map keys may repeat** (reading `string-map-key-case`): QTI bans no repeat, neither its XSD,
+ *   which holds no `xs:unique` or `xs:key`, nor §5.88.4, which says each entry "maps a single value
+ *   from the source set onto a single float", and the first entry the mapping lists that matches a
+ *   value gives its value, so a repeated key, its case or its spelling included, is a lawful entry
+ *   that a value an earlier entry matches never reaches.
  * - **Lookup tables are of single outcomes** (§4.5.13: a lookup table maps a source value "to a
  *   single outcome value in the declared value set").
- * - **Typed attribute values** (`attribute-lexical`, readings 7 and 8): a map key, a table entry's
- *   target and a table's default are lexical forms of their base type, `BaseTypePattern`'s
- *   (`#pantry/qti/expression-types.ts`, the one source `qti-value` and `qti-base-value` are judged
- *   by), read as written for `string` and after XML Schema's `collapse` for every other base type,
- *   whose simple type fixes that whitespace facet (reading 7).
+ * - **Typed attribute values** (`attribute-lexical`, readings `typed-value-whitespace` and
+ *   `match-table-target-value`): a map key, a table entry's target and a table's default are
+ *   lexical forms of their base type, `BaseTypePattern`'s (`#pantry/qti/expression-types.ts`, the
+ *   one source `qti-value` and `qti-base-value` are judged by), read as written for `string` and
+ *   after XML Schema's `collapse` for every other base type, whose simple type fixes that
+ *   whitespace facet (reading `typed-value-whitespace`).
  *
- * A string's, identifier's and URI's value is its lexical form, whitespace included (reading 7), so
- * the lexical key is their typed key. A boolean's lexical forms are `xs:boolean`'s, `1` and `true`
- * one value and `0` and `false` another (reading 34), and map keys may repeat (reading 165), so no
- * law compares them.
+ * A string's, identifier's and URI's value is its lexical form, whitespace included (reading
+ * `typed-value-whitespace`), so the lexical key is their typed key. A boolean's lexical forms are
+ * `xs:boolean`'s, `1` and `true` one value and `0` and `false` another (reading `boolean-lexical`),
+ * and map keys may repeat (reading `string-map-key-case`), so no law compares them.
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_Mapping | QTI 3.0 information model, §5.88 Mapping}
  */
@@ -67,13 +68,13 @@ export const lookupEntryKinds = ["qti-interpolation-table-entry", "qti-match-tab
 /**
  * Each map entry's key, by its `qti-map-entry` element's place: its `map-key`'s `value`, an
  * `xs:normalizedString`, each tab, line feed and carriage return a space (the ASI XSD's `map-key`;
- * XML Schema 1.0 Part 2, §4.3.6; spec reading 7). An entry that writes no `map-key` has none, and
- * AL3 refuses the element. A key written twice is two rows, one per entry (reading 165). How a
- * response meets the key (reading 98, §7.21.3: case-folded for a string mapping unless the entry's
- * `case-sensitive` is true) is the scorer's, which reads the entry's `case-sensitive` from
- * `Attribute`; the database states nothing of it. The base type it is read in is its mapping's
- * declaration's, its node's grandparent's, read through `Node` (`MapKeyType`,
- * `#pantry/qti/overlay-queries/declaration.ts`).
+ * XML Schema 1.0 Part 2, §4.3.6; spec reading `typed-value-whitespace`). An entry that writes no
+ * `map-key` has none, and AL3 refuses the element. A key written twice is two rows, one per entry
+ * (reading `string-map-key-case`). How a response meets the key (reading `map-key-repeats`,
+ * §7.21.3: case-folded for a string mapping unless the entry's `case-sensitive` is true) is the
+ * scorer's, which reads the entry's `case-sensitive` from `Attribute`; the database states nothing
+ * of it. The base type it is read in is its mapping's declaration's, its node's grandparent's, read
+ * through `Node` (`MapKeyType`, `#pantry/qti/overlay-queries/declaration.ts`).
  */
 const mapKeys = query(QtiBase).rule((r) => {
   const { package: pkg, path, start, value } = v(Attribute, "attribute");
@@ -103,11 +104,11 @@ export const MapKey = derived(
  * Each lookup table's typed attribute value, by the place of the element that carries it and the
  * attribute's name: a `qti-match-table-entry`'s or `qti-interpolation-table-entry`'s
  * `target-value`, or a `qti-match-table`'s or `qti-interpolation-table`'s `default-value`, as
- * written, each whatever its table's declaration spells (spec readings 157 and 158): a law that
- * reads the declaration's cardinality or base type judges it where the declaration has one. Its
- * table is its node, a table's default, or its node's parent, an entry's target, and the base type
- * it is read in the table's declaration's, read through `Node` (`LookupValueType`,
- * `#pantry/qti/overlay-queries/declaration.ts`).
+ * written, each whatever its table's declaration spells (spec readings `unnamed-declaration` and
+ * `unspelled-declaration`): a law that reads the declaration's cardinality or base type judges it
+ * where the declaration has one. Its table is its node, a table's default, or its node's parent, an
+ * entry's target, and the base type it is read in the table's declaration's, read through `Node`
+ * (`LookupValueType`, `#pantry/qti/overlay-queries/declaration.ts`).
  */
 const lookupValues = query(QtiBase).rule((r) => {
   const { kind, lexical, name, package: pkg, path, start } = v(Attribute, "attribute");

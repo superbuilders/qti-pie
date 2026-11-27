@@ -813,12 +813,12 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   [
     "idref-target",
     "table-headers",
-    "reading 126: a cell's headers are IDREFs held to a th of its own table, Idref target's narrower case",
+    "reading `cell-headers`: a cell's headers are IDREFs held to a th of its own table, Idref target's narrower case",
   ],
   [
     "table-headers",
     "label-tool",
-    "O1 (plan §1.7): references before a label's tools (reading 128)",
+    "O1 (plan §1.7): references before a label's tools (reading `label-tool`)",
   ],
   [
     "label-tool",
@@ -839,12 +839,12 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   [
     "declaration-key",
     "declaration-reserved",
-    "O2 (plan §1.7): one declaration per identifier before what the identifier may be (reading 72)",
+    "O2 (plan §1.7): one declaration per identifier before what the identifier may be (reading `completion-status-name`)",
   ],
   [
     "declaration-reserved",
     "reserved-type",
-    "reading 72: a reserved name is refused before a reserved variable's type is judged",
+    "reading `completion-status-name`: a reserved name is refused before a reserved variable's type is judged",
   ],
   [
     "reserved-type",
@@ -866,28 +866,32 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   [
     "binding-declared",
     "binding-fit",
-    "readings 75 and 92: BindingFit reads the declaration Binding declared proves exists, so the undeclared binding is the cause",
+    "readings `response-identifier-declared` and `binding-and-count-sentences`: BindingFit reads the declaration Binding declared proves exists, so the undeclared binding is the cause",
   ],
   [
     "binding-fit",
     "record-binding-fit",
-    "reading 92: a record response's fit is the record arm of the same binding, read after its base type and cardinality",
+    "reading `binding-and-count-sentences`: a record response's fit is the record arm of the same binding, read after its base type and cardinality",
   ],
   [
     "record-binding-fit",
     "binding-unique",
-    "reading 92: a binding's fit before the variable's one binding",
+    "reading `binding-and-count-sentences`: a binding's fit before the variable's one binding",
   ],
-  ["binding-unique", "choice-bounds", "O3 (plan §1.7): bindings before choice counts (reading 18)"],
+  [
+    "binding-unique",
+    "choice-bounds",
+    "O3 (plan §1.7): bindings before choice counts (reading `order-min-choices`)",
+  ],
   [
     "choice-bounds",
     "choice-identifier-distinct",
-    "O3: a choice's count before its identifiers (reading 104)",
+    "O3: a choice's count before its identifiers (reading `choice-identifier-scope`)",
   ],
   [
     "choice-identifier-distinct",
     "hotspot-default",
-    "O3: the choices' identifiers before a default hotspot's place (reading 80)",
+    "O3: the choices' identifiers before a default hotspot's place (reading `default-hotspot`)",
   ],
   [
     "hotspot-default",
@@ -922,27 +926,39 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   [
     "slider-bounds",
     "max-strings-required",
-    "O3: a slider's bounds before an extended text's string count (reading 92's cardinality kinds)",
+    "O3: a slider's bounds before an extended text's string count (reading `binding-and-count-sentences`'s cardinality kinds)",
   ],
-  ["max-strings-required", "aria-value-range", "O3: QTI's counts before ARIA's range (reading 91)"],
+  [
+    "max-strings-required",
+    "aria-value-range",
+    "O3: QTI's counts before ARIA's range (reading `no-advisory-reading`)",
+  ],
   [
     "aria-value-range",
     "pattern-language",
-    "O3: an attribute's own range, then its own language: readings 48, then 58",
+    "O3: an attribute's own range, then its own language: reading `dotted-reference`, then 58",
   ],
   [
     "pattern-language",
     "adaptive-feedback",
-    "O3: an attribute's own language (reading 58) before the item's adaptive flag (Q5.09)",
+    "O3: an attribute's own language (reading `pattern-mask-braces`) before the item's adaptive flag (Q5.09)",
   ],
   ["adaptive-feedback", "source-srcset", "the tiers: O3 before the HTML content (plan §1.7)"],
-  ["source-srcset", "source-src", "reading 124: a picture's source, then a media element's"],
-  ["source-src", "track-srclang", "readings 124, then 125"],
-  ["track-srclang", "q-punctuation", "readings 125, then 127"],
+  [
+    "source-srcset",
+    "source-src",
+    "reading `source-attributes`: a picture's source, then a media element's",
+  ],
+  ["source-src", "track-srclang", "reading `source-attributes`, then 125"],
+  ["track-srclang", "q-punctuation", "reading `track-srclang`, then 127"],
   ["q-punctuation", "P2", "the tiers: the HTML content before O4 (plan §1.7)"],
   ["P2", "P8", "O4: an operator's arity (P2, §2.11.3) before the variables it reads (P8)"],
-  ["P8", "P10", "O4: a variable's declaration before a rounding operator's figures (reading 119)"],
-  ["P10", "P36", "readings 119, then 121: the rounding figures before the tolerance"],
+  [
+    "P8",
+    "P10",
+    "O4: a variable's declaration before a rounding operator's figures (reading `rounding-figures`)",
+  ],
+  ["P10", "P36", "reading `rounding-figures`, then 121: the rounding figures before the tolerance"],
   [
     "P36",
     "variable-kind",
@@ -959,7 +975,7 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   [
     "P27",
     "P29",
-    "O4's rules in the old checker's order: P27, then P29 (reading 167's weighted base)",
+    "O4's rules in the old checker's order: P27, then P29 (reading `weighted-test-variables`'s weighted base)",
   ],
   [
     "P29",
@@ -972,8 +988,12 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
     "O5 (plan §1.7): a mapping's base type (§5.5) before a lookup table's cardinality",
   ],
   ["lookup-cardinality", "lom-identifier", "the tiers: O5 before O6 (plan §1.7)"],
-  ["lom-identifier", "lom-title", "reading 62: the record's identifier before its title"],
-  ["lom-title", "lom-learning-resource-type", "O6: readings 62, then 122"],
+  [
+    "lom-identifier",
+    "lom-title",
+    "reading `identity-from-lom`: the record's identifier before its title",
+  ],
+  ["lom-title", "lom-learning-resource-type", "O6: reading `identity-from-lom`, then 122"],
   [
     "lom-learning-resource-type",
     "structure-identifier",
@@ -982,7 +1002,7 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   [
     "structure-identifier",
     "test-name-key",
-    "reading 86: a name repeated within one document before the same name across the assembled test, the wider scope",
+    "reading `test-identifier-namespace`: a name repeated within one document before the same name across the assembled test, the wider scope",
   ],
   ["test-name-key", "selection-bounds", "O7: a test's names before a section's selection (§5.129)"],
   [
@@ -998,7 +1018,7 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   [
     "branch-target",
     "branch-forward",
-    "reading 87: one fault, one rule: a target that names no element it may jump to before the order of one that does",
+    "reading `branch-rule-targets`: one fault, one rule: a target that names no element it may jump to before the order of one that does",
   ],
   [
     "branch-forward",
@@ -1013,7 +1033,7 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   [
     "variable-mapping-source",
     "variable-mapping-target",
-    "§7.48.1 before §7.48.2: a mapping's source before its target, which reading 97 reads beside the source",
+    "§7.48.1 before §7.48.2: a mapping's source before its target, which reading `variable-mapping-target` reads beside the source",
   ],
   [
     "variable-mapping-target",
@@ -1034,49 +1054,49 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   [
     "item-ref-target",
     "item-ref-identifier",
-    "B2 and B3 before QTI §4.1.1: an item ref names its item before its identifier is held to that item's (reading 228)",
+    "B2 and B3 before QTI §4.1.1: an item ref names its item before its identifier is held to that item's (reading `tests-stored-as-defined`)",
   ],
   [
     "item-ref-identifier",
     "prefixed-ref",
-    "QTI §4.1.1's identity of an item ref before the readings through it (readings 48 and 88)",
+    "QTI §4.1.1's identity of an item ref before the readings through it (readings `dotted-reference` and `numbered-reference`)",
   ],
   [
     "prefixed-ref",
     "section-ref-target",
-    "the readings over the assembled test before the sites that place its documents (reading 85)",
+    "the readings over the assembled test before the sites that place its documents (reading `inclusion-cycles`)",
   ],
   [
     "section-ref-target",
     "stimulus-ref-target",
     "the sites: a section ref's target (§7.5) before a stimulus ref's (§7.6)",
   ],
-  ["stimulus-ref-target", "include-parse", "O7: refs before includes (reading 115)"],
+  ["stimulus-ref-target", "include-parse", "O7: refs before includes (reading `include-target`)"],
   [
     "include-parse",
     "include-target",
-    "reading 85: whether an include is read as XML (XInclude 1.0 §3.1) before what it names (reading 115)",
+    "reading `inclusion-cycles`: whether an include is read as XML (XInclude 1.0 §3.1) before what it names (reading `include-target`)",
   ],
   [
     "include-target",
     "include-root",
-    "reading 115: an include names a document before its root is judged (reading 114)",
+    "reading `include-target`: an include names a document before its root is judged (reading `include-as-information-model`)",
   ],
   [
     "include-root",
     "inclusion-cycle",
-    "readings 114, then 85: an include's target before the chain it closes",
+    "reading `include-as-information-model`, then 85: an include's target before the chain it closes",
   ],
   ["inclusion-cycle", "entry-kind", "the tiers: O7 before packaging's P1 to P4 (plan §1.6)"],
   [
     "entry-kind",
     "root-type-reverse",
-    "reading 93 and package.ts's P3: a path's listing before the type of the root it lists, so a path listed under two document types is named for its listing, the cause (Decided 2026-11-07 by the coordinator, under Bjorn's standing ruling of 2026-11-05, from seat OL (0b4d8ec9)). Since reading 162 the path is typed by the listing its root bears out, so both laws break only where its root fits neither type; there PostgreSQL's immediate RootOfType check reports root-type-reverse before the deferred Document entry key, and the import names that, a stated limit of package.ts's rule, while the law oracle names entry-kind by this order",
+    "reading `resource-href` and package.ts's P3: a path's listing before the type of the root it lists, so a path listed under two document types is named for its listing, the cause (Decided 2026-11-07 by the coordinator, under Bjorn's standing ruling of 2026-11-05, from seat OL (0b4d8ec9)). Since reading `path-document-type` the path is typed by the listing its root bears out, so both laws break only where its root fits neither type; there PostgreSQL's immediate RootOfType check reports root-type-reverse before the deferred Document entry key, and the import names that, a stated limit of package.ts's rule, while the law oracle names entry-kind by this order",
   ],
   [
     "root-type-reverse",
     "file-listed",
-    "readings 93, then 33: a listed document's root type before the files a resource lists",
+    "reading `resource-href`, then 33: a listed document's root type before the files a resource lists",
   ],
   ["file-listed", "file-exists", "P2: a listed file before the file it names exists"],
   ["file-exists", "href-listed", "P3: a file's existence before a resource's href among its files"],
@@ -1085,23 +1105,23 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   [
     "math-arity",
     "ssml-fragment",
-    "the embedded languages: reading 2 (MathML), then reading 3 (SSML)",
+    "the embedded languages: reading `mathml-validity` (MathML), then reading `ssml-document-is-fragment` (SSML)",
   ],
   [
     "ssml-fragment",
     "include-href",
-    "the embedded languages: SSML, then XInclude's href (reading 85)",
+    "the embedded languages: SSML, then XInclude's href (reading `inclusion-cycles`)",
   ],
   ["include-href", "xsi-type", "the tiers: the embedded languages before XML Schema's assessment"],
   [
     "xsi-type",
     "required-attribute",
-    "XML Schema's assessment: an element's governing type (reading 47) before the attributes it requires (AL3)",
+    "XML Schema's assessment: an element's governing type (reading `xsi-attributes`) before the attributes it requires (AL3)",
   ],
   [
     "required-attribute",
     "attribute-count",
-    "AL3's required attributes before AL5's count (readings 41 and 43)",
+    "AL3's required attributes before AL5's count (readings `ssml-meta-name` and `ssml-voice-prosody-attributes`)",
   ],
   ["attribute-count", "attribute-lexical", "an attribute's count before its value's lexical form"],
   ["attribute-lexical", "text-copy", "an attribute's form before an element's text (TextDomain)"],
@@ -1154,12 +1174,12 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   [
     "key-text-bound",
     "href-form",
-    "the document layer: its stated limits first, in limitRules' order, the key-text bound (reading 133) before the href form (reading 102)",
+    "the document layer: its stated limits first, in limitRules' order, the key-text bound (reading `key-text-length`) before the href form (reading `href-resolution`)",
   ],
   [
     "href-form",
     "namespace-name",
-    "the document layer: its stated limits before its laws, the first a namespace name (reading 131)",
+    "the document layer: its stated limits before its laws, the first a namespace name (reading `namespace-uri`)",
   ],
   [
     "namespace-name",
@@ -1451,14 +1471,14 @@ describe("the census of the composed Qti schema", () => {
 
   it("refuses a site that names no document by its own law: an include under include-target, a section ref under section-ref-target, an absent file under file-exists", () => {
     /**
-     * Oracle: the specification as a checker, reading 115: an include whose path an entry holds
-     * but that names no document the manifest lists, and that holds no xi:fallback (XInclude 1.0
-     * §3.2 replaces one that does by its fallback), or that writes no href that names a path of
-     * the package, breaks "Include target", the oracle's law for includes; a section ref that
-     * does so breaks "Section ref target" (§7.5), its own; and a site whose path no entry holds
-     * breaks "File exists", its SitePath's check, which gates it. Each is a law Qti states, under
-     * its own rule, each containment of a site's kind stated once per kind, so a dangling site is
-     * refused under one rule.
+     * Oracle: the specification as a checker, reading `include-target`: an include whose path an
+     * entry holds but that names no document the manifest lists, and that holds no xi:fallback
+     * (XInclude 1.0 §3.2 replaces one that does by its fallback), or that writes no href that names
+     * a path of the package, breaks "Include target", the oracle's law for includes; a section ref
+     * that does so breaks "Section ref target" (§7.5), its own; and a site whose path no entry
+     * holds breaks "File exists", its SitePath's check, which gates it. Each is a law Qti states,
+     * under its own rule, each containment of a site's kind stated once per kind, so a dangling
+     * site is refused under one rule.
      */
     const stated = schemaLawsOf(Qti);
     const kinds: readonly (readonly [LawSide, LawSide, readonly Rule[]])[] = [

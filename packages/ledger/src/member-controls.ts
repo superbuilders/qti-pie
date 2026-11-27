@@ -11,8 +11,8 @@
  *   affects all items in that part unless the setting is overridden at the qti-assessment-section
  *   level or ultimately at the individual qti-assessment-item-ref. The defaults for an
  *   qti-Item-session-control are used only in the absence of any applicable constraint" (§7.19,
- *   spec reading 63). Every scope of a ref is an element that holds it, so the nearest is the one
- *   that starts last.
+ *   spec reading `item-session-control-resolution`). Every scope of a ref is an element that holds
+ *   it, so the nearest is the one that starts last.
  * - **Member controls**: each member's `max-attempts`, `show-feedback` and `show-solution` in force,
  *   by its test and its place: "If it is unspecified it is treated as 1 for non-adaptive items"
  *   (Table 7.19.1; a delivered test refers to no adaptive item), and show-feedback's and

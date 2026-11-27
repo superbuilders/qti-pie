@@ -364,7 +364,7 @@ const decodeName = (bytes: Uint8Array, flags: number): string =>
 
 /**
  * Why a path cannot be a package entry's path, or none when it can: the one rule a zip's entry
- * names and a package directory's file paths are both held to (reading 138).
+ * names and a package directory's file paths are both held to (reading `entry-path-backslash`).
  *
  * The ZIP format's stored path "MUST NOT contain a drive or device letter, or a leading slash", and
  * its slashes "MUST be forward slashes" (APPNOTE 6.3.10, section 4.4.17.1); a manifest names an
@@ -454,9 +454,10 @@ const endRecordAt = (view: DataView): Option.Option<number> => {
  * Find the end record and the central directory it points at.
  *
  * The central directory must end exactly where the end record begins: APPNOTE's overall layout
- * places nothing between them but the ZIP64 records (section 4.3.6, reading 139), which are not
- * read and are refused first, so the directory's own offset and size (sections 4.4.23 and 4.4.24)
- * name the end record's offset, and an archive with other bytes in that gap is not a zip.
+ * places nothing between them but the ZIP64 records (section 4.3.6, reading
+ * `zip-central-directory`), which are not read and are refused first, so the directory's own offset
+ * and size (sections 4.4.23 and 4.4.24) name the end record's offset, and an archive with other
+ * bytes in that gap is not a zip.
  *
  * @param archive - The zip file's path, naming refusals.
  * @param view - The whole file.

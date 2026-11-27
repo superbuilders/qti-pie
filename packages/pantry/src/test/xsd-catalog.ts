@@ -18,11 +18,12 @@
  * probe elements, each a global element of a named type, so a value can be judged against a type
  * whose elements are only ever declared locally.
  *
- * A root driver imports one vocabulary, the one whose XSD declares a document's root, so the
- * schema a document is assessed against is its root's schema set (spec reading 81): that XSD and
- * every XSD it imports, transitively, as the XSDs' own `xs:import`s state it ({@link schemaSetOf}).
- * Under the union driver a `strict` wildcard would find a declaration no XSD of the document's
- * set imports, as a DRD element under an item's `qti-companion-materials-info`.
+ * A root driver imports one vocabulary, the one whose XSD declares a document's root, so the schema
+ * a document is assessed against is its root's schema set (spec reading
+ * `wildcard-global-declarations`): that XSD and every XSD it imports, transitively, as the XSDs'
+ * own `xs:import`s state it ({@link schemaSetOf}). Under the union driver a `strict` wildcard would
+ * find a declaration no XSD of the document's set imports, as a DRD element under an item's
+ * `qti-companion-materials-info`.
  */
 import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -266,10 +267,11 @@ export class SchemaSets extends Context.Service<
 }
 
 /**
- * Read a document's schema set from the pinned XSDs (spec reading 81): the XSD that declares a
- * namespace, and every XSD it imports, includes or redefines, transitively, each `schemaLocation`
- * resolved against the URL of the XSD that names it and read from its pin. The set is the target
- * namespaces of those XSDs, read once per namespace a run asks for ({@link SchemaSets}).
+ * Read a document's schema set from the pinned XSDs (spec reading `wildcard-global-declarations`):
+ * the XSD that declares a namespace, and every XSD it imports, includes or redefines, transitively,
+ * each `schemaLocation` resolved against the URL of the XSD that names it and read from its pin.
+ * The set is the target namespaces of those XSDs, read once per namespace a run asks for ({@link
+ * SchemaSets}).
  *
  * @param namespace - The root's namespace.
  * @returns The namespaces of the set, none for a namespace no pin declares; dies

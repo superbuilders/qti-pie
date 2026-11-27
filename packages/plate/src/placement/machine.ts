@@ -84,7 +84,7 @@ export interface SequenceBoard {
  * A pair is allowed only where both sides' `match-group`s allow it. QTI's `match-group` is "a list
  * of the identifiers for the objects that can be matched with this choice" (5.131.5; on a gap,
  * 5.55.4; on a gap text, 5.58.4); plate's ruling reads it on both sides of a pair, an absent or
- * empty one admitting any (spec reading 179).
+ * empty one admitting any (spec reading `match-group-both-sides`).
  */
 export interface PairsBoard {
   readonly kind: "pairs";
@@ -124,10 +124,10 @@ export interface PartnerRule {
  * A pair joins two different choices, as no other box joins them in either order: plate's ruling
  * (after #246), since an associate lets the candidate "create associations between" its choices
  * (5.8) and QTI counts a choice's `match-max` in "choices this choice may be associated with"
- * (5.131.6). It is allowed only where both chips' `match-group`s allow it (plate's reading 179). A
- * chip sits in no more boxes than its `match-max`, whether or not each is a pair yet, since each
- * box it is in becomes one; and as no box repeats a pair or pairs a chip with itself, every box a
- * chip is in counts one distinct pair (#269).
+ * (5.131.6). It is allowed only where both chips' `match-group`s allow it (plate's reading
+ * `match-group-both-sides`). A chip sits in no more boxes than its `match-max`, whether or not each
+ * is a pair yet, since each box it is in becomes one; and as no box repeats a pair or pairs a chip
+ * with itself, every box a chip is in counts one distinct pair (#269).
  *
  * `min-associations` (5.8.3) and each choice's `match-min` (5.131.7) decide whether a submitted
  * response is valid, which the server judges, and a child is never stopped short of them, so the

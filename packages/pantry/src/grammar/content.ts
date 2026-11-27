@@ -5,18 +5,18 @@
  * A model's positions are its element and wildcard particles, numbered from 1 in tree order (U4's
  * particle numbering); 0 is the start. A child's `Admission` row carries its position: the one
  * position its kind names, or 0 where its kind names none (character data, which carries its
- * predecessor's state) or several (a shared kind, whose position the state decides among its
- * symbol set's). The law reads one bit, whether `position` is in the follow set of `was`:
+ * predecessor's state) or several (a shared kind, whose position the state decides among its symbol
+ * set's). The law reads one bit, whether `position` is in the follow set of `was`:
  * `FollowMember(FollowSetOf(model, was), position)`, with `model` the family's
- * `ContentModelOf(parent)` and `was` the predecessor's position (0 for the first child),
- * and the last child reads `Last(model, state)`: the relations are keyed by automaton, each
- * distinct automaton stated once, however many families share it, and each state's follow set by
- * its set, each distinct set stated once, however many states share it. Under Unique Particle
- * Attribution the automaton enforces order, required particles, at-most-once and exclusive choice;
- * a bound of 2…n, which a position automaton relaxes, is a count law, `Counted(parent, position) →
- * (min, max)`. So is a reading's cap, a particle of at most one that an enclosing group
- * repeats, which the automaton reads per repeat and the reading reads as the family's total:
- * `Counted` holds it as `(0, 1)` (spec reading 130, the loose LOM binding's Schematron).
+ * `ContentModelOf(parent)` and `was` the predecessor's position (0 for the first child), and the
+ * last child reads `Last(model, state)`: the relations are keyed by automaton, each distinct
+ * automaton stated once, however many families share it, and each state's follow set by its set,
+ * each distinct set stated once, however many states share it. Under Unique Particle Attribution
+ * the automaton enforces order, required particles, at-most-once and exclusive choice; a bound of
+ * 2…n, which a position automaton relaxes, is a count law, `Counted(parent, position) → (min,
+ * max)`. So is a reading's cap, a particle of at most one that an enclosing group repeats, which
+ * the automaton reads per repeat and the reading reads as the family's total: `Counted` holds it as
+ * `(0, 1)` (spec reading `lom-repetition`, the loose LOM binding's Schematron).
  *
  * A group's bound of 2…n the automaton relaxes too, to `1..n` (`automatonOf` links a repeatable
  * group's last positions to its first, whatever its bounds), and no position carries it, so
@@ -84,14 +84,14 @@ import type { Automaton, Position, Structure } from "#pantry/vocab/sequencing.ts
 
 /**
  * A spec reading that edits a content model where it says more than the XSD: a kind admitted beside
- * another in every particle that names it; kinds that come
- * before every other element of the model and before its text that is not whitespace; the model
- * restated whole, where the language the reading follows is not the XSD's and no edit of a particle
- * states it, narrower or wider (spec reading 2, MathML's RelaxNG); the kinds a family's last
- * child is one of, which narrows the model's `Last` where its language is no deterministic
- * expression's (spec reading 2, MathML's `lambda`); or a kind that stands at most once among a
- * family's children wherever the model repeats it, a count `Counted` states beside the automaton
- * (spec reading 130, the loose LOM binding's Schematron).
+ * another in every particle that names it; kinds that come before every other element of the model
+ * and before its text that is not whitespace; the model restated whole, where the language the
+ * reading follows is not the XSD's and no edit of a particle states it, narrower or wider (spec
+ * reading `mathml-validity`, MathML's RelaxNG); the kinds a family's last child is one of, which
+ * narrows the model's `Last` where its language is no deterministic expression's (spec reading
+ * `mathml-validity`, MathML's `lambda`); or a kind that stands at most once among a family's
+ * children wherever the model repeats it, a count `Counted` states beside the automaton (spec
+ * reading `lom-repetition`, the loose LOM binding's Schematron).
  */
 export type ModelEdit =
   | {
@@ -128,8 +128,8 @@ export type ModelEdit =
 
 /**
  * The kinds of one namespace, named by its URI, that are its only roots: the only kinds of that
- * namespace a wildcard admits, wherever it stands, and where it comes from (spec reading 2:
- * MathML's one root, `m:math`).
+ * namespace a wildcard admits, wherever it stands, and where it comes from (spec reading
+ * `mathml-validity`: MathML's one root, `m:math`).
  */
 interface Roots {
   readonly kinds: readonly [string, ...string[]];
@@ -212,9 +212,9 @@ export interface ContentGrammar<K extends string = string> {
    */
   readonly countedMax: Indexed<PositionKey<K>, readonly [ValueField<"max", number>]>;
   /**
-   * `Capped`: the positions a spec reading caps at one child (spec reading 130, the loose LOM
-   * binding's Schematron), each sourced to its reading: at most one child of the family stands
-   * there, however often the model's enclosing group repeats the particle.
+   * `Capped`: the positions a spec reading caps at one child (spec reading `lom-repetition`, the
+   * loose LOM binding's Schematron), each sourced to its reading: at most one child of the family
+   * stands there, however often the model's enclosing group repeats the particle.
    */
   readonly capped: Sourced<PositionKey<K>, readonly []>;
   /**
@@ -299,11 +299,12 @@ export interface ContentGrammar<K extends string = string> {
     readonly position: string;
   }) => Option.Option<Source>;
   /**
-   * `StrictlyHeld`: (parent, child) for each foreign kind only `strict` wildcards of the
-   * parent's model admit, each sourced to the wildcard. Such a child has no declaration its
-   * document's schema set gives it, so it stands only where its `xsi:type` names a type that set
-   * holds or a built-in, against which XML Schema assesses it (Part 1, §3.3.4 clause 1.2; spec
-   * reading 81); without one it is invalid (§3.10.4 clause 2, §3.3.5 [validity] clause 1.1.3).
+   * `StrictlyHeld`: (parent, child) for each foreign kind only `strict` wildcards of the parent's
+   * model admit, each sourced to the wildcard. Such a child has no declaration its document's
+   * schema set gives it, so it stands only where its `xsi:type` names a type that set holds or a
+   * built-in, against which XML Schema assesses it (Part 1, §3.3.4 clause 1.2; spec reading
+   * `wildcard-global-declarations`); without one it is invalid (§3.10.4 clause 2, §3.3.5 [validity]
+   * clause 1.1.3).
    */
   readonly strictlyHeld: IndexedSourced<
     readonly [IdField<"parent", K>, IdField<"child", K>],
@@ -397,8 +398,8 @@ export const characterKinds = ["text", "ws", "comment", "pi", "entityRef"] as co
  *
  * One exception stands over the XSD: a MathML element of empty content also admits whitespace, as
  * MathML 3's own RelaxNG does (§2, which matches a whitespace-only text against `empty`; spec
- * reading 2, operator decision 321 (5): "MathML's own schema wins where QTI's bundled copy is
- * stricter"). {@link dataOf} applies it; every other empty kind keeps the set below.
+ * reading `mathml-validity`, operator decision 321 (5): "MathML's own schema wins where QTI's
+ * bundled copy is stricter"). {@link dataOf} applies it; every other empty kind keeps the set below.
  */
 const characterData: Readonly<
   Record<ContentType["_tag"], readonly (typeof characterKinds)[number][]>
@@ -411,7 +412,7 @@ const characterData: Readonly<
 
 /**
  * The character data a model admits between its children: its content type's, and whitespace too
- * where the model is empty and its kind is in MathML's namespace (spec reading 2).
+ * where the model is empty and its kind is in MathML's namespace (spec reading `mathml-validity`).
  *
  * @param content - The model's content type.
  * @param namespace - The namespace of the model's kind.
@@ -436,9 +437,9 @@ const leavesOf = (particle: Particle): readonly Exclude<Particle, { readonly _ta
 
 /**
  * Restate a model whose leading kinds come before every other element and before text that is not
- * whitespace, as spec reading 40 says of SSML's `meta`, `metadata` and `lexicon` in `speak`: the
- * leading kinds and the wildcards in any order, then any run of text, the other kinds and the
- * wildcards, each step a text or another kind followed by any wildcards.
+ * whitespace, as spec reading `ssml-head-order` says of SSML's `meta`, `metadata` and `lexicon` in
+ * `speak`: the leading kinds and the wildcards in any order, then any run of text, the other kinds
+ * and the wildcards, each step a text or another kind followed by any wildcards.
  *
  * As a regular expression over the model's kinds, `(K | W)* ((text | E) W*)*`, with `K` the leading
  * kinds, `E` the others and `W` the wildcards. Text is one position, the first of each step, so
@@ -687,12 +688,12 @@ const endingsOf = (
  * which it lists: the readings are fixed, so the tests check that every ending is
  * ({@link mixedEndingsOf}), and no load does.
  *
- * An ending states a language no deterministic expression does: MathML's `lambda` is
- * `bvar*, DomainQ, ContExp` with `interval` in both `DomainQ` and `ContExp` (spec reading 2), whose
- * minimal automaton breaks Brüggemann-Klein and Wood's orbit property, so no particle Unique
- * Particle Attribution keeps deterministic states it. Its restatement `bvar*, (interval |
- * qualifier)*, other?`, ended by the content expressions, is deterministic, and its `Last` ends a
- * family where the RelaxNG's does.
+ * An ending states a language no deterministic expression does: MathML's `lambda` is `bvar*,
+ * DomainQ, ContExp` with `interval` in both `DomainQ` and `ContExp` (spec reading
+ * `mathml-validity`), whose minimal automaton breaks Brüggemann-Klein and Wood's orbit property, so
+ * no particle Unique Particle Attribution keeps deterministic states it. Its restatement `bvar*,
+ * (interval | qualifier)*, other?`, ended by the content expressions, is deterministic, and its
+ * `Last` ends a family where the RelaxNG's does.
  *
  * @param automaton - The model's automaton.
  * @param edits - Every reading's edits.
@@ -995,13 +996,13 @@ export const maxOccursOf = (occurs: Occurs): number =>
  * Install the automata of content models, and state their admitted triples with each child's
  * position as each family's admission map (plan R12, U4).
  *
- * An element particle admits its kinds. A wildcard admits, by its processing, the globally
- * declared kinds in its namespaces that no element particle of the model names and that the
- * schema sets of the model's documents declare (spec reading 81), but the roots reading 6 keeps
- * foreign and, of a namespace a facet states the roots of, every kind but those roots (`lax`,
- * `strict`), and the foreign kinds of the namespace classes its constraint admits (`lax`, `skip`).
- * The content type admits its character data at position 0. A reading's ending narrows the
- * automaton's `Last` ({@link endedBy}).
+ * An element particle admits its kinds. A wildcard admits, by its processing, the globally declared
+ * kinds in its namespaces that no element particle of the model names and that the schema sets of
+ * the model's documents declare (spec reading `wildcard-global-declarations`), but the roots
+ * reading `nested-root-in-wildcard` keeps foreign and, of a namespace a facet states the roots of,
+ * every kind but those roots (`lax`, `strict`), and the foreign kinds of the namespace classes its
+ * constraint admits (`lax`, `skip`). The content type admits its character data at position 0. A
+ * reading's ending narrows the automaton's `Last` ({@link endedBy}).
  *
  * @param input - The models, the vocabularies' readings, and what a wildcard reads.
  * @param input.globalKinds - The kinds a `lax` or `strict` wildcard of a parent reads as their
@@ -1094,8 +1095,8 @@ export const contentOf = (input: {
       /**
        * The global kinds a wildcard of the model may admit, read once for all its wildcards, and
        * only where one reads global declarations, each by what the kind alone decides: no element
-       * particle of the model names it, reading 6 keeps no foreign root of it, and a namespace a
-       * facet states the roots of admits only those.
+       * particle of the model names it, reading `nested-root-in-wildcard` keeps no foreign root of
+       * it, and a namespace a facet states the roots of admits only those.
        */
       const globals = automaton.positions.some(
         ({ symbol }) => symbol._tag === "wildcard" && symbol.processing !== "skip",
@@ -1143,7 +1144,8 @@ export const contentOf = (input: {
            * The namespace classes the wildcard's constraint admits (§3.10.1): an element no
            * declaration names is its namespace class's foreign kind. Under `strict` such an element
            * stands only with an `xsi:type` its document's schema set can resolve (§3.3.4, clause
-           * 1.2; spec reading 81), which `StrictlyHeld` marks for the reader.
+           * 1.2; spec reading `wildcard-global-declarations`), which `StrictlyHeld` marks for the
+           * reader.
            */
           const namespaceClasses = namespaceClassesUnder[symbol.namespace];
           for (const namespaceClass of namespaceClasses) {

@@ -254,8 +254,8 @@ export const mathValueOf = (
  * Write a template value as the content of the `mn` or `cn` that replaces an `mi` or `ci` naming
  * it. The information model says only "with the template variable's value as their content"
  * (section 2.3.3), so the value is written as a printed variable with no `format` writes it
- * (reading 206): a number as its canonical text, a container's members joined by `;`, and NULL as
- * the empty text.
+ * (reading `math-variable`): a number as its canonical text, a container's members joined by `;`,
+ * and NULL as the empty text.
  *
  * @param value The template variable's value.
  * @param bound The most characters the text may hold, as `formatPrinted` takes it.
@@ -292,8 +292,8 @@ const parameterOf = (
  * horizontal first, and a pair or a directed pair as its two identifiers, each two separated by one
  * space; an identifier, a string and a URI as they are. A `file` value cannot be expanded, and the
  * value model holds none. The standard gives no form for a container or for NULL, so they take the
- * printed variable's default (reading 202): a container's members joined by `;`, and NULL as the
- * empty string.
+ * printed variable's default (reading `param-variable-containers`): a container's members joined by
+ * `;`, and NULL as the empty string.
  *
  * @param value The template variable's value.
  * @param bound The most characters the text may hold, as `formatPrinted` takes it.

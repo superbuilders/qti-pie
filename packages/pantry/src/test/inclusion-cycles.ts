@@ -5,11 +5,12 @@
  * `rtest01`'s three set items each include `rtest01-fragment.xml`, a `div` holding a hottext
  * interaction bound to `RESPONSE`. A case keeps the include in the first `includers` items and
  * drops it from the rest, none of them among the cases, so no head places the fragment and any
- * cycle through it is one no assembly reaches (spec readings 85 and 117). It closes its cycle:
- * none; the fragment including itself before its interaction; or the fragment including
- * `rtest01-loop.xml`, a text fragment listed as its own `imsqti_fragment_xmlv3p0` resource, which
- * includes the fragment back. And the fragment may include `rtest01-tail.xml` too, a text
- * fragment no other document includes, which hangs off the fragment's cycle where there is one.
+ * cycle through it is one no assembly reaches (spec readings `inclusion-cycles` and
+ * `fragment-placement`). It closes its cycle: none; the fragment including itself before its
+ * interaction; or the fragment including `rtest01-loop.xml`, a text fragment listed as its own
+ * `imsqti_fragment_xmlv3p0` resource, which includes the fragment back. And the fragment may
+ * include `rtest01-tail.xml` too, a text fragment no other document includes, which hangs off the
+ * fragment's cycle where there is one.
  */
 import { regex } from "arkregex";
 import { assert } from "@effect/vitest";

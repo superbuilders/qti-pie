@@ -112,9 +112,9 @@ const particle = (
 
 /**
  * The template block kinds, of an item's body and of its rubric block's content: the kinds under
- * which no interaction sits at any depth (spec reading 143). The information model says "A
- * qti-template-block must not contain any interactions, either directly or indirectly" (§5.145,
- * TemplateBlock), stricter than the class tables and the XSD, which reach an
+ * which no interaction sits at any depth (spec reading `interaction-in-template`). The information
+ * model says "A qti-template-block must not contain any interactions, either directly or
+ * indirectly" (§5.145, TemplateBlock), stricter than the class tables and the XSD, which reach an
  * interaction through the HTML of its content body. It says no such thing of a template inline,
  * whose own content holds no interaction (§5.155 and §6.27, InlineStaticGroup; the XSD's
  * `TemplateInlineDType`), which the content model refuses, and whose HTML may hold one (§5.64,
@@ -199,7 +199,7 @@ const resourceType = { kind: "cp:resource", name: "type" } as const;
 /**
  * Read the resource types from the attribute declarations: the enumeration of `cp:resource`'s
  * `type` in the content-packaging XSD, 20 types, each once, in the order it lists them. The
- * attribute's value domain admits them (spec reading 67).
+ * attribute's value domain admits them (spec reading `manifest-profile`).
  *
  * @param declarations - The attribute declarations.
  * @returns The types.
@@ -241,15 +241,16 @@ const withoutKind = (model: Particle, kind: string, source: Source): Particle =>
 };
 
 /**
- * Where spec reading 22 restates the template rule groups from: the information model's
- * TemplateConstraint class, which places a constraint at the top of template processing alone.
+ * Where spec reading `template-constraint-placement` restates the template rule groups from: the
+ * information model's TemplateConstraint class, which places a constraint at the top of template
+ * processing alone.
  */
 const templateConstraintSource =
-  "spec reading 22: https://www.imsglobal.org/spec/qti/v3p0/info#Root_TemplateConstraint (§5.150, TemplateConstraint: 'A qti-template-constraint may occur anywhere as a child of qti-template-processing. It may not be used as a child of any other element.')";
+  "spec reading `template-constraint-placement`: https://www.imsglobal.org/spec/qti/v3p0/info#Root_TemplateConstraint (§5.150, TemplateConstraint: 'A qti-template-constraint may occur anywhere as a child of qti-template-processing. It may not be used as a child of any other element.')";
 
 /**
- * The template rule groups the XSD lets hold a `qti-template-constraint`, which spec reading 22
- * keeps out of them: the branches of a `qti-template-condition`.
+ * The template rule groups the XSD lets hold a `qti-template-constraint`, which spec reading
+ * `template-constraint-placement` keeps out of them: the branches of a `qti-template-condition`.
  */
 const templateBranchKinds: ReadonlySet<string> = new Set([
   "qti-template-if",
@@ -258,10 +259,10 @@ const templateBranchKinds: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Spec reading 22's restatements of the template rule groups: each branch of a
- * `qti-template-condition` as the XSD states it (`TemplateIfDType`, `TemplateElseDType`), less its
- * `qti-template-constraint`, so a constraint stands only as a direct child of
- * `qti-template-processing`, whose model keeps it.
+ * Spec reading `template-constraint-placement`'s restatements of the template rule groups: each
+ * branch of a `qti-template-condition` as the XSD states it (`TemplateIfDType`,
+ * `TemplateElseDType`), less its `qti-template-constraint`, so a constraint stands only as a direct
+ * child of `qti-template-processing`, whose model keeps it.
  */
 const templateConstraintEdits: readonly ModelEdit[] = contentModels.flatMap(
   (model): readonly ModelEdit[] =>
@@ -282,11 +283,11 @@ const templateConstraintEdits: readonly ModelEdit[] = contentModels.flatMap(
 );
 
 /**
- * Where spec reading 240 restates a table's columns from: the information model's Table class,
- * whose `col` and `colgroup` exclude each other where the XSD's sequence admits both.
+ * Where spec reading `col-or-colgroup` restates a table's columns from: the information model's
+ * Table class, whose `col` and `colgroup` exclude each other where the XSD's sequence admits both.
  */
 const tableColumnsSource =
-  "spec reading 240: https://www.imsglobal.org/spec/qti/v3p0/info#Data_Table (§5.142.3, col: 'If a table directly contains a col then it must not contain any colgroup elements'; §5.142.4, colgroup: 'If a table contains a colgroup it must not directly contain any col elements')";
+  "spec reading `col-or-colgroup`: https://www.imsglobal.org/spec/qti/v3p0/info#Data_Table (§5.142.3, col: 'If a table directly contains a col then it must not contain any colgroup elements'; §5.142.4, colgroup: 'If a table contains a colgroup it must not directly contain any col elements')";
 
 /**
  * Whether a particle is an element particle of one kind alone.
@@ -310,10 +311,10 @@ const atLeastOne = (held: Particle): Particle => ({
 });
 
 /**
- * Restate a table's columns as spec reading 240 reads them: wherever a group holds a `col` particle
- * and the `colgroup` particle right after it, the two become one optional choice of one or more
- * `col`s or one or more `colgroup`s, so a table holds the one or the other, never both, in the
- * order and number the XSD's sequence gives each.
+ * Restate a table's columns as spec reading `col-or-colgroup` reads them: wherever a group holds a
+ * `col` particle and the `colgroup` particle right after it, the two become one optional choice of
+ * one or more `col`s or one or more `colgroup`s, so a table holds the one or the other, never both,
+ * in the order and number the XSD's sequence gives each.
  *
  * @param model - The XSD's model.
  * @param source - The reading's source.
@@ -349,8 +350,8 @@ const columnsApart = (model: Particle, source: Source): Particle => {
 };
 
 /**
- * Spec reading 240's restatement of `table`: the XSD's `TableDType` with its columns apart
- * ({@link columnsApart}).
+ * Spec reading `col-or-colgroup`'s restatement of `table`: the XSD's `TableDType` with its columns
+ * apart ({@link columnsApart}).
  */
 const tableColumnEdits: readonly ModelEdit[] = contentModels.flatMap(
   (model): readonly ModelEdit[] =>
@@ -367,27 +368,28 @@ const tableColumnEdits: readonly ModelEdit[] = contentModels.flatMap(
 );
 
 /**
- * Spec reading 241's cap: a `figure` holds at most one `figcaption`, the multiplicity the
- * information model gives it, where the XSD's unbounded choice repeats it.
+ * Spec reading `single-figcaption`'s cap: a `figure` holds at most one `figcaption`, the
+ * multiplicity the information model gives it, where the XSD's unbounded choice repeats it.
  */
 const figcaptionCap: ModelEdit = {
   _tag: "cap",
   kind: "figcaption",
   parent: "figure",
   source:
-    "spec reading 241: https://www.imsglobal.org/spec/qti/v3p0/info#Data_Figure (§5.54.1, figcaption: Multiplicity '[0..1]'), and the binding's normative Schematron rules, https://www.imsglobal.org/spec/qti/v3p0/bind (§5.1.1 Figure Unordered Class Rules: 'figcaption ... Multiplicity must be: [0..1]')",
+    "spec reading `single-figcaption`: https://www.imsglobal.org/spec/qti/v3p0/info#Data_Figure (§5.54.1, figcaption: Multiplicity '[0..1]'), and the binding's normative Schematron rules, https://www.imsglobal.org/spec/qti/v3p0/bind (§5.1.1 Figure Unordered Class Rules: 'figcaption ... Multiplicity must be: [0..1]')",
 };
 
 /**
- * Where `qti-ordering`'s restated model comes from: spec reading 61, which the information model's
- * §5.98.3 states and the XSD's own mapping of the same sentence elsewhere writes.
+ * Where `qti-ordering`'s restated model comes from: spec reading `ordering-extension-slot`, which
+ * the information model's §5.98.3 states and the XSD's own mapping of the same sentence elsewhere
+ * writes.
  */
 const orderingSource =
-  "spec reading 61: information model §5.98.3, 'may be new tags and reused QTI ASI tags', as the XSD writes the same sentence at §5.36.2 and §5.144.1 (##any)";
+  "spec reading `ordering-extension-slot`: information model §5.98.3, 'may be new tags and reused QTI ASI tags', as the XSD writes the same sentence at §5.36.2 and §5.144.1 (##any)";
 
 /**
- * `qti-ordering`'s content, as spec reading 61 restates it: any number of elements of any
- * namespace, assessed laxly, `sequence(any ##any lax 0..n)`.
+ * `qti-ordering`'s content, as spec reading `ordering-extension-slot` restates it: any number of
+ * elements of any namespace, assessed laxly, `sequence(any ##any lax 0..n)`.
  *
  * The XSD writes `##other` (`imsqti_asiv3p0p1_v1p0.xsd` lines 29976 and 24031), which refuses an
  * element in QTI's own namespace or in none. The information model says the extension's child tags
@@ -396,10 +398,10 @@ const orderingSource =
  * (§5.144.1, XSD line 32555); where the information model says "must be new tags" it writes
  * `##other` (§5.33.6, §5.37.5 and §5.129.4). The information model outranks the XSD, so the slot is
  * `##any`: a QTI element there is kept as extension content, a foreign element of its own namespace
- * (a QTI root stays foreign by spec reading 6), an HTML, MathML, SSML or XInclude global is read as
- * its kind, and an element in no namespace is admitted too, which "any set of child tags" allows.
- * `qti-selection`'s slot keeps the XSD's `##other` (§5.129.4: "must be new tags i.e. not reused QTI
- * ASI tags").
+ * (a QTI root stays foreign by spec reading `nested-root-in-wildcard`), an HTML, MathML, SSML or
+ * XInclude global is read as its kind, and an element in no namespace is admitted too, which "any
+ * set of child tags" allows. `qti-selection`'s slot keeps the XSD's `##other` (§5.129.4: "must be
+ * new tags i.e. not reused QTI ASI tags").
  */
 const orderingModel: Particle = {
   _tag: "group",
@@ -423,12 +425,13 @@ const orderingModel: Particle = {
  *
  * - Its 22 interactions, and the expression kinds' arities, both projected from the IR;
  * - The ancestry blocks of an item's content, and a test's rubric block and feedback entering `test`,
- *   under which no template sits (spec reading 25);
- * - Spec reading 61, `qti-ordering`'s extension slot admits any namespace ({@link orderingModel});
+ *   under which no template sits (spec reading `test-rubric-feedback-content`);
+ * - Spec reading `ordering-extension-slot`, `qti-ordering`'s extension slot admits any namespace
+ *   ({@link orderingModel});
  * - HTML's `colgroup` with `span` holding no `col`, and the default hotspot that ends its
  *   interaction;
- * - A table's `col`s or its `colgroup`s, never both (spec reading 240), and a figure's one
- *   `figcaption` at most (spec reading 241);
+ * - A table's `col`s or its `colgroup`s, never both (spec reading `col-or-colgroup`), and a figure's
+ *   one `figcaption` at most (spec reading `single-figcaption`);
  * - The response bindings, the package roots and the references.
  */
 export const asi: Facets = {
@@ -474,10 +477,10 @@ export const asi: Facets = {
       },
     ],
     /**
-     * Spec reading 80: only a hotspot choice's default must appear last. The AssociableHotspot
-     * class and the graphic associate interaction's hotspots (§5.7, §5.59.4) state no such rule, so
-     * a `qti-associable-hotspot` default stands anywhere; the graphic gap match interaction's ban
-     * on any default (§5.60.9) is a law of its own.
+     * Spec reading `default-hotspot`: only a hotspot choice's default must appear last. The
+     * AssociableHotspot class and the graphic associate interaction's hotspots (§5.7, §5.59.4)
+     * state no such rule, so a `qti-associable-hotspot` default stands anywhere; the graphic gap
+     * match interaction's ban on any default (§5.60.9) is a law of its own.
      */
     lastWhere: [
       {
@@ -504,8 +507,9 @@ export const asi: Facets = {
     arities: aritiesOf(contentModels, expressionsIn(contentModels)),
     recordFits: ["qti-extended-text-interaction", "qti-text-entry-interaction"],
     /**
-     * Each interaction's binding sentence (BindingFit's law source). Spec reading 172: the order
-     * interaction's class description (§5.97) states none, so it has no row and binds any type.
+     * Each interaction's binding sentence (BindingFit's law source). Spec reading `order-binding`:
+     * the order interaction's class description (§5.97) states none, so it has no row and binds any
+     * type.
      */
     typedFits: [
       {
@@ -614,21 +618,21 @@ export const cp: Facets = {
 };
 
 /**
- * Cite the loose LOM binding's Schematron for one capped kind (spec reading 130): the lines of the
- * at-most-one asserts that cap it, one for each Schematron context it stands in.
+ * Cite the loose LOM binding's Schematron for one capped kind (spec reading `lom-repetition`): the
+ * lines of the at-most-one asserts that cap it, one for each Schematron context it stands in.
  *
  * @param lines - The asserts' lines in `imsmd_loose_v1p3p2.xsd`.
  * @returns The citation.
  */
 const lomCapSource = (lines: readonly [number, ...number[]]): string =>
-  `spec reading 130: the loose LOM binding's Schematron, imsmd_loose_v1p3p2.xsd ${lines.length === 1 ? "line" : "lines"} ${lines.map(String).join(", ")}, count = 0 or 1`;
+  `spec reading \`lom-repetition\`: the loose LOM binding's Schematron, imsmd_loose_v1p3p2.xsd ${lines.length === 1 ? "line" : "lines"} ${lines.map(String).join(", ")}, count = 0 or 1`;
 
 /**
- * The loose LOM binding's 94 at-most-one asserts (spec reading 130), by the kind of each
- * Schematron rule's context: each asserted element as its kind there, with the lines of the asserts
- * that cap it. They are 82 (parent, kind) pairs: `lom:contribute` and `lom:role` stand in two
- * contexts, and `lom:date` and `lom:identifier` in three, and each context asserts the same caps of
- * the kind, so a cap holds wherever the kind stands.
+ * The loose LOM binding's 94 at-most-one asserts (spec reading `lom-repetition`), by the kind of
+ * each Schematron rule's context: each asserted element as its kind there, with the lines of the
+ * asserts that cap it. They are 82 (parent, kind) pairs: `lom:contribute` and `lom:role` stand in
+ * two contexts, and `lom:date` and `lom:identifier` in three, and each context asserts the same
+ * caps of the kind, so a cap holds wherever the kind stands.
  *
  * Each assert is `count(lom:X) = 0 or count(lom:X) = 1` over a rule whose context is an absolute
  * path from `lom:lom` (lines 93 to 911), and each caps exactly an element the binding's XSD
@@ -890,8 +894,8 @@ const lomCaps: readonly (readonly [string, readonly (readonly [string, number, .
   ];
 
 /**
- * The LOM vocabulary's facets: its package root, and spec reading 130's caps ({@link lomCaps}). The
- * binding's XSD repeats each element of a category in an unbounded choice
+ * The LOM vocabulary's facets: its package root, and spec reading `lom-repetition`'s caps
+ * ({@link lomCaps}). The binding's XSD repeats each element of a category in an unbounded choice
  * (`imsmd_loose_v1p3p2.xsd:984`, `AggregationLevel.Type`, and its siblings), so the automaton holds
  * its model as it is, and admits any number of each element. The binding's header says "The strict
  * multiplicity of elements has been imposed" (lines 18-21), and its embedded Schematron "ensure[s]
@@ -925,17 +929,19 @@ export const ud: Facets = {
 };
 
 /**
- * Where spec reading 44 restates `tokenType` from: the SSML 1.1 Recommendation, which defines the
- * language, and whose list of `token`'s elements the XSD widens with `voice`.
+ * Where spec reading `ssml-token-without-voice` restates `tokenType` from: the SSML 1.1
+ * Recommendation, which defines the language, and whose list of `token`'s elements the XSD widens
+ * with `voice`.
  */
 const tokenSource =
-  "spec reading 44: SSML 1.1 §3.1.8.2, 'The token element can only contain text to be rendered and the following elements: audio, break, emphasis, mark, phoneme, prosody, say-as, sub', and 'The w element is an alias for the token element'";
+  "spec reading `ssml-token-without-voice`: SSML 1.1 §3.1.8.2, 'The token element can only contain text to be rendered and the following elements: audio, break, emphasis, mark, phoneme, prosody, say-as, sub', and 'The w element is an alias for the token element'";
 
 /**
- * Spec reading 44's restatements of `ssml:token` and its alias `ssml:w`: the XSD's `tokenType`
- * less its `voice` (`ssml/synthesis-nonamespace.xsd` lines 541-552). The choice keeps its `##other`
- * lax wildcard, since SSML 1.1 §2.2.3 admits other namespaces: "Language-specific (i.e. non-SSML)
- * elements and attributes may be inserted into SSML using an appropriate namespace".
+ * Spec reading `ssml-token-without-voice`'s restatements of `ssml:token` and its alias `ssml:w`:
+ * the XSD's `tokenType` less its `voice` (`ssml/synthesis-nonamespace.xsd` lines 541-552). The
+ * choice keeps its `##other` lax wildcard, since SSML 1.1 §2.2.3 admits other namespaces:
+ * "Language-specific (i.e. non-SSML) elements and attributes may be inserted into SSML using an
+ * appropriate namespace".
  */
 const tokenEdits: readonly ModelEdit[] = contentModels.flatMap((model): readonly ModelEdit[] =>
   (model.kind === "ssml:token" || model.kind === "ssml:w") && model.content._tag === "mixed"
@@ -951,11 +957,12 @@ const tokenEdits: readonly ModelEdit[] = contentModels.flatMap((model): readonly
 );
 
 /**
- * SSML's facets: spec reading 40, `meta`, `metadata` and `lexicon` before every other SSML element
- * of `speak` and before its text that is not whitespace, and spec reading 44, no `voice` in a
- * `token` or a `w` ({@link tokenEdits}). The XSD's sequence orders the elements; the restated model
- * orders the text too, at one text position Unique Particle Attribution keeps unique (`content.ts`,
- * the `first` edit). Its file references are spec reading 103's.
+ * SSML's facets: spec reading `ssml-head-order`, `meta`, `metadata` and `lexicon` before every
+ * other SSML element of `speak` and before its text that is not whitespace, and spec reading
+ * `ssml-token-without-voice`, no `voice` in a `token` or a `w` ({@link tokenEdits}). The XSD's
+ * sequence orders the elements; the restated model orders the text too, at one text position Unique
+ * Particle Attribution keeps unique (`content.ts`, the `first` edit). Its file references are spec
+ * reading `file-references`'s.
  */
 export const ssml: Facets = {
   ...noFacets,
@@ -965,7 +972,7 @@ export const ssml: Facets = {
         _tag: "first",
         kinds: ["ssml:meta", "ssml:metadata", "ssml:lexicon"],
         parent: "ssml:speak",
-        source: "spec reading 40",
+        source: "spec reading `ssml-head-order`",
       },
       ...tokenEdits,
     ],
@@ -976,8 +983,8 @@ export const ssml: Facets = {
 };
 
 /**
- * Cite a MathML rule spec reading 2 states: the MathML 3 RelaxNG file and line it reads, and the
- * Recommendation's section that says the same.
+ * Cite a MathML rule spec reading `mathml-validity` states: the MathML 3 RelaxNG file and line it
+ * reads, and the Recommendation's section that says the same.
  *
  * @param file - The RelaxNG file, of https://www.w3.org/Math/RelaxNG/mathml3/.
  * @param line - Its line.
@@ -985,7 +992,7 @@ export const ssml: Facets = {
  * @returns The citation.
  */
 const relaxNgCite = (file: string, line: number, section: string): string =>
-  `spec reading 2: MathML 3 RelaxNG, ${file} line ${String(line)}; MathML 3 ${section}`;
+  `spec reading \`mathml-validity\`: MathML 3 RelaxNG, ${file} line ${String(line)}; MathML 3 ${section}`;
 
 /**
  * Where a restated MathML model comes from ({@link relaxNgCite}).
@@ -1099,7 +1106,7 @@ const classOf = (kind: string, name: string): readonly [string, ...string[]] =>
           ),
       ),
     ],
-    `The MathML XSD gives ${kind} no model naming ${name}, which reading 2 reads.`,
+    `The MathML XSD gives ${kind} no model naming ${name}, which reading \`mathml-validity\` reads.`,
   );
 
 /**
@@ -1312,7 +1319,7 @@ const lambdaEnding = relaxNgCite("mathml3-content.rnc", 103, "§4.4.1.3 Lambda")
  * say.
  */
 const mscarriesEnding =
-  "spec reading 2: MathML 3 RelaxNG, mathml3-presentation.rnc lines 494 and 504; MathML 3 §3.6.5.1 Carries, Borrows, and Crossouts (mscarries is not the last element)";
+  "spec reading `mathml-validity`: MathML 3 RelaxNG, mathml3-presentation.rnc lines 494 and 504; MathML 3 §3.6.5.1 Carries, Borrows, and Crossouts (mscarries is not the last element)";
 
 /**
  * The kinds that may end an `mstack` or an `mlongdiv`: each kind the parent's model names but
@@ -1364,10 +1371,10 @@ const constructorModel = (line: number, section: string): Particle => {
  * exactly one child, and that child may be any MathML element.
  *
  * Restated as `(MathExpression | ##other | ##local)*`: the namespaces of the XSD's own `anyElement`
- * group (lines 46-51), lax as spec reading 30 reads the XSD's wildcard, so a QTI element directly
- * inside is read by its global declaration. A MathML element that is no math expression (`m:bvar`,
- * `m:math`, an undeclared `m:` name) is refused. That no MathML element stands anywhere inside
- * such an element is the root and ancestry rule of {@link mathml}.
+ * group (lines 46-51), lax as spec reading `qti-in-annotation-xml` reads the XSD's wildcard, so a
+ * QTI element directly inside is read by its global declaration. A MathML element that is no math
+ * expression (`m:bvar`, `m:math`, an undeclared `m:` name) is refused. That no MathML element
+ * stands anywhere inside such an element is the root and ancestry rule of {@link mathml}.
  */
 const annotationXmlModel = (() => {
   const source = relaxNg("mathml3-common.rnc", 59, "§5.2.3 The annotation-xml element");
@@ -1415,8 +1422,8 @@ const contentExpressionParents: readonly (readonly [kind: string, file: string, 
 ];
 
 /**
- * MathML's facets, spec reading 2, where the MathML 3 RelaxNG schema and the Recommendation's prose
- * state a rule the XSD does not:
+ * MathML's facets, spec reading `mathml-validity`, where the MathML 3 RelaxNG schema and the
+ * Recommendation's prose state a rule the XSD does not:
  *
  * - The models restated whole: the two interleaves (`&`) an XSD cannot state, `m:bvar` and
  *   `m:piecewise`; the models whose qualifiers hold `interval`, `m:apply`, `m:bind`, `m:lambda`,
@@ -1431,7 +1438,7 @@ const contentExpressionParents: readonly (readonly [kind: string, file: string, 
  *   inside an element `annotation-xml` admits by `anyElement`, whose content the RelaxNG bars from
  *   MathML (line 61).
  *
- * Its file references are spec reading 103's (`mathmlCensus` of `references.ts`).
+ * Its file references are spec reading `file-references`'s (`mathmlCensus` of `references.ts`).
  */
 export const mathml: Facets = {
   ...noFacets,
@@ -1552,9 +1559,9 @@ const kindNameOf = (kind: string): { readonly local: string; readonly name: stri
   );
 
 /**
- * The kinds an included fragment's document may have as its root (spec readings 85, 114 and
- * 116): every kind an include stands for somewhere, but a context-split kind, under the fragment
- * resource type of the implementation guide's §6.2.
+ * The kinds an included fragment's document may have as its root (spec readings `inclusion-cycles`,
+ * `include-as-information-model` and `fragment-root`): every kind an include stands for somewhere,
+ * but a context-split kind, under the fragment resource type of the implementation guide's §6.2.
  */
 export const fragmentRoots: readonly RootOf[] = fragmentRootsOf(
   includeAlternativesOf(contentModels),
@@ -1563,11 +1570,11 @@ export const fragmentRoots: readonly RootOf[] = fragmentRootsOf(
 ).map((root) => ({ root, type: fragmentType }));
 
 /**
- * Where spec reading 118 restates an include's content from: XInclude's own text, which the XSD
- * makes wider.
+ * Where spec reading `include-fallback` restates an include's content from: XInclude's own text,
+ * which the XSD makes wider.
  */
 const includeSource =
-  "spec reading 118: XInclude 1.0 Second Edition §3.1, 'The children property of the xi:include element may include a single xi:fallback element; the appearance of more than one xi:fallback element ... is a fatal error'";
+  "spec reading `include-fallback`: XInclude 1.0 Second Edition §3.1, 'The children property of the xi:include element may include a single xi:fallback element; the appearance of more than one xi:fallback element ... is a fatal error'";
 
 /**
  * Any number of elements an include ignores: of another namespace than XInclude's, or of none, each
@@ -1576,10 +1583,10 @@ const includeSource =
  * and is ignored by the XInclude processor, that is, it has no effect on include processing"
  * (XInclude 1.0 Second Edition, §3.1), and the item a package delivers is XInclude's result, in
  * which the include and that content are replaced (§4; information model §9.4.1, "the use of the
- * XInclude feature"). `XInclude.xsd`'s `includeType` writes them `lax` (spec reading 118), so a
- * wildcard element of a known declaration would be judged by it and could refuse a package whose
- * delivered item never holds it; skipped, each is its namespace class's foreign kind, stored as
- * written.
+ * XInclude feature"). `XInclude.xsd`'s `includeType` writes them `lax` (spec reading
+ * `include-fallback`), so a wildcard element of a known declaration would be judged by it and could
+ * refuse a package whose delivered item never holds it; skipped, each is its namespace class's
+ * foreign kind, stored as written.
  *
  * @returns The particle.
  */
@@ -1598,9 +1605,9 @@ const ignoredContent = (): Particle => ({
 });
 
 /**
- * `xi:include`'s content, as spec reading 118 restates it: the elements it ignores, and at most one
- * `xi:fallback` among them, where `XInclude.xsd`'s `includeType` admits any number (XInclude 1.0
- * Second Edition, §3.1). The XSD's text and its other children stay as they are.
+ * `xi:include`'s content, as spec reading `include-fallback` restates it: the elements it ignores,
+ * and at most one `xi:fallback` among them, where `XInclude.xsd`'s `includeType` admits any number
+ * (XInclude 1.0 Second Edition, §3.1). The XSD's text and its other children stay as they are.
  */
 const includeModel: Particle = {
   _tag: "group",
@@ -1628,9 +1635,10 @@ const includeModel: Particle = {
 };
 
 /**
- * XInclude's facets: its file reference, spec reading 103's; the roots of the fragments it
- * includes, which a fragment resource lists (spec reading 114); and spec reading 118's one
- * fallback an include may hold ({@link includeModel}).
+ * XInclude's facets: its file reference, spec reading `file-references`'s; the roots of the
+ * fragments it includes, which a fragment resource lists (spec reading
+ * `include-as-information-model`); and spec reading `include-fallback`'s one fallback an include
+ * may hold ({@link includeModel}).
  */
 export const xi: Facets = {
   ...noFacets,
@@ -1671,7 +1679,7 @@ export const manifestRoot = "cp:manifest";
 /**
  * The element kinds a document's root may be in production's composition: the manifest's root,
  * then each root kind a vocabulary's package facet names, once, in facet order, an included
- * fragment's last (spec reading 114).
+ * fragment's last (spec reading `include-as-information-model`).
  */
 export const documentRoots: readonly [string, ...string[]] = [
   manifestRoot,
@@ -1728,8 +1736,8 @@ export const documentLayer: Facets = {
  * The open vocabulary's facets: the foreign kinds' content model, which no XSD declares. An element
  * a `lax` wildcard admits with no declaration is assessed laxly, against `xs:anyType` (XML Schema
  * Part 1 §3.4.7, §3.10.4 clause 1), whose content is mixed and `##any` `lax`: its children with a
- * global declaration are assessed by it, and the rest are foreign in turn (spec readings 30 and
- * 57).
+ * global declaration are assessed by it, and the rest are foreign in turn (spec readings
+ * `qti-in-annotation-xml` and `lax-content-prose-rules`).
  */
 export const openVocabulary: Facets = {
   ...noFacets,

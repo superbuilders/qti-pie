@@ -167,12 +167,13 @@ export interface ResponseDeclaration {
  */
 export interface MatchTableEntry {
   /**
-   * `source-value`, an `xs:int`, held exact as every integer is (reading 45).
+   * `source-value`, an `xs:int`, held exact as every integer is (reading `integer-unbounded`).
    */
   readonly sourceValue: bigint;
   /**
-   * `target-value`, a value of the outcome's base type (reading 8), read as written for `string`
-   * and collapsed for every other base type (reading 7).
+   * `target-value`, a value of the outcome's base type (reading `match-table-target-value`), read
+   * as written for `string` and collapsed for every other base type (reading
+   * `typed-value-whitespace`).
    */
   readonly targetValue: Single;
 }
@@ -183,7 +184,7 @@ export interface MatchTableEntry {
 interface MatchTable {
   /**
    * `default-value`, a value of the outcome's base type, read as written for `string` and
-   * collapsed for every other base type (reading 7), when the table has one.
+   * collapsed for every other base type (reading `typed-value-whitespace`), when the table has one.
    */
   readonly defaultValue: Option.Option<Single>;
   readonly entries: readonly MatchTableEntry[];
@@ -201,12 +202,12 @@ export interface InterpolationTableEntry {
   readonly includeBoundary: boolean;
   /**
    * `source-value`, an `xs:double` read as the XSD reads it, outer whitespace collapsed (reading
-   * 7).
+   * `typed-value-whitespace`).
    */
   readonly sourceValue: number;
   /**
    * `target-value`, a value of the outcome's base type, read as written for `string` and
-   * collapsed for every other base type (reading 7).
+   * collapsed for every other base type (reading `typed-value-whitespace`).
    */
   readonly targetValue: Single;
 }
@@ -217,7 +218,7 @@ export interface InterpolationTableEntry {
 interface InterpolationTable {
   /**
    * `default-value`, a value of the outcome's base type, read as written for `string` and
-   * collapsed for every other base type (reading 7), when the table has one.
+   * collapsed for every other base type (reading `typed-value-whitespace`), when the table has one.
    */
   readonly defaultValue: Option.Option<Single>;
   readonly entries: readonly InterpolationTableEntry[];
@@ -270,7 +271,8 @@ export interface OutcomeDeclaration {
    */
   readonly masteryValue: Option.Option<number>;
   /**
-   * `normal-maximum`, an `xs:double`. The database holds it above 0 (reading 16).
+   * `normal-maximum`, an `xs:double`. The database holds it above 0 (reading
+   * `normal-maximum-positive`).
    */
   readonly normalMaximum: Option.Option<number>;
   /**
@@ -406,10 +408,10 @@ export interface TemplateVisibility {
 /**
  * A choice of an interaction's own content as read-aloud knows it: its identifier, and the catalog
  * it references, its `data-catalog-idref` as written (`ReaderKit.catalog` in
- * `#plate/interactions/contract.ts`), none where it references none (plate's reading 236). Each
- * module reads it where it reads the choice and its payload carries it as read, so the server
- * shell writes read-aloud's control beside the choice from this alone (`spokenOf` in
- * `#plate/ui/item/interactions/answering.tsx`).
+ * `#plate/interactions/contract.ts`), none where it references none (plate's reading
+ * `prompt-and-choice-catalogs`). Each module reads it where it reads the choice and its payload
+ * carries it as read, so the server shell writes read-aloud's control beside the choice from this
+ * alone (`spokenOf` in `#plate/ui/item/interactions/answering.tsx`).
  */
 export interface ReferencingChoice {
   readonly catalog: Option.Option<string>;

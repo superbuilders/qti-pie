@@ -144,9 +144,10 @@ interface ClassCell {
 }
 
 /**
- * Read a kind's element wildcards as the spec readings restate them: spec reading 61 reads
- * `qti-ordering`'s extension slot as `##any`, laxly, where the XSD writes `##other`, since the
- * information model says its child tags "may be new tags and reused QTI ASI tags" (§5.98.3).
+ * Read a kind's element wildcards as the spec readings restate them: spec reading
+ * `ordering-extension-slot` reads `qti-ordering`'s extension slot as `##any`, laxly, where the XSD
+ * writes `##other`, since the information model says its child tags "may be new tags and reused QTI
+ * ASI tags" (§5.98.3).
  *
  * @param kind - The wildcards' kind.
  * @param wildcards - Its element wildcards as the XSD writes them.
@@ -224,7 +225,7 @@ describe("vocab/open.ts namespace classes against XML Schema 1.0, 3.10.4", () =>
               literal: Formatter.format,
               oracle: {
                 kind: "specification",
-                name: "XML Schema 1.0 Part 1 §3.10.4's namespace constraints (constraintAdmits) over the leaf's wildcards, with spec readings 2, 61, 81 and 90",
+                name: "XML Schema 1.0 Part 1 §3.10.4's namespace constraints (constraintAdmits) over the leaf's wildcards, with spec readings `mathml-validity`, `ordering-extension-slot`, `wildcard-global-declarations` and `extension-attribute-lists`",
               },
               suite: "vocab/open-namespace-classes",
             },
@@ -238,10 +239,11 @@ describe("vocab/open.ts namespace classes against XML Schema 1.0, 3.10.4", () =>
                     ];
                   /**
                    * Every processing admits an undeclared element its constraint admits; a `strict`
-                   * one only with an xsi:type its document's schema set resolves (spec reading 81),
-                   * so `StrictlyHeld` marks a foreign kind only strict wildcards admit. No wildcard
-                   * admits one in MathML's namespace: MathML content stands only inside m:math, and
-                   * the RelaxNG's anyElement excludes MathML's own (spec reading 2).
+                   * one only with an xsi:type its document's schema set resolves (spec reading
+                   * `wildcard-global-declarations`), so `StrictlyHeld` marks a foreign kind only
+                   * strict wildcards admit. No wildcard admits one in MathML's namespace: MathML
+                   * content stands only inside m:math, and the RelaxNG's anyElement excludes
+                   * MathML's own (spec reading `mathml-validity`).
                    */
                   const admitting = elements.filter(
                     ({ namespace: constraint }) =>
@@ -269,11 +271,11 @@ describe("vocab/open.ts namespace classes against XML Schema 1.0, 3.10.4", () =>
                     ),
                   )._tag;
                   /**
-                   * On an element the Schematron's extension rules cover, spec reading 90 admits no
-                   * attribute its XSD does not declare but a `data-` one, whatever its wildcard
-                   * admits, and the drawn name is no `data-` name; but a kind whose class states a
-                   * `NamespaceLax` extension (information model §5.36.1, SV-LAW-05) admits what its
-                   * `##other` wildcard does.
+                   * On an element the Schematron's extension rules cover, spec reading
+                   * `extension-attribute-lists` admits no attribute its XSD does not declare but a
+                   * `data-` one, whatever its wildcard admits, and the drawn name is no `data-`
+                   * name; but a kind whose class states a `NamespaceLax` extension (information
+                   * model §5.36.1, SV-LAW-05) admits what its `##other` wildcard does.
                    */
                   const attributeSpecified = covered(kind)
                     ? namespaceLaxKinds.has(kind) && constraintAdmits("##other", own, namespace)

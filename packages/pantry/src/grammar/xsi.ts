@@ -1,36 +1,37 @@
 /**
- * The relations of the `xsi:type` law, "XsiType derived" (rule `xsi-type`, spec reading 47): the
- * `TypeName` roster of the pinned XSDs' named types, `XsiType(kind, type)`, the types an element of
- * a kind may name in its `xsi:type`, and `AnonymousType(kind)`, the kinds whose declared type is
- * anonymous. An element's governing type, where a named type governs it, is a
- * `TypeName` code, a row of its own keyed by its node (`ElementType` of `#pantry/qti/node.ts`, and
- * `OpenElementType` of `#pantry/qti/chardata.ts` for a foreign element): the type its `xsi:type`
- * names, else its declared type. An element no named type governs has no such row, and no handle
- * stands for the absence.
+ * The relations of the `xsi:type` law, "XsiType derived" (rule `xsi-type`, spec reading
+ * `xsi-attributes`): the `TypeName` roster of the pinned XSDs' named types, `XsiType(kind, type)`,
+ * the types an element of a kind may name in its `xsi:type`, and `AnonymousType(kind)`, the kinds
+ * whose declared type is anonymous. An element's governing type, where a named type governs it, is
+ * a `TypeName` code, a row of its own keyed by its node (`ElementType` of `#pantry/qti/node.ts`,
+ * and `OpenElementType` of `#pantry/qti/chardata.ts` for a foreign element): the type its
+ * `xsi:type` names, else its declared type. An element no named type governs has no such row, and
+ * no handle stands for the absence.
  *
  * An element a declaration assesses strictly may carry `xsi:type` only where its value is a QName
  * that resolves to a type definition validly derived from the declared one (XML Schema 1.0 Part 1,
  * §3.3.4 Element Locally Valid (Element), clause 4; derivation by §3.4.6 and §3.14.6), and the
  * definition is one of the schema its document is assessed against (clause 4.1, "resolves to a type
- * definition"; spec reading 81's schema sets). So a kind's row names a derived type only where a
- * schema set its documents are assessed against holds it, its own schema's or XML Schema's
- * (`typeAvailable` of `#pantry/vocab/open.ts`): a content-packaging kind such as `csmd:GUID` names
- * no ASI type, which no manifest's set imports. A kind standing in several sets takes the union,
- * reading 81's limit. The codec resolves the QName against the element's in-scope namespaces, and
- * the law reads this set. An element of an anonymous declared type admits no named type, since none
- * derives from an anonymous one: its kind has no `XsiType` row, and its `AnonymousType` row says
- * that it stands with no type at all, its own with no `xsi:type`.
+ * definition"; spec reading `wildcard-global-declarations`'s schema sets). So a kind's row names a
+ * derived type only where a schema set its documents are assessed against holds it, its own
+ * schema's or XML Schema's (`typeAvailable` of `#pantry/vocab/open.ts`): a content-packaging kind
+ * such as `csmd:GUID` names no ASI type, which no manifest's set imports. A kind standing in
+ * several sets takes the union, reading `wildcard-global-declarations`'s limit. The codec resolves
+ * the QName against the element's in-scope namespaces, and the law reads this set. An element of an
+ * anonymous declared type admits no named type, since none derives from an anonymous one: its kind
+ * has no `XsiType` row, and its `AnonymousType` row says that it stands with no type at all, its
+ * own with no `xsi:type`.
  *
  * A foreign element has no declaration, so no derivation constrains its `xsi:type`, and this law
  * selects it out. Its `xsi:type` still governs it where the QName resolves to a type its document's
  * schema set holds or a built-in (§3.3.4, Schema-Validity Assessment (Element), clause 1.2; spec
- * reading 60): the codec writes that type as the element's `OpenElementType`, and none for a name
- * no such type has, which leaves the element to lax assessment. The foreign governor laws judge it
- * where the type is simple, through the attribute grammar's `Governor`
+ * reading `wildcard-xsi-type`): the codec writes that type as the element's `OpenElementType`, and
+ * none for a name no such type has, which leaves the element to lax assessment. The foreign
+ * governor laws judge it where the type is simple, through the attribute grammar's `Governor`
  * (`#pantry/grammar/attributes.ts`): it admits the four `xsi:` names alone (Element Locally Valid
  * (Type), clause 3.1.1), holds no element child (clause 3.1.2, law "Foreign simple content") and
  * holds text in the type's `TypeText` domain (clause 3.1.3, `TextDomain`). A complex type is spec
- * reading 50's unchecked limit.
+ * reading `unchecked-xsi-type`'s unchecked limit.
  */
 import { Option, Result, Schema } from "effect";
 import { idField, roster, sourced } from "#pantry/grammar/closed.ts";

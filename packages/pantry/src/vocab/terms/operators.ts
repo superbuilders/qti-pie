@@ -4,7 +4,7 @@
  */
 
 /**
- * The kinds of the rounding operators, whose `figures` reading 119 reads.
+ * The kinds of the rounding operators, whose `figures` reading `rounding-figures` reads.
  */
 export const roundingKinds = ["qti-equal-rounded", "qti-round-to"] as const;
 

@@ -14,9 +14,10 @@
  * rule over a query (`#pantry/qti/overlay-queries/declaration.ts`).
  *
  * An outcome declaration's normal scale is its attributes' values too: `MasteryValue`,
- * `NormalMaximum` and `NormalMinimum` (`#pantry/qti/overlay-queries/declaration.ts`) are queries
- * of the doubles those values name, the last where the declaration writes none being the XSD's
- * default (spec reading 149), and "Mastery range" orders each pair of them as doubles.
+ * `NormalMaximum` and `NormalMinimum` (`#pantry/qti/overlay-queries/declaration.ts`) are queries of
+ * the doubles those values name, the last where the declaration writes none being the XSD's default
+ * (spec reading `normal-minimum-default`), and "Mastery range" orders each pair of them as
+ * doubles.
  *
  * No field stands for an attribute its element does not write: a value that may be missing is a row
  * of its own relation, or a row of a query, only where it is (AGENTS.md, Schema intent). A record
@@ -24,8 +25,9 @@
  * (lane NIL's audit, B12), and one that reads its cardinality those that have one.
  *
  * A declaration is judged by every law that does not read what it lacks, whatever its identifier,
- * cardinality and base type spell (spec readings 157 and 158): each that is unwritten, or spells
- * nothing, is absent from the views alone, so AL3 or its value domain refuses it alone.
+ * cardinality and base type spell (spec readings `unnamed-declaration` and
+ * `unspelled-declaration`): each that is unwritten, or spells nothing, is absent from the views
+ * alone, so AL3 or its value domain refuses it alone.
  *
  * Every check is named by its oracle law (`#pantry/test/oracle.ts` `LawName`) with spaces written
  * as underscores, since a check's name is an identifier; no law name holds an underscore.
@@ -47,7 +49,7 @@ import { itemKind, testKind } from "#pantry/vocab/terms/tests.ts";
  * A name that names something, whole: an NCName (`ncNamePattern`). It is `IdentifierDType`'s
  * lexical space once collapsed, which AL1 holds each written identifier to; and the reference
  * member of a literal-or-reference union (`VariableStringDType`, `xs:NCName`), which a reference's
- * name matches and no other value does (spec reading 152).
+ * name matches and no other value does (spec reading `ncname-names`).
  */
 export const namePattern = Text.pattern<string>(`^${ncNamePattern}$`);
 
@@ -74,11 +76,11 @@ export const valueSetKinds = ["qti-default-value", "qti-correct-response"] as co
  * (§2.2.2.2: "must not appear in a 'response declaration'") and `completionStatus` (§2.2.2.3: "must
  * not appear in an outcome declaration"), the reserved identifiers of tables 4.5.1, 5.115.1 and
  * 5.151.1 ("The identifiers of the built-in session variables are reserved. They are
- * completionStatus, numAttempts and duration"). Spec reading 72: the name is spelled exactly, with
- * no alias, so `completion_status` is an ordinary identifier. Each name is read once, though
- * `BuiltInVariable` holds `duration` under an item's roots and a test's alike. Which of them a
- * declaration may not name depends on its document's root: {@link itemSessionVariables} and
- * {@link testSessionVariables}.
+ * completionStatus, numAttempts and duration"). Spec reading `completion-status-name`: the name is
+ * spelled exactly, with no alias, so `completion_status` is an ordinary identifier. Each name is
+ * read once, though `BuiltInVariable` holds `duration` under an item's roots and a test's alike.
+ * Which of them a declaration may not name depends on its document's root:
+ * {@link itemSessionVariables} and {@link testSessionVariables}.
  *
  * The built-in context variable `QTI_CONTEXT` is no session variable: the implementation guide
  * declares it explicitly, "an explicit (though unnecessary) qti-context-declaration of QTI_CONTEXT"
@@ -94,7 +96,8 @@ export const sessionVariables = [
 
 /**
  * The session variables an item's declaration may not name: the three of an item, `numAttempts`,
- * `duration` and `completionStatus` (reading 168), the ones an item's processing holds.
+ * `duration` and `completionStatus` (reading `test-reserved-names`), the ones an item's processing
+ * holds.
  */
 export const itemSessionVariables: readonly string[] = [
   ...new Set(
@@ -109,7 +112,7 @@ export const itemSessionVariables: readonly string[] = [
 /**
  * The session variables a test's declaration may not name: `duration` alone, the one a test's
  * processing holds beside its context, so a test's own `numAttempts` and `completionStatus` are
- * ordinary names there (spec reading 168).
+ * ordinary names there (spec reading `test-reserved-names`).
  */
 export const testSessionVariables: readonly string[] = [
   ...new Set(
@@ -126,7 +129,8 @@ export const testSessionVariables: readonly string[] = [
  * (information model §2.2.2.1: "There is one built-in context variable: 'QTI_CONTEXT', which has
  * record cardinality"; the implementation guide's "explicit (though unnecessary)
  * qti-context-declaration of QTI_CONTEXT", §3.7.11). A declaration of another kind or cardinality
- * would make one identifier name two variables, which spec reading 74 refuses.
+ * would make one identifier name two variables, which spec reading `identifier-names-one-variable`
+ * refuses.
  */
 export const contextVariable = {
   cardinality: "record",
@@ -164,15 +168,15 @@ type TextTerm = Term<string, unknown, unknown, "text">;
 
 /**
  * State that one `xs:double` form is no greater than another, as `Slider_bounds` and
- * `Mastery_range` order a pair (reading 9). A form in `xs:double`'s lexical space
- * (`doublePattern` of `#pantry/qti/operators.ts`, XML Schema 1.0's, reading 71's edition) is the
- * double grizzle's `Text.parseDouble` maps it to, XML Schema 1.1's doubleLexicalMap (Part 2
- * §3.3.5.2, reading 144), of any digits and any exponent. The rule says what it holds of every
- * other pair in its own arms (grizzle's agent guide: never make an otherwise stand for a value): a
- * pair with a form outside the lexical space holds, since a form that is no `xs:double` has no
- * value and its value domain alone refuses it; and a pair with `NaN` holds, since `NaN` is ordered
- * against nothing. Each parse's otherwise is never read, since an arm holds wherever its guard
- * fails. A grizzle check is a predicate and a `Logic.when`'s branch a term
+ * `Mastery_range` order a pair (reading `schematron-intent`). A form in `xs:double`'s lexical space
+ * (`doublePattern` of `#pantry/qti/operators.ts`, XML Schema 1.0's, reading `anyuri-lexical`'s
+ * edition) is the double grizzle's `Text.parseDouble` maps it to, XML Schema 1.1's doubleLexicalMap
+ * (Part 2 §3.3.5.2, reading `bounded-double`), of any digits and any exponent. The rule says what
+ * it holds of every other pair in its own arms (grizzle's agent guide: never make an otherwise
+ * stand for a value): a pair with a form outside the lexical space holds, since a form that is no
+ * `xs:double` has no value and its value domain alone refuses it; and a pair with `NaN` holds,
+ * since `NaN` is ordered against nothing. Each parse's otherwise is never read, since an arm holds
+ * wherever its guard fails. A grizzle check is a predicate and a `Logic.when`'s branch a term
  * (grizzle's README, "Parsing text"), so the arms stand beside the comparison rather than in a
  * guard's otherwise.
  *

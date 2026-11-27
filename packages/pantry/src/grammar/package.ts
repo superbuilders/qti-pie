@@ -4,9 +4,10 @@
  *
  * A text whose legal values are fixed is a roster, so a resource's `type` is a `ResourceType`
  * handle, spelled exactly as its lexical form, which is how the attribute's lexical form derives
- * its code. Which types a resource may name is the content-packaging XSD's enumeration, which
- * the attribute's value domain states (spec reading 67), so no relation states it again.
- * `RootOfType` is a set of those handles' rows, and grizzle packs it into a constant with no table.
+ * its code. Which types a resource may name is the content-packaging XSD's enumeration, which the
+ * attribute's value domain states (spec reading `manifest-profile`), so no relation states it
+ * again. `RootOfType` is a set of those handles' rows, and grizzle packs it into a constant with no
+ * table.
  */
 import { closed, idField, indexed, roster } from "#pantry/grammar/closed.ts";
 import type { IdField, Indexed, Roster } from "#pantry/grammar/closed.ts";
@@ -41,8 +42,8 @@ export interface PackageGrammar<K extends string = string> {
    * `RootOfType`, the set of (resource type, root element kind) pairs: each type that lists
    * documents with the kinds their roots may be, the law on a `Document`'s (resource type, root
    * kind) cell (`root-type-reverse`). Each type but one has one root; an included fragment's type
-   * has every kind an include stands for (spec reading 114). A type absent from it lists no
-   * document.
+   * has every kind an include stands for (spec reading `include-as-information-model`). A type
+   * absent from it lists no document.
    */
   readonly rootOfType: Indexed<readonly [IdField<"type", string>, IdField<"root", K>], readonly []>;
 }

@@ -95,7 +95,7 @@ export const spokenWithin = (
  * content ({@link spokenWithin}): a Gap Match's sentence, its gapped content, which stands outside
  * every control of the Gap Match, the gaps and the bank apart. None for every other kind, whose own
  * content stands inside its controls (a choice's in its option, a gap text's in its chip) or whose
- * parts its island speaks itself, beside each choice (spec reading 237).
+ * parts its island speaks itself, beside each choice (spec reading `read-aloud-controls`).
  *
  * @param interaction The interaction.
  * @returns Its sentence, for a Gap Match; else none.

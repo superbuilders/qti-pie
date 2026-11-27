@@ -17,17 +17,18 @@
  * types, so `assemble` parses rows into it once. A foreign element holds what any element holds:
  * XML Schema assesses its content laxly, against `xs:anyType`, whose content is a `##any` `lax`
  * wildcard, so its children are elements of a kind where a global declaration names them and
- * foreign elements otherwise (XML Schema 1.0 Part 1, §3.4.7 and §3.10.4; spec readings 30 and 57).
+ * foreign elements otherwise (XML Schema 1.0 Part 1, §3.4.7 and §3.10.4; spec readings
+ * `qti-in-annotation-xml` and `lax-content-prose-rules`).
  *
  * A tree is written in a vocabulary's closed handles ({@link XdmVocabulary}) and holds no ids, so
  * two reads of one document are equal trees, and {@link flatten} names each node by its position in
- * document order, so two reads of one document are equal rows too.
- * A name no handle stands for, an open attribute's or a foreign element's, is kept exactly beside
- * the handle of its class, and every element and attribute keeps the prefix its name is written
- * with, so the document is written back under the names it was read under (spec reading 47). Order
- * is the array order of each list: children, namespaces and attributes are in source order. Each
- * element's `children`, `attributes` and `namespaces` are the families `Node`'s count fields of
- * those names count (plan §1.3), so the tree is the nested shape a family write takes.
+ * document order, so two reads of one document are equal rows too. A name no handle stands for, an
+ * open attribute's or a foreign element's, is kept exactly beside the handle of its class, and
+ * every element and attribute keeps the prefix its name is written with, so the document is written
+ * back under the names it was read under (spec reading `xsi-attributes`). Order is the array order
+ * of each list: children, namespaces and attributes are in source order. Each element's `children`,
+ * `attributes` and `namespaces` are the families `Node`'s count fields of those names count (plan
+ * §1.3), so the tree is the nested shape a family write takes.
  */
 import { Option } from "effect";
 import type { Types } from "effect";
@@ -295,8 +296,8 @@ export interface XdmForeignElement<V extends XdmVocabulary> {
    * `xsi:type` names, where that resolves to a type its document's schema set holds or a built-in,
    * and none otherwise. No declaration assesses a foreign element, so its `xsi:type` alone gives it
    * a type, against which XML Schema then assesses it (XML Schema 1.0 Part 1, §3.3.4,
-   * Schema-Validity Assessment (Element), clause 1.2; spec reading 60): a simple type's text is
-   * checked, a complex one's is reading 50's limit.
+   * Schema-Validity Assessment (Element), clause 1.2; spec reading `wildcard-xsi-type`): a simple
+   * type's text is checked, a complex one's is reading `unchecked-xsi-type`'s limit.
    */
   readonly governs: Option.Option<string>;
   readonly name: ExpandedName;
@@ -341,7 +342,7 @@ export interface XdmAttribute<V extends XdmVocabulary> {
  * An attribute's name: a closed name's handle, or an open name (`OpenName` of
  * `#pantry/vocab/open.ts`), which carries what its class leaves of its exact name. Each keeps the
  * prefix the name is written with, where its namespace has one, so the attribute is written back
- * under the name it was read under (spec reading 47).
+ * under the name it was read under (spec reading `xsi-attributes`).
  */
 export type XdmAttributeName<V extends XdmVocabulary> = XdmClosedName<V> | OpenName;
 

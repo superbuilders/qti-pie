@@ -183,7 +183,7 @@ const CopiedId = derived(
 /**
  * The assemblies that hold an external include, by the assembly: an instance whose document holds
  * an include whose href resolves outside the package, stored as written and never fetched (spec
- * reading 115).
+ * reading `include-target`).
  */
 const externalAssemblies = query(QtiBase).rule((r) => {
   const { assembly, document, package: pkg } = v(Instance, "instance");
@@ -228,8 +228,8 @@ const shareSrcs = attributeValues("src", ["m:share"]);
  * reference, `#` and one or more characters, as the oracle reads it (`fragmentOfSrc`,
  * `#pantry/test/oracle.ts`). Its length is stated as `value ≠ "#"`, which beside the `#` it starts
  * with is `charLength(value) > 1`, since grizzle reads a length in no query. A `src` whose value
- * has text before its `#`, or none after it, names a file (spec reading 103), which no law here
- * reads.
+ * has text before its `#`, or none after it, names a file (spec reading `file-references`), which
+ * no law here reads.
  */
 const shareSources = query(QtiBase).rule((r) => {
   const { package: pkg, path, start, value, valueDigest } = v(shareSrcs, "src");
@@ -328,12 +328,14 @@ const inheritedCatalogScopes = select(CatalogScopeNode, (s) =>
  *   text's IDREF tokens concatenate to its text, an ID's being none;
  * - **"Idref target":** an IDREF of a document in no assembly names an admitted binding of its
  *   document, and a placed one a binding of its assembly;
- * - **"SSML lexicon reference"** (spec reading 3; SSML 1.1 §3.1.5.2 and §3.1.5.1): a `lookup`'s `ref`
- *   names a `lexicon` of its own fragment, the one statement that a lookup names a `lexicon`;
- * - **"SSML trim mark"** (spec reading 3; SSML 1.1 §3.1.1.1: "Only markers defined once in the
- *   document, i.e. that are unique, are permitted as the value of either startmark or endmark"): a
- *   `speak`'s `startmark` and `endmark` each name a `mark` its own fragment defines exactly once, a
- *   `speak` being its own fragment ({@link TrimmedMark}). A mark name may otherwise repeat.
+ * - **"SSML lexicon reference"** (spec reading `ssml-document-is-fragment`; SSML 1.1 §3.1.5.2 and
+ *   §3.1.5.1): a `lookup`'s `ref` names a `lexicon` of its own fragment, the one statement that a
+ *   lookup names a `lexicon`;
+ * - **"SSML trim mark"** (spec reading `ssml-document-is-fragment`; SSML 1.1 §3.1.1.1: "Only markers
+ *   defined once in the document, i.e. that are unique, are permitted as the value of either
+ *   startmark or endmark"): a `speak`'s `startmark` and `endmark` each name a `mark` its own
+ *   fragment defines exactly once, a `speak` being its own fragment ({@link TrimmedMark}). A mark
+ *   name may otherwise repeat.
  */
 export const identityOverlayLawsByName = {
   "DocumentId key": declared("DocumentId key", [

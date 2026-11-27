@@ -49,9 +49,9 @@ export const noLanguage = "";
  * The types of the documents a package's records are read from: its manifest's, `manifest`, the one
  * document of that type (`RootOfType`'s check), whose `cp:metadata` holds the package's and each
  * resource's records; and an external record file's, `resourcemetadata/xml`, whose root is a
- * `lom:lom` (spec reading 81: an external LOM metadata file, assessed against the loose LOM
- * binding; spec reading 122 places a record in a resource's metadata, the manifest's own or such
- * a file). The manifest is the package's one
+ * `lom:lom` (spec reading `wildcard-global-declarations`: an external LOM metadata file, assessed
+ * against the loose LOM binding; spec reading `lom-learning-resource-type` places a record in a
+ * resource's metadata, the manifest's own or such a file). The manifest is the package's one
  * `imsmanifest.xml` (IMS Content Packaging 1.2), and a `cp:metadata` of any other document
  * describes no part of the package (170356bd's ruling), so its `lom:*` elements are no record's.
  */

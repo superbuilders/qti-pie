@@ -1,18 +1,18 @@
 /**
  * A content reference resolves to a built-in variable of the item whose assembly it resolves in
- * (spec reading 29, the UP audit's A63) only where the built-in stands as a declaration kind the
- * reference may name: an item's built-ins are `numAttempts`, `duration`, `completionStatus` and
- * `QTI_CONTEXT` (information model §2.2.2, §2.2.2.1), so a feedback may name `completionStatus` and
- * no other, and "Feedback reference" refuses one that names `numAttempts`.
+ * (spec reading `duration-variable-type`, the UP audit's A63) only where the built-in stands as a
+ * declaration kind the reference may name: an item's built-ins are `numAttempts`, `duration`,
+ * `completionStatus` and `QTI_CONTEXT` (information model §2.2.2, §2.2.2.1), so a feedback may name
+ * `completionStatus` and no other, and "Feedback reference" refuses one that names `numAttempts`.
  *
  * The box is where the reference stands, in the item's own document or in a fragment it includes
- * (spec reading 117), by every built-in name, by each content reference and variable reference the
- * content makes ({@link references}): a feedback's outcome, a template's variable, a printed
- * variable's name and its `base`, and a portable custom interaction's context variable. Every
- * package declares none of the names, so each reference resolves to the item's built-in or to
- * nothing. Every case is judged by the law oracle and by the schema's own laws over the import's
- * rows (`#pantry/test/host-judge.ts`), and the laws each side breaks must be one set; the oracle's
- * verdict is held to the specification's table, written by hand.
+ * (spec reading `fragment-placement`), by every built-in name, by each content reference and
+ * variable reference the content makes ({@link references}): a feedback's outcome, a template's
+ * variable, a printed variable's name and its `base`, and a portable custom interaction's context
+ * variable. Every package declares none of the names, so each reference resolves to the item's
+ * built-in or to nothing. Every case is judged by the law oracle and by the schema's own laws over
+ * the import's rows (`#pantry/test/host-judge.ts`), and the laws each side breaks must be one set;
+ * the oracle's verdict is held to the specification's table, written by hand.
  */
 import type { Law } from "@bjornpagen/grizzle";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -56,7 +56,7 @@ const names = ["QTI_CONTEXT", "completionStatus", "duration", "numAttempts"] as 
  * The declaration kinds each reference may name, by hand: a feedback's outcome (§5.49.1), a
  * template element's template variable (§5.145.1), a printed variable's outcome or template
  * variable, by its name and by its `base` (§7.30.6), and a context variable's context declaration
- * (reading 92).
+ * (reading `binding-and-count-sentences`).
  */
 const namable = {
   context: ["context"],

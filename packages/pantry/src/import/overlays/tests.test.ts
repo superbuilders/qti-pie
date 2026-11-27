@@ -2,12 +2,15 @@
  * The bank layer's overlay builders' free tests: the rows `rowsOf` and `assembledRowsOf` write
  * restate the documents, as a direct walk of each XDM tree reads them.
  *
- * - **Includes** (readings 114, 115 and 117): each include is a site, external or not, its target and
- *   its placement written exactly where the include names a document it may stand for.
+ * - **Includes** (readings `include-as-information-model`, `include-target` and
+ *   `fragment-placement`): each include is a site, external or not, its target and its placement
+ *   written exactly where the include names a document it may stand for.
  * - **Pieces**: a lexical form's split restates it, its value collapsed.
- * - **Names** (readings 147 and 152): a bank's root section and item refs, and an item's stimulus
- *   refs, each named exactly where its identifier names something, collapsed.
- * - **Hrefs** (reading 102): an item ref's href is compared by its entry path where it resolves.
+ * - **Names** (readings `unidentified-parts` and `ncname-names`): a bank's root section and item
+ *   refs, and an item's stimulus refs, each named exactly where its identifier names something,
+ *   collapsed.
+ * - **Hrefs** (reading `href-resolution`): an item ref's href is compared by its entry path where it
+ *   resolves.
  */
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
@@ -171,7 +174,7 @@ const includeRowsOf = (include: XdmDocument<Composed>): TestRows | undefined =>
 
 describe("import/overlays/tests.ts, includes", () => {
   it("writes an include whose href resolves outside the package a site marked external, with no target and no Inclusion, so nothing fetches it", () => {
-    // Oracle: reading 115 and the href scopes of readings 35 and 102: a scheme, a leading `/` and
+    // Oracle: reading `include-target` and the href scopes of readings `absolute-hrefs` and `href-resolution`: a scheme, a leading `/` and
     // a path that climbs above the package root are outside the package; such an include is
     // stored as written and never resolved, so it names no document of the package.
     for (const href of ["https://example.org/f.xml", "/s.xml", "../s.xml"]) {
@@ -189,7 +192,7 @@ describe("import/overlays/tests.ts, includes", () => {
   });
 
   it("marks an include whose href stays in the package not external: a listed document is its target, and a missing entry and an absent href leave it none, which Include target refuses", () => {
-    // Oracle: reading 115: an in-package include names a document the manifest lists, or the
+    // Oracle: reading `include-target`: an in-package include names a document the manifest lists, or the
     // package is refused under "Include target"; an include with no href names none.
     const cases: readonly (readonly [string, Attributes, number])[] = [
       ["listed document", [["href", "s.xml"]], 1],
@@ -212,7 +215,7 @@ describe("import/overlays/tests.ts, includes", () => {
   });
 
   it("writes no site for an include under a parent whose model gives no Include, as under qti-custom-operator", () => {
-    // Oracle: reading 114: only a parent whose content model holds an explicit include particle
+    // Oracle: reading `include-as-information-model`: only a parent whose content model holds an explicit include particle
     // reads an include as Include; `qti-custom-operator`'s lax content (operator-foreign-content's
     // shape) holds the include as written, so it is no site and needs no target.
     for (const href of ["part.xml", "https://example.org/f.xml"]) {
@@ -240,7 +243,7 @@ describe("import/overlays/tests.ts, includes", () => {
   });
 
   it("places a child instance for an include only where it may stand for its target's root: one under the item's body, none under a paragraph, which Include root refuses", () => {
-    // Oracle: reading 114 and 117: an include places its target only where `IncludeRoot` gives its
+    // Oracle: readings `include-as-information-model` and `fragment-placement`: an include places its target only where `IncludeRoot` gives its
     // parent that target's root; under `p` a `div` fragment may not stand, so "Include root" refuses
     // the include, the fragment places nowhere in the item, and is judged as its own document.
     const fragment = documentOf(
@@ -388,8 +391,9 @@ const identifiedKinds: ReadonlySet<string> = new Set([
  * Read each identified element's collapsed identifier by a direct pre-order walk of the XDM tree,
  * which numbers the document node 0 and each element after its parent, as a tree's `start` does:
  * none for one that writes no identifier, nor for a section or an item ref whose collapsed
- * identifier is empty, which is no NCName and so names nothing (spec reading 152). Empty is the
- * one such form {@link identifierForms} writes; a stimulus ref keeps its row whatever it spells.
+ * identifier is empty, which is no NCName and so names nothing (spec reading `ncname-names`). Empty
+ * is the one such form {@link identifierForms} writes; a stimulus ref keeps its row whatever it
+ * spells.
  *
  * @param doc - The document.
  * @returns Each identified element's start, with its identifier collapsed, where it has a row.
@@ -465,8 +469,8 @@ describe("import/overlays/tests.ts, names", () => {
     "writes a Named or StimulusRef row exactly where its element writes an identifier that names something, holding it collapsed",
     (ctx) =>
       // Oracle: a second implementation, a direct pre-order walk of the XDM tree, with XML Schema
-      // Part 2 §4.3.6's collapse, reading 147: an element that writes no identifier names nothing,
-      // so it has no row, and reading 152: nor does a bank's section or item ref whose identifier
+      // Part 2 §4.3.6's collapse, reading `unidentified-parts`: an element that writes no identifier names nothing,
+      // so it has no row, and reading `ncname-names`: nor does a bank's section or item ref whose identifier
       // is blank.
       // Bound: a bank of a root section and two item refs, and an item of two stimulus refs, each
       // identifier unwritten, bare, padded or whitespace alone, 1,024.
@@ -513,7 +517,7 @@ describe("import/overlays/tests.ts, names", () => {
   it.effect(
     "writes no Named row for an item ref whose identifier is no NCName, and one for each that is",
     () =>
-      // Oracle: reading 152 and decision 457 (2), each case's rows written out by hand: an item ref
+      // Oracle: reading `ncname-names` and decision 457 (2), each case's rows written out by hand: an item ref
       // whose collapsed identifier is no NCName names nothing, so it has no Named row and its value
       // domain refuses it alone. Bound: a bank of two item refs, each identifier one of 1x (a
       // leading digit), x𝔸 (a character no NCName holds), S1 and a padded S2.
@@ -525,9 +529,9 @@ describe("import/overlays/tests.ts, names", () => {
   );
 
   it("writes a Named row for each name of a test, which heads an assembly of its own", () => {
-    // Oracle: reading 85's assembled documents, written out by hand: a test is assembled whether or
+    // Oracle: reading `inclusion-cycles`'s assembled documents, written out by hand: a test is assembled whether or
     // not it holds a site (`assembledRoots`), so its part, its section and its item ref each have a
-    // Named row (reading 86), and the test its AssembledDocument row. Bound: one test of one part,
+    // Named row (reading `test-identifier-namespace`), and the test its AssembledDocument row. Bound: one test of one part,
     // section and item ref.
     const test = documentOf(
       el(
@@ -601,7 +605,7 @@ describe("import/overlays/tests.ts, hrefs", () => {
     "compares an item ref's href by its entry path where it resolves, and by its path as written otherwise, at any directory",
     (ctx) =>
       // Oracle: a second implementation, the law oracle's own RFC 3986 resolver and its compared
-      // path (`#pantry/test/resolution.ts`), with reading 102: an href that resolves is compared
+      // path (`#pantry/test/resolution.ts`), with reading `href-resolution`: an href that resolves is compared
       // by its entry path, and one that does not by its path as written, its params aside, as a
       // manifest href is.
       // Bound: a bank at the root and two directories below it, its item ref writing each of 12

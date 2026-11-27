@@ -106,8 +106,9 @@ const spelledTypes: ReadonlySet<string> = new Set(
 );
 
 /**
- * Resolve a manifest href as the oracle does (readings 102 and 103): its value collapsed as an
- * `xs:anyURI`, against the manifest's path and the `xml:base` values in scope.
+ * Resolve a manifest href as the oracle does (readings `href-resolution` and `file-references`):
+ * its value collapsed as an `xs:anyURI`, against the manifest's path and the `xml:base` values in
+ * scope.
  *
  * @param href - The href, as written.
  * @param bases - The `xml:base` values in scope, outermost first.
@@ -468,13 +469,13 @@ const manifestBases = [undefined, "b/", "../b/", "http://x.org/", "a%zz/"] as co
 /**
  * The generated manifests: up to three resources, each of a document type, a type no document has
  * and a type no handle spells (named variant `unknown-type`), with or without an href (`no-href`),
- * an href with launch parameters or a fragment among them (`href-params`, reading 102), listing up
- * to three files drawn from two hrefs, so a file listed twice (`file-twice`) and a file two
- * resources list (`shared-file`) are drawn, and up to two dependencies, a resource's own identifier
- * among them (`self-dependency`). A manifest has its identifier or none, each resource its own
- * identifier, another's, the manifest's or none, and its href one of 9 or none (3 with a query or a
- * fragment, 4 that need resolving), listing up to 3 of 5 files, under 5 xml:base values on each of
- * the manifest, its resources and each resource.
+ * an href with launch parameters or a fragment among them (`href-params`, reading
+ * `href-resolution`), listing up to three files drawn from two hrefs, so a file listed twice
+ * (`file-twice`) and a file two resources list (`shared-file`) are drawn, and up to two
+ * dependencies, a resource's own identifier among them (`self-dependency`). A manifest has its
+ * identifier or none, each resource its own identifier, another's, the manifest's or none, and its
+ * href one of 9 or none (3 with a query or a fragment, 4 that need resolving), listing up to 3 of 5
+ * files, under 5 xml:base values on each of the manifest, its resources and each resource.
  */
 const manifests: Gen<ManifestCase> = (source) => ({
   manifestBase: source.draw(element(manifestBases)),
@@ -1170,7 +1171,7 @@ describe("import/overlays/package.ts, hrefs and references", () => {
       assert.deepStrictEqual(
         referenceCensus(kind, name),
         Option.some(form),
-        `${kind} ${name}: the builder's lookup against the closed relation's own rows (ReferenceAttribute, spec reading 103), which the database's copy into Reference selects by`,
+        `${kind} ${name}: the builder's lookup against the closed relation's own rows (ReferenceAttribute, spec reading \`file-references\`), which the database's copy into Reference selects by`,
       );
 
       const declared = declaredWhiteSpace(kind, name);
@@ -1434,8 +1435,8 @@ describe("import/overlays/package.ts, a srcset's image candidates", () => {
      * Oracle: the specification, the HTML Standard's "parse a srcset attribute" (§4.8.4.3.10) on
      * its own forms: candidates separated by commas, a URL then its descriptors, a URL's trailing
      * commas ending it with none, a comma inside a URL kept, and whitespace and commas after the
-     * last candidate a trail; each candidate's URL is one reference (spec reading 102).
-     * Bound: the named values, each by hand.
+     * last candidate a trail; each candidate's URL is one reference (spec reading
+     * `href-resolution`). Bound: the named values, each by hand.
      */
     const cases = [
       ["a.png", [["", "a.png", ""]], ""],

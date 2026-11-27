@@ -284,7 +284,7 @@ create function p3.integer_of(v p3.val) returns numeric language sql immutable a
 $$;
 -- A number rounded as round-to and equal-rounded round it: QTI's deciding digit (information model 2.11.3.43, "If the
 -- deciding digit is 5 or greater, the nth digit is increased by 1"), read from an integer's digits or a float's exact
--- binary value (spec readings 209 and 235), so 0.175, whose double lies below it, rounds to 0.17 at 2 places and 0.125
+-- binary value (spec readings `format-float-rounding` and `float-binary64`), so 0.175, whose double lies below it, rounds to 0.17 at 2 places and 0.125
 -- to 0.13; to significant figures or decimal places; NULL for a value that is no single number (numbered gives it
 -- empty), for NaN, or for figures below the mode's least (1 significant figure, 0 decimal places).
 create function p3.rounded(figures numeric, mode text, v p3.val) returns numeric language plpgsql immutable as $$

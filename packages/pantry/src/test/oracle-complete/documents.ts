@@ -189,8 +189,8 @@ export const documentMutations = {
     over: "package",
   },
   /**
-   * Declaration not reserved (readings 72 and 168): a declaration of a built-in session variable
-   * in an item, any of the three.
+   * Declaration not reserved (readings `completion-status-name` and `test-reserved-names`): a
+   * declaration of a built-in session variable in an item, any of the three.
    */
   "Declaration not reserved": {
     law: "Declaration not reserved",
@@ -249,8 +249,9 @@ export const documentMutations = {
     over: "package",
   },
   /**
-   * Mastery range (reading 9): the item's SCORE given a mastery value above its normal maximum or
-   * below its normal minimum, or a normal range that leaves its mastery value out.
+   * Mastery range (reading `schematron-intent`): the item's SCORE given a mastery value above its
+   * normal maximum or below its normal minimum, or a normal range that leaves its mastery value
+   * out.
    */
   "Mastery range": {
     law: "Mastery range",
@@ -346,8 +347,8 @@ export const documentMutations = {
     over: "package",
   },
   /**
-   * Reserved type (§2.2.2.1, reading 74): QTI_CONTEXT declared as an outcome, where it is built in
-   * as the context record.
+   * Reserved type (§2.2.2.1, reading `identifier-names-one-variable`): QTI_CONTEXT declared as an
+   * outcome, where it is built in as the context record.
    */
   "Reserved type": {
     law: "Reserved type",

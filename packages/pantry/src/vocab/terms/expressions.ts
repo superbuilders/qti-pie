@@ -17,7 +17,7 @@ export const attributeTypedKinds = [
  * The attribute-typed kinds whose typing attribute an element may omit, so that its absence types
  * the element: a test variables' `base-type` (`TestVariablesDType`, `use="optional"`), whose
  * absence matches every integer and float variable and types it `unknown`, or float where it is
- * weighted (spec reading 167). A base value's `base-type` and a math
+ * weighted (spec reading `weighted-test-variables`). A base value's `base-type` and a math
  * operator's `name` are required (`BaseValueDType` and `MathOperatorDType`, `use="required"`), so
  * an element that omits one is AL3's alone, and holds no typing row.
  */

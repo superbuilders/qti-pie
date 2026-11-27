@@ -10,10 +10,11 @@
  *
  * - **the manifest** lists every entry once, with a LOM record whose identifier and title are its
  *   document's for each item, dependencies, a qtiMetadata record, a language string, a learning
- *   resource type of the LOM vocabulary whose value, `exercise`, reading 122 allows, and a web
- *   content resource outside the package, its href and its file's naming one URL as written
- *   (reading 102: "The Href of the associated File object shall reference the same file as the
- *   Resource{ Href }", IMS Content Packaging 1.2 §6.6.2), stored and never fetched;
+ *   resource type of the LOM vocabulary whose value, `exercise`, reading
+ *   `lom-learning-resource-type` allows, and a web content resource outside the package, its href
+ *   and its file's naming one URL as written (reading `href-resolution`: "The Href of the
+ *   associated File object shall reference the same file as the Resource{ Href }", IMS Content
+ *   Packaging 1.2 §6.6.2), stored and never fetched;
  * - **the item** declares a context variable, mapped responses of an identifier and of each base type
  *   whose map keys have typed values (integer, float, point, pair and directed pair), an area
  *   mapping, outcomes with a normal range, a match table, an interpolation table and a record
@@ -24,16 +25,17 @@
  *   `logbase` and an argument, a table whose cell's `headers` names its header, a printed variable
  *   whose base names a variable, a `q` with no quotation mark beside or inside it, a paragraph
  *   whose closed `data-ssml` holds one member with its required property (so the package writes
- *   `DataSsml`, `DataSsmlMember` and `DataSsmlProperty`, spec reading 177), template and feedback
- *   content, choice, hottext, hotspot, slider, gap match (one gap text and one gap, bound to a
- *   multiple directed pair response, so a gap writes its `GapInteraction`) and portable custom
- *   interactions (the item's holds a foreign element in its markup's `template` and names its
- *   module by the `module` attribute, the included fragment's by both forms, so the package writes
- *   each form of "PCI module source"), a catalog whose keyword-translation card holds two entries
- *   (the first its default, in `es`, the second in `de`, languages the item's LOM does not list,
- *   since a catalog sits outside the body) and whose sign-language card names the image as its
- *   file, a span in the body whose `data-catalog-idref` names the catalog, and response processing
- *   that holds a `qti-equal-rounded`, a `qti-round-to` and a `qti-equal` with a `tolerance`;
+ *   `DataSsml`, `DataSsmlMember` and `DataSsmlProperty`, spec reading `data-ssml-judgement`),
+ *   template and feedback content, choice, hottext, hotspot, slider, gap match (one gap text and
+ *   one gap, bound to a multiple directed pair response, so a gap writes its `GapInteraction`) and
+ *   portable custom interactions (the item's holds a foreign element in its markup's `template` and
+ *   names its module by the `module` attribute, the included fragment's by both forms, so the
+ *   package writes each form of "PCI module source"), a catalog whose keyword-translation card
+ *   holds two entries (the first its default, in `es`, the second in `de`, languages the item's LOM
+ *   does not list, since a catalog sits outside the body) and whose sign-language card names the
+ *   image as its file, a span in the body whose `data-catalog-idref` names the catalog, and
+ *   response processing that holds a `qti-equal-rounded`, a `qti-round-to` and a `qti-equal` with a
+ *   `tolerance`;
  * - **a second item** whose response processing is a published template, and which holds a catalog
  *   `cat2` that the included fragment's `data-catalog-idref` names, a reference the schema resolves
  *   in each placement;
@@ -46,8 +48,8 @@
  *   are their items' own (QTI §4.1.1);
  * - **the test** places the first item in a section that selects with replacement, and an item
  *   outside the package by an external href, and its outcome processing reads the first by a
- *   numbered reading and the second by a link reading (spec readings 88 and 110), so the package
- *   writes `NumberedReading` and `LinkReading`;
+ *   numbered reading and the second by a link reading (spec readings `numbered-reference` and
+ *   `mapping-and-default-names`), so the package writes `NumberedReading` and `LinkReading`;
  * - **the usage data** holds a dated statistic with a typed value;
  * - **an image**, which two elements of the item reference, and its card's file.
  */
@@ -343,11 +345,12 @@ const itemOf = (members: MemberCounts): string =>
 
 /**
  * The second item: one choice interaction, scored by the published match-correct template, and an
- * included fragment (spec reading 117) whose text entry binds the item's `TEXT`, whose hottext
- * interaction binds its `WORD`, whose portable custom interaction binds its `WIDGET2` and reads its
- * context variable `CTX2`, whose template inline names its template variable `SHOWN`, and whose
- * printed variable and feedback inline name its `SCORE` and its identifier outcome `FEEDBACK`. It
- * holds an `m:mi` whose id the fragment's `m:share` names (reading 117).
+ * included fragment (spec reading `fragment-placement`) whose text entry binds the item's `TEXT`,
+ * whose hottext interaction binds its `WORD`, whose portable custom interaction binds its `WIDGET2`
+ * and reads its context variable `CTX2`, whose template inline names its template variable `SHOWN`,
+ * and whose printed variable and feedback inline name its `SCORE` and its identifier outcome
+ * `FEEDBACK`. It holds an `m:mi` whose id the fragment's `m:share` names (reading
+ * `fragment-placement`).
  */
 const templatedItem = [
   declaration,
@@ -383,15 +386,15 @@ const templatedItem = [
 ].join("\n");
 
 /**
- * The fragment the second item includes (spec readings 114 and 117): a division holding an ID, a
- * text entry, whose `response-identifier`, an IDREF (reading 14), names the item's `TEXT`, a
- * hottext interaction naming its `WORD`, whose hottext counts among the item's assembly's, a
- * portable custom interaction naming its `WIDGET2` and its context variable `CTX2`, a template
- * inline naming its template variable `SHOWN`, a printed variable naming its `SCORE` and a
- * feedback inline naming its identifier outcome `FEEDBACK`, each resolved among the item's
- * declarations; its
- * `xml:lang`, which the item's record lists (R26 in place); and an `m:share` naming the item's
- * `m:mi`, resolved in the item's assembly.
+ * The fragment the second item includes (spec readings `include-as-information-model` and
+ * `fragment-placement`): a division holding an ID, a text entry, whose `response-identifier`, an
+ * IDREF (reading `text-entry-idrefs`), names the item's `TEXT`, a hottext interaction naming its
+ * `WORD`, whose hottext counts among the item's assembly's, a portable custom interaction naming
+ * its `WIDGET2` and its context variable `CTX2`, a template inline naming its template variable
+ * `SHOWN`, a printed variable naming its `SCORE` and a feedback inline naming its identifier
+ * outcome `FEEDBACK`, each resolved among the item's declarations; its `xml:lang`, which the item's
+ * record lists (R26 in place); and an `m:share` naming the item's `m:mi`, resolved in the item's
+ * assembly.
  */
 const fragment = [
   declaration,
@@ -415,11 +418,11 @@ const fragment = [
 
 /**
  * The third item: a score and response processing that includes a response rule fragment (spec
- * reading 117), whose references name the item's `SCORE` and its built-in `numAttempts`; and a
- * portable custom interaction whose markup's template holds a foreign element whose text an
- * `xsi:type` gives `NonNegativeDoubleDType`, a bounded double (spec reading 144). It is here, not
- * in the first item's portable custom interaction, whose one foreign element the oracle's mutations
- * draw.
+ * reading `fragment-placement`), whose references name the item's `SCORE` and its built-in
+ * `numAttempts`; and a portable custom interaction whose markup's template holds a foreign element
+ * whose text an `xsi:type` gives `NonNegativeDoubleDType`, a bounded double (spec reading
+ * `bounded-double`). It is here, not in the first item's portable custom interaction, whose one
+ * foreign element the oracle's mutations draw.
  */
 const ruledItem = [
   declaration,
@@ -495,9 +498,10 @@ const section = [
 
 /**
  * The test: one part of two sections, the first selecting twice with replacement from the first
- * item, so `item1.1.SCORE` reads its first instance's `SCORE` (spec reading 88), and the second
- * placing an item outside the package, stored as written (SV-LAW-02), so `remote.SCORE` reads a
- * variable no document of the package declares (spec reading 110).
+ * item, so `item1.1.SCORE` reads its first instance's `SCORE` (spec reading `numbered-reference`),
+ * and the second placing an item outside the package, stored as written (SV-LAW-02), so
+ * `remote.SCORE` reads a variable no document of the package declares (spec reading
+ * `mapping-and-default-names`).
  */
 const test = [
   declaration,

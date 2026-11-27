@@ -10,13 +10,13 @@
  *   item's document (`package`, `path`): the item's own (`source`, `document` the item) where its
  *   processing holds a rule (information model §4.6.1, "if both are given the internal rules are
  *   still preferred"); else the published template its `template` names (pantry's
- *   `TemplateProcessing`, the ledger's closed `PublishedTemplateUri`; spec reading 51), whose
- *   document is the reference package's (the closed `PublishedTemplateDocument`), §4.6.2: "If a
- *   delivery system is able to determine the correct behaviour from the template identifier alone
- *   the template-location should be ignored"; else the template document its `template-location`
- *   locates in its package (pantry's `LocatedTemplate`, §4.6.2). The grader reads the subtree's
- *   root at `source` and `document`, and its walk there (`#ledger/walks.ts`), so a template
- *   document's walk is stored once, however many items run it.
+ *   `TemplateProcessing`, the ledger's closed `PublishedTemplateUri`; spec reading
+ *   `built-in-templates`), whose document is the reference package's (the closed
+ *   `PublishedTemplateDocument`), §4.6.2: "If a delivery system is able to determine the correct
+ *   behaviour from the template identifier alone the template-location should be ignored"; else the
+ *   template document its `template-location` locates in its package (pantry's `LocatedTemplate`,
+ *   §4.6.2). The grader reads the subtree's root at `source` and `document`, and its walk there
+ *   (`#ledger/walks.ts`), so a template document's walk is stored once, however many items run it.
  *
  * Pantry's views make the three cases disjoint: a processing that holds a rule is neither
  * `LocatedTemplate`'s nor `TemplateProcessing`'s (each needs one of no element), and

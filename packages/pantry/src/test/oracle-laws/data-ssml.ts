@@ -2,8 +2,8 @@
  * The law oracle's own reader of a `data-ssml` value, written from Data-SSML 1.0's JSON Schema
  * (section 3.4.5, Definitions, and Appendix C1.1) as spec reading R7-a states it, and not from the
  * importer's reader (`src/vocab/data-ssml.ts`) or the database's law over its rows (spec reading
- * 177), so that the two judges of the value are independent: a defect in one gives a verdict the
- * other does not repeat.
+ * `data-ssml-judgement`), so that the two judges of the value are independent: a defect in one
+ * gives a verdict the other does not repeat.
  *
  * The technique differs on purpose. The text is tokenized whole under RFC 8259's grammar, the
  * tokens are read into lists of `[name, value]` pairs that keep every duplicate (`JSON.parse` keeps

@@ -28,8 +28,9 @@
  *   `missed` mark, which a part of the correct response the candidate did not give, a Control's
  *   right answer and a bank chip left behind each carry. Bjorn's ruling of 2026-11-18 restated it:
  *   "a review that hides the solution marks only the candidate's own response, right or wrong, and
- *   never reveals a correct response" (spec reading 230); until then M2 allowed no mark at all
- *   where the solution was withheld, so the candidate's own wrong pick read as merely picked.
+ *   never reveals a correct response" (spec reading `review-without-solution`); until then M2
+ *   allowed no mark at all where the solution was withheld, so the candidate's own wrong pick read
+ *   as merely picked.
  * - M3: a review tells each value of a response once in each part of the page a screen reader
  *   reaches: no such part (`data-slot`) marks more answers `right` or `wrong` than the shown
  *   responses hold values, nor more `missed` than their correct responses hold
@@ -46,7 +47,8 @@
  *   with no control that posts posts nothing. A review page also stands in no `<Responses>`, so no
  *   island there can write the host's state. The exception is Bjorn's ruling of 2026-11-18, "replay
  *   mode is fine": a review and a solution play their media through plate's own controls, uncounted
- *   and unlimited, and record nothing; until then J1 allowed no island at all (spec reading 229).
+ *   and unlimited, and record nothing; until then J1 allowed no island at all (spec reading
+ *   `review-media-replay`).
  *
  * The suite grades nothing: plate runs no response processing, so a review shows the responses
  * drawn under the record the attempt starts from, as the host shows a record the QTI database

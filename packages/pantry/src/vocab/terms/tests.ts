@@ -19,7 +19,7 @@ export const testKind = "qti-assessment-test" satisfies Kind;
 
 /**
  * The item's root kind, the root of an assembly whose instances place their bindings (spec reading
- * 117).
+ * `fragment-placement`).
  */
 export const itemKind = "qti-assessment-item" satisfies Kind;
 
@@ -105,9 +105,9 @@ export const sessionControlKind = "qti-item-session-control" satisfies Kind;
 
 /**
  * The root kinds whose documents are in an assembly whether or not they hold a site: a test, and a
- * section document, whose own chain of inclusions reading 85 refuses as the oracle does, over every
- * listed document. Each keeps its names (`AssembledDocument`); which documents head an assembly is
- * {@link splicingParents}'s.
+ * section document, whose own chain of inclusions reading `inclusion-cycles` refuses as the oracle
+ * does, over every listed document. Each keeps its names (`AssembledDocument`); which documents
+ * head an assembly is {@link splicingParents}'s.
  */
 export const assembledRoots = [testKind, sectionKind] as const satisfies readonly Kind[];
 
@@ -115,16 +115,16 @@ export const assembledRoots = [testKind, sectionKind] as const satisfies readonl
  * The include parents whose include splices its fragment in place, the one statement of which
  * documents head an assembly: a document heads its own unless an include under one of these places
  * it and may stand for its root (`IncludeRoot`, `Inclusion.splices`), since an included fragment is
- * judged in place, as its merged document holds it, and not alone (spec reading 117). An include
- * that may not stand for its target's root places no fragment there, and the document it names is
- * judged as its own: "Include root" refuses it, unless its root is the name of a kind the
- * composition splits by context whose split kind it may stand for (spec reading 116), admitted and
- * placed nowhere. Every parent the information model gives an Include
- * is one but a section, whose include stands for an item ref, a section or a section ref alone
- * (`IncludeRoot`) and places its fragment whole, as a section ref places its section document
- * (reading 117: "Reading 86's rule that a section document a test places twice is written once is
- * the information model's for section documents in a test's assembly ... and includes in a section
- * follow it").
+ * judged in place, as its merged document holds it, and not alone (spec reading
+ * `fragment-placement`). An include that may not stand for its target's root places no fragment
+ * there, and the document it names is judged as its own: "Include root" refuses it, unless its root
+ * is the name of a kind the composition splits by context whose split kind it may stand for (spec
+ * reading `fragment-root`), admitted and placed nowhere. Every parent the information model gives
+ * an Include is one but a section, whose include stands for an item ref, a section or a section ref
+ * alone (`IncludeRoot`) and places its fragment whole, as a section ref places its section document
+ * (reading `fragment-placement`: "Reading `test-identifier-namespace`'s rule that a section
+ * document a test places twice is written once is the information model's for section documents in
+ * a test's assembly ... and includes in a section follow it").
  *
  * The schema's heads (the query `HeadDocument`, `#pantry/qti/queries.ts`) and the import's
  * (`#pantry/import/overlays/tests.ts` `assembledRowsOf`) read this list and `IncludeRoot`, through
@@ -135,10 +135,11 @@ export const assembledRoots = [testKind, sectionKind] as const satisfies readonl
 export const splicingParents = includeParentKinds.filter((kind) => kind !== sectionKind);
 
 /**
- * The kinds whose identifiers are one namespace across an assembled test (reading 86): a test part,
- * a section, a section ref and an item ref (information model §4.2.1: "The identifier of the
- * section or item reference must be unique within the test and must not be the identifier of any
- * testPart"; §5.159.1; §7.5.3: "each reference must have a unique identifier").
+ * The kinds whose identifiers are one namespace across an assembled test (reading
+ * `test-identifier-namespace`): a test part, a section, a section ref and an item ref (information
+ * model §4.2.1: "The identifier of the section or item reference must be unique within the test and
+ * must not be the identifier of any testPart"; §5.159.1; §7.5.3: "each reference must have a unique
+ * identifier").
  */
 export const namedKinds = [
   partKind,
@@ -149,7 +150,8 @@ export const namedKinds = [
 
 /**
  * The kinds a section holds as its parts (`SectionPart`, information model §4.2.15): an item ref, a
- * section, a section ref, or an include standing in for one. Reading 79 counts each once.
+ * section, a section ref, or an include standing in for one. Reading
+ * `selection-without-replacement` counts each once.
  */
 export const sectionParts: readonly Kind[] = NodeKind.handles.filter((kind) =>
   grammar.references.sectionPart.rows.some((row) => row.kind === kind),

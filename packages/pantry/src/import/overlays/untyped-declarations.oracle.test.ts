@@ -1,10 +1,10 @@
 /**
  * A declaration whose cardinality or base type spells nothing is still a declaration (spec reading
- * 158): a `cardinality` or a `base-type` that is unwritten, empty, padded or no code of its
- * enumeration is only the absence of its typed row, `DeclarationCardinality` or
+ * `unspelled-declaration`): a `cardinality` or a `base-type` that is unwritten, empty, padded or no
+ * code of its enumeration is only the absence of its typed row, `DeclarationCardinality` or
  * `DeclarationBaseType`, so AL3 or its value domain refuses it alone, while the declaration's row,
- * its values, its mapping and its map keys are read and judged by every law that does not read
- * the missing attribute. The import wrote no `Declaration` row for it before, so "Declaration
+ * its values, its mapping and its map keys are read and judged by every law that does not read the
+ * missing attribute. The import wrote no `Declaration` row for it before, so "Declaration
  * overlay"'s copy of its cardinality broke beside the value domain the law oracle alone raised, and
  * the oracle in turn judged nothing of such a declaration but its map keys. No row stands for a
  * declaration or a map key now (C18): each is a view, so no law can refuse one's absence.
@@ -109,10 +109,9 @@ const mappingOf = (keys: readonly string[]): string =>
 
 /**
  * The children the declaration holds: none; a mapping with one key; one with a key written twice
- * and one with two forms of one integer, each lawful (spec reading 165); and a correct response
- * with one value beside a
- * mapping, which `Value cardinality` and `Typed value` read beside the declaration's cardinality
- * and base type.
+ * and one with two forms of one integer, each lawful (spec reading `string-map-key-case`); and a
+ * correct response with one value beside a mapping, which `Value cardinality` and `Typed value`
+ * read beside the declaration's cardinality and base type.
  */
 const contents: readonly { readonly children: string; readonly name: string }[] = [
   { children: "", name: "no children" },

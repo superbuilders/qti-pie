@@ -2,23 +2,23 @@
  * The tests, sections and banks as the law oracle's test producers read them (lane OL): each
  * document's names, sections and branch rules over its own folded rows, the item an item ref
  * names, and each test's assembly of the documents its section refs and includes place (spec
- * readings 5 and 85).
+ * readings `section-document` and `inclusion-cycles`).
  *
  * It restates `src/qti/tests.ts` and `src/qti/overlay-queries/tests.ts` on the host, from the
  * information model, never from the importer's overlay (`#pantry/import/overlays/tests.ts`):
  *
- * - **names** (`Named`, reading 86): every test part, section, section ref and item ref of an
- *   assembled document that writes an identifier its type reads (reading 147: one that writes none
- *   names nothing), its identifier collapsed;
+ * - **names** (`Named`, reading `test-identifier-namespace`): every test part, section, section ref
+ *   and item ref of an assembled document that writes an identifier its type reads (reading
+ *   `unidentified-parts`: one that writes none names nothing), its identifier collapsed;
  * - **sections**: each section's parts (§4.2.15), its selection's `select` and replacement (§5.129),
  *   its ordering's shuffle (§5.98), and whether it is loose, written invisible and not kept
- *   together (§5.98, reading 173);
+ *   together (§5.98, reading `section-visibility`);
  * - **the assembly** (`Instance`): one tree per test document, its root the test, each child the
  *   document a placing site of its parent's document names (`PackageRows.placements`: a section ref
  *   whose target is a section document, an include that may stand for its target's root), in site
  *   order, with the test part the chain's site in the test lies in and whether a selection with
  *   replacement above a site of the chain can repeat it; a document already on the chain places
- *   nothing (reading 85, which `Inclusion cycle` refuses);
+ *   nothing (reading `inclusion-cycles`, which `Inclusion cycle` refuses);
  * - **the item an item ref names** (`ItemRefTarget`, `ItemRefDocument`, the UP audit's B2 and B3):
  *   its href resolved inside the package, the type of the resource whose href resolves there, and
  *   the document there where that resource is an item. An href that resolves outside the package
@@ -56,8 +56,8 @@ export const testKinds = {
 } as const;
 
 /**
- * The kinds whose identifiers are one namespace across an assembled test (reading 86; information
- * model §4.2.1, §5.159.1 and §7.5.3).
+ * The kinds whose identifiers are one namespace across an assembled test (reading
+ * `test-identifier-namespace`; information model §4.2.1, §5.159.1 and §7.5.3).
  */
 const namedKinds: ReadonlySet<string> = new Set([
   testKinds.part,
@@ -113,8 +113,8 @@ export interface Name {
 export interface Section {
   /**
    * Whether it is loose: it writes `visible` false and `keep-together` false, so its children are
-   * mixed into its parent's selection (§5.98; reading 173: a section that writes no `visible` is
-   * neither visible nor invisible, and `keep-together`'s default is true).
+   * mixed into its parent's selection (§5.98; reading `section-visibility`: a section that writes
+   * no `visible` is neither visible nor invisible, and `keep-together`'s default is true).
    */
   readonly loose: boolean;
   readonly node: Row;
@@ -213,8 +213,8 @@ const assembledDocumentOf = (
       }),
   );
   /**
-   * An element that writes no identifier names nothing (reading 147): the XSD requires it, with no
-   * default, and no identifier is empty, so AL3 alone refuses the element.
+   * An element that writes no identifier names nothing (reading `unidentified-parts`): the XSD
+   * requires it, with no default, and no identifier is empty, so AL3 alone refuses the element.
    */
   const names = assembled
     ? rows.members.flatMap((node): readonly Name[] =>
@@ -431,9 +431,9 @@ export const inRootCopy = (instances: readonly Instance[], instance: Instance): 
 /**
  * The anchor of each instance of an assembly (`instanceAnchors`): itself where it is the root or a
  * section ref places it, and else its parent's, an include splicing its target into its parent's
- * copy (spec readings 85 and 86). A test "may refer to the same section multiple times within a
- * test" (information model §7.5.3), each reference the facade of its section (§7.5), so the
- * instances below one anchor are one copy's.
+ * copy (spec readings `inclusion-cycles` and `test-identifier-namespace`). A test "may refer to the
+ * same section multiple times within a test" (information model §7.5.3), each reference the facade
+ * of its section (§7.5), so the instances below one anchor are one copy's.
  *
  * @param instances - The assembly, in pre-order.
  * @returns Each instance's anchor's place, by the instance's place.

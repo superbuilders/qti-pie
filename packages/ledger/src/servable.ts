@@ -79,8 +79,8 @@ export const servableOf = (ledger: LedgerLevel) => {
    * (`path`): the item's own, the template document its response processing locates (pantry's
    * `LocatedTemplate`, whose rules run as the item's), and each document an include of the item
    * places in it (pantry's `Instance`, an assembly named by its head document's path; information
-   * model §2.12 and spec reading 117: an included fragment is judged in place, as its merged
-   * document holds it). What any of them holds is the item's.
+   * model §2.12 and spec reading `fragment-placement`: an included fragment is judged in place, as
+   * its merged document holds it). What any of them holds is the item's.
    */
   const itemDocuments = query(ledger)
     .rule((r) => {
@@ -113,9 +113,10 @@ export const servableOf = (ledger: LedgerLevel) => {
    * The item documents whose response processing names a published template whose rules the grader
    * runs (`#ledger/response-programs.ts`'s templated programs, the one statement of them): pantry's
    * `TemplateProcessing`, whose `template` is a spelling of a published template (the ledger's
-   * `PublishedTemplateUri`, its rows pantry's `urisOf`; spec reading 51), with the template's
-   * document in the reference package (`PublishedTemplateDocument`), which "Template held" holds to
-   * the store, so the item is served exactly where the grader holds the rules it runs.
+   * `PublishedTemplateUri`, its rows pantry's `urisOf`; spec reading `built-in-templates`), with
+   * the template's document in the reference package (`PublishedTemplateDocument`), which "Template
+   * held" holds to the store, so the item is served exactly where the grader holds the rules it
+   * runs.
    */
   const publishedProcessings = templatedProgramsOf(ledger);
 
@@ -160,11 +161,12 @@ export const servableOf = (ledger: LedgerLevel) => {
    * processing template. If a delivery system is able to determine the correct behaviour from the
    * template identifier alone the template-location should be ignored." So a published template is
    * run from its document in the reference package, whatever location is written beside it.
-   * Otherwise a location the package resolves to a template document (pantry's `LocatedTemplate`:
-   * a Document of root `qti-response-processing`) gives the rules the grader runs as the item's
-   * own, which pantry types and judges in the item's own placement (`placedDocuments`: a variable
-   * "that has been declared", §6.9.40; reading 233). A location outside the package, or to no
-   * template document, gives none: it is stored as written and never fetched (reading 35).
+   * Otherwise a location the package resolves to a template document (pantry's `LocatedTemplate`: a
+   * Document of root `qti-response-processing`) gives the rules the grader runs as the item's own,
+   * which pantry types and judges in the item's own placement (`placedDocuments`: a variable "that
+   * has been declared", §6.9.40; reading `template-declares-variables`). A location outside the
+   * package, or to no template document, gives none: it is stored as written and never fetched
+   * (reading `absolute-hrefs`).
    */
   const unresolvedProcessings = query(ledger)
     .rule((r) => {
@@ -193,9 +195,9 @@ export const servableOf = (ledger: LedgerLevel) => {
    * to some AssessmentStimulus object that has been associated with the Item"; Table 7.6
    * (AssessmentStimulusRef): "The stimulus must be contained within its own instance", and Table
    * 7.6.2 (`href`): "The uri used to refer to the stimulus file (e.g. elsewhere in the same content
-   * package)". Such an item is valid QTI pantry admits and stores (spec reading 35: an external
-   * reference is stored as written and never fetched), and the delivery would present it without
-   * its passage, so it is not served (IMPL-STIMULUS's clause, SPEC-AUDIT J1).
+   * package)". Such an item is valid QTI pantry admits and stores (spec reading `absolute-hrefs`:
+   * an external reference is stored as written and never fetched), and the delivery would present
+   * it without its passage, so it is not served (IMPL-STIMULUS's clause, SPEC-AUDIT J1).
    */
   const unpackagedStimuli = query(ledger).rule((r) => {
     const { item, package: pkg, path } = v(itemDocuments, "document");

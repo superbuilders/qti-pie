@@ -7,12 +7,12 @@
  * A binding whose name a response declaration of its item holds resolves to it, whatever the
  * declaration's cardinality spells, and one whose name none holds resolves to none, which "Binding
  * declared" refuses alone (`#pantry/qti/overlay-queries/reference.ts`; lane NIL's audit, B1 and B2;
- * spec reading 159). The fit laws ("BindingFit", "RecordBindingFit", "Binding cardinality" and
- * `max-strings-required`) read that declaration's `DeclarationCardinality` through the binding's
- * name, which it has only where the declaration writes its `cardinality` as a cardinality is
- * spelled, and the law oracle judges them only there: one left unwritten is AL3's alone, and one
- * written as no cardinality its value domain's alone (the orchestrator's ruling of 2026-11-06: an
- * absent attribute is no empty one, and one cause is refused under one rule).
+ * spec reading `binding-by-name`). The fit laws ("BindingFit", "RecordBindingFit", "Binding
+ * cardinality" and `max-strings-required`) read that declaration's `DeclarationCardinality` through
+ * the binding's name, which it has only where the declaration writes its `cardinality` as a
+ * cardinality is spelled, and the law oracle judges them only there: one left unwritten is AL3's
+ * alone, and one written as no cardinality its value domain's alone (the orchestrator's ruling of
+ * 2026-11-06: an absent attribute is no empty one, and one cause is refused under one rule).
  */
 import type { PackageEntries } from "#pantry/test/gen/every-relation.ts";
 import { editText, replaceOnce } from "#pantry/test/oracle-complete/mutation.ts";
@@ -203,7 +203,7 @@ interface BindingExpectation {
    * The cardinality the bound declaration's `DeclarationCardinality` row holds, the one it spells;
    * none where no response declaration holds the name, or where its cardinality is unwritten or
    * spells nothing, which leaves it no row (the declarations overlay's `typedDeclarationOf`; spec
-   * reading 158).
+   * reading `unspelled-declaration`).
    */
   readonly held: string | undefined;
   /**

@@ -7,10 +7,10 @@
  * anything but JavaScript's `\s`, which is exactly U+0009 to U+000D, the `Z` category and U+FEFF
  * (ECMA-262 WhiteSpace and LineTerminator); punctuation, hyphens and digits are characters of a
  * word like any other. A rich (`xhtml`) answer is counted on its text (`textOfXhtml`, which the
- * ledger matches an xhtml essay's `pattern-mask` against as `p3.xhtml_text`, reading 244), with
- * U+200B to U+200D and U+FEFF read as nothing, as `getWordCount` strips them from a rich answer
- * before it splits, so a lone zero-width space there is no word; a plain answer is counted as
- * typed.
+ * ledger matches an xhtml essay's `pattern-mask` against as `p3.xhtml_text`, reading
+ * `xhtml-pattern-mask-text`), with U+200B to U+200D and U+FEFF read as nothing, as `getWordCount`
+ * strips them from a rich answer before it splits, so a lone zero-width space there is no word; a
+ * plain answer is counted as typed.
  *
  * @module
  */

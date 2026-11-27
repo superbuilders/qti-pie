@@ -3,10 +3,11 @@
  * module shape the interaction-module contract states.
  *
  * A `qti-hottext-interaction` is a prompt interaction whose block content holds `qti-hottext`
- * choices at any depth. Reading 38 ("A `qti-gap` appears only within a gap-match interaction, and a
- * `qti-hottext` may appear in any flow or inline content") lets a hottext stand anywhere in flow or
- * inline content, so the module reads the hottexts of its own content, at any depth, and a hottext
- * outside it belongs to no interaction and stays as the body walk leaves it.
+ * choices at any depth. Reading `gap-and-hottext-placement` ("A `qti-gap` appears only within a
+ * gap-match interaction, and a `qti-hottext` may appear in any flow or inline content") lets a
+ * hottext stand anywhere in flow or inline content, so the module reads the hottexts of its own
+ * content, at any depth, and a hottext outside it belongs to no interaction and stays as the body
+ * walk leaves it.
  *
  * {@link hottextModule}'s `redact` gives the page the Prompt, the author's block content with each
  * hottext in place as a `qti-hottext` element, each hottext's part ({@link HottextPart}),
@@ -93,9 +94,9 @@ const controlTag = "qti-hottext-control";
 /**
  * The model node of a `qti-hottext-interaction` (Q-11), bound to an identifier response of single
  * or multiple cardinality: the fields every module's node shares, `max-choices` and `min-choices`
- * as counts held exactly (reading 46), the author's messages for the two bounds, the Prompt, and
- * the block content with every hottext in place, each holding the marker of a selectable choice
- * ({@link controlTag}).
+ * as counts held exactly (reading `count-range`), the author's messages for the two bounds, the
+ * Prompt, and the block content with every hottext in place, each holding the marker of a
+ * selectable choice ({@link controlTag}).
  *
  * @template L The level of its content.
  */
@@ -114,8 +115,8 @@ interface HottextInteraction<L extends Level = ModelLevel> extends ModuleInterac
    */
   readonly content: Nodes<L>;
   /**
-   * `max-choices`, 1 when absent: a count, 0 to 2^63-1, held exactly (reading 46). 0 limits
-   * nothing.
+   * `max-choices`, 1 when absent: a count, 0 to 2^63-1, held exactly (reading `count-range`). 0
+   * limits nothing.
    */
   readonly maxChoices: bigint;
   /**
@@ -124,7 +125,7 @@ interface HottextInteraction<L extends Level = ModelLevel> extends ModuleInterac
    */
   readonly messages: { readonly max: Option.Option<string>; readonly min: Option.Option<string> };
   /**
-   * `min-choices`, 0 when absent: a count, 0 to 2^63-1, held exactly (reading 46).
+   * `min-choices`, 0 when absent: a count, 0 to 2^63-1, held exactly (reading `count-range`).
    */
   readonly minChoices: bigint;
   /**
@@ -435,7 +436,7 @@ export const hottextModule: HottextModule = {
    * through as the module's own element, each hottext then marked ({@link withMarkers}).
    *
    * The body walk has bound it to an identifier response of single or multiple cardinality
-   * ({@link binding}). Reading 38 gives the
+   * ({@link binding}). Reading `gap-and-hottext-placement` gives the
    * module the hottexts of its own content alone: a hottext outside it is read by the body walk as
    * the notice `qti-hottext`.
    */

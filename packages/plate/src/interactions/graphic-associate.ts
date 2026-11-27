@@ -33,7 +33,7 @@
  *
  * A coordinate written with `%` is kept as written, a percentage of the image, whose size is the
  * `width` and `height` the payload's image nodes carry (a circle's radius of the smaller of the
- * two, reading 180). An associable hotspot's name is its
+ * two, reading `circle-percentage-radius`). An associable hotspot's name is its
  * `hotspot-label`, else its `aria-label`, and one with neither is marked on the item's verdict
  * ({@link areaLabel}), as Hotspot marks its own (WCAG 2.2, 1.1.1).
  *

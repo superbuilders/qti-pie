@@ -296,7 +296,7 @@ export const overlayPartsOf = (
     instances: assembled.Instance.values(),
   });
   // Every placement types its documents' expressions and resolves their references in its
-  // assembly (spec reading 117), a test's through its readings (spec reading 167).
+  // assembly (spec reading `fragment-placement`), a test's through its readings (spec reading `weighted-test-variables`).
   const placing = placingPackageOf(
     built.map(({ document, rows }) => ({
       ids: document.ids,

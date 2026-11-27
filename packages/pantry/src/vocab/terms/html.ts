@@ -4,6 +4,6 @@
  */
 
 /**
- * The kinds of the table cells, whose `headers` reading 126 reads.
+ * The kinds of the table cells, whose `headers` reading `cell-headers` reads.
  */
 export const cellKinds = ["td", "th"] as const;

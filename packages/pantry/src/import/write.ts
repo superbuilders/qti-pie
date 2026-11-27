@@ -102,20 +102,20 @@ export interface DocumentPlace {
    *
    * @param path - A document's path in the package.
    * @returns The document a resource names there, none when no resource names one at the path,
-   *   the manifest's included (spec readings 115 and 146).
+   *   the manifest's included (spec readings `include-target` and `manifest-document`).
    */
   readonly targetAt: (path: string) => Option.Option<ListedTarget>;
   /**
    * Whether a site of the package names the document, so it is an instance of every assembly
-   * that places it (Q5.13's `Instance`, spec reading 117).
+   * that places it (Q5.13's `Instance`, spec reading `fragment-placement`).
    */
   readonly targeted: boolean;
 }
 
 /**
  * A document as the importer lists it, one per path: its path, its tree as shred gives it, and its
- * type: `manifest` for the manifest, which is no resource's document (spec readings 146 and 176),
- * else the type of the resource that names it.
+ * type: `manifest` for the manifest, which is no resource's document (spec readings
+ * `manifest-document` and `document-type-total`), else the type of the resource that names it.
  */
 export interface ListedDocument {
   readonly documentType: Addition<typeof Document>["documentType"];
@@ -125,9 +125,9 @@ export interface ListedDocument {
 
 /**
  * One listed document as its rows are built: as listed, where it stands in its package, and its
- * view, its rows and their folds under the context it is judged in (spec reading 117,
- * `#pantry/import/context.ts`): its own, or, for a document sites name, the union of their
- * ancestries and the interaction they stand in.
+ * view, its rows and their folds under the context it is judged in (spec reading
+ * `fragment-placement`, `#pantry/import/context.ts`): its own, or, for a document sites name, the
+ * union of their ancestries and the interaction they stand in.
  */
 export interface PlacedDocument {
   readonly ids: DocumentPlace;
@@ -143,8 +143,8 @@ export interface PlacedDocument {
  * A document's `documentAt` reads every listed document, one per path, since the import reads each
  * path once, the manifest's as the manifest (`#pantry/import/program.ts`). Its `targetAt` reads
  * only the documents a resource names: a site never names the manifest, which is no resource's
- * document (spec readings 115 and 146), so an href that resolves to it names no target, and
- * "Include target" refuses an include of it that holds no `xi:fallback`.
+ * document (spec readings `include-target` and `manifest-document`), so an href that resolves to it
+ * names no target, and "Include target" refuses an include of it that holds no `xi:fallback`.
  *
  * @param name - The package's name.
  * @param documents - The package's documents, in the listing's order.
@@ -506,8 +506,8 @@ const memberOf = (
  * the position the tree gives it. The host's fields are the ones the laws prove:
  *
  * - `state`, `ancestry`, `nearest` and `nearestKind`, from the document's fold (`foldOf` of
- *   `#pantry/import/fold.ts`, under the document's context: C5, E1, N8 and spec reading 117); the
- *   document node's are its context's, its state 0;
+ *   `#pantry/import/fold.ts`, under the document's context: C5, E1, N8 and spec reading
+ *   `fragment-placement`); the document node's are its context's, its state 0;
  * - `chars`, a text or whitespace node's characters and an entity reference's `&name;`, empty
  *   elsewhere, `first` and `last`, the first and last code points of `chars` (`endsOf`);
  * - `governor`, what its attributes and text are read under (`governorOf`, its kind's own for a node
@@ -587,14 +587,14 @@ const slotOf = (admitted: Option.Option<AdmittedAttribute>) =>
  * `XmlDecl`, `EncodingDecl` and `SdDecl` rows where it writes each, each comment's, instruction's
  * and doctype's row, each foreign element's `OpenElementName` row with its node's tuple (C18) and
  * its parent's kind and namespace name, the named governing type of each element a named type
- * governs: a vocabulary element's `ElementType`, and a foreign element's `OpenElementType` with
- * its parent's namespace name, each with its node's governor (`governorOf`); each element's closed
+ * governs: a vocabulary element's `ElementType`, and a foreign element's `OpenElementType` with its
+ * parent's namespace name, each with its node's governor (`governorOf`); each element's closed
  * attributes, their slot and their IDREF pieces nested where their domain is an `xs:IDREF` or
  * `xs:IDREFS`, its open attributes with their element's namespace name, each attribute's entity
  * references and each namespace declaration; and, for a document a resource lists, its
- * `ResourceDocument`, the type of that resource, which the manifest has none of (spec reading 176).
- * A bounded value has no row: the database reads it from the lexical form (`Double_bound`,
- * `#pantry/qti/attributes.ts`).
+ * `ResourceDocument`, the type of that resource, which the manifest has none of (spec reading
+ * `document-type-total`). A bounded value has no row: the database reads it from the lexical form
+ * (`Double_bound`, `#pantry/qti/attributes.ts`).
  *
  * @param document - The document, placed and viewed: its type and path as the importer lists it,
  *   whether it is in an assembly and its package, and its view, folded under the context it is

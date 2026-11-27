@@ -15,8 +15,8 @@ import type { Accepted } from "#plate/validate/verdict.ts";
  * Copy an accepted document's item into the form the page may know: its body, title and language,
  * shown as the record's template values and outcome values say, without its correct responses,
  * mappings, processing or template rules. A response keeps its default where an interaction the
- * page shows starts at it, the value the candidate sees as the attempt starts (spec reading 183),
- * which `startingResponses` gives as the value a fresh attempt starts from.
+ * page shows starts at it, the value the candidate sees as the attempt starts (spec reading
+ * `response-default`), which `startingResponses` gives as the value a fresh attempt starts from.
  *
  * A printed variable prints the value `record` holds for it, a template value else an outcome
  * value, formatted as its attributes say; NULL prints nothing, and one whose value `record` does
@@ -63,7 +63,7 @@ import type { Accepted } from "#plate/validate/verdict.ts";
  * It takes only an `Accepted` that `checkAdmitted` made from content the database admitted, so a
  * hand-built item never reaches a page unsecured: securing drops a `javascript:` href, and the
  * database refuses an `onclick` on every element the Schematron's extension-attribute lists cover
- * (reading 90). It always gives a redacted item: what it cannot
+ * (reading `extension-attribute-lists`). It always gives a redacted item: what it cannot
  * print shows as a notice.
  *
  * @example

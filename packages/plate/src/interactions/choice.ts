@@ -76,7 +76,7 @@ export interface ChoiceInteraction<
    */
   readonly class: Option.Option<string>;
   /**
-   * `max-choices`, 1 when absent: a count, 0 to 2^63-1, held exactly (reading 46).
+   * `max-choices`, 1 when absent: a count, 0 to 2^63-1, held exactly (reading `count-range`).
    */
   readonly maxChoices: bigint;
   /**
@@ -85,7 +85,7 @@ export interface ChoiceInteraction<
    */
   readonly messages: { readonly max: Option.Option<string>; readonly min: Option.Option<string> };
   /**
-   * `min-choices`, 0 when absent: a count, 0 to 2^63-1, held exactly (reading 46).
+   * `min-choices`, 0 when absent: a count, 0 to 2^63-1, held exactly (reading `count-range`).
    */
   readonly minChoices: bigint;
   /**

@@ -11,13 +11,14 @@
  * rows (`#pantry/qti/overlay-queries/package.ts`). The database proves every row (`packageLaws`),
  * so a row this builder gets wrong is refused, never accepted.
  *
- * Every href is resolved here before a row is written (readings 102 and 103): its value read in
- * its attribute's whitespace class, the class `Attribute.value` normalizes it in (`valueReadingOf`
- * of `#pantry/import/names.ts`), its path merged with its base, the `xml:base` in scope or its
- * document's own path, its dot segments removed, and each segment percent-decoded (RFC 3986, §2.1,
- * §5.2 and §6.2.2.2). No relation can percent-decode a name, so the database holds the outcome and
- * compares it with the entries, and the law oracle's own resolver (`#pantry/test/resolution.ts`)
- * is the differential that holds this one to RFC 3986.
+ * Every href is resolved here before a row is written (readings `href-resolution` and
+ * `file-references`): its value read in its attribute's whitespace class, the class
+ * `Attribute.value` normalizes it in (`valueReadingOf` of `#pantry/import/names.ts`), its path
+ * merged with its base, the `xml:base` in scope or its document's own path, its dot segments
+ * removed, and each segment percent-decoded (RFC 3986, §2.1, §5.2 and §6.2.2.2). No relation can
+ * percent-decode a name, so the database holds the outcome and compares it with the entries, and
+ * the law oracle's own resolver (`#pantry/test/resolution.ts`) is the differential that holds this
+ * one to RFC 3986.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-5.2 | RFC 3986, §5.2}
  */
@@ -120,7 +121,8 @@ const documentTyped: ReadonlySet<string> = new Set(documentTypes);
  *
  * @param lexical - The `type` attribute's lexical form, as written.
  * @returns The handle it spells; none for a form no handle spells, which has no code anywhere and
- *   which the attribute's value domain refuses as `attribute-lexical` alone (spec reading 67).
+ *   which the attribute's value domain refuses as `attribute-lexical` alone (spec reading
+ *   `manifest-profile`).
  */
 const typeOf = (lexical: string): Option.Option<ResourceTypeHandle> =>
   Option.fromUndefinedOr(spelledTypes.get(lexical));
@@ -168,7 +170,7 @@ export const hrefTextOf = (value: string): string =>
 
 /**
  * Why the importer reads no name from an href, each a stated limit of the representation, refused
- * under "Href form" (reading 102), never under a law of QTI or Content Packaging:
+ * under "Href form" (reading `href-resolution`), never under a law of QTI or Content Packaging:
  *
  * - `percent`: a `%` that starts no percent-encoding (`a%zz.png`, a `%` at the end). RFC 3986, §2.1,
  *   gives such a `%` no octet, so the path names nothing; the URL Standard keeps it as written, as
@@ -313,8 +315,8 @@ type Step =
   | { readonly _tag: "segments"; readonly segments: readonly string[] };
 
 /**
- * Read the path piece of an href (reading 102): up to its first `?` or `#`, where its query or
- * fragment starts (RFC 3986, §3.3).
+ * Read the path piece of an href (reading `href-resolution`): up to its first `?` or `#`, where its
+ * query or fragment starts (RFC 3986, §3.3).
  *
  * @param value - The href's value.
  * @returns Its path.
@@ -327,13 +329,13 @@ export const hrefPathOf = (value: string): string => {
 
 /**
  * Resolve an href's path against a base, as far as its written segments (RFC 3986, §5.2.2 to
- * §5.2.4): a scheme, or a path that starts with `/`, is external (readings 35 and 102); an empty
- * path names its own document (§4.4); a relative path against an external base is external, and
- * against an unresolved one unresolved; a path that meets a {@link Limit} as written is
- * unresolved; and any other is resolved within the package by RFC 3986's own resolution
- * (grizzle-text's `resolveWithin`): merged with the base's directory and its dot segments removed,
- * each `..` dropping the segment before it and one that climbs above the package root resolving
- * outside the package.
+ * §5.2.4): a scheme, or a path that starts with `/`, is external (readings `absolute-hrefs` and
+ * `href-resolution`); an empty path names its own document (§4.4); a relative path against an
+ * external base is external, and against an unresolved one unresolved; a path that meets a
+ * {@link Limit} as written is unresolved; and any other is resolved within the package by RFC 3986's
+ * own resolution (grizzle-text's `resolveWithin`): merged with the base's directory and its dot
+ * segments removed, each `..` dropping the segment before it and one that climbs above the package
+ * root resolving outside the package.
  *
  * @param value - The href's value, read by its whitespace class.
  * @param base - The base in scope.
@@ -412,8 +414,9 @@ const decodedSegmentOf = (segment: string): Result.Result<string, Limit> => {
 };
 
 /**
- * Resolve an href against its base (readings 102 and 103): {@link stepOf}, then each remaining
- * segment percent-decoded, so `my%20sign.png` and `my sign.png` both name the entry `my sign.png`.
+ * Resolve an href against its base (readings `href-resolution` and `file-references`):
+ * {@link stepOf}, then each remaining segment percent-decoded, so `my%20sign.png` and `my sign.png`
+ * both name the entry `my sign.png`.
  *
  * @param value - The text the href resolves from ({@link hrefTextOf}).
  * @param base - The base in scope.
@@ -542,7 +545,7 @@ export const entryPathOf = (resolution: HrefResolution): Option.Option<string> =
  * The path an href is compared by, an item ref's or a site's (`#pantry/import/overlays/tests.ts`
  * `ResolvedHref`), and a resource's (`resourcePathsOf`): the entry path it resolves to in the
  * package, and otherwise its path piece as read, so two external hrefs are compared as written
- * (reading 102), as `ResourceHrefOutside`'s and `FileOutside`'s `target` are.
+ * (reading `href-resolution`), as `ResourceHrefOutside`'s and `FileOutside`'s `target` are.
  *
  * @param resolution - Its resolution.
  * @param value - Its value ({@link valueAt}).
@@ -567,7 +570,7 @@ export const comparedPathOf = (resolution: HrefResolution, value: string): strin
  * of a Base object shall then be interpreted according to the rules defined in RFC3986").
  *
  * @param view - The manifest's view, judged in its own context: no site names the manifest, which
- *   is no resource's document (spec reading 146).
+ *   is no resource's document (spec reading `manifest-document`).
  * @param ids - Its package.
  * @returns Every overlay's rows.
  */
@@ -634,7 +637,7 @@ export const rowsOf = (view: DocumentView, ids: ManifestIds): PackageRows => {
  * @param manifest - The manifest flattened, read through its attributes' index.
  * @returns Each `cp:resource`'s code, by its position: none for a resource that writes no `type`,
  *   or whose `type` spells no handle, which AL3 or the attribute's value domain refuses alone (spec
- *   reading 67).
+ *   reading `manifest-profile`).
  */
 export const resourceTypesOf = (manifest: FlatDocument): ReadonlyMap<bigint, ResourceTypeHandle> =>
   new Map(
@@ -685,16 +688,17 @@ export const typedPathsOf = (
   );
 
 /**
- * Name the documents a manifest's resources name (reading 93): each pair of the entry path an href
- * resolves to in the package and a resource type `RootOfType` maps, so the importer reads the entry
- * at the path as a document of that type (reading 102: the href's launch parameters name no other
- * file). An href outside the package names no document, and "Document entry" refuses it.
+ * Name the documents a manifest's resources name (reading `resource-href`): each pair of the entry
+ * path an href resolves to in the package and a resource type `RootOfType` maps, so the importer
+ * reads the entry at the path as a document of that type (reading `href-resolution`: the href's
+ * launch parameters name no other file). An href outside the package names no document, and
+ * "Document entry" refuses it.
  *
  * @param typed - The manifest's typed paths ({@link typedPathsOf}).
  * @returns The named documents' paths and types, a keyed set by (path, type), in the manifest's
- *   order. One path named under two types is two pairs; the import reads the path once, as the
- *   type its root bears out (`#pantry/import/program.ts`, reading 162), so the other's href names
- *   no document of its type, and "Document entry" refuses it.
+ *   order. One path named under two types is two pairs; the import reads the path once, as the type
+ *   its root bears out (`#pantry/import/program.ts`, reading `path-document-type`), so the other's
+ *   href names no document of its type, and "Document entry" refuses it.
  */
 export const namedDocuments = (
   typed: readonly TypedPathRow[],
@@ -708,7 +712,7 @@ export const namedDocuments = (
 /**
  * Read the path each resource's `href` is compared by, as its `ResourceHref` row holds it: for the
  * builders of other overlays that read the document a resource names (its LOM record's object,
- * reading 62).
+ * reading `identity-from-lom`).
  *
  * @param manifest - The manifest flattened.
  * @returns Each `cp:resource`'s path, by its position, for every resource that writes an `href`.
@@ -736,9 +740,9 @@ export type ReferenceCensus = (kind: string, name: string) => Option.Option<Refe
 /**
  * The base a `package` or `module` value resolves against: the content package's root, the
  * manifest's directory, whatever its document's path or the `xml:base` in scope (spec reading
- * 201: "Relative URLs indicate relative paths in the QTI content package", information
- * model §5.77.1; "Otherwise it should be assumed to be a QTI content package relative path", the
- * implementation guide §3.7.12.2).
+ * `pci-module-locations`: "Relative URLs indicate relative paths in the QTI content package",
+ * information model §5.77.1; "Otherwise it should be assumed to be a QTI content package relative
+ * path", the implementation guide §3.7.12.2).
  */
 const packageRoot: HrefBase = documentBase(manifestPath);
 
@@ -749,10 +753,10 @@ const packageRoot: HrefBase = documentBase(manifestPath);
 const moduleExtension = ".js";
 
 /**
- * Name the file a `module` value loads (spec reading 201): the entry its path resolves to,
- * with `.js` appended unless its name already ends in `.js`, which the guide's "should not" leaves
- * an author free to write (the corpus's `modules/lib/eve.js`). Any other resolution is the value's
- * as resolved.
+ * Name the file a `module` value loads (spec reading `pci-module-locations`): the entry its path
+ * resolves to, with `.js` appended unless its name already ends in `.js`, which the guide's "should
+ * not" leaves an author free to write (the corpus's `modules/lib/eve.js`). Any other resolution is
+ * the value's as resolved.
  *
  * @param resolution - The value resolved against the package's root.
  * @returns The file it names.
@@ -763,8 +767,8 @@ const moduleFileOf = (resolution: HrefResolution): HrefResolution =>
     : resolution;
 
 /**
- * Resolve a `package` or `module` value against the package's root (spec reading 201), a
- * `module` value to the file it loads ({@link moduleFileOf}).
+ * Resolve a `package` or `module` value against the package's root (spec reading
+ * `pci-module-locations`), a `module` value to the file it loads ({@link moduleFileOf}).
  *
  * @param form - The value's form.
  * @param value - The value, read by its whitespace class.
@@ -805,11 +809,11 @@ const censusClassOf = (
 };
 
 /**
- * The grammar's reference census, `ReferenceAttribute` (spec reading 103): the census the
- * database's copy into `Reference` selects by, so the builder writes a row for exactly the
- * attributes the copy requires one of. Its `form` is how a value names its files: one URI
- * reference (`uri`), a list of image candidates (`srcset`), one URI reference against the
- * package's root (`package`), or an AMD module location (`module`).
+ * The grammar's reference census, `ReferenceAttribute` (spec reading `file-references`): the census
+ * the database's copy into `Reference` selects by, so the builder writes a row for exactly the
+ * attributes the copy requires one of. Its `form` is how a value names its files: one URI reference
+ * (`uri`), a list of image candidates (`srcset`), one URI reference against the package's root
+ * (`package`), or an AMD module location (`module`).
  *
  * @param kind - The element's kind.
  * @param name - The attribute's name.
@@ -862,12 +866,11 @@ const textWhiteSpaces: ReadonlyMap<string, WhiteSpaceClass> = new Map(
  *
  * Every value of the form `uri` resolves as one href ({@link resolveIn}), read in the class its
  * `value` is normalized in ({@link censusClassOf}, the class of the host's `attributeValueOf` of
- * `#pantry/import/names.ts`), and one of the form `package` or `module` the
- * same way against the package's root, a
- * `module` value to its path with `.js` appended ({@link resolveFromRoot}). A `srcset` is its image
- * candidates (HTML, "parse a srcset attribute",
- * `srcsetCandidatesOf`), each candidate's URL resolved as an href is, its `SrcsetCandidate` nested
- * under its `Srcset` and, where it resolves in the package, its `CandidatePath` (spec reading 102).
+ * `#pantry/import/names.ts`), and one of the form `package` or `module` the same way against the
+ * package's root, a `module` value to its path with `.js` appended ({@link resolveFromRoot}). A
+ * `srcset` is its image candidates (HTML, "parse a srcset attribute", `srcsetCandidatesOf`), each
+ * candidate's URL resolved as an href is, its `SrcsetCandidate` nested under its `Srcset` and,
+ * where it resolves in the package, its `CandidatePath` (spec reading `href-resolution`).
  *
  * @param view - The document's view: its rows under the ids they are written under.
  * @param ids - Its package and its path.

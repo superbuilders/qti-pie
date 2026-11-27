@@ -225,8 +225,8 @@ export const builtinBases: ReadonlyMap<string, Option.Option<string>> = new Map(
 
 /**
  * The lexical grammar each primitive's own definition gives as patterns: `anyURI`'s, where the
- * specification states it as one (spec reading 71), and no pattern set for every other primitive,
- * whose lexical space is its datatype's, which the domain's primitive names.
+ * specification states it as one (spec reading `anyuri-lexical`), and no pattern set for every
+ * other primitive, whose lexical space is its datatype's, which the domain's primitive names.
  */
 const primitivePatterns: Readonly<Record<Primitive, readonly (readonly string[])[]>> = {
   NOTATION: [],
@@ -377,7 +377,7 @@ type Lengths = Readonly<Partial<Record<LengthFacet, StatedLength>>>;
 
 /**
  * `xs:nonNegativeInteger`'s lexical space after the `collapse` its `whiteSpace` applies: `+`
- * before any digits and `-` before zero only (spec reading 73).
+ * before any digits and `-` before zero only (spec reading `unsigned-sign`).
  */
 const nonNegativeInteger = regex("^[\t\n\r ]*(?:\\+?\\d+|-0+)[\t\n\r ]*$", "u");
 

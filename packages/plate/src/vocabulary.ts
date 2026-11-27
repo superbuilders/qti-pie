@@ -246,8 +246,8 @@ export const modelled = {
 /**
  * The vocabulary classes an interaction's root leaves off for a candidate whose PNP shows
  * low-vision indications, by the interaction's module kind: Graphic Gap Match's
- * `qti-unselected-hidden`, which "should be ignored" for such a candidate (the shared
- * vocabulary's section 1.2.10.3, reading 192), so its hotspots stay visible. Hotspot's and Hot
+ * `qti-unselected-hidden`, which "should be ignored" for such a candidate (the shared vocabulary's
+ * section 1.2.10.3, reading `pnp-low-vision`), so its hotspots stay visible. Hotspot's and Hot
  * Text's sections of the class (1.2.5.1, 1.2.6.3) say nothing of the PNP.
  */
 const lowVisionIgnored: ReadonlyMap<ModuleKind, readonly string[]> = new Map([
@@ -255,9 +255,10 @@ const lowVisionIgnored: ReadonlyMap<ModuleKind, readonly string[]> = new Map([
 ]);
 
 /**
- * Tell whether a candidate's supports show low-vision indications (reading 192): magnification,
- * inverted display polarity or the `high-contrast` catalog support is active, the AfA PNP 3.0
- * features whose descriptions concern sight alone (information model 4.1.23, 4.1.22, 4.1.36).
+ * Tell whether a candidate's supports show low-vision indications (reading `pnp-low-vision`):
+ * magnification, inverted display polarity or the `high-contrast` catalog support is active, the
+ * AfA PNP 3.0 features whose descriptions concern sight alone (information model 4.1.23, 4.1.22,
+ * 4.1.36).
  *
  * @param supports The supports the host enabled.
  * @returns Whether any of the three is active.
@@ -509,9 +510,9 @@ const reservedDataPrefix = "data-qti-";
 
 /**
  * Tell whether a name under {@link reservedDataPrefix} is one QTI's shared vocabulary gives the
- * author (reading 200): `data-qti-a11y-content-role`, which marks accessibility content
- * (section 1.1.1.5), or `data-qti-aria-` followed by an ARIA attribute's name, a backup for an
- * ARIA attribute the element does not declare (section 1.1.1.4).
+ * author (reading `shared-vocabulary-data-attributes`): `data-qti-a11y-content-role`, which marks
+ * accessibility content (section 1.1.1.5), or `data-qti-aria-` followed by an ARIA attribute's
+ * name, a backup for an ARIA attribute the element does not declare (section 1.1.1.4).
  *
  * @param name The attribute's local name.
  * @returns Whether it is one of the two.
@@ -624,9 +625,10 @@ const reservedDataNames: ReadonlySet<string> = new Set([
 
 /**
  * Tell whether an attribute name is an author `data-*` plate passes through: the reading's form
- * (`data-` and one or more of `a-z`, `0-9`, `_`, `.` and `-`, reading 13), outside
- * {@link reservedDataPrefix} or one of the shared vocabulary's names under it
- * ({@link isSharedVocabulary}, reading 200), and not one of {@link reservedDataNames}.
+ * (`data-` and one or more of `a-z`, `0-9`, `_`, `.` and `-`, reading `data-attribute-name`),
+ * outside {@link reservedDataPrefix} or one of the shared vocabulary's names under it
+ * ({@link isSharedVocabulary}, reading `shared-vocabulary-data-attributes`), and not one of
+ * {@link reservedDataNames}.
  *
  * The name is the attribute's local name; one in a namespace is never an author `data-*`, and the
  * caller checks the namespace. The form admits no uppercase letter, so `data-SLOT`, which a browser

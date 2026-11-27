@@ -23,12 +23,12 @@
  *   position), and `TypeText` is type → domain. An element whose `xsi:type` names a type derived
  *   from its kind's declared one is validated against that type, so its admitted and required
  *   attributes, their domains and its text's domain are the type's (XML Schema 1.0 Part 1, §3.3.4,
- *   clause 5.2.1; spec reading 84), and a foreign element a simple type governs admits the four
- *   `xsi:` names alone and holds text in the type's domain (§3.3.4, Element Locally Valid (Type),
- *   clause 3.1; spec reading 60). The (kind, type) pair is the governor, read in place of the kind
- *   wherever the element's attributes and text are, and the rules QTI's readings state stay its
- *   kind's: a reading applies by the element's name, never by its type ({@link admissionOf},
- *   {@link textDomainOf}).
+ *   clause 5.2.1; spec reading `governing-type`), and a foreign element a simple type governs
+ *   admits the four `xsi:` names alone and holds text in the type's domain (§3.3.4, Element Locally
+ *   Valid (Type), clause 3.1; spec reading `wildcard-xsi-type`). The (kind, type) pair is the
+ *   governor, read in place of the kind wherever the element's attributes and text are, and the
+ *   rules QTI's readings state stay its kind's: a reading applies by the element's name, never by
+ *   its type ({@link admissionOf}, {@link textDomainOf}).
  *
  * A declaration's domain is the leaf's resolution of its XSD type (`Domain`), with a spec reading
  * applied where QTI reads the attribute otherwise ({@link specReadings}).
@@ -162,10 +162,10 @@ interface DeclaredText {
 }
 
 /**
- * A governor: a named type an `xsi:type` may give an element of a kind in place of
- * the kind's declared type, which then governs it (XML Schema 1.0 Part 1, §3.3.4, Element Locally
- * Valid (Element), clauses 4.3 and 5.2.1; spec reading 84), or a simple type that governs a foreign
- * element's text (spec reading 60). `governs` is its `TypeName` handle.
+ * A governor: a named type an `xsi:type` may give an element of a kind in place of the kind's
+ * declared type, which then governs it (XML Schema 1.0 Part 1, §3.3.4, Element Locally Valid
+ * (Element), clauses 4.3 and 5.2.1; spec reading `governing-type`), or a simple type that governs a
+ * foreign element's text (spec reading `wildcard-xsi-type`). `governs` is its `TypeName` handle.
  */
 export interface Governor {
   readonly governs: string;
@@ -283,7 +283,7 @@ const toInt64 = (domain: Domain): Domain => {
 interface SpecReading {
   readonly kinds: Option.Option<readonly string[]>;
   readonly name: string;
-  readonly reading: number;
+  readonly reading: string;
   readonly read: (domain: Domain) => Domain;
   readonly readAs: Option.Option<string>;
   readonly whiteSpace: Reading;
@@ -301,7 +301,7 @@ const asDeclared = (domain: Domain): Domain => domain;
 /**
  * A reading of the attribute on the listed kinds.
  *
- * @param reading - The reading's number.
+ * @param reading - The reading's slug.
  * @param kinds - The kinds.
  * @param name - The attribute.
  * @param whiteSpace - How its whitespace is read.
@@ -309,7 +309,7 @@ const asDeclared = (domain: Domain): Domain => domain;
  * @returns The reading.
  */
 const on = (
-  reading: number,
+  reading: string,
   kinds: readonly string[],
   name: string,
   whiteSpace: Reading,
@@ -327,13 +327,13 @@ const on = (
  * A reading of the attribute on every kind that declares it, its whitespace read as its type reads
  * it.
  *
- * @param reading - The reading's number.
+ * @param reading - The reading's slug.
  * @param name - The attribute.
  * @param read - The definition it reads the XSD's as.
  * @returns The reading.
  */
 const everywhere = (
-  reading: number,
+  reading: string,
   name: string,
   read: (domain: Domain) => Domain,
 ): SpecReading => ({
@@ -346,8 +346,9 @@ const everywhere = (
 });
 
 /**
- * `xs:string`'s definition, every value with its whitespace preserved: what spec reading 8 reads a
- * match table entry's `target-value` as before the overlay types it by the outcome's base type.
+ * `xs:string`'s definition, every value with its whitespace preserved: what spec reading
+ * `match-table-target-value` reads a match table entry's `target-value` as before the overlay types
+ * it by the outcome's base type.
  */
 const stringDomain: Domain = {
   _tag: "atomic",
@@ -358,9 +359,9 @@ const stringDomain: Domain = {
 };
 
 /**
- * SSML 1.1's `speak/@version`, which "must have the value \"1.1\"" (SSML 1.1, §3.1.1): spec
- * reading 39 narrows the XSD's `version.datatype`, an `xs:NMTOKEN`, to that one value. The type's
- * `collapse` whitespace stays the XSD's.
+ * SSML 1.1's `speak/@version`, which "must have the value \"1.1\"" (SSML 1.1, §3.1.1): spec reading
+ * `ssml-speak-version` narrows the XSD's `version.datatype`, an `xs:NMTOKEN`, to that one value.
+ * The type's `collapse` whitespace stays the XSD's.
  *
  * @param domain - The XSD's definition.
  * @returns It with the one enumeration value.
@@ -371,9 +372,9 @@ const ssmlVersion = (domain: Domain): Domain =>
 
 /**
  * An `xi:include`'s `accept` or `accept-language`, which `XInclude.xsd` types `xs:string`: spec
- * reading 118 narrows it to the characters an HTTP header holds, since XInclude says "Values
- * containing characters outside the range #x20 through #x7E must be flagged as fatal errors"
- * (XInclude 1.0 Second Edition, §3.1).
+ * reading `include-fallback` narrows it to the characters an HTTP header holds, since XInclude says
+ * "Values containing characters outside the range #x20 through #x7E must be flagged as fatal
+ * errors" (XInclude 1.0 Second Edition, §3.1).
  *
  * @param domain - The XSD's definition.
  * @returns It with the pattern.
@@ -405,10 +406,10 @@ const languageRange = (() => {
 
 /**
  * SSML 1.1's `voice/@languages`, "either the empty string \"\" or a space-separated list of
- * languages", each "of the form \"language\" or \"language:accent\", where both language and
- * accent must be an Extended Language Range ... except that the values \"und\" and \"zxx\" are
- * disallowed" (SSML 1.1, §3.2.1): spec reading 42 gives each token of the XSD's `xs:NMTOKENS`
- * member that form, and keeps its empty-string member.
+ * languages", each "of the form \"language\" or \"language:accent\", where both language and accent
+ * must be an Extended Language Range ... except that the values \"und\" and \"zxx\" are disallowed"
+ * (SSML 1.1, §3.2.1): spec reading `ssml-voice-languages` gives each token of the XSD's
+ * `xs:NMTOKENS` member that form, and keeps its empty-string member.
  *
  * A value is valid only where both the Recommendation and its schema admit it: a conforming SSML
  * document or fragment adheres to the Recommendation "including the constraints expressed in the"
@@ -444,12 +445,12 @@ const ssmlLanguages = (domain: Domain): Domain =>
     : domain;
 
 /**
- * A `qti-index`'s `n`, which the XSD types as a union of `xs:NCName` and `xs:int`: spec reading 120
- * holds its `xs:int` member to 1 and above, since "'n' must be a positive integer" (information
- * model §5.72, Index). An NCName never starts with a digit or a sign, so `0`, `+0` and `-3` meet
- * only that member, and fail it. An NCName names a variable whose value is read at run time ("If
- * 'n' is an identifier, it is the value of 'n' at runtime that is used"), which the attribute
- * cannot judge.
+ * A `qti-index`'s `n`, which the XSD types as a union of `xs:NCName` and `xs:int`: spec reading
+ * `index-n-positive` holds its `xs:int` member to 1 and above, since "'n' must be a positive
+ * integer" (information model §5.72, Index). An NCName never starts with a digit or a sign, so `0`,
+ * `+0` and `-3` meet only that member, and fail it. An NCName names a variable whose value is read
+ * at run time ("If 'n' is an identifier, it is the value of 'n' at runtime that is used"), which
+ * the attribute cannot judge.
  *
  * @param domain - The XSD's union.
  * @returns The union with its integer member at least 1.
@@ -469,8 +470,8 @@ const positiveIndex = (domain: Domain): Domain =>
 
 /**
  * A `bdo`'s `dir`, which the XSD types as `ltr`, `rtl` or `auto`, with `auto` its default: spec
- * reading 123 takes `auto` away, since "Authors must specify the dir attribute on this tag, with
- * the value ltr to specify a left-to-right override and with the value rtl to specify a
+ * reading `bdo-dir` takes `auto` away, since "Authors must specify the dir attribute on this tag,
+ * with the value ltr to specify a left-to-right override and with the value rtl to specify a
  * right-to-left override. The auto value must not be specified" (information model §5.11, BDO).
  * {@link readingUses} makes it required, so the XSD's default is never read.
  *
@@ -494,12 +495,12 @@ const headingRoles: ReadonlySet<string> = new Set(["heading", "tab", "presentati
 
 /**
  * An `h1`'s `role`, which the XSD types as an enumeration of 74 ARIA roles, its whitespace
- * preserved: spec reading 9 keeps of them the three {@link headingRoles} names. The binding's
- * section 5 "is NORMATIVE", and its explicit rules are those "used to enforce the features of the
- * Information Model that are otherwise not enforced in the XSD" (§5.3), so where the rule is
- * stricter than the XSD it is the rule. The rule's test compares `@role` with each name as
- * written, as the XSD's `preserve` does, and a role the XSD does not list is refused by both. `h2`
- * to `h6` keep every role the XSD lists.
+ * preserved: spec reading `schematron-intent` keeps of them the three {@link headingRoles} names.
+ * The binding's section 5 "is NORMATIVE", and its explicit rules are those "used to enforce the
+ * features of the Information Model that are otherwise not enforced in the XSD" (§5.3), so where
+ * the rule is stricter than the XSD it is the rule. The rule's test compares `@role` with each name
+ * as written, as the XSD's `preserve` does, and a role the XSD does not list is refused by both.
+ * `h2` to `h6` keep every role the XSD lists.
  *
  * @param domain - The XSD's enumeration.
  * @returns It with the three roles alone.
@@ -570,8 +571,9 @@ const grandfatheredTags = [
  * variant and singleton subtags and its subtags are in the IANA Language Subtag Registry (§2.2.9).
  * Only well-formedness is a pattern: the registry is a dated dataset no pinned source holds, and a
  * repeated subtag is a comparison between subtags no pattern without backreferences states, so
- * validity is spec reading 129's stated limit. `lom-title` reads a root's `xml:lang` by it too: a
- * form that is no tag states no language (spec reading 151, `#pantry/qti/metadata.ts`).
+ * validity is spec reading `language-tags`'s stated limit. `lom-title` reads a root's `xml:lang` by
+ * it too: a form that is no tag states no language (spec reading `item-lang-outside-domain`,
+ * `#pantry/qti/metadata.ts`).
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc5646#section-2.1 | RFC 5646, 2.1 Syntax}
  * @see {@link https://www.rfc-editor.org/rfc/rfc5646#section-2.2.9 | RFC 5646, 2.2.9 Classes of Conformance}
@@ -593,9 +595,9 @@ export const languageTag = (() => {
 
 /**
  * A `lang`, on every kind that declares it, which the XSD types `xs:normalizedString`: spec reading
- * 129 reads it as the information model's `lang` rows state it, "Its value must be a valid [BCP
- * 47] language tag, or the empty string" (§5.15.3 to §5.21.3). The type's `replace` whitespace
- * stays, so a space around the tag is no part of it, and refused.
+ * `language-tags` reads it as the information model's `lang` rows state it, "Its value must be a
+ * valid [BCP 47] language tag, or the empty string" (§5.15.3 to §5.21.3). The type's `replace`
+ * whitespace stays, so a space around the tag is no part of it, and refused.
  *
  * @param domain - The XSD's definition.
  * @returns It with the pattern.
@@ -604,13 +606,13 @@ export const languageTag = (() => {
 const languageOrEmpty = (domain: Domain): Domain => withPattern(domain, `(${languageTag})?`);
 
 /**
- * An `xml:lang`, on every kind: spec reading 129 reads it as XML 1.0 states it, "language
- * identifiers as defined by [IETF BCP 47] ...; in addition, the empty string may be specified"
- * (§2.12). `xml.xsd` types it as a union of `xs:language`, whose pattern is RFC 3066's and admits
- * values RFC 5646 refuses (`a-value` and `x` among them), and the empty string; its `xs:language`
- * member takes {@link languageTag} beside its own pattern, collapsed as the type collapses it. Under
- * a `skip` wildcard no declaration types it, so its value as written is a tag or empty: XML 1.0's
- * sentence is XML's own rule, which holds whatever a schema's processing.
+ * An `xml:lang`, on every kind: spec reading `language-tags` reads it as XML 1.0 states it,
+ * "language identifiers as defined by [IETF BCP 47] ...; in addition, the empty string may be
+ * specified" (§2.12). `xml.xsd` types it as a union of `xs:language`, whose pattern is RFC 3066's
+ * and admits values RFC 5646 refuses (`a-value` and `x` among them), and the empty string; its
+ * `xs:language` member takes {@link languageTag} beside its own pattern, collapsed as the type
+ * collapses it. Under a `skip` wildcard no declaration types it, so its value as written is a tag
+ * or empty: XML 1.0's sentence is XML's own rule, which holds whatever a schema's processing.
  *
  * @param domain - `xml.xsd`'s union, or the open type under a `skip` wildcard.
  * @returns It with its language read as BCP 47.
@@ -634,7 +636,8 @@ const xmlLanguage = (domain: Domain): Domain => {
 /**
  * The item's and the stimulus's `xml:lang`, their default language, "Natural language identifiers
  * as defined by [BCP 47]" (information model §4.1.4 and §4.3.4), which state no empty value where
- * XML 1.0 and the `lang` rows do: spec reading 129 takes `xml.xsd`'s empty-string member away.
+ * XML 1.0 and the `lang` rows do: spec reading `language-tags` takes `xml.xsd`'s empty-string
+ * member away.
  *
  * @param domain - The union as {@link xmlLanguage} reads it.
  * @returns The union of its members but the empty string's.
@@ -652,9 +655,9 @@ const rootLanguage = (domain: Domain): Domain =>
     : domain;
 
 /**
- * A `track`'s `srclang`, which the XSD types `xs:normalizedString`: spec reading 129 reads it as
- * "The value must be a valid ]BCP 47] language tag" (information model §5.163.3, Track), which
- * states no empty value.
+ * A `track`'s `srclang`, which the XSD types `xs:normalizedString`: spec reading `language-tags`
+ * reads it as "The value must be a valid ]BCP 47] language tag" (information model §5.163.3,
+ * Track), which states no empty value.
  *
  * @param domain - The XSD's definition.
  * @returns It with the pattern.
@@ -667,10 +670,10 @@ const languageOnly = (domain: Domain): Domain => withPattern(domain, languageTag
  * each "must contain a valid non-empty URL potentially surrounded by spaces" (audio and video
  * `src`, §5.9.1 and §5.166.1; video `poster`, §5.166.9; source `src`, §5.135.1; track `src`,
  * §5.163.2), and the HTML Standard that a `srcset` "must consist of one or more image candidate
- * strings", each holding a valid non-empty URL. Spec readings 124 and 125 read the non-empty
- * clause: after `replace` maps every tab and line break to a space, the value holds a character
- * that is not a space. The URL's own syntax is the URL Standard's, which no pinned source holds, so
- * the readings state it as a limit.
+ * strings", each holding a valid non-empty URL. Spec readings `source-attributes` and
+ * `track-srclang` read the non-empty clause: after `replace` maps every tab and line break to a
+ * space, the value holds a character that is not a space. The URL's own syntax is the URL
+ * Standard's, which no pinned source holds, so the readings state it as a limit.
  *
  * @param domain - The XSD's definition.
  * @returns It with the pattern.
@@ -679,22 +682,23 @@ const languageOnly = (domain: Domain): Domain => withPattern(domain, languageTag
 const nonEmptyUrl = (domain: Domain): Domain => withPattern(domain, ".*[^ ].*");
 
 /**
- * A `qti-printed-variable`'s `format`, which the XSD types `xs:normalizedString`: spec reading 132
- * reads it as the information model's number format, "based on the format conversion specifiers
- * defined in the C programming language [ISO 9899] for use with printf and related functions. Each
- * conversion specifier starts with a '%' character and is followed by zero or more flag characters
- * (#, 0, -, " " [space] and +), an optional digit string indicating the minimum field width, an
- * optional precision (consisting of a "." followed by zero or more digits) and finally one of the
- * conversion type codes: E, e, f, G, g, r, R, i, o, X, or x" (§2.3.4). Spec reading 171 adds `d`
- * to that list: the sentence stands in a section the information model marks not normative, the
- * implementation guide's own example writes `format="%d"`, and C reads `d` as it reads `i` (C11
- * §7.21.6.1; PR #46, comment 6722164084). So a format is a printf format string over those codes
- * and `d`: characters but `%`, the escape `%%`, and conversion specifiers, any number of them. Spec
- * reading 161 sets aside reading 132's rule of at most one specifier: QTI bans no second
- * conversion, C's undefined behaviour for a missing argument (C11 §7.21.6.1) is no QTI prohibition,
- * and pantry never renders, so `%i of %i` is stored as written and how it prints is the renderer's
- * call. `%%` converts no argument, and a format with no specifier prints its text alone. A `%` that
- * begins no specifier, and a code that is not listed, are refused, wherever they stand.
+ * A `qti-printed-variable`'s `format`, which the XSD types `xs:normalizedString`: spec reading
+ * `printed-variable-format` reads it as the information model's number format, "based on the format
+ * conversion specifiers defined in the C programming language [ISO 9899] for use with printf and
+ * related functions. Each conversion specifier starts with a '%' character and is followed by zero
+ * or more flag characters (#, 0, -, " " [space] and +), an optional digit string indicating the
+ * minimum field width, an optional precision (consisting of a "." followed by zero or more digits)
+ * and finally one of the conversion type codes: E, e, f, G, g, r, R, i, o, X, or x" (§2.3.4). Spec
+ * reading `format-d-conversion` adds `d` to that list: the sentence stands in a section the
+ * information model marks not normative, the implementation guide's own example writes
+ * `format="%d"`, and C reads `d` as it reads `i` (C11 §7.21.6.1; PR #46, comment 6722164084). So a
+ * format is a printf format string over those codes and `d`: characters but `%`, the escape `%%`,
+ * and conversion specifiers, any number of them. Spec reading `format-conversion-count` sets aside
+ * reading `printed-variable-format`'s rule of at most one specifier: QTI bans no second conversion,
+ * C's undefined behaviour for a missing argument (C11 §7.21.6.1) is no QTI prohibition, and pantry
+ * never renders, so `%i of %i` is stored as written and how it prints is the renderer's call. `%%`
+ * converts no argument, and a format with no specifier prints its text alone. A `%` that begins no
+ * specifier, and a code that is not listed, are refused, wherever they stand.
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Variable | QTI 3.0 information model, 2.3.4 Variable Content}
  * @see {@link https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf | C11 (N1570), 7.21.6.1 The fprintf function}
@@ -715,9 +719,9 @@ const mediaTypeToken = String.raw`[!-~-[()<>@,;:\\"/\[\]?=]]+`;
 /**
  * A MIME type, which the XSD types `MimeTypeDType`, an `xs:normalizedString` whose pattern admits
  * any Basic Latin character but RFC 2045's tspecials on either side of its one slash: spec reading
- * 135 reads it as the information model's data type states it, "The mime type (type and subtype),
- * as defined by [RFC 2045]" (§7.25, MimeType), which §5.1.2 (A) and §5.135.2 (Source) restate, "its
- * value must be a valid MIME type". RFC 2045's type and subtype are each a token
+ * `mime-type` reads it as the information model's data type states it, "The mime type (type and
+ * subtype), as defined by [RFC 2045]" (§7.25, MimeType), which §5.1.2 (A) and §5.135.2 (Source)
+ * restate, "its value must be a valid MIME type". RFC 2045's type and subtype are each a token
  * ({@link mediaTypeToken}), joined by `/` with nothing between (§5.1). So a space, written or a tab
  * or line break `replace` makes one, and a control character, `U+007F` the one XML admits, are
  * refused where the XSD admits them; a value meets the XSD's pattern too. The value is the type
@@ -730,7 +734,7 @@ const mediaTypeToken = String.raw`[!-~-[()<>@,;:\\"/\[\]?=]]+`;
  * Only RFC 2045's tokens are a pattern. Its type is one it lists, an `X-` name, or "An extension
  * token defined by a standards-track RFC and registered with IANA", and its subtype registered or
  * `X-`: IANA's registry is a dated dataset no pinned source holds, so registration is spec reading
- * 135's stated limit.
+ * `mime-type`'s stated limit.
  *
  * @param domain - The XSD's definition, or the list of it.
  * @returns It with RFC 2045's media type as a second pattern, on each item of a list.
@@ -755,8 +759,8 @@ const mediaType = (domain: Domain): Domain => {
 const mediaTypeNames: ReadonlySet<string> = new Set(["MimeTypeDType", "MimeTypeListDType"]);
 
 /**
- * Spec reading 135's attribute readings: each attribute the leaf types as a MIME type or a list of
- * one ({@link mediaTypeNames}), on every kind that declares it, read by {@link mediaType}.
+ * Spec reading `mime-type`'s attribute readings: each attribute the leaf types as a MIME type or a
+ * list of one ({@link mediaTypeNames}), on every kind that declares it, read by {@link mediaType}.
  */
 const mediaTypeReadings: readonly SpecReading[] = [
   ...Map.groupBy(
@@ -774,11 +778,12 @@ const mediaTypeReadings: readonly SpecReading[] = [
     ({ name }) => name,
   ).entries(),
 ].map(([name, declarations]) =>
-  on(135, [...new Set(declarations.map(({ kind }) => kind))], name, "xsd", mediaType),
+  on("mime-type", [...new Set(declarations.map(({ kind }) => kind))], name, "xsd", mediaType),
 );
 
 /**
- * The counts spec reading 46 holds to the signed 64-bit range, on every kind that declares them.
+ * The counts spec reading `count-range` holds to the signed 64-bit range, on every kind that
+ * declares them.
  */
 const counts = [
   "max-choices",
@@ -795,7 +800,7 @@ const counts = [
  * MathML 3's `positive-integer` notation, "a string of decimal-digits, but not consisting solely
  * of "0"s (U+0030), representing a positive integer" (§2.1.5.1), as an XSD pattern over the value
  * after its whitespace is collapsed: {@link mathmlNotations}' `m:positive-integer`, and the
- * notation spec reading 2 reads a content `cn`'s `base` by.
+ * notation spec reading `mathml-validity` reads a content `cn`'s `base` by.
  */
 const positiveInteger = "[0-9]*[1-9][0-9]*";
 
@@ -811,15 +816,15 @@ const positiveInteger = "[0-9]*[1-9][0-9]*";
  * - `number`, "an optional prefix of "-" (U+002D), followed by an unsigned number", an
  *   `unsigned-number` being "a string of decimal digits with up to one decimal point (U+002E)".
  *
- * Spec reading 2 follows them over the XSD's types, `m:unsigned-integer`, `m:positive-integer`,
- * `m:integer` and `m:number`, which are `xs:unsignedLong`, `xs:positiveInteger`, `xs:integer` and
- * `xs:decimal` (`mathml3-presentation.xsd` lines 93, 133, 96 and 99, as the RelaxNG's
- * `mathml3-presentation.rnc` lines 60, 75, 61 and 62 are) and so admit a leading `+`, which
- * §2.1.5.1 forbids ("An explicit plus sign ('+') is not allowed as part of a numerical value except
- * when it is specifically listed in the syntax"), and `-0` for the first (spec reading 73). A value
- * meets both the notation and its type, so the pattern narrows the type's lexical space and keeps
- * its bounds and its `collapse`: §2.1.5.1 asks only that "leading and trailing whitespace in
- * attribute values should be avoided".
+ * Spec reading `mathml-validity` follows them over the XSD's types, `m:unsigned-integer`,
+ * `m:positive-integer`, `m:integer` and `m:number`, which are `xs:unsignedLong`,
+ * `xs:positiveInteger`, `xs:integer` and `xs:decimal` (`mathml3-presentation.xsd` lines 93, 133, 96
+ * and 99, as the RelaxNG's `mathml3-presentation.rnc` lines 60, 75, 61 and 62 are) and so admit a
+ * leading `+`, which §2.1.5.1 forbids ("An explicit plus sign ('+') is not allowed as part of a
+ * numerical value except when it is specifically listed in the syntax"), and `-0` for the first
+ * (spec reading `unsigned-sign`). A value meets both the notation and its type, so the pattern
+ * narrows the type's lexical space and keeps its bounds and its `collapse`: §2.1.5.1 asks only that
+ * "leading and trailing whitespace in attribute values should be avoided".
  *
  * @see {@link https://www.w3.org/TR/MathML3/chapter2.html#id.2.1.5.1 | MathML 3, 2.1.5.1 Syntax notation used in the MathML specification}
  */
@@ -832,7 +837,7 @@ const mathmlNotations: ReadonlyMap<string, string> = new Map([
 
 /**
  * The MathML attributes of a notation type whose own row in the Recommendation states another
- * notation, which spec reading 2 leaves to the type: `scriptlevel`, `( "+" | "-" )?
+ * notation, which spec reading `mathml-validity` leaves to the type: `scriptlevel`, `( "+" | "-" )?
  * unsigned-integer` (MathML 3 §3.3.4.2, `mstyle`'s attributes, which `math` takes too), where a
  * sign increments or decrements the level, the language of `xs:integer` itself.
  *
@@ -841,7 +846,7 @@ const mathmlNotations: ReadonlyMap<string, string> = new Map([
 const ownNotations: ReadonlySet<string> = new Set(["scriptlevel"]);
 
 /**
- * Spec reading 2's attribute readings: each MathML attribute of a notation type
+ * Spec reading `mathml-validity`'s attribute readings: each MathML attribute of a notation type
  * ({@link mathmlNotations}), but {@link ownNotations}, on every kind that declares it, read with
  * the notation's pattern beside its type's.
  */
@@ -858,7 +863,7 @@ const mathmlNotationReadings: readonly SpecReading[] = Object.values(
   ),
 ).map(([{ declaration, pattern }, ...rest]) =>
   on(
-    2,
+    "mathml-validity",
     [...new Set([declaration, ...rest.map((held) => held.declaration)].map(({ kind }) => kind))],
     declaration.name,
     "xsd",
@@ -878,15 +883,15 @@ const idrefDomain: Domain = {
 };
 
 /**
- * Spec reading 2's `xref` readings: MathML 3's cross-references "are established by the use of the
- * id and xref attributes" (§5.4.2), so an `xref` names an `id` of its document. Each MathML kind
- * that declares it reads it as an `xs:IDREF`, not the XSD's `xs:anySimpleType`, and the law "Idref
- * target" reads its token.
+ * Spec reading `mathml-validity`'s `xref` readings: MathML 3's cross-references "are established by
+ * the use of the id and xref attributes" (§5.4.2), so an `xref` names an `id` of its document. Each
+ * MathML kind that declares it reads it as an `xs:IDREF`, not the XSD's `xs:anySimpleType`, and the
+ * law "Idref target" reads its token.
  *
  * @see {@link https://www.w3.org/TR/MathML3/chapter5.html#mixing.cr | MathML 3, 5.4.2 Parallel Markup via Cross-References}
  */
 const mathmlXrefReading: SpecReading = on(
-  2,
+  "mathml-validity",
   [
     ...new Set(
       attributeDeclarations
@@ -901,11 +906,11 @@ const mathmlXrefReading: SpecReading = on(
 
 /**
  * A content `cn`'s `base`, which the XSD leaves untyped (`mathml3-content.xsd` line 18) and the
- * RelaxNG types `text` (`mathml3-content.rnc` line 34): spec reading 2 reads it as MathML 3 states
- * it, "a base 10 positive integer giving the value of base in which the text content of the cn is
- * to be interpreted" (§4.2.1.3), the `positive-integer` notation over the XSD's
- * `m:positive-integer` ({@link mathmlNotations}), collapsed as that type collapses it, and its
- * domain is named after that type. The definition is the one the leaf resolves for an attribute
+ * RelaxNG types `text` (`mathml3-content.rnc` line 34): spec reading `mathml-validity` reads it as
+ * MathML 3 states it, "a base 10 positive integer giving the value of base in which the text
+ * content of the cn is to be interpreted" (§4.2.1.3), the `positive-integer` notation over the
+ * XSD's `m:positive-integer` ({@link mathmlNotations}), collapsed as that type collapses it, and
+ * its domain is named after that type. The definition is the one the leaf resolves for an attribute
  * of that type, so the two share a domain; none where no attribute of the leaf has it.
  *
  * @see {@link https://www.w3.org/TR/MathML3/chapter4.html#contm.cn | MathML 3, 4.2.1 Numbers <cn>}
@@ -913,122 +918,155 @@ const mathmlXrefReading: SpecReading = on(
 const cnBaseReadings: readonly SpecReading[] = Option.toArray(
   Arr.findFirst(attributeDeclarations, ({ type }) => type.type === "m:positive-integer"),
 ).map(({ domain }) => ({
-  ...on(2, ["m:cn"], "base", "xsd", () => withPattern(domain, positiveInteger)),
+  ...on("mathml-validity", ["m:cn"], "base", "xsd", () => withPattern(domain, positiveInteger)),
   readAs: Option.some("m:positive-integer"),
 }));
 
 /**
  * The attribute readings of `docs/spec-readings.md`, the only places the grammar departs from the
- * XSD's declarations, each stating its reading's number:
+ * XSD's declarations, each by its reading's slug:
  *
- * - 2: a MathML attribute of a notation type takes the notation's pattern (MathML 3 §2.1.5.1):
- *   `length` digits only, `columnspan`, `rowspan` and `selection` digits not all zero, `position`,
- *   `shift` and `index` an optional `-` and digits, `scriptsizemultiplier` a `number` with no `+`
- *   ({@link mathmlNotationReadings}); a content `cn`'s `base` is a positive integer
+ * - `mathml-validity`: a MathML attribute of a notation type takes the notation's pattern (MathML 3
+ *   §2.1.5.1): `length` digits only, `columnspan`, `rowspan` and `selection` digits not all zero,
+ *   `position`, `shift` and `index` an optional `-` and digits, `scriptsizemultiplier` a `number`
+ *   with no `+` ({@link mathmlNotationReadings}); a content `cn`'s `base` is a positive integer
  *   ({@link cnBaseReadings}); and every MathML kind's `xref` is an `xs:IDREF`, naming an `id` of
  *   its document ({@link mathmlXrefReading}).
- * - 7: a typed QTI value in an attribute the XSD types as a string is read in the string's class,
- *   outer whitespace invalid for a type but `string`: a map entry's `map-key`, an
- *   `xs:normalizedString`, reads its class, each tab, line feed and carriage return a space (XML
+ * - `typed-value-whitespace`: a typed QTI value in an attribute the XSD types as a string is read in
+ *   the string's class, outer whitespace invalid for a type but `string`: a map entry's `map-key`,
+ *   an `xs:normalizedString`, reads its class, each tab, line feed and carriage return a space (XML
  *   Schema 1.0 Part 2, §4.3.6), so its value is the key; a match table's and an interpolation
  *   table's `default-value`, and an interpolation table entry's `target-value`, each an
  *   `xs:string`, read no whitespace class. The typed-value attributes the XSD types `xs:double`
  *   (`mapped-value`, the mappings' bounds and `default-value`, `source-value`, and the usage-data
  *   mapping's four) state nothing here: they read as the XSD reads them, collapsed.
- * - 8: a match table entry's `target-value` is a value of the outcome's base type, not a base-type
- *   name: any text, typed by the overlay.
- * - 9: an `h1`'s `role` is `heading`, `tab` or `presentation`, the Schematron's RULE ARIA ROLE 1b
- *   ({@link headingRole}).
- * - 16: `normal-maximum` is greater than zero.
- * - 17: an item's or a test's rubric block's `view` lists at least one view, the information model's
- *   "A list from an enumerated value set" of a characteristic of multiplicity [1] (§5.120.2 and
- *   §5.160.1), where the XSD's list admits none. An outcome declaration's `view` (§4.5.4, [0..1])
- *   keeps the XSD's list.
- * - 18: an order or graphic-order interaction's `min-choices` is at least 1.
- * - 39: an SSML `speak/@version` is `1.1`.
- * - 42: an SSML `voice/@languages` holds language ranges, `und`, `zxx` and `*` refused.
- * - 46: a count, and `figures`, is a signed 64-bit integer.
- * - 92: a position object interaction's `min-choices` is at least 1.
- * - 118: an `xi:include`'s `accept` and `accept-language` hold characters from #x20 to #x7E alone
- *   ({@link httpHeaderText}).
- * - 120: a `qti-index`'s `n`, where it is a number, is at least 1 ({@link positiveIndex}).
- * - 123: a `bdo`'s `dir` is `ltr` or `rtl`, never `auto` ({@link overrideDirection}).
- * - 124: an `audio`'s, a `video`'s and a `source`'s `src`, a `video`'s `poster` and a `source`'s
- *   `srcset` hold something other than spaces ({@link nonEmptyUrl}).
- * - 125: a `track`'s `src` holds something other than spaces ({@link nonEmptyUrl}).
- * - 129: an `xml:lang` is a BCP 47 language tag or empty, but on an item or a stimulus, where it is a
- *   tag ({@link xmlLanguage}, {@link rootLanguage}); a `lang` is a tag or empty
+ * - `match-table-target-value`: a match table entry's `target-value` is a value of the outcome's base
+ *   type, not a base-type name: any text, typed by the overlay.
+ * - `schematron-intent`: an `h1`'s `role` is `heading`, `tab` or `presentation`, the Schematron's
+ *   RULE ARIA ROLE 1b ({@link headingRole}).
+ * - `normal-maximum-positive`: `normal-maximum` is greater than zero.
+ * - `rubric-view-list`: an item's or a test's rubric block's `view` lists at least one view, the
+ *   information model's "A list from an enumerated value set" of a characteristic of multiplicity
+ *   [1] (§5.120.2 and §5.160.1), where the XSD's list admits none. An outcome declaration's `view`
+ *   (§4.5.4, [0..1]) keeps the XSD's list.
+ * - `order-min-choices`: an order or graphic-order interaction's `min-choices` is at least 1.
+ * - `ssml-speak-version`: an SSML `speak/@version` is `1.1`.
+ * - `ssml-voice-languages`: an SSML `voice/@languages` holds language ranges, `und`, `zxx` and `*`
+ *   refused.
+ * - `count-range`: a count, and `figures`, is a signed 64-bit integer.
+ * - `binding-and-count-sentences`: a position object interaction's `min-choices` is at least 1.
+ * - `include-fallback`: an `xi:include`'s `accept` and `accept-language` hold characters from #x20 to
+ *   #x7E alone ({@link httpHeaderText}).
+ * - `index-n-positive`: a `qti-index`'s `n`, where it is a number, is at least 1
+ *   ({@link positiveIndex}).
+ * - `bdo-dir`: a `bdo`'s `dir` is `ltr` or `rtl`, never `auto` ({@link overrideDirection}).
+ * - `source-attributes`: an `audio`'s, a `video`'s and a `source`'s `src`, a `video`'s `poster` and a
+ *   `source`'s `srcset` hold something other than spaces ({@link nonEmptyUrl}).
+ * - `track-srclang`: a `track`'s `src` holds something other than spaces ({@link nonEmptyUrl}).
+ * - `language-tags`: an `xml:lang` is a BCP 47 language tag or empty, but on an item or a stimulus,
+ *   where it is a tag ({@link xmlLanguage}, {@link rootLanguage}); a `lang` is a tag or empty
  *   ({@link languageOrEmpty}); a `track`'s `srclang` is a tag ({@link languageOnly}).
- * - 132, 161 and 171: a `qti-printed-variable`'s `format` is a printf format string over the
- *   information model's conversion codes and `d`, of any number of conversions
- *   ({@link printfFormat}).
- * - 135: a MIME type, and each item of a list of them, is RFC 2045's type and subtype, two tokens
- *   joined by a slash ({@link mediaType}, {@link mediaTypeReadings}).
- * - 232: a position object interaction's `center-point` is two integers, its horizontal and vertical
- *   offsets (information model §5.107.1).
- * - 250: a `col`'s and a `colgroup`'s `span` is at least 1, "a valid non-negative integer greater
- *   than zero" (information model §5.31 and §5.32), where the XSD's `xs:int` admits any.
+ * - `printed-variable-format`, `format-conversion-count` and `format-d-conversion`: a
+ *   `qti-printed-variable`'s `format` is a printf format string over the information model's
+ *   conversion codes and `d`, of any number of conversions ({@link printfFormat}).
+ * - `mime-type`: a MIME type, and each item of a list of them, is RFC 2045's type and subtype, two
+ *   tokens joined by a slash ({@link mediaType}, {@link mediaTypeReadings}).
+ * - `center-point`: a position object interaction's `center-point` is two integers, its horizontal
+ *   and vertical offsets (information model §5.107.1).
+ * - `col-span-positive`: a `col`'s and a `colgroup`'s `span` is at least 1, "a valid non-negative
+ *   integer greater than zero" (information model §5.31 and §5.32), where the XSD's `xs:int` admits
+ *   any.
  *
- * Reading 14, restated, follows the XSD (a text-entry interaction's `response-identifier` and
- * `string-identifier` are `IDREF`s), and so does reading 15 (an outcome declaration's
- * `variable-identifier-ref` is an `IDREF`, the XSD's `UniqueIdentifierRefDType` and the information
- * model's `UniqueIdentifierRef`, §4.5.11), and so does reading 136 (a `default` shape's `coords` is
- * required and a `CoordsDType`, as every shape's is), so they state nothing here. The readings that
- * take an attribute away from a kind or require one are {@link readingRefusals} and
- * {@link readingUses}.
+ * Reading `text-entry-idrefs`, restated, follows the XSD (a text-entry interaction's
+ * `response-identifier` and `string-identifier` are `IDREF`s), and so does reading
+ * `variable-identifier-ref-idref` (an outcome declaration's `variable-identifier-ref` is an
+ * `IDREF`, the XSD's `UniqueIdentifierRefDType` and the information model's `UniqueIdentifierRef`,
+ * §4.5.11), and so does reading `default-shape-coords` (a `default` shape's `coords` is required
+ * and a `CoordsDType`, as every shape's is), so they state nothing here. The readings that take an
+ * attribute away from a kind or require one are {@link readingRefusals} and {@link readingUses}.
  */
 export const specReadings: readonly SpecReading[] = [
-  on(7, ["qti-map-entry"], "map-key", "xsd", asDeclared),
-  on(7, ["qti-match-table", "qti-interpolation-table"], "default-value", "exact", asDeclared),
-  on(7, ["qti-interpolation-table-entry"], "target-value", "exact", asDeclared),
-  on(8, ["qti-match-table-entry"], "target-value", "exact", () => stringDomain),
-  on(9, ["h1"], "role", "xsd", headingRole),
-  on(16, ["qti-outcome-declaration"], "normal-maximum", "xsd", (domain) => ({
+  on("typed-value-whitespace", ["qti-map-entry"], "map-key", "xsd", asDeclared),
+  on(
+    "typed-value-whitespace",
+    ["qti-match-table", "qti-interpolation-table"],
+    "default-value",
+    "exact",
+    asDeclared,
+  ),
+  on(
+    "typed-value-whitespace",
+    ["qti-interpolation-table-entry"],
+    "target-value",
+    "exact",
+    asDeclared,
+  ),
+  on(
+    "match-table-target-value",
+    ["qti-match-table-entry"],
+    "target-value",
+    "exact",
+    () => stringDomain,
+  ),
+  on("schematron-intent", ["h1"], "role", "xsd", headingRole),
+  on("normal-maximum-positive", ["qti-outcome-declaration"], "normal-maximum", "xsd", (domain) => ({
     ...domain,
     facets: [
       ...domain.facets.filter(({ facet }) => facet !== "minInclusive"),
       { facet: "minExclusive", value: "0" },
     ],
   })),
-  on(17, ["qti-rubric-block", "qti-rubric-block.test"], "view", "xsd", (domain) =>
+  on("rubric-view-list", ["qti-rubric-block", "qti-rubric-block.test"], "view", "xsd", (domain) =>
     withFacets(domain, [{ facet: "minLength", value: "1" }]),
   ),
   on(
-    18,
+    "order-min-choices",
     ["qti-order-interaction", "qti-graphic-order-interaction"],
     "min-choices",
     "xsd",
     (domain) => withFacets(domain, [{ facet: "minInclusive", value: "1" }]),
   ),
-  on(92, ["qti-position-object-interaction"], "min-choices", "xsd", (domain) =>
-    withFacets(domain, [{ facet: "minInclusive", value: "1" }]),
+  on(
+    "binding-and-count-sentences",
+    ["qti-position-object-interaction"],
+    "min-choices",
+    "xsd",
+    (domain) => withFacets(domain, [{ facet: "minInclusive", value: "1" }]),
   ),
-  on(232, ["qti-position-object-interaction"], "center-point", "xsd", (domain) =>
+  on("center-point", ["qti-position-object-interaction"], "center-point", "xsd", (domain) =>
     withFacets(domain, [{ facet: "length", value: "2" }]),
   ),
-  on(239, ["col", "colgroup"], "span", "xsd", (domain) =>
+  on("col-span-positive", ["col", "colgroup"], "span", "xsd", (domain) =>
     withFacets(domain, [{ facet: "minInclusive", value: "1" }]),
   ),
-  on(118, ["xi:include"], "accept", "xsd", httpHeaderText),
-  on(118, ["xi:include"], "accept-language", "xsd", httpHeaderText),
-  on(39, ["ssml:speak"], "version", "xsd", ssmlVersion),
-  on(42, ["ssml:voice"], "languages", "xsd", ssmlLanguages),
-  ...counts.map((name) => everywhere(46, name, toInt64)),
-  on(46, ["qti-round-to", "qti-equal-rounded"], "figures", "xsd", toInt64),
+  on("include-fallback", ["xi:include"], "accept", "xsd", httpHeaderText),
+  on("include-fallback", ["xi:include"], "accept-language", "xsd", httpHeaderText),
+  on("ssml-speak-version", ["ssml:speak"], "version", "xsd", ssmlVersion),
+  on("ssml-voice-languages", ["ssml:voice"], "languages", "xsd", ssmlLanguages),
+  ...counts.map((name) => everywhere("count-range", name, toInt64)),
+  on("count-range", ["qti-round-to", "qti-equal-rounded"], "figures", "xsd", toInt64),
   ...mathmlNotationReadings,
   ...cnBaseReadings,
   mathmlXrefReading,
-  on(120, ["qti-index"], "n", "xsd", positiveIndex),
-  on(123, ["bdo"], "dir", "xsd", overrideDirection),
-  on(124, ["audio", "source", "video"], "src", "xsd", nonEmptyUrl),
-  on(124, ["video"], "poster", "xsd", nonEmptyUrl),
-  on(124, ["source"], "srcset", "xsd", nonEmptyUrl),
-  on(125, ["track"], "src", "xsd", nonEmptyUrl),
-  everywhere(129, "xml:lang", xmlLanguage),
-  on(129, ["qti-assessment-item", "qti-assessment-stimulus"], "xml:lang", "xsd", rootLanguage),
-  everywhere(129, "lang", languageOrEmpty),
-  on(129, ["track"], "srclang", "xsd", languageOnly),
-  on(132, ["qti-printed-variable"], "format", "xsd", (domain) => withPattern(domain, printfFormat)),
+  on("index-n-positive", ["qti-index"], "n", "xsd", positiveIndex),
+  on("bdo-dir", ["bdo"], "dir", "xsd", overrideDirection),
+  on("source-attributes", ["audio", "source", "video"], "src", "xsd", nonEmptyUrl),
+  on("source-attributes", ["video"], "poster", "xsd", nonEmptyUrl),
+  on("source-attributes", ["source"], "srcset", "xsd", nonEmptyUrl),
+  on("track-srclang", ["track"], "src", "xsd", nonEmptyUrl),
+  everywhere("language-tags", "xml:lang", xmlLanguage),
+  on(
+    "language-tags",
+    ["qti-assessment-item", "qti-assessment-stimulus"],
+    "xml:lang",
+    "xsd",
+    rootLanguage,
+  ),
+  everywhere("language-tags", "lang", languageOrEmpty),
+  on("language-tags", ["track"], "srclang", "xsd", languageOnly),
+  on("printed-variable-format", ["qti-printed-variable"], "format", "xsd", (domain) =>
+    withPattern(domain, printfFormat),
+  ),
   ...mediaTypeReadings,
 ];
 
@@ -1119,29 +1157,29 @@ export const readingsOf = (kind: string, name: string): readonly SpecReading[] =
 interface ReadingRefusal {
   readonly kind: string;
   readonly name: string;
-  readonly reading: number;
+  readonly reading: string;
 }
 
 /**
  * The declared attributes spec readings refuse:
  *
- * - Reading 9's `role` on `source`, which the ASI XSD declares and the Schematron's RULE ARIA ROLE 1a
- *   forbids ("The 'source' tag must not have an ARIA role attribute", ASI binding §5.3.1, whose
- *   section 5 "is NORMATIVE"). The Schematron's extension rules cover `source`, so spec reading 90
- *   leaves it no open class in no namespace, and a `role` there is refused outright, never read as
- *   an open name.
+ * - Reading `schematron-intent`'s `role` on `source`, which the ASI XSD declares and the Schematron's
+ *   RULE ARIA ROLE 1a forbids ("The 'source' tag must not have an ARIA role attribute", ASI binding
+ *   §5.3.1, whose section 5 "is NORMATIVE"). The Schematron's extension rules cover `source`, so
+ *   spec reading `extension-attribute-lists` leaves it no open class in no namespace, and a `role`
+ *   there is refused outright, never read as an open name.
  *
  * `xi:include`'s `xpointer` and `parse="text"`, which `XInclude.xsd` declares, are admitted: the
  * information model's Include is "the use of the XInclude feature" (§9.4.1), and its §2.12, which
  * would forbid them, is not normative (§2: "This Section is NOT NORMATIVE"). An include that writes
- * either is stored as written and never included (spec reading 85, `ReadInclude` of
+ * either is stored as written and never included (spec reading `inclusion-cycles`, `ReadInclude` of
  * `#pantry/qti/overlay-queries/tests.ts`).
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/bind | QTI 3.0 ASI binding, 5.3.1 RULE_SET_ARIA_ROLES_1}
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Main2p12 | QTI 3.0 information model, 2.12 Items and Test Fragments}
  */
 export const readingRefusals: readonly ReadingRefusal[] = [
-  { kind: "source", name: "role", reading: 9 },
+  { kind: "source", name: "role", reading: "schematron-intent" },
 ];
 
 /**
@@ -1150,25 +1188,27 @@ export const readingRefusals: readonly ReadingRefusal[] = [
 interface ReadingUse {
   readonly kind: string;
   readonly name: string;
-  readonly reading: number;
+  readonly reading: string;
 }
 
 /**
- * The declared attributes spec readings require: reading 123's `dir` on `bdo`, which the XSD
+ * The declared attributes spec readings require: reading `bdo-dir`'s `dir` on `bdo`, which the XSD
  * declares optional with the default `auto` and the information model requires ("Authors must
  * specify the dir attribute on this tag", §5.11). The reading holds by the element's name, so a
  * `bdo` an `xsi:type` governs requires it too.
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_BDO | QTI 3.0 information model, 5.11 BDO}
  */
-export const readingUses: readonly ReadingUse[] = [{ kind: "bdo", name: "dir", reading: 123 }];
+export const readingUses: readonly ReadingUse[] = [
+  { kind: "bdo", name: "dir", reading: "bdo-dir" },
+];
 
 /**
  * Apply the spec readings that change which attributes a kind admits, or must carry, to a
  * vocabulary's declarations: drop each one {@link readingRefusals} refuses, and make each one
  * {@link readingUses} requires required, with no default, since a required attribute has none (XML
  * Schema Part 1, §3.2.3, src-attribute.2). Every name a kind admits is one its XSD declares:
- * reading 10 admits `aria-keyshorts` alone where the binding names it, never ARIA's
+ * reading `aria-keyshorts` admits `aria-keyshorts` alone where the binding names it, never ARIA's
  * `aria-keyshortcuts` beside it.
  *
  * @param declarations - The declarations, each of a kind of the vocabulary.
@@ -1292,10 +1332,10 @@ export interface AttributeGrammar<K extends string = string, N extends string = 
    */
   readonly domains: readonly ValueDomain[];
   /**
-   * `GovernedAttribute`: each attribute an element may carry under a governor, with
-   * its value domain, its use and its position among the names that governor admits there. Under a
-   * governor, the XSD-derived admission is the governing type's, and the rules spec readings state
-   * follow the element's kind (spec reading 84); an element of no governor reads `admission`.
+   * `GovernedAttribute`: each attribute an element may carry under a governor, with its value
+   * domain, its use and its position among the names that governor admits there. Under a governor,
+   * the XSD-derived admission is the governing type's, and the rules spec readings state follow the
+   * element's kind (spec reading `governing-type`); an element of no governor reads `admission`.
    */
   readonly governed: Indexed<GovernedKey<N>, AttributePayload>;
   /**
@@ -1326,7 +1366,8 @@ export interface AttributeGrammar<K extends string = string, N extends string = 
   readonly text: Indexed<readonly [IdField<"kind", K>], readonly [IdField<"domain", string>]>;
   /**
    * `TypeText`: the value domain of the text of each named type with simple content, which an
-   * element that type governs holds its text in (spec readings 60 and 84).
+   * element that type governs holds its text in (spec readings `wildcard-xsi-type` and
+   * `governing-type`).
    */
   readonly typeText: Indexed<
     readonly [IdField<"governs", string>],
@@ -1686,7 +1727,7 @@ const handleOf = (type: ValueType, anonymous: string, readings: readonly SpecRea
 
   return readings.length === 0
     ? base
-    : `${base} (reading ${[...new Set(readings.map(({ reading }) => reading))].join(", ")})`;
+    : `${base} (${[...new Set(readings.map(({ reading }) => reading))].join(", ")})`;
 };
 
 /**
@@ -2066,14 +2107,14 @@ interface GoverningKey {
 
 /**
  * Find the governor of an element: the (kind, type) pair its governing type makes it, where that
- * type governs it in place of its kind's declared type (spec reading 84), or is a simple type that
- * governs a foreign element's text (spec reading 60).
+ * type governs it in place of its kind's declared type (spec reading `governing-type`), or is a
+ * simple type that governs a foreign element's text (spec reading `wildcard-xsi-type`).
  *
  * @param grammar - The attribute grammar.
  * @param key - The element's kind and governing type.
  * @returns The `Governor` handle, or none where the element reads its kind's own rows: its
  *   declared type governs it, or no named type, or a complex type a foreign element is not checked
- *   against (spec reading 50).
+ *   against (spec reading `unchecked-xsi-type`).
  */
 export const governorOf = (grammar: AttributeGrammar, key: GoverningKey): Option.Option<string> =>
   key.governs.pipe(
@@ -2195,14 +2236,14 @@ export interface AttributeCount {
   readonly max: number;
   readonly min: number;
   readonly names: readonly string[];
-  readonly reading: number;
+  readonly reading: string;
 }
 
 /**
  * The attributes SSML 1.1's fragment removal keeps on an element of the kind: those SSML declares
  * on it, in no namespace, with `xml:lang` and `xml:base`, which it keeps "with the exception of
  * xml:lang and xml:base" while removing "all non-synthesis namespace elements and attributes"
- * (SSML 1.1, §2.2.1). Spec reading 43 counts only these.
+ * (SSML 1.1, §2.2.1). Spec reading `ssml-voice-prosody-attributes` counts only these.
  *
  * @param kind - An SSML kind.
  * @returns Its surviving names, declared ones first, in the leaf's order.
@@ -2221,28 +2262,28 @@ const survivingNames = (kind: string): readonly string[] => [
 /**
  * The attribute counts of `docs/spec-readings.md`:
  *
- * - 41: an SSML `meta` has exactly one of `name` and `http-equiv` (SSML 1.1, §3.1.6: "Either a name
- *   or http-equiv attribute is required. It is an error to provide both").
- * - 43: an SSML `voice` or `prosody` has at least one attribute fragment removal keeps (SSML 1.1,
- *   §3.2.1 and §3.2.4: "it is an error if no attributes are specified").
+ * - `ssml-meta-name`: an SSML `meta` has exactly one of `name` and `http-equiv` (SSML 1.1, §3.1.6:
+ *   "Either a name or http-equiv attribute is required. It is an error to provide both").
+ * - `ssml-voice-prosody-attributes`: an SSML `voice` or `prosody` has at least one attribute fragment
+ *   removal keeps (SSML 1.1, §3.2.1 and §3.2.4: "it is an error if no attributes are specified").
  *
  * A name a kind does not admit is no position of it, so it counts nothing: `xml:base` on `prosody`
  * is admitted only where SSML's attribute wildcard reads the XML namespace.
  */
 export const attributeCounts: readonly AttributeCount[] = [
-  { kind: "ssml:meta", max: 1, min: 1, names: ["name", "http-equiv"], reading: 41 },
+  { kind: "ssml:meta", max: 1, min: 1, names: ["name", "http-equiv"], reading: "ssml-meta-name" },
   {
     kind: "ssml:voice",
     max: Number.POSITIVE_INFINITY,
     min: 1,
     names: survivingNames("ssml:voice"),
-    reading: 43,
+    reading: "ssml-voice-prosody-attributes",
   },
   {
     kind: "ssml:prosody",
     max: Number.POSITIVE_INFINITY,
     min: 1,
     names: survivingNames("ssml:prosody"),
-    reading: 43,
+    reading: "ssml-voice-prosody-attributes",
   },
 ];

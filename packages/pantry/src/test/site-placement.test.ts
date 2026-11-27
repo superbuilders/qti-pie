@@ -5,9 +5,10 @@
  *
  * A site is an include under a parent the information model gives an Include: an item's body or
  * processing, or a fragment's content, and its placement's document is a fragment, whose root is
- * any kind the include may stand for (spec readings 114 and 117). Each package below is the
- * every-relation package, which the law oracle accepts, with one site placed differently, and
- * every law the host judges (`#pantry/test/host-judge.ts`) holds over its rows.
+ * any kind the include may stand for (spec readings `include-as-information-model` and
+ * `fragment-placement`). Each package below is the every-relation package, which the law oracle
+ * accepts, with one site placed differently, and every law the host judges
+ * (`#pantry/test/host-judge.ts`) holds over its rows.
  */
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, layer } from "@effect/vitest";

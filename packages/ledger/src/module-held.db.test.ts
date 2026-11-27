@@ -12,18 +12,19 @@
  * makes a PCI's `module` "the Module Id which would be passed at runtime to the PCI API to
  * dynamically load the Javascript module" (information model §5.106.2) and a
  * `qti-interaction-module`'s `primary-path` and `fallback-path` its two locations (§7.17.2,
- * §7.17.3), both attributes and its `id` read collapsed, as the XSD types them (reading 7); a
- * location without a protocol is "a QTI content package relative path" with `.js` assumed
- * (implementation guide §3.7.12.2), read as reading 201 reads it, its query and fragment apart and
- * its path percent-decoded; and the guide lets the delivery engine "apply security rules to the
- * URLs from which it will load Javascript files" (§3.7.12.2). This delivery loads modules from the
- * files an item names that its media policy serves, so the owner's rule (edullm-bd, 2026-11-25) is:
- * an item is published only where each of its PCIs writes `module`, lists that module among its
- * `qti-interaction-module`s by its `id`, and every module it lists has a location in the package
- * whose file the media policy serves, from which alone the delivery loads it, and every
- * configuration it writes is such a file too, read for its waits alone (reading 246); a PCI of a
- * stimulus is never run, so it is not held; and a location in the package names a file the package
- * holds (pantry's "File exists", IMS Content Packaging 1.2, InterchangePackage (d)).
+ * §7.17.3), both attributes and its `id` read collapsed, as the XSD types them (reading
+ * `typed-value-whitespace`); a location without a protocol is "a QTI content package relative path"
+ * with `.js` assumed (implementation guide §3.7.12.2), read as reading `pci-module-locations` reads
+ * it, its query and fragment apart and its path percent-decoded; and the guide lets the delivery
+ * engine "apply security rules to the URLs from which it will load Javascript files" (§3.7.12.2).
+ * This delivery loads modules from the files an item names that its media policy serves, so the
+ * owner's rule (edullm-bd, 2026-11-25) is: an item is published only where each of its PCIs writes
+ * `module`, lists that module among its `qti-interaction-module`s by its `id`, and every module it
+ * lists has a location in the package whose file the media policy serves, from which alone the
+ * delivery loads it, and every configuration it writes is such a file too, read for its waits alone
+ * (reading `pci-configuration-waits`); a PCI of a stimulus is never run, so it is not held; and a
+ * location in the package names a file the package holds (pantry's "File exists", IMS Content
+ * Packaging 1.2, InterchangePackage (d)).
  *
  * Each case is a package of its own, its PCIs under the K–2 forms' names (Bjorn's hard cutover:
  * type identifier `urn:fdc:alpha.school:2026:<name>`, module id `<name>`, file
@@ -151,8 +152,8 @@ interface Case {
 const accepted: Expected = { kind: "accepted" };
 
 /**
- * The wait of a load no configuration states (the implementation guide §3.7.12.2, reading 246):
- * 7 seconds.
+ * The wait of a load no configuration states (the implementation guide §3.7.12.2, reading
+ * `pci-configuration-waits`): 7 seconds.
  */
 const defaultWaitSeconds = 7;
 
@@ -244,7 +245,7 @@ const cases: Arr.NonEmptyReadonlyArray<Case> = [
     stimulus: Option.none(),
   },
   {
-    // Reading 201: ".js" is assumed where the path writes none.
+    // Reading `pci-module-locations`: ".js" is assumed where the path writes none.
     expected: accepted,
     files: [fileOf(marks)],
     name: "held at its primary path, .js assumed",
@@ -280,7 +281,7 @@ const cases: Arr.NonEmptyReadonlyArray<Case> = [
     stimulus: Option.none(),
   },
   {
-    // Reading 7: `module` and `id` are xs:NCName, read collapsed.
+    // Reading `typed-value-whitespace`: `module` and `id` are xs:NCName, read collapsed.
     expected: accepted,
     files: [fileOf(counter)],
     name: "its module and id written with outer whitespace",
@@ -294,7 +295,7 @@ const cases: Arr.NonEmptyReadonlyArray<Case> = [
     stimulus: Option.none(),
   },
   {
-    // Reading 201: the query is no part of the file.
+    // Reading `pci-module-locations`: the query is no part of the file.
     expected: accepted,
     files: [fileOf(counter)],
     name: "held at a primary path with a query",
@@ -302,7 +303,7 @@ const cases: Arr.NonEmptyReadonlyArray<Case> = [
     stimulus: Option.none(),
   },
   {
-    // Reading 201: the fragment is no part of the file.
+    // Reading `pci-module-locations`: the fragment is no part of the file.
     expected: accepted,
     files: [fileOf(counter)],
     name: "a remote primary, held at a fallback path with a fragment",
@@ -333,7 +334,7 @@ const cases: Arr.NonEmptyReadonlyArray<Case> = [
   {
     // §3.7.12.2: a primary configuration's `paths` locate a module with no primary path; the
     // delivery's rule loads a module from its own locations alone, so a configuration mapping it to
-    // another module's file routes nothing, and it loads from its own fallback; reading 246: its
+    // another module's file routes nothing, and it loads from its own fallback; reading `pci-configuration-waits`: its
     // `waitSeconds` is the module's primary wait.
     expected: accepted,
     files: [
@@ -363,7 +364,7 @@ const cases: Arr.NonEmptyReadonlyArray<Case> = [
     stimulus: Option.none(),
   },
   {
-    // Reading 246: a stated wait is never dropped, however long; the frame holds one longer than a
+    // Reading `pci-configuration-waits`: a stated wait is never dropped, however long; the frame holds one longer than a
     // timer can as no limit.
     expected: accepted,
     files: [fileOf(counter), ["modules/cfg.js", JSON.stringify({ waitSeconds: 1e9 })]],
@@ -394,7 +395,7 @@ const cases: Arr.NonEmptyReadonlyArray<Case> = [
     ),
   },
   {
-    // Reading 246: a configuration the PCI writes gives a wait the delivery reads, so it is a file
+    // Reading `pci-configuration-waits`: a configuration the PCI writes gives a wait the delivery reads, so it is a file
     // the delivery serves; one outside the package is not.
     expected: refused("Module held"),
     files: [fileOf(counter)],
@@ -403,7 +404,7 @@ const cases: Arr.NonEmptyReadonlyArray<Case> = [
     stimulus: Option.none(),
   },
   {
-    // Reading 246 and pantry's `ServedFile`: a file of an extension the policy does not list is
+    // Reading `pci-configuration-waits` and pantry's `ServedFile`: a file of an extension the policy does not list is
     // stored and served to no player.
     expected: refused("Module held"),
     files: [fileOf(counter), ["modules/cfg.json", JSON.stringify({ waitSeconds: 30 })]],
@@ -412,7 +413,7 @@ const cases: Arr.NonEmptyReadonlyArray<Case> = [
     stimulus: Option.none(),
   },
   {
-    // Reading 246: an empty configuration, a valid xs:anyURI, names no file the item's media is
+    // Reading `pci-configuration-waits`: an empty configuration, a valid xs:anyURI, names no file the item's media is
     // served as.
     expected: refused("Module held"),
     files: [fileOf(counter)],
@@ -421,7 +422,7 @@ const cases: Arr.NonEmptyReadonlyArray<Case> = [
     stimulus: Option.none(),
   },
   {
-    // IMS Content Packaging 1.2, InterchangePackage (d), and reading 246.
+    // IMS Content Packaging 1.2, InterchangePackage (d), and reading `pci-configuration-waits`.
     expected: refused("File exists", "Module held"),
     files: [fileOf(counter)],
     name: "a configuration it writes that the package lacks",
@@ -757,8 +758,7 @@ describe.skipIf(Option.isNone(lease))("Module held, on the lease's result databa
       it.effect(
         "publishes and routes every case the table admits, and refuses every other naming only laws it breaks",
         (ctx) =>
-          // Oracle: the table, written from QTI 3.0.1 §5.106.2, §5.77.1–2, §7.17.2–3, readings 7, 201
-          // and 246, the implementation guide §3.7.12 and the owner's rule, in this module's header.
+          // Oracle: the table, written from QTI 3.0.1 §5.106.2, §5.77.1–2, §7.17.2–3, readings `typed-value-whitespace`, `pci-module-locations` and `pci-configuration-waits`, the implementation guide §3.7.12 and the owner's rule, in this module's header.
           // Bound: every case of the table, each its own package, under the player's media policy,
           // which lists js (pantry's `mediaPolicy`).
           Effect.gen(function* everyCase() {
@@ -778,7 +778,7 @@ describe.skipIf(Option.isNone(lease))("Module held, on the lease's result databa
                   literal: ({ c }) => c.name,
                   oracle: {
                     kind: "specification",
-                    name: "cases, the table: QTI 3.0.1 §5.106.2, §5.77.1–2 and §7.17.2–3, readings 7, 201 and 246, the implementation guide §3.7.12, IMS Content Packaging 1.2 InterchangePackage (d), and the owner's rule",
+                    name: "cases, the table: QTI 3.0.1 §5.106.2, §5.77.1–2 and §7.17.2–3, readings `typed-value-whitespace`, `pci-module-locations` and `pci-configuration-waits`, the implementation guide §3.7.12, IMS Content Packaging 1.2 InterchangePackage (d), and the owner's rule",
                   },
                   suite: "ledger/module-held",
                 },

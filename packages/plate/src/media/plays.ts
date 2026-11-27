@@ -8,7 +8,8 @@
  * QTI binds a Media to a single `integer`, the number of times the media object was experienced
  * (information model 5.92), and says of `max-plays` that it must not be possible for the candidate
  * to play the media object more than `max-plays` times (5.92.3). Neither says what one play is.
- * plate reads it so (spec readings 188 and 245), from upstream issues #359 and #452:
+ * plate reads it so (spec readings `media-play-counting` and `media-play-under-one-voice`), from
+ * upstream issues #359 and #452:
  *
  * - The media is at rest before its first playback and again once it has ended, or failed: a playback
  *   whose media cannot play ends there, counting what it counted. A playback begun at rest is a

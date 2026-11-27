@@ -24,9 +24,10 @@
  * `items/q1.xml` names the file `items/media/a.png`, and `../images/a.png` names `images/a.png`
  * ({@link assetReferenceOf}). A PCI's module location is the one exception: it is a path from the
  * package root, whatever the item's directory ({@link baseLocationOf}). A path that climbs above
- * the package root names no file of the package (reading 102), so `checkAdmitted` drops it. Its
- * address comes from `assets` alone, never from the page's base: a file with no address has no URL
- * plate writes, so `<Item>` refuses the item rather than write the path relative to the page.
+ * the package root names no file of the package (reading `href-resolution`), so `checkAdmitted`
+ * drops it. Its address comes from `assets` alone, never from the page's base: a file with no
+ * address has no URL plate writes, so `<Item>` refuses the item rather than write the path relative
+ * to the page.
  *
  * @module
  * @see https://url.spec.whatwg.org/#concept-basic-url-parser
@@ -220,12 +221,13 @@ export const urlContextOf = (
  * ({@link WhiteSpace}): an `xs:anyURI` collapsed, its outer whitespace gone and each inner run one
  * space, a `URLDType` each tab, line feed and carriage return a space, an `xs:string` as written.
  * The URL parser reads the value, never the lexical form, so `href="a b.xml"` names the file `a
- * b.xml`, as the database's importer resolves it (pantry's spec reading 102), where the parser
- * alone would keep both spaces, and a tab written `&#9;` in a `URLDType` is the space it reads as,
- * where the parser alone would remove it. An attribute that is no URL attribute of its element is
- * read as written, as an `xs:string` is: the database refuses one that holds a tab, a line feed or
- * a carriage return inside it under its stated limit "Href form" (pantry's spec reading 102, a
- * control character names no file), so the parser never meets one there.
+ * b.xml`, as the database's importer resolves it (pantry's spec reading `href-resolution`), where
+ * the parser alone would keep both spaces, and a tab written `&#9;` in a `URLDType` is the space it
+ * reads as, where the parser alone would remove it. An attribute that is no URL attribute of its
+ * element is read as written, as an `xs:string` is: the database refuses one that holds a tab, a
+ * line feed or a carriage return inside it under its stated limit "Href form" (pantry's spec
+ * reading `href-resolution`, a control character names no file), so the parser never meets one
+ * there.
  *
  * @param element The element's expanded name.
  * @param attribute The attribute's expanded name.
@@ -840,14 +842,14 @@ export const packageRootDocument = "imsmanifest.xml";
  * Give the location a URL attribute's package paths resolve against: the item's own, and the
  * package root for a PCI's module location (`package`). QTI reads a module location and a
  * configuration file as paths in the content package, not in the item's directory (reading
- * 201). The implementation guide says of a module's location, "Otherwise it should be assumed to
- * be a QTI content package relative path", and reads the default configuration from "<content
- * package base href>/modules/module_resolution.js" (§3.7.12.2); a module's own `primary-path` and
- * `fallback-path` override a configuration's location with one of the same kind. The information
- * model says of `primary-configuration` and `secondary-configuration`, "Relative URLs indicate
- * relative paths in the QTI content package" (§5.77.1, §5.77.2). So an item at `items/q1.xml`
- * whose module is `modules/m` names `modules/m.js`, and `../modules/m` climbs above the package
- * root.
+ * `pci-module-locations`). The implementation guide says of a module's location, "Otherwise it
+ * should be assumed to be a QTI content package relative path", and reads the default configuration
+ * from "<content package base href>/modules/module_resolution.js" (§3.7.12.2); a module's own
+ * `primary-path` and `fallback-path` override a configuration's location with one of the same kind.
+ * The information model says of `primary-configuration` and `secondary-configuration`, "Relative
+ * URLs indicate relative paths in the QTI content package" (§5.77.1, §5.77.2). So an item at
+ * `items/q1.xml` whose module is `modules/m` names `modules/m.js`, and `../modules/m` climbs above
+ * the package root.
  *
  * @param location The item's location, its path from the package root.
  * @param context The attribute's context, from {@link urlContextOf}.
@@ -866,9 +868,9 @@ const baseLocationOf = (location: string, context: UrlContext): string =>
  * a segment with a malformed escape as written).
  *
  * `media/a%20b.png` in `items/q1.xml` names `items/media/a b.png`, `../images/a.png` names
- * `images/a.png`, and a leading `./` names the directory itself. A path whose `..` climbs above
- * the package root names no file of it, where RFC 3986 would drop the extra `..` (reading 102).
- * The location's own segments are taken as written.
+ * `images/a.png`, and a leading `./` names the directory itself. A path whose `..` climbs above the
+ * package root names no file of it, where RFC 3986 would drop the extra `..` (reading
+ * `href-resolution`). The location's own segments are taken as written.
  *
  * @param location The item's location, its path from the package root.
  * @param url The kept package path.
@@ -1126,7 +1128,7 @@ const packageUrlsOf = (url: ClassifiedUrl): readonly PackageUrl[] => {
  * or drops it: {@link classifyUrl}'s classification, dropped whole as {@link outsidePackageFeature}
  * when a package path it keeps, a `srcset` candidate's included, climbs above the package root from
  * the item's directory, or from the package root for a PCI's module location ({@link
- * baseLocationOf}), since it names no file of the package (reading 102).
+ * baseLocationOf}), since it names no file of the package (reading `href-resolution`).
  *
  * @example
  *   classifyUrlAt("items/q1.xml", "resource", "../images/a.png"); // the package path ../images/a.png

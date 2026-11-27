@@ -85,7 +85,7 @@ interface LawDocument {
  * A package as the oracle hands it over: its manifest's rows, the documents it lists that folded,
  * in manifest order, which of them are assembled, its entries' paths, the sites that place their
  * targets, and each document's path with the paths of the documents its includes splice in place
- * (spec reading 117).
+ * (spec reading `fragment-placement`).
  */
 export interface LawPackage {
   readonly assembled: PackageRows["assembled"];
@@ -106,7 +106,7 @@ export interface LawPackage {
  * @param grammar - The composed grammar.
  * @param typed - How an attribute's type reads its value.
  * @param read - Where the document heads a test, its readings of a reference through a scope (spec
- *   reading 167), none for any other.
+ *   reading `weighted-test-variables`), none for any other.
  * @returns The breaches, module by module.
  */
 export const lawDocumentBreaches = (
@@ -148,9 +148,9 @@ const packageRowsOf = (input: LawPackage, typed: TypedReading): PackageRows => (
 });
 
 /**
- * Each test's readings of a reference through a scope (spec reading 167), by the test's path, none
- * under any other document: what {@link lawDocumentBreaches} reads a test's references by, and
- * {@link lawPackageBreaches} those of each document a test places.
+ * Each test's readings of a reference through a scope (spec reading `weighted-test-variables`), by
+ * the test's path, none under any other document: what {@link lawDocumentBreaches} reads a test's
+ * references by, and {@link lawPackageBreaches} those of each document a test places.
  *
  * @param input - The package.
  * @param grammar - The composed grammar.
@@ -246,7 +246,7 @@ export const hostlessLaws = {
   "Package sealed":
     "it holds of the transactions that write a package's rows, never of the rows: the one import that founds a package writes all of them in its one ChangeSet, so no package's text can break it, and only a second write of a founded package's rows, which no import makes, is refused",
   "Reference overlay":
-    "its rows (DocumentDirectory, XmlBase, Reference, ReferencePath) are each document's directory and each reference's split, which the importer writes and resolves from the tree (CP 1.2 (b) and (d), reading 102); the host writes no such row, and the laws a package can break over its references are the oracle's Href form, File exists and Stimulus ref target",
+    "its rows (DocumentDirectory, XmlBase, Reference, ReferencePath) are each document's directory and each reference's split, which the importer writes and resolves from the tree (CP 1.2 (b) and (d), reading `href-resolution`); the host writes no such row, and the laws a package can break over its references are the oracle's Href form, File exists and Stimulus ref target",
   "Test overlay":
     "its rows (AssembledDocument, TestFlag, Named, Section, SectionMember, SectionSelection, SectionOrdering, Site, BranchRule) are copies the importer writes of each test element's node and attributes, collapsed (plan §1.7 O7, C15, C18); the host writes no such row, and a package's text can make no copy disagree with what it copies",
 } as const satisfies Readonly<Record<string, string>>;

@@ -55,12 +55,13 @@ export const isModelled = (baseType: string): baseType is ModelledBaseType =>
   modelledBaseTypes.some((name) => name === baseType);
 
 /**
- * Read an `xs:normalizedString`'s text as its value: "All occurrences of #x9 (tab), #xA (line
- * feed) and #xD (carriage return) are replaced with #x20 (space)", nothing trimmed (XML Schema 1.0
- * Part 2, §4.3.6, whiteSpace `replace`). A `qti-value` is one, a `ValueDType`, which extends
+ * Read an `xs:normalizedString`'s text as its value: "All occurrences of #x9 (tab), #xA (line feed)
+ * and #xD (carriage return) are replaced with #x20 (space)", nothing trimmed (XML Schema 1.0 Part
+ * 2, §4.3.6, whiteSpace `replace`). A `qti-value` is one, a `ValueDType`, which extends
  * `xs:normalizedString` (the ASI XSD), so its text is read through this before
- * {@link parseElementText} reads it (spec reading 7): a string value holds no tab or line break,
- * as pantry stores it. It is grizzle-text's `replaced`, the one implementation crust re-exports.
+ * {@link parseElementText} reads it (spec reading `typed-value-whitespace`): a string value holds no
+ * tab or line break, as pantry stores it. It is grizzle-text's `replaced`, the one implementation
+ * crust re-exports.
  */
 export { replaced as replaceXmlSpace } from "@qti-pie/crust/text.ts";
 
@@ -109,7 +110,7 @@ const pairLexical = /^(?<source>[^\t\n\r ]+)[\t\n\r ]+(?<destination>[^\t\n\r ]+
  * by XML whitespace, the horizontal coordinate first.
  *
  * QTI 3.0 calls a point an integer tuple and states no range for its coordinates, so each is held
- * exactly at any size, as an integer is (reading 45).
+ * exactly at any size, as an integer is (reading `integer-unbounded`).
  *
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_BaseTypeEnum
  */
@@ -121,7 +122,7 @@ const pointLexical = /^(?<x>[+-]?[0-9]+)[\t\n\r ]+(?<y>[+-]?[0-9]+)$/u;
  *
  * QTI 3.0 states no range for its integer base type (the integer primitive type is "derived from
  * the decimal data-type"), so the value model holds every integer exactly, as a `bigint`
- * (reading 45).
+ * (reading `integer-unbounded`).
  *
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#AppA1
  * @see https://www.w3.org/TR/2004/REC-xmlschema-2-20041028/#integer
@@ -155,11 +156,11 @@ export interface FileValue {
  * first; a number of seconds for `duration`; and a {@link FileValue} for `file`.
  *
  * An integer, and each coordinate of a point, is exact at any size. A float is an xs:double. A
- * duration is its seconds in an xs:double, never truncated, and written as a float is (readings 29
- * and 68). It is not numerical: no arithmetic takes one. A file's lexical form is its name alone:
- * {@link format} writes it and {@link parseLexical} reads it as a file with no bytes, since text
- * carries no size and no type. `SingleSchema` in `#plate/codec/values.ts` checks and encodes this
- * type at the boundaries.
+ * duration is its seconds in an xs:double, never truncated, and written as a float is (readings
+ * `duration-variable-type` and `results-duration`). It is not numerical: no arithmetic takes one. A
+ * file's lexical form is its name alone: {@link format} writes it and {@link parseLexical} reads it
+ * as a file with no bytes, since text carries no size and no type. `SingleSchema` in
+ * `#plate/codec/values.ts` checks and encodes this type at the boundaries.
  */
 export type Single =
   | { readonly baseType: "identifier"; readonly value: string }
@@ -380,12 +381,12 @@ const valueIf = (holds: boolean, single: Single): Option.Option<Single> =>
   holds ? Option.some(single) : Option.none();
 
 /**
- * Read text in xs:double's lexical space as its IEEE double, reading 144 ("A bounded `xs:double` is
- * judged on its IEEE value"): the literal rounded to the nearest double, ties to even, as XML
- * Schema 1.1's doubleLexicalMap reads it (Part 2, section 3.3.5.2). A magnitude past the midpoint
- * between the largest finite double and 2^1024, such as `1e400`, is an infinity of its sign; one
- * below 2^-1075, half the least subnormal, such as `1e-400`, is a zero of its sign. `INF` and
- * `-INF` are the infinities and `NaN` is NaN. `Number` rounds a decimal exactly so.
+ * Read text in xs:double's lexical space as its IEEE double, reading `bounded-double` ("A bounded
+ * `xs:double` is judged on its IEEE value"): the literal rounded to the nearest double, ties to
+ * even, as XML Schema 1.1's doubleLexicalMap reads it (Part 2, section 3.3.5.2). A magnitude past
+ * the midpoint between the largest finite double and 2^1024, such as `1e400`, is an infinity of its
+ * sign; one below 2^-1075, half the least subnormal, such as `1e-400`, is a zero of its sign. `INF`
+ * and `-INF` are the infinities and `NaN` is NaN. `Number` rounds a decimal exactly so.
  *
  * Every `xs:double` literal plate reads is read so: a float and a duration value
  * ({@link parseLexical}), a bound and a float map key, as pantry reads them, so the two packages
@@ -490,7 +491,7 @@ const readFile = (lexical: string): Option.Option<Single> =>
  *
  * A duration reads as a float does, its seconds in xs:double's lexical space: `90.5`, `INF`,
  * `-INF`, `NaN` and a negative are durations, and an ISO 8601 duration such as `PT1M30.5S` is
- * outside it (reading 68). A file reads as its name alone ({@link readFile}).
+ * outside it (reading `results-duration`). A file reads as its name alone ({@link readFile}).
  */
 const readers = {
   boolean: (lexical: string) =>
@@ -519,16 +520,17 @@ const readers = {
 /**
  * Read text as a value of a base type, exactly as written.
  *
- * No whitespace is removed, so a padded attribute value is refused, as spec reading 7 rules for
- * typed values in attributes.
+ * No whitespace is removed, so a padded attribute value is refused, as spec reading
+ * `typed-value-whitespace` rules for typed values in attributes.
  *
  * A boolean is `xs:boolean`'s lexical space, `true`, `false`, `1` or `0`, `1` being `true` and `0`
- * `false` (reading 34). The QTI XSD does not decide: it types `qti-value` as `xs:normalizedString`
- * and `qti-base-value` as `xs:string`. The information model does: its boolean base type is "the
- * same as the set of values defined by the boolean primitiveType" (section 8.14, BaseTypeEnum),
- * which the binding types `xs:boolean` (XML Schema Part 2 §3.2.2.1, "{true, false, 1, 0}");
- * Appendix A1.3's "permitted values of "true" and "false"" is not normative (information model
- * §1.2), as `xsBooleanOf` in `#plate/model/attributes.ts` reads an attribute the XSD types so.
+ * `false` (reading `boolean-lexical`). The QTI XSD does not decide: it types `qti-value` as
+ * `xs:normalizedString` and `qti-base-value` as `xs:string`. The information model does: its
+ * boolean base type is "the same as the set of values defined by the boolean primitiveType"
+ * (section 8.14, BaseTypeEnum), which the binding types `xs:boolean` (XML Schema Part 2 §3.2.2.1,
+ * "{true, false, 1, 0}"); Appendix A1.3's "permitted values of "true" and "false"" is not normative
+ * (information model §1.2), as `xsBooleanOf` in `#plate/model/attributes.ts` reads an attribute the
+ * XSD types so.
  *
  * @param baseType The base type to read.
  * @param lexical The text, as written.
@@ -545,11 +547,11 @@ export const parseLexical = (
 /**
  * Read the text content of an element, such as `qti-value`, as a value of a base type.
  *
- * Spec reading 7: outer XML whitespace is formatting for every base type but `string`, so it is
- * removed before the text is read, in time linear in the text; for `string` it is part of the
- * value. An empty `string` is NULL, not a value. A `qti-value`'s text is an `xs:normalizedString`,
- * read through {@link replaceXmlSpace} first; a `qti-base-value`'s is an `xs:string`, read as
- * written.
+ * Spec reading `typed-value-whitespace`: outer XML whitespace is formatting for every base type but
+ * `string`, so it is removed before the text is read, in time linear in the text; for `string` it
+ * is part of the value. An empty `string` is NULL, not a value. A `qti-value`'s text is an
+ * `xs:normalizedString`, read through {@link replaceXmlSpace} first; a `qti-base-value`'s is an
+ * `xs:string`, read as written.
  *
  * @param baseType The base type to read.
  * @param text The element's text content, as written.

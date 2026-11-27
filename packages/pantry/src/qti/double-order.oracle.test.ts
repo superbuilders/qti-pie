@@ -1,8 +1,8 @@
 /**
- * The two orders of `xs:double` bounds, `Slider bounds` and `Mastery range` (spec reading 9: the
- * Schematron's rule 14Ba and RULE SPECIFIC CLASS OUTCOMEDEC 1), judged three ways alike over bounds
- * at and past grizzle's former bounded form of `double precision` (15 significant digits, an
- * exponent of at most 293, zero runs of at most 255):
+ * The two orders of `xs:double` bounds, `Slider bounds` and `Mastery range` (spec reading
+ * `schematron-intent`: the Schematron's rule 14Ba and RULE SPECIFIC CLASS OUTCOMEDEC 1), judged
+ * three ways alike over bounds at and past grizzle's former bounded form of `double precision` (15
+ * significant digits, an exponent of at most 293, zero runs of at most 255):
  *
  * - **The schema's checks**, `Slider_bounds` (`#pantry/qti/interactions.ts`) and `Mastery_range`
  *   (`#pantry/qti/overlay-queries/declaration.ts`), as `Qti` states them, evaluated over each row
@@ -20,14 +20,15 @@
  * - **The law oracle** (`documentBreaches` of `#pantry/test/oracle.ts`) names `Slider bounds` or
  *   `Mastery range` over the item that writes the case's bounds.
  * - **The reference** written here from the specifications: a form is read where, once collapsed as
- *   `xs:double`'s whiteSpace collapses it (Part 2 §4.3.6; reading 7), it is in XML Schema 1.0's
- *   `xs:double` lexical space (Part 2 §3.2.5.1, reading 71's edition, `+INF` outside it), as the
- *   double XML Schema 1.1's doubleLexicalMap maps it to (Part 2 §3.3.5.2, reading 144).
- *   ECMAScript's `Number` rounds a decimal of at most 20 significant digits exactly so, to nearest
- *   with ties to even, an infinity of its sign past the overflow threshold and a zero of its sign
- *   below half the least subnormal (ECMA-262 §7.1.4.1.1, RoundMVResult, and §6.1.6.1), so every
- *   numeral drawn has at most 20, its zero runs and its exponent of any length. A pair breaks its
- *   order where both forms have a value, neither is NaN, and the lower is above the upper.
+ *   `xs:double`'s whiteSpace collapses it (Part 2 §4.3.6; reading `typed-value-whitespace`), it is
+ *   in XML Schema 1.0's `xs:double` lexical space (Part 2 §3.2.5.1, reading `anyuri-lexical`'s
+ *   edition, `+INF` outside it), as the double XML Schema 1.1's doubleLexicalMap maps it to (Part 2
+ *   §3.3.5.2, reading `bounded-double`). ECMAScript's `Number` rounds a decimal of at most 20
+ *   significant digits exactly so, to nearest with ties to even, an infinity of its sign past the
+ *   overflow threshold and a zero of its sign below half the least subnormal (ECMA-262 §7.1.4.1.1,
+ *   RoundMVResult, and §6.1.6.1), so every numeral drawn has at most 20, its zero runs and its
+ *   exponent of any length. A pair breaks its order where both forms have a value, neither is NaN,
+ *   and the lower is above the upper.
  *
  * Four plants restate the deleted readings. Three restate the fallback under which a form outside
  * the bounded form stood as the end of the order that holds it: the schema's former

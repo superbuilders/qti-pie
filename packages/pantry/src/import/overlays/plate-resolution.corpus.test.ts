@@ -13,22 +13,22 @@
  * them (RFC 3986, §5.2).
  *
  * For each URL attribute plate writes, an attribute of the importer's reference census, or one spec
- * reading 103 leaves out of it on purpose (`asiLeftOut`): when plate names one file, the importer
- * resolves the value to that entry; when plate names none (a remote URL, a fragment, a value it
- * drops, or a path that climbs above the package root), the importer names no entry either (reading
- * 102: a climb above the root is external). A value the importer cannot resolve under a stated
- * limit (a stray `%`, a backslash, …) and a `srcset` of several candidates or with a descriptor are
- * refused at import by "Href form", so no admitted item holds one, and they are counted, never
- * compared. plate resolves against the item's location alone and marks `xml:base` unsupported, so a
- * reference under an `xml:base` would resolve apart; the corpus holds none, and the run fails if it
- * ever does. A PCI's four module attributes resolve against the package's root in both (spec
- * reading 201; plate's `baseLocationOf`, `#plate/model/url.ts`). A module location names the file
- * its loader loads, the path with `.js` appended unless its file ends in `.js` (reading 201): the
- * importer appends it to the resolved path, and plate's loader to the written path before its query
- * and fragment (`scriptLocationOf`, `#plate/pci/resolve.ts`), whose location `assetPaths` then
- * resolves, as the served path does, so plate's file is `assetPaths` of the loader's location.
- * Planted resolvers, each a plausible slip of plate's, show that the corpus tells each apart from
- * the importer.
+ * reading `file-references` leaves out of it on purpose (`asiLeftOut`): when plate names one file,
+ * the importer resolves the value to that entry; when plate names none (a remote URL, a fragment, a
+ * value it drops, or a path that climbs above the package root), the importer names no entry either
+ * (reading `href-resolution`: a climb above the root is external). A value the importer cannot
+ * resolve under a stated limit (a stray `%`, a backslash, …) and a `srcset` of several candidates
+ * or with a descriptor are refused at import by "Href form", so no admitted item holds one, and
+ * they are counted, never compared. plate resolves against the item's location alone and marks
+ * `xml:base` unsupported, so a reference under an `xml:base` would resolve apart; the corpus holds
+ * none, and the run fails if it ever does. A PCI's four module attributes resolve against the
+ * package's root in both (spec reading `pci-module-locations`; plate's `baseLocationOf`,
+ * `#plate/model/url.ts`). A module location names the file its loader loads, the path with `.js`
+ * appended unless its file ends in `.js` (reading `pci-module-locations`): the importer appends it
+ * to the resolved path, and plate's loader to the written path before its query and fragment
+ * (`scriptLocationOf`, `#plate/pci/resolve.ts`), whose location `assetPaths` then resolves, as the
+ * served path does, so plate's file is `assetPaths` of the loader's location. Planted resolvers,
+ * each a plausible slip of plate's, show that the corpus tells each apart from the importer.
  *
  * The run is gated on `QTI_PIE_CORPUS=1` and opens no database. plate is a devDependency of this
  * package only, so plate never depends on pantry.
@@ -111,8 +111,8 @@ interface Reference {
 
 /**
  * What one walk of the corpus found: every URL attribute plate writes that the census lists, and
- * each attribute plate writes that the importer's census does not list and spec reading 103 does
- * not leave out.
+ * each attribute plate writes that the importer's census does not list and spec reading
+ * `file-references` does not leave out.
  */
 interface Corpus {
   readonly packages: number;
@@ -142,7 +142,7 @@ const writesUrl = (element: string, attribute: string): boolean =>
   assetPaths("probe.xml", element, attribute, "probe.png").length > 0;
 
 /**
- * Decide whether spec reading 103 leaves an attribute out of the census on purpose
+ * Decide whether spec reading `file-references` leaves an attribute out of the census on purpose
  * (`asiLeftOut`), so the importer reads no file from it whatever plate does with it.
  *
  * @param element - The element's local name, its kind.
@@ -154,7 +154,7 @@ const leftOut = (element: string, attribute: string): boolean =>
 
 /**
  * What one item document's walk found: its references, and each attribute plate writes a URL into
- * that the census does not list and spec reading 103 does not leave out.
+ * that the census does not list and spec reading `file-references` does not leave out.
  */
 interface Found {
   readonly references: readonly Reference[];
@@ -164,10 +164,10 @@ interface Found {
 /**
  * Collect the URL attributes plate writes of an item document's elements in QTI's namespace, each
  * with the `xml:base` values in scope, and each such attribute the census does not list, past the
- * ones spec reading 103 leaves out of it. An attribute's value's class is read under its kind's own
- * governor, an element's with no `xsi:type`, as the walk reads no named type; every census
- * attribute is one its kind admits. The walk pushes an element's children in reverse, so its stack
- * pops them in document order.
+ * ones spec reading `file-references` leaves out of it. An attribute's value's class is read under
+ * its kind's own governor, an element's with no `xsi:type`, as the walk reads no named type; every
+ * census attribute is one its kind admits. The walk pushes an element's children in reverse, so its
+ * stack pops them in document order.
  *
  * @param root - The document's root element.
  * @param source - The package's name and the document's path.
@@ -437,7 +437,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     );
 
     it.effect.skipIf(!settings.corpusRequested)(
-      "finds every attribute plate writes a URL into in the importer's reference census, read under one whitespace class, or in spec reading 103's left-out list",
+      "finds every attribute plate writes a URL into in the importer's reference census, read under one whitespace class, or in spec reading `file-references`'s left-out list",
       () =>
         Effect.gen(function* census() {
           const { references, uncensused } = yield* corpus;

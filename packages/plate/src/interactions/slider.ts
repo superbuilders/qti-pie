@@ -11,9 +11,9 @@
  * - **Starting position.** "A slider interaction does not have a default or initial position except
  *   where specified by a default value for the associated response variable" (QTI 3.0 information
  *   model, 5.134). So the slider starts at its response's default, the value the host's
- *   `<Responses>` starts the attempt from (the server's start, spec reading 183), and with none it
- *   shows no value and its response stays NULL until the candidate sets it. A review shows the
- *   value the view gives, its payload node's `start`.
+ *   `<Responses>` starts the attempt from (the server's start, spec reading `response-default`),
+ *   and with none it shows no value and its response stays NULL until the candidate sets it. A
+ *   review shows the value the view gives, its payload node's `start`.
  * - **Step labels.** `step-label="true"` lists each step when there are at most 21. Past that, or
  *   with no step to list, the request is one the page cannot honour and the item's verdict marks it
  *   (`step-label`).

@@ -15,7 +15,7 @@
  * ({@link OpenName}):
  *
  * - `data-*`, an attribute in no namespace whose name begins `data-`, which must then match spec
- *   reading 13 ({@link dataName});
+ *   reading `data-attribute-name` ({@link dataName});
  * - `no-namespace`, any other attribute in no namespace;
  * - `own-namespace`, an attribute in its element's namespace;
  * - `foreign`, an attribute in another namespace.
@@ -30,16 +30,17 @@
  * **Foreign elements.** An element a wildcard admits and no declaration names is a foreign element,
  * whose kind is its namespace class (`foreignKinds` of `src/grammar/kinds.ts`), so the content law
  * refuses a class its parent's wildcard refuses; the Foreign element class law ties a stored
- * element's class to its namespace. A wildcard never reads spec reading 6's roots as their kinds
- * ({@link foreignRoots}).
+ * element's class to its namespace. A wildcard never reads spec reading `nested-root-in-wildcard`'s
+ * roots as their kinds ({@link foreignRoots}).
  *
  * **The `xml:` and `xsi:` names** are closed names wherever an element carries them, never open
  * names (fin.md, D2's refinement). `xml.xsd` is a known schema, so the four names it declares are
  * admitted on every kind whose attribute wildcard admits the XML namespace, and on every foreign
  * kind: with `xml.xsd`'s types where the wildcard validates them, and as free text where it skips
  * them. XML Schema's four instance attributes ({@link xsiAttributes}) are admitted on every element
- * kind with their built-in types (spec reading 47). The composition (`src/grammar/compose.ts`)
- * derives those admission rows, since they need every vocabulary's element names.
+ * kind with their built-in types (spec reading `xsi-attributes`). The composition
+ * (`src/grammar/compose.ts`) derives those admission rows, since they need every vocabulary's
+ * element names.
  */
 import { regex } from "arkregex";
 import { Match, Option, Result, Schema } from "effect";
@@ -94,17 +95,17 @@ export type OpenName =
 /**
  * The language of a `data-*` attribute's name, which is in no namespace: `data-`, then one or more
  * lower-case ASCII letters, digits, `_`, `.` or `-`: the information model's pattern, which bars
- * every other character, held with its prose, which bars upper case (reading 13 of
- * `docs/spec-readings.md`). A no-namespace name that begins `data-` and breaks it is refused, never
- * read as `no-namespace`.
+ * every other character, held with its prose, which bars upper case (reading `data-attribute-name`
+ * of `docs/spec-readings.md`). A no-namespace name that begins `data-` and breaks it is refused,
+ * never read as `no-namespace`.
  */
 export const dataName = regex("^data-[a-z0-9_.-]+$", "u");
 
 /**
- * The global elements spec reading 6 keeps foreign inside wildcard content, by kind: QTI's
- * document roots (an item, a section, a stimulus, a test and an outcome declaration), its two
- * processing roots, and the content package's manifest. A wildcard never reads one of them as its
- * kind, so under a `lax` wildcard each is a foreign element.
+ * The global elements spec reading `nested-root-in-wildcard` keeps foreign inside wildcard content,
+ * by kind: QTI's document roots (an item, a section, a stimulus, a test and an outcome
+ * declaration), its two processing roots, and the content package's manifest. A wildcard never
+ * reads one of them as its kind, so under a `lax` wildcard each is a foreign element.
  */
 export const foreignRoots: ReadonlySet<string> = new Set([
   "cp:manifest",
@@ -118,13 +119,15 @@ export const foreignRoots: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * The schema sets QTI 3.0 validates its documents against (spec reading 81), each by the
- * vocabularies, named as `src/vocab/inventory/vocabularies.ts` names them, whose global element
- * declarations it holds: its root XSD's and those of every XSD that one imports, transitively.
+ * The schema sets QTI 3.0 validates its documents against (spec reading
+ * `wildcard-global-declarations`), each by the vocabularies, named as
+ * `src/vocab/inventory/vocabularies.ts` names them, whose global element declarations it holds: its
+ * root XSD's and those of every XSD that one imports, transitively.
  *
  * - `asi`: an item, section, stimulus or test, an outcome declaration and a response-processing
- *   template, each validated against the full ASI XSD (spec reading 24), which imports `xml.xsd`,
- *   XInclude, MathML 3 and SSML 1.1 (`imsqti_asiv3p0p1_v1p0.xsd`, lines 12 to 15).
+ *   template, each validated against the full ASI XSD (spec reading `context-declaration-in-test`),
+ *   which imports `xml.xsd`, XInclude, MathML 3 and SSML 1.1 (`imsqti_asiv3p0p1_v1p0.xsd`, lines 12
+ *   to 15).
  * - `cp`: a manifest, validated against the content-packaging XSD, which imports `xml.xsd`, LOM, the
  *   curriculum standards metadata, the QTI metadata and the content-packaging extension
  *   (`imsqtiv3p0p1_imscpv1p2_v1p0.xsd`, lines 12 to 16), which imports XLink and the AfA DRD
@@ -164,7 +167,7 @@ const vocabularyIn = (namespace: NamespaceOfKind): Option.Option<string> =>
  * Whether an element of a namespace stands in documents assessed against a schema set: an element
  * of a vocabulary in those of each set that lists its vocabulary, and a foreign element, of no
  * vocabulary's namespace or of a foreign kind, which names no element, in those of every set (spec
- * reading 81).
+ * reading `wildcard-global-declarations`).
  *
  * @param namespace - The element's namespace, or its kind's.
  * @param members - The vocabularies the set lists.
@@ -177,9 +180,10 @@ const standsIn = (namespace: NamespaceOfKind, members: readonly string[]): boole
   });
 
 /**
- * Whether the schema set of every document an element of `parent`'s namespace stands in may hold
- * a component of `child`'s namespace: some set lists both vocabularies. An element of no
- * vocabulary's namespace, a foreign element, stands in documents of every set (spec reading 81).
+ * Whether the schema set of every document an element of `parent`'s namespace stands in may hold a
+ * component of `child`'s namespace: some set lists both vocabularies. An element of no vocabulary's
+ * namespace, a foreign element, stands in documents of every set (spec reading
+ * `wildcard-global-declarations`).
  *
  * @param parent - The element's namespace, or its kind's.
  * @param child - The component's namespace, or its kind's.
@@ -201,18 +205,18 @@ const sharesSet = (parent: NamespaceOfKind, child: NamespaceOfKind): boolean =>
 
 /**
  * Whether a `lax` or `strict` element wildcard of a kind reads an element another vocabulary
- * declares globally as that declaration (spec reading 81): when a schema set a document holding the
- * kind is validated against holds the declaration. XML Schema finds a wildcard's element by its
- * top-level declaration in the schema the document is assessed against, and only there (Part 1,
- * section 3.10.4, Item Valid (Wildcard), clauses 1 and 2; section 3.3.4, Schema-Validity
- * Assessment (Element), clause 1.1.1.3.2). So under a `lax` wildcard an element whose declaration
- * the set lacks is a foreign element, and under a `strict` one it stands only as
- * {@link typeAvailable} says.
+ * declares globally as that declaration (spec reading `wildcard-global-declarations`): when a
+ * schema set a document holding the kind is validated against holds the declaration. XML Schema
+ * finds a wildcard's element by its top-level declaration in the schema the document is assessed
+ * against, and only there (Part 1, section 3.10.4, Item Valid (Wildcard), clauses 1 and 2; section
+ * 3.3.4, Schema-Validity Assessment (Element), clause 1.1.1.3.2). So under a `lax` wildcard an
+ * element whose declaration the set lacks is a foreign element, and under a `strict` one it stands
+ * only as {@link typeAvailable} says.
  *
  * A kind of a vocabulary stands in the documents of every set that lists its vocabulary, LOM's in
  * a manifest and in an external LOM file, and a kind of none, a foreign element, in documents of
  * every set. One grammar serves all of a kind's documents, so its wildcards read a declaration any
- * of those sets holds: reading 81 states that limit.
+ * of those sets holds: reading `wildcard-global-declarations` states that limit.
  *
  * @param parent - The namespace of the wildcard's kind.
  * @param child - The namespace of the globally declared element's kind.
@@ -224,12 +228,13 @@ export const wildcardReads = (parent: NamespaceOfKind, child: NamespaceOfKind): 
 
 /**
  * Whether an element a `lax` or `strict` wildcard holds with no global declaration of its
- * document's schema set may be assessed against the type its `xsi:type` names (spec readings 60
- * and 72): XML Schema's own types, built-in and `xs:anyType`, and the types of a schema set its
- * parent's documents are assessed against. XML Schema assesses such an element strictly against
- * that type (Part 1, section 3.3.4, Schema-Validity Assessment (Element), clause 1.2; section
- * 3.10.1, `strict`: "or the item must have an xsi:type"). Where the `xsi:type` resolves to no type
- * there, a `strict` wildcard refuses the element and a `lax` one assesses it against nothing.
+ * document's schema set may be assessed against the type its `xsi:type` names (spec readings
+ * `wildcard-xsi-type` and `completion-status-name`): XML Schema's own types, built-in and
+ * `xs:anyType`, and the types of a schema set its parent's documents are assessed against. XML
+ * Schema assesses such an element strictly against that type (Part 1, section 3.3.4,
+ * Schema-Validity Assessment (Element), clause 1.2; section 3.10.1, `strict`: "or the item must
+ * have an xsi:type"). Where the `xsi:type` resolves to no type there, a `strict` wildcard refuses
+ * the element and a `lax` one assesses it against nothing.
  *
  * @param parent - The namespace of the wildcard's kind, or of the element that holds the wildcard.
  * @param type - The namespace of the type the `xsi:type` names.
@@ -281,9 +286,10 @@ export const attributeSchemaSets = {
  * Whether an element of a namespace may carry an attribute-only schema's global attributes under
  * their closed handles: some schema set its documents are assessed against imports the schema. An
  * element of a vocabulary stands in the documents of every set that lists the vocabulary, and one
- * of no vocabulary's namespace, a foreign element, in documents of every set (spec reading 81), so
- * one grammar serves all of them and admits the declarations any of those sets holds: reading 81's
- * limit, for attributes as for elements.
+ * of no vocabulary's namespace, a foreign element, in documents of every set (spec reading
+ * `wildcard-global-declarations`), so one grammar serves all of them and admits the declarations
+ * any of those sets holds: reading `wildcard-global-declarations`'s limit, for attributes as for
+ * elements.
  *
  * @param host - The namespace of the element's kind.
  * @param schema - The attribute-only schema.
@@ -345,8 +351,8 @@ const xlinkAttributesUnder: Readonly<Record<Processing, readonly GlobalAttribute
  * 3.2.7's declarations of them.
  *
  * A schema processor holds their declarations everywhere and assesses them before any wildcard,
- * skip included, so every element kind admits all four as closed attributes
- * (spec reading 47), and none is ever an open name. The rules that tie `xsi:type` to the declared
+ * skip included, so every element kind admits all four as closed attributes (spec reading
+ * `xsi-attributes`), and none is ever an open name. The rules that tie `xsi:type` to the declared
  * type and `xsi:nil` to a nillable declaration are not stated by these rows.
  *
  * @see {@link https://www.w3.org/TR/xmlschema-1/#xsi_type | XML Schema 1.0, 2.6 Schema-Related Markup in Documents Being Validated}
@@ -415,7 +421,7 @@ export class OpenClassRefused extends Schema.TaggedError<OpenClassRefused>()("Op
   override get message(): string {
     const { attribute, element } = this;
     const messages: Readonly<Record<OpenClassRefusal, string>> = {
-      "data-name": `${attribute} is not a valid data-* attribute name: after "data-", QTI allows one or more lower-case ASCII letters, digits, "_", "." and "-" (spec reading 13). Rename it in lower case.`,
+      "data-name": `${attribute} is not a valid data-* attribute name: after "data-", QTI allows one or more lower-case ASCII letters, digits, "_", "." and "-" (spec reading \`data-attribute-name\`). Rename it in lower case.`,
       declared: `${attribute} is declared by a schema the model reads, so the model reads it only under its own name, and it has no attribute ${attribute} on ${element}. The document may still be valid: this is a gap in the model's vocabulary, so report it with the document.`,
     };
 
@@ -443,10 +449,9 @@ export interface AttributeHost {
  * target namespace of every wildcard its element holds: `own-namespace` in that namespace and
  * `foreign` in another, but for a name `xml.xsd` or XML Schema declares. In no namespace it is
  * `data-*` when it matches {@link dataName}, refused when it begins `data-` and does not (spec
- * reading 13), and `no-namespace` otherwise; on a foreign element, whose markup is no HTML, it is
- * `no-namespace`
- * whatever its name. Which classes a kind admits is the admission relation's to say, so a class
- * the element's wildcard refuses is refused there, not here.
+ * reading `data-attribute-name`), and `no-namespace` otherwise; on a foreign element, whose markup
+ * is no HTML, it is `no-namespace` whatever its name. Which classes a kind admits is the admission
+ * relation's to say, so a class the element's wildcard refuses is refused there, not here.
  *
  * @param attribute - The attribute's name as the reader resolved it; never a namespace declaration.
  * @param element - The element it is on.

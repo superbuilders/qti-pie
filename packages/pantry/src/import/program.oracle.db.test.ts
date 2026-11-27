@@ -360,9 +360,9 @@ const firstParagraphText = "Look at the text in the picture.";
 /**
  * The metadata fixtures and the verdicts Q5.12 states for them: the rules each may be refused
  * under, none for an accepted one. `usage3-integer-float` is accepted: its `0.87` under `integer`
- * is outside a record, so untyped text (reading 105). PostgreSQL holds each to its verdict by
- * Q5.12's laws over a whole package (lom-identifier, lom-title, and lastUpdated's value domain)
- * beside every other law.
+ * is outside a record, so untyped text (reading `usage-statistic-value`). PostgreSQL holds each to
+ * its verdict by Q5.12's laws over a whole package (lom-identifier, lom-title, and lastUpdated's
+ * value domain) beside every other law.
  */
 const metadataVerdicts: readonly (readonly [FixtureName, readonly string[]])[] = [
   ["identifier-mismatch", ["lom-identifier"]],
@@ -453,7 +453,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
       ["mapping-point-keys", "POINT", "point", "1 2", "01 +2"],
     ] as const) {
       it.effect(
-        `accepts a ${baseType} mapping keyed ${first} and ${second}, a repeat as written or as the value they name (spec reading 165)`,
+        `accepts a ${baseType} mapping keyed ${first} and ${second}, a repeat as written or as the value they name (spec reading \`string-map-key-case\`)`,
         () =>
           Effect.gen(function* repeatedKeys() {
             const dir = yield* editedSimple(name, [
@@ -466,14 +466,14 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
             assert.strictEqual(
               outcome.kind,
               "accepted",
-              `${Formatter.format(outcome)}: QTI's XSD holds no xs:unique or xs:key over a mapping's entries, and the first entry that matches a value gives it (reading 165), so a repeated key is a lawful entry, written twice, in another case, or as another spelling of one integer, float, pair or point`,
+              `${Formatter.format(outcome)}: QTI's XSD holds no xs:unique or xs:key over a mapping's entries, and the first entry that matches a value gives it (reading \`string-map-key-case\`), so a repeated key is a lawful entry, written twice, in another case, or as another spelling of one integer, float, pair or point`,
             );
           }),
       );
     }
 
     it.effect(
-      "accepts an item whose digital material, calculator info and printed variable carry labels and whose root names no tool, and refuses it once a paragraph carries one, as the law oracle judges both (label-tool, reading 128)",
+      "accepts an item whose digital material, calculator info and printed variable carry labels and whose root names no tool, and refuses it once a paragraph carries one, as the law oracle judges both (label-tool, reading `label-tool`)",
       () =>
         Effect.gen(function* labelCharacteristics() {
           const grammar = Result.getOrThrow(composed());
@@ -578,8 +578,9 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
         /**
          * P2's (resource type, root kind) containment into RootOfType, read from the document's
          * ResourceDocument, the row its resource type is held in (`qti/package.ts` packageLaws,
-         * spec reading 176): of the statements named RootOfType, the one this edit breaks; the
-         * oracle's one breach; and the rule the import names for it, root-type-reverse.
+         * spec reading `document-type-total`): of the statements named RootOfType, the one this
+         * edit breaks; the oracle's one breach; and the rule the import names for it,
+         * root-type-reverse.
          */
         apply: () =>
           Effect.flatMap(
@@ -883,7 +884,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
             (dir) => applyEdited(dir, asRead),
           ),
         laws: [keyOn("TrimmedMark", "package", "path", "fragment", "valueDigest")],
-        name: "a startmark naming two marks that collapse to one name (SSML trim mark, reading 3)",
+        name: "a startmark naming two marks that collapse to one name (SSML trim mark, reading `ssml-document-is-fragment`)",
       },
       {
         apply: () =>
@@ -902,7 +903,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
             (dir) => applyEdited(dir, asRead),
           ),
         laws: [checkNamed("Attribute", "value_domain")],
-        name: "a voice whose languages is und (value domain, reading 42)",
+        name: "a voice whose languages is und (value domain, reading `ssml-voice-languages`)",
       },
     ];
 
@@ -995,14 +996,14 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
     }
 
     for (const { edits, label, verdict } of resourceTypeCases) {
-      it.effect(`holds PostgreSQL to reading 93's verdict on ${label}`, () =>
+      it.effect(`holds PostgreSQL to reading \`resource-href\`'s verdict on ${label}`, () =>
         Effect.gen(function* resourceTypeVerdict() {
           /**
            * Simple with the case's resources, of {one type, two types, a type that spells nothing}
-           * × {one path, two paths}, whose verdict spec readings 67 and 93 state as the box states
-           * them (`resource-type-cases.ts`) and the law oracle gives
-           * (`resource-types.oracle.test.ts`): a document has one type, and a resource's type that
-           * spells nothing is refused by AL1's value domain alone.
+           * × {one path, two paths}, whose verdict spec readings `manifest-profile` and
+           * `resource-href` state as the box states them (`resource-type-cases.ts`) and the law
+           * oracle gives (`resource-types.oracle.test.ts`): a document has one type, and a
+           * resource's type that spells nothing is refused by AL1's value domain alone.
            */
           const dir = yield* materializeSpec(
             variantOf(

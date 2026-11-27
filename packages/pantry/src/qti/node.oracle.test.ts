@@ -223,12 +223,12 @@ describe("Node's declarations", () => {
   });
 
   /**
-   * Oracle: the specification as a checker, the W5 contract's written fields (§C, with
-   * `ancestry`, `chars`, `first` and `last`, which the host writes and `E1_derived` proves,
-   * `first` and `last` by reading 127; the string value's fold steps `chars` itself), held by the
-   * compiler: `satisfies` holds the written fields to exactly this record, a member written
-   * without the root fields is accepted, and each refused write ({@link refusedWrites}) is one
-   * type error at its own line of a module the native compiler types as pantry's own
+   * Oracle: the specification as a checker, the W5 contract's written fields (§C, with `ancestry`,
+   * `chars`, `first` and `last`, which the host writes and `E1_derived` proves, `first` and `last`
+   * by reading `quotation-around-q`; the string value's fold steps `chars` itself), held by the
+   * compiler: `satisfies` holds the written fields to exactly this record, a member written without
+   * the root fields is accepted, and each refused write ({@link refusedWrites}) is one type error
+   * at its own line of a module the native compiler types as pantry's own
    * ({@link compiledDiagnostics}).
    */
   const writeType = Effect.gen(function* writeType() {
@@ -281,11 +281,11 @@ describe("Node's declarations", () => {
 
   it("types each end of a node's characters as at most one code point, and writes each as the first or last of its characters", () => {
     /**
-     * Oracle: the specification as a checker, reading 127's ends: `EndCharacter`'s pattern read
-     * by JavaScript's engine under grizzle's flags `su` (`.` one code point, a line end among
-     * them), and `endsOf` against `Array.from`, which splits a text into its code points.
-     * Bound: the empty text, one and two characters, a line end, a surrogate pair alone, at
-     * either end and between two letters.
+     * Oracle: the specification as a checker, reading `quotation-around-q`'s ends: `EndCharacter`'s
+     * pattern read by JavaScript's engine under grizzle's flags `su` (`.` one code point, a line
+     * end among them), and `endsOf` against `Array.from`, which splits a text into its code points.
+     * Bound: the empty text, one and two characters, a line end, a surrogate pair alone, at either
+     * end and between two letters.
      */
     const end = regex.as(EndCharacter.patterns[0].source, EndCharacter.patterns[0].flags);
     for (const held of ["", "a", "\n", "é", "😀"]) {
@@ -633,7 +633,8 @@ const customItem = (children: string): string =>
 
 /**
  * A type no element under a QTI parent may name: the first of `TypeAvailable`'s types whose
- * namespaces leave QTI's own out, a type of the content-packaging set (spec reading 81).
+ * namespaces leave QTI's own out, a type of the content-packaging set (spec reading
+ * `wildcard-global-declarations`).
  */
 const otherSetType =
   install.TypeAvailable.rows.find(({ namespaces }) => !regex.as(namespaces, "u").test(asi))?.type ??

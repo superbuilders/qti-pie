@@ -152,8 +152,8 @@ const polygonHolds = (
 };
 
 /**
- * Report whether an area of each shape holds a point, its boundary included (reading 52), from the
- * area's coordinates and the point's, as floats.
+ * Report whether an area of each shape holds a point, its boundary included (reading
+ * `area-mapping`), from the area's coordinates and the point's, as floats.
  *
  * The coordinates are QTI's, which are HTML's: `rect` is left-x, top-y, right-x, bottom-y;
  * `circle` is center-x, center-y, radius; `ellipse` is center-x, center-y, h-radius, v-radius;

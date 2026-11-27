@@ -1,10 +1,10 @@
 /**
- * An assembled document's `m:share` elements, judged over the assembly (spec reading 117): a share
- * in an item names an element of a fragment the item includes, or the reverse, and "MathML share
- * cycle" follows the merged document's edges, per placement. The law oracle judges the package
- * (`#pantry/test/oracle-verdict.ts` `oracleVerdict`), and the import's rows are judged by the
- * schema's own laws on the host (`#pantry/test/host-judge.ts`). The rank chain's laws read each
- * row's node's kind and parent, so they are rules over queries
+ * An assembled document's `m:share` elements, judged over the assembly (spec reading
+ * `fragment-placement`): a share in an item names an element of a fragment the item includes, or
+ * the reverse, and "MathML share cycle" follows the merged document's edges, per placement. The law
+ * oracle judges the package (`#pantry/test/oracle-verdict.ts` `oracleVerdict`), and the import's
+ * rows are judged by the schema's own laws on the host (`#pantry/test/host-judge.ts`). The rank
+ * chain's laws read each row's node's kind and parent, so they are rules over queries
  * (`#pantry/qti/overlay-queries/expression.ts`), which the host leaves to the database: where the
  * oracle accepts, both accept, and where it refuses, the host's rows break no law of the host's.
  *

@@ -24,9 +24,9 @@
  * writes nothing.
  *
  * A review shows the count its response holds as `plate-media-count`, a response that reports no
- * play as 0, as plate reads it (reading 186); a solution shows the count its correct response
- * holds, none where it declares none. Neither marks it (ruling R4): a count of plays is no answer
- * to mark right or wrong.
+ * play as 0, as plate reads it (reading `media-no-play`); a solution shows the count its correct
+ * response holds, none where it declares none. Neither marks it (ruling R4): a count of plays is no
+ * answer to mark right or wrong.
  *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Data_MediaInteraction

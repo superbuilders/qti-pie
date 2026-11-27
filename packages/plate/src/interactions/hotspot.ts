@@ -105,8 +105,8 @@ interface AuthorMessages {
 /**
  * The model node of a Hotspot (Q-10), the kind `hotspot`: the fields every module's node shares,
  * its binding's cardinality, its choices in document order, its `class`, its image as body nodes,
- * `max-choices` and `min-choices` (reading 46's counts), the author's messages, its Prompt, and
- * the size the author wrote on the image.
+ * `max-choices` and `min-choices` (reading `count-range`'s counts), the author's messages, its
+ * Prompt, and the size the author wrote on the image.
  *
  * @template L The level of its content.
  */

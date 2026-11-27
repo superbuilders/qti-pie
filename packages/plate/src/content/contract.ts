@@ -123,11 +123,11 @@ export interface ContentRedactKit {
 export interface ItemRedactKit extends ContentRedactKit {
   /**
    * The `data-catalog-idref` of every part of the redacted body that carries one, as written: an
-   * element's, an interaction's root's and its prompt's, and each choice's (plate's reading 236).
-   * It is read from the body the redaction gives the page, once it is redacted, so content the page
-   * does not see, a feedback or template block or inline the values hide, a choice they hide or a
-   * rubric block of another view, names no catalog, and neither does a card's own content, which is
-   * no part of the body.
+   * element's, an interaction's root's and its prompt's, and each choice's (plate's reading
+   * `prompt-and-choice-catalogs`). It is read from the body the redaction gives the page, once it
+   * is redacted, so content the page does not see, a feedback or template block or inline the
+   * values hide, a choice they hide or a rubric block of another view, names no catalog, and
+   * neither does a card's own content, which is no part of the body.
    */
   readonly catalogReferences: readonly string[];
 }

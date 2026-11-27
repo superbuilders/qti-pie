@@ -5,15 +5,15 @@
  * `BaseTypePattern`), restated from its sources.
  *
  * - Integer, float and duration, identifier and uri: the value domains the grammar compiles for
- *   `xs:integer` (reading 45), `xs:double` (§8.13: durations "are represented using the
- *   'xsd:double' datatype"), `IdentifierDType` and `xs:anyURI` (reading 71), each absorbing the
- *   whitespace its type collapses;
- * - Boolean: `xs:boolean`'s `true`, `false`, `1` or `0` (reading 34; XML Schema Part 2 §3.2.2.1),
- *   outer whitespace formatting (reading 7);
+ *   `xs:integer` (reading `integer-unbounded`), `xs:double` (§8.13: durations "are represented
+ *   using the 'xsd:double' datatype"), `IdentifierDType` and `xs:anyURI` (reading
+ *   `anyuri-lexical`), each absorbing the whitespace its type collapses;
+ * - Boolean: `xs:boolean`'s `true`, `false`, `1` or `0` (reading `boolean-lexical`; XML Schema Part 2
+ *   §3.2.2.1), outer whitespace formatting (reading `typed-value-whitespace`);
  * - Point: two integers, one whitespace character between them (§8.13);
  * - Pair and directed pair: two NCNames, one whitespace character between them (§8.13);
- * - String, file and the null object none: any text (reading 7: a string's whitespace is its
- *   value's).
+ * - String, file and the null object none: any text (reading `typed-value-whitespace`: a string's
+ *   whitespace is its value's).
  */
 import { regex } from "arkregex";
 import { Result } from "effect";

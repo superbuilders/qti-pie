@@ -1,11 +1,11 @@
 /**
- * The parse proof of a list the import writes in pieces (C3, C50; spec readings 103, 121 and 126),
- * stated once for every list the schema holds. The host splits a list's lexical form
- * (`#pantry/import/pieces.ts`): `tokensOf` splits a whitespace-separated list, and
- * `srcsetCandidatesOf` a `srcset`. Each piece is a member row of an ordered family of its owner,
- * in the form's order. The members' `piece`s concatenate, by grizzle's `Monoid.concat` fold, to
- * the owner's `tokenText`, and the owner's own law holds that text to its form. So a wrong split is
- * refused, never stored. The running texts and the end are of any length, so each rides the
+ * The parse proof of a list the import writes in pieces (C3, C50; spec readings `file-references`,
+ * `tolerance` and `cell-headers`), stated once for every list the schema holds. The host splits a
+ * list's lexical form (`#pantry/import/pieces.ts`): `tokensOf` splits a whitespace-separated list,
+ * and `srcsetCandidatesOf` a `srcset`. Each piece is a member row of an ordered family of its
+ * owner, in the form's order. The members' `piece`s concatenate, by grizzle's `Monoid.concat` fold,
+ * to the owner's `tokenText`, and the owner's own law holds that text to its form. So a wrong split
+ * is refused, never stored. The running texts and the end are of any length, so each rides the
  * family's axes by its SHA-256 digest, a generated field beside it ({@link piecesDigests},
  * {@link tokenTextDigest}).
  *

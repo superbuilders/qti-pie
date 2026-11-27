@@ -148,7 +148,8 @@ export const valueAt = (
  * Read the name an attribute's value gives ({@link attributeValueOf}, its form normalized in its
  * class, collapsed for each attribute below): the value, where it is an NCName ({@link isNcName}).
  * Any other value names nothing, so the relation that would hold the name has no row for it, and
- * the attribute's value domain refuses it alone (spec readings 152 and 157, decision 457 (2)).
+ * the attribute's value domain refuses it alone (spec readings `ncname-names` and
+ * `unnamed-declaration`, decision 457 (2)).
  *
  * The relations whose rows it decides:
  *
@@ -161,9 +162,9 @@ export const valueAt = (
  * The schema states each of their sources as a selection that matches `namingPattern`
  * (`#pantry/qti/attributes.ts`), and holds it forward only: each row the selection selects has its
  * row in the relation, and no law refuses a row beyond them. So a row for a form that names nothing
- * would stand and be judged beside the value domain, which reading 152 rules out, and the decision
- * stays here: a counted family counts each relation, and a family reads stored tables only (Q18),
- * and a query collapses no unbounded text (Q19).
+ * would stand and be judged beside the value domain, which reading `ncname-names` rules out, and
+ * the decision stays here: a counted family counts each relation, and a family reads stored tables
+ * only (Q18), and a query collapses no unbounded text (Q19).
  *
  * @param value - The attribute's value.
  * @returns The name, none where the value names nothing.

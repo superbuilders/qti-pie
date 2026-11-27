@@ -1,17 +1,17 @@
 /**
- * An item's map response and map response point (decisions 429 to 431; spec reading 166): a
- * `qti-map-response` must name a response variable whose declaration holds a `qti-mapping`
- * (information model §7.22: "This expression looks up the value of a response variable and then
- * transforms it using the associated mapping, which must have been declared"), and a
- * `qti-map-response-point` one whose declaration holds an area mapping (§6.9.46: "transforms it
- * using the associated areaMapping"). So an item's map response of a response that declares no
- * mapping, or of a built-in variable such as `numAttempts`, which no declaration holds, and its map
- * response point of a point response with no area mapping, are refused under "Mapped response"
- * (P27); and its map response of a mapped response, and map response point of an area-mapped one,
- * are accepted. A `qti-correct` needs no correct response: the information model defines its
- * value where none is declared (§7.10, Correct: "looks up the declaration of a response variable
- * and returns the associated correctResponse or NULL if no correct value was declared"), so an
- * item that reads one is valid and accepted. Only its variable's kind binds it, a response's
+ * An item's map response and map response point (decisions 429 to 431; spec reading
+ * `test-prefixed-response-reads`): a `qti-map-response` must name a response variable whose
+ * declaration holds a `qti-mapping` (information model §7.22: "This expression looks up the value
+ * of a response variable and then transforms it using the associated mapping, which must have been
+ * declared"), and a `qti-map-response-point` one whose declaration holds an area mapping (§6.9.46:
+ * "transforms it using the associated areaMapping"). So an item's map response of a response that
+ * declares no mapping, or of a built-in variable such as `numAttempts`, which no declaration holds,
+ * and its map response point of a point response with no area mapping, are refused under "Mapped
+ * response" (P27); and its map response of a mapped response, and map response point of an
+ * area-mapped one, are accepted. A `qti-correct` needs no correct response: the information model
+ * defines its value where none is declared (§7.10, Correct: "looks up the declaration of a response
+ * variable and returns the associated correctResponse or NULL if no correct value was declared"),
+ * so an item that reads one is valid and accepted. Only its variable's kind binds it, a response's
  * ("Variable kind", §7.10.1), whose refusal of a correct of an outcome the complete oracle draws
  * (`#pantry/test/oracle-complete/expressions.ts`), a query law this file's host judge does not
  * restate.

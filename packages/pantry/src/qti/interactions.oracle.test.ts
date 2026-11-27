@@ -124,7 +124,7 @@ describe("qti/interactions.ts, the closed data its laws read", () => {
     }
   });
 
-  it("reads reading 92's cardinality kinds' most count with an XSD default, so the law reads a known most", () => {
+  it("reads reading `binding-and-count-sentences`'s cardinality kinds' most count with an XSD default, so the law reads a known most", () => {
     for (const kind of cardinalityKinds) {
       const bound = ChoiceBound.rows.find((row) => row.kind === kind);
 
@@ -161,7 +161,7 @@ describe("qti/interactions.ts, the closed data its laws read", () => {
         "qti-order-interaction",
         "qti-portable-custom-interaction",
       ].toSorted(),
-      "the information model's class descriptions: the custom, portable custom and order interactions state no binding, so each binds a response of any type (§5.36, §5.106 and §5.97; spec reading 172)",
+      "the information model's class descriptions: the custom, portable custom and order interactions state no binding, so each binds a response of any type (§5.36, §5.106 and §5.97; spec reading `order-binding`)",
     );
   });
 });
@@ -200,7 +200,7 @@ const responseDeclaration = (identifier: string, baseType: string): string =>
 
 /**
  * A gap match interaction bound to `RESPONSE2`, its one gap text and its one gap named as given:
- * reading 104's gap and gap text of one interaction, and their control.
+ * reading `choice-identifier-scope`'s gap and gap text of one interaction, and their control.
  *
  * @param text - The gap text's identifier.
  * @param gap - The gap's identifier.
@@ -212,10 +212,11 @@ const gapMatch = (text: string, gap: string): string =>
 /**
  * The reading-104 cases over the `simple` fixture's item: each edit, written as search and
  * replacement pairs applied in order, and the laws of the two it must break, read off its edit by
- * reading 104 as amended (§5.132.1, §5.55.1, §5.58.1, §5.65.1, §5.67.1, §5.73.1, §6.17, §7.16,
- * §2.2.2): each class's sentence bars its own noun, so two elements of one class never share a name
- * in a document, and the four whose noun is "choice" share theirs with no other choice of any
- * class, a gap being none; and no choice names an item variable, declared or built in.
+ * reading `choice-identifier-scope` as amended (§5.132.1, §5.55.1, §5.58.1, §5.65.1, §5.67.1,
+ * §5.73.1, §6.17, §7.16, §2.2.2): each class's sentence bars its own noun, so two elements of one
+ * class never share a name in a document, and the four whose noun is "choice" share theirs with no
+ * other choice of any class, a gap being none; and no choice names an item variable, declared or
+ * built in.
  *
  * The fixture as it is and 15 edits of its item: a choice named as a declared outcome, a declared
  * response padded and a built-in, two choices of one interaction and of two named alike, two
@@ -389,7 +390,7 @@ const editedItem = (
   });
 
 /**
- * The two laws of reading 104.
+ * The two laws of reading `choice-identifier-scope`.
  */
 const choiceNameLaws: ReadonlySet<string> = new Set([
   "Choice identifier key",
@@ -405,7 +406,7 @@ const hostLaws = judgedLaws(Qti);
  * Name the reading-104 laws a host judgment lists, each by its law's name.
  *
  * @param laws - The broken or skipped laws.
- * @returns Their names among reading 104's two.
+ * @returns Their names among reading `choice-identifier-scope`'s two.
  */
 const choiceNameLawsOf = (laws: readonly { readonly law: Law }[]): readonly string[] =>
   [...lawNamesOf(laws)].filter((law) => choiceNameLaws.has(law));
@@ -419,7 +420,7 @@ const choiceNameLawsOf = (laws: readonly { readonly law: Law }[]): readonly stri
  *
  * @param inputs - The import's rows.
  * @param name - The case, for a failure's words.
- * @returns Their names among reading 104's two.
+ * @returns Their names among reading `choice-identifier-scope`'s two.
  */
 const hostChoiceNameLawsOf = (inputs: PackageInputs, name: string): readonly string[] => {
   const previewed = previewOf(inputs);
@@ -478,7 +479,7 @@ const barredByChoice: ReadonlySet<string> = new Set([
  * another element its sentence bars.
  *
  * @param named - Each element of the scope: its name's key and its kind.
- * @returns Whether a name is shared where reading 104 bars it.
+ * @returns Whether a name is shared where reading `choice-identifier-scope` bars it.
  */
 const choiceShares = (named: readonly { readonly key: string; readonly kind: string }[]): boolean =>
   [...Map.groupBy(named, ({ key }) => key).values()].some(
@@ -489,14 +490,15 @@ const choiceShares = (named: readonly { readonly key: string; readonly kind: str
   );
 
 /**
- * The names of reading 104's two rules over queries (`#pantry/qti/queries.ts`) that the import's
- * rows break, restated on the host, which judges no derived relation (`#pantry/test/predicates.ts`
- * `judgedKinds`): "Choice identifier key" where a simple, inline, hotspot or simple associable
- * choice of a document bears the name of another element the information model calls a choice, of
- * whichever class, or one its assembly places does (`ChoiceSpaceName`, `PlacedChoiceSpaceName`);
- * the per-class keys over `ChoiceNode` and `PlacedChoiceNode`, derived too, where two elements of
- * one class share a name; and "Choice not variable" where a name one bears is a declaration's of
- * its document, or in an item a built-in variable's (`UnclaimedName`).
+ * The names of reading `choice-identifier-scope`'s two rules over queries
+ * (`#pantry/qti/queries.ts`) that the import's rows break, restated on the host, which judges no
+ * derived relation (`#pantry/test/predicates.ts` `judgedKinds`): "Choice identifier key" where a
+ * simple, inline, hotspot or simple associable choice of a document bears the name of another
+ * element the information model calls a choice, of whichever class, or one its assembly places does
+ * (`ChoiceSpaceName`, `PlacedChoiceSpaceName`); the per-class keys over `ChoiceNode` and
+ * `PlacedChoiceNode`, derived too, where two elements of one class share a name; and "Choice not
+ * variable" where a name one bears is a declaration's of its document, or in an item a built-in
+ * variable's (`UnclaimedName`).
  *
  * @param inputs - The import's rows.
  * @returns The laws' names.
@@ -544,9 +546,9 @@ const queryNameLawsOf = (inputs: PackageInputs): readonly string[] => {
   ];
 };
 
-describe("qti/interactions.ts, reading 104 by the law oracle", () => {
+describe("qti/interactions.ts, reading `choice-identifier-scope` by the law oracle", () => {
   it.effect(
-    "breaks Choice not variable and Choice identifier key exactly where reading 104 says, over edits of simple's item",
+    "breaks Choice not variable and Choice identifier key exactly where reading `choice-identifier-scope` says, over edits of simple's item",
     () =>
       Effect.gen(function* choiceNames() {
         const files = yield* readEntries(fixtures.simple);
@@ -565,7 +567,7 @@ describe("qti/interactions.ts, reading 104 by the law oracle", () => {
               ),
             ],
             [...breaks],
-            `${name}: reading 104, by the law oracle`,
+            `${name}: reading \`choice-identifier-scope\`, by the law oracle`,
           );
         }
       }).pipe(Effect.provide(NodeServices.layer)),
@@ -756,7 +758,7 @@ describe("qti/interactions.ts, the context variable and the markup's content", (
       assert.deepStrictEqual(
         found,
         [],
-        `${found.join(", ")}: readings 57 and 6, a template of the markup holds foreign content, which lax processing does not assess`,
+        `${found.join(", ")}: readings \`lax-content-prose-rules\` and \`nested-root-in-wildcard\`, a template of the markup holds foreign content, which lax processing does not assess`,
       );
     }),
   );
@@ -775,7 +777,7 @@ describe("qti/interactions.ts, the context variable and the markup's content", (
         assert.notInclude(
           inside,
           "Binding declared",
-          `${inside.join(", ")}: reading 57, a custom interaction's content is lax, and a qti-choice-interaction, declared only locally, has no declaration lax processing finds, so the walk passes it over and Binding declared does not judge its response`,
+          `${inside.join(", ")}: reading \`lax-content-prose-rules\`, a custom interaction's content is lax, and a qti-choice-interaction, declared only locally, has no declaration lax processing finds, so the walk passes it over and Binding declared does not judge its response`,
         );
 
         const outside = yield* lawsBreachedBy(

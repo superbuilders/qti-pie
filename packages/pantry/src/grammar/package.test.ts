@@ -35,7 +35,7 @@ const relations = Effect.sync(() =>
 
 /**
  * The composed grammar, whose attribute grammar states which resource types a resource may name:
- * the value domain of `cp:resource`'s `type` (spec reading 67).
+ * the value domain of `cp:resource`'s `type` (spec reading `manifest-profile`).
  */
 const grammar = Result.getOrThrow(composed());
 
@@ -108,11 +108,11 @@ describe("cp:resource's type against the content-packaging XSD", () => {
   beforeAll(xsdCachePresent);
 
   it.effect(
-    "admits exactly the types its content-packaging XSD enumerates, and keeps them as its enumeration: the one statement of spec reading 67",
+    "admits exactly the types its content-packaging XSD enumerates, and keeps them as its enumeration: the one statement of spec reading `manifest-profile`",
     () =>
       // Oracle: the XSD, its resource type's `type` enumeration read from the XSD itself. Bound:
       // every type it enumerates, the guide's own spelling of the response processing type, and
-      // three strangers to each (case, outer space, an empty form). The domain is spec reading 67's
+      // three strangers to each (case, outer space, an empty form). The domain is spec reading `manifest-profile`'s
       // one statement: it refuses a form outside the list.
       Effect.gen(function* resourceTypes() {
         const root = "imsqtiv3p0p1_imscpv1p2_v1p0.xsd";
@@ -151,11 +151,12 @@ describe("cp:resource's type against the content-packaging XSD", () => {
  * facets: §6.2's table of resource types, whose descriptions name the class each file holds ("QTI 3
  * AssessmentTest", ...); §6.3's external metadata file, whose example's root is LOM's `lom`; and
  * §6.5's usage-data file, whose root is `usageData`. The guide's table spells the response
- * processing type `imsqti_responseprocessing_xmlv3p0`; the content-packaging XSD, whose
- * enumeration the type's value domain is, enumerates `imsqti_resprocessing_xmlv3p0`, so it is
- * written as the XSD spells it (spec reading 82). The table's other types (a fragment, web content,
- * LTI links, PLS lexicons, control files, non-IMS metadata, stylesheets) are no document of the
- * composition, but the fragment, an included document read in place (spec reading 114).
+ * processing type `imsqti_responseprocessing_xmlv3p0`; the content-packaging XSD, whose enumeration
+ * the type's value domain is, enumerates `imsqti_resprocessing_xmlv3p0`, so it is written as the
+ * XSD spells it (spec reading `response-processing-resource-type`). The table's other types (a
+ * fragment, web content, LTI links, PLS lexicons, control files, non-IMS metadata, stylesheets) are
+ * no document of the composition, but the fragment, an included document read in place (spec
+ * reading `include-as-information-model`).
  */
 const statedRoots: readonly { readonly root: string; readonly type: string }[] = [
   { root: "qti-assessment-test", type: "imsqti_test_xmlv3p0" },
@@ -192,7 +193,7 @@ describe("RootOfType", () => {
     () =>
       // Oracle: the specification as a checker, the guide's resource types and their files' roots,
       // stated above, and the guide's `imsqti_fragment_xmlv3p0`, "QTI 3 inclusion (XInclude)", whose
-      // document's root is any kind an include stands for (spec reading 114). Set equality, so a
+      // document's root is any kind an include stands for (spec reading `include-as-information-model`). Set equality, so a
       // pair dropped, added or re-rooted fails, as does a document root no stated file holds.
       Effect.gen(function* roots() {
         const { rootOfType } = yield* relations;
@@ -217,7 +218,8 @@ describe("RootOfType", () => {
 /**
  * The resource types of the implementation guide's §6.2 table, as the guide spells them, read off
  * `impl.txt` lines 13275 to 13355, and the content-packaging XSD's spelling of the one the guide
- * spells otherwise, `imsqti_resprocessing_xmlv3p0` (spec reading 82).
+ * spells otherwise, `imsqti_resprocessing_xmlv3p0` (spec reading
+ * `response-processing-resource-type`).
  */
 const guideTypes = [
   "imsqti_test_xmlv3p0",
@@ -260,7 +262,7 @@ describe("cp:resource's type against xmllint", () => {
     "its value domain admits each type of the guide's table, and the XSD's imsqti_resprocessing_xmlv3p0, exactly when xmllint accepts a manifest whose resource carries it: every type",
     () =>
       // Oracle: libxml2 over the content-packaging XSD, the normative source of the
-      // vocabulary (spec reading 82): the guide is informative, so a spelling only it gives, such as
+      // vocabulary (spec reading `response-processing-resource-type`): the guide is informative, so a spelling only it gives, such as
       // `imsqti_responseprocessing_xmlv3p0`, is refused where the XSD refuses it.
       // Bound: the guide's 20 types and the XSD's spelling of the 21st, 21 manifests.
       Effect.gen(function* againstXmllint() {

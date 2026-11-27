@@ -52,8 +52,8 @@ const manifestIdTexts = {
  * §6.11.4, and §6.11.5: it "shall duplicate exactly a value for an Identifier object"). Every one
  * is in its domain wherever a law reads it: AL1's value domain is an IMMEDIATE row check over
  * `Attribute`, so a write of one outside it fails at its row, before any rule over a query is
- * judged, and no pattern here restates the domain, an NCName once collapsed (spec readings 152 and
- * 156).
+ * judged, and no pattern here restates the domain, an NCName once collapsed (spec readings
+ * `ncname-names` and `id-is-ncname`).
  *
  * Its `value` is the value as written, of any length, since neither IMS Content Packaging nor XML
  * Schema bounds an identifier: no key holds it as itself.
@@ -203,9 +203,10 @@ const DependencyResolved = derived(
  * Each `srcset`'s split beside its form, by its element's place: its {@link Srcset}'s `tokenText`
  * and `trail`, and its attribute's kind, name and `lexical`, the form as written, which no row
  * copies (C18). The attribute is the element's of the census's form `srcset` (`ReferenceAttribute`,
- * spec reading 103), so the join delivers its kind and name, and an element has one such attribute,
- * so a `srcset` is one row. The form is read as written, never as its `value`: a `srcset`'s domain
- * replaces each tab, line feed and carriage return, and its candidates' pieces hold them.
+ * spec reading `file-references`), so the join delivers its kind and name, and an element has one
+ * such attribute, so a `srcset` is one row. The form is read as written, never as its `value`: a
+ * `srcset`'s domain replaces each tab, line feed and carriage return, and its candidates' pieces
+ * hold them.
  */
 export const SrcsetForm = derived(
   "SrcsetForm",
@@ -229,7 +230,7 @@ export const SrcsetForm = derived(
  *   ({@link SrcsetForm}; `#pantry/qti/token-list.ts`);
  * - **"File listed":** every entry but the manifest is the resolved path of a file;
  * - **"Href listed":** a resource's href names the file one of its own files names, compared by
- *   resolved path in the package and as written outside it (reading 102);
+ *   resolved path in the package and as written outside it (reading `href-resolution`);
  * - **"Self dependency":** the resource a dependency names is never its own (IMS Content Packaging
  *   1.2, §6.11.5 B ii).
  */

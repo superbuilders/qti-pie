@@ -1,12 +1,12 @@
 /**
  * An item ref's href, written or not, under a path whose identifiers are written or not (spec
- * readings 147 and 155): an item ref that writes no href names nothing, so AL3 alone refuses it,
- * with no target or `ReferencePath` row demanded of it; and an item ref's laws over its
- * href and its mappings judge it whether or not it, its sections or its test part write an
- * identifier. The schema once demanded a target and a resolved
- * href of every item ref, so one with no href broke "Item ref target" and "Test overlay" beside
- * AL3, and the law oracle once judged an item ref's laws through its name, so one that writes no
- * identifier escaped "Item ref target" and the mapping laws the schema judged it by.
+ * readings `unidentified-parts` and `item-ref-without-href`): an item ref that writes no href names
+ * nothing, so AL3 alone refuses it, with no target or `ReferencePath` row demanded of it; and an
+ * item ref's laws over its href and its mappings judge it whether or not it, its sections or its
+ * test part write an identifier. The schema once demanded a target and a resolved href of every
+ * item ref, so one with no href broke "Item ref target" and "Test overlay" beside AL3, and the law
+ * oracle once judged an item ref's laws through its name, so one that writes no identifier escaped
+ * "Item ref target" and the mapping laws the schema judged it by.
  *
  * Oracle: a second implementation, the law oracle (`#pantry/test/oracle.ts` `judge`), against the
  * laws the import's rows break on the host (`#pantry/test/gen/genetic/judge.ts` `judgeOne`): no
@@ -14,8 +14,9 @@
  *
  * An href that names no entry has no `ItemRefHref`, whose `target` is an entry's path, so "Item ref
  * target" refuses it through its href's containment there, as the law oracle does: an empty one,
- * which names its own test (reading 102), and an absolute-path one, external, once wrote their path
- * as read into the row and broke the entry path's pattern, "Key text bound", beside it.
+ * which names its own test (reading `href-resolution`), and an absolute-path one, external, once
+ * wrote their path as read into the row and broke the entry path's pattern, "Key text bound",
+ * beside it.
  *
  * Bound: a test whose part holds two nested sections around one item ref, each of the four
  * identifiers written or not, the href unwritten or naming the package's item, a path no entry

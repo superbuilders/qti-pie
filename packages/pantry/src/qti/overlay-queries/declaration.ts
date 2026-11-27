@@ -58,9 +58,9 @@ import { declared } from "#pantry/qti/law-entries.ts";
  * values each identified by its own identifier and having its own base-type" (information model
  * §8.17, CardinalityEnum, `record`), where its set is a record's ("Value cardinality"); on any
  * other value it names nothing (§7.46.1). No row copies it. A value that is no NCName names no
- * field (spec reading 152), and no rule reads one: AL1's `value_domain` refuses the write that
- * holds it at its own insert, before any rule over a query is judged at COMMIT, so the selection
- * matches no pattern.
+ * field (spec reading `ncname-names`), and no rule reads one: AL1's `value_domain` refuses the
+ * write that holds it at its own insert, before any rule over a query is judged at COMMIT, so the
+ * selection matches no pattern.
  */
 const recordFields = attributeValues("field-identifier", ["qti-value"]);
 
@@ -78,11 +78,11 @@ const recordFields = attributeValues("field-identifier", ["qti-value"]);
 const valueBaseTypes = attributeCodes("base-type", ["qti-value"], BaseTypeLexical);
 
 /**
- * Each value set beside its declaration's cardinality, by the set's place: a
- * `qti-default-value` or `qti-correct-response` node, its count of values (its element children,
- * its `qti-value`s alone: `CorrectResponseDType`, `DefaultValueDType`), and its parent's
- * {@link DeclarationCardinality}, where the declaration has one (spec reading 158).
- * `Value_cardinality` holds a single variable's set to one value.
+ * Each value set beside its declaration's cardinality, by the set's place: a `qti-default-value` or
+ * `qti-correct-response` node, its count of values (its element children, its `qti-value`s alone:
+ * `CorrectResponseDType`, `DefaultValueDType`), and its parent's {@link DeclarationCardinality},
+ * where the declaration has one (spec reading `unspelled-declaration`). `Value_cardinality` holds a
+ * single variable's set to one value.
  */
 const SetCardinality = derived(
   "SetCardinality",
@@ -207,7 +207,7 @@ const RecordSetValue = derived(
  * declaration has one: `cardinality`, the declaration's {@link DeclarationCardinality}'s, the
  * declaration its node's parent. "MappableBaseType" holds it to no record. A mapping of a
  * declaration with no cardinality has no row, and no law reads a cardinality it does not have
- * (spec reading 158).
+ * (spec reading `unspelled-declaration`).
  */
 const MappingCardinality = derived(
   "MappingCardinality",
@@ -448,8 +448,8 @@ const baseTypeAttributes = attributesOf("base-type", declarationKinds);
 /**
  * Each outcome declaration that has both a normal minimum, written or the XSD's default, and a
  * mastery value, by its declaration's place: the two doubles, its {@link NormalMinimum}'s and its
- * {@link MasteryValue}'s, which `Mastery_range` orders (spec readings 9 and 149: each pair judged
- * where both have a value).
+ * {@link MasteryValue}'s, which `Mastery_range` orders (spec readings `schematron-intent` and
+ * `normal-minimum-default`: each pair judged where both have a value).
  */
 export const MasteryFloor = derived(
   "MasteryFloor",
@@ -494,9 +494,10 @@ type MasteryCeilingRow = RowScalars<typeof MasteryCeiling>;
 
 /**
  * State `Mastery_range` over a mastery value and a normal minimum, written or the XSD's default
- * (readings 9 and 149): the minimum is no greater than the mastery value, each the double its
- * attribute names, `NaN` ordered against nothing, so a pair with `NaN` holds. In `float8`'s order
- * `NaN` equals `NaN` and is above every other value, so its arms stand beside the comparison.
+ * (readings `schematron-intent` and `normal-minimum-default`): the minimum is no greater than the
+ * mastery value, each the double its attribute names, `NaN` ordered against nothing, so a pair with
+ * `NaN` holds. In `float8`'s order `NaN` equals `NaN` and is above every other value, so its arms
+ * stand beside the comparison.
  *
  * @param r - The row.
  * @returns The predicate.
@@ -524,7 +525,8 @@ const ceilingCheck = (r: MasteryCeilingRow) =>
 
 /**
  * Each named declaration beside its document's root kind, by the declaration's place: what the
- * reserved names' laws read, an item's and a test's apart (spec readings 163 and 168).
+ * reserved names' laws read, an item's and a test's apart (spec readings `score-rules` and
+ * `test-reserved-names`).
  */
 const RootedDeclaration = derived(
   "RootedDeclaration",
@@ -546,34 +548,38 @@ const RootedDeclaration = derived(
  *   cardinality, and its base type, where it has one, is `point`;
  * - **Declaration base type:** a record has no base type, and every declaration of another
  *   cardinality writes one; one that spells nothing is its value domain's alone (spec reading
- *   158);
- * - **Declaration key** (spec reading 74): a document's declared names are distinct;
- * - **Declaration not reserved** (readings 72 and 168): no declaration names one of an item's three
- *   built-in session variables (information model table 4.5.1; §2.2.2);
+ *   `unspelled-declaration`);
+ * - **Declaration key** (spec reading `identifier-names-one-variable`): a document's declared names
+ *   are distinct;
+ * - **Declaration not reserved** (readings `completion-status-name` and `test-reserved-names`): no
+ *   declaration names one of an item's three built-in session variables (information model table
+ *   4.5.1; §2.2.2);
  * - **Lookup type** and **Mapped response:** a declared placed lookup, map response or map response
- *   point reads a table its declaration holds, one its kind reads (spec reading 166);
+ *   point reads a table its declaration holds, one its kind reads (spec reading
+ *   `test-prefixed-response-reads`);
  * - **Lookup table cardinality:** a match or interpolation table's outcome is single, where it has a
  *   cardinality;
  * - **Mastery range** (C2, G-parse): the mastery value lies in the normal range, each pair judged
- *   where both have a value: written, or a normal minimum's XSD default (reading 149);
+ *   where both have a value: written, or a normal minimum's XSD default (reading
+ *   `normal-minimum-default`);
  * - **MappableBaseType:** a mapping's declaration is no record, where it has a cardinality, and its
  *   base type, where it has one, is in `MappableBaseType`;
  * - **Typed attribute value:** a map key, a table entry's target and a table's default are lexical
  *   forms of their declaration's base type, where it has one: read as written for `string`, and for
  *   every other base type after XML Schema's `collapse`, the whitespace facet each typed simple
- *   type fixes (XML Schema 1.0 Part 2 §4.3.6), so `" 3 "` is the integer 3 (reading 7). QTI bounds
- *   neither text: each is a `LiteralText` within `literalTextBytes`, as a base value's text is
- *   ("Key text bound", over `TableKeyText` of `#pantry/qti/mapping.ts`), which PostgreSQL's regex
- *   engine reads whole;
+ *   type fixes (XML Schema 1.0 Part 2 §4.3.6), so `" 3 "` is the integer 3 (reading
+ *   `typed-value-whitespace`). QTI bounds neither text: each is a `LiteralText` within
+ *   `literalTextBytes`, as a base value's text is ("Key text bound", over `TableKeyText` of
+ *   `#pantry/qti/mapping.ts`), which PostgreSQL's regex engine reads whole;
  * - **Typed value:** each value's text is a lexical form of its base type, its declaration's or, a
  *   record's field's, its own, each value its node's string value, its set its parent and its
  *   declaration its grandparent;
  * - **Record field key:** a set's fields are distinct by name;
  * - **Reserved type:** QTI_CONTEXT keeps its built-in shape: it is declared as a context and, where
- *   it has a cardinality, is a record (reading 74). SCORE, MAXSCORE and PASSED are typed by no
- *   normative rule: §4.5's "needs to be a float" and "needs to be a boolean" use no RFC 2119
- *   keyword (§1.3), §2.2.2.3's "MUST" is NOT NORMATIVE, and no XSD or Schematron rule types them,
- *   so a declaration of any type is admitted (J1);
+ *   it has a cardinality, is a record (reading `identifier-names-one-variable`). SCORE, MAXSCORE
+ *   and PASSED are typed by no normative rule: §4.5's "needs to be a float" and "needs to be a
+ *   boolean" use no RFC 2119 keyword (§1.3), §2.2.2.3's "MUST" is NOT NORMATIVE, and no XSD or
+ *   Schematron rule types them, so a declaration of any type is admitted (J1);
  * - **Value cardinality:** a single variable's set holds one value, and every value of a record's set
  *   is a field, with its `field-identifier` and its `base-type` both; a value of any other set may
  *   write either attribute, which types and names nothing there (information model §7.46.1,

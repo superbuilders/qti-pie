@@ -5,14 +5,14 @@
  * nothing: the database is the only judge of a document's validity (pantry's laws), and a document
  * reaches plate only once admission accepted it.
  *
- * An element is governed by the declaration that admits it (reading 84): a global declaration's
- * table at a document's root and wherever a parent's content model refers to it, the table of the
- * type a local declaration names, or the type a valid `xsi:type` names where it derives from the
- * declared one. In wildcard content an element is governed by a global declaration of its name
- * where the wildcard is `lax` or `strict`, and by none where it is `skip`; with no global
- * declaration, a `lax` wildcard leaves it to its `xsi:type`, and an element no declaration governs
- * passes its children over as its own wildcard would. An element of a schema plate holds no tables
- * for (MathML, SSML, XInclude) is never governed.
+ * An element is governed by the declaration that admits it (reading `governing-type`): a global
+ * declaration's table at a document's root and wherever a parent's content model refers to it, the
+ * table of the type a local declaration names, or the type a valid `xsi:type` names where it
+ * derives from the declared one. In wildcard content an element is governed by a global declaration
+ * of its name where the wildcard is `lax` or `strict`, and by none where it is `skip`; with no
+ * global declaration, a `lax` wildcard leaves it to its `xsi:type`, and an element no declaration
+ * governs passes its children over as its own wildcard would. An element of a schema plate holds no
+ * tables for (MathML, SSML, XInclude) is never governed.
  *
  * @module
  */
@@ -128,7 +128,7 @@ export const isAllowance = (attribute: SourceAttribute): boolean =>
 
 /**
  * Report whether an attribute is `xsi:type` or `xsi:nil`, which XML Schema reads on every element
- * it assesses (reading 47).
+ * it assesses (reading `xsi-attributes`).
  *
  * @param attribute The attribute.
  * @returns Whether it is one of the two.
@@ -399,7 +399,8 @@ const wildcardAdmits = (wildcard: Wildcard, namespace: string): boolean => {
 };
 
 /**
- * The QTI roots reading 6 keeps as foreign content where wildcard content holds one.
+ * The QTI roots reading `nested-root-in-wildcard` keeps as foreign content where wildcard content
+ * holds one.
  */
 const nestedRoots: ReadonlySet<string> = new Set([
   "qti-assessment-item",
@@ -411,8 +412,8 @@ const nestedRoots: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Report whether an element is a root reading 6 keeps as foreign content when wildcard content
- * holds one: one of {@link nestedRoots}, or a content package's `manifest`.
+ * Report whether an element is a root reading `nested-root-in-wildcard` keeps as foreign content
+ * when wildcard content holds one: one of {@link nestedRoots}, or a content package's `manifest`.
  *
  * @param element The element.
  * @returns Whether it is kept foreign there.
@@ -424,7 +425,8 @@ const isForeignRoot = (element: SourceElement): boolean =>
 
 /**
  * The namespaces the ASI XSD imports whose tables plate does not hold: MathML 3, SSML 1.1 and
- * XInclude (reading 81). An element of one under a `strict` wildcard is not governed.
+ * XInclude (reading `wildcard-global-declarations`). An element of one under a `strict` wildcard is
+ * not governed.
  */
 const untabledNamespaces: ReadonlySet<string> = new Set([
   mathmlNamespace,
@@ -722,10 +724,10 @@ const namedType = (
 };
 
 /**
- * Give each element of a document the table that governs it (reading 84): the table of the
- * declaration that admits it, a global declaration's or the type a local one names, or, after a
- * valid `xsi:type` naming a type of the tables, that type's own table. An element no declaration
- * governs has no entry.
+ * Give each element of a document the table that governs it (reading `governing-type`): the table
+ * of the declaration that admits it, a global declaration's or the type a local one names, or,
+ * after a valid `xsi:type` naming a type of the tables, that type's own table. An element no
+ * declaration governs has no entry.
  *
  * @param source The document, as the reader adapter built it.
  * @param tables The ASI XSD's tables.

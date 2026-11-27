@@ -198,7 +198,7 @@ export const noReadAloud: ReadsAloud = () => Option.none();
  * in a catalog", which the database holds), so it has one recording at most. Each control it makes
  * takes its name from the page's namer, which every read-aloud of the page shares, the item's and
  * its passages': the part it reads and the next place among the page's controls of that part, so
- * no two controls of the page share a name (spec reading 237).
+ * no two controls of the page share a name (spec reading `read-aloud-controls`).
  *
  * @param payloads The payload's `qti-catalog-info` nodes.
  * @param addressing The item's location and the assets.

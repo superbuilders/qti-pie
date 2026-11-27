@@ -1,15 +1,15 @@
 /**
- * A resource's LOM record names the document its href names (spec reading 93), and that document's
- * assessment object is the "associated item, test or object bank" whose identifier one general
- * identifier entry matches (`lom-identifier`, QTI 3.0 Metadata §2.7.1.1) and whose title one title
- * string matches (`lom-title`, §2.7.1.2), whatever type the resource is listed under: a document
- * whose root is an item is that object, and a document with no such root has none, a test's
- * included, since pantry stores no test (spec reading 228), so a record that lists an identifier or
- * a title breaks its law. The database holds it so, by rules over queries
- * (`#pantry/qti/queries.ts`: `namingRecords`, the document a resource lists at its href, and
- * `ObjectIdentifier` and `objectTitles`, its root's attributes' `value`). GEN-A's differential
- * found the law oracle reading a record's identifier against no object where the resource's type
- * and the root's kind are no pair of `RootOfType`, which the import's rows hold.
+ * A resource's LOM record names the document its href names (spec reading `resource-href`), and
+ * that document's assessment object is the "associated item, test or object bank" whose identifier
+ * one general identifier entry matches (`lom-identifier`, QTI 3.0 Metadata §2.7.1.1) and whose
+ * title one title string matches (`lom-title`, §2.7.1.2), whatever type the resource is listed
+ * under: a document whose root is an item is that object, and a document with no such root has
+ * none, a test's included, since pantry stores no test (spec reading `tests-stored-as-defined`), so
+ * a record that lists an identifier or a title breaks its law. The database holds it so, by rules
+ * over queries (`#pantry/qti/queries.ts`: `namingRecords`, the document a resource lists at its
+ * href, and `ObjectIdentifier` and `objectTitles`, its root's attributes' `value`). GEN-A's
+ * differential found the law oracle reading a record's identifier against no object where the
+ * resource's type and the root's kind are no pair of `RootOfType`, which the import's rows hold.
  *
  * Oracle: the specification as a checker, §2.7.1.1 and §2.7.1.2 as stated above, against the law
  * oracle (`#pantry/test/oracle.ts` `judge`, through `#pantry/test/gen/genetic/judge.ts`

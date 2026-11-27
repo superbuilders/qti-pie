@@ -6,8 +6,8 @@
  *   no foreign element under it may hold, since a name a parent admits resolves to its kind (XML
  *   Schema 1.0 Part 1, §3.3.2 and §3.10.4; `kinds.ts`, `resolution`).
  * - `TypeAvailable`: type → namespaces, the namespaces of the vocabularies under whose elements an
- *   `xsi:type` may name the type, so its document's schema set holds it (spec readings 60 and 81;
- *   `open.ts`, `typeAvailable`).
+ *   `xsi:type` may name the type, so its document's schema set holds it (spec readings
+ *   `wildcard-xsi-type` and `wildcard-global-declarations`; `open.ts`, `typeAvailable`).
  *
  * A foreign element keeps its namespace and local name as open text (`OpenElementName`), and a
  * closed relation's key is closed ids only (grizzle's README, "Closed relations"), so neither
@@ -258,13 +258,13 @@ export const typesAvailable = (input: {
 export type HeldRootsUnder<K extends string = string> = NamesUnder<K>;
 
 /**
- * Generate `HeldRootsUnder`: for each parent that holds a foreign element only under
- * `strict` wildcards (`StrictlyHeld`), the pattern of the expanded names of spec reading 6's roots
- * (`foreignRoots` of `open.ts`) such a wildcard holds there: a root whose namespace's foreign class
- * the parent holds strictly, and whose global declaration the schema set of the parent's documents
- * holds, so the wildcard assesses it against that declaration though no kind of the parent reads it
- * (C13 of `docs/research/up.md`: `cp:manifest` under `drd:accessForAllResource`). Every other
- * strictly held family's pattern is {@link noText}.
+ * Generate `HeldRootsUnder`: for each parent that holds a foreign element only under `strict`
+ * wildcards (`StrictlyHeld`), the pattern of the expanded names of spec reading
+ * `nested-root-in-wildcard`'s roots (`foreignRoots` of `open.ts`) such a wildcard holds there: a
+ * root whose namespace's foreign class the parent holds strictly, and whose global declaration the
+ * schema set of the parent's documents holds, so the wildcard assesses it against that declaration
+ * though no kind of the parent reads it (C13 of `docs/research/up.md`: `cp:manifest` under
+ * `drd:accessForAllResource`). Every other strictly held family's pattern is {@link noText}.
  *
  * @param input - The strictly held families and the roots' names.
  * @param input.classOf - The foreign kind of an element of a namespace under a parent of another,

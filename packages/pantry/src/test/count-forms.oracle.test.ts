@@ -8,8 +8,9 @@
  * Oracle: the specification as a checker, §3.3.20's map by hand (`expected`), against both
  * implementations of it: the law oracle's (`integerOf` after `typedValueOf`, its verdict), and the
  * import's (`countValueOf`, its LeastCount and MostCount rows, and the laws its rows break on the
- * host). A most of 0 under a single response is refused by "Binding cardinality" (reading 92: a
- * most of 0 binds no limit, so the response must be multiple), and a most of 1 is accepted.
+ * host). A most of 0 under a single response is refused by "Binding cardinality" (reading
+ * `binding-and-count-sentences`: a most of 0 binds no limit, so the response must be multiple), and
+ * a most of 1 is accepted.
  */
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
@@ -119,9 +120,9 @@ const packageOf = (drawn: FormCase): PackageEntries => {
 };
 
 /**
- * The rules a case is refused under, by §3.3.20's map and reading 92: the value domain's where the
- * form has no value, and Binding cardinality's where a single response binds a most of 0; else
- * none.
+ * The rules a case is refused under, by §3.3.20's map and reading `binding-and-count-sentences`:
+ * the value domain's where the form has no value, and Binding cardinality's where a single response
+ * binds a most of 0; else none.
  *
  * @param drawn - The case.
  * @returns The rules, empty where the case is accepted.
@@ -193,11 +194,12 @@ layer(NodeServices.layer, { excludeTestServices: true })("a count's value", (it)
             generator: formCases,
             literal: Formatter.format,
             /**
-             * XML Schema 1.1 Part 2 §3.3.13 and §3.3.20 by hand, and reading 92.
+             * XML Schema 1.1 Part 2 §3.3.13 and §3.3.20 by hand, and reading
+             * `binding-and-count-sentences`.
              */
             oracle: {
               kind: "specification",
-              name: "XML Schema 1.1 Part 2 §3.3.20's lexical mapping by hand, and reading 92",
+              name: "XML Schema 1.1 Part 2 §3.3.20's lexical mapping by hand, and reading `binding-and-count-sentences`",
             },
             suite: "test/count-forms",
           },

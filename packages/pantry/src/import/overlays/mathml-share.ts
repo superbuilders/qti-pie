@@ -1,6 +1,7 @@
 /**
- * The MathML share overlay's rows (spec reading 2, §C's `rowsOf`): the rows of every relation
- * `#pantry/qti/mathml-share.ts` declares, in the two scopes a share resolves in (spec reading 117).
+ * The MathML share overlay's rows (spec reading `mathml-validity`, §C's `rowsOf`): the rows of
+ * every relation `#pantry/qti/mathml-share.ts` declares, in the two scopes a share resolves in
+ * (spec reading `fragment-placement`).
  *
  * **A document in no assembly** ({@link rowsOf}), from its view (`DocumentView` of
  * `#pantry/import/fold.ts`):
@@ -536,9 +537,9 @@ const graphOf = (seats: readonly Seat[], rowed: ReadonlyMap<string, Rowed>): Gra
 };
 
 /**
- * Build a package's placed share rows (spec reading 117), in a pass over each assembly: each
- * `m:share` of an instance's document is resolved among the assembly's ids, as an IDREF is
- * (`placedIdRowsOf`'s `AssembledId`), and ranked over the assembly's merged graph.
+ * Build a package's placed share rows (spec reading `fragment-placement`), in a pass over each
+ * assembly: each `m:share` of an instance's document is resolved among the assembly's ids, as an
+ * IDREF is (`placedIdRowsOf`'s `AssembledId`), and ranked over the assembly's merged graph.
  *
  * - **Resolved**: the first instance, in pre-order, that holds the id, as {@link rowsOf} takes the
  *   first owner of a document's id. The target's instance is that one. A share whose id the

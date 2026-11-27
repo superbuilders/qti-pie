@@ -1,9 +1,9 @@
 /**
  * The site generator's packages (`#pantry/test/gen/sites.ts`) against the law oracle (lane NIL, the
- * SitePath fix; spec readings 114 and 115): every way each of the package's two sites can write
- * its href, exhausted, each package imported once and its rows judged by the site laws restated on
- * the host and by the schema's own statements, and the verdicts held to one:
- * the rows', the statements', the law oracle's, and the case table's (`rulesOfBox`).
+ * SitePath fix; spec readings `include-as-information-model` and `include-target`): every way each
+ * of the package's two sites can write its href, exhausted, each package imported once and its rows
+ * judged by the site laws restated on the host and by the schema's own statements, and the verdicts
+ * held to one: the rows', the statements', the law oracle's, and the case table's (`rulesOfBox`).
  *
  * A site's href is a row of its own, `SitePath`, written only where the href names a path of the
  * package, with whether an entry is there (`entry`), and its target another, `SiteTarget`. So no
@@ -98,7 +98,7 @@ const siteOf = (inputs: PackageInputs, name: SiteName): Addition<typeof Site> =>
  * each site's one: `File_exists` where its path's `entry` is false, which PostgreSQL judges as the
  * row is inserted; otherwise, for an include with no target whose href does not resolve outside the
  * package, "Include target" (an external include, marked `external` exactly where its href's
- * `Reference` is external, is stored as written and never fetched, reading 115).
+ * `Reference` is external, is stored as written and never fetched, reading `include-target`).
  *
  * @param inputs - The package's import inputs.
  * @param literal - The package's literal, for the assertions' messages.
@@ -324,8 +324,9 @@ layer(NodeServices.layer, { excludeTestServices: true })("test/gen/sites.ts", (i
              * A second implementation, the law oracle (`#pantry/test/oracle.ts`) over the same
              * entries; the schema's statements as grizzle keeps them, their selections included
              * (`#pantry/test/host-judge.ts`), judged by grizzle's evaluator over the rows the
-             * import's write stores; and the specification as a checker, reading 115 per case
-             * (`ruleOfCase`), against the import's rows under the site laws restated on the host.
+             * import's write stores; and the specification as a checker, reading `include-target`
+             * per case (`ruleOfCase`), against the import's rows under the site laws restated on
+             * the host.
              */
             oracle: { kind: "second-implementation", name: "the law oracle over the same entries" },
             suite: "pantry/test/gen-sites-box",

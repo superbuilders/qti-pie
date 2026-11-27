@@ -3,16 +3,16 @@
  * exactly where the type spells a handle (`resourceTypesOf`, the query `resourceTypes`' reading,
  * which no row stores), so the typed paths (`typedPathsOf`, the query `TypedPath`'s rows) are its
  * href's, every case's href naming an entry, and their (target, type) pairs are the case's; the law
- * oracle's verdict and the laws it finds broken over each case of reading 93's box are the stated
- * ones, the import's rows, judged on the host, are refused under the same rule, or by nothing
- * where the case breaks a rule over the query, which the host leaves to the database, and a type
- * that spells nothing breaks AL1 alone; and a path two types name is the document its root bears
- * out, in either order (reading 162).
+ * oracle's verdict and the laws it finds broken over each case of reading `resource-href`'s box are
+ * the stated ones, the import's rows, judged on the host, are refused under the same rule, or by
+ * nothing where the case breaks a rule over the query, which the host leaves to the database, and a
+ * type that spells nothing breaks AL1 alone; and a path two types name is the document its root
+ * bears out, in either order (reading `path-document-type`).
  *
- * Oracle: the specification as a checker, spec readings 67 (a resource's `type` is its version's
- * enumeration, an `xs:string` restriction whose whitespace is preserved, XSD 1.1 Part 2 §4.3.6), 93
- * (a document has one type, so one path under two document types is refused) and 162 (that type is
- * the one its root bears out), and the law oracle's verdict on each case.
+ * Oracle: the specification as a checker, spec reading `manifest-profile` (a resource's `type` is
+ * its version's enumeration, an `xs:string` restriction whose whitespace is preserved, XSD 1.1 Part
+ * 2 §4.3.6), 93 (a document has one type, so one path under two document types is refused) and 162
+ * (that type is the one its root bears out), and the law oracle's verdict on each case.
  */
 import { regex } from "arkregex";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -45,7 +45,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
   (it) => {
     for (const { broken, byQuery, edits, label, named, typed, verdict } of resourceTypeCases) {
       it.effect(
-        `writes a type only where it spells a handle, and judges ${label} by reading 93`,
+        `writes a type only where it spells a handle, and judges ${label} by reading \`resource-href\``,
         () =>
           Effect.gen(function* resourceTypeCase() {
             const simple = specOf("simple");

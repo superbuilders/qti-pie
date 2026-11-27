@@ -85,8 +85,8 @@ export interface ExtendedTextInteraction<L extends Level = ModelLevel>
   readonly expectedLines: Option.Option<bigint>;
   readonly format: (typeof formats)[number];
   /**
-   * `max-strings`: a count, held exactly, with no upper bound (reading 46 does not list it). `0`
-   * restricts nothing, as `max-choices` reads it (reading 53).
+   * `max-strings`: a count, held exactly, with no upper bound (reading `count-range` does not list
+   * it). `0` restricts nothing, as `max-choices` reads it (reading `max-strings-zero`).
    */
   readonly maxStrings: Option.Option<bigint>;
   /**
@@ -115,18 +115,17 @@ export interface ExtendedTextPayload extends TextControlPayload {
    * one box per string up to `most` for one holding more. A `single` or `record` binding shows one
    * box, and at most one. A container shows `max-strings` boxes when it is from 1 to 10, else the
    * greater of 10 and `min-strings`, and `most` is `max-strings` when it is not 0, else 100; both
-   * at most 100 (reading 53), and both 0 when `min-strings` exceeds 100.
+   * at most 100 (reading `max-strings-zero`), and both 0 when `min-strings` exceeds 100.
    */
   readonly boxes: { readonly most: number; readonly shown: number };
   readonly cardinality: ExtendedTextInteraction["cardinality"];
   readonly expectedLines: Option.Option<bigint>;
   readonly format: ExtendedTextInteraction["format"];
   /**
-   * The number of Controls: 1 for a `single` or a `record` binding; for a container,
-   * `max-strings` when it is from 1 to 10, else the greater of 10 and `min-strings`, so
-   * `max-strings="0"` and an absent one give at least 10 (reading 53). It also covers every member
-   * of the value it restores, up to a nonzero `max-strings`. At most 100, and 0 when
-   * `min-strings` exceeds 100.
+   * The number of Controls: 1 for a `single` or a `record` binding; for a container, `max-strings`
+   * when it is from 1 to 10, else the greater of 10 and `min-strings`, so `max-strings="0"` and an
+   * absent one give at least 10 (reading `max-strings-zero`). It also covers every member of the
+   * value it restores, up to a nonzero `max-strings`. At most 100, and 0 when `min-strings` exceeds 100.
    */
   readonly n: number;
   /**
@@ -184,12 +183,13 @@ interface Controls {
 /**
  * Count the Controls an Extended Text renders.
  *
- * A `single` binding and a record one have one Control, the string control a record's text is
- * typed in. A container has `max-strings` Controls when it is from 1 to 10, else the greater of 10
- * and `min-strings`; `max-strings="0"` restricts nothing (reading 53). So restoring drops no
- * answer silently, `n` also covers each member the restored value holds, up to `max-strings` when
- * it restricts and up to the cap of 100. Over the cap, the first 100 show beside the cap's notice;
- * a `min-strings` above 100 leaves no Control, the notice in their place, for any binding.
+ * A `single` binding and a record one have one Control, the string control a record's text is typed
+ * in. A container has `max-strings` Controls when it is from 1 to 10, else the greater of 10 and
+ * `min-strings`; `max-strings="0"` restricts nothing (reading `max-strings-zero`). So restoring
+ * drops no answer silently, `n` also covers each member the restored value holds, up to
+ * `max-strings` when it restricts and up to the cap of 100. Over the cap, the first 100 show beside
+ * the cap's notice; a `min-strings` above 100 leaves no Control, the notice in their place, for any
+ * binding.
  *
  * The island's boxes are the same count before any value: `shown` is the Controls `max-strings`
  * or `min-strings` asks for, and `most` is `max-strings` when it restricts, else the cap.

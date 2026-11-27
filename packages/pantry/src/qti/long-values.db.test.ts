@@ -1,11 +1,11 @@
 /**
  * Long values on the lease, with PostgreSQL as the judge. An item's single string correct response
  * is a `qti-value` text, an element's string value (`Node.stringValue`), bounded only by the regex
- * engine (`matchedTextBytes`, spec reading 133). The served AlphaTest item with the longest such
- * value has 433 bytes, past the 428 that LIMITS5 held a matched text to (SV-LIMIT-01). So each case
- * writes one value: at that length, one byte past what a lone B-tree entry holds of a text as
- * itself (grizzle's `keyTextBytes`), so that no key could hold it as itself, and at 64 KiB. It
- * imports the item whole, then exports it byte for byte as it was read.
+ * engine (`matchedTextBytes`, spec reading `key-text-length`). The served AlphaTest item with the
+ * longest such value has 433 bytes, past the 428 that LIMITS5 held a matched text to (SV-LIMIT-01).
+ * So each case writes one value: at that length, one byte past what a lone B-tree entry holds of a
+ * text as itself (grizzle's `keyTextBytes`), so that no key could hold it as itself, and at 64 KiB.
+ * It imports the item whole, then exports it byte for byte as it was read.
  *
  * Its names are held in no key as themselves but one: a namespace prefix and an open attribute's
  * local name and namespace name by their SHA-256s, and a foreign element's local name in no key,
@@ -243,7 +243,7 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
           assert.include(
             ["accepted", "unchanged"],
             imported.outcome,
-            "every name at its bound: Namespaces in XML 1.0 §4 and XML 1.0 put no bound on a prefix or a name (reading 94), so a key holds each by its SHA-256 or holds none",
+            "every name at its bound: Namespaces in XML 1.0 §4 and XML 1.0 put no bound on a prefix or a name (reading `ncname-characters`), so a key holds each by its SHA-256 or holds none",
           );
           yield* exportPackage(imported.package, target);
           assert.deepStrictEqual(

@@ -4,7 +4,7 @@
 -- grizzle-text's classes; do not edit: generate it again.
 --
 --   p3.xsd_compile(pattern) -> program   the pattern read by Appendix F's grammar ({ and } are metacharacters, as
---                                        qti-pie's reading 58 has it), or NULL when it is no Appendix F expression;
+--                                        qti-pie's reading \`pattern-mask-braces\` has it), or NULL when it is no Appendix F expression;
 --   p3.xsd_run(program, value) -> bool   whether the whole value is in the pattern's language (anchored at both ends);
 --   p3.xsd_match_end(program, start, value) -> int   the end of the match F&O 3.1 chooses from start (fn:tokenize);
 --   p3.xsd_separators(program, value) -> text   every separator fn:tokenize finds, in one reading (start,end pairs);

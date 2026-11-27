@@ -522,7 +522,7 @@ const secondsPerPart: readonly (readonly [part: string, seconds: number])[] = [
  *
  * @param groups The named groups of {@link dayTime}.
  * @returns The seconds. A sum past the largest finite double is the largest finite double, as
- *   reading 56 reads a literal there for a float or duration.
+ *   reading `double-overflow` reads a literal there for a float or duration.
  */
 const durationSeconds = (groups: Readonly<Record<string, string | undefined>>): number => {
   const seconds = secondsPerPart.reduce(

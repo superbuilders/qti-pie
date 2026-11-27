@@ -65,7 +65,8 @@
  * - RB19, a Media interrupted: a Media that another Media's press or a read-aloud press stops
  *   mid-play keeps the one play it counted, and its own press resumes that play and spends none,
  *   under `max-plays` 1 and in loop mode alike; one stopped while it still loads, before it
- *   sounded, counted no play, so its next press plays and counts (reading 245).
+ *   sounded, counted no play, so its next press plays and counts (reading
+ *   `media-play-under-one-voice`).
  * - RB20, a refused play takes no voice: a Media's play past `max-plays`, as its native controls
  *   start it, is refused and stops nothing.
  * - RB21, the voice outlives a player's leaving: after one of two items leaves, a host's media that
@@ -79,7 +80,8 @@
  *   leaves it unheard, or comes while it is paused, takes nothing.
  * - RB25, a Media's own Pause while it loads: the control of a Media whose play still loads is its
  *   Pause, and its press stops that play: the media is at rest again, no play counted, it never
- *   sounds once its data arrives, and its next press plays and counts (reading 245).
+ *   sounds once its data arrives, and its next press plays and counts (reading
+ *   `media-play-under-one-voice`).
  * - RB26, a page's own voice: two pages one copy of plate serves, the page and a frame it renders an
  *   item into, each have a voice of their own, held in each page, never in plate's module: a press
  *   in one stops nothing of the other's, and a host's media that starts in the frame stops the
@@ -100,7 +102,7 @@
  *   graph's labels and the passage's, three Choice interactions' questions, the first's on its root
  *   and the second's and third's on their prompts, and their choices among them; each is named by
  *   its part and its place among the page's controls of that part, once, in the order the page
- *   shows them (reading 237).
+ *   shows them (reading `read-aloud-controls`).
  *
  * Kills are in this suite's commit: each rule fails on a slip planted in plate that breaks it.
  *

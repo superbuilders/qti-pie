@@ -13,9 +13,10 @@
  * `#plate/redact/print.ts`'s.
  *
  * A response's default is no secret: it is the value the response holds as its attempt starts,
- * which the candidate sees and may change (spec reading 183). `redactItem` keeps it in the
- * response's binding where an interaction the page shows starts at it, and `startingResponses`
- * (`#plate/starting.ts`) gives the value it starts at, which the host's `<Responses>` starts from.
+ * which the candidate sees and may change (spec reading `response-default`). `redactItem` keeps it
+ * in the response's binding where an interaction the page shows starts at it, and
+ * `startingResponses` (`#plate/starting.ts`) gives the value it starts at, which the host's
+ * `<Responses>` starts from.
  *
  * @module
  */
@@ -796,12 +797,12 @@ const printBody = (
 };
 
 /**
- * Tell whether an interaction starts at the default of the response it binds (spec reading 183).
- * Every kind does, since a response variable "is set to this value at the start of the first
- * attempt" (QTI 3.0 information model, section 2.2.2.2), but two whose own rule says otherwise,
- * each the kind's rule over the general one: a Choice "is always initialized with no choices
- * selected" (section 2.4.1.1), and of an End Attempt's response "The default value of the response
- * variable is always ignored" (section 2.4.5).
+ * Tell whether an interaction starts at the default of the response it binds (spec reading
+ * `response-default`). Every kind does, since a response variable "is set to this value at the
+ * start of the first attempt" (QTI 3.0 information model, section 2.2.2.2), but two whose own rule
+ * says otherwise, each the kind's rule over the general one: a Choice "is always initialized with
+ * no choices selected" (section 2.4.1.1), and of an End Attempt's response "The default value of
+ * the response variable is always ignored" (section 2.4.5).
  *
  * @param interaction The interaction.
  * @returns Whether it starts at its response's default.
@@ -833,10 +834,10 @@ const startingResponses = (body: readonly BodyNode[]): ReadonlySet<string> => {
 };
 
 /**
- * Give the value a response starts at, as the page shows it (spec reading 183): the default the
- * record holds for it, which the QTI database's template processing set at the take, else its
- * declared `qti-default-value`. None for NULL, and none for an item with template processing and
- * no record, since its processing may set another default and nothing here runs it.
+ * Give the value a response starts at, as the page shows it (spec reading `response-default`): the
+ * default the record holds for it, which the QTI database's template processing set at the take,
+ * else its declared `qti-default-value`. None for NULL, and none for an item with template
+ * processing and no record, since its processing may set another default and nothing here runs it.
  *
  * @param item The item, whose template processing's presence decides a record-less start.
  * @param identifier The response.

@@ -80,8 +80,8 @@ export const packageMutations = {
     ],
   ),
   /**
-   * Aria value range (reading 9's ARIA bounds): the division's aria-valuemin above its
-   * aria-valuemax.
+   * Aria value range (reading `schematron-intent`'s ARIA bounds): the division's aria-valuemin
+   * above its aria-valuemax.
    */
   "Aria value range": passageAt("Aria value range", item, 'aria-valuemin="0" aria-valuemax="10"', [
     'aria-valuemin="11" aria-valuemax="10"',
@@ -92,8 +92,8 @@ export const packageMutations = {
    */
   Arity: passageAt("Arity", item, '\n          <qti-correct identifier="RESPONSE"/>', [""]),
   /**
-   * Binding cardinality (reading 92): the choice interaction that binds the single RESPONSE told
-   * to take more than one choice.
+   * Binding cardinality (reading `binding-and-count-sentences`): the choice interaction that binds
+   * the single RESPONSE told to take more than one choice.
    */
   "Binding cardinality": passageAt("Binding cardinality", item, 'max-choices="1" min-choices="0"', [
     'max-choices="2" min-choices="0"',
@@ -107,7 +107,8 @@ export const packageMutations = {
     slider.replace("LEVER", "N"),
   ]),
   /**
-   * Binding unique (reading 92): a second interaction bound to a bound response.
+   * Binding unique (reading `binding-and-count-sentences`): a second interaction bound to a bound
+   * response.
    */
   "Binding unique": passageAt(
     "Binding unique",
@@ -162,13 +163,15 @@ export const packageMutations = {
     over: "package",
   },
   /**
-   * Choice bounds (readings 18 and 76): the choice interaction's least above its most.
+   * Choice bounds (readings `order-min-choices` and `least-at-most-most`): the choice interaction's
+   * least above its most.
    */
   "Choice bounds": passageAt("Choice bounds", item, 'max-choices="1" min-choices="0"', [
     'max-choices="1" min-choices="2"',
   ]),
   /**
-   * Choice identifier key (reading 104): two simple choices of one identifier.
+   * Choice identifier key (reading `choice-identifier-scope`): two simple choices of one
+   * identifier.
    */
   "Choice identifier key": passageAt(
     "Choice identifier key",
@@ -177,7 +180,8 @@ export const packageMutations = {
     ['<qti-simple-choice identifier="ChoiceA">'],
   ),
   /**
-   * Choice not variable (reading 104): a hottext named as a variable its item declares.
+   * Choice not variable (reading `choice-identifier-scope`): a hottext named as a variable its item
+   * declares.
    */
   "Choice not variable": passageAt("Choice not variable", item, '<qti-hottext identifier="H1">', [
     '<qti-hottext identifier="COUNT">',
@@ -212,24 +216,25 @@ export const packageMutations = {
     'xml:lang="de" tool-name',
   ]),
   /**
-   * DocumentId key (reading 101): a second element of the item given an id the item holds.
+   * DocumentId key (reading `text-id-binding`): a second element of the item given an id the item
+   * holds.
    */
   "DocumentId key": passageAt("DocumentId key", item, '<span id="caption">', [
     '<span id="lead">',
     '<span id="row-head">',
   ]),
   /**
-   * Double bound (reading 144): a slider's step below zero, plainly or by the least subnormal, each
-   * in xs:double's lexical space but outside NonNegativeDoubleDType's bound, judged on its IEEE
-   * value.
+   * Double bound (reading `bounded-double`): a slider's step below zero, plainly or by the least
+   * subnormal, each in xs:double's lexical space but outside NonNegativeDoubleDType's bound, judged
+   * on its IEEE value.
    */
   "Double bound": passageAt("Double bound", item, 'upper-bound="10" step="1"', [
     'upper-bound="10" step="-1"',
     'upper-bound="10" step="-4.9e-324"',
   ]),
   /**
-   * Equal tolerance (reading 121): an absolute or relative equality written with no tolerance,
-   * or with a tolerance that is not above 0.
+   * Equal tolerance (reading `tolerance`): an absolute or relative equality written with no
+   * tolerance, or with a tolerance that is not above 0.
    */
   "Equal tolerance": passageAt(
     "Equal tolerance",
@@ -263,7 +268,7 @@ export const packageMutations = {
     ['<qti-feedback-inline outcome-identifier="ABSENT"'],
   ),
   /**
-   * File exists (P3, reading 102): a resource's file naming a path no entry is.
+   * File exists (P3, reading `href-resolution`): a resource's file naming a path no entry is.
    */
   "File exists": passageAt("File exists", manifest, '<file href="usage.xml"/>', [
     '<file href="usage.xml"/><file href="missing.xml"/>',
@@ -285,25 +290,27 @@ export const packageMutations = {
     over: "package",
   },
   /**
-   * Href listed (P3, reading 102): a new resource whose href names an entry its own files do not
-   * list.
+   * Href listed (P3, reading `href-resolution`): a new resource whose href names an entry its own
+   * files do not list.
    */
   "Href listed": passageAt("Href listed", manifest, "  </resources>", [
     '    <resource identifier="extra-res" type="webcontent" href="items/media/pic.png"><file href="usage.xml"/></resource>\n  </resources>',
   ]),
   /**
-   * Idref target (reading 14): the division's aria-labelledby naming no id of the item.
+   * Idref target (reading `text-entry-idrefs`): the division's aria-labelledby naming no id of the
+   * item.
    */
   "Idref target": passageAt("Idref target", item, 'aria-labelledby="caption"', [
     'aria-labelledby="nothing"',
     'aria-labelledby="caption absent"',
   ]),
   /**
-   * Include fragment identifier, Include target and Include root (readings 85, 114 and 117): the
-   * second item's include naming its fragment by a fragment identifier; naming no document, by an
-   * entry the manifest lists as none or no href (one naming a file the package does not hold is
-   * "File exists"'s alone, and one naming a file outside the package is stored as written and never
-   * fetched, reading 115); or naming the rule fragment, whose root no item body holds.
+   * Include fragment identifier, Include target and Include root (readings `inclusion-cycles`,
+   * `include-as-information-model` and `fragment-placement`): the second item's include naming its
+   * fragment by a fragment identifier; naming no document, by an entry the manifest lists as none
+   * or no href (one naming a file the package does not hold is "File exists"'s alone, and one
+   * naming a file outside the package is stored as written and never fetched, reading
+   * `include-target`); or naming the rule fragment, whose root no item body holds.
    */
   "Include fragment identifier": passageAt(
     "Include fragment identifier",
@@ -312,9 +319,9 @@ export const packageMutations = {
     ['<xi:include href="fragment.xml#part"/>'],
   ),
   /**
-   * Include parse (XInclude 1.0 §3.1, reading 85): beside the second item's include of its
-   * fragment, an include of the package's picture written with an xpointer and parse="text", which
-   * XInclude makes a fatal error ("The xpointer attribute must not be present when
+   * Include parse (XInclude 1.0 §3.1, reading `inclusion-cycles`): beside the second item's include
+   * of its fragment, an include of the package's picture written with an xpointer and parse="text",
+   * which XInclude makes a fatal error ("The xpointer attribute must not be present when
    * parse="text""); either alone is admitted and includes nothing.
    */
   "Include parse": passageAt(
@@ -341,19 +348,20 @@ export const packageMutations = {
     ],
   ),
   /**
-   * Inclusion cycle (reading 85): the item's included fragment including itself.
+   * Inclusion cycle (reading `inclusion-cycles`): the item's included fragment including itself.
    */
   "Inclusion cycle": passageAt("Inclusion cycle", "items/fragment.xml", '  <p id="fragment-note"', [
     '  <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="fragment.xml"/>\n  <p id="fragment-note"',
   ]),
   /**
-   * Key text bound (the stated limit, reading 133): the item's division's aria-valuemin, an
-   * `xs:decimal` of zeros past `parsedDecimalBytes`, the most `Text.parseDecimal` reads
-   * (`AriaBounds.min`), each digit one byte, its value 0, so its range holds and the bound alone
-   * refuses it. A foreign element's names are bounded at half and a text a query matches at all of
-   * `matchedTextBytes`, a quarter of a gigabyte, which no drawn package reaches; a path, a prefix,
-   * an open attribute's names, an IDREF's token, an ID and an identifier a key holds are each held
-   * to its key text type's bound (`#pantry/qti/limits.ts`), and an href as written to none.
+   * Key text bound (the stated limit, reading `key-text-length`): the item's division's
+   * aria-valuemin, an `xs:decimal` of zeros past `parsedDecimalBytes`, the most `Text.parseDecimal`
+   * reads (`AriaBounds.min`), each digit one byte, its value 0, so its range holds and the bound
+   * alone refuses it. A foreign element's names are bounded at half and a text a query matches at
+   * all of `matchedTextBytes`, a quarter of a gigabyte, which no drawn package reaches; a path, a
+   * prefix, an open attribute's names, an IDREF's token, an ID and an identifier a key holds are
+   * each held to its key text type's bound (`#pantry/qti/limits.ts`), and an href as written to
+   * none.
    */
   "Key text bound": {
     law: "Key text bound",
@@ -372,8 +380,8 @@ export const packageMutations = {
     over: "package",
   },
   /**
-   * LOM learning resource type (reading 122): a record of the LOM vocabulary typing its object
-   * as an exam or a self assessment.
+   * LOM learning resource type (reading `lom-learning-resource-type`): a record of the LOM
+   * vocabulary typing its object as an exam or a self assessment.
    */
   "LOM learning resource type": {
     law: "LOM learning resource type",
@@ -445,7 +453,7 @@ export const packageMutations = {
     ],
   ),
   /**
-   * Media source src (reading 124): a video's source that names no resource.
+   * Media source src (reading `source-attributes`): a video's source that names no resource.
    */
   "Media source src": passageAt(
     "Media source src",
@@ -558,9 +566,9 @@ export const packageMutations = {
     ],
   ),
   /**
-   * Pattern language (§5.162.5, §5.48.4; reading 58): the fragment's text entry given a
-   * pattern-mask that is no Appendix F regular expression: a flag group, an unclosed class, a lone
-   * `{`.
+   * Pattern language (§5.162.5, §5.48.4; reading `pattern-mask-braces`): the fragment's text entry
+   * given a pattern-mask that is no Appendix F regular expression: a flag group, an unclosed class,
+   * a lone `{`.
    */
   "Pattern language": passageAt(
     "Pattern language",
@@ -573,7 +581,8 @@ export const packageMutations = {
     ],
   ),
   /**
-   * Picture source srcset (reading 124): a picture's source that names no image candidates.
+   * Picture source srcset (reading `source-attributes`): a picture's source that names no image
+   * candidates.
    */
   "Picture source srcset": passageAt(
     "Picture source srcset",
@@ -596,7 +605,7 @@ export const packageMutations = {
     ],
   ),
   /**
-   * Quotation punctuation (reading 127): a q holding a quotation mark of its own.
+   * Quotation punctuation (reading `quotation-around-q`): a q holding a quotation mark of its own.
    */
   "Quotation punctuation": passageAt("Quotation punctuation", item, "<q>read this</q>", [
     '<q>"read this"</q>',
@@ -633,8 +642,8 @@ export const packageMutations = {
     usageResource.replace("qtiusagedata/xml", "imsqti_stimulus_xmlv3p0"),
   ]),
   /**
-   * Rounding figures (reading 119): a round-to of no significant figures, or of fewer than no
-   * decimal places.
+   * Rounding figures (reading `rounding-figures`): a round-to of no significant figures, or of
+   * fewer than no decimal places.
    */
   "Rounding figures": passageAt(
     "Rounding figures",
@@ -677,8 +686,8 @@ export const packageMutations = {
     ],
   ),
   /**
-   * Table headers (reading 126): a cell's headers naming an id of the item that is no header of
-   * its table.
+   * Table headers (reading `cell-headers`): a cell's headers naming an id of the item that is no
+   * header of its table.
    */
   "Table headers": passageAt("Table headers", item, '<td headers="row-head">', [
     '<td headers="caption">',
@@ -703,7 +712,7 @@ export const packageMutations = {
     ['<qti-template-inline template-identifier="N"'],
   ),
   /**
-   * Track srclang (reading 125): a subtitles track that names no language.
+   * Track srclang (reading `track-srclang`): a subtitles track that names no language.
    */
   "Track srclang": passageAt(
     "Track srclang",
@@ -727,7 +736,8 @@ export const packageMutations = {
     ],
   ),
   /**
-   * Usage typed value (reading 105): the usage statistic's float value written as no float.
+   * Usage typed value (reading `usage-statistic-value`): the usage statistic's float value written
+   * as no float.
    */
   "Usage typed value": passageAt(
     "Usage typed value",

@@ -1,8 +1,9 @@
 /**
- * The law oracle's resolver of an href in a package (readings 102 and 103), for tests only: a
- * second implementation of RFC 3986's reference resolution, written from the RFC's own algorithms
- * and never from the importer's (`#pantry/import/overlays/package.ts` `resolveIn`), so the two are
- * a differential. No import path reaches it, which `src/grammar/purity.test.ts` holds.
+ * The law oracle's resolver of an href in a package (readings `href-resolution` and
+ * `file-references`), for tests only: a second implementation of RFC 3986's reference resolution,
+ * written from the RFC's own algorithms and never from the importer's
+ * (`#pantry/import/overlays/package.ts` `resolveIn`), so the two are a differential. No import path
+ * reaches it, which `src/grammar/purity.test.ts` holds.
  *
  * It resolves as the RFC states it, over text: the document's path is embedded in an absolute base
  * URI below a package root of its own ({@link resolve}); each `xml:base` in scope, outermost first,
@@ -13,7 +14,8 @@
  * decoder of its own (§2.1, §2.5).
  *
  * What it shares with the importer is the reading, not the code: the order in which an href is
- * judged external, its own document's or under a stated limit, which reading 102 states.
+ * judged external, its own document's or under a stated limit, which reading `href-resolution`
+ * states.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-5.2 | RFC 3986, §5.2}
  */
@@ -25,7 +27,7 @@ import { regex } from "arkregex";
 export type OracleWhiteSpace = "collapse" | "preserve" | "replace";
 
 /**
- * The stated limits an href meets (reading 102), named as the importer's are.
+ * The stated limits an href meets (reading `href-resolution`), named as the importer's are.
  */
 type OracleLimit = "backslash" | "colon" | "control" | "octets" | "percent" | "separator";
 
@@ -469,7 +471,7 @@ const targetOf = (
 };
 
 /**
- * Resolve an href of a document in a package (readings 102 and 103).
+ * Resolve an href of a document in a package (readings `href-resolution` and `file-references`).
  *
  * The document's path is embedded in an absolute path whose package root lies below as many
  * segments as the inputs hold characters, each named with a backslash, which no written path the
@@ -520,8 +522,8 @@ export const resolve = (input: {
 };
 
 /**
- * Resolve a census attribute's value (reading 102) as any href: of the form `uri`, or one image
- * candidate's URL of a `srcset` ({@link oracleSrcsetOf}).
+ * Resolve a census attribute's value (reading `href-resolution`) as any href: of the form `uri`, or
+ * one image candidate's URL of a `srcset` ({@link oracleSrcsetOf}).
  *
  * @param input - What the href is read with.
  * @param input.document - The document's path.
@@ -594,8 +596,8 @@ export const oracleSrcsetOf = (lexical: string): OracleSrcset => {
 };
 
 /**
- * The path an href's row is compared by (reading 102): the entry path it resolves to in the
- * package, and otherwise its path as read, its query and fragment aside.
+ * The path an href's row is compared by (reading `href-resolution`): the entry path it resolves to
+ * in the package, and otherwise its path as read, its query and fragment aside.
  *
  * @param resolution - Its resolution.
  * @param value - Its value, read by its whitespace class.

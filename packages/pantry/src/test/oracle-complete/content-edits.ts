@@ -67,7 +67,7 @@ const oneEntryMapping = regex.as(
 /**
  * An href's values the resolver reads no entry name from, each inside `xs:anyURI`: a backslash, a
  * percent-encoded octet that spells no UTF-8, one that decodes to `/`, and one that decodes to
- * U+0000 (reading 102).
+ * U+0000 (reading `href-resolution`).
  */
 const unreadHrefs = [
   "media\\pic.png",
@@ -92,8 +92,8 @@ const unnamedNamespaces = ["a b", "%zz", "http://exa mple.org/", "urn:x#a#b"] as
  */
 export const contentEdits = {
   /**
-   * AL5 attribute count (readings 41 and 43): an SSML voice or prosody with no attribute, or a
-   * meta with both name and http-equiv or with neither.
+   * AL5 attribute count (readings `ssml-meta-name` and `ssml-voice-prosody-attributes`): an SSML
+   * voice or prosody with no attribute, or a meta with both name and http-equiv or with neither.
    */
   "AL5 attribute count": passageAt("AL5 attribute count", item, speak, [
     speak.replace("Read this aloud.", "Read <ssml:voice>this</ssml:voice> aloud."),
@@ -105,10 +105,10 @@ export const contentEdits = {
     speak.replace('<ssml:mark name="start"/>', '<ssml:meta content="c"/><ssml:mark name="start"/>'),
   ]),
   /**
-   * Data SSML (reading 177, Data-SSML 1.0 §3.4): the paragraph's data-ssml given a member the
-   * schema does not list, a property its member does not list, an enumerated value outside its
-   * list, a normalized value holding a tab, a member without the property it requires, or text that
-   * is no JSON object, which has no DataSsml row.
+   * Data SSML (reading `data-ssml-judgement`, Data-SSML 1.0 §3.4): the paragraph's data-ssml given
+   * a member the schema does not list, a property its member does not list, an enumerated value
+   * outside its list, a normalized value holding a tab, a member without the property it requires,
+   * or text that is no JSON object, which has no DataSsml row.
    */
   "Data SSML": passageAt("Data SSML", item, dataSsml, [
     dataSsml.replace(`{"say-as":{"interpret-as":"date"}}`, `{"brk":{}}`),
@@ -119,8 +119,8 @@ export const contentEdits = {
     dataSsml.replace(`{"say-as":{"interpret-as":"date"}}`, "not json"),
   ]),
   /**
-   * Foreign simple content (reading 60): the foreign element given a simple type of XML Schema's
-   * own and an element child.
+   * Foreign simple content (reading `wildcard-xsi-type`): the foreign element given a simple type
+   * of XML Schema's own and an element child.
    */
   "Foreign simple content": {
     law: "Foreign simple content",
@@ -141,8 +141,8 @@ export const contentEdits = {
     over: "package",
   },
   /**
-   * Graphic gap match default hotspot (reading 80): a graphic gap match interaction one of whose
-   * one or two associable hotspots is the default one.
+   * Graphic gap match default hotspot (reading `default-hotspot`): a graphic gap match interaction
+   * one of whose one or two associable hotspots is the default one.
    */
   "Graphic gap match default hotspot": {
     law: "Graphic gap match default hotspot",
@@ -172,8 +172,8 @@ export const contentEdits = {
     over: "package",
   },
   /**
-   * Href form (reading 102): one of the item's image sources an href the resolver reads no entry
-   * name from.
+   * Href form (reading `href-resolution`): one of the item's image sources an href the resolver
+   * reads no entry name from.
    */
   "Href form": {
     law: "Href form",
@@ -219,9 +219,9 @@ export const contentEdits = {
       },
     over: "package",
   },
-  // Namespace name (reading 131): a prefix's declaration in the item's rows bound to a namespace
+  // Namespace name (reading `namespace-uri`): a prefix's declaration in the item's rows bound to a namespace
   // name no URI reference spells. crust's reader refuses such a declaration in a package as not
-  // well-formed (reading 142), so the law is reached below the reader, on the rows a direct write
+  // well-formed (reading `namespace-declaration-value`), so the law is reached below the reader, on the rows a direct write
   // could hold.
   "Namespace name": editingRows("Namespace name", item, (rows) => (source) => {
     const value = source.draw(element(unnamedNamespaces));
@@ -238,7 +238,8 @@ export const contentEdits = {
     };
   }),
   /**
-   * SSML lexicon reference (reading 3): a lookup naming an id of the item that no lexicon has.
+   * SSML lexicon reference (reading `ssml-document-is-fragment`): a lookup naming an id of the item
+   * that no lexicon has.
    */
   "SSML lexicon reference": passageAt(
     "SSML lexicon reference",
@@ -251,7 +252,8 @@ export const contentEdits = {
     ],
   ),
   /**
-   * SSML trim mark (reading 3): the speak's startmark or endmark naming no mark of it.
+   * SSML trim mark (reading `ssml-document-is-fragment`): the speak's startmark or endmark naming
+   * no mark of it.
    */
   "SSML trim mark": {
     law: "SSML trim mark",
@@ -272,8 +274,8 @@ export const contentEdits = {
     over: "package",
   },
   /**
-   * Default hotspot last slot (reading 80): a default hotspot choice before one of the hotspot
-   * interaction's choices.
+   * Default hotspot last slot (reading `default-hotspot`): a default hotspot choice before one of
+   * the hotspot interaction's choices.
    */
   "default hotspot last slot": {
     law: "default hotspot last slot",

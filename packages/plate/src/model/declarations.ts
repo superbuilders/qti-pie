@@ -195,11 +195,11 @@ export const unheldDeclaration = (
   );
 
 /**
- * A typed attribute value as its base type reads it (reading 7): a `map-key`, a lookup table
- * entry's `target-value` or a table's `default-value`, as written for `string`, and for every other
- * base type after XML Schema's `collapse`, the whitespace facet each typed simple type fixes (XML
- * Schema 1.0 Part 2 §4.3.6), so `" 3 "` is the integer 3, as pantry's "Typed attribute value"
- * reads it.
+ * A typed attribute value as its base type reads it (reading `typed-value-whitespace`): a
+ * `map-key`, a lookup table entry's `target-value` or a table's `default-value`, as written for
+ * `string`, and for every other base type after XML Schema's `collapse`, the whitespace facet each
+ * typed simple type fixes (XML Schema 1.0 Part 2 §4.3.6), so `" 3 "` is the integer 3, as pantry's
+ * "Typed attribute value" reads it.
  *
  * @param baseType The value's base type.
  * @param value The attribute's value.
@@ -213,7 +213,8 @@ const typedLexicalOf = (baseType: ModelledBaseType, value: string): string =>
  *
  * @param build The build.
  * @param mapping The mapping element.
- * @param baseType The response's base type, which each `map-key` is read in (reading 7).
+ * @param baseType The response's base type, which each `map-key` is read in (reading
+ *   `typed-value-whitespace`).
  * @returns The mapping.
  */
 const mappingOf = (build: Build, mapping: SourceElement, baseType: ModelledBaseType): Mapping => {
@@ -322,7 +323,7 @@ interface WrittenField {
 /**
  * Read the field a `qti-value` of a record declaration's value writes: the one its
  * `field-identifier` names, as `identifierOf` reads it, of the `base-type` it writes, its value its
- * text as `parseElementText` reads that base type (reading 7).
+ * text as `parseElementText` reads that base type (reading `typed-value-whitespace`).
  *
  * @param build The build.
  * @param value The `qti-value`.
@@ -515,7 +516,8 @@ const outcomeReporting = (declaration: SourceElement, refuse: AttributeFault): O
 };
 
 /**
- * Read a lookup table's optional `default-value` in its outcome's base type (reading 7).
+ * Read a lookup table's optional `default-value` in its outcome's base type (reading
+ * `typed-value-whitespace`).
  *
  * @param build The build.
  * @param table The `qti-match-table` or `qti-interpolation-table`.
@@ -536,7 +538,8 @@ const tableDefault = (
   );
 
 /**
- * Read a lookup table entry's `target-value` in its outcome's base type (readings 7 and 8).
+ * Read a lookup table entry's `target-value` in its outcome's base type (readings
+ * `typed-value-whitespace` and `match-table-target-value`).
  *
  * @param build The build.
  * @param entry The entry.
@@ -576,8 +579,8 @@ const matchEntryOf = (
 
 /**
  * Read a `qti-interpolation-table-entry`. Its `source-value`, an `xs:double`, is read as the XSD
- * reads it, outer whitespace collapsed (reading 7), and its `include-boundary` is true when absent,
- * the XSD's default.
+ * reads it, outer whitespace collapsed (reading `typed-value-whitespace`), and its
+ * `include-boundary` is true when absent, the XSD's default.
  *
  * @param build The build.
  * @param entry The entry.

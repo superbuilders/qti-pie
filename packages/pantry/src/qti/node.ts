@@ -28,8 +28,9 @@
  * - A generated field may read an accumulated one, which PostgreSQL computes after grizzle fills it:
  *   the string value fold's running texts' digests are generated from the texts. `ancestry`, which
  *   reads `parentAncestry`, is written by the host and proved by a row check, as `state` is (C5):
- *   the document node's is its Document's context, from outside its tree (spec reading 117), and
- *   grizzle pins a root's copies at their start, so no generation over the row gives it.
+ *   the document node's is its Document's context, from outside its tree (spec reading
+ *   `fragment-placement`), and grizzle pins a root's copies at their start, so no generation over
+ *   the row gives it.
  * - A check is named by an identifier, so each is named by its oracle law with spaces written as
  *   underscores (`N1_sentinel` for "N1 sentinel"); no law name holds an underscore.
  */
@@ -127,8 +128,8 @@ export const Prefix = law(entryOf("XML production"), str.regex(prefixPattern));
  * The type of a node's first or last character: one code point, or the empty string where the node
  * holds no characters. A law can read a text's end only on the text's own row, since `chars` is
  * unbounded and fits no key; one code point fits every key, so the ends are what a law over a
- * node's neighbours compares (`#pantry/qti/overlay-queries/quotation.ts`, spec reading 127).
- * Exported for `src/import/refusal.ts`, which names its pattern law.
+ * node's neighbours compares (`#pantry/qti/overlay-queries/quotation.ts`, spec reading
+ * `quotation-around-q`). Exported for `src/import/refusal.ts`, which names its pattern law.
  */
 export const EndCharacter = law(entryOf("E1 derived"), str.regex("^.?$", "su"));
 
@@ -231,10 +232,10 @@ type NodeRow = RowScalars<typeof Node>;
 
 /**
  * A vocabulary element's governing type, keyed by its element, where a named type governs it (XML
- * Schema 1.0 Part 1, §3.3.4, Element Locally Valid (Element), clause 4; spec reading 47): the type
- * its `xsi:type` names, else its declared type. An element of an anonymous declared type has none,
- * and so has a node that is no element; a foreign element's type is its `OpenElementType`
- * (`#pantry/qti/chardata.ts`).
+ * Schema 1.0 Part 1, §3.3.4, Element Locally Valid (Element), clause 4; spec reading
+ * `xsi-attributes`): the type its `xsi:type` names, else its declared type. An element of an
+ * anonymous declared type has none, and so has a node that is no element; a foreign element's type
+ * is its `OpenElementType` (`#pantry/qti/chardata.ts`).
  *
  * - **the host's:** `type`, the shred's reading of the element's `xsi:type` or its kind's declared
  *   type; and its element's `governor` and `kind`, copied through the `(package, path, start, kind,
@@ -321,7 +322,7 @@ const vocabularyElement = (n: NodeRow) =>
  * State that a vocabulary element has a named governing type, its {@link ElementType}: its kind's
  * model declares a named type, so the element is governed by it or by one its `xsi:type` names. A
  * kind whose declared type is anonymous (`AnonymousType`) admits no named type, since none derives
- * from an anonymous one (spec reading 47).
+ * from an anonymous one (spec reading `xsi-attributes`).
  *
  * @param n - The row.
  * @returns The predicate.
@@ -359,8 +360,8 @@ const positionOf = (n: NodeRow) => AdmissionIn.at("position", admissionOf(n), n.
 /**
  * State that a member steps its parent's automaton: a kind its parent admits, and an element, or
  * character data a particle names, as the document's doctype (position 1) and SSML's text in
- * `ssml:speak` (spec reading 40) are. Every other admitted member is character data that carries
- * its predecessor's state.
+ * `ssml:speak` (spec reading `ssml-head-order`) are. Every other admitted member is character data
+ * that carries its predecessor's state.
  *
  * The split is by position, not by kind, because `placedStep` steps every child whose position is
  * not 0, character data included. A kind its parent does not admit steps nothing (`stepOf` is
@@ -401,11 +402,11 @@ const inCheckedText = (n: NodeRow) => CheckedText.has(n.parentGovernor);
  * - The LOM leaves the typed LOM views read (`#pantry/qti/queries.ts`, `#pantry/qti/lom.ts`), each a
  *   `CharacterString` of the loose binding, whose `xs:string` no TextDomain check reads: an
  *   identifier's `lom:catalog` and `lom:entry` (`lom-identifier` compares an item's LOM general
- *   identifier's entry with its identifier, reading 62), a taxon's `lom:id`, a contribute's
- *   `lom:entity` (a vCard), a general category's `lom:language` (R26), and every vocabulary's
- *   `lom:source` and `lom:value` (`lom-learning-resource-type`, and the LOM vocabularies an install
- *   narrows). The typed LOM is a view over these folded values, never an overlay that copies them
- *   (S5).
+ *   identifier's entry with its identifier, reading `identity-from-lom`), a taxon's `lom:id`, a
+ *   contribute's `lom:entity` (a vCard), a general category's `lom:language` (R26), and every
+ *   vocabulary's `lom:source` and `lom:value` (`lom-learning-resource-type`, and the LOM
+ *   vocabularies an install narrows). The typed LOM is a view over these folded values, never an
+ *   overlay that copies them (S5).
  * - `qti-value`: Q5.08's declaration overlay checks its lexical form against its declaration's base
  *   type (C1, O2), not against its governing type.
  * - `qti-resource-icon`: the text census's `TextReference` reads an icon's string value as a file
@@ -415,7 +416,7 @@ const inCheckedText = (n: NodeRow) => CheckedText.has(n.parentGovernor);
  * - `qti-base-value`: Q5.10's expression overlay checks a literal's lexical form against its own base
  *   type (O4).
  * - `ud:value`: Q5.12's metadata overlay checks a usage statistic's value against the base type its
- *   `baseType` names (O6, spec reading 105), not against its governing type's
+ *   `baseType` names (O6, spec reading `usage-statistic-value`), not against its governing type's
  *   `xs:normalizedString`.
  */
 export const copiedTextKinds = [
@@ -434,10 +435,10 @@ export const copiedTextKinds = [
 
 /**
  * The LangStrings whose strings the typed LOM reads, each a `lom:string`'s parent: a general
- * category's `lom:title` (Q5.12's `lom-title`, spec reading 62, QTI 3.0 Metadata §2.7.1.2), a
- * taxon path's `lom:source.langString` and a taxon's `lom:entry.langString` (the classification's
- * scheme and its term's name, QTI 3.0 Metadata §2.7.9). A `lom:string` under a description, a
- * keyword or any other LangString is not folded, since no key reads its text.
+ * category's `lom:title` (Q5.12's `lom-title`, spec reading `identity-from-lom`, QTI 3.0 Metadata
+ * §2.7.1.2), a taxon path's `lom:source.langString` and a taxon's `lom:entry.langString` (the
+ * classification's scheme and its term's name, QTI 3.0 Metadata §2.7.9). A `lom:string` under a
+ * description, a keyword or any other LangString is not folded, since no key reads its text.
  */
 const foldedLangStrings = [
   "lom:title",
@@ -470,12 +471,13 @@ const inStringValue = (n: NodeRow) =>
   );
 
 /**
- * State that a foreign element is governed by a simple type: its governor is the (kind, type)
- * pair, not its kind. `GoverningOf` gives a foreign kind under a type its pair exactly where the
+ * State that a foreign element is governed by a simple type: its governor is the (kind, type) pair,
+ * not its kind. `GoverningOf` gives a foreign kind under a type its pair exactly where the
  * grammar's `Governor` holds one, every named simple type of the leaf and no complex one
  * (`compose.ts`, `governedOf`), and the kind itself under every other type, and an element no type
  * governs is governed by its kind ({@link KindGovernor}), so a foreign kind's own handle as its
- * governor is the type's absence or its complex content (spec readings 50 and 60).
+ * governor is the type's absence or its complex content (spec readings `unchecked-xsi-type` and
+ * `wildcard-xsi-type`).
  *
  * @param n - The row, of a foreign kind.
  * @returns The predicate.
@@ -506,13 +508,13 @@ export const members = select(Node, member);
 export const documentStart = 0n;
 
 /**
- * A node's context (spec readings 85 and 117): the fields the tree's owner axis copies to its
- * children, with its key `(package, path, start)` and children. It is exactly the column set the
- * owner axis's foreign key targets: its key, its count and the copies. grizzle references a UNIQUE
- * that holds a reference's column set in whatever order it lists the columns (README, "Fixed
- * fields"), so a containment into it shares that UNIQUE on `Node` and adds no index: an include's
- * site copies the include's ancestry and nearest interaction through it, and `Document` its
- * document node's context.
+ * A node's context (spec readings `inclusion-cycles` and `fragment-placement`): the fields the
+ * tree's owner axis copies to its children, with its key `(package, path, start)` and children. It
+ * is exactly the column set the owner axis's foreign key targets: its key, its count and the
+ * copies. grizzle references a UNIQUE that holds a reference's column set in whatever order it
+ * lists the columns (README, "Fixed fields"), so a containment into it shares that UNIQUE on `Node`
+ * and adds no index: an include's site copies the include's ancestry and nearest interaction
+ * through it, and `Document` its document node's context.
  */
 export const nodeContext = on(
   Node,
@@ -572,11 +574,10 @@ const countedFold = fold(
 );
 
 /**
- * The element children at the positions `Capped` holds (N7, spec reading 130): a family's children
- * at a position its parent's model caps at one, which the key over `(package, path, parent, state)`
- * holds to one
- * child each. A position names one kind alone where a reading caps it (`content.ts`, `cappedBy`),
- * so the key holds the kind to one child of the family.
+ * The element children at the positions `Capped` holds (N7, spec reading `lom-repetition`): a
+ * family's children at a position its parent's model caps at one, which the key over `(package,
+ * path, parent, state)` holds to one child each. A position names one kind alone where a reading
+ * caps it (`content.ts`, `cappedBy`), so the key holds the kind to one child of the family.
  */
 const cappedChildren = select(Node, (n) =>
   n.and(
@@ -623,14 +624,14 @@ const barredFold = fold(
  * predecessor's `charsAfterDigest`, and the last axis the element's `stringValueDigest` with its
  * last member's `charsAfterDigest` (grizzle's README, "Families": a running text of any length
  * rides the axes by its digest). The texts stay the fold's values, which grizzle fills and the
- * fold's CHECK and pins prove. `charsWas`, `charsAfter` and `stringValue`
- * are `matchedText` (`#pantry/qti/limits.ts`), the bound of a text a query reads by a pattern,
- * and a folded string value past its bound is refused by that type's pattern, by name: a stated
- * limit of the representation (spec reading 60). The step is the member's own `chars`, unbounded
- * text: a fold's accumulators are of its step's type
- * but for their own pattern and byte bound, and each one's domain refuses a running value outside
- * its own (grizzle's README, "Families", `fold`), so a member whose characters alone pass the bound
- * is refused by `charsAfter`'s.
+ * fold's CHECK and pins prove. `charsWas`, `charsAfter` and `stringValue` are `matchedText`
+ * (`#pantry/qti/limits.ts`), the bound of a text a query reads by a pattern, and a folded string
+ * value past its bound is refused by that type's pattern, by name: a stated limit of the
+ * representation (spec reading `wildcard-xsi-type`). The step is the member's own `chars`,
+ * unbounded text: a fold's accumulators are of its step's type but for their own pattern and byte
+ * bound, and each one's domain refuses a running value outside its own (grizzle's README,
+ * "Families", `fold`), so a member whose characters alone pass the bound is refused by
+ * `charsAfter`'s.
  */
 const stringValueFold = fold(
   nodeTree,
@@ -657,9 +658,10 @@ const stringValueFold = fold(
  *   state and governed by its own kind. Its parent copies are grizzle's: the owner axis's foreign
  *   key leaves the root out, and grizzle pins each copy of a root at its start, the base its
  *   `accumulated` states (`laws/model/plan.ts` `#pin`, `start > 0 OR f = s`); its `state` is pinned
- *   here. Its ancestry and nearest interaction are its document's context (spec reading 117), which
- *   its `Document` row states (`#pantry/qti/chardata.ts`): none and itself for every document but
- *   an included fragment, whose content is judged in the context its includes stand in.
+ *   here. Its ancestry and nearest interaction are its document's context (spec reading
+ *   `fragment-placement`), which its `Document` row states (`#pantry/qti/chardata.ts`): none and
+ *   itself for every document but an included fragment, whose content is judged in the context its
+ *   includes stand in.
  * - **N3:** the parent copies, riding the owner axis.
  * - **N5:** the predecessor copy, riding the predecessor axis; `N5_Follow`, one bit of its
  *   predecessor's follow set in its parent's model (`FollowMember` of `FollowSetOf`, under
@@ -671,14 +673,14 @@ const stringValueFold = fold(
  * - **E1:** a member's `ancestry` is `parentAncestry ∪ Enters(kind)`, the document node's its
  *   document's context (N1), which its root copy, held at the accumulated start, cannot carry: a
  *   fragment included under a flag, such as a paragraph in a rubric block, holds that flag at its
- *   document node (spec reading 117). Only character data has characters, `first` and `last` are
- *   the first and last code points of `chars` (each one code point by its type, so `startsWith` and
- *   `endsWith` pin it), and both empty exactly where `chars` is; the string value's fold over the
- *   `chars` of the members whose parent's text is checked or copied; and `governor`: its kind's own
- *   (`KindGovernor`) on a node no named type governs, a node that is no element or a vocabulary
- *   element of an anonymous declared type, and on an {@link ElementType} the governor its type
- *   gives ({@link typeGovernorOf}), the row's copy of its node's. A foreign element's governor is
- *   `chardata.ts`'s, over its `OpenElementType`.
+ *   document node (spec reading `fragment-placement`). Only character data has characters, `first`
+ *   and `last` are the first and last code points of `chars` (each one code point by its type, so
+ *   `startsWith` and `endsWith` pin it), and both empty exactly where `chars` is; the string
+ *   value's fold over the `chars` of the members whose parent's text is checked or copied; and
+ *   `governor`: its kind's own (`KindGovernor`) on a node no named type governs, a node that is no
+ *   element or a vocabulary element of an anonymous declared type, and on an {@link ElementType}
+ *   the governor its type gives ({@link typeGovernorOf}), the row's copy of its node's. A foreign
+ *   element's governor is `chardata.ts`'s, over its `OpenElementType`.
  * - **N6:** no banned flag above a node, and every flag it needs.
  * - **N7:** the last-slot copy, riding the last axis; `N7_Last`, its own model's `FollowSetOf` ends
  *   at every modeled node's last state (the content grammar's `Last`); and the counted and barred
@@ -689,10 +691,10 @@ const stringValueFold = fold(
  *   each type is one its kind may name in `xsi:type`; an element of an anonymous declared type has
  *   none, since its kind has no `XsiType` row; a foreign element is assessed laxly and is selected
  *   out.
- * - **Foreign simple content** (C41, spec reading 60): a foreign element a simple type governs holds
- *   no element child (XML Schema 1.0 Part 1, §3.3.4, Element Locally Valid (Type), clause 3.1.2),
- *   its `elementChildren` the elements fold's end. Its attributes are AL1's under the governor and
- *   its text TextDomain's (Q5.05).
+ * - **Foreign simple content** (C41, spec reading `wildcard-xsi-type`): a foreign element a simple
+ *   type governs holds no element child (XML Schema 1.0 Part 1, §3.3.4, Element Locally Valid
+ *   (Type), clause 3.1.2), its `elementChildren` the elements fold's end. Its attributes are AL1's
+ *   under the governor and its text TextDomain's (Q5.05).
  *
  * "Strictly held" (C44, C13) reads the foreign element's expanded name, so it is `chardata.ts`'s,
  * over `OpenElementName`.

@@ -33,8 +33,8 @@ const codecRules = [
  * `key-text-bound` is a bound on a text the store holds (`src/qti/limits.ts`), PostgreSQL's: the
  * regex engine's and the decimal parse's on a text a query matches or parses (`matchedText`, a
  * foreign element's names at `foreignNameBytes`, which a query matches as one expanded name, and
- * `parsedDecimalBytes`); and `href-form` an href the importer reads no name from (reading 102,
- * `overlays/package.ts` `Limit`).
+ * `parsedDecimalBytes`); and `href-form` an href the importer reads no name from (reading
+ * `href-resolution`, `overlays/package.ts` `Limit`).
  *
  * A value over the bound is valid QTI the model cannot hold, so its verdict says so by its rule.
  * The import meets it as the bound's pattern law: grizzle's encoder and its family fill check a
