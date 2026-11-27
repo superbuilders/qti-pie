@@ -24,6 +24,7 @@ import type { Declared } from "#plate/model/values.ts";
 import { PickOutsidePicksGroup } from "#plate/ui/defects.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
 import { useEliminated } from "#plate/ui/picks/eliminated.tsx";
+import { pressedOf } from "#plate/interactions/picks.ts";
 import type { Picks } from "#plate/interactions/picks.ts";
 import { identifierSingles, useResponse } from "#plate/ui/responses.tsx";
 
@@ -52,9 +53,10 @@ interface PicksValue {
   readonly picked: ReadonlySet<string>;
   readonly picks: Picks;
   /**
-   * Pick an option, or take a picked one back where the child picks several, as a press on the
-   * option's own control does, through the same refusal; nothing for an eliminated option, whose
-   * control is disabled.
+   * Press an area of a Hotspot's image: pick it, or take it back where it is picked, the one pick
+   * as one of several (`pressedOf` in `#plate/interactions/picks.ts`), through the same refusal as
+   * a press on the option's own control; nothing for an eliminated option, whose control is
+   * disabled. A read-only Hotspot's stage takes no press, so nothing presses a read-only group.
    *
    * @param identifier The option's identifier.
    */
@@ -103,6 +105,10 @@ export const usePicks = (): PicksValue => {
  * was there before its text changed. A response of several holds each picked identifier once, in
  * the order the group gives them, which a bag does not read.
  *
+ * A read-only group shows the response and changes nothing: UI SDK's read-only radio or checkbox
+ * group, whose options stay focusable and read as they stand while no press or key changes one;
+ * the part that presses, a Hotspot's stage, takes no press while read-only.
+ *
  * @param props The group.
  * @param props.before What stands in the root before the group: the prompt, and a Hotspot's stage.
  * @param props.children The options, each a {@link PickOption}, wherever they stand inside.
@@ -111,6 +117,8 @@ export const usePicks = (): PicksValue => {
  *   limit: plate's catalog's, or the author's `data-max-selections-message`.
  * @param props.naming The attributes that name the group.
  * @param props.picks How many options the child picks.
+ * @param props.readOnly Whether the group only shows the response, as a host's review or a
+ *   completed attempt does, and takes no change.
  * @param props.response The response, as its declaration types it: an identifier response.
  * @param props.root The root's attributes ({@link PicksRoot}).
  * @returns The group, bound to the response.
@@ -124,6 +132,7 @@ export const PicksGroup = ({
   limit,
   naming,
   picks,
+  readOnly,
   response,
   root,
 }: Readonly<{
@@ -133,6 +142,7 @@ export const PicksGroup = ({
   limit: string;
   naming: Named;
   picks: Picks;
+  readOnly: boolean;
   response: Declared<"identifier">;
   root: PicksRoot;
 }>) => {
@@ -178,17 +188,15 @@ export const PicksGroup = ({
         return;
       }
 
+      const next = pressedOf(picks, texts, identifier);
+
       if (picks.kind === "one") {
-        set([identifier]);
+        set(next);
 
         return;
       }
 
-      choose(
-        texts.includes(identifier)
-          ? texts.filter((text) => text !== identifier)
-          : [...texts, identifier],
-      );
+      choose(next);
     },
   };
 
@@ -199,6 +207,7 @@ export const PicksGroup = ({
         {picks.kind === "one" ? (
           <RadioGroup
             {...naming}
+            readOnly={readOnly}
             value={texts[0] ?? null}
             onValueChange={(next) => {
               set(next === null ? [] : [next]);
@@ -209,6 +218,7 @@ export const PicksGroup = ({
         ) : (
           <CheckboxGroup
             {...naming}
+            readOnly={readOnly}
             value={[...texts]}
             onValueChange={(next, details) => {
               if (!choose(next)) {

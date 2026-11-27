@@ -61,12 +61,12 @@ import {
   format,
   isModelled,
   isNullResponse,
-  isRecordValue,
   isXmlText,
   nullOf,
   nullRecord,
   parseLexical,
 } from "#plate/model/values.ts";
+import { isRecordValue } from "#plate/model/record-value.ts";
 import type {
   ModelledBaseType,
   RecordField,

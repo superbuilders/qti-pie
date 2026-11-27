@@ -29,7 +29,8 @@
  */
 import { Data, Option, Result } from "effect";
 import { endedName } from "#plate/instance.ts";
-import { isNullResponse, isRecordValue } from "#plate/model/values.ts";
+import { isNullResponse } from "#plate/model/values.ts";
+import { isRecordValue } from "#plate/model/record-value.ts";
 import type { RecordValue, Responses, ResponseValue, Single, Value } from "#plate/model/values.ts";
 
 /**

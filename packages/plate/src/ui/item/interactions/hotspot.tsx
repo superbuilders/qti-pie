@@ -69,6 +69,7 @@ export const island = (
       naming={controlNameOf(prompt, node, ownName(model, context), context)}
       picks={picksOf(node)}
       prompt={prompt}
+      readOnly={false}
       response={node.declared}
       root={rootOf(model, context)}
       size={node.size}

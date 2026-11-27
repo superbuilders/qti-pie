@@ -15,6 +15,7 @@
 import { regex } from "arkregex";
 import { isNcName, trimmed } from "@qti-pie/crust/text.ts";
 import { Data, Option, Result } from "effect";
+import { isRecordValue } from "#plate/model/record-value.ts";
 
 /**
  * The base types the value model holds values of: every QTI base type, `file` included. A `file`
@@ -270,15 +271,6 @@ export interface RecordDeclared {
   readonly cardinality: "record";
   readonly identifier: string;
 }
-
-/**
- * Report whether a response's value is a record.
- *
- * @param value The value to test.
- * @returns Whether `value` is a {@link RecordValue}.
- */
-export const isRecordValue = (value: ResponseValue): value is RecordValue =>
-  value.cardinality === "record";
 
 /**
  * Give the text a record was typed as: its `stringValue` field, which the string interaction bound

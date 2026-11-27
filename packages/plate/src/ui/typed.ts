@@ -29,7 +29,8 @@ import {
   typedText,
 } from "#plate/model/typed-text.ts";
 import type { TypedDeclared, TypedReading, Written } from "#plate/model/typed-text.ts";
-import { format, isRecordValue } from "#plate/model/values.ts";
+import { format } from "#plate/model/values.ts";
+import { isRecordValue } from "#plate/model/record-value.ts";
 import type { ResponseValue, Single } from "#plate/model/values.ts";
 import type { Typed } from "#plate/held.ts";
 import { useTypedResponse } from "#plate/ui/responses.tsx";

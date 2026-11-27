@@ -20,7 +20,8 @@ import type { ModuleKind, RedactKit } from "#plate/interactions/contract.ts";
 import { modulePayload, payloadAt } from "#plate/model/interactions.ts";
 import type { ModelOf, PayloadOf } from "#plate/model/interactions.ts";
 import type { Interaction, RedactedLevel } from "#plate/model/item.ts";
-import { isRecordValue, recordText } from "#plate/model/values.ts";
+import { recordText } from "#plate/model/values.ts";
+import { isRecordValue } from "#plate/model/record-value.ts";
 import type { ResponseValue, Single } from "#plate/model/values.ts";
 import type { HostFacts } from "#plate/pci/host.ts";
 

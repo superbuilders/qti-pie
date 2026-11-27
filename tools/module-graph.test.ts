@@ -8,6 +8,14 @@
  * - The modules a page loads are the islands' closure outside `src/ui/`, derived, not kept: a planted
  *   import in an island adds its module, and an island's import taken out drops the module only it
  *   reached.
+ * - The Hotspot's island and the responses context, the entries a host outside qti-pie's workspace
+ *   imports from plate's sources (`./ui/hotspot`, `./ui/responses`), load no module of crust's and
+ *   so none of grizzle-text's: such a host installs UI SDK, effect, arkregex and React, and needs
+ *   neither qti-pie's other packages nor its grizzle submodule. The walk follows every load a
+ *   host's bundler follows, a static declaration and a dynamic `import()` alike, with no line it
+ *   cannot read and no plate module it reaches that plate does not hold. A planted crust import,
+ *   static or dynamic, the value model's lexical reading planted back into the responses context, a
+ *   computed `import()` and a plate module plate does not hold are each found.
  *
  * @module
  */
@@ -15,7 +23,13 @@ import { regex } from "arkregex";
 import { readFileSync } from "node:fs";
 import { assert, describe, it } from "@effect/vitest";
 import { Schema } from "effect";
-import { plateClientModulesOf, plateModules, valueClosure } from "#tools/module-graph.ts";
+import {
+  hostClosure,
+  packagesLoaded,
+  plateClientModulesOf,
+  plateModules,
+  valueClosure,
+} from "#tools/module-graph.ts";
 
 /**
  * Plate's sources, tests included, by path under the package.
@@ -163,6 +177,137 @@ describe("the modules a page loads, derived from the islands' closure", () => {
     assert.notInclude(
       plateClientModulesOf(withoutBoard),
       "packages/plate/src/placement/match-board.ts",
+    );
+  });
+});
+
+/**
+ * The packages a host outside qti-pie's workspace installs to render the Hotspot's island from
+ * plate's sources, with the responses context that holds its response: UI SDK, effect, arkregex
+ * and React, and none of qti-pie's own packages, so neither crust nor, through it, grizzle-text and
+ * qti-pie's grizzle submodule.
+ */
+const hotspotHostPackages: readonly string[] = [
+  "@ui-sdk/core",
+  "@ui-sdk/react",
+  "arkregex",
+  "effect",
+  "react",
+];
+
+/**
+ * The modules of the exports map's `./ui/hotspot` and `./ui/responses`, the entries such a host
+ * imports.
+ *
+ * @returns Their paths under the package, in that order.
+ */
+const hotspotHostRoots = (): readonly string[] => {
+  const exports = plateExports();
+
+  return ["./ui/hotspot", "./ui/responses"].map(
+    (subpath) => exports[subpath]?.replace(regex("^\\./", "u"), "") ?? "",
+  );
+};
+
+describe("the Hotspot's island and the responses context, as a host outside qti-pie's workspace loads them", () => {
+  it("load UI SDK, effect, arkregex and React, and no module of crust's or grizzle-text's", () => {
+    const roots = hotspotHostRoots();
+
+    assert.deepStrictEqual(roots, ["src/ui/hotspot/hotspot.tsx", "src/ui/responses.tsx"]);
+    assert.deepStrictEqual(packagesLoaded(modules, roots), hotspotHostPackages);
+  });
+
+  it("are walked whole: every line read, every specifier followed, every plate module reached held", () => {
+    const walked = hostClosure(modules, hotspotHostRoots());
+
+    assert.deepStrictEqual([walked.unreadable, walked.unresolved], [[], []]);
+    assert.deepStrictEqual(
+      walked.reached.filter((module) => !modules.has(module)),
+      [],
+    );
+  });
+
+  it("reach a plate module plate does not hold once the island imports one (the plant)", () => {
+    const walked = hostClosure(
+      planted(
+        "src/ui/picks/picks-group.tsx",
+        'import { absent } from "#plate/absent.ts";\nabsent;',
+      ),
+      hotspotHostRoots(),
+    );
+
+    assert.deepStrictEqual(
+      walked.reached.filter((module) => !modules.has(module)),
+      ["src/absent.ts"],
+    );
+  });
+
+  it("read no line a computed import() stands on (the plant)", () => {
+    const walked = hostClosure(
+      planted(
+        "src/ui/picks/picks-group.tsx",
+        'const at = ["@qti-pie", "crust/text.ts"].join("/");\nvoid import(at);',
+      ),
+      hotspotHostRoots(),
+    );
+
+    assert.deepStrictEqual(
+      walked.unreadable.map(({ module }) => module),
+      ["src/ui/picks/picks-group.tsx"],
+    );
+  });
+
+  it("load crust once a module the island reaches imports it by import() (the plant)", () => {
+    assert.includeMembers(
+      [
+        ...packagesLoaded(
+          planted("src/ui/picks/picks-group.tsx", 'void import("@qti-pie/crust/text.ts");'),
+          hotspotHostRoots(),
+        ),
+      ],
+      ["@qti-pie/crust"],
+    );
+  });
+
+  it("load crust once the responses context imports the value model's lexical module by import() (the plant)", () => {
+    assert.includeMembers(
+      [
+        ...packagesLoaded(
+          planted("src/ui/responses.tsx", 'void import("#plate/model/values.ts");'),
+          hotspotHostRoots(),
+        ),
+      ],
+      ["@qti-pie/crust"],
+    );
+  });
+
+  it("load crust once a module the island reaches imports it (the plant)", () => {
+    assert.includeMembers(
+      [
+        ...packagesLoaded(
+          planted(
+            "src/ui/picks/picks-group.tsx",
+            'import { trimmed } from "@qti-pie/crust/text.ts";\ntrimmed;',
+          ),
+          hotspotHostRoots(),
+        ),
+      ],
+      ["@qti-pie/crust"],
+    );
+  });
+
+  it("load crust once the responses context reads the value model's lexical module again (the plant)", () => {
+    assert.includeMembers(
+      [
+        ...packagesLoaded(
+          planted(
+            "src/ui/responses.tsx",
+            'import { isNullResponse } from "#plate/model/values.ts";\nisNullResponse;',
+          ),
+          hotspotHostRoots(),
+        ),
+      ],
+      ["@qti-pie/crust"],
     );
   });
 });

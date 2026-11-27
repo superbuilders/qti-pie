@@ -74,15 +74,23 @@ const clientModules = readdirSync(path.join(packageRoot, "src"), {
   .toSorted();
 
 /**
- * One table: the files it is written to, what its JSDoc calls its modules, and its entries'
- * subpaths and its client modules' paths.
+ * One table: the files it is written to, what its JSDoc calls its modules, its entries' subpaths
+ * each with its module's path under `src/`, and its client modules' paths.
  */
 interface Table {
   readonly about: readonly string[];
   readonly clients: readonly string[];
-  readonly entries: readonly string[];
+  readonly entries: readonly (readonly [subpath: string, module: string])[];
   readonly file: string;
 }
+
+/**
+ * An entry's module, by its path under `src/`, as a client module is named.
+ *
+ * @param target The entry's target in the exports map, `./src/<x>`.
+ * @returns `<x>`.
+ */
+const moduleOfTarget = (target: string): string => target.replace(regex("^\\./src/", "u"), "");
 
 /**
  * The two tables, split as qti-pie's alpha rule splits modules: core's, outside every `alpha/`
@@ -95,13 +103,13 @@ const tables: readonly Table[] = [
       'each script entry of the exports map, by its subpath, and each `"use client"` module under',
       "`src/`, by its path there, with its exports as name and value pairs, imported statically: the",
       "entries through the package's own name, as a host loads them, and the client modules through",
-      "`#plate/*`, as the server shell does. `src/test/emit-modules.ts` writes it, and its check holds",
-      "it to the sources.",
+      "`#plate/*`, as the server shell does, but a client module an entry names, imported once,",
+      "through its entry. `src/test/emit-modules.ts` writes it, and its check holds it to the sources.",
     ],
     clients: clientModules.filter((file) => !file.startsWith("alpha/")),
     entries: scriptEntries
       .filter(([, target]) => !target.startsWith("./src/alpha/"))
-      .map(([subpath]) => subpath),
+      .map(([subpath, target]) => [subpath, moduleOfTarget(target)] as const),
     file: "src/test/modules",
   },
   {
@@ -109,13 +117,14 @@ const tables: readonly Table[] = [
       "Plate's table of Alpha's modules, every one inside an `alpha/` folder: each script entry of the",
       'exports map, by its subpath, and each `"use client"` module under `src/`, by its path there, with',
       "its exports as name and value pairs, imported statically: the entries through the package's own",
-      "name, as a host loads them, and the client modules through `#plate/*`, as the server shell does.",
-      "`src/test/emit-modules.ts` writes it, and its check holds it to the sources.",
+      "name, as a host loads them, and the client modules through `#plate/*`, as the server shell does,",
+      "but a client module an entry names, imported once, through its entry. `src/test/emit-modules.ts`",
+      "writes it, and its check holds it to the sources.",
     ],
     clients: clientModules.filter((file) => file.startsWith("alpha/")),
     entries: scriptEntries
       .filter(([, target]) => target.startsWith("./src/alpha/"))
-      .map(([subpath]) => subpath),
+      .map(([subpath, target]) => [subpath, moduleOfTarget(target)] as const),
     file: "src/alpha/modules",
   },
 ];
@@ -135,34 +144,47 @@ const aboutOf = (table: Table): readonly string[] => [
 ];
 
 /**
- * A table's module, as its `.js` file holds it.
+ * A table's module, as its `.js` file holds it: each module imported once, a client module an entry
+ * names read through its entry's binding, so no two imports name one module.
  *
  * @param table The table.
  * @returns Its text.
  */
-const moduleOf = (table: Table): string =>
-  [
+const moduleOf = (table: Table): string => {
+  const entryBindings = new Map(
+    table.entries.map(([, module], at) => [module, `entry${String(at)}`] as const),
+  );
+
+  return [
     ...aboutOf(table),
     ...table.entries.map(
-      (subpath, at) => `import * as entry${String(at)} from "@qti-pie/plate${subpath.slice(1)}";`,
+      ([subpath], at) => `import * as entry${String(at)} from "@qti-pie/plate${subpath.slice(1)}";`,
     ),
-    ...table.clients.map((file, at) => `import * as client${String(at)} from "#plate/${file}";`),
+    ...table.clients.flatMap((file, at) =>
+      entryBindings.has(file) ? [] : [`import * as client${String(at)} from "#plate/${file}";`],
+    ),
     "",
     "/**",
     " * The table's script entries, each subpath with its module's exports, in the map's order.",
     " */",
     "export const entries = Object.freeze([",
-    ...table.entries.map((subpath, at) => `  ["${subpath}", Object.entries(entry${String(at)})],`),
+    ...table.entries.map(
+      ([subpath], at) => `  ["${subpath}", Object.entries(entry${String(at)})],`,
+    ),
     "]);",
     "",
     "/**",
     ' * The table\'s `"use client"` modules, each path under `src/` with its exports, sorted.',
     " */",
     "export const clients = Object.freeze([",
-    ...table.clients.map((file, at) => `  ["${file}", Object.entries(client${String(at)})],`),
+    ...table.clients.map(
+      (file, at) =>
+        `  ["${file}", Object.entries(${entryBindings.get(file) ?? `client${String(at)}`})],`,
+    ),
     "]);",
     "",
   ].join("\n");
+};
 
 /**
  * A table's declaration, as its `.d.ts` file holds it.

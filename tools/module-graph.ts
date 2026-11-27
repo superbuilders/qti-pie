@@ -343,10 +343,12 @@ export interface Graph {
 }
 
 /**
- * What a walk of a graph found: the modules it reached, and the specifiers it could not follow
- * and the lines it could not read, each with the module they stand in.
+ * What a walk of a graph found: the modules it reached; the specifiers it followed outside the
+ * graph, another package or a Node built-in; and the specifiers it could not follow and the lines
+ * it could not read; each with the module they stand in.
  */
 export interface Closure {
+  readonly outside: readonly { readonly module: string; readonly specifier: string }[];
   readonly reached: readonly string[];
   readonly unreadable: readonly { readonly line: number; readonly module: string }[];
   readonly unresolved: readonly { readonly module: string; readonly specifier: string }[];
@@ -358,10 +360,11 @@ export interface Closure {
  * @param graph The graph.
  * @param roots The modules to start from.
  * @returns The modules reached, the roots included, in the order the walk first reached them, a
- *   module the graph holds no source of reached but not read; and every specifier and line it could
- *   not follow or read.
+ *   module the graph holds no source of reached but not read; every specifier it followed outside
+ *   the graph; and every specifier and line it could not follow or read.
  */
 export const closureOf = (graph: Graph, roots: readonly string[]): Closure => {
+  const outside: { readonly module: string; readonly specifier: string }[] = [];
   const reached = new Set<string>();
   const unreadable: { readonly line: number; readonly module: string }[] = [];
   const unresolved: { readonly module: string; readonly specifier: string }[] = [];
@@ -403,7 +406,9 @@ export const closureOf = (graph: Graph, roots: readonly string[]): Closure => {
 
       if (target.kind === "module") {
         visit(target.module);
-      } else if (target.kind === "unresolved") {
+      } else if (target.kind === "outside") {
+        outside.push({ module, specifier: load.specifier });
+      } else {
         unresolved.push({ module, specifier: load.specifier });
       }
     }
@@ -413,7 +418,7 @@ export const closureOf = (graph: Graph, roots: readonly string[]): Closure => {
     visit(root);
   }
 
-  return { reached: [...reached], unreadable, unresolved };
+  return { outside, reached: [...reached], unreadable, unresolved };
 };
 
 /**
@@ -447,6 +452,68 @@ export const valueClosure = (
   modules: ReadonlyMap<string, string>,
   roots: readonly string[],
 ): readonly string[] => closureOf(plateGraph(modules), roots).reached;
+
+/**
+ * Plate's graph as a host's bundler walks it from an entry: every load that brings a module at run
+ * time, a declaration that is not type-only as a whole and a dynamic `import()` or a `require` of a
+ * written specifier alike, each `#plate/` specifier to its module and any other outside plate. A
+ * load of a specifier the code computes is the walk's unreadable line, since no bundler can follow
+ * it either.
+ *
+ * @param modules The modules' sources, by path under the package (`src/<x>`).
+ * @returns The graph.
+ */
+const hostGraph = (modules: ReadonlyMap<string, string>): Graph => ({
+  ...plateGraph(modules),
+  follows: (load) => !load.typeOnly,
+});
+
+/**
+ * Walk plate's graph from the roots as a host's bundler loads them ({@link hostGraph}).
+ *
+ * @param modules The modules' sources, by path under the package (`src/<x>`).
+ * @param roots The paths to start from.
+ * @returns The closure: the paths reached, the specifiers that lead outside plate, and every line
+ *   the walk could not read and specifier it could not follow.
+ */
+export const hostClosure = (
+  modules: ReadonlyMap<string, string>,
+  roots: readonly string[],
+): Closure => closureOf(hostGraph(modules), roots);
+
+/**
+ * Name the package a bare specifier loads from: its first segment, or its first two where it is
+ * scoped (`@scope/name`); a Node built-in by its own specifier.
+ *
+ * @param specifier The specifier.
+ * @returns The package's name.
+ */
+const packageNameOf = (specifier: string): string => {
+  const parts = specifier.split("/");
+
+  return specifier.startsWith("@") ? parts.slice(0, 2).join("/") : (parts[0] ?? "");
+};
+
+/**
+ * Name the packages outside plate the roots load at run time, as a host's bundler loads them
+ * ({@link hostClosure}): every package a module of their closure loads, by a declaration or a
+ * dynamic `import()` or `require` of a written specifier, so a host that imports the roots from
+ * plate's sources installs exactly these, and a package reached only through `import type` is not
+ * one.
+ *
+ * @param modules The modules' sources, by path under the package (`src/<x>`).
+ * @param roots The paths to start from.
+ * @returns The packages' names, each once, sorted.
+ */
+export const packagesLoaded = (
+  modules: ReadonlyMap<string, string>,
+  roots: readonly string[],
+): readonly string[] =>
+  [
+    ...new Set(
+      hostClosure(modules, roots).outside.map(({ specifier }) => packageNameOf(specifier)),
+    ),
+  ].toSorted();
 
 /**
  * The export conditions Node resolves an `import` under: of a package's conditional exports, the
@@ -658,8 +725,7 @@ export const nodeResolve = (specifier: string, from: string): Resolution => {
     return target === undefined ? { kind: "unresolved" } : fileAt(path.join(folder, target));
   }
 
-  const parts = specifier.split("/");
-  const name = specifier.startsWith("@") ? parts.slice(0, 2).join("/") : (parts[0] ?? "");
+  const name = packageNameOf(specifier);
   const own = packageOf(from);
   const folder = manifestIn(own).name === name ? own : installedFrom(name, path.dirname(from));
 

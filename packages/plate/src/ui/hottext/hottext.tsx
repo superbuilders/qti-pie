@@ -98,6 +98,7 @@ export const Hottext = (props: HottextProps) => {
       limit={labels.limit}
       naming={naming}
       picks={picks}
+      readOnly={false}
       response={response}
       root={{ ...root, "data-slot": "plate-hottext" }}
     >

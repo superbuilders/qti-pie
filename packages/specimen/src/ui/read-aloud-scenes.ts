@@ -19,6 +19,7 @@ import type { Scope } from "effect";
 import type { Locator, Page } from "playwright-core";
 import { acceptedItem, acceptedStimulus, configure, startingResponses } from "@qti-pie/plate";
 import { admitted } from "@qti-pie/plate/test/admitted";
+import { standardRenderers } from "@qti-pie/plate/ui";
 import type { ItemProps } from "@qti-pie/plate/ui";
 import type { Recording, Seen } from "#specimen/ui/hydrate-account.ts";
 import type { Scene } from "#specimen/ui/hydrate-page.ts";
@@ -195,7 +196,7 @@ const answeringOf = (show: ShowSpec): Effect.Effect<Answering, DrivingFailure> =
       supports: spoken,
     };
 
-    return { props, responses: startingResponses(item, props) };
+    return { props, renderers: standardRenderers, responses: startingResponses(item, props) };
   }).pipe(
     Effect.mapError(
       (cause) => new DrivingFailure({ step: `opened ${show.document.location}: ${String(cause)}` }),

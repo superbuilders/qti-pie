@@ -37,7 +37,7 @@
 import { Option } from "effect";
 import { useMemo, useState } from "react";
 import type { FocusEvent, ReactNode } from "react";
-import { isRecordValue } from "#plate/model/values.ts";
+import { isRecordValue } from "#plate/model/record-value.ts";
 import type { Declared, ResponseValue } from "#plate/model/values.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";

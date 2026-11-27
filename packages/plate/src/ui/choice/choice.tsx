@@ -145,6 +145,7 @@ export const Choice = (props: ChoiceProps) => {
       limit={labels.limit}
       naming={naming}
       picks={picks}
+      readOnly={false}
       response={response}
       root={{ ...root, "data-orientation": orientation, "data-slot": "plate-choice" }}
     >

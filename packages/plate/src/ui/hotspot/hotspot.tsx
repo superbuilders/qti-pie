@@ -14,7 +14,14 @@
  * `hotspot-label`: the large-target path a finger, a keyboard and a screen reader use, and the only
  * one where the image's size is unknown, an `object` the author gave no `width` and `height`,
  * which the stage never measures and so draws no area over. A tap on the image presses the area's
- * option, as a press on its row does, so both inputs run one change rule and one refusal.
+ * option and the group's one refusal, and a tap on a picked area takes it back (`pressedOf` in
+ * `#plate/interactions/picks.ts`), the one pick as one of several, where a radio row, as ARIA's
+ * radio group has it, never clears its one checked row.
+ *
+ * Read-only, as a host's review or a completed attempt shows it, the island draws the response and
+ * changes nothing: the stage takes no press and draws no area's hit shape, so no area shows a
+ * pointer's cursor or the ring a hovering pointer draws, and the group's rows stay focusable and
+ * read as they stand while no press or key changes one.
  *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info/index.html#Data_HotspotInteraction
@@ -80,8 +87,8 @@ export interface HotspotProps extends Authored<Named> {
    * How many hotspots the child picks, which the server reads from the bound response's cardinality
    * and `max-choices` (5.68.2), as it reads a Choice's (`picksOf` in
    * `#plate/interactions/picks.ts`): a pick on the image or in the list replaces the last for
-   * `one`, and otherwise a tap on a picked area takes it back. The response is a bag, which reads
-   * no order.
+   * `one`, a tap on a picked area takes it back for every kind, and a press on a row's checkbox
+   * takes it back where the child picks several. The response is a bag, which reads no order.
    *
    * `min-choices` is not a prop: it decides whether a submitted response is valid (5.68.1), which
    * the server judges, and a child is never stopped short of it.
@@ -91,6 +98,12 @@ export interface HotspotProps extends Authored<Named> {
    * The `qti-prompt`, server-rendered; none where the interaction has none.
    */
   readonly prompt: Prompt | undefined;
+  /**
+   * Whether the island only shows the response, as a host's review or a completed attempt does: no
+   * press on the image or key in the list changes it. Plate's own shell renders a review with no
+   * island, so it answers with one that is not read-only.
+   */
+  readonly readOnly: boolean;
   /**
    * The `width` and `height` the author wrote on the image, the pixel space its areas' coordinates
    * are in; where one or both are absent the stage takes the image's natural size once it loads.
@@ -115,6 +128,8 @@ export interface HotspotProps extends Authored<Named> {
  * @param props.image The author's image, as the server rendered it.
  * @param props.labels The stage's words.
  * @param props.naming What names the stage's region.
+ * @param props.readOnly Whether the stage only shows the picks: it takes no press, and draws no
+ *   area's hit shape, so no area takes a pointer.
  * @param props.size The size the author wrote on the image.
  * @returns The stage.
  */
@@ -124,20 +139,25 @@ const HotspotStage = (props: {
   readonly image: ReactNode;
   readonly labels: HotspotLabels;
   readonly naming: NameAttributes;
+  readonly readOnly: boolean;
   readonly size: AuthoredSize;
 }) => {
-  const { focused, hotspots, image, labels, naming, size } = props;
+  const { focused, hotspots, image, labels, naming, readOnly, size } = props;
   const { picked, press } = usePicks();
 
   return (
     <GraphicStage
       labels={labels}
       naming={naming}
-      onPress={(tap) => {
-        if (tap.identifier !== undefined) {
-          press(tap.identifier);
-        }
-      }}
+      {...(readOnly
+        ? {}
+        : {
+            onPress: (tap) => {
+              if (tap.identifier !== undefined) {
+                press(tap.identifier);
+              }
+            },
+          })}
       size={size}
       targets={{
         areas: hotspots,
@@ -150,7 +170,7 @@ const HotspotStage = (props: {
             data-selected={flag(picked.has(area.identifier))}
             drawing={drawing}
           >
-            <DrawnArea area={area} drawing={drawing} />
+            {readOnly ? null : <DrawnArea area={area} drawing={drawing} />}
           </GraphicMark>
         ),
         selected: [...picked],
@@ -184,14 +204,25 @@ const HotspotStage = (props: {
  *
  * A pick past `max-choices`, from the image or the list, is refused by the picks group before the
  * response changes, then announced assertively and shown; every row and area stays live, so the
- * child can always take one back.
+ * child can always take one back. Read-only, it takes no pick at all.
  *
  * @param props The interaction, its response and its labels ({@link HotspotProps}).
  * @returns The Hotspot, its image and its list bound to the response.
  */
 export const Hotspot = (props: HotspotProps) => {
-  const { hotspots, image, labels, naming, picks, prompt, response, root, size, stageNaming } =
-    props;
+  const {
+    hotspots,
+    image,
+    labels,
+    naming,
+    picks,
+    prompt,
+    readOnly,
+    response,
+    root,
+    size,
+    stageNaming,
+  } = props;
   const [focused, setFocused] = useState<string>();
 
   return (
@@ -205,6 +236,7 @@ export const Hotspot = (props: HotspotProps) => {
             image={image}
             labels={labels}
             naming={stageNaming}
+            readOnly={readOnly}
             size={size}
           />
         </>
@@ -213,6 +245,7 @@ export const Hotspot = (props: HotspotProps) => {
       limit={labels.limit}
       naming={naming}
       picks={picks}
+      readOnly={readOnly}
       response={response}
       root={{ ...root, "data-slot": "plate-hotspot" }}
     >

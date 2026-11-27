@@ -44,7 +44,7 @@ import { solution, startingResponses } from "@qti-pie/plate";
 import { PostedResponses } from "@qti-pie/plate/codec";
 import { recordOf } from "@qti-pie/plate/test/records";
 import { Item, standardRenderers } from "@qti-pie/plate/ui";
-import type { ItemProps } from "@qti-pie/plate/ui";
+import type { ItemProps, Renderers } from "@qti-pie/plate/ui";
 import { heldOf, Responses } from "@qti-pie/plate/ui/client";
 import { createViteServer } from "vitest/node";
 import { clientExports, plateSource } from "#specimen/ui/clients.ts";
@@ -81,11 +81,13 @@ const attempt = <A>(step: string, run: () => Promise<A>): Effect.Effect<A, Hydra
   Effect.tryPromise({ catch: (cause) => new HydrationFailure({ cause, step }), try: run });
 
 /**
- * An item as a host shows it in answering: `<Item>`'s props and the responses its `<Responses>`
- * starts from.
+ * An item as a host shows it in answering: `<Item>`'s props, the renderers it draws each
+ * interaction with, plate's standard ones or a suite's composed over them, and the responses its
+ * `<Responses>` starts from.
  */
 export interface Answering {
   readonly props: ItemProps;
+  readonly renderers: Renderers;
   readonly responses: ResponseValues;
 }
 
@@ -114,6 +116,7 @@ export const solved = (item: SourceItem): Answering => {
 
   return {
     props: { ...shownBy, configuration, instance, item: accepted, mode: "answering", stimuli },
+    renderers: standardRenderers,
     responses: { ...startingResponses(accepted, shownBy), ...solution(accepted, record) },
   };
 };
@@ -211,9 +214,9 @@ const accountModule = fileURLToPath(new URL("hydrate-account.ts", import.meta.ur
 
 /**
  * Write a page of items in answering as a host serves it, `<Item>` drawing each interaction with
- * plate's standard renderers, as specimen's other pages draw it (`render` in
- * `#specimen/ui/rendered.ts`): each item's tree, every server component expanded, wired; the
- * server's markup of the first scene as the page's host renders it
+ * the item's renderers, plate's standard ones as specimen's other pages draw it (`render` in
+ * `#specimen/ui/rendered.ts`) unless a suite composes its own: each item's tree, every server
+ * component expanded, wired; the server's markup of the first scene as the page's host renders it
  * (`#specimen/ui/hydrate-page.ts`), each item in a `section` under an `<Activity>`, with
  * `<Responses>` around its tree as the page reads it back, so the markup is the tree the page
  * hydrates; and the modules whose islands the trees hold.
@@ -228,7 +231,7 @@ const written = (spec: PageSpec, clients: ReadonlyMap<unknown, string>): Written
     answering,
     key,
     tree: toWire(
-      createElement(Item, { ...answering.props, renderers: standardRenderers }),
+      createElement(Item, { ...answering.props, renderers: answering.renderers }),
       clients,
       "the root",
     ),

@@ -21,12 +21,8 @@ import {
   ResponseValueSchema,
   ValueSchema,
 } from "#plate/codec/values.ts";
-import {
-  isRecordValue,
-  modelledBaseTypes,
-  modelledCardinalities,
-  nullOf,
-} from "#plate/model/values.ts";
+import { modelledBaseTypes, modelledCardinalities, nullOf } from "#plate/model/values.ts";
+import { isRecordValue } from "#plate/model/record-value.ts";
 import type {
   ModelledBaseType,
   RecordValue,

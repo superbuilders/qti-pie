@@ -13,7 +13,7 @@
 import { Option } from "effect";
 import { createContext, use, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { isRecordValue } from "#plate/model/values.ts";
+import { isRecordValue } from "#plate/model/record-value.ts";
 import type {
   Declared,
   RecordDeclared,

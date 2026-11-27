@@ -11,7 +11,8 @@
 /**
  * How many options a child picks: `one`, as a radio group, where a pick replaces the last; `any`
  * number, as checkboxes; or `at-most` `n`, as checkboxes where a pick past `n` is refused. `n` is a
- * whole number from 2, since a limit of 1 is `one`.
+ * whole number from 2, since a limit of 1 is `one`. A press on a picked area of a Hotspot's image
+ * takes it back whatever the kind ({@link pressedOf}).
  *
  * `min-choices` is no part of it: it decides whether a submitted response is valid (5.30.3), which
  * the server judges, and a child is never stopped short of it.
@@ -43,6 +44,32 @@ export const picksOf = (binding: {
   return binding.maxChoices === 0n
     ? { kind: "any" }
     : { kind: "at-most", n: Number(binding.maxChoices) };
+};
+
+/**
+ * Give the picks a press on an area of a Hotspot's image leaves, before any limit refuses them: a
+ * press on a picked area takes it back, so the one pick's response is NULL again, and several picks
+ * lose that one; a press on any other area picks it, in place of the one pick, or beside the picks
+ * of several, in the order pressed. The image takes a pick back for one pick as for several, as a
+ * second tap on a ringed area clears it, while the list's radio group, which ARIA's radio group
+ * pattern governs, never clears its one checked radio: a tap on the image is the only way back to
+ * no answer there.
+ *
+ * @param picks How many options the child picks.
+ * @param picked The identifiers picked now, in order, each once.
+ * @param identifier The pressed area's identifier.
+ * @returns The identifiers picked after the press, in order, each once.
+ */
+export const pressedOf = (
+  picks: Picks,
+  picked: readonly string[],
+  identifier: string,
+): readonly string[] => {
+  if (picked.includes(identifier)) {
+    return picked.filter((each) => each !== identifier);
+  }
+
+  return picks.kind === "one" ? [identifier] : [...picked, identifier];
 };
 
 /**

@@ -58,7 +58,8 @@ import type {
   RedactedLevel,
   ReferencingChoice,
 } from "#plate/model/item.ts";
-import { format, isRecordValue } from "#plate/model/values.ts";
+import { format } from "#plate/model/values.ts";
+import { isRecordValue } from "#plate/model/record-value.ts";
 import type { Declared, ResponseValue } from "#plate/model/values.ts";
 import { areaGeometries } from "#plate/vocabulary.ts";
 import type { AreaGeometry } from "#plate/vocabulary.ts";
