@@ -18,9 +18,10 @@ import {
   gradeAnswer,
   gradeSitting,
   processingSeed,
+  startOf,
   takeItem,
 } from "@qti-pie/processing";
-import { nullOf, recordOf, single } from "@qti-pie/processing/value.ts";
+import { recordOf, single } from "@qti-pie/processing/value.ts";
 import type {
   CompiledItem,
   Digest,
@@ -161,14 +162,20 @@ const sessionOf = (seed: ItemSeed, take: TakeView, view: SessionView): ItemSessi
 
 /**
  * Responses as one save at the epoch, total over the item's declared responses as the ledger's
- * boundary builds every saved map (a response the recording does not name is unanswered, NULL),
- * or the default submission where none was saved.
+ * boundary builds every saved map: a response the recording does not name holds its start value,
+ * processing's own startOf at the take, so the oracle and the boundary share one definition; or
+ * the default submission where none was saved.
  *
  * @param item The item.
+ * @param take The take whose defaults a response starts at.
  * @param responses The responses.
  * @returns What the attempt submits.
  */
-const submittedOf = (item: CompiledItem, responses: RecordedValues | undefined): Submitted => {
+const submittedOf = (
+  item: CompiledItem,
+  take: Take,
+  responses: RecordedValues | undefined,
+): Submitted => {
   if (responses === undefined) {
     return { kind: "default" };
   }
@@ -176,7 +183,7 @@ const submittedOf = (item: CompiledItem, responses: RecordedValues | undefined):
   const values = new Map(valuesOf(responses));
   for (const declaration of item.declarations.values()) {
     if (declaration.role === "response" && !values.has(declaration.identifier)) {
-      values.set(declaration.identifier, nullOf(declaration.type));
+      values.set(declaration.identifier, startOf(declaration, take.defaults));
     }
   }
 
@@ -267,7 +274,7 @@ const itemEngineOf = (item: CompiledItem, places: readonly number[]): ItemEngine
       evaluations: evaluationsOf(input.recorded, places),
       item,
       readAt: epoch,
-      responses: submittedOf(item, input.responses),
+      responses: submittedOf(item, takeOf(input.take), input.responses),
       session: sessionOf(input.seed, input.take, input.session),
       validate: input.validate,
     });
@@ -381,7 +388,7 @@ const testEngineOf = (
             evaluations: new Map<number, Value>(),
             item: held.item,
             ref: { identifier: member.ref, occurrence: 0n },
-            responses: submittedOf(held.item, member.responses),
+            responses: submittedOf(held.item, take, member.responses),
             session: {
               duration: member.duration,
               numAttempts: 0n,
