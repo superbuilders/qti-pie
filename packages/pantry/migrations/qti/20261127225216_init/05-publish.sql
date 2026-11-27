@@ -4311,6 +4311,8 @@ COMMENT ON INDEX "qti_queries"."__single_response_gap_key_package_path_start_kin
 
 COMMENT ON INDEX "qti_queries"."__table_header_key_package_path_table_id_digest_ll7spl6q4s" IS 'key TableHeader(package, path, table, idDigest)';
 
+COMMENT ON INDEX "qti_queries"."__test_member_key_package_path_document_c7m3tdglva" IS 'key TestMember(package, path, document)';
+
 COMMENT ON INDEX "qti_queries"."__test_reading_key_package_assembly_path_start_gp4kji7wmm" IS 'key TestReading(package, assembly, path, start, attribute)';
 
 COMMENT ON INDEX "qti_queries"."__trimmed_mark_key_package_path_fragment_value_ph5yyec5ja" IS 'key TrimmedMark(package, path, fragment, valueDigest)';

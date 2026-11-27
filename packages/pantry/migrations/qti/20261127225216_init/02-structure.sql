@@ -4663,6 +4663,8 @@ CREATE UNIQUE INDEX "__single_response_gap_key_package_path_start_kinr3pw232" ON
 
 CREATE UNIQUE INDEX "__table_header_key_package_path_table_id_digest_ll7spl6q4s" ON "qti_queries"."table_header" USING btree ("package", "path", "table", "id_digest");
 
+CREATE UNIQUE INDEX "__test_member_key_package_path_document_c7m3tdglva" ON "qti_queries"."test_member" USING btree ("package", "path", "document");
+
 CREATE UNIQUE INDEX "__test_reading_key_package_assembly_path_start_gp4kji7wmm" ON "qti_queries"."test_reading" USING btree ("package", "assembly", "path", "start", "attribute");
 
 CREATE UNIQUE INDEX "__trimmed_mark_key_package_path_fragment_value_ph5yyec5ja" ON "qti_queries"."trimmed_mark" USING btree ("package", "path", "fragment", "value_digest");
