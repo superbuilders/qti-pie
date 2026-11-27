@@ -43,7 +43,7 @@ import { chromeFor, unboundedPrimaryWait } from "#specimen/ui/chrome.ts";
 import { resolvePciModules } from "@qti-pie/plate";
 import type { PciModules } from "@qti-pie/plate";
 import { shadeParts } from "@qti-pie/plate/alpha/pci-modules";
-import { framePage } from "@qti-pie/plate/ui/pci-frame";
+import { framePage, landHeight } from "@qti-pie/plate/ui/pci-frame";
 import {
   anchoredAt,
   focusInto,
@@ -257,6 +257,7 @@ window.frameMessages = [];
 let frame;
 let nonce;
 const post = (message) => frame.contentWindow.postMessage({ ...message, nonce }, "*");
+const landHeight = ${String(landHeight)};
 window.startPci = (start) => new Promise((settle) => {
   frame?.remove();
   window.frameMessages = [];
@@ -274,9 +275,9 @@ window.startPci = (start) => new Promise((settle) => {
     const message = event.data;
     if (event.source !== ours.contentWindow || message === null || typeof message !== "object" || message.nonce !== nonce) return;
     window.frameMessages.push(message);
-    if (message.kind === "booted") post({ kind: "load", markup: start.markup, templates: [], routes: start.routes, entry: start.entry, lang: "en-US", dir: "ltr", title: start.title });
+    if (message.kind === "booted") post({ kind: "load", markup: start.markup, templates: [], routes: start.routes, entry: start.entry, lang: "en-US", dir: "ltr", title: start.title, ratio: devicePixelRatio });
     if (message.kind === "registered") post({ kind: "instantiate", typeIdentifier: start.typeIdentifier, configuration: start.configuration, state: start.state });
-    if (message.kind === "height") ours.setAttribute("height", String(Math.max(1200, message.pixels)));
+    if (message.kind === "height") landHeight(ours, message.pixels, Math.max(1200, message.pixels), post);
     if (message.kind === "ready" || message.kind === "failed") settle(message);
     if (message.kind === "completed") window.completed?.(message);
   };

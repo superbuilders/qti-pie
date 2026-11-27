@@ -59,8 +59,9 @@ export type Checked<M extends FrameToPage> = Brand.Branded<M, "FrameChecked">;
  * the PCI's markup as the HTML the server rendered, which becomes the children of the element the
  * PCI is handed as its `dom`; each HTML `template` of the markup as the HTML of its content, which
  * the frame writes as a `template` at the end of that element, inert until the PCI clones it; the
- * language and direction the interaction stands in, each empty when nothing names one; and the
- * frame document's title, the frame's name.
+ * language and direction the interaction stands in, each empty when nothing names one; the frame
+ * document's title, the frame's name; and the island's device pixel ratio, as a
+ * {@link PageLanded} carries it, for the frame's first posts.
  */
 export interface PageLoad extends Omit<PciFrameBoot, "nonce"> {
   readonly dir: string;
@@ -68,8 +69,28 @@ export interface PageLoad extends Omit<PciFrameBoot, "nonce"> {
   readonly lang: string;
   readonly markup: string;
   readonly nonce: FrameNonce;
+  readonly ratio: number;
   readonly templates: readonly string[];
   readonly title: string;
+}
+
+/**
+ * The island's acknowledgment of a height the frame posted, sent as the island applies it
+ * (`landHeight` in `#plate/ui/portable-custom/landing.ts`, every island's one): the height it
+ * applied; the frame element's height as the island measures it just before it applied it, and
+ * just after, laid out, in the island's CSS pixels, with any zoom on the element and any
+ * `min-height` or other rule of the host's page in it; and the island's `devicePixelRatio`, the
+ * device's ratio times any browser zoom, from which the frame tells the zoom on its element from
+ * its own resolution. A change of the island's ratio reaches the frame in the next acknowledgment,
+ * so one post at most is made by a stale one. The post's echo is its {@link PageSettled}.
+ */
+export interface PageLanded {
+  readonly from: number;
+  readonly height: number;
+  readonly kind: "landed";
+  readonly nonce: FrameNonce;
+  readonly pixels: number;
+  readonly ratio: number;
 }
 
 /**
@@ -100,7 +121,22 @@ export interface PageClose extends Omit<PageComplete, "nonce"> {
 }
 
 /**
- * Every message the island posts to its frame, in the order the island sends them: the frame's
- * content and routes, the factory chosen, and the request to complete before the frame goes.
+ * The island's word that a height the frame posted has taken effect: the frame element's laid-out
+ * height read the same in two consecutive animation frames of the island's page, whatever moved
+ * it meanwhile, a CSS transition, a script's tween of the host's or a clamp, and that height, in
+ * the island's CSS pixels. The frame takes its viewport where it stands then as the post's echo,
+ * moved or not (`settledAt` in `#plate/ui/portable-custom/frame-boot.ts`).
  */
-export type PageMessage = PageBind | PageClose | PageLoad;
+export interface PageSettled {
+  readonly height: number;
+  readonly kind: "settled";
+  readonly nonce: FrameNonce;
+  readonly pixels: number;
+}
+
+/**
+ * Every message the island posts to its frame, in the order the island sends them: the frame's
+ * content and routes, the factory chosen, an acknowledgment of each height the frame posts and
+ * its word once that height has settled, and the request to complete before the frame goes.
+ */
+export type PageMessage = PageBind | PageClose | PageLanded | PageLoad | PageSettled;

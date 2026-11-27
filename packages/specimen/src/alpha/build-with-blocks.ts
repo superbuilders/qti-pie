@@ -63,7 +63,7 @@ import { admitted } from "@qti-pie/plate/test/admitted";
 import { Item, standardRenderers } from "@qti-pie/plate/ui";
 import type { ItemProps } from "@qti-pie/plate/ui";
 import { heldOf, Responses } from "@qti-pie/plate/ui/client";
-import { framePage } from "@qti-pie/plate/ui/pci-frame";
+import { framePage, landHeight } from "@qti-pie/plate/ui/pci-frame";
 import type { FramePage } from "@qti-pie/plate/ui/pci-frame";
 import {
   anchoredAt,
@@ -498,6 +498,7 @@ const changes = [];
 const nonce = crypto.randomUUID();
 const frame = document.createElement("iframe");
 const post = (message) => frame.contentWindow.postMessage({ ...message, nonce }, "*");
+const landHeight = ${String(landHeight)};
 const note = (name, value) => { document.body.dataset[name] = JSON.stringify(value); };
 let arriving = null;
 frame.setAttribute("sandbox", "allow-scripts");
@@ -528,7 +529,7 @@ window.addEventListener("message", (event) => {
       routes: setup.frame.routes.map((route) => ({ ...route, primary: absolute(route.primary),
         fallback: route.fallback === undefined ? undefined
           : { ...route.fallback, location: absolute(route.fallback.location) } })),
-      lang: "en-US", dir: "ltr", title: "blocks" });
+      lang: "en-US", dir: "ltr", title: "blocks", ratio: devicePixelRatio });
   } else if (message.kind === "registered") {
     note("registered", message.typeIdentifiers);
     post({ kind: "instantiate", typeIdentifier: setup.typeIdentifier, state: undefined,
@@ -545,7 +546,7 @@ window.addEventListener("message", (event) => {
   } else if (message.kind === "completed") {
     note("completed", message.response);
   } else if (message.kind === "height") {
-    frame.height = String(message.pixels);
+    landHeight(frame, message.pixels, message.pixels, post);
   }
 });
 window.addEventListener("message", () => {

@@ -21,7 +21,7 @@ import { Effect } from "effect";
 import { Digest } from "effect/crypto";
 import type { Page } from "playwright-core";
 import { chromeFor } from "#specimen/ui/chrome.ts";
-import { framePage } from "@qti-pie/plate/ui/pci-frame";
+import { framePage, landHeight } from "@qti-pie/plate/ui/pci-frame";
 
 /**
  * The machine's Google Chrome, through specimen's one launcher, a step's failure a defect.
@@ -63,18 +63,22 @@ const counting = (): void => {
 
 /**
  * The test's page: the island, which answers the frame's `booted` with the life's `load`, records
- * every message the frame posts, writes each height it posts as the frame's height, and posts the
+ * every message the frame posts, writes each height it posts as the frame's height and acknowledges
+ * it with plate's island's own acknowledgment, `landHeight`, written into its script, and posts the
  * frame whatever the test hands `send`.
  */
 const host = `<!doctype html><html><body style="margin:0"><script>
 window.posts = [];
 window.send = (message) => document.querySelector("iframe").contentWindow.postMessage(message, "*");
+const landHeight = ${String(landHeight)};
 addEventListener("message", (event) => {
   const frame = document.querySelector("iframe");
   if (frame === null || event.source !== frame.contentWindow) return;
   window.posts.push(event.data);
   if (event.data.kind === "booted") window.send(window.life);
-  if (event.data.kind === "height") frame.setAttribute("height", String(event.data.pixels));
+  if (event.data.kind === "height") {
+    landHeight(frame, event.data.pixels, event.data.pixels, (landing) => window.send({ ...landing, nonce: event.data.nonce }));
+  }
 });
 window.openFrame = (hash) => {
   const frame = document.createElement("iframe");
@@ -129,6 +133,7 @@ interface IslandMessage {
   readonly lang?: string;
   readonly markup?: string;
   readonly nonce: string;
+  readonly ratio?: number;
   readonly routes?: readonly Route[];
   readonly state?: string;
   readonly templates?: readonly string[];
@@ -179,6 +184,7 @@ const loadOf = (life: Life): IslandMessage => {
     lang: "en",
     markup: "<p>markup</p>",
     nonce,
+    ratio: 1,
     routes: life.routes,
     templates: ["<b>template</b>"],
     title: "PCI",
@@ -234,7 +240,9 @@ const frameOf = (page: Page) => page.frames().find((each) => each.url().includes
 /**
  * Drive the whole life once the PCI has registered: a factory chosen that is not registered and
  * then one that is, a click and a key, the PCI's `qti-interaction-changed`, `ondone`, a resize,
- * an uncaught error and a rejection, `complete`, then the frame removed, which unloads it.
+ * an uncaught error and a rejection, `complete`, then the frame removed, which unloads it. The
+ * PCI's button, drawn when it is instantiated, is posted as a height after its `ready`, which the
+ * frame makes only once the island has acknowledged its height before.
  *
  * @param page The page.
  * @returns Once lived.
@@ -282,6 +290,17 @@ const wholeLife = async (page: Page): Promise<void> => {
     { kind: "complete", nonce },
   );
   await posted(page, ["completed"]);
+
+  const drawn = await page.evaluate(() =>
+    window.posts
+      .slice(window.posts.findIndex(({ kind }) => kind === "ready"))
+      .filter(({ kind }) => kind === "height"),
+  );
+
+  assert.isNotEmpty(
+    drawn,
+    "the frame posts its height again once the PCI draws its button, which it does only once the island acknowledged the height it posted before",
+  );
 };
 
 /**
@@ -431,6 +450,176 @@ declare global {
   }
 }
 
+/**
+ * A PCI that draws content which contracts with its viewport, 300 px over `50vh`: a frame whose
+ * root's geometry is unpinned sizes from its own height and runs away, or stalls where a host's
+ * stylesheet ties the root to the viewport.
+ */
+const contracting = `
+define(["qtiCustomInteractionContext"], function (context) {
+  context.register({
+    getInstance: function (dom, configuration) {
+      var instance = { getResponse: function () { return null; }, getState: function () { return ""; } };
+      dom.innerHTML = '<div style="height:300px"></div><div style="height:50vh"></div>';
+      configuration.onready(instance, "");
+      return instance;
+    },
+    typeIdentifier: "urn:qti-pie:test:contracting",
+  });
+});
+`;
+
+/**
+ * A host's own stylesheet in the frame page it builds, as a player's might carry: the root and the
+ * body at the viewport's full height with margins, the body at least as tall as the viewport, and
+ * the root zoomed and clipping, each a property the boot's pins hold.
+ */
+const hostSheet =
+  "<style>html,body{height:100%;margin:8px}body{min-height:100vh}html{zoom:1.5;overflow:hidden}</style>";
+
+/**
+ * Wait until the frame posts nothing for a second and a half.
+ *
+ * @param tab The page.
+ * @param before How many messages the frame had posted at the last look.
+ * @returns Once it is quiet.
+ */
+const quiet = async (tab: Page, before: number): Promise<void> => {
+  await tab.waitForTimeout(1500);
+
+  const now = await tab.evaluate(() => window.posts.length);
+
+  if (now !== before) {
+    await quiet(tab, now);
+  }
+};
+
+/**
+ * How one frame page comes out for the contracting PCI: each message the frame posted, in order,
+ * by kind, a height by its pixels and a failure by its reason; the frame's height as the island
+ * wrote it; and the height of what the frame's document paints.
+ */
+interface Laid {
+  readonly content: number;
+  readonly frame: string;
+  readonly posts: string;
+}
+
+/**
+ * Where a frame page's life ends: the frame's height for its content's, the last height posted,
+ * and whether at most three heights came after the PCI's `ready`.
+ *
+ * @param laid How it came out.
+ * @returns The end, in words.
+ */
+const endOf = (laid: Laid): string => {
+  const after = laid.posts.split(", ready, ")[1] ?? "";
+  const heights = after.split(", ").filter((each) => each.startsWith("height "));
+  const last = heights.at(-1)?.slice("height ".length) ?? "none";
+
+  return `${laid.frame} for ${String(laid.content)}, posted ${last} last, ${heights.length <= 3 ? "at most 3" : String(heights.length)} posts after ready`;
+};
+
+/**
+ * Serve a frame page and live the contracting PCI's frame in it until its posts stop: booted,
+ * loaded, instantiated, and then no post for a second and a half.
+ *
+ * @param html The frame page's HTML.
+ * @param headers The frame page's response headers.
+ * @returns How it came out.
+ */
+const laidIn = (html: string, headers: Readonly<Record<string, string>>) =>
+  Effect.scoped(
+    Effect.gen(function* laid() {
+      const browser = yield* Effect.orDie(chrome.browser);
+      const context = yield* Effect.orDie(
+        chrome.context(browser, { viewport: { height: 900, width: 1000 } }),
+      );
+
+      yield* Effect.promise(() =>
+        context.route(`${origin}/**`, async (route) => {
+          const { pathname } = new URL(route.request().url());
+
+          if (pathname === "/") {
+            await route.fulfill({ body: host, contentType: "text/html" });
+          } else if (pathname === "/frame.html") {
+            await route.fulfill({ body: html, headers: { ...headers } });
+          } else if (pathname === "/modules/a.js") {
+            await route.fulfill({ body: contracting, contentType: "text/javascript" });
+          } else {
+            await route.fulfill({ body: "", status: 404 });
+          }
+        }),
+      );
+
+      const tab = yield* Effect.orDie(chrome.page(context));
+
+      return yield* Effect.promise(async (): Promise<Laid> => {
+        const life: Life = {
+          entry: "a",
+          hash: `#${nonce}`,
+          live: settled,
+          modules: {},
+          name: "contracting",
+          routes: [routeOf("a")],
+        };
+
+        await tab.goto(`${origin}/`);
+        await tab.evaluate(
+          ({ hash, load }) => {
+            window.life = load;
+            window.openFrame(hash);
+          },
+          { hash: life.hash, load: loadOf(life) },
+        );
+        await settled(tab);
+        await tab.evaluate(
+          (message) => {
+            if (window.posts.some(({ kind }) => kind === "registered")) {
+              window.send(message);
+            }
+          },
+          {
+            configuration: {
+              boundTo: {},
+              contextVariables: {},
+              properties: {},
+              responseIdentifier: "RESPONSE",
+              status: "interacting",
+              templateVariables: {},
+            },
+            kind: "instantiate",
+            nonce,
+            state: "",
+            typeIdentifier: "urn:qti-pie:test:contracting",
+          },
+        );
+        await quiet(tab, -1);
+
+        const posts = await tab.evaluate(() =>
+          window.posts
+            .map((message) => {
+              if ("pixels" in message) {
+                return `height ${String(message.pixels)}`;
+              }
+
+              return "reason" in message ? `failed (${String(message.reason)})` : message.kind;
+            })
+            .join(", "),
+        );
+        const frame = await tab.evaluate(
+          () => document.querySelector("iframe")?.getAttribute("height") ?? "none",
+        );
+        const content =
+          (await frameOf(tab)?.evaluate(() =>
+            Math.ceil(document.documentElement.getBoundingClientRect().height),
+          )) ?? -1;
+
+        return { content, frame, posts };
+      });
+    }),
+  );
+
 describe("plate's PCI frame page in Chrome", () => {
   it.live(
     "reads its window's `parent` once over every way the frame lives, and not at all with no nonce",
@@ -499,5 +688,48 @@ describe("plate's PCI frame page in Chrome", () => {
           );
         }),
       ),
+  );
+
+  it.live(
+    "holds the root's geometry by its own pins in any frame page: plate's, which carries none, a host's own with a stylesheet that would move it, and one whose policy refuses an inline style, which fails by name",
+    () =>
+      Effect.gen(function* pinned() {
+        const page = yield* Effect.promise(() =>
+          Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto))),
+        );
+        const plates = yield* laidIn(page.html, page.headers);
+        const hosts = yield* laidIn(
+          page.html.replace("<title></title>", `<title></title>${hostSheet}`),
+          page.headers,
+        );
+        const policy = page.headers["Content-Security-Policy"] ?? "";
+        const refused = yield* laidIn(page.html, {
+          ...page.headers,
+          "Content-Security-Policy": policy.replace(
+            "style-src https: 'unsafe-inline'",
+            "style-src https:",
+          ),
+        });
+
+        assert.notInclude(
+          page.html,
+          "<style>",
+          "plate's frame page carries no stylesheet of its own",
+        );
+        assert.deepStrictEqual(
+          {
+            hosts: endOf(hosts),
+            plates: endOf(plates),
+            refused: refused.posts,
+          },
+          {
+            hosts: endOf(plates),
+            plates: "632 for 632, posted 632 last, at most 3 posts after ready",
+            refused:
+              "failed (The frame page's content-security policy refused the boot's own stylesheet, the pins of the root's geometry, so no height the frame posts could be trusted: its style-src must allow 'unsafe-inline', with no nonce or hash in style-src (which would make it ignored), as PCIs' own inline styles need.)",
+          },
+          "the boot puts its pins first in the head before any PCI code, so a host's frame page whose own stylesheet sets the root and the body to the viewport's height, with margins, a zoom and a clip, ends where plate's page ends, 632 for 632, the fixed point of 300 px over `50vh`, in at most three posts after the PCI's `ready` (341, then 487 or not, then 632, as Chrome's renderings fall); a page whose policy refuses an inline style leaves the pins no sheet, and the frame fails by name before it boots",
+        );
+      }),
   );
 });

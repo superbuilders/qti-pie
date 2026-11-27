@@ -1431,6 +1431,7 @@ type PageMessage =
       readonly lang: string;
       readonly markup: string;
       readonly nonce: string;
+      readonly ratio: number;
       readonly routes: Hosted["routes"];
       readonly templates: readonly string[];
       readonly title: string;
@@ -1886,6 +1887,9 @@ const startIn = (
       lang: hosted.lang,
       markup: hosted.markup,
       nonce,
+      ratio: yield* attempt("read the page's device pixel ratio", () =>
+        page.evaluate(() => devicePixelRatio),
+      ),
       routes: hosted.routes,
       templates: hosted.templates,
       title: hosted.title,

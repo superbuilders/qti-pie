@@ -39,6 +39,7 @@ import type { ResponseValue } from "#plate/model/values.ts";
 import type { PciJson, PciJsonRefused } from "#plate/pci/json.ts";
 import { factoryFor } from "#plate/pci/type-identifier.ts";
 import type { FactoryChoice } from "#plate/pci/type-identifier.ts";
+import { landHeight } from "#plate/ui/portable-custom/landing.ts";
 import type {
   BoundConfiguration,
   Checked,
@@ -404,6 +405,7 @@ export const hostFrame = (
           lang: pci.placed.lang,
           markup: pci.source.markup,
           nonce,
+          ratio: devicePixelRatio,
           routes: pci.facts.routes.map(absoluteRoute),
           templates: pci.source.templates,
           title: pci.title,
@@ -442,7 +444,9 @@ export const hostFrame = (
         break;
       }
       case "height": {
-        frame.height = String(Math.max(0, Math.ceil(message.pixels)));
+        landHeight(frame, message.pixels, Math.max(0, Math.ceil(message.pixels)), (landing) => {
+          tell({ ...landing, nonce });
+        });
         break;
       }
       case "failed": {

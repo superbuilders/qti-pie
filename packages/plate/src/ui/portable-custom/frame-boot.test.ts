@@ -39,7 +39,12 @@ import { afterEach, assert, beforeEach, describe, it, vi } from "vitest";
 import type { FrameToPage, PciFrameRoute } from "#plate/pci/frame-protocol.ts";
 import { bootFrame } from "#plate/ui/portable-custom/frame-boot.ts";
 import { framePage } from "#plate/ui/portable-custom/frame-page.ts";
-import type { FrameNonce, PageMessage } from "#plate/ui/portable-custom/protocol.ts";
+import type {
+  FrameNonce,
+  PageLanded,
+  PageLoad,
+  PageMessage,
+} from "#plate/ui/portable-custom/protocol.ts";
 
 /**
  * The frame's nonce, its URL's fragment.
@@ -61,6 +66,15 @@ interface IslandMessage {
 }
 
 /**
+ * A message as the frame's `message` listener is handed it, of any shape: the island's, another
+ * window's, or one the protocol refuses.
+ */
+interface HeardMessage {
+  readonly data?: unknown;
+  readonly source?: Elsewhere | Island;
+}
+
+/**
  * The island, the frame's parent: what the frame posts to it, in order.
  */
 interface Island {
@@ -76,6 +90,7 @@ interface LoaderElement {
   readonly addEventListener: (type: string, listener: () => void) => void;
   readonly append: (child: LoaderElement) => void;
   readonly appended: LoaderElement[];
+  readonly prepend: () => void;
   readonly dataset: Record<string, string>;
   readonly innerHTML: string;
   readonly listeners: Map<string, () => void>;
@@ -130,6 +145,7 @@ const elementOf = (): LoaderElement => {
     dataset: {},
     innerHTML: "",
     listeners,
+    prepend: () => {},
     src: "",
   };
 };
@@ -168,13 +184,16 @@ const loadingFrame = (route: Omit<PciFrameRoute, "id">): LoaderFrame => {
     body: elementOf(),
     createElement: elementOf,
     documentElement: { dir: "", getBoundingClientRect: () => ({ height: 0 }), lang: "" },
-    fonts: { addEventListener: () => {} },
+    fonts: [],
+    getAnimations: () => [],
     head,
+    querySelector: () => null,
     styleSheets: [],
     title: "",
   });
   vi.stubGlobal("ResizeObserver", NotedObserver);
   vi.stubGlobal("MutationObserver", NotedObserver);
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
   bootFrame();
   listeners.get("message")?.({
     data: {
@@ -184,6 +203,7 @@ const loadingFrame = (route: Omit<PciFrameRoute, "id">): LoaderFrame => {
       lang: "en",
       markup: "",
       nonce,
+      ratio: 1,
       routes: [{ id: "a", ...route }],
       templates: [],
       title: "PCI",
@@ -480,13 +500,73 @@ type FixtureDefine = (
  * installs it, and `parent`, which a PCI can put its own window in place of.
  */
 interface FrameWindow {
-  readonly addEventListener: (
-    type: string,
-    listener: (message: Partial<IslandMessage>) => void,
-  ) => void;
+  readonly addEventListener: (type: string, listener: (message: HeardMessage) => void) => void;
   define?: FixtureDefine;
   parent: Elsewhere | Island;
 }
+
+/**
+ * A running animation of the test's document, as `getAnimations` answers it: a CSS transition,
+ * which has a property it transitions, or a CSS animation, which has a name; its play state; and
+ * its `finished`, which settles when the test ends it.
+ */
+interface RunAnimation {
+  readonly animationName?: string;
+  readonly end: () => void;
+  readonly finished: Promise<unknown>;
+  readonly playState: string;
+  readonly transitionProperty?: string;
+}
+
+/**
+ * A CSS transition of a property, running: its `finished` settles at its `end`.
+ *
+ * @param transitionProperty The property it transitions.
+ * @returns The transition.
+ */
+const runningOn = (transitionProperty: string): RunAnimation => {
+  const { promise, resolve } = Promise.withResolvers<null>();
+
+  return {
+    end: () => {
+      resolve(null);
+    },
+    finished: promise,
+    playState: "running",
+    transitionProperty,
+  };
+};
+
+/**
+ * A CSS animation of a name, running, as an infinite one runs: its `finished` settles only at its
+ * `end`.
+ *
+ * @param animationName Its name.
+ * @returns The animation.
+ */
+const spinningOn = (animationName: string): RunAnimation => {
+  const { promise, resolve } = Promise.withResolvers<null>();
+
+  return {
+    animationName,
+    end: () => {
+      resolve(null);
+    },
+    finished: promise,
+    playState: "running",
+  };
+};
+
+/**
+ * End every transition that runs: each finishes, and runs no more.
+ *
+ * @param animations The document's running animations.
+ */
+const endAll = (animations: RunAnimation[]): void => {
+  for (const each of animations.splice(0)) {
+    each.end();
+  }
+};
 
 /**
  * An element the frame makes, with the listeners it adds to it by event type.
@@ -499,19 +579,38 @@ interface Made {
  * A frame booted in the test's document under an island: the island and what it was posted, a wait
  * that ends once the frame has posted `registered`, the frame's window, the elements the frame made
  * in order, and a way to post the frame a message from a window, the island or another, through
- * the frame's own `message` listener; and the frame's other inputs: its `resize`, its timers run, a
- * mutation of its document, and a content event at its document.
+ * the frame's own `message` listener, and one from the island of a shape the protocol refuses;
+ * and the frame's other inputs: its `resize`, its timers run, three rounds of them or one, a
+ * mutation of its document, a content event at its document, the document's running animations,
+ * and the island's acknowledgment of a height the frame posted, with the frame element's height the
+ * island measured and its device pixel ratio, and its word that the post settled there.
  */
 interface Booted {
+  readonly animations: RunAnimation[];
+  readonly fontJoined: () => void;
+  readonly fontLoaded: () => Promise<void>;
   readonly island: Island;
+  readonly landed: (pixels: number, from: number, rect: number, ratio: number) => void;
   readonly later: () => void;
   readonly made: readonly Made[];
   readonly mutated: () => void;
   readonly receive: (message: PageMessage, source: Elsewhere | Island) => void;
+  readonly refused: (data: Omit<PageLanded, "from"> | Omit<PageLoad, "ratio">) => void;
   readonly registered: Promise<null>;
   readonly resized: () => void;
   readonly signalled: (type: string) => void;
+  readonly step: () => void;
   readonly window: FrameWindow;
+}
+
+/**
+ * A web font face of the test's document, served late, as Safari 18 has it: the document's font
+ * set fires no event (WebKit bug 304091), so the face's own `loaded` is all that says it loaded.
+ * It joins the set when the test says, as a PCI's `@font-face` does with the sheet that holds it.
+ */
+interface LateFace {
+  readonly loaded: Promise<null>;
+  status: string;
 }
 
 /**
@@ -579,12 +678,66 @@ type ComputedOf = (element: Root) => { readonly writingMode: string };
 const horizontalOnly: ComputedOf = () => ({ writingMode: "horizontal-tb" });
 
 /**
+ * A media query of the kinds the boot asks: a range of `height` in pixels or of `resolution` in
+ * dots per pixel.
+ */
+const mediaQuery = regex(
+  "^\\((?<range>min-|max-)?(?<feature>height|resolution): (?<value>[\\d.e+-]+)(?:px|dppx)\\)$",
+  "u",
+);
+
+/**
+ * How far past its value a media query of a length matches, 1/64 px, Chrome's layout unit
+ * (`car-i7/probe/mq-epsilon.log` in the lane's directory: a viewport of 300 px matches
+ * `(min-height: 300.015625px)` and `(max-height: 299.984375px)`); one of a resolution has none.
+ */
+const mediaSlack = { height: 1 / 64, resolution: 0 } as const;
+
+/**
+ * How each range of a media feature compares the value a viewport has with the one a query names,
+ * within a slack (`mediaSlack`).
+ */
+const mediaRanges: ReadonlyMap<string, (actual: number, named: number, slack: number) => boolean> =
+  new Map([
+    ["", (actual: number, named: number, slack: number) => Math.abs(actual - named) <= slack],
+    ["max-", (actual: number, named: number, slack: number) => actual <= named + slack],
+    ["min-", (actual: number, named: number, slack: number) => actual >= named - slack],
+  ]);
+
+/**
+ * Answer a media query of the kinds the boot asks, as a browser answers it: `height`,
+ * `min-height` and `max-height` in pixels against the viewport's height, and `resolution` and its
+ * ranges in dots per pixel against the viewport's resolution, each feature of a query joined by
+ * `and`; any other query matches nothing.
+ *
+ * @param query The query.
+ * @param viewport The viewport's height, in CSS pixels.
+ * @param resolution The viewport's resolution, its zoom times its device's pixel ratio.
+ * @returns Whether it matches.
+ */
+const mediaMatches = (query: string, viewport: number, resolution: number): boolean =>
+  query.split(" and ").every((feature) => {
+    const asked = mediaQuery.exec(feature)?.groups;
+    const compare = mediaRanges.get(asked?.range ?? "");
+
+    return (
+      asked !== undefined &&
+      compare !== undefined &&
+      (asked.feature === "height"
+        ? compare(viewport, Number(asked.value), mediaSlack.height)
+        : compare(resolution, Number(asked.value), mediaSlack.resolution))
+    );
+  });
+
+/**
  * Boot a frame in the test's document under an island.
  *
  * @param root The document's element.
  * @param observer The `ResizeObserver` the frame constructs.
  * @param computedOf What `getComputedStyle` answers, element by element.
  * @param viewportHeight The frame's viewport's height now, which `matchMedia` answers by.
+ * @param resolution The frame's resolution now, its zoom times its device's pixel ratio, which
+ *   `matchMedia` answers by.
  * @returns The frame, booted.
  */
 const booted = (
@@ -592,6 +745,7 @@ const booted = (
   observer: ObserverClass,
   computedOf: ComputedOf,
   viewportHeight: () => number,
+  resolution: () => number,
 ): Booted => {
   const posted: FrameToPage[] = [];
   const registered = Promise.withResolvers<null>();
@@ -606,10 +760,14 @@ const booted = (
     posted,
   };
   const made: Made[] = [];
-  const listeners = new Map<string, (message: Partial<IslandMessage>) => void>();
-  const onDocument = new Map<string, () => void>();
+  const listeners = new Map<string, (message: HeardMessage) => void>();
+  const onDocument = new Map<string, (() => void)[]>();
   const mutations: (() => void)[] = [];
   const timers: (() => void)[] = [];
+  const animations: RunAnimation[] = [];
+  const font = Promise.withResolvers<null>();
+  const lateFace: LateFace = { loaded: font.promise, status: "loading" };
+  const faces: LateFace[] = [];
   const frameWindow: FrameWindow = {
     addEventListener: (type, listener) => {
       listeners.set(type, listener);
@@ -621,13 +779,15 @@ const booted = (
   vi.stubGlobal("window", frameWindow);
   vi.stubGlobal("document", {
     addEventListener: (type: string, listener: () => void) => {
-      onDocument.set(type, listener);
+      onDocument.set(type, [...(onDocument.get(type) ?? []), listener]);
     },
     body: elementOf(),
-    createElement: () => keptElement(made),
+    createElement: (tag: string) => (tag === "style" ? elementOf() : keptElement(made)),
     documentElement: root,
-    fonts: { addEventListener: () => {} },
+    fonts: faces,
+    getAnimations: () => animations,
     head: elementOf(),
+    querySelector: () => null,
     styleSheets: [],
     title: "",
   });
@@ -648,16 +808,40 @@ const booted = (
     },
   );
   vi.stubGlobal("matchMedia", (query: string) => ({
-    matches: query === `(height: ${String(viewportHeight())}px)`,
+    matches: mediaMatches(query, viewportHeight(), resolution()),
   }));
   vi.stubGlobal("setTimeout", (later: () => void) => timers.push(later));
+  vi.stubGlobal("requestAnimationFrame", (rendered: () => void) => {
+    rendered();
+  });
   bootFrame();
 
   return {
+    animations,
+    fontJoined: () => {
+      faces.push(lateFace);
+    },
+    fontLoaded: async () => {
+      lateFace.status = "loaded";
+      font.resolve(null);
+      await font.promise;
+    },
     island,
+    landed: (pixels, from, rect, ratio) => {
+      listeners.get("message")?.({
+        data: { from, height: rect, kind: "landed", nonce, pixels, ratio },
+        source: island,
+      });
+      listeners.get("message")?.({
+        data: { height: rect, kind: "settled", nonce, pixels },
+        source: island,
+      });
+    },
     later: () => {
-      for (const timer of timers.splice(0)) {
-        timer();
+      for (const _ of [0, 1, 2]) {
+        for (const timer of timers.splice(0)) {
+          timer();
+        }
       }
     },
     made,
@@ -669,12 +853,22 @@ const booted = (
     receive: (message, source) => {
       listeners.get("message")?.({ data: message, source });
     },
+    refused: (data) => {
+      listeners.get("message")?.({ data, source: island });
+    },
     registered: registered.promise,
     resized: () => {
       listeners.get("resize")?.({});
     },
     signalled: (type) => {
-      onDocument.get(type)?.();
+      for (const listener of onDocument.get(type) ?? []) {
+        listener();
+      }
+    },
+    step: () => {
+      for (const timer of timers.splice(0)) {
+        timer();
+      }
     },
     window: frameWindow,
   };
@@ -722,13 +916,14 @@ const parentTaking =
  * The island's `load` for one route, `a`, a primary with no fallback, so waited for with no clock,
  * and no markup.
  */
-const loadOfA: PageMessage = {
+const loadOfA: PageLoad = {
   dir: "ltr",
   entry: "a",
   kind: "load",
   lang: "en",
   markup: "",
   nonce,
+  ratio: 1,
   routes: [{ id: "a", primary: "modules/a.js" }],
   templates: [],
   title: "PCI",
@@ -761,7 +956,13 @@ describe("a PCI that puts its own window in place of the frame's `parent`", () =
   });
 
   it("still has every response relayed to the island, and the island's messages taken", async () => {
-    const frame = booted(plainRoot(), NotedObserver, horizontalOnly, () => 0);
+    const frame = booted(
+      plainRoot(),
+      NotedObserver,
+      horizontalOnly,
+      () => 0,
+      () => 1,
+    );
     const elsewherePosted: FrameToPage[] = [];
     const elsewhere: Elsewhere = {
       postMessage: (message) => {
@@ -1450,13 +1651,17 @@ interface Watched {
 /**
  * A layout for the test's document: its element; a `ResizeObserver` that, as a browser's, reports
  * a change of the box it was asked to observe and of no other; the layout's step, which lays the
- * document out at the frame's height and delivers each observation due; and the viewport's height
- * it was last laid out at.
+ * document out at the frame's height and delivers each observation due; the viewport's move to a
+ * height alone, before the rendering that lays the document out there; how the frame is shown, the
+ * host's zoom of it and the device's pixel ratio; and the viewport's height it was last laid out
+ * at.
  */
 interface Layout {
   readonly layOut: (height: number) => Laid;
+  readonly moveTo: (height: number) => void;
   readonly observer: ObserverClass;
   readonly root: Root;
+  readonly shown: { readonly ratio: number; readonly zoom: number };
   readonly viewport: () => number;
 }
 
@@ -1492,21 +1697,52 @@ const entryOf = (target: Element, laid: Laid): ResizeObserverEntry => ({
 const iframe = { firstHeight: 300, width: 600 } as const;
 
 /**
- * Lay the test's document out as a browser would, observed by the frame's `ResizeObserver`.
+ * The frame's viewport at a height its host sets, as Chrome 158 lays out a frame whose element a
+ * host zooms on a device of a pixel ratio (`car-i7/probe/zoom-measure2.log` in the lane's
+ * directory): on a ratio of 1, whole host pixels, the nearest; above 1, whole device pixels of the
+ * whole host pixels above the height, each the next up.
+ *
+ * @param height The height the host sets.
+ * @param shown How the frame is shown.
+ * @param shown.ratio The device's pixel ratio.
+ * @param shown.zoom The host's zoom of the frame.
+ * @returns The viewport's height, in the frame's CSS pixels.
+ */
+const snappedAt = (
+  height: number,
+  shown: { readonly ratio: number; readonly zoom: number },
+): number =>
+  shown.ratio === 1
+    ? Math.round(height * shown.zoom) / shown.zoom
+    : Math.ceil(Math.ceil(height * shown.zoom) * shown.ratio) / (shown.zoom * shown.ratio);
+
+/**
+ * A frame shown at its host's own pixels, unzoomed, on a device ratio of 1.
+ */
+const unzoomed = { ratio: 1, zoom: 1 } as const;
+
+/**
+ * Lay the test's document out as a browser would, observed by the frame's `ResizeObserver`, the
+ * frame's viewport snapped as Chrome snaps it (`snappedAt`).
  *
  * @param laidAt The document's layout at a height of the frame.
  * @param dataset The document element's data states, which the layout may read.
+ * @param shown How the frame is shown: its host's zoom and the device's pixel ratio.
  * @returns The layout.
  */
-const observedLayout = (laidAt: (height: number) => Laid, dataset: Root["dataset"]): Layout => {
+const observedLayout = (
+  laidAt: (height: number) => Laid,
+  dataset: Root["dataset"],
+  shown: { readonly ratio: number; readonly zoom: number },
+): Layout => {
   const watched: Watched[] = [];
   let laid = laidAt(iframe.firstHeight);
   let viewport: number = iframe.firstHeight;
 
   return {
     layOut: (height) => {
-      viewport = height;
-      laid = laidAt(height);
+      viewport = snappedAt(height, shown);
+      laid = laidAt(viewport);
 
       for (const each of watched) {
         const block = each.box === "border-box" ? laid.block : laid.content;
@@ -1519,6 +1755,9 @@ const observedLayout = (laidAt: (height: number) => Laid, dataset: Root["dataset
       }
 
       return laid;
+    },
+    moveTo: (height) => {
+      viewport = snappedAt(height, shown);
     },
     observer: class {
       readonly #report: (entries: readonly ResizeObserverEntry[]) => void;
@@ -1542,6 +1781,7 @@ const observedLayout = (laidAt: (height: number) => Laid, dataset: Root["dataset
       getBoundingClientRect: () => ({ height: laid.rect }),
       lang: "",
     },
+    shown,
     viewport: () => viewport,
   };
 };
@@ -1556,11 +1796,15 @@ const paddedLayout = (): Layout => {
   const content = 410;
   const dataset: Root["dataset"] = {};
 
-  return observedLayout(() => {
-    const border = content + (dataset.padded === undefined ? 0 : 40);
+  return observedLayout(
+    () => {
+      const border = content + (dataset.padded === undefined ? 0 : 40);
 
-    return { block: border, content, inline: 1000, rect: border, taken: border };
-  }, dataset);
+      return { block: border, content, inline: 1000, rect: border, taken: border };
+    },
+    dataset,
+    unzoomed,
+  );
 };
 
 /**
@@ -1607,21 +1851,25 @@ describe("a PCI that grows its frame's root element's own padding", () => {
 
   it("has the frame post the root's new height, its border box's", async () => {
     const layout = paddedLayout();
-    const booting = booted(layout.root, layout.observer, horizontalOnly, layout.viewport);
+    const booting = booted(layout.root, layout.observer, horizontalOnly, layout.viewport, () => 1);
     const typeIdentifier = "urn:qti-pie:test:padding";
 
     booting.receive(loadOfA, booting.island);
     layout.layOut(iframe.firstHeight);
+    layout.layOut(410);
+    booting.landed(410, iframe.firstHeight, 410, 1);
+    booting.resized();
+    booting.later();
     booting.window.define?.(["qtiCustomInteractionContext"], paddingGrowing(typeIdentifier));
     booting.made[1]?.listeners.get("load")?.(new Event("load"));
     await booting.registered;
     booting.receive(instantiateOf(typeIdentifier), booting.island);
-    layout.layOut(iframe.firstHeight);
+    layout.layOut(410);
 
     assert.deepStrictEqual(
       heightsOf(booting.island),
       [410, 450],
-      "the frame posts its height once laid out with its markup, and again once the PCI's padding grows it by 40 px",
+      "the frame posts its height once laid out with its markup, and, the island having written that, again once the PCI's padding grows it by 40 px",
     );
   });
 });
@@ -1712,7 +1960,7 @@ interface Sourced {
 /**
  * The frame page's own stylesheet, in its HTML.
  */
-const pageStyle = regex("<(?:style)>(?<sheet>[^<]*)</style>", "u");
+const pageStyle = regex("@layer\\{(?<sheet>html\\{[^}]*\\}body\\{[^}]*\\})\\}", "u");
 
 /**
  * A rule of the frame page's own stylesheet for its `html` or its `body` element, by the element.
@@ -1801,13 +2049,17 @@ interface HeightQuery {
  * which breaks into lines 20 px apart; a block of a given height above blocks each a given part of
  * the viewport's height, as `vh` sizes them (`100vh` one, `50vh` a half); a block of a given
  * height that height media queries lay out at another, the last query that matches the viewport's;
- * or such a block above blocks a given part of the viewport's height.
+ * such a block above blocks a given part of the viewport's height; or a block above such blocks
+ * and a run of text of a number of glyphs whose font size is a part of the viewport's height, in
+ * `vh`, each glyph half the font size wide and each line 1.25 times it tall, so the text breaks
+ * into more lines, and taller ones, as the viewport grows: step-shaped content.
  */
 type Content =
   | { readonly block: number }
   | { readonly block: number; readonly queries: readonly HeightQuery[] }
   | { readonly block: number; readonly queries: readonly HeightQuery[]; readonly screens: number }
   | { readonly block: number; readonly screens: number }
+  | { readonly block: number; readonly screens: number; readonly text: number; readonly vh: number }
   | { readonly text: number };
 
 /**
@@ -1861,7 +2113,8 @@ interface Flow {
 
 /**
  * Give the height the content takes: a block's own, or the height its last matching query gives
- * it, with each screen the viewport's height; or the text's lines at the body's inline size.
+ * it, with each screen the viewport's height; or the text's lines at the body's inline size, each
+ * 20 px, or, set in `vh`, each 1.25 times its font size, the text's height to the layout unit.
  *
  * @param content The content.
  * @param inline The root's inline size.
@@ -1869,6 +2122,13 @@ interface Flow {
  * @returns The height.
  */
 const contentHeightOf = (content: Content, inline: number, viewport: number): number => {
+  if ("vh" in content) {
+    const font = (content.vh / 100) * viewport;
+    const lines = Math.ceil((content.text * font) / 2 / (inline - 2 * bodyMargin));
+
+    return content.block + content.screens * viewport + Math.ceil(lines * 1.25 * font * 64) / 64;
+  }
+
   if ("queries" in content) {
     const block =
       content.queries.findLast(({ minHeight }) => viewport >= minHeight)?.height ?? content.block;
@@ -2094,10 +2354,52 @@ const laidOut = (style: Style, content: Content, height: number): Laid => {
 };
 
 /**
+ * Follow the frame's posts as `followed` does, for at most a number of posts.
+ *
+ * @param booting The frame.
+ * @param layout The document's layout.
+ * @param at Where the frame is.
+ * @param at.before The frame's height before.
+ * @param at.height The frame's height now.
+ * @param at.rounds How many posts more to follow.
+ * @returns The layout at the frame's last height.
+ */
+const followedFor = (
+  booting: Booted,
+  layout: Layout,
+  at: { readonly before: number; readonly height: number; readonly rounds: number },
+): Laid => {
+  const applied = heightsOf(booting.island).at(-1);
+  const laid = layout.layOut(at.height);
+
+  if (applied === at.height) {
+    booting.landed(
+      applied,
+      at.before * layout.shown.zoom,
+      applied * layout.shown.zoom,
+      layout.shown.ratio,
+    );
+  }
+
+  if (at.height !== at.before) {
+    booting.resized();
+  }
+
+  booting.later();
+
+  const last = heightsOf(booting.island).at(-1);
+
+  return last === undefined || last === at.height || at.rounds === 0
+    ? laid
+    : followedFor(booting, layout, { before: at.height, height: last, rounds: at.rounds - 1 });
+};
+
+/**
  * Follow the frame's posts as the island does, each written as the frame's height: the document
- * laid out again at it and its observations delivered, then, where the height changed, the frame's
- * `resize`, which in Chrome comes after the observations of the same rendering, then its timers;
- * until a post leaves the frame's height as it was, or the frame has posted twenty.
+ * laid out again at it and its observations delivered, the island's acknowledgment of the post,
+ * then, where the height changed, the frame's `resize`, which in Chrome comes after the
+ * observations of the same rendering, then its timers;
+ * until a post leaves the frame's height as it was, or twenty posts have been followed.
  *
  * @param booting The frame.
  * @param layout The document's layout.
@@ -2105,21 +2407,74 @@ const laidOut = (style: Style, content: Content, height: number): Laid => {
  * @param before The frame's height before.
  * @returns The layout at the frame's last height.
  */
-const followed = (booting: Booted, layout: Layout, height: number, before: number): Laid => {
-  const laid = layout.layOut(height);
+const followed = (booting: Booted, layout: Layout, height: number, before: number): Laid =>
+  followedFor(booting, layout, { before, height, rounds: 20 });
 
-  if (height !== before) {
+/**
+ * A host page's own rules for the frame element: the height the element takes once the island
+ * applies a post, a host's `min-height` or a fixed height of its own among them; and, for a host
+ * that resizes the frame on its own after each post, the height it then sets.
+ */
+interface Host {
+  readonly applied: (posted: number) => number;
+  readonly later?: (posted: number) => number;
+}
+
+/**
+ * Follow the frame's posts as plate's island does under a host's own rules (`Host`): each post
+ * applied, the element at the height the host's rules give it, the document laid out there, the
+ * island's acknowledgment with the element's height before and after, the frame's `resize` and
+ * timers; then the host's own resize, where it makes one, laid out with its `resize` and timers
+ * and no acknowledgment; until no post comes, or twenty posts have been followed.
+ *
+ * @param booting The frame.
+ * @param layout The document's layout.
+ * @param host The host's rules.
+ * @param frame The frame element's height, which the following moves.
+ * @param frame.height The height.
+ */
+const hostFollowed = (
+  booting: Booted,
+  layout: Layout,
+  host: Host,
+  frame: { height: number },
+): void => {
+  const rounds = Array.from({ length: 20 }, (_, round) => round);
+  let seen = 0;
+
+  for (const round of rounds) {
+    const heights = heightsOf(booting.island);
+    const posted = heights.at(-1);
+
+    if (posted === undefined || heights.length === seen) {
+      return;
+    }
+
+    seen = heights.length;
+
+    const from = frame.height;
+    const applied = host.applied(posted);
+
+    frame.height = applied;
+    layout.layOut(applied);
+    booting.landed(
+      posted,
+      from * layout.shown.zoom,
+      applied * layout.shown.zoom,
+      layout.shown.ratio,
+    );
     booting.resized();
+    booting.later();
+
+    const later = host.later?.(posted);
+
+    if (later !== undefined && round >= 0) {
+      frame.height = later;
+      layout.layOut(later);
+      booting.resized();
+      booting.later();
+    }
   }
-
-  booting.later();
-
-  const heights = heightsOf(booting.island);
-  const last = heights.at(-1);
-
-  return last === undefined || last === height || heights.length >= 20
-    ? laid
-    : followed(booting, layout, last, height);
 };
 
 /**
@@ -2322,6 +2677,73 @@ const scrollsOf = (style: Style): boolean => {
 };
 
 /**
+ * A frame booted on the test's layout of a case, as `bootedOn` boots it, in a frame a host zooms
+ * on a device of a pixel ratio: its viewport whole host pixels, its resolution the two's product,
+ * as Chrome gives a zoomed frame (`car-i7/probe/zoom-measure.log` in the lane's directory).
+ *
+ * @param html The served page's HTML.
+ * @param sheet The case's stylesheet, on the root and the body.
+ * @param sheet.body On the body.
+ * @param sheet.root On the root.
+ * @param sheet.script What the PCI's script writes in the root's `style`.
+ * @param content What the document holds, by the frame's height.
+ * @param shown How the frame is shown.
+ * @param shown.ratio The device's pixel ratio.
+ * @param shown.zoom The host's zoom of the frame.
+ * @returns The frame, its layout, which the island acknowledges each post at, the first time it
+ *   lays the document out at it, and its style.
+ */
+const zoomedOn = (
+  html: string,
+  sheet: { readonly body: string; readonly root: string; readonly script?: string | undefined },
+  content: () => Content,
+  shown: { readonly ratio: number; readonly zoom: number },
+): BootedOn => {
+  const style = styleOf(
+    pinnedOf(html),
+    { body: declarationsOf(sheet.body), root: declarationsOf(sheet.root) },
+    { body: declarationsOf(""), root: declarationsOf(sheet.script ?? "") },
+  );
+  const layout = observedLayout((height) => laidOut(style, content(), height), {}, shown);
+  const booting = booted(
+    layout.root,
+    layout.observer,
+    (element) => ({
+      writingMode: style(element === layout.root ? "root" : "body", "writing-mode"),
+    }),
+    layout.viewport,
+    () => shown.zoom * shown.ratio,
+  );
+
+  booting.receive({ ...loadOfA, ratio: shown.ratio }, booting.island);
+
+  let applied: number = iframe.firstHeight;
+  let acked = 0;
+
+  return {
+    booting,
+    layout: {
+      ...layout,
+      layOut: (height) => {
+        const from = applied;
+        const laid = layout.layOut(height);
+        const heights = heightsOf(booting.island);
+
+        applied = height;
+
+        if (heights.length > acked && heights.at(-1) === height) {
+          acked = heights.length;
+          booting.landed(height, from * shown.zoom, height * shown.zoom, shown.ratio);
+        }
+
+        return laid;
+      },
+    },
+    styled: style,
+  };
+};
+
+/**
  * A frame booted on the test's layout of a case, the island's `load` given it: the case's
  * stylesheet over the served page's `style` attributes, its writing modes answered element by
  * element.
@@ -2332,32 +2754,14 @@ const scrollsOf = (style: Style): boolean => {
  * @param sheet.root On the root.
  * @param sheet.script What the PCI's script writes in the root's `style`.
  * @param content What the document holds, by the frame's height.
- * @returns The frame, its layout and its style.
+ * @returns The frame, its layout, which the island acknowledges each post at, the first time it
+ *   lays the document out at it, and its style.
  */
 const bootedOn = (
   html: string,
   sheet: { readonly body: string; readonly root: string; readonly script?: string | undefined },
   content: () => Content,
-): BootedOn => {
-  const style = styleOf(
-    pinnedOf(html),
-    { body: declarationsOf(sheet.body), root: declarationsOf(sheet.root) },
-    { body: declarationsOf(""), root: declarationsOf(sheet.script ?? "") },
-  );
-  const layout = observedLayout((height) => laidOut(style, content(), height), {});
-  const booting = booted(
-    layout.root,
-    layout.observer,
-    (element) => ({
-      writingMode: style(element === layout.root ? "root" : "body", "writing-mode"),
-    }),
-    layout.viewport,
-  );
-
-  booting.receive(loadOfA, booting.island);
-
-  return { booting, layout, styled: style };
-};
+): BootedOn => zoomedOn(html, sheet, content, unzoomed);
 
 describe("the frame's height, followed post by post as the island writes it", () => {
   afterEach(() => {
@@ -2498,18 +2902,212 @@ const queryCases: readonly {
  * @param layout The document's layout.
  * @param toggle The toggle of the content.
  * @param toggles How many times to toggle it.
+ * @returns The posts of each toggle.
  */
-const toggled = (booting: Booted, layout: Layout, toggle: () => void, toggles: number): void => {
+const toggled = (
+  booting: Booted,
+  layout: Layout,
+  toggle: () => void,
+  toggles: number,
+): readonly (readonly number[])[] => {
   if (toggles === 0) {
-    return;
+    return [];
   }
 
+  const before = heightsOf(booting.island).length;
   const shown = heightsOf(booting.island).at(-1) ?? iframe.firstHeight;
 
   toggle();
   booting.mutated();
   followed(booting, layout, shown, shown);
-  toggled(booting, layout, toggle, toggles - 1);
+
+  return [
+    heightsOf(booting.island).slice(before),
+    ...toggled(booting, layout, toggle, toggles - 1),
+  ];
+};
+
+/**
+ * Boot a frame on a content, follow its posts to its stop, then change the content once at the
+ * frame's fixed viewport, by a script's mutation, or by a picture's layout, observed before its
+ * `load`, and follow the frame's posts again.
+ *
+ * @param html The served page's HTML.
+ * @param content The content, before the change and after it.
+ * @param by How the change comes: a mutation, or a picture's `load`.
+ * @returns The posts, and the frame's height and the content's at the end.
+ */
+const changedOnce = (
+  html: string,
+  content: (changed: boolean) => Content,
+  by: "load" | "mutation",
+): string => {
+  let changed = false;
+  const { booting, layout } = bootedOn(html, { body: "", root: "" }, () => content(changed));
+
+  followed(booting, layout, iframe.firstHeight, iframe.firstHeight);
+
+  const stop = heightsOf(booting.island).at(-1) ?? iframe.firstHeight;
+
+  changed = true;
+
+  if (by === "mutation") {
+    booting.mutated();
+  } else {
+    layout.layOut(stop);
+    booting.signalled("load");
+  }
+
+  const laid = followed(booting, layout, heightsOf(booting.island).at(-1) ?? stop, stop);
+  const frame = heightsOf(booting.island).at(-1) ?? stop;
+
+  return `${heightsOf(booting.island).join(", ")}; frame ${String(frame)} for ${String(Math.ceil(laid.block))}`;
+};
+
+/**
+ * COLD i6's runaways, each content beside a change made ten times at the frame's fixed viewport:
+ * two full-height panels beside 20 px shown and hidden (P5) and beside a `50vh` block (P6); a
+ * heading over a full-height block beside a `50vh` block (P2, P15) and beside a block swapped
+ * between `20vh` and `60vh` (P11).
+ */
+const runawayCases: readonly {
+  readonly content: (shown: number) => Content;
+  readonly name: string;
+  readonly stop: number;
+  readonly twice: boolean;
+}[] = [
+  { content: (shown) => ({ block: shown, screens: 2 }), name: "P5", stop: 1248, twice: false },
+  {
+    content: (shown) => ({ block: 0, screens: 2 + shown / 40 }),
+    name: "P6",
+    stop: 1248,
+    twice: false,
+  },
+  {
+    content: (shown) => ({ block: 72, screens: 1 + shown / 40 }),
+    name: "P2",
+    stop: 476,
+    twice: false,
+  },
+  {
+    content: (shown) => ({ block: 72, screens: 1.2 + shown / 50 }),
+    name: "P11",
+    stop: 626,
+    twice: false,
+  },
+];
+
+/**
+ * Change a frame's content a number of times, each at the frame's fixed viewport, its mutation
+ * and its observation, then the frame's posts followed; or, twice, the second change's
+ * observation made while the first's post is on its way, before the island has written it.
+ *
+ * @param booting The frame.
+ * @param layout The document's layout.
+ * @param toggle The change.
+ * @param twice Whether each change is made twice, the second in flight.
+ * @param changes How many changes to make.
+ * @returns For each change, how many posts it made and the frame's height after it.
+ */
+const budgeted = (
+  booting: Booted,
+  layout: Layout,
+  toggle: () => void,
+  twice: boolean,
+  changes: number,
+): readonly string[] => {
+  if (changes === 0) {
+    return [];
+  }
+
+  const before = heightsOf(booting.island).length;
+  const shown = heightsOf(booting.island).at(-1) ?? iframe.firstHeight;
+
+  toggle();
+  booting.mutated();
+  layout.layOut(shown);
+
+  if (twice) {
+    toggle();
+    booting.mutated();
+    layout.layOut(shown);
+    toggle();
+  }
+
+  followed(booting, layout, heightsOf(booting.island).at(-1) ?? shown, shown);
+
+  const after = heightsOf(booting.island);
+
+  return [
+    `${String(after.length - before)} to ${String(after.at(-1) ?? shown)}`,
+    ...budgeted(booting, layout, toggle, twice, changes - 1),
+  ];
+};
+
+/**
+ * COLD i6's transitions, each content with the height that transitions in it, and that height at
+ * a viewport: a heading over a full-height block (TR2) and two full-height panels (TR4), whose
+ * transitions restart at each post; and `50vh` over 300 px with 200 px a `min-height` of 500
+ * brings in (TR3).
+ */
+const transitionCases: readonly {
+  readonly content: (moved: number) => Content;
+  readonly name: string;
+  readonly target: (viewport: number) => number;
+}[] = [
+  { content: (moved) => ({ block: 72 + moved }), name: "TR2", target: (viewport) => viewport },
+  { content: (moved) => ({ block: 2 * moved }), name: "TR4", target: (viewport) => viewport },
+  {
+    content: (moved) => ({ block: 300 + moved, screens: 0.5 }),
+    name: "TR3",
+    target: (viewport) => (viewport >= 500 ? 200 : 0),
+  },
+];
+
+/**
+ * Follow a frame whose full-height blocks transition to each new viewport: the island writes the
+ * last post as the frame's height, the transition runs from the blocks' height to the new one,
+ * its frames each laid out and observed, the `resize` and the timers between, then it ends, its
+ * `finished` settled and its `transitionend` fired, its last frame laid out, and, once the tasks
+ * queued so far have run, the timers run; until a post leaves the frame's height as it was.
+ *
+ * @param booting The frame.
+ * @param layout The document's layout.
+ * @param motion The blocks' transition: from a height to a height, and how far it has come.
+ * @param shown The frame's height before.
+ * @param rounds The most posts to follow.
+ * @returns Once the posts are followed.
+ */
+const transitioned = async (
+  booting: Booted,
+  layout: Layout,
+  motion: { at: number; from: number; readonly target: (viewport: number) => number; to: number },
+  shown: number,
+  rounds: number,
+): Promise<void> => {
+  const next = heightsOf(booting.island).at(-1) ?? shown;
+
+  if (next === shown || rounds === 0) {
+    return;
+  }
+
+  motion.from += (motion.to - motion.from) * motion.at;
+  motion.to = motion.target(next);
+  motion.at = 0;
+  booting.animations.push(runningOn("height"));
+  layout.layOut(next);
+  booting.resized();
+  booting.later();
+  motion.at = 0.5;
+  layout.layOut(next);
+  booting.later();
+  endAll(booting.animations);
+  motion.at = 1;
+  booting.signalled("transitionend");
+  layout.layOut(next);
+  await setImmediate();
+  booting.later();
+  await transitioned(booting, layout, motion, next, rounds - 1);
 };
 
 /**
@@ -2605,6 +3203,7 @@ const framed = (
   }
 
   if (resized && writes === "with each resize") {
+    layout.moveTo(next);
     booting.resized();
   }
 
@@ -2661,6 +3260,123 @@ const scriptedCases: readonly {
   },
 ];
 
+/**
+ * A frame booted under an island whose root the test reports by hand: the frame, and a way to
+ * report the root at an inline and a block size through each `ResizeObserver` the frame
+ * constructs.
+ */
+interface Reported {
+  readonly booting: Booted;
+  readonly observed: (inline: number, block: number) => void;
+}
+
+/**
+ * Boot a frame under an island whose root the test reports by hand.
+ *
+ * @param viewport The frame's viewport's height now.
+ * @param resolution The frame's resolution, its zoom times its device's pixel ratio.
+ * @returns The frame and its report.
+ */
+const reportedFrame = (viewport: () => number, resolution: () => number): Reported => {
+  const reports: ((entries: readonly ResizeObserverEntry[]) => void)[] = [];
+  const booting = booted(
+    plainRoot(),
+    class {
+      readonly observed: Element[] = [];
+
+      constructor(report: (entries: readonly ResizeObserverEntry[]) => void) {
+        reports.push(report);
+      }
+
+      observe(target: Element): void {
+        this.observed.push(target);
+      }
+    },
+    horizontalOnly,
+    viewport,
+    resolution,
+  );
+
+  return {
+    booting,
+    observed: (inline, block) => {
+      for (const report of reports) {
+        report([
+          entryOf(document.documentElement, {
+            block,
+            content: block,
+            inline,
+            rect: block,
+            taken: block,
+          }),
+        ]);
+      }
+    },
+  };
+};
+
+/**
+ * The heights a frame at a resolution of 1.25 posts for a root of 216 px at a width of 600, then of
+ * 217 px at a width of 500, the island's ratio given by its load and, where it gives one, by an
+ * acknowledgment of the first post.
+ *
+ * @param load The ratio the island's load gives.
+ * @param acknowledged The ratio its acknowledgment of the first post gives, none for no
+ *   acknowledgment.
+ * @returns The heights posted.
+ */
+const ratioed = (load: number, acknowledged: number | null): readonly number[] => {
+  const seen = reportedFrame(
+    () => iframe.firstHeight,
+    () => 1.25,
+  );
+
+  seen.booting.receive({ ...loadOfA, ratio: load }, seen.booting.island);
+  seen.observed(600, 216);
+
+  if (acknowledged !== null) {
+    seen.booting.landed(216, iframe.firstHeight, 216, acknowledged);
+  }
+
+  seen.observed(500, 217);
+
+  return heightsOf(seen.booting.island);
+};
+
+/**
+ * The heights a frame posts for a heading over a 100vh block, its slope of 1 kept over two echoes,
+ * once a zoom on its element moves its viewport and resolution and the content found there is
+ * 600 px.
+ *
+ * @param zoom The zoom.
+ * @returns The heights posted.
+ */
+const zoomShifted = (zoom: number): readonly number[] => {
+  let viewport: number = iframe.firstHeight;
+  let resolution = 1;
+  const seen = reportedFrame(
+    () => viewport,
+    () => resolution,
+  );
+  const at = (pixels: number, from: number, block: number): void => {
+    seen.booting.landed(pixels, from, pixels, 1);
+    viewport = pixels;
+    seen.observed(600, block);
+    seen.booting.later();
+  };
+
+  seen.booting.receive(loadOfA, seen.booting.island);
+  seen.observed(600, 372);
+  at(372, iframe.firstHeight, 444);
+  at(444, 372, 516);
+  resolution = zoom;
+  viewport = Math.round(444 / zoom);
+  seen.observed(600, 600);
+  seen.booting.later();
+
+  return heightsOf(seen.booting.island);
+};
+
 describe("content sized from its own viewport, which no height fits", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -2698,8 +3414,12 @@ describe("content sized from its own viewport, which no height fits", () => {
     const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
     let written = 0;
     const style = styleOf(pinnedOf(page.html), declaredNone, declaredNone);
-    const layout = observedLayout((height) => laidOut(style, { block: written }, height), {});
-    const booting = booted(layout.root, layout.observer, horizontalOnly, layout.viewport);
+    const layout = observedLayout(
+      (height) => laidOut(style, { block: written }, height),
+      {},
+      unzoomed,
+    );
+    const booting = booted(layout.root, layout.observer, horizontalOnly, layout.viewport, () => 1);
 
     layout.layOut(iframe.firstHeight);
 
@@ -2734,6 +3454,7 @@ describe("content sized from its own viewport, which no height fits", () => {
       },
       horizontalOnly,
       () => viewport,
+      () => 1,
     );
     const observed = (inline: number, block: number): void => {
       for (const report of reports) {
@@ -2751,17 +3472,184 @@ describe("content sized from its own viewport, which no height fits", () => {
 
     booting.receive(loadOfA, booting.island);
     observed(600, 216);
+    booting.landed(216, iframe.firstHeight, 216, 1);
     viewport = 216;
     observed(500, 248);
+    booting.landed(248, 216, 248, 1);
     viewport = 248;
     observed(500, 264);
+    booting.later();
+    booting.landed(264, 248, 264, 1);
     viewport = 264;
     observed(500, 280);
+    booting.later();
 
     assert.deepStrictEqual(
       heightsOf(booting.island),
       [216, 248, 264],
       "the observation that follows the frame's own resize, its width changed too, is the content reflowing, and is posted; the next, its width as it was, is a first echo, posted once more; and the echo of that post is dropped",
+    );
+  });
+
+  it("takes the island's device pixel ratio from its load for its first posts, and from each acknowledgment after: a width change before the first acknowledgment and one after it", () => {
+    assert.deepStrictEqual(
+      {
+        acknowledged: ratioed(1.25, 2.5),
+        loaded: ratioed(2.5, null),
+        unchanged: ratioed(1.25, null),
+      },
+      { acknowledged: [216, 218], loaded: [216, 218], unchanged: [216, 217] },
+      "at a resolution of 1.25, a ratio of 2.5 is a zoom of 0.5, whose least sure move is 2 px, so a rise of a pixel after a width change posts 2; the load's ratio gives it before any acknowledgment, and an acknowledgment's from then on. At a ratio of 1.25, no zoom, a pixel is sure",
+    );
+  });
+
+  it("refuses a load with no device pixel ratio and an acknowledgment with no height before it, so no island that leaves either out is taken", () => {
+    const { ratio: _ratio, ...unratioed } = loadOfA;
+    const loading = reportedFrame(
+      () => iframe.firstHeight,
+      () => 1,
+    );
+
+    loading.booting.refused(unratioed);
+
+    const unloaded = loading.booting.made.length;
+
+    loading.booting.receive(loadOfA, loading.booting.island);
+
+    const landing = reportedFrame(
+      () => iframe.firstHeight,
+      () => 1.25,
+    );
+
+    landing.booting.receive({ ...loadOfA, ratio: 1.25 }, landing.booting.island);
+    landing.observed(600, 216);
+    landing.booting.refused({ height: 216, kind: "landed", nonce, pixels: 216, ratio: 2.5 });
+    landing.observed(500, 217);
+
+    assert.deepStrictEqual(
+      {
+        landed: heightsOf(landing.booting.island),
+        loaded: loading.booting.made.length,
+        unloaded,
+      },
+      { landed: [216, 217], loaded: 2, unloaded: 0 },
+      "a load with no ratio builds nothing, and the load with its ratio builds the PCI's element and its script; an acknowledgment with no `from` is taken for nothing, its ratio of 2.5 among it, so a rise of a pixel after a width change at a resolution of 1.25 is posted as a pixel, the load's ratio's step",
+    );
+  });
+
+  it("judges a settled post's echo only once two looks find the frame at rest, so an observation between them, its layout still catching up, holds it a rendering more", () => {
+    let viewport: number = iframe.firstHeight;
+    const seen = reportedFrame(
+      () => viewport,
+      () => 1,
+    );
+
+    seen.booting.receive(loadOfA, seen.booting.island);
+    seen.observed(600, 372);
+    seen.booting.landed(372, iframe.firstHeight, 372, 1);
+    viewport = 372;
+    seen.booting.step();
+    seen.observed(600, 430);
+    seen.booting.step();
+    seen.observed(600, 444);
+    seen.booting.later();
+
+    assert.deepStrictEqual(
+      heightsOf(seen.booting.island),
+      [372, 444],
+      "a heading over a 100vh block: the chain's first post, 372, settles; the first look finds the viewport at 372, and a box laid out at a viewport still on its way, 430, is observed before the second, which looks again; the box at 372, 444, is the echo, posted once more. Judged at the second look, the box mid-way read the chain's line through the wrong viewport (RED i7″'s script-animated host, P1)",
+    );
+  });
+
+  it("judges a settled post's echo once the transitions running at its look have ended, whatever runs then, so a stream of them holds no echo back: RED's TS1", async () => {
+    let viewport: number = iframe.firstHeight;
+    const seen = reportedFrame(
+      () => viewport,
+      () => 1,
+    );
+    const first = runningOn("height");
+    const second = runningOn("height");
+
+    seen.booting.receive(loadOfA, seen.booting.island);
+    seen.observed(600, 372);
+    viewport = 372;
+    seen.observed(600, 444);
+    seen.booting.animations.push(first);
+    seen.booting.landed(372, iframe.firstHeight, 372, 1);
+    seen.booting.later();
+    seen.booting.animations.splice(0, 1, second);
+    first.end();
+    await setImmediate();
+    seen.booting.later();
+
+    assert.deepStrictEqual(
+      heightsOf(seen.booting.island),
+      [372, 444],
+      "the box at the post's viewport is observed while the post is on its way; the look after it settled waits for the transition running then; once it ends, another runs, and the echo is judged at that box, posted once more, the chain's first echo. A look that waited for every transition stood at the first post while a stream ran (RED i7″'s TS1 under the frame's settled word)",
+    );
+  });
+
+  it("stops a chain whose second echo stands at its first's viewport, a host holding the frame, and keeps no slope from it", () => {
+    const seen = reportedFrame(
+      () => 400,
+      () => 1,
+    );
+
+    seen.booting.receive(loadOfA, seen.booting.island);
+    seen.observed(600, 500);
+    seen.booting.landed(500, 400, 400, 1);
+    seen.observed(600, 500);
+    seen.booting.later();
+    seen.booting.landed(500, 400, 400, 1);
+    seen.observed(600, 500);
+    seen.booting.later();
+    seen.observed(600, 520);
+    seen.booting.later();
+
+    assert.deepStrictEqual(
+      heightsOf(seen.booting.island),
+      [500, 500, 520],
+      "500 px of fixed content in a frame a host holds at 400: the chain's two echoes stand at one viewport, no line, so it stops with no slope, and 20 px added start a chain from the content, 520; a slope read from no run, 1, took the content for one growing with the viewport, and probed",
+    );
+  });
+
+  it("forgets the kept slope when a zoom on the frame's element changes its resolution, at 1.25, 0.8 and 1.5, so the content there starts a chain of its own: RED i7″'s zoom shift", () => {
+    assert.deepStrictEqual(
+      { 0.8: zoomShifted(0.8), 1.25: zoomShifted(1.25), 1.5: zoomShifted(1.5) },
+      { 0.8: [372, 444, 600], 1.25: [372, 444, 600], 1.5: [372, 444, 600] },
+      "a heading over a 100vh block keeps a slope of 1; the host zooms the frame's element, its viewport and resolution move, and the content found there is posted as a chain's first post, its own height, never followed along the line the old resolution kept; kept across the zoom, `99vh` over 300 px climbed to 20,244 px where it stopped at 4300",
+    );
+  });
+
+  it("forgets the kept slope when the frame's width changes, so the content at the new width starts a chain of its own", () => {
+    let viewport: number = iframe.firstHeight;
+    const seen = reportedFrame(
+      () => viewport,
+      () => 1,
+    );
+    const at = (pixels: number, from: number, inline: number, block: number): void => {
+      seen.booting.landed(pixels, from, pixels, 1);
+      viewport = pixels;
+      seen.observed(inline, block);
+      seen.booting.later();
+    };
+
+    seen.booting.receive(loadOfA, seen.booting.island);
+    seen.observed(600, 372);
+    at(372, iframe.firstHeight, 600, 444);
+    at(444, 372, 600, 516);
+    seen.observed(500, 600);
+    at(600, 444, 500, 600);
+    seen.booting.landed(600, 600, 600, 1);
+    seen.booting.later();
+    viewport = 560;
+    seen.observed(500, 600);
+    seen.booting.later();
+
+    assert.deepStrictEqual(
+      heightsOf(seen.booting.island),
+      [372, 444, 600, 600, 600],
+      "a heading over a 100vh block keeps a slope of 1; at a width of 500 the content is a fixed 600 px, posted and once more at its echo, and a host's resize to 560 finds it where it was, on no line kept, a chain of its own from the content; a slope kept across the width read it as off the old line beside overflowing content, and probed",
     );
   });
 
@@ -2795,8 +3683,51 @@ describe("content sized from its own viewport, which no height fits", () => {
         stopped: Math.ceil(stopped.block),
         within: heightsOf(same.booting.island),
       },
-      { after: [326, 352, 452], stopped: 378, within: [326, 452] },
-      "the frame stops at 352 with 378 to show; a picture 100 px tall that loads once it has stopped is a change at a fixed viewport, which the slope the frame measured, 1, follows: 452, the viewport plus the change, whose echo grows as that slope says; one whose load, a content signal, lands just before the observation that echoes the frame's resize to 326 is posted as that echo, 452, and the echo of that post is dropped",
+      { after: [326, 352, 351, 352], stopped: 378, within: [326, 452] },
+      "the frame stops at 352 with 378 to show; a picture 100 px tall that loads once it has stopped is a change at a fixed viewport beside content that grows as fast as the viewport, slope 1, which still overflows the frame: the frame probes one pixel below its stop, whose echo shows the slope still 1, so no height fits it and the frame goes back to 352; one whose load, a content signal, lands just before the observation that echoes the frame's resize to 326 is posted as that echo, 452, and the echo of that post is dropped",
+    );
+  });
+
+  it("posts a web font served late under Safari, whose font set fires no event, whose swap lands in the echo it drops, its face loaded after that observation or before it", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const sheet = { body: "", root: "padding-bottom: 10px" };
+    let afterSwap = 0;
+    let beforeSwap = 0;
+    const after = bootedOn(page.html, sheet, () => ({ block: afterSwap, screens: 1 }));
+
+    after.booting.fontJoined();
+    after.booting.mutated();
+    after.layout.layOut(iframe.firstHeight);
+    after.booting.later();
+    after.layout.layOut(326);
+    after.booting.resized();
+    after.booting.later();
+    afterSwap = 100;
+    after.layout.layOut(352);
+    after.booting.resized();
+    after.booting.later();
+
+    const dropped = heightsOf(after.booting.island);
+
+    await after.booting.fontLoaded();
+    followed(after.booting, after.layout, 478, 352);
+
+    const before = bootedOn(page.html, sheet, () => ({ block: beforeSwap, screens: 1 }));
+
+    before.booting.fontJoined();
+    before.layout.layOut(iframe.firstHeight);
+    before.booting.later();
+    before.layout.layOut(326);
+    before.booting.resized();
+    before.booting.later();
+    beforeSwap = 100;
+    await before.booting.fontLoaded();
+    followed(before.booting, before.layout, 352, 326);
+
+    assert.deepStrictEqual(
+      { after: heightsOf(after.booting.island), before: heightsOf(before.booting.island), dropped },
+      { after: [326, 352, 478], before: [326, 352, 478], dropped: [326, 352] },
+      "the document's font set fires no `loadingdone`, as Safari's fires none (WebKit bug 304091), so the face's own `loaded` is the content signal, the face found at the mutation that adds it or at the observation after it joined: a swap of 100 px that lands in the echo of the frame's second post, which grows as no `V + c` echo does, is dropped, and the face's load after it posts the height that echo held, 478; a load before that observation marks the drop it makes as held, posted at once, 478. A frame that waited for `loadingdone` kept 352",
     );
   });
 
@@ -2830,6 +3761,7 @@ describe("content sized from its own viewport, which no height fits", () => {
     const lookedAt = (frameHeight: number): void => {
       layout.layOut(frameHeight);
       booting.resized();
+      booting.later();
       booting.later();
       seen = frameHeight;
       layout.layOut(frameHeight);
@@ -2969,37 +3901,780 @@ describe("content sized from its own viewport, which no height fits", () => {
 
       followed(booting, layout, iframe.firstHeight, iframe.firstHeight);
 
-      const stops = heightsOf(booting.island).length;
-
-      toggled(
+      const stop = heightsOf(booting.island).at(-1);
+      const each = toggled(
         booting,
         layout,
         () => {
           shown = 20 - shown;
         },
-        10,
-      );
+        50,
+      ).map((posts) => posts.join(" "));
 
       return {
-        stop: heightsOf(booting.island).at(stops - 1),
-        toggled: heightsOf(booting.island).slice(stops),
+        distinct: [...new Set(each.flatMap((posts) => posts.split(" ")))].join(" "),
+        posts: each.slice(0, 2).join(" | "),
+        same: each.every((posts, toggle) => toggle < 2 || posts === each[toggle - 2]),
+        stop,
       };
     };
-    const t1 = toggling((shown) => ({ block: 72 + shown, screens: 1 }));
-    const half = toggling((shown) => ({ block: 300 + shown, screens: 0.5 }));
 
     assert.deepStrictEqual(
       {
-        half,
-        strayed: t1.toggled.filter((posted) => Math.abs(posted - (t1.stop ?? 0)) > 20),
-        t1,
+        half: toggling((shown) => ({ block: 300 + shown, screens: 0.5 })),
+        lines: toggling((shown) => ({ block: shown, screens: 0, text: 600, vh: 4 })),
+        linesBeside: toggling((shown) => ({ block: 72 + shown, screens: 1, text: 600, vh: 4 })),
+        t1: toggling((shown) => ({ block: 72 + shown, screens: 1 })),
       },
       {
-        half: { stop: 632, toggled: [672, 632, 672, 632, 672, 632, 672, 632, 672, 632] },
-        strayed: [],
-        t1: { stop: 476, toggled: [496, 476, 496, 476, 496, 476, 496, 476, 496, 476] },
+        half: { distinct: "672 632", posts: "672 | 632", same: true, stop: 632 },
+        lines: { distinct: "38 17", posts: "38 | 17", same: true, stop: 17 },
+        linesBeside: { distinct: "852 853", posts: "852 853 | 852 853", same: true, stop: 853 },
+        t1: { distinct: "475 476", posts: "475 476 | 475 476", same: true, stop: 476 },
       },
-      "COLD's T1: a heading over a 100vh block, beside 20 px shown and hidden ten times, each a change at the frame's fixed viewport; the slope its chain measured, 1, is kept, so each is followed by the viewport plus the change, 496 and 476, the 88 px of overflow scrolling as before, where each had started a chain that added the overflow again, 88 px a toggle. 50vh over 300 px, its slope 0.5 kept, moves between its two fixed points, 632 and 672, one post each",
+      "the same content at the same viewport posts the same heights, each toggle's posts those of the toggle two before, through fifty toggles. COLD's T1, a heading over a 100vh block beside 20 px shown and hidden, each a change at the frame's fixed viewport: the slope its chain measured, 1, is kept, and the content still overflows the frame, so the frame probes one pixel below its stop, finds the slope there, and goes back, 475 and 476, where each change had started a chain that added the overflow again, 88 px a toggle. 50vh over 300 px, its slope 0.5 kept, moves between its two fixed points, 632 and 672, one post each. Text set in 4vh, whose lines break anew as the viewport grows, COLD i7's step-shaped content: alone, it stops at 17, its fixed point, each toggle one post, 38 and 17; beside a 100vh block, at 853, each toggle the probe and the stop, 852 and 853",
+    );
+  });
+
+  it("probes one quantum below its stop after a change beside content that grows as fast as the viewport and overflows, and ends where the content fits, or, where no height does, at its stop: COLD i7's SC1 to SC5 and PIC1 to PIC3, and P10", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const runs = {
+      pic1: changedOnce(
+        page.html,
+        (changed) => ({ block: changed ? 500 : 300, screens: 0.5 }),
+        "load",
+      ),
+      pic2: changedOnce(
+        page.html,
+        (changed) => ({ block: changed ? 272 : 72, screens: 1 }),
+        "load",
+      ),
+      pic3: changedOnce(page.html, (changed) => ({ block: changed ? 500 : 300 }), "load"),
+      sc1: changedOnce(
+        page.html,
+        (changed) => (changed ? { block: 2072 } : { block: 72, screens: 1 }),
+        "mutation",
+      ),
+      sc2: changedOnce(
+        page.html,
+        (changed) => (changed ? { block: 1500 } : { block: 0, screens: 1 }),
+        "mutation",
+      ),
+      sc3: changedOnce(
+        page.html,
+        (changed) => (changed ? { block: 72 } : { block: 72, screens: 1 }),
+        "mutation",
+      ),
+      sc4: changedOnce(
+        page.html,
+        (changed) => (changed ? { block: 2000, screens: 1 } : { block: 0, screens: 2 }),
+        "mutation",
+      ),
+      sc5: changedOnce(
+        page.html,
+        (changed) => (changed ? { block: 672, screens: 0.5 } : { block: 72, screens: 1 }),
+        "mutation",
+      ),
+    };
+    let shown = 0;
+    const stepped = bootedOn(page.html, { body: "", root: "" }, () => ({
+      block: 400 + shown,
+      queries: twoSteps.map(({ height, minHeight }) => ({ height: height + shown, minHeight })),
+    }));
+
+    followed(stepped.booting, stepped.layout, iframe.firstHeight, iframe.firstHeight);
+
+    const first = heightsOf(stepped.booting.island).join(", ");
+    const toggles = toggled(
+      stepped.booting,
+      stepped.layout,
+      () => {
+        shown = 20 - shown;
+      },
+      6,
+    ).map((posts) => posts.join(" "));
+
+    assert.deepStrictEqual(
+      { ...runs, p10: { first, toggles: toggles.join(" | ") } },
+      {
+        p10: { first: "416, 616", toggles: "615 836 | 816 | 836 | 816 | 836 | 816" },
+        pic1: "466, 549, 632, 1032; frame 1032 for 1032",
+        pic2: "388, 476, 475, 476; frame 476 for 764",
+        pic3: "316, 516; frame 516 for 516",
+        sc1: "388, 476, 475, 2088; frame 2088 for 2088",
+        sc2: "316, 332, 331, 1516; frame 1516 for 1516",
+        sc3: "388, 476, 88; frame 88 for 88",
+        sc4: "616, 1248, 1247, 1248; frame 1248 for 3264",
+        sc5: "388, 476, 475, 926, 1151, 1376; frame 1376 for 1376",
+      },
+      "a change at the frame's fixed viewport beside content whose kept slope is 1 or more and which overflows posts one pixel below the stop, whose echo, with the stop, gives the content's line past the change. SC1, a heading over a 100vh block set to 2000 px, and SC2, a 100vh splash replaced by 1500 px, no longer grow with the viewport, so a chain starts there and ends where they fit, 2088 and 1516, where the frame had stayed at 476 and 332 for good; SC5, the block set to 50vh with 600 px more, contracts, and its chain reaches its fixed point, 1376; SC4, one of two full-height panels set to 2000 px, and PIC2, a picture beside a heading over a 100vh block, still grow as fast as the viewport and overflow, so no height fits and the frame goes back to its stop, 1248 and 476, scrolling. SC3, the block removed, now fits, a chain, 88. PIC1, a picture below 50vh over 300 px, is posted at the kept slope's fixed point, 1032; PIC3, below 300 px, as a chain, 516. P10, COLD i6's two steps beside 20 px shown and hidden, stops one post short, 616 for 816, a step query whose growth reads as slope 1; at its first toggle the probe finds content that no longer grows there, and the chain fits it, 836, and each toggle after fits in one post, where I7 stayed short, 636 for 816",
+    );
+  });
+
+  it("follows a change after a flip only from a frame that fit its content, so RED i7's SH7, SH8 and SH11 end where their fixed content fits", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const flipped = (after: Content) =>
+      changedOnce(
+        page.html,
+        (changed) => (changed ? after : { block: 861, queries: [{ height: 461, minHeight: 600 }] }),
+        "mutation",
+      );
+
+    assert.deepStrictEqual(
+      {
+        sh11: flipped({ block: 500, queries: [{ height: 100, minHeight: 600 }] }),
+        sh7: flipped({ block: 461 }),
+        sh8: flipped({ block: 385 }),
+      },
+      {
+        sh11: "877, 477, 516; frame 516 for 516",
+        sh7: "877, 477, 477; frame 477 for 477",
+        sh8: "877, 477, 401; frame 401 for 401",
+      },
+      "RED i7's flip stops short, 477 for 877, its kept slope -1; a change of its fixed content then comes at a frame that did not fit its content, so it starts a chain, which ends where the content fits: SH7, the flip's block removed, 477; SH8, removed and the 461 px block set to 385 px, 401; SH11, the 461 px block set to 100 px, 516. Followed from the short frame by the slope, SH8 posted 477 + 401 - 877, a 1 px frame for 401 px of content, and SH7 77 and SH11 116",
+    );
+  });
+
+  it("follows a change only from a post that was its content's own height: not from a viewport a host holds above it, nor from a post above content that shrinks as the frame grows", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const changedUnder = (host: Host, content: (shown: number) => Content) => {
+      let shown = 0;
+      const { booting, layout } = bootedOn(page.html, { body: "", root: "" }, () => content(shown));
+      const frame = { height: iframe.firstHeight };
+
+      layout.layOut(iframe.firstHeight);
+      booting.later();
+      hostFollowed(booting, layout, host, frame);
+
+      const ends = Array.from({ length: 4 }, () => {
+        shown = 20 - shown;
+        booting.mutated();
+        layout.layOut(frame.height);
+        booting.later();
+        hostFollowed(booting, layout, host, frame);
+
+        return `${String(heightsOf(booting.island).at(-1))} for ${String(Math.ceil(layout.layOut(frame.height).block))}`;
+      });
+
+      return { ends, posts: heightsOf(booting.island) };
+    };
+
+    assert.deepStrictEqual(
+      {
+        held: changedUnder({ applied: (posted) => Math.max(posted, 700) }, (shown) => ({
+          block: 900 + shown,
+          screens: -0.5,
+        })),
+        shrinking: changedUnder({ applied: (posted) => posted }, (shown) => ({
+          block: 400 + shown,
+          screens: -0.7,
+        })),
+      },
+      {
+        held: {
+          ends: ["586 for 586", "566 for 566", "586 for 586", "566 for 566"],
+          posts: [766, 533, 586, 566, 586, 566],
+        },
+        shrinking: {
+          ends: ["264 for 252", "254 for 239", "255 for 258", "250 for 241"],
+          posts: [206, 272, 246, 264, 232, 254, 259, 255, 238, 250],
+        },
+      },
+      "a following step adds the change to the last post, so it starts only where that post was the content's own height. A host's `min-height: 700px` beside `calc(900px - 50vh)` holds the frame above its post, 533, its content 566 there: each 20 px toggled starts a chain, which posts the content's own height, 586, then 566; judged to fit by the 700 px the host holds, the frame had followed from its post, 553 for 586 and 533 for 566, below its content at every change. `calc(400px - 70vh)` stops at 272 for 226, the post above its content: a toggle starts a chain, which ends within 12 px of the content, two posts a change; followed from that post, it posted 292 for 232 and 272 for 226, 46 to 60 px of blank space for good",
+    );
+  });
+
+  it("is echoed at the island's acknowledgment where a host holds the frame, and meets a host's own resize with no post: COLD i7′'s strand (b), a fixed height, and RED i7′'s hosts adding 13 px or a tenth after each post", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const hosted = (host: Host, content: (shown: number) => Content, toggles: number) => {
+      let shown = 0;
+      const { booting, layout } = bootedOn(page.html, { body: "", root: "" }, () => content(shown));
+      const frame = { height: iframe.firstHeight };
+
+      layout.layOut(iframe.firstHeight);
+      booting.later();
+      hostFollowed(booting, layout, host, frame);
+
+      const first = heightsOf(booting.island).length;
+      const each = Array.from({ length: toggles }, () => {
+        const before = heightsOf(booting.island).length;
+
+        shown = 20 - shown;
+        booting.mutated();
+        layout.layOut(frame.height);
+        booting.later();
+        hostFollowed(booting, layout, host, frame);
+
+        return heightsOf(booting.island).length - before;
+      });
+      const laid = layout.layOut(frame.height);
+
+      return {
+        end: `frame ${String(frame.height)} for ${String(Math.ceil(laid.block))}`,
+        posts: `${heightsOf(booting.island).slice(0, first).join(", ")}; then ${[...new Set(each)].join("/")} a change`,
+      };
+    };
+    const minHeight: Host = { applied: (posted) => Math.max(posted, 400) };
+    const fixed: Host = { applied: () => 400 };
+    const plus13: Host = { applied: (posted) => posted, later: (posted) => posted + 13 };
+    const tenth: Host = {
+      applied: (posted) => posted,
+      later: (posted) => Math.round(posted * 1.1),
+    };
+
+    assert.deepStrictEqual(
+      {
+        fixed: hosted(fixed, (shown) => ({ block: 72 + shown, screens: 1 }), 6),
+        minHeight: hosted(minHeight, (shown) => ({ block: 300 + 25 * shown }), 1),
+        plus13: [
+          hosted(plus13, (shown) => ({ block: 72 + shown, screens: 1 }), 6),
+          hosted(plus13, (shown) => ({ block: shown, screens: 2 }), 6),
+          hosted(plus13, (shown) => ({ block: 300 + shown, screens: 0.5 }), 6),
+          hosted(plus13, (shown) => ({ block: 300 + shown, screens: 0.99 }), 6),
+        ],
+        tenth: [
+          hosted(tenth, (shown) => ({ block: 72 + shown, screens: 1 }), 6),
+          hosted(tenth, (shown) => ({ block: shown, screens: 2 }), 6),
+          hosted(tenth, (shown) => ({ block: 300 + shown, screens: 0.5 }), 6),
+          hosted(tenth, (shown) => ({ block: 300 + shown, screens: 0.99 }), 6),
+        ],
+      },
+      {
+        fixed: { end: "frame 400 for 488", posts: "388, 488; then 1 a change" },
+        minHeight: { end: "frame 816 for 816", posts: "316; then 1 a change" },
+        plus13: [
+          { end: "frame 489 for 577", posts: "388, 476; then 2 a change" },
+          { end: "frame 1261 for 2538", posts: "616, 1248; then 2 a change" },
+          { end: "frame 645 for 639", posts: "466, 549, 632; then 1 a change" },
+          { end: "frame 31614 for 31614", posts: "613, 923, 2153, 4601, 4871; then 3/1 a change" },
+        ],
+        tenth: [
+          { end: "frame 524 for 612", posts: "388, 476; then 2 a change" },
+          { end: "frame 1373 for 2762", posts: "616, 1248; then 2 a change" },
+          { end: "frame 695 for 664", posts: "466, 549, 632; then 1 a change" },
+          { end: "frame 34760 for 34729", posts: "613, 923, 2153, 4601, 4871; then 3/1 a change" },
+        ],
+      },
+      "plate's island acknowledges each post with the frame element's height it measured, before and after. A host's `min-height: 400px` holds the first post, 316, at 400, which the acknowledgment shows, so its echo is taken there, and 500 px added later is posted, 816, which fits (COLD i7′'s strand (b): 400 for 816 before). A host that holds the frame at 400 px echoes each post at its acknowledgment, the element unmoved, so the frame posts once a change and never waits. A host that sets the frame to each post plus 13 px, or a tenth more, once it has applied it, moves the frame on its own: that move is no echo, and where the content moved along its kept line it is met with no post, so a heading over 100vh, two full-height panels and 50vh over 300 px take at most two posts a change, a probe and the stop, and end where the host holds them, with no post back and forth; 99vh over 300 px reaches its own fixed point, 31,614 under +13 px and 34,729 under a tenth, as its estimates allow. Before, the host's +13 px drew a post at each resize: an @property transition beside a heading over 100vh reached 333,033 px in 9 s, and a script's animation posted 180 times in 9 s (RED i7′)",
+    );
+  });
+
+  it("takes each post's echo once the island says it settled, whichever way that word and the frame's viewport come: before the viewport moves, between its move and the rendering, after the rendering, and after the frame has looked", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const orders = [
+      "before the move",
+      "between the move and the rendering",
+      "after the rendering",
+      "after the frame looked",
+    ] as const;
+    const ordered = (
+      order: (typeof orders)[number],
+      content: (shown: number) => Content,
+    ): string => {
+      let shown = 0;
+      const blank = { body: declarationsOf(""), root: declarationsOf("") };
+      const style = styleOf(pinnedOf(page.html), blank, blank);
+      const layout = observedLayout(
+        (height) => laidOut(style, content(shown), height),
+        {},
+        unzoomed,
+      );
+      const booting = booted(
+        layout.root,
+        layout.observer,
+        horizontalOnly,
+        layout.viewport,
+        () => 1,
+      );
+      const follow = (from: number, rounds: number): void => {
+        const posted = heightsOf(booting.island).at(-1);
+
+        if (posted === undefined || rounds === 0 || posted === from) {
+          return;
+        }
+
+        const ack = (when: (typeof orders)[number]): void => {
+          if (order === when) {
+            booting.landed(posted, from, posted, 1);
+          }
+        };
+
+        ack("before the move");
+        ack("after the frame looked");
+
+        if (order === "after the frame looked") {
+          booting.later();
+        }
+
+        layout.moveTo(posted);
+        ack("between the move and the rendering");
+        layout.layOut(posted);
+        ack("after the rendering");
+        booting.later();
+        follow(posted, rounds - 1);
+      };
+
+      booting.receive(loadOfA, booting.island);
+      layout.layOut(iframe.firstHeight);
+      follow(iframe.firstHeight, 20);
+
+      const stop = heightsOf(booting.island).at(-1) ?? iframe.firstHeight;
+      const first = heightsOf(booting.island).length;
+
+      shown = 20;
+      booting.mutated();
+      layout.layOut(stop);
+      follow(stop, 20);
+
+      return `${heightsOf(booting.island).slice(0, first).join(", ")} | ${heightsOf(booting.island).slice(first).join(", ")}`;
+    };
+
+    assert.deepStrictEqual(
+      orders.map(
+        (order) =>
+          `${order}: ${ordered(order, (shown) => ({ block: 72 + shown, screens: 1 }))}; ${ordered(order, (shown) => ({ block: 300 + shown, screens: 0.5 }))}`,
+      ),
+      [
+        "before the move: 388, 476 | 475, 476; 466, 549, 632 | 672",
+        "between the move and the rendering: 388, 476 | 475, 476; 466, 549, 632 | 672",
+        "after the rendering: 388, 476 | 475, 476; 466, 549, 632 | 672",
+        "after the frame looked: 388, 476 | 475, 474, 476; 466, 549, 632 | 672",
+      ],
+      "the island says a post settled once its element is at rest, so the frame's viewport has had a frame of the island's to follow; wherever that word comes before the frame's rendering at the new viewport, the observation there is the echo, and a heading over a 100vh block stops at 476 and probes and goes back at a change, and 50vh over 300 px reaches 632 and then 672. Where the viewport comes only after the frame has looked, the echo is judged at the first observation with the viewport moved, and the probe, judged at once, reads as swallowed and goes twice as far, one post more: judged where the viewport had not yet moved, each echo of the heading started a chain at the move, 88 px more each time, to 2148 in twenty posts",
+    );
+  });
+
+  it("takes no change seen where the frame stood, its post acknowledged but its viewport not yet moved, as that post's echo", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    let content: Content = { block: 72, screens: 1 };
+    const blank = { body: declarationsOf(""), root: declarationsOf("") };
+    const style = styleOf(pinnedOf(page.html), blank, blank);
+    const layout = observedLayout((height) => laidOut(style, content, height), {}, unzoomed);
+    const booting = booted(layout.root, layout.observer, horizontalOnly, layout.viewport, () => 1);
+
+    booting.receive(loadOfA, booting.island);
+    followed(booting, layout, iframe.firstHeight, iframe.firstHeight);
+
+    const stop = heightsOf(booting.island).at(-1) ?? iframe.firstHeight;
+
+    content = { block: 72, screens: 0.3 };
+    booting.mutated();
+    layout.layOut(stop);
+
+    const down = heightsOf(booting.island).at(-1) ?? stop;
+
+    booting.landed(down, stop, down, 1);
+    content = { block: 92, screens: 0.3 };
+    booting.mutated();
+    layout.layOut(stop);
+    followed(booting, layout, down, stop);
+
+    assert.deepStrictEqual(
+      heightsOf(booting.island),
+      [388, 476, 231, 178, 155],
+      "a heading over a 100vh block stops at 476; its block set to 30vh, the content fits, a chain, its first post 231, below the stop; the island acknowledges it, and before the viewport moves, 20 px more are seen where the frame stood: no echo, since a range query matches past its value by 1/64 px and the move down is cleared past it, so that observation waits; at 231 the chain samples the content, 177.3, posts 178, and reaches the fixed point, 155, which fits. Taken as the echo where the frame stood, the change posted 251, its line through the wrong viewport",
+    );
+  });
+
+  it("holds a change every frame beside content that grows as fast as the viewport within a step of its stop: COLD i7′'s RT1 and RT3, through 120 frames", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const perFrame = (content: (frame: number) => Content): string => {
+      let frame = 0;
+      const { booting, layout } = bootedOn(page.html, { body: "", root: "" }, () => content(frame));
+
+      followed(booting, layout, iframe.firstHeight, iframe.firstHeight);
+
+      const stop = heightsOf(booting.island).at(-1) ?? iframe.firstHeight;
+      const first = heightsOf(booting.island).length;
+
+      for (const each of Array.from({ length: 120 }, (_, at) => at + 1)) {
+        frame = each;
+        booting.mutated();
+        layout.layOut(heightsOf(booting.island).at(-1) ?? stop);
+        booting.resized();
+        booting.later();
+      }
+
+      followed(booting, layout, heightsOf(booting.island).at(-1) ?? stop, stop);
+
+      const during = heightsOf(booting.island).slice(first);
+      const ordered = during.toSorted((one, other) => one - other);
+      const lowest = ordered[0] ?? stop;
+      const highest = ordered.at(-1) ?? stop;
+
+      return `stop ${String(stop)}; ${String(during.length)} posts within ${String(lowest - stop)}..${String(highest - stop)} of it`;
+    };
+
+    assert.deepStrictEqual(
+      {
+        rt1: perFrame((frame) => ({ block: 72 + frame, screens: 1 })),
+        rt3: perFrame((frame) => ({ block: frame % 2 === 0 ? 0 : 20, screens: 2 })),
+      },
+      {
+        rt1: "stop 476; 122 posts within -1..0 of it",
+        rt3: "stop 1248; 80 posts within -1..0 of it",
+      },
+      "a change every frame, its mutation before each observation: a block growing a pixel a frame beside a heading over 100vh (RT1), and 20 px shown and hidden every frame beside two full-height panels (RT3). Each probe's echo carries the next frame's change, so its two samples are no line, and the frame goes back to its stop: every post within a pixel of the stop through 120 frames. Chained from the overflowing content's own height instead, RT3 reached 172,344 px in 2 s and RT1 7928 for 8136 (COLD i7′)",
+    );
+  });
+
+  it("moves the viewport at every probe where a host zooms the frame below 1 on a device ratio above 1, so a later change is posted: COLD i7′'s strand (a)", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const stranded = (zoom: number, ratio: number): string => {
+      let content: Content = { block: 72, screens: 1 };
+      const { booting, layout } = zoomedOn(page.html, { body: "", root: "" }, () => content, {
+        ratio,
+        zoom,
+      });
+
+      followed(booting, layout, iframe.firstHeight, iframe.firstHeight);
+
+      const changedTo = (next: Content): void => {
+        const stop = heightsOf(booting.island).at(-1) ?? iframe.firstHeight;
+
+        content = next;
+        booting.mutated();
+        followed(booting, layout, stop, stop);
+      };
+
+      changedTo({ block: 272, screens: 1 });
+      changedTo({ block: 1500 });
+
+      const laid = layout.layOut(heightsOf(booting.island).at(-1) ?? iframe.firstHeight);
+
+      return `${String(zoom)} x ${String(ratio)}: ${heightsOf(booting.island).join(", ")}; content ${String(Math.ceil(laid.block))}`;
+    };
+
+    assert.deepStrictEqual(
+      [
+        stranded(0.95, 1.25),
+        stranded(0.8, 1.5),
+        stranded(0.75, 2),
+        stranded(0.8, 1.25),
+        stranded(0.5, 2),
+      ],
+      [
+        "0.95 x 1.25: 389, 478, 476, 478, 476, 1516; content 1516",
+        "0.8 x 1.5: 388, 478, 476, 478, 476, 1516; content 1516",
+        "0.75 x 2: 388, 476, 474, 476, 474, 1516; content 1516",
+        "0.8 x 1.25: 388, 477, 475, 477, 475, 1516; content 1516",
+        "0.5 x 2: 388, 476, 474, 476, 474, 1516; content 1516",
+      ],
+      "a heading over a 100vh block, 200 px added, then the content replaced by 1500 px, in a frame at a zoom below 1 on a device ratio above 1: the island's acknowledgment carries its ratio, from which the frame tells the zoom from its own resolution, so each probe moves the element by a host pixel or more, two frame pixels here, and its viewport moves; the probe after the replacement finds content that no longer grows with the viewport, and the frame fits it, 1516. With a step of a pixel the probe's viewport stayed where it stood at these pairs, its echo never came, and the replacement was never posted: 327 for 1516 (COLD i7′, 3(a))",
+    );
+  });
+
+  it("holds a chain to nine posts, the ninth at a signal: RED's 95vh over 300 px with a late step", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const { booting, layout } = bootedOn(page.html, { body: "", root: "" }, () => ({
+      block: 761,
+      queries: [{ height: 1261, minHeight: 2000 }],
+      screens: 0.95,
+    }));
+
+    followed(booting, layout, 477, 477);
+
+    const chain = heightsOf(booting.island);
+
+    booting.signalled("load");
+    followed(booting, layout, heightsOf(booting.island).at(-1) ?? 0, chain.at(-1) ?? 0);
+    booting.signalled("load");
+    followed(booting, layout, heightsOf(booting.island).at(-1) ?? 0, chain.at(-1) ?? 0);
+
+    assert.deepStrictEqual(
+      { chain, signalled: heightsOf(booting.island).slice(chain.length) },
+      { chain: [1231, 1947, 4574, 5623, 12_242, 25_149, 25_169], signalled: [25_188] },
+      "RED i6's 95vh over 300 px with 500 px more at a min-height of 2000, from 477: the first echo posted once more, the estimate, its refit's own height, which the step puts off the kept slope, the line through that and its echo fitted once more, that refit, and its own height, seven posts; the load posts the drop that last echo held, the eighth, and the next load nothing. Nine is the bound: a chain posts its first post, its first echo's, an estimate, a refit and the content's own height, then once more for a change those find off the line, an estimate, a refit and the content's own height, and one at a signal",
+    );
+  });
+
+  it("holds COLD's runaways to a budget: a periodic change at a fixed viewport beside content that grows with the viewport, and one whose observation lands while a post is on its way", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const runs = runawayCases.map(({ content, name, twice }) => {
+      let shown = 0;
+      const { booting, layout } = bootedOn(page.html, { body: "", root: "" }, () => content(shown));
+
+      followed(booting, layout, iframe.firstHeight, iframe.firstHeight);
+
+      const stop = heightsOf(booting.island).at(-1) ?? 0;
+      const changes = budgeted(
+        booting,
+        layout,
+        () => {
+          shown = 20 - shown;
+        },
+        twice,
+        10,
+      );
+
+      return `${name}: first stop ${String(stop)}; posts and height after each change ${changes.join(" | ")}`;
+    });
+
+    assert.deepStrictEqual(
+      runs,
+      runawayCases.map(
+        ({ name, stop }) =>
+          `${name}: first stop ${String(stop)}; posts and height after each change ${Array.from({ length: 10 }, () => `2 to ${String(stop)}`).join(" | ")}`,
+      ),
+      "each change is at the frame's fixed viewport, beside content whose kept slope is 1 or more and which still overflows the frame: the frame probes one pixel below its stop, and the probe's echo and the stop give the content's line, of slope 1 or more where the change set a new one (P6's 2V and 2.5V in turn), which still overflows, so no height fits it and the frame goes back to its first stop, two posts a change, the overflow scrolling; a chain started at each change whose probe found a new line grew P6 to 491,536,476 px in ten. Before, the changes ran it to Chrome's limit of 33,554,432 px: each change's mutation posted the panels' held drop, its observation then landed in flight and started a chain that added the overflow again. Made twice, the second while the first's post is on its way, it is the same",
+    );
+  });
+
+  it("judges a change seen while a post is on its way at that post's echo, so a contraction toggled twice, the second while the first's post is on its way, moves between its fixed points", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    let shown = 0;
+    const { booting, layout } = bootedOn(page.html, { body: "", root: "" }, () => ({
+      block: 300 + shown,
+      screens: 0.5,
+    }));
+
+    followed(booting, layout, iframe.firstHeight, iframe.firstHeight);
+
+    const stop = heightsOf(booting.island).at(-1) ?? 0;
+    const changes = budgeted(
+      booting,
+      layout,
+      () => {
+        shown = 20 - shown;
+      },
+      true,
+      6,
+    );
+
+    assert.deepStrictEqual(
+      { changes, stop },
+      {
+        changes: ["1 to 672", "1 to 632", "1 to 672", "1 to 632", "1 to 672", "1 to 632"],
+        stop: 632,
+      },
+      "50vh over 300 px stops at 632; each change shows 20 px and hides it and shows it again, the second toggle's observation made while the first's post, its fixed point, is on its way, and waited for: that post's echo checks it and fits, one post a change, 672 and 632 in turn. Chained from nothing instead, each change took three posts",
+    );
+  });
+
+  it("judges a box a transition moves at the transition's end, so a transition on a viewport length stops as the same content does without it", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const runs = await Effect.runPromise(
+      Effect.forEach(transitionCases, ({ content, name, target }) =>
+        Effect.promise(async () => {
+          const motion = {
+            at: 1,
+            from: target(unsizedFrameHeight),
+            target,
+            to: target(unsizedFrameHeight),
+          };
+          const { booting, layout } = bootedOn(page.html, { body: "", root: "" }, () =>
+            content(motion.from + (motion.to - motion.from) * motion.at),
+          );
+
+          layout.layOut(unsizedFrameHeight);
+          booting.later();
+          await transitioned(booting, layout, motion, unsizedFrameHeight, 20);
+
+          return `${name}: ${heightsOf(booting.island).join(", ")}`;
+        }),
+      ),
+    );
+
+    assert.deepStrictEqual(
+      runs,
+      ["TR2: 238, 326", "TR4: 316, 648, 1312", "TR3: 391, 512, 772, 1032"],
+      "a box a transition moves is judged at the transition's end: TR2, a heading over a full-height block whose height transitions, posts 238 and 326 and stops, as R4 does; TR4, two full-height panels, 316 and 648 as the panels do, and 1312 for the drop its transitionend posts at once, which the slope then holds; TR3, 50vh over 300 px with 200 px a min-height of 500 brings in by a transition, reaches its fixed point, 1032. Before, each frame of the transition, restarted by each post, was a change: 500 posts in 9 s, or Chrome's limit",
+    );
+  });
+
+  it("defers a box only for a transition that can move one, and judges it once the transitions running at its observation have ended: COLD i7's TRX1, TRX2 and AN1, each property's, and a stream of height transitions", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const beside = async (
+      running: RunAnimation,
+      content: (added: number) => Content,
+    ): Promise<string> => {
+      let added = 0;
+      const { booting, layout } = bootedOn(page.html, { body: "", root: "" }, () => content(added));
+
+      booting.animations.push(running);
+      followed(booting, layout, iframe.firstHeight, iframe.firstHeight);
+
+      const stop = heightsOf(booting.island).at(-1) ?? iframe.firstHeight;
+
+      added = 200;
+      booting.mutated();
+      followed(booting, layout, stop, stop);
+
+      const during = heightsOf(booting.island).join(", ");
+
+      endAll(booting.animations);
+      await setImmediate();
+      booting.later();
+      followed(
+        booting,
+        layout,
+        heightsOf(booting.island).at(-1) ?? stop,
+        heightsOf(booting.island).at(-1) ?? stop,
+      );
+
+      return `${during} | ended: ${heightsOf(booting.island).join(", ")}`;
+    };
+    const properties = await Effect.runPromise(
+      Effect.forEach(
+        [
+          "opacity",
+          "color",
+          "box-shadow",
+          "outline-width",
+          "filter",
+          "visibility",
+          "transform",
+          "translate",
+          "all",
+          "--shade",
+          "unknown",
+        ],
+        (property) =>
+          Effect.promise(
+            async () =>
+              `${property}: ${await beside(runningOn(property), (moved) => ({ block: 300 + moved }))}`,
+          ),
+      ),
+    );
+    const an1 = await beside(spinningOn("spin"), (moved) => ({ block: 300 + moved, screens: 0.5 }));
+    const trx1 = await beside(runningOn("opacity"), (moved) => ({
+      block: 300 + moved,
+      screens: 0.5,
+    }));
+    const trx2 = await beside(runningOn("opacity"), (moved) => ({ block: 300 + moved }));
+    let added = 0;
+    const streamed = bootedOn(page.html, { body: "", root: "" }, () => ({ block: 300 + added }));
+    const stream = [runningOn("height"), runningOn("height"), runningOn("height")] as const;
+
+    followed(streamed.booting, streamed.layout, iframe.firstHeight, iframe.firstHeight);
+    streamed.booting.animations.push(stream[0]);
+    added = 200;
+    streamed.booting.mutated();
+    streamed.layout.layOut(316);
+    await setImmediate();
+    streamed.booting.later();
+
+    const whileRunning = heightsOf(streamed.booting.island).join(", ");
+
+    streamed.booting.animations.push(stream[1]);
+    stream[0].end();
+    streamed.booting.animations.splice(0, 1);
+    await setImmediate();
+    streamed.booting.later();
+
+    const atFirstEnd = heightsOf(streamed.booting.island).join(", ");
+
+    streamed.booting.animations.push(stream[2]);
+    stream[1].end();
+    streamed.booting.animations.splice(0, 1);
+    await setImmediate();
+    streamed.booting.later();
+    endAll(streamed.booting.animations);
+    await setImmediate();
+    streamed.booting.later();
+
+    assert.deepStrictEqual(
+      {
+        an1,
+        properties,
+        stream: { atFirstEnd, end: heightsOf(streamed.booting.island).join(", "), whileRunning },
+        trx1,
+        trx2,
+      },
+      {
+        an1: "466, 549, 632, 1032 | ended: 466, 549, 632, 1032",
+        properties: [
+          "opacity: 316, 516 | ended: 316, 516",
+          "color: 316, 516 | ended: 316, 516",
+          "box-shadow: 316, 516 | ended: 316, 516",
+          "outline-width: 316, 516 | ended: 316, 516",
+          "filter:  | ended: 516",
+          "visibility:  | ended: 516",
+          "transform:  | ended: 516",
+          "translate:  | ended: 516",
+          "all:  | ended: 516",
+          "--shade:  | ended: 516",
+          "unknown:  | ended: 516",
+        ],
+        stream: { atFirstEnd: "316, 516", end: "316, 516", whileRunning: "316" },
+        trx1: "466, 549, 632, 1032 | ended: 466, 549, 632, 1032",
+        trx2: "316, 516 | ended: 316, 516",
+      },
+      "a transition of a property that only paints, opacity, a colour, a shadow, an outline, moves no box, so a box observed while it runs is judged at once: COLD i7's TRX2, 300 px with 200 more beside an opacity transition kept running, posts 316 and 516, where it stayed at 316; TRX1, 50vh over 300 px with 200 more, reaches 1032. A transition of any other property, a filter, visibility, a transform, `all`, a custom or an unknown property, may move one, so the box waits for its end, and is judged then, 516. A CSS animation is no transition, so AN1, beside an infinite spin, is never deferred. In a stream of height transitions, each begun before the last ends, the change seen while the first ran waits while it runs, its timers run and nothing posted, and is judged once that one ends, the second still running, and posted, 516",
+    );
+  });
+
+  it("finds its echoes at a zoom, its viewport whole host pixels, and probes by a quantum the zoom tells apart: r4 with 200 px added at zooms 1.25, 1.1, 0.8, 1.5 on a device ratio of 1.25, and 0.5, and on device ratios of 1.25 and 1.1 alone, 2 at a zoom of 1.25, 2.75 at 1.1, and 1.25 at 0.9", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const zoomed = (zoom: number, ratio: number): string => {
+      let added = 0;
+      const { booting, layout } = zoomedOn(
+        page.html,
+        { body: "", root: "" },
+        () => ({ block: 72 + added, screens: 1 }),
+        { ratio, zoom },
+      );
+
+      followed(booting, layout, iframe.firstHeight, iframe.firstHeight);
+
+      const stop = heightsOf(booting.island).at(-1) ?? iframe.firstHeight;
+
+      added = 200;
+      booting.mutated();
+      followed(booting, layout, stop, stop);
+
+      return `${heightsOf(booting.island).join(", ")}; viewport ${String(layout.viewport())}`;
+    };
+    let shown = 0;
+    const unsized = zoomedOn(
+      page.html,
+      { body: "", root: "" },
+      () => ({ block: 65 + 1 / 64 + shown, screens: 1 }),
+      { ratio: 1, zoom: 1.25 },
+    );
+
+    followed(unsized.booting, unsized.layout, 120, 120);
+
+    const stop = heightsOf(unsized.booting.island).join(", ");
+    const toggles = toggled(
+      unsized.booting,
+      unsized.layout,
+      () => {
+        shown = 20 - shown;
+      },
+      20,
+    );
+
+    assert.deepStrictEqual(
+      [
+        zoomed(1.25, 1),
+        zoomed(1.1, 1),
+        zoomed(0.8, 1),
+        zoomed(1.5, 1.25),
+        zoomed(0.5, 1),
+        `${stop}; toggled ${[...new Set(toggles.flat())].join(" ")}`,
+        zoomed(1, 1.25),
+        zoomed(1, 1.1),
+        zoomed(1.25, 2),
+        zoomed(1.5, 1.25),
+        zoomed(1.1, 2.75),
+        zoomed(0.9, 1.25),
+      ],
+      [
+        "388, 476, 475, 476; viewport 476",
+        "388, 477, 476, 477; viewport 477.27272727272725",
+        "388, 476, 474, 476; viewport 476.25",
+        "389, 478, 477, 478; viewport 478.4",
+        "388, 476, 474, 476; viewport 476",
+        "202, 284; toggled 283 284",
+        "388, 476, 475, 476; viewport 476",
+        "388, 477, 476, 477; viewport 477.27272727272725",
+        "388, 476, 475, 476; viewport 476",
+        "389, 478, 477, 478; viewport 478.4",
+        "389, 478, 477, 478; viewport 478.34710743801645",
+        "389, 479, 477, 479; viewport 480",
+      ],
+      "a frame's viewport snaps to whole host pixels, the nearest, on a device ratio of 1, and above 1 to whole device pixels of the host pixels above the post, each the next up, up to 1.33 px off its post (Chrome 158): the frame stands at a post once its viewport has moved from where it stood toward the post, which the snap never reverses. r4, a heading over a 100vh block, stops at its second post at each zoom and ratio, and the 200 px added after probes one quantum below and goes back, the content still overflowing; at 0.8 and at 0.5 the quantum is two pixels, a host pixel or more, so the probe's viewport is another. A heading over a 100vh block whose height is 1/64 px off whole, from Chrome's unsized frame at a zoom of 1.25, 120 px, stands at 202.4 for its first post and at 284 for its second, so the posts read a slope of 0.995, a contraction whose bound posts content plus viewport again and again; through the viewports measured the slope is 1 to within what they resolve, and the frame stops at 284 and moves one pixel and back at each of twenty toggles. In Chrome the posts' slope ran T1 at a zoom of 1.25 to 16,653,994 px; a window of half a pixel about each post missed a probe's viewport and its return's on a ratio of 2 at a zoom of 1.25, 0.6 px off, and the frame waited for good; and in I7, `(height: 239px)` never matched a viewport of 239.2 at a zoom of 1.25, no echo came, and r4 grew to 131,562 px in 9 s",
     );
   });
 
@@ -3063,11 +4738,13 @@ interface RunEvent {
 interface RunElement {
   readonly addEventListener: (type: string, listener: (event: RunEvent) => void) => void;
   readonly append: (...children: readonly unknown[]) => void;
+  readonly before: (moved: SheetOwner) => void;
   readonly dataset: { pciDom?: string };
   readonly fire: (type: string, event: RunEvent) => void;
   innerHTML: string;
   readonly listeners: Map<string, (event: RunEvent) => void>;
   readonly ownerDocument: object;
+  sheet: object | null;
   src: string;
   readonly tag: string;
 }
@@ -3092,11 +4769,11 @@ const listenersOf = (): Listeners => Object.assign(new Map(), { owner: {} });
  * `define` was installed, in order; the context's window; the island; the listeners added to the
  * window and to the document; the elements the frame made, in order; the island's posts; the timers
  * the frame set, by their ids; its `ResizeObserver` and `MutationObserver` callbacks; the
- * viewport's height, which `matchMedia` answers by; the document's style sheets, in order, the
- * page's pins among them where the run has them, the pins' node and a way to make another, as a
- * PCI's `style` is, and the nodes whose sheet has not loaded, a link's, which the document's order
- * holds and `styleSheets` does not; and a way to run a script of the PCI's in the same context, as
- * a module file the frame loaded runs.
+ * viewport's height and resolution, which `matchMedia` answers by; the document's style sheets, in
+ * order, the page's pins among them where the run has them, the pins' node and a way to make
+ * another, as a PCI's `style` is, and the nodes whose sheet has not loaded, a link's, which the
+ * document's order holds and `styleSheets` does not; and a way to run a script of the PCI's in the
+ * same context, as a module file the frame loaded runs.
  */
 interface Run {
   readonly elements: RunElement[];
@@ -3110,11 +4787,13 @@ interface Run {
   readonly onDocument: Listeners;
   readonly owner: () => SheetOwner;
   readonly pending: Set<SheetOwner>;
-  readonly pins: SheetOwner;
+  readonly animations: RunAnimation[];
+  readonly pins: SheetOwner | undefined;
   readonly posted: FrameToPage[];
   readonly sheets: RunSheet[];
   readonly timers: Map<number, () => void>;
-  readonly viewport: { height: number };
+  readonly viewport: { height: number; resolution: number };
+  readonly acked: { count: number };
 }
 
 /**
@@ -3174,11 +4853,11 @@ const dispatch = (listeners: Listeners, type: string, event: RunEvent): void => 
  *
  * @param script The script's text.
  * @param hash The frame's URL's fragment, its nonce after the `#`.
- * @param pinned Whether the document holds the page's pins, its one style sheet, as the frame page
- *   does, when the script runs.
+ * @param styled Whether the page's policy lets an inline style apply, as the frame page's does: a
+ *   `style` element put in the head gets its sheet, or, refused, none.
  * @returns The run, its script evaluated.
  */
-const ran = (script: string, hash: string, pinned: boolean): Run => {
+const ran = (script: string, hash: string, styled: boolean): Run => {
   const log: string[] = [];
   const posted: FrameToPage[] = [];
   const on = listenersOf();
@@ -3187,7 +4866,8 @@ const ran = (script: string, hash: string, pinned: boolean): Run => {
   const timers = new Map<number, () => void>();
   const observers: ((entries: readonly object[]) => void)[] = [];
   const mutations: (() => void)[] = [];
-  const viewport = { height: 0 };
+  const viewport = { height: 0, resolution: 1 };
+  const acked = { count: 0 };
   const sheets: RunSheet[] = [];
   const taken = (moved: SheetOwner, place: RunSheet["place"]): RunSheet => {
     const at = sheets.findIndex(({ ownerNode }) => ownerNode === moved);
@@ -3197,23 +4877,22 @@ const ran = (script: string, hash: string, pinned: boolean): Run => {
 
     return sheet;
   };
+  const placedBefore = (node: SheetOwner, moved: SheetOwner): void => {
+    const at = sheets.findIndex(({ ownerNode }) => ownerNode === node);
+
+    sheets.splice(at, 0, taken(moved, sheets[at]?.place ?? "in the head"));
+  };
   const owner = (): SheetOwner => {
     const node: SheetOwner = {
       before: (moved) => {
-        const at = sheets.findIndex(({ ownerNode }) => ownerNode === node);
-
-        sheets.splice(at, 0, taken(moved, sheets[at]?.place ?? "in the head"));
+        placedBefore(node, moved);
       },
     };
 
     return node;
   };
-  const pins = owner();
   const pending = new Set<SheetOwner>();
-
-  if (pinned) {
-    sheets.push({ ownerNode: pins, place: "in the head" });
-  }
+  const animations: RunAnimation[] = [];
 
   const installed = new Map<string, FixtureContext | FixtureDefine>();
   let timed = 0;
@@ -3259,8 +4938,11 @@ const ran = (script: string, hash: string, pinned: boolean): Run => {
     },
     location: { hash },
     matchMedia: (query: string) => ({
-      matches: query === `(height: ${String(viewport.height)}px)`,
+      matches: mediaMatches(query, viewport.height, viewport.resolution),
     }),
+    requestAnimationFrame: (rendered: () => void) => {
+      rendered.call(sandbox);
+    },
     setTimeout: (later: () => void) => {
       timed += 1;
       timers.set(timed, later);
@@ -3268,6 +4950,11 @@ const ran = (script: string, hash: string, pinned: boolean): Run => {
       return timed;
     },
   };
+  /**
+   * The document's font faces, as Safari 18 has them, no event from their set: a web font whose
+   * `loaded` the boot takes as a signal, once however many observations find it.
+   */
+  const faces = [{ loaded: Promise.resolve(null), status: "loading" }];
   const documentOf = {
     addEventListener: (type: string, listener: (event: RunEvent) => void) => {
       listen(onDocument, type, listener);
@@ -3280,6 +4967,9 @@ const ran = (script: string, hash: string, pinned: boolean): Run => {
           listeners.set(type, listener);
         },
         append: () => {},
+        before: (moved) => {
+          placedBefore(element, moved);
+        },
         dataset: {},
         fire: (type, event) => {
           const listener = listeners.get(type);
@@ -3289,6 +4979,7 @@ const ran = (script: string, hash: string, pinned: boolean): Run => {
         innerHTML: "",
         listeners,
         ownerDocument: documentOf,
+        sheet: null,
         src: "",
         tag,
       };
@@ -3303,11 +4994,17 @@ const ran = (script: string, hash: string, pinned: boolean): Run => {
       dir: "",
       lang: "",
     },
-    fonts: { addEventListener: () => {} },
+    fonts: faces,
+    getAnimations: () => animations,
     head: {
       append: () => {},
       prepend: (moved: SheetOwner) => {
         const sheet = taken(moved, "in the head");
+        const made = elements.find((each) => each === moved);
+
+        if (made?.tag === "style") {
+          made.sheet = styled ? {} : null;
+        }
 
         sheets.splice(sheets.filter(({ place }) => place === "before the head").length, 0, sheet);
       },
@@ -3359,6 +5056,8 @@ const ran = (script: string, hash: string, pinned: boolean): Run => {
   runInContext(script, context, { filename: bootFile });
 
   return {
+    acked,
+    animations,
     elements,
     evaluate: (source) => {
       runInContext(source, context, { filename: "module.js" });
@@ -3372,7 +5071,9 @@ const ran = (script: string, hash: string, pinned: boolean): Run => {
     onDocument,
     owner,
     pending,
-    pins,
+    get pins() {
+      return elements.find(({ tag }) => tag === "style");
+    },
     posted,
     sheets,
     timers,
@@ -3416,6 +5117,44 @@ const fromIsland = (run: Run, data: IslandData): RunEvent => ({
 });
 
 /**
+ * Acknowledge, as plate's island does, each height the run's frame posted since the last
+ * acknowledgment: the element's height before it, the viewport's height in the run, and after, the
+ * post, on a host with a device pixel ratio of 1 whose rules leave the post as it is; or, for a
+ * held frame, after as before.
+ *
+ * @param run The run.
+ * @param held Whether a host holds the element where it was.
+ */
+const acked = (run: Run, held: boolean): void => {
+  const posts = run.posted.flatMap((message) =>
+    message.kind === "height" ? [message.pixels] : [],
+  );
+
+  for (const pixels of posts.slice(run.acked.count)) {
+    const from = run.viewport.height;
+
+    run.acked.count += 1;
+    dispatch(
+      run.on,
+      "message",
+      fromIsland(run, {
+        from,
+        height: held ? from : pixels,
+        kind: "landed",
+        nonce,
+        pixels,
+        ratio: 1,
+      }),
+    );
+    dispatch(
+      run.on,
+      "message",
+      fromIsland(run, { height: held ? from : pixels, kind: "settled", nonce, pixels }),
+    );
+  }
+};
+
+/**
  * An event at the frame's window, its `currentTarget` and `target` the window.
  *
  * @param run The run.
@@ -3438,12 +5177,13 @@ const atWindow = (run: Run, event: RunEvent): RunEvent => ({
  * @returns The message.
  */
 const loadOf = (routes: readonly PciFrameRoute[], entry: string | null): PageMessage => {
-  const load: PageMessage = {
+  const load: PageLoad = {
     dir: "ltr",
     kind: "load",
     lang: "en",
     markup: "<p>markup</p>",
     nonce,
+    ratio: 1,
     routes,
     templates: ["<b>template</b>"],
     title: "PCI",
@@ -3524,7 +5264,7 @@ define(["qtiCustomInteractionContext", "b", "d", "e", "require", "exports", "mod
  * @returns The script.
  */
 const changedWith = (detail: string): string =>
-  `var changed = new CustomEvent("qti-interaction-changed"); changed.detail = ${detail}; document.made[0].fire("qti-interaction-changed", changed);`;
+  `var changed = new CustomEvent("qti-interaction-changed"); changed.detail = ${detail}; document.made.find((each) => each.tag === "div").fire("qti-interaction-changed", changed);`;
 
 /**
  * Play RED i5's `pins-fight` in a run: the boot's observer takes the document's mutations, and a
@@ -3688,32 +5428,361 @@ const ranLast = (run: Run): void => {
 };
 
 /**
- * Drive a run of the frame through its whole life, and every way it is entered on the way:
- * messages that are no island's (no object, no nonce, an unknown kind, another nonce, another
- * window), an `instantiate` before the `load`, the `load` and a second one, the PCI's module file
+ * Drive the observations of a run's root through every way the frame follows its height, each run
+ * of them begun at a width of its own so its chain starts afresh, as `wholeLife` lists them.
+ *
+ * @param run The run.
+ * @param observer The run's `ResizeObserver` callback.
+ * @returns Once they have been driven.
+ */
+const observedLife = async (
+  run: Run,
+  observer: (entries: readonly object[]) => void,
+): Promise<void> => {
+  const observe = (entries: readonly object[]): void => {
+    observer(entries);
+    acked(run, false);
+    ranOut(run);
+  };
+
+  observe([]);
+  observe([{ borderBoxSize: [] }]);
+  observe([{ borderBoxSize: [{ blockSize: 216, inlineSize: 600 }] }]);
+  run.viewport.height = 216;
+  observe([{ borderBoxSize: [{ blockSize: 240, inlineSize: 600 }] }]);
+  dispatch(run.on, "resize", {});
+  ranOut(run);
+  acked(run, false);
+  run.viewport.height = 240;
+  dispatch(run.on, "resize", {});
+  ranOut(run);
+  acked(run, false);
+  observe([{ borderBoxSize: [{ blockSize: 250, inlineSize: 600 }] }]);
+
+  for (const mutated of run.mutations) {
+    mutated();
+  }
+
+  observe([{ borderBoxSize: [{ blockSize: 300, inlineSize: 600 }] }]);
+  run.viewport.height = 250;
+  dispatch(run.on, "resize", {});
+  ranOut(run);
+  acked(run, false);
+  run.viewport.height = 300;
+  observe([{ borderBoxSize: [{ blockSize: 330, inlineSize: 600 }] }]);
+  run.viewport.height = 375;
+  observe([{ borderBoxSize: [{ blockSize: 375, inlineSize: 600 }] }]);
+
+  for (const mutated of run.mutations) {
+    mutated();
+  }
+
+  run.sheets.unshift({ ownerNode: run.owner(), place: "in the head" });
+
+  for (const mutated of run.mutations) {
+    mutated();
+  }
+
+  run.sheets.splice(0);
+
+  for (const mutated of run.mutations) {
+    mutated();
+  }
+
+  ranLast(run);
+
+  for (const mutated of run.mutations) {
+    mutated();
+  }
+
+  observe([{ borderBoxSize: [{ blockSize: 400, inlineSize: 610 }] }]);
+  run.viewport.height = 400;
+  observe([{ borderBoxSize: [{ blockSize: 500, inlineSize: 610 }] }]);
+  run.viewport.height = 500;
+  observe([{ borderBoxSize: [{ blockSize: 500, inlineSize: 610 }] }]);
+  observe([{ borderBoxSize: [{ blockSize: 520, inlineSize: 610 }] }]);
+  run.viewport.height = 520;
+  observe([{ borderBoxSize: [{ blockSize: 520, inlineSize: 610 }] }]);
+  observe([{ borderBoxSize: [{ blockSize: 519.5, inlineSize: 610 }] }]);
+  run.viewport.resolution = 0.8;
+  observe([{ borderBoxSize: [{ blockSize: 518.5, inlineSize: 610 }] }]);
+  run.viewport.resolution = 1;
+  observe([{ borderBoxSize: [{ blockSize: 530, inlineSize: 610 }] }]);
+  observe([{ borderBoxSize: [{ blockSize: 600, inlineSize: 610 }] }]);
+  run.viewport.height = 531;
+  dispatch(run.on, "resize", {});
+  ranOut(run);
+  acked(run, false);
+  dispatch(run.onDocument, "load", {});
+  acked(run, false);
+  run.viewport.height = 600;
+  observe([{ borderBoxSize: [{ blockSize: 610, inlineSize: 610 }] }]);
+  run.viewport.resolution = 0.8;
+  observe([{ borderBoxSize: [{ blockSize: 900, inlineSize: 610 }] }]);
+  run.viewport.height = 598;
+  observe([{ borderBoxSize: [{ blockSize: 900 - (2 * 70) / 11, inlineSize: 610 }] }]);
+  run.viewport.height = 600;
+  observe([{ borderBoxSize: [{ blockSize: 900, inlineSize: 610 }] }]);
+  observe([{ borderBoxSize: [{ blockSize: 5, inlineSize: 610 }] }]);
+  run.viewport.height = 5;
+  observe([{ borderBoxSize: [{ blockSize: 6, inlineSize: 610 }] }]);
+  run.viewport.resolution = 1;
+
+  observe([{ borderBoxSize: [{ blockSize: 1100, inlineSize: 620 }] }]);
+  run.viewport.height = 1100;
+  observe([{ borderBoxSize: [{ blockSize: 1300, inlineSize: 620 }] }]);
+  run.viewport.height = 1300;
+  observe([{ borderBoxSize: [{ blockSize: 1400, inlineSize: 620 }] }]);
+  run.viewport.height = 1500;
+  observe([{ borderBoxSize: [{ blockSize: 1500, inlineSize: 620 }] }]);
+  observe([{ borderBoxSize: [{ blockSize: 1520, inlineSize: 620 }] }]);
+  run.viewport.height = 1540;
+  observe([{ borderBoxSize: [{ blockSize: 1540, inlineSize: 620 }] }]);
+  run.viewport.height = 1560;
+  dispatch(run.on, "resize", {});
+  ranOut(run);
+  acked(run, false);
+  observe([{ borderBoxSize: [{ blockSize: 1550, inlineSize: 620 }] }]);
+  run.viewport.height = 1580;
+  observe([{ borderBoxSize: [{ blockSize: 1600, inlineSize: 620 }] }]);
+  run.viewport.height = 1600;
+  observe([{ borderBoxSize: [{ blockSize: 1610, inlineSize: 620 }] }]);
+  dispatch(
+    run.on,
+    "message",
+    fromIsland(run, { from: 0, height: 0, kind: "landed", nonce, pixels: 1, ratio: 1 }),
+  );
+
+  observe([{ borderBoxSize: [{ blockSize: 2050, inlineSize: 630 }] }]);
+  run.viewport.height = 2050;
+  observe([{ borderBoxSize: [{ blockSize: 2125, inlineSize: 630 }] }]);
+  run.viewport.height = 2125;
+  observe([{ borderBoxSize: [{ blockSize: 2181.25, inlineSize: 630 }] }]);
+  run.viewport.height = 2350;
+  observe([{ borderBoxSize: [{ blockSize: 2293.75, inlineSize: 630 }] }]);
+  run.viewport.height = 2238;
+  observe([{ borderBoxSize: [{ blockSize: 2237.75, inlineSize: 630 }] }]);
+
+  observe([{ borderBoxSize: [{ blockSize: 3000, inlineSize: 640 }] }]);
+  run.viewport.height = 3000;
+  observe([{ borderBoxSize: [{ blockSize: 3100, inlineSize: 640 }] }]);
+  run.viewport.height = 3100;
+  observe([{ borderBoxSize: [{ blockSize: 3150, inlineSize: 640 }] }]);
+  run.viewport.height = 3200;
+  observe([{ borderBoxSize: [{ blockSize: 3700, inlineSize: 640 }] }]);
+  run.viewport.height = 3700;
+  observe([{ borderBoxSize: [{ blockSize: 3950, inlineSize: 640 }] }]);
+  run.viewport.height = 4200;
+  observe([{ borderBoxSize: [{ blockSize: 4300, inlineSize: 640 }] }]);
+  run.viewport.height = 4534;
+  observe([{ borderBoxSize: [{ blockSize: 4600, inlineSize: 640 }] }]);
+  run.viewport.height = 4600;
+  observe([{ borderBoxSize: [{ blockSize: 4600, inlineSize: 640 }] }]);
+
+  observe([{ borderBoxSize: [{ blockSize: 5000, inlineSize: 650 }] }]);
+  run.viewport.height = 5000;
+  observe([{ borderBoxSize: [{ blockSize: 5200, inlineSize: 650 }] }]);
+  run.viewport.height = 5200;
+  observe([{ borderBoxSize: [{ blockSize: 5398, inlineSize: 650 }] }]);
+  run.viewport.height = 10_598;
+  dispatch(run.on, "resize", {});
+  ranOut(run);
+  acked(run, false);
+  run.viewport.height = 5398;
+  dispatch(run.on, "resize", {});
+  ranOut(run);
+  acked(run, false);
+
+  observe([{ borderBoxSize: [{ blockSize: 6000, inlineSize: 660 }] }]);
+  run.viewport.height = 6000;
+  observe([{ borderBoxSize: [{ blockSize: 6100, inlineSize: 660 }] }]);
+
+  for (const mutated of run.mutations) {
+    mutated();
+  }
+
+  run.viewport.height = 6100;
+  observe([{ borderBoxSize: [{ blockSize: 6300, inlineSize: 660 }] }]);
+  run.viewport.height = 6300;
+  observe([{ borderBoxSize: [{ blockSize: 6700, inlineSize: 660 }] }]);
+  run.animations.push(runningOn("height"));
+  observe([{ borderBoxSize: [{ blockSize: 6800, inlineSize: 660 }] }]);
+  dispatch(run.on, "resize", {});
+  ranOut(run);
+  acked(run, false);
+  endAll(run.animations);
+  dispatch(run.onDocument, "transitionend", {});
+  acked(run, false);
+  await setImmediate();
+  ranOut(run);
+  acked(run, false);
+  run.viewport.height = 6299;
+  observe([{ borderBoxSize: [{ blockSize: 6797, inlineSize: 660 }] }]);
+  run.viewport.height = 6300;
+  observe([{ borderBoxSize: [{ blockSize: 6800, inlineSize: 660 }] }]);
+  run.animations.push(runningOn("height"));
+  observe([{ borderBoxSize: [{ blockSize: 7100, inlineSize: 660 }] }]);
+  dispatch(run.onDocument, "transitionend", {});
+  acked(run, false);
+  ranOut(run);
+  acked(run, false);
+  endAll(run.animations);
+  observe([{ borderBoxSize: [{ blockSize: 7200, inlineSize: 660 }] }]);
+  await setImmediate();
+  ranOut(run);
+  acked(run, false);
+  run.viewport.height = 6299;
+  dispatch(run.on, "resize", {});
+  ranOut(run);
+  acked(run, false);
+  run.viewport.height = 7200;
+  dispatch(run.on, "resize", {});
+  ranOut(run);
+  acked(run, false);
+
+  observe([{ borderBoxSize: [{ blockSize: 8000, inlineSize: 670 }] }]);
+  run.viewport.height = 8000;
+  observe([{ borderBoxSize: [{ blockSize: 8100, inlineSize: 670 }] }]);
+  run.viewport.height = 8100;
+  observe([{ borderBoxSize: [{ blockSize: 8300, inlineSize: 670 }] }]);
+  dispatch(run.onDocument, "load", {});
+  acked(run, false);
+  run.viewport.height = 8300;
+  observe([{ borderBoxSize: [{ blockSize: 8700, inlineSize: 670 }] }]);
+
+  run.viewport.height = 400;
+  observe([{ borderBoxSize: [{ blockSize: 500, inlineSize: 680 }] }]);
+  run.viewport.height = 499.5;
+  observe([{ borderBoxSize: [{ blockSize: 599.5, inlineSize: 680 }] }]);
+  run.viewport.height = 599.5;
+  observe([{ borderBoxSize: [{ blockSize: 699.5, inlineSize: 680 }] }]);
+  observe([{ borderBoxSize: [{ blockSize: 719.5, inlineSize: 680 }] }]);
+  observe([{ borderBoxSize: [{ blockSize: 739.5, inlineSize: 680 }] }]);
+
+  run.viewport.height = 700;
+  observe([{ borderBoxSize: [{ blockSize: 800, inlineSize: 685 }] }]);
+  run.viewport.height = 800;
+  observer([{ borderBoxSize: [{ blockSize: 900, inlineSize: 685 }] }]);
+  observer([{ borderBoxSize: [{ blockSize: 910, inlineSize: 685 }] }]);
+  acked(run, true);
+  observe([{ borderBoxSize: [{ blockSize: 920, inlineSize: 685 }] }]);
+  observe([{ borderBoxSize: [{ blockSize: 3000, inlineSize: 690 }] }]);
+  run.viewport.height = 3000;
+  observe([{ borderBoxSize: [{ blockSize: 3100, inlineSize: 690 }] }]);
+  run.viewport.height = 3100;
+  observe([{ borderBoxSize: [{ blockSize: 3150, inlineSize: 690 }] }]);
+  run.viewport.height = 3200;
+  observe([{ borderBoxSize: [{ blockSize: 3700, inlineSize: 690 }] }]);
+  run.viewport.height = 3700;
+  observe([{ borderBoxSize: [{ blockSize: 3950, inlineSize: 690 }] }]);
+  run.viewport.height = 4200;
+  observe([{ borderBoxSize: [{ blockSize: 4300, inlineSize: 690 }] }]);
+  run.viewport.height = 4534;
+  observe([{ borderBoxSize: [{ blockSize: 4600, inlineSize: 690 }] }]);
+
+  for (const mutated of run.mutations) {
+    mutated();
+  }
+
+  run.viewport.height = 4600;
+  observe([{ borderBoxSize: [{ blockSize: 4650, inlineSize: 690 }] }]);
+  run.viewport.height = 4650;
+  dispatch(run.on, "resize", {});
+  ranOut(run);
+  acked(run, false);
+  run.viewport.height = 0;
+  observe([{ borderBoxSize: [{ blockSize: 9000, inlineSize: 700 }] }]);
+  run.viewport.height = 9000;
+  observe([{ borderBoxSize: [{ blockSize: 9100, inlineSize: 700 }] }]);
+  run.viewport.height = 9100;
+  observe([{ borderBoxSize: [{ blockSize: 9200, inlineSize: 700 }] }]);
+  observe([{ borderBoxSize: [{ blockSize: 9300, inlineSize: 701 }] }]);
+  run.viewport.height = 9300;
+  dispatch(run.on, "resize", {});
+  ranOut(run);
+  acked(run, false);
+  observe([{ borderBoxSize: [{ blockSize: 9310, inlineSize: 701 }] }]);
+  dispatch(run.on, "message", fromIsland(run, { height: 0, kind: "settled", nonce, pixels: 1 }));
+  run.viewport.height = 300;
+  observe([{ borderBoxSize: [{ blockSize: 372, inlineSize: 710 }] }]);
+  run.viewport.height = 372;
+  observe([{ borderBoxSize: [{ blockSize: 444, inlineSize: 710 }] }]);
+  run.viewport.height = 444;
+  observe([{ borderBoxSize: [{ blockSize: 516, inlineSize: 710 }] }]);
+  ranOut(run);
+  run.viewport.height = 460;
+  observe([{ borderBoxSize: [{ blockSize: 532, inlineSize: 710 }] }]);
+  run.viewport.height = 480;
+  observer([{ borderBoxSize: [{ blockSize: 572, inlineSize: 710 }] }]);
+
+  for (const mutated of run.mutations) {
+    mutated();
+  }
+
+  acked(run, false);
+  ranOut(run);
+  run.viewport.height = 444;
+  observe([{ borderBoxSize: [{ blockSize: 600, inlineSize: 710 }] }]);
+  ranOut(run);
+  observer([{ borderBoxSize: [{ blockSize: 700, inlineSize: 720 }] }]);
+
+  const moving = runningOn("height");
+
+  run.animations.push(moving);
+  acked(run, false);
+  dispatch(
+    run.on,
+    "message",
+    fromIsland(run, { height: 700, kind: "settled", nonce, pixels: 700 }),
+  );
+  ranOut(run);
+  moving.end();
+  run.animations.splice(0);
+  await setImmediate();
+  run.viewport.height = 700;
+  ranOut(run);
+};
+
+/**
+ * Drive a run of the frame through its whole life, and every way it is entered on the way: messages
+ * that are no island's (no object, no nonce, an unknown kind, another nonce, another window), an
+ * `instantiate` before the `load`, the `load` and a second one, the PCI's module file
  * (`wholeModule`), a factory chosen that is not registered and then one that is, a second
  * `instantiate`, an input before and after, each way the PCI fires `qti-interaction-changed`,
- * `ondone`, observations of the root (an entry with no box, an echo of the frame's own resize,
- * posted once more, and the echo of that post, dropped, as `V + c` grows and as other content does,
- * a change a mutation signals, a signal that posts a dropped echo, a signal's post whose echo is
- * dropped, a signal with nothing to post, content that contracts, `V / 2 + 750`, whose fixed point,
- * 1500, is posted and fits, a mutation before an echo the frame drops, which posts it at once, an
- * estimate a step skews, refitted to a point that fits, an estimate whose refit has no fixed point,
- * which posts the content's own height, whose echo does not fit and is kept for a signal, a refit
- * that does not fit either, which posts the content's own height, an estimate the bound holds at
- * the content plus its viewport, whose echo no observation brings, as the root's box does not
- * change, so the timer after the `resize` checks it, and changes at a fixed viewport: followed by
- * the kept slope beside `V + c`, its echo as the slope says and off it; with no slope kept; a
- * contraction's, posted at the kept slope's fixed point; one the slope cannot follow; a followed
- * change the timer checks; and one after the frame's width changed, which forgets the slope; and
- * dropped echoes a signal posts, whose echoes are off the kept slope, refitted through the drop
- * and the echo, and, where that refit is the change's second, dropped; and a followed change off
- * the slope refitted to an estimate whose own height, posted with no slope to check, does not fit
- * and is kept), a style sheet put before
- * the pins and the pins removed, each with the mutation that puts them back first, a `resize`, an
- * uncaught error, unhandled rejections, a message the frame posts itself, a `pagehide` the
- * back/forward cache keeps, `complete` twice, and the `pagehide` that unloads it. Each event names
- * the frame's window where a browser's would.
+ * `ondone`, observations of the root, each run of them begun at a width of its own so its chain
+ * starts afresh (an entry with no box; an echo of the frame's own resize posted once more; a change
+ * at a fixed viewport with no slope kept; a change seen while that chain's post is on its way,
+ * waited for and judged by the timer after the `resize` as its echo, and a contraction's fixed
+ * point from there, which fits; `V + c`'s echo dropped; content of slope 0 followed at a fixed
+ * viewport, its echo as the slope says, a change below a pixel there, its post the height the
+ * viewport stands at, a fall within the step at a resolution of 0.8, posted as the height again,
+ * and a change after it, followed from a frame that fit its content by the viewport measured; a
+ * change seen while a post is on its way, waited for and judged by the timer after the `resize`,
+ * off the slope and refitted, its drop posted at a `load`, whose echo is dropped as spent; at a
+ * resolution of 0.8, content that still overflows at a slope above 1, probed two pixels below its
+ * stop, the slope holding there, and back, content that now fits, a chain, and a rise of a pixel,
+ * which no post of less than the step shows, posted as the step; a contraction's fixed point, which
+ * fits, a change at a fixed viewport posted at the kept slope's fixed point, a host's own resize of
+ * the frame, met with no post where the content moved along its line and with a chain where it did
+ * not, and an acknowledgment of no post of the frame's; an estimate a step skews, refitted to a
+ * point that fits; an estimate whose refit has no fixed point, whose own height is followed, off
+ * the slope, refitted once more, that refit's own height posted with no slope to check, which fits,
+ * and, a second time, does not, kept and posted at once for a mutation before it, and a look with
+ * nothing to check; estimates the timer checks, the bound holding one; a drop a mutation before its
+ * observation posts at once; changes a transition moves, deferred and judged once it has ended, by
+ * the timer after its `finished`, a probe whose echo shows a steeper slope and goes back, or by the
+ * next observation, whose probe's echo, which the timer after the `resize` checks, shows content
+ * that no longer grows with the viewport, a chain, the timer after its `finished` then judging
+ * nothing, and the `resize` timer looking at nothing meanwhile; a drop a `load` posts, followed; a
+ * viewport half a pixel below its posts, where a probe one pixel below the stop moves the element
+ * by less than a host pixel, so it is echoed at the acknowledgment and tells nothing, and the frame
+ * goes back to its stop; a host holding the frame where it was, a change seen before the
+ * acknowledgment and a second echo at the first's viewport, no line, so the chain stops; and a
+ * width change, which forgets the slope), a style sheet put before the pins and the pins removed,
+ * each with the mutation that puts them back first, a `resize`, an uncaught error, unhandled
+ * rejections, a message the frame posts itself, a `pagehide` the back/forward cache keeps,
+ * `complete` twice, and the `pagehide` that unloads it. Each event names the frame's window where a
+ * browser's would.
  *
  * @param run The run, its script evaluated.
  * @returns Once the run has been driven.
@@ -3751,208 +5820,16 @@ const wholeLife = async (run: Run): Promise<void> => {
   run.evaluate(changedWith("{}"));
   run.evaluate(changedWith("{ value: undefined }"));
   run.evaluate(changedWith("5"));
-  run.evaluate(`document.made[0].fire("qti-interaction-changed", {});`);
+  run.evaluate(
+    `document.made.find((each) => each.tag === "div").fire("qti-interaction-changed", {});`,
+  );
   run.evaluate("finish();");
 
-  for (const observer of run.observers) {
-    observer([]);
-    observer([{ borderBoxSize: [] }]);
-    observer([{ borderBoxSize: [{ blockSize: 216, inlineSize: 600 }] }]);
-    run.viewport.height = 216;
-    observer([{ borderBoxSize: [{ blockSize: 240, inlineSize: 600 }] }]);
-    dispatch(run.on, "resize", {});
-    ranOut(run);
-
-    for (const mutated of run.mutations) {
-      mutated();
-    }
-
-    observer([{ borderBoxSize: [{ blockSize: 300, inlineSize: 600 }] }]);
-    run.viewport.height = 300;
-    observer([{ borderBoxSize: [{ blockSize: 324, inlineSize: 600 }] }]);
-    run.viewport.height = 324;
-    observer([{ borderBoxSize: [{ blockSize: 348, inlineSize: 600 }] }]);
-
-    for (const mutated of run.mutations) {
-      mutated();
-    }
-
-    run.sheets.unshift({ ownerNode: run.owner(), place: "in the head" });
-
-    for (const mutated of run.mutations) {
-      mutated();
-    }
-
-    run.sheets.splice(0);
-
-    for (const mutated of run.mutations) {
-      mutated();
-    }
-
-    ranLast(run);
-
-    for (const mutated of run.mutations) {
-      mutated();
-    }
-
-    run.viewport.height = 0;
-    observer([{ borderBoxSize: [{ blockSize: 400, inlineSize: 600 }] }]);
-    run.viewport.height = 400;
-    observer([{ borderBoxSize: [{ blockSize: 500, inlineSize: 600 }] }]);
-    run.viewport.height = 500;
-    observer([{ borderBoxSize: [{ blockSize: 700, inlineSize: 600 }] }]);
-
-    for (const mutated of run.mutations) {
-      mutated();
-    }
-
-    run.viewport.height = 700;
-    observer([{ borderBoxSize: [{ blockSize: 1000, inlineSize: 600 }] }]);
-
-    for (const mutated of run.mutations) {
-      mutated();
-    }
-
-    run.viewport.height = 1000;
-    observer([{ borderBoxSize: [{ blockSize: 1050, inlineSize: 600 }] }]);
-    run.viewport.height = 0;
-    observer([{ borderBoxSize: [{ blockSize: 1100, inlineSize: 600 }] }]);
-    run.viewport.height = 1100;
-    observer([{ borderBoxSize: [{ blockSize: 1300, inlineSize: 600 }] }]);
-    run.viewport.height = 1300;
-    observer([{ borderBoxSize: [{ blockSize: 1400, inlineSize: 600 }] }]);
-    run.viewport.height = 1500;
-    observer([{ borderBoxSize: [{ blockSize: 1500, inlineSize: 600 }] }]);
-    run.viewport.height = 0;
-    observer([{ borderBoxSize: [{ blockSize: 1600, inlineSize: 600 }] }]);
-    run.viewport.height = 1600;
-    observer([{ borderBoxSize: [{ blockSize: 1700, inlineSize: 600 }] }]);
-
-    for (const mutated of run.mutations) {
-      mutated();
-    }
-
-    run.viewport.height = 1700;
-    observer([{ borderBoxSize: [{ blockSize: 1900, inlineSize: 600 }] }]);
-    run.viewport.height = 1900;
-    observer([{ borderBoxSize: [{ blockSize: 2000, inlineSize: 600 }] }]);
-    run.viewport.height = 0;
-    observer([{ borderBoxSize: [{ blockSize: 2050, inlineSize: 600 }] }]);
-    run.viewport.height = 2050;
-    observer([{ borderBoxSize: [{ blockSize: 2125, inlineSize: 600 }] }]);
-    run.viewport.height = 2125;
-    observer([{ borderBoxSize: [{ blockSize: 2181.25, inlineSize: 600 }] }]);
-    run.viewport.height = 2350;
-    observer([{ borderBoxSize: [{ blockSize: 2293.75, inlineSize: 600 }] }]);
-    run.viewport.height = 2238;
-    observer([{ borderBoxSize: [{ blockSize: 2237.75, inlineSize: 600 }] }]);
-    run.viewport.height = 0;
-    observer([{ borderBoxSize: [{ blockSize: 3000, inlineSize: 600 }] }]);
-    run.viewport.height = 3000;
-    observer([{ borderBoxSize: [{ blockSize: 3100, inlineSize: 600 }] }]);
-    run.viewport.height = 3100;
-    observer([{ borderBoxSize: [{ blockSize: 3150, inlineSize: 600 }] }]);
-    run.viewport.height = 3200;
-    observer([{ borderBoxSize: [{ blockSize: 3700, inlineSize: 600 }] }]);
-    run.viewport.height = 3700;
-    observer([{ borderBoxSize: [{ blockSize: 3950, inlineSize: 600 }] }]);
-
-    for (const mutated of run.mutations) {
-      mutated();
-    }
-
-    run.viewport.height = 3950;
-    observer([{ borderBoxSize: [{ blockSize: 3975, inlineSize: 600 }] }]);
-    run.viewport.height = 0;
-    observer([{ borderBoxSize: [{ blockSize: 4500, inlineSize: 600 }] }]);
-    run.viewport.height = 4500;
-    observer([{ borderBoxSize: [{ blockSize: 4650, inlineSize: 600 }] }]);
-    run.viewport.height = 4650;
-    observer([{ borderBoxSize: [{ blockSize: 4755, inlineSize: 600 }] }]);
-    run.viewport.height = 5000;
-    observer([{ borderBoxSize: [{ blockSize: 4930, inlineSize: 600 }] }]);
-    run.viewport.height = 4860;
-    observer([{ borderBoxSize: [{ blockSize: 4960, inlineSize: 600 }] }]);
-    run.viewport.height = 4960;
-    observer([{ borderBoxSize: [{ blockSize: 4960, inlineSize: 600 }] }]);
-    run.viewport.height = 0;
-    observer([{ borderBoxSize: [{ blockSize: 5000, inlineSize: 600 }] }]);
-    run.viewport.height = 5000;
-    observer([{ borderBoxSize: [{ blockSize: 5200, inlineSize: 600 }] }]);
-    run.viewport.height = 5200;
-    observer([{ borderBoxSize: [{ blockSize: 5398, inlineSize: 600 }] }]);
-    run.viewport.height = 10_598;
-    dispatch(run.on, "resize", {});
-    ranOut(run);
-    run.viewport.height = 0;
-    observer([{ borderBoxSize: [{ blockSize: 6000, inlineSize: 600 }] }]);
-    run.viewport.height = 6000;
-    observer([{ borderBoxSize: [{ blockSize: 6100, inlineSize: 600 }] }]);
-    run.viewport.height = 6100;
-    observer([{ borderBoxSize: [{ blockSize: 6200, inlineSize: 600 }] }]);
-    observer([{ borderBoxSize: [{ blockSize: 6220, inlineSize: 600 }] }]);
-    run.viewport.height = 6120;
-    observer([{ borderBoxSize: [{ blockSize: 6240, inlineSize: 600 }] }]);
-    observer([{ borderBoxSize: [{ blockSize: 6200, inlineSize: 600 }] }]);
-    run.viewport.height = 6080;
-    observer([{ borderBoxSize: [{ blockSize: 6300, inlineSize: 600 }] }]);
-    run.viewport.height = 6300;
-    dispatch(run.on, "resize", {});
-    ranOut(run);
-    observer([{ borderBoxSize: [{ blockSize: 6350, inlineSize: 600 }] }]);
-    run.viewport.height = 0;
-    observer([{ borderBoxSize: [{ blockSize: 7000, inlineSize: 600 }] }]);
-    run.viewport.height = 7000;
-    observer([{ borderBoxSize: [{ blockSize: 7500, inlineSize: 600 }] }]);
-    run.viewport.height = 7500;
-    observer([{ borderBoxSize: [{ blockSize: 7750, inlineSize: 600 }] }]);
-    run.viewport.height = 8000;
-    observer([{ borderBoxSize: [{ blockSize: 8000, inlineSize: 600 }] }]);
-    observer([{ borderBoxSize: [{ blockSize: 8020, inlineSize: 600 }] }]);
-    run.viewport.height = 8040;
-    observer([{ borderBoxSize: [{ blockSize: 8040, inlineSize: 600 }] }]);
-    run.viewport.height = 0;
-    observer([{ borderBoxSize: [{ blockSize: 9000, inlineSize: 600 }] }]);
-    run.viewport.height = 9000;
-    observer([{ borderBoxSize: [{ blockSize: 9100, inlineSize: 600 }] }]);
-    run.viewport.height = 9100;
-    observer([{ borderBoxSize: [{ blockSize: 9200, inlineSize: 600 }] }]);
-    observer([{ borderBoxSize: [{ blockSize: 50, inlineSize: 600 }] }]);
-    run.viewport.height = 0;
-    observer([{ borderBoxSize: [{ blockSize: 9500, inlineSize: 600 }] }]);
-    run.viewport.height = 9500;
-    observer([{ borderBoxSize: [{ blockSize: 9600, inlineSize: 600 }] }]);
-    run.viewport.height = 9600;
-    observer([{ borderBoxSize: [{ blockSize: 9700, inlineSize: 600 }] }]);
-    observer([{ borderBoxSize: [{ blockSize: 9720, inlineSize: 600 }] }]);
-    run.viewport.height = 9620;
-    dispatch(run.on, "resize", {});
-    ranOut(run);
-    run.viewport.height = 0;
-    observer([{ borderBoxSize: [{ blockSize: 10_000, inlineSize: 600 }] }]);
-    run.viewport.height = 10_000;
-    observer([{ borderBoxSize: [{ blockSize: 10_100, inlineSize: 600 }] }]);
-    run.viewport.height = 10_100;
-    observer([{ borderBoxSize: [{ blockSize: 10_200, inlineSize: 600 }] }]);
-    observer([{ borderBoxSize: [{ blockSize: 10_300.5, inlineSize: 601 }] }]);
-    run.viewport.height = 10_301;
-    dispatch(run.on, "resize", {});
-    ranOut(run);
-    observer([{ borderBoxSize: [{ blockSize: 10_420, inlineSize: 601 }] }]);
-    run.viewport.height = 0;
-    observer([{ borderBoxSize: [{ blockSize: 20_000, inlineSize: 601 }] }]);
-    run.viewport.height = 20_000;
-    observer([{ borderBoxSize: [{ blockSize: 20_100, inlineSize: 601 }] }]);
-    run.viewport.height = 20_100;
-    observer([{ borderBoxSize: [{ blockSize: 20_200, inlineSize: 601 }] }]);
-    observer([{ borderBoxSize: [{ blockSize: 20_220, inlineSize: 601 }] }]);
-    run.viewport.height = 20_120;
-    observer([{ borderBoxSize: [{ blockSize: 20_230, inlineSize: 601 }] }]);
-    run.viewport.height = 20_340;
-    observer([{ borderBoxSize: [{ blockSize: 20_500, inlineSize: 601 }] }]);
-    run.viewport.height = 20_500;
-    observer([{ borderBoxSize: [{ blockSize: 20_600, inlineSize: 601 }] }]);
-  }
+  await Effect.runPromise(
+    Effect.forEach(run.observers, (observer) => Effect.promise(() => observedLife(run, observer)), {
+      discard: true,
+    }),
+  );
 
   dispatch(run.on, "error", atWindow(run, { message: "thrown" }));
   dispatch(run.on, "unhandledrejection", atWindow(run, { reason: new Error("rejected") }));
@@ -4091,24 +5968,25 @@ const noInteraction = async (run: Run): Promise<void> => {
 };
 
 /**
- * Every run the coverage test drives: a frame with no nonce, which does nothing, and each life
- * above, each in a context of its own.
+ * Every run the coverage test drives: a frame with no nonce, which does nothing, each life above,
+ * and a page whose policy refuses the boot's inline pins, each in a context of its own.
  */
 const lives: readonly {
   readonly drive: (run: Run) => Promise<void>;
   readonly hash: string;
   readonly name: string;
-  readonly pinned: boolean;
+  readonly styled: boolean;
 }[] = [
-  { drive: async () => {}, hash: "", name: "no nonce", pinned: true },
-  { drive: wholeLife, hash: `#${nonce}`, name: "its whole life", pinned: true },
-  { drive: fallenBack, hash: `#${nonce}`, name: "a fallback", pinned: true },
-  { drive: exhausted, hash: `#${nonce}`, name: "a route exhausted", pinned: false },
-  { drive: timedOut, hash: `#${nonce}`, name: "a wait run out", pinned: true },
-  { drive: missingDependency, hash: `#${nonce}`, name: "a missing dependency", pinned: true },
-  { drive: missingEntry, hash: `#${nonce}`, name: "a missing entry", pinned: true },
-  { drive: thrownEarly, hash: `#${nonce}`, name: "errors before the PCI runs", pinned: true },
-  { drive: noInteraction, hash: `#${nonce}`, name: "no interaction", pinned: true },
+  { drive: async () => {}, hash: "", name: "no nonce", styled: true },
+  { drive: wholeLife, hash: `#${nonce}`, name: "its whole life", styled: true },
+  { drive: fallenBack, hash: `#${nonce}`, name: "a fallback", styled: true },
+  { drive: exhausted, hash: `#${nonce}`, name: "a route exhausted", styled: true },
+  { drive: timedOut, hash: `#${nonce}`, name: "a wait run out", styled: true },
+  { drive: missingDependency, hash: `#${nonce}`, name: "a missing dependency", styled: true },
+  { drive: missingEntry, hash: `#${nonce}`, name: "a missing entry", styled: true },
+  { drive: thrownEarly, hash: `#${nonce}`, name: "errors before the PCI runs", styled: true },
+  { drive: noInteraction, hash: `#${nonce}`, name: "no interaction", styled: true },
+  { drive: async () => {}, hash: `#${nonce}`, name: "a policy refusing the pins", styled: false },
 ];
 
 /**
@@ -4205,7 +6083,7 @@ describe("the frame's boot, run", () => {
     const reads = await Effect.runPromise(
       Effect.forEach(lives, (life) =>
         Effect.promise(async () => {
-          const run = ran(script, life.hash, life.pinned);
+          const run = ran(script, life.hash, life.styled);
 
           await life.drive(run);
 
@@ -4240,7 +6118,7 @@ describe("the frame's boot, run", () => {
     const posts = await Effect.runPromise(
       Effect.forEach(lives, (life) =>
         Effect.promise(async () => {
-          const run = ran(script, life.hash, life.pinned);
+          const run = ran(script, life.hash, life.styled);
 
           await life.drive(run);
 
@@ -4251,7 +6129,7 @@ describe("the frame's boot, run", () => {
 
     assert.deepStrictEqual(posts, [
       "no nonce: ",
-      'its whole life: booted, registered, failed (No registered factory serves the type identifier "urn:qti-pie:test:unregistered", or its getInstance returned no interaction.), ready, changed, changed, changed, changed, changed, done, height 216, height 240, height 300, height 324, height 400, height 500, height 700, height 1000, height 1100, height 1300, height 1500, height 1600, height 1700, height 1900, height 2100, height 2050, height 2125, height 2350, height 2238, height 3000, height 3100, height 3200, height 3700, height 4200, height 3975, height 4500, height 4650, height 5000, height 4860, height 4960, height 5000, height 5200, height 10598, height 5398, height 6000, height 6100, height 6120, height 6080, height 6350, height 7000, height 7500, height 8000, height 8040, height 9000, height 9100, height 50, height 9500, height 9600, height 9620, height 10000, height 10100, height 10301, height 10420, height 20000, height 20100, height 20120, height 20340, height 20500, completed',
+      'its whole life: booted, registered, failed (No registered factory serves the type identifier "urn:qti-pie:test:unregistered", or its getInstance returned no interaction.), ready, changed, changed, changed, changed, changed, done, height 216, height 240, height 258, height 343, height 360, height 375, height 400, height 500, height 520, height 520, height 520, height 530, height 600, height 610, height 900, height 888, height 5, height 7, height 1100, height 1300, height 1500, height 1540, height 1600, height 1610, height 2050, height 2125, height 2350, height 2238, height 3000, height 3100, height 3200, height 3700, height 4200, height 4534, height 4600, height 5000, height 5200, height 10598, height 6000, height 6100, height 6300, height 6299, height 6300, height 6299, height 6298, height 7200, height 8000, height 8100, height 8300, height 500, height 600, height 599, height 598, height 600, height 800, height 900, height 3000, height 3100, height 3200, height 3700, height 4200, height 4534, height 4600, height 4650, height 9000, height 9100, height 9300, height 9310, height 372, height 444, height 443, height 444, height 443, height 700, completed',
       "a fallback: booted, registered, completed",
       "a route exhausted: booted, failed (The module script at modules/a.js did not load.)",
       'a wait run out: booted, failed (The module script at modules/a.js did not load within 5 seconds. The module script at modules/fallback.js defined no module "a".)',
@@ -4259,6 +6137,7 @@ describe("the frame's boot, run", () => {
       'a missing entry: booted, failed (The entry module "x" was not defined by any route.)',
       "errors before the PCI runs: booted, failed (thrown while loading), failed (A script in the frame threw.), failed (A promise in the frame was rejected.)",
       'no interaction: booted, registered, failed (No registered factory serves the type identifier "urn:qti-pie:test:none", or its getInstance returned no interaction.)',
+      "a policy refusing the pins: failed (The frame page's content-security policy refused the boot's own stylesheet, the pins of the root's geometry, so no height the frame posts could be trusted: its style-src must allow 'unsafe-inline', with no nonce or hash in style-src (which would make it ignored), as PCIs' own inline styles need.)",
     ]);
   });
 
