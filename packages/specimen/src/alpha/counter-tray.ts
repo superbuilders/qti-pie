@@ -24,6 +24,10 @@
  *
  * Test support for the counter tray's suite, `#specimen/alpha/counter-tray.test.ts`.
  *
+ * Every route it gives the frame waits for its module's script with no clock, as
+ * {@link unboundedPrimaryWait} says: a module server that never answers is a hang that no rule
+ * of the suite names, and the gate's progress watch judges it, never a failure here.
+ *
  * @module
  */
 import { createHash } from "node:crypto";

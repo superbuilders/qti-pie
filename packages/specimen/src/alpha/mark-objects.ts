@@ -23,6 +23,10 @@
  * Test support for the Alpha suites under `src/alpha/`; it reads plate through its public entries
  * alone.
  *
+ * Every route it gives the frame waits for its module's script with no clock, as
+ * {@link unboundedPrimaryWait} says: a module server that never answers is a hang that no rule
+ * of the suite names, and the gate's progress watch judges it, never a failure here.
+ *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/impl
  * @see https://html.spec.whatwg.org/multipage/dom.html#dom-dataset

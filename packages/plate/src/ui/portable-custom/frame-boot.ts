@@ -14,8 +14,13 @@
  *    `template` written inert at its end, takes the language, direction and title, and loads the
  *    routes: the entry first when the PCI names one, each route's primary location, then its
  *    fallback after the primary's fatal error or once the wait the fallback holds runs out; a
- *    location with nothing after it waits for its script's load or error, never for a clock. It
- *    runs the modules and tells the island the type identifiers they registered.
+ *    location with nothing after it waits for its script's load or error, never for a clock. An
+ *    anonymous `define` is the module of the route whose script is running it, and is taken only
+ *    while that location's load is undecided. It runs the modules and tells the island the type
+ *    identifiers they registered. With no clock, a lone location whose script never answers,
+ *    neither loading nor failing, leaves the frame loading, and nothing in the frame names it: the
+ *    island hears neither `registered` nor `failed`, and in the suites the gate's progress watch
+ *    judges the hang.
  * 3. On the island's choice it calls `factory.getInstance(dom, configuration, state)` through the
  *    bridge, the configuration the island's with the bridge's own `onready` and `ondone`.
  * 4. It relays `onready`, `ondone`, each `qti-interaction-changed` fired at the `dom`, and, after each
@@ -39,8 +44,10 @@
  *
  * Failure travels as a `failed` message while the PCI is not yet running: a route that exhausts
  * its locations, a module that names a dependency no route defines, no factory for the identifier
- * the island chose, or an uncaught error in the frame. Once `getInstance` has given the PCI, an
- * uncaught error is the PCI's own and leaves it running.
+ * the island chose, an anonymous `define` no module script of the frame's runs, or an uncaught
+ * error in the frame. An uncaught error a module script throws as it runs is its location's
+ * failure, set aside once that location's load is decided; any other is the frame's. Once
+ * `getInstance` has given the PCI, an uncaught error is the PCI's own and leaves it running.
  *
  * **Why one function.** The page writes `bootFrame`'s source text, `Function.prototype.toString`'s,
  * as its inline script, so the text is the code whatever compiled this module: Node's type
@@ -127,8 +134,8 @@ type DefineArguments =
   | readonly [id: unknown, dependencies: unknown, factory: unknown];
 
 /**
- * A `define` decoded: named by its id, or anonymous, which belongs to the route whose script is
- * loading; its dependencies, none where it lists none; and its factory, as the module gave it.
+ * A `define` decoded: named by its id, or anonymous, which belongs to the route of the script
+ * running it; its dependencies, none where it lists none; and its factory, as the module gave it.
  */
 type Definition = Readonly<
   | { kind: "named"; id: string; dependencies: readonly string[]; factory: unknown }
@@ -179,11 +186,13 @@ type Resolution =
   | { readonly kind: "resolved"; readonly value: unknown };
 
 /**
- * The route whose script is loading now: an anonymous `define` is its module, and an uncaught
- * error while it loads is its location's failure.
+ * One location's script, as the loader made it: its route's module id, which an anonymous `define`
+ * the script runs takes; how its load settles, an uncaught error the script throws as it runs
+ * among the ways; and whether its load is still undecided.
  */
-interface Loading {
+interface ScriptLoad {
   readonly id: string;
+  loading: boolean;
   readonly settle: (outcome: Outcome) => void;
 }
 
@@ -527,7 +536,10 @@ export const bootFrame = (): void => {
   const exported = new Map<string, unknown>();
   const builtins = new Map<string, unknown>();
   const factories: PciFactory[] = [];
-  let loading: Loading | undefined;
+  /**
+   * Each script the loader made, by its element, with the location it loads (`ScriptLoad`).
+   */
+  const scriptLoads = new Map<Element, ScriptLoad>();
   let dom: HTMLElement | undefined;
   /**
    * The island's device pixel ratio as its `load` gave it, for the frame's first posts.
@@ -685,6 +697,32 @@ export const bootFrame = (): void => {
   };
 
   /**
+   * Give the load of the script that is running now, `document.currentScript`, when the loader
+   * made it: the location an anonymous `define` it runs belongs to, and an uncaught error it throws
+   * fails. None while no script of the loader's runs: in a timer, an event, an animation frame, a
+   * script's `load`, or a script a PCI made itself.
+   *
+   * @returns The load, none where none is running.
+   * @constraint A script is the running script through its whole run: its top level, every
+   *   microtask that run queued (a promise's `then`, `queueMicrotask`, an `await` chain fifty deep,
+   *   a mutation observer's callback), and the `error` event of a throw there or of its own syntax
+   *   error, all before its `load`; and only then. HTML sets `currentScript` while it executes a
+   *   script element and runs the microtask checkpoint of that run inside it, before it sets it
+   *   back. Measured in Chrome 158 through a sandboxed frame, for scripts of the frame's page's
+   *   origin and of another (`car-i8/probe/current-script.mjs` in the lane's directory), where a
+   *   timer, an animation frame and the `load` listener saw none. A microtask the run sets off for
+   *   another script's code (its observer's callback, or a promise it awaits that this run
+   *   settles) runs inside this run too, and is taken as this script's.
+   * @see https://html.spec.whatwg.org/multipage/scripting.html#execute-the-script-element
+   * @see https://html.spec.whatwg.org/multipage/webappapis.html#clean-up-after-running-script
+   */
+  const runningLoad = (): ScriptLoad | undefined => {
+    const running = document.currentScript;
+
+    return running === null ? undefined : scriptLoads.get(running);
+  };
+
+  /**
    * Run a module and every dependency it names, once, and give its exported value.
    * `qtiCustomInteractionContext` and `require` are the loader's own; `exports` and `module` are
    * fresh per module, and a factory that returns nothing exports its `exports`. A dependency cycle
@@ -795,15 +833,36 @@ export const bootFrame = (): void => {
   };
 
   /**
-   * The AMD `define` of this frame. An anonymous define belongs to the route whose script is
-   * loading; one outside any load has no id to be known by and is dropped.
+   * The AMD `define` of this frame. A define is taken from the script running it
+   * (`runningLoad`): an anonymous one is the module of that script's route, and a named one the
+   * module it names. One whose script's load is decided, its wait run out or its own uncaught
+   * error reported, is set aside, so a late script changes no module after its route has gone on.
+   * An anonymous define that no script of the loader's runs names no module and is refused by name.
+   *
+   * @constraint An anonymous define's module is the route of the script running it, never the
+   *   route loading when it runs: a primary that answers after its wait ran out still runs, while
+   *   the next route loads, and its module taken for that route would load it though its own
+   *   script defined nothing (RED i4, follow-up 1). RequireJS names an anonymous define by the
+   *   script running it where a script's `load` does not follow its run at once, the script in its
+   *   `interactive` state, and refuses one it cannot tie to a script it loads, "Mismatched
+   *   anonymous define() module".
+   * @source RequireJS 2.3.7, `require.js`: `define` (lines 2062–2127) takes the name of an
+   *   anonymous define from `getInteractiveScript()` (lines 1994–2005), the script whose
+   *   `readyState` is `interactive`, its `data-requiremodule`; `intakeDefines` (lines 1245–1264)
+   *   fails an anonymous define met outside a script's `completeLoad` with the `mismatch` error.
+   * @see https://github.com/requirejs/requirejs/blob/2.3.7/require.js
    */
   const define: AmdDefine = Object.assign(
     (...given: DefineArguments): void => {
       const definition = definitionOf(given);
-      const id = definition.kind === "named" ? definition.id : loading?.id;
+      const running = runningLoad();
+      const id = definition.kind === "named" ? definition.id : running?.id;
 
-      if (id !== undefined) {
+      if (id === undefined) {
+        fail(
+          "An anonymous define() ran outside every module script this frame loaded, in a later task or in a script the PCI added itself, so it names no module and was refused. Define a module while its own script runs, and list each script that defines one anonymously among the PCI's modules.",
+        );
+      } else if (running?.loading !== false) {
         definitions.set(id, {
           dependencies: definition.dependencies,
           factory: definition.factory,
@@ -831,7 +890,7 @@ export const bootFrame = (): void => {
   /**
    * Load one script and wait for its `load` or `error`: loaded when the module is defined by the
    * time the script ran; failed when the script does not load, when it loads defining no such
-   * module (an empty script defines nothing), when an uncaught error is reported while it loads, or
+   * module (an empty script defines nothing), when it throws an uncaught error as it runs, or
    * when a wait is given and runs out first. Only a primary with a fallback after it is given a
    * wait, since a timeout means nothing but "load the fallback" (R3 of `#plate/pci/resolve.ts`,
    * reading `pci-wait-before-fallback`): any other location waits for its script however long it
@@ -839,9 +898,12 @@ export const bootFrame = (): void => {
    * takes its delay as a WebIDL `long`, milliseconds in a 32-bit signed integer, and a longer delay
    * wraps, so it fires early, at once just past the bound, which would cut short a wait a
    * configuration stated as longer than any session (reading `pci-configuration-waits`: a stated
-   * wait is never dropped).
+   * wait is never dropped). That is the cost of no clock: a lone location whose script never
+   * answers, neither loading nor failing, leaves the frame loading, named by no failure of the
+   * frame's; the island hears neither `registered` nor `failed`, and in the suites the gate's
+   * progress watch judges the hang.
    *
-   * @param id The route's module id, which an anonymous define takes.
+   * @param id The route's module id, which an anonymous define its script runs takes.
    * @param url The script's absolute URL.
    * @param waitSeconds How long to wait before the fallback loads instead, 0 for no limit, as for
    *   every location but a primary with a fallback.
@@ -862,29 +924,22 @@ export const bootFrame = (): void => {
     const { promise, resolve } = Promise.withResolvers<Outcome>();
     const script = document.createElement("script");
     let timer: ReturnType<typeof setTimeout> | undefined;
-    let settled = false;
+    const scriptLoad: ScriptLoad = {
+      id,
+      loading: true,
+      settle: (outcome) => {
+        if (!scriptLoad.loading) {
+          return;
+        }
 
-    /**
-     * Settle the load once, and stop being the load an anonymous define belongs to.
-     *
-     * @param outcome How it came out.
-     */
-    const settle = (outcome: Outcome): void => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      clearTimeout(timer);
-
-      if (loading?.settle === settle) {
-        loading = undefined;
-      }
-
-      resolve(outcome);
+        scriptLoad.loading = false;
+        clearTimeout(timer);
+        resolve(outcome);
+      },
     };
+    const { settle } = scriptLoad;
 
-    loading = { id, settle };
+    scriptLoads.set(script, scriptLoad);
     script.addEventListener("error", () => {
       settle({ kind: "failed", reason: `The module script at ${url} did not load.` });
     });
@@ -940,8 +995,8 @@ export const bootFrame = (): void => {
   };
 
   /**
-   * Load routes in order, one at a time, stopping at the first that fails: a module's anonymous
-   * define names the route loading when it runs, so two never load at once.
+   * Load routes in order, one at a time, stopping at the first that fails, so no route after a
+   * failure loads.
    *
    * @param routes The routes.
    * @returns Loaded, or the first failure.
@@ -1151,11 +1206,12 @@ export const bootFrame = (): void => {
   Object.assign(window, { define, qtiCustomInteractionContext: bridge });
   window.addEventListener("error", (event: ErrorEvent) => {
     const reason = event.message === "" ? "A script in the frame threw." : event.message;
+    const running = runningLoad();
 
-    if (loading === undefined) {
+    if (running === undefined) {
       fail(reason);
     } else {
-      loading.settle({ kind: "failed", reason });
+      running.settle({ kind: "failed", reason });
     }
   });
   window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
@@ -2304,6 +2360,11 @@ export const bootFrame = (): void => {
    *   - a query whose fixed point is more than one post away, stopped one post short, is reached
    *     only at its next change, whose probe finds it no longer growing there (COLD i6's P10, 616
    *     for 816, then 836 and 816 in one post a toggle);
+   *   - no rule of the island's height and `D′` names the frame's viewport exactly, the best of
+   *     those tried matching 1396 of 1620 posts across 20 pairs of zoom and ratio, and a move of the
+   *     element is not sure to move the viewport, so an echo is the island's settled word, never a
+   *     viewport the post should give (`settledAt`), and a probe the pipeline swallowed goes twice
+   *     as far (`probedAt`);
    *   - a post the island settles early, a host's tween whose first two frames move the element
    *     by less than 1/64 px, is echoed where the viewport stands then, and the tween's later
    *     steps are the host's own resizes (`landHeight` in `#plate/ui/portable-custom/landing.ts`);

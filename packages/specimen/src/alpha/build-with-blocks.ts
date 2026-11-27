@@ -35,6 +35,10 @@
  * page, the frame page and the package's files are served from this machine; nothing loads from
  * another host. Test support for specimen's alpha suite under `src/alpha/`.
  *
+ * Every route it gives the frame waits for its module's script with no clock, as
+ * {@link unboundedPrimaryWait} says: a module server that never answers is a hang that no rule
+ * of the suite names, and the gate's progress watch judges it, never a failure here.
+ *
  * @module
  */
 import { readdirSync, readFileSync } from "node:fs";

@@ -28,6 +28,10 @@
  *
  * Test support for `#specimen/alpha/enter-numbers.test.ts` and `#specimen/alpha/tap-point.test.ts`.
  *
+ * Every route it gives the frame waits for its module's script with no clock, as
+ * {@link unboundedPrimaryWait} says: a module server that never answers is a hang that no rule
+ * of the suite names, and the gate's progress watch judges it, never a failure here.
+ *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/impl
  */

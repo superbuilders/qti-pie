@@ -38,8 +38,9 @@ const fakeAudioStreams = "--disable-audio-output";
  * The wait every hosted portable custom interaction's primary is given before its fallback loads:
  * none, QTI's 0. plate's frame times only a primary with a fallback after it, and any other
  * location waits for its script's load or error (reading `pci-wait-before-fallback`), so with this
- * no hosted module is timed at all. A module that never defines itself is a hang the case's guards
- * judge, never a verdict at 7 seconds.
+ * no hosted module is timed at all. That is the cost of no clock: a lone primary whose server
+ * never answers, neither loading nor failing, is a hang that no rule names, and the gate's progress
+ * watch judges it, never a verdict at 7 seconds.
  */
 export const unboundedPrimaryWait = 0;
 

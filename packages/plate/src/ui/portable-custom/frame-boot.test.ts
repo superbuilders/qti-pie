@@ -14,7 +14,14 @@
  * written by hand: HTML's `setTimeout` takes its delay as a WebIDL `long`, milliseconds in a 32-bit
  * signed integer, so a wait past 2,147,483.647 seconds is longer than any session and no timer can
  * hold it. The frame runs against a document of the test's own, its timers vitest's fake ones, and
- * scripts that load, fail or run only when a case says so.
+ * scripts that load, fail or run only when a case says so, each the document's `currentScript`
+ * while it runs, as HTML has it.
+ *
+ * Which route an anonymous `define` belongs to is AMD's: the module of the script that runs it
+ * (RequireJS 2.3.7's `define`, which names one by the script running it where a script's `load`
+ * does not follow its run at once, and refuses one it cannot tie to a script it loads, "Mismatched
+ * anonymous define() module"); written by hand, RED i4's late primary, which answers after its
+ * wait ran out, while the next route loads.
  *
  * @module
  */
@@ -101,16 +108,26 @@ interface LoaderElement {
  * The frame's window as the test holds it: where the frame writes its loader's `define`.
  */
 interface LoaderWindow {
-  readonly define?: (factory: () => object) => void;
+  readonly define?: (...given: readonly unknown[]) => void;
 }
 
 /**
- * A booted frame: the island it posts to, its document's head, whose children are the scripts it
- * appends in order, and its window.
+ * A test's document as a script's run sets it: the script element running, none between runs.
+ */
+interface ScriptedDocument<Script> {
+  currentScript: Script | null;
+}
+
+/**
+ * A booted frame: the island it posts to, its document, its document's head, whose children are
+ * the scripts it appends in order, its window, and a way to report an uncaught error to the
+ * window's `error` listener.
  */
 interface LoaderFrame {
+  readonly document: ScriptedDocument<LoaderElement>;
   readonly head: LoaderElement;
   readonly island: Island;
+  readonly thrown: (message: string) => void;
   readonly window: LoaderWindow;
 }
 
@@ -151,13 +168,13 @@ const elementOf = (): LoaderElement => {
 };
 
 /**
- * Boot a frame in the test's document and hand it the island's `load` with one route, module
- * `a`, its entry.
+ * Boot a frame in the test's document and hand it the island's `load` with routes and an entry.
  *
- * @param route The route, its locations and its fallback's wait.
+ * @param routes The routes, their locations and their fallbacks' waits.
+ * @param entry The entry module's id, none where the PCI names none.
  * @returns The frame.
  */
-const loadingFrame = (route: Omit<PciFrameRoute, "id">): LoaderFrame => {
+const routedFrame = (routes: readonly PciFrameRoute[], entry: string | null): LoaderFrame => {
   const posted: FrameToPage[] = [];
   const island: Island = {
     postMessage: (message) => {
@@ -165,54 +182,84 @@ const loadingFrame = (route: Omit<PciFrameRoute, "id">): LoaderFrame => {
     },
     posted,
   };
-  const listeners = new Map<string, (message: IslandMessage) => void>();
+  const listeners = new Map<
+    string,
+    (event: IslandMessage | { readonly message: string }) => void
+  >();
   const head = elementOf();
   const frameWindow: LoaderWindow = {};
+  const frameDocument: ScriptedDocument<LoaderElement> = { currentScript: null };
 
   vi.stubGlobal("location", { hash: `#${nonce}` });
   vi.stubGlobal(
     "window",
     Object.assign(frameWindow, {
-      addEventListener: (type: string, listener: (message: IslandMessage) => void) => {
+      addEventListener: (
+        type: string,
+        listener: (event: IslandMessage | { readonly message: string }) => void,
+      ) => {
         listeners.set(type, listener);
       },
       parent: island,
     }),
   );
-  vi.stubGlobal("document", {
-    addEventListener: () => {},
-    body: elementOf(),
-    createElement: elementOf,
-    documentElement: { dir: "", getBoundingClientRect: () => ({ height: 0 }), lang: "" },
-    fonts: [],
-    getAnimations: () => [],
-    head,
-    querySelector: () => null,
-    styleSheets: [],
-    title: "",
-  });
+  vi.stubGlobal(
+    "document",
+    Object.assign(frameDocument, {
+      addEventListener: () => {},
+      body: elementOf(),
+      createElement: elementOf,
+      documentElement: { dir: "", getBoundingClientRect: () => ({ height: 0 }), lang: "" },
+      fonts: [],
+      getAnimations: () => [],
+      head,
+      querySelector: () => null,
+      styleSheets: [],
+      title: "",
+    }),
+  );
   vi.stubGlobal("ResizeObserver", NotedObserver);
   vi.stubGlobal("MutationObserver", NotedObserver);
   vi.stubGlobal("matchMedia", () => ({ matches: false }));
   bootFrame();
+
+  const loaded: PageLoad = {
+    dir: "ltr",
+    kind: "load",
+    lang: "en",
+    markup: "",
+    nonce,
+    ratio: 1,
+    routes,
+    templates: [],
+    title: "PCI",
+  };
+
   listeners.get("message")?.({
-    data: {
-      dir: "ltr",
-      entry: "a",
-      kind: "load",
-      lang: "en",
-      markup: "",
-      nonce,
-      ratio: 1,
-      routes: [{ id: "a", ...route }],
-      templates: [],
-      title: "PCI",
-    },
+    data: entry === null ? loaded : { ...loaded, entry },
     source: island,
   });
 
-  return { head, island, window: frameWindow };
+  return {
+    document: frameDocument,
+    head,
+    island,
+    thrown: (message) => {
+      listeners.get("error")?.({ message });
+    },
+    window: frameWindow,
+  };
 };
+
+/**
+ * Boot a frame in the test's document and hand it the island's `load` with one route, module
+ * `a`, its entry.
+ *
+ * @param route The route, its locations and its fallback's wait.
+ * @returns The frame.
+ */
+const loadingFrame = (route: Omit<PciFrameRoute, "id">): LoaderFrame =>
+  routedFrame([{ id: "a", ...route }], "a");
 
 /**
  * The scripts a frame has appended, by their URLs, in order.
@@ -235,15 +282,73 @@ const fire = (frame: LoaderFrame, at: number, type: "error" | "load"): void => {
 };
 
 /**
+ * Run a script's text as the script the frame appended at a place runs it: the document's
+ * `currentScript` is that script while it runs, and none after, as HTML has it.
+ *
+ * @param frame The frame.
+ * @param at The script's place among those appended.
+ * @param text What the script does as it runs.
+ */
+const runAs = (frame: LoaderFrame, at: number, text: () => void): void => {
+  frame.document.currentScript = frame.head.appended[at] ?? null;
+  text();
+  frame.document.currentScript = null;
+};
+
+/**
  * Let the script at a place arrive: it runs, defining its module anonymously, then loads.
  *
  * @param frame The frame.
  * @param at The script's place among those appended.
  */
 const arrive = (frame: LoaderFrame, at: number): void => {
-  frame.window.define?.(() => ({}));
+  runAs(frame, at, () => {
+    frame.window.define?.(() => ({}));
+  });
   fire(frame, at, "load");
 };
+
+/**
+ * A module's factory that registers with the bridge a PCI factory of a type, whose instances
+ * answer an empty state and a response of 0.
+ *
+ * @param typeIdentifier The type.
+ * @returns The module's factory.
+ */
+const registering =
+  (typeIdentifier: string) =>
+  (context: FixtureContext): void => {
+    context.register({
+      getInstance: () => ({ getResponse: () => ({ base: { integer: 0 } }), getState: () => "" }),
+      typeIdentifier,
+    });
+  };
+
+/**
+ * Let the script at a place arrive: it runs, defining anonymously a module that registers a PCI
+ * factory of a type, then loads.
+ *
+ * @param frame The frame.
+ * @param at The script's place among those appended.
+ * @param typeIdentifier The type its factory serves.
+ */
+const arriveRegistering = (frame: LoaderFrame, at: number, typeIdentifier: string): void => {
+  runAs(frame, at, () => {
+    frame.window.define?.(["qtiCustomInteractionContext"], registering(typeIdentifier));
+  });
+  fire(frame, at, "load");
+};
+
+/**
+ * The type identifiers the frame told the island its modules registered, none where it told none.
+ *
+ * @param frame The frame.
+ * @returns The identifiers, in the order registered.
+ */
+const typesIn = (frame: LoaderFrame): readonly string[] =>
+  frame.island.posted.flatMap((message) =>
+    message.kind === "registered" ? message.typeIdentifiers : [],
+  );
 
 /**
  * Whether the frame has told the island the load failed.
@@ -281,6 +386,43 @@ const primary = "https://frame.example/modules/a.js";
  * The fallback location of every case's route that has one.
  */
 const fallbackAt = "https://frame.example/modules/fallback/a.js";
+
+/**
+ * The one location of a second route, `b`, where a case loads two.
+ */
+const secondAt = "https://frame.example/modules/b.js";
+
+/**
+ * The two routes of RED i4's late primary: `a`, whose primary waits a second before its fallback,
+ * and `b`, which loads after it.
+ */
+const twoRoutes: readonly PciFrameRoute[] = [
+  { fallback: { location: fallbackAt, primaryWaitSeconds: 1 }, id: "a", primary },
+  { id: "b", primary: secondAt },
+];
+
+/**
+ * What the frame tells the island of an anonymous `define` that no module script of the frame's
+ * runs.
+ */
+const unnamedDefine =
+  "An anonymous define() ran outside every module script this frame loaded, in a later task or in a script the PCI added itself, so it names no module and was refused. Define a module while its own script runs, and list each script that defines one anonymously among the PCI's modules.";
+
+/**
+ * Boot a frame with RED i4's two routes and let route `a`'s primary run out its wait, its fallback
+ * arrive with `a`'s module, and route `b` start loading.
+ *
+ * @returns The frame, `b`'s script appended and not yet run.
+ */
+const lateAfterFallback = async (): Promise<LoaderFrame> => {
+  const frame = routedFrame(twoRoutes, null);
+
+  await vi.advanceTimersByTimeAsync(1000);
+  arriveRegistering(frame, 1, "urn:qti-pie:test:a");
+  await vi.advanceTimersByTimeAsync(0);
+
+  return frame;
+};
 
 describe("a PCI frame's wait for a module script", () => {
   beforeEach(() => {
@@ -357,14 +499,18 @@ describe("a PCI frame's wait for a module script", () => {
     assert.isTrue(failedIn(frame), "failed once its script had run");
   });
 
-  it("refuses a module its script defines only in a task after its load", async () => {
+  it("refuses a module its script defines only in a task after its load, and names the define", async () => {
     const frame = loadingFrame({ primary });
 
     fire(frame, 0, "load");
     await vi.advanceTimersByTimeAsync(0);
     frame.window.define?.(() => ({}));
     await vi.advanceTimersByTimeAsync(longestTimerMs + 1);
-    assert.isTrue(failedIn(frame), "refused at its script's load");
+    assert.deepStrictEqual(
+      failuresIn(frame),
+      [`The module script at ${primary} defined no module "a".`, unnamedDefine],
+      "refused at its script's load, and the define that came after, which no script runs, refused by name",
+    );
     assert.isFalse(registeredIn(frame), "the define that came after registers nothing");
   });
 
@@ -438,6 +584,101 @@ describe("a PCI frame's wait for a module script", () => {
     arrive(frame, 0);
     await vi.advanceTimersByTimeAsync(0);
     assert.isTrue(registeredIn(frame), "it loaded when its script arrived");
+  });
+
+  it("gives the route loading after a late primary none of that primary's module: RED i4's late primary, which defines while the next route loads", async () => {
+    const frame = await lateAfterFallback();
+
+    assert.deepStrictEqual(
+      scriptsOf(frame),
+      [primary, fallbackAt, secondAt],
+      "`a`'s fallback, once its primary's wait ran out, then `b`",
+    );
+    runAs(frame, 0, () => {
+      frame.window.define?.(() => ({}));
+    });
+    fire(frame, 0, "load");
+    fire(frame, 2, "load");
+    await vi.advanceTimersByTimeAsync(0);
+    assert.deepStrictEqual(
+      failuresIn(frame),
+      [`The module script at ${secondAt} defined no module "b".`],
+      "`b`'s own script defined nothing, so `b` fails by name: the late primary's module is `a`'s, set aside as its wait ran out, and never stands under `b`",
+    );
+    assert.isFalse(registeredIn(frame), "nothing registered");
+  });
+
+  it("keeps each route's module its own where a late primary defines before the next route's script runs", async () => {
+    const frame = await lateAfterFallback();
+
+    runAs(frame, 0, () => {
+      frame.window.define?.(["qtiCustomInteractionContext"], registering("urn:qti-pie:test:late"));
+    });
+    arriveRegistering(frame, 2, "urn:qti-pie:test:b");
+    await vi.advanceTimersByTimeAsync(0);
+    assert.deepStrictEqual(
+      typesIn(frame),
+      ["urn:qti-pie:test:a", "urn:qti-pie:test:b"],
+      "`a` is its fallback's module and `b` its own: the late primary's, which ran out its wait, replaces neither",
+    );
+    assert.isFalse(failedIn(frame), "and nothing failed");
+  });
+
+  it("sets aside a late primary's uncaught error while the next route loads", async () => {
+    const frame = await lateAfterFallback();
+
+    runAs(frame, 0, () => {
+      frame.thrown("thrown by the late primary");
+    });
+    arriveRegistering(frame, 2, "urn:qti-pie:test:b");
+    await vi.advanceTimersByTimeAsync(0);
+    assert.isFalse(failedIn(frame), "`b` is not failed by an error of `a`'s primary's script");
+    assert.deepStrictEqual(typesIn(frame), ["urn:qti-pie:test:a", "urn:qti-pie:test:b"]);
+  });
+
+  it("fails a location whose script throws as it runs, so its fallback loads at once", async () => {
+    const frame = loadingFrame({
+      fallback: { location: fallbackAt, primaryWaitSeconds: 30 },
+      primary,
+    });
+
+    runAs(frame, 0, () => {
+      frame.thrown("thrown as it ran");
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    assert.deepStrictEqual(
+      scriptsOf(frame),
+      [primary, fallbackAt],
+      "the fallback, before the wait ran out",
+    );
+    arrive(frame, 1);
+    await vi.advanceTimersByTimeAsync(0);
+    assert.isTrue(registeredIn(frame), "it loaded from the fallback");
+    assert.isFalse(failedIn(frame), "and never failed");
+  });
+
+  it("fails the frame, by name, for an anonymous define or an uncaught error that no script of the frame's runs, and leaves the route loading its own", async () => {
+    const frame = loadingFrame({
+      fallback: { location: fallbackAt, primaryWaitSeconds: 30 },
+      primary,
+    });
+
+    frame.window.define?.(() => ({}));
+    frame.thrown("thrown in a timer");
+    await vi.advanceTimersByTimeAsync(0);
+    assert.deepStrictEqual(
+      failuresIn(frame),
+      [unnamedDefine, "thrown in a timer"],
+      "the define and the error are the frame's, each named",
+    );
+    assert.deepStrictEqual(
+      scriptsOf(frame),
+      [primary],
+      "and neither is the primary's: no fallback",
+    );
+    arriveRegistering(frame, 0, "urn:qti-pie:test:a");
+    await vi.advanceTimersByTimeAsync(0);
+    assert.deepStrictEqual(typesIn(frame), ["urn:qti-pie:test:a"], "the primary's own module");
   });
 });
 
@@ -582,8 +823,9 @@ interface Made {
  * the frame's own `message` listener, and one from the island of a shape the protocol refuses;
  * and the frame's other inputs: its `resize`, its timers run, three rounds of them or one, a
  * mutation of its document, a content event at its document, the document's running animations,
- * and the island's acknowledgment of a height the frame posted, with the frame element's height the
- * island measured and its device pixel ratio, and its word that the post settled there.
+ * the island's acknowledgment of a height the frame posted, with the frame element's height the
+ * island measured and its device pixel ratio, and its word that the post settled there, and a
+ * script's run as an element the frame made.
  */
 interface Booted {
   readonly animations: RunAnimation[];
@@ -594,6 +836,7 @@ interface Booted {
   readonly later: () => void;
   readonly made: readonly Made[];
   readonly mutated: () => void;
+  readonly ran: (at: number, text: () => void) => void;
   readonly receive: (message: PageMessage, source: Elsewhere | Island) => void;
   readonly refused: (data: Omit<PageLanded, "from"> | Omit<PageLoad, "ratio">) => void;
   readonly registered: Promise<null>;
@@ -621,17 +864,19 @@ interface LateFace {
  */
 const keptElement = (made: Made[]) => {
   const listeners = new Map<string, (event: Event) => void>();
-
-  made.push({ listeners });
-
-  return {
+  const element = {
     addEventListener: (type: string, listener: (event: Event) => void) => {
       listeners.set(type, listener);
     },
     append: () => {},
     dataset: {},
     innerHTML: "",
+    listeners,
   };
+
+  made.push(element);
+
+  return element;
 };
 
 /**
@@ -775,22 +1020,27 @@ const booted = (
     parent: island,
   };
 
+  const frameDocument: ScriptedDocument<Made> = { currentScript: null };
+
   vi.stubGlobal("location", { hash: `#${nonce}` });
   vi.stubGlobal("window", frameWindow);
-  vi.stubGlobal("document", {
-    addEventListener: (type: string, listener: () => void) => {
-      onDocument.set(type, [...(onDocument.get(type) ?? []), listener]);
-    },
-    body: elementOf(),
-    createElement: (tag: string) => (tag === "style" ? elementOf() : keptElement(made)),
-    documentElement: root,
-    fonts: faces,
-    getAnimations: () => animations,
-    head: elementOf(),
-    querySelector: () => null,
-    styleSheets: [],
-    title: "",
-  });
+  vi.stubGlobal(
+    "document",
+    Object.assign(frameDocument, {
+      addEventListener: (type: string, listener: () => void) => {
+        onDocument.set(type, [...(onDocument.get(type) ?? []), listener]);
+      },
+      body: elementOf(),
+      createElement: (tag: string) => (tag === "style" ? elementOf() : keptElement(made)),
+      documentElement: root,
+      fonts: faces,
+      getAnimations: () => animations,
+      head: elementOf(),
+      querySelector: () => null,
+      styleSheets: [],
+      title: "",
+    }),
+  );
   vi.stubGlobal("ResizeObserver", observer);
   vi.stubGlobal("getComputedStyle", computedOf);
   vi.stubGlobal(
@@ -849,6 +1099,11 @@ const booted = (
       for (const report of mutations) {
         report();
       }
+    },
+    ran: (at, text) => {
+      frameDocument.currentScript = made[at] ?? null;
+      text();
+      frameDocument.currentScript = null;
     },
     receive: (message, source) => {
       listeners.get("message")?.({ data: message, source });
@@ -974,10 +1229,12 @@ describe("a PCI that puts its own window in place of the frame's `parent`", () =
     const typeIdentifier = "urn:qti-pie:test:parent";
 
     frame.receive(loadOfA, frame.island);
-    frame.window.define?.(
-      ["qtiCustomInteractionContext"],
-      parentTaking({ elsewhere, frame, response, typeIdentifier }),
-    );
+    frame.ran(1, () => {
+      frame.window.define?.(
+        ["qtiCustomInteractionContext"],
+        parentTaking({ elsewhere, frame, response, typeIdentifier }),
+      );
+    });
     frame.made[1]?.listeners.get("load")?.(new Event("load"));
     await frame.registered;
     frame.receive(instantiateOf(typeIdentifier), frame.island);
@@ -1860,7 +2117,9 @@ describe("a PCI that grows its frame's root element's own padding", () => {
     booting.landed(410, iframe.firstHeight, 410, 1);
     booting.resized();
     booting.later();
-    booting.window.define?.(["qtiCustomInteractionContext"], paddingGrowing(typeIdentifier));
+    booting.ran(1, () => {
+      booting.window.define?.(["qtiCustomInteractionContext"], paddingGrowing(typeIdentifier));
+    });
     booting.made[1]?.listeners.get("load")?.(new Event("load"));
     await booting.registered;
     booting.receive(instantiateOf(typeIdentifier), booting.island);
@@ -4772,12 +5031,14 @@ const listenersOf = (): Listeners => Object.assign(new Map(), { owner: {} });
  * viewport's height and resolution, which `matchMedia` answers by; the document's style sheets, in
  * order, the page's pins among them where the run has them, the pins' node and a way to make
  * another, as a PCI's `style` is, and the nodes whose sheet has not loaded, a link's, which the
- * document's order holds and `styleSheets` does not; and a way to run a script of the PCI's in the
- * same context, as a module file the frame loaded runs.
+ * document's order holds and `styleSheets` does not; and two ways to run a script of the PCI's in
+ * the same context: as code of the PCI's own outside any module script, and as a module file the
+ * frame loaded runs, the document's `currentScript` that script element while it runs.
  */
 interface Run {
   readonly elements: RunElement[];
   readonly evaluate: (source: string) => void;
+  readonly ranAs: (source: string, as: RunElement | undefined) => void;
   readonly global: object;
   readonly island: object;
   readonly log: string[];
@@ -4955,6 +5216,7 @@ const ran = (script: string, hash: string, styled: boolean): Run => {
    * `loaded` the boot takes as a signal, once however many observations find it.
    */
   const faces = [{ loaded: Promise.resolve(null), status: "loading" }];
+  const scripted: ScriptedDocument<RunElement> = { currentScript: null };
   const documentOf = {
     addEventListener: (type: string, listener: (event: RunEvent) => void) => {
       listen(onDocument, type, listener);
@@ -4987,6 +5249,9 @@ const ran = (script: string, hash: string, styled: boolean): Run => {
       elements.push(element);
 
       return element;
+    },
+    get currentScript() {
+      return scripted.currentScript;
     },
     defaultView: sandbox,
     documentElement: {
@@ -5075,6 +5340,11 @@ const ran = (script: string, hash: string, styled: boolean): Run => {
       return elements.find(({ tag }) => tag === "style");
     },
     posted,
+    ranAs: (source, as) => {
+      scripted.currentScript = as ?? null;
+      runInContext(source, context, { filename: "module.js" });
+      scripted.currentScript = null;
+    },
     sheets,
     timers,
     viewport,
@@ -5801,9 +6071,9 @@ const wholeLife = async (run: Run): Promise<void> => {
   run.evaluate(changedWith("{}"));
   dispatch(run.onDocument, "pointerup", { view: run.global });
   ranOut(run);
-  run.evaluate(wholeModule);
+  run.ranAs(wholeModule, lastScript(run));
   lastScript(run)?.fire("load", {});
-  run.evaluate("define(function () {});");
+  run.ranAs("define(function () {});", lastScript(run));
   await setImmediate();
   dispatch(run.on, "message", fromIsland(run, instantiateOf("urn:qti-pie:test:unregistered")));
   dispatch(run.on, "message", fromIsland(run, instantiateOf(typeIdentifier)));
@@ -5861,7 +6131,7 @@ const fallenBack = async (run: Run): Promise<void> => {
   dispatch(run.on, "message", fromIsland(run, loadOf([fallingBackOf("a", 0), { id: "z" }], null)));
   lastScript(run)?.fire("error", {});
   await setImmediate();
-  run.evaluate("define(function () { return 1; });");
+  run.ranAs("define(function () { return 1; });", lastScript(run));
   lastScript(run)?.fire("load", {});
   await setImmediate();
   dispatch(run.on, "message", fromIsland(run, { kind: "complete", nonce }));
@@ -5904,7 +6174,7 @@ const timedOut = async (run: Run): Promise<void> => {
   await setImmediate();
   lastScript(run)?.fire("load", {});
   primaryScript?.fire("load", {});
-  run.evaluate('define("a", function () {});');
+  run.ranAs('define("a", function () {});', primaryScript);
   lastScript(run)?.fire("load", {});
   await setImmediate();
 };
@@ -5918,7 +6188,7 @@ const timedOut = async (run: Run): Promise<void> => {
  */
 const missingDependency = async (run: Run): Promise<void> => {
   dispatch(run.on, "message", fromIsland(run, loadOf([fallingBackOf("a", 1e9)], "a")));
-  run.evaluate('define(["missing"], function () {});');
+  run.ranAs('define(["missing"], function () {});', lastScript(run));
   lastScript(run)?.fire("load", {});
   await setImmediate();
 };
@@ -5931,23 +6201,28 @@ const missingDependency = async (run: Run): Promise<void> => {
  */
 const missingEntry = async (run: Run): Promise<void> => {
   dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a")], "x")));
-  run.evaluate("define(function () {});");
+  run.ranAs("define(function () {});", lastScript(run));
   lastScript(run)?.fire("load", {});
   await setImmediate();
 };
 
 /**
- * Drive a run in which a script throws while its route loads, then one throws, with no message,
- * and a promise is rejected, with no error, before the PCI runs.
+ * Drive a run in which a route's script throws as it runs, then, with no script running, one
+ * throws with no message, an anonymous `define` names no module, and a promise is rejected, with
+ * no error, before the PCI runs.
  *
  * @param run The run.
  * @returns Once driven.
  */
 const thrownEarly = async (run: Run): Promise<void> => {
   dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a")], "a")));
-  dispatch(run.on, "error", atWindow(run, { message: "thrown while loading" }));
+  run.ranAs(
+    'fire("error", { currentTarget: window, message: "thrown while loading", target: window });',
+    lastScript(run),
+  );
   await setImmediate();
   dispatch(run.on, "error", atWindow(run, { message: "" }));
+  run.evaluate("define(function () {});");
   dispatch(run.on, "unhandledrejection", atWindow(run, { reason: "no error" }));
 };
 
@@ -5959,8 +6234,9 @@ const thrownEarly = async (run: Run): Promise<void> => {
  */
 const noInteraction = async (run: Run): Promise<void> => {
   dispatch(run.on, "message", fromIsland(run, loadOf([routeOf("a")], "a")));
-  run.evaluate(
+  run.ranAs(
     'define(["qtiCustomInteractionContext"], function (context) { context.register({ getInstance: function () { return 1; }, typeIdentifier: "urn:qti-pie:test:none" }); });',
+    lastScript(run),
   );
   lastScript(run)?.fire("load", {});
   await setImmediate();
@@ -6135,7 +6411,7 @@ describe("the frame's boot, run", () => {
       'a wait run out: booted, failed (The module script at modules/a.js did not load within 5 seconds. The module script at modules/fallback.js defined no module "a".)',
       'a missing dependency: booted, failed (The module "a" depends on "missing", which no route defines.)',
       'a missing entry: booted, failed (The entry module "x" was not defined by any route.)',
-      "errors before the PCI runs: booted, failed (thrown while loading), failed (A script in the frame threw.), failed (A promise in the frame was rejected.)",
+      "errors before the PCI runs: booted, failed (thrown while loading), failed (A script in the frame threw.), failed (An anonymous define() ran outside every module script this frame loaded, in a later task or in a script the PCI added itself, so it names no module and was refused. Define a module while its own script runs, and list each script that defines one anonymously among the PCI's modules.), failed (A promise in the frame was rejected.)",
       'no interaction: booted, registered, failed (No registered factory serves the type identifier "urn:qti-pie:test:none", or its getInstance returned no interaction.)',
       "a policy refusing the pins: failed (The frame page's content-security policy refused the boot's own stylesheet, the pins of the root's geometry, so no height the frame posts could be trusted: its style-src must allow 'unsafe-inline', with no nonce or hash in style-src (which would make it ignored), as PCIs' own inline styles need.)",
     ]);
