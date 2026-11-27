@@ -3,8 +3,8 @@
  * each script entry of the exports map, by its subpath, and each `"use client"` module under
  * `src/`, by its path there, with its exports as name and value pairs, imported statically: the
  * entries through the package's own name, as a host loads them, and the client modules through
- * `#plate/*`, as the server shell does. `src/test/emit-modules.ts` writes it, and its check holds
- * it to the sources.
+ * `#plate/*`, as the server shell does, but a client module an entry names, imported once,
+ * through its entry. `src/test/emit-modules.ts` writes it, and its check holds it to the sources.
  *
  * @module
  */
