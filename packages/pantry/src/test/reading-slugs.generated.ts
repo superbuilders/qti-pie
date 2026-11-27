@@ -267,6 +267,7 @@ export const readingSlugs = [
   "match-multiset",
   "inline-choice-required",
   "end-attempt-validation",
+  "pci-wait-before-fallback",
 ] as const;
 
 /**
