@@ -944,8 +944,8 @@ CREATE VIEW "__qti_queries"."placed_math_rank_step" ("assembly", "instance", "ki
 SELECT "r1"."assembly", "r1"."instance", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."parent", "r1"."parent_rank", "r1"."rank", "r1"."start"
 FROM "qti_queries"."placed_math_rank_step" AS "r1";
 
-CREATE VIEW "__qti_queries"."placed_reference" ("assembly", "package", "token_digest") AS
-SELECT "r1"."assembly", "r1"."package", "r1"."token_digest"
+CREATE VIEW "__qti_queries"."placed_reference" ("assembly", "instance", "package", "start", "token_digest") AS
+SELECT "r1"."assembly", "r1"."instance", "r1"."package", "r1"."start", "r1"."token_digest"
 FROM "qti_queries"."placed_reference" AS "r1";
 
 CREATE VIEW "__qti_queries"."placed_reference_site" ("assembly", "attribute", "attribute_name", "identifier", "instance", "package", "path", "start") AS
@@ -3971,7 +3971,7 @@ COMMENT ON CONSTRAINT "__placed_math_rank_node_key_assembly_instance_et5fdli3jg"
 
 COMMENT ON CONSTRAINT "__placed_math_rank_step_key_assembly_instance_fioufkjkty" ON "qti_queries"."placed_math_rank_step" IS 'key PlacedMathRankStep(assembly, instance, package, start)';
 
-COMMENT ON CONSTRAINT "__placed_reference_key_assembly_package_token_digest_vlx34tnlfl" ON "qti_queries"."placed_reference" IS 'key PlacedReference(assembly, package, tokenDigest)';
+COMMENT ON CONSTRAINT "__placed_reference_key_assembly_instance_package_fv5s77oiyn" ON "qti_queries"."placed_reference" IS 'key PlacedReference(assembly, instance, package, start, tokenDigest)';
 
 COMMENT ON CONSTRAINT "__placed_share_ranks_key_assembly_instance_package_dio3amk5m2" ON "qti_queries"."placed_share_ranks" IS 'key PlacedShareRanks(assembly, instance, package, start)';
 
@@ -4525,7 +4525,7 @@ COMMENT ON FUNCTION "qti"."__reader_olds_apply_argument_pair_ogmwc5lqg3"() IS 't
 
 COMMENT ON FUNCTION "qti"."__reader_news_arity_floor_xgdhtuqsca"() IS 'the reader of the delta of news of ArityFloor';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_assembled_catalog_vz4pketix5"() IS 'the reader of the delta of olds of AssembledCatalog';
+COMMENT ON FUNCTION "qti"."__reader_olds_assembled_catalog_qim7ebbjd7"() IS 'the reader of the delta of olds of AssembledCatalog';
 
 COMMENT ON FUNCTION "qti"."__reader_news_assembled_document_koz5se5v5l"() IS 'the reader of the delta of news of AssembledDocument';
 
@@ -6315,7 +6315,7 @@ COMMENT ON FUNCTION "qti"."__reader_olds_placed_math_rank_r7c5a3onxk"() IS 'the 
 
 COMMENT ON FUNCTION "qti"."__reader_news_placed_math_rank_node_yeejiiqgf7"() IS 'the reader of the delta of news of PlacedMathRankNode';
 
-COMMENT ON FUNCTION "qti"."__reader_news_placed_reference_cia5gobf3c"() IS 'the reader of the delta of news of PlacedReference';
+COMMENT ON FUNCTION "qti"."__reader_news_placed_reference_u7wu3u6oyn"() IS 'the reader of the delta of news of PlacedReference';
 
 COMMENT ON FUNCTION "qti"."__reader_news_placed_reference_site_7l4j77hn7z"() IS 'the reader of the delta of news of PlacedReferenceSite';
 
@@ -7663,7 +7663,7 @@ COMMENT ON FUNCTION "qti"."__judge_placed_include_path_gwliciq7zk"("pg_catalog".
 
 COMMENT ON FUNCTION "qti"."__judge_placed_math_rank_node_m5o3znky3g"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of PlacedMathRankNode and the relations its rules join it to';
 
-COMMENT ON FUNCTION "qti"."__judge_placed_reference_a5y4cmlg5q"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of PlacedReference and the relations its rules join it to';
+COMMENT ON FUNCTION "qti"."__judge_placed_reference_vkjd6aywbt"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of PlacedReference and the relations its rules join it to';
 
 COMMENT ON FUNCTION "qti"."__judge_placed_reference_site_a3ra2nbbbr"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of PlacedReferenceSite and the relations its rules join it to';
 

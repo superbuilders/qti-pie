@@ -27124,7 +27124,7 @@
 			"fa90810d9401bf0a81bfec203c004cd0f8847433ed32c3733b3f55991eea413d": "3cd53cc0df2c42f1b44a53e1d672bc47fed1067e25cfaf7059cdd1021552f469"
 		}
 	},
-	"fingerprint": "5273e693318e7a062ed2b9774ecf409b9e35be1932a18156a5987c3dff196e57",
+	"fingerprint": "77067e9753d957c70eb8a941509475a92cdb9bfaf98fe974a620fd1dc20e5415",
 	"format": "8:4d7c4da6903041ba40c14f83a028f6c915ecfe05487792fee02b89c2ce209ab4",
 	"levels": [
 		{
@@ -27629,7 +27629,7 @@
 			"schema": "qti_views"
 		},
 		{
-			"fingerprint": "3a1f8abdf9be6e3a80aae44a0ba0fa94bcb490111aad4b80f0d8a5148cf2252d",
+			"fingerprint": "ecd2a680d83b10a99b9db13f560715d520d7cf57dc34bbd36b621a0cb4abac32",
 			"laws": [
 				{"described":{"entry":{"kind":"declared","name":"DocumentId key","source":"XML Schema Part 1, Validation Rule: Validation Root (the ID/IDREF table): no id's [binding] has more than one member, an attribute's binding its element, an ID-typed element text's its parent (§3.15.5; reading 101; identity.ts IdBinding); reading 14; reading 74: a context declaration's identifier, a UniqueIdentifier (https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ContextDeclaration.Attr_identifier, §5.34.1), is one of the document's IDs, though the 3.0.1 XSD types it an IdentifierDType; and IMS Content Packaging 1.2: the manifest's and its resources' identifiers, xs:IDs of imsmanifest.xml (imsqtiv3p0p1_imscpv1p2_v1p0.xsd lines 272 and 346), are one ID space, so a resource of its manifest's identifier is a second member of that binding"},"kind":"key","side":{"relation":"AnchoredId","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"idDigest","kind":"field"}]}},"law":"__anchored_id_key_package_assembly_anchor_id_digest_5ksp7mxkzx"},
 				{"described":{"entry":{"kind":"declared","name":"Test name key","source":"reading 86: https://www.imsglobal.org/spec/qti/v3p0/info#RootCharacteristic_AssessmentSection.Attr_identifier (§4.2.1: 'The identifier of the section or item reference must be unique within the test and must not be the identifier of any testPart'), §5.159.1 and §7.5.3 ('A test may refer to the same section multiple times within a test. Note however that each reference must have a unique identifier'), read over the assembled test (reading 5): the test document and every document its section refs and includes place; a section document placed twice is one document and names nothing twice: no two written test parts, sections, section refs or item refs of one test's assembly share an identifier (overlay-queries/tests.ts AssembledName)"},"kind":"key","side":{"relation":"AnchoredName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__anchored_name_key_package_assembly_anchor_l25sk7zs37"},
