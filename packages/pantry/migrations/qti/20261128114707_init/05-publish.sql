@@ -576,8 +576,8 @@ CREATE VIEW "__qti_queries"."deliverable_test" ("package", "path", "start", "tes
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."test"
 FROM "qti_queries"."deliverable_test" AS "r1";
 
-CREATE VIEW "__qti_queries"."dependency" ("package", "start", "value") AS
-SELECT "r1"."package", "r1"."start", "r1"."value"
+CREATE VIEW "__qti_queries"."dependency" ("package", "start", "value", "value_digest") AS
+SELECT "r1"."package", "r1"."start", "r1"."value", "r1"."value_digest"
 FROM "qti_queries"."dependency" AS "r1";
 
 CREATE VIEW "__qti_queries"."dependency_resolved" ("package", "resource", "start", "target") AS
@@ -848,8 +848,8 @@ CREATE VIEW "__qti_queries"."most_two_argument_pair" ("apply", "first", "package
 SELECT "r1"."apply", "r1"."first", "r1"."package", "r1"."path", "r1"."second"
 FROM "qti_queries"."most_two_argument_pair" AS "r1";
 
-CREATE VIEW "__qti_queries"."named_item_ref" ("identifier", "item", "package", "path", "start") AS
-SELECT "r1"."identifier", "r1"."item", "r1"."package", "r1"."path", "r1"."start"
+CREATE VIEW "__qti_queries"."named_item_ref" ("identifier", "identifier_digest", "item", "package", "path", "start") AS
+SELECT "r1"."identifier", "r1"."identifier_digest", "r1"."item", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti_queries"."named_item_ref" AS "r1";
 
 CREATE VIEW "__qti_queries"."non_container_strings" ("least_value", "package", "path", "start") AS
@@ -2297,8 +2297,6 @@ COMMENT ON FUNCTION "qti"."__row_w2gdubljff"("qti"."__text_c6iptmtj2x") IS 'row 
 
 COMMENT ON FUNCTION "qti"."__row_tcceykpijd"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x") IS 'row function b26c8f4aeda3a821294034b574707ef7094dfcf4700553e88875b070a8a57610';
 
-COMMENT ON FUNCTION "qti"."__row_7ubwneqiib"("qti"."__text_c6iptmtj2x") IS 'row function fa1543b2fd16a9496cee6083646c7930726123ca1b48ccc023a6bcb9bdf0a6a2';
-
 COMMENT ON DOMAIN "qti"."__text_mzulxrnk4x" IS 'text domain of definition 1f711524b1e0978f43c5d6ca74d69f689eeeba4e7680ccd4d8b114ce9cc6b094';
 
 COMMENT ON DOMAIN "qti"."__text_4s4od7s5or" IS 'text domain of definition 25f993867c17f0de2b8d40bfc84d831eb31ae3f956a21b332d68c3cfea60ac42';
@@ -2320,6 +2318,8 @@ COMMENT ON DOMAIN "qti"."__text_r2monji6i2" IS 'text domain of definition 3f76df
 COMMENT ON FUNCTION "qti"."__row_guzptzkryd"("qti"."node_kind", "qti"."__text_r2monji6i2", "qti"."node_kind") IS 'row function 049fb4b8389fe4362e6b8ae835a0d12833abe79bbcb974c1ebbdc3351fd79696';
 
 COMMENT ON FUNCTION "qti"."__row_zelh2sd7nh"("qti"."__text_r2monji6i2") IS 'row function 166f957adbae985d78ce5c0385367387adc27e694dfef5e2f3ee1b584ac7ca98';
+
+COMMENT ON FUNCTION "qti"."__row_rvek42un4f"("qti"."__text_r2monji6i2") IS 'row function 30d05cb978c96a424d6bd12af5464bd874850065b7cfc258c294aca8cd973750';
 
 COMMENT ON FUNCTION "qti"."__row_y4e44kbw47"("qti"."__text_r2monji6i2", "qti"."__text_r2monji6i2", "qti"."__text_r2monji6i2", "qti"."__text_r2monji6i2") IS 'row function 378666ea7abb84ffe91276bf69c08ebb8e3249b4d826d528c1f219c9ac702d95';
 
@@ -4329,7 +4329,7 @@ COMMENT ON CONSTRAINT "__package_founding_pk_bsmr6ynr7m" ON "qti"."__package_fou
 
 COMMENT ON INDEX "qti"."__attribute_ix_name_path_start_package_a_4_p_2_u_7_hk4lma32u7" IS 'btree index Attribute(name, path, start, __package_a4p2u7pv6l)';
 
-COMMENT ON INDEX "qti"."__attribute_ix_package_kind_name_start_value_digest_w5stqim4oh" IS 'btree index Attribute(package, kind, name, start, valueDigest, path), value filtered beside it, not indexed: no byte bound fits the entry';
+COMMENT ON INDEX "qti"."__attribute_ix_package_kind_name_start_path_4tor4z4xmg" IS 'btree index Attribute(package, kind, name, start, path)';
 
 COMMENT ON INDEX "qti"."__attribute_ix_package_name_value_digest_kind_path_4s3els6lve" IS 'btree index Attribute(package, name, valueDigest, kind, path, start), value filtered beside it, not indexed: no byte bound fits the entry';
 
@@ -4703,6 +4703,8 @@ COMMENT ON FUNCTION "qti"."__reader_news_attribute_vktduodeod"() IS 'the reader 
 
 COMMENT ON FUNCTION "qti"."__reader_news_attribute_h2pi4o22nf"() IS 'the reader of the delta of news of Attribute';
 
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_2b7xlcqmyw"() IS 'the reader of the delta of news of Attribute';
+
 COMMENT ON FUNCTION "qti"."__reader_news_attribute_7226qdt36g"() IS 'the reader of the delta of news of Attribute';
 
 COMMENT ON FUNCTION "qti"."__reader_news_attribute_kodbwfnvuh"() IS 'the reader of the delta of news of Attribute';
@@ -4915,6 +4917,8 @@ COMMENT ON FUNCTION "qti"."__reader_olds_attribute_fswpomjsga"() IS 'the reader 
 
 COMMENT ON FUNCTION "qti"."__reader_olds_attribute_fpeomqg75d"() IS 'the reader of the delta of olds of Attribute';
 
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_wyrl7wxcyo"() IS 'the reader of the delta of olds of Attribute';
+
 COMMENT ON FUNCTION "qti"."__reader_olds_attribute_r2u6dpuysl"() IS 'the reader of the delta of olds of Attribute';
 
 COMMENT ON FUNCTION "qti"."__reader_olds_attribute_4chzzkmdxj"() IS 'the reader of the delta of olds of Attribute';
@@ -4989,7 +4993,7 @@ COMMENT ON FUNCTION "qti"."__reader_olds_bound_variable_ku42cuizn4"() IS 'the re
 
 COMMENT ON FUNCTION "qti"."__reader_olds_bounded_selection_vvzjaxsbcs"() IS 'the reader of the delta of olds of BoundedSelection';
 
-COMMENT ON FUNCTION "qti"."__reader_news_branch_resolution_6eft7wfps5"() IS 'the reader of the delta of news of BranchResolution';
+COMMENT ON FUNCTION "qti"."__reader_news_branch_resolution_grjuozk7re"() IS 'the reader of the delta of news of BranchResolution';
 
 COMMENT ON FUNCTION "qti"."__reader_news_candidate_path_pbaimfnkrc"() IS 'the reader of the delta of news of CandidatePath';
 
@@ -5151,7 +5155,7 @@ COMMENT ON FUNCTION "qti"."__reader_olds_declaration_table_qwhqwymhn3"() IS 'the
 
 COMMENT ON FUNCTION "qti"."__reader_olds_declaration_table_k5frmscfry"() IS 'the reader of the delta of olds of DeclarationTable';
 
-COMMENT ON FUNCTION "qti"."__reader_news_dependency_az7buf4vy6"() IS 'the reader of the delta of news of Dependency';
+COMMENT ON FUNCTION "qti"."__reader_news_dependency_mcbxafgt3t"() IS 'the reader of the delta of news of Dependency';
 
 COMMENT ON FUNCTION "qti"."__reader_olds_dependency_resolved_37eefbu2al"() IS 'the reader of the delta of olds of DependencyResolved';
 
@@ -5723,7 +5727,7 @@ COMMENT ON FUNCTION "qti"."__reader_olds_named_declaration_kvuiqs4z2u"() IS 'the
 
 COMMENT ON FUNCTION "qti"."__reader_olds_named_declaration_kc3qc4yh2u"() IS 'the reader of the delta of olds of NamedDeclaration';
 
-COMMENT ON FUNCTION "qti"."__reader_news_named_item_ref_6p7nogktab"() IS 'the reader of the delta of news of NamedItemRef';
+COMMENT ON FUNCTION "qti"."__reader_news_named_item_ref_ss4gtmb2il"() IS 'the reader of the delta of news of NamedItemRef';
 
 COMMENT ON FUNCTION "qti"."__reader_news_node_cq653l3qdc"() IS 'the reader of the delta of news of Node';
 
@@ -7101,7 +7105,7 @@ COMMENT ON FUNCTION "qti"."__judge_most_count_node_in_interaction_attribute_pbdl
 
 COMMENT ON FUNCTION "qti"."__judge_named_in_test_identifier_syehmpldfc"() IS 'the rule judge''s block of rule Named(package, path, start, identifier) in TestIdentifier(package, path, start, value) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_named_item_ref_in_object_identifier_62wj7qla5o"() IS 'the rule judge''s block of rule NamedItemRef(package, item, identifier) in ObjectIdentifier(package, path, value) over its units';
+COMMENT ON FUNCTION "qti"."__judge_named_item_ref_in_object_identifier_6qfd4xtxxc"() IS 'the rule judge''s block of rule NamedItemRef(package, item, identifierDigest) in ObjectIdentifier(package, path, valueDigest) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_node_kind_start_in_document_k6k5wpme62"() IS 'the rule judge''s block of rule Node(package, path) where Logic.eq(kind, "document") and Logic.eq(start, 0n) in Document(package, path) over the rows a write removes from Document';
 
@@ -7489,7 +7493,7 @@ COMMENT ON FUNCTION "qti"."__judge_binding_name_gemsksmiq7"("pg_catalog"."text"[
 
 COMMENT ON FUNCTION "qti"."__judge_bound_variable_zxm42nrp7s"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of BoundVariable and the relations its rules join it to';
 
-COMMENT ON FUNCTION "qti"."__judge_branch_resolution_yavob32y2p"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of BranchResolution and the relations its rules join it to';
+COMMENT ON FUNCTION "qti"."__judge_branch_resolution_q6ufri6le7"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of BranchResolution and the relations its rules join it to';
 
 COMMENT ON FUNCTION "qti"."__judge_candidate_path_6psahny56j"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of CandidatePath and the relations its rules join it to';
 
@@ -7525,7 +7529,7 @@ COMMENT ON FUNCTION "qti"."__judge_data_ssml_6gszispnmq"("pg_catalog"."text"[]) 
 
 COMMENT ON FUNCTION "qti"."__judge_data_ssml_nwrnj3vksd"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of DataSsml and the relations its rules join it to';
 
-COMMENT ON FUNCTION "qti"."__judge_dependency_zpk2eyiyar"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Dependency and the relations its rules join it to';
+COMMENT ON FUNCTION "qti"."__judge_dependency_gnhqqxpemb"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Dependency and the relations its rules join it to';
 
 COMMENT ON FUNCTION "qti"."__judge_described_assembled_lang_amjqccaa4x"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of DescribedAssembledLang and the relations its rules join it to';
 
@@ -7635,7 +7639,7 @@ COMMENT ON FUNCTION "qti"."__judge_media_y34gnxkhjp"("pg_catalog"."text"[]) IS '
 
 COMMENT ON FUNCTION "qti"."__judge_named_m6wfz42dmz"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Named and the relations its rules join it to';
 
-COMMENT ON FUNCTION "qti"."__judge_named_item_ref_bhqjfbtax2"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of NamedItemRef and the relations its rules join it to';
+COMMENT ON FUNCTION "qti"."__judge_named_item_ref_c7ixyf477l"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of NamedItemRef and the relations its rules join it to';
 
 COMMENT ON FUNCTION "qti"."__judge_node_hbjvmcsmt4"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Node and the relations its rules join it to';
 

@@ -2068,16 +2068,6 @@ AS E'\n'
 
 REVOKE ALL ON FUNCTION "qti"."__row_tcceykpijd"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x") FROM PUBLIC;
 
-CREATE FUNCTION "qti"."__row_7ubwneqiib"("p1" "qti"."__text_c6iptmtj2x") RETURNS boolean
-LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE SET search_path = "pg_catalog", "pg_temp"
-AS $$
-BEGIN
-  RETURN NOT $1::"qti"."__text_c6iptmtj2x" IN ('completionStatus'::"pg_catalog"."text", 'duration'::"pg_catalog"."text", 'numAttempts'::"pg_catalog"."text");
-END
-$$;
-
-REVOKE ALL ON FUNCTION "qti"."__row_7ubwneqiib"("qti"."__text_c6iptmtj2x") FROM PUBLIC;
-
 CREATE DOMAIN "qti"."__text_mzulxrnk4x" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR ("pg_catalog"."octet_length"(VALUE) <= 78 AND VALUE ~ '\A[\u0009\u000A\u000D -\uFFFD\U00010000-\U0010FFFF]*\Z'::"pg_catalog"."text") IS TRUE);
 
 CREATE DOMAIN "qti"."__text_4s4od7s5or" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR (VALUE ~ '\A(?:[\u0009\u000A\u000D ][\u0001-\U0010FFFF]*)?\Z'::"pg_catalog"."text") IS TRUE);
@@ -2131,6 +2121,16 @@ END
 $$;
 
 REVOKE ALL ON FUNCTION "qti"."__row_zelh2sd7nh"("qti"."__text_r2monji6i2") FROM PUBLIC;
+
+CREATE FUNCTION "qti"."__row_rvek42un4f"("p1" "qti"."__text_r2monji6i2") RETURNS boolean
+LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE SET search_path = "pg_catalog", "pg_temp"
+AS $$
+BEGIN
+  RETURN NOT $1::"qti"."__text_r2monji6i2" IN ('completionStatus'::"pg_catalog"."text", 'duration'::"pg_catalog"."text", 'numAttempts'::"pg_catalog"."text");
+END
+$$;
+
+REVOKE ALL ON FUNCTION "qti"."__row_rvek42un4f"("qti"."__text_r2monji6i2") FROM PUBLIC;
 
 CREATE FUNCTION "qti"."__row_y4e44kbw47"("p1" "qti"."__text_r2monji6i2", "p2" "qti"."__text_r2monji6i2", "p3" "qti"."__text_r2monji6i2", "p4" "qti"."__text_r2monji6i2") RETURNS boolean
 LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE SET search_path = "pg_catalog", "pg_temp"

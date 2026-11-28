@@ -3065,8 +3065,8 @@
 				]
 			},
 			"named_item_ref": {
-				"__rule_named_item_ref_in_object_identifier_prdowli74p": [
-					"__named_item_ref_in_object_identifier_wzxbotuo7v"
+				"__rule_named_item_ref_in_object_identifier_ddwykb35vd": [
+					"__named_item_ref_in_object_identifier_reprdqksag"
 				]
 			},
 			"namespace": {
@@ -3395,8 +3395,8 @@
 				]
 			},
 			"object_identifier": {
-				"__rule_named_item_ref_in_object_identifier_prdowli74p": [
-					"__named_item_ref_in_object_identifier_wzxbotuo7v"
+				"__rule_named_item_ref_in_object_identifier_ddwykb35vd": [
+					"__named_item_ref_in_object_identifier_reprdqksag"
 				]
 			},
 			"one_tail_cardinality": {
@@ -8202,7 +8202,7 @@
 								}
 							]
 						},
-						"__attribute_ix_package_kind_name_start_value_digest_w5stqim4oh": {
+						"__attribute_ix_package_kind_name_start_path_4tor4z4xmg": {
 							"columns": [
 								{
 									"direction": "asc",
@@ -8222,11 +8222,6 @@
 								{
 									"direction": "asc",
 									"field": "start",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "valueDigest",
 									"kind": "field"
 								},
 								{
@@ -8299,6 +8294,18 @@
 								{
 									"kind": "enforcement",
 									"of": "derived relation ResolvedBranchRule"
+								},
+								{
+									"kind": "enforcement",
+									"of": "derived relation DependencyResolved"
+								},
+								{
+									"kind": "enforcement",
+									"of": "derived relation MatchedIdentifier"
+								},
+								{
+									"kind": "enforcement",
+									"of": "derived relation MatchedTitle"
 								}
 							]
 						},
@@ -8409,35 +8416,11 @@
 							"reasons": [
 								{
 									"kind": "enforcement",
-									"of": "derived relation AssembledReplaceable"
-								},
-								{
-									"kind": "enforcement",
-									"of": "derived relation DependencyResolved"
-								},
-								{
-									"kind": "enforcement",
-									"of": "derived relation ExpressionAttribute"
+									"of": "derived relation SessionControl"
 								},
 								{
 									"kind": "enforcement",
 									"of": "derived relation ForwardBranchRule"
-								},
-								{
-									"kind": "enforcement",
-									"of": "derived relation MatchedIdentifier"
-								},
-								{
-									"kind": "enforcement",
-									"of": "derived relation MatchedTitle"
-								},
-								{
-									"kind": "enforcement",
-									"of": "derived relation ResolvedBranchRule"
-								},
-								{
-									"kind": "enforcement",
-									"of": "derived relation SessionControl"
 								}
 							]
 						},
@@ -27250,7 +27233,7 @@
 			"fa90810d9401bf0a81bfec203c004cd0f8847433ed32c3733b3f55991eea413d": "3cd53cc0df2c42f1b44a53e1d672bc47fed1067e25cfaf7059cdd1021552f469"
 		}
 	},
-	"fingerprint": "50937daa202f4e63f23d48cc6f4604e57464450029c15a9de7081aeacaf66787",
+	"fingerprint": "5a17b48323797ad866d58e552cf114ba54d76b678d77a42f04b554813e4ac005",
 	"format": "8:e609802332c892bd42d9b49a1430f9f97b034cf09f8e29c98170a3017533cc33",
 	"levels": [
 		{
@@ -27755,7 +27738,7 @@
 			"schema": "qti_views"
 		},
 		{
-			"fingerprint": "f8fee895059d6ee1ce3f16716ab15b1013d1e97eb3ba48a2f6fed6ed41d019f3",
+			"fingerprint": "c1625da3cef818b21087d9a586b3d0e977db80b6bf1d5e98f7a32db89ae2b926",
 			"laws": [
 				{"described":{"entry":{"kind":"declared","name":"DocumentId key","source":"XML Schema Part 1, Validation Rule: Validation Root (the ID/IDREF table): no id's [binding] has more than one member, an attribute's binding its element, an ID-typed element text's its parent (§3.15.5; reading `text-id-binding`; identity.ts IdBinding); reading `text-entry-idrefs`; reading `identifier-names-one-variable`: a context declaration's identifier, a UniqueIdentifier (https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ContextDeclaration.Attr_identifier, §5.34.1), is one of the document's IDs, though the 3.0.1 XSD types it an IdentifierDType; and IMS Content Packaging 1.2: the manifest's and its resources' identifiers, xs:IDs of imsmanifest.xml (imsqtiv3p0p1_imscpv1p2_v1p0.xsd lines 272 and 346), are one ID space, so a resource of its manifest's identifier is a second member of that binding"},"kind":"key","side":{"relation":"AnchoredId","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"idDigest","kind":"field"}]}},"law":"__anchored_id_key_package_assembly_anchor_id_digest_5ksp7mxkzx"},
 				{"described":{"entry":{"kind":"declared","name":"Test name key","source":"reading `test-identifier-namespace`: https://www.imsglobal.org/spec/qti/v3p0/info#RootCharacteristic_AssessmentSection.Attr_identifier (§4.2.1: 'The identifier of the section or item reference must be unique within the test and must not be the identifier of any testPart'), §5.159.1 and §7.5.3 ('A test may refer to the same section multiple times within a test. Note however that each reference must have a unique identifier'), read over the assembled test (reading `section-document`): the test document and every document its section refs and includes place; a section document placed twice is one document and names nothing twice: no two written test parts, sections, section refs or item refs of one test's assembly share an identifier (overlay-queries/tests.ts AssembledName)"},"kind":"key","side":{"relation":"AnchoredName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__anchored_name_key_package_assembly_anchor_l25sk7zs37"},
@@ -27883,7 +27866,7 @@
 				{"described":{"entry":{"kind":"declared","name":"Reserved type","source":"https://www.imsglobal.org/spec/qti/v3p0/info#RootAttribute_AssessmentItem_qti-context-declaration (§4.1.10, and §4.4.7 of a test: 'An implementation MUST support the global variable \"QTI_CONTEXT\" with record cardinality') and https://www.imsglobal.org/spec/qti/v3p0/info#Data_ContextDeclaration (§5.34: 'There is one built-in context variable named \"QTI_CONTEXT\" with record cardinality'), which the implementation guide, a document with no normative mark, declares explicitly (its §3.7.11, 'an explicit (though unnecessary) <qti-context-declaration> of QTI_CONTEXT'): a declaration of QTI_CONTEXT is a record context declaration, since one of another kind or cardinality would make one identifier name two variables (reading `identifier-names-one-variable`). SCORE, MAXSCORE and PASSED are typed by no normative rule: §4.5's 'SCORE needs to be a float', 'MAXSCORE needs to be a float' and 'PASSED needs to be a boolean' use no RFC 2119 keyword (§1.3 Conventions), §2.2.2.3's 'MUST' is in a section marked NOT NORMATIVE, and no XSD particle or Schematron rule types them, so a declaration of any type is admitted (J1; the lead's ruling, 2026-11-20)"},"kind":"check","name":"Reserved_type","relation":"NamedDeclaration"},"law":"__named_declaration_check_reserved_type_yufp4sdarz"},
 				{"described":{"entry":{"kind":"declared","name":"Declaration key","source":"reading `identifier-names-one-variable`: https://www.imsglobal.org/spec/qti/v3p0/info#RootCharacteristic_OutcomeDeclaration.Attr_identifier (§4.5.1, and §5.34.1, §5.115.1, §5.151.1: 'All item variables declared in an item share the same namespace'); a response's and a context's identifier is a UniqueIdentifier (§5.115.1, §5.34.1; §7.43: 'unique within the scope of the instance'), though the 3.0.1 XSD types the context's an IdentifierDType, an xs:NCName, so DocumentId key counts it among the IDs"},"kind":"key","side":{"relation":"NamedDeclaration","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__named_declaration_key_package_path_identifier_zl7lbtdnez"},
 				{"described":{"entry":{"kind":"declared","name":"Test overlay","source":"plan §1.7 O7 and the W5 amendment's C15, C18, under decision S3: each O7 overlay (AssembledDocument, Named, Site) is its element's row, keyed by its node, and holds its attributes' values, collapsed, each an identifier read where it stands (TestIdentifier, C18); AssembledDocument and Named hold no fact of their node or document, which their laws read through Node and Document (a document's root kind its Document's, at its (package, path)), while a Site holds its node's context (nodeContext: its kind, parent and parent's kind, ancestry, children, governor and nearest interaction), the copy routed with Document's context to the RULEREC follow-up; each exists exactly where its element does (Q5.13)"},"from":{"relation":"Named","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"identifier","kind":"field"}]},"kind":"contained","to":{"relation":"TestIdentifier","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"value","kind":"field"}]}},"law":"__named_in_test_identifier_oqzux7mpek"},
-				{"described":{"entry":{"kind":"declared","name":"Item ref identifier","source":"https://www.imsglobal.org/spec/qti/v3p0/info#Root_AssessmentItem (§4.1.1, info301:6346: 'When an Item is referenced using a 'qti-assesasment-item-ref' the values of the two 'identifier' characteristics MUST be the same') and https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_AssessmentItemRef.Attr_identifier (§5.6.1: 'The identifier of the item being referenced'): a named item ref's identifier, a test's or a bank's, is the identifier of the item it names, both compared collapsed (overlay-queries/tests.ts NamedItemRef into queries.ts ObjectIdentifier); with 'Structure identifier' a test refers to an item once, which §5.6.5's 'each reference must have a unique identifier' then holds of every ref; an item ref that names an LTI link names no item and is not judged (reading `mapping-and-default-names`); so TestMember, a test document's item refs in its parts, is keyed (package, path, document) too (overlay-queries/tests.ts)"},"from":{"relation":"NamedItemRef","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"item","kind":"field"},{"field":"identifier","kind":"field"}]},"kind":"contained","to":{"relation":"ObjectIdentifier","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"value","kind":"field"}]}},"law":"__named_item_ref_in_object_identifier_wzxbotuo7v"},
+				{"described":{"entry":{"kind":"declared","name":"Item ref identifier","source":"https://www.imsglobal.org/spec/qti/v3p0/info#Root_AssessmentItem (§4.1.1, info301:6346: 'When an Item is referenced using a 'qti-assesasment-item-ref' the values of the two 'identifier' characteristics MUST be the same') and https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_AssessmentItemRef.Attr_identifier (§5.6.1: 'The identifier of the item being referenced'): a named item ref's identifier, a test's or a bank's, is the identifier of the item it names, both compared collapsed (overlay-queries/tests.ts NamedItemRef into queries.ts ObjectIdentifier); with 'Structure identifier' a test refers to an item once, which §5.6.5's 'each reference must have a unique identifier' then holds of every ref; an item ref that names an LTI link names no item and is not judged (reading `mapping-and-default-names`); so TestMember, a test document's item refs in its parts, is keyed (package, path, document) too (overlay-queries/tests.ts)"},"from":{"relation":"NamedItemRef","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"item","kind":"field"},{"field":"identifierDigest","kind":"field"}]},"kind":"contained","to":{"relation":"ObjectIdentifier","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"valueDigest","kind":"field"}]}},"law":"__named_item_ref_in_object_identifier_reprdqksag"},
 				{"described":{"entry":{"kind":"declared","name":"Choice bounds","source":"reading `least-at-most-most`: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ChoiceInteraction.Attr_min-choices (§5.30.3: 'min-choices must be less than or equal to the limit imposed by max-choices'; §5.30.2: 'If max-choices is 0 then there is no restriction'), the same sentence for min-associations (§5.8.3, §5.57.2, §5.59.1, §5.60.1, §5.89.3), match-min (§5.7.9, §5.56.6, §5.58.6, §5.131.7), min-choices (§5.66.2, §5.68.1, §5.107.2, §5.128.1) and min-strings (§5.48.7, with reading `max-strings-zero`'s 0); reading `order-min-choices`: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_OrderInteraction.Attr_max-choices (§5.97.3, and §5.61.2 of the graphic order interaction: 'Used in conjunction with min-choices, if specified, max-choices must be greater than or equal to min-choices and must not exceed the number of choices available'; §5.97.2, §5.61.1: min-choices 'must not exceed the number of choices available. If unspecified, all of the choices must be ordered and max-choices is ignored'), with no 0 exemption, read only where min-choices is written (references.ts ChoiceBound's counted zero and ChoiceCount); the media interaction's plays by reading `schematron-intent`, the Schematron's rule 13Ba read by intent, max-plays 0 no limit (§5.92.3)"},"kind":"check","name":"Choice_bounds","relation":"NonContainerStrings"},"law":"__non_container_strings_check_choice_bounds_gdkobkdklk"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"NumberedReading","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"scopeInstance","kind":"field"},{"field":"scopePath","kind":"field"},{"field":"scope","kind":"field"}]},"kind":"contained","to":{"relation":"AssembledReplaceable","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"instance","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__numbered_reading_in_assembled_replaceable_ckzauu53v6"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"NumberedReading","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"scope","kind":"field"},{"field":"scopeInstance","kind":"field"},{"field":"scopePath","kind":"field"},{"field":"variable","kind":"field"}]},"kind":"contained","to":{"relation":"NumberedTarget","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"scope","kind":"field"},{"field":"scopeInstance","kind":"field"},{"field":"scopePath","kind":"field"},{"field":"variable","kind":"field"}]}},"law":"__numbered_reading_in_numbered_target_l4lcixj7in"},
