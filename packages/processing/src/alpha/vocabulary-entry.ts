@@ -6,7 +6,9 @@
  */
 export {
   letterUnits,
+  numberReviewSpellings,
   unitSpellings,
+  unitTable,
   unitTypoTargets,
   unitWords,
 } from "#processing/alpha/vocabulary/units.ts";

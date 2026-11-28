@@ -20,15 +20,23 @@ describe("the Alpha entries", () => {
       "letterUnits",
       "measureWords",
       "neverPluralWords",
+      "numberReviewSpellings",
       "operationWords",
       "placeValueWords",
       "stopWords",
       "unitSpellings",
+      "unitTable",
       "unitTypoTargets",
       "unitWords",
       "verbs",
     ]);
     assert.strictEqual(vocabulary.unitSpellings, units.unitSpellings);
+    assert.strictEqual(vocabulary.unitTable, units.unitTable);
+    assert.strictEqual(vocabulary.numberReviewSpellings, units.numberReviewSpellings);
+    assert.deepStrictEqual(units.unitSpellings, [
+      ...units.unitTable,
+      ...units.numberReviewSpellings,
+    ]);
     assert.strictEqual(vocabulary.stopWords, words.stopWords);
   });
 

@@ -14,10 +14,10 @@
  */
 
 /**
- * Every spelling of a unit, folded, and the unit it names: the unit table, then the number review's
- * two.
+ * AlphaTest's unit table: every spelling of a unit it names, folded, and the unit. A noun's being a
+ * unit word and the units a question asks for read this table alone, as AlphaTest read them.
  */
-export const unitSpellings = [
+export const unitTable = [
   ["mm", "mm"],
   ["millimeter", "mm"],
   ["millimeters", "mm"],
@@ -667,9 +667,22 @@ export const unitSpellings = [
   ["units^3", "cu-unit"],
   ["units cubed", "cu-unit"],
   ["cubicunits", "cu-unit"],
+] as const satisfies readonly (readonly [string, string])[];
+
+/**
+ * The two spellings the number review credited that AlphaTest's unit table lacked, which only
+ * the quantity reader adds.
+ */
+export const numberReviewSpellings = [
   ["%", "pct"],
   ["m/s^2", "mps2"],
 ] as const satisfies readonly (readonly [string, string])[];
+
+/**
+ * Every spelling a quantity reads, folded, and the unit it names: the unit table, then the number
+ * review's two.
+ */
+export const unitSpellings = [...unitTable, ...numberReviewSpellings] as const;
 
 /**
  * A unit, as `quantity` and `unit-near` name it.
