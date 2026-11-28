@@ -34,8 +34,10 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { crc32, deflateRawSync, gunzipSync, gzipSync, inflateRawSync } from "node:zlib";
 import { assert, describe, it } from "@effect/vitest";
 import { regex } from "arkregex";
+import { Effect, Option } from "effect";
 
 /**
  * The builder's markup that names nothing private, one alternative an entry, so each is held to
@@ -481,11 +483,325 @@ const encodingOf = (bytes: Buffer): "utf-8" | "utf-16be" | "utf-16le" => {
 };
 
 /**
- * Name what a tracked file carries, by its path, a symlink's target, its bytes and its text. A
- * finding no single line holds (it spans lines) is named once for the file. A link that resolves
- * to a file is judged by that file's bytes too. A path the index lists but this checkout deleted,
- * or a submodule's gitlink, holds nothing; any other listed path that is not there fails the suite
- * ({@link UNREAD}).
+ * A member of an archive: the words a finding in it names it by ("its member a/b.xml"), its name,
+ * and its bytes.
+ */
+interface Member {
+  readonly label: string;
+  readonly name: string;
+  readonly bytes: Buffer;
+}
+
+/**
+ * An archive's members, or why they cannot all be read.
+ */
+type Members = { readonly members: readonly Member[] } | { readonly unread: string };
+
+/**
+ * Inflate a zip member's data to the size its directory states, no more.
+ *
+ * @param data The member's data as stored.
+ * @param method 0 (stored) or 8 (deflated).
+ * @param size The size its directory states.
+ * @returns Its bytes, or none where they do not inflate within that size.
+ */
+const inflatedTo = (data: Buffer, method: number, size: number): Option.Option<Buffer> =>
+  method === 0
+    ? Option.some(data)
+    : Effect.runSync(
+        Effect.option(
+          Effect.try(() => inflateRawSync(data, { maxOutputLength: Math.max(1, size) })),
+        ),
+      );
+
+/**
+ * Read a zip's members from its central directory. The end record is looked for from the end, as
+ * far back as its comment may reach (65,535 bytes, the format's own field), and each entry's local
+ * header gives where its data starts. A stored member is its bytes, and a deflated one is inflated
+ * to exactly the size the directory states. An encrypted member, any other method, a zip64 size, a
+ * broken entry, or a member that is not the size stated cannot be judged.
+ *
+ * @param bytes The zip's bytes.
+ * @returns Its members, or why they cannot all be read.
+ */
+const zipMembers = (bytes: Buffer): Members => {
+  const u16 = (at: number): number =>
+    at >= 0 && at + 2 <= bytes.length ? bytes.readUInt16LE(at) : 0;
+  const u32 = (at: number): number =>
+    at >= 0 && at + 4 <= bytes.length ? bytes.readUInt32LE(at) : 0;
+  const floor = Math.max(0, bytes.length - 22 - 65_535);
+  const end = Array.from(
+    { length: Math.max(0, bytes.length - 22 - floor + 1) },
+    (_, back) => bytes.length - 22 - back,
+  ).find((at) => u32(at) === 0x06_05_4b_50);
+
+  if (end === undefined) {
+    return { unread: "it has no end of central directory" };
+  }
+
+  const count = u16(end + 10);
+  const members: Member[] = [];
+  let at = u32(end + 16);
+
+  for (const index of Array.from({ length: count }, (_, entry) => entry)) {
+    if (u32(at) !== 0x02_01_4b_50) {
+      return { unread: `its central directory breaks at entry ${index + 1} of ${count}` };
+    }
+
+    const [flags, method, packed, size, nameLength, local] = [
+      u16(at + 8),
+      u16(at + 10),
+      u32(at + 20),
+      u32(at + 24),
+      u16(at + 28),
+      u32(at + 42),
+    ];
+    const name = bytes.toString("utf-8", at + 46, at + 46 + nameLength);
+    const label = `its member ${name}`;
+
+    at += 46 + nameLength + u16(at + 30) + u16(at + 32);
+    if (name.endsWith("/") && size === 0) {
+      continue;
+    }
+
+    if (flags % 2 === 1) {
+      return { unread: `${label} is encrypted` };
+    }
+
+    if (packed === 0xff_ff_ff_ff || size === 0xff_ff_ff_ff || local === 0xff_ff_ff_ff) {
+      return { unread: `${label} has a zip64 size` };
+    }
+
+    if (u32(local) !== 0x04_03_4b_50) {
+      return { unread: `${label} has no local header` };
+    }
+
+    const start = local + 30 + u16(local + 26) + u16(local + 28);
+    const data = bytes.subarray(start, start + packed);
+
+    if (method !== 0 && method !== 8) {
+      return { unread: `${label} is compressed by method ${method}` };
+    }
+
+    const inflated = Option.getOrUndefined(inflatedTo(data, method, size));
+
+    if (inflated?.length !== size || data.length !== packed) {
+      return { unread: `${label} is not the ${size} bytes its directory states` };
+    }
+
+    members.push({ bytes: inflated, label, name });
+  }
+
+  return { members };
+};
+
+/**
+ * Cut a text at its first NUL, as a tar's fixed fields end.
+ *
+ * @param text A field's text.
+ * @returns The text before its first NUL.
+ */
+const untilNul = (text: string): string => text.split("\0", 1).at(0) ?? "";
+
+/**
+ * Read a tar's members: each 512-byte header, its checksum summed with its own field read as
+ * spaces, and the entry's bytes after it, padded to 512. Files are members, folders are passed
+ * over, a pax header's path and a GNU long name name the entry after them, and a zero block ends
+ * it. Any other entry (a link, a device, a fifo), a failed checksum, or a tar that ends without its
+ * zero block cannot be judged.
+ *
+ * @param bytes The tar's bytes.
+ * @returns Its members, or why they cannot all be read.
+ */
+const tarMembers = (bytes: Buffer): Members => {
+  const field = (at: number, length: number): string =>
+    untilNul(bytes.toString("utf-8", at, at + length));
+  const members: Member[] = [];
+  let named: string | undefined;
+
+  for (let at = 0; at + 512 <= bytes.length;) {
+    const header = bytes.subarray(at, at + 512);
+
+    if (header.every((byte) => byte === 0)) {
+      return { members };
+    }
+
+    const sum = header.reduce(
+      (total, byte, index) => total + (index >= 148 && index < 156 ? 0x20 : byte),
+      0,
+    );
+
+    if (sum !== Number.parseInt(field(at + 148, 8).trim() || "x", 8)) {
+      return { unread: `its header at byte ${at} fails its checksum` };
+    }
+
+    const size = Number.parseInt(field(at + 124, 12).trim() || "0", 8);
+    const type = String.fromCodePoint(bytes[at + 156] ?? 0);
+    const prefix = field(at + 345, 155);
+    const name = named ?? (prefix === "" ? field(at, 100) : `${prefix}/${field(at, 100)}`);
+    const data = bytes.subarray(at + 512, at + 512 + size);
+    const label = `its member ${name}`;
+
+    at += 512 + Math.ceil(size / 512) * 512;
+    named = undefined;
+    if (type === "x") {
+      const record = data
+        .toString("utf-8")
+        .split("\n")
+        .find((line) => line.includes(" path="));
+
+      named = record?.slice(record.indexOf(" path=") + " path=".length);
+    } else if (type === "L") {
+      named = untilNul(data.toString("utf-8"));
+    } else if (type === "0" || type === "\0" || type === "7") {
+      if (data.length !== size) {
+        return { unread: `${label} is cut short` };
+      }
+
+      members.push({ bytes: data, label, name });
+    } else if (type !== "5" && type !== "g") {
+      return { unread: `${label} is a tar entry of type ${type}, which is not a file` };
+    }
+  }
+
+  return { unread: "it ends without its zero block" };
+};
+
+/**
+ * Read the members of an archive: a zip (a local header or an empty zip's end record first), a gzip
+ * stream (inflated whole, one member: a .tar.gz's tar is that member's own members), or a tar
+ * (ustar's magic, POSIX or GNU). Every member is judged as a file is.
+ *
+ * @param bytes A file's bytes.
+ * @returns Its members or why they cannot all be read, or undefined for bytes of no archive.
+ */
+const membersOf = (bytes: Buffer): Members | undefined => {
+  if (bytes.length >= 22 && [0x04_03_4b_50, 0x06_05_4b_50].includes(bytes.readUInt32LE(0))) {
+    return zipMembers(bytes);
+  }
+
+  if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    return Option.match(Effect.runSync(Effect.option(Effect.try(() => gunzipSync(bytes)))), {
+      onNone: () => ({ unread: "its gzip stream does not inflate" }),
+      onSome: (inflated) => ({
+        members: [{ bytes: inflated, label: "its gzip stream", name: "" }],
+      }),
+    });
+  }
+
+  return bytes.length >= 512 && bytes.toString("latin1", 257, 262) === "ustar"
+    ? tarMembers(bytes)
+    : undefined;
+};
+
+/**
+ * Read a binary's runs that read as text, one to a line: printable ASCII, tab, newline and carriage
+ * return, at least 16 bytes. A file whose first 8,000 bytes hold a NUL is not decoded, so markup
+ * written behind one is read here; a media file's chance bytes make runs of a few.
+ *
+ * @param bytes The binary's bytes.
+ * @returns Its text runs.
+ */
+const textRuns = (bytes: Buffer): string => {
+  const runs: string[] = [];
+  let from = 0;
+
+  for (let at = 0; at <= bytes.length; at += 1) {
+    const byte = bytes[at] ?? 0;
+
+    if (!((byte >= 0x20 && byte <= 0x7e) || byte === 0x09 || byte === 0x0a || byte === 0x0d)) {
+      if (at - from >= 16) {
+        runs.push(bytes.toString("latin1", from, at));
+      }
+
+      from = at + 1;
+    }
+  }
+
+  return runs.join("\n");
+};
+
+/**
+ * Name what a file's bytes carry, as findings after its name (": is ...", ":12: ..."): its digest
+ * against the delivery's, an archive's members judged as files are (": in its member a/b.xml:
+ * ..."), a binary's text runs by the patterns, and a text's reformatted copies and markup, across
+ * lines only where it holds some.
+ *
+ * @param bytes The bytes.
+ * @param inside The digests of the archives they sit in, so an archive that holds one it is inside
+ *   cannot be read.
+ * @param denied The deny-list's digests.
+ * @returns Each finding, after the file's name.
+ */
+const verdict = (
+  bytes: Buffer,
+  inside: readonly string[],
+  denied: ReadonlySet<string>,
+): readonly string[] => {
+  const encoding = encodingOf(bytes);
+  const binary = encoding === "utf-8" && bytes.subarray(0, 8000).includes(0);
+  const text = binary ? "" : new TextDecoder(encoding).decode(bytes);
+  const found = delivered(bytes, text, denied).map((what) => `: is ${what}`);
+  const archived = membersOf(bytes);
+
+  if (archived !== undefined) {
+    if ("unread" in archived) {
+      return [...found, `: is an archive that cannot be read: ${archived.unread}`];
+    }
+
+    const around = [...inside, digest(bytes)];
+
+    return [
+      ...found,
+      ...archived.members.flatMap((member) =>
+        around.includes(digest(member.bytes))
+          ? [`: is an archive that cannot be read: ${member.label} is an archive it is inside`]
+          : [
+              ...offences(member.name).map((what) => `: in ${member.label}: path holds ${what}`),
+              ...verdict(member.bytes, around, denied).map(
+                (finding) => `: in ${member.label}${finding}`,
+              ),
+            ],
+      ),
+    ];
+  }
+
+  if (binary) {
+    return [...found, ...offences(textRuns(bytes)).map((what) => `: in its bytes: ${what}`)];
+  }
+
+  for (const what of rewritten(text, DENIED_TEXT)) {
+    found.push(`: holds ${what}`);
+  }
+
+  const whole = offences(text);
+
+  if (whole.length === 0) {
+    return found;
+  }
+
+  const byLine = new Set<string>();
+
+  for (const [index, line] of text.split("\n").entries()) {
+    for (const what of offences(line)) {
+      byLine.add(what);
+      found.push(`:${index + 1}: ${what}`);
+    }
+  }
+  for (const what of whole) {
+    if (!byLine.has(what)) {
+      found.push(`: across lines: ${what}`);
+    }
+  }
+
+  return found;
+};
+
+/**
+ * Name what a tracked file carries, by its path, a symlink's target and its bytes. A link that
+ * resolves to a file is judged by that file's bytes too. A path the index lists but this checkout
+ * deleted, or a submodule's gitlink, holds nothing; any other listed path that is not there fails
+ * the suite ({@link UNREAD}).
  *
  * @param root The repository's root.
  * @param file The file's path under the root.
@@ -518,47 +834,9 @@ const scan = (root: string, file: string, missing: ReadonlySet<string>): readonl
     return found;
   }
 
-  if (!stat.isFile()) {
-    return found;
-  }
-
-  const bytes = readFileSync(at);
-  const encoding = encodingOf(bytes);
-  const binary = encoding === "utf-8" && bytes.subarray(0, 8000).includes(0);
-  const text = binary ? "" : new TextDecoder(encoding).decode(bytes);
-
-  for (const what of delivered(bytes, text, DENIED)) {
-    found.push(`${file}: is ${what}`);
-  }
-  if (binary) {
-    return found;
-  }
-
-  for (const what of rewritten(text, DENIED_TEXT)) {
-    found.push(`${file}: holds ${what}`);
-  }
-
-  const whole = offences(text);
-
-  if (whole.length === 0) {
-    return found;
-  }
-
-  const byLine = new Set<string>();
-
-  for (const [index, line] of text.split("\n").entries()) {
-    for (const what of offences(line)) {
-      byLine.add(what);
-      found.push(`${file}:${index + 1}: ${what}`);
-    }
-  }
-  for (const what of whole) {
-    if (!byLine.has(what)) {
-      found.push(`${file}: across lines: ${what}`);
-    }
-  }
-
-  return found;
+  return stat.isFile()
+    ? [...found, ...verdict(readFileSync(at), [], DENIED).map((finding) => `${file}${finding}`)]
+    : found;
 };
 
 /**
@@ -700,6 +978,85 @@ const CAUGHT = (
   ] as const
 ).map(([what, sample]) => [what, unbroken(sample)] as const);
 
+/**
+ * Write a zip of files as the archive test reads one, stored or deflated: each local header and its
+ * data, the directory, its end.
+ *
+ * @param files Each member's name and bytes.
+ * @param deflated Whether members are deflated.
+ * @returns The zip's bytes.
+ */
+const zipOf = (files: readonly (readonly [string, Buffer])[], deflated: boolean): Buffer => {
+  const parts: Buffer[] = [];
+  const central: Buffer[] = [];
+  let offset = 0;
+
+  for (const [name, bytes] of files) {
+    const packed = deflated ? deflateRawSync(bytes) : bytes;
+    const named = Buffer.from(name);
+    const local = Buffer.alloc(30);
+    const entry = Buffer.alloc(46);
+
+    local.writeUInt32LE(0x04_03_4b_50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(deflated ? 8 : 0, 8);
+    local.writeUInt32LE(crc32(bytes), 14);
+    local.writeUInt32LE(packed.length, 18);
+    local.writeUInt32LE(bytes.length, 22);
+    local.writeUInt16LE(named.length, 26);
+    entry.writeUInt32LE(0x02_01_4b_50, 0);
+    entry.writeUInt16LE(20, 4);
+    entry.writeUInt16LE(20, 6);
+    entry.writeUInt16LE(deflated ? 8 : 0, 10);
+    entry.writeUInt32LE(crc32(bytes), 16);
+    entry.writeUInt32LE(packed.length, 20);
+    entry.writeUInt32LE(bytes.length, 24);
+    entry.writeUInt16LE(named.length, 28);
+    entry.writeUInt32LE(offset, 42);
+    parts.push(local, named, packed);
+    central.push(entry, named);
+    offset += 30 + named.length + packed.length;
+  }
+
+  const directory = Buffer.concat(central);
+  const end = Buffer.alloc(22);
+
+  end.writeUInt32LE(0x06_05_4b_50, 0);
+  end.writeUInt16LE(files.length, 8);
+  end.writeUInt16LE(files.length, 10);
+  end.writeUInt32LE(directory.length, 12);
+  end.writeUInt32LE(offset, 16);
+
+  return Buffer.concat([...parts, directory, end]);
+};
+
+/**
+ * Write a ustar tar of files as the archive test reads one: a header each, its checksum summed over
+ * its own field as spaces.
+ *
+ * @param files Each member's name and bytes.
+ * @returns The tar's bytes.
+ */
+const tarOf = (files: readonly (readonly [string, Buffer])[]): Buffer =>
+  Buffer.concat([
+    ...files.flatMap(([name, bytes]) => {
+      const header = Buffer.alloc(512);
+
+      header.write(name, 0);
+      header.write("0000644", 100);
+      header.write(bytes.length.toString(8).padStart(11, "0"), 124);
+      header.write("        0", 148);
+      header.write("ustar\u000000", 257);
+
+      const sum = header.reduce((total, byte) => total + byte, 0);
+
+      header.write(`${sum.toString(8).padStart(6, "0")}\u0000 `, 148);
+
+      return [header, bytes, Buffer.alloc((512 - (bytes.length % 512)) % 512)];
+    }),
+    Buffer.alloc(1024),
+  ]);
+
 describe("a private item builder's draft format and its delivery's files are banned from this repository", () => {
   it("is carried by no tracked file, in its content, path or symlink target, and no file is the delivery's", () => {
     const { root, ...entries } = trackedFiles();
@@ -719,6 +1076,63 @@ describe("a private item builder's draft format and its delivery's files are ban
       [],
       `builder format or delivery files found (${found.length}):\n${found.slice(0, 200).join("\n")}`,
     );
+  });
+
+  it("judges an archive by its members, fails one that cannot be read, and reads markup behind a NUL in its text runs", () => {
+    const standIn = Buffer.from([0, 1, 2, 3, 0, 255]);
+    const denied = new Set([...DENIED, digest(standIn)]);
+    const sample = CAUGHT.at(0)?.[1] ?? "";
+    const caught = offences(sample);
+    const line = Buffer.from(`${sample}\n`);
+    const deliveryPath = unbroken("docs/package-c·ode-and-docs/items.json");
+    const plain = Buffer.from("plain words\n");
+
+    assert.isNotEmpty(caught, "the sample is not found");
+    assert.isNotEmpty(offences(deliveryPath), "the delivery's path is not found");
+    assert.deepStrictEqual(
+      verdict(
+        zipOf(
+          [
+            ["in/f.bin", standIn],
+            ["in/h.html", line],
+            [deliveryPath, plain],
+          ],
+          false,
+        ),
+        [],
+        denied,
+      ),
+      [
+        ": in its member in/f.bin: is a file of the delivery",
+        ...caught.map((what) => `: in its member in/h.html:1: ${what}`),
+        ...offences(deliveryPath).map(
+          (what) => `: in its member ${deliveryPath}: path holds ${what}`,
+        ),
+      ],
+    );
+    assert.deepStrictEqual(verdict(zipOf([["f.bin", standIn]], true), [], denied), [
+      ": in its member f.bin: is a file of the delivery",
+    ]);
+    assert.deepStrictEqual(verdict(gzipSync(tarOf([["x/f.bin", standIn]])), [], denied), [
+      ": in its gzip stream: in its member x/f.bin: is a file of the delivery",
+    ]);
+    assert.deepStrictEqual(
+      verdict(
+        Buffer.from([0x50, 0x4b, 0x03, 0x04, ...Array.from({ length: 26 }, () => 0)]),
+        [],
+        denied,
+      ),
+      [": is an archive that cannot be read: it has no end of central directory"],
+    );
+    assert.deepStrictEqual(
+      verdict(Buffer.concat([Buffer.from([0]), line]), [], denied),
+      caught.map((what) => `: in its bytes: ${what}`),
+    );
+    assert.deepStrictEqual(verdict(zipOf([["f.bin", standIn]], false), [digest(standIn)], denied), [
+      ": is an archive that cannot be read: its member f.bin is an archive it is inside",
+    ]);
+    assert.deepStrictEqual(verdict(gzipSync(tarOf([["a.txt", plain]])), [], denied), []);
+    assert.deepStrictEqual(verdict(zipOf([["a.txt", plain]], true), [], denied), []);
   });
 
   it("fails a name that is not UTF-8 or led by a BOM even beside a clean twin, a listed path not there, and one in a folder that cannot be searched, and passes one deleted or sparse", (context) => {
