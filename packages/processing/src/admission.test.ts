@@ -1,4 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
+import { validatingMember } from "#processing/test/members.ts";
 import { admit, alwaysCodes, validatedCodes } from "#processing/admission.ts";
 import type { AdmissionCode } from "#processing/admission.ts";
 import { compileItemWith } from "#processing/compile/document.ts";
@@ -959,9 +960,9 @@ describe("an answer's grade", () => {
     );
 
     const graded = gradeAnswerWith(table, {
+      answered: { item, kind: "item" },
       context: new Map(),
       evaluations: new Map(),
-      item,
       readAt: { microseconds: 1n },
       responses: {
         at: { microseconds: 1n },
@@ -969,7 +970,6 @@ describe("an answer's grade", () => {
         values: posted(single("identifier", word("Z"))),
       },
       session,
-      validate: false,
     });
     assert.isTrue("result" in graded && graded.result.kind === "refused");
   });
@@ -1000,13 +1000,12 @@ describe("an answer's grade", () => {
     );
 
     const graded = gradeAnswerWith(table, {
+      answered: validatingMember(item),
       context: new Map(),
       evaluations: new Map(),
-      item,
       readAt: { microseconds: 1n },
       responses: { kind: "posted", values: posted(single("identifier", word("A"))) },
       session,
-      validate: true,
     });
     assert.deepStrictEqual(
       "responses" in graded ? graded.responses.get("R") : undefined,

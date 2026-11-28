@@ -409,3 +409,90 @@ describe("an area mapping's areas", () => {
     assert.strictEqual(compiled.ok ? undefined : compiled.refusal.code, "attribute");
   });
 });
+
+/**
+ * An item session control writing validate-responses.
+ *
+ * @param validate - Its validate-responses.
+ * @returns The element.
+ */
+const control = (validate: string): XmlElement =>
+  element("qti-item-session-control", { "validate-responses": validate }, []);
+
+/**
+ * An item ref to q.xml.
+ *
+ * @param identifier - Its identifier.
+ * @param children - Its children.
+ * @returns The element.
+ */
+const ref = (identifier: string, children: readonly XmlElement[]): XmlElement =>
+  element("qti-assessment-item-ref", { href: "q.xml", identifier }, children);
+
+/**
+ * The effective validate-responses of each item ref of a test whose part is written so.
+ *
+ * @param mode - The part's submission mode.
+ * @param partValidate - The part's validate-responses, "" where it writes none.
+ * @returns Each item ref's `validate`, by identifier.
+ */
+const validatesOf = (mode: string, partValidate: string): ReadonlyMap<string, boolean> => {
+  const compiledItem = compileItemWith(item(declarations), digest, table);
+  const q = compiledItem.ok ? compiledItem.value : assert.fail("compiled");
+  const compiled = compileTestWith(
+    element("qti-assessment-test", { identifier: "t" }, [
+      element(
+        "qti-test-part",
+        { identifier: "p", "navigation-mode": "linear", "submission-mode": mode },
+        [
+          ...(partValidate === "" ? [] : [control(partValidate)]),
+          ref("inherits", []),
+          element("qti-assessment-section", { identifier: "s" }, [
+            control("false"),
+            ref("section-off", []),
+            ref("ref-on", [control("true")]),
+          ]),
+        ],
+      ),
+    ]),
+    digest,
+    new Map([
+      ["inherits", q],
+      ["ref-on", q],
+      ["section-off", q],
+    ]),
+    table,
+  );
+  const test = compiled.ok ? compiled.value : assert.fail(compiled.refusal.detail);
+
+  return new Map(test.itemRefs.map((each) => [each.identifier, each.validate]));
+};
+
+describe("an item ref's validate-responses (QTI 3.0.1 §7.19, §7.19.7)", () => {
+  it("is the nearest setting of its item ref, its sections and its test part, default false, and false outside an individual part", () => {
+    assert.deepStrictEqual(
+      validatesOf("individual", "true"),
+      new Map([
+        ["inherits", true],
+        ["ref-on", true],
+        ["section-off", false],
+      ]),
+    );
+    assert.deepStrictEqual(
+      validatesOf("individual", ""),
+      new Map([
+        ["inherits", false],
+        ["ref-on", true],
+        ["section-off", false],
+      ]),
+    );
+    assert.deepStrictEqual(
+      validatesOf("simultaneous", "true"),
+      new Map([
+        ["inherits", false],
+        ["ref-on", false],
+        ["section-off", false],
+      ]),
+    );
+  });
+});

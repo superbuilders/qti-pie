@@ -53,9 +53,9 @@ const session: ItemSession = Object.freeze({
  */
 const scoreOf = (response: Value): Value | undefined => {
   const graded = gradeAnswer({
+    answered: { item, kind: "item" },
     context: new Map(),
     evaluations: new Map(),
-    item,
     readAt: { microseconds: 2n },
     responses: {
       at: { microseconds: 1n },
@@ -63,7 +63,6 @@ const scoreOf = (response: Value): Value | undefined => {
       values: new Map([["RESPONSE", response]]),
     },
     session,
-    validate: false,
   });
 
   return "result" in graded && graded.result.kind === "done"

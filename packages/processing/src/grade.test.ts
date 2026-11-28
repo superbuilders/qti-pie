@@ -1,4 +1,5 @@
 import { exhaust } from "@bjornpagen/testing/explore";
+import { validatingMember } from "#processing/test/members.ts";
 import { noCoverage } from "@bjornpagen/testing/features";
 import { int } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
@@ -172,9 +173,9 @@ const fresh = (take: Take): ItemSession => ({
  */
 const answer = (item: CompiledItem, response: Value, session: ItemSession) =>
   gradeAnswerWith(table, {
+    answered: { item, kind: "item" },
     context: new Map(),
     evaluations: new Map(),
-    item,
     readAt: { microseconds: 5n },
     responses: {
       at: { microseconds: 4n },
@@ -182,7 +183,6 @@ const answer = (item: CompiledItem, response: Value, session: ItemSession) =>
       values: new Map([["RESPONSE", response]]),
     },
     session,
-    validate: false,
   });
 
 /**
@@ -417,7 +417,6 @@ describe("a sitting", () => {
           ref: { identifier: "q1", occurrence: 1n },
           responses: { kind: "default" },
           session: fresh(noTake),
-          validate: false,
         },
       ],
       context: new Map(),
@@ -467,7 +466,6 @@ const closingOf = (
   ref: { identifier, occurrence: 1n },
   responses: { kind: "default" },
   session,
-  validate: false,
 });
 
 /**
@@ -733,7 +731,6 @@ describe("a sitting with a pending member", () => {
       ref,
       responses: essay,
       session: fresh(noTake),
-      validate: false,
     });
     const sitting: SittingInput = {
       carried: [],
@@ -773,13 +770,12 @@ describe("a sitting with a pending member", () => {
     }
 
     const answered = gradeAnswerWith(table, {
+      answered: { item, kind: "item" },
       context: new Map(),
       evaluations,
-      item,
       readAt: { microseconds: 2_000_000n },
       responses: essay,
       session: fresh(noTake),
-      validate: false,
     });
     if ("failure" in answered || answered.result.kind !== "done") {
       return assert.fail("answered");
@@ -828,13 +824,12 @@ describe("a pending answer with a hidden response", () => {
       evaluations: ReadonlyMap<number, Value>,
     ) =>
       gradeAnswerWith(table, {
+        answered: { item, kind: "item" },
         context: new Map(),
         evaluations,
-        item,
         readAt: { microseconds: 2_000_000n },
         responses: { kind: "posted", values },
         session: fresh(noTake),
-        validate: false,
       });
 
     const first = answerOf(
@@ -937,7 +932,8 @@ const requiredItem = (): CompiledItem => {
 };
 
 /**
- * A sitting of two closing members of {@link requiredItem}, validate-responses on: q1 posts
+ * A sitting of two closing members of {@link requiredItem}, its individual part validating
+ * responses (§7.19.7): q1 posts
  * `HIDDEN` and no `PICK`, which validation refuses; q2 posts its `PICK`.
  *
  * @param endedBy - Who ended the sitting.
@@ -947,10 +943,15 @@ const requiredSitting = (endedBy: SittingInput["endedBy"]): SittingInput => {
   const item = requiredItem();
   const compiled = compileTestWith(
     element("qti-assessment-test", { identifier: "t" }, [
-      element("qti-test-part", { identifier: "p" }, [
-        element("qti-assessment-item-ref", { href: "q1.xml", identifier: "q1" }, []),
-        element("qti-assessment-item-ref", { href: "q2.xml", identifier: "q2" }, []),
-      ]),
+      element(
+        "qti-test-part",
+        { identifier: "p", "navigation-mode": "linear", "submission-mode": "individual" },
+        [
+          element("qti-item-session-control", { "validate-responses": "true" }, []),
+          element("qti-assessment-item-ref", { href: "q1.xml", identifier: "q1" }, []),
+          element("qti-assessment-item-ref", { href: "q2.xml", identifier: "q2" }, []),
+        ],
+      ),
     ]),
     digest,
     new Map([
@@ -965,7 +966,6 @@ const requiredSitting = (endedBy: SittingInput["endedBy"]): SittingInput => {
     ref: { identifier, occurrence: 1n },
     responses: { kind: "posted", values },
     session: fresh(noTake),
-    validate: true,
   });
 
   return {
@@ -1039,13 +1039,12 @@ describe("a sitting's admission", () => {
     const item = requiredItem();
     const answerOf = (values: ReadonlyMap<string, Value>) =>
       gradeAnswerWith(table, {
+        answered: { item, kind: "item" },
         context: new Map(),
         evaluations: new Map(),
-        item,
         readAt: { microseconds: 2n },
         responses: { kind: "posted", values },
         session: fresh(noTake),
-        validate: false,
       });
 
     const missing = new Map([["PICK", nullOf({ base: "identifier", cardinality: "multiple" })]]);
@@ -1065,6 +1064,34 @@ describe("a sitting's admission", () => {
         : undefined,
       single("boolean", false),
     );
+  });
+
+  it("validates nothing in a simultaneous part, a candidate's submission there graded as it stands (§7.19.7: only applicable in an individual part)", () => {
+    const sitting = requiredSitting("candidate");
+    const simultaneous = compileTestWith(
+      element("qti-assessment-test", { identifier: "t" }, [
+        element(
+          "qti-test-part",
+          { identifier: "p", "navigation-mode": "linear", "submission-mode": "simultaneous" },
+          [
+            element("qti-item-session-control", { "validate-responses": "true" }, []),
+            element("qti-assessment-item-ref", { href: "q1.xml", identifier: "q1" }, []),
+            element("qti-assessment-item-ref", { href: "q2.xml", identifier: "q2" }, []),
+          ],
+        ),
+      ]),
+      digest,
+      new Map([
+        ["q1", requiredItem()],
+        ["q2", requiredItem()],
+      ]),
+      table,
+    );
+    const graded = gradeSittingWith(table, {
+      ...sitting,
+      test: simultaneous.ok ? simultaneous.value : assert.fail(simultaneous.refusal.detail),
+    });
+    assert.isTrue(!("failure" in graded) && graded.kind === "done");
   });
 
   it("grades every member as it stands where the system closed the sitting, validating none", () => {
@@ -1123,7 +1150,6 @@ describe("a sitting's members", () => {
           ref: { identifier: "q1", occurrence: 1n },
           responses: { kind: "default" },
           session: fresh(noTake),
-          validate: false,
         },
       ],
       context: new Map(),
@@ -1228,9 +1254,9 @@ const hinted = (countAttempt: string): CompiledItem => {
 const pressed = (countAttempt: string, validate: boolean): bigint | "failed" | "refused" => {
   const item = hinted(countAttempt);
   const graded = gradeAnswerWith(table, {
+    answered: validate ? validatingMember(item) : { item, kind: "item" },
     context: new Map(),
     evaluations: new Map(),
-    item,
     readAt: { microseconds: 2n },
     responses: {
       at: { microseconds: 1n },
@@ -1241,7 +1267,6 @@ const pressed = (countAttempt: string, validate: boolean): bigint | "failed" | "
       ]),
     },
     session: fresh(noTake),
-    validate,
   });
   if (!("result" in graded)) {
     return "failed";

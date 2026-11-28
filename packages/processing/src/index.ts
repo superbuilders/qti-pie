@@ -42,6 +42,7 @@ export type { Credit, Mark } from "#processing/credit.ts";
 
 export type {
   AnswerGrade,
+  Answered,
   Graded,
   AnswerInput,
   CarriedMember,

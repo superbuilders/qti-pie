@@ -366,6 +366,37 @@ export const compileItemWith = <K extends ExpressionKind>(
 ): Checked<CompiledItem> => compileItemOver(root, digest, table, customOperatorOf);
 
 /**
+ * The item session control in force: whether the test part submits individually, and the nearest
+ * `validate-responses` written, if any.
+ */
+interface SessionControl {
+  readonly individual: boolean;
+  readonly validate: boolean | undefined;
+}
+
+/**
+ * The control in force under an element: a test part's `submission-mode`, and the
+ * `validate-responses` of its `qti-item-session-control` where it writes one (QTI 3.0.1 §7.19: "a
+ * setting at qti-test-part level affects all items in that part unless the setting is overridden
+ * at the qti-assessment-section level or ultimately at the individual qti-assessment-item-ref").
+ *
+ * @param element - A test part, a section or an item ref.
+ * @param control - The control in force around it.
+ * @returns The control in force under it.
+ */
+const controlOf = (element: XmlElement, control: SessionControl): SessionControl => {
+  const session = childNamed(element, "qti-item-session-control");
+  const written = session === undefined ? undefined : attributeOf(session, "validate-responses");
+  const validate = written === undefined ? control.validate : readBoolean(collapsed(written));
+  const individual =
+    element.local === "qti-test-part"
+      ? collapsed(attributeOf(element, "submission-mode") ?? "") === "individual"
+      : control.individual;
+
+  return { individual, validate };
+};
+
+/**
  * Every item ref of a test with the sections that hold it, in document order.
  *
  * @param element - A test part or a section.
@@ -375,10 +406,16 @@ export const compileItemWith = <K extends ExpressionKind>(
 const itemRefsOf = (
   element: XmlElement,
   sections: readonly string[],
-): readonly { readonly element: XmlElement; readonly sections: readonly string[] }[] =>
+  control: SessionControl,
+): readonly {
+  readonly element: XmlElement;
+  readonly sections: readonly string[];
+  readonly validate: boolean;
+}[] =>
   qtiChildren(element).flatMap((child) => {
+    const held = controlOf(child, control);
     if (child.local === "qti-assessment-item-ref") {
-      return [{ element: child, sections }];
+      return [{ element: child, sections, validate: held.individual && held.validate === true }];
     }
 
     return child.local === "qti-assessment-section" || child.local === "qti-test-part"
@@ -387,6 +424,7 @@ const itemRefsOf = (
           child.local === "qti-assessment-section"
             ? [...sections, collapsed(attributeOf(child, "identifier") ?? "")]
             : sections,
+          held,
         )
       : [];
   });
@@ -491,7 +529,10 @@ export const compileTestWith = <K extends ExpressionKind>(
     placeOf: placeAtStart,
   };
   const itemRefs: CompiledItemRef[] = [];
-  for (const { element, sections } of itemRefsOf(root, [])) {
+  for (const { element, sections, validate } of itemRefsOf(root, [], {
+    individual: false,
+    validate: undefined,
+  })) {
     const identifier = collapsed(attributeOf(element, "identifier") ?? "");
     const item = items.get(identifier);
     if (item === undefined) {
@@ -539,6 +580,7 @@ export const compileTestWith = <K extends ExpressionKind>(
       item,
       sections,
       templateDefaults,
+      validate,
       weights,
     });
   }

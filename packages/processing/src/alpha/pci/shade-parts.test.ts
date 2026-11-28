@@ -8,6 +8,7 @@
  * however many parts it is cut into (2, 3, 4, 6 or 8), and whichever count the key names. The items
  * are synthetic, written from the module's own contract alone.
  */
+import { validatingMember } from "#processing/test/members.ts";
 import { assert, describe, it } from "@effect/vitest";
 import { compileItem, gradeAnswer } from "#processing/entries.ts";
 import type { ItemSession } from "#processing/grade.ts";
@@ -132,9 +133,9 @@ describe("a shade-parts item", () => {
           const item = compiled.ok ? compiled.value : assert.fail(compiled.refusal.detail);
           const scoreOf = (shadedCount: number): Value | undefined => {
             const graded = gradeAnswer({
+              answered: validatingMember(item),
               context: new Map(),
               evaluations: new Map(),
-              item,
               readAt: { microseconds: 2n },
               responses: {
                 at: { microseconds: 1n },
@@ -142,7 +143,6 @@ describe("a shade-parts item", () => {
                 values: new Map([["RESPONSE", single("integer", BigInt(shadedCount))]]),
               },
               session,
-              validate: true,
             });
 
             return "result" in graded && graded.result.kind === "done"

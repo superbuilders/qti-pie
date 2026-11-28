@@ -96,22 +96,56 @@ export interface ItemSession {
 }
 
 /**
+ * What an answer answers: a test's member, whose item and effective `validate-responses` (QTI 3.0.1
+ * §7.19.7) its test's item ref holds, read from the document, never a caller's flag; or an item
+ * delivered alone, in no test part, where validate-responses is not applicable, so nothing is
+ * validated.
+ */
+export type Answered =
+  | { readonly item: CompiledItem; readonly kind: "item" }
+  | { readonly kind: "member"; readonly ref: string; readonly test: CompiledTest };
+
+/**
  * One answer to grade.
  */
 export interface AnswerInput {
+  readonly answered: Answered;
   readonly context: ReadonlyMap<string, Value>;
   readonly evaluations: ReadonlyMap<number, Value>;
-  readonly item: CompiledItem;
   readonly readAt: Instant;
   readonly responses: Submitted;
   readonly session: ItemSession;
-  /**
-   * The session's `validate-responses` (§7.19.7): whether tier (b)'s limits refuse the answer too,
-   * but for an attempt ended through an End Attempt written `count-attempt="false"`, which spends
-   * no attempt and so submits nothing to validate (reading `end-attempt-validation`).
-   */
+}
+
+/**
+ * The item an answer answers, and whether its session validates.
+ */
+interface AnsweredItem {
+  readonly item: CompiledItem;
   readonly validate: boolean;
 }
+
+/**
+ * The item an answer answers and whether its session validates: a member's, as its test's item ref
+ * states them; an item delivered alone validates nothing. A member a test does not hold is a broken
+ * contract.
+ *
+ * @param answered - What the answer answers.
+ * @returns The item and whether validate-responses applies.
+ */
+const answeredItem = (answered: Answered): AnsweredItem => {
+  if (answered.kind === "item") {
+    return { item: answered.item, validate: false };
+  }
+
+  const ref = answered.test.itemRefs.find((each) => each.identifier === answered.ref);
+  contract(
+    ref !== undefined,
+    `an answer answers an item ref its test holds; it holds no ${answered.ref}`,
+  );
+
+  return { item: ref.item, validate: ref.validate };
+};
 
 /**
  * An answer admission refused (§7.19.7, reading `response-limits`): its reasons. It writes nothing.
@@ -150,11 +184,6 @@ export interface ClosingMember {
   readonly ref: MemberRef;
   readonly responses: Submitted;
   readonly session: ItemSession;
-  /**
-   * The member's `validate-responses` (§7.19.7), which a candidate's submission applies; a system's
-   * close applies none, and a pending member's answer was admitted when it was given.
-   */
-  readonly validate: boolean;
 }
 
 /**
@@ -435,7 +464,6 @@ const attemptText = (member: ClosingMember): string =>
     ref: refText(member.ref),
     responses: submittedText(member.responses),
     session: sessionText(member.session),
-    validate: String(member.validate),
   } satisfies Fields<ClosingMember>);
 
 /**
@@ -485,13 +513,22 @@ const sittingDigest = (input: SittingInput): Digest =>
 const answerDigest = (input: AnswerInput): Digest =>
   textDigest(
     fieldsText({
+      answered:
+        input.answered.kind === "item"
+          ? fieldsText({
+              item: input.answered.item.digest.sha256,
+              kind: input.answered.kind,
+            } satisfies Fields<typeof input.answered>)
+          : fieldsText({
+              kind: input.answered.kind,
+              ref: input.answered.ref,
+              test: input.answered.test.digest.sha256,
+            } satisfies Fields<typeof input.answered>),
       context: valuesText(input.context),
       evaluations: "",
-      item: input.item.digest.sha256,
       readAt: instantText(input.readAt),
       responses: submittedText(input.responses),
       session: sessionText(input.session),
-      validate: String(input.validate),
     } satisfies Fields<AnswerInput>),
   );
 
@@ -627,15 +664,16 @@ export const gradeAnswerWith = <K extends ExpressionKind>(
   table: OperatorTable<K>,
   input: AnswerInput,
 ): Failed | Graded<AnswerGrade> => {
+  const { item, validate } = answeredItem(input.answered);
   const {
     admission,
     graded: asGraded,
     shown,
-  } = admitted(input.item, input.session, input.responses, input.validate);
+  } = admitted(item, input.session, input.responses, validate);
   const proof: GradeProof = {
     inputDigest: answerDigest({ ...input, responses: asGraded }),
     prior: priorOf(input.session.prior),
-    program: input.item.digest,
+    program: item.digest,
     readAt: input.readAt,
     responses: [readOf(asGraded)],
   };
@@ -643,7 +681,7 @@ export const gradeAnswerWith = <K extends ExpressionKind>(
     return mint({ responses: shown, result: { admission, kind: "refused" } }, proof);
   }
 
-  const result = attemptWith(table, attemptOf(input, input.context, shown));
+  const result = attemptWith(table, attemptOf({ ...input, item }, input.context, shown));
 
   return result.kind === "failed" ? result : mint({ responses: shown, result }, proof);
 };
@@ -858,7 +896,8 @@ const admittedSitting = (input: SittingInput): AdmittedSitting => {
       member.item,
       member.session,
       member.responses,
-      byCandidate && member.validate,
+      byCandidate &&
+        input.test.itemRefs.some((ref) => ref.identifier === member.ref.identifier && ref.validate),
     ),
     member,
   }));

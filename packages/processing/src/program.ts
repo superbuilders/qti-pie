@@ -197,6 +197,13 @@ export interface CompiledItemRef {
     readonly expression: Expression;
     readonly template: string;
   }[];
+  /**
+   * The effective `validate-responses` of the item's session (QTI 3.0.1 §7.19.7, default false):
+   * the nearest the item ref, its sections or its test part writes, and false outside an individual
+   * test part, since the attribute "is only applicable when the item is in a qti-test-part with
+   * individual submission mode".
+   */
+  readonly validate: boolean;
   readonly weights: ReadonlyMap<string, number>;
 }
 

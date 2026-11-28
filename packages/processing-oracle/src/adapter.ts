@@ -24,6 +24,7 @@ import {
 import { numbered } from "@qti-pie/processing/testing.ts";
 import { recordOf, single } from "@qti-pie/processing/value.ts";
 import type {
+  Answered,
   CompiledItem,
   Digest,
   ItemResult,
@@ -260,52 +261,134 @@ const failureText = (failure: ProcessingFailure): string => {
 };
 
 /**
+ * QTI 3.0.1's namespace.
+ */
+const qtiNamespace = "http://www.imsglobal.org/xsd/imsqtiasi_v3p0";
+
+/**
+ * An item as the member of a test of one individual part whose item session control validates
+ * responses (QTI 3.0.1 §7.19.7), as a recording graded with validation was delivered: the document
+ * states the validation, never a flag.
+ *
+ * @param item The item.
+ * @returns What a validated answer answers.
+ */
+const validatingMember = (item: CompiledItem): Answered => {
+  const test = compileTest(
+    numbered({
+      attributes: [{ local: "identifier", namespace: "", value: "validating" }],
+      children: [
+        {
+          attributes: [
+            { local: "identifier", namespace: "", value: "p" },
+            { local: "navigation-mode", namespace: "", value: "linear" },
+            { local: "submission-mode", namespace: "", value: "individual" },
+          ],
+          children: [
+            {
+              attributes: [{ local: "validate-responses", namespace: "", value: "true" }],
+              children: [],
+              kind: "element",
+              local: "qti-item-session-control",
+              namespace: qtiNamespace,
+            },
+            {
+              attributes: [
+                { local: "href", namespace: "", value: "q.xml" },
+                { local: "identifier", namespace: "", value: "q" },
+              ],
+              children: [],
+              kind: "element",
+              local: "qti-assessment-item-ref",
+              namespace: qtiNamespace,
+            },
+          ],
+          kind: "element",
+          local: "qti-test-part",
+          namespace: qtiNamespace,
+        },
+      ],
+      kind: "element",
+      local: "qti-assessment-test",
+      namespace: qtiNamespace,
+    }),
+    { sha256: "0".repeat(64) },
+    new Map([["q", item]]),
+  );
+  if (!test.ok) {
+    throw new Error(`the validating test refused: ${test.refusal.detail}`);
+  }
+
+  return { kind: "member", ref: "q", test: test.value };
+};
+
+/**
+ * One answer graded: validated where the recording validated, as the validating test's member,
+ * else the item delivered alone.
+ *
+ * @param item The item.
+ * @param validating The item as a validating test's member.
+ * @param places Its recorded operators' places.
+ * @param input The answer.
+ * @returns The answer's view.
+ */
+const answerOf = (
+  item: CompiledItem,
+  validating: Answered,
+  places: readonly number[],
+  input: Parameters<ItemEngine["answer"]>[0],
+): AnswerView => {
+  const graded = gradeAnswer({
+    answered: input.validate ? validating : { item, kind: "item" },
+    context: new Map(),
+    evaluations: evaluationsOf(input.recorded, places),
+    readAt: epoch,
+    responses: submittedOf(item, takeOf(input.take), input.responses),
+    session: sessionOf(input.seed, input.take, input.session),
+  });
+  if ("failure" in graded) {
+    return { failure: failureText(graded.failure), kind: "failed" };
+  }
+
+  if (graded.result.kind === "refused") {
+    const { reasons } = graded.result.admission;
+
+    return {
+      codes: [...new Set(reasons.map((reason) => reason.code))].toSorted(),
+      endAttempt: item.interactions.some(
+        (interaction) =>
+          interaction.kind === "end-attempt" &&
+          input.responses[interaction.response]?.values[0] === "true",
+      ),
+      kind: "refused",
+      refused: reasons.map((reason) => reason.response),
+    };
+  }
+
+  return resultView(graded.result, places);
+};
+
+/**
  * The engine over one compiled item.
  *
  * @param item The compiled item.
  * @param places Its recorded operators' places.
  * @returns The engine.
  */
-const itemEngineOf = (item: CompiledItem, places: readonly number[]): ItemEngine => ({
-  answer: (input) => {
-    const graded = gradeAnswer({
-      context: new Map(),
-      evaluations: evaluationsOf(input.recorded, places),
-      item,
-      readAt: epoch,
-      responses: submittedOf(item, takeOf(input.take), input.responses),
-      session: sessionOf(input.seed, input.take, input.session),
-      validate: input.validate,
-    });
-    if ("failure" in graded) {
-      return { failure: failureText(graded.failure), kind: "failed" };
-    }
+const itemEngineOf = (item: CompiledItem, places: readonly number[]): ItemEngine => {
+  const validating = validatingMember(item);
 
-    if (graded.result.kind === "refused") {
-      const { reasons } = graded.result.admission;
+  return {
+    answer: (input) => answerOf(item, validating, places, input),
+    identifier: item.identifier,
+    kind: "item",
+    take: (seed) => {
+      const take = takeItem(item, seedOf(seed), new Map(), new Map());
 
-      return {
-        codes: [...new Set(reasons.map((reason) => reason.code))].toSorted(),
-        endAttempt: item.interactions.some(
-          (interaction) =>
-            interaction.kind === "end-attempt" &&
-            input.responses[interaction.response]?.values[0] === "true",
-        ),
-        kind: "refused",
-        refused: reasons.map((reason) => reason.response),
-      };
-    }
-
-    return resultView(graded.result, places);
-  },
-  identifier: item.identifier,
-  kind: "item",
-  take: (seed) => {
-    const take = takeItem(item, seedOf(seed), new Map(), new Map());
-
-    return "failure" in take ? { correct: {}, defaults: {}, templates: {} } : takeViewOf(take);
-  },
-});
+      return "failure" in take ? { correct: {}, defaults: {}, templates: {} } : takeViewOf(take);
+    },
+  };
+};
 
 /**
  * Compile an item's document.
@@ -395,7 +478,6 @@ const testEngineOf = (
               seed,
               take,
             } satisfies ItemSession,
-            validate: false,
           },
         ];
       });
