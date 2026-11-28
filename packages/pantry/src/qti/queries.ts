@@ -614,26 +614,19 @@ const ListedIdentifier = derived(
  * identifier, each by its record's place (§2.7.1.1: "One of the values given for the identifier
  * must have an entry that matches the identifier of the associated item, test or object bank"):
  * the entry's text collapsed is the root's collapsed `identifier` ({@link ObjectIdentifier}, in the
- * named document), so a document that writes none is named by no entry.
+ * named document), compared by their SHA-256, since an identifier has no byte bound, so a document
+ * that writes none is named by no entry.
  */
 const MatchedIdentifier = derived(
   "MatchedIdentifier",
   query(QtiViews).rule((r) => {
     const { document, package: pkg, path, record, text } = v(generalEntries, "entry");
-    const { value: identifier, valueDigest: identifierDigest } = v(objectIdentifiers, "object");
+    const { valueDigest: identifierDigest } = v(objectIdentifiers, "object");
 
     return r
       .match(generalEntries, { document, package: pkg, path, record, text })
-      .match(objectIdentifiers, {
-        package: pkg,
-        path: document,
-        value: identifier,
-        valueDigest: identifierDigest,
-      })
-      .where(
-        r.eq(identifierDigest, Crypto.sha256(Text.collapse(text))),
-        r.eq(Text.collapse(text), identifier),
-      )
+      .match(objectIdentifiers, { package: pkg, path: document, valueDigest: identifierDigest })
+      .where(r.eq(identifierDigest, Crypto.sha256(Text.collapse(text))))
       .find({ package: pkg, path, record });
   }),
 );
@@ -660,18 +653,14 @@ const ListedTitle = derived(
  * document's title, each with its record, the string, and the document's path and root: the
  * string's folded text (`copiedLangStringText` of `#pantry/qti/node.ts`) with its whitespace
  * replaced is the root's `title` ({@link objectTitles}), both in `xs:normalizedString`'s value
- * space. A string reaches its record through its `lom:title`, whose parent is a general category,
- * all three in the record's document.
+ * space, compared by their SHA-256, since a title has no byte bound. A string reaches its record
+ * through its `lom:title`, whose parent is a general category, all three in the record's document.
  */
 const titledStrings = query(QtiViews).rule((r) => {
   const { package: pkg, parent: title, path, start: string, stringValue: text } = v(Node, "string");
   const { parent: general } = v(Node, "title");
   const { document, record } = v(namingGenerals, "general");
-  const {
-    start: root,
-    value: titleValue,
-    valueDigest: titleValueDigest,
-  } = v(objectTitles, "objectTitle");
+  const { start: root, valueDigest: titleValueDigest } = v(objectTitles, "objectTitle");
 
   return r
     .match(Node, {
@@ -688,13 +677,9 @@ const titledStrings = query(QtiViews).rule((r) => {
       package: pkg,
       path: document,
       start: root,
-      value: titleValue,
       valueDigest: titleValueDigest,
     })
-    .where(
-      r.eq(titleValueDigest, Crypto.sha256(Text.replaceWhitespace(text))),
-      r.eq(Text.replaceWhitespace(text), titleValue),
-    )
+    .where(r.eq(titleValueDigest, Crypto.sha256(Text.replaceWhitespace(text))))
     .find({ document, package: pkg, path, record, root, string });
 });
 
@@ -1541,9 +1526,10 @@ export const BankMember = derived(
  * - **"Item ref identifier"** (QTI §4.1.1: "When an Item is referenced using a
  *   'qti-assesasment-item-ref' the values of the two 'identifier' characteristics MUST be the
  *   same"): each named item ref's identifier, a test's or a bank's, is the identifier of the item
- *   it names (`NamedItemRef` of `#pantry/qti/overlay-queries/tests.ts` into `ObjectIdentifier`), so
- *   no two members of a test name one item document, its refs' identifiers unique within it (Table
- *   4.2.1): `TestMember` is keyed `(package, path, document)` too.
+ *   it names (`NamedItemRef` of `#pantry/qti/overlay-queries/tests.ts` into `ObjectIdentifier`,
+ *   each by its SHA-256, since an item's identifier has no byte bound), so no two members of a test
+ *   name one item document, its refs' identifiers unique within it (Table 4.2.1): `TestMember` is
+ *   keyed `(package, path, document)` too.
  */
 const testQueryLawsByName = {
   "E1 derived": declared("E1 derived", [
@@ -1558,8 +1544,8 @@ const testQueryLawsByName = {
   ]),
   "Item ref identifier": declared("Item ref identifier", [
     contained(
-      on(NamedItemRef, "package", "item", "identifier"),
-      on(ObjectIdentifier, "package", "path", "value"),
+      on(NamedItemRef, "package", "item", "identifierDigest"),
+      on(ObjectIdentifier, "package", "path", "valueDigest"),
     ),
     key(on(TestMember, "package", "path", "document")),
   ]),

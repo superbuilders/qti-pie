@@ -86,6 +86,7 @@ import {
   check,
   closed,
   closedId,
+  Crypto,
   derived,
   key,
   on,
@@ -415,7 +416,8 @@ const generalIdentifiers = query(QtiLomVocabulary).rule((r) => {
 
 /**
  * Each package's lesson identifier: the general identifier whose entry is its manifest's
- * `identifier`, its catalog and entry as written, by their nodes, which key it.
+ * `identifier`, compared by their SHA-256 (`manifestIdentifiers`' `valueDigest`), since an
+ * identifier has no byte bound, its catalog and entry as written, by their nodes, which key it.
  */
 const lessonIdentifiers = query(QtiLomVocabulary).rule((r) => {
   const {
@@ -425,10 +427,12 @@ const lessonIdentifiers = query(QtiLomVocabulary).rule((r) => {
     entryNode,
     package: pkg,
   } = v(generalIdentifiers, "identifier");
+  const { valueDigest: manifestDigest } = v(manifestIdentifiers, "manifest");
 
   return r
     .match(generalIdentifiers, { catalog, catalogNode, entry, entryNode, package: pkg })
-    .match(manifestIdentifiers, { package: pkg, value: entry })
+    .match(manifestIdentifiers, { package: pkg, valueDigest: manifestDigest })
+    .where(r.eq(manifestDigest, Crypto.sha256(entry)))
     .find({ catalog, catalogNode, entry, entryNode, package: pkg });
 });
 

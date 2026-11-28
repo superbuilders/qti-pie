@@ -31,6 +31,7 @@
 import {
   check,
   contained,
+  Crypto,
   derived,
   doubleText,
   key,
@@ -185,6 +186,11 @@ const mappingSources = attributeValues("source-identifier", [mappingKind]);
 const mappingTargets = attributeValues("target-identifier", [mappingKind]);
 
 /**
+ * Each branch rule's `target`, by the rule's place, with its value.
+ */
+const branchTargets = attributeValues("target", [branchRuleKind]);
+
+/**
  * Each item ref's `category`, by its place, with its value.
  */
 const categoryValues = attributeValues("category", [itemRefKind]);
@@ -192,12 +198,14 @@ const categoryValues = attributeValues("category", [itemRefKind]);
 /**
  * The UTF-8 bytes of each identifier a test document writes that a test view keys, by its element's
  * place: a test's `identifier`, the text {@link testRootRows} keys, each token of an item ref's
- * `category`, the text {@link ItemRefCategory} keys, and each variable mapping's
- * `target-identifier`, the name an item ref's tables and readings key an item variable by
- * (`ItemRefTable`, `PrefixedMapResponse`, `#pantry/qti/overlay-queries/readings.ts`), each a
- * `QtiIdentifier` under grizzle's byte guard, which "Key text bound" holds within
- * `identifierBytes`. It holds each text's length, the one fact its law reads, never the text, so no
- * key holds a text of no byte bound: a `category`'s tokens of one length are one row.
+ * `category`, the text {@link ItemRefCategory} keys, each variable mapping's `target-identifier`,
+ * the name an item ref's tables and readings key an item variable by ({@link VariableMapping},
+ * `ItemRefTable`, `PrefixedMapResponse`, `#pantry/qti/overlay-queries/readings.ts`), and each
+ * branch rule's `target`, the name a placed rule keys the element it jumps to by ({@link
+ * BranchResolution}), each a `QtiIdentifier` under grizzle's byte guard, which "Key text bound"
+ * holds within `identifierBytes`. It holds each text's length, the one fact its law reads, never
+ * the text, so no key holds a text of no byte bound: a `category`'s tokens of one length are one
+ * row.
  */
 const TestIdentifierBytes = derived(
   "TestIdentifierBytes",
@@ -223,6 +231,13 @@ const TestIdentifierBytes = derived(
 
       return r
         .match(mappingTargets, { package: pkg, path, start, value })
+        .find({ bytes: Text.octetLength(value), package: pkg, path, start });
+    })
+    .rule((r) => {
+      const { package: pkg, path, start, value } = v(branchTargets, "target");
+
+      return r
+        .match(branchTargets, { package: pkg, path, start, value })
         .find({ bytes: Text.octetLength(value), package: pkg, path, start });
     }),
 );
@@ -881,14 +896,11 @@ const replaceableItemRefRows = query(QtiBase).rule((r) => {
 });
 
 /**
- * Each branch rule's `target`, by the rule's place, with its value.
- */
-const branchTargets = attributeValues("target", [branchRuleKind]);
-
-/**
  * Each branch rule that names no reserved exit, by its place, with its source, the element that
  * holds it (an item ref, a section, a section ref or a test part, §5.23), its source's kind and
- * interval, and its target's identifier.
+ * interval, and its target's identifier, a `QtiIdentifier` cast under grizzle's byte guard, whose
+ * other arm, the empty text, never stands in a committed state ("Key text bound" refuses a longer
+ * one at import over {@link TestIdentifierBytes}): {@link BranchResolution} keys its rules by it.
  */
 const namingBranchRuleRows = query(QtiBase).rule((r) => {
   const { package: pkg, path, start, value: target } = v(branchTargets, "target");
@@ -900,7 +912,15 @@ const namingBranchRuleRows = query(QtiBase).rule((r) => {
     .match(Node, { kind: branchRuleKind, package: pkg, parent: source, path, start })
     .match(Node, { end: sourceEnd, kind: sourceKind, package: pkg, path, start: source })
     .where(Logic.not(r.in(target, exits)))
-    .find({ package: pkg, path, source, sourceEnd, sourceKind, start, target });
+    .find({
+      package: pkg,
+      path,
+      source,
+      sourceEnd,
+      sourceKind,
+      start,
+      target: keyedIdentifier(target),
+    });
 });
 
 /**
@@ -2370,7 +2390,9 @@ const WeightedBaseType = derived("WeightedBaseType", weightedBaseTypeRows);
  * (§7.48: "Variable mappings allow outcome variables declared with the name source-identifier in
  * the corresponding item to be treated as if they were declared with the name target-identifier
  * during outcome processing"). Both attributes are required, so a mapping that omits one has no
- * row, and AL3 refuses it.
+ * row, and AL3 refuses it. Its `target` is a `QtiIdentifier` cast under grizzle's byte guard, whose
+ * other arm, the empty text, never stands in a committed state ("Key text bound" refuses a longer
+ * one at import over {@link TestIdentifierBytes}), since the readings read a mapping by it.
  */
 export const variableMappingRows = query(QtiBase).rule((r) => {
   const { package: pkg, path, start, value: source } = v(mappingSources, "source");
@@ -2381,7 +2403,7 @@ export const variableMappingRows = query(QtiBase).rule((r) => {
     .match(mappingSources, { package: pkg, path, start, value: source })
     .match(mappingTargets, { package: pkg, path, start, value: target })
     .match(Node, { kind: mappingKind, package: pkg, parent: ref, path, start })
-    .find({ package: pkg, path, ref, source, start, target });
+    .find({ package: pkg, path, ref, source, start, target: keyedIdentifier(target) });
 });
 
 /**
@@ -2508,8 +2530,10 @@ const itemTemplateDefaultRows = query(QtiBase).rule((r) => {
 const ItemTemplateDefault = derived("ItemTemplateDefault", itemTemplateDefaultRows);
 
 /**
- * Each named item ref of a test or a bank that names an item, by its place, with its identifier
- * and its item's document, `item`: what "Item ref identifier" holds to the item's own identifier.
+ * Each named item ref of a test or a bank that names an item, by its place, with its identifier,
+ * its SHA-256, `identifierDigest`, and its item's document, `item`: what "Item ref identifier"
+ * holds to the item's own identifier, by its digest (`ObjectIdentifier`'s `valueDigest`, the
+ * SHA-256 of the identifier collapsed), since an item's identifier has no byte bound.
  */
 const namedItemRefRows = query(QtiBase).rule((r) => {
   const { identifier, package: pkg, path, start } = v(structureNodeRows, "ref");
@@ -2518,7 +2542,14 @@ const namedItemRefRows = query(QtiBase).rule((r) => {
   return r
     .match(structureNodeRows, { identifier, kind: itemRefKind, package: pkg, path, start })
     .match(ItemRefDocument, { package: pkg, path, start, target: item })
-    .find({ identifier, item, package: pkg, path, start });
+    .find({
+      identifier,
+      identifierDigest: Crypto.sha256(identifier),
+      item,
+      package: pkg,
+      path,
+      start,
+    });
 });
 
 /**

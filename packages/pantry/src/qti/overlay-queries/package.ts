@@ -56,7 +56,8 @@ const manifestIdTexts = {
  * `ncname-names` and `id-is-ncname`).
  *
  * Its `value` is the value as written, of any length, since neither IMS Content Packaging nor XML
- * Schema bounds an identifier: no key holds it as itself.
+ * Schema bounds an identifier: no key holds it as itself, and a reader that finds one by its value
+ * finds it by `valueDigest`, its SHA-256.
  *
  * @param attributes - The attributes, of one name on the elements of one kind
  *   ({@link manifestIdTexts}).
@@ -64,15 +65,16 @@ const manifestIdTexts = {
  */
 const manifestValuesOf = (attributes: (typeof manifestIdTexts)[keyof typeof manifestIdTexts]) =>
   query(QtiBase).rule((r) => {
-    const { package: pkg, path, start, value } = v(attributes, "attribute");
+    const { package: pkg, path, start, value, valueDigest } = v(attributes, "attribute");
 
     return r
-      .match(attributes, { package: pkg, path, start, value })
+      .match(attributes, { package: pkg, path, start, value, valueDigest })
       .where(r.eq(path, manifestPath))
       .find({
         package: pkg,
         start,
         value,
+        valueDigest,
       });
   });
 
@@ -181,20 +183,21 @@ const ResourceFileDocument = derived(
 /**
  * Each dependency beside the resource it names, by the dependency's place in the package's
  * manifest: the resource whose collapsed identifier its collapsed `identifierref` is
- * ({@link resourceIdentifiers}, whose identifiers "DocumentId key" holds distinct per package), and
- * its own resource, its node's parent.
+ * ({@link resourceIdentifiers}, whose identifiers "DocumentId key" holds distinct per package),
+ * compared by their SHA-256, `valueDigest`, since an identifier has no byte bound, and its own
+ * resource, its node's parent.
  */
 const DependencyResolved = derived(
   "DependencyResolved",
   query(QtiBase).rule((r) => {
-    const { package: pkg, start, value } = v(dependencyRefs, "dependency");
+    const { package: pkg, start, valueDigest } = v(dependencyRefs, "dependency");
     const { parent: resource } = v(Node, "node");
     const { start: target } = v(resourceIdentifiers, "target");
 
     return r
-      .match(dependencyRefs, { package: pkg, start, value })
+      .match(dependencyRefs, { package: pkg, start, valueDigest })
       .match(Node, { package: pkg, parent: resource, path: manifestPath, start })
-      .match(resourceIdentifiers, { package: pkg, start: target, value })
+      .match(resourceIdentifiers, { package: pkg, start: target, valueDigest })
       .find({ package: pkg, resource, start, target });
   }),
 );
