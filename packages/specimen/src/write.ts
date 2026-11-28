@@ -259,15 +259,27 @@ const feedbackSet = (value: string): string =>
   ]);
 
 /**
- * Write the item's outcome declarations: `SCORE` always, `MAXSCORE` when the kind scores, and
- * `FEEDBACK` when the item shows feedback.
+ * Write the item's outcome declarations: `SCORE` always, with its `normal-maximum` the kind's most
+ * when the kind scores (the one source of the item's credit, QTI 3.0.1 §5.108), `MAXSCORE` when the
+ * kind scores, and `FEEDBACK` when the item shows feedback.
  *
  * @param scoring How the kind scores.
  * @param feedback Whether the item shows feedback.
  * @returns The declarations.
  */
 const outcomes = (scoring: Scoring, feedback: boolean): readonly string[] => [
-  declared("SCORE", 0),
+  scoring.kind === "scored"
+    ? element(
+        "qti-outcome-declaration",
+        {
+          "base-type": "float",
+          cardinality: "single",
+          identifier: "SCORE",
+          "normal-maximum": String(scoring.most),
+        },
+        [element("qti-default-value", {}, [element("qti-value", {}, ["0"])])],
+      )
+    : declared("SCORE", 0),
   ...(scoring.kind === "scored" ? [declared("MAXSCORE", scoring.most)] : []),
   ...(feedback
     ? [

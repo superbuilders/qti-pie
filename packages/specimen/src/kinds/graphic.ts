@@ -541,17 +541,16 @@ export const pointText = (point: readonly [x: number, y: number]): string =>
   `${String(point[0])} ${String(point[1])}`;
 
 /**
- * An area mapping of these areas, each to 1, and every point outside them to `miss`: the
- * declaration part a point response scores by.
+ * An area mapping of these areas, each to 1, and every point outside them to 0, the sum bounded
+ * within 0 and the areas' count (QTI 3.0.1 §5.83): the declaration part a point response scores by.
  *
  * @param areas The areas a right point lands in, their coordinates in pixels.
- * @param miss What a point in none of them adds.
  * @returns The `qti-area-mapping`.
  */
-export const areaMapping = (areas: readonly Area[], miss: number): string =>
+export const areaMapping = (areas: readonly Area[]): string =>
   element(
     "qti-area-mapping",
-    { "default-value": miss },
+    { "default-value": 0, "lower-bound": 0, "upper-bound": areas.length },
     areas.map((area) =>
       element(
         "qti-area-map-entry",

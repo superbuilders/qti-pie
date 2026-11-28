@@ -33,6 +33,16 @@ export type ProcessingFailure =
   | { readonly kind: "completion-status"; readonly place: number; readonly value: Value }
   | {
       /**
+       * SCORE left the range its item declares, [0, SCORE's normal-maximum]: the item's scoring
+       * reached a value its declaration says it never reaches, a defect of the content, never a
+       * grade.
+       */
+      readonly kind: "score-bound";
+      readonly maximum: number;
+      readonly score: number;
+    }
+  | {
+      /**
        * The digest of the completion's input, but its recorded answers.
        */
       readonly given: Digest;

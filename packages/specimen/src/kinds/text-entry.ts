@@ -124,7 +124,7 @@ export const textEntry = kind("text-entry", {
       declarations: blanks.map((blank) =>
         declaration(responseOf(blank), "single", "string", [
           correctResponse([rightOf(blank)]),
-          element("qti-mapping", { "default-value": 0, "lower-bound": 0 }, [
+          element("qti-mapping", { "default-value": 0, "lower-bound": 0, "upper-bound": 1 }, [
             element(
               "qti-map-entry",
               {

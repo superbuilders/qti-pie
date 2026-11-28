@@ -63,7 +63,18 @@ const float = (written: string): XmlElement =>
  * @returns The item.
  */
 const item = (children: readonly XmlElement[]): XmlElement =>
-  element("qti-assessment-item", { adaptive: "false", identifier: "q1" }, children);
+  element("qti-assessment-item", { adaptive: "false", identifier: "q1" }, [
+    ...children,
+    ...(children.some((child) => child.local === "qti-response-processing")
+      ? []
+      : [
+          element("qti-response-processing", {}, [
+            element("qti-set-outcome-value", { identifier: "SCORE" }, [
+              element("qti-base-value", { "base-type": "float" }, [text("0")]),
+            ]),
+          ]),
+        ]),
+  ]);
 
 const declarations: readonly XmlElement[] = [
   element(
@@ -122,7 +133,7 @@ const processed = (attributes: Readonly<Record<string, string>>) =>
 describe("the document compiler", () => {
   it("reads declarations with QTI's defaults: a mapping's bounds, an entry's case sensitivity, a table's boundaries, an empty string NULL", () => {
     const compiled = compileItemWith(item(declarations), digest, table);
-    assert.isTrue(compiled.ok);
+    assert.isTrue(compiled.ok, compiled.ok ? "" : compiled.refusal.detail);
 
     const { declarations: declared } = compiled.value;
 
@@ -178,7 +189,7 @@ describe("the document compiler", () => {
     ]);
 
     const compiled = compileItemWith(item([...declarations, processing]), digest, table);
-    assert.isTrue(compiled.ok);
+    assert.isTrue(compiled.ok, compiled.ok ? "" : compiled.refusal.detail);
 
     const rules = compiled.value.responseProcessing;
     assert.deepStrictEqual(
@@ -280,7 +291,7 @@ describe("the document compiler", () => {
   it("resolves a test's prefixed references to its items' variables, a numbered occurrence and a weight among them (reading `numbered-reference`, §7.47.2)", () => {
     const q1 = compileItemWith(item(declarations), digest, table);
 
-    const compiledItem: CompiledItem = q1.ok ? q1.value : assert.fail("compiled");
+    const compiledItem: CompiledItem = q1.ok ? q1.value : assert.fail(q1.refusal.detail);
 
     const test = element("qti-assessment-test", { identifier: "t" }, [
       element(
@@ -308,7 +319,7 @@ describe("the document compiler", () => {
     ]);
 
     const compiled = compileTestWith(test, digest, new Map([["q1", compiledItem]]), table);
-    assert.isTrue(compiled.ok);
+    assert.isTrue(compiled.ok, compiled.ok ? "" : compiled.refusal.detail);
 
     const { itemRefs, outcomeProcessing } = compiled.value;
     assert.deepStrictEqual(itemRefs[0]?.categories, ["a", "b"]);
@@ -355,7 +366,7 @@ const pointItem = (imageAttributes: Readonly<Record<string, string>>) =>
         "qti-response-declaration",
         { "base-type": "point", cardinality: "single", identifier: "RESPONSE" },
         [
-          element("qti-area-mapping", {}, [
+          element("qti-area-mapping", { "lower-bound": "0", "upper-bound": "1" }, [
             element(
               "qti-area-map-entry",
               Object.fromEntries([
@@ -368,6 +379,16 @@ const pointItem = (imageAttributes: Readonly<Record<string, string>>) =>
           ]),
         ],
       ),
+      element(
+        "qti-outcome-declaration",
+        { "base-type": "float", cardinality: "single", identifier: "SCORE", "normal-maximum": "1" },
+        [],
+      ),
+      element("qti-response-processing", {}, [
+        element("qti-set-outcome-value", { identifier: "SCORE" }, [
+          element("qti-base-value", { "base-type": "float" }, [text("0")]),
+        ]),
+      ]),
       element("qti-item-body", {}, [
         element("qti-select-point-interaction", { "response-identifier": "RESPONSE" }, [
           {
@@ -392,7 +413,7 @@ const pointItem = (imageAttributes: Readonly<Record<string, string>>) =>
 describe("an area mapping's areas", () => {
   it("resolves a percentage against the size of the image its response's interaction shows (reading `circle-percentage-radius`)", () => {
     const compiled = pointItem({ height: "100", src: "a.png", width: "300" });
-    assert.isTrue(compiled.ok);
+    assert.isTrue(compiled.ok, compiled.ok ? "" : compiled.refusal.detail);
     assert.deepStrictEqual(
       compiled.value.declarations.get("RESPONSE")?.areaMapping?.entries[0]?.area,
       {

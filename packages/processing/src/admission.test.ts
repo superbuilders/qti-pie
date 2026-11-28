@@ -65,7 +65,21 @@ const itemOf = (declarations: readonly XmlElement[], body: readonly XmlElement[]
   const compiled = compileItemWith(
     element("qti-assessment-item", { adaptive: "false", identifier: "q" }, [
       ...declarations,
+      element(
+        "qti-outcome-declaration",
+        { "base-type": "float", cardinality: "single", identifier: "SCORE", "normal-maximum": "1" },
+        [],
+      ),
       element("qti-item-body", {}, body),
+      ...(declarations.some((declaration) => declaration.local === "qti-response-processing")
+        ? []
+        : [
+            element("qti-response-processing", {}, [
+              element("qti-set-outcome-value", { identifier: "SCORE" }, [
+                element("qti-base-value", { "base-type": "float" }, [text("1")]),
+              ]),
+            ]),
+          ]),
     ]),
     { sha256: "2".repeat(64) },
     table,
@@ -987,6 +1001,9 @@ describe("an answer's grade", () => {
         element("qti-response-processing", {}, [
           element("qti-set-outcome-value", { identifier: "COPY" }, [
             element("qti-variable", { identifier: "R" }, []),
+          ]),
+          element("qti-set-outcome-value", { identifier: "SCORE" }, [
+            element("qti-base-value", { "base-type": "float" }, [text("1")]),
           ]),
         ]),
       ],

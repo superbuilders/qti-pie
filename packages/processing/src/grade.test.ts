@@ -129,6 +129,15 @@ const itemOf = (adaptive: boolean, children: readonly XmlElement[]): CompiledIte
         [element("qti-default-value", {}, [value("false")])],
       ),
       ...children,
+      ...(children.some((child) => child.local === "qti-response-processing")
+        ? []
+        : [
+            element(
+              "qti-response-processing",
+              { template: "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct" },
+              [],
+            ),
+          ]),
     ]),
     digest,
     table,
@@ -311,7 +320,7 @@ describe("response processing", () => {
       at: { microseconds: 1n },
       kind: "processed",
       outcomes: new Map<string, Value>([
-        ["SCORE", single("float", 7)],
+        ["SCORE", single("float", 1.5)],
         ["completionStatus", textValue("identifier", "incomplete")],
       ]),
     } as const;
@@ -323,7 +332,7 @@ describe("response processing", () => {
       "result" in adaptive && adaptive.result.kind === "done"
         ? adaptive.result.outcomes.get("SCORE")
         : undefined,
-      single("float", 7),
+      single("float", 1.5),
     );
     assert.deepStrictEqual(
       "result" in reset && reset.result.kind === "done"
@@ -671,7 +680,7 @@ const essayItem = (): CompiledItem => {
       ),
       element(
         "qti-outcome-declaration",
-        { "base-type": "float", cardinality: "single", identifier: "SCORE" },
+        { "base-type": "float", cardinality: "single", identifier: "SCORE", "normal-maximum": "1" },
         [],
       ),
       element("qti-response-processing", {}, [
@@ -1139,6 +1148,11 @@ const requiredItem = (): CompiledItem => {
       ),
       element(
         "qti-outcome-declaration",
+        { "base-type": "float", cardinality: "single", identifier: "SCORE", "normal-maximum": "1" },
+        [],
+      ),
+      element(
+        "qti-outcome-declaration",
         { "base-type": "boolean", cardinality: "single", identifier: "SEEN" },
         [],
       ),
@@ -1163,6 +1177,13 @@ const requiredItem = (): CompiledItem => {
           "SEEN",
           element("qti-not", {}, [element("qti-is-null", {}, [variable("HIDDEN")])]),
         ),
+        element("qti-response-condition", {}, [
+          element("qti-response-if", {}, [
+            element("qti-is-null", {}, [variable("PICK")]),
+            setOutcome("SCORE", literal("float", "0")),
+          ]),
+          element("qti-response-else", {}, [setOutcome("SCORE", literal("float", "1"))]),
+        ]),
       ]),
     ]),
     digest,
@@ -1457,7 +1478,7 @@ const hinted = (countAttempt: string): CompiledItem => {
       ),
       element(
         "qti-outcome-declaration",
-        { "base-type": "float", cardinality: "single", identifier: "SCORE" },
+        { "base-type": "float", cardinality: "single", identifier: "SCORE", "normal-maximum": "1" },
         [],
       ),
       element(
@@ -1477,6 +1498,7 @@ const hinted = (countAttempt: string): CompiledItem => {
           [],
         ),
       ]),
+      element("qti-response-processing", {}, [setOutcome("SCORE", literal("float", "1"))]),
     ]),
     digest,
     table,

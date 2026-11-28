@@ -250,26 +250,33 @@ const startingVariables = (attempt: Attempt, numAttempts: bigint): Variables => 
 };
 
 /**
- * The credit of an attempt's outcomes: SCORE against MAXSCORE, else SCORE's `normal-maximum`.
+ * The credit of an attempt's outcomes: SCORE against the item's maximum, the one source the scoring
+ * law fixed when it was compiled; none for an item that scores no response; and
+ * a failure for a SCORE outside [0, maximum], or none, which the item declares it never reaches.
  *
  * @param item - The item.
  * @param outcomes - The outcomes.
- * @returns The credit, or `undefined`.
+ * @returns The credit, `undefined`, or the failure.
  */
 const creditOfOutcomes = (
   item: CompiledItem,
   outcomes: ReadonlyMap<string, Value>,
-): Credit | undefined => {
-  const score = outcomes.get("SCORE");
-  const maxScore = outcomes.get("MAXSCORE");
-  const maximum =
-    maxScore?.kind === "single" && maxScore.base === "float"
-      ? maxScore.value
-      : item.declarations.get("SCORE")?.normalMaximum;
+): Credit | Failed | undefined => {
+  const { maximum } = item;
+  if (maximum === undefined) {
+    return undefined;
+  }
 
-  return score?.kind === "single" && score.base === "float" && maximum !== undefined
-    ? creditOf(score.value, maximum)
-    : undefined;
+  const score = outcomes.get("SCORE");
+  const value =
+    score?.kind === "single" && (score.base === "float" || score.base === "integer")
+      ? Number(score.value)
+      : Number.NaN;
+  const credit = creditOf(value, maximum);
+
+  return credit.kind === "out-of-range"
+    ? { failure: { kind: "score-bound", maximum, score: credit.score }, kind: "failed" }
+    : credit;
 };
 
 /**
@@ -363,9 +370,14 @@ export const attemptWith = <K extends ExpressionKind>(
     ran.variables.values.get("completionStatus") ?? textValue("identifier", "unknown");
   outcomes.set("completionStatus", completionStatus);
 
+  const credit = creditOfOutcomes(attempt.item, outcomes);
+  if (credit?.kind === "failed") {
+    return credit;
+  }
+
   return {
     completionStatus,
-    credit: creditOfOutcomes(attempt.item, outcomes),
+    credit,
     kind: "done",
     marks,
     numAttempts,

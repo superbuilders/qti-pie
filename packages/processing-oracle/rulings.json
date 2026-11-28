@@ -11,147 +11,26 @@
     "recorded": "\"done\""
   },
   {
-    "field": "kind",
-    "graded": "\"refused: atLeast\"",
+    "field": "compiled",
+    "graded": "\"refused: undeclared-scoring: declare the maximum of an item whose credit can be partial: SCORE's normal-maximum above 0 (QTI 3.0.1 §5.108)\"",
     "key": "bank-ram|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
     },
-    "recorded": "\"done\""
+    "recorded": "\"accepted\""
   },
   {
-    "field": "kind",
-    "graded": "\"refused: atLeast,orderAll\"",
-    "key": "bank-ram|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "field": "compiled",
+    "graded": "\"refused: undeclared-scoring: declare the maximum of an item whose credit can be partial: SCORE's normal-maximum above 0 (QTI 3.0.1 §5.108)\"",
+    "key": "bank-shadows|*",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
     },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "kind",
-    "graded": "\"refused: orderAll\"",
-    "key": "bank-ram|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
-    "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "credit",
-    "graded": "\"full\"",
-    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|RESPONSE: correct#0",
-    "mom": "The child answered fully correctly; floating-point noise does not cost them (edullm-bd ruling R2).",
-    "reading": {
-      "section": "owner's credit rule (proposal 2026-11-18, Decision 3) over the exact score",
-      "text": "a SCORE of 0.9999999999999999 against MAXSCORE 1 earns full credit"
-    },
-    "recorded": "\"partial\""
-  },
-  {
-    "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
-    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|RESPONSE: correct#0",
-    "mom": "The child's fully correct answer scores the full mark (D2, with R2).",
-    "reading": {
-      "section": "D2 (Bjorn, 2026-11-26): a float sum is the exact sum of its doubles, rounded once; qti-sum §6.9.55",
-      "text": "a sum plate rounded at every step (0.9999999999999999) is the exact total rounded once (1)"
-    },
-    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.9999999999999999\"]}"
-  },
-  {
-    "field": "credit",
-    "graded": "\"full\"",
-    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|correct#0",
-    "mom": "The child answered fully correctly; floating-point noise does not cost them (edullm-bd ruling R2).",
-    "reading": {
-      "section": "owner's credit rule (proposal 2026-11-18, Decision 3) over the exact score",
-      "text": "a SCORE of 0.9999999999999999 against MAXSCORE 1 earns full credit"
-    },
-    "recorded": "\"partial\""
-  },
-  {
-    "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
-    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|correct#0",
-    "mom": "The child's fully correct answer scores the full mark (D2, with R2).",
-    "reading": {
-      "section": "D2 (Bjorn, 2026-11-26): a float sum is the exact sum of its doubles, rounded once; qti-sum §6.9.55",
-      "text": "a sum plate rounded at every step (0.9999999999999999) is the exact total rounded once (1)"
-    },
-    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.9999999999999999\"]}"
-  },
-  {
-    "field": "credit",
-    "graded": "\"full\"",
-    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|sequence: RESPONSE: alone barrel-bath group.second, then correct#1",
-    "mom": "The child answered fully correctly; floating-point noise does not cost them (edullm-bd ruling R2).",
-    "reading": {
-      "section": "owner's credit rule (proposal 2026-11-18, Decision 3) over the exact score",
-      "text": "a SCORE of 0.9999999999999999 against MAXSCORE 1 earns full credit"
-    },
-    "recorded": "\"partial\""
-  },
-  {
-    "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
-    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|sequence: RESPONSE: alone barrel-bath group.second, then correct#1",
-    "mom": "The child's fully correct answer scores the full mark (D2, with R2).",
-    "reading": {
-      "section": "D2 (Bjorn, 2026-11-26): a float sum is the exact sum of its doubles, rounded once; qti-sum §6.9.55",
-      "text": "a sum plate rounded at every step (0.9999999999999999) is the exact total rounded once (1)"
-    },
-    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.9999999999999999\"]}"
-  },
-  {
-    "field": "credit",
-    "graded": "\"full\"",
-    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|sequence: correct twice#0",
-    "mom": "The child answered fully correctly; floating-point noise does not cost them (edullm-bd ruling R2).",
-    "reading": {
-      "section": "owner's credit rule (proposal 2026-11-18, Decision 3) over the exact score",
-      "text": "a SCORE of 0.9999999999999999 against MAXSCORE 1 earns full credit"
-    },
-    "recorded": "\"partial\""
-  },
-  {
-    "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
-    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|sequence: correct twice#0",
-    "mom": "The child's fully correct answer scores the full mark (D2, with R2).",
-    "reading": {
-      "section": "D2 (Bjorn, 2026-11-26): a float sum is the exact sum of its doubles, rounded once; qti-sum §6.9.55",
-      "text": "a sum plate rounded at every step (0.9999999999999999) is the exact total rounded once (1)"
-    },
-    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.9999999999999999\"]}"
-  },
-  {
-    "field": "credit",
-    "graded": "\"full\"",
-    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|sequence: correct twice#1",
-    "mom": "The child answered fully correctly; floating-point noise does not cost them (edullm-bd ruling R2).",
-    "reading": {
-      "section": "owner's credit rule (proposal 2026-11-18, Decision 3) over the exact score",
-      "text": "a SCORE of 0.9999999999999999 against MAXSCORE 1 earns full credit"
-    },
-    "recorded": "\"partial\""
-  },
-  {
-    "field": "outcomes.SCORE",
-    "graded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"1\"]}",
-    "key": "bank-ram|as-g3-t18-l03-which-is-warmer-857568aa63cc/items/wa-q-readings-sort.xml|01a1f000-0000-4000-8000-000000000001|sequence: correct twice#1",
-    "mom": "The child's fully correct answer scores the full mark (D2, with R2).",
-    "reading": {
-      "section": "D2 (Bjorn, 2026-11-26): a float sum is the exact sum of its doubles, rounded once; qti-sum §6.9.55",
-      "text": "a sum plate rounded at every step (0.9999999999999999) is the exact total rounded once (1)"
-    },
-    "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.9999999999999999\"]}"
+    "recorded": "\"accepted\""
   },
   {
     "field": "kind",
@@ -174,6 +53,94 @@
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
+  },
+  {
+    "field": "compiled",
+    "graded": "\"refused: no-response-processing: declare the item's scoring: write its qti-response-processing, inline or as a published template (QTI 3.0.1 §5.113)\"",
+    "key": "corpus|*",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
+    },
+    "recorded": "\"accepted\""
+  },
+  {
+    "field": "compiled",
+    "graded": "\"refused: undeclared-scoring: declare one maximum: SCORE's normal-maximum is not the constant the response processing awards (QTI 3.0.1 §5.108)\"",
+    "key": "corpus|*",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
+    },
+    "recorded": "\"accepted\""
+  },
+  {
+    "field": "compiled",
+    "graded": "\"refused: undeclared-scoring: declare the item's score: a single numeric SCORE (QTI 3.0.1 §5.108)\"",
+    "key": "corpus|*",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
+    },
+    "recorded": "\"accepted\""
+  },
+  {
+    "field": "compiled",
+    "graded": "\"refused: undeclared-scoring: declare the maximum of an item whose credit can be partial: SCORE's normal-maximum above 0 (QTI 3.0.1 §5.108)\"",
+    "key": "corpus|*",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
+    },
+    "recorded": "\"accepted\""
+  },
+  {
+    "field": "credit",
+    "graded": "null",
+    "key": "corpus|*",
+    "mom": "Credit is no longer read from MAXSCORE: an item that declares no normal-maximum and scores no modelled response reports no credit; its SCORE is unchanged.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.108 OutcomeDeclaration normal-maximum; the ruling of 2026-11-28 (A-narrow: one source of the maximum per item class, the MAXSCORE fallback deleted)",
+      "text": "An all-or-nothing item's maximum is the one constant its response processing awards (match_correct awards 1); a partial-capable item's is SCORE's declared normal-maximum; MAXSCORE is no source of it, so credit is stated where the item declares its maximum and absent where it does not"
+    },
+    "recorded": "\"none\""
+  },
+  {
+    "field": "credit",
+    "graded": "\"full\"",
+    "key": "corpus|*",
+    "mom": "The item awards 1 for the right answer and declares MAXSCORE 100: a right answer is full credit (1 of 1), not 1 of 100; a parent agrees.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.108 OutcomeDeclaration normal-maximum; the ruling of 2026-11-28 (A-narrow: one source of the maximum per item class, the MAXSCORE fallback deleted)",
+      "text": "An all-or-nothing item's maximum is the one constant its response processing awards (match_correct awards 1); a partial-capable item's is SCORE's declared normal-maximum; MAXSCORE is no source of it, so credit is stated where the item declares its maximum and absent where it does not"
+    },
+    "recorded": "\"partial\""
+  },
+  {
+    "field": "credit",
+    "graded": "\"full\"",
+    "key": "corpus|*",
+    "mom": "A right answer to an all-or-nothing item now reports full credit and a wrong one none, from the constant the item awards; nothing a child scores changes.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.108 OutcomeDeclaration normal-maximum; the ruling of 2026-11-28 (A-narrow: one source of the maximum per item class, the MAXSCORE fallback deleted)",
+      "text": "An all-or-nothing item's maximum is the one constant its response processing awards (match_correct awards 1); a partial-capable item's is SCORE's declared normal-maximum; MAXSCORE is no source of it, so credit is stated where the item declares its maximum and absent where it does not"
+    },
+    "recorded": "null"
+  },
+  {
+    "field": "credit",
+    "graded": "\"none\"",
+    "key": "corpus|*",
+    "mom": "A right answer to an all-or-nothing item now reports full credit and a wrong one none, from the constant the item awards; nothing a child scores changes.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.108 OutcomeDeclaration normal-maximum; the ruling of 2026-11-28 (A-narrow: one source of the maximum per item class, the MAXSCORE fallback deleted)",
+      "text": "An all-or-nothing item's maximum is the one constant its response processing awards (match_correct awards 1); a partial-capable item's is SCORE's declared normal-maximum; MAXSCORE is no source of it, so credit is stated where the item declares its maximum and absent where it does not"
+    },
+    "recorded": "null"
   },
   {
     "field": "kind",
@@ -210,39 +177,6 @@
   },
   {
     "field": "kind",
-    "graded": "\"refused: orderAtLeast\"",
-    "key": "corpus|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
-    "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "kind",
-    "graded": "\"refused: patternMismatch\"",
-    "key": "corpus|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
-    "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "kind",
-    "graded": "\"refused: positionObjectOffStage\"",
-    "key": "corpus|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
-    "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "kind",
     "graded": "\"refused: selectPointBeyond\"",
     "key": "corpus|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
@@ -251,39 +185,6 @@
       "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
     },
     "recorded": "\"done\""
-  },
-  {
-    "field": "outcomes.FEEDBACK",
-    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SEEN-SOLUTION\"]}",
-    "key": "corpus|QTI3_BPIG_Examples/BPIG_22April.zip.d/items/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint twice#1",
-    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
-    "reading": {
-      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
-      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
-    },
-    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SEEN-SOLUTION\",\"SOLUTION\"]}"
-  },
-  {
-    "field": "outcomes.FEEDBACK",
-    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"CORRECT\",\"SEEN-SOLUTION\"]}",
-    "key": "corpus|QTI3_BPIG_Examples/BPIG_22April.zip.d/items/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint, then correct#1",
-    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
-    "reading": {
-      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
-      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
-    },
-    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SEEN-SOLUTION\",\"SOLUTION\"]}"
-  },
-  {
-    "field": "compiled",
-    "graded": "\"refused: unknown-identifier: declare a mapping on the response RESPONSE\"",
-    "key": "corpus|QTI3_BPIG_Examples/BPIG_22April.zip.d/items/slider-1.xml",
-    "mom": "No child meets these documents (edullm-bd ruling A6).",
-    "reading": {
-      "section": "§6.9.25 qti-map-response needs the response's mapping; §6.9.11 qti-custom-operator definition (D10: publication refuses an operator the registry does not define); pantry's broken/ fixtures",
-      "text": "the document is refused at compile; none is live content (1EdTech examples and fixtures designed broken)"
-    },
-    "recorded": "\"accepted\""
   },
   {
     "field": "compiled",
@@ -306,138 +207,6 @@
       "text": "the document is refused at compile; none is live content (1EdTech examples and fixtures designed broken)"
     },
     "recorded": "\"accepted\""
-  },
-  {
-    "field": "outcomes.FEEDBACK",
-    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[]}",
-    "key": "corpus|qtiv3-examples/packaging/basicFeedbackTest/basicFeedbackTest.zip.d/id-a360e0fa63e6/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint twice#1",
-    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
-    "reading": {
-      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
-      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
-    },
-    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
-  },
-  {
-    "field": "outcomes.FEEDBACK",
-    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"CORRECT\",\"SEEN-SOLUTION\"]}",
-    "key": "corpus|qtiv3-examples/packaging/basicFeedbackTest/basicFeedbackTest.zip.d/id-a360e0fa63e6/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint, then correct#1",
-    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
-    "reading": {
-      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
-      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
-    },
-    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
-  },
-  {
-    "field": "outcomes.FEEDBACK",
-    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[]}",
-    "key": "corpus|qtiv3-examples/packaging/basicFeedbackTest/id-a360e0fa63e6/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint twice#1",
-    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
-    "reading": {
-      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
-      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
-    },
-    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
-  },
-  {
-    "field": "outcomes.FEEDBACK",
-    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"CORRECT\",\"SEEN-SOLUTION\"]}",
-    "key": "corpus|qtiv3-examples/packaging/basicFeedbackTest/id-a360e0fa63e6/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint, then correct#1",
-    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
-    "reading": {
-      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
-      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
-    },
-    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
-  },
-  {
-    "field": "outcomes.FEEDBACK",
-    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[]}",
-    "key": "corpus|qtiv3-examples/packaging/feedbackTest/feedbackTest.zip.d/id-5e216df10030/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint twice#1",
-    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
-    "reading": {
-      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
-      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
-    },
-    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
-  },
-  {
-    "field": "outcomes.FEEDBACK",
-    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"CORRECT\",\"SEEN-SOLUTION\"]}",
-    "key": "corpus|qtiv3-examples/packaging/feedbackTest/feedbackTest.zip.d/id-5e216df10030/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint, then correct#1",
-    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
-    "reading": {
-      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
-      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
-    },
-    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
-  },
-  {
-    "field": "outcomes.FEEDBACK",
-    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[]}",
-    "key": "corpus|qtiv3-examples/packaging/feedbackTest/id-5e216df10030/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint twice#1",
-    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
-    "reading": {
-      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
-      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
-    },
-    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
-  },
-  {
-    "field": "outcomes.FEEDBACK",
-    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"CORRECT\",\"SEEN-SOLUTION\"]}",
-    "key": "corpus|qtiv3-examples/packaging/feedbackTest/id-5e216df10030/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint, then correct#1",
-    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
-    "reading": {
-      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
-      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
-    },
-    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
-  },
-  {
-    "field": "outcomes.FEEDBACK",
-    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[]}",
-    "key": "corpus|qtiv3-examples/packaging/items/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint twice#1",
-    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
-    "reading": {
-      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
-      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
-    },
-    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
-  },
-  {
-    "field": "outcomes.FEEDBACK",
-    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"CORRECT\",\"SEEN-SOLUTION\"]}",
-    "key": "corpus|qtiv3-examples/packaging/items/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint, then correct#1",
-    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
-    "reading": {
-      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
-      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
-    },
-    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
-  },
-  {
-    "field": "outcomes.FEEDBACK",
-    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[]}",
-    "key": "corpus|qtiv3-examples/packaging/items/items.zip.d/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint twice#1",
-    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
-    "reading": {
-      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
-      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
-    },
-    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
-  },
-  {
-    "field": "outcomes.FEEDBACK",
-    "graded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"CORRECT\",\"SEEN-SOLUTION\"]}",
-    "key": "corpus|qtiv3-examples/packaging/items/items.zip.d/Example03-feedbackBlock-solution.xml|01a1f000-0000-4000-8000-000000000001|sequence: hint, then correct#1",
-    "mom": "Impossible from our page: a hidden button cannot be pressed (edullm-bd ruling A5).",
-    "reading": {
-      "section": "§5.39 FeedbackBlock show-hide: hidden content, the interactions inside it included, is not presented",
-      "text": "an end-attempt inside a feedback block the previous attempt hid is not submitted; plate's recorder fed its response as true"
-    },
-    "recorded": "{\"baseType\":\"identifier\",\"cardinality\":\"multiple\",\"values\":[\"SOLUTION\"]}"
   },
   {
     "field": "outcomes.SCORE",
@@ -1529,48 +1298,125 @@
     "recorded": "{\"baseType\":\"float\",\"cardinality\":\"single\",\"values\":[\"0.4\"]}"
   },
   {
-    "field": "kind",
-    "graded": "\"refused: selectPointBeyond\"",
+    "field": "compiled",
+    "graded": "\"refused: no-response-processing: declare the item's scoring: write its qti-response-processing, inline or as a published template (QTI 3.0.1 §5.113)\"",
     "key": "pantry-fixtures|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "compiled",
-    "graded": "\"refused: unknown-identifier: declare the variable QTI_CONTEXT\"",
-    "key": "pantry-fixtures|broken/p26-template-reads-context.xml",
-    "mom": "No child meets these documents (edullm-bd ruling A6).",
-    "reading": {
-      "section": "§6.9.25 qti-map-response needs the response's mapping; §6.9.11 qti-custom-operator definition (D10: publication refuses an operator the registry does not define); pantry's broken/ fixtures",
-      "text": "the document is refused at compile; none is live content (1EdTech examples and fixtures designed broken)"
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
     },
     "recorded": "\"accepted\""
   },
   {
     "field": "compiled",
-    "graded": "\"refused: unknown-operator: use an operator the registry lists; it lists no https://example.org/operators/custom\"",
-    "key": "pantry-fixtures|broken/p49-custom-operator-unresolved.xml",
-    "mom": "No child meets these documents (edullm-bd ruling A6).",
+    "graded": "\"refused: undeclared-scoring: declare the maximum of an item whose credit can be partial: SCORE's normal-maximum above 0 (QTI 3.0.1 §5.108)\"",
+    "key": "pantry-fixtures|*",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
     "reading": {
-      "section": "§6.9.25 qti-map-response needs the response's mapping; §6.9.11 qti-custom-operator definition (D10: publication refuses an operator the registry does not define); pantry's broken/ fixtures",
-      "text": "the document is refused at compile; none is live content (1EdTech examples and fixtures designed broken)"
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
     },
     "recorded": "\"accepted\""
   },
   {
-    "field": "kind",
-    "graded": "\"refused: associateAtLeast,associateChoiceAtLeast\"",
+    "field": "compiled",
+    "graded": "\"refused: undeclared-scoring: declare what the item awards: its response processing sets SCORE to no value above 0 (QTI 3.0.1 §5.113)\"",
+    "key": "pantry-fixtures|*",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
+    },
+    "recorded": "\"accepted\""
+  },
+  {
+    "field": "compiled",
+    "graded": "\"refused: no-response-processing: declare the item's scoring: write its qti-response-processing, inline or as a published template (QTI 3.0.1 §5.113)\"",
     "key": "plate-fixtures|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
     "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
     },
-    "recorded": "\"done\""
+    "recorded": "\"accepted\""
+  },
+  {
+    "field": "compiled",
+    "graded": "\"refused: undeclared-scoring: bound every mapping within the item's maximum: a container's lower-bound of 0 or more and upper-bound of at most SCORE's normal-maximum, a single response's default and every mapped value within them (QTI 3.0.1 §5.83, §5.108; reading `mapping-bounds`)\"",
+    "key": "plate-fixtures|*",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
+    },
+    "recorded": "\"accepted\""
+  },
+  {
+    "field": "compiled",
+    "graded": "\"refused: undeclared-scoring: declare the item's score: a single numeric SCORE (QTI 3.0.1 §5.108)\"",
+    "key": "plate-fixtures|*",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
+    },
+    "recorded": "\"accepted\""
+  },
+  {
+    "field": "compiled",
+    "graded": "\"refused: undeclared-scoring: declare the maximum of an item whose credit can be partial: SCORE's normal-maximum above 0 (QTI 3.0.1 §5.108)\"",
+    "key": "plate-fixtures|*",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
+    },
+    "recorded": "\"accepted\""
+  },
+  {
+    "field": "credit",
+    "graded": "null",
+    "key": "plate-fixtures|*",
+    "mom": "Credit is no longer read from MAXSCORE: an item that declares no normal-maximum and scores no modelled response reports no credit; its SCORE is unchanged.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.108 OutcomeDeclaration normal-maximum; the ruling of 2026-11-28 (A-narrow: one source of the maximum per item class, the MAXSCORE fallback deleted)",
+      "text": "An all-or-nothing item's maximum is the one constant its response processing awards (match_correct awards 1); a partial-capable item's is SCORE's declared normal-maximum; MAXSCORE is no source of it, so credit is stated where the item declares its maximum and absent where it does not"
+    },
+    "recorded": "\"full\""
+  },
+  {
+    "field": "credit",
+    "graded": "null",
+    "key": "plate-fixtures|*",
+    "mom": "Credit is no longer read from MAXSCORE: an item that declares no normal-maximum and scores no modelled response reports no credit; its SCORE is unchanged.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.108 OutcomeDeclaration normal-maximum; the ruling of 2026-11-28 (A-narrow: one source of the maximum per item class, the MAXSCORE fallback deleted)",
+      "text": "An all-or-nothing item's maximum is the one constant its response processing awards (match_correct awards 1); a partial-capable item's is SCORE's declared normal-maximum; MAXSCORE is no source of it, so credit is stated where the item declares its maximum and absent where it does not"
+    },
+    "recorded": "\"partial\""
+  },
+  {
+    "field": "credit",
+    "graded": "\"full\"",
+    "key": "plate-fixtures|*",
+    "mom": "A right answer to an all-or-nothing item now reports full credit and a wrong one none, from the constant the item awards; nothing a child scores changes.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.108 OutcomeDeclaration normal-maximum; the ruling of 2026-11-28 (A-narrow: one source of the maximum per item class, the MAXSCORE fallback deleted)",
+      "text": "An all-or-nothing item's maximum is the one constant its response processing awards (match_correct awards 1); a partial-capable item's is SCORE's declared normal-maximum; MAXSCORE is no source of it, so credit is stated where the item declares its maximum and absent where it does not"
+    },
+    "recorded": "null"
+  },
+  {
+    "field": "credit",
+    "graded": "\"none\"",
+    "key": "plate-fixtures|*",
+    "mom": "A right answer to an all-or-nothing item now reports full credit and a wrong one none, from the constant the item awards; nothing a child scores changes.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.108 OutcomeDeclaration normal-maximum; the ruling of 2026-11-28 (A-narrow: one source of the maximum per item class, the MAXSCORE fallback deleted)",
+      "text": "An all-or-nothing item's maximum is the one constant its response processing awards (match_correct awards 1); a partial-capable item's is SCORE's declared normal-maximum; MAXSCORE is no source of it, so credit is stated where the item declares its maximum and absent where it does not"
+    },
+    "recorded": "null"
   },
   {
     "field": "kind",
@@ -1596,62 +1442,7 @@
   },
   {
     "field": "kind",
-    "graded": "\"refused: gapMatchChoiceAtLeast\"",
-    "key": "plate-fixtures|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
-    "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "kind",
-    "graded": "\"refused: gapMatchChoiceAtLeast,gapMatchGapRequired\"",
-    "key": "plate-fixtures|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
-    "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "kind",
-    "graded": "\"refused: graphicAssociateAtLeast,graphicAssociateMatchMin\"",
-    "key": "plate-fixtures|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
-    "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "kind",
-    "graded": "\"refused: graphicGapMatchAreaAtLeast,graphicGapMatchChoiceAtLeast\"",
-    "key": "plate-fixtures|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
-    "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "kind",
     "graded": "\"refused: graphicOrderAtLeast\"",
-    "key": "plate-fixtures|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
-    "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "kind",
-    "graded": "\"refused: matchChoiceAtLeast\"",
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
@@ -1684,73 +1475,7 @@
   },
   {
     "field": "kind",
-    "graded": "\"refused: orderAll,orderAtLeast\"",
-    "key": "plate-fixtures|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
-    "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "kind",
     "graded": "\"refused: orderAtLeast\"",
-    "key": "plate-fixtures|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
-    "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "kind",
-    "graded": "\"refused: positionObjectAtLeast\"",
-    "key": "plate-fixtures|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
-    "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "kind",
-    "graded": "\"refused: positionObjectAtLeast,positionObjectOffStage\"",
-    "key": "plate-fixtures|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
-    "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "kind",
-    "graded": "\"refused: positionObjectOffStage\"",
-    "key": "plate-fixtures|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
-    "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "kind",
-    "graded": "\"refused: selectPointAtLeast\"",
-    "key": "plate-fixtures|*",
-    "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
-    "reading": {
-      "section": "§7.19.7 ItemSessionControl validate-responses; each interaction's minimum: ChoiceInteraction, HotspotInteraction, HottextInteraction min-choices; InlineChoiceInteraction required; OrderInteraction and GraphicOrderInteraction min-choices (Tables 5.97.2, 5.61.1: unspecified, all of the choices must be ordered); Associate, GraphicAssociate, Match, GapMatch, GraphicGapMatch min-associations and required gaps; ExtendedTextInteraction min-strings; MediaInteraction min-plays; SelectPoint and PositionObject min-choices and points on the object; TextEntryInteraction pattern-mask (readings `order-min-choices`, `pattern-mask-numeric`, `response-limits`, `xhtml-pattern-mask-text`)",
-      "text": "'If validate-responses is true then the candidates are not allowed to submit the item until they have provided valid responses for all interactions': a response below its interaction's minimum is refused and nothing is processed; plate's validator let it through and scored it"
-    },
-    "recorded": "\"done\""
-  },
-  {
-    "field": "kind",
-    "graded": "\"refused: selectPointAtLeast,selectPointBeyond\"",
     "key": "plate-fixtures|*",
     "mom": "Only where the content sets validate-responses: the child is asked to complete the answer instead of being scored 0 for it (edullm-bd ruling A1, 2026-11-26).",
     "reading": {
@@ -1772,28 +1497,6 @@
   },
   {
     "field": "refused",
-    "graded": "[\"FIRST\",\"ONE\"]",
-    "key": "plate-fixtures|*",
-    "mom": "The child sees every answer still to complete at once (A1).",
-    "reading": {
-      "section": "§7.19.7 validate-responses",
-      "text": "every interaction whose response breaks its minimum is named, not the first alone"
-    },
-    "recorded": "[\"FIRST\"]"
-  },
-  {
-    "field": "refused",
-    "graded": "[\"MANY\",\"ONE\"]",
-    "key": "plate-fixtures|*",
-    "mom": "The child sees every answer still to complete at once (A1).",
-    "reading": {
-      "section": "§7.19.7 validate-responses",
-      "text": "every interaction whose response breaks its minimum is named, not the first alone"
-    },
-    "recorded": "[\"MANY\"]"
-  },
-  {
-    "field": "refused",
     "graded": "[\"ONCE\",\"TWICE\"]",
     "key": "plate-fixtures|*",
     "mom": "The child sees every answer still to complete at once (A1).",
@@ -1804,37 +1507,81 @@
     "recorded": "[\"ONCE\"]"
   },
   {
-    "field": "refused",
-    "graded": "[\"FIRST\",\"ONE\"]",
-    "key": "plate-fixtures|*",
-    "mom": "The child sees every answer still to complete at once (A1).",
+    "field": "compiled",
+    "graded": "\"refused: undeclared-scoring: bound every mapping within the item's maximum: a container's lower-bound of 0 or more and upper-bound of at most SCORE's normal-maximum, a single response's default and every mapped value within them (QTI 3.0.1 §5.83, §5.108; reading `mapping-bounds`)\"",
+    "key": "served|*",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
     "reading": {
-      "section": "§7.19.7 validate-responses",
-      "text": "every interaction whose response breaks its minimum is named, not the first alone"
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
     },
-    "recorded": "[\"ONE\"]"
+    "recorded": "\"accepted\""
   },
   {
-    "field": "refused",
-    "graded": "[\"MANY\",\"ONE\"]",
-    "key": "plate-fixtures|*",
-    "mom": "The child sees every answer still to complete at once (A1).",
+    "field": "compiled",
+    "graded": "\"refused: undeclared-scoring: declare the maximum of an item whose credit can be partial: SCORE's normal-maximum above 0 (QTI 3.0.1 §5.108)\"",
+    "key": "served|*",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
     "reading": {
-      "section": "§7.19.7 validate-responses",
-      "text": "every interaction whose response breaks its minimum is named, not the first alone"
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
     },
-    "recorded": "[\"ONE\"]"
+    "recorded": "\"accepted\""
   },
   {
-    "field": "refused",
-    "graded": "[\"ONE\",\"SOME\"]",
-    "key": "plate-fixtures|*",
-    "mom": "The child sees every answer still to complete at once (A1).",
+    "field": "credit",
+    "graded": "[{\"earned\":0,\"kind\":\"none\",\"maximum\":1}]",
+    "key": "served|*",
+    "mom": "A right answer to an all-or-nothing item now reports full credit and a wrong one none, from the constant the item awards; nothing a child scores changes.",
     "reading": {
-      "section": "§7.19.7 validate-responses",
-      "text": "every interaction whose response breaks its minimum is named, not the first alone"
+      "section": "QTI 3.0.1 §5.108 OutcomeDeclaration normal-maximum; the ruling of 2026-11-28 (A-narrow: one source of the maximum per item class, the MAXSCORE fallback deleted)",
+      "text": "An all-or-nothing item's maximum is the one constant its response processing awards (match_correct awards 1); a partial-capable item's is SCORE's declared normal-maximum; MAXSCORE is no source of it, so credit is stated where the item declares its maximum and absent where it does not"
     },
-    "recorded": "[\"ONE\"]"
+    "recorded": "[]"
+  },
+  {
+    "field": "credit",
+    "graded": "[{\"earned\":1,\"kind\":\"full\",\"maximum\":1}]",
+    "key": "served|*",
+    "mom": "A right answer to an all-or-nothing item now reports full credit and a wrong one none, from the constant the item awards; nothing a child scores changes.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.108 OutcomeDeclaration normal-maximum; the ruling of 2026-11-28 (A-narrow: one source of the maximum per item class, the MAXSCORE fallback deleted)",
+      "text": "An all-or-nothing item's maximum is the one constant its response processing awards (match_correct awards 1); a partial-capable item's is SCORE's declared normal-maximum; MAXSCORE is no source of it, so credit is stated where the item declares its maximum and absent where it does not"
+    },
+    "recorded": "[]"
+  },
+  {
+    "field": "credit",
+    "graded": "[{\"earned\":0,\"kind\":\"none\",\"maximum\":1}]",
+    "key": "served|*",
+    "mom": "The item awards 1 for the right answer and declares MAXSCORE 100: a right answer is full credit (1 of 1), not 1 of 100; a parent agrees.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.108 OutcomeDeclaration normal-maximum; the ruling of 2026-11-28 (A-narrow: one source of the maximum per item class, the MAXSCORE fallback deleted)",
+      "text": "An all-or-nothing item's maximum is the one constant its response processing awards (match_correct awards 1); a partial-capable item's is SCORE's declared normal-maximum; MAXSCORE is no source of it, so credit is stated where the item declares its maximum and absent where it does not"
+    },
+    "recorded": "[{\"earned\":0,\"kind\":\"none\",\"maximum\":100}]"
+  },
+  {
+    "field": "credit",
+    "graded": "[{\"earned\":1,\"kind\":\"full\",\"maximum\":1}]",
+    "key": "served|*",
+    "mom": "The item awards 1 for the right answer and declares MAXSCORE 100: a right answer is full credit (1 of 1), not 1 of 100; a parent agrees.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.108 OutcomeDeclaration normal-maximum; the ruling of 2026-11-28 (A-narrow: one source of the maximum per item class, the MAXSCORE fallback deleted)",
+      "text": "An all-or-nothing item's maximum is the one constant its response processing awards (match_correct awards 1); a partial-capable item's is SCORE's declared normal-maximum; MAXSCORE is no source of it, so credit is stated where the item declares its maximum and absent where it does not"
+    },
+    "recorded": "[{\"earned\":1,\"kind\":\"partial\",\"maximum\":100}]"
+  },
+  {
+    "field": "compiled",
+    "graded": "\"refused: member Choicetruefalse_176040516: undeclared-scoring: declare the maximum of an item whose credit can be partial: SCORE's normal-maximum above 0 (QTI 3.0.1 §5.108)\"",
+    "key": "sql|*",
+    "mom": "The item does not declare how it scores, so it is not graded by a rule the grader invents; metis fixes the content (normal-maximum, mapping bounds, response processing) before it is served.",
+    "reading": {
+      "section": "QTI 3.0.1 §5.113 ResponseProcessing, §5.108 OutcomeDeclaration normal-maximum, §5.83 Mapping (reading `mapping-bounds`); the ruling of 2026-11-28 (partial credit declared by the item alone, A-narrow)",
+      "text": "Response processing is 'the process by which the values of response variables are used to assign values to outcome variables'; an item whose scoring the document does not declare (no response processing, a partial-capable item with no normal-maximum, a mapping unbounded within it) is refused at compile instead of graded by inference"
+    },
+    "recorded": "\"accepted\""
   },
   {
     "field": "kind",

@@ -53,11 +53,13 @@ export type RefusalCode =
   | "attribute"
   | "duplicate-identifier"
   | "element"
+  | "no-response-processing"
   | "operand-type"
   | "response-binding"
   | "set-type"
   | "template-location"
   | "unknown-identifier"
+  | "undeclared-scoring"
   | "unknown-operator"
   | "unknown-template"
   | "value-cardinality";

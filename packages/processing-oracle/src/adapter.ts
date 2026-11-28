@@ -269,6 +269,9 @@ const failureText = (failure: ProcessingFailure): string => {
     case "completion-mismatch": {
       return `completion-mismatch ${failure.given.sha256} ${failure.pending.sha256}`;
     }
+    case "score-bound": {
+      return `score-bound ${String(failure.score)} of ${String(failure.maximum)}`;
+    }
   }
 };
 

@@ -2,11 +2,11 @@
  * Credit and marks, the owner's rules the SQL grader held (`credit.sql`, `marks.sql`), as facts a
  * grade carries (D5).
  *
- * - **Credit**: SCORE against the maximum (MAXSCORE, else SCORE's `normal-maximum`): none at or below
- *   0, full at or above the maximum, partial between, what it earned the score clamped to [0,
- *   maximum] at the same points. None where SCORE is no finite number or the maximum is none, not
- *   above 0, or infinite. QTI never clamps SCORE (§2.2.2.3, Table 4.5.7); the clamp is the credit's
- *   alone.
+ * - **Credit**: SCORE against its item's maximum, SCORE's declared `normal-maximum`, the one source
+ *   of it (the ruling of 2026-11-28: partial credit is declared by the item alone): none at 0, full
+ *   at the maximum, partial between, what it earned the score itself. A score outside [0, maximum]
+ *   is no credit: the item declares it never reaches one, so it is a failure of the content, and
+ *   nothing clamps it (QTI never clamps SCORE, §2.2.2.3).
  * - **Marks**: each value a response gives `right` where the correct response holds it and no given
  *   copy before it took that copy, else `wrong`; each copy of the correct response no given value
  *   took `missed`. A single is a multiple of at most one value; an ordered value is marked place by
@@ -33,22 +33,26 @@ export interface Credit {
 }
 
 /**
- * The credit of a score against a maximum, or `undefined` where the scores cannot say.
+ * The credit of a score against its item's declared maximum, or the score itself where it lies
+ * outside [0, maximum], which the item declares it never reaches.
  *
  * @param score - SCORE.
- * @param maximum - MAXSCORE, else SCORE's `normal-maximum`.
- * @returns The credit.
+ * @param maximum - SCORE's `normal-maximum`, above 0.
+ * @returns The credit, or the score out of range.
  */
-export const creditOf = (score: number, maximum: number): Credit | undefined => {
-  if (!Number.isFinite(score) || !Number.isFinite(maximum) || maximum <= 0) {
-    return undefined;
+export const creditOf = (
+  score: number,
+  maximum: number,
+): Credit | { readonly kind: "out-of-range"; readonly score: number } => {
+  if (!(score >= 0 && score <= maximum)) {
+    return { kind: "out-of-range", score };
   }
 
-  if (score <= 0) {
+  if (score === 0) {
     return { earned: 0, kind: "none", maximum };
   }
 
-  return score >= maximum
+  return score === maximum
     ? { earned: maximum, kind: "full", maximum }
     : { earned: score, kind: "partial", maximum };
 };

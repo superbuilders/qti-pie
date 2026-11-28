@@ -46,15 +46,46 @@ const mapping: AreaMapping = Object.freeze({
  */
 const at = (x: bigint, y: bigint): Point => ({ x, y });
 
-describe("credit (credit.sql, the owner's rule)", () => {
-  it("is none at or below 0, full at or above the maximum, partial between, and nothing where the scores cannot say", () => {
-    assert.deepStrictEqual(creditOf(-1, 2), { earned: 0, kind: "none", maximum: 2 });
-    assert.deepStrictEqual(creditOf(1, 2), { earned: 1, kind: "partial", maximum: 2 });
-    assert.deepStrictEqual(creditOf(3, 2), { earned: 2, kind: "full", maximum: 2 });
-    assert.isUndefined(creditOf(Number.NaN, 2));
-    assert.isUndefined(creditOf(1, 0));
-    assert.isUndefined(creditOf(1, Number.POSITIVE_INFINITY));
-  });
+describe("credit (the item's declared maximum, the ruling of 2026-11-28)", () => {
+  it.effect(
+    "credits a score in [0, maximum] as itself, and refuses one outside it, clamping none",
+    (ctx) =>
+      everyMember(
+        ctx,
+        {
+          box: "scores from below 0 to above the maximum, NaN and the infinities, against maximum 2",
+          members: [
+            -1,
+            -Number.MIN_VALUE,
+            0,
+            0.5,
+            1,
+            2,
+            2.5,
+            Number.NaN,
+            Number.POSITIVE_INFINITY,
+            Number.NEGATIVE_INFINITY,
+          ],
+          oracle: "QTI 3.0.1 §5.108 (normal-maximum) and §2.2.2.3 (SCORE is never clamped)",
+          suite: "processing/credit-declared",
+        },
+        (score) => {
+          const credit = creditOf(score, 2);
+          if (score >= 0 && score <= 2) {
+            let kind: "full" | "none" | "partial" = "partial";
+            if (score === 0) {
+              kind = "none";
+            } else if (score === 2) {
+              kind = "full";
+            }
+
+            assert.deepStrictEqual(credit, { earned: score, kind, maximum: 2 });
+          } else {
+            assert.deepStrictEqual(credit, { kind: "out-of-range", score });
+          }
+        },
+      ),
+  );
 });
 
 describe("marks by area (Decision 6)", () => {

@@ -36,7 +36,7 @@ import type {
 import type { CustomOperator } from "#processing/operator.ts";
 import { customOperatorOf } from "#processing/registry.ts";
 import { publishedTemplates } from "#processing/templates.generated.ts";
-import { attributeOf, qtiChildren, qtiNamespace } from "#processing/xml.ts";
+import { attributeOf, qtiChildren, qtiNamespace, textOf } from "#processing/xml.ts";
 import type { XmlElement } from "#processing/xml.ts";
 
 /**
@@ -108,6 +108,318 @@ const unresolvedProcessing = (
         `name one of QTI 3.0.1's published response processing templates, or write the rules inline: ${uri} is none`,
       )
     : undefined;
+};
+
+/**
+ * The elements a response processing reads a response through: its value, its correct response, its
+ * default, and its mapping (§5.113, §5.21, §5.38, §5.83, §5.84).
+ */
+const responseReaders: ReadonlySet<string> = new Set([
+  "qti-correct",
+  "qti-default",
+  "qti-map-response",
+  "qti-map-response-point",
+  "qti-variable",
+]);
+
+/**
+ * Every response identifier a response processing's rules read.
+ *
+ * @param rules - The rules, as written.
+ * @returns The identifiers they read.
+ */
+const responsesRead = (rules: readonly XmlElement[]): ReadonlySet<string> => {
+  const read = new Set<string>();
+  const pending = [...rules];
+  for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+    const identifier = attributeOf(next, "identifier");
+    if (responseReaders.has(next.local) && identifier !== undefined) {
+      read.add(collapsed(identifier));
+    }
+
+    for (const child of qtiChildren(next)) {
+      pending.push(child);
+    }
+  }
+
+  return read;
+};
+
+/**
+ * What a response processing's rules set SCORE to.
+ */
+interface ScoreSettings {
+  /**
+   * Each constant the rules set SCORE to.
+   */
+  readonly constants: readonly number[];
+  /**
+   * Whether they also set SCORE to anything else or map a response.
+   */
+  readonly computed: boolean;
+}
+
+/**
+ * What a response processing's rules set SCORE to: each constant it sets SCORE to, and whether it
+ * also sets SCORE to anything else or maps a response (`qti-map-response`,
+ * `qti-map-response-point`, §5.83, §5.84), which makes its score able to fall between its
+ * constants.
+ *
+ * @param rules - The rules, as written or as the published template writes them.
+ * @returns Its constants and whether it scores by anything else.
+ */
+const scoreSettings = (rules: readonly XmlElement[]): ScoreSettings => {
+  const constants: number[] = [];
+  let computed = false;
+  const pending = [...rules];
+  for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+    const target = collapsed(attributeOf(next, "identifier") ?? "");
+    if (next.local === "qti-map-response" || next.local === "qti-map-response-point") {
+      computed = true;
+    } else if (next.local === "qti-lookup-outcome-value" && target === "SCORE") {
+      computed = true;
+    } else if (next.local === "qti-set-outcome-value" && target === "SCORE") {
+      const [only, ...rest] = qtiChildren(next);
+      const written = only?.local === "qti-base-value" ? Number(textOf(only)) : Number.NaN;
+      if (rest.length === 0 && Number.isFinite(written)) {
+        constants.push(written);
+      } else {
+        computed = true;
+      }
+    }
+
+    for (const child of qtiChildren(next)) {
+      pending.push(child);
+    }
+  }
+
+  return { computed, constants };
+};
+
+/**
+ * SCORE where it is declared as QTI's score is: one single float or integer outcome (§5.108).
+ *
+ * @param declaration - The declaration named SCORE, if any.
+ * @returns It, or `undefined` where it is no such outcome.
+ */
+const numericScore = (declaration: Declaration | undefined): Declaration | undefined =>
+  declaration?.role === "outcome" &&
+  declaration.type.cardinality === "single" &&
+  (declaration.type.base === "float" || declaration.type.base === "integer")
+    ? declaration
+    : undefined;
+
+/**
+ * A multi-part item's parts each declared: its rules written inline, since every published
+ * template reads `RESPONSE` alone, and reading every part (§5.113).
+ *
+ * @param parts - Its scored responses.
+ * @param rules - The rules written inline.
+ * @param template - The published template it names, if any.
+ * @param processing - Its `qti-response-processing`.
+ * @returns The parts, or the refusal.
+ */
+const partsDeclared = (
+  parts: readonly string[],
+  rules: readonly XmlElement[],
+  template: XmlElement | undefined,
+  processing: XmlElement,
+): Checked<readonly string[]> => {
+  if (parts.length <= 1) {
+    return checked(parts);
+  }
+
+  if (template !== undefined) {
+    return refused(
+      "undeclared-scoring",
+      processing.start,
+      `declare how each of the item's ${String(parts.length)} parts scores: write the response processing inline, since a published template scores RESPONSE alone (QTI 3.0.1 §5.113)`,
+    );
+  }
+
+  const read = responsesRead(rules);
+  const unread = parts.filter((part) => !read.has(part));
+
+  return unread.length === 0
+    ? checked(parts)
+    : refused(
+        "undeclared-scoring",
+        processing.start,
+        `declare how every part scores: the response processing reads no ${unread.join(", ")} (QTI 3.0.1 §5.113)`,
+      );
+};
+
+/**
+ * An all-or-nothing item's maximum: the one constant above 0 its rules set SCORE to, which a
+ * declared `normal-maximum` must equal.
+ *
+ * @param award - The constant above 0, if any.
+ * @param normalMaximum - SCORE's `normal-maximum`, if declared.
+ * @param processing - Its `qti-response-processing`.
+ * @returns The maximum, or the refusal.
+ */
+const awardOf = (
+  award: number | undefined,
+  normalMaximum: number | undefined,
+  processing: XmlElement,
+): Checked<number> => {
+  if (award === undefined) {
+    return refused(
+      "undeclared-scoring",
+      processing.start,
+      "declare what the item awards: its response processing sets SCORE to no value above 0 (QTI 3.0.1 §5.113)",
+    );
+  }
+
+  return normalMaximum === undefined || normalMaximum === award
+    ? checked(award)
+    : refused(
+        "undeclared-scoring",
+        processing.start,
+        "declare one maximum: SCORE's normal-maximum is not the constant the response processing awards (QTI 3.0.1 §5.108)",
+      );
+};
+
+/**
+ * A partial-capable item's maximum: SCORE's `normal-maximum`, above 0, with every mapping bounded
+ * within it: a container's `lower-bound` 0 or more and `upper-bound` at most the maximum, a single
+ * response's default and every mapped value within [0, maximum], since a mapping's bounds apply to
+ * a container's sum alone (§5.83, reading `mapping-bounds`).
+ *
+ * @param normalMaximum - SCORE's `normal-maximum`, if declared.
+ * @param declarations - The item's declarations.
+ * @param processing - Its `qti-response-processing`.
+ * @returns The maximum, or the refusal.
+ */
+const partialMaximumOf = (
+  normalMaximum: number | undefined,
+  declarations: ReadonlyMap<string, Declaration>,
+  processing: XmlElement,
+): Checked<number> => {
+  if (normalMaximum === undefined || !(normalMaximum > 0)) {
+    return refused(
+      "undeclared-scoring",
+      processing.start,
+      "declare the maximum of an item whose credit can be partial: SCORE's normal-maximum above 0 (QTI 3.0.1 §5.108)",
+    );
+  }
+
+  const within = (value: number): boolean => value >= 0 && value <= normalMaximum;
+  const unbounded = [...declarations.values()].some((declaration) =>
+    [declaration.mapping, declaration.areaMapping].some((mapping) => {
+      if (mapping === undefined) {
+        return false;
+      }
+
+      return declaration.type.cardinality === "single"
+        ? !within(mapping.defaultValue) || mapping.entries.some((entry) => !within(entry.value))
+        : !(mapping.lowerBound >= 0 && mapping.upperBound <= normalMaximum);
+    }),
+  );
+
+  return unbounded
+    ? refused(
+        "undeclared-scoring",
+        processing.start,
+        "bound every mapping within the item's maximum: a container's lower-bound of 0 or more and upper-bound of at most SCORE's normal-maximum, a single response's default and every mapped value within them (QTI 3.0.1 §5.83, §5.108; reading `mapping-bounds`)",
+      )
+    : checked(normalMaximum);
+};
+
+/**
+ * The scoring law (the ruling of 2026-11-28: partial credit is kept, and is declared by the item
+ * alone; the grader infers, defaults and patches none), and the maximum it fixes, the one source of
+ * the item's credit:
+ *
+ * - A writing item, one with an Extended Text interaction, is scored outside the rules of its
+ *   response processing (an essay's verdict is an input, D8), so the law does not judge it; its
+ *   maximum is SCORE's `normal-maximum` where it declares one (GC-PARTIAL's PARTIAL-1).
+ * - An item that scores a response declares its response processing (§5.113,
+ *   `qti-response-processing`: "the process by which the values of response variables are used to
+ *   assign values to outcome variables"): rules written inline or a published template. Without one
+ *   no outcome is assigned and the item would be served at its defaults, so it is refused.
+ * - A scored item, one with a response bound to an interaction that is scored (an End Attempt's,
+ *   which ends an attempt, and a Media interaction's, which counts plays, are not), declares a
+ *   single numeric SCORE; an item that scores no response has no maximum.
+ * - A multi-part item, two scored responses or more, declares how every part scores: its rules are
+ *   written inline, since every published template reads `RESPONSE` alone and would leave a part
+ *   unscored, and they read each part.
+ * - An item whose credit can be partial (multi-part, a mapping declared or applied, or SCORE set to
+ *   anything but constants, or to two different positive ones) declares SCORE's `normal-maximum`
+ *   above 0 (§5.108), which is its maximum, and bounds every mapping within it, a `lower-bound` of
+ *   0 or more and an `upper-bound` of at most that maximum (§5.83).
+ * - An all-or-nothing item (one part, no mapping, SCORE set only to constants, one of them above 0,
+ *   as `match_correct` sets 1) takes that constant as its maximum, read from the document; a
+ *   `normal-maximum` it also declares is that constant.
+ *
+ * @param root - The item.
+ * @param processing - Its `qti-response-processing`, if any.
+ * @param rules - The rules written inline.
+ * @param template - The published template it names, if any.
+ * @param interactions - Its interactions.
+ * @param declarations - Its declarations.
+ * @returns Its maximum (none for an item that scores no response), or the refusal.
+ */
+const scoringOf = (
+  root: XmlElement,
+  processing: XmlElement | undefined,
+  rules: readonly XmlElement[],
+  template: XmlElement | undefined,
+  interactions: readonly Interaction[],
+  declarations: ReadonlyMap<string, Declaration>,
+): Checked<number | undefined> => {
+  if (interactions.some((interaction) => interaction.kind === "extended-text")) {
+    return checked(declarations.get("SCORE")?.normalMaximum);
+  }
+
+  const parts = [
+    ...new Set(
+      interactions
+        .filter((interaction) => interaction.kind !== "end-attempt" && interaction.kind !== "media")
+        .map((interaction) => interaction.response),
+    ),
+  ];
+  if (parts.length === 0) {
+    return checked(declarations.get("SCORE")?.normalMaximum);
+  }
+
+  if (processing === undefined || (rules.length === 0 && template === undefined)) {
+    return refused(
+      "no-response-processing",
+      processing?.start ?? root.start,
+      "declare the item's scoring: write its qti-response-processing, inline or as a published template (QTI 3.0.1 §5.113)",
+    );
+  }
+
+  const score = numericScore(declarations.get("SCORE"));
+  if (score === undefined) {
+    return refused(
+      "undeclared-scoring",
+      processing.start,
+      "declare the item's score: a single numeric SCORE (QTI 3.0.1 §5.108)",
+    );
+  }
+
+  const parted = partsDeclared(parts, rules, template, processing);
+  if (!parted.ok) {
+    return parted;
+  }
+
+  const settings = scoreSettings(template === undefined ? rules : qtiChildren(template));
+  const mapped = [...declarations.values()].some(
+    (declaration) => declaration.mapping !== undefined || declaration.areaMapping !== undefined,
+  );
+  const positive = [...new Set(settings.constants.filter((constant) => constant > 0))];
+  const allOrNothing =
+    parts.length === 1 &&
+    !mapped &&
+    !settings.computed &&
+    positive.length <= 1 &&
+    settings.constants.every((constant) => constant >= 0);
+
+  return allOrNothing
+    ? awardOf(positive[0], score.normalMaximum, processing)
+    : partialMaximumOf(score.normalMaximum, declarations, processing);
 };
 
 /**
@@ -289,6 +601,11 @@ export const compileItemOver = <K extends ExpressionKind>(
   }
 
   const declared = declarations.value;
+  const scoring = scoringOf(root, processing, rules, template, interactions.value, declared);
+  if (!scoring.ok) {
+    return scoring;
+  }
+
   const context: CompileContext = {
     area: (element, place) => resolveArea(element, imageOfOperand(element, images), place),
     customOperator,
@@ -346,6 +663,7 @@ export const compileItemOver = <K extends ExpressionKind>(
         identifier: collapsed(attributeOf(root, "identifier") ?? ""),
         interactions: interactions.value,
         kind: "item",
+        maximum: scoring.value,
         responseProcessing: responses.value,
         templateProcessing: templates.value,
       });

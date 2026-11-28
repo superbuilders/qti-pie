@@ -176,6 +176,12 @@ export interface CompiledItem {
    */
   readonly interactions: readonly Interaction[];
   readonly kind: "item";
+  /**
+   * The most the item awards, the one source of its credit, fixed by the scoring law when it is
+   * compiled: SCORE's `normal-maximum` where its credit can be partial, else the one constant its
+   * response processing awards. None for an item that scores no response.
+   */
+  readonly maximum: number | undefined;
   readonly responseProcessing: readonly ResponseRule[];
   readonly templateProcessing: readonly TemplateRule[];
 }

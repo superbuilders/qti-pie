@@ -222,7 +222,7 @@ export const positionObject = kind("position-object", {
       declarations: homes.map((areas, at) =>
         declaration(responseOf(at), settings.placings === "one" ? "single" : "multiple", "point", [
           correctResponse(areas.map((area) => pointText(area.centre))),
-          areaMapping(areas, 0),
+          areaMapping(areas),
         ]),
       ),
       host: Option.none(),

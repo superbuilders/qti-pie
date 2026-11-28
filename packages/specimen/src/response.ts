@@ -38,7 +38,9 @@ export const correctResponse = (values: readonly string[]): string =>
   );
 
 /**
- * A mapping of these keys, each to 1, every other value to 0, and the sum never below 0.
+ * A mapping of these keys, each to 1, every other value to 0, and the sum bounded within the most
+ * the keys give, never below 0 nor above their count (QTI 3.0.1 §5.83: the item's maximum bounds
+ * it).
  *
  * @param keys The keys, each in its lexical form.
  * @returns The `qti-mapping`.
@@ -46,6 +48,6 @@ export const correctResponse = (values: readonly string[]): string =>
 export const mapping = (keys: readonly string[]): string =>
   element(
     "qti-mapping",
-    { "default-value": 0, "lower-bound": 0 },
+    { "default-value": 0, "lower-bound": 0, "upper-bound": keys.length },
     keys.map((key) => element("qti-map-entry", { "map-key": key, "mapped-value": 1 }, [])),
   );

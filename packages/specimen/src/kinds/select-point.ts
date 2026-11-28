@@ -47,10 +47,6 @@ export interface SelectPointSettings {
    * `min-choices`: unwritten, or every landmark asked for; none for a single point.
    */
   readonly least: "all" | "none";
-  /**
-   * What a point on no landmark adds: the area mapping's `default-value`.
-   */
-  readonly miss: 0 | -1;
   readonly points: (typeof points.values)[number]["value"];
   readonly stage: Stage;
   /**
@@ -107,7 +103,7 @@ export const selectPoint = kind("select-point", {
     return [
       { answer: "right", posted: posted(settings, targets), score: targets.length },
       ...partial,
-      { answer: "wrong", posted: posted(settings, [decoy]), score: settings.miss },
+      { answer: "wrong", posted: posted(settings, [decoy]), score: 0 },
       { answer: "empty", posted: {}, score: 0 },
     ];
   },
@@ -116,10 +112,6 @@ export const selectPoint = kind("select-point", {
     least: dimension("min-choices", [
       ["none", "Unwritten", "none"],
       ["all", "Every landmark", "all"],
-    ]),
-    miss: dimension("A point on no landmark", [
-      ["zero", "Adds 0", 0],
-      ["minus-one", "Takes 1 away", -1],
     ]),
     points,
     targets: counted("Landmarks asked for", 2, 3),
@@ -132,7 +124,6 @@ export const selectPoint = kind("select-point", {
 
       return {
         least: held === "one" ? "none" : source.draw(pick("least")),
-        miss: source.draw(pick("miss")),
         points: held,
         stage: source.draw(sizedStageOf(pick)),
         targets: held === "one" ? 1 : source.draw(pick("targets")),
@@ -167,7 +158,7 @@ export const selectPoint = kind("select-point", {
       declarations: [
         declaration(response, settings.points === "one" ? "single" : "multiple", "point", [
           correctResponse(targets.map((area) => pointText(area.centre))),
-          areaMapping(targets, settings.miss),
+          areaMapping(targets),
         ]),
       ],
       host: Option.none(),

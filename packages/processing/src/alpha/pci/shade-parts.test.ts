@@ -76,7 +76,7 @@ const itemOf = ({ key, parts, whole }: Shaded) =>
     ),
     element(
       "qti-outcome-declaration",
-      { "base-type": "float", cardinality: "single", identifier: "SCORE" },
+      { "base-type": "float", cardinality: "single", identifier: "SCORE", "normal-maximum": "1" },
       [],
     ),
     element("qti-item-body", {}, [
