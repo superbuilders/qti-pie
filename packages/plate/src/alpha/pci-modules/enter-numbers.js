@@ -787,7 +787,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
     const keypadWidth = 3 * size.key.width + 2 * size.gap;
 
     sheet.textContent = [
-      `${part("whole")}{display:flex;flex-direction:column;align-items:flex-start;gap:24px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:${look.ink};color-scheme:light;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}`,
+      `${part("whole")}{display:flex;flex-direction:column;align-items:flex-start;gap:24px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:${look.ink};color-scheme:light;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}`,
       `${part("lines")}{display:flex;flex-direction:column;gap:16px}`,
       `${part("lines")}>p{margin:0;font-size:${String(look.line)}px;font-weight:600;line-height:1.2;display:flex;flex-wrap:wrap;align-items:center;gap:0 12px}`,
       `${part("lines")}>p math{font-family:inherit;font-size:1em;font-weight:600;math-style:normal}`,

@@ -10,10 +10,10 @@ import type { AlphaPciModuleId } from "#plate/alpha/pci-modules.ts";
  * Each module file's pin, by its id.
  */
 export const pinned: Readonly<Record<AlphaPciModuleId, string>> = {
-  "build-with-blocks": "sha256-WcLIeFwpfU98eFQRzykqSF0GunW7P3siZjRfbWpkdnk=",
-  "count-placements": "sha256-n4MfwqCuXxu2yAa0OCZUTwYWNSyWS8ydukj+9TsI5e0=",
-  "enter-numbers": "sha256-Qx8OJrhkkzuP7j6y/Zt4EFs+hI5uD1ZKsBywt1W4vpY=",
+  "build-with-blocks": "sha256-lh6ruPiM1uoCw9eXv6N+49wVUTusO9RTbW1YplJ0hB0=",
+  "count-placements": "sha256-D9yRJfUN/T4CqHCJYXAmsk4euYUZ3ypNrgWfOIXvVoI=",
+  "enter-numbers": "sha256-H0+GUS8GCYrabDFJAuLeUsh99DjSnU+RvA3mIkAmC0g=",
   "mark-objects": "sha256-HaGKLpezsFgH1btfLdqAfUIL6+Gxaax6YuwBv8vke8E=",
-  "shade-parts": "sha256-ANS7fDhQkFYxoXaxFq/STSHYP44zVY+IWmflx0c67UQ=",
-  "tap-point": "sha256-kRZS+Zj7R+oqlaSS+pPnDBHJ6RmowS0cd3bOPuWOXIk=",
+  "shade-parts": "sha256-DmKyX7k0eE6vOV9gfaVhc0rspdQiyD7RM8nN0GD0/y8=",
+  "tap-point": "sha256-qLV3zmoXrTy7LFJCufinYXNrYRQkCdCR/HV/197cRhs=",
 };
