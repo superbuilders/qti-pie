@@ -1,9 +1,9 @@
-import { cpuUsage } from "node:process";
 import { assert, describe, it } from "@effect/vitest";
-import { creditOf, marksOf } from "#processing/credit.ts";
+import { creditOf, marksOf, markingSteps } from "#processing/credit.ts";
 import type { Area, AreaMapping } from "#processing/ir.ts";
 import { container, nullOf, sameSingle, single, singlesOf } from "#processing/value.ts";
 import type { Point, Single, Value } from "#processing/value.ts";
+import { everyMember } from "#processing/test/exhausted.ts";
 
 /**
  * A rect area over denominator 1.
@@ -88,21 +88,6 @@ describe("marks by area (Decision 6)", () => {
 });
 
 /**
- * The CPU a run of work spends, user and system, in microseconds: the work the case does, never the
- * time the machine takes to let it.
- *
- * @param run - The work, giving how many marks it made.
- * @returns Its CPU.
- */
-const cpuOf = (run: () => number): number => {
-  const before = cpuUsage();
-  const count = run();
-  const spent = cpuUsage(before);
-
-  return count < 0 ? Number.NaN : spent.user + spent.system;
-};
-
-/**
  * A multiple integer response of n distinct members and its correct response, the same members
  * reversed, so every member is matched against a bag of n.
  *
@@ -119,48 +104,29 @@ const bagsOf = (n: number) => {
 };
 
 /**
- * How marking's CPU grows when the response doubles: the least CPU of five runs at 2n over the
- * least of five at n, after a run to warm the code. Linear marking doubles (near 2); a scan of the
- * marks made so far quadruples (near 4).
- *
- * @param mark - The marking.
- * @param n - The smaller size.
- * @returns The ratio.
- */
-const doublingOf = (mark: (given: Value, correct: Value) => number, n: number): number => {
-  const least = (size: number): number => {
-    const { correct, given } = bagsOf(size);
-
-    let lowest = Number.POSITIVE_INFINITY;
-    for (let run = 0; run < 5; run += 1) {
-      lowest = Math.min(
-        lowest,
-        cpuOf(() => mark(given, correct)),
-      );
-    }
-
-    return lowest;
-  };
-  least(n);
-
-  return least(2 * n) / least(n);
-};
-
-/**
  * The mutant the budget must kill: marking as it was, each new mark found by scanning the marks
- * made so far and each member's match by scanning the correct response.
+ * made so far and each member's match by scanning the correct response, each comparison a step.
  *
  * @param given - The response.
  * @param correct - The correct response.
- * @returns The marks' count.
+ * @returns Its steps.
  */
-const scannedMarks = (given: Value, correct: Value): number => {
+const scannedSteps = (given: Value, correct: Value): number => {
+  let steps = 0;
   const corrects =
     given.kind === "multiple" && correct.kind === "multiple" ? singlesOf(correct) : [];
   const taken = corrects.map(() => false);
   const marks: { readonly copies: number; readonly mark: string; readonly value: Single }[] = [];
   const add = (mark: string, value: Single): void => {
-    const index = marks.findIndex((each) => each.mark === mark && sameSingle(each.value, value));
+    let index = -1;
+    for (const [position, each] of marks.entries()) {
+      steps += 1;
+      if (each.mark === mark && sameSingle(each.value, value)) {
+        index = position;
+        break;
+      }
+    }
+
     const found = marks[index];
     if (found === undefined) {
       marks.push({ copies: 1, mark, value });
@@ -169,9 +135,15 @@ const scannedMarks = (given: Value, correct: Value): number => {
     }
   };
   for (const member of given.kind === "multiple" ? singlesOf(given) : []) {
-    const index = corrects.findIndex(
-      (each, place) => taken[place] !== true && sameSingle(each, member),
-    );
+    let index = -1;
+    for (const [place, each] of corrects.entries()) {
+      steps += 1;
+      if (taken[place] !== true && sameSingle(each, member)) {
+        index = place;
+        break;
+      }
+    }
+
     if (index === -1) {
       add("wrong", member);
     } else {
@@ -180,15 +152,61 @@ const scannedMarks = (given: Value, correct: Value): number => {
     }
   }
 
-  return marks.length;
+  return steps;
 };
 
+/**
+ * The steps marking a response of n values against them reversed takes.
+ *
+ * @param n - How many values.
+ * @returns The steps.
+ */
+const markingStepsOf = (n: number): number => {
+  const { correct, given } = bagsOf(n);
+
+  return markingSteps(given, correct);
+};
+
+/**
+ * The steps the scan takes over a response of n values against them reversed.
+ *
+ * @param n - How many values.
+ * @returns The steps.
+ */
+const scannedStepsOf = (n: number): number => {
+  const { correct, given } = bagsOf(n);
+
+  return scannedSteps(given, correct);
+};
+
+/**
+ * Every response size from 1 to 64 values.
+ */
+const sizes: readonly [number, ...number[]] = [
+  1,
+  ...Array.from({ length: 63 }, (_, index) => index + 2),
+];
+
 describe("marking's budget", () => {
-  it("is linear in the response's values, a doubling of them near doubling its CPU, and kills the scan that made it quadratic", () => {
-    assert.isBelow(
-      doublingOf((given, correct) => marksOf(given, correct, mapping).length, 16_384),
-      3,
-    );
-    assert.isAbove(doublingOf(scannedMarks, 2048), 3);
+  it.effect(
+    "counts its work, never its time: at most five map steps a value, so doubling the values exactly doubles the steps",
+    (ctx) =>
+      everyMember(
+        ctx,
+        {
+          box: "every response size from 1 to 64 values, each against the same values reversed",
+          members: sizes,
+          oracle: "the bound: one key lookup or entry a mark and a match, O(values)",
+          suite: "processing/credit/marking-steps",
+        },
+        (n) => {
+          assert.isAtMost(markingStepsOf(n), 5 * n);
+          assert.strictEqual(markingStepsOf(2 * n), 2 * markingStepsOf(n));
+        },
+      ),
+  );
+
+  it("kills the scan that made marking quadratic: its steps more than triple when the values double", () => {
+    assert.isAbove(scannedStepsOf(512), 3 * scannedStepsOf(256));
   });
 });

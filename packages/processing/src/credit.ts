@@ -101,6 +101,16 @@ const membersOf = (
 interface Marking {
   readonly at: Map<string, number>;
   readonly marks: Mark[];
+  readonly steps: Steps;
+}
+
+/**
+ * The work marking does, counted: each lookup or entry of a map one step. Marking's budget is held
+ * by this count, which a test reads, never by the time it takes: a bag of n values takes at most
+ * five steps a value.
+ */
+interface Steps {
+  count: number;
 }
 
 /**
@@ -108,7 +118,7 @@ interface Marking {
  *
  * @returns No marks yet.
  */
-const marking = (): Marking => ({ at: new Map(), marks: [] });
+const marking = (steps: Steps): Marking => ({ at: new Map(), marks: [], steps });
 
 /**
  * Add a mark, or one more copy of a mark made already. A value that matches nothing (a NaN) is a
@@ -120,10 +130,12 @@ const marking = (): Marking => ({ at: new Map(), marks: [] });
 const addMark = (made: Marking, mark: Omit<Mark, "copies">): void => {
   const key = singleKey(mark.value);
   const at = key === undefined ? undefined : `${mark.mark}\u001F${String(mark.place)}\u001F${key}`;
+  made.steps.count += 1;
   const index = at === undefined ? undefined : made.at.get(at);
   const found = index === undefined ? undefined : made.marks[index];
   if (index === undefined || found === undefined) {
     if (at !== undefined) {
+      made.steps.count += 1;
       made.at.set(at, made.marks.length);
     }
 
@@ -134,13 +146,15 @@ const addMark = (made: Marking, mark: Omit<Mark, "copies">): void => {
 };
 
 /**
- * The marks of a response against its correct response, by `qti-match`'s reading.
+ * The marks of a response against its correct response, by `qti-match`'s reading, counting the
+ * steps it takes.
  *
  * @param given - The response's value.
  * @param correct - The correct response in force.
+ * @param steps - The count of its steps, added to.
  * @returns The marks.
  */
-const bagMarks = (given: Value, correct: Value): readonly Mark[] => {
+const bagMarks = (given: Value, correct: Value, steps: Steps): readonly Mark[] => {
   const corrects = membersOf(correct);
   const unmatched = new Map<string, { readonly indices: number[]; next: number }>();
   for (const [index, { member, place }] of corrects.entries()) {
@@ -150,15 +164,17 @@ const bagMarks = (given: Value, correct: Value): readonly Mark[] => {
     }
 
     const at = `${String(place)}\u001F${key}`;
+    steps.count += 2;
     const queue = unmatched.get(at) ?? { indices: [], next: 0 };
     queue.indices.push(index);
     unmatched.set(at, queue);
   }
 
   const taken = corrects.map(() => false);
-  const made = marking();
+  const made = marking(steps);
   for (const { member, place } of membersOf(given)) {
     const key = singleKey(member);
+    steps.count += 1;
     const queue = key === undefined ? undefined : unmatched.get(`${String(place)}\u001F${key}`);
     const index = queue?.indices[queue.next];
     if (queue === undefined || index === undefined) {
@@ -217,7 +233,7 @@ const areaMarks = (given: Value, correct: Value, mapping: AreaMapping): readonly
     mapping.entries.findIndex((entry) => inside(entry.area, point));
   const mappedAbove = (area: number): boolean => (mapping.entries[area]?.value ?? 0) > 0;
   const reached = new Set<number>();
-  const made = marking();
+  const made = marking({ count: 0 });
   for (const point of pointsOf(given)) {
     const area = areaOf(point);
     const right = area !== -1 && mappedAbove(area) && !reached.has(area);
@@ -275,5 +291,20 @@ export const marksOf = (
 
   return correct.kind === "null" || correct.kind === "record" || given.kind === "record"
     ? []
-    : bagMarks(given, correct);
+    : bagMarks(given, correct, { count: 0 });
+};
+
+/**
+ * The steps marking a response against its correct response by `qti-match`'s reading takes: the
+ * count marking's budget is held by.
+ *
+ * @param given - The response's value.
+ * @param correct - The correct response.
+ * @returns The steps.
+ */
+export const markingSteps = (given: Value, correct: Value): number => {
+  const steps = { count: 0 };
+  bagMarks(given, correct, steps);
+
+  return steps.count;
 };
