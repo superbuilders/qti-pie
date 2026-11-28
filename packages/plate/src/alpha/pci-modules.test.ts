@@ -37,7 +37,7 @@ const pinned: Readonly<Record<AlphaPciModuleId, string>> = {
   "enter-numbers": "sha256-Qx8OJrhkkzuP7j6y/Zt4EFs+hI5uD1ZKsBywt1W4vpY=",
   "mark-objects": "sha256-HaGKLpezsFgH1btfLdqAfUIL6+Gxaax6YuwBv8vke8E=",
   "shade-parts": "sha256-ANS7fDhQkFYxoXaxFq/STSHYP44zVY+IWmflx0c67UQ=",
-  "tap-point": "sha256-GoNWrw5CcgE/7UUsaPJEVe0Ez+E1JNDgbFRKG9nVdxE=",
+  "tap-point": "sha256-5DQoMNAnXL1qee5U67a974SLw+KKiiEspiYh39hmJIg=",
 };
 
 /**

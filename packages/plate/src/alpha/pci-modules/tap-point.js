@@ -16,7 +16,8 @@
  * - **The interaction.** A tap on a tick rings it, a tap on an intersection sets a dot on it; a tap
  *   on the marked one takes the mark away, and a tap on another moves it there: one point at most.
  *   Each tick and intersection is a target of at least 44 px (WCAG 2.2's Target Size, Enhanced), a
- *   button named for its point ("tick 2 of 5", "(3, 6)"). To a keyboard the figure is one tab stop:
+ *   button named for its point: a tick by its place ("tick 2 of 5"), an intersection "a point", the
+ *   same for every one, since nothing is printed at it. To a keyboard the figure is one tab stop:
  *   the arrows move a dashed focus square over the ticks or the intersections, and Enter or Space
  *   taps the one it is on, once per press, none with Alt, Control or Meta.
  * - **The response.** The point marked, NULL `{ base: null }` / `{ list: null }` for none (an
@@ -124,6 +125,16 @@
              
                              
                                                                        
+
+/**
+ * What a grid prints, each word as drawn: its x-axis's numerals, its y-axis's numerals, both 0 to
+ * `size`, and its titles.
+ */
+                      
+                          
+                                
+                                
+ 
 
 /**
  * A point of the figure: a line's tick by its place from the start, `[k, 0]`, or a grid's
@@ -535,6 +546,32 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   };
 
   /**
+   * The words a grid prints, each written as drawn: its x-axis's numerals 0 to `size`, its y-axis's
+   * numerals 0 to `size`, and its titles. The drawing draws exactly these and its name names
+   * exactly these ({@link nameOf}), so no name can say a word the child does not see.
+   *
+   * @param figure The grid.
+   * @returns Its printed words.
+   */
+  const gridLabels = (figure                                   )             => {
+    const numerals = Array.from({ length: figure.size + 1 }, (_unused, unit) => String(unit));
+
+    return { titles: figure.titles, x: numerals, y: numerals };
+  };
+
+  /**
+   * Write labels as one clause: each as printed, separated by ", " with " and " before the last,
+   * none shortened or merged.
+   *
+   * @param labels The labels, in order.
+   * @returns The clause.
+   */
+  const clauseOf = (labels                   )         =>
+    labels.length < 2
+      ? labels.join("")
+      : `${labels.slice(0, -1).join(", ")} and ${labels.at(-1) ?? ""}`;
+
+  /**
    * The room about a figure: a grid without titles keeps room for its numerals alone, every other
    * figure the margins it always had (a line's numerals that pass them widen the drawing as drawn,
    * `fitNumerals`).
@@ -633,6 +670,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
     } else {
       const far = figure.size * grid.unit;
       const origin = placeOf(figure, [0, 0]);
+      const printed = gridLabels(figure);
 
       for (let unit = 0; unit <= figure.size; unit += 1) {
         const { cx } = placeOf(figure, [unit, 0]);
@@ -655,8 +693,12 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
             y1: cy,
             y2: cy,
           }),
-          svgText(document, String(unit), { "font-size": grid.numeral, x: cx, y: origin.cy + 26 }),
-          svgText(document, String(unit), {
+          svgText(document, printed.x[unit] ?? "", {
+            "font-size": grid.numeral,
+            x: cx,
+            y: origin.cy + 26,
+          }),
+          svgText(document, printed.y[unit] ?? "", {
             "dominant-baseline": "central",
             "font-size": grid.numeral,
             "text-anchor": "end",
@@ -683,15 +725,15 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
         }),
       );
 
-      if (figure.titles.kind === "drawn") {
+      if (printed.titles.kind === "drawn") {
         parts.push(
-          svgText(document, figure.titles.x, {
+          svgText(document, printed.titles.x, {
             "font-size": grid.title,
             "font-weight": 600,
             x: origin.cx + far / 2,
             y: origin.cy + 64,
           }),
-          svgText(document, figure.titles.y, {
+          svgText(document, printed.titles.y, {
             "font-size": grid.title,
             "font-weight": 600,
             transform: `rotate(-90 ${String(room.left - 52)} ${String(room.top + far / 2)})`,
@@ -716,28 +758,49 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   };
 
   /**
-   * Name the figure for a screen reader: "a number line from 40,000 to 50,000 in 10 equal parts",
-   * "a grid from 0 to 10, Days across and Pages read up", "a grid from 0 to 6" (no titles).
+   * Name the figure for a screen reader: "a number line from 40,000 to 50,000 in 10 equal parts";
+   * a grid by exactly the labels it prints, its x numerals, its y numerals, then its titles when
+   * drawn, "a grid, labelled 0, 1, 2, 0, 1 and 2", never where any of them stands.
    *
    * @param figure The figure.
    * @returns The name.
    */
-  const nameOf = (figure        )         =>
-    figure.kind === "line"
-      ? `a number line from ${numeralOf(figure.start)} to ${numeralOf(figure.end)} in ${String(figure.parts)} equal parts`
-      : `a grid from 0 to ${String(figure.size)}${figure.titles.kind === "drawn" ? `, ${figure.titles.x} across and ${figure.titles.y} up` : ""}`;
+  const nameOf = (figure        )         => {
+    if (figure.kind === "line") {
+      return `a number line from ${numeralOf(figure.start)} to ${numeralOf(figure.end)} in ${String(figure.parts)} equal parts`;
+    }
+
+    const printed = gridLabels(figure);
+
+    return `a grid, labelled ${clauseOf([
+      ...printed.x,
+      ...printed.y,
+      ...(printed.titles.kind === "drawn" ? [printed.titles.x, printed.titles.y] : []),
+    ])}`;
+  };
 
   /**
-   * Name a point for a screen reader: "tick 2 of 5", "(3, 6)".
+   * Name a point for a screen reader: a line's tick "tick 2 of 5"; a grid's intersection "a point",
+   * every one the same, since nothing is printed at an intersection and its place is what the
+   * child reads off the axes.
    *
    * @param figure The figure.
    * @param point The point.
    * @returns The name.
    */
-  const pointName = (figure        , [x, y]       )         =>
-    figure.kind === "line"
-      ? `tick ${String(x)} of ${String(figure.parts)}`
-      : `(${String(x)}, ${String(y)})`;
+  const pointName = (figure        , [x]       )         =>
+    figure.kind === "line" ? `tick ${String(x)} of ${String(figure.parts)}` : "a point";
+
+  /**
+   * Name what is marked, after the figure's name: on a grid "no point marked" or "a point marked",
+   * never which; on a line the marked tick's name.
+   *
+   * @param figure The figure.
+   * @param mark What is marked.
+   * @returns The name.
+   */
+  const markName = (figure        , mark      )         =>
+    mark.kind === "none" ? "no point marked" : `${pointName(figure, mark.point)} marked`;
 
   /**
    * Write the PCI's stylesheet into the frame's document, keyed on its `data-tap` parts.
@@ -890,10 +953,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
 
       svg.setAttribute("aria-disabled", String(phase.kind === "closed"));
       svg.setAttribute("tabindex", phase.kind === "answering" ? "0" : "-1");
-      svg.setAttribute(
-        "aria-label",
-        `${nameOf(figure)}; ${mark.kind === "none" ? "no point marked" : `${pointName(figure, mark.point)} marked`}`,
-      );
+      svg.setAttribute("aria-label", `${nameOf(figure)}; ${markName(figure, mark)}`);
     };
 
     const instance                   = {

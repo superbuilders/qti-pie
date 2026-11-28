@@ -11,6 +11,11 @@
  *   the end's under the last, grouped in threes with a comma from 1,000, and no other text, every
  *   numeral inside the drawing; a grid shows every unit numbered on both axes and its two titles
  *   where the item gives them, and no word where it gives none. Nothing is marked.
+ * - TP1a, the names: a grid is named by exactly the labels it prints, read from the drawing, "a grid,
+ *   labelled " and its x numerals, its y numerals and its titles, each as drawn, ", " between them
+ *   and " and " before the last; every intersection is "a point"; its mark is "no point marked" or
+ *   "a point marked". No intersection's name and no mark carries a digit, and a tap never changes
+ *   an intersection's name.
  * - TP2, tapping: a tap within 20 px of a tick or an intersection (inside its 44 px target) marks it;
  *   a tap on the marked one takes the mark away; a tap on another moves it. One mark at most.
  * - TP3, the response: a line's tick place `{ base: { integer: k } }`, a grid's `{ list: { integer:
@@ -26,6 +31,7 @@
  * @module
  */
 import { assert, layer } from "@effect/vitest";
+import { regex } from "arkregex";
 import { Context, Effect, Layer } from "effect";
 import { tapPoint } from "@qti-pie/plate/alpha/pci-modules";
 import { hostedItem, hostedPage } from "#specimen/alpha/hosted-pci.ts";
@@ -61,6 +67,10 @@ interface Figure {
    */
   readonly name: string;
   readonly rows: readonly { readonly at: number; readonly text: string }[];
+  /**
+   * Each tap target's accessible name, in the drawing's order.
+   */
+  readonly targets: readonly string[];
   readonly texts: readonly string[];
   readonly ticks: readonly Point[];
 }
@@ -116,6 +126,9 @@ const readFigure = (): Figure => {
     marks: [...(svg?.querySelectorAll("circle") ?? [])].map(centre),
     name: svg?.getAttribute("aria-label") ?? "",
     rows: beside.map((text) => ({ at: centre(text).y, text: text.textContent })),
+    targets: [...(svg?.querySelectorAll('[data-tap="target"]') ?? [])].map(
+      (target) => target.getAttribute("aria-label") ?? "",
+    ),
     texts: texts.map((text) => text.textContent),
     ticks: strokes
       .filter((line) => line.getAttribute("x1") === line.getAttribute("x2"))
@@ -139,6 +152,69 @@ const placeOf = (figure: Figure, [x, y]: readonly [number, number]): Point => {
     x: figure.columns.find((column) => Number(column.text) === x)?.at ?? Number.NaN,
     y: figure.rows.find((row) => Number(row.text) === y)?.at ?? Number.NaN,
   };
+};
+
+/**
+ * The clause of a picture's printed labels: each as printed, ", " between them and " and " before
+ * the last, none shortened.
+ *
+ * @param labels The labels, in order.
+ * @returns The clause.
+ */
+const clauseOf = (labels: readonly string[]): string =>
+  labels.length < 2
+    ? labels.join("")
+    : `${labels.slice(0, -1).join(", ")} and ${labels.at(-1) ?? ""}`;
+
+/**
+ * A grid's name as its drawing prints it: its x numerals, its y numerals, then every other text
+ * (its titles) in the order drawn.
+ *
+ * @param figure What is drawn.
+ * @returns The name, without its mark.
+ */
+const printedName = (figure: Figure): string => {
+  const numerals = new Set([
+    ...figure.columns.map((column) => column.text),
+    ...figure.rows.map((row) => row.text),
+  ]);
+
+  return `a grid, labelled ${clauseOf([
+    ...figure.columns.map((column) => column.text),
+    ...figure.rows.map((row) => row.text),
+    ...figure.texts.filter((text) => !numerals.has(text)),
+  ])}`;
+};
+
+/**
+ * Whether a name carries a digit.
+ *
+ * @param name The name.
+ * @returns Whether it does.
+ */
+const hasDigit = (name: string): boolean => regex("\\d", "u").test(name);
+
+/**
+ * Require a grid's names: its intersections each "a point", digit-free, one per intersection; its
+ * figure named by its printed labels and then its mark, which carries no digit.
+ *
+ * @param figure What is drawn.
+ * @param size The grid's size.
+ * @param marked Whether a point is marked.
+ * @param why The case.
+ */
+const assertGridNames = (figure: Figure, size: number, marked: boolean, why: string): void => {
+  assert.deepStrictEqual(
+    figure.targets,
+    Array.from({ length: (size + 1) ** 2 }, () => "a point"),
+    `${why}: every intersection is "a point"`,
+  );
+  assert.isFalse(figure.targets.some(hasDigit), `${why}: no intersection's name has a digit`);
+
+  const mark = marked ? "a point marked" : "no point marked";
+
+  assert.strictEqual(figure.name, `${printedName(figure)}; ${mark}`, `${why}: the figure's name`);
+  assert.isFalse(hasDigit(figure.name.slice(figure.name.lastIndexOf(";"))), `${why}: the mark`);
 };
 
 /**
@@ -320,9 +396,19 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
   }
 
   for (const [name, size, titles, said] of [
-    ["grid-10", 10, ["Days", "Pages read"], "a grid from 0 to 10, Days across and Pages read up"],
-    ["grid-5", 5, ["Steps", "Height"], "a grid from 0 to 5, Steps across and Height up"],
-    ["grid-6-untitled", 6, [], "a grid from 0 to 6"],
+    [
+      "grid-10",
+      10,
+      ["Days", "Pages read"],
+      "a grid, labelled 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, Days and Pages read",
+    ],
+    [
+      "grid-5",
+      5,
+      ["Steps", "Height"],
+      "a grid, labelled 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, Steps and Height",
+    ],
+    ["grid-6-untitled", 6, [], "a grid, labelled 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5 and 6"],
   ] as const) {
     it.effect(
       `TP1: ${name} numbers every unit on both axes and draws its titles alone, nothing marked`,
@@ -347,6 +433,7 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
             "the numerals of both axes and its titles, no other word",
           );
           assert.strictEqual(figure.name, `${said}; no point marked`);
+          assertGridNames(figure, size, false, name);
           assert.isTrue(figure.inside, "every numeral and title inside the drawing");
           assert.isTrue(
             figure.rows.every(
@@ -487,6 +574,8 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
                 expected === null ? 0 : 1,
                 `${why}: one dot at most`,
               );
+              assertGridNames(after, 10, expected !== null, why);
+              assert.deepStrictEqual(after.targets, figure.targets, `${why}: no name moved`);
 
               if (expected !== null) {
                 const at = placeOf(after, [expected[0] ?? 0, expected[1] ?? 0]);
@@ -529,6 +618,8 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
 
       const gridFigure = yield* started(page, grid, { boundTo: { list: { integer: [3, 6] } } });
       const at = placeOf(gridFigure, [3, 6]);
+
+      assertGridNames(gridFigure, 10, true, "bound to a point");
 
       assert.isBelow(
         Math.hypot((gridFigure.marks[0]?.x ?? 0) - at.x, (gridFigure.marks[0]?.y ?? 0) - at.y),
@@ -640,6 +731,7 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
       const at = placeOf(figure, [3, 6]);
       const after = yield* Effect.orDie(page.read(readFigure));
 
+      assertGridNames(after, 10, true, "in review");
       assert.strictEqual(after.marks.length, 1);
       assert.isBelow(
         Math.hypot((after.marks[0]?.x ?? 0) - at.x, (after.marks[0]?.y ?? 0) - at.y),
