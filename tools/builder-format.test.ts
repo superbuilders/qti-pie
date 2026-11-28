@@ -8,9 +8,8 @@
  * tracks (or would track) that carries the format, in its content, its path or a symlink's target;
  * that is one of those files, by the SHA-256 deny-list beside it, or holds one as a base64 data:
  * URI; or whose text, or any svg drawing in it, is one of those texts with only its whitespace
- * changed, by the second list beside it. The same author's grades 3 to 5 package (G3-5) is judged
- * by the same judge, by two lists of its own beside those: its findings are reported and never
- * fail the suite until its cutover, when they fail it as the first package's do.
+ * changed, by the second list beside it. Both lists hold the same author's grades 3 to 5 package
+ * (G3-5) beside the first.
  *
  * Names private to the builder (its name, its host and its screen kinds) are not written here,
  * not even as digests: the machine that lands qti-pie checks them before every push. Every
@@ -206,34 +205,35 @@ const DENIED = listed("builder-format.denied-files.sha256");
 const DENIED_TEXT = listed("builder-format.denied-text.sha256");
 
 /**
- * The first list's digests of the G3-5 package.
+ * The two lists a judgement reads: the files' digests and the texts' digests.
  */
-const G35_DENIED = listed("builder-format.g35-files.sha256");
-
-/**
- * The second list's digests of the G3-5 package.
- */
-const G35_DENIED_TEXT = listed("builder-format.g35-text.sha256");
-
-/**
- * What one pass judges by: the files' digests, the texts' digests, and the builder's markup.
- */
-interface Judged {
-  readonly banned: typeof BANNED;
+interface Lists {
   readonly denied: ReadonlySet<string>;
   readonly deniedText: ReadonlySet<string>;
 }
 
 /**
- * The pass the suite fails on: the delivery's lists and the builder's markup.
+ * The delivery's lists, both packages'.
  */
-const K2: Judged = { banned: BANNED, denied: DENIED, deniedText: DENIED_TEXT };
+const LISTS: Lists = { denied: DENIED, deniedText: DENIED_TEXT };
 
 /**
- * The pass it only reports until the G3-5 cutover: that package's lists, and no markup, which the
- * first pass names wherever it is.
+ * Each list as it is made, both packages': its file, how many digests it holds, and the SHA-256 of
+ * its bytes. Remaking the lists changes these in the same change, so a list cut by one digest, or
+ * with one swapped for another, fails.
  */
-const G35: Judged = { banned: [], denied: G35_DENIED, deniedText: G35_DENIED_TEXT };
+const LISTED = {
+  files: {
+    file: "builder-format.denied-files.sha256",
+    sha256: "6d53b0aa1ddc623918dfe8d1c0eac00a685bf7fe3c3f4206195e129a8f6b9fa3",
+    size: 4104,
+  },
+  text: {
+    file: "builder-format.denied-text.sha256",
+    sha256: "87b92ac9c6bc7532b78705773faff08bd8c86f89972266a16011ee1511f77543",
+    size: 3333,
+  },
+} as const;
 
 /**
  * Digest bytes as the lists hold them.
@@ -245,16 +245,34 @@ const digest = (bytes: Uint8Array): string =>
   createHash("sha256").update(bytes).digest("hex").slice(0, 16);
 
 /**
- * Hold a list of digests beside this suite to its shape: at least as many lines as the delivery's
- * files or texts number, so a truncated list fails, each the first 16 hex digits of a SHA-256, as
- * {@link digest} writes them.
+ * Hold a list of digests beside this suite to the list made: exactly its digests, so a cut or an
+ * added digest fails; its whole file the SHA-256 it was made with; each line the first 16 hex
+ * digits of a SHA-256, as {@link digest} writes them.
  *
  * @param name The list's name, for the failure.
  * @param list The list, as {@link listed} reads it.
- * @param least The fewest lines the list holds.
+ * @param made The list as it was made: its file beside this suite, its size and its SHA-256.
+ * @param made.file Its file's name.
+ * @param made.size How many digests it holds.
+ * @param made.sha256 Its whole file's SHA-256.
  */
-const holdsDigests = (name: string, list: ReadonlySet<string>, least: number): void => {
-  assert.isAtLeast(list.size, least, `the ${name} list is short`);
+const holdsDigests = (
+  name: string,
+  list: ReadonlySet<string>,
+  made: { readonly file: string; readonly size: number; readonly sha256: string },
+): void => {
+  assert.strictEqual(
+    list.size,
+    made.size,
+    `the ${name} list does not hold exactly its ${made.size} digests`,
+  );
+  assert.strictEqual(
+    createHash("sha256")
+      .update(readFileSync(path.join(import.meta.dirname, made.file)))
+      .digest("hex"),
+    made.sha256,
+    `the ${name} list is not the one made`,
+  );
   assert.isTrue(
     [...list].every((entry) => regex("^[0-9a-f]{16}$", "u").test(entry)),
     `a ${name} line is not 16 hex digits`,
@@ -266,10 +284,9 @@ const holdsDigests = (name: string, list: ReadonlySet<string>, least: number): v
  * pattern's literals faster than one alternation of them all.
  *
  * @param text A file's text, one of its lines, a path or a symlink's target.
- * @param banned The markup it is judged by.
  * @returns What it carries, once per kind of artefact.
  */
-const offences = (text: string, banned: typeof BANNED): readonly string[] => {
+const offences = (text: string): readonly string[] => {
   const blanked =
     text.includes("sha") || text.includes("base64,") ? text.replaceAll(OPAQUE, " ") : text;
   const readable = regex("\\\\[ux][0-9a-fA-F]|&(?:#|lt;|gt;|quot;|apos;|amp;)", "u").test(blanked)
@@ -277,7 +294,7 @@ const offences = (text: string, banned: typeof BANNED): readonly string[] => {
     : blanked;
 
   return [
-    ...new Set(banned.filter(({ pattern }) => pattern.test(readable)).map(({ what }) => what)),
+    ...new Set(BANNED.filter(({ pattern }) => pattern.test(readable)).map(({ what }) => what)),
   ];
 };
 
@@ -763,14 +780,14 @@ const textRuns = (bytes: Buffer): string => {
  * @param bytes The bytes.
  * @param inside The digests of the archives they sit in, so an archive that holds one it is inside
  *   cannot be read.
- * @param judged The lists and markup it is judged by.
+ * @param lists The lists it is judged by.
  * @returns Each finding, after the file's name.
  */
-const verdict = (bytes: Buffer, inside: readonly string[], judged: Judged): readonly string[] => {
+const verdict = (bytes: Buffer, inside: readonly string[], lists: Lists): readonly string[] => {
   const encoding = encodingOf(bytes);
   const binary = encoding === "utf-8" && bytes.subarray(0, 8000).includes(0);
   const text = binary ? "" : new TextDecoder(encoding).decode(bytes);
-  const found = delivered(bytes, text, judged.denied).map((what) => `: is ${what}`);
+  const found = delivered(bytes, text, lists.denied).map((what) => `: is ${what}`);
   const archived = membersOf(bytes);
 
   if (archived !== undefined) {
@@ -786,10 +803,8 @@ const verdict = (bytes: Buffer, inside: readonly string[], judged: Judged): read
         around.includes(digest(member.bytes))
           ? [`: is an archive that cannot be read: ${member.label} is an archive it is inside`]
           : [
-              ...offences(member.name, judged.banned).map(
-                (what) => `: in ${member.label}: path holds ${what}`,
-              ),
-              ...verdict(member.bytes, around, judged).map(
+              ...offences(member.name).map((what) => `: in ${member.label}: path holds ${what}`),
+              ...verdict(member.bytes, around, lists).map(
                 (finding) => `: in ${member.label}${finding}`,
               ),
             ],
@@ -798,17 +813,14 @@ const verdict = (bytes: Buffer, inside: readonly string[], judged: Judged): read
   }
 
   if (binary) {
-    return [
-      ...found,
-      ...offences(textRuns(bytes), judged.banned).map((what) => `: in its bytes: ${what}`),
-    ];
+    return [...found, ...offences(textRuns(bytes)).map((what) => `: in its bytes: ${what}`)];
   }
 
-  for (const what of rewritten(text, judged.deniedText)) {
+  for (const what of rewritten(text, lists.deniedText)) {
     found.push(`: holds ${what}`);
   }
 
-  const whole = offences(text, judged.banned);
+  const whole = offences(text);
 
   if (whole.length === 0) {
     return found;
@@ -817,7 +829,7 @@ const verdict = (bytes: Buffer, inside: readonly string[], judged: Judged): read
   const byLine = new Set<string>();
 
   for (const [index, line] of text.split("\n").entries()) {
-    for (const what of offences(line, judged.banned)) {
+    for (const what of offences(line)) {
       byLine.add(what);
       found.push(`:${index + 1}: ${what}`);
     }
@@ -840,16 +852,16 @@ const verdict = (bytes: Buffer, inside: readonly string[], judged: Judged): read
  * @param root The repository's root.
  * @param file The file's path under the root.
  * @param missing The listed paths that may be missing: deleted, or left out of a sparse checkout.
- * @param judged The lists and markup it is judged by.
+ * @param lists The lists it is judged by.
  * @returns Each finding, with where it is.
  */
 const scan = (
   root: string,
   file: string,
   missing: ReadonlySet<string>,
-  judged: Judged,
+  lists: Lists,
 ): readonly string[] => {
-  const found = offences(file, judged.banned).map((what) => `${file}: path holds ${what}`);
+  const found = offences(file).map((what) => `${file}: path holds ${what}`);
   const at = path.join(root, file);
   const stat = reachable(root, Buffer.from(file))
     ? lstatSync(at, { throwIfNoEntry: false })
@@ -860,13 +872,13 @@ const scan = (
   }
 
   if (stat.isSymbolicLink()) {
-    for (const what of offences(readlinkSync(at), judged.banned)) {
+    for (const what of offences(readlinkSync(at))) {
       found.push(`${file}: symlink target holds ${what}`);
     }
     if (statSync(at, { throwIfNoEntry: false })?.isFile() === true) {
       const linked = readFileSync(at);
 
-      for (const what of delivered(linked, linked.toString("utf-8"), judged.denied)) {
+      for (const what of delivered(linked, linked.toString("utf-8"), lists.denied)) {
         found.push(`${file}: links to ${what}`);
       }
     }
@@ -875,7 +887,7 @@ const scan = (
   }
 
   return stat.isFile()
-    ? [...found, ...verdict(readFileSync(at), [], judged).map((finding) => `${file}${finding}`)]
+    ? [...found, ...verdict(readFileSync(at), [], lists).map((finding) => `${file}${finding}`)]
     : found;
 };
 
@@ -911,44 +923,17 @@ const unnamedFound = (
  *
  * @param root The repository's root.
  * @param entries What git lists there, as gitListed gives it.
- * @param judged The lists and markup each file is judged by.
+ * @param lists The lists each file is judged by.
  * @returns Each finding, with where it is.
  */
 const treeFindings = (
   root: string,
   entries: ReturnType<typeof gitListed>,
-  judged: Judged,
+  lists: Lists,
 ): readonly string[] => [
   ...entries.unnamed.flatMap((name) => unnamedFound(root, name)),
-  ...entries.files.flatMap((file) => scan(root, file, entries.missing, judged)),
+  ...entries.files.flatMap((file) => scan(root, file, entries.missing, lists)),
 ];
-
-/**
- * Report what of the G3-5 package a tree holds: its pass's findings, logged under one heading and
- * returned, never failing the suite, until its cutover.
- *
- * @param root A repository's root.
- * @param entries What git lists there, as gitListed gives it.
- * @param judged The lists the pass judges by.
- * @returns Each finding, with where it is.
- */
-const reportedG35 = (
-  root: string,
-  entries: ReturnType<typeof gitListed>,
-  judged: Judged,
-): readonly string[] => {
-  const found = treeFindings(root, entries, judged);
-
-  if (found.length > 0) {
-    Effect.runSync(
-      Effect.logWarning(
-        `the delivery's G3-5 package, reported and not refused until its cutover, found (${found.length}):\n${found.join("\n")}`,
-      ),
-    );
-  }
-
-  return found;
-};
 
 /**
  * Every file git tracks in this repository, plus every file it would track (untracked and not
@@ -1141,7 +1126,7 @@ describe("a private item builder's draft format and its delivery's files are ban
     );
     assert.isAbove(files.length, 100, `git listed only ${files.length} files under ${root}`);
 
-    const found = treeFindings(root, entries, K2);
+    const found = treeFindings(root, entries, LISTS);
 
     assert.deepStrictEqual(
       found,
@@ -1150,23 +1135,17 @@ describe("a private item builder's draft format and its delivery's files are ban
     );
   });
 
-  it("reports, and never fails on, what of the G3-5 package a tracked file is, until its cutover", () => {
-    const { root, ...entries } = trackedFiles();
-
-    assert.isArray(reportedG35(root, entries, G35));
-  });
-
   it("judges an archive by its members, fails one that cannot be read, and reads markup behind a NUL in its text runs", () => {
     const standIn = Buffer.from([0, 1, 2, 3, 0, 255]);
-    const judged: Judged = { ...K2, denied: new Set([...DENIED, digest(standIn)]) };
+    const lists: Lists = { ...LISTS, denied: new Set([...DENIED, digest(standIn)]) };
     const sample = CAUGHT.at(0)?.[1] ?? "";
-    const caught = offences(sample, BANNED);
+    const caught = offences(sample);
     const line = Buffer.from(`${sample}\n`);
     const deliveryPath = unbroken("docs/package-c·ode-and-docs/items.json");
     const plain = Buffer.from("plain words\n");
 
     assert.isNotEmpty(caught, "the sample is not found");
-    assert.isNotEmpty(offences(deliveryPath, BANNED), "the delivery's path is not found");
+    assert.isNotEmpty(offences(deliveryPath), "the delivery's path is not found");
     assert.deepStrictEqual(
       verdict(
         zipOf(
@@ -1178,39 +1157,39 @@ describe("a private item builder's draft format and its delivery's files are ban
           false,
         ),
         [],
-        judged,
+        lists,
       ),
       [
         ": in its member in/f.bin: is a file of the delivery",
         ...caught.map((what) => `: in its member in/h.html:1: ${what}`),
-        ...offences(deliveryPath, BANNED).map(
+        ...offences(deliveryPath).map(
           (what) => `: in its member ${deliveryPath}: path holds ${what}`,
         ),
       ],
     );
-    assert.deepStrictEqual(verdict(zipOf([["f.bin", standIn]], true), [], judged), [
+    assert.deepStrictEqual(verdict(zipOf([["f.bin", standIn]], true), [], lists), [
       ": in its member f.bin: is a file of the delivery",
     ]);
-    assert.deepStrictEqual(verdict(gzipSync(tarOf([["x/f.bin", standIn]])), [], judged), [
+    assert.deepStrictEqual(verdict(gzipSync(tarOf([["x/f.bin", standIn]])), [], lists), [
       ": in its gzip stream: in its member x/f.bin: is a file of the delivery",
     ]);
     assert.deepStrictEqual(
       verdict(
         Buffer.from([0x50, 0x4b, 0x03, 0x04, ...Array.from({ length: 26 }, () => 0)]),
         [],
-        judged,
+        lists,
       ),
       [": is an archive that cannot be read: it has no end of central directory"],
     );
     assert.deepStrictEqual(
-      verdict(Buffer.concat([Buffer.from([0]), line]), [], judged),
+      verdict(Buffer.concat([Buffer.from([0]), line]), [], lists),
       caught.map((what) => `: in its bytes: ${what}`),
     );
-    assert.deepStrictEqual(verdict(zipOf([["f.bin", standIn]], false), [digest(standIn)], judged), [
+    assert.deepStrictEqual(verdict(zipOf([["f.bin", standIn]], false), [digest(standIn)], lists), [
       ": is an archive that cannot be read: its member f.bin is an archive it is inside",
     ]);
-    assert.deepStrictEqual(verdict(gzipSync(tarOf([["a.txt", plain]])), [], judged), []);
-    assert.deepStrictEqual(verdict(zipOf([["a.txt", plain]], true), [], judged), []);
+    assert.deepStrictEqual(verdict(gzipSync(tarOf([["a.txt", plain]])), [], lists), []);
+    assert.deepStrictEqual(verdict(zipOf([["a.txt", plain]], true), [], lists), []);
   });
 
   it("fails a name that is not UTF-8 or led by a BOM even beside a clean twin, a listed path not there, and one in a folder that cannot be searched, and passes one deleted or sparse", (context) => {
@@ -1298,13 +1277,13 @@ describe("a private item builder's draft format and its delivery's files are ban
       `o\\xff.bin: ${NOT_UTF8}`,
       `s\\xff.b: ${NOT_UTF8}`,
     ];
-    const keptSparse = scan(directory, "kept.txt", new Set(), K2);
+    const keptSparse = scan(directory, "kept.txt", new Set(), LISTS);
     const keptLinked = keptSparse.map((finding) => finding.replace("kept.txt", "linked/x.txt"));
     const kept = [...keptSparse, ...keptLinked];
 
     assert.includeMembers(entries.files, ["\uFEFFp.bin", "p.bin"], "a leading BOM is dropped");
     assert.isNotEmpty(keptSparse, "a sample of hers is found");
-    assert.deepStrictEqual(treeFindings(directory, entries, K2), [...unnamed, ...kept]);
+    assert.deepStrictEqual(treeFindings(directory, entries, LISTS), [...unnamed, ...kept]);
     assert.deepStrictEqual(
       treeFindings(
         directory,
@@ -1316,7 +1295,7 @@ describe("a private item builder's draft format and its delivery's files are ban
             { bytes: Buffer.from([0x61, 0xfe]), mayBeMissing: false, shown: "a\\xfe" },
           ],
         },
-        K2,
+        LISTS,
       ),
       [...unnamed, `a\\xfe: ${UNREAD}`, ...kept, `absent.txt: ${UNREAD}`],
     );
@@ -1327,7 +1306,7 @@ describe("a private item builder's draft format and its delivery's files are ban
 
     if (!searchesAnyFolder) {
       assert.throws(() => {
-        treeFindings(directory, unnamedLocked, K2);
+        treeFindings(directory, unnamedLocked, LISTS);
       }, "EACCES");
     }
 
@@ -1338,7 +1317,7 @@ describe("a private item builder's draft format and its delivery's files are ban
 
     if (!searchesAnyFolder) {
       assert.throws(() => {
-        treeFindings(directory, namedLocked, K2);
+        treeFindings(directory, namedLocked, LISTS);
       }, "EACCES");
     }
 
@@ -1349,7 +1328,7 @@ describe("a private item builder's draft format and its delivery's files are ban
 
     if (!searchesAnyFolder) {
       assert.throws(() => {
-        treeFindings(directory, deepLocked, K2);
+        treeFindings(directory, deepLocked, LISTS);
       }, "EACCES");
     }
   });
@@ -1406,7 +1385,7 @@ describe("a private item builder's draft format and its delivery's files are ban
 
   it("catches, with every alternative, a sample of its own", () => {
     for (const [what, sample] of CAUGHT) {
-      assert.include(offences(sample, BANNED), what, sample);
+      assert.include(offences(sample), what, sample);
     }
 
     assert.deepStrictEqual(
@@ -1434,24 +1413,13 @@ describe("a private item builder's draft format and its delivery's files are ban
       "screenshot screens kind",
       "a non-ASCII escape stays as written: \\u00e9 &#233;",
     ].map(unbroken)) {
-      assert.deepStrictEqual(offences(clean, BANNED), [], clean);
+      assert.deepStrictEqual(offences(clean), [], clean);
     }
   });
 
   it("catches a file of the delivery by its digest, whole, as a data: URI or reformatted, and nothing else", () => {
-    holdsDigests("denied-files", K2.denied, 3000);
-    holdsDigests("denied-text", K2.deniedText, 2500);
-    holdsDigests("g35-files", G35.denied, 1000);
-    holdsDigests("g35-text", G35.deniedText, 600);
-    assert.isFalse(
-      [...G35.denied].every((entry) => K2.denied.has(entry)),
-      "the pass the suite fails on is fed the G3-5 package's files",
-    );
-    assert.isFalse(
-      [...G35.deniedText].every((entry) => K2.deniedText.has(entry)),
-      "the pass the suite fails on is fed the G3-5 package's texts",
-    );
-    assert.isEmpty(G35.banned, "the G3-5 pass names the builder's markup, which the first names");
+    holdsDigests("denied-files", LISTS.denied, LISTED.files);
+    holdsDigests("denied-text", LISTS.deniedText, LISTED.text);
 
     const planted = Buffer.from(
       "a planted file standing in for one of the delivery's, long enough to be listed",
@@ -1492,7 +1460,7 @@ describe("a private item builder's draft format and its delivery's files are ban
     ]);
   });
 
-  it("reports a file of the G3-5 package by its own lists and never fails on it, and fails only the first package's", (context) => {
+  it("fails a file of either package, its text reformatted and the markup, by the one pass", (context) => {
     const directory = mkdtempSync(path.join(tmpdir(), "builder-format-g35-"));
     const first = Buffer.from([0, 1, 2, 3, 0, 255]);
     const second = Buffer.from([0, 1, 2, 3, 0, 254]);
@@ -1509,21 +1477,16 @@ describe("a private item builder's draft format and its delivery's files are ban
     writeFileSync(path.join(directory, "second.bin"), second);
     writeFileSync(path.join(directory, "second.txt"), text.replaceAll(" ", "\n  "));
 
-    const entries = gitListed(directory);
-    const firstPass: Judged = { ...K2, denied: new Set([...K2.denied, digest(first)]) };
-    const secondPass: Judged = {
-      ...G35,
-      denied: new Set([...G35.denied, digest(second)]),
-      deniedText: new Set([...G35.deniedText, digest(flat(text))]),
+    const lists: Lists = {
+      denied: new Set([...LISTS.denied, digest(first), digest(second)]),
+      deniedText: new Set([...LISTS.deniedText, digest(flat(text))]),
     };
 
-    assert.deepStrictEqual(reportedG35(directory, entries, secondPass), [
+    assert.deepStrictEqual(treeFindings(directory, gitListed(directory), lists), [
+      "first.bin: is a file of the delivery",
+      ...offences(sample).map((what) => `markup.html:1: ${what}`),
       "second.bin: is a file of the delivery",
       "second.txt: holds a text of the delivery, reformatted",
-    ]);
-    assert.deepStrictEqual(treeFindings(directory, entries, firstPass), [
-      "first.bin: is a file of the delivery",
-      ...offences(sample, BANNED).map((what) => `markup.html:1: ${what}`),
     ]);
   });
 });
