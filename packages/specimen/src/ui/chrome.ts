@@ -7,15 +7,18 @@
  * kept Playwright's 30 s default, and `page.goto` timed out at load 300). Every portable custom
  * interaction a harness hosts loads its modules with no clock either ({@link
  * unboundedPrimaryWait}). Its sound plays to fake audio streams ({@link fakeAudioStreams}), so no
- * recording a page plays fails on the machine's sound server. The lint holds every other module to
- * this one (oxlint.config.ts, `no-restricted-properties` on `chromium.launch`, `newContext` and
- * `newPage`).
+ * recording a page plays fails on the machine's sound server. Each PCI's frame a page holds runs
+ * without the built-ins and DOM members past the hosts' browser floor ({@link
+ * floorFrames}), so a frame's code that reaches one fails its suite. The lint holds every other
+ * module to this one (oxlint.config.ts, `no-restricted-properties` on `chromium.launch`,
+ * `newContext` and `newPage`).
  */
 import { tmpdir } from "node:os";
 import { Config, Effect } from "effect";
 import type { Scope } from "effect";
 import { chromium } from "playwright-core";
 import type { Browser, BrowserContext, BrowserContextOptions, Page } from "playwright-core";
+import { laterMembers, removeLaterMembers } from "@qti-pie/plate/test/browser-floor";
 
 /**
  * The folder Chrome keeps its process singleton's socket in: the session's runtime folder, whose
@@ -33,6 +36,27 @@ const runtimeFolder = Config.String("XDG_RUNTIME_DIR").pipe(Config.withDefault(t
  * @see {@link https://github.com/chromium/chromium/blob/158.0.8127.88/media/base/media_switches.cc#L143-L146 | Chrome 158's media switches: "Forces input and output stream creation to use fake audio streams"}
  */
 const fakeAudioStreams = "--disable-audio-output";
+
+/**
+ * A script that takes each member of the roster of `@qti-pie/plate/test/browser-floor`, every
+ * member the floor's oldest browser lacks, out of the realm it runs in.
+ */
+export const floorRealm = `(${String(removeLaterMembers)})(${JSON.stringify(laterMembers)});`;
+
+/**
+ * The script every context runs in each document before the document's own scripts: in plate's
+ * frame page, a PCI's frame, a document served over HTTP whose origin is opaque, as the page's own
+ * policy, `sandbox allow-scripts`, makes it, framed or not, it takes each member of the roster of
+ * `@qti-pie/plate/test/browser-floor` out of the frame's realm, as the oldest browser of the
+ * hosts' floor has none of them. A PCI's frame runs plate's frame boot
+ * and the PCI's module files as written, with no polyfill, so each suite that hosts one runs that
+ * code as a learner's oldest browser does, and the harness's own code in the frame, its listeners
+ * and its readers, reaches nothing past the floor either. A document of an origin of its own, and
+ * one on no HTTP address (`about:blank`, which a page's `setContent` writes into), keep every
+ * member. It reads the window's `origin` and `location`, never its `parent`, whose reads the
+ * frame-parent suite counts.
+ */
+const floorFrames = `if (window.origin === "null" && location.protocol.startsWith("http")) ${floorRealm}`;
 
 /**
  * The wait every hosted portable custom interaction's primary is given before its fallback loads:
@@ -91,6 +115,7 @@ export const chromeFor = <E>(fail: (step: string, cause: unknown) => E): Chrome<
 
         opened.setDefaultTimeout(0);
         opened.setDefaultNavigationTimeout(0);
+        await opened.addInitScript({ content: floorFrames });
 
         return opened;
       }),

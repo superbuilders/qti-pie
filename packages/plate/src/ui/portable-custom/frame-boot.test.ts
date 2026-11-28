@@ -46,6 +46,12 @@ import { afterEach, assert, beforeEach, describe, it, vi } from "vitest";
 import type { FrameToPage, PciFrameRoute } from "#plate/pci/frame-protocol.ts";
 import { bootFrame } from "#plate/ui/portable-custom/frame-boot.ts";
 import { framePage } from "#plate/ui/portable-custom/frame-page.ts";
+import {
+  lackedIn,
+  laterMembers,
+  reachedMembers,
+  removeLaterMembers,
+} from "#plate/test/browser-floor.ts";
 import type {
   FrameNonce,
   PageLanded,
@@ -4980,7 +4986,7 @@ describe("content sized from its own viewport, which no height fits", () => {
 interface RunEvent {
   readonly composedPath?: () => readonly object[];
   readonly currentTarget?: object;
-  readonly data?: IslandData;
+  readonly data?: object | number | undefined;
   readonly message?: string;
   readonly persisted?: boolean;
   readonly reason?: Error | string;
@@ -5024,18 +5030,23 @@ interface Listeners extends Map<string, ((event: RunEvent) => void)[]> {
 const listenersOf = (): Listeners => Object.assign(new Map(), { owner: {} });
 
 /**
- * A run of the frame page's script in a `node:vm` context of its own: the names read and the moment
+ * A run of the frame page's script in a `node:vm` context of its own, a realm with no member of the
+ * roster of `#plate/test/browser-floor.ts`, as a browser of the hosts' floor has none: the names
+ * read and the moment
  * `define` was installed, in order; the context's window; the island; the listeners added to the
  * window and to the document; the elements the frame made, in order; the island's posts; the timers
  * the frame set, by their ids; its `ResizeObserver` and `MutationObserver` callbacks; the
  * viewport's height and resolution, which `matchMedia` answers by; the document's style sheets, in
  * order, the page's pins among them where the run has them, the pins' node and a way to make
  * another, as a PCI's `style` is, and the nodes whose sheet has not loaded, a link's, which the
- * document's order holds and `styleSheets` does not; and two ways to run a script of the PCI's in
- * the same context: as code of the PCI's own outside any module script, and as a module file the
- * frame loaded runs, the document's `currentScript` that script element while it runs.
+ * document's order holds and `styleSheets` does not; two ways to run a script of the PCI's in the
+ * same context: as code of the PCI's own outside any module script, and as a module file the frame
+ * loaded runs, the document's `currentScript` that script element while it runs; a way to put the
+ * island's message into the context's realm, as HTML's structured clone does; and a way to read
+ * which of some members the realm has.
  */
 interface Run {
+  readonly clone: (data: IslandData) => object | number | undefined;
   readonly elements: RunElement[];
   readonly evaluate: (source: string) => void;
   readonly ranAs: (source: string, as: RunElement | undefined) => void;
@@ -5051,6 +5062,7 @@ interface Run {
   readonly animations: RunAnimation[];
   readonly pins: SheetOwner | undefined;
   readonly posted: FrameToPage[];
+  readonly reached: (paths: readonly string[]) => string;
   readonly sheets: RunSheet[];
   readonly timers: Map<number, () => void>;
   readonly viewport: { height: number; resolution: number };
@@ -5318,11 +5330,22 @@ const ran = (script: string, hash: string, styled: boolean): Run => {
 
   const context = createContext(sandbox);
 
+  runInContext(`(${String(removeLaterMembers)})(${JSON.stringify(laterMembers)});`, context, {
+    filename: "floor.js",
+  });
   runInContext(script, context, { filename: bootFile });
 
   return {
     acked,
     animations,
+    clone: (data) => {
+      const cloned: unknown = runInContext(
+        `JSON.parse(${JSON.stringify(JSON.stringify(data))})`,
+        context,
+      );
+
+      return Predicate.isObject(cloned) || Predicate.isNumber(cloned) ? cloned : undefined;
+    },
     elements,
     evaluate: (source) => {
       runInContext(source, context, { filename: "module.js" });
@@ -5344,6 +5367,14 @@ const ran = (script: string, hash: string, styled: boolean): Run => {
       scripted.currentScript = as ?? null;
       runInContext(source, context, { filename: "module.js" });
       scripted.currentScript = null;
+    },
+    reached: (paths) => {
+      const found: unknown = runInContext(
+        `(${String(reachedMembers)})(${JSON.stringify(paths)});`,
+        context,
+      );
+
+      return Predicate.isString(found) ? found : "";
     },
     sheets,
     timers,
@@ -5380,7 +5411,7 @@ type IslandData = PageMessage | { readonly kind?: string; readonly nonce?: strin
 const fromIsland = (run: Run, data: IslandData): RunEvent => ({
   composedPath: () => [run.global],
   currentTarget: run.global,
-  data,
+  data: run.clone(data),
   source: run.island,
   srcElement: run.global,
   target: run.global,
@@ -6385,6 +6416,22 @@ describe("the frame's boot, run", () => {
       reads,
       lives.map(({ name }) => `${name}: ${name === "no nonce" ? "" : "parent, define"}`),
       "the boot reads `parent` once, before any PCI's code can run, and reads no other attribute a PCI's script could put its own value in place of; with no nonce, it reads nothing",
+    );
+  });
+
+  it("runs in a realm with no built-in or DOM member past the hosts' browser floor, and names none, nor any later syntax, in its source", async () => {
+    const page = await Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto)));
+    const script = scriptOf(page.html);
+    const run = ran(script, `#${nonce}`, true);
+    const paths = laterMembers;
+
+    assert.deepStrictEqual(
+      {
+        lacked: lackedIn(bootFile, script),
+        reached: run.reached(paths),
+      },
+      { lacked: [], reached: "" },
+      "the boot runs as written in a browser of the floor, with no polyfill: the runs drive it in a realm that lacks every member of `#plate/test/browser-floor.ts`'s roster, and its source names none of them and uses no syntax that came later",
     );
   });
 

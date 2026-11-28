@@ -14,6 +14,12 @@
  * exhausted, a wait run out, a missing dependency, a missing entry, a module that throws while it
  * loads, a factory that gives no interaction; and a frame with no nonce, which reads nothing.
  *
+ * Every frame runs, as each suite's does (`#specimen/ui/chrome.ts`), without the built-ins and DOM
+ * members past the hosts' browser floor (`@qti-pie/plate/test/browser-floor`). There the frame
+ * still posts its content's height, the island writes it, and the frame's root fits it: read once a
+ * message the frame posts two renderings on has come, after every height it posted, as one
+ * window's messages keep their order.
+ *
  * @module
  */
 import { assert, describe, it } from "@effect/vitest";
@@ -21,6 +27,7 @@ import { Effect } from "effect";
 import { Digest } from "effect/crypto";
 import type { Page } from "playwright-core";
 import { chromeFor } from "#specimen/ui/chrome.ts";
+import { laterMembers, reachedMembers } from "@qti-pie/plate/test/browser-floor";
 import { framePage, landHeight } from "@qti-pie/plate/ui/pci-frame";
 
 /**
@@ -731,5 +738,101 @@ describe("plate's PCI frame page in Chrome", () => {
           "the boot puts its pins first in the head before any PCI code, so a host's frame page whose own stylesheet sets the root and the body to the viewport's height, with margins, a zoom and a clip, ends where plate's page ends, 632 for 632, the fixed point of 300 px over `50vh`, in at most three posts after the PCI's `ready` (341, then 487 or not, then 632, as Chrome's renderings fall); a page whose policy refuses an inline style leaves the pins no sheet, and the frame fails by name before it boots",
         );
       }),
+  );
+
+  it.live(
+    "posts its content's height, which the island writes as the frame's, in a frame whose realm has no member past the hosts' browser floor",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* floored() {
+          const browser = yield* Effect.orDie(chrome.browser);
+          const page = yield* Effect.promise(() =>
+            Effect.runPromise(framePage.pipe(Effect.provide(Digest.layerWebCrypto))),
+          );
+          const context = yield* Effect.orDie(
+            chrome.context(browser, { viewport: { height: 900, width: 1000 } }),
+          );
+
+          yield* Effect.promise(async () => {
+            await context.route(`${origin}/**`, async (route) => {
+              const { pathname } = new URL(route.request().url());
+
+              if (pathname === "/") {
+                await route.fulfill({ body: host, contentType: "text/html" });
+              } else if (pathname === "/frame.html") {
+                await route.fulfill({ body: page.html, headers: { ...page.headers } });
+              } else if (pathname === "/modules/a.js") {
+                await route.fulfill({
+                  body: "define(function () { return 1; });",
+                  contentType: "text/javascript",
+                });
+              } else {
+                await route.fulfill({ body: "", status: 404 });
+              }
+            });
+          });
+
+          const tab = yield* Effect.orDie(chrome.page(context));
+
+          return yield* Effect.promise(async () => {
+            await tab.goto(`${origin}/`);
+            await tab.evaluate(
+              ({ hash, load }) => {
+                window.life = load;
+                window.openFrame(hash);
+              },
+              {
+                hash: `#${nonce}`,
+                load: {
+                  ...loadOf({
+                    entry: "a",
+                    hash: `#${nonce}`,
+                    live: async () => {},
+                    modules: {},
+                    name: "floored",
+                    routes: [routeOf("a")],
+                  }),
+                  markup: '<div style="height:400px"></div>',
+                  templates: [],
+                },
+              },
+            );
+            await posted(tab, ["failed", "registered"]);
+
+            const frame = frameOf(tab);
+
+            await frame?.evaluate(() => {
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  window.parent.postMessage({ kind: "settled", nonce: "n1" }, "*");
+                });
+              });
+            });
+            await posted(tab, ["settled"]);
+
+            const reached = await frame?.evaluate(reachedMembers, laterMembers);
+            const inFrame = await frame?.evaluate(() => ({
+              root: Math.ceil(document.documentElement.getBoundingClientRect().height),
+            }));
+            const island = await tab.evaluate(() => ({
+              kinds: window.posts
+                .map((message) => message.kind)
+                .filter((kind) => kind !== "height" && kind !== "settled"),
+              written: document.querySelector("iframe")?.getAttribute("height"),
+            }));
+
+            assert.deepStrictEqual(
+              { ...inFrame, ...island, reached },
+              {
+                kinds: ["booted", "registered"],
+                reached: "",
+                root: 416,
+                written: "416",
+              },
+              "with no member of the floor's roster, the frame posts its root's border-box height, 400 px of content and the body's margins, and the island writes it as the frame's height",
+            );
+          });
+        }),
+      ),
   );
 });

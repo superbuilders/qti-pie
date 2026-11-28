@@ -18,6 +18,9 @@ catalogs:
     '@effect/vitest':
       specifier: 4.1.4
       version: 4.1.4
+    '@mdn/browser-compat-data':
+      specifier: 8.1.11
+      version: 8.1.11
     '@stylistic/eslint-plugin':
       specifier: 6.0.1
       version: 6.0.1
@@ -382,6 +385,9 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.1.4(effect@4.1.4)(vitest@5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)))
+      '@mdn/browser-compat-data':
+        specifier: 'catalog:'
+        version: 8.1.11
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
@@ -843,6 +849,9 @@ packages:
 
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
+
+  '@mdn/browser-compat-data@8.1.11':
+    resolution: {integrity: sha512-EMKM/sZetGWgQbposvwOjUeod+pIP1splOcORycjnOi/jhd3D1YIpdyhohaLgkPELyv9XpqpztRMWEaUvMvpkw==}
 
   '@napi-rs/wasm-runtime@1.2.6':
     resolution: {integrity: sha512-mRyDmEw9/fCDXCGfL1sbgIw/GUK0PVxRW4YwgPN61F3LQ+fSyoBFarJVzgGyhF6kRzEQZ0FejDqm4WLXSeqQmw==}
@@ -3009,6 +3018,8 @@ snapshots:
       keyv: 5.6.0
 
   '@keyv/serialize@1.1.1': {}
+
+  '@mdn/browser-compat-data@8.1.11': {}
 
   '@napi-rs/wasm-runtime@1.2.6(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)':
     dependencies:

@@ -10,6 +10,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./admission-codes": "./src/admission-codes.ts",
+    "./browser-floor": "./src/browser-floor.ts",
     "./alpha": "./src/alpha/renderers.ts",
     "./alpha/math-entry": "./src/alpha/math-entry/field.ts",
     "./alpha/pci-modules": "./src/alpha/pci-modules.ts",
@@ -26,6 +27,7 @@
     "./styles/base.css": "./src/styles/base.css",
     "./styles/theme.css": "./src/styles/theme.css",
     "./test/admitted": "./src/test/admitted.ts",
+    "./test/browser-floor": "./src/test/browser-floor.ts",
     "./test/catalog-shown": "./src/test/catalog-shown.ts",
     "./test/corpus": "./src/test/corpus.ts",
     "./test/golden": "./src/test/golden.ts",
@@ -55,6 +57,7 @@
     "@bjornpagen/devtools": "workspace:*",
     "@bjornpagen/testing": "workspace:*",
     "@effect/vitest": "catalog:",
+    "@mdn/browser-compat-data": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "oxc-parser": "catalog:",

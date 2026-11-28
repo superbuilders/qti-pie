@@ -19,6 +19,10 @@
  * alone, never on what compiles plate. `#plate/alpha/pci-modules.test.ts` holds each file to its
  * source byte for byte and to its SHA-256 pin, so a change to a file's bytes is a change in review.
  *
+ * **Why the floor.** A module file runs as written, in the learner's browser, with no polyfill: so
+ * it uses only what the hosts' browser floor (`#plate/browser-floor.ts`) fully supports, which
+ * the test holds in each file, and specimen's suites where it runs, in Chrome.
+ *
  * **Adding a module.** Its source and its emitted file in `pci-modules/`, its entry here, written
  * with {@link alphaPciModule} and listed in {@link alphaPciModules}, and its pin in the test.
  *

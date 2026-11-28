@@ -56,6 +56,12 @@
  * is inside the function, and every import is a type. A value added beside it would be undefined
  * in the frame.
  *
+ * **Why the floor.** The text runs as written, in the learner's browser, with no polyfill and no
+ * bundler between: so it uses only what the hosts' browser floor (`#plate/browser-floor.ts`) fully
+ * supports, in MDN's browser compatibility data. `#plate/ui/portable-custom/frame-boot.test.ts`
+ * runs every block of the boot in a realm without the members the floor lacks, and refuses in its
+ * source each global, static member and syntax the floor lacks.
+ *
  * @module
  * @see https://github.com/amdjs/amdjs-api/blob/master/AMD.md
  * @see https://www.imsglobal.org/spec/qti/v3p0/impl

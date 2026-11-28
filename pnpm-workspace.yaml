@@ -29,6 +29,7 @@ catalog:
   "@effect/platform-node": 4.1.4
   "@effect/tsgo": 0.73.2
   "@effect/vitest": 4.1.4
+  "@mdn/browser-compat-data": 8.1.11
   "@stylistic/eslint-plugin": 6.0.1
   "@types/node": 26.6.6
   "@types/pg": 8.23.1

@@ -49,8 +49,8 @@
  * One scheme: the colours are light, whatever the page's `color-scheme`, since no page sets a
  * dark one.
  *
- * Browsers: `:has()`, `oklch()`, `color-mix()` and the `lh` unit need Safari and iPadOS 16.4,
- * Chrome 111 and Firefox 121. No rule nests, so no build has to flatten the sheet.
+ * Browsers: the hosts' floor (`#plate/browser-floor.ts`), which `#plate/test/browser-floor.test.ts`
+ * holds this sheet to.
  */
 @layer ui-sdk, plate;
 

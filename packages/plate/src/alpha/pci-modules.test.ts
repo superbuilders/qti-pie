@@ -25,6 +25,7 @@ import { fileURLToPath } from "node:url";
 import { runInNewContext } from "node:vm";
 import { alphaPciModule, alphaPciModules } from "#plate/alpha/pci-modules.ts";
 import type { AlphaPciModuleId } from "#plate/alpha/pci-modules.ts";
+import { lackedIn } from "#plate/test/browser-floor.ts";
 
 /**
  * Each module file's SHA-256, base64, as Subresource Integrity writes it, by the module's id.
@@ -197,5 +198,18 @@ describe("Alpha's PCI modules", () => {
         assert.isFunction(getInstance);
       }
     }
+  });
+
+  it("each reach no built-in, DOM member or syntax past the hosts' browser floor", () => {
+    assert.deepStrictEqual(
+      alphaPciModules.flatMap(({ path: inPackage, script }) => {
+        const text = readFileSync(script, "utf-8");
+        const name = path.basename(inPackage);
+
+        return lackedIn(name, text).map((later) => `${name}: ${later}`);
+      }),
+      [],
+      "A module file runs as written in the learner's browser, with no polyfill, so each global, static member and syntax it names is fully supported at the floor (`#plate/browser-floor.ts`), in MDN's browser compatibility data.",
+    );
   });
 });

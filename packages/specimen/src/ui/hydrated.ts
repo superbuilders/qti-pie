@@ -35,8 +35,9 @@ import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
 import { Brand, Data, Effect, Function, Option, Predicate, Schema } from "effect";
 import type { Scope } from "effect";
+import { Digest } from "effect/crypto";
 import type { BrowserContext, ConsoleMessage, Page } from "playwright-core";
-import { chromeFor } from "#specimen/ui/chrome.ts";
+import { chromeFor, floorRealm } from "#specimen/ui/chrome.ts";
 import { Activity, createElement } from "react";
 import { renderToString } from "react-dom/server";
 import type { Responses as ResponseValues } from "@qti-pie/plate";
@@ -46,6 +47,8 @@ import { recordOf } from "@qti-pie/plate/test/records";
 import { Item, standardRenderers } from "@qti-pie/plate/ui";
 import type { ItemProps, Renderers } from "@qti-pie/plate/ui";
 import { heldOf, Responses } from "@qti-pie/plate/ui/client";
+import { framePage } from "@qti-pie/plate/ui/pci-frame";
+import type { FramePage } from "@qti-pie/plate/ui/pci-frame";
 import { createViteServer } from "vitest/node";
 import { clientExports, plateSource } from "#specimen/ui/clients.ts";
 import { instance } from "#specimen/ui/rules.ts";
@@ -115,7 +118,15 @@ export const solved = (item: SourceItem): Answering => {
   const shownBy = { record, showFeedback: true } as const;
 
   return {
-    props: { ...shownBy, configuration, instance, item: accepted, mode: "answering", stimuli },
+    props: {
+      ...shownBy,
+      configuration,
+      instance,
+      item: accepted,
+      mode: "answering",
+      stimuli,
+      ...Option.match(item.host, { onNone: () => ({}), onSome: (host) => ({ host }) }),
+    },
     renderers: standardRenderers,
     responses: { ...startingResponses(accepted, shownBy), ...solution(accepted, record) },
   };
@@ -856,14 +867,22 @@ const notedAnswer = (
 };
 
 /**
+ * The address of plate's PCI frame page, the `loader` the specimen's Portable Custom names
+ * (`#specimen/kinds/portable-custom.ts`), at which the pages' server serves it.
+ */
+const pciLoader = "/pci/frame.html";
+
+/**
  * The pages' server on a port of the loopback the system chose, closed with its scope: each page
  * at `/page/<n>`, each synthetic recording at `/recording/…` ({@link recordingPath}), each of its
- * answers noted on its page's wire, and every other address Vite's.
+ * answers noted on its page's wire, plate's PCI frame page at {@link pciLoader} with plate's
+ * headers, and every other address Vite's.
  *
  * @param server Vite.
  * @param pages The pages, by address.
  * @param held The recordings the server holds back.
  * @param traffic What each page's recordings met on the wire.
+ * @param frame Plate's PCI frame page.
  * @returns The server's address.
  */
 const pageServer = (
@@ -871,9 +890,17 @@ const pageServer = (
   pages: ReadonlyMap<string, Written>,
   held: HeldRecordings,
   traffic: Traffic,
+  frame: FramePage,
 ): Effect.Effect<string, HydrationFailure, Scope.Scope> => {
   const serve = (request: IncomingMessage, response: ServerResponse) => {
     const page = pages.get(request.url ?? "");
+
+    if (new URL(request.url ?? "/", "http://localhost").pathname === pciLoader) {
+      response.writeHead(200, frame.headers).end(frame.html);
+
+      return;
+    }
+
     const asked = Option.getOrUndefined(recordingPath(request.url ?? ""));
 
     if (asked !== undefined) {
@@ -987,11 +1014,32 @@ const reportsAnError = (message: ConsoleMessage): boolean => {
 };
 
 /**
+ * The script each page and frame runs first: it keeps the page's `requestIdleCallback`, as
+ * `harnessIdle`, a property no script of the page can write, before {@link floorPages} takes it
+ * out, since Safari, a browser of the hosts' floor, has none; a PCI's frame, floored before it
+ * runs, keeps none, and the harness waits in none. No API of the floor's browsers waits
+ * for the page's next idle period, which only the browser knows; the harness's wait for it is its
+ * own instrument, kept as the alpha harnesses keep their clock (`#specimen/alpha/delivered.ts`).
+ */
+const keptIdle =
+  'if (window.requestIdleCallback !== undefined) Object.defineProperty(window, "harnessIdle", { value: window.requestIdleCallback.bind(window) });';
+
+/**
+ * The script each page and frame of the harness runs before its own: every member the hosts'
+ * browser floor lacks taken out of its realm (`floorRealm` of `#specimen/ui/chrome.ts`), so each
+ * island plate hydrates, the Portable Custom's host among them, runs as the floor's oldest browser
+ * runs it.
+ */
+const floorPages = `if (location.protocol.startsWith("http")) ${floorRealm}`;
+
+/**
  * Wait in the page for two frames, the task after them, and the page's next idle period, which
  * comes only once the page has no task to run: so React has hydrated every Suspense boundary it
  * still had to, an island's among them, and run their effects, which it schedules as tasks of its
  * own, whatever the machine's load. A boundary hydrates after the page's root, so two frames alone
- * left a press on a control whose effect had yet to run.
+ * left a press on a control whose effect had yet to run. The idle period is the one the page's
+ * `requestIdleCallback` gives, which the harness keeps before the page's realm is floored
+ * ({@link keptIdle}): an instrument of the harness's, never the page's own code.
  *
  * @returns The wait, in the page.
  */
@@ -1010,7 +1058,7 @@ const framesAndIdle = async (): Promise<void> => {
   await task.promise;
   const idle = Promise.withResolvers<IdleDeadline>();
 
-  requestIdleCallback(idle.resolve);
+  window.harnessIdle?.(idle.resolve);
   await idle.promise;
 };
 
@@ -1357,10 +1405,20 @@ const harness = Effect.gen(function* harness() {
   const pages = new Map<string, Written>();
   const held: HeldRecordings = new Map();
   const traffic: Traffic = new Map();
-  const base = yield* pageServer(server, pages, held, traffic);
+  const frame = yield* framePage.pipe(Effect.provide(Digest.layerWebCrypto));
+  const base = yield* pageServer(server, pages, held, traffic, frame);
   const context = yield* launched.context(yield* chrome, {
     viewport: { height: 900, width: 1200 },
   });
+
+  yield* Effect.tryPromise({
+    catch: (cause) => new HydrationFailure({ cause, step: "floor the pages' realm" }),
+    try: async () => {
+      await context.addInitScript({ content: keptIdle });
+      await context.addInitScript({ content: floorPages });
+    },
+  });
+
   /**
    * Each page's crowding, by its segment: settled at the first request of one of its recordings
    * past Chrome's connections to its host.
@@ -1546,3 +1604,13 @@ export const scenePages: Effect.Effect<
   HydrationFailure,
   Scope.Scope
 > = harness;
+
+declare global {
+  interface Window {
+    /**
+     * The page's own `requestIdleCallback`, kept before the page's realm was floored
+     * ({@link keptIdle}); absent in a PCI's frame, floored before it.
+     */
+    readonly harnessIdle?: (callback: IdleRequestCallback) => number;
+  }
+}
