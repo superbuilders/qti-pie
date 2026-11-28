@@ -9,6 +9,13 @@
  * Greek command), and T-6's "one numeral or one name" also a numeral `[0-9]+(\.[0-9]+)?`; every
  * rule, T-8 included, runs inside the fixpoint.
  *
+ * Every character a rule deletes or rewrites is one the rule names: white space, the presentation
+ * commands, the zero-width characters, the synonyms, the empty templates and V-25's answer
+ * punctuation. No rule deletes a character for being outside an alphabet, so a character no rule
+ * names (`#`, `@`, `?`, an emoji, an unpaired bracket) stays where it was written, and an answer
+ * that holds one is never read as the answer without it (`6#` is not `6`; the ruling of 2026-11-28,
+ * which withdrew V-28's edge junk).
+ *
  * This is the SQL grader's `p3.tex_normal` ported literally, function by function, its places
  * counted in code points as PostgreSQL counts them; the differential against it on every LaTeX key
  * and box row is its oracle.
@@ -738,75 +745,6 @@ const vulgar = (input: string): string => {
 };
 
 /**
- * A letter, combining mark or number, the whole text.
- */
-const letterMarkOrNumber = regex("^[\\p{L}\\p{M}\\p{N}]$", "u");
-
-/**
- * The symbols the math alphabet holds beside letters, marks, numbers and white space.
- */
-const edgeSymbols = "+-*/÷=<>^_!%|±.,:;'′\"″°$€£¢";
-
-/**
- * T-10 edge junk (V-28): the longest leading and trailing runs outside the math alphabet are
- * deleted, and the white space they leave at the edge. The alphabet: letters, combining marks (so
- * `i̇` keeps its dot) and numbers, White_Space, `+-*\/÷=<>^_!%|±.,:;'′"″°$€£¢`, a `\` before an
- * ASCII letter, and paired brackets, which pair by nesting whatever their kinds (`[1,6)` pairs; the
- * `]` of `10]` does not).
- *
- * @param text - The text.
- * @returns It without its edge junk.
- */
-const withoutEdgeJunk = (text: string): string => {
-  const cs = charsOf(text);
-  const n = cs.length;
-  if (n === 0) {
-    return text;
-  }
-
-  const paired = cs.map(() => false);
-  const open: number[] = [];
-  for (const [i, c] of cs.entries()) {
-    if (c === "(" || c === "[" || c === "{") {
-      open.push(i);
-    } else if (c === ")" || c === "]" || c === "}") {
-      const opening = open.pop();
-      if (opening !== undefined) {
-        paired[i] = true;
-        paired[opening] = true;
-      }
-    }
-  }
-  const inAlphabet = (i: number): boolean => {
-    const c = cs[i] ?? "";
-
-    return (
-      paired[i] === true ||
-      letterMarkOrNumber.test(c) ||
-      oneSpace.test(c) ||
-      (c !== "" && edgeSymbols.includes(c)) ||
-      (c === "\\" && oneAsciiLetter.test(cs[i + 1] ?? ""))
-    );
-  };
-  let lo = 0;
-  while (lo < n && !inAlphabet(lo)) {
-    lo += 1;
-  }
-  let hi = n - 1;
-  while (hi >= lo && !inAlphabet(hi)) {
-    hi -= 1;
-  }
-  if (lo === 0 && hi === n - 1) {
-    return text;
-  }
-
-  const kept = cs.slice(lo, hi + 1).join("");
-  const fromStart = lo > 0 ? kept.replace(leadingSpace, "") : kept;
-
-  return hi < n - 1 ? fromStart.replace(trailingSpace, "") : fromStart;
-};
-
-/**
  * `\left` and `\right`, with the white space after them.
  */
 const sizing = regex(`\\\\(?:left|right)(?![A-Za-z])[${whiteSpace}]*`, "gu");
@@ -1008,7 +946,7 @@ const finalPunctuation = regex("[.,;]$", "u");
  * `=<` `\gt` `\lt`, the relations, π, ², ³, degree and prime symbols among them); T-4 unwrapping,
  * innermost first; T-9 empty templates; T-5 arguments; T-7 spacing; T-6 fractions (the vulgar
  * fraction characters first); T-8 answer punctuation (V-25: a leading `=`, an `e.g.` frame, a final
- * `.`, `,` or `;`); T-10 edge junk (V-28).
+ * `.`, `,` or `;`).
  *
  * @param input - The text.
  * @returns It after one pass.
@@ -1049,7 +987,7 @@ const pass = (input: string): string => {
   t = t.replace(leadingEquals, "");
   t = t.replace(parenthesizedExample, "$1").replace(example, "$1");
 
-  return withoutEdgeJunk(t.replace(finalPunctuation, ""));
+  return t.replace(finalPunctuation, "");
 };
 
 /**
