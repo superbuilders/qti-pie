@@ -27,6 +27,7 @@ import type {
   Answered,
   CompiledItem,
   Digest,
+  Evaluation,
   ItemResult,
   ProcessingFailure,
   ItemSession,
@@ -34,7 +35,6 @@ import type {
   Take,
   XmlElement,
 } from "@qti-pie/processing";
-import type { Value } from "@qti-pie/processing/value.ts";
 import { Effect, Exit } from "effect";
 import type {
   AnswerView,
@@ -204,6 +204,10 @@ const resultView = (result: ItemResult, places: readonly number[]): AnswerView =
     return { draws: result.demands.map((demand) => places.indexOf(demand.place)), kind: "pending" };
   }
 
+  if (result.kind === "unscored") {
+    throw new Error("the oracle records no declines, so no answer it grades is unscored");
+  }
+
   const status = recordedOf(result.completionStatus);
   const outcomes = recordedValuesOf(result.outcomes);
 
@@ -226,14 +230,22 @@ const resultView = (result: ItemResult, places: readonly number[]): AnswerView =
 const evaluationsOf = (
   recorded: ReadonlyMap<number, number>,
   places: readonly number[],
-): ReadonlyMap<number, Value> =>
+): ReadonlyMap<number, Evaluation> =>
   new Map(
     [...recorded].flatMap(([ordinal, score]) => {
       const place = places[ordinal];
 
       return place === undefined
         ? []
-        : [[place, recordOf([{ name: "score", value: single("float", score) }])] as const];
+        : [
+            [
+              place,
+              {
+                kind: "answered",
+                value: recordOf([{ name: "score", value: single("float", score) }]),
+              },
+            ] as const,
+          ];
     }),
   );
 
@@ -467,7 +479,7 @@ const testEngineOf = (
 
         return [
           {
-            evaluations: new Map<number, Value>(),
+            evaluations: new Map<number, Evaluation>(),
             item: held.item,
             ref: { identifier: member.ref, occurrence: 0n },
             responses: submittedOf(held.item, take, member.responses),

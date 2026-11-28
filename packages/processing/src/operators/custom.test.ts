@@ -133,12 +133,25 @@ describe("the custom-operator family", () => {
       },
     ]);
 
-    const answered = testRun(operators, {}, { recorded: new Map([[0, single("float", 3)]]) });
+    const answered = testRun(
+      operators,
+      {},
+      { recorded: new Map([[0, { kind: "answered", value: single("float", 3) }]]) },
+    );
     assert.deepStrictEqual(
       customOperators["custom-operator"].evaluate(essay, answered.run),
       single("float", 3),
     );
     assert.deepStrictEqual(answered.recorder.demands, []);
+    assert.deepStrictEqual(answered.recorder.declined, []);
+
+    const declined = testRun(operators, {}, { recorded: new Map([[0, { kind: "declined" }]]) });
+    assert.deepStrictEqual(
+      customOperators["custom-operator"].evaluate(essay, declined.run),
+      nullOf({ base: "float", cardinality: "single" }),
+    );
+    assert.deepStrictEqual(declined.recorder.demands, []);
+    assert.deepStrictEqual(declined.recorder.declined, [0]);
 
     const empty = nodeOf(
       "custom-operator",

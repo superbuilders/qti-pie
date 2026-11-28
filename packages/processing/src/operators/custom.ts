@@ -87,9 +87,15 @@ export const customOperators: OperatorTable<"custom-operator"> = {
         return nullOf(entry.result);
       }
 
-      const answer = run.recorded(place);
-      if (answer !== undefined) {
-        return answer;
+      const evaluation = run.recorded(place);
+      if (evaluation?.kind === "answered") {
+        return evaluation.value;
+      }
+
+      if (evaluation?.kind === "declined") {
+        run.decline(place);
+
+        return nullOf(entry.result);
       }
 
       const maximum = values[entry.maximum];

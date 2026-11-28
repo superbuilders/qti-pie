@@ -26,7 +26,7 @@ import { resolveArea } from "#processing/compile/area.ts";
 import type { ImageSize } from "#processing/compile/area.ts";
 import type { CustomOperator } from "#processing/operator.ts";
 import { customOperatorOf } from "#processing/registry.ts";
-import type { Demand, MemberState, ProcessingFailure, Run } from "#processing/run.ts";
+import type { Demand, Evaluation, MemberState, ProcessingFailure, Run } from "#processing/run.ts";
 import { nullOf, valueTypeOf } from "#processing/value.ts";
 import type { Null, Single, Value, ValueType } from "#processing/value.ts";
 import { numbered } from "#processing/test/numbered.ts";
@@ -46,6 +46,7 @@ export interface Stated {
  * What a test run records: the failures, the demands and how many draws it took.
  */
 export interface Recorder {
+  readonly declined: number[];
   readonly demands: Demand[];
   readonly draws: { taken: number };
   readonly failures: ProcessingFailure[];
@@ -108,13 +109,16 @@ export const testRun = <K extends ExpressionKind>(
   options: {
     readonly draws?: readonly number[];
     readonly members?: readonly MemberState[];
-    readonly recorded?: ReadonlyMap<number, Value>;
+    readonly recorded?: ReadonlyMap<number, Evaluation>;
   },
 ) => {
-  const recorder: Recorder = { demands: [], draws: { taken: 0 }, failures: [] };
+  const recorder: Recorder = { declined: [], demands: [], draws: { taken: 0 }, failures: [] };
   const lookup = (variable: VariableRef): Stated | undefined => stated[nameOf(variable)];
   const run: Run = {
     correctOf: (variable) => lookup(variable)?.correct ?? nullOf(variable.type),
+    decline: (place) => {
+      recorder.declined.push(place);
+    },
     defaultOf: (variable) => lookup(variable)?.default ?? nullOf(variable.type),
     demand: (demand) => {
       recorder.demands.push(demand);

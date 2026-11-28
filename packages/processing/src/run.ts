@@ -142,6 +142,15 @@ export const memberVariableOf = (member: MemberState, variable: string): Value |
 };
 
 /**
+ * What is in for a recorded operator's place: its answer, the value the run reads; or its decline,
+ * where the shell has no reply left to wait for (every draw it asked declined), so the operator
+ * gives NULL. A place with neither is not in, and the run demands its answer.
+ */
+export type Evaluation =
+  | { readonly kind: "answered"; readonly value: Value }
+  | { readonly kind: "declined" };
+
+/**
  * A processing run, as an operator reads it.
  */
 export interface Run {
@@ -149,6 +158,11 @@ export interface Run {
    * The current value of a variable's correct response, NULL where it has none.
    */
   readonly correctOf: (variable: VariableRef) => Value;
+  /**
+   * Record that a recorded operator the run reached is declined at its place: it gives NULL, and
+   * a run whose every recorded place is declined is unscored.
+   */
+  readonly decline: (place: number) => void;
   /**
    * The current default of a variable, NULL where it has none.
    */
@@ -183,9 +197,9 @@ export interface Run {
    */
   readonly read: (variable: VariableRef) => Value;
   /**
-   * The recorded answer of the recorded operator at a place, or `undefined` where none is in.
+   * What is in for the recorded operator at a place, or `undefined` where nothing is.
    */
-  readonly recorded: (place: number) => Value | undefined;
+  readonly recorded: (place: number) => Evaluation | undefined;
 }
 
 /**

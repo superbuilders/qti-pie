@@ -27,6 +27,8 @@ import { processingSeed } from "#processing/stream.ts";
 import { element, text } from "#processing/test/run.ts";
 import { container, isText, nullOf, single, textValue } from "#processing/value.ts";
 import type { Text, Value } from "#processing/value.ts";
+import type { Evaluation } from "#processing/run.ts";
+import { everyMember } from "#processing/test/exhausted.ts";
 import type { XmlElement } from "#processing/xml.ts";
 
 const table = operatorTable;
@@ -459,7 +461,7 @@ const outcome = (identifier: string, base: string, cardinality: string): XmlElem
 const closingOf = (
   identifier: string,
   session: ItemSession,
-  evaluations: ReadonlyMap<number, Value>,
+  evaluations: ReadonlyMap<number, Evaluation>,
 ): ClosingMember => ({
   evaluations,
   item: itemOf(false, [scoring]),
@@ -725,7 +727,7 @@ describe("a sitting with a pending member", () => {
       ]),
     };
     const ref = { identifier: "q1", occurrence: 1n };
-    const member = (evaluations: ReadonlyMap<number, Value>): ClosingMember => ({
+    const member = (evaluations: ReadonlyMap<number, Evaluation>): ClosingMember => ({
       evaluations,
       item,
       ref,
@@ -759,7 +761,9 @@ describe("a sitting with a pending member", () => {
     assert.deepStrictEqual(demand.ref, ref);
     assert.strictEqual(demand.definition, essayScore.definition);
 
-    const evaluations = new Map([[demand.place, single("float", 0.75)]]);
+    const evaluations = new Map<number, Evaluation>([
+      [demand.place, { kind: "answered", value: single("float", 0.75) }],
+    ]);
     const completed = completePendingWith(table, {
       ...sitting,
       pending: [member(evaluations)],
@@ -816,12 +820,244 @@ describe("a sitting with a pending member", () => {
   });
 });
 
+/**
+ * An essay item of three draws: its `SCORE` the best replied draw's, `qti-max` over `qti-multiple`
+ * (which drops a NULL member), as the converter writes an essay graded over its replies.
+ *
+ * @returns The compiled item.
+ */
+const threeDrawItem = (): CompiledItem => {
+  const draw = element("qti-custom-operator", { definition: essayScore.definition }, [
+    variable("ESSAY"),
+    literal("float", "1"),
+  ]);
+  const compiled = compileItemOver(
+    element("qti-assessment-item", { adaptive: "false", identifier: "q1" }, [
+      element(
+        "qti-response-declaration",
+        { "base-type": "string", cardinality: "single", identifier: "ESSAY" },
+        [],
+      ),
+      element(
+        "qti-outcome-declaration",
+        { "base-type": "float", cardinality: "single", identifier: "SCORE" },
+        [],
+      ),
+      element("qti-response-processing", {}, [
+        setOutcome(
+          "SCORE",
+          element("qti-max", {}, [element("qti-multiple", {}, [draw, draw, draw])]),
+        ),
+      ]),
+    ]),
+    digest,
+    table,
+    (definition) => (definition === essayScore.definition ? essayScore : undefined),
+  );
+
+  return compiled.ok ? compiled.value : assert.fail(compiled.refusal.detail);
+};
+
+/**
+ * What is in for one draw: nothing, its decline, or its reply.
+ */
+type DrawState = "absent" | "declined" | "replied";
+
+/**
+ * Every combination of what is in for three draws.
+ */
+const drawStates: readonly [DrawState[], ...DrawState[][]] = [
+  ["absent", "absent", "absent"],
+  ...(["absent", "declined", "replied"] as const)
+    .flatMap((first) =>
+      (["absent", "declined", "replied"] as const).flatMap((second) =>
+        (["absent", "declined", "replied"] as const).map((third) => [first, second, third]),
+      ),
+    )
+    .slice(1),
+];
+
+describe("an attempt whose draws decline", () => {
+  it.effect(
+    "waits while any draw is open, is unscored (every outcome NULL, completed) where every draw declined, and else scores its best reply, a declined draw NULL",
+    (ctx) => {
+      const item = threeDrawItem();
+      const essay: Submitted = {
+        kind: "posted",
+        values: new Map([["ESSAY", textValue("string", "An essay.")]]),
+      };
+      const answerWith = (evaluations: ReadonlyMap<number, Evaluation>) =>
+        gradeAnswerWith(table, {
+          answered: { item, kind: "item" },
+          context: new Map(),
+          evaluations,
+          readAt: { microseconds: 2_000_000n },
+          responses: essay,
+          session: fresh(noTake),
+        });
+      const asked = answerWith(new Map());
+      const places =
+        "failure" in asked || asked.result.kind !== "pending"
+          ? assert.fail("three demands")
+          : asked.result.demands.map((demand) => demand.place);
+
+      return everyMember(
+        ctx,
+        {
+          box: "every combination of absent, declined and replied over an essay's three draws",
+          members: drawStates,
+          oracle:
+            "metis main's ruling of 2026-11-28: unscored only where every draw declined; QTI's qti-multiple drops NULL",
+          suite: "processing/grade/declined-draws",
+        },
+        (states) => {
+          const evaluations = new Map<number, Evaluation>();
+          let best: number | undefined;
+          for (const [index, state] of states.entries()) {
+            const place = places[index] ?? assert.fail("a place a draw");
+            if (state === "declined") {
+              evaluations.set(place, { kind: "declined" });
+            } else if (state === "replied") {
+              const score = (index + 1) / 4;
+              best = Math.max(best ?? 0, score);
+              evaluations.set(place, { kind: "answered", value: single("float", score) });
+            }
+          }
+
+          const graded = answerWith(evaluations);
+          if ("failure" in graded) {
+            return assert.fail("graded");
+          }
+
+          const { result } = graded;
+          if (states.includes("absent")) {
+            assert.strictEqual(result.kind, "pending");
+          } else if (best === undefined) {
+            assert.deepStrictEqual(result, {
+              completionStatus: textValue("identifier", "completed"),
+              declined: places,
+              kind: "unscored",
+              marks: result.kind === "unscored" ? result.marks : new Map(),
+              numAttempts: 1n,
+              outcomes: new Map<string, Value>([
+                ["SCORE", nullOf({ base: "float", cardinality: "single" })],
+                ["completionStatus", textValue("identifier", "completed")],
+              ]),
+            });
+          } else {
+            assert.strictEqual(result.kind, "done");
+            assert.deepStrictEqual(
+              result.kind === "done" ? result.outcomes.get("SCORE") : undefined,
+              single("float", best),
+            );
+          }
+        },
+      );
+    },
+  );
+
+  it("asks nothing of an empty essay: a NULL operand makes no demand, so its attempt is done, not pending and not unscored, and scores what its document's rule gives (here NULL, as nothing guards it)", () => {
+    const graded = gradeAnswerWith(table, {
+      answered: { item: threeDrawItem(), kind: "item" },
+      context: new Map(),
+      evaluations: new Map(),
+      readAt: { microseconds: 2_000_000n },
+      responses: {
+        kind: "posted",
+        values: new Map([["ESSAY", nullOf({ base: "string", cardinality: "single" })]]),
+      },
+      session: fresh(noTake),
+    });
+    if ("failure" in graded || graded.result.kind !== "done") {
+      return assert.fail("done");
+    }
+
+    assert.deepStrictEqual(
+      graded.result.outcomes.get("SCORE"),
+      nullOf({ base: "float", cardinality: "single" }),
+    );
+  });
+
+  it("finalizes a sitting whose pending member's every draw declined: done, the member unscored, the test's outcomes as its outcome processing reads the NULL, and the completion matching its pending grade", () => {
+    const item = threeDrawItem();
+    const compiled = compileTestWith(
+      element("qti-assessment-test", { identifier: "t" }, [
+        outcome("TOTAL", "float", "single"),
+        outcome("COUNTED", "float", "single"),
+        element("qti-test-part", { identifier: "p" }, [
+          element("qti-assessment-item-ref", { href: "q1.xml", identifier: "q1" }, []),
+        ]),
+        element("qti-outcome-processing", {}, [
+          setOutcome("TOTAL", element("qti-sum", {}, [variable("q1.SCORE")])),
+          setOutcome(
+            "COUNTED",
+            element("qti-sum", {}, [
+              element("qti-test-variables", { "variable-identifier": "SCORE" }, []),
+            ]),
+          ),
+        ]),
+      ]),
+      digest,
+      new Map([["q1", item]]),
+      table,
+    );
+    const test = compiled.ok ? compiled.value : assert.fail(compiled.refusal.detail);
+    const ref = { identifier: "q1", occurrence: 1n };
+    const member = (evaluations: ReadonlyMap<number, Evaluation>): ClosingMember => ({
+      evaluations,
+      item,
+      ref,
+      responses: { kind: "posted", values: new Map([["ESSAY", textValue("string", "An essay.")]]) },
+      session: fresh(noTake),
+    });
+    const sitting: SittingInput = {
+      carried: [],
+      closing: [],
+      context: new Map(),
+      endedBy: "system",
+      pending: [member(new Map())],
+      readAt: { microseconds: 3_000_000n },
+      startedAt: { microseconds: 1_000_000n },
+      test,
+      testSeed: seed,
+      unpresented: [],
+    };
+    const pendingGrade = gradeSittingWith(table, sitting);
+    if ("failure" in pendingGrade || pendingGrade.kind !== "pending") {
+      return assert.fail("pending");
+    }
+
+    const declined = new Map<number, Evaluation>(
+      pendingGrade.demands.map((demand) => [demand.place, { kind: "declined" }]),
+    );
+    const completed = completePendingWith(table, {
+      ...sitting,
+      pending: [member(declined)],
+      pendingGrade,
+    });
+    if ("failure" in completed || completed.kind !== "done") {
+      return assert.fail("done");
+    }
+
+    assert.deepStrictEqual(completed.unscored, [ref]);
+    assert.strictEqual(completed.members[0]?.result.kind, "unscored");
+    assert.deepStrictEqual(
+      completed.test.get("TOTAL"),
+      nullOf({ base: "float", cardinality: "single" }),
+    );
+    assert.deepStrictEqual(
+      completed.test.get("COUNTED"),
+      nullOf({ base: "float", cardinality: "single" }),
+    );
+  });
+});
+
 describe("a pending answer with a hidden response", () => {
   it("proves the responses as graded, so the answer rebuilt from the map its write stored (every declared response, the hidden one NULL) digests alike and completes without mismatch", () => {
     const item = essayItem();
     const answerOf = (
       values: ReadonlyMap<string, Value>,
-      evaluations: ReadonlyMap<number, Value>,
+      evaluations: ReadonlyMap<number, Evaluation>,
     ) =>
       gradeAnswerWith(table, {
         answered: { item, kind: "item" },
@@ -853,7 +1089,12 @@ describe("a pending answer with a hidden response", () => {
       return assert.fail("a demand");
     }
 
-    const rebuilt = answerOf(first.responses, new Map([[demand.place, single("float", 0.5)]]));
+    const rebuilt = answerOf(
+      first.responses,
+      new Map<number, Evaluation>([
+        [demand.place, { kind: "answered", value: single("float", 0.5) }],
+      ]),
+    );
     if ("failure" in rebuilt || rebuilt.result.kind !== "done") {
       return assert.fail("completed");
     }

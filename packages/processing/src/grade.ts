@@ -30,7 +30,13 @@ import type { Digest, GradeProof, Instant, ResponsesRead } from "#processing/gra
 import type { ExpressionKind } from "#processing/ir.ts";
 import type { OperatorTable } from "#processing/operators/operator.ts";
 import type { CompiledItem, CompiledTest } from "#processing/program.ts";
-import type { Demand, MemberOutcome, MemberResponse, MemberState } from "#processing/run.ts";
+import type {
+  Demand,
+  Evaluation,
+  MemberOutcome,
+  MemberResponse,
+  MemberState,
+} from "#processing/run.ts";
 import { contract } from "#processing/invariant.ts";
 import { attemptWith, countsAttempt, startOf } from "#processing/session.ts";
 import type { Attempt, Failed, ItemResult, Prior, Take } from "#processing/session.ts";
@@ -111,7 +117,11 @@ export type Answered =
 export interface AnswerInput {
   readonly answered: Answered;
   readonly context: ReadonlyMap<string, Value>;
-  readonly evaluations: ReadonlyMap<number, Value>;
+  /**
+   * What is in for its recorded operators, by place: each answer, or the decline of a place whose
+   * every draw declined. Never in the input digest, which a completion brings them in after.
+   */
+  readonly evaluations: ReadonlyMap<number, Evaluation>;
   readonly readAt: Instant;
   readonly responses: Submitted;
   readonly session: ItemSession;
@@ -179,7 +189,11 @@ export interface MemberRef {
  * A member a sitting's grade processes now.
  */
 export interface ClosingMember {
-  readonly evaluations: ReadonlyMap<number, Value>;
+  /**
+   * What is in for its recorded operators, by place: each answer, or the decline of a place whose
+   * every draw declined. Never in the input digest, which a completion brings them in after.
+   */
+  readonly evaluations: ReadonlyMap<number, Evaluation>;
   readonly item: CompiledItem;
   readonly ref: MemberRef;
   readonly responses: Submitted;
@@ -269,6 +283,12 @@ export type SittingGrade =
       readonly kind: "done";
       readonly members: readonly MemberGrade[];
       readonly test: ReadonlyMap<string, Value>;
+      /**
+       * The members whose attempt is unscored (every recorded place it reached declined): final,
+       * their outcomes NULL, and the test's outcomes whatever its outcome processing computes over
+       * them, as QTI reads a NULL.
+       */
+      readonly unscored: readonly MemberRef[];
     }
   | {
       readonly demands: readonly (Demand & { readonly ref: MemberRef })[];
@@ -947,6 +967,7 @@ const sittingWith = <K extends ExpressionKind>(
   const members: MemberGrade[] = [];
   const states: MemberState[] = [];
   const demands: (Demand & { readonly ref: MemberRef })[] = [];
+  const unscored: MemberRef[] = [];
   for (const { admission, member } of attempts) {
     const result = attemptWith(table, attemptOf(member, input.context, admission.shown));
     if (result.kind === "failed") {
@@ -965,6 +986,10 @@ const sittingWith = <K extends ExpressionKind>(
         demands.push({ ...demand, ref: member.ref });
       }
     } else {
+      if (result.kind === "unscored") {
+        unscored.push(member.ref);
+      }
+
       states.push(
         memberStateOf(
           {
@@ -1005,7 +1030,9 @@ const sittingWith = <K extends ExpressionKind>(
 
   const test = testOutcomes(table, input, inTestOrder(states, input.test));
 
-  return test.kind === "failed" ? test : mint({ kind: "done", members, test: test.values }, proof);
+  return test.kind === "failed"
+    ? test
+    : mint({ kind: "done", members, test: test.values, unscored }, proof);
 };
 
 /**

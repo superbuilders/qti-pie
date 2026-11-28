@@ -31,7 +31,7 @@ import type {
   TemplateRule,
 } from "#processing/program.ts";
 import { memberVariableOf } from "#processing/run.ts";
-import type { Demand, MemberState, ProcessingFailure, Run } from "#processing/run.ts";
+import type { Demand, Evaluation, MemberState, ProcessingFailure, Run } from "#processing/run.ts";
 import { toFloat } from "#processing/numbers.ts";
 import { nullOf, sameValueType, single, valueTypeOf } from "#processing/value.ts";
 import type { Single, Value } from "#processing/value.ts";
@@ -54,16 +54,22 @@ export interface RunInput {
   readonly declarations: ReadonlyMap<string, Declaration>;
   readonly draw: () => number;
   readonly members: readonly MemberState[];
-  readonly recorded: ReadonlyMap<number, Value>;
+  readonly recorded: ReadonlyMap<number, Evaluation>;
   readonly variables: Variables;
 }
 
 /**
- * A run's result: the variables it ended with and the demands it made, or the failure that ended
- * it.
+ * A run's result: the variables it ended with, the demands it made and the recorded places it read,
+ * answered and declined, or the failure that ended it.
  */
 export type RunResult =
-  | { readonly demands: readonly Demand[]; readonly kind: "ran"; readonly variables: Variables }
+  | {
+      readonly answered: readonly number[];
+      readonly declined: readonly number[];
+      readonly demands: readonly Demand[];
+      readonly kind: "ran";
+      readonly variables: Variables;
+    }
   | { readonly failure: ProcessingFailure; readonly kind: "failed" };
 
 /**
@@ -176,7 +182,9 @@ const memberValue = (
  * The state a run keeps while its rules set its variables.
  */
 interface State {
+  readonly answered: number[];
   correct: Map<string, Value>;
+  readonly declined: number[];
   defaults: Map<string, Value>;
   readonly demands: Demand[];
   failure: ProcessingFailure | undefined;
@@ -214,6 +222,9 @@ const runOver = <K extends ExpressionKind>(
         : (state.correct.get(variable.identifier) ??
           declared(variable.identifier)?.correct ??
           nullOf(variable.type)),
+    decline: (place) => {
+      state.declined.push(place);
+    },
     defaultOf: (variable) =>
       variable.scope === "member"
         ? memberValue(member(variable), variable, "default")
@@ -236,7 +247,14 @@ const runOver = <K extends ExpressionKind>(
       variable.scope === "member"
         ? memberValue(member(variable), variable, "value")
         : (state.values.get(variable.identifier) ?? nullOf(variable.type)),
-    recorded: (place) => input.recorded.get(place),
+    recorded: (place) => {
+      const evaluation = input.recorded.get(place);
+      if (evaluation?.kind === "answered") {
+        state.answered.push(place);
+      }
+
+      return evaluation;
+    },
   };
 
   return run;
@@ -536,7 +554,9 @@ export const restartBudget = 100;
  * @returns The state.
  */
 const stateOf = (variables: Variables): State => ({
+  answered: [],
   correct: new Map(variables.correct),
+  declined: [],
   defaults: new Map(variables.defaults),
   demands: [],
   failure: undefined,
@@ -552,6 +572,8 @@ const stateOf = (variables: Variables): State => ({
 const resultOf = (state: State): RunResult =>
   state.failure === undefined
     ? {
+        answered: state.answered,
+        declined: state.declined,
         demands: state.demands,
         kind: "ran",
         variables: { correct: state.correct, defaults: state.defaults, values: state.values },

@@ -65,7 +65,7 @@ export type {
   LookupTable,
 } from "#processing/program.ts";
 
-export type { Demand, ProcessingFailure } from "#processing/run.ts";
+export type { Demand, Evaluation, ProcessingFailure } from "#processing/run.ts";
 
 export type { Failed, ItemResult, Prior, Take } from "#processing/session.ts";
 

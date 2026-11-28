@@ -25,7 +25,7 @@ import type { OperatorTable } from "#processing/operators/operator.ts";
 import type { Instant } from "#processing/graded.ts";
 import { invariant } from "#processing/invariant.ts";
 import type { CompiledItem, Declaration } from "#processing/program.ts";
-import type { Demand, ProcessingFailure } from "#processing/run.ts";
+import type { Demand, Evaluation, ProcessingFailure } from "#processing/run.ts";
 import { drawStream, responseLabel, templateLabel } from "#processing/stream.ts";
 import type { Seed } from "#processing/stream.ts";
 import { nullOf, single, textValue } from "#processing/value.ts";
@@ -144,9 +144,9 @@ export interface Attempt {
    */
   readonly duration: number;
   /**
-   * The recorded operators' answers in, by place.
+   * What is in for the recorded operators, by place: each answer, or its decline.
    */
-  readonly evaluations: ReadonlyMap<number, Value>;
+  readonly evaluations: ReadonlyMap<number, Evaluation>;
   readonly item: CompiledItem;
   /**
    * The session's attempts before this one.
@@ -179,7 +179,25 @@ export type ItemResult =
        */
       readonly outcomes: ReadonlyMap<string, Value>;
     }
-  | { readonly demands: readonly Demand[]; readonly kind: "pending"; readonly numAttempts: bigint };
+  | { readonly demands: readonly Demand[]; readonly kind: "pending"; readonly numAttempts: bigint }
+  | {
+      /**
+       * `completed`: the attempt is over, with nothing left to wait for.
+       */
+      readonly completionStatus: Value;
+      /**
+       * The recorded places it reached, every one declined.
+       */
+      readonly declined: readonly number[];
+      readonly kind: "unscored";
+      readonly marks: ReadonlyMap<string, readonly Mark[]>;
+      readonly numAttempts: bigint;
+      /**
+       * Every outcome NULL, never a default or 0, since any may derive from the score that never
+       * came; `completionStatus` alone `completed`.
+       */
+      readonly outcomes: ReadonlyMap<string, Value>;
+    };
 
 /**
  * The values an attempt's response processing starts from.
@@ -320,6 +338,25 @@ export const attemptWith = <K extends ExpressionKind>(
         ),
       );
     }
+  }
+
+  if (ran.declined.length > 0 && ran.answered.length === 0) {
+    const completed = textValue("identifier", "completed");
+    const unscored = new Map<string, Value>(
+      [...attempt.item.declarations.values()]
+        .filter((declaration) => declaration.role === "outcome")
+        .map((declaration) => [declaration.identifier, nullOf(declaration.type)]),
+    );
+    unscored.set("completionStatus", completed);
+
+    return {
+      completionStatus: completed,
+      declined: ran.declined,
+      kind: "unscored",
+      marks,
+      numAttempts,
+      outcomes: unscored,
+    };
   }
 
   const completionStatus =
