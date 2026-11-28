@@ -10,20 +10,22 @@
  */
 import * as entry0 from "@qti-pie/plate";
 import * as entry1 from "@qti-pie/plate/admission-codes";
-import * as entry2 from "@qti-pie/plate/codec";
-import * as entry3 from "@qti-pie/plate/rich-text";
-import * as entry4 from "@qti-pie/plate/ui";
-import * as entry5 from "@qti-pie/plate/ui/client";
-import * as entry6 from "@qti-pie/plate/ui/hotspot";
-import * as entry7 from "@qti-pie/plate/ui/props";
-import * as entry8 from "@qti-pie/plate/ui/pci-frame";
-import * as entry9 from "@qti-pie/plate/ui/responses";
-import * as entry10 from "@qti-pie/plate/test/admitted";
-import * as entry11 from "@qti-pie/plate/test/catalog-shown";
-import * as entry12 from "@qti-pie/plate/test/corpus";
-import * as entry13 from "@qti-pie/plate/test/golden";
-import * as entry14 from "@qti-pie/plate/test/records";
-import * as entry15 from "@qti-pie/plate/words";
+import * as entry2 from "@qti-pie/plate/browser-floor";
+import * as entry3 from "@qti-pie/plate/codec";
+import * as entry4 from "@qti-pie/plate/rich-text";
+import * as entry5 from "@qti-pie/plate/ui";
+import * as entry6 from "@qti-pie/plate/ui/client";
+import * as entry7 from "@qti-pie/plate/ui/hotspot";
+import * as entry8 from "@qti-pie/plate/ui/props";
+import * as entry9 from "@qti-pie/plate/ui/pci-frame";
+import * as entry10 from "@qti-pie/plate/ui/responses";
+import * as entry11 from "@qti-pie/plate/test/admitted";
+import * as entry12 from "@qti-pie/plate/test/browser-floor";
+import * as entry13 from "@qti-pie/plate/test/catalog-shown";
+import * as entry14 from "@qti-pie/plate/test/corpus";
+import * as entry15 from "@qti-pie/plate/test/golden";
+import * as entry16 from "@qti-pie/plate/test/records";
+import * as entry17 from "@qti-pie/plate/words";
 import * as client0 from "#plate/ui/associate/associate.tsx";
 import * as client1 from "#plate/ui/choice/choice.tsx";
 import * as client2 from "#plate/ui/end-attempt/end-attempt.tsx";
@@ -62,20 +64,22 @@ import * as client32 from "#plate/ui/text-entry/text-entry.tsx";
 export const entries = Object.freeze([
   [".", Object.entries(entry0)],
   ["./admission-codes", Object.entries(entry1)],
-  ["./codec", Object.entries(entry2)],
-  ["./rich-text", Object.entries(entry3)],
-  ["./ui", Object.entries(entry4)],
-  ["./ui/client", Object.entries(entry5)],
-  ["./ui/hotspot", Object.entries(entry6)],
-  ["./ui/props", Object.entries(entry7)],
-  ["./ui/pci-frame", Object.entries(entry8)],
-  ["./ui/responses", Object.entries(entry9)],
-  ["./test/admitted", Object.entries(entry10)],
-  ["./test/catalog-shown", Object.entries(entry11)],
-  ["./test/corpus", Object.entries(entry12)],
-  ["./test/golden", Object.entries(entry13)],
-  ["./test/records", Object.entries(entry14)],
-  ["./words", Object.entries(entry15)],
+  ["./browser-floor", Object.entries(entry2)],
+  ["./codec", Object.entries(entry3)],
+  ["./rich-text", Object.entries(entry4)],
+  ["./ui", Object.entries(entry5)],
+  ["./ui/client", Object.entries(entry6)],
+  ["./ui/hotspot", Object.entries(entry7)],
+  ["./ui/props", Object.entries(entry8)],
+  ["./ui/pci-frame", Object.entries(entry9)],
+  ["./ui/responses", Object.entries(entry10)],
+  ["./test/admitted", Object.entries(entry11)],
+  ["./test/browser-floor", Object.entries(entry12)],
+  ["./test/catalog-shown", Object.entries(entry13)],
+  ["./test/corpus", Object.entries(entry14)],
+  ["./test/golden", Object.entries(entry15)],
+  ["./test/records", Object.entries(entry16)],
+  ["./words", Object.entries(entry17)],
 ]);
 
 /**
@@ -92,7 +96,7 @@ export const clients = Object.freeze([
   ["ui/graphic-gap-match/graphic-gap-match.tsx", Object.entries(client7)],
   ["ui/graphic-order/graphic-order.tsx", Object.entries(client8)],
   ["ui/graphic/stage.tsx", Object.entries(client9)],
-  ["ui/hotspot/hotspot.tsx", Object.entries(entry6)],
+  ["ui/hotspot/hotspot.tsx", Object.entries(entry7)],
   ["ui/hottext/hottext.tsx", Object.entries(client11)],
   ["ui/inline-choice/inline-choice.tsx", Object.entries(client12)],
   ["ui/match/match.tsx", Object.entries(client13)],
@@ -110,7 +114,7 @@ export const clients = Object.freeze([
   ["ui/presence/beacon.ts", Object.entries(client25)],
   ["ui/read-aloud/read-aloud.tsx", Object.entries(client26)],
   ["ui/read-aloud/session.tsx", Object.entries(client27)],
-  ["ui/responses.tsx", Object.entries(entry9)],
+  ["ui/responses.tsx", Object.entries(entry10)],
   ["ui/select-point/select-point.tsx", Object.entries(client29)],
   ["ui/slider/slider.tsx", Object.entries(client30)],
   ["ui/text-entry/keys.tsx", Object.entries(client31)],
