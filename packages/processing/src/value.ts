@@ -360,6 +360,62 @@ const sameness: Sameness = {
 };
 
 /**
+ * Text framed by its length, so two framed parts never read as one.
+ *
+ * @param text - The text.
+ * @returns It framed.
+ */
+const framedKey = (text: string): string => `${String(text.length)}:${text}`;
+
+/**
+ * Each base type's key of a scalar: two scalars of the base have one key exactly where
+ * {@link sameness} holds them the same, and a scalar that matches nothing (a NaN) has none.
+ */
+type Keying = { readonly [B in BaseType]: (scalar: Scalars[B]) => string | undefined };
+
+/**
+ * A number's key: −0 the key of 0, as `===` holds them the same; a NaN, which matches nothing,
+ * none.
+ *
+ * @param number - The number.
+ * @returns Its key, or none.
+ */
+const numberKey = (number: number): string | undefined =>
+  Number.isNaN(number) ? undefined : String(number === 0 ? 0 : number);
+
+const keying: Keying = {
+  boolean: (scalar) => (scalar ? "1" : "0"),
+  directedPair: (scalar) => framedKey(scalar.source) + framedKey(scalar.target),
+  duration: numberKey,
+  file: (scalar) =>
+    framedKey(scalar.contentType) +
+    (scalar.name === undefined ? "-" : `+${framedKey(scalar.name)}`) +
+    framedKey(scalar.bytes.join(",")),
+  float: numberKey,
+  identifier: framedKey,
+  integer: (scalar) => scalar.toString(10),
+  pair: (scalar) => [framedKey(scalar.first), framedKey(scalar.second)].toSorted().join(""),
+  point: (scalar) => `${scalar.x.toString(10)},${scalar.y.toString(10)}`,
+  string: framedKey,
+  uri: framedKey,
+};
+
+/**
+ * A single's key under `qti-match`'s sameness: two singles have one key exactly where
+ * {@link sameSingle} holds them the same, so a bag of singles is keyed in a map rather than scanned;
+ * a single that matches nothing (a NaN) has none.
+ *
+ * @param member - The single.
+ * @returns Its key, or `undefined` where it matches nothing.
+ */
+export const singleKey = <B extends BaseType>(member: SingleOf<B>): string | undefined => {
+  const key: Keying[B] = keying[member.base];
+  const scalar = key(member.value);
+
+  return scalar === undefined ? undefined : `${member.base}:${scalar}`;
+};
+
+/**
  * Whether two scalars of one base type are the same value, as `qti-match` compares members:
  * numbers by `===` (NaN matches nothing, −0 matches 0), a pair unordered, a file by its octets,
  * content type and name.

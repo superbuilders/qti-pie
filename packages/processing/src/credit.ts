@@ -20,7 +20,7 @@
  */
 import { inside } from "#processing/area.ts";
 import type { AreaMapping } from "#processing/ir.ts";
-import { sameSingle, single, singlesOf } from "#processing/value.ts";
+import { single, singleKey, singlesOf } from "#processing/value.ts";
 import type { Point, Single, Value } from "#processing/value.ts";
 
 /**
@@ -94,21 +94,42 @@ const membersOf = (
 };
 
 /**
- * Add one copy of a mark, joining it to the mark of the same value, place and kind.
- *
- * @param marks - The marks so far.
- * @param mark - The mark of one copy.
+ * Marks being made: each mark once, in the order first made, and where each (mark, place, value)
+ * stands among them, by the value's key (`singleKey`), so a mark is found in a map, never by
+ * scanning the marks made so far: marking is linear in the values marked.
  */
-const addMark = (marks: Mark[], mark: Omit<Mark, "copies">): void => {
-  const index = marks.findIndex(
-    (each) =>
-      each.mark === mark.mark && each.place === mark.place && sameSingle(each.value, mark.value),
-  );
-  const found = marks[index];
-  if (found === undefined) {
-    marks.push({ ...mark, copies: 1 });
+interface Marking {
+  readonly at: Map<string, number>;
+  readonly marks: Mark[];
+}
+
+/**
+ * Begin marking.
+ *
+ * @returns No marks yet.
+ */
+const marking = (): Marking => ({ at: new Map(), marks: [] });
+
+/**
+ * Add a mark, or one more copy of a mark made already. A value that matches nothing (a NaN) is a
+ * mark of its own each time, as `sameSingle` holds it the same as nothing.
+ *
+ * @param made - The marks being made.
+ * @param mark - The mark.
+ */
+const addMark = (made: Marking, mark: Omit<Mark, "copies">): void => {
+  const key = singleKey(mark.value);
+  const at = key === undefined ? undefined : `${mark.mark}\u001F${String(mark.place)}\u001F${key}`;
+  const index = at === undefined ? undefined : made.at.get(at);
+  const found = index === undefined ? undefined : made.marks[index];
+  if (index === undefined || found === undefined) {
+    if (at !== undefined) {
+      made.at.set(at, made.marks.length);
+    }
+
+    made.marks.push({ ...mark, copies: 1 });
   } else {
-    marks[index] = { ...found, copies: found.copies + 1 };
+    made.marks[index] = { ...found, copies: found.copies + 1 };
   }
 };
 
@@ -120,29 +141,42 @@ const addMark = (marks: Mark[], mark: Omit<Mark, "copies">): void => {
  * @returns The marks.
  */
 const bagMarks = (given: Value, correct: Value): readonly Mark[] => {
-  const givens = membersOf(given);
   const corrects = membersOf(correct);
+  const unmatched = new Map<string, { readonly indices: number[]; next: number }>();
+  for (const [index, { member, place }] of corrects.entries()) {
+    const key = singleKey(member);
+    if (key === undefined) {
+      continue;
+    }
+
+    const at = `${String(place)}\u001F${key}`;
+    const queue = unmatched.get(at) ?? { indices: [], next: 0 };
+    queue.indices.push(index);
+    unmatched.set(at, queue);
+  }
+
   const taken = corrects.map(() => false);
-  const marks: Mark[] = [];
-  for (const { member, place } of givens) {
-    const index = corrects.findIndex(
-      (each, at) => taken[at] !== true && each.place === place && sameSingle(each.member, member),
-    );
-    if (index === -1) {
-      addMark(marks, { mark: "wrong", place, value: member });
+  const made = marking();
+  for (const { member, place } of membersOf(given)) {
+    const key = singleKey(member);
+    const queue = key === undefined ? undefined : unmatched.get(`${String(place)}\u001F${key}`);
+    const index = queue?.indices[queue.next];
+    if (queue === undefined || index === undefined) {
+      addMark(made, { mark: "wrong", place, value: member });
     } else {
+      queue.next += 1;
       taken[index] = true;
-      addMark(marks, { mark: "right", place, value: member });
+      addMark(made, { mark: "right", place, value: member });
     }
   }
 
   for (const [index, { member, place }] of corrects.entries()) {
     if (taken[index] !== true) {
-      addMark(marks, { mark: "missed", place, value: member });
+      addMark(made, { mark: "missed", place, value: member });
     }
   }
 
-  return marks;
+  return made.marks;
 };
 
 /**
@@ -183,7 +217,7 @@ const areaMarks = (given: Value, correct: Value, mapping: AreaMapping): readonly
     mapping.entries.findIndex((entry) => inside(entry.area, point));
   const mappedAbove = (area: number): boolean => (mapping.entries[area]?.value ?? 0) > 0;
   const reached = new Set<number>();
-  const marks: Mark[] = [];
+  const made = marking();
   for (const point of pointsOf(given)) {
     const area = areaOf(point);
     const right = area !== -1 && mappedAbove(area) && !reached.has(area);
@@ -191,7 +225,7 @@ const areaMarks = (given: Value, correct: Value, mapping: AreaMapping): readonly
       reached.add(area);
     }
 
-    addMark(marks, { mark: right ? "right" : "wrong", place: 0, value: single("point", point) });
+    addMark(made, { mark: right ? "right" : "wrong", place: 0, value: single("point", point) });
   }
 
   const missed = new Set<number>();
@@ -199,11 +233,11 @@ const areaMarks = (given: Value, correct: Value, mapping: AreaMapping): readonly
     const area = areaOf(point);
     if (area !== -1 && mappedAbove(area) && !reached.has(area) && !missed.has(area)) {
       missed.add(area);
-      addMark(marks, { mark: "missed", place: 0, value: single("point", point) });
+      addMark(made, { mark: "missed", place: 0, value: single("point", point) });
     }
   }
 
-  return marks;
+  return made.marks;
 };
 
 /**
