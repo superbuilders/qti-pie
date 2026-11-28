@@ -253,13 +253,20 @@ describe("response processing", () => {
     });
   });
 
-  it("fails the run on a set of a value of another type, and of completionStatus outside its four values, NULL included (reading `completion-status-values`)", () => {
-    const mistyped = itemOf(false, [
-      element("qti-response-processing", {}, [setOutcome("SCORE", literal("integer", "1"))]),
-    ]);
-
-    const failed = answer(mistyped, single("boolean", true), fresh(noTake));
-    assert.deepStrictEqual("failure" in failed ? failed.failure.kind : undefined, "set-type");
+  it("refuses at compile a set whose expression's type is not its target's (§5.130.2), and fails the run on a set of completionStatus outside its four values, NULL included (reading `completion-status-values`)", () => {
+    const mistyped = compileItemWith(
+      element("qti-assessment-item", { adaptive: "false", identifier: "q1" }, [
+        element(
+          "qti-outcome-declaration",
+          { "base-type": "float", cardinality: "single", identifier: "SCORE" },
+          [],
+        ),
+        element("qti-response-processing", {}, [setOutcome("SCORE", literal("integer", "1"))]),
+      ]),
+      digest,
+      table,
+    );
+    assert.strictEqual(mistyped.ok ? undefined : mistyped.refusal.code, "set-type");
 
     const status = itemOf(false, [
       element("qti-response-processing", {}, [

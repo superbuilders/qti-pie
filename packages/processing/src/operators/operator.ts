@@ -51,12 +51,16 @@ import type { XmlElement } from "#processing/xml.ts";
 export type RefusalCode =
   | "arity"
   | "attribute"
+  | "duplicate-identifier"
   | "element"
   | "operand-type"
+  | "response-binding"
+  | "set-type"
   | "template-location"
   | "unknown-identifier"
   | "unknown-operator"
-  | "unknown-template";
+  | "unknown-template"
+  | "value-cardinality";
 
 /**
  * A refusal: why, where, and a sentence that names what to change.

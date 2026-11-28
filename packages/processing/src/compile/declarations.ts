@@ -277,6 +277,15 @@ export const valuesOf = (
     return checked(recordOf(fields));
   }
 
+  const [, second] = values;
+  if (type.cardinality === "single" && second !== undefined) {
+    return refused(
+      "value-cardinality",
+      placeOf(second),
+      `write one qti-value for a variable of single cardinality, which holds "a single value" (QTI 3.0.1 §8.17, CardinalityEnum); ${holder.local} writes ${String(values.length)}`,
+    );
+  }
+
   const members: Single[] = [];
   for (const value of values) {
     const read = singleOf(type.base, value, placeOf(value));

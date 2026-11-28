@@ -21,6 +21,8 @@ import { Matcher } from "@bjornpagen/grizzle-text/regex/match";
 import { xsdPattern } from "@bjornpagen/grizzle-text/regex/xsd";
 import { regex } from "arkregex";
 import { readBoolean, readDouble, readInteger } from "#processing/lexical.ts";
+import { checked } from "#processing/operators/operator.ts";
+import type { Checked, Refusal } from "#processing/operators/operator.ts";
 import type { Declaration } from "#processing/program.ts";
 import type { BaseType } from "#processing/value.ts";
 import { attributeOf } from "#processing/xml.ts";
@@ -190,23 +192,64 @@ export type Interaction =
  * base types (the SQL grader's `module` table).
  */
 const bindings = {
-  "qti-associate-interaction": { bases: ["pair"], cardinalities: ["single", "multiple"] },
-  "qti-choice-interaction": { bases: ["identifier"], cardinalities: ["single", "multiple"] },
-  "qti-end-attempt-interaction": { bases: ["boolean"], cardinalities: ["single"] },
+  "qti-associate-interaction": {
+    bases: ["pair"],
+    cardinalities: ["single", "multiple"],
+    section: "5.8",
+  },
+  "qti-choice-interaction": {
+    bases: ["identifier"],
+    cardinalities: ["single", "multiple"],
+    section: "5.30",
+  },
+  "qti-end-attempt-interaction": { bases: ["boolean"], cardinalities: ["single"], section: "5.45" },
   "qti-extended-text-interaction": {
     bases: ["string", "integer", "float"],
     cardinalities: ["single", "multiple", "ordered", "record"],
+    section: "5.48",
   },
-  "qti-gap-match-interaction": { bases: ["directedPair"], cardinalities: ["single", "multiple"] },
-  "qti-graphic-associate-interaction": { bases: ["pair"], cardinalities: ["single", "multiple"] },
-  "qti-graphic-gap-match-interaction": { bases: ["directedPair"], cardinalities: ["multiple"] },
-  "qti-graphic-order-interaction": { bases: ["identifier"], cardinalities: ["ordered"] },
-  "qti-hotspot-interaction": { bases: ["identifier"], cardinalities: ["single", "multiple"] },
-  "qti-hottext-interaction": { bases: ["identifier"], cardinalities: ["single", "multiple"] },
-  "qti-inline-choice-interaction": { bases: ["identifier"], cardinalities: ["single"] },
-  "qti-match-interaction": { bases: ["directedPair"], cardinalities: ["single", "multiple"] },
-  "qti-media-interaction": { bases: ["integer"], cardinalities: ["single"] },
-  "qti-order-interaction": { bases: ["identifier"], cardinalities: ["ordered"] },
+  "qti-gap-match-interaction": {
+    bases: ["directedPair"],
+    cardinalities: ["single", "multiple"],
+    section: "5.57",
+  },
+  "qti-graphic-associate-interaction": {
+    bases: ["pair"],
+    cardinalities: ["single", "multiple"],
+    section: "5.59",
+  },
+  "qti-graphic-gap-match-interaction": {
+    bases: ["directedPair"],
+    cardinalities: ["multiple"],
+    section: "5.60",
+  },
+  "qti-graphic-order-interaction": {
+    bases: ["identifier"],
+    cardinalities: ["ordered"],
+    section: "5.61",
+  },
+  "qti-hotspot-interaction": {
+    bases: ["identifier"],
+    cardinalities: ["single", "multiple"],
+    section: "5.68",
+  },
+  "qti-hottext-interaction": {
+    bases: ["identifier"],
+    cardinalities: ["single", "multiple"],
+    section: "5.66",
+  },
+  "qti-inline-choice-interaction": {
+    bases: ["identifier"],
+    cardinalities: ["single"],
+    section: "5.74",
+  },
+  "qti-match-interaction": {
+    bases: ["directedPair"],
+    cardinalities: ["single", "multiple"],
+    section: "5.89",
+  },
+  "qti-media-interaction": { bases: ["integer"], cardinalities: ["single"], section: "5.92" },
+  "qti-order-interaction": { bases: ["identifier"], cardinalities: ["ordered"], section: "5.97" },
   "qti-portable-custom-interaction": {
     bases: [
       "identifier",
@@ -222,13 +265,27 @@ const bindings = {
       "uri",
     ],
     cardinalities: ["single", "multiple", "ordered", "record"],
+    section: "5.106",
   },
-  "qti-position-object-interaction": { bases: ["point"], cardinalities: ["multiple", "single"] },
-  "qti-select-point-interaction": { bases: ["point"], cardinalities: ["multiple", "single"] },
-  "qti-slider-interaction": { bases: ["integer", "float"], cardinalities: ["single"] },
+  "qti-position-object-interaction": {
+    bases: ["point"],
+    cardinalities: ["multiple", "single"],
+    section: "5.107",
+  },
+  "qti-select-point-interaction": {
+    bases: ["point"],
+    cardinalities: ["multiple", "single"],
+    section: "5.128",
+  },
+  "qti-slider-interaction": {
+    bases: ["integer", "float"],
+    cardinalities: ["single"],
+    section: "5.134",
+  },
   "qti-text-entry-interaction": {
     bases: ["string", "integer", "float"],
     cardinalities: ["single", "record"],
+    section: "5.162",
   },
 } as const satisfies Readonly<
   Record<
@@ -236,6 +293,7 @@ const bindings = {
     {
       readonly bases: readonly BaseType[];
       readonly cardinalities: readonly ("multiple" | "ordered" | "record" | "single")[];
+      readonly section: string;
     }
   >
 >;
@@ -537,9 +595,9 @@ const stepOf = (step: number | undefined, integer: boolean): number | undefined 
 
 /**
  * The reader of one interaction element: the interaction it is, or `undefined` where a notice of
- * its kind stands.
+ * its kind stands, or the refusal of content QTI 3.0.1 does not admit.
  */
-type Reader = (input: ReadInput) => Interaction | undefined;
+type Reader = (input: ReadInput) => Interaction | Refusal | undefined;
 
 /**
  * What an interaction element's reader reads: the element, what every interaction carries, the base
@@ -552,6 +610,20 @@ interface ReadInput {
   readonly parent: XmlElement | undefined;
   readonly reading: Reading;
 }
+
+/**
+ * A reader's refusal of an interaction QTI 3.0.1 does not admit.
+ *
+ * @param code - Why.
+ * @param input - What the reader read.
+ * @param detail - What to change, citing the section.
+ * @returns The refusal.
+ */
+const refusal = (code: Refusal["code"], { common }: ReadInput, detail: string): Refusal => ({
+  code,
+  detail,
+  place: common.place,
+});
 
 /**
  * The reader of a Choice, a Hottext or a Hotspot interaction: picks of its choices of one element.
@@ -653,9 +725,15 @@ const readGraphicAssociate: Reader = ({ common, element, reading }) => ({
 /**
  * Read `qti-graphic-gap-match-interaction`.
  */
-const readGraphicGapMatch: Reader = ({ common, element, reading }) =>
-  imageOf(element) === undefined
-    ? undefined
+const readGraphicGapMatch: Reader = (input) => {
+  const { common, element, reading } = input;
+
+  return imageOf(element) === undefined
+    ? refusal(
+        "element",
+        input,
+        "give the graphic gap match interaction its image, an object, img or picture child (QTI 3.0.1 §5.60.7, imageSelection [1]); qti-object is no QTI element",
+      )
     : {
         ...common,
         areas: associablesOf(element, ["qti-associable-hotspot"], reading),
@@ -664,6 +742,7 @@ const readGraphicGapMatch: Reader = ({ common, element, reading }) =>
         maxAssociations: integerOf(element, "max-associations", 1n),
         minAssociations: integerOf(element, "min-associations", 0n),
       };
+};
 
 /**
  * Read `qti-graphic-order-interaction`.
@@ -681,17 +760,38 @@ const readGraphicOrder: Reader = ({ common, element }) => ({
 /**
  * Read `qti-position-object-interaction`.
  */
-const readPositionObject: Reader = ({ common, element, parent }) => {
-  const stage = parent?.local === "qti-position-object-stage" ? parent : undefined;
-  const stageImage = stage === undefined ? undefined : elementChildren(stage)[0];
-  const stageSize =
-    stageImage !== undefined && imageElements.has(stageImage.local)
-      ? sizeOf(stageImage)
-      : undefined;
+const readPositionObject: Reader = (input) => {
+  const { common, element, parent } = input;
+  if (parent?.local !== "qti-position-object-stage") {
+    return refusal(
+      "element",
+      input,
+      "place the position object interaction in a qti-position-object-stage, its one parent class (QTI 3.0.1 §5.107)",
+    );
+  }
+
+  const [stageImage] = elementChildren(parent);
+  if (stageImage === undefined || !imageElements.has(stageImage.local)) {
+    return refusal(
+      "element",
+      input,
+      "give the qti-position-object-stage its image, an object, img or picture first child (QTI 3.0.1 §5.108.3, imageSelection [1])",
+    );
+  }
+
   const image = imageOf(element);
+  if (image === undefined) {
+    return refusal(
+      "element",
+      input,
+      "give the position object interaction its image, the object it places (QTI 3.0.1 §5.107)",
+    );
+  }
+
+  const stageSize = sizeOf(stageImage);
   const centred = written(element, "center-point") !== undefined || sizeOf(image) !== undefined;
 
-  return stageSize === undefined || image === undefined || !centred
+  return stageSize === undefined || !centred
     ? undefined
     : {
         ...common,
@@ -705,8 +805,18 @@ const readPositionObject: Reader = ({ common, element, parent }) => {
 /**
  * Read `qti-select-point-interaction`.
  */
-const readSelectPoint: Reader = ({ common, element, reading }) => {
-  const image = sizeOf(imageOf(element));
+const readSelectPoint: Reader = (input) => {
+  const { common, element, reading } = input;
+  const source = imageOf(element);
+  if (source === undefined) {
+    return refusal(
+      "element",
+      input,
+      "give the select point interaction its image, an object, img or picture child (QTI 3.0.1 §5.128.3 to §5.128.5)",
+    );
+  }
+
+  const image = sizeOf(source);
 
   return image === undefined
     ? undefined
@@ -723,13 +833,20 @@ const readSelectPoint: Reader = ({ common, element, reading }) => {
 /**
  * Read `qti-slider-interaction`.
  */
-const readSlider: Reader = ({ base, common, element }) => {
+const readSlider: Reader = (input) => {
+  const { base, common, element } = input;
   const lower = doubleOf(element, "lower-bound");
   const upper = doubleOf(element, "upper-bound");
   const step = doubleOf(element, "step");
+  if (lower === undefined || upper === undefined) {
+    return refusal(
+      "attribute",
+      input,
+      "write the slider interaction's lower-bound and upper-bound, each of multiplicity [1] (QTI 3.0.1 §5.134.1, §5.134.2)",
+    );
+  }
+
   if (
-    lower === undefined ||
-    upper === undefined ||
     !Number.isFinite(lower) ||
     !Number.isFinite(upper) ||
     (step !== undefined && !Number.isFinite(step))
@@ -770,7 +887,8 @@ const readTextEntry: Reader = ({ common, element }) => ({
 /**
  * Read `qti-extended-text-interaction`.
  */
-const readExtendedText: Reader = ({ common, element }) => {
+const readExtendedText: Reader = (input) => {
+  const { common, element } = input;
   const format = written(element, "format") ?? "plain";
 
   return format === "plain" || format === "preformatted" || format === "xhtml"
@@ -782,7 +900,11 @@ const readExtendedText: Reader = ({ common, element }) => {
         minStrings: integerOf(element, "min-strings", 0n),
         xhtml: format === "xhtml",
       }
-    : undefined;
+    : refusal(
+        "attribute",
+        input,
+        `write the extended text interaction's format as plain, preformatted or xhtml (QTI 3.0.1 §5.48.9); ${format} is none`,
+      );
 };
 
 /**
@@ -849,38 +971,159 @@ const binds = (local: InteractionElement, declaration: Declaration | undefined):
 };
 
 /**
+ * An interaction element's own interaction: refused where its response-identifier names no response
+ * declaration (QTI 3.0.1 §5.115: "Response variables are declared by response declarations and
+ * bound to interactions in the itemBody"; §5.15.7 and its siblings, response-identifier of
+ * multiplicity [1]), or binds one of a type its class does not take (its class's binding sentence,
+ * reading `binding-cardinality`), the order interaction alone excepted, whose class states no
+ * binding (reading `order-binding`); otherwise what its reader reads.
+ *
+ * @param local - The interaction element's name.
+ * @param input - What its reader reads.
+ * @param declaration - The declaration its response-identifier names.
+ * @returns The interaction, its refusal, or none where the package does not model it.
+ */
+const ownInteraction = (
+  local: InteractionElement,
+  input: ReadInput,
+  declaration: Declaration | undefined,
+): Interaction | Refusal | undefined => {
+  const { response } = input.common;
+  if (declaration?.role !== "response") {
+    return refusal(
+      "unknown-identifier",
+      input,
+      `declare the response ${local} binds: ${response === "" ? "it names none" : `${response} declares no response`} (QTI 3.0.1 §5.115, §5.15.7)`,
+    );
+  }
+
+  if (binds(local, declaration)) {
+    return readers[local](input);
+  }
+
+  if (local === "qti-order-interaction") {
+    return undefined;
+  }
+
+  const binding: { readonly section: string } = bindings[local];
+  const { type } = declaration;
+
+  return refusal(
+    "response-binding",
+    input,
+    `bind ${local} to a response of a cardinality and base type its class takes (QTI 3.0.1 §${binding.section}); ${response} is of ${type.cardinality === "record" ? "record" : `${type.cardinality} ${type.base}`}`,
+  );
+};
+
+/**
  * Every interaction of an element's content, in document order, with the gates that hold it.
  *
  * @param element - The element.
  * @param parent - Its parent.
  * @param gates - The gates of the content that holds it.
  * @param reading - The reader's context.
- * @returns The interactions.
+ * @returns The interactions, or the first refusal.
  */
 const walk = (
   element: XmlElement,
   parent: XmlElement | undefined,
   gates: readonly Gate[],
   reading: Reading,
-): readonly Interaction[] => {
+): Checked<readonly Interaction[]> => {
   const gate = gateElements.has(element.local) ? gateOf(element) : undefined;
   const held = gate === undefined ? gates : [...gates, gate];
   const { local } = element;
   const response = written(element, "response-identifier") ?? "";
   const declaration = reading.declarations.get(response);
-  const own =
-    isInteraction(local) && binds(local, declaration)
-      ? readers[local]({
-          base: declaration?.type.cardinality === "record" ? undefined : declaration?.type.base,
-          common: { gates: held, place: reading.placeOf(element), response },
-          element,
-          parent,
-          reading,
-        })
-      : undefined;
-  const inner = elementChildren(element).flatMap((child) => walk(child, element, held, reading));
+  const interactions: Interaction[] = [];
+  if (isInteraction(local)) {
+    const own = ownInteraction(
+      local,
+      {
+        base: declaration?.type.cardinality === "record" ? undefined : declaration?.type.base,
+        common: { gates: held, place: reading.placeOf(element), response },
+        element,
+        parent,
+        reading,
+      },
+      declaration,
+    );
+    if (own !== undefined && "code" in own) {
+      return { ok: false, refusal: own };
+    }
 
-  return own === undefined ? inner : [own, ...inner];
+    if (own !== undefined) {
+      interactions.push(own);
+    }
+  }
+
+  for (const child of elementChildren(element)) {
+    const inner = walk(child, element, held, reading);
+    if (!inner.ok) {
+      return inner;
+    }
+
+    for (const interaction of inner.value) {
+      interactions.push(interaction);
+    }
+  }
+
+  return checked(interactions);
+};
+
+/**
+ * The elements whose identifier no other element of their class bears in one item (QTI 3.0.1
+ * §5.7.1, §5.55.1, §5.56.1, §5.58.1, §5.65.1, §5.67.1, §5.73.1, §5.131.1 and §5.132.1: "This
+ * identifier must not be used by any other" element of its class, reading
+ * `choice-identifier-scope`).
+ */
+const choiceClasses: ReadonlySet<string> = new Set([
+  "qti-associable-hotspot",
+  "qti-gap",
+  "qti-gap-img",
+  "qti-gap-text",
+  "qti-hotspot-choice",
+  "qti-hottext",
+  "qti-inline-choice",
+  "qti-simple-associable-choice",
+  "qti-simple-choice",
+]);
+
+/**
+ * The refusal of a body where two elements of one choice class share an identifier.
+ *
+ * @param body - The `qti-item-body`.
+ * @param placeOf - Where each element stands.
+ * @returns The refusal, or `undefined` where every identifier is its class's alone.
+ */
+const duplicateChoice = (
+  body: XmlElement,
+  placeOf: (element: XmlElement) => number,
+): Refusal | undefined => {
+  const seen = new Map<string, Set<string>>();
+  const pending: XmlElement[] = [body];
+  for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+    if (choiceClasses.has(next.local)) {
+      const identifier = written(next, "identifier") ?? "";
+      const held = seen.get(next.local) ?? new Set<string>();
+      if (held.has(identifier)) {
+        return {
+          code: "duplicate-identifier",
+          detail: `give each ${next.local} an identifier of its own: ${identifier} is borne twice (QTI 3.0.1 §5.7.1 and its siblings, "This identifier must not be used by any other" choice of its class)`,
+          place: placeOf(next),
+        };
+      }
+
+      held.add(identifier);
+      seen.set(next.local, held);
+    }
+
+    for (const child of elementChildren(next)) {
+      pending.push(child);
+    }
+  }
+
+  return undefined;
 };
 
 /**
@@ -889,11 +1132,20 @@ const walk = (
  * @param body - The `qti-item-body`, if the item has one.
  * @param declarations - The item's declarations.
  * @param placeOf - Where each element stands.
- * @returns The interactions admission judges, in document order.
+ * @returns The interactions admission judges, in document order, or the first refusal.
  */
 export const interactionsOf = (
   body: XmlElement | undefined,
   declarations: ReadonlyMap<string, Declaration>,
   placeOf: (element: XmlElement) => number,
-): readonly Interaction[] =>
-  body === undefined ? [] : walk(body, undefined, [], { declarations, placeOf });
+): Checked<readonly Interaction[]> => {
+  if (body === undefined) {
+    return checked([]);
+  }
+
+  const duplicate = duplicateChoice(body, placeOf);
+
+  return duplicate === undefined
+    ? walk(body, undefined, [], { declarations, placeOf })
+    : { ok: false, refusal: duplicate };
+};

@@ -19,6 +19,8 @@ import type {
   ResponseRule,
   TemplateRule,
 } from "#processing/program.ts";
+import { sameValueType } from "#processing/value.ts";
+import type { ValueType } from "#processing/value.ts";
 import { attributeOf, qtiChildren } from "#processing/xml.ts";
 import type { XmlElement } from "#processing/xml.ts";
 
@@ -85,6 +87,55 @@ const targetOf = (
   }
 
   return checked({ identifier, role: declaration.role, scope: "own", type: declaration.type });
+};
+
+/**
+ * A type as a refusal names it.
+ *
+ * @param type - The type.
+ * @returns Its cardinality and base type, or `record`.
+ */
+const typeName = (type: ValueType): string =>
+  type.cardinality === "record" ? "record" : `${type.cardinality} ${type.base}`;
+
+/**
+ * A setter's target and expression, the expression's static type the target's where it is known
+ * (QTI 3.0.1 ASI §5.130.2, SetValue's expression "must have an effective base-type and cardinality
+ * that matches the base-type and cardinality of the outcome variable being set"; §5.130: "floating
+ * point values can not be assigned to integer variables and vice-versa"): an ill-typed set is
+ * refused here, so no compiled program fails it on every run. A dynamic expression is left to the
+ * run's check.
+ *
+ * @param element - The setter.
+ * @param rules - The compiler's context.
+ * @param settable - The roles it may set.
+ * @returns The target and the expression, or the refusal.
+ */
+const assignedOf = (
+  element: XmlElement,
+  rules: RulesContext,
+  settable: readonly Declaration["role"][],
+): Checked<{ readonly expression: Expression; readonly target: VariableRef }> => {
+  const target = targetOf(element, rules, settable);
+  const expression = soleExpression(element, rules);
+  if (!target.ok) {
+    return target;
+  }
+
+  if (!expression.ok) {
+    return expression;
+  }
+
+  const { type } = expression.value;
+  if (type.kind === "typed" && !sameValueType(type.type, target.value.type)) {
+    return refused(
+      "set-type",
+      rules.placeOf(element),
+      `${element.local} sets ${collapsed(attributeOf(element, "identifier") ?? "")}, declared ${typeName(target.value.type)}, to an expression of ${typeName(type.type)}: write an expression of the variable's base type and cardinality (QTI 3.0.1 §5.130.2)`,
+    );
+  }
+
+  return checked({ expression: expression.value, target: target.value });
 };
 
 /**
@@ -251,20 +302,11 @@ export const responseRulesOf = (
             : condition;
         }
         case "qti-set-outcome-value": {
-          const target = targetOf(child, rules, ["outcome"]);
-          const expression = soleExpression(child, rules);
-          if (!target.ok) {
-            return target;
-          }
+          const assigned = assignedOf(child, rules, ["outcome"]);
 
-          return expression.ok
-            ? checked({
-                expression: expression.value,
-                kind: "set-outcome",
-                place,
-                target: target.value,
-              })
-            : expression;
+          return assigned.ok
+            ? checked({ ...assigned.value, kind: "set-outcome", place })
+            : assigned;
         }
         case "qti-lookup-outcome-value": {
           return lookupOf(child, rules);
@@ -313,20 +355,11 @@ export const outcomeRulesOf = (
             : condition;
         }
         case "qti-set-outcome-value": {
-          const target = targetOf(child, rules, ["outcome"]);
-          const expression = soleExpression(child, rules);
-          if (!target.ok) {
-            return target;
-          }
+          const assigned = assignedOf(child, rules, ["outcome"]);
 
-          return expression.ok
-            ? checked({
-                expression: expression.value,
-                kind: "set-outcome",
-                place,
-                target: target.value,
-              })
-            : expression;
+          return assigned.ok
+            ? checked({ ...assigned.value, kind: "set-outcome", place })
+            : assigned;
         }
         case "qti-lookup-outcome-value": {
           return lookupOf(child, rules);
@@ -370,15 +403,9 @@ export const templateRulesOf = (
       kind: "set-correct" | "set-default" | "set-template",
       roles: readonly Declaration["role"][],
     ): Checked<TemplateRule> => {
-      const target = targetOf(child, rules, roles);
-      const expression = soleExpression(child, rules);
-      if (!target.ok) {
-        return target;
-      }
+      const assigned = assignedOf(child, rules, roles);
 
-      return expression.ok
-        ? checked({ expression: expression.value, kind, place, target: target.value })
-        : expression;
+      return assigned.ok ? checked({ ...assigned.value, kind, place }) : assigned;
     };
     const rule = ((): Checked<TemplateRule> => {
       switch (child.local) {

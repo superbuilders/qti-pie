@@ -8,7 +8,7 @@ import { logicOperators } from "#processing/operators/logic.ts";
 import { valuesOperators } from "#processing/operators/values.ts";
 import type { CompiledItem } from "#processing/program.ts";
 import { processingSeed } from "#processing/stream.ts";
-import { element } from "#processing/test/run.ts";
+import { element, text } from "#processing/test/run.ts";
 import { container, isText, nullOf, recordOf, single } from "#processing/value.ts";
 import type { BaseType, Text, Value } from "#processing/value.ts";
 import type { XmlElement } from "#processing/xml.ts";
@@ -71,6 +71,29 @@ const itemOf = (declarations: readonly XmlElement[], body: readonly XmlElement[]
   );
 
   return compiled.ok ? compiled.value : assert.fail(compiled.refusal.detail);
+};
+
+/**
+ * The refusal code of an item of declarations and a body the compiler refuses.
+ *
+ * @param declarations - The declarations.
+ * @param body - The body's content.
+ * @returns The refusal's code, or `undefined` where it compiles.
+ */
+const refusalOf = (
+  declarations: readonly XmlElement[],
+  body: readonly XmlElement[],
+): string | undefined => {
+  const compiled = compileItemWith(
+    element("qti-assessment-item", { adaptive: "false", identifier: "q" }, [
+      ...declarations,
+      element("qti-item-body", {}, body),
+    ]),
+    { sha256: "2".repeat(64) },
+    table,
+  );
+
+  return compiled.ok ? undefined : compiled.refusal.code;
 };
 
 /**
@@ -618,16 +641,18 @@ describe("graphic gap match", () => {
     ]);
   });
 
-  it("models no Graphic Gap Match without an image (the SQL grader's notice)", () => {
-    const item = itemOf(
-      [declared("R", "multiple", "directedPair")],
-      [
-        element("qti-graphic-gap-match-interaction", { "response-identifier": "R" }, [
-          child("qti-gap-img", "W1", {}),
-        ]),
-      ],
+  it("refuses a Graphic Gap Match without an image (QTI 3.0.1 §5.60.7, imageSelection [1])", () => {
+    assert.strictEqual(
+      refusalOf(
+        [declared("R", "multiple", "directedPair")],
+        [
+          element("qti-graphic-gap-match-interaction", { "response-identifier": "R" }, [
+            child("qti-gap-img", "W1", {}),
+          ]),
+        ],
+      ),
+      "element",
     );
-    assert.deepStrictEqual(item.interactions, []);
   });
 });
 
@@ -996,6 +1021,121 @@ describe("an answer's grade", () => {
         ? graded.result.outcomes.get("COPY")
         : undefined,
       nullOf({ base: "identifier", cardinality: "single" }),
+    );
+  });
+});
+
+describe("content QTI 3.0.1 does not admit, refused at compile", () => {
+  it("refuses an interaction bound to an undeclared response (§5.115, §5.15.7)", () => {
+    assert.strictEqual(
+      refusalOf(
+        [declared("RESPONSE", "single", "string")],
+        [element("qti-text-entry-interaction", { "response-identifier": "OTHER" }, [])],
+      ),
+      "unknown-identifier",
+    );
+  });
+
+  it("refuses a Text Entry bound to a multiple response (§5.162)", () => {
+    assert.strictEqual(
+      refusalOf(
+        [declared("R", "multiple", "string")],
+        [element("qti-text-entry-interaction", { "response-identifier": "R" }, [])],
+      ),
+      "response-binding",
+    );
+  });
+
+  it("refuses a single response whose correct response writes two values (§8.17, a single value)", () => {
+    assert.strictEqual(
+      refusalOf(
+        [
+          element(
+            "qti-response-declaration",
+            { "base-type": "string", cardinality: "single", identifier: "R" },
+            [
+              element("qti-correct-response", {}, [
+                element("qti-value", {}, [text("4")]),
+                element("qti-value", {}, [text("four")]),
+              ]),
+            ],
+          ),
+        ],
+        [element("qti-text-entry-interaction", { "response-identifier": "R" }, [])],
+      ),
+      "value-cardinality",
+    );
+  });
+
+  it("refuses a Graphic Gap Match whose image is a qti-object, no QTI element (§5.60.7)", () => {
+    assert.strictEqual(
+      refusalOf(
+        [declared("R", "multiple", "directedPair")],
+        [
+          element("qti-graphic-gap-match-interaction", { "response-identifier": "R" }, [
+            element("qti-object", { data: "a.svg", height: "100", width: "100" }, []),
+            child("qti-gap-text", "G1", { "match-max": "1" }),
+            child(
+              "qti-associable-hotspot",
+              "H1",
+              Object.fromEntries([
+                ["coords", "10,10,5"],
+                ["shape", "circle"],
+              ]),
+            ),
+          ]),
+        ],
+      ),
+      "element",
+    );
+  });
+
+  it("refuses a Position Object outside a qti-position-object-stage (§5.107)", () => {
+    assert.strictEqual(
+      refusalOf(
+        [declared("R", "multiple", "point")],
+        [
+          element("qti-position-object-interaction", { "response-identifier": "R" }, [
+            image(10, 10),
+          ]),
+        ],
+      ),
+      "element",
+    );
+  });
+
+  it("refuses two associable hotspots of one identifier (§5.7.1)", () => {
+    assert.strictEqual(
+      refusalOf(
+        [declared("R", "multiple", "directedPair")],
+        [
+          element(
+            "qti-graphic-gap-match-interaction",
+            { "max-associations": "0", "response-identifier": "R" },
+            [
+              image(100, 100),
+              child("qti-gap-text", "G1", { "match-max": "1" }),
+              child(
+                "qti-associable-hotspot",
+                "H1",
+                Object.fromEntries([
+                  ["coords", "10,10,5"],
+                  ["shape", "circle"],
+                ]),
+              ),
+              child(
+                "qti-associable-hotspot",
+                "H1",
+                Object.fromEntries([
+                  ["coords", "50,50,5"],
+                  ["shape", "circle"],
+                ]),
+              ),
+            ],
+          ),
+        ],
+      ),
+      "duplicate-identifier",
     );
   });
 });

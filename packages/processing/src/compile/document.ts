@@ -275,7 +275,11 @@ export const compileItemOver = <K extends ExpressionKind>(
   }
 
   const interactions = interactionsOf(childNamed(root, "qti-item-body"), typed.value, placeOf);
-  const images = imagesOf(interactions);
+  if (!interactions.ok) {
+    return interactions;
+  }
+
+  const images = imagesOf(interactions.value);
   const declarations = declarationsOf(root, "item", placeOf, {
     imageOf: (response) => images.get(response),
     kind: "resolve",
@@ -340,7 +344,7 @@ export const compileItemOver = <K extends ExpressionKind>(
         declarations: declared,
         digest,
         identifier: collapsed(attributeOf(root, "identifier") ?? ""),
-        interactions,
+        interactions: interactions.value,
         kind: "item",
         responseProcessing: responses.value,
         templateProcessing: templates.value,
