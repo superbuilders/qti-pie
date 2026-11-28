@@ -2,11 +2,12 @@
  * Alpha's PCI modules (`#plate/alpha/pci-modules.ts`) against their typed sources and their pins:
  *
  * - Each module file is its source with the types stripped, byte for byte. The oracle is Node's own
- *   type stripping (`stripTypeScriptTypes` of `node:module`, strip mode), the emit step's rule, so
- *   a source edited without `emit:alpha-pci-modules` fails here.
- * - Each module file's SHA-256 is its pin below (Bjorn, Q3: the module file is emitted from typed
- *   TypeScript), so a change to the bytes an item's package holds, whether its source changed or
- *   the machine's Node strips differently, changes a pin in the same commit.
+ *   type stripping (`stripTypeScriptTypes` of `node:module`, strip mode), the generator's rule, so
+ *   a source edited without `generate:alpha-pci-modules` fails here.
+ * - Each module file's SHA-256 is its pin in `pci-module-pins.generated.ts` (Bjorn, Q3: the module
+ *   file is generated from typed TypeScript), which the generator writes with the files, so a
+ *   change to the bytes an item's package holds changes a pin in the same commit, and a file edited
+ *   by hand fails here.
  * - Each module's entry is the one {@link alphaPciModule} writes from its id, a kebab-case name, so
  *   its id, path and type identifier agree.
  * - The folder holds each module's source and file, and nothing else, and each module's URL names its
@@ -24,21 +25,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runInNewContext } from "node:vm";
 import { alphaPciModule, alphaPciModules } from "#plate/alpha/pci-modules.ts";
-import type { AlphaPciModuleId } from "#plate/alpha/pci-modules.ts";
+import { pinned } from "#plate/alpha/pci-module-pins.generated.ts";
 import { lackedIn } from "#plate/test/browser-floor.ts";
-
-/**
- * Each module file's SHA-256, base64, as Subresource Integrity writes it, by the module's id.
- * `emit:alpha-pci-modules` prints the new pin of a file it changes.
- */
-const pinned: Readonly<Record<AlphaPciModuleId, string>> = {
-  "build-with-blocks": "sha256-WcLIeFwpfU98eFQRzykqSF0GunW7P3siZjRfbWpkdnk=",
-  "count-placements": "sha256-n4MfwqCuXxu2yAa0OCZUTwYWNSyWS8ydukj+9TsI5e0=",
-  "enter-numbers": "sha256-Qx8OJrhkkzuP7j6y/Zt4EFs+hI5uD1ZKsBywt1W4vpY=",
-  "mark-objects": "sha256-HaGKLpezsFgH1btfLdqAfUIL6+Gxaax6YuwBv8vke8E=",
-  "shade-parts": "sha256-ANS7fDhQkFYxoXaxFq/STSHYP44zVY+IWmflx0c67UQ=",
-  "tap-point": "sha256-kRZS+Zj7R+oqlaSS+pPnDBHJ6RmowS0cd3bOPuWOXIk=",
-};
 
 /**
  * The folder of the module sources and their files.
@@ -151,7 +139,7 @@ describe("Alpha's PCI modules", () => {
       assert.strictEqual(
         readFileSync(file, "utf-8"),
         stripTypeScriptTypes(readFileSync(sourceOf(file), "utf-8")),
-        `${path.relative(folder, file)} is not its source with the types stripped: run \`pnpm run emit:alpha-pci-modules\` in packages/plate.`,
+        `${path.relative(folder, file)} is not its source with the types stripped: run \`pnpm run generate:alpha-pci-modules\` in packages/plate.`,
       );
     }
   });
@@ -160,7 +148,7 @@ describe("Alpha's PCI modules", () => {
     assert.deepStrictEqual(
       Object.fromEntries(alphaPciModules.map(({ id, script }) => [id, pinOf(script)])),
       pinned,
-      "A module file's bytes changed, or a module has no pin: each new pin is the one `emit:alpha-pci-modules` printed.",
+      "A module file's bytes changed, or a module has no pin: run `pnpm run generate:alpha-pci-modules` in packages/plate, which writes each pin.",
     );
   });
 

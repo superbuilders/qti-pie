@@ -36,7 +36,7 @@
     "./words": "./src/words.ts"
   },
   "scripts": {
-    "emit:alpha-pci-modules": "node src/alpha/emit-pci-modules.ts",
+    "generate:alpha-pci-modules": "node src/alpha/generate-pci-modules.ts && oxfmt src/alpha/pci-module-pins.generated.ts",
     "generate": "node src/test/emit-modules.ts",
     "generate:check": "node src/test/emit-modules.ts --check",
     "typecheck": "sh -c 'toolchain-typecheck -p src/tsconfig.json \"$@\" & toolchain-typecheck -p tsconfig.json \"$@\"; plate=$?; wait $! && exit $plate' typecheck",

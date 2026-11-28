@@ -555,7 +555,7 @@ export default defineConfig({
     },
     // Inside an `alpha/` folder a module imports its folder's siblings as well as core, and keeps its
     // package's other bans: plate's, a page's for those of plate's a page loads, the server's for the
-    // ledger and pantry, and the shared ones elsewhere; plate's alpha suites, and the emit step that
+    // ledger and pantry, and the shared ones elsewhere; plate's alpha suites, and the generator that
     // writes each PCI module file under the machine's Node, load Node as plate's tests do. Last among
     // the rule's overrides, they lift alphaImportPattern on `alpha/` alone.
     {
@@ -631,7 +631,7 @@ export default defineConfig({
       files: [
         "packages/plate/src/alpha/**/*.test.ts",
         "packages/plate/src/alpha/**/*.test.tsx",
-        "packages/plate/src/alpha/emit-pci-modules.ts",
+        "packages/plate/src/alpha/generate-pci-modules.ts",
       ],
       rules: { "no-restricted-imports": ["error", { patterns: pathImportPatterns }] },
     },

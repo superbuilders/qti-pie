@@ -13,18 +13,20 @@
  * anonymous AMD `define` asking for the `qtiCustomInteractionContext` bridge, and every helper is
  * inside the factory, which registers one factory under the module's type identifier. The file,
  * `pci-modules/<id>.js`, is the source with its types stripped by the machine's Node
- * (`stripTypeScriptTypes`, strip mode, `pnpm --dir packages/plate run emit:alpha-pci-modules`),
+ * (`stripTypeScriptTypes`, strip mode, `pnpm --dir packages/plate run generate:alpha-pci-modules`),
  * which blanks each piece of type syntax and keeps every other character where it stands, so a
  * frame's stack trace names the source's own lines and columns, and the bytes depend on the source
  * alone, never on what compiles plate. `#plate/alpha/pci-modules.test.ts` holds each file to its
- * source byte for byte and to its SHA-256 pin, so a change to a file's bytes is a change in review.
+ * source byte for byte and to its SHA-256 pin, which the same script writes into
+ * `pci-module-pins.generated.ts`, so a change to a file's bytes is a change in review.
  *
  * **Why the floor.** A module file runs as written, in the learner's browser, with no polyfill: so
  * it uses only what the hosts' browser floor (`#plate/browser-floor.ts`) fully supports, which
  * the test holds in each file, and specimen's suites where it runs, in Chrome.
  *
- * **Adding a module.** Its source and its emitted file in `pci-modules/`, its entry here, written
- * with {@link alphaPciModule} and listed in {@link alphaPciModules}, and its pin in the test.
+ * **Adding a module.** Its source in `pci-modules/` and its entry here, written with
+ * {@link alphaPciModule} and listed in {@link alphaPciModules}; the generator writes its file and
+ * pin.
  *
  * **Why a leaf.** This module imports nothing, so a host outside qti-pie (AlphaTest's player,
  * through its qti-pie submodule) imports it as TypeScript from its path, with none of plate's
