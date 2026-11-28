@@ -707,7 +707,7 @@ export type Spot =
 /**
  * A box on the page, in CSS pixels from its top left.
  */
-interface Box {
+export interface Box {
   readonly height: number;
   readonly width: number;
   readonly x: number;
@@ -1193,6 +1193,12 @@ export interface Look {
    */
   readonly boardHeight: number;
   /**
+   * The board's width as the screen draws it, and the width of the column it is drawn in, its
+   * parent's, in CSS pixels.
+   */
+  readonly boardWidth: number;
+  readonly columnWidth: number;
+  /**
    * The board's computed `touch-action`: the browser's own gestures a touch that starts on it may
    * make, `none` where the PCI takes every touch as the child's.
    */
@@ -1230,15 +1236,55 @@ export interface Look {
   readonly texts: readonly string[];
   readonly tray: number;
   readonly trayCentres: readonly Point[];
+  /**
+   * Each zone's background's rectangle, in board units, as the counters' centres are.
+   */
+  readonly zones: Readonly<Record<Zone, Box>>;
 }
 
 /**
- * Read what the screen shows, in the page ({@link Look}). The text is every text node's but the
- * frame's own `style` element's and the boot's `script`'s, which the child never sees.
+ * What {@link framedIn} reads of a look: the board's width, its column's, and the zones'
+ * rectangles.
+ */
+type Framed = Pick<Look, "boardWidth" | "columnWidth" | "zones">;
+
+/**
+ * Read the board's frame, in the page: its drawn width, its column's, and each zone's rectangle in
+ * board units.
+ *
+ * @returns The frame.
+ */
+const framedIn = (): Framed => {
+  const board = document.querySelector("svg[data-board]");
+  const boardBox = board === null ? { height: 0, width: 0 } : board.getBoundingClientRect();
+  const column = board?.parentElement ?? document.body;
+  const noBox: Box = { height: 0, width: 0, x: 0, y: 0 };
+  const [matZone, trayZone] = (["mat", "tray"] as const).map((zone): Box => {
+    const rect = document.querySelector(`[data-zone="${zone}"]`);
+
+    return {
+      height: Number(rect?.getAttribute("height")),
+      width: Number(rect?.getAttribute("width")),
+      x: Number(rect?.getAttribute("x")),
+      y: Number(rect?.getAttribute("y")),
+    };
+  });
+
+  return {
+    boardWidth: boardBox.width,
+    columnWidth: column.getBoundingClientRect().width,
+    zones: { mat: matZone ?? noBox, tray: trayZone ?? noBox },
+  };
+};
+
+/**
+ * Read what the screen shows, in the page ({@link Look}) but its frame ({@link framedIn}). The text
+ * is every text node's but the frame's own `style` element's and the boot's `script`'s, which the
+ * child never sees.
  *
  * @returns The look.
  */
-const lookIn = (): Look => {
+const lookIn = (): Omit<Look, keyof Framed> => {
   const board = document.querySelector("svg[data-board]");
   const named = [...document.querySelectorAll("[aria-label], [title], [alt]")].flatMap(
     (element) => [
@@ -1894,7 +1940,10 @@ const startIn = (
             yield* settle(page);
           }),
         );
-    const lookNow = attempt("read the screen", () => page.evaluate(lookIn));
+    const lookNow = attempt("read the screen", async (): Promise<Look> => ({
+      ...(await page.evaluate(lookIn)),
+      ...(await page.evaluate(framedIn)),
+    }));
     const running: Running = {
       act: (gesture, from, way) => act(page, gesture, from, way),
       complete: completion,

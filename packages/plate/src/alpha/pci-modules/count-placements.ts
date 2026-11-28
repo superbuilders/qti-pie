@@ -17,21 +17,24 @@
  * - **The screen.** The mat: an open dark rounded rectangle, or a double ten frame; a dashed arrow
  *   up; and the tray, which starts with `supply` identical counters. A counter is a picture, the
  *   item's: the interaction's markup is exactly one `img`, the counter, which the module shows as
- *   every counter at the picture's own size (its `width`, equal to its `height`, 32 to 64 CSS
- *   pixels, the board drawn to that scale, or smaller for a supply over ten, as the state says),
- *   and never as a counter of its own. A picture the child is asked to match is the item body's,
- *   before the interaction, never the module's.
+ *   every counter at the picture's own size (its `width`, equal to its `height`, 44 to 64 CSS
+ *   pixels, so a counter is never smaller than a finger's 44 pixel touch target; the board drawn to
+ *   that scale, or narrower in a column too narrow for it, and never below 44 pixels a counter in
+ *   the narrowest column the tray is drawn in), and never as a counter of its own. A picture the
+ *   child is asked to match is the item body's, before the interaction, never the module's.
  * - **The state is a count.** The one fact the tray holds is how many counters stand on the mat, from
  *   none to the whole supply; every counter is the same, so which one moved is no fact. The screen
  *   is drawn from the count alone: the mat shows that many counters and the tray the rest, each in
- *   rows of five, the group a child counts by, so a second row begins at the sixth counter, every
- *   row centred, the rows centred top to bottom; a supply over ten takes a third and a fourth row,
- *   and its board is then drawn smaller, as tall as a supply of ten's and never taller, so under a
- *   picture to match it stays in a 1280 by 800 window wherever a supply of ten did; on the double
- *   ten frame the counters fill the first cells, frame one before frame two, each top row first,
- *   left to right. A gap on the mat, or frame two begun while frame one has an empty cell, cannot
- *   be drawn. The double ten frame holds twenty counters, and a supply is at most twenty, so every
- *   counter of the tray has a cell: no mat is ever full while the tray holds one.
+ *   groups of ten, five over five, as a ten frame holds them: rows of five, the group a child
+ *   counts by, so a second row begins at the sixth counter, every row centred in its group; a
+ *   supply over ten takes a second group beside the first, its eleventh counter beginning the
+ *   second group's top row, so every board is two rows high whatever its supply, as tall as a
+ *   supply of ten's, and grows only in width, its counters at the picture's size; the groups a
+ *   zone's counters fill are centred across, their rows top to bottom; on the double ten frame the
+ *   counters fill the first cells, frame one before frame two, each top row first, left to right. A
+ *   gap on the mat, or frame two begun while frame one has an empty cell, cannot be drawn. The
+ *   double ten frame holds twenty counters, and a supply is at most twenty, so every counter of the
+ *   tray has a cell: no mat is ever full while the tray holds one.
  * - **Moving a counter.** Drag it from the tray and drop it on the mat, or tap it and then tap the
  *   mat; a counter on the mat goes back to the tray the same two ways. Mouse, touch and pen are one
  *   pointer, one gesture at a time (a finger resting off the board takes no part), read by one
@@ -132,18 +135,25 @@ define(["qtiCustomInteractionContext"], (context) => {
   /**
    * A counter's side, on the mat, in a cell of the double ten frame and in the tray, and the gap
    * between two counters, in board units. The board is drawn so that a counter's side is the
-   * counter's picture's own size in CSS pixels (its `width`), times the board's fit for a supply
-   * past ten ({@link fullSizeRows}), so every other length scales with it.
+   * counter's picture's own size in CSS pixels (its `width`), so every other length scales with it,
+   * in any column at least as wide as the board drawn so.
    */
   const counterSide = 100;
   const gap = 36;
   const pitch = counterSide + gap;
 
   /**
-   * The least and the greatest side of the counter's picture, in CSS pixels: a counter a child's
-   * finger can hold, and a tray of twenty that still fits a page.
+   * The least and the greatest side of the counter's picture, in CSS pixels: a counter no smaller
+   * than a finger's touch target, 44 pixels, and a tray of twenty that still fits a page.
    */
-  const faceSides = { greatest: 64, least: 32 } as const;
+  const faceSides = { greatest: 64, least: 44 } as const;
+
+  /**
+   * The narrowest column the tray is drawn in, in CSS pixels: the player's item column in a 768 by
+   * 1024 window, a tablet held upright. A board too wide to draw its counters at {@link faceSides}'s
+   * least in it is refused, so in every column the tray is drawn in a counter is a touch target.
+   */
+  const narrowestColumn = 682;
 
   /**
    * The attributes the counter's picture carries, each required: what `img` needs to be drawn and
@@ -160,7 +170,7 @@ define(["qtiCustomInteractionContext"], (context) => {
   /**
    * A zone's border and padding, its corner radius, and its least size, in board units: the open
    * mat two rows high and the tray one, the ten-frame mat its two frames and a margin. The open mat
-   * and the tray are as wide as their rows ({@link rowZoneWidth}).
+   * and the tray are as wide as their groups ({@link groupZoneWidthOf}).
    */
   const border = 10;
   const padding = 40;
@@ -196,12 +206,19 @@ define(["qtiCustomInteractionContext"], (context) => {
   const perRow = 5;
 
   /**
-   * The rows a board holds in a zone at its picture's own size: a supply of ten's. A board whose
-   * supply takes more rows is drawn smaller, as tall as a supply of ten's ({@link boardHeightOf}),
-   * so a tray under a picture to match stays in a 1280 by 800 window wherever a supply of ten did
-   * (a taller board pushed the counters, and the question's own buttons, out of the window).
+   * The counters a group of the tray or the open mat holds, and its rows: ten, five over five, as a
+   * ten frame holds them. A supply over ten takes a second group beside the first, never a third
+   * row, so every board is as tall as a supply of ten's (a taller board pushed the counters, and
+   * the question's own buttons, out of a 1280 by 800 window) and its counters stay at the picture's
+   * size (a board drawn smaller to stay as tall drew them under a touch target).
    */
-  const fullSizeRows = 2;
+  const groupRows = 2;
+  const perGroup = groupRows * perRow;
+
+  /**
+   * A group's width, in board units: a row of {@link perRow} counters at their pitch.
+   */
+  const groupWidth = perRow * pitch - gap;
 
   /**
    * The heights of a board's mat and tray, in board units.
@@ -239,10 +256,14 @@ define(["qtiCustomInteractionContext"], (context) => {
     border / 2 + heights.mat + gap + arrowLength + gap + heights.tray + border / 2;
 
   /**
-   * The width of the tray, and of the open mat, in board units: a row of {@link perRow} counters at
-   * their pitch and the zone's inset either side.
+   * The width of the tray, and of the open mat, in board units: its groups side by side, a ten
+   * frame's gap between two, and the zone's inset either side.
+   *
+   * @param groups The groups the zone's counters stand in.
+   * @returns The zone's width.
    */
-  const rowZoneWidth = perRow * pitch - gap + 2 * inset;
+  const groupZoneWidthOf = (groups: number): number =>
+    groups * groupWidth + (groups - 1) * frameGap + 2 * inset;
 
   /**
    * The board's two zones, the one list every zone-wide reading walks.
@@ -472,25 +493,33 @@ define(["qtiCustomInteractionContext"], (context) => {
   };
 
   /**
-   * Lay out counters in a zone's inside as a centred wrap: rows of {@link perRow}, each row centred
-   * across, the rows centred top to bottom.
+   * Lay out counters in a zone's inside in groups of {@link perGroup}, side by side a ten frame's
+   * gap apart, the groups the counters fill centred across: in each group rows of {@link perRow},
+   * top row first, each row centred in its group, the rows centred top to bottom.
    *
    * @param count The counters.
    * @param inside The zone's inside.
    * @returns Each counter's centre, in reading order.
    */
-  const rows = (count: number, inside: Inside): readonly Point[] => {
-    const first =
-      inside.top +
-      (inside.height - (Math.ceil(count / perRow) * pitch - gap)) / 2 +
-      counterSide / 2;
+  const groupsOf = (count: number, inside: Inside): readonly Point[] => {
+    const groups = Math.ceil(count / perGroup);
+    const rowsHigh = Math.min(groupRows, Math.ceil(count / perRow));
+    const first = inside.top + (inside.height - (rowsHigh * pitch - gap)) / 2 + counterSide / 2;
+    const groupsLeft =
+      inside.left + (inside.width - (groups * groupWidth + (groups - 1) * frameGap)) / 2;
 
     return Array.from({ length: count }, (_, at) => {
-      const row = Math.floor(at / perRow);
-      const inRow = Math.min(perRow, count - row * perRow);
-      const across = inside.left + (inside.width - (inRow * pitch - gap)) / 2 + counterSide / 2;
+      const group = Math.floor(at / perGroup);
+      const inGroup = at % perGroup;
+      const row = Math.floor(inGroup / perRow);
+      const inRow = Math.min(perRow, count - group * perGroup - row * perRow);
+      const across =
+        groupsLeft +
+        group * (groupWidth + frameGap) +
+        (groupWidth - (inRow * pitch - gap)) / 2 +
+        counterSide / 2;
 
-      return { x: across + (at % perRow) * pitch, y: first + row * pitch };
+      return { x: across + (inGroup % perRow) * pitch, y: first + row * pitch };
     });
   };
 
@@ -557,35 +586,34 @@ define(["qtiCustomInteractionContext"], (context) => {
 
     face.img.remove();
 
-    const width = tenFrame ? Math.max(tenFrameWidth, rowZoneWidth) : rowZoneWidth;
-    const rowsHigh = Math.ceil(supply / perRow);
-    const zoneHeights = zoneHeightsOf(tenFrame, rowsHigh);
+    const groupZoneWidth = groupZoneWidthOf(Math.ceil(supply / perGroup));
+    const width = tenFrame ? Math.max(tenFrameWidth, groupZoneWidth) : groupZoneWidth;
+
+    if ((width * faceSides.least) / counterSide > narrowestColumn) {
+      refuse(
+        `its data-supply ${String(supply)} draws a board ${String(width)} units wide, too wide for a counter of ${String(faceSides.least)} pixels in a column of ${String(narrowestColumn)}.`,
+      );
+    }
+
+    const zoneHeights = zoneHeightsOf(tenFrame, Math.min(groupRows, Math.ceil(supply / perRow)));
     const matHeight = zoneHeights.mat;
     const trayZoneHeight = zoneHeights.tray;
     const matTop = border / 2;
     const arrowTop = matTop + matHeight + gap;
     const trayTop = arrowTop + arrowLength + gap;
-    const trayLeft = (width - rowZoneWidth) / 2;
+    const trayLeft = (width - groupZoneWidth) / 2;
     const height = boardHeightOf(zoneHeights);
 
     /**
-     * The share of its full size the board is drawn at: 1, or less where the supply takes more than
-     * {@link fullSizeRows} rows, so the board is as tall as a supply of ten's. The board's width,
-     * its share of the column and its greatest width both, is scaled by it, so in any column it is
-     * no taller than ten's: the two are as wide in board units, a row of five or the ten frames.
-     */
-    const fit = Math.min(height, boardHeightOf(zoneHeightsOf(tenFrame, fullSizeRows))) / height;
-
-    /**
      * How far a press travels on the screen, in CSS pixels, before it is no tap: half the picture's
-     * side times the board's {@link fit}, as the board draws a counter at its greatest width. It is
+     * side, as the board draws a counter at its greatest width. It is
      * measured on the screen, not on the board, since a finger drifts as far whatever the board's
      * scale; nearer, the press taps, so a finger that drifts while it taps still taps. The other
      * zone stands an arrow's length and two gaps (192 board units, nearly two counters) past any
      * counter's own zone, so no drag that could move a counter reads as a tap while the board is
      * drawn at more than about a quarter of its size.
      */
-    const tapTravel = (face.side * fit) / 2;
+    const tapTravel = face.side / 2;
 
     const frameWidth = frameColumns * cell;
     const framesLeft = (width - (2 * frameWidth + frameGap)) / 2;
@@ -601,13 +629,13 @@ define(["qtiCustomInteractionContext"], (context) => {
       height: matHeight - 2 * inset,
       left: inset,
       top: matTop + inset,
-      width: rowZoneWidth - 2 * inset,
+      width: groupZoneWidth - 2 * inset,
     };
     const trayInside: Inside = {
       height: trayZoneHeight - 2 * inset,
       left: trayLeft + inset,
       top: trayTop + inset,
-      width: rowZoneWidth - 2 * inset,
+      width: groupZoneWidth - 2 * inset,
     };
 
     /**
@@ -615,8 +643,8 @@ define(["qtiCustomInteractionContext"], (context) => {
      * rows, the tray's in its rows.
      */
     const standing: Record<Zone, (count: number) => readonly Point[]> = {
-      mat: tenFrame ? (count) => cells.slice(0, count) : (count) => rows(count, matInside),
-      tray: (count) => rows(count, trayInside),
+      mat: tenFrame ? (count) => cells.slice(0, count) : (count) => groupsOf(count, matInside),
+      tray: (count) => groupsOf(count, trayInside),
     };
 
     /**
@@ -662,7 +690,7 @@ define(["qtiCustomInteractionContext"], (context) => {
     const style = document.createElement("style");
 
     style.textContent = [
-      `[data-board] { display: block; width: ${String(100 * fit)}%; max-width: ${String((width * face.side * fit) / counterSide)}px; height: auto; touch-action: none; user-select: none; -webkit-user-select: none; }`,
+      `[data-board] { display: block; width: 100%; max-width: ${String((width * face.side) / counterSide)}px; height: auto; touch-action: none; user-select: none; -webkit-user-select: none; }`,
       "[data-board] [data-slot] { cursor: grab; }",
       "[data-board] [data-zone] { cursor: pointer; }",
       `[data-board] :focus { outline: none; } [data-board] :focus-visible { outline: 3px solid ${chosen}; outline-offset: 2px; }`,
@@ -708,7 +736,7 @@ define(["qtiCustomInteractionContext"], (context) => {
       "tray",
       trayLeft + border / 2,
       trayTop,
-      rowZoneWidth - border,
+      groupZoneWidth - border,
       trayZoneHeight,
     );
     const frames = svg("g", { "aria-hidden": "true", "pointer-events": "none" });

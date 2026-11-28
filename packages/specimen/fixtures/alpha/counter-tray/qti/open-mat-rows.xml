@@ -6,7 +6,7 @@
     <qti-portable-custom-interaction response-identifier="RESPONSE" custom-interaction-type-identifier="urn:fdc:alpha.school:2026:count-placements" module="count-placements" data-supply="13" data-mat="open">
       <qti-prompt><p>Put 11 counters on the mat.</p></qti-prompt>
       <qti-interaction-modules><qti-interaction-module id="count-placements" primary-path="modules/count-placements"/></qti-interaction-modules>
-      <qti-interaction-markup><img src="../media/4c62db3b28ced0f017d35579d8c3df6d6d73a685d9d5c06930d768571fcd19d7.svg" alt="a counter" width="40" height="40" data-qti-suppress-tts="computer-read-aloud"/></qti-interaction-markup>
+      <qti-interaction-markup><img src="../media/4c62db3b28ced0f017d35579d8c3df6d6d73a685d9d5c06930d768571fcd19d7.svg" alt="a counter" width="48" height="48" data-qti-suppress-tts="computer-read-aloud"/></qti-interaction-markup>
     </qti-portable-custom-interaction>
   </qti-item-body>
   <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
