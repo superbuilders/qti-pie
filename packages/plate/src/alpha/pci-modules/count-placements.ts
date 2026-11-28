@@ -690,7 +690,7 @@ define(["qtiCustomInteractionContext"], (context) => {
     const style = document.createElement("style");
 
     style.textContent = [
-      `[data-board] { display: block; width: 100%; max-width: ${String((width * face.side) / counterSide)}px; height: auto; touch-action: none; user-select: none; -webkit-user-select: none; }`,
+      `[data-board] { display: block; width: 100%; max-width: ${String((width * face.side) / counterSide)}px; height: auto; touch-action: none; user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent; }`,
       "[data-board] [data-slot] { cursor: grab; }",
       "[data-board] [data-zone] { cursor: pointer; }",
       `[data-board] :focus { outline: none; } [data-board] :focus-visible { outline: 3px solid ${chosen}; outline-offset: 2px; }`,

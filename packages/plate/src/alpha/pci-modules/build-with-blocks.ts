@@ -284,7 +284,7 @@ define(["qtiCustomInteractionContext"], (context) => {
    */
   const styles = `
     body { margin: 0; }
-    svg { display: block; width: 100%; height: auto; user-select: none; -webkit-user-select: none; touch-action: none; }
+    svg { display: block; width: 100%; height: auto; user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent; touch-action: none; }
     [data-piece] { cursor: grab; outline: none; }
     [data-ring] { fill: transparent; stroke: none; }
     [data-piece][aria-pressed="true"] [data-ring] { stroke: ${colours.chosen}; stroke-width: 4; }

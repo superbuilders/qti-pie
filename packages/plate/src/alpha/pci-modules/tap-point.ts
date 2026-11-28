@@ -848,7 +848,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
     const part = (name: string): string => `[data-tap="${name}"]`;
 
     sheet.textContent = [
-      `${part("figure")}{display:block;max-width:100%;height:auto;overflow:visible;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;outline:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}`,
+      `${part("figure")}{display:block;max-width:100%;height:auto;overflow:visible;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;outline:none;touch-action:manipulation}`,
       `${part("target")}{fill:transparent;cursor:pointer}`,
       `${part("figure")}[aria-disabled="true"] ${part("target")}{cursor:default}`,
       `${part("cursor")}{fill:none;stroke:#555;stroke-width:3px;stroke-dasharray:6 4;visibility:hidden}`,

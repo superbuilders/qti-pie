@@ -10,6 +10,7 @@
  *   by hand fails here.
  * - Each module's entry is the one {@link alphaPciModule} writes from its id, a kebab-case name, so
  *   its id, path and type identifier agree.
+ * - Each module file writes the board style every module shares ({@link alphaPciBoardStyle}).
  * - The folder holds each module's source and file, and nothing else, and each module's URL names its
  *   file there.
  * - Each module file, run as the frame's loader runs it, defines one anonymous AMD module asking for
@@ -24,9 +25,24 @@ import { stripTypeScriptTypes } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runInNewContext } from "node:vm";
-import { alphaPciModule, alphaPciModules } from "#plate/alpha/pci-modules.ts";
+import { alphaPciBoardStyle, alphaPciModule, alphaPciModules } from "#plate/alpha/pci-modules.ts";
+import type { AlphaPciModuleId } from "#plate/alpha/pci-modules.ts";
 import { pinned } from "#plate/alpha/pci-module-pins.generated.ts";
 import { lackedIn } from "#plate/test/browser-floor.ts";
+
+/**
+ * Each module's board, the element a child presses, taps or drags on, by the selector its file's
+ * stylesheet spells it with: the one rule that must carry {@link alphaPciBoardStyle}. A module this
+ * table does not name fails to compile, so a new module names its board here.
+ */
+const board: Readonly<Record<AlphaPciModuleId, string>> = {
+  "build-with-blocks": "svg {",
+  "count-placements": "[data-board] {",
+  "enter-numbers": `\${part("whole")}{`,
+  "mark-objects": `\${part("object")}{`,
+  "shade-parts": `\${part("model")}{`,
+  "tap-point": `\${part("figure")}{`,
+};
 
 /**
  * The folder of the module sources and their files.
@@ -149,6 +165,21 @@ describe("Alpha's PCI modules", () => {
       Object.fromEntries(alphaPciModules.map(({ id, script }) => [id, pinOf(script)])),
       pinned,
       "A module file's bytes changed, or a module has no pin: run `pnpm run generate:alpha-pci-modules` in packages/plate, which writes each pin.",
+    );
+  });
+
+  it("each give their board the shared board style", () => {
+    assert.deepStrictEqual(
+      alphaPciModules.flatMap(({ id, script }) => {
+        const rules = readFileSync(script, "utf-8")
+          .split("\n")
+          .map((line) => line.trimStart())
+          .filter((line) => line.startsWith(board[id]) || line.startsWith(`\`${board[id]}`));
+
+        return rules.length === 1 && rules[0]?.includes(alphaPciBoardStyle) === true ? [] : [id];
+      }),
+      [],
+      "each module's one board rule, the line its board's selector starts, writes alphaPciBoardStyle",
     );
   });
 

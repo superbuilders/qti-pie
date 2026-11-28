@@ -833,7 +833,7 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
 
     sheet.textContent = [
       `${part("whole")}{display:inline-flex;flex-direction:column;align-items:center;gap:${String(stack.gap)}px;touch-action:none}`,
-      `${part("model")}{display:block;overflow:visible;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}`,
+      `${part("model")}{display:block;overflow:visible;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:none}`,
       `${part("part")},${part("shown")}{fill:${look.clear};stroke:${look.outline};stroke-width:${String(look.stroke)}px;stroke-linejoin:round}`,
       `${part("part")}[aria-pressed="true"],${part("shown")}[data-shaded]{fill:${look.shaded}}`,
       `${part("part")}{cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;outline:none}`,

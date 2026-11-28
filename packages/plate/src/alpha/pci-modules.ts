@@ -163,3 +163,15 @@ export const alphaPciModules = [
  * The id of one of Alpha's PCI modules.
  */
 export type AlphaPciModuleId = (typeof alphaPciModules)[number]["id"];
+
+/**
+ * The declarations every module's board carries, the element a child presses, taps or drags on, so
+ * no press selects text, raises iOS's long-press callout over a picture, or flashes a tap colour
+ * (an iPad's long press on a counter mid-drag raised the image callout where one module had none).
+ * A module file is a leaf that imports nothing, so each board's rule writes this text itself;
+ * `pci-modules.test.ts` holds every module file to it, so no module can lack a declaration.
+ * `touch-action` stays each module's own: `none` where a finger drags, `manipulation` where it
+ * taps.
+ */
+export const alphaPciBoardStyle =
+  "user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent";
