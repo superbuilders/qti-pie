@@ -16,10 +16,11 @@
  * - **The interaction.** A tap on a tick rings it, a tap on an intersection sets a dot on it; a tap
  *   on the marked one takes the mark away, and a tap on another moves it there: one point at most.
  *   Each tick and intersection is a target of at least 44 px (WCAG 2.2's Target Size, Enhanced), a
- *   button named for its point: a tick by its place ("tick 2 of 5"), an intersection "a point", the
- *   same for every one, since nothing is printed at it. To a keyboard the figure is one tab stop:
- *   the arrows move a dashed focus square over the ticks or the intersections, and Enter or Space
- *   taps the one it is on, once per press, none with Alt, Control or Meta.
+ *   button named by the numeral printed at it and otherwise by its kind: an end tick "a tick,
+ *   labelled " and the numeral under it, every other tick "a tick" and every intersection "a
+ *   point", the same for every one, since nothing is printed at it. To a keyboard the figure is one
+ *   tab stop: the arrows move a dashed focus square over the ticks or the intersections, and Enter
+ *   or Space taps the one it is on, once per press, none with Alt, Control or Meta.
  * - **The response.** The point marked, NULL `{ base: null }` / `{ list: null }` for none (an
  *   interaction left untouched sends no answer, owner's ruling Q6, and a mark taken away again is
  *   the same screen): on a line the tick's place from `start`, 0 to `parts`, `{ base: { integer: k
@@ -125,6 +126,12 @@
              
                              
                                                                        
+
+/**
+ * What a line prints, each numeral as drawn with the tick it stands under: its start's under tick
+ * 0, its end's under tick `parts`, and nothing under any other.
+ */
+                                                                                 
 
 /**
  * What a grid prints, each word as drawn: its x-axis's numerals, its y-axis's numerals, both 0 to
@@ -546,6 +553,20 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   };
 
   /**
+   * The numerals a line prints, each written as drawn with the tick it stands under: its start's
+   * under its first tick, its end's under its last. The drawing draws exactly these and the names
+   * name exactly these ({@link nameOf}, {@link pointName}), so no name can say a numeral the child
+   * does not see, and none says how many parts the line is cut into.
+   *
+   * @param figure The line.
+   * @returns Its printed numerals.
+   */
+  const lineLabels = (figure                                   )             => [
+    { numeral: numeralOf(figure.start), tick: 0 },
+    { numeral: numeralOf(figure.end), tick: figure.parts },
+  ];
+
+  /**
    * The words a grid prints, each written as drawn: its x-axis's numerals 0 to `size`, its y-axis's
    * numerals 0 to `size`, and its titles. The drawing draws exactly these and its name names
    * exactly these ({@link nameOf}), so no name can say a word the child does not see.
@@ -654,12 +675,9 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
         );
       }
 
-      for (const [tick, numeral] of [
-        [0, figure.start],
-        [figure.parts, figure.end],
-      ]         ) {
+      for (const { numeral, tick } of lineLabels(figure)) {
         parts.push(
-          svgText(document, numeralOf(numeral), {
+          svgText(document, numeral, {
             "font-size": line.numeral,
             "font-weight": 600,
             x: placeOf(figure, [tick, 0]).cx,
@@ -758,16 +776,17 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   };
 
   /**
-   * Name the figure for a screen reader: "a number line from 40,000 to 50,000 in 10 equal parts";
-   * a grid by exactly the labels it prints, its x numerals, its y numerals, then its titles when
-   * drawn, "a grid, labelled 0, 1, 2, 0, 1 and 2", never where any of them stands.
+   * Name the figure for a screen reader by exactly the labels it prints, never where any of them
+   * stands: a line by the numerals under its ends, "a number line, labelled 0 and 2", never its
+   * parts; a grid by its x numerals, its y numerals, then its titles when drawn, "a grid, labelled
+   * 0, 1, 2, 0, 1 and 2".
    *
    * @param figure The figure.
    * @returns The name.
    */
   const nameOf = (figure        )         => {
     if (figure.kind === "line") {
-      return `a number line from ${numeralOf(figure.start)} to ${numeralOf(figure.end)} in ${String(figure.parts)} equal parts`;
+      return `a number line, labelled ${clauseOf(lineLabels(figure).map(({ numeral }) => numeral))}`;
     }
 
     const printed = gridLabels(figure);
@@ -780,27 +799,44 @@ define(["qtiCustomInteractionContext"], (qtiCustomInteractionContext) => {
   };
 
   /**
-   * Name a point for a screen reader: a line's tick "tick 2 of 5"; a grid's intersection "a point",
-   * every one the same, since nothing is printed at an intersection and its place is what the
-   * child reads off the axes.
+   * Name a point for a screen reader by the numeral printed at it, and otherwise by its kind: a
+   * line's end tick "a tick, labelled 0" by the numeral under it, every other tick "a tick", never
+   * its place; a grid's intersection "a point", every one the same, since nothing is printed at an
+   * intersection and its place is what the child reads off the axes.
    *
    * @param figure The figure.
    * @param point The point.
    * @returns The name.
    */
-  const pointName = (figure        , [x]       )         =>
-    figure.kind === "line" ? `tick ${String(x)} of ${String(figure.parts)}` : "a point";
+  const pointName = (figure        , [x]       )         => {
+    if (figure.kind === "grid") {
+      return "a point";
+    }
+
+    const printed = lineLabels(figure)
+      .filter(({ tick }) => tick === x)
+      .map(({ numeral }) => numeral);
+
+    return printed.length === 0 ? "a tick" : `a tick, labelled ${clauseOf(printed)}`;
+  };
 
   /**
-   * Name what is marked, after the figure's name: on a grid "no point marked" or "a point marked",
-   * never which; on a line the marked tick's name.
+   * What is marked, named after the figure's name by its figure's noun and never which: on a line
+   * "no tick marked" or "a tick marked", on a grid "no point marked" or "a point marked".
+   */
+  const markNames                                                                           = {
+    grid: { at: "a point marked", none: "no point marked" },
+    line: { at: "a tick marked", none: "no tick marked" },
+  };
+
+  /**
+   * Name what is marked, after the figure's name ({@link markNames}).
    *
    * @param figure The figure.
    * @param mark What is marked.
    * @returns The name.
    */
-  const markName = (figure        , mark      )         =>
-    mark.kind === "none" ? "no point marked" : `${pointName(figure, mark.point)} marked`;
+  const markName = (figure        , mark      )         => markNames[figure.kind][mark.kind];
 
   /**
    * Write the PCI's stylesheet into the frame's document, keyed on its `data-tap` parts.

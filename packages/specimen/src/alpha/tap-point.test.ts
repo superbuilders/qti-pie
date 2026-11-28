@@ -15,7 +15,13 @@
  *   labelled " and its x numerals, its y numerals and its titles, each as drawn, ", " between them
  *   and " and " before the last; every intersection is "a point"; its mark is "no point marked" or
  *   "a point marked". No intersection's name and no mark carries a digit, and a tap never changes
- *   an intersection's name.
+ *   an intersection's name. A line is named "a number line, labelled " and the numerals drawn under
+ *   its ends, " and " between them, and never its parts; each end tick is "a tick, labelled " and
+ *   the numeral drawn under it, and every other tick "a tick"; its mark is "no tick marked" or "a
+ *   tick marked". No digit is in any of its names but in the numerals they say, and a tap never
+ *   changes a tick's name. Its kills: each slip planted in the module's file that names a tick by
+ *   its place, says the parts, says which tick is marked, names an end ungrouped, leaves an end
+ *   tick unnamed, or reads an empty line's mark as the grid's fails it.
  * - TP2, tapping: a tap within 20 px of a tick or an intersection (inside its 44 px target) marks it;
  *   a tap on the marked one takes the mark away; a tap on another moves it. One mark at most.
  * - TP3, the response: a line's tick place `{ base: { integer: k } }`, a grid's `{ list: { integer:
@@ -32,9 +38,14 @@
  */
 import { assert, layer } from "@effect/vitest";
 import { regex } from "arkregex";
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Exit, Layer } from "effect";
 import { tapPoint } from "@qti-pie/plate/alpha/pci-modules";
-import { hostedItem, hostedPage } from "#specimen/alpha/hosted-pci.ts";
+import {
+  hostedItem,
+  hostedPage,
+  hostedPageServing,
+  moduleScript,
+} from "#specimen/alpha/hosted-pci.ts";
 import type { HostedItem, HostedPage, Point, Start } from "#specimen/alpha/hosted-pci.ts";
 
 /**
@@ -218,6 +229,104 @@ const assertGridNames = (figure: Figure, size: number, marked: boolean, why: str
 };
 
 /**
+ * A name with the labels it says taken out: its ", labelled " clause, up to the mark's "; ".
+ *
+ * @param name The name.
+ * @returns The name without its labels.
+ */
+const unlabelled = (name: string): string => name.replace(regex(", labelled [^;]*", "u"), "");
+
+/**
+ * Require a line's names: each end tick "a tick, labelled " and the numeral drawn under it, every
+ * other tick "a tick", one per tick; its figure named by the numerals drawn at its ends and then
+ * its mark, "no tick marked" or "a tick marked"; and no digit in any name but in the labels it
+ * says.
+ *
+ * @param figure What is drawn.
+ * @param parts The line's parts.
+ * @param marked Whether a tick is marked.
+ * @param why The case.
+ */
+const assertLineNames = (figure: Figure, parts: number, marked: boolean, why: string): void => {
+  const ends = figure.columns.map((column) => column.text);
+  const mark = marked ? "a tick marked" : "no tick marked";
+
+  assert.deepStrictEqual(
+    figure.targets,
+    [
+      `a tick, labelled ${ends[0] ?? ""}`,
+      ...Array.from({ length: parts - 1 }, () => "a tick"),
+      `a tick, labelled ${ends[1] ?? ""}`,
+    ],
+    `${why}: each end tick named by its numeral, every other tick "a tick"`,
+  );
+  assert.strictEqual(
+    figure.name,
+    `a number line, labelled ${clauseOf(ends)}; ${mark}`,
+    `${why}: the figure's name`,
+  );
+  assert.isFalse(
+    [figure.name, ...figure.targets].map(unlabelled).some(hasDigit),
+    `${why}: no digit in a name but in the labels it says`,
+  );
+};
+
+/**
+ * A slip planted in the module's file: `original` stands once in `file`, a path from the checkout's
+ * root, and `replacement` takes its place.
+ */
+interface Kill {
+  readonly file: string;
+  readonly original: string;
+  readonly replacement: string;
+  readonly why: string;
+}
+
+/**
+ * The line's names' kills: each a slip a change to the module could make, written into its file.
+ */
+const kills: readonly Kill[] = [
+  {
+    file: "packages/plate/src/alpha/pci-modules/tap-point.js",
+    original: 'return printed.length === 0 ? "a tick" :',
+    replacement: 'return printed.length === 0 ? "a tick, " + String(x) :',
+    why: "an inner tick named by its place",
+  },
+  {
+    file: "packages/plate/src/alpha/pci-modules/tap-point.js",
+    original: "clauseOf(lineLabels(figure).map(({ numeral }) => numeral))",
+    replacement:
+      'clauseOf(lineLabels(figure).map(({ numeral }) => numeral)).concat(" in ", String(figure.parts), " equal parts")',
+    why: "the figure saying its parts",
+  },
+  {
+    file: "packages/plate/src/alpha/pci-modules/tap-point.js",
+    original: "markNames[figure.kind][mark.kind]",
+    replacement:
+      'markNames[figure.kind][mark.kind] + (mark.kind === "at" ? ", " + String(mark.point[0]) : "")',
+    why: "the mark saying which tick",
+  },
+  {
+    file: "packages/plate/src/alpha/pci-modules/tap-point.js",
+    original: 'none: "no tick marked"',
+    replacement: 'none: "no point marked"',
+    why: "an empty line's mark reading the grid's",
+  },
+  {
+    file: "packages/plate/src/alpha/pci-modules/tap-point.js",
+    original: "clauseOf(lineLabels(figure).map(({ numeral }) => numeral))",
+    replacement: "clauseOf([String(figure.start), String(figure.end)])",
+    why: "the figure naming its ends ungrouped",
+  },
+  {
+    file: "packages/plate/src/alpha/pci-modules/tap-point.js",
+    original: ".filter(({ tick }) => tick === x)",
+    replacement: ".filter(({ tick }) => tick === x && tick === 0)",
+    why: "the end tick left unnamed",
+  },
+];
+
+/**
  * The Appendix C JSON of a line's single integer response, `{ base: null }` for NULL.
  *
  * @param tick The tick's place, `null` for NULL.
@@ -334,21 +443,61 @@ const withProperties = (
   ),
 });
 
+/**
+ * The module's file with a kill's slip planted in it.
+ *
+ * @param script The module's file.
+ * @param planted The kill.
+ * @returns The planted file.
+ */
+const plantedIn = (script: string, planted: Kill): string => {
+  assert.strictEqual(
+    script.split(planted.original).length,
+    2,
+    `${planted.why}: its original stands once in the module's file`,
+  );
+
+  return script.replace(planted.original, planted.replacement);
+};
+
+/**
+ * Require the names of a fraction line and a whole-number line, untouched and with a tick marked.
+ *
+ * @param page The page, serving the module or a planted one.
+ * @returns Once required.
+ */
+const lineNames = (page: HostedPage) =>
+  Effect.forEach(
+    [
+      ["line-0-1-5", 5],
+      ["line-40000-50000-10", 10],
+    ] as const,
+    ([name, parts]) =>
+      Effect.gen(function* named() {
+        const item = yield* Effect.orDie(hostedItem(tapPoint, name));
+        const figure = yield* started(page, item, {});
+
+        assertLineNames(figure, parts, false, name);
+        yield* tapped(page, figure, [[2, 0]]);
+
+        const after = yield* Effect.orDie(page.read(readFigure));
+
+        assertLineNames(after, parts, true, `${name}, a tick marked`);
+        assert.deepStrictEqual(after.targets, figure.targets, `${name}: no name moved`);
+      }),
+    { discard: true },
+  );
+
 layer(HostedLayer)("the tap-point PCI", (it) => {
   for (const [name, parts, ends, said] of [
-    ["line-0-1-5", 5, ["0", "1"], "a number line from 0 to 1 in 5 equal parts"],
-    ["line-0-2-8", 8, ["0", "2"], "a number line from 0 to 2 in 8 equal parts"],
-    [
-      "line-40000-50000-10",
-      10,
-      ["40,000", "50,000"],
-      "a number line from 40,000 to 50,000 in 10 equal parts",
-    ],
+    ["line-0-1-5", 5, ["0", "1"], "a number line, labelled 0 and 1"],
+    ["line-0-2-8", 8, ["0", "2"], "a number line, labelled 0 and 2"],
+    ["line-40000-50000-10", 10, ["40,000", "50,000"], "a number line, labelled 40,000 and 50,000"],
     [
       "line-990000-1000000-10",
       10,
       ["990,000", "1,000,000"],
-      "a number line from 990,000 to 1,000,000 in 10 equal parts",
+      "a number line, labelled 990,000 and 1,000,000",
     ],
   ] as const) {
     it.effect(
@@ -383,7 +532,8 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
           assert.deepStrictEqual(figure.marks, [], "nothing marked");
           assert.isTrue(figure.fits, "the whole line fits AlphaTest's frame");
           assert.isTrue(figure.inside, "every numeral inside the drawing");
-          assert.strictEqual(figure.name, `${said}; no point marked`);
+          assert.strictEqual(figure.name, `${said}; no tick marked`);
+          assertLineNames(figure, parts, false, name);
           if (ends.every((end) => end.length <= 2)) {
             assert.strictEqual(
               figure.box,
@@ -495,6 +645,8 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
                 expected === null ? 0 : 1,
                 `${why}: one mark at most`,
               );
+              assertLineNames(after, 5, expected !== null, why);
+              assert.deepStrictEqual(after.targets, figure.targets, `${why}: no name moved`);
 
               if (expected !== null) {
                 const at = placeOf(after, [expected, 0]);
@@ -523,6 +675,29 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
           { discard: true },
         );
       }),
+  );
+
+  it.effect("TP1a's kills: each slip planted in the module's file fails the line's names", () =>
+    Effect.gen(function* killed() {
+      const script = yield* Effect.orDie(moduleScript(tapPoint));
+
+      yield* lineNames(yield* Hosted);
+
+      const survivors = yield* Effect.forEach(kills, (planted) =>
+        Effect.scoped(
+          Effect.gen(function* survives() {
+            const page = yield* Effect.orDie(
+              hostedPageServing(tapPoint, plantedIn(script, planted)),
+            );
+            const exit = yield* Effect.exit(lineNames(page));
+
+            return Exit.isFailure(exit) ? [] : [planted.why];
+          }),
+        ),
+      );
+
+      assert.deepStrictEqual(survivors.flat(), [], "every slip is caught");
+    }),
   );
 
   it.effect(
@@ -614,6 +789,7 @@ layer(HostedLayer)("the tap-point PCI", (it) => {
       const lineFigure = yield* started(page, line, { boundTo: { base: { integer: 2 } } });
 
       assert.strictEqual(lineFigure.marks.length, 1);
+      assertLineNames(lineFigure, 5, true, "bound to a tick");
       assert.deepStrictEqual((yield* finished(page)).response, lineJson(2));
 
       const gridFigure = yield* started(page, grid, { boundTo: { list: { integer: [3, 6] } } });

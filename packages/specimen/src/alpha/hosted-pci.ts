@@ -363,21 +363,31 @@ window.completePci = () => new Promise((settle) => { window.completed = settle; 
 const ListeningAddress = Schema.Struct({ port: Schema.Number });
 
 /**
+ * Read a module's file, as the harness serves it.
+ *
+ * @param module The module.
+ * @returns Its text.
+ */
+export const moduleScript = (
+  module: AlphaPciModule<string>,
+): Effect.Effect<string, HostedPciFailure> =>
+  attempt(`read plate's ${module.id} module file`, () => readFile(module.script, "utf8"));
+
+/**
  * The harness's server on a loopback port the system chose, closed with its scope: the host page at
- * `/`, plate's frame page at `/frame.html` with plate's headers, and the module file at the path
+ * `/`, plate's frame page at `/frame.html` with plate's headers, and the module's text at the path
  * the items name.
  *
  * @param module The module.
+ * @param script The text served as its file.
  * @returns The server's origin.
  */
 const harnessServer = (
   module: AlphaPciModule<string>,
+  script: string,
 ): Effect.Effect<string, HostedPciFailure, Scope.Scope> =>
   Effect.gen(function* serveModule() {
     const frame = yield* framePage.pipe(Effect.provide(Digest.layerWebCrypto));
-    const script = yield* attempt(`read plate's ${module.id} module file`, () =>
-      readFile(module.script),
-    );
     const serve = (request: IncomingMessage, response: ServerResponse): void => {
       const { pathname } = new URL(request.url ?? "/", "http://localhost");
 
@@ -494,16 +504,19 @@ export interface HostedPage {
 const pageHeight = 1300;
 
 /**
- * Open a page of the harness in Chrome, serving one module.
+ * Open a page of the harness in Chrome, serving a module at its path with the text given: its own
+ * file's, or that text with a slip planted in it, as a suite's kill runs it.
  *
  * @param module The module.
+ * @param script The text served as its file.
  * @returns The page, closed with its scope.
  */
-export const hostedPage = (
+export const hostedPageServing = (
   module: AlphaPciModule<string>,
+  script: string,
 ): Effect.Effect<HostedPage, HostedPciFailure, Scope.Scope> =>
   Effect.gen(function* openHostedPage() {
-    const origin = yield* harnessServer(module);
+    const origin = yield* harnessServer(module, script);
     const browser = yield* chrome.browser;
     const page: Page = yield* chrome.pageOf(browser, {
       viewport: { height: pageHeight, width: 1300 },
@@ -620,3 +633,14 @@ export const hostedPage = (
         ),
     } satisfies HostedPage;
   });
+
+/**
+ * Open a page of the harness in Chrome, serving one module's file.
+ *
+ * @param module The module.
+ * @returns The page, closed with its scope.
+ */
+export const hostedPage = (
+  module: AlphaPciModule<string>,
+): Effect.Effect<HostedPage, HostedPciFailure, Scope.Scope> =>
+  Effect.flatMap(moduleScript(module), (script) => hostedPageServing(module, script));
