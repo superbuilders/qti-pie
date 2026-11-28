@@ -107,9 +107,16 @@ const onMaintenance = (statement: string) =>
  * measured 0.4 s that way against 94 to 138 s by default. A file copy checkpoints, which a test
  * server's durability (no fsync) makes cheap.
  *
- * The drop names no `FORCE`: the file's layers are released before this scope closes, and a
- * DbLayer's release returns only once the server has closed each of its sessions, their temporary
- * tables removed (grizzle's pool end), so no backend of the file is left in its database.
+ * The drop is `WITH (FORCE)`. The file's layers are released before this scope closes, but a
+ * DbLayer's release (grizzle's pool end) returns once the client's sockets close, not once the
+ * server's backends have exited: each backend exits after its client is gone, and PostgreSQL gives
+ * no event for that exit, so a plain drop, which waits 5 s for other sessions and then refuses with
+ * 55006, races it, and a backend's exit outlasts the wait on a loaded server (FORM-AUDIO's t4941,
+ * 2026-11-28, at 70% memory pressure). A forced drop terminates any backend still in the database,
+ * so it holds with no clock, as `scripts/db.sh` and the ledger's result install drop theirs. A
+ * layer whose pool was never ended has its sessions terminated with the database, and its next
+ * statement fails naming the termination; grizzle gives the client no proof that a pool ended, so
+ * one never used again is not seen here.
  *
  * @param file - The file, which names its database: a member of its package's closed union of
  *   writing files, at most 18 bytes.
@@ -121,7 +128,7 @@ export const fileDatabase = (file: string) =>
     const lane = yield* clusterDatabase;
     const database = yield* Schema.decodeUnknownEffect(DatabaseName)(`${lane}_${file}`);
 
-    const drop = onMaintenance(`DROP DATABASE IF EXISTS "${database}"`);
+    const drop = onMaintenance(`DROP DATABASE IF EXISTS "${database}" WITH (FORCE)`);
 
     yield* drop;
     yield* Effect.acquireRelease(
