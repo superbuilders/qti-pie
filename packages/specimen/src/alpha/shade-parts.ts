@@ -537,7 +537,7 @@ export interface ShadePage {
    */
   readonly complete: Effect.Effect<FrameMessage, ShadePartsFailure>;
   /**
-   * Read what the frame shows.
+   * Read what the frame shows, once its layout has settled.
    */
   readonly drawn: Effect.Effect<Drawn, ShadePartsFailure>;
   /**
@@ -1067,6 +1067,38 @@ export const shadePage: Effect.Effect<ShadePage, ShadePartsFailure, Scope.Scope>
     );
 
     /**
+     * Read what the frame shows, once what its layout says is still to come has come
+     * ({@link settledFor}), so every read of a part measures it where the page has laid it out.
+     * The frame is sandboxed, of an opaque origin, so Chrome runs it in a process of its own, and
+     * under load its module runs and it posts `ready` before the browser has handed it its
+     * viewport: until then its viewport is 0 by 0, `elementFromPoint` finds nothing at a part's
+     * centre, and the part would measure as no disc at all. The settle waits for the frame's own
+     * `resize` to that viewport, never for a time.
+     *
+     * Observed 2026-11-28: the frame's size waits on the page's lifecycle, which waits on Chrome's
+     * compositor (its `gpu-process`), and the frame's messages do not. With the compositor stopped
+     * 1 s in every 1.05 s, 69 of 115 SP0 reads in five runs, read on `ready` alone, found the
+     * viewport 0 by 0 and each failed as `part 0 holds a 44 px disc`; read once settled, 115 of 115
+     * found it 1000 by 1200 and passed.
+     *
+     * @param step The step, for a failure.
+     * @returns What the frame shows.
+     */
+    const read = (step: string) =>
+      Effect.gen(function* settledRead() {
+        const frame = yield* inner;
+
+        yield* settledFor(
+          frame,
+          attempt,
+          step,
+          (why) => new ShadePartsFailure({ cause: why, step: "settle the PCI's frame" }),
+        );
+
+        return yield* attempt(step, () => frame.evaluate(readDrawn));
+      });
+
+    /**
      * Tap elements of the frame's document, in order, each named with where inside its own box the
      * tap lands, and delivered to it there.
      *
@@ -1092,9 +1124,7 @@ export const shadePage: Effect.Effect<ShadePage, ShadePartsFailure, Scope.Scope>
       complete: attempt("complete the PCI", () =>
         page.evaluate<FrameMessage>("window.completePci()"),
       ),
-      drawn: inner.pipe(
-        Effect.flatMap((frame) => attempt("read the frame", () => frame.evaluate(readDrawn))),
-      ),
+      drawn: read("read the frame"),
       messages: attempt("read the frame's messages", () =>
         page.evaluate<readonly FrameMessage[]>("window.frameMessages"),
       ),
@@ -1130,7 +1160,7 @@ export const shadePage: Effect.Effect<ShadePage, ShadePartsFailure, Scope.Scope>
       swipe: (place, by) =>
         Effect.gen(function* swipe() {
           const frame = yield* inner;
-          const drawn = yield* attempt("read the parts", () => frame.evaluate(readDrawn));
+          const drawn = yield* read("read the parts");
           const inBox = drawn.parts[place]?.inBox;
 
           if (inBox === undefined) {
@@ -1153,8 +1183,7 @@ export const shadePage: Effect.Effect<ShadePage, ShadePartsFailure, Scope.Scope>
           return { after, before, cancelled };
         }),
       tap: (places) =>
-        inner.pipe(
-          Effect.flatMap((frame) => attempt("read the parts", () => frame.evaluate(readDrawn))),
+        read("read the parts").pipe(
           Effect.flatMap((drawn) =>
             tapped(
               places.map((place) => {
